@@ -73,7 +73,7 @@ dependencies {
     compile group: 'org.opensearch', name: 'opensearch', version: "${es_version}"
     compile project(':sql')
     compile project(':common')
-    compile project(':elasticsearch')
+    compile project(':opensearch')
 
     // ANTLR gradle plugin and runtime dependency
     antlr "org.antlr:antlr4:4.7.1"
