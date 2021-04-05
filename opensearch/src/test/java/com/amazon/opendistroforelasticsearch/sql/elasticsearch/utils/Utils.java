@@ -19,8 +19,8 @@ package com.amazon.opendistroforelasticsearch.sql.elasticsearch.utils;
 
 import com.amazon.opendistroforelasticsearch.sql.ast.tree.Sort;
 import com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.logical.ElasticsearchLogicalIndexAgg;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.logical.ElasticsearchLogicalIndexScan;
+import com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.logical.OpenSearchLogicalIndexAgg;
+import com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.logical.OpenSearchLogicalIndexScan;
 import com.amazon.opendistroforelasticsearch.sql.expression.Expression;
 import com.amazon.opendistroforelasticsearch.sql.expression.NamedExpression;
 import com.amazon.opendistroforelasticsearch.sql.expression.ReferenceExpression;
@@ -42,7 +42,7 @@ public class Utils {
    * Build ElasticsearchLogicalIndexScan.
    */
   public static LogicalPlan indexScan(String tableName, Expression filter) {
-    return ElasticsearchLogicalIndexScan.builder().relationName(tableName).filter(filter).build();
+    return OpenSearchLogicalIndexScan.builder().relationName(tableName).filter(filter).build();
   }
 
   /**
@@ -50,7 +50,7 @@ public class Utils {
    */
   public static LogicalPlan indexScan(String tableName,
                                       Pair<Sort.SortOption, Expression>... sorts) {
-    return ElasticsearchLogicalIndexScan.builder().relationName(tableName)
+    return OpenSearchLogicalIndexScan.builder().relationName(tableName)
         .sortList(Arrays.asList(sorts))
         .build();
   }
@@ -61,7 +61,7 @@ public class Utils {
   public static LogicalPlan indexScan(String tableName,
                                       Expression filter,
                                       Pair<Sort.SortOption, Expression>... sorts) {
-    return ElasticsearchLogicalIndexScan.builder().relationName(tableName)
+    return OpenSearchLogicalIndexScan.builder().relationName(tableName)
         .filter(filter)
         .sortList(Arrays.asList(sorts))
         .build();
@@ -72,7 +72,7 @@ public class Utils {
    */
   public static LogicalPlan indexScan(String tableName, Integer offset, Integer limit,
                                       Set<ReferenceExpression> projectList) {
-    return ElasticsearchLogicalIndexScan.builder().relationName(tableName)
+    return OpenSearchLogicalIndexScan.builder().relationName(tableName)
         .offset(offset)
         .limit(limit)
         .projectList(projectList)
@@ -86,7 +86,7 @@ public class Utils {
                                       Expression filter,
                                       Integer offset, Integer limit,
                                       Set<ReferenceExpression> projectList) {
-    return ElasticsearchLogicalIndexScan.builder().relationName(tableName)
+    return OpenSearchLogicalIndexScan.builder().relationName(tableName)
         .filter(filter)
         .offset(offset)
         .limit(limit)
@@ -102,7 +102,7 @@ public class Utils {
                                       Integer offset, Integer limit,
                                       List<Pair<Sort.SortOption, Expression>> sorts,
                                       Set<ReferenceExpression> projectList) {
-    return ElasticsearchLogicalIndexScan.builder().relationName(tableName)
+    return OpenSearchLogicalIndexScan.builder().relationName(tableName)
         .filter(filter)
         .sortList(sorts)
         .offset(offset)
@@ -116,7 +116,7 @@ public class Utils {
    */
   public static LogicalPlan indexScan(String tableName,
                                       Set<ReferenceExpression> projects) {
-    return ElasticsearchLogicalIndexScan.builder()
+    return OpenSearchLogicalIndexScan.builder()
         .relationName(tableName)
         .projectList(projects)
         .build();
@@ -127,7 +127,7 @@ public class Utils {
    */
   public static LogicalPlan indexScan(String tableName, Expression filter,
                                       Set<ReferenceExpression> projects) {
-    return ElasticsearchLogicalIndexScan.builder()
+    return OpenSearchLogicalIndexScan.builder()
         .relationName(tableName)
         .filter(filter)
         .projectList(projects)
@@ -139,7 +139,7 @@ public class Utils {
    */
   public static LogicalPlan indexScanAgg(String tableName, List<NamedAggregator> aggregators,
                                          List<NamedExpression> groupByList) {
-    return ElasticsearchLogicalIndexAgg.builder().relationName(tableName)
+    return OpenSearchLogicalIndexAgg.builder().relationName(tableName)
         .aggregatorList(aggregators).groupByList(groupByList).build();
   }
 
@@ -149,7 +149,7 @@ public class Utils {
   public static LogicalPlan indexScanAgg(String tableName, List<NamedAggregator> aggregators,
                                          List<NamedExpression> groupByList,
                                          List<Pair<Sort.SortOption, Expression>> sortList) {
-    return ElasticsearchLogicalIndexAgg.builder().relationName(tableName)
+    return OpenSearchLogicalIndexAgg.builder().relationName(tableName)
         .aggregatorList(aggregators).groupByList(groupByList).sortList(sortList).build();
   }
 
@@ -160,7 +160,7 @@ public class Utils {
                                          Expression filter,
                                          List<NamedAggregator> aggregators,
                                          List<NamedExpression> groupByList) {
-    return ElasticsearchLogicalIndexAgg.builder().relationName(tableName).filter(filter)
+    return OpenSearchLogicalIndexAgg.builder().relationName(tableName).filter(filter)
         .aggregatorList(aggregators).groupByList(groupByList).build();
   }
 

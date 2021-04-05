@@ -18,7 +18,7 @@ package com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.logical.
 import static com.amazon.opendistroforelasticsearch.sql.planner.optimizer.pattern.Patterns.source;
 import static com.facebook.presto.matching.Pattern.typeOf;
 
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.logical.ElasticsearchLogicalIndexScan;
+import com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.logical.OpenSearchLogicalIndexScan;
 import com.amazon.opendistroforelasticsearch.sql.planner.logical.LogicalLimit;
 import com.amazon.opendistroforelasticsearch.sql.planner.logical.LogicalPlan;
 import com.amazon.opendistroforelasticsearch.sql.planner.optimizer.Rule;
@@ -31,7 +31,7 @@ import lombok.experimental.Accessors;
 @Getter
 public class MergeLimitAndIndexScan implements Rule<LogicalLimit> {
 
-  private final Capture<ElasticsearchLogicalIndexScan> indexScanCapture;
+  private final Capture<OpenSearchLogicalIndexScan> indexScanCapture;
 
   @Accessors(fluent = true)
   private final Pattern<LogicalLimit> pattern;
@@ -43,14 +43,14 @@ public class MergeLimitAndIndexScan implements Rule<LogicalLimit> {
     this.indexScanCapture = Capture.newCapture();
     this.pattern = typeOf(LogicalLimit.class)
         .with(source()
-            .matching(typeOf(ElasticsearchLogicalIndexScan.class).capturedAs(indexScanCapture)));
+            .matching(typeOf(OpenSearchLogicalIndexScan.class).capturedAs(indexScanCapture)));
   }
 
   @Override
   public LogicalPlan apply(LogicalLimit plan, Captures captures) {
-    ElasticsearchLogicalIndexScan indexScan = captures.get(indexScanCapture);
-    ElasticsearchLogicalIndexScan.ElasticsearchLogicalIndexScanBuilder builder =
-        ElasticsearchLogicalIndexScan.builder();
+    OpenSearchLogicalIndexScan indexScan = captures.get(indexScanCapture);
+    OpenSearchLogicalIndexScan.OpenSearchLogicalIndexScanBuilder builder =
+        OpenSearchLogicalIndexScan.builder();
     builder.relationName(indexScan.getRelationName())
         .filter(indexScan.getFilter())
         .offset(plan.getOffset())

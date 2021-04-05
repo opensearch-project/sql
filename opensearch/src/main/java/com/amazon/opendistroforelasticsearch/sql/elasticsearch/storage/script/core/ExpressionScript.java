@@ -23,7 +23,7 @@ import static java.util.stream.Collectors.toMap;
 
 import com.amazon.opendistroforelasticsearch.sql.data.model.ExprValue;
 import com.amazon.opendistroforelasticsearch.sql.data.type.ExprType;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.data.value.ElasticsearchExprValueFactory;
+import com.amazon.opendistroforelasticsearch.sql.elasticsearch.data.value.OpenSearchExprValueFactory;
 import com.amazon.opendistroforelasticsearch.sql.elasticsearch.storage.script.ScriptUtils;
 import com.amazon.opendistroforelasticsearch.sql.expression.Expression;
 import com.amazon.opendistroforelasticsearch.sql.expression.ExpressionNodeVisitor;
@@ -57,7 +57,7 @@ public class ExpressionScript {
    * ElasticsearchExprValueFactory.
    */
   @EqualsAndHashCode.Exclude
-  private final ElasticsearchExprValueFactory valueFactory;
+  private final OpenSearchExprValueFactory valueFactory;
 
   /**
    * Reference Fields.
@@ -74,7 +74,7 @@ public class ExpressionScript {
         extractFields(expression));
     this.valueFactory =
         AccessController.doPrivileged(
-            (PrivilegedAction<ElasticsearchExprValueFactory>) () -> buildValueFactory(fields));
+            (PrivilegedAction<OpenSearchExprValueFactory>) () -> buildValueFactory(fields));
   }
 
   /**
@@ -107,16 +107,16 @@ public class ExpressionScript {
     return fields;
   }
 
-  private ElasticsearchExprValueFactory buildValueFactory(Set<ReferenceExpression> fields) {
+  private OpenSearchExprValueFactory buildValueFactory(Set<ReferenceExpression> fields) {
     Map<String, ExprType> typeEnv = fields.stream()
         .collect(toMap(
             ReferenceExpression::getAttr,
             ReferenceExpression::type));
-    return new ElasticsearchExprValueFactory(typeEnv);
+    return new OpenSearchExprValueFactory(typeEnv);
   }
 
   private Environment<Expression, ExprValue> buildValueEnv(
-      Set<ReferenceExpression> fields, ElasticsearchExprValueFactory valueFactory,
+      Set<ReferenceExpression> fields, OpenSearchExprValueFactory valueFactory,
       Supplier<Map<String, ScriptDocValues<?>>> docProvider) {
 
     Map<Expression, ExprValue> valueEnv = new HashMap<>();

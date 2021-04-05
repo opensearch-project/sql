@@ -33,7 +33,7 @@ public class ErrorMessageFactoryTest {
     Exception exception = new OpenSearchException(nonEsThrowable);
     ErrorMessage msg =
         ErrorMessageFactory.createErrorMessage(exception, RestStatus.BAD_REQUEST.getStatus());
-    assertTrue(msg instanceof ElasticsearchErrorMessage);
+    assertTrue(msg instanceof OpenSearchErrorMessage);
   }
 
   @Test
@@ -41,7 +41,7 @@ public class ErrorMessageFactoryTest {
     Exception exception = new Exception(nonEsThrowable);
     ErrorMessage msg =
         ErrorMessageFactory.createErrorMessage(exception, RestStatus.BAD_REQUEST.getStatus());
-    assertFalse(msg instanceof ElasticsearchErrorMessage);
+    assertFalse(msg instanceof OpenSearchErrorMessage);
   }
 
   @Test
@@ -49,7 +49,7 @@ public class ErrorMessageFactoryTest {
     Exception exception = (Exception) esThrowable;
     ErrorMessage msg =
         ErrorMessageFactory.createErrorMessage(exception, RestStatus.BAD_REQUEST.getStatus());
-    assertTrue(msg instanceof ElasticsearchErrorMessage);
+    assertTrue(msg instanceof OpenSearchErrorMessage);
   }
 
   @Test
@@ -57,6 +57,6 @@ public class ErrorMessageFactoryTest {
     Exception exception = new Exception(new Throwable(new Throwable(esThrowable)));
     ErrorMessage msg =
         ErrorMessageFactory.createErrorMessage(exception, RestStatus.BAD_REQUEST.getStatus());
-    assertTrue(msg instanceof ElasticsearchErrorMessage);
+    assertTrue(msg instanceof OpenSearchErrorMessage);
   }
 }

@@ -20,7 +20,7 @@ package com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.logical.
 import static com.amazon.opendistroforelasticsearch.sql.planner.optimizer.pattern.Patterns.source;
 import static com.facebook.presto.matching.Pattern.typeOf;
 
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.logical.ElasticsearchLogicalIndexScan;
+import com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.logical.OpenSearchLogicalIndexScan;
 import com.amazon.opendistroforelasticsearch.sql.planner.logical.LogicalFilter;
 import com.amazon.opendistroforelasticsearch.sql.planner.logical.LogicalPlan;
 import com.amazon.opendistroforelasticsearch.sql.planner.logical.LogicalRelation;
@@ -55,7 +55,7 @@ public class MergeFilterAndRelation implements Rule<LogicalFilter> {
   public LogicalPlan apply(LogicalFilter filter,
                            Captures captures) {
     LogicalRelation relation = captures.get(relationCapture);
-    return ElasticsearchLogicalIndexScan
+    return OpenSearchLogicalIndexScan
         .builder()
         .relationName(relation.getRelationName())
         .filter(filter.getCondition())

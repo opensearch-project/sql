@@ -21,7 +21,7 @@ import static com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.lo
 import static com.amazon.opendistroforelasticsearch.sql.planner.optimizer.pattern.Patterns.source;
 import static com.facebook.presto.matching.Pattern.typeOf;
 
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.logical.ElasticsearchLogicalIndexScan;
+import com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.logical.OpenSearchLogicalIndexScan;
 import com.amazon.opendistroforelasticsearch.sql.expression.ReferenceExpression;
 import com.amazon.opendistroforelasticsearch.sql.planner.logical.LogicalPlan;
 import com.amazon.opendistroforelasticsearch.sql.planner.logical.LogicalProject;
@@ -66,7 +66,7 @@ public class PushProjectAndRelation implements Rule<LogicalProject> {
                            Captures captures) {
     LogicalRelation relation = captures.get(relationCapture);
     return new LogicalProject(
-        ElasticsearchLogicalIndexScan
+        OpenSearchLogicalIndexScan
             .builder()
             .relationName(relation.getRelationName())
             .projectList(findReferenceExpressions(project.getProjectList()))

@@ -28,7 +28,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.query.DescribeQueryActio
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.QueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.ShowQueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.SqlElasticRequestBuilder;
-import com.amazon.opendistroforelasticsearch.sql.legacy.query.SqlElasticSearchRequestBuilder;
+import com.amazon.opendistroforelasticsearch.sql.legacy.query.SqlOpenSearchRequestBuilder;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.join.ESJoinQueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.multi.MultiQueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.multi.MultiQueryRequestBuilder;
@@ -46,7 +46,7 @@ import java.util.List;
  */
 public class QueryActionElasticExecutor {
     public static SearchHits executeSearchAction(DefaultQueryAction searchQueryAction) throws SqlParseException {
-        SqlElasticSearchRequestBuilder builder = searchQueryAction.explain();
+        SqlOpenSearchRequestBuilder builder = searchQueryAction.explain();
         return ((SearchResponse) builder.get()).getHits();
     }
 
@@ -60,7 +60,7 @@ public class QueryActionElasticExecutor {
 
     public static Aggregations executeAggregationAction(AggregationQueryAction aggregationQueryAction)
             throws SqlParseException {
-        SqlElasticSearchRequestBuilder select = aggregationQueryAction.explain();
+        SqlOpenSearchRequestBuilder select = aggregationQueryAction.explain();
         return ((SearchResponse) select.get()).getAggregations();
     }
 

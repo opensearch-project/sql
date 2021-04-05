@@ -135,7 +135,7 @@ public class RestSQLQueryAction extends BaseRestHandler {
       context.registerBean(ClusterService.class, () -> clusterService);
       context.registerBean(NodeClient.class, () -> client);
       context.registerBean(Settings.class, () -> pluginSettings);
-      context.register(ElasticsearchSQLPluginConfig.class);
+      context.register(OpenSearchSQLPluginConfig.class);
       context.register(SQLServiceConfig.class);
       context.refresh();
       return context.getBean(SQLService.class);

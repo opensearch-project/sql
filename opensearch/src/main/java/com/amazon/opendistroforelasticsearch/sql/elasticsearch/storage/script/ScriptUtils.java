@@ -17,7 +17,7 @@
 
 package com.amazon.opendistroforelasticsearch.sql.elasticsearch.storage.script;
 
-import static com.amazon.opendistroforelasticsearch.sql.elasticsearch.data.type.ElasticsearchDataType.ES_TEXT_KEYWORD;
+import static com.amazon.opendistroforelasticsearch.sql.elasticsearch.data.type.OpenSearchDataType.ES_TEXT_KEYWORD;
 
 import com.amazon.opendistroforelasticsearch.sql.data.type.ExprType;
 import lombok.experimental.UtilityClass;

@@ -21,7 +21,7 @@ import static com.amazon.opendistroforelasticsearch.sql.planner.optimizer.patter
 import static com.facebook.presto.matching.Pattern.typeOf;
 
 import com.amazon.opendistroforelasticsearch.sql.ast.tree.Sort;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.logical.ElasticsearchLogicalIndexScan;
+import com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.logical.OpenSearchLogicalIndexScan;
 import com.amazon.opendistroforelasticsearch.sql.expression.Expression;
 import com.amazon.opendistroforelasticsearch.sql.planner.logical.LogicalPlan;
 import com.amazon.opendistroforelasticsearch.sql.planner.logical.LogicalSort;
@@ -39,7 +39,7 @@ import org.apache.commons.lang3.tuple.Pair;
  */
 public class MergeSortAndIndexScan implements Rule<LogicalSort> {
 
-  private final Capture<ElasticsearchLogicalIndexScan> indexScanCapture;
+  private final Capture<OpenSearchLogicalIndexScan> indexScanCapture;
   private final Pattern<LogicalSort> pattern;
 
   /**
@@ -49,7 +49,7 @@ public class MergeSortAndIndexScan implements Rule<LogicalSort> {
     this.indexScanCapture = Capture.newCapture();
     this.pattern = typeOf(LogicalSort.class).matching(OptimizationRuleUtils::sortByFieldsOnly)
         .with(source()
-            .matching(typeOf(ElasticsearchLogicalIndexScan.class).capturedAs(indexScanCapture)));
+            .matching(typeOf(OpenSearchLogicalIndexScan.class).capturedAs(indexScanCapture)));
   }
 
   @Override
@@ -60,9 +60,9 @@ public class MergeSortAndIndexScan implements Rule<LogicalSort> {
   @Override
   public LogicalPlan apply(LogicalSort sort,
                            Captures captures) {
-    ElasticsearchLogicalIndexScan indexScan = captures.get(indexScanCapture);
+    OpenSearchLogicalIndexScan indexScan = captures.get(indexScanCapture);
 
-    return ElasticsearchLogicalIndexScan
+    return OpenSearchLogicalIndexScan
         .builder()
         .relationName(indexScan.getRelationName())
         .filter(indexScan.getFilter())

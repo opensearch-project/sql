@@ -83,11 +83,11 @@ public class DefaultQueryAction extends QueryAction {
     }
 
     @Override
-    public SqlElasticSearchRequestBuilder explain() throws SqlParseException {
+    public SqlOpenSearchRequestBuilder explain() throws SqlParseException {
         Objects.requireNonNull(this.sqlRequest, "SqlRequest is required for ES request build");
         buildRequest();
         checkAndSetScroll();
-        return new SqlElasticSearchRequestBuilder(request);
+        return new SqlOpenSearchRequestBuilder(request);
     }
 
     private void buildRequest() throws SqlParseException {

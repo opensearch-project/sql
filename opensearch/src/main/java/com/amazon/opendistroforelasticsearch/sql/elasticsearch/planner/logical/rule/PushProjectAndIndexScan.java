@@ -21,7 +21,7 @@ import static com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.lo
 import static com.amazon.opendistroforelasticsearch.sql.planner.optimizer.pattern.Patterns.source;
 import static com.facebook.presto.matching.Pattern.typeOf;
 
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.logical.ElasticsearchLogicalIndexScan;
+import com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.logical.OpenSearchLogicalIndexScan;
 import com.amazon.opendistroforelasticsearch.sql.expression.ReferenceExpression;
 import com.amazon.opendistroforelasticsearch.sql.planner.logical.LogicalPlan;
 import com.amazon.opendistroforelasticsearch.sql.planner.logical.LogicalProject;
@@ -36,7 +36,7 @@ import java.util.Set;
  */
 public class PushProjectAndIndexScan implements Rule<LogicalProject> {
 
-  private final Capture<ElasticsearchLogicalIndexScan> indexScanCapture;
+  private final Capture<OpenSearchLogicalIndexScan> indexScanCapture;
 
   private final Pattern<LogicalProject> pattern;
 
@@ -52,7 +52,7 @@ public class PushProjectAndIndexScan implements Rule<LogicalProject> {
           pushDownProjects = findReferenceExpressions(project.getProjectList());
           return !pushDownProjects.isEmpty();
         }).with(source()
-        .matching(typeOf(ElasticsearchLogicalIndexScan.class)
+        .matching(typeOf(OpenSearchLogicalIndexScan.class)
             .matching(indexScan -> !indexScan.hasProjects())
             .capturedAs(indexScanCapture)));
 
@@ -66,7 +66,7 @@ public class PushProjectAndIndexScan implements Rule<LogicalProject> {
   @Override
   public LogicalPlan apply(LogicalProject project,
                            Captures captures) {
-    ElasticsearchLogicalIndexScan indexScan = captures.get(indexScanCapture);
+    OpenSearchLogicalIndexScan indexScan = captures.get(indexScanCapture);
     indexScan.setProjectList(pushDownProjects);
     return new LogicalProject(indexScan, project.getProjectList());
   }

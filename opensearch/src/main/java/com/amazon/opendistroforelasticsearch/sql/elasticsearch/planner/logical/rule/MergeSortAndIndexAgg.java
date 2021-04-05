@@ -21,7 +21,7 @@ import static com.amazon.opendistroforelasticsearch.sql.planner.optimizer.patter
 import static com.facebook.presto.matching.Pattern.typeOf;
 
 import com.amazon.opendistroforelasticsearch.sql.ast.tree.Sort;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.logical.ElasticsearchLogicalIndexAgg;
+import com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.logical.OpenSearchLogicalIndexAgg;
 import com.amazon.opendistroforelasticsearch.sql.expression.Expression;
 import com.amazon.opendistroforelasticsearch.sql.expression.ReferenceExpression;
 import com.amazon.opendistroforelasticsearch.sql.expression.aggregation.NamedAggregator;
@@ -43,7 +43,7 @@ import org.apache.commons.lang3.tuple.Pair;
  */
 public class MergeSortAndIndexAgg implements Rule<LogicalSort> {
 
-  private final Capture<ElasticsearchLogicalIndexAgg> indexAggCapture;
+  private final Capture<OpenSearchLogicalIndexAgg> indexAggCapture;
 
   @Accessors(fluent = true)
   @Getter
@@ -63,7 +63,7 @@ public class MergeSortAndIndexAgg implements Rule<LogicalSort> {
           sortRef.set(sort);
           return true;
         })
-        .with(source().matching(typeOf(ElasticsearchLogicalIndexAgg.class)
+        .with(source().matching(typeOf(OpenSearchLogicalIndexAgg.class)
             .matching(indexAgg -> !hasAggregatorInSortBy(sortRef.get(), indexAgg))
             .capturedAs(indexAggCapture)));
   }
@@ -71,8 +71,8 @@ public class MergeSortAndIndexAgg implements Rule<LogicalSort> {
   @Override
   public LogicalPlan apply(LogicalSort sort,
                            Captures captures) {
-    ElasticsearchLogicalIndexAgg indexAgg = captures.get(indexAggCapture);
-    return ElasticsearchLogicalIndexAgg.builder()
+    OpenSearchLogicalIndexAgg indexAgg = captures.get(indexAggCapture);
+    return OpenSearchLogicalIndexAgg.builder()
         .relationName(indexAgg.getRelationName())
         .filter(indexAgg.getFilter())
         .groupByList(indexAgg.getGroupByList())
@@ -81,7 +81,7 @@ public class MergeSortAndIndexAgg implements Rule<LogicalSort> {
         .build();
   }
 
-  private boolean hasAggregatorInSortBy(LogicalSort sort, ElasticsearchLogicalIndexAgg agg) {
+  private boolean hasAggregatorInSortBy(LogicalSort sort, OpenSearchLogicalIndexAgg agg) {
     final Set<String> aggregatorNames =
         agg.getAggregatorList().stream().map(NamedAggregator::getName).collect(Collectors.toSet());
     for (Pair<Sort.SortOption, Expression> sortPair : sort.getSortList()) {

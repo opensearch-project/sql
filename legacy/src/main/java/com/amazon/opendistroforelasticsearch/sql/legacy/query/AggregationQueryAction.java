@@ -63,7 +63,7 @@ public class AggregationQueryAction extends QueryAction {
     }
 
     @Override
-    public SqlElasticSearchRequestBuilder explain() throws SqlParseException {
+    public SqlOpenSearchRequestBuilder explain() throws SqlParseException {
         this.request = new SearchRequestBuilder(client, SearchAction.INSTANCE);
 
         if (select.getRowCount() == null) {
@@ -238,7 +238,7 @@ public class AggregationQueryAction extends QueryAction {
         updateRequestWithHighlight(select, request);
         updateRequestWithCollapse(select, request);
         updateRequestWithPostFilter(select, request);
-        return new SqlElasticSearchRequestBuilder(request);
+        return new SqlOpenSearchRequestBuilder(request);
     }
 
     private AggregationBuilder getGroupAgg(Field groupByField, Select select) throws SqlParseException {

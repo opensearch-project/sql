@@ -15,7 +15,7 @@
 
 package com.amazon.opendistroforelasticsearch.sql.legacy.unittest;
 
-import com.amazon.opendistroforelasticsearch.sql.legacy.executor.format.ElasticsearchErrorMessage;
+import com.amazon.opendistroforelasticsearch.sql.legacy.executor.format.OpenSearchErrorMessage;
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.format.ErrorMessage;
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.format.ErrorMessageFactory;
 import org.opensearch.OpenSearchException;
@@ -32,28 +32,28 @@ public class ErrorMessageFactoryTest {
     public void esExceptionShouldCreateEsErrorMessage() {
         Exception exception = new OpenSearchException(nonEsThrowable);
         ErrorMessage msg = ErrorMessageFactory.createErrorMessage(exception, RestStatus.BAD_REQUEST.getStatus());
-        Assert.assertTrue(msg instanceof ElasticsearchErrorMessage);
+        Assert.assertTrue(msg instanceof OpenSearchErrorMessage);
     }
 
     @Test
     public void nonEsExceptionShouldCreateGenericErrorMessage() {
         Exception exception = new Exception(nonEsThrowable);
         ErrorMessage msg = ErrorMessageFactory.createErrorMessage(exception, RestStatus.BAD_REQUEST.getStatus());
-        Assert.assertFalse(msg instanceof ElasticsearchErrorMessage);
+        Assert.assertFalse(msg instanceof OpenSearchErrorMessage);
     }
 
     @Test
     public void nonEsExceptionWithWrappedEsExceptionCauseShouldCreateEsErrorMessage() {
         Exception exception = (Exception) esThrowable;
         ErrorMessage msg = ErrorMessageFactory.createErrorMessage(exception, RestStatus.BAD_REQUEST.getStatus());
-        Assert.assertTrue(msg instanceof ElasticsearchErrorMessage);
+        Assert.assertTrue(msg instanceof OpenSearchErrorMessage);
     }
 
     @Test
     public void nonEsExceptionWithMultiLayerWrappedEsExceptionCauseShouldCreateEsErrorMessage() {
         Exception exception = new Exception(new Throwable(new Throwable(esThrowable)));
         ErrorMessage msg = ErrorMessageFactory.createErrorMessage(exception, RestStatus.BAD_REQUEST.getStatus());
-        Assert.assertTrue(msg instanceof ElasticsearchErrorMessage);
+        Assert.assertTrue(msg instanceof OpenSearchErrorMessage);
     }
 
 }

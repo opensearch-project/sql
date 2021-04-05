@@ -20,7 +20,7 @@ package com.amazon.opendistroforelasticsearch.sql.elasticsearch.storage.script.a
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.DOUBLE;
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.INTEGER;
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.STRING;
-import static com.amazon.opendistroforelasticsearch.sql.elasticsearch.data.type.ElasticsearchDataType.ES_TEXT_KEYWORD;
+import static com.amazon.opendistroforelasticsearch.sql.elasticsearch.data.type.OpenSearchDataType.ES_TEXT_KEYWORD;
 import static com.amazon.opendistroforelasticsearch.sql.elasticsearch.utils.Utils.agg;
 import static com.amazon.opendistroforelasticsearch.sql.elasticsearch.utils.Utils.avg;
 import static com.amazon.opendistroforelasticsearch.sql.elasticsearch.utils.Utils.group;

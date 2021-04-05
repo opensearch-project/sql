@@ -159,7 +159,7 @@ public class RestPPLQueryAction extends BaseRestHandler {
       context.registerBean(ClusterService.class, () -> clusterService);
       context.registerBean(NodeClient.class, () -> client);
       context.registerBean(Settings.class, () -> pluginSettings);
-      context.register(ElasticsearchPluginConfig.class);
+      context.register(OpenSearchPluginConfig.class);
       context.register(PPLServiceConfig.class);
       context.refresh();
       return context.getBean(PPLService.class);

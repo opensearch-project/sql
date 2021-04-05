@@ -21,7 +21,7 @@ public class ErrorMessageFactory {
     /**
      * Create error message based on the exception type
      * Exceptions of ES exception type and exceptions with wrapped ES exception causes
-     * should create {@link ElasticsearchErrorMessage}
+     * should create {@link OpenSearchErrorMessage}
      *
      * @param e         exception to create error message
      * @param status    exception status code
@@ -30,11 +30,11 @@ public class ErrorMessageFactory {
 
     public static ErrorMessage createErrorMessage(Exception e, int status) {
         if (e instanceof OpenSearchException) {
-            return new ElasticsearchErrorMessage((OpenSearchException) e,
+            return new OpenSearchErrorMessage((OpenSearchException) e,
                     ((OpenSearchException) e).status().getStatus());
         } else if (unwrapCause(e) instanceof OpenSearchException) {
             OpenSearchException exception = (OpenSearchException) unwrapCause(e);
-            return new ElasticsearchErrorMessage(exception, exception.status().getStatus());
+            return new OpenSearchErrorMessage(exception, exception.status().getStatus());
         }
         return new ErrorMessage(e, status);
     }

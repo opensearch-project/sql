@@ -20,8 +20,8 @@ package com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.logical.
 import static com.amazon.opendistroforelasticsearch.sql.planner.optimizer.pattern.Patterns.source;
 import static com.facebook.presto.matching.Pattern.typeOf;
 
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.logical.ElasticsearchLogicalIndexAgg;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.logical.ElasticsearchLogicalIndexScan;
+import com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.logical.OpenSearchLogicalIndexAgg;
+import com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.logical.OpenSearchLogicalIndexScan;
 import com.amazon.opendistroforelasticsearch.sql.planner.logical.LogicalAggregation;
 import com.amazon.opendistroforelasticsearch.sql.planner.logical.LogicalPlan;
 import com.amazon.opendistroforelasticsearch.sql.planner.optimizer.Rule;
@@ -36,7 +36,7 @@ import lombok.experimental.Accessors;
  */
 public class MergeAggAndIndexScan implements Rule<LogicalAggregation> {
 
-  private final Capture<ElasticsearchLogicalIndexScan> capture;
+  private final Capture<OpenSearchLogicalIndexScan> capture;
 
   @Accessors(fluent = true)
   @Getter
@@ -48,7 +48,7 @@ public class MergeAggAndIndexScan implements Rule<LogicalAggregation> {
   public MergeAggAndIndexScan() {
     this.capture = Capture.newCapture();
     this.pattern = typeOf(LogicalAggregation.class)
-        .with(source().matching(typeOf(ElasticsearchLogicalIndexScan.class)
+        .with(source().matching(typeOf(OpenSearchLogicalIndexScan.class)
             .matching(indexScan -> !indexScan.hasLimit())
             .capturedAs(capture)));
   }
@@ -56,8 +56,8 @@ public class MergeAggAndIndexScan implements Rule<LogicalAggregation> {
   @Override
   public LogicalPlan apply(LogicalAggregation aggregation,
                            Captures captures) {
-    ElasticsearchLogicalIndexScan indexScan = captures.get(capture);
-    return ElasticsearchLogicalIndexAgg
+    OpenSearchLogicalIndexScan indexScan = captures.get(capture);
+    return OpenSearchLogicalIndexAgg
         .builder()
         .relationName(indexScan.getRelationName())
         .filter(indexScan.getFilter())

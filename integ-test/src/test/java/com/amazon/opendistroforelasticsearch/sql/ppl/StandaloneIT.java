@@ -20,11 +20,11 @@ import static com.amazon.opendistroforelasticsearch.sql.protocol.response.format
 
 import com.amazon.opendistroforelasticsearch.sql.common.response.ResponseListener;
 import com.amazon.opendistroforelasticsearch.sql.common.setting.Settings;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.client.ElasticsearchClient;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.client.ElasticsearchRestClient;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.executor.ElasticsearchExecutionEngine;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.executor.protector.ElasticsearchExecutionProtector;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.storage.ElasticsearchStorageEngine;
+import com.amazon.opendistroforelasticsearch.sql.elasticsearch.client.OpenSearchClient;
+import com.amazon.opendistroforelasticsearch.sql.elasticsearch.client.OpenSearchRestClient;
+import com.amazon.opendistroforelasticsearch.sql.elasticsearch.executor.OpenSearchExecutionEngine;
+import com.amazon.opendistroforelasticsearch.sql.elasticsearch.executor.protector.OpenSearchExecutionProtector;
+import com.amazon.opendistroforelasticsearch.sql.elasticsearch.storage.OpenSearchStorageEngine;
 import com.amazon.opendistroforelasticsearch.sql.executor.ExecutionEngine;
 import com.amazon.opendistroforelasticsearch.sql.executor.ExecutionEngine.QueryResponse;
 import com.amazon.opendistroforelasticsearch.sql.monitor.AlwaysHealthyMonitor;
@@ -60,12 +60,12 @@ public class StandaloneIT extends PPLIntegTestCase {
     // Using client() defined in ODFERestTestCase.
     restClient = new InternalRestHighLevelClient(client());
 
-    ElasticsearchClient client = new ElasticsearchRestClient(restClient);
+    OpenSearchClient client = new OpenSearchRestClient(restClient);
     AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
     context.registerBean(StorageEngine.class,
-        () -> new ElasticsearchStorageEngine(client, defaultSettings()));
-    context.registerBean(ExecutionEngine.class, () -> new ElasticsearchExecutionEngine(client,
-        new ElasticsearchExecutionProtector(new AlwaysHealthyMonitor())));
+        () -> new OpenSearchStorageEngine(client, defaultSettings()));
+    context.registerBean(ExecutionEngine.class, () -> new OpenSearchExecutionEngine(client,
+        new OpenSearchExecutionProtector(new AlwaysHealthyMonitor())));
     context.register(PPLServiceConfig.class);
     context.refresh();
 

@@ -36,9 +36,9 @@ public class DescribeQueryAction extends QueryAction {
     }
 
     @Override
-    public SqlElasticSearchRequestBuilder explain() {
+    public SqlOpenSearchRequestBuilder explain() {
         final GetIndexRequestBuilder indexRequestBuilder = Util.prepareIndexRequestBuilder(client, statement);
 
-        return new SqlElasticSearchRequestBuilder(indexRequestBuilder);
+        return new SqlOpenSearchRequestBuilder(indexRequestBuilder);
     }
 }
