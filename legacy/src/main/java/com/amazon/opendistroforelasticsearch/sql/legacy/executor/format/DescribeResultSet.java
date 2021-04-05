@@ -20,10 +20,10 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.executor.format.DataRows
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.format.Schema.Column;
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.format.Schema.Type;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.opensearch.action.admin.indices.get.GetIndexResponse;
+import org.opensearch.client.Client;
+import org.opensearch.cluster.metadata.MappingMetadata;
+import org.opensearch.common.collect.ImmutableOpenMap;
 
 import java.util.ArrayList;
 import java.util.HashMap;

@@ -20,8 +20,8 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.physical.P
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.physical.Row;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.physical.estimation.Cost;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.resource.blocksize.BlockSize;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.opensearch.common.Strings;
+import org.opensearch.index.query.BoolQueryBuilder;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,8 +31,8 @@ import java.util.Objects;
 
 import static com.alibaba.druid.sql.ast.statement.SQLJoinTableSource.JoinType;
 import static com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.logical.node.Join.JoinCondition;
-import static org.elasticsearch.index.query.QueryBuilders.boolQuery;
-import static org.elasticsearch.index.query.QueryBuilders.termsQuery;
+import static org.opensearch.index.query.QueryBuilders.boolQuery;
+import static org.opensearch.index.query.QueryBuilders.termsQuery;
 
 /**
  * Block-based Hash Join implementation

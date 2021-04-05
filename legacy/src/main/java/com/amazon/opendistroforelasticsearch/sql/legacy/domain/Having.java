@@ -23,8 +23,8 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.parser.HavingParser;
 import com.amazon.opendistroforelasticsearch.sql.legacy.parser.NestedType;
 import com.amazon.opendistroforelasticsearch.sql.legacy.parser.WhereParser;
 import com.google.common.collect.Iterables;
-import org.elasticsearch.script.Script;
-import org.elasticsearch.search.aggregations.AggregationBuilder;
+import org.opensearch.script.Script;
+import org.opensearch.search.aggregations.AggregationBuilder;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.stream.Collectors.joining;
-import static org.elasticsearch.search.aggregations.PipelineAggregatorBuilders.bucketSelector;
+import static org.opensearch.search.aggregations.PipelineAggregatorBuilders.bucketSelector;
 
 /**
  * Domain object for HAVING clause in SQL which covers both the parsing and explain logic.

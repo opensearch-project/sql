@@ -20,8 +20,8 @@ package com.amazon.opendistroforelasticsearch.sql.elasticsearch.storage.script.a
 import com.amazon.opendistroforelasticsearch.sql.expression.Expression;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
-import org.elasticsearch.script.AggregationScript;
-import org.elasticsearch.search.lookup.SearchLookup;
+import org.opensearch.script.AggregationScript;
+import org.opensearch.search.lookup.SearchLookup;
 
 /**
  * Aggregation Expression script factory that generates leaf factory.

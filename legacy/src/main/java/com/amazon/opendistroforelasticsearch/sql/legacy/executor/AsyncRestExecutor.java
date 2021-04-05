@@ -24,14 +24,14 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.query.join.BackOffRetryS
 import com.amazon.opendistroforelasticsearch.sql.legacy.utils.LogUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.rest.BytesRestResponse;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestStatus;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.Transports;
+import org.opensearch.OpenSearchException;
+import org.opensearch.client.Client;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.RestStatus;
+import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.Transports;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -119,7 +119,7 @@ public class AsyncRestExecutor implements RestExecutor {
         Runnable runnable = () -> {
             try {
                 doExecuteWithTimeMeasured(client, params, queryAction, channel);
-            } catch (IOException | SqlParseException | ElasticsearchException e) {
+            } catch (IOException | SqlParseException | OpenSearchException e) {
                 Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
                 LOG.warn("[{}] [MCB] async task got an IO/SQL exception: {}", LogUtils.getRequestId(),
                         e.getMessage());

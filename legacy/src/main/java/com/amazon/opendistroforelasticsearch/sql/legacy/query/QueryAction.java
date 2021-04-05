@@ -25,15 +25,15 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.exception.SqlParseExcept
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.Format;
 import com.amazon.opendistroforelasticsearch.sql.legacy.request.SqlRequest;
 import com.fasterxml.jackson.core.JsonFactory;
-import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.json.JsonXContentParser;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.collapse.CollapseBuilder;
-import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
+import org.opensearch.action.search.SearchRequestBuilder;
+import org.opensearch.action.support.IndicesOptions;
+import org.opensearch.client.Client;
+import org.opensearch.common.xcontent.LoggingDeprecationHandler;
+import org.opensearch.common.xcontent.NamedXContentRegistry;
+import org.opensearch.common.xcontent.json.JsonXContentParser;
+import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.search.collapse.CollapseBuilder;
+import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 
 import java.io.IOException;
 import java.util.ArrayList;

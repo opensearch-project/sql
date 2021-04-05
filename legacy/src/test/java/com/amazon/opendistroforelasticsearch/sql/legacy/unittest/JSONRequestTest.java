@@ -28,7 +28,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.query.SqlElasticRequestB
 import com.amazon.opendistroforelasticsearch.sql.legacy.request.SqlRequest;
 import com.amazon.opendistroforelasticsearch.sql.legacy.util.CheckScriptContents;
 import com.google.common.io.Files;
-import org.elasticsearch.client.Client;
+import org.opensearch.client.Client;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Ignore;

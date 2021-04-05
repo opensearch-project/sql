@@ -25,8 +25,8 @@ import com.amazon.opendistroforelasticsearch.sql.expression.env.Environment;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
 import org.apache.lucene.index.LeafReaderContext;
-import org.elasticsearch.script.AggregationScript;
-import org.elasticsearch.search.lookup.SearchLookup;
+import org.opensearch.script.AggregationScript;
+import org.opensearch.search.lookup.SearchLookup;
 
 /**
  * Aggregation expression script that executed on each document.

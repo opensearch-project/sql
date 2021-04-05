@@ -29,15 +29,15 @@ import java.io.InputStreamReader;
 import java.util.Arrays;
 import org.apache.http.ProtocolVersion;
 import org.apache.http.message.BasicStatusLine;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.RestClient;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.opensearch.client.Request;
+import org.opensearch.client.Response;
+import org.opensearch.client.RestClient;
 
 /**
  * Tests for {@link ESConnection}

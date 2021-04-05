@@ -20,7 +20,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.core.Confi
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.core.QueryParams;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.core.QueryPlanner;
 import com.amazon.opendistroforelasticsearch.sql.legacy.request.SqlRequest;
-import org.elasticsearch.client.Client;
+import org.opensearch.client.Client;
 
 /**
  * QueryPlanner builder for Hash Join query. In future, different queries could have its own builders to generate

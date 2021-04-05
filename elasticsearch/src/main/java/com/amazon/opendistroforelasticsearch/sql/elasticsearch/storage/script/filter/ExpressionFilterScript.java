@@ -25,8 +25,8 @@ import com.amazon.opendistroforelasticsearch.sql.expression.env.Environment;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
 import org.apache.lucene.index.LeafReaderContext;
-import org.elasticsearch.script.FilterScript;
-import org.elasticsearch.search.lookup.SearchLookup;
+import org.opensearch.script.FilterScript;
+import org.opensearch.search.lookup.SearchLookup;
 
 /**
  * Expression script executor that executes the expression on each document

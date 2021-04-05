@@ -23,7 +23,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.domain.hints.Hint;
 import com.amazon.opendistroforelasticsearch.sql.legacy.domain.hints.HintType;
 import com.amazon.opendistroforelasticsearch.sql.legacy.exception.SqlParseException;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.HashJoinQueryPlanRequestBuilder;
-import org.elasticsearch.client.Client;
+import org.opensearch.client.Client;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;

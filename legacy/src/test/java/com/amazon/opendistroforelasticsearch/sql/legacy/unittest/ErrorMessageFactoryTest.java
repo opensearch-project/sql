@@ -18,19 +18,19 @@ package com.amazon.opendistroforelasticsearch.sql.legacy.unittest;
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.format.ElasticsearchErrorMessage;
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.format.ErrorMessage;
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.format.ErrorMessageFactory;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.rest.RestStatus;
+import org.opensearch.OpenSearchException;
+import org.opensearch.rest.RestStatus;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class ErrorMessageFactoryTest {
 
     private Throwable nonEsThrowable = new Throwable();
-    private Throwable esThrowable = new ElasticsearchException(nonEsThrowable);
+    private Throwable esThrowable = new OpenSearchException(nonEsThrowable);
 
     @Test
     public void esExceptionShouldCreateEsErrorMessage() {
-        Exception exception = new ElasticsearchException(nonEsThrowable);
+        Exception exception = new OpenSearchException(nonEsThrowable);
         ErrorMessage msg = ErrorMessageFactory.createErrorMessage(exception, RestStatus.BAD_REQUEST.getStatus());
         Assert.assertTrue(msg instanceof ElasticsearchErrorMessage);
     }

@@ -59,9 +59,9 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.rewriter.ordinal.Ordinal
 import com.amazon.opendistroforelasticsearch.sql.legacy.rewriter.parent.SQLExprParentSetterRule;
 import com.amazon.opendistroforelasticsearch.sql.legacy.rewriter.subquery.SubQueryRewriteRule;
 import com.google.common.annotations.VisibleForTesting;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHits;
+import org.opensearch.client.Client;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
 
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;

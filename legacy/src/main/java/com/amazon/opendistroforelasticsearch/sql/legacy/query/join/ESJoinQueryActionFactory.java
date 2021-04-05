@@ -20,7 +20,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.domain.JoinSelect;
 import com.amazon.opendistroforelasticsearch.sql.legacy.domain.hints.Hint;
 import com.amazon.opendistroforelasticsearch.sql.legacy.domain.hints.HintType;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.QueryAction;
-import org.elasticsearch.client.Client;
+import org.opensearch.client.Client;
 
 import java.util.List;
 

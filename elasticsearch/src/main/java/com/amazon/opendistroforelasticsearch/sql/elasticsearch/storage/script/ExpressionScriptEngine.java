@@ -25,10 +25,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
-import org.elasticsearch.script.AggregationScript;
-import org.elasticsearch.script.FilterScript;
-import org.elasticsearch.script.ScriptContext;
-import org.elasticsearch.script.ScriptEngine;
+import org.opensearch.script.AggregationScript;
+import org.opensearch.script.FilterScript;
+import org.opensearch.script.ScriptContext;
+import org.opensearch.script.ScriptEngine;
 
 /**
  * Custom expression script engine that supports using core engine expression code in DSL

@@ -39,7 +39,7 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import lombok.EqualsAndHashCode;
-import org.elasticsearch.index.fielddata.ScriptDocValues;
+import org.opensearch.index.fielddata.ScriptDocValues;
 
 /**
  * Expression script executor that executes the expression on each document

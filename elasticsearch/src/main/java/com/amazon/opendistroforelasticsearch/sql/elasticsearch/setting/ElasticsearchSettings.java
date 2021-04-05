@@ -17,7 +17,7 @@
 
 package com.amazon.opendistroforelasticsearch.sql.elasticsearch.setting;
 
-import static org.elasticsearch.common.settings.Settings.EMPTY;
+import static org.opensearch.common.settings.Settings.EMPTY;
 
 import com.amazon.opendistroforelasticsearch.sql.common.setting.Settings;
 import com.google.common.annotations.VisibleForTesting;
@@ -29,8 +29,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Setting;
+import org.opensearch.common.settings.ClusterSettings;
+import org.opensearch.common.settings.Setting;
 
 /**
  * Setting implementation on Elasticsearch.

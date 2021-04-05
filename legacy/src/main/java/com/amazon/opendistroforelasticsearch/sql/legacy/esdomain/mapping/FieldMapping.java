@@ -22,7 +22,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.utils.StringUtils;
 import java.util.Map;
 
 import static java.util.Collections.emptyMap;
-import static org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsResponse.FieldMappingMetadata;
+import static org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsResponse.FieldMappingMetadata;
 
 /**
  * Field mapping that parses native ES mapping.

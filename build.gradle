@@ -15,17 +15,23 @@
 
 buildscript {
     ext {
-        es_version = "7.10.2"
+        es_version = "7.10.3-SNAPSHOT"
     }
 
     repositories {
         mavenCentral()
-        maven { url "https://plugins.gradle.org/m2/" }
+        maven {
+            url = 's3://search-vemsarat/'
+            credentials(AwsCredentials) {
+                accessKey = "AKIAUPQMZBE7UNXZ7YU2"
+                secretKey = "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"
+            }
+        }
         jcenter()
     }
 
     dependencies {
-        classpath "org.elasticsearch.gradle:build-tools:${es_version}"
+        classpath "org.opensearch.gradle:build-tools:${es_version}"
     }
 }
 
@@ -52,6 +58,19 @@ allprojects {
 
     plugins.withId('java') {
         sourceCompatibility = targetCompatibility = "1.8"
+    }
+}
+
+subprojects {
+    repositories {
+        mavenCentral()
+        maven {
+            url = 's3://search-vemsarat/'
+            credentials(AwsCredentials) {
+                accessKey = "AKIAUPQMZBE7UNXZ7YU2"
+                secretKey = "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"
+            }
+        }
     }
 }
 

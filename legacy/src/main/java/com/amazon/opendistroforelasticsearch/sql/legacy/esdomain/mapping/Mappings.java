@@ -17,7 +17,7 @@ package com.amazon.opendistroforelasticsearch.sql.legacy.esdomain.mapping;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.collect.ImmutableMap;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.opensearch.common.collect.ImmutableOpenMap;
 
 import java.util.Collection;
 import java.util.Map;

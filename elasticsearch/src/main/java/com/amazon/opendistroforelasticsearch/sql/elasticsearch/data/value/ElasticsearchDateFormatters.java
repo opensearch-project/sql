@@ -34,7 +34,7 @@ import lombok.experimental.UtilityClass;
 
 /**
  * DateTimeFormatter.
- * Reference org.elasticsearch.common.time.DateFormatters.
+ * Reference org.opensearch.common.time.DateFormatters.
  */
 @UtilityClass
 public class ElasticsearchDateFormatters {

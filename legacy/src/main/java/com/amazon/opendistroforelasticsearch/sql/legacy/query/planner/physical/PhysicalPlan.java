@@ -23,7 +23,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.physical.e
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.resource.ResourceManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.search.SearchHit;
+import org.opensearch.search.SearchHit;
 
 import java.util.ArrayList;
 import java.util.List;

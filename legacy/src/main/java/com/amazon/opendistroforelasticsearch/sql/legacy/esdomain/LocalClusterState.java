@@ -21,13 +21,13 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.index.IndexNotFoundException;
+import org.opensearch.action.support.IndicesOptions;
+import org.opensearch.cluster.ClusterState;
+import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.collect.Tuple;
+import org.opensearch.common.settings.Setting;
+import org.opensearch.index.IndexNotFoundException;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -39,7 +39,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static org.elasticsearch.common.settings.Settings.EMPTY;
+import static org.opensearch.common.settings.Settings.EMPTY;
 
 /**
  * Local cluster state information which may be stale but help avoid blocking operation in NIO thread.

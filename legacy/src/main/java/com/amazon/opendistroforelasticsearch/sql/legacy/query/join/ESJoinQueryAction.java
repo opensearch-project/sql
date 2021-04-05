@@ -26,7 +26,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.query.QueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.SqlElasticRequestBuilder;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.HashJoinQueryPlanRequestBuilder;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.core.Config;
-import org.elasticsearch.client.Client;
+import org.opensearch.client.Client;
 
 import java.util.List;
 

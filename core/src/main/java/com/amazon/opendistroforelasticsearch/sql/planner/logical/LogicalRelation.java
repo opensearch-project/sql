@@ -16,10 +16,8 @@
 package com.amazon.opendistroforelasticsearch.sql.planner.logical;
 
 import com.google.common.collect.ImmutableList;
-import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 
 /**

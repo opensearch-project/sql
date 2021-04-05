@@ -21,9 +21,9 @@ import static com.amazon.opendistroforelasticsearch.sql.util.MatcherUtils.rows;
 import static com.amazon.opendistroforelasticsearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
-import org.elasticsearch.client.ResponseException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.client.ResponseException;
 
 public class OperatorIT extends PPLIntegTestCase {
   @Override

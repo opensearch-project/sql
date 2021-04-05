@@ -16,13 +16,13 @@
 package com.amazon.opendistroforelasticsearch.sql.legacy.executor.format;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.utils.StringUtils;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.action.search.SearchPhaseExecutionException;
-import org.elasticsearch.action.search.ShardSearchFailure;
+import org.opensearch.OpenSearchException;
+import org.opensearch.action.search.SearchPhaseExecutionException;
+import org.opensearch.action.search.ShardSearchFailure;
 
-public class ElasticsearchErrorMessage extends ErrorMessage<ElasticsearchException> {
+public class ElasticsearchErrorMessage extends ErrorMessage<OpenSearchException> {
 
-    ElasticsearchErrorMessage(ElasticsearchException exception, int status) {
+    ElasticsearchErrorMessage(OpenSearchException exception, int status) {
         super(exception, status);
     }
 
@@ -45,14 +45,14 @@ public class ElasticsearchErrorMessage extends ErrorMessage<ElasticsearchExcepti
         return details.toString();
     }
 
-    private String defaultDetails(ElasticsearchException exception) {
+    private String defaultDetails(OpenSearchException exception) {
         return exception.getDetailedMessage();
     }
 
     /**
      * Could not deliver the exactly same error messages due to the limit of JDBC types.
      * Currently our cases occurred only SearchPhaseExecutionException instances among all types of ES exceptions
-     * according to the survey, see all types: ElasticsearchException.ElasticsearchExceptionHandle.
+     * according to the survey, see all types: OpenSearchException.OpenSearchExceptionHandle.
      * Either add methods of fetching details for different types, or re-make a consistent message by not giving
      * detailed messages/root causes but only a suggestion message.
      */

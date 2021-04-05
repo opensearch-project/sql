@@ -28,15 +28,6 @@ import static org.hamcrest.Matchers.is;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.function.Function;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.ResponseException;
-import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.rest.RestStatus;
-import org.elasticsearch.search.SearchHit;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.FeatureMatcher;
@@ -47,6 +38,15 @@ import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.client.ResponseException;
+import org.opensearch.common.xcontent.LoggingDeprecationHandler;
+import org.opensearch.common.xcontent.NamedXContentRegistry;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.common.xcontent.XContentParser;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.rest.RestStatus;
+import org.opensearch.search.SearchHit;
 
 /**
  * Integration test cases for both rewriting and projection logic.

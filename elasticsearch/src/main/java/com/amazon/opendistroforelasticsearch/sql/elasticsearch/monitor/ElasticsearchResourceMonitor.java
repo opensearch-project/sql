@@ -22,7 +22,7 @@ import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import java.util.function.Supplier;
 import lombok.extern.log4j.Log4j2;
-import org.elasticsearch.common.unit.ByteSizeValue;
+import org.opensearch.common.unit.ByteSizeValue;
 
 /**
  * {@link ResourceMonitor} implementation on Elasticsearch. When the heap memory usage exceeds

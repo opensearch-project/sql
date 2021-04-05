@@ -18,9 +18,9 @@ package com.amazon.opendistroforelasticsearch.sql.legacy.esdomain;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.join.BackOffRetryStrategy;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.search.MultiSearchRequest;
-import org.elasticsearch.action.search.MultiSearchResponse;
-import org.elasticsearch.client.Client;
+import org.opensearch.action.search.MultiSearchRequest;
+import org.opensearch.action.search.MultiSearchResponse;
+import org.opensearch.client.Client;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,7 +53,7 @@ public class ESClient {
         }
         MultiSearchResponse.Item[] res = client.multiSearch(multiSearchRequestRetry).actionGet().getResponses();
         List<Integer> indicesFailure = new ArrayList<>();
-        //Could get EsRejectedExecutionException and ElasticsearchException as getCause
+        //Could get EsRejectedExecutionException and OpenSearchException as getCause
         for (int i = 0; i < res.length; i++) {
             if (res[i].isFailure()) {
                 indicesFailure.add(indices.get(i));

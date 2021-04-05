@@ -32,16 +32,16 @@ import com.amazon.opendistroforelasticsearch.sql.elasticsearch.data.value.Elasti
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import org.apache.lucene.search.TotalHits;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHits;
-import org.elasticsearch.search.aggregations.Aggregations;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
+import org.opensearch.search.aggregations.Aggregations;
 
 @ExtendWith(MockitoExtension.class)
 class ElasticsearchResponseTest {

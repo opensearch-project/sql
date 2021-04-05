@@ -16,7 +16,7 @@
 package com.amazon.opendistroforelasticsearch.sql.legacy.plugin;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.Format;
-import org.elasticsearch.common.settings.Setting;
+import org.opensearch.common.settings.Setting;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,9 +24,9 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.Collections.unmodifiableMap;
-import static org.elasticsearch.common.settings.Setting.Property.Dynamic;
-import static org.elasticsearch.common.settings.Setting.Property.NodeScope;
-import static org.elasticsearch.common.unit.TimeValue.timeValueMinutes;
+import static org.opensearch.common.settings.Setting.Property.Dynamic;
+import static org.opensearch.common.settings.Setting.Property.NodeScope;
+import static org.opensearch.common.unit.TimeValue.timeValueMinutes;
 
 /**
  * SQL plugin settings

@@ -20,7 +20,7 @@ import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
 import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
 import com.amazon.opendistroforelasticsearch.sql.legacy.exception.SqlParseException;
 import com.amazon.opendistroforelasticsearch.sql.legacy.utils.Util;
-import org.elasticsearch.script.ScriptType;
+import org.opensearch.script.ScriptType;
 
 import java.util.HashMap;
 import java.util.List;

@@ -17,7 +17,7 @@ package com.amazon.opendistroforelasticsearch.sql.legacy.query.multi;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.exception.SqlParseException;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.QueryAction;
-import org.elasticsearch.client.Client;
+import org.opensearch.client.Client;
 
 /**
  * Created by Eliran on 19/8/2016.

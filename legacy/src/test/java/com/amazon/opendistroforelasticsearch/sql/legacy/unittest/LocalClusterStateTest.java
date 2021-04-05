@@ -21,9 +21,9 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.esdomain.mapping.IndexMa
 import com.amazon.opendistroforelasticsearch.sql.legacy.esdomain.mapping.TypeMappings;
 import com.amazon.opendistroforelasticsearch.sql.legacy.util.TestsConstants;
 import com.amazon.opendistroforelasticsearch.sql.legacy.plugin.SqlSettings;
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterStateListener;
-import org.elasticsearch.cluster.service.ClusterService;
+import org.opensearch.cluster.ClusterChangedEvent;
+import org.opensearch.cluster.ClusterStateListener;
+import org.opensearch.cluster.service.ClusterService;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

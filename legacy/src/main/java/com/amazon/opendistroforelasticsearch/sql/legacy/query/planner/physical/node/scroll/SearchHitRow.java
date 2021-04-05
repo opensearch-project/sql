@@ -17,10 +17,10 @@ package com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.physical.
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.physical.Row;
 import com.google.common.base.Strings;
-import org.elasticsearch.common.document.DocumentField;
-import org.elasticsearch.common.text.Text;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.search.SearchHit;
+import org.opensearch.common.document.DocumentField;
+import org.opensearch.common.text.Text;
+import org.opensearch.index.mapper.MapperService;
+import org.opensearch.search.SearchHit;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -19,11 +19,11 @@ package com.amazon.opendistroforelasticsearch.sql.legacy;
 import static org.hamcrest.Matchers.equalTo;
 
 import java.io.IOException;
-import org.elasticsearch.client.ResponseException;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.opensearch.client.ResponseException;
 
 /**
  * Test cases for writing missing join table aliases.

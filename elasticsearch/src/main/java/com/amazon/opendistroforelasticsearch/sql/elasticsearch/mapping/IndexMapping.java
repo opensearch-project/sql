@@ -24,7 +24,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.ToString;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
+import org.opensearch.cluster.metadata.MappingMetadata;
 
 /**
  * Elasticsearch index mapping. Because there is no specific behavior for different field types,

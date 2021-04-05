@@ -18,7 +18,6 @@
 package com.amazon.opendistroforelasticsearch.sql.elasticsearch.planner.logical;
 
 import static com.amazon.opendistroforelasticsearch.sql.data.model.ExprValueUtils.integerValue;
-import static com.amazon.opendistroforelasticsearch.sql.data.model.ExprValueUtils.longValue;
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.DOUBLE;
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.INTEGER;
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.LONG;

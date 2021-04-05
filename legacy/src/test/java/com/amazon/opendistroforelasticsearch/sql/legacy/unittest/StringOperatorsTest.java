@@ -18,7 +18,7 @@ package com.amazon.opendistroforelasticsearch.sql.legacy.unittest;
 import com.amazon.opendistroforelasticsearch.sql.legacy.parser.ScriptFilter;
 import com.amazon.opendistroforelasticsearch.sql.legacy.parser.SqlParser;
 import com.amazon.opendistroforelasticsearch.sql.legacy.util.CheckScriptContents;
-import org.elasticsearch.search.builder.SearchSourceBuilder.ScriptField;
+import org.opensearch.search.builder.SearchSourceBuilder.ScriptField;
 import org.junit.BeforeClass;
 import org.junit.Test;
 

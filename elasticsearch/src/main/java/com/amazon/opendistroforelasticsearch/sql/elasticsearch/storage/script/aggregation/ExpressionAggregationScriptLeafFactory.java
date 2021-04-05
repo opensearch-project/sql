@@ -18,11 +18,10 @@
 package com.amazon.opendistroforelasticsearch.sql.elasticsearch.storage.script.aggregation;
 
 import com.amazon.opendistroforelasticsearch.sql.expression.Expression;
-import java.io.IOException;
 import java.util.Map;
 import org.apache.lucene.index.LeafReaderContext;
-import org.elasticsearch.script.AggregationScript;
-import org.elasticsearch.search.lookup.SearchLookup;
+import org.opensearch.script.AggregationScript;
+import org.opensearch.search.lookup.SearchLookup;
 
 /**
  * Expression script leaf factory that produces script executor for each leaf.

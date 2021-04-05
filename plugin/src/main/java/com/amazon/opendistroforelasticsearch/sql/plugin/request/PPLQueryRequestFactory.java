@@ -22,9 +22,9 @@ import com.amazon.opendistroforelasticsearch.sql.ppl.domain.PPLQueryRequest;
 import com.amazon.opendistroforelasticsearch.sql.protocol.response.format.Format;
 import java.util.Map;
 import java.util.Optional;
-import org.elasticsearch.rest.RestRequest;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.opensearch.rest.RestRequest;
 
 /**
  * Factory of {@link PPLQueryRequest}.

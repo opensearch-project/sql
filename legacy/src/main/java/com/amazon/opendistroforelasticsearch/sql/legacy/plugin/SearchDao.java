@@ -19,7 +19,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.domain.QueryActionReques
 import com.amazon.opendistroforelasticsearch.sql.legacy.exception.SqlParseException;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.ESActionFactory;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.QueryAction;
-import org.elasticsearch.client.Client;
+import org.opensearch.client.Client;
 
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.HashSet;

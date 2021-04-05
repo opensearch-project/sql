@@ -18,21 +18,21 @@ package com.amazon.opendistroforelasticsearch.sql.sql;
 
 import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
 import static com.amazon.opendistroforelasticsearch.sql.util.MatcherUtils.featureValueOf;
-import static org.elasticsearch.rest.RestStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.is;
+import static org.opensearch.rest.RestStatus.BAD_REQUEST;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.SQLIntegTestCase;
 import java.io.IOException;
 import java.util.Locale;
 import java.util.function.Function;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.ResponseException;
-import org.elasticsearch.rest.RestStatus;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.opensearch.client.Request;
+import org.opensearch.client.RequestOptions;
+import org.opensearch.client.ResponseException;
+import org.opensearch.rest.RestStatus;
 
 /**
  * The query validation IT only covers test for error cases that not doable in comparison test.

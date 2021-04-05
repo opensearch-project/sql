@@ -22,7 +22,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.query.DefaultQueryAction
 import com.amazon.opendistroforelasticsearch.sql.legacy.request.SqlRequest;
 import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
-import org.elasticsearch.client.Client;
+import org.opensearch.client.Client;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;

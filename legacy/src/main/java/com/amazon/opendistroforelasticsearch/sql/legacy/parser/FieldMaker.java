@@ -44,7 +44,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.exception.SqlParseExcept
 import com.amazon.opendistroforelasticsearch.sql.legacy.utils.SQLFunctions;
 import com.amazon.opendistroforelasticsearch.sql.legacy.utils.Util;
 import com.google.common.base.Strings;
-import org.elasticsearch.common.collect.Tuple;
+import org.opensearch.common.collect.Tuple;
 
 import java.util.ArrayList;
 import java.util.LinkedList;

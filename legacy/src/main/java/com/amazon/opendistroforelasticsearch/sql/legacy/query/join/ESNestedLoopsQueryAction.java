@@ -20,7 +20,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.domain.Where;
 import com.amazon.opendistroforelasticsearch.sql.legacy.domain.hints.Hint;
 import com.amazon.opendistroforelasticsearch.sql.legacy.domain.hints.HintType;
 import com.amazon.opendistroforelasticsearch.sql.legacy.exception.SqlParseException;
-import org.elasticsearch.client.Client;
+import org.opensearch.client.Client;
 
 /**
  * Created by Eliran on 15/9/2015.

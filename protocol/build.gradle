@@ -4,10 +4,6 @@ plugins {
     id 'jacoco'
 }
 
-repositories {
-    mavenCentral()
-}
-
 dependencies {
     // https://github.com/google/guava/wiki/CVE-2018-10237
     compile group: 'com.google.guava', name: 'guava', version: '29.0-jre'

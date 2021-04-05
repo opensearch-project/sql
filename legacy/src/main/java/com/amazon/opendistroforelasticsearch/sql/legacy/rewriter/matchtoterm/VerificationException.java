@@ -15,10 +15,10 @@
 
 package com.amazon.opendistroforelasticsearch.sql.legacy.rewriter.matchtoterm;
 
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.rest.RestStatus;
+import org.opensearch.OpenSearchException;
+import org.opensearch.rest.RestStatus;
 
-public class VerificationException extends ElasticsearchException {
+public class VerificationException extends OpenSearchException {
 
     public VerificationException(String message) {
         super(message);

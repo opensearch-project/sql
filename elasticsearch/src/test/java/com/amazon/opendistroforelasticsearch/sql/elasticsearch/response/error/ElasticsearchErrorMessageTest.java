@@ -17,23 +17,23 @@
 
 package com.amazon.opendistroforelasticsearch.sql.elasticsearch.response.error;
 
-import static org.elasticsearch.rest.RestStatus.SERVICE_UNAVAILABLE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
+import static org.opensearch.rest.RestStatus.SERVICE_UNAVAILABLE;
 
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.action.search.SearchPhaseExecutionException;
-import org.elasticsearch.action.search.ShardSearchFailure;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.OpenSearchException;
+import org.opensearch.action.search.SearchPhaseExecutionException;
+import org.opensearch.action.search.ShardSearchFailure;
 
 @ExtendWith(MockitoExtension.class)
 class ElasticsearchErrorMessageTest {
 
   @Mock
-  private ElasticsearchException elasticsearchException;
+  private OpenSearchException openSearchException;
 
   @Mock
   private SearchPhaseExecutionException searchPhaseExecutionException;
@@ -43,19 +43,19 @@ class ElasticsearchErrorMessageTest {
 
   @Test
   public void fetchReason() {
-    when(elasticsearchException.getMessage()).thenReturn("error");
+    when(openSearchException.getMessage()).thenReturn("error");
 
     ElasticsearchErrorMessage errorMessage =
-        new ElasticsearchErrorMessage(elasticsearchException, SERVICE_UNAVAILABLE.getStatus());
+        new ElasticsearchErrorMessage(openSearchException, SERVICE_UNAVAILABLE.getStatus());
     assertEquals("Error occurred in Elasticsearch engine: error", errorMessage.fetchReason());
   }
 
   @Test
-  public void fetchDetailsWithElasticsearchException() {
-    when(elasticsearchException.getDetailedMessage()).thenReturn("detail error");
+  public void fetchDetailsWithOpenSearchException() {
+    when(openSearchException.getDetailedMessage()).thenReturn("detail error");
 
     ElasticsearchErrorMessage errorMessage =
-        new ElasticsearchErrorMessage(elasticsearchException, SERVICE_UNAVAILABLE.getStatus());
+        new ElasticsearchErrorMessage(openSearchException, SERVICE_UNAVAILABLE.getStatus());
     assertEquals("detail error\n"
             + "For more details, please send request for "
             + "Json format to see the raw response from elasticsearch engine.",

@@ -17,9 +17,9 @@ package com.amazon.opendistroforelasticsearch.sql.doctest.core.response;
 
 import com.amazon.opendistroforelasticsearch.sql.util.TestUtils;
 import java.io.IOException;
-import org.elasticsearch.client.Response;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.opensearch.client.Response;
 
 /**
  * Response from SQL plugin

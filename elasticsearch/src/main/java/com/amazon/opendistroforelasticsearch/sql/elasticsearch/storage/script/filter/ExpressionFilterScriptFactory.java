@@ -19,8 +19,8 @@ package com.amazon.opendistroforelasticsearch.sql.elasticsearch.storage.script.f
 import com.amazon.opendistroforelasticsearch.sql.expression.Expression;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
-import org.elasticsearch.script.FilterScript;
-import org.elasticsearch.search.lookup.SearchLookup;
+import org.opensearch.script.FilterScript;
+import org.opensearch.search.lookup.SearchLookup;
 
 /**
  * Expression script factory that generates leaf factory.

@@ -32,11 +32,11 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.query.SqlElasticSearchRe
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.join.ESJoinQueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.multi.MultiQueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.multi.MultiQueryRequestBuilder;
-import org.elasticsearch.action.ActionResponse;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.search.SearchHits;
-import org.elasticsearch.search.aggregations.Aggregations;
+import org.opensearch.action.ActionResponse;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.client.Client;
+import org.opensearch.search.SearchHits;
+import org.opensearch.search.aggregations.Aggregations;
 
 import java.io.IOException;
 import java.util.List;

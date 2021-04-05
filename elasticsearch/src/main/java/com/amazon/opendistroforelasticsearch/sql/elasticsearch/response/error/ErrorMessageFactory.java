@@ -18,7 +18,7 @@
 package com.amazon.opendistroforelasticsearch.sql.elasticsearch.response.error;
 
 import lombok.experimental.UtilityClass;
-import org.elasticsearch.ElasticsearchException;
+import org.opensearch.OpenSearchException;
 
 @UtilityClass
 public class ErrorMessageFactory {
@@ -33,8 +33,8 @@ public class ErrorMessageFactory {
    */
   public static ErrorMessage createErrorMessage(Throwable e, int status) {
     Throwable cause = unwrapCause(e);
-    if (cause instanceof ElasticsearchException) {
-      ElasticsearchException exception = (ElasticsearchException) cause;
+    if (cause instanceof OpenSearchException) {
+      OpenSearchException exception = (OpenSearchException) cause;
       return new ElasticsearchErrorMessage(exception, exception.status().getStatus());
     }
     return new ErrorMessage(e, status);
@@ -42,7 +42,7 @@ public class ErrorMessageFactory {
 
   protected static Throwable unwrapCause(Throwable t) {
     Throwable result = t;
-    if (result instanceof ElasticsearchException) {
+    if (result instanceof OpenSearchException) {
       return result;
     }
     if (result.getCause() == null) {

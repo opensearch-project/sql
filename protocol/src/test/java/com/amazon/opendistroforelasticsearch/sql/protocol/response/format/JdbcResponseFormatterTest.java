@@ -39,10 +39,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonParser;
 import java.util.Arrays;
-import org.elasticsearch.ElasticsearchException;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.opensearch.OpenSearchException;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class JdbcResponseFormatterTest {
@@ -160,16 +160,16 @@ class JdbcResponseFormatterTest {
     assertJsonEquals(
         "{\"error\":"
             + "{\""
-            + "type\":\"ElasticsearchException\","
+            + "type\":\"OpenSearchException\","
             + "\"reason\":\"Error occurred in Elasticsearch engine: all shards failed\","
-            + "\"details\":\"ElasticsearchException[all shards failed]; "
+            + "\"details\":\"OpenSearchException[all shards failed]; "
             + "nested: IllegalStateException[Execution error];; "
             + "java.lang.IllegalStateException: Execution error\\n"
             + "For more details, please send request for Json format to see the raw response "
             + "from elasticsearch engine.\""
             + "},"
             + "\"status\":503}",
-        formatter.format(new ElasticsearchException("all shards failed",
+        formatter.format(new OpenSearchException("all shards failed",
             new IllegalStateException("Execution error")))
     );
   }

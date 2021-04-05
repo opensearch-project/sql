@@ -22,12 +22,12 @@ import static com.amazon.opendistroforelasticsearch.sql.plugin.rest.RestPPLQuery
 import com.amazon.opendistroforelasticsearch.sql.legacy.SQLIntegTestCase;
 import java.io.IOException;
 import java.util.Locale;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.Response;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Assert;
+import org.opensearch.client.Request;
+import org.opensearch.client.RequestOptions;
+import org.opensearch.client.Response;
 
 /**
  * ES Rest integration test base for PPL testing.

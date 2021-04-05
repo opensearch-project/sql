@@ -39,9 +39,9 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.query.AggregationQueryAc
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.maker.QueryMaker;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.multi.MultiQuerySelect;
 import com.amazon.opendistroforelasticsearch.sql.legacy.util.CheckScriptContents;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.search.builder.SearchSourceBuilder.ScriptField;
+import org.opensearch.client.Client;
+import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.search.builder.SearchSourceBuilder.ScriptField;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;

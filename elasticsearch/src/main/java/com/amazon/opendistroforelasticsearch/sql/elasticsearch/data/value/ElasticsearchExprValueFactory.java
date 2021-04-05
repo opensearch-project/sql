@@ -74,7 +74,7 @@ import java.util.Map;
 import java.util.function.Function;
 import lombok.AllArgsConstructor;
 import lombok.Setter;
-import org.elasticsearch.common.time.DateFormatters;
+import org.opensearch.common.time.DateFormatters;
 
 /**
  * Construct ExprValue from Elasticsearch response.

@@ -20,17 +20,17 @@ package com.amazon.opendistroforelasticsearch.sql.elasticsearch.response.error;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.rest.RestStatus;
 import org.junit.jupiter.api.Test;
+import org.opensearch.OpenSearchException;
+import org.opensearch.rest.RestStatus;
 
 public class ErrorMessageFactoryTest {
   private Throwable nonEsThrowable = new Throwable();
-  private Throwable esThrowable = new ElasticsearchException(nonEsThrowable);
+  private Throwable esThrowable = new OpenSearchException(nonEsThrowable);
 
   @Test
   public void esExceptionShouldCreateEsErrorMessage() {
-    Exception exception = new ElasticsearchException(nonEsThrowable);
+    Exception exception = new OpenSearchException(nonEsThrowable);
     ErrorMessage msg =
         ErrorMessageFactory.createErrorMessage(exception, RestStatus.BAD_REQUEST.getStatus());
     assertTrue(msg instanceof ElasticsearchErrorMessage);

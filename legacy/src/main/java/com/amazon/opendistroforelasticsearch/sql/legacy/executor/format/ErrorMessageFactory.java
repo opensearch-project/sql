@@ -15,7 +15,7 @@
 
 package com.amazon.opendistroforelasticsearch.sql.legacy.executor.format;
 
-import org.elasticsearch.ElasticsearchException;
+import org.opensearch.OpenSearchException;
 
 public class ErrorMessageFactory {
     /**
@@ -29,11 +29,11 @@ public class ErrorMessageFactory {
      */
 
     public static ErrorMessage createErrorMessage(Exception e, int status) {
-        if (e instanceof ElasticsearchException) {
-            return new ElasticsearchErrorMessage((ElasticsearchException) e,
-                    ((ElasticsearchException) e).status().getStatus());
-        } else if (unwrapCause(e) instanceof ElasticsearchException) {
-            ElasticsearchException exception = (ElasticsearchException) unwrapCause(e);
+        if (e instanceof OpenSearchException) {
+            return new ElasticsearchErrorMessage((OpenSearchException) e,
+                    ((OpenSearchException) e).status().getStatus());
+        } else if (unwrapCause(e) instanceof OpenSearchException) {
+            OpenSearchException exception = (OpenSearchException) unwrapCause(e);
             return new ElasticsearchErrorMessage(exception, exception.status().getStatus());
         }
         return new ErrorMessage(e, status);
@@ -41,7 +41,7 @@ public class ErrorMessageFactory {
 
     public static Throwable unwrapCause(Throwable t) {
         Throwable result = t;
-        if (result instanceof ElasticsearchException) {
+        if (result instanceof OpenSearchException) {
             return result;
         }
         if (result.getCause() == null) {

@@ -17,7 +17,7 @@ package com.amazon.opendistroforelasticsearch.sql.doctest.core;
 
 import static com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope.Scope;
 import static java.nio.file.StandardOpenOption.APPEND;
-import static org.elasticsearch.test.ESIntegTestCase.Scope.SUITE;
+import static org.opensearch.test.OpenSearchIntegTestCase.Scope.SUITE;
 
 import com.amazon.opendistroforelasticsearch.sql.doctest.core.annotation.DocTestConfig;
 import com.amazon.opendistroforelasticsearch.sql.doctest.core.annotation.Section;
@@ -40,22 +40,22 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Comparator;
-import org.elasticsearch.client.RestClient;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.elasticsearch.test.ESIntegTestCase.ClusterScope;
-import org.elasticsearch.test.TestCluster;
+import org.opensearch.client.RestClient;
+import org.opensearch.common.Strings;
+import org.opensearch.common.transport.TransportAddress;
+import org.opensearch.test.OpenSearchIntegTestCase;
+import org.opensearch.test.OpenSearchIntegTestCase.ClusterScope;
+import org.opensearch.test.TestCluster;
 
 /**
  * Documentation test base class
  */
 @TestMethodProviders({DocTest.SectionMethod.class})
 @TestCaseOrdering(DocTest.SectionOrder.class)
-@ESIntegTestCase.SuiteScopeTestCase
+@OpenSearchIntegTestCase.SuiteScopeTestCase
 @ClusterScope(scope = SUITE, numDataNodes = 1, supportsDedicatedMasters = false, transportClientRatio = 1)
 @ThreadLeakScope(Scope.NONE)
-public abstract class DocTest extends ESIntegTestCase implements DocBuilder {
+public abstract class DocTest extends OpenSearchIntegTestCase implements DocBuilder {
 
   @Override
   protected void setupSuiteScopeCluster() {

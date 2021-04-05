@@ -3,7 +3,6 @@ package com.amazon.opendistroforelasticsearch.sql.expression.datetime;
 import com.amazon.opendistroforelasticsearch.sql.data.model.ExprStringValue;
 import com.amazon.opendistroforelasticsearch.sql.data.model.ExprValue;
 import com.google.common.collect.ImmutableMap;
-
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;

@@ -40,8 +40,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
-import org.elasticsearch.client.ResponseException;
-import org.elasticsearch.rest.RestStatus;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -50,6 +48,8 @@ import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.client.ResponseException;
+import org.opensearch.rest.RestStatus;
 
 public class QueryIT extends SQLIntegTestCase {
 
@@ -1577,7 +1577,7 @@ public class QueryIT extends SQLIntegTestCase {
   }
 
   // TODO Find way to check routing() without SearchRequestBuilder
-  //  to properly update these tests to ESIntegTestCase format
+  //  to properly update these tests to OpenSearchIntegTestCase format
 //    @Test
 //    public void routingRequestOneRounting() throws IOException {
 //        SqlElasticSearchRequestBuilder request = getRequestBuilder(String.format(Locale.ROOT,

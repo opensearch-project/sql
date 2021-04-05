@@ -19,7 +19,7 @@ package com.amazon.opendistroforelasticsearch.sql.elasticsearch.storage.script.a
 
 import static com.amazon.opendistroforelasticsearch.sql.elasticsearch.storage.script.ExpressionScriptEngine.EXPRESSION_LANG_NAME;
 import static java.util.Collections.emptyMap;
-import static org.elasticsearch.script.Script.DEFAULT_SCRIPT_TYPE;
+import static org.opensearch.script.Script.DEFAULT_SCRIPT_TYPE;
 
 import com.amazon.opendistroforelasticsearch.sql.elasticsearch.storage.script.ScriptUtils;
 import com.amazon.opendistroforelasticsearch.sql.elasticsearch.storage.serialization.ExpressionSerializer;
@@ -28,7 +28,7 @@ import com.amazon.opendistroforelasticsearch.sql.expression.FunctionExpression;
 import com.amazon.opendistroforelasticsearch.sql.expression.ReferenceExpression;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
-import org.elasticsearch.script.Script;
+import org.opensearch.script.Script;
 
 /**
  * Abstract Aggregation Builder.

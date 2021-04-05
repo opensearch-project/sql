@@ -33,12 +33,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
-import org.elasticsearch.client.Request;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.client.Request;
 
 /**
  * PrettyFormatResponseIT will likely be excluding some of the tests written in PrettyFormatResponseTest since

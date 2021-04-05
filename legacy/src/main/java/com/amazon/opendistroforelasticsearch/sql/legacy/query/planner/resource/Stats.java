@@ -15,7 +15,7 @@
 
 package com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.resource;
 
-import org.elasticsearch.client.Client;
+import org.opensearch.client.Client;
 
 /**
  * Statistics collector collects from ES stats, JVM etc for other components:

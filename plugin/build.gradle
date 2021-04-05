@@ -1,7 +1,7 @@
 plugins {
     id 'java'
     id 'jacoco'
-    id 'elasticsearch.esplugin'
+    id 'opensearch.opensearchplugin'
 }
 
 ext {
@@ -14,7 +14,7 @@ repositories {
     mavenCentral()
 }
 
-esplugin {
+opensearchplugin {
     name 'opendistro-sql'
     description 'Open Distro for Elasticsearch SQL'
     classname 'com.amazon.opendistroforelasticsearch.sql.plugin.SQLPlugin'
@@ -97,7 +97,7 @@ afterEvaluate {
 
         into '/usr/share/elasticsearch/plugins'
         from(zipTree(bundlePlugin.archivePath)) {
-            into esplugin.name
+            into opensearchplugin.name
         }
 
         user 'root'

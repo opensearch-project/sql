@@ -25,9 +25,9 @@ import java.util.Iterator;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.search.SearchHits;
-import org.elasticsearch.search.aggregations.Aggregations;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.search.SearchHits;
+import org.opensearch.search.aggregations.Aggregations;
 
 /**
  * Elasticsearch search response.

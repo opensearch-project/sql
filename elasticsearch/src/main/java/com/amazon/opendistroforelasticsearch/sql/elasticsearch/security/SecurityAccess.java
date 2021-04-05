@@ -19,7 +19,7 @@ import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
-import org.elasticsearch.SpecialPermission;
+import org.opensearch.SpecialPermission;
 
 /**
  * Ref:

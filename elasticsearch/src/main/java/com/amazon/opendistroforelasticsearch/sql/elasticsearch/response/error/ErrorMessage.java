@@ -18,8 +18,8 @@
 package com.amazon.opendistroforelasticsearch.sql.elasticsearch.response.error;
 
 import lombok.Getter;
-import org.elasticsearch.rest.RestStatus;
 import org.json.JSONObject;
+import org.opensearch.rest.RestStatus;
 
 /**
  * Error Message.

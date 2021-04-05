@@ -21,11 +21,11 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 
 import java.io.IOException;
-import org.elasticsearch.client.ResponseException;
-import org.elasticsearch.rest.RestStatus;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.client.ResponseException;
+import org.opensearch.rest.RestStatus;
 
 
 public class TermQueryExplainIT extends SQLIntegTestCase {

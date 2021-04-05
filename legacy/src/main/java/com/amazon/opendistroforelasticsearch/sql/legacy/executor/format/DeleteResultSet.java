@@ -16,8 +16,8 @@
 package com.amazon.opendistroforelasticsearch.sql.legacy.executor.format;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.domain.Delete;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.index.reindex.BulkByScrollResponse;
+import org.opensearch.client.Client;
+import org.opensearch.index.reindex.BulkByScrollResponse;
 
 import java.util.Collections;
 import java.util.List;

@@ -18,8 +18,8 @@ package com.amazon.opendistroforelasticsearch.sql.legacy.query;
 import com.amazon.opendistroforelasticsearch.sql.legacy.domain.IndexStatement;
 import com.amazon.opendistroforelasticsearch.sql.legacy.domain.QueryStatement;
 import com.amazon.opendistroforelasticsearch.sql.legacy.utils.Util;
-import org.elasticsearch.action.admin.indices.get.GetIndexRequestBuilder;
-import org.elasticsearch.client.Client;
+import org.opensearch.action.admin.indices.get.GetIndexRequestBuilder;
+import org.opensearch.client.Client;
 
 public class DescribeQueryAction extends QueryAction {
 

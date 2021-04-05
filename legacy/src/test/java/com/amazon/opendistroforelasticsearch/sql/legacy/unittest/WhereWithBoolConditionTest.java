@@ -22,7 +22,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.query.QueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.util.CheckScriptContents;
 import com.amazon.opendistroforelasticsearch.sql.legacy.utils.StringUtils;
 import com.google.common.io.Files;
-import org.elasticsearch.client.Client;
+import org.opensearch.client.Client;
 import org.junit.Test;
 import org.mockito.Mockito;
 

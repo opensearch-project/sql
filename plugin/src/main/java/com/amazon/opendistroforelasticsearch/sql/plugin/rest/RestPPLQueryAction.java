@@ -16,10 +16,10 @@
 package com.amazon.opendistroforelasticsearch.sql.plugin.rest;
 
 import static com.amazon.opendistroforelasticsearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
-import static org.elasticsearch.rest.RestStatus.BAD_REQUEST;
-import static org.elasticsearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
-import static org.elasticsearch.rest.RestStatus.OK;
-import static org.elasticsearch.rest.RestStatus.SERVICE_UNAVAILABLE;
+import static org.opensearch.rest.RestStatus.BAD_REQUEST;
+import static org.opensearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
+import static org.opensearch.rest.RestStatus.OK;
+import static org.opensearch.rest.RestStatus.SERVICE_UNAVAILABLE;
 
 import com.amazon.opendistroforelasticsearch.sql.common.antlr.SyntaxCheckException;
 import com.amazon.opendistroforelasticsearch.sql.common.response.ResponseListener;
@@ -54,15 +54,15 @@ import java.util.Set;
 import java.util.function.Supplier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.client.node.NodeClient;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.rest.BaseRestHandler;
-import org.elasticsearch.rest.BytesRestResponse;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestController;
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.rest.RestStatus;
+import org.opensearch.client.node.NodeClient;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.index.IndexNotFoundException;
+import org.opensearch.rest.BaseRestHandler;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.RestController;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestStatus;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 public class RestPPLQueryAction extends BaseRestHandler {
@@ -90,7 +90,7 @@ public class RestPPLQueryAction extends BaseRestHandler {
    */
   public RestPPLQueryAction(RestController restController, ClusterService clusterService,
                             Settings pluginSettings,
-                            org.elasticsearch.common.settings.Settings clusterSettings) {
+                            org.opensearch.common.settings.Settings clusterSettings) {
     super();
     this.clusterService = clusterService;
     this.pluginSettings = pluginSettings;

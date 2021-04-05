@@ -31,7 +31,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.executor.format.Schema;
 import com.amazon.opendistroforelasticsearch.sql.legacy.utils.SQLFunctions;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
-import org.elasticsearch.common.collect.Tuple;
+import org.opensearch.common.collect.Tuple;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;

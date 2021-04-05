@@ -20,10 +20,10 @@ import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.Sql
 import com.amazon.opendistroforelasticsearch.sql.doctest.core.response.SqlResponse;
 import com.amazon.opendistroforelasticsearch.sql.legacy.utils.StringUtils;
 import java.io.IOException;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.ResponseException;
-import org.elasticsearch.client.RestClient;
+import org.opensearch.client.Request;
+import org.opensearch.client.RequestOptions;
+import org.opensearch.client.ResponseException;
+import org.opensearch.client.RestClient;
 
 /**
  * Request to SQL plugin to isolate Elasticsearch native request
