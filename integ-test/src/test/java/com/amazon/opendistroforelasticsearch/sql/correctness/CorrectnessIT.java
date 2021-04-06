@@ -20,7 +20,7 @@ import static com.amazon.opendistroforelasticsearch.sql.util.TestUtils.getResour
 import com.amazon.opendistroforelasticsearch.sql.correctness.report.TestReport;
 import com.amazon.opendistroforelasticsearch.sql.correctness.runner.ComparisonTest;
 import com.amazon.opendistroforelasticsearch.sql.correctness.runner.connection.DBConnection;
-import com.amazon.opendistroforelasticsearch.sql.correctness.runner.connection.ESConnection;
+import com.amazon.opendistroforelasticsearch.sql.correctness.runner.connection.OpenSearchConnection;
 import com.amazon.opendistroforelasticsearch.sql.correctness.runner.connection.JDBCConnection;
 import com.amazon.opendistroforelasticsearch.sql.correctness.testset.TestDataSet;
 import com.amazon.opendistroforelasticsearch.sql.legacy.CustomExternalTestCluster;
@@ -109,7 +109,7 @@ public class CorrectnessIT extends OpenSearchIntegTestCase {
     } else {
       client = RestClient.builder(HttpHost.create(esHost)).build();
     }
-    return new ESConnection("jdbc:elasticsearch://" + esHost, client);
+    return new OpenSearchConnection("jdbc:elasticsearch://" + esHost, client);
   }
 
   /**

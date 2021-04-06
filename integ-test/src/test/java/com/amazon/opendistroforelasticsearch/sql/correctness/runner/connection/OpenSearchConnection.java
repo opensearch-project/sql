@@ -27,7 +27,7 @@ import org.opensearch.client.RestClient;
 /**
  * OpenSearch database connection for insertion. This class wraps JDBCConnection to delegate query method.
  */
-public class ESConnection implements DBConnection {
+public class OpenSearchConnection implements DBConnection {
 
   /**
    * Connection via our OpenSearch JDBC driver
@@ -39,7 +39,7 @@ public class ESConnection implements DBConnection {
    */
   private final RestClient client;
 
-  public ESConnection(String connectionUrl, RestClient client) {
+  public OpenSearchConnection(String connectionUrl, RestClient client) {
     this.connection = new JDBCConnection("Elasticsearch", connectionUrl, populateProperties());
     this.client = client;
   }

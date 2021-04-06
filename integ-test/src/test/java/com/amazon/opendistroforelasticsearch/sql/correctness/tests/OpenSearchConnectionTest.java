@@ -21,7 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.amazon.opendistroforelasticsearch.sql.correctness.runner.connection.ESConnection;
+import com.amazon.opendistroforelasticsearch.sql.correctness.runner.connection.OpenSearchConnection;
 import com.google.common.io.CharStreams;
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,19 +40,19 @@ import org.opensearch.client.Response;
 import org.opensearch.client.RestClient;
 
 /**
- * Tests for {@link ESConnection}
+ * Tests for {@link OpenSearchConnection}
  */
 @RunWith(MockitoJUnitRunner.class)
-public class ESConnectionTest {
+public class OpenSearchConnectionTest {
 
   @Mock
   private RestClient client;
 
-  private ESConnection conn;
+  private OpenSearchConnection conn;
 
   @Before
   public void setUp() throws IOException {
-    conn = new ESConnection("jdbc:elasticsearch://localhost:12345", client);
+    conn = new OpenSearchConnection("jdbc:elasticsearch://localhost:12345", client);
 
     Response response = mock(Response.class);
     when(client.performRequest(any(Request.class))).thenReturn(response);
