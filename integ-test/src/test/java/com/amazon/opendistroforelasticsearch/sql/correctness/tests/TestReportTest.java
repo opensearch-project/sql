@@ -84,19 +84,9 @@ public class TestReportTest {
             "      \"id\": 1," +
             "      \"result\": 'Failed'," +
             "      \"sql\": \"SELECT * FROM accounts\"," +
-            "      \"explain\": \"Data row at [0] is different: this=[Row(values=[hello])], other=[Row(values=[world])]\"," +
+            "      \"explain\": \"Data row at [0] is different: this=[Row(values=[world])], other=[Row(values=[hello])]\"," +
             "      \"errors\": \"[SQLITE_ERROR] SQL error or missing database;\"," +
             "      \"resultSets\": [" +
-            "        {" +
-            "          \"database\": \"OpenSearch\"," +
-            "          \"schema\": [" +
-            "            {" +
-            "              \"name\": \"firstName\"," +
-            "              \"type\": \"text\"" +
-            "            }" +
-            "          ]," +
-            "          \"dataRows\": [[\"hello\"]]" +
-            "        }," +
             "        {" +
             "          \"database\": \"H2\"," +
             "          \"schema\": [" +
@@ -106,6 +96,16 @@ public class TestReportTest {
             "            }" +
             "          ]," +
             "          \"dataRows\": [[\"world\"]]" +
+            "        }," +
+            "        {" +
+            "          \"database\": \"OpenSearch\"," +
+            "          \"schema\": [" +
+            "            {" +
+            "              \"name\": \"firstName\"," +
+            "              \"type\": \"text\"" +
+            "            }" +
+            "          ]," +
+            "          \"dataRows\": [[\"hello\"]]" +
             "        }" +
             "      ]" +
             "    }" +

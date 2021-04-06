@@ -65,7 +65,7 @@ class OpenSearchDescribeIndexRequestTest {
 
   @Test
   void testToString() {
-    assertEquals("ElasticsearchDescribeIndexRequest{indexName='index'}",
+    assertEquals("OpenSearchDescribeIndexRequest{indexName='index'}",
         new OpenSearchDescribeIndexRequest(client, "index").toString());
   }
 
