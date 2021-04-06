@@ -100,7 +100,7 @@ public class DefaultHashTable<T> implements HashTable<T> {
             Object[] keys = key.keys();
             for (int i = 0; i < keys.length; i++) {
                 result.computeIfAbsent(rightJoinFields[i], (k -> new HashSet<>())).
-                        add(lowercaseIfStr(keys[i])); // Terms stored in lower case in ES
+                        add(lowercaseIfStr(keys[i])); // Terms stored in lower case in OpenSearch
             }
         }
 

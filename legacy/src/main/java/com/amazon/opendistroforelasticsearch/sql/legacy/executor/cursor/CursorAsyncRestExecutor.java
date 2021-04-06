@@ -37,7 +37,7 @@ import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.SqlSetting
 
 public class CursorAsyncRestExecutor {
     /**
-     * Custom thread pool name managed by ES
+     * Custom thread pool name managed by OpenSearch
      */
     public static final String SQL_WORKER_THREAD_POOL_NAME = "sql-worker";
 

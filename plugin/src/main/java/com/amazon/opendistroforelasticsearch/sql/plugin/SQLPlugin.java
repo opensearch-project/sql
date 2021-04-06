@@ -81,7 +81,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
   }
 
   public String description() {
-    return "Use sql to query elasticsearch.";
+    return "Use sql to query OpenSearch.";
   }
 
   @Override

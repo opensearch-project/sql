@@ -304,7 +304,7 @@ public class TestUtils {
                 "\t\t\"properties\":{\n" +
                 "\t\t\t\"place\":{\n" +
                 "\t\t\t\t\"type\":\"geo_shape\"\n" +
-                //"\t\t\t\t\"tree\": \"quadtree\",\n" + // Field tree and precision are deprecated in ES
+                //"\t\t\t\t\"tree\": \"quadtree\",\n" + // Field tree and precision are deprecated in OpenSearch
                 //"\t\t\t\t\"precision\": \"10km\"\n" +
                 "\t\t\t},\n" +
                 "\t\t\t\"center\":{\n" +

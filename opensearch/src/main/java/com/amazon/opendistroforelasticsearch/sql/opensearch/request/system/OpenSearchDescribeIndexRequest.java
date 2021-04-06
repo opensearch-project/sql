@@ -43,7 +43,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
 
-  private static final String DEFAULT_TABLE_CAT = "elasticsearch";
+  private static final String DEFAULT_TABLE_CAT = "opensearch";
 
   private static final Integer DEFAULT_NUM_PREC_RADIX = 10;
 

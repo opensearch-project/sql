@@ -38,7 +38,7 @@ public class FieldMapping {
     private final String fieldName;
 
     /**
-     * Native mapping information returned from ES
+     * Native mapping information returned from OpenSearch
      */
     private final Map<String, FieldMappingMetadata> typeMappings;
 

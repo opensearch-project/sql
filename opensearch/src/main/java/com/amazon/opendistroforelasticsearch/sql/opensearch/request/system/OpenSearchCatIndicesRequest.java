@@ -35,7 +35,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class OpenSearchCatIndicesRequest implements OpenSearchSystemRequest {
 
-  private static final String DEFAULT_TABLE_CAT = "elasticsearch";
+  private static final String DEFAULT_TABLE_CAT = "opensearch";
 
   private static final String DEFAULT_TABLE_TAPE = "BASE TABLE";
 

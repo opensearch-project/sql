@@ -119,7 +119,7 @@ public class OpenSearchRestClient implements OpenSearchClient {
       request.local(true);
       final Settings defaultSettings =
           client.cluster().getSettings(request, RequestOptions.DEFAULT).getDefaultSettings();
-      builder.put(META_CLUSTER_NAME, defaultSettings.get("cluster.name", "elasticsearch"));
+      builder.put(META_CLUSTER_NAME, defaultSettings.get("cluster.name", "opensearch"));
       return builder.build();
     } catch (IOException e) {
       throw new IllegalStateException("Failed to get cluster meta info", e);

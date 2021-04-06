@@ -147,7 +147,7 @@ public class RestPPLQueryAction extends BaseRestHandler {
    * create the bean in protocol scope. The limitations are
    * alt-1, add annotation for bean @Scope(value = SCOPE_PROTOTYPE, proxyMode = TARGET_CLASS), it
    * works by add the proxy,
-   * but when running in Elasticsearch, all the operation need security permission whic is hard
+   * but when running in OpenSearch, all the operation need security permission whic is hard
    * to control.
    * alt-2, using ObjectFactory with @Autowired, it also works, but require add to all the
    * configuration.

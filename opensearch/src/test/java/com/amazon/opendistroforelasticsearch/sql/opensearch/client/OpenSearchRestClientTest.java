@@ -266,7 +266,7 @@ class OpenSearchRestClientTest {
     when(settingsResponse.getDefaultSettings()).thenReturn(defaultSettings);
 
     final Map<String, String> meta = client.meta();
-    assertEquals("elasticsearch", meta.get(META_CLUSTER_NAME));
+    assertEquals("opensearch", meta.get(META_CLUSTER_NAME));
   }
 
   @Test
