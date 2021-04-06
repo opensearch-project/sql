@@ -44,7 +44,7 @@ import static org.opensearch.index.query.QueryBuilders.existsQuery;
 import static com.alibaba.druid.sql.ast.statement.SQLJoinTableSource.JoinType;
 
 /**
- * Nested field projection class to make ES return matched rows in nested field.
+ * Nested field projection class to make OpenSearch return matched rows in nested field.
  */
 public class NestedFieldProjection {
 

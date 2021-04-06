@@ -84,7 +84,7 @@ public class DefaultQueryAction extends QueryAction {
 
     @Override
     public SqlOpenSearchRequestBuilder explain() throws SqlParseException {
-        Objects.requireNonNull(this.sqlRequest, "SqlRequest is required for ES request build");
+        Objects.requireNonNull(this.sqlRequest, "SqlRequest is required for OpenSearch request build");
         buildRequest();
         checkAndSetScroll();
         return new SqlOpenSearchRequestBuilder(request);
@@ -306,7 +306,7 @@ public class DefaultQueryAction extends QueryAction {
     }
 
     /**
-     * Add from and size to the ES query based on the 'LIMIT' clause
+     * Add from and size to the OpenSearch query based on the 'LIMIT' clause
      *
      * @param from starts from document at position from
      * @param size number of documents to return.

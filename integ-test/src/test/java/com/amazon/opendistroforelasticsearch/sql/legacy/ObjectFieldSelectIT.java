@@ -80,7 +80,7 @@ public class ObjectFieldSelectIT extends SQLIntegTestCase {
   public void testSelectNestedFieldItself() {
     JSONObject response = new JSONObject(query("SELECT projects FROM %s"));
 
-    // Nested field is absent in ES Get Field Mapping response either hence "object" used
+    // Nested field is absent in OpenSearch Get Field Mapping response either hence "object" used
     verifySchema(response, schema("projects", null, "object"));
 
     // Expect nested field itself is returned in a single cell

@@ -50,10 +50,10 @@ public class SearchDao {
 
     /**
      * Prepare action And transform sql
-     * into ES ActionRequest
+     * into OpenSearch ActionRequest
      *
      * @param queryActionRequest SQL query action request to execute.
-     * @return ES request
+     * @return OpenSearch request
      * @throws SqlParseException
      */
     public QueryAction explain(QueryActionRequest queryActionRequest)

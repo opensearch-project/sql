@@ -24,7 +24,7 @@ import org.opensearch.OpenSearchException;
 public class ErrorMessageFactory {
   /**
    * Create error message based on the exception type.
-   * Exceptions of ES exception type and exceptions with wrapped ES exception causes
+   * Exceptions of OpenSearch exception type and exceptions with wrapped OpenSearch exception causes
    * should create {@link OpenSearchErrorMessage}
    *
    * @param e      exception to create error message

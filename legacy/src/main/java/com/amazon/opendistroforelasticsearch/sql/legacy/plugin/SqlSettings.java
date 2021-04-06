@@ -34,9 +34,9 @@ import static org.opensearch.common.unit.TimeValue.timeValueMinutes;
 public class SqlSettings {
 
     /**
-     * Get plugin settings stored in cluster setting. Why not use ES slow log settings consistently?
+     * Get plugin settings stored in cluster setting. Why not use OpenSearch slow log settings consistently?
      * 1) It's per-index setting.
-     * 2) It has separate setting for Query and Fetch phase which are all ES internal concepts.
+     * 2) It has separate setting for Query and Fetch phase which are all OpenSearch internal concepts.
      */
     public static final String SQL_ENABLED = "opendistro.sql.enabled";
     public static final String SQL_NEW_ENGINE_ENABLED = "opendistro.sql.engine.new.enabled";

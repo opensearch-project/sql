@@ -53,7 +53,7 @@ public class ExpressionIT extends RestIntegTestCase {
   }
 
   /**
-   * Response exception assertion helper to assert property value in ES ResponseException
+   * Response exception assertion helper to assert property value in OpenSearch ResponseException
    * and Response inside. This serves as syntax sugar to improve the readability of test
    * code.
    */

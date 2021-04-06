@@ -43,7 +43,7 @@ import java.util.Optional;
 
 /**
  * Abstract class. used to transform Select object (Represents SQL query) to
- * SearchRequestBuilder (Represents ES query)
+ * SearchRequestBuilder (Represents OpenSearch query)
  */
 public abstract class QueryAction {
 
@@ -231,9 +231,9 @@ public abstract class QueryAction {
     }
 
     /**
-     * Prepare the request, and return ES request.
+     * Prepare the request, and return OpenSearch request.
      *
-     * @return ActionRequestBuilder (ES request)
+     * @return ActionRequestBuilder (OpenSearch request)
      * @throws SqlParseException
      */
     public abstract SqlElasticRequestBuilder explain() throws SqlParseException;

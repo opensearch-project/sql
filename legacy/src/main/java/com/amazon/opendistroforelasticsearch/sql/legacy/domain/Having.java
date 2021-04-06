@@ -40,7 +40,7 @@ import static org.opensearch.search.aggregations.PipelineAggregatorBuilders.buck
  * <p>
  * Responsibilities:
  * 1. Parsing: parse conditions out during initialization
- * 2. Explain: translate conditions to ES query DSL (Bucket Selector Aggregation)
+ * 2. Explain: translate conditions to OpenSearch query DSL (Bucket Selector Aggregation)
  */
 public class Having {
 
@@ -89,7 +89,7 @@ public class Having {
 
     /**
      * Add Bucket Selector Aggregation under group by aggregation with sibling of aggregation of fields in SELECT.
-     * ES makes sure that all sibling runs before bucket selector aggregation.
+     * OpenSearch makes sure that all sibling runs before bucket selector aggregation.
      *
      * @param groupByAgg aggregation builder for GROUP BY clause
      * @param fields     fields in SELECT clause

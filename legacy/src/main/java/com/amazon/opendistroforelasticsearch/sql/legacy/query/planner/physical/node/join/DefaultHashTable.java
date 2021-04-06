@@ -104,7 +104,7 @@ public class DefaultHashTable<T> implements HashTable<T> {
             }
         }
 
-        // Convert value of Map from Guava's Set to JDK list which is expected by ES writer
+        // Convert value of Map from Guava's Set to JDK list which is expected by OpenSearch writer
         for (Entry<String, Collection<Object>> entry : result.entrySet()) {
             entry.setValue(new ArrayList<>(entry.getValue()));
         }

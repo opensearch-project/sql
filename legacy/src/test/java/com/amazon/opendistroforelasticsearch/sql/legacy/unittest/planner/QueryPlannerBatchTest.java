@@ -244,7 +244,7 @@ public class QueryPlannerBatchTest extends QueryPlannerTest {
         return concat(one, other, Matcher.class);
     }
 
-    /** Copy from ES ArrayUtils */
+    /** Copy from OpenSearch ArrayUtils */
     private static <T> T[] concat(T[] one, T[] other, Class<T> clazz) {
         T[] target = (T[]) Array.newInstance(clazz, one.length + other.length);
         System.arraycopy(one, 0, target, 0, one.length);

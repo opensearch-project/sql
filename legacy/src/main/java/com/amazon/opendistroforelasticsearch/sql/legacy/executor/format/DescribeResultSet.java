@@ -97,7 +97,7 @@ public class DescribeResultSet extends ResultSet {
 
             if (matchesPatternIfRegex(index, statement.getIndexPattern())) {
                 ImmutableOpenMap<String, MappingMetadata> typeMapping = indexCursor.value;
-                // Assuming ES 6.x, iterate through the only type of the index to get mapping data
+                // Assuming OpenSearch 6.x, iterate through the only type of the index to get mapping data
                 for (ObjectObjectCursor<String, MappingMetadata> typeCursor : typeMapping) {
                     MappingMetadata mappingMetaData = typeCursor.value;
                     // Load rows for each field in the mapping

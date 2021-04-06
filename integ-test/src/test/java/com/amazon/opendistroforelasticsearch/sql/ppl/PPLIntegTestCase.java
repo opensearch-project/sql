@@ -30,7 +30,7 @@ import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 
 /**
- * ES Rest integration test base for PPL testing.
+ * OpenSearch Rest integration test base for PPL testing.
  */
 public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 

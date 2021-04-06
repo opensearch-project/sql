@@ -72,7 +72,7 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
   }
 
   /**
-   * Is response empty. As ES doc says, "Each call to the scroll API returns the next batch of
+   * Is response empty. As OpenSearch doc says, "Each call to the scroll API returns the next batch of
    * results until there are no more results left to return, ie the hits array is empty."
    *
    * @return true for empty

@@ -72,7 +72,7 @@ import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 
 /**
- * ES Rest integration test base for SQL testing
+ * OpenSearch Rest integration test base for SQL testing
  */
 public abstract class SQLIntegTestCase extends ODFERestTestCase {
 

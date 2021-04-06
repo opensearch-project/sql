@@ -209,7 +209,7 @@ public class SelectResultSet extends ResultSet {
         if (indexMappings.containsKey(typeName)) {
             typeMappings = indexMappings.get(typeName);
         } else {
-            // Assuming ES version 6.x, there can be only one type per index so this for loop should grab the only type
+            // Assuming OpenSearch version 6.x, there can be only one type per index so this for loop should grab the only type
             for (String type : indexMappings.keySet()) {
                 typeMappings = indexMappings.get(type);
             }

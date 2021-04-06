@@ -146,7 +146,7 @@ public class ComparisonTest implements AutoCloseable {
       }
     }
 
-    if (mismatchResults.size() == 1) { // Only ES result on list. Cannot find other database support this query
+    if (mismatchResults.size() == 1) { // Only OpenSearch result on list. Cannot find other database support this query
       return new ErrorTestCase(nextId(), sql, "No other databases support this query: " + reasons);
     }
     return new FailedTestCase(nextId(), sql, mismatchResults, reasons.toString());

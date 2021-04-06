@@ -266,7 +266,7 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
       throw new IllegalStateException(
           StringUtils.format("Exception raised when running with cluster setting [%s]", setting));
     } finally {
-      // Clean up or ES will throw java.lang.AssertionError: test leaves persistent cluster metadata behind
+      // Clean up or OpenSearch will throw java.lang.AssertionError: test leaves persistent cluster metadata behind
       try {
         updateClusterSettings(setting.nullify());
       } catch (IOException e) {

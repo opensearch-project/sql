@@ -27,7 +27,7 @@ import java.util.Map;
 
 /**
  * Search hit row that implements basic accessor for SearchHit.
- * Encapsulate all ES specific knowledge: how to parse source including nested path.
+ * Encapsulate all OpenSearch specific knowledge: how to parse source including nested path.
  * <p>
  * State transition:
  * for example, SELECT e.name.first AS firstName, e.age AS age FROM E e JOIN D d ON ... ORDER BY ...
@@ -47,7 +47,7 @@ import java.util.Map;
 class SearchHitRow implements Row<SearchHit> {
 
     /**
-     * Native ES data object for each row
+     * Native OpenSearch data object for each row
      */
     private final SearchHit hit;
 

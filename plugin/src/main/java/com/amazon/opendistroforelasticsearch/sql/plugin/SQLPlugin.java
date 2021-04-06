@@ -65,7 +65,7 @@ import org.opensearch.watcher.ResourceWatcherService;
 public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
 
   /**
-   * Sql plugin specific settings in ES cluster settings.
+   * Sql plugin specific settings in OpenSearch cluster settings.
    */
   private final SqlSettings sqlSettings = new SqlSettings();
 

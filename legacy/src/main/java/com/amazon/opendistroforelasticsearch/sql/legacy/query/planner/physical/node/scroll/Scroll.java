@@ -41,12 +41,12 @@ import java.util.Collection;
 import java.util.Objects;
 
 /**
- * ES Scroll API as physical implementation of TableScan
+ * OpenSearch Scroll API as physical implementation of TableScan
  */
 public class Scroll extends BatchPhysicalOperator<SearchHit> {
 
     /**
-     * Request to submit to ES to scroll over
+     * Request to submit to OpenSearch to scroll over
      */
     private final TableInJoinRequestBuilder request;
 
@@ -144,7 +144,7 @@ public class Scroll extends BatchPhysicalOperator<SearchHit> {
 
     /**
      * Extra filter pushed down from upstream. Re-parse WHERE clause with extra filter
-     * because ES RequestBuilder doesn't allow QueryBuilder inside be changed after added.
+     * because OpenSearch RequestBuilder doesn't allow QueryBuilder inside be changed after added.
      */
     private QueryBuilder generateNewQueryWithExtraFilter(BoolQueryBuilder filter) throws SqlParseException {
         Where where = request.getOriginalSelect().getWhere();

@@ -86,7 +86,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
     return sqlRequest;
   }
 
-  @Ignore("Index type is removed in ES 7+")
+  @Ignore("Index type is removed in OpenSearch 7+")
   @Test
   public void wrongIndexType() throws IOException {
     String type = "wrongType";

@@ -58,7 +58,7 @@ public class OpenSearchErrorMessage extends ErrorMessage {
   /**
    * Could not deliver the exactly same error messages due to the limit of JDBC types.
    * Currently our cases occurred only SearchPhaseExecutionException instances
-   * among all types of ES exceptions
+   * among all types of OpenSearch exceptions
    * according to the survey, see all types: OpenSearchException.OpenSearchExceptionHandle.
    * Either add methods of fetching details for different types, or re-make a consistent
    * message by not giving

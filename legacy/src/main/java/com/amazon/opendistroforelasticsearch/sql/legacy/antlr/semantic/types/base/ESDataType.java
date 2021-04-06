@@ -122,6 +122,6 @@ public enum ESDataType implements BaseType {
 
     @Override
     public String toString() {
-        return "ES Data Type [" + getName() + "]";
+        return "OpenSearch Data Type [" + getName() + "]";
     }
 }

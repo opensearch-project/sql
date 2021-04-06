@@ -57,7 +57,7 @@ public interface Mappings<T> {
     Map<String, T> data();
 
     /**
-     * Convert ES ImmutableOpenMap<String, X> to JDK Map<String, Y> by applying function: Y func(X)
+     * Convert OpenSearch ImmutableOpenMap<String, X> to JDK Map<String, Y> by applying function: Y func(X)
      */
     default <X, Y> Map<String, Y> buildMappings(ImmutableOpenMap<String, X> mappings, Function<X, Y> func) {
         ImmutableMap.Builder<String, Y> builder = ImmutableMap.builder();

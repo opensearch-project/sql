@@ -64,7 +64,7 @@ public class QueryIT extends SQLIntegTestCase {
    * - idsQueryMultipleId
    * - multipleIndicesOneNotExistWithoutHint
    * <p>
-   * The following tests are being ignored because subquery is still running in ES transport thread:
+   * The following tests are being ignored because subquery is still running in OpenSearch transport thread:
    * - twoSubQueriesTest()
    * - inTermsSubQueryTest()
    */

@@ -43,7 +43,7 @@ public class SqlRequestFactory {
             case POST:
                 return parseSqlRequestFromPayload(request);
             default:
-                throw new IllegalArgumentException("ES SQL doesn't supported HTTP " + request.method().name());
+                throw new IllegalArgumentException("OpenSearch SQL doesn't supported HTTP " + request.method().name());
         }
     }
 

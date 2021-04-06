@@ -45,7 +45,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Local cluster state testing without covering ES logic, ex. resolve index pattern.
+ * Local cluster state testing without covering OpenSearch logic, ex. resolve index pattern.
  */
 public class LocalClusterStateTest {
 

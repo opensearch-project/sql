@@ -24,7 +24,7 @@ import java.util.Map;
 
 /**
  * OpenSearch client abstraction to wrap different OpenSearch client implementation. For
- * example, implementation by node client for ES plugin or by REST client for standalone mode.
+ * example, implementation by node client for OpenSearch plugin or by REST client for standalone mode.
  */
 public interface OpenSearchClient {
 

@@ -83,7 +83,7 @@ public class TestUtils {
   }
 
   /**
-   * Check if index already exists by ES index exists API which returns:
+   * Check if index already exists by OpenSearch index exists API which returns:
    * 200 - specified indices or aliases exist
    * 404 - one or more indices specified or aliases do not exist
    *

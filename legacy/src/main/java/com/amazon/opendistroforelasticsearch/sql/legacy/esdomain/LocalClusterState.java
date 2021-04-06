@@ -71,7 +71,7 @@ public class LocalClusterState {
     private ClusterService clusterService;
 
     /**
-     * Sql specific settings in ES cluster settings
+     * Sql specific settings in OpenSearch cluster settings
      */
     private SqlSettings sqlSettings;
 
@@ -171,9 +171,9 @@ public class LocalClusterState {
     /**
      * Get field mappings by index expressions, type and field filter. Because IndexMetaData/MappingMetaData
      * is hard to convert to FieldMappingMetaData, custom mapping domain objects are being used here. In future,
-     * it should be moved to domain model layer for all ES specific knowledge.
+     * it should be moved to domain model layer for all OpenSearch specific knowledge.
      * <p>
-     * Note that cluster state may be change inside ES so it's possible to read different state in 2 accesses
+     * Note that cluster state may be change inside OpenSearch so it's possible to read different state in 2 accesses
      * to ClusterService.state() here.
      *
      * @param indices     index name expression

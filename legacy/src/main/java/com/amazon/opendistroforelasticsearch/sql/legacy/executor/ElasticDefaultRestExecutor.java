@@ -49,7 +49,7 @@ import java.util.Map;
 public class ElasticDefaultRestExecutor implements RestExecutor {
 
     /**
-     * Request builder to generate ES DSL
+     * Request builder to generate OpenSearch DSL
      */
     private final SqlElasticRequestBuilder requestBuilder;
 

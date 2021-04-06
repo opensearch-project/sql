@@ -29,7 +29,7 @@ import org.opensearch.client.Client;
 public class HashJoinQueryPlanRequestBuilder extends HashJoinElasticRequestBuilder {
 
     /**
-     * Client connection to ES cluster
+     * Client connection to OpenSearch cluster
      */
     private final Client client;
 

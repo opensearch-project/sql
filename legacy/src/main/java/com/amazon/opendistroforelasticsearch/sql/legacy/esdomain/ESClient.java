@@ -65,7 +65,7 @@ public class ESClient {
             }
         }
         if (!indicesFailure.isEmpty()) {
-            LOG.info("ES multisearch has failures on retry {}", retry);
+            LOG.info("OpenSearch multisearch has failures on retry {}", retry);
             if (retry < 3) {
                 BackOffRetryStrategy.backOffSleep(retryIntervals[retry]);
                 multiSearchRetry(responses, multiSearchRequest, indicesFailure, retry + 1);

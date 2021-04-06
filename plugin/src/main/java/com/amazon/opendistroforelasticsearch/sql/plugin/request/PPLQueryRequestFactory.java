@@ -48,7 +48,7 @@ public class PPLQueryRequestFactory {
         return parsePPLRequestFromPayload(request);
       default:
         throw new IllegalArgumentException(
-            "ES PPL doesn't supported HTTP " + request.method().name());
+            "OpenSearch PPL doesn't supported HTTP " + request.method().name());
     }
   }
 

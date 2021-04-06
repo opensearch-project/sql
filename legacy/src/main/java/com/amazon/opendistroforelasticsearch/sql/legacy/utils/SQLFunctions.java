@@ -272,7 +272,7 @@ public class SQLFunctions {
                 break;
 
             case "cot":
-                // ES does not support the function name cot
+                // OpenSearch does not support the function name cot
                 functionStr = mathSingleValueTemplate("1 / Math.tan", methodName,
                         (SQLExpr) paramers.get(0).value, name);
                 break;
@@ -772,7 +772,7 @@ public class SQLFunctions {
 
     // query: substring(Column expr, int pos, int len)
     // painless script: substring(int begin, int end)
-    // es behavior: 1-index, supports out-of-bound index
+    // OpenSearch behavior: 1-index, supports out-of-bound index
     public Tuple<String, String> substring(SQLExpr field, int pos, int len) {
         String name = nextId("substring");
         // start and end are 0-indexes
@@ -804,7 +804,7 @@ public class SQLFunctions {
                 + ".replace(" + target + "," + replacement + ")"));
     }
 
-    // es behavior: both 'start' and return value are 1-index; return 0 if pattern does not exist;
+    // OpenSearch behavior: both 'start' and return value are 1-index; return 0 if pattern does not exist;
     // support out-of-bound index
     private Tuple<String, String> locate(String pattern, SQLExpr source, int start) {
         String name = nextId("locate");
