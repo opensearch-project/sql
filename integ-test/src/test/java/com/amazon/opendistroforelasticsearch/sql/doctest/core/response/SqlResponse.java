@@ -29,7 +29,7 @@ public class SqlResponse {
   public static final SqlResponse NONE = null;
 
   /**
-   * Native Elasticsearch response
+   * Native OpenSearch response
    */
   private final Response response;
 
@@ -51,7 +51,7 @@ public class SqlResponse {
   }
 
   /**
-   * In Elasticsearch response, there is field changed between each query, such as "took".
+   * In OpenSearch response, there is field changed between each query, such as "took".
    * We have to replace those variants with fake constant to avoid re-generate documents.
    * The order of fields in JSON is a little different from original because of internal
    * key set in org.json.

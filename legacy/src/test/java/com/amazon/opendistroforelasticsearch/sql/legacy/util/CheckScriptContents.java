@@ -129,7 +129,7 @@ public class CheckScriptContents {
     public static void stubMockClient(Client mockClient) {
         try {
             String mappings = "{\n" +
-                "  \"elasticsearch-sql_test_index_bank\": {\n" +
+                "  \"opensearch-sql_test_index_bank\": {\n" +
                 "    \"mappings\": {\n" +
                 "      \"account\": {\n" +
                 "        \"properties\": {\n" +

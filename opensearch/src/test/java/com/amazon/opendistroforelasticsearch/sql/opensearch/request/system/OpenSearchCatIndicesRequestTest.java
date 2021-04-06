@@ -52,7 +52,7 @@ class OpenSearchCatIndicesRequestTest {
 
   @Test
   void testToString() {
-    assertEquals("ElasticsearchCatIndicesRequest{}",
+    assertEquals("OpenSearchCatIndicesRequest{}",
         new OpenSearchCatIndicesRequest(client).toString());
   }
 }

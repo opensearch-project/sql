@@ -314,7 +314,7 @@ public class TestUtils {
         "\t\t\"properties\":{\n" +
         "\t\t\t\"place\":{\n" +
         "\t\t\t\t\"type\":\"geo_shape\"\n" +
-        //"\t\t\t\t\"tree\": \"quadtree\",\n" + // Field tree and precision are deprecated in ES
+        //"\t\t\t\t\"tree\": \"quadtree\",\n" + // Field tree and precision are deprecated in OpenSearch
         //"\t\t\t\t\"precision\": \"10km\"\n" +
         "\t\t\t},\n" +
         "\t\t\t\"center\":{\n" +
@@ -701,7 +701,7 @@ public class TestUtils {
 
   public static void loadBulk(Client client, String jsonPath, String defaultIndex)
       throws Exception {
-    System.out.println(String.format("Loading file %s into elasticsearch cluster", jsonPath));
+    System.out.println(String.format("Loading file %s into OpenSearch cluster", jsonPath));
     String absJsonPath = getResourceFilePath(jsonPath);
 
     BulkRequest bulkRequest = new BulkRequest();

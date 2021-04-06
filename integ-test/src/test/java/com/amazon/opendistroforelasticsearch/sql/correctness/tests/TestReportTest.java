@@ -65,7 +65,7 @@ public class TestReportTest {
   @Test
   public void testFailedReport() {
     report.addTestCase(new FailedTestCase(1, "SELECT * FROM accounts", asList(
-        new DBResult("Elasticsearch", singleton(new Type("firstName", "text")),
+        new DBResult("OpenSearch", singleton(new Type("firstName", "text")),
             singleton(new Row(asList("hello")))),
         new DBResult("H2", singleton(new Type("firstName", "text")),
             singleton(new Row(asList("world"))))),
@@ -88,7 +88,7 @@ public class TestReportTest {
             "      \"errors\": \"[SQLITE_ERROR] SQL error or missing database;\"," +
             "      \"resultSets\": [" +
             "        {" +
-            "          \"database\": \"Elasticsearch\"," +
+            "          \"database\": \"OpenSearch\"," +
             "          \"schema\": [" +
             "            {" +
             "              \"name\": \"firstName\"," +

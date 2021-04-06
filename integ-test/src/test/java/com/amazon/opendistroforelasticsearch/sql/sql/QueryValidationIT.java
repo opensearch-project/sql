@@ -56,7 +56,7 @@ public class QueryValidationIT extends SQLIntegTestCase {
         .hasErrorType("SemanticCheckException")
         .containsMessage("Expression [state] that contains non-aggregated column "
                        + "is not present in group by clause")
-        .whenExecute("SELECT state FROM elasticsearch-sql_test_index_account GROUP BY age");
+        .whenExecute("SELECT state FROM opensearch-sql_test_index_account GROUP BY age");
   }
 
   @Test
@@ -66,7 +66,7 @@ public class QueryValidationIT extends SQLIntegTestCase {
         .hasErrorType("SemanticCheckException")
         .containsMessage("Explicit GROUP BY clause is required because expression [state] "
             + "contains non-aggregated column")
-        .whenExecute("SELECT state, AVG(age) FROM elasticsearch-sql_test_index_account");
+        .whenExecute("SELECT state, AVG(age) FROM opensearch-sql_test_index_account");
   }
 
   @Test
@@ -76,7 +76,7 @@ public class QueryValidationIT extends SQLIntegTestCase {
         .hasErrorType("SemanticCheckException")
         .containsMessage(
             "can't resolve Symbol(namespace=FIELD_NAME, name=firstname.keyword) in type env")
-        .whenExecute("SELECT firstname.keyword FROM elasticsearch-sql_test_index_account");
+        .whenExecute("SELECT firstname.keyword FROM opensearch-sql_test_index_account");
   }
 
   @Test
@@ -87,7 +87,7 @@ public class QueryValidationIT extends SQLIntegTestCase {
         .containsMessage(
             "can't resolve Symbol(namespace=FIELD_NAME, name=state.keyword) in type env")
         .whenExecute(
-            "SELECT SUM(age) FROM elasticsearch-sql_test_index_account GROUP BY state.keyword");
+            "SELECT SUM(age) FROM opensearch-sql_test_index_account GROUP BY state.keyword");
   }
 
   public ResponseExceptionAssertion expectResponseException() {

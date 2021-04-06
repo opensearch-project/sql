@@ -38,7 +38,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEquals(
         expected,
         explainQueryToString(
-            "source=elasticsearch-sql_test_index_account"
+            "source=opensearch-sql_test_index_account"
                 + "| where age > 30 "
                 + "| stats avg(age) AS avg_age by state, city "
                 + "| sort state "
@@ -56,7 +56,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEquals(
         expected,
         explainQueryToString(
-            "source=elasticsearch-sql_test_index_account"
+            "source=opensearch-sql_test_index_account"
                 + "| where age > 30 "
                 + "| where age < 40 "
                 + "| where balance > 10000 "
@@ -71,7 +71,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEquals(
         expected,
         explainQueryToString(
-            "source=elasticsearch-sql_test_index_account"
+            "source=opensearch-sql_test_index_account"
                 + "| where age > 30 "
                 + "| stats avg(age) AS avg_age by state, city")
     );
@@ -84,7 +84,7 @@ public class ExplainIT extends PPLIntegTestCase {
     assertJsonEquals(
         expected,
         explainQueryToString(
-            "source=elasticsearch-sql_test_index_account"
+            "source=opensearch-sql_test_index_account"
                 + "| sort age "
                 + "| where age > 30"
                 + "| fields age")

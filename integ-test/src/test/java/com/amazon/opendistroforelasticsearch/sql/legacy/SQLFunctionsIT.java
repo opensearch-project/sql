@@ -126,7 +126,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
   @Test
   public void caseChangeTest() throws IOException {
     String query = "SELECT LOWER(firstname) " +
-        "FROM elasticsearch-sql_test_index_account " +
+        "FROM opensearch-sql_test_index_account " +
         "WHERE UPPER(lastname)='DUKE' " +
         "ORDER BY upper(lastname) ";
 
@@ -145,7 +145,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
     // https://stackoverflow.com/questions/11063102/using-locales-with-javas-tolowercase-and-touppercase
 
     String query = "SELECT LOWER(state.keyword, 'tr') " +
-        "FROM elasticsearch-sql_test_index_account " +
+        "FROM opensearch-sql_test_index_account " +
         "WHERE account_number=1";
 
     assertThat(
@@ -158,7 +158,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
   @Test
   public void caseChangeWithAggregationTest() throws IOException {
     String query = "SELECT UPPER(e.firstname) AS upper, COUNT(*)" +
-        "FROM elasticsearch-sql_test_index_account e " +
+        "FROM opensearch-sql_test_index_account e " +
         "WHERE LOWER(e.lastname)='duke' " +
         "GROUP BY upper";
 

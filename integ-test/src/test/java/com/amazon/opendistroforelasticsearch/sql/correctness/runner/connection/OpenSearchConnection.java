@@ -40,13 +40,13 @@ public class OpenSearchConnection implements DBConnection {
   private final RestClient client;
 
   public OpenSearchConnection(String connectionUrl, RestClient client) {
-    this.connection = new JDBCConnection("Elasticsearch", connectionUrl, populateProperties());
+    this.connection = new JDBCConnection("OpenSearch", connectionUrl, populateProperties());
     this.client = client;
   }
 
   @Override
   public String getDatabaseName() {
-    return "Elasticsearch";
+    return "OpenSearch";
   }
 
   @Override

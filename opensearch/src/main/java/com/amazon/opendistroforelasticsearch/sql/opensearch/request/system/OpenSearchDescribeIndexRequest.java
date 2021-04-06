@@ -152,7 +152,7 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
 
   @Override
   public String toString() {
-    return "ElasticsearchDescribeIndexRequest{"
+    return "OpenSearchDescribeIndexRequest{"
         + "indexName='" + indexName + '\''
         + '}';
   }

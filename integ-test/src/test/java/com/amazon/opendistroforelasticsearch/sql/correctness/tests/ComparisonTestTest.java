@@ -54,7 +54,7 @@ public class ComparisonTestTest {
 
   @Before
   public void setUp() {
-    when(esConnection.getDatabaseName()).thenReturn("ES");
+    when(esConnection.getDatabaseName()).thenReturn("OpenSearch");
     when(otherDbConnection.getDatabaseName()).thenReturn("Other");
     correctnessTest = new ComparisonTest(
         esConnection, new DBConnection[] {otherDbConnection}

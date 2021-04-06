@@ -223,7 +223,7 @@ public class ExplainIT extends SQLIntegTestCase {
   }
 
   public void testContentTypeOfExplainRequestShouldBeJson() throws IOException {
-    String query = makeRequest("SELECT firstname FROM elasticsearch-sql_test_index_account");
+    String query = makeRequest("SELECT firstname FROM opensearch-sql_test_index_account");
     Request request = getSqlRequest(query, true);
 
     Response response = client().performRequest(request);

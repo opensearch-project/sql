@@ -56,7 +56,7 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
   @Test
   public void unsupportedOperatorShouldThrowSyntaxException() {
     queryShouldThrowSyntaxException(
-        "SELECT * FROM elasticsearch-sql_test_index_bank WHERE age <=> 1"
+        "SELECT * FROM opensearch-sql_test_index_bank WHERE age <=> 1"
     );
   }
 
@@ -65,7 +65,7 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
     runWithClusterSetting(
         new ClusterSetting("transient", QUERY_ANALYSIS_ENABLED, "false"),
         () -> queryShouldThrowException(
-            "SELECT * FROM elasticsearch-sql_test_index_bank WHERE age <=> 1",
+            "SELECT * FROM opensearch-sql_test_index_bank WHERE age <=> 1",
             SqlParseException.class
         )
     );
@@ -76,7 +76,7 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
     runWithClusterSetting(
         new ClusterSetting("transient", QUERY_ANALYSIS_SEMANTIC_SUGGESTION, "true"),
         () -> queryShouldThrowSemanticException(
-            "SELECT * FROM elasticsearch-sql_test_index_bank b WHERE a.balance = 1000",
+            "SELECT * FROM opensearch-sql_test_index_bank b WHERE a.balance = 1000",
             "Field [a.balance] cannot be found or used here.",
             "Did you mean [b.balance]?"
         )
@@ -88,7 +88,7 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
     runWithClusterSetting(
         new ClusterSetting("transient", QUERY_ANALYSIS_SEMANTIC_THRESHOLD, "5"),
         () -> queryShouldPassAnalysis(
-            "SELECT * FROM elasticsearch-sql_test_index_bank WHERE age123 = 1")
+            "SELECT * FROM opensearch-sql_test_index_bank WHERE age123 = 1")
     );
   }
 
@@ -96,12 +96,12 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
     @Test
     public void useNewAddedFieldShouldPass() throws Exception {
         // 1.Make sure new add fields not there originally
-        String query = "SELECT salary FROM elasticsearch-sql_test_index_bank WHERE education = 'PhD'";
+        String query = "SELECT salary FROM opensearch-sql_test_index_bank WHERE education = 'PhD'";
         queryShouldThrowSemanticException(query, "Field [education] cannot be found or used here.");
 
         // 2.Index an document with fields not present in mapping previously
         String docWithNewFields = "{\"account_number\":12345,\"education\":\"PhD\",\"salary\": \"10000\"}";
-        IndexResponse resp = client().index(new IndexRequest().index("elasticsearch-sql_test_index_bank").
+        IndexResponse resp = client().index(new IndexRequest().index("opensearch-sql_test_index_bank").
                                                                source(docWithNewFields, JSON)).get();
 
         Assert.assertEquals(RestStatus.CREATED, resp.status());
@@ -114,7 +114,7 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
   @Test
   public void nonExistingFieldNameShouldThrowSemanticException() {
     queryShouldThrowSemanticException(
-        "SELECT * FROM elasticsearch-sql_test_index_bank WHERE balance1 = 1000",
+        "SELECT * FROM opensearch-sql_test_index_bank WHERE balance1 = 1000",
         "Field [balance1] cannot be found or used here."
         //"Did you mean [balance]?"
     );
@@ -123,7 +123,7 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
   @Test
   public void nonExistingIndexAliasShouldThrowSemanticException() {
     queryShouldThrowSemanticException(
-        "SELECT * FROM elasticsearch-sql_test_index_bank b WHERE a.balance = 1000",
+        "SELECT * FROM opensearch-sql_test_index_bank b WHERE a.balance = 1000",
         "Field [a.balance] cannot be found or used here."
         //"Did you mean [b.balance]?"
     );
@@ -132,7 +132,7 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
   @Test
   public void indexJoinNonNestedFieldShouldThrowSemanticException() {
     queryShouldThrowSemanticException(
-        "SELECT * FROM elasticsearch-sql_test_index_bank b1, b1.firstname f1",
+        "SELECT * FROM opensearch-sql_test_index_bank b1, b1.firstname f1",
         "Operator [JOIN] cannot work with [INDEX, KEYWORD]."
     );
   }
@@ -140,7 +140,7 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
   @Test
   public void scalarFunctionCallWithTypoInNameShouldThrowSemanticException() {
     queryShouldThrowSemanticException(
-        "SELECT * FROM elasticsearch-sql_test_index_bank WHERE ABSa(age) = 1",
+        "SELECT * FROM opensearch-sql_test_index_bank WHERE ABSa(age) = 1",
         "Function [ABSA] cannot be found or used here.",
         "Did you mean [ABS]?"
     );
@@ -149,7 +149,7 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
   @Test
   public void scalarFunctionCallWithWrongTypeArgumentShouldThrowSemanticException() {
     queryShouldThrowSemanticException(
-        "SELECT * FROM elasticsearch-sql_test_index_bank WHERE LOG(lastname) = 1",
+        "SELECT * FROM opensearch-sql_test_index_bank WHERE LOG(lastname) = 1",
         "Function [LOG] cannot work with [KEYWORD].",
         "Usage: LOG(NUMBER T) -> DOUBLE or LOG(NUMBER T, NUMBER) -> DOUBLE"
     );
@@ -158,7 +158,7 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
   @Test
   public void aggregateFunctionCallWithWrongNumberOfArgumentShouldThrowSemanticException() {
     queryShouldThrowSemanticException(
-        "SELECT city FROM elasticsearch-sql_test_index_bank GROUP BY city HAVING MAX(age, birthdate) > 1",
+        "SELECT city FROM opensearch-sql_test_index_bank GROUP BY city HAVING MAX(age, birthdate) > 1",
         "Function [MAX] cannot work with [INTEGER, DATE].",
         "Usage: MAX(NUMBER T) -> T"
     );
@@ -167,7 +167,7 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
   @Test
   public void compareIntegerFieldWithBooleanShouldThrowSemanticException() {
     queryShouldThrowSemanticException(
-        "SELECT * FROM elasticsearch-sql_test_index_bank b WHERE b.age IS FALSE",
+        "SELECT * FROM opensearch-sql_test_index_bank b WHERE b.age IS FALSE",
         "Operator [IS] cannot work with [INTEGER, BOOLEAN].",
         "Usage: Please use compatible types from each side."
     );
@@ -176,7 +176,7 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
   @Test
   public void compareNumberFieldWithStringShouldThrowSemanticException() {
     queryShouldThrowSemanticException(
-        "SELECT * FROM elasticsearch-sql_test_index_bank b WHERE b.age >= 'test'",
+        "SELECT * FROM opensearch-sql_test_index_bank b WHERE b.age >= 'test'",
         "Operator [>=] cannot work with [INTEGER, STRING].",
         "Usage: Please use compatible types from each side."
     );
@@ -185,7 +185,7 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
   @Test
   public void compareLogFunctionCallWithNumberFieldWithStringShouldThrowSemanticException() {
     queryShouldThrowSemanticException(
-        "SELECT * FROM elasticsearch-sql_test_index_bank b WHERE LOG(b.balance) != 'test'",
+        "SELECT * FROM opensearch-sql_test_index_bank b WHERE LOG(b.balance) != 'test'",
         "Operator [!=] cannot work with [DOUBLE, STRING].",
         "Usage: Please use compatible types from each side."
     );
@@ -194,8 +194,8 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
   @Test
   public void unionNumberFieldWithStringShouldThrowSemanticException() {
     queryShouldThrowSemanticException(
-        "SELECT age FROM elasticsearch-sql_test_index_bank" +
-            " UNION SELECT address FROM elasticsearch-sql_test_index_bank",
+        "SELECT age FROM opensearch-sql_test_index_bank" +
+            " UNION SELECT address FROM opensearch-sql_test_index_bank",
         "Operator [UNION] cannot work with [INTEGER, TEXT]."
     );
   }
@@ -203,8 +203,8 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
   @Test
   public void minusBooleanFieldWithDateShouldThrowSemanticException() {
     queryShouldThrowSemanticException(
-        "SELECT male FROM elasticsearch-sql_test_index_bank" +
-            " MINUS SELECT birthdate FROM elasticsearch-sql_test_index_bank",
+        "SELECT male FROM opensearch-sql_test_index_bank" +
+            " MINUS SELECT birthdate FROM opensearch-sql_test_index_bank",
         "Operator [MINUS] cannot work with [BOOLEAN, DATE]."
     );
   }
@@ -212,8 +212,8 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
   @Test
   public void useInClauseWithIncompatibleFieldTypesShouldFail() {
     queryShouldThrowSemanticException(
-        "SELECT * FROM elasticsearch-sql_test_index_bank WHERE male " +
-            " IN (SELECT 1 FROM elasticsearch-sql_test_index_bank)",
+        "SELECT * FROM opensearch-sql_test_index_bank WHERE male " +
+            " IN (SELECT 1 FROM opensearch-sql_test_index_bank)",
         "Operator [IN] cannot work with [BOOLEAN, INTEGER]."
     );
   }
@@ -221,20 +221,20 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
   @Test
   public void queryWithNestedFunctionShouldFail() {
     queryShouldThrowFeatureNotImplementedException(
-        "SELECT abs(log(balance)) FROM elasticsearch-sql_test_index_bank",
+        "SELECT abs(log(balance)) FROM opensearch-sql_test_index_bank",
         "Nested function calls like [abs(log(balance))] are not supported yet"
     );
   }
 
   @Test
   public void nestedFunctionWithMathConstantAsInnerFunctionShouldPass() {
-    queryShouldPassAnalysis("SELECT log(e()) FROM elasticsearch-sql_test_index_bank");
+    queryShouldPassAnalysis("SELECT log(e()) FROM opensearch-sql_test_index_bank");
   }
 
   @Test
   public void aggregateWithFunctionAggregatorShouldFail() {
     queryShouldThrowFeatureNotImplementedException(
-        "SELECT max(log(age)) FROM elasticsearch-sql_test_index_bank",
+        "SELECT max(log(age)) FROM opensearch-sql_test_index_bank",
         "Aggregation calls with function aggregator like [max(log(age))] are not supported yet"
     );
   }
@@ -242,7 +242,7 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
   @Test
   public void queryWithUnsupportedFunctionShouldFail() {
     queryShouldThrowFeatureNotImplementedException(
-        "SELECT balance DIV age FROM elasticsearch-sql_test_index_bank",
+        "SELECT balance DIV age FROM opensearch-sql_test_index_bank",
         "Operator [DIV] is not supported yet"
     );
   }
@@ -250,7 +250,7 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
   @Test
   public void useNegativeNumberConstantShouldPass() {
     queryShouldPassAnalysis(
-        "SELECT * FROM elasticsearch-sql_test_index_bank " +
+        "SELECT * FROM opensearch-sql_test_index_bank " +
             "WHERE age > -1 AND balance < -123.456789"
     );
   }

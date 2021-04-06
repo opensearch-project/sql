@@ -71,6 +71,6 @@ public class OpenSearchCatIndicesRequest implements OpenSearchSystemRequest {
 
   @Override
   public String toString() {
-    return "ElasticsearchCatIndicesRequest{}";
+    return "OpenSearchCatIndicesRequest{}";
   }
 }

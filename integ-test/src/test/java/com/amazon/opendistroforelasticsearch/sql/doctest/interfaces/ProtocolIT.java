@@ -39,7 +39,7 @@ public class ProtocolIT extends DocTest {
             "The body of HTTP POST request can take a few more other fields with SQL query."),
         example(
             description(
-                "Use `filter` to add more conditions to Elasticsearch DSL directly."
+                "Use `filter` to add more conditions to OpenSearch DSL directly."
             ),
             post(
                 body(
@@ -94,10 +94,10 @@ public class ProtocolIT extends DocTest {
   @Section(3)
   public void originalDSLResponse() {
     section(
-        title("Elasticsearch DSL"),
+        title("OpenSearch DSL"),
         description(
-            "The plugin returns original response from Elasticsearch in JSON. Because this is",
-            "the native response from Elasticsearch, extra efforts are needed to parse and interpret it."
+            "The plugin returns original response from OpenSearch in JSON. Because this is",
+            "the native response from OpenSearch, extra efforts are needed to parse and interpret it."
         ),
         example(
             description(),

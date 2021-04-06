@@ -29,7 +29,7 @@ import org.junit.Assume;
 import org.junit.Test;
 
 /**
- * Integration test for Elasticsearch object field (and nested field).
+ * Integration test for OpenSearch object field (and nested field).
  * This class is focused on simple SELECT-FROM query to ensure right column
  * number and value is returned.
  */

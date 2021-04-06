@@ -53,7 +53,7 @@ public class LocalClusterStateTest {
     private static final String TYPE_NAME = "account";
 
     private static final String MAPPING = "{\n" +
-        "  \"elasticsearch-sql_test_index_bank\": {\n" +
+        "  \"opensearch-sql_test_index_bank\": {\n" +
         "    \"mappings\": {\n" +
         "      \"account\": {\n" +
         "        \"properties\": {\n" +

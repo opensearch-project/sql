@@ -98,7 +98,7 @@ public class ComplexQueryIT extends DocTest {
                 "is used and preceded by ``INNER`` keyword optionally. The join predicate(s) is specified",
                 "by ``ON`` clause.\n\n",
                 "Remark that the explain API output for join queries looks complicated. This is because",
-                "a join query is associated with two Elasticsearch DSL queries underlying and execute in",
+                "a join query is associated with two OpenSearch DSL queries underlying and execute in",
                 "the separate query planner framework. You can interpret it by looking into the logical",
                 "plan and physical plan."
             ),
