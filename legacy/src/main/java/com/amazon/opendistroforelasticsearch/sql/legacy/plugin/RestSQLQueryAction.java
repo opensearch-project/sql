@@ -55,7 +55,7 @@ import static org.opensearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
 import static org.opensearch.rest.RestStatus.OK;
 
 /**
- * New SQL REST action handler. This will not be registered to Elasticsearch unless:
+ * New SQL REST action handler. This will not be registered to OpenSearch unless:
  *  1) we want to test new SQL engine;
  *  2) all old functionalities migrated to new query engine and legacy REST handler removed.
  */

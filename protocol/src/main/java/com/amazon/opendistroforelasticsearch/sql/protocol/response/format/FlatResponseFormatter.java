@@ -98,7 +98,7 @@ public abstract class FlatResponseFormatter implements ResponseFormatter<QueryRe
     }
 
     /**
-     * Sanitize headers because Elasticsearch allows special character present in field names.
+     * Sanitize headers because OpenSearch allows special character present in field names.
      */
     private List<String> sanitizeHeaders(List<String> headers) {
       if (sanitize) {

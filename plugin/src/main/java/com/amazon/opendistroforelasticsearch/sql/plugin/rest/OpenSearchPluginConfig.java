@@ -35,8 +35,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Elasticsearch plugin config that injects cluster service and node client from plugin
- * and initialize Elasticsearch storage and execution engine.
+ * OpenSearch plugin config that injects cluster service and node client from plugin
+ * and initialize OpenSearch storage and execution engine.
  */
 @Configuration
 public class OpenSearchPluginConfig {

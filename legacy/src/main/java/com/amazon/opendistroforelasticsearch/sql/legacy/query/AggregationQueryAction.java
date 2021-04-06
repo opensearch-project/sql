@@ -49,7 +49,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Transform SQL query to Elasticsearch aggregations query
+ * Transform SQL query to OpenSearch aggregations query
  */
 public class AggregationQueryAction extends QueryAction {
 

@@ -198,7 +198,7 @@ public class ESActionFactory {
 
     @VisibleForTesting
     public static boolean shouldMigrateToQueryPlan(SQLQueryExpr expr, Format format) {
-        // The JSON format will return the Elasticsearch aggregation result, which is not supported by the QueryPlanner.
+        // The JSON format will return the OpenSearch aggregation result, which is not supported by the QueryPlanner.
         if (format == Format.JSON) {
             return false;
         }

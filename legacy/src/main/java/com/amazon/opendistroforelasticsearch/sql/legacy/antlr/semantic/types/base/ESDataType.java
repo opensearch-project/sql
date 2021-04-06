@@ -24,7 +24,7 @@ import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.ty
 import static com.amazon.opendistroforelasticsearch.sql.legacy.utils.StringUtils.toUpper;
 
 /**
- * Base type hierarchy based on Elasticsearch data type
+ * Base type hierarchy based on OpenSearch data type
  */
 public enum ESDataType implements BaseType {
 

@@ -64,7 +64,7 @@ import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.SqlSetting
 import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.SqlSettings.CURSOR_KEEPALIVE;
 
 /**
- * Transform SQL query to standard Elasticsearch search query
+ * Transform SQL query to standard OpenSearch search query
  */
 public class DefaultQueryAction extends QueryAction {
 
@@ -230,7 +230,7 @@ public class DefaultQueryAction extends QueryAction {
     }
 
     /**
-     * Add sorts to the elasticsearch query based on the 'ORDER BY' clause.
+     * Add sorts to the OpenSearch query based on the 'ORDER BY' clause.
      *
      * @param orderBys list of Order object
      */

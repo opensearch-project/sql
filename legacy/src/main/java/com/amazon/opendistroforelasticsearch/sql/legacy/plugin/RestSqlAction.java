@@ -222,7 +222,7 @@ public class RestSqlAction extends BaseRestHandler {
             RestExecutor restExecutor = ActionRequestRestExecutorFactory.createExecutor(
                     SqlRequestParam.getFormat(params),
                     queryAction);
-            //doing this hack because elasticsearch throws exception for un-consumed props
+            //doing this hack because OpenSearch throws exception for un-consumed props
             Map<String, String> additionalParams = new HashMap<>();
             for (String paramName : responseParams()) {
                 if (request.hasParam(paramName)) {

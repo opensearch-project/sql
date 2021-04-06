@@ -26,7 +26,7 @@ import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.ty
 import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.STRING;
 
 /**
- * Elasticsearch special scalar functions
+ * OpenSearch special scalar functions
  */
 public enum ESScalarFunction implements TypeExpression {
 
