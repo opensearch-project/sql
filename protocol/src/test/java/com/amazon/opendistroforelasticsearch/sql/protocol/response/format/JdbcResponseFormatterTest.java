@@ -24,10 +24,10 @@ import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.A
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.INTEGER;
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.STRING;
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.STRUCT;
-import static com.amazon.opendistroforelasticsearch.sql.elasticsearch.data.type.OpenSearchDataType.ES_TEXT;
-import static com.amazon.opendistroforelasticsearch.sql.elasticsearch.data.type.OpenSearchDataType.ES_TEXT_KEYWORD;
 import static com.amazon.opendistroforelasticsearch.sql.executor.ExecutionEngine.Schema;
 import static com.amazon.opendistroforelasticsearch.sql.executor.ExecutionEngine.Schema.Column;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_TEXT;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_TEXT_KEYWORD;
 import static com.amazon.opendistroforelasticsearch.sql.protocol.response.format.JsonResponseFormatter.Style.COMPACT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

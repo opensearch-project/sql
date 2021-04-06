@@ -16,13 +16,18 @@
 
 package com.amazon.opendistroforelasticsearch.sql.legacy.plugin;
 
+import static com.amazon.opendistroforelasticsearch.sql.executor.ExecutionEngine.QueryResponse;
+import static com.amazon.opendistroforelasticsearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
+import static org.opensearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
+import static org.opensearch.rest.RestStatus.OK;
+
 import com.amazon.opendistroforelasticsearch.sql.common.antlr.SyntaxCheckException;
 import com.amazon.opendistroforelasticsearch.sql.common.response.ResponseListener;
 import com.amazon.opendistroforelasticsearch.sql.common.setting.Settings;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.security.SecurityAccess;
 import com.amazon.opendistroforelasticsearch.sql.executor.ExecutionEngine.ExplainResponse;
 import com.amazon.opendistroforelasticsearch.sql.legacy.metrics.MetricName;
 import com.amazon.opendistroforelasticsearch.sql.legacy.metrics.Metrics;
+import com.amazon.opendistroforelasticsearch.sql.opensearch.security.SecurityAccess;
 import com.amazon.opendistroforelasticsearch.sql.planner.physical.PhysicalPlan;
 import com.amazon.opendistroforelasticsearch.sql.protocol.response.QueryResult;
 import com.amazon.opendistroforelasticsearch.sql.protocol.response.format.CsvResponseFormatter;
@@ -34,6 +39,9 @@ import com.amazon.opendistroforelasticsearch.sql.protocol.response.format.Respon
 import com.amazon.opendistroforelasticsearch.sql.sql.SQLService;
 import com.amazon.opendistroforelasticsearch.sql.sql.config.SQLServiceConfig;
 import com.amazon.opendistroforelasticsearch.sql.sql.domain.SQLQueryRequest;
+import java.io.IOException;
+import java.security.PrivilegedExceptionAction;
+import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
@@ -44,15 +52,6 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-
-import java.io.IOException;
-import java.security.PrivilegedExceptionAction;
-import java.util.List;
-
-import static com.amazon.opendistroforelasticsearch.sql.executor.ExecutionEngine.QueryResponse;
-import static com.amazon.opendistroforelasticsearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
-import static org.opensearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
-import static org.opensearch.rest.RestStatus.OK;
 
 /**
  * New SQL REST action handler. This will not be registered to OpenSearch unless:

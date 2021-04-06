@@ -20,14 +20,14 @@ import static com.amazon.opendistroforelasticsearch.sql.protocol.response.format
 
 import com.amazon.opendistroforelasticsearch.sql.common.response.ResponseListener;
 import com.amazon.opendistroforelasticsearch.sql.common.setting.Settings;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.client.OpenSearchClient;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.client.OpenSearchRestClient;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.executor.OpenSearchExecutionEngine;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.executor.protector.OpenSearchExecutionProtector;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.storage.OpenSearchStorageEngine;
 import com.amazon.opendistroforelasticsearch.sql.executor.ExecutionEngine;
 import com.amazon.opendistroforelasticsearch.sql.executor.ExecutionEngine.QueryResponse;
 import com.amazon.opendistroforelasticsearch.sql.monitor.AlwaysHealthyMonitor;
+import com.amazon.opendistroforelasticsearch.sql.opensearch.client.OpenSearchClient;
+import com.amazon.opendistroforelasticsearch.sql.opensearch.client.OpenSearchRestClient;
+import com.amazon.opendistroforelasticsearch.sql.opensearch.executor.OpenSearchExecutionEngine;
+import com.amazon.opendistroforelasticsearch.sql.opensearch.executor.protector.OpenSearchExecutionProtector;
+import com.amazon.opendistroforelasticsearch.sql.opensearch.storage.OpenSearchStorageEngine;
 import com.amazon.opendistroforelasticsearch.sql.ppl.config.PPLServiceConfig;
 import com.amazon.opendistroforelasticsearch.sql.ppl.domain.PPLQueryRequest;
 import com.amazon.opendistroforelasticsearch.sql.protocol.response.QueryResult;

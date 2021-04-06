@@ -18,16 +18,16 @@
 package com.amazon.opendistroforelasticsearch.sql.legacy.plugin;
 
 import com.amazon.opendistroforelasticsearch.sql.common.setting.Settings;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.client.OpenSearchClient;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.client.OpenSearchNodeClient;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.executor.OpenSearchExecutionEngine;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.executor.protector.OpenSearchExecutionProtector;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.executor.protector.ExecutionProtector;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.monitor.OpenSearchMemoryHealthy;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.monitor.OpenSearchResourceMonitor;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.storage.OpenSearchStorageEngine;
 import com.amazon.opendistroforelasticsearch.sql.executor.ExecutionEngine;
 import com.amazon.opendistroforelasticsearch.sql.monitor.ResourceMonitor;
+import com.amazon.opendistroforelasticsearch.sql.opensearch.client.OpenSearchClient;
+import com.amazon.opendistroforelasticsearch.sql.opensearch.client.OpenSearchNodeClient;
+import com.amazon.opendistroforelasticsearch.sql.opensearch.executor.OpenSearchExecutionEngine;
+import com.amazon.opendistroforelasticsearch.sql.opensearch.executor.protector.ExecutionProtector;
+import com.amazon.opendistroforelasticsearch.sql.opensearch.executor.protector.OpenSearchExecutionProtector;
+import com.amazon.opendistroforelasticsearch.sql.opensearch.monitor.OpenSearchMemoryHealthy;
+import com.amazon.opendistroforelasticsearch.sql.opensearch.monitor.OpenSearchResourceMonitor;
+import com.amazon.opendistroforelasticsearch.sql.opensearch.storage.OpenSearchStorageEngine;
 import com.amazon.opendistroforelasticsearch.sql.storage.StorageEngine;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.service.ClusterService;

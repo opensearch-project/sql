@@ -15,9 +15,6 @@
 
 package com.amazon.opendistroforelasticsearch.sql.plugin;
 
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.setting.OpenSearchSettings;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.storage.script.ExpressionScriptEngine;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.storage.serialization.DefaultExpressionSerializer;
 import com.amazon.opendistroforelasticsearch.sql.legacy.esdomain.LocalClusterState;
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.AsyncRestExecutor;
 import com.amazon.opendistroforelasticsearch.sql.legacy.metrics.Metrics;
@@ -25,6 +22,9 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.plugin.RestSqlAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.plugin.RestSqlSettingsAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.plugin.RestSqlStatsAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.plugin.SqlSettings;
+import com.amazon.opendistroforelasticsearch.sql.opensearch.setting.OpenSearchSettings;
+import com.amazon.opendistroforelasticsearch.sql.opensearch.storage.script.ExpressionScriptEngine;
+import com.amazon.opendistroforelasticsearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
 import com.amazon.opendistroforelasticsearch.sql.plugin.rest.RestPPLQueryAction;
 import com.amazon.opendistroforelasticsearch.sql.plugin.rest.RestPPLStatsAction;
 import com.google.common.collect.ImmutableList;
