@@ -64,7 +64,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
   public void explain(PhysicalPlan plan, ResponseListener<ExplainResponse> listener) {
     client.schedule(() -> {
       try {
-        Explain esExplain = new Explain() {
+        Explain openSearchExplain = new Explain() {
           @Override
           public ExplainResponseNode visitTableScan(TableScanOperator node, Object context) {
             return explain(node, context, explainNode -> {
@@ -73,7 +73,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
           }
         };
 
-        listener.onResponse(esExplain.apply(plan));
+        listener.onResponse(openSearchExplain.apply(plan));
       } catch (Exception e) {
         listener.onFailure(e);
       }

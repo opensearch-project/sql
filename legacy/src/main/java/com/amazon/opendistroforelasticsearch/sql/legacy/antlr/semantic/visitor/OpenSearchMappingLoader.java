@@ -20,8 +20,8 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.scope.Nam
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.scope.SemanticContext;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.scope.Symbol;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.Type;
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType;
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESIndex;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchIndex;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.visitor.EarlyExitAnalysisException;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.visitor.GenericSqlParseTreeVisitor;
 import com.amazon.opendistroforelasticsearch.sql.legacy.esdomain.LocalClusterState;
@@ -33,13 +33,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESIndex.IndexType.INDEX;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESIndex.IndexType.NESTED_FIELD;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchIndex.IndexType.INDEX;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchIndex.IndexType.NESTED_FIELD;
 
 /**
  * Load index and nested field mapping into semantic context
  */
-public class ESMappingLoader implements GenericSqlParseTreeVisitor<Type> {
+public class OpenSearchMappingLoader implements GenericSqlParseTreeVisitor<Type> {
 
     /** Semantic context shared in the semantic analysis process */
     private final SemanticContext context;
@@ -50,7 +50,7 @@ public class ESMappingLoader implements GenericSqlParseTreeVisitor<Type> {
     /** Threshold to decide if continue the analysis */
     private final int threshold;
 
-    public ESMappingLoader(SemanticContext context, LocalClusterState clusterState, int threshold) {
+    public OpenSearchMappingLoader(SemanticContext context, LocalClusterState clusterState, int threshold) {
         this.context = context;
         this.clusterState = clusterState;
         this.threshold = threshold;
@@ -84,11 +84,11 @@ public class ESMappingLoader implements GenericSqlParseTreeVisitor<Type> {
 
     @Override
     public void visitAs(String alias, Type type) {
-        if (!(type instanceof ESIndex)) {
+        if (!(type instanceof OpenSearchIndex)) {
             return;
         }
 
-        ESIndex index = (ESIndex) type;
+        OpenSearchIndex index = (OpenSearchIndex) type;
         String indexName = type.getName();
 
         if (index.type() == INDEX) {
@@ -102,7 +102,7 @@ public class ESMappingLoader implements GenericSqlParseTreeVisitor<Type> {
     }
 
     private void defineIndexType(String indexName) {
-        environment().define(new Symbol(Namespace.FIELD_NAME, indexName), new ESIndex(indexName, INDEX));
+        environment().define(new Symbol(Namespace.FIELD_NAME, indexName), new OpenSearchIndex(indexName, INDEX));
     }
 
     private void loadAllFieldsWithType(String indexName) {
@@ -198,9 +198,9 @@ public class ESMappingLoader implements GenericSqlParseTreeVisitor<Type> {
 
     private void defineFieldName(String fieldName, String type) {
         if ("NESTED".equalsIgnoreCase(type)) {
-            defineFieldName(fieldName, new ESIndex(fieldName, NESTED_FIELD));
+            defineFieldName(fieldName, new OpenSearchIndex(fieldName, NESTED_FIELD));
         } else {
-            defineFieldName(fieldName, ESDataType.typeOf(type));
+            defineFieldName(fieldName, OpenSearchDataType.typeOf(type));
         }
     }
 

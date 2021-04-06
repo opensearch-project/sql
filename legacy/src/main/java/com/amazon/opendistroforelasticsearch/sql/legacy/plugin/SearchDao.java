@@ -17,7 +17,7 @@ package com.amazon.opendistroforelasticsearch.sql.legacy.plugin;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.domain.QueryActionRequest;
 import com.amazon.opendistroforelasticsearch.sql.legacy.exception.SqlParseException;
-import com.amazon.opendistroforelasticsearch.sql.legacy.query.ESActionFactory;
+import com.amazon.opendistroforelasticsearch.sql.legacy.query.OpenSearchActionFactory;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.QueryAction;
 import org.opensearch.client.Client;
 
@@ -58,6 +58,6 @@ public class SearchDao {
      */
     public QueryAction explain(QueryActionRequest queryActionRequest)
             throws SqlParseException, SQLFeatureNotSupportedException {
-        return ESActionFactory.create(client, queryActionRequest);
+        return OpenSearchActionFactory.create(client, queryActionRequest);
     }
 }

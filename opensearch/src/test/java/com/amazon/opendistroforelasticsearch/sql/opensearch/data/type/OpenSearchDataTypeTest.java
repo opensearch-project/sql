@@ -18,8 +18,8 @@
 package com.amazon.opendistroforelasticsearch.sql.opensearch.data.type;
 
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.STRING;
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_TEXT;
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_TEXT_KEYWORD;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -29,22 +29,22 @@ import org.junit.jupiter.api.Test;
 class OpenSearchDataTypeTest {
   @Test
   public void testIsCompatible() {
-    assertTrue(STRING.isCompatible(ES_TEXT));
-    assertFalse(ES_TEXT.isCompatible(STRING));
+    assertTrue(STRING.isCompatible(OPENSEARCH_TEXT));
+    assertFalse(OPENSEARCH_TEXT.isCompatible(STRING));
 
-    assertTrue(STRING.isCompatible(ES_TEXT_KEYWORD));
-    assertTrue(ES_TEXT.isCompatible(ES_TEXT_KEYWORD));
+    assertTrue(STRING.isCompatible(OPENSEARCH_TEXT_KEYWORD));
+    assertTrue(OPENSEARCH_TEXT.isCompatible(OPENSEARCH_TEXT_KEYWORD));
   }
 
   @Test
   public void testTypeName() {
-    assertEquals("string", ES_TEXT.typeName());
-    assertEquals("string", ES_TEXT_KEYWORD.typeName());
+    assertEquals("string", OPENSEARCH_TEXT.typeName());
+    assertEquals("string", OPENSEARCH_TEXT_KEYWORD.typeName());
   }
 
   @Test
   public void legacyTypeName() {
-    assertEquals("text", ES_TEXT.legacyTypeName());
-    assertEquals("text", ES_TEXT_KEYWORD.legacyTypeName());
+    assertEquals("text", OPENSEARCH_TEXT.legacyTypeName());
+    assertEquals("text", OPENSEARCH_TEXT_KEYWORD.legacyTypeName());
   }
 }

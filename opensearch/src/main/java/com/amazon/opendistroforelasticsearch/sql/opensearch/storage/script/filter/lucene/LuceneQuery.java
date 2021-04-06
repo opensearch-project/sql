@@ -16,7 +16,7 @@
 
 package com.amazon.opendistroforelasticsearch.sql.opensearch.storage.script.filter.lucene;
 
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_TEXT_KEYWORD;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
 
 import com.amazon.opendistroforelasticsearch.sql.data.model.ExprValue;
 import com.amazon.opendistroforelasticsearch.sql.data.type.ExprType;
@@ -80,7 +80,7 @@ public abstract class LuceneQuery {
    * @return            keyword field name for multi-field, otherwise original field name returned
    */
   protected String convertTextToKeyword(String fieldName, ExprType fieldType) {
-    if (fieldType == ES_TEXT_KEYWORD) {
+    if (fieldType == OPENSEARCH_TEXT_KEYWORD) {
       return fieldName + ".keyword";
     }
     return fieldName;

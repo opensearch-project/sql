@@ -68,15 +68,15 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
   @Override
   public OpenSearchResponse search(Function<SearchRequest, SearchResponse> searchAction,
                                    Function<SearchScrollRequest, SearchResponse> scrollAction) {
-    SearchResponse esResponse;
+    SearchResponse openSearchResponse;
     if (isScrollStarted()) {
-      esResponse = scrollAction.apply(scrollRequest());
+      openSearchResponse = scrollAction.apply(scrollRequest());
     } else {
-      esResponse = searchAction.apply(searchRequest());
+      openSearchResponse = searchAction.apply(searchRequest());
     }
-    setScrollId(esResponse.getScrollId());
+    setScrollId(openSearchResponse.getScrollId());
 
-    return new OpenSearchResponse(esResponse, exprValueFactory);
+    return new OpenSearchResponse(openSearchResponse, exprValueFactory);
   }
 
   @Override

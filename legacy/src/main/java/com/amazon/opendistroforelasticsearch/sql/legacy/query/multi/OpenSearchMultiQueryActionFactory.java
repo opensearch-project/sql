@@ -22,7 +22,7 @@ import org.opensearch.client.Client;
 /**
  * Created by Eliran on 19/8/2016.
  */
-public class ESMultiQueryActionFactory {
+public class OpenSearchMultiQueryActionFactory {
 
     public static QueryAction createMultiQueryAction(Client client, MultiQuerySelect multiSelect)
             throws SqlParseException {

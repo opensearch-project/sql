@@ -99,8 +99,8 @@ public abstract class CorrectnessTestBase extends RestIntegTestCase {
    * Use Elasticsearch cluster initialized by OpenSearch Gradle task.
    */
   private DBConnection getESConnection() {
-    String esHost = client().getNodes().get(0).getHost().toString();
-    return new OpenSearchConnection("jdbc:elasticsearch://" + esHost, client());
+    String openSearchHost = client().getNodes().get(0).getHost().toString();
+    return new OpenSearchConnection("jdbc:elasticsearch://" + openSearchHost, client());
   }
 
   /**

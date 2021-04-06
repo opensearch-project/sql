@@ -26,8 +26,8 @@ import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.S
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.STRUCT;
 import static com.amazon.opendistroforelasticsearch.sql.executor.ExecutionEngine.Schema;
 import static com.amazon.opendistroforelasticsearch.sql.executor.ExecutionEngine.Schema.Column;
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_TEXT;
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_TEXT_KEYWORD;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
 import static com.amazon.opendistroforelasticsearch.sql.protocol.response.format.JsonResponseFormatter.Style.COMPACT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -54,8 +54,8 @@ class JdbcResponseFormatterTest {
     QueryResult response = new QueryResult(
         new Schema(ImmutableList.of(
             new Column("name", "name", STRING),
-            new Column("address1", "address1", ES_TEXT),
-            new Column("address2", "address2", ES_TEXT_KEYWORD),
+            new Column("address1", "address1", OPENSEARCH_TEXT),
+            new Column("address2", "address2", OPENSEARCH_TEXT_KEYWORD),
             new Column("location", "location", STRUCT),
             new Column("employer", "employer", ARRAY),
             new Column("age", "age", INTEGER))),

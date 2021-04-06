@@ -23,7 +23,7 @@ import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.S
 import static com.amazon.opendistroforelasticsearch.sql.expression.DSL.literal;
 import static com.amazon.opendistroforelasticsearch.sql.expression.DSL.named;
 import static com.amazon.opendistroforelasticsearch.sql.expression.DSL.ref;
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_TEXT_KEYWORD;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
 import static com.amazon.opendistroforelasticsearch.sql.opensearch.utils.Utils.agg;
 import static com.amazon.opendistroforelasticsearch.sql.opensearch.utils.Utils.avg;
 import static com.amazon.opendistroforelasticsearch.sql.opensearch.utils.Utils.group;
@@ -183,7 +183,7 @@ class AggregationQueryBuilderTest {
         buildQuery(
             Arrays.asList(
                 named("avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER))),
-            Arrays.asList(named("name", ref("name", ES_TEXT_KEYWORD)))));
+            Arrays.asList(named("name", ref("name", OPENSEARCH_TEXT_KEYWORD)))));
   }
 
   @Test
@@ -191,10 +191,10 @@ class AggregationQueryBuilderTest {
     assertThat(
         buildTypeMapping(Arrays.asList(
             named("avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER))),
-            Arrays.asList(named("name", ref("name", ES_TEXT_KEYWORD)))),
+            Arrays.asList(named("name", ref("name", OPENSEARCH_TEXT_KEYWORD)))),
         containsInAnyOrder(
             map("avg(age)", INTEGER),
-            map("name", ES_TEXT_KEYWORD)
+            map("name", OPENSEARCH_TEXT_KEYWORD)
         ));
   }
 

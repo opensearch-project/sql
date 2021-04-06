@@ -17,7 +17,7 @@
 
 package com.amazon.opendistroforelasticsearch.sql.opensearch.data.value;
 
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_IP;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_IP;
 
 import com.amazon.opendistroforelasticsearch.sql.data.model.AbstractExprValue;
 import com.amazon.opendistroforelasticsearch.sql.data.model.ExprValue;
@@ -41,7 +41,7 @@ public class OpenSearchExprIpValue extends AbstractExprValue {
 
   @Override
   public ExprType type() {
-    return ES_IP;
+    return OPENSEARCH_IP;
   }
 
   @Override

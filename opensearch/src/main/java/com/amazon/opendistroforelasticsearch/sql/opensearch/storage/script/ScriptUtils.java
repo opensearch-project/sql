@@ -17,7 +17,7 @@
 
 package com.amazon.opendistroforelasticsearch.sql.opensearch.storage.script;
 
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_TEXT_KEYWORD;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
 
 import com.amazon.opendistroforelasticsearch.sql.data.type.ExprType;
 import lombok.experimental.UtilityClass;
@@ -33,7 +33,7 @@ public class ScriptUtils {
    * Limitation: assume inner field name is always "keyword".
    */
   public static String convertTextToKeyword(String fieldName, ExprType fieldType) {
-    if (fieldType == ES_TEXT_KEYWORD) {
+    if (fieldType == OPENSEARCH_TEXT_KEYWORD) {
       return fieldName + ".keyword";
     }
     return fieldName;

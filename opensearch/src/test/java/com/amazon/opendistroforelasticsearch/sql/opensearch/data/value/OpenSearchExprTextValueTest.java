@@ -17,7 +17,7 @@
 
 package com.amazon.opendistroforelasticsearch.sql.opensearch.data.value;
 
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_TEXT;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
@@ -25,6 +25,6 @@ import org.junit.jupiter.api.Test;
 class OpenSearchExprTextValueTest {
   @Test
   public void typeOfExprTextValue() {
-    assertEquals(ES_TEXT, new OpenSearchExprTextValue("A").type());
+    assertEquals(OPENSEARCH_TEXT, new OpenSearchExprTextValue("A").type());
   }
 }

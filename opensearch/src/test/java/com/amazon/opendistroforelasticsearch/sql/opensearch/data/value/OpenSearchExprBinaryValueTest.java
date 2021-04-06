@@ -15,7 +15,7 @@
 
 package com.amazon.opendistroforelasticsearch.sql.opensearch.data.value;
 
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_BINARY;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_BINARY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -49,7 +49,7 @@ public class OpenSearchExprBinaryValueTest {
   public void type() {
     OpenSearchExprBinaryValue value =
         new OpenSearchExprBinaryValue("U29tZSBiaW5hcnkgYmxvYg==");
-    assertEquals(ES_BINARY, value.type());
+    assertEquals(OPENSEARCH_BINARY, value.type());
   }
 
 }

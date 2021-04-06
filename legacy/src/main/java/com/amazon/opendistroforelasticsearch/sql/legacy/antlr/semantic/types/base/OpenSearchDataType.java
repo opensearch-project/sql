@@ -20,13 +20,13 @@ import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
 
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESIndex.IndexType.NESTED_FIELD;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchIndex.IndexType.NESTED_FIELD;
 import static com.amazon.opendistroforelasticsearch.sql.legacy.utils.StringUtils.toUpper;
 
 /**
  * Base type hierarchy based on OpenSearch data type
  */
-public enum ESDataType implements BaseType {
+public enum OpenSearchDataType implements BaseType {
 
     TYPE_ERROR,
     UNKNOWN,
@@ -51,7 +51,7 @@ public enum ESDataType implements BaseType {
 
     GEO_POINT,
 
-    ES_TYPE(
+    OPENSEARCH_TYPE(
         NUMBER,
         //STRING, move to under DATE because DATE is compatible
         DATE,
@@ -66,24 +66,24 @@ public enum ESDataType implements BaseType {
      * And Java doesn't provide a contains method.
      * So this static map is necessary for check and efficiency.
      */
-    private static final Map<String, ESDataType> ALL_BASE_TYPES;
+    private static final Map<String, OpenSearchDataType> ALL_BASE_TYPES;
     static {
-        ImmutableMap.Builder<String, ESDataType> builder = new ImmutableMap.Builder<>();
-        for (ESDataType type : ESDataType.values()) {
+        ImmutableMap.Builder<String, OpenSearchDataType> builder = new ImmutableMap.Builder<>();
+        for (OpenSearchDataType type : OpenSearchDataType.values()) {
             builder.put(type.name(), type);
         }
         ALL_BASE_TYPES = builder.build();
     }
 
-    public static ESDataType typeOf(String str) {
+    public static OpenSearchDataType typeOf(String str) {
         return ALL_BASE_TYPES.getOrDefault(toUpper(str), UNKNOWN);
     }
 
     /** Parent of current base type */
-    private ESDataType parent;
+    private OpenSearchDataType parent;
 
-    ESDataType(ESDataType... compatibleTypes) {
-        for (ESDataType subType : compatibleTypes) {
+    OpenSearchDataType(OpenSearchDataType... compatibleTypes) {
+        for (OpenSearchDataType subType : compatibleTypes) {
             subType.parent = this;
         }
     }
@@ -104,16 +104,16 @@ public enum ESDataType implements BaseType {
             return true;
         }
 
-        if (!(other instanceof ESDataType)) {
+        if (!(other instanceof OpenSearchDataType)) {
             // Nested data type is compatible with nested index type for type expression use
-            if (other instanceof ESIndex && ((ESIndex) other).type() == NESTED_FIELD) {
+            if (other instanceof OpenSearchIndex && ((OpenSearchIndex) other).type() == NESTED_FIELD) {
                 return isCompatible(NESTED);
             }
             return false;
         }
 
         // One way compatibility: parent base type is compatible with children
-        ESDataType cur = (ESDataType) other;
+        OpenSearchDataType cur = (OpenSearchDataType) other;
         while (cur != null && cur != this) {
             cur = cur.parent;
         }

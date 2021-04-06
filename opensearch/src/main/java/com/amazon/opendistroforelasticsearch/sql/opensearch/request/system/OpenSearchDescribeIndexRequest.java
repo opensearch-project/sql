@@ -55,10 +55,10 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
    * Type mapping from OpenSearch data type to expression type in our type system in query
    * engine. TODO: geo, ip etc.
    */
-  private static final Map<String, ExprType> ES_TYPE_TO_EXPR_TYPE_MAPPING =
+  private static final Map<String, ExprType> OPENSEARCH_TYPE_TO_EXPR_TYPE_MAPPING =
       ImmutableMap.<String, ExprType>builder()
-          .put("text", OpenSearchDataType.ES_TEXT)
-          .put("text_keyword", OpenSearchDataType.ES_TEXT_KEYWORD)
+          .put("text", OpenSearchDataType.OPENSEARCH_TEXT)
+          .put("text_keyword", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)
           .put("keyword", ExprCoreType.STRING)
           .put("byte", ExprCoreType.BYTE)
           .put("short", ExprCoreType.SHORT)
@@ -72,9 +72,9 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
           .put("nested", ExprCoreType.ARRAY)
           .put("object", ExprCoreType.STRUCT)
           .put("date", ExprCoreType.TIMESTAMP)
-          .put("ip", OpenSearchDataType.ES_IP)
-          .put("geo_point", OpenSearchDataType.ES_GEO_POINT)
-          .put("binary", OpenSearchDataType.ES_BINARY)
+          .put("ip", OpenSearchDataType.OPENSEARCH_IP)
+          .put("geo_point", OpenSearchDataType.OPENSEARCH_GEO_POINT)
+          .put("binary", OpenSearchDataType.OPENSEARCH_BINARY)
           .build();
 
   /**
@@ -122,8 +122,8 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
     return fieldTypes;
   }
 
-  private ExprType transformESTypeToExprType(String esType) {
-    return ES_TYPE_TO_EXPR_TYPE_MAPPING.getOrDefault(esType, ExprCoreType.UNKNOWN);
+  private ExprType transformESTypeToExprType(String openSearchType) {
+    return OPENSEARCH_TYPE_TO_EXPR_TYPE_MAPPING.getOrDefault(openSearchType, ExprCoreType.UNKNOWN);
   }
 
   private ExprTupleValue row(String fieldName, String fieldType, int position, String clusterName) {

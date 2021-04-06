@@ -16,18 +16,18 @@
 package com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.scope;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.Type;
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESIndex;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchIndex;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Map;
 
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.BOOLEAN;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.DATE;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.KEYWORD;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.OBJECT;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.TEXT;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESIndex.IndexType.NESTED_FIELD;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.BOOLEAN;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.DATE;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.KEYWORD;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.OBJECT;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.TEXT;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchIndex.IndexType.NESTED_FIELD;
 import static org.hamcrest.Matchers.aMapWithSize;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.hasEntry;
@@ -116,7 +116,7 @@ public class EnvironmentTest {
 
     @Test
     public void defineFieldSymbolShouldBeAbleToResolveAll() {
-        environment().define(new Symbol(Namespace.FIELD_NAME, "s.projects"), new ESIndex("s.projects", NESTED_FIELD));
+        environment().define(new Symbol(Namespace.FIELD_NAME, "s.projects"), new OpenSearchIndex("s.projects", NESTED_FIELD));
         environment().define(new Symbol(Namespace.FIELD_NAME, "s.projects.release"), DATE);
         environment().define(new Symbol(Namespace.FIELD_NAME, "s.projects.active"), BOOLEAN);
         environment().define(new Symbol(Namespace.FIELD_NAME, "s.address"), TEXT);
@@ -128,7 +128,7 @@ public class EnvironmentTest {
             typeByName,
             allOf(
                 aMapWithSize(6),
-                hasEntry("s.projects", (Type) new ESIndex("s.projects", NESTED_FIELD)),
+                hasEntry("s.projects", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
                 hasEntry("s.projects.release", DATE),
                 hasEntry("s.projects.active", BOOLEAN),
                 hasEntry("s.address", TEXT),

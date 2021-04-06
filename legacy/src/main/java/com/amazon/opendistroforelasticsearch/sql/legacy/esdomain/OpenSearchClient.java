@@ -27,13 +27,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class ESClient {
+public class OpenSearchClient {
 
     private static final Logger LOG = LogManager.getLogger();
     private static final int[] retryIntervals = new int[]{4, 12, 20, 20};
     private final Client client;
 
-    public ESClient(Client client) {
+    public OpenSearchClient(Client client) {
         this.client = client;
     }
 

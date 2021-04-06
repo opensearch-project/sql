@@ -33,11 +33,11 @@ import java.util.List;
 /**
  * Created by Eliran on 15/9/2015.
  */
-public abstract class ESJoinQueryAction extends QueryAction {
+public abstract class OpenSearchJoinQueryAction extends QueryAction {
 
     protected JoinSelect joinSelect;
 
-    public ESJoinQueryAction(Client client, JoinSelect joinSelect) {
+    public OpenSearchJoinQueryAction(Client client, JoinSelect joinSelect) {
         super(client, joinSelect);
         this.joinSelect = joinSelect;
     }

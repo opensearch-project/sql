@@ -55,10 +55,10 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
   /**
    * Constructor of ElasticsearchResponse.
    */
-  public OpenSearchResponse(SearchResponse esResponse,
+  public OpenSearchResponse(SearchResponse searchResponse,
                             OpenSearchExprValueFactory exprValueFactory) {
-    this.hits = esResponse.getHits();
-    this.aggregations = esResponse.getAggregations();
+    this.hits = searchResponse.getHits();
+    this.aggregations = searchResponse.getAggregations();
     this.exprValueFactory = exprValueFactory;
   }
 

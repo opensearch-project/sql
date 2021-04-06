@@ -40,11 +40,11 @@ import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.S
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.STRUCT;
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.TIME;
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.TIMESTAMP;
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_BINARY;
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_GEO_POINT;
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_IP;
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_TEXT;
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_TEXT_KEYWORD;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_BINARY;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_GEO_POINT;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_IP;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -89,11 +89,11 @@ class OpenSearchExprValueFactoryTest {
           .put("arrayV", ARRAY)
           .put("arrayV.info", STRING)
           .put("arrayV.author", STRING)
-          .put("textV", ES_TEXT)
-          .put("textKeywordV", ES_TEXT_KEYWORD)
-          .put("ipV", ES_IP)
-          .put("geoV", ES_GEO_POINT)
-          .put("binaryV", ES_BINARY)
+          .put("textV", OPENSEARCH_TEXT)
+          .put("textKeywordV", OPENSEARCH_TEXT_KEYWORD)
+          .put("ipV", OPENSEARCH_IP)
+          .put("geoV", OPENSEARCH_GEO_POINT)
+          .put("binaryV", OPENSEARCH_BINARY)
           .build();
   private OpenSearchExprValueFactory exprValueFactory =
       new OpenSearchExprValueFactory(MAPPING);

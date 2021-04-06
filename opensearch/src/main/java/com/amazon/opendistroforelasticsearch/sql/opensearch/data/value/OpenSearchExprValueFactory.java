@@ -31,11 +31,11 @@ import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.S
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.STRUCT;
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.TIME;
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.TIMESTAMP;
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_BINARY;
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_GEO_POINT;
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_IP;
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_TEXT;
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_TEXT_KEYWORD;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_BINARY;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_GEO_POINT;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_IP;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
 import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.value.OpenSearchDateFormatters.SQL_LITERAL_DATE_TIME_FORMAT;
 import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.value.OpenSearchDateFormatters.STRICT_DATE_OPTIONAL_TIME_FORMATTER;
 import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.value.OpenSearchDateFormatters.STRICT_HOUR_MINUTE_SECOND_FORMATTER;
@@ -112,12 +112,12 @@ public class OpenSearchExprValueFactory {
           .put(DATE, c -> new ExprDateValue(parseTimestamp(c).dateValue().toString()))
           .put(TIME, c -> new ExprTimeValue(parseTimestamp(c).timeValue().toString()))
           .put(DATETIME, c -> new ExprDatetimeValue(parseTimestamp(c).datetimeValue()))
-          .put(ES_TEXT, c -> new OpenSearchExprTextValue(c.stringValue()))
-          .put(ES_TEXT_KEYWORD, c -> new OpenSearchExprTextKeywordValue(c.stringValue()))
-          .put(ES_IP, c -> new OpenSearchExprIpValue(c.stringValue()))
-          .put(ES_GEO_POINT, c -> new OpenSearchExprGeoPointValue(c.geoValue().getLeft(),
+          .put(OPENSEARCH_TEXT, c -> new OpenSearchExprTextValue(c.stringValue()))
+          .put(OPENSEARCH_TEXT_KEYWORD, c -> new OpenSearchExprTextKeywordValue(c.stringValue()))
+          .put(OPENSEARCH_IP, c -> new OpenSearchExprIpValue(c.stringValue()))
+          .put(OPENSEARCH_GEO_POINT, c -> new OpenSearchExprGeoPointValue(c.geoValue().getLeft(),
               c.geoValue().getRight()))
-          .put(ES_BINARY, c -> new OpenSearchExprBinaryValue(c.stringValue()))
+          .put(OPENSEARCH_BINARY, c -> new OpenSearchExprBinaryValue(c.stringValue()))
           .build();
 
   /**

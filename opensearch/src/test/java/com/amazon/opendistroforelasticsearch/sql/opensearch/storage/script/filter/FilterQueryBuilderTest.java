@@ -20,7 +20,7 @@ import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.I
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.STRING;
 import static com.amazon.opendistroforelasticsearch.sql.expression.DSL.literal;
 import static com.amazon.opendistroforelasticsearch.sql.expression.DSL.ref;
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_TEXT_KEYWORD;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -246,7 +246,7 @@ class FilterQueryBuilderTest {
             + "}",
         buildQuery(
             dsl.equal(
-                ref("name", ES_TEXT_KEYWORD), literal("John"))));
+                ref("name", OPENSEARCH_TEXT_KEYWORD), literal("John"))));
   }
 
   @Test
@@ -262,7 +262,7 @@ class FilterQueryBuilderTest {
             + "}",
         buildQuery(
             dsl.like(
-                ref("name", ES_TEXT_KEYWORD), literal("John%"))));
+                ref("name", OPENSEARCH_TEXT_KEYWORD), literal("John%"))));
   }
 
   private static void assertJsonEquals(String expected, String actual) {

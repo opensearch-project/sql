@@ -17,7 +17,7 @@
 
 package com.amazon.opendistroforelasticsearch.sql.opensearch.data.value;
 
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_GEO_POINT;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_GEO_POINT;
 
 import com.amazon.opendistroforelasticsearch.sql.data.model.AbstractExprValue;
 import com.amazon.opendistroforelasticsearch.sql.data.model.ExprValue;
@@ -44,7 +44,7 @@ public class OpenSearchExprGeoPointValue extends AbstractExprValue {
 
   @Override
   public ExprType type() {
-    return ES_GEO_POINT;
+    return OPENSEARCH_GEO_POINT;
   }
 
   @Override

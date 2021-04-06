@@ -33,9 +33,9 @@ import java.util.Map;
 /**
  * Created by Eliran on 22/8/2015.
  */
-public class ESHashJoinQueryAction extends ESJoinQueryAction {
+public class OpenSearchHashJoinQueryAction extends OpenSearchJoinQueryAction {
 
-    public ESHashJoinQueryAction(Client client, JoinSelect joinSelect) {
+    public OpenSearchHashJoinQueryAction(Client client, JoinSelect joinSelect) {
         super(client, joinSelect);
     }
 

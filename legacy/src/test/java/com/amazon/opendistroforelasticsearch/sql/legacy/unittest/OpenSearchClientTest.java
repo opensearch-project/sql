@@ -15,7 +15,7 @@
 
 package com.amazon.opendistroforelasticsearch.sql.legacy.unittest;
 
-import com.amazon.opendistroforelasticsearch.sql.legacy.esdomain.ESClient;
+import com.amazon.opendistroforelasticsearch.sql.legacy.esdomain.OpenSearchClient;
 import org.opensearch.action.ActionFuture;
 import org.opensearch.action.search.MultiSearchRequest;
 import org.opensearch.action.search.MultiSearchResponse;
@@ -34,7 +34,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class ESClientTest {
+public class OpenSearchClientTest {
 
     @Mock
     protected Client client;
@@ -64,8 +64,8 @@ public class ESClientTest {
 
     @Test
     public void multiSearchRetryOneTime() {
-        ESClient esClient = new ESClient(client);
-        MultiSearchResponse.Item[] res = esClient.multiSearch(new MultiSearchRequest().add(new SearchRequest()).add(new SearchRequest()));
+        OpenSearchClient openSearchClient = new OpenSearchClient(client);
+        MultiSearchResponse.Item[] res = openSearchClient.multiSearch(new MultiSearchRequest().add(new SearchRequest()).add(new SearchRequest()));
         Assert.assertEquals(res.length, 2);
         Assert.assertFalse(res[0].isFailure());
         Assert.assertFalse(res[1].isFailure());

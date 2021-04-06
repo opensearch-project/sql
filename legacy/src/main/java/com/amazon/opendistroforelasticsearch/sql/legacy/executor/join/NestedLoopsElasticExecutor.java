@@ -19,7 +19,7 @@ import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import com.amazon.opendistroforelasticsearch.sql.legacy.domain.Condition;
 import com.amazon.opendistroforelasticsearch.sql.legacy.domain.Select;
 import com.amazon.opendistroforelasticsearch.sql.legacy.domain.Where;
-import com.amazon.opendistroforelasticsearch.sql.legacy.esdomain.ESClient;
+import com.amazon.opendistroforelasticsearch.sql.legacy.esdomain.OpenSearchClient;
 import com.amazon.opendistroforelasticsearch.sql.legacy.exception.SqlParseException;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.DefaultQueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.join.BackOffRetryStrategy;
@@ -124,7 +124,7 @@ public class NestedLoopsElasticExecutor extends ElasticJoinExecutor {
     private int combineResultsFromMultiResponses(List<SearchHit> combinedResults, int totalLimit,
                                                  int currentCombinedResults, SearchHit[] hits, int currentIndex,
                                                  MultiSearchRequest multiSearchRequest) {
-        MultiSearchResponse.Item[] responses = new ESClient(client).multiSearch(multiSearchRequest);
+        MultiSearchResponse.Item[] responses = new OpenSearchClient(client).multiSearch(multiSearchRequest);
         String t1Alias = nestedLoopsRequest.getFirstTable().getAlias();
         String t2Alias = nestedLoopsRequest.getSecondTable().getAlias();
 

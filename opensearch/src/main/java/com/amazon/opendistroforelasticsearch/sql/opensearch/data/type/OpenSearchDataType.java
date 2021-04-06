@@ -37,28 +37,28 @@ public enum OpenSearchDataType implements ExprType {
    * OpenSearch Text.
    * Ref: https://www.elastic.co/guide/en/elasticsearch/reference/current/text.html
    */
-  ES_TEXT(Collections.singletonList(STRING), "string"),
+  OPENSEARCH_TEXT(Collections.singletonList(STRING), "string"),
 
   /**
    * OpenSearch multi-fields which has text and keyword.
    * Ref: https://www.elastic.co/guide/en/elasticsearch/reference/current/multi-fields.html
    */
-  ES_TEXT_KEYWORD(Arrays.asList(STRING, ES_TEXT), "string"),
+  OPENSEARCH_TEXT_KEYWORD(Arrays.asList(STRING, OPENSEARCH_TEXT), "string"),
 
 
-  ES_IP(Arrays.asList(UNKNOWN), "ip"),
+  OPENSEARCH_IP(Arrays.asList(UNKNOWN), "ip"),
 
-  ES_GEO_POINT(Arrays.asList(UNKNOWN), "geo_point"),
+  OPENSEARCH_GEO_POINT(Arrays.asList(UNKNOWN), "geo_point"),
 
-  ES_BINARY(Arrays.asList(UNKNOWN), "binary");
+  OPENSEARCH_BINARY(Arrays.asList(UNKNOWN), "binary");
 
   /**
    * The mapping between Type and legacy JDBC type name.
    */
   private static final Map<ExprType, String> LEGACY_TYPE_NAME_MAPPING =
       new ImmutableMap.Builder<ExprType, String>()
-          .put(ES_TEXT, "text")
-          .put(ES_TEXT_KEYWORD, "text")
+          .put(OPENSEARCH_TEXT, "text")
+          .put(OPENSEARCH_TEXT_KEYWORD, "text")
           .build();
 
   /**

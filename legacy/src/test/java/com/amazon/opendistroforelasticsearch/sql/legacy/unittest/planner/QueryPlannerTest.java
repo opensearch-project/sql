@@ -29,7 +29,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.parser.SqlParser;
 import com.amazon.opendistroforelasticsearch.sql.legacy.plugin.SqlSettings;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.QueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.SqlElasticRequestBuilder;
-import com.amazon.opendistroforelasticsearch.sql.legacy.query.join.ESJoinQueryActionFactory;
+import com.amazon.opendistroforelasticsearch.sql.legacy.query.join.OpenSearchJoinQueryActionFactory;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.HashJoinQueryPlanRequestBuilder;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.core.QueryPlanner;
 import com.amazon.opendistroforelasticsearch.sql.legacy.request.SqlRequest;
@@ -183,7 +183,8 @@ public abstract class QueryPlannerTest {
         try {
             SQLQueryExpr sqlExpr = (SQLQueryExpr) toSqlExpr(sql);
             JoinSelect joinSelect = new SqlParser().parseJoinSelect(sqlExpr); // Ignore handleSubquery()
-            QueryAction queryAction = ESJoinQueryActionFactory.createJoinAction(client, joinSelect);
+            QueryAction queryAction = OpenSearchJoinQueryActionFactory
+                .createJoinAction(client, joinSelect);
             queryAction.setSqlRequest(new SqlRequest(sql, null));
             return queryAction.explain();
         }

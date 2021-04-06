@@ -16,12 +16,12 @@
 package com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.operator;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.Type;
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESIndex;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchIndex;
 
 import java.util.List;
 import java.util.Optional;
 
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.TYPE_ERROR;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.TYPE_ERROR;
 
 /**
  * Join operator
@@ -37,7 +37,7 @@ public enum JoinOperator implements Type {
     @Override
     public Type construct(List<Type> others) {
         Optional<Type> isAnyNonIndexType = others.stream().
-                                                  filter(type -> !(type instanceof ESIndex)).
+                                                  filter(type -> !(type instanceof OpenSearchIndex)).
                                                   findAny();
         if (isAnyNonIndexType.isPresent()) {
             return TYPE_ERROR;

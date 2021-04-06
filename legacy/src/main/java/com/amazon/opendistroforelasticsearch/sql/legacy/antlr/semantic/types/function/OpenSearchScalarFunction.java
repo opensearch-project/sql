@@ -18,17 +18,17 @@ package com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.fu
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.Type;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.TypeExpression;
 
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.BOOLEAN;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.DATE;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.GEO_POINT;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.INTEGER;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.NUMBER;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.STRING;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.BOOLEAN;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.DATE;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.GEO_POINT;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.INTEGER;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.NUMBER;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.STRING;
 
 /**
  * OpenSearch special scalar functions
  */
-public enum ESScalarFunction implements TypeExpression {
+public enum OpenSearchScalarFunction implements TypeExpression {
 
     DATE_HISTOGRAM(), // this is aggregate function
     DAY_OF_MONTH(func(DATE).to(INTEGER)),
@@ -85,7 +85,7 @@ public enum ESScalarFunction implements TypeExpression {
 
     private final TypeExpressionSpec[] specifications;
 
-    ESScalarFunction(TypeExpressionSpec... specifications) {
+    OpenSearchScalarFunction(TypeExpressionSpec... specifications) {
         this.specifications = specifications;
     }
 

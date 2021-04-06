@@ -44,7 +44,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.executor.adapter.QueryPl
 import com.amazon.opendistroforelasticsearch.sql.legacy.parser.ElasticLexer;
 import com.amazon.opendistroforelasticsearch.sql.legacy.parser.SqlParser;
 import com.amazon.opendistroforelasticsearch.sql.legacy.parser.SubQueryExpression;
-import com.amazon.opendistroforelasticsearch.sql.legacy.query.join.ESJoinQueryActionFactory;
+import com.amazon.opendistroforelasticsearch.sql.legacy.query.join.OpenSearchJoinQueryActionFactory;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.multi.MultiQueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.multi.MultiQuerySelect;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.core.BindingTupleQueryPlanner;
@@ -70,7 +70,7 @@ import java.util.List;
 import static com.amazon.opendistroforelasticsearch.sql.legacy.domain.IndexStatement.StatementType;
 import static com.amazon.opendistroforelasticsearch.sql.legacy.utils.Util.toSqlExpr;
 
-public class ESActionFactory {
+public class OpenSearchActionFactory {
 
     public static QueryAction create(Client client, String sql)
             throws SqlParseException, SQLFeatureNotSupportedException {
@@ -116,7 +116,7 @@ public class ESActionFactory {
                     new JoinRewriteRule(LocalClusterState.state()).rewrite(sqlExpr);
                     sqlExpr.accept(new TermFieldRewriter(TermRewriterFilter.JOIN));
                     JoinSelect joinSelect = new SqlParser().parseJoinSelect(sqlExpr);
-                    return ESJoinQueryActionFactory.createJoinAction(client, joinSelect);
+                    return OpenSearchJoinQueryActionFactory.createJoinAction(client, joinSelect);
                 } else {
                     sqlExpr.accept(new TermFieldRewriter());
                     // migrate aggregation to query planner framework.

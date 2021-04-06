@@ -21,7 +21,7 @@ import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.I
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.STRING;
 import static com.amazon.opendistroforelasticsearch.sql.expression.DSL.literal;
 import static com.amazon.opendistroforelasticsearch.sql.expression.DSL.ref;
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_TEXT_KEYWORD;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
 import static java.util.Collections.emptyMap;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -85,7 +85,7 @@ class ExpressionAggregationScriptTest {
     assertThat()
         .docValues("name.keyword", "John")
         .evaluate(
-            dsl.equal(ref("name", ES_TEXT_KEYWORD), literal("John")))
+            dsl.equal(ref("name", OPENSEARCH_TEXT_KEYWORD), literal("John")))
         .shouldMatch(true);
   }
 

@@ -83,7 +83,7 @@ Although later version of JDK is required to build the plugin, the Java language
 Remote Debugging
 ----------------
 
-Firstly you need to add the following configuration to the JVM used by your IDE. For Intellij IDEA, it should be added to ``<ES installation>/config/jvm.options`` file. After configuring this, an agent in JVM will listen on the port when your OpenSearch bootstraps and wait for IDE debugger to connect. So you should be able to debug by setting up a “Remote Run/Debug Configuration”::
+Firstly you need to add the following configuration to the JVM used by your IDE. For Intellij IDEA, it should be added to ``<OpenSearch installation>/config/jvm.options`` file. After configuring this, an agent in JVM will listen on the port when your OpenSearch bootstraps and wait for IDE debugger to connect. So you should be able to debug by setting up a “Remote Run/Debug Configuration”::
 
    -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005
 
@@ -333,7 +333,7 @@ Sometime you want to deploy your changes to local OpenSearch cluster, basically 
 
 To automate this common task, you can prepare an all-in-one command for reuse. Below is a sample command for macOS::
 
- ./gradlew assemble && {echo y | cp -f build/distributions/opendistro_sql-1*0.jar <Elasticsearch_home>/plugins/opendistro-sql} && {kill $(ps aux | awk '/[E]lasticsearch/ {print $2}'); sleep 3; nohup <Elasticsearch_home>/bin/elasticsearch > ~/Temp/es.log 2>&1 &}
+ ./gradlew assemble && {echo y | cp -f build/distributions/opendistro_sql-1*0.jar <Elasticsearch_home>/plugins/opendistro-sql} && {kill $(ps aux | awk '/[E]lasticsearch/ {print $2}'); sleep 3; nohup <Elasticsearch_home>/bin/elasticsearch > ~/Temp/opensearch.log 2>&1 &}
 
 Note that for the first time you need to create ``opendistro-sql`` folder and unzip ``build/distribution/opendistro_sql-xxxx.zip`` to it.
 

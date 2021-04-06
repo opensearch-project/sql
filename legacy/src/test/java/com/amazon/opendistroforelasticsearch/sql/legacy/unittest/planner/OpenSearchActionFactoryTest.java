@@ -16,21 +16,22 @@
 package com.amazon.opendistroforelasticsearch.sql.legacy.unittest.planner;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.Format;
-import com.amazon.opendistroforelasticsearch.sql.legacy.query.ESActionFactory;
+import com.amazon.opendistroforelasticsearch.sql.legacy.query.OpenSearchActionFactory;
 import com.amazon.opendistroforelasticsearch.sql.legacy.util.SqlParserUtils;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class ESActionFactoryTest {
+public class OpenSearchActionFactoryTest {
     @Test
     public void josnOutputRequestShouldNotMigrateToQueryPlan() {
         String sql = "SELECT age, MAX(balance) " +
                      "FROM account " +
                      "GROUP BY age";
 
-        assertFalse(ESActionFactory.shouldMigrateToQueryPlan(SqlParserUtils.parse(sql), Format.JSON));
+        assertFalse(
+            OpenSearchActionFactory.shouldMigrateToQueryPlan(SqlParserUtils.parse(sql), Format.JSON));
     }
 
     @Test
@@ -39,7 +40,8 @@ public class ESActionFactoryTest {
                      "FROM account " +
                      "GROUP BY age";
 
-        assertFalse(ESActionFactory.shouldMigrateToQueryPlan(SqlParserUtils.parse(sql), Format.JDBC));
+        assertFalse(
+            OpenSearchActionFactory.shouldMigrateToQueryPlan(SqlParserUtils.parse(sql), Format.JDBC));
     }
 
     @Test
@@ -47,7 +49,8 @@ public class ESActionFactoryTest {
         String sql = "SELECT age " +
                      "FROM account ";
 
-        assertFalse(ESActionFactory.shouldMigrateToQueryPlan(SqlParserUtils.parse(sql), Format.JDBC));
+        assertFalse(
+            OpenSearchActionFactory.shouldMigrateToQueryPlan(SqlParserUtils.parse(sql), Format.JDBC));
     }
 
     @Test
@@ -55,7 +58,8 @@ public class ESActionFactoryTest {
         String sql = "SELECT age, COUNT(balance) " +
                      "FROM account ";
 
-        assertTrue(ESActionFactory.shouldMigrateToQueryPlan(SqlParserUtils.parse(sql), Format.JDBC));
+        assertTrue(
+            OpenSearchActionFactory.shouldMigrateToQueryPlan(SqlParserUtils.parse(sql), Format.JDBC));
     }
 
     @Test
@@ -63,7 +67,8 @@ public class ESActionFactoryTest {
         String sql = "SELECT age, MAX(balance) - MIN(balance) " +
                      "FROM account ";
 
-        assertTrue(ESActionFactory.shouldMigrateToQueryPlan(SqlParserUtils.parse(sql), Format.JDBC));
+        assertTrue(
+            OpenSearchActionFactory.shouldMigrateToQueryPlan(SqlParserUtils.parse(sql), Format.JDBC));
     }
 
     @Test
@@ -72,6 +77,7 @@ public class ESActionFactoryTest {
                      "FROM account " +
                      "GROUP BY alias";
 
-        assertTrue(ESActionFactory.shouldMigrateToQueryPlan(SqlParserUtils.parse(sql), Format.JDBC));
+        assertTrue(
+            OpenSearchActionFactory.shouldMigrateToQueryPlan(SqlParserUtils.parse(sql), Format.JDBC));
     }
 }

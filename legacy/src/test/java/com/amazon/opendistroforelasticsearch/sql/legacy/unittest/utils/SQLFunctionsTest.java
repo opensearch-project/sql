@@ -21,7 +21,7 @@ import com.alibaba.druid.sql.ast.expr.SQLCastExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
 import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType;
 import com.amazon.opendistroforelasticsearch.sql.legacy.domain.ColumnTypeProvider;
 import com.amazon.opendistroforelasticsearch.sql.legacy.domain.KVValue;
 import com.amazon.opendistroforelasticsearch.sql.legacy.domain.MethodField;
@@ -74,7 +74,7 @@ public class SQLFunctionsTest {
 
         final MethodField field = new ScriptMethodField("ABS", params, null, null);
         field.setExpression(invokeExpr);
-        ColumnTypeProvider columnTypeProvider = new ColumnTypeProvider(ESDataType.INTEGER);
+        ColumnTypeProvider columnTypeProvider = new ColumnTypeProvider(OpenSearchDataType.INTEGER);
 
         Schema.Type resolvedType = columnTypeProvider.get(0);
         final Schema.Type returnType = sqlFunctions.getScriptFunctionReturnType(field, resolvedType);
@@ -92,7 +92,7 @@ public class SQLFunctionsTest {
         List<KVValue> params = new ArrayList<>();
         final MethodField field = new ScriptMethodField("CAST", params, null, null);
         field.setExpression(castExpr);
-        ColumnTypeProvider columnTypeProvider = new ColumnTypeProvider(ESDataType.INTEGER);
+        ColumnTypeProvider columnTypeProvider = new ColumnTypeProvider(OpenSearchDataType.INTEGER);
 
         Schema.Type resolvedType = columnTypeProvider.get(0);
         final Schema.Type returnType = sqlFunctions.getScriptFunctionReturnType(field, resolvedType);

@@ -25,36 +25,37 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.rest.RestStatus;
 
 public class ErrorMessageFactoryTest {
-  private Throwable nonEsThrowable = new Throwable();
-  private Throwable esThrowable = new OpenSearchException(nonEsThrowable);
+  private Throwable nonOpenSearchThrowable = new Throwable();
+  private Throwable openSearchThrowable = new OpenSearchException(nonOpenSearchThrowable);
 
   @Test
-  public void esExceptionShouldCreateEsErrorMessage() {
-    Exception exception = new OpenSearchException(nonEsThrowable);
+  public void openSearchExceptionShouldCreateEsErrorMessage() {
+    Exception exception = new OpenSearchException(nonOpenSearchThrowable);
     ErrorMessage msg =
         ErrorMessageFactory.createErrorMessage(exception, RestStatus.BAD_REQUEST.getStatus());
     assertTrue(msg instanceof OpenSearchErrorMessage);
   }
 
   @Test
-  public void nonEsExceptionShouldCreateGenericErrorMessage() {
-    Exception exception = new Exception(nonEsThrowable);
+  public void nonOpenSearchExceptionShouldCreateGenericErrorMessage() {
+    Exception exception = new Exception(nonOpenSearchThrowable);
     ErrorMessage msg =
         ErrorMessageFactory.createErrorMessage(exception, RestStatus.BAD_REQUEST.getStatus());
     assertFalse(msg instanceof OpenSearchErrorMessage);
   }
 
   @Test
-  public void nonEsExceptionWithWrappedEsExceptionCauseShouldCreateEsErrorMessage() {
-    Exception exception = (Exception) esThrowable;
+  public void nonOpenSearchExceptionWithWrappedEsExceptionCauseShouldCreateEsErrorMessage() {
+    Exception exception = (Exception) openSearchThrowable;
     ErrorMessage msg =
         ErrorMessageFactory.createErrorMessage(exception, RestStatus.BAD_REQUEST.getStatus());
     assertTrue(msg instanceof OpenSearchErrorMessage);
   }
 
   @Test
-  public void nonEsExceptionWithMultiLayerWrappedEsExceptionCauseShouldCreateEsErrorMessage() {
-    Exception exception = new Exception(new Throwable(new Throwable(esThrowable)));
+  public void
+      nonOpenSearchExceptionWithMultiLayerWrappedEsExceptionCauseShouldCreateEsErrorMessage() {
+    Exception exception = new Exception(new Throwable(new Throwable(openSearchThrowable)));
     ErrorMessage msg =
         ErrorMessageFactory.createErrorMessage(exception, RestStatus.BAD_REQUEST.getStatus());
     assertTrue(msg instanceof OpenSearchErrorMessage);

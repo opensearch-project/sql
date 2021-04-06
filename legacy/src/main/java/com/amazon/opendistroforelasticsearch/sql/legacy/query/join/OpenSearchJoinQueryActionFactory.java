@@ -27,7 +27,7 @@ import java.util.List;
 /**
  * Created by Eliran on 15/9/2015.
  */
-public class ESJoinQueryActionFactory {
+public class OpenSearchJoinQueryActionFactory {
     public static QueryAction createJoinAction(Client client, JoinSelect joinSelect) {
         List<Condition> connectedConditions = joinSelect.getConnectedConditions();
         boolean allEqual = true;
@@ -39,7 +39,7 @@ public class ESJoinQueryActionFactory {
 
         }
         if (!allEqual) {
-            return new ESNestedLoopsQueryAction(client, joinSelect);
+            return new OpenSearchNestedLoopsQueryAction(client, joinSelect);
         }
 
         boolean useNestedLoopsHintExist = false;
@@ -50,10 +50,10 @@ public class ESJoinQueryActionFactory {
             }
         }
         if (useNestedLoopsHintExist) {
-            return new ESNestedLoopsQueryAction(client, joinSelect);
+            return new OpenSearchNestedLoopsQueryAction(client, joinSelect);
         }
 
-        return new ESHashJoinQueryAction(client, joinSelect);
+        return new OpenSearchHashJoinQueryAction(client, joinSelect);
 
     }
 }

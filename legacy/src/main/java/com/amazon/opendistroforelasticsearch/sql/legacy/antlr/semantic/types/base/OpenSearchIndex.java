@@ -22,7 +22,7 @@ import java.util.Objects;
 /**
  * Index type is not Enum because essentially each index is a brand new type.
  */
-public class ESIndex implements BaseType {
+public class OpenSearchIndex implements BaseType {
 
     public enum IndexType {
         INDEX, NESTED_FIELD, INDEX_PATTERN
@@ -31,7 +31,7 @@ public class ESIndex implements BaseType {
     private final String indexName;
     private final IndexType indexType;
 
-    public ESIndex(String indexName, IndexType indexType) {
+    public OpenSearchIndex(String indexName, IndexType indexType) {
         this.indexName = indexName;
         this.indexType = indexType;
     }
@@ -68,7 +68,7 @@ public class ESIndex implements BaseType {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        ESIndex index = (ESIndex) o;
+        OpenSearchIndex index = (OpenSearchIndex) o;
         return Objects.equals(indexName, index.indexName)
             && indexType == index.indexType;
     }

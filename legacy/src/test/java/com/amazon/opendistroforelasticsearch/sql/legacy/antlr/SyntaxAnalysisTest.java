@@ -92,8 +92,8 @@ public class SyntaxAnalysisTest {
     public void specialIndexNameShouldPass() {
         validate("SELECT * FROM accounts/temp");
         validate("SELECT * FROM account*");
-        validate("SELECT * FROM es-accounts");
-        validate("SELECT * FROM es-account*");
+        validate("SELECT * FROM opensearch-accounts");
+        validate("SELECT * FROM opensearch-account*");
     }
 
     @Test

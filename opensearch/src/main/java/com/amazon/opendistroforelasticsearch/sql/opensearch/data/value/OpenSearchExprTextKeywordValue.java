@@ -16,7 +16,7 @@
 
 package com.amazon.opendistroforelasticsearch.sql.opensearch.data.value;
 
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_TEXT_KEYWORD;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
 
 import com.amazon.opendistroforelasticsearch.sql.data.model.ExprStringValue;
 import com.amazon.opendistroforelasticsearch.sql.data.type.ExprType;
@@ -34,7 +34,7 @@ public class OpenSearchExprTextKeywordValue extends ExprStringValue {
 
   @Override
   public ExprType type() {
-    return ES_TEXT_KEYWORD;
+    return OPENSEARCH_TEXT_KEYWORD;
   }
 
 }

@@ -20,7 +20,7 @@ package com.amazon.opendistroforelasticsearch.sql.opensearch.storage.script.aggr
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.INTEGER;
 import static com.amazon.opendistroforelasticsearch.sql.expression.DSL.named;
 import static com.amazon.opendistroforelasticsearch.sql.expression.DSL.ref;
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_TEXT_KEYWORD;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.common.xcontent.ToXContent.EMPTY_PARAMS;
 
@@ -85,7 +85,7 @@ class BucketAggregationBuilderTest {
             + "}",
         buildQuery(
             Arrays.asList(
-                asc(named("name", ref("name", ES_TEXT_KEYWORD))))));
+                asc(named("name", ref("name", OPENSEARCH_TEXT_KEYWORD))))));
   }
 
   @SneakyThrows

@@ -22,7 +22,7 @@ import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.S
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static com.amazon.opendistroforelasticsearch.sql.expression.DSL.literal;
 import static com.amazon.opendistroforelasticsearch.sql.expression.DSL.ref;
-import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.ES_TEXT_KEYWORD;
+import static com.amazon.opendistroforelasticsearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
@@ -101,7 +101,7 @@ class ExpressionFilterScriptTest {
     assertThat()
         .docValues("name.keyword", "John")
         .filterBy(
-            dsl.equal(ref("name", ES_TEXT_KEYWORD), literal("John")))
+            dsl.equal(ref("name", OPENSEARCH_TEXT_KEYWORD), literal("John")))
         .shouldMatch();
   }
 

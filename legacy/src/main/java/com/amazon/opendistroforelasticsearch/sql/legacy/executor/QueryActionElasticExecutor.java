@@ -29,7 +29,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.query.QueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.ShowQueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.SqlElasticRequestBuilder;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.SqlOpenSearchRequestBuilder;
-import com.amazon.opendistroforelasticsearch.sql.legacy.query.join.ESJoinQueryAction;
+import com.amazon.opendistroforelasticsearch.sql.legacy.query.join.OpenSearchJoinQueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.multi.MultiQueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.multi.MultiQueryRequestBuilder;
 import org.opensearch.action.ActionResponse;
@@ -50,7 +50,7 @@ public class QueryActionElasticExecutor {
         return ((SearchResponse) builder.get()).getHits();
     }
 
-    public static SearchHits executeJoinSearchAction(Client client, ESJoinQueryAction joinQueryAction)
+    public static SearchHits executeJoinSearchAction(Client client, OpenSearchJoinQueryAction joinQueryAction)
             throws IOException, SqlParseException {
         SqlElasticRequestBuilder joinRequestBuilder = joinQueryAction.explain();
         ElasticJoinExecutor executor = ElasticJoinExecutor.createJoinExecutor(client, joinRequestBuilder);
@@ -107,8 +107,8 @@ public class QueryActionElasticExecutor {
         if (queryAction instanceof DescribeQueryAction) {
             return executeDescribeQueryAction((DescribeQueryAction) queryAction);
         }
-        if (queryAction instanceof ESJoinQueryAction) {
-            return executeJoinSearchAction(client, (ESJoinQueryAction) queryAction);
+        if (queryAction instanceof OpenSearchJoinQueryAction) {
+            return executeJoinSearchAction(client, (OpenSearchJoinQueryAction) queryAction);
         }
         if (queryAction instanceof MultiQueryAction) {
             return executeMultiQueryAction(client, (MultiQueryAction) queryAction);

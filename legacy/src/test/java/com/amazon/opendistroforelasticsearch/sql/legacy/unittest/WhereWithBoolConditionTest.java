@@ -17,7 +17,7 @@ package com.amazon.opendistroforelasticsearch.sql.legacy.unittest;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.util.TestsConstants;
 import com.amazon.opendistroforelasticsearch.sql.legacy.exception.SqlParseException;
-import com.amazon.opendistroforelasticsearch.sql.legacy.query.ESActionFactory;
+import com.amazon.opendistroforelasticsearch.sql.legacy.query.OpenSearchActionFactory;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.QueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.util.CheckScriptContents;
 import com.amazon.opendistroforelasticsearch.sql.legacy.utils.StringUtils;
@@ -67,7 +67,7 @@ public class WhereWithBoolConditionTest {
     private String explain(String sql) throws SQLFeatureNotSupportedException, SqlParseException {
         Client mockClient = Mockito.mock(Client.class);
         CheckScriptContents.stubMockClient(mockClient);
-        QueryAction queryAction = ESActionFactory.create(mockClient, sql);
+        QueryAction queryAction = OpenSearchActionFactory.create(mockClient, sql);
         return queryAction.explain().explain();
     }
 

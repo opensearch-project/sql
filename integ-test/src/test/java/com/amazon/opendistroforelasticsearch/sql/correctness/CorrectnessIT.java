@@ -92,7 +92,7 @@ public class CorrectnessIT extends OpenSearchIntegTestCase {
   private DBConnection getThisDBConnection(TestConfig config) {
     String dbUrl = config.getDbConnectionUrl();
     if (dbUrl.isEmpty()) {
-      return getESConnection(config);
+      return getOpenSearchConnection(config);
     }
     return new JDBCConnection("DB Tested", dbUrl);
   }
@@ -100,16 +100,16 @@ public class CorrectnessIT extends OpenSearchIntegTestCase {
   /**
    * Use OpenSearch cluster given on CLI arg or internal embedded in SQLIntegTestCase
    */
-  private DBConnection getESConnection(TestConfig config) {
+  private DBConnection getOpenSearchConnection(TestConfig config) {
     RestClient client;
-    String esHost = config.getESHostUrl();
-    if (esHost.isEmpty()) {
+    String openSearchHost = config.getOpenSearchHostUrl();
+    if (openSearchHost.isEmpty()) {
       client = getRestClient();
-      esHost = client.getNodes().get(0).getHost().toString();
+      openSearchHost = client.getNodes().get(0).getHost().toString();
     } else {
-      client = RestClient.builder(HttpHost.create(esHost)).build();
+      client = RestClient.builder(HttpHost.create(openSearchHost)).build();
     }
-    return new OpenSearchConnection("jdbc:elasticsearch://" + esHost, client);
+    return new OpenSearchConnection("jdbc:elasticsearch://" + openSearchHost, client);
   }
 
   /**

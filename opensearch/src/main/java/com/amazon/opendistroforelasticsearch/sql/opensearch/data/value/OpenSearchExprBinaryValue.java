@@ -50,6 +50,6 @@ public class OpenSearchExprBinaryValue extends AbstractExprValue {
 
   @Override
   public ExprType type() {
-    return OpenSearchDataType.ES_BINARY;
+    return OpenSearchDataType.OPENSEARCH_BINARY;
   }
 }

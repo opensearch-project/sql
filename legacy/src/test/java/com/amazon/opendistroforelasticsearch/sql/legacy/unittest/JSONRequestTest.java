@@ -22,7 +22,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.util.TestsConstants;
 import com.amazon.opendistroforelasticsearch.sql.legacy.exception.SqlParseException;
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.Format;
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.format.Schema;
-import com.amazon.opendistroforelasticsearch.sql.legacy.query.ESActionFactory;
+import com.amazon.opendistroforelasticsearch.sql.legacy.query.OpenSearchActionFactory;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.QueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.SqlElasticRequestBuilder;
 import com.amazon.opendistroforelasticsearch.sql.legacy.request.SqlRequest;
@@ -365,7 +365,8 @@ public class JSONRequestTest {
         Client mockClient = Mockito.mock(Client.class);
         CheckScriptContents.stubMockClient(mockClient);
         QueryAction queryAction =
-                ESActionFactory.create(mockClient, new QueryActionRequest(sql, columnTypeProvider, Format.JDBC));
+                OpenSearchActionFactory
+                    .create(mockClient, new QueryActionRequest(sql, columnTypeProvider, Format.JDBC));
 
         SqlRequest sqlRequest = new SqlRequest(sql, jsonRequest);
         queryAction.setSqlRequest(sqlRequest);

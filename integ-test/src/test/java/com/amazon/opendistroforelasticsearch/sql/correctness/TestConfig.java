@@ -44,7 +44,7 @@ public class TestConfig {
 
   private final TestQuerySet testQuerySet;
 
-  private final String esHostUrl;
+  private final String openSearchHostUrl;
 
   /**
    * Test against some database rather than OpenSearch via our JDBC driver
@@ -56,7 +56,7 @@ public class TestConfig {
   public TestConfig(Map<String, String> cliArgs) {
     testDataSets = buildDefaultTestDataSet(); // TODO: parse test data set argument
     testQuerySet = buildTestQuerySet(cliArgs);
-    esHostUrl = cliArgs.getOrDefault("esHost", "");
+    openSearchHostUrl = cliArgs.getOrDefault("esHost", "");
     dbConnectionUrl = cliArgs.getOrDefault("dbUrl", "");
 
     parseOtherDbConnectionInfo(cliArgs);
@@ -70,8 +70,8 @@ public class TestConfig {
     return testQuerySet;
   }
 
-  public String getESHostUrl() {
-    return esHostUrl;
+  public String getOpenSearchHostUrl() {
+    return openSearchHostUrl;
   }
 
   public String getDbConnectionUrl() {
@@ -127,7 +127,7 @@ public class TestConfig {
   @Override
   public String toString() {
     return "\n=================================\n"
-        + "Tested Database  : " + esHostUrlToString() + '\n'
+        + "Tested Database  : " + openSearchHostUrlToString() + '\n'
         + "Other Databases  :\n" + otherDbConnectionInfoToString() + '\n'
         + "Test data set(s) :\n" + testDataSetsToString() + '\n'
         + "Test query set   : " + testQuerySet + '\n'
@@ -140,11 +140,12 @@ public class TestConfig {
         collect(joining("\n"));
   }
 
-  private String esHostUrlToString() {
+  private String openSearchHostUrlToString() {
     if (!dbConnectionUrl.isEmpty()) {
       return dbConnectionUrl;
     }
-    return esHostUrl.isEmpty() ? "(Use internal OpenSearch in workspace)" : esHostUrl;
+    return openSearchHostUrl.isEmpty() ? "(Use internal OpenSearch in workspace)" :
+        openSearchHostUrl;
   }
 
   private String otherDbConnectionInfoToString() {

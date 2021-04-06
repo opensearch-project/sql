@@ -66,7 +66,7 @@ tasks.withType(licenseHeaders.class) {
 // from police-man plugin, see https://github.com/policeman-tools/forbidden-apis/wiki/GradleUsage
 forbiddenApis.ignoreFailures = true
 // TODO: fix forbidden code patterns
-// introduced by elasticsearch plugin
+// introduced by OpenSearch plugin
 // see https://github.com/elastic/elasticsearch/blob/master/buildSrc/src/main/java/org/elasticsearch/gradle/precommit/ForbiddenPatternsTask.java
 forbiddenPatterns {
     setEnabled(false)

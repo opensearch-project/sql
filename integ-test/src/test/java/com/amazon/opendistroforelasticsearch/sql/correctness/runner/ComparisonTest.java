@@ -93,8 +93,8 @@ public class ComparisonTest implements AutoCloseable {
     TestReport report = new TestReport();
     for (String sql : querySet) {
       try {
-        DBResult esResult = thisConnection.select(sql);
-        report.addTestCase(compareWithOtherDb(sql, esResult));
+        DBResult openSearchResult = thisConnection.select(sql);
+        report.addTestCase(compareWithOtherDb(sql, openSearchResult));
       } catch (Exception e) {
         report.addTestCase(new ErrorTestCase(nextId(), sql,
             StringUtils.format("%s: %s", e.getClass().getSimpleName(), extractRootCause(e))));
@@ -128,13 +128,13 @@ public class ComparisonTest implements AutoCloseable {
   /**
    * Execute the query and compare with current result
    */
-  private TestCaseReport compareWithOtherDb(String sql, DBResult esResult) {
-    List<DBResult> mismatchResults = Lists.newArrayList(esResult);
+  private TestCaseReport compareWithOtherDb(String sql, DBResult openSearchResult) {
+    List<DBResult> mismatchResults = Lists.newArrayList(openSearchResult);
     StringBuilder reasons = new StringBuilder();
     for (int i = 0; i < otherDbConnections.length; i++) {
       try {
         DBResult otherDbResult = otherDbConnections[i].select(sql);
-        if (esResult.equals(otherDbResult)) {
+        if (openSearchResult.equals(otherDbResult)) {
           return new SuccessTestCase(nextId(), sql);
         }
 

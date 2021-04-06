@@ -17,7 +17,7 @@ package com.amazon.opendistroforelasticsearch.sql.legacy.unittest;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.util.TestsConstants;
 import com.amazon.opendistroforelasticsearch.sql.legacy.exception.SqlParseException;
-import com.amazon.opendistroforelasticsearch.sql.legacy.query.ESActionFactory;
+import com.amazon.opendistroforelasticsearch.sql.legacy.query.OpenSearchActionFactory;
 import com.amazon.opendistroforelasticsearch.sql.legacy.util.CheckScriptContents;
 import org.apache.lucene.search.join.ScoreMode;
 import org.opensearch.client.Client;
@@ -274,27 +274,27 @@ public class QueryFunctionsTest {
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void emptyQueryShouldThrowSQLFeatureNotSupportedException() throws SQLFeatureNotSupportedException, SqlParseException {
-        ESActionFactory.create(Mockito.mock(Client.class), "");
+        OpenSearchActionFactory.create(Mockito.mock(Client.class), "");
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void emptyNewLineQueryShouldThrowSQLFeatureNotSupportedException() throws SQLFeatureNotSupportedException, SqlParseException {
-        ESActionFactory.create(Mockito.mock(Client.class), "\n");
+        OpenSearchActionFactory.create(Mockito.mock(Client.class), "\n");
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void emptyNewLineQueryShouldThrowSQLFeatureNotSupportedException2() throws SQLFeatureNotSupportedException, SqlParseException {
-        ESActionFactory.create(Mockito.mock(Client.class), "\r\n");
+        OpenSearchActionFactory.create(Mockito.mock(Client.class), "\r\n");
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void queryWithoutSpaceShouldSQLFeatureNotSupportedException() throws SQLFeatureNotSupportedException, SqlParseException {
-        ESActionFactory.create(Mockito.mock(Client.class), "SELE");
+        OpenSearchActionFactory.create(Mockito.mock(Client.class), "SELE");
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void spacesOnlyQueryShouldThrowSQLFeatureNotSupportedException() throws SQLFeatureNotSupportedException, SqlParseException {
-        ESActionFactory.create(Mockito.mock(Client.class), "      ");
+        OpenSearchActionFactory.create(Mockito.mock(Client.class), "      ");
     }
 
     private String query(String from, String... statements) {

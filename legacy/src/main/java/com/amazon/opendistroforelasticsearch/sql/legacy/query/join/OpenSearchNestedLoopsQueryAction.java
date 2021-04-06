@@ -25,9 +25,9 @@ import org.opensearch.client.Client;
 /**
  * Created by Eliran on 15/9/2015.
  */
-public class ESNestedLoopsQueryAction extends ESJoinQueryAction {
+public class OpenSearchNestedLoopsQueryAction extends OpenSearchJoinQueryAction {
 
-    public ESNestedLoopsQueryAction(Client client, JoinSelect joinSelect) {
+    public OpenSearchNestedLoopsQueryAction(Client client, JoinSelect joinSelect) {
         super(client, joinSelect);
     }
 

@@ -27,7 +27,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.parser.ElasticSqlExprPar
 import com.amazon.opendistroforelasticsearch.sql.legacy.parser.ScriptFilter;
 import com.amazon.opendistroforelasticsearch.sql.legacy.parser.SqlParser;
 import com.amazon.opendistroforelasticsearch.sql.legacy.plugin.SqlSettings;
-import com.amazon.opendistroforelasticsearch.sql.legacy.query.ESActionFactory;
+import com.amazon.opendistroforelasticsearch.sql.legacy.query.OpenSearchActionFactory;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.QueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.SqlElasticRequestBuilder;
 import org.opensearch.action.ActionFuture;
@@ -76,7 +76,7 @@ public class CheckScriptContents {
         try {
             Client mockClient = mock(Client.class);
             stubMockClient(mockClient);
-            QueryAction queryAction = ESActionFactory.create(mockClient, query);
+            QueryAction queryAction = OpenSearchActionFactory.create(mockClient, query);
             SqlElasticRequestBuilder requestBuilder = queryAction.explain();
 
             SearchRequestBuilder request = (SearchRequestBuilder) requestBuilder.getBuilder();

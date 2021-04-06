@@ -47,7 +47,7 @@ import org.opensearch.search.aggregations.Aggregations;
 class OpenSearchResponseTest {
 
   @Mock
-  private SearchResponse esResponse;
+  private SearchResponse searchResponse;
 
   @Mock
   private OpenSearchExprValueFactory factory;
@@ -69,32 +69,32 @@ class OpenSearchResponseTest {
 
   @Test
   void isEmpty() {
-    when(esResponse.getHits())
+    when(searchResponse.getHits())
         .thenReturn(
             new SearchHits(
                 new SearchHit[] {searchHit1, searchHit2},
                 new TotalHits(2L, TotalHits.Relation.EQUAL_TO),
                 1.0F));
 
-    assertFalse(new OpenSearchResponse(esResponse, factory).isEmpty());
+    assertFalse(new OpenSearchResponse(searchResponse, factory).isEmpty());
 
-    when(esResponse.getHits()).thenReturn(SearchHits.empty());
-    when(esResponse.getAggregations()).thenReturn(null);
-    assertTrue(new OpenSearchResponse(esResponse, factory).isEmpty());
+    when(searchResponse.getHits()).thenReturn(SearchHits.empty());
+    when(searchResponse.getAggregations()).thenReturn(null);
+    assertTrue(new OpenSearchResponse(searchResponse, factory).isEmpty());
 
-    when(esResponse.getHits())
+    when(searchResponse.getHits())
         .thenReturn(new SearchHits(null, new TotalHits(0, TotalHits.Relation.EQUAL_TO), 0));
-    OpenSearchResponse response3 = new OpenSearchResponse(esResponse, factory);
+    OpenSearchResponse response3 = new OpenSearchResponse(searchResponse, factory);
     assertTrue(response3.isEmpty());
 
-    when(esResponse.getHits()).thenReturn(SearchHits.empty());
-    when(esResponse.getAggregations()).thenReturn(new Aggregations(emptyList()));
-    assertFalse(new OpenSearchResponse(esResponse, factory).isEmpty());
+    when(searchResponse.getHits()).thenReturn(SearchHits.empty());
+    when(searchResponse.getAggregations()).thenReturn(new Aggregations(emptyList()));
+    assertFalse(new OpenSearchResponse(searchResponse, factory).isEmpty());
   }
 
   @Test
   void iterator() {
-    when(esResponse.getHits())
+    when(searchResponse.getHits())
         .thenReturn(
             new SearchHits(
                 new SearchHit[] {searchHit1, searchHit2},
@@ -106,7 +106,7 @@ class OpenSearchResponseTest {
     when(factory.construct(any())).thenReturn(exprTupleValue1).thenReturn(exprTupleValue2);
 
     int i = 0;
-    for (ExprValue hit : new OpenSearchResponse(esResponse, factory)) {
+    for (ExprValue hit : new OpenSearchResponse(searchResponse, factory)) {
       if (i == 0) {
         assertEquals(exprTupleValue1, hit);
       } else if (i == 1) {
@@ -120,17 +120,17 @@ class OpenSearchResponseTest {
 
   @Test
   void response_is_aggregation_when_aggregation_not_empty() {
-    when(esResponse.getAggregations()).thenReturn(aggregations);
+    when(searchResponse.getAggregations()).thenReturn(aggregations);
 
-    OpenSearchResponse response = new OpenSearchResponse(esResponse, factory);
+    OpenSearchResponse response = new OpenSearchResponse(searchResponse, factory);
     assertTrue(response.isAggregationResponse());
   }
 
   @Test
   void response_isnot_aggregation_when_aggregation_is_empty() {
-    when(esResponse.getAggregations()).thenReturn(null);
+    when(searchResponse.getAggregations()).thenReturn(null);
 
-    OpenSearchResponse response = new OpenSearchResponse(esResponse, factory);
+    OpenSearchResponse response = new OpenSearchResponse(searchResponse, factory);
     assertFalse(response.isAggregationResponse());
   }
 
@@ -141,12 +141,12 @@ class OpenSearchResponseTest {
             .mockStatic(OpenSearchAggregationResponseParser.class)) {
       when(OpenSearchAggregationResponseParser.parse(any()))
           .thenReturn(Arrays.asList(ImmutableMap.of("id1", 1), ImmutableMap.of("id2", 2)));
-      when(esResponse.getAggregations()).thenReturn(aggregations);
+      when(searchResponse.getAggregations()).thenReturn(aggregations);
       when(factory.construct(anyString(), any())).thenReturn(new ExprIntegerValue(1))
           .thenReturn(new ExprIntegerValue(2));
 
       int i = 0;
-      for (ExprValue hit : new OpenSearchResponse(esResponse, factory)) {
+      for (ExprValue hit : new OpenSearchResponse(searchResponse, factory)) {
         if (i == 0) {
           assertEquals(exprTupleValue1, hit);
         } else if (i == 1) {
