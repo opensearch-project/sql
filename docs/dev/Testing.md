@@ -14,7 +14,7 @@ Currently there are quite a few unit tests and integration tests in the codebase
 
 In this work, we want to address the problems above for our testing to get more confidence of the correctness of our plugin. To achieve this goal, we need to improve both the quantity and quality of our tests and also keep it running on a regular basis. Although the search space of SQL is infinite, we can cover typical use cases and corner cases and most importantly make sure it does demonstrate the correctness of our implementation if it can pass.
 
-> Note that performance is also another important area that we want to test and understand how efficient or where is the bottleneck of typical queries. Since Elasticsearch provides ESRally benchmark tool which is totally different from our homemade test harness, we will be focuses on the correctness and won't cover performance testing here.
+> Note that performance is also another important area that we want to test and understand how efficient or where is the bottleneck of typical queries. Since OpenSearch provides ESRally benchmark tool which is totally different from our homemade test harness, we will be focuses on the correctness and won't cover performance testing here.
 
 ## 2.Design
 
@@ -28,9 +28,9 @@ At this stage we don’t want to spend too much efforts on setting up a complica
 
  1. **Test Data & Cases**: Use test case set with Kibana flights and ecommerce sample index.
  2. **Trigger**: Set up another GitHub Action workflow.
- 3. **Test Runner**: Use embedded Elasticsearch and other IMDBs.
+ 3. **Test Runner**: Use embedded OpenSearch and other IMDBs.
  4. **Reporting**: Use standard JUnit report or simple custom json format.
- 5. **Visualization**: Enable GitHub Pages for viewing or feed into Elasticsearch.
+ 5. **Visualization**: Enable GitHub Pages for viewing or feed into OpenSearch.
 
 ![Test Framework Components](img/test-framework-components.png)
 
@@ -38,7 +38,7 @@ At this stage we don’t want to spend too much efforts on setting up a complica
 
 ### 3.1 Test Data
 
-For schema, we can just use Elasticsearch mapping as the format of schema and convert it to `INSERT` statement. For data we use CSV format simply.
+For schema, we can just use OpenSearch mapping as the format of schema and convert it to `INSERT` statement. For data we use CSV format simply.
 
 ```
 {
@@ -92,7 +92,7 @@ GitHub Action can be set up to trigger Gradle task to generate test report.
 
 ### 3.5 Reporting
 
-Elasticsearch integration test is still using JUnit 4 which has many problems, such as dynamic test cases. So we can define our own report format for flexibility:
+OpenSearch integration test is still using JUnit 4 which has many problems, such as dynamic test cases. So we can define our own report format for flexibility:
 
 ```
 {
@@ -113,7 +113,7 @@ Elasticsearch integration test is still using JUnit 4 which has many problems, s
       "result": "Failed",
       "resultSets": [
         {
-          "database": "Elasticsearch",
+          "database": "OpenSearch",
           "resultSet": {
             "schema": [{"name":"","type":""},...],
             "dataRows": [[...],...,[...]]
@@ -167,7 +167,7 @@ $ ./gradlew :integ-test:comparisonTest
 
     [2020-01-06T11:37:57,437][INFO ][c.a.o.s.c.CorrectnessIT  ] [performComparisonTest] Starting comparison test
     =================================
-    Tested Database  : (Use internal Elasticsearch in workspace)
+    Tested Database  : (Use internal OpenSearch in workspace)
     Other Databases  :
      SQLite = jdbc:sqlite::memory:
      H2 = jdbc:h2:mem:test;DB_CLOSE_DELAY=-1
@@ -260,7 +260,7 @@ $ ./gradlew :integ-test:comparisonTest -Dqueries=sanity_integration_tests.txt
     ...
 ```
 
-Specify external Elasticsearch cluster by `esHost` argument, otherwise an internal Elasticsearch in workspace is in use by default.
+Specify external OpenSearch cluster by `esHost` argument, otherwise an internal OpenSearch in workspace is in use by default.
 
 ```
 $ ./gradlew :integ-test:comparisonTest -DesHost=localhost:9200

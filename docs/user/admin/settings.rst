@@ -14,7 +14,7 @@ Plugin Settings
 Introduction
 ============
 
-When Elasticsearch bootstraps, SQL plugin will register a few settings in Elasticsearch cluster settings. Most of the settings are able to change dynamically so you can control the behavior of SQL plugin without need to bounce your cluster.
+When OpenSearch bootstraps, SQL plugin will register a few settings in OpenSearch cluster settings. Most of the settings are able to change dynamically so you can control the behavior of SQL plugin without need to bounce your cluster.
 
 
 opendistro.sql.enabled
@@ -85,7 +85,7 @@ opendistro.sql.query.slowlog
 Description
 -----------
 
-You can configure the time limit (seconds) for slow query which would be logged as 'Slow query: elapsed=xxx (ms)' in elasticsearch.log.
+You can configure the time limit (seconds) for slow query which would be logged as 'Slow query: elapsed=xxx (ms)' in opensearch.log.
 
 1. The default value is 2.
 2. This setting is node scope.
@@ -561,7 +561,7 @@ opendistro.query.size_limit
 Description
 -----------
 
-The new engine fetches a default size of index from Elasticsearch set by this setting, the default value is 200. You can change the value to any value not greater than the max result window value in index level (10000 by default), here is an example::
+The new engine fetches a default size of index from OpenSearch set by this setting, the default value is 200. You can change the value to any value not greater than the max result window value in index level (10000 by default), here is an example::
 
 	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings -d '{
 	  "transient" : {

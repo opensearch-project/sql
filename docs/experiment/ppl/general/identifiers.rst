@@ -23,9 +23,9 @@ Description
 
 A regular identifier is a string of characters that must start with ASCII letter (lower or upper case). The subsequent character can be a combination of letter, digit, underscore (``_``). It cannot be a reversed key word. And whitespace and other special characters are not allowed.
 
-For Elasticsearch, the following identifiers are supported extensionally:
+For OpenSearch, the following identifiers are supported extensionally:
 
-1. Identifiers prefixed by dot ``.``: this is called hidden index in Elasticsearch, for example ``.kibana``.
+1. Identifiers prefixed by dot ``.``: this is called hidden index in OpenSearch, for example ``.kibana``.
 2. Identifiers prefixed by at sign ``@``: this is common for meta fields generated in Logstash ingestion.
 3. Identifiers with ``-`` in the middle: this is mostly the case for index name with date information.
 4. Identifiers with star ``*`` present: this is mostly an index pattern for wildcard match.
@@ -64,7 +64,7 @@ Here are typical examples of the use of delimited identifiers:
 
 1. Identifiers of reserved key word name
 2. Identifiers with dot ``.`` present: similarly as ``-`` in index name to include date information, it is required to be quoted so parser can differentiate it from identifier with qualifiers.
-3. Identifiers with other special character: Elasticsearch has its own rule which allows more special character, for example Unicode character is supported in index name.
+3. Identifiers with other special character: OpenSearch has its own rule which allows more special character, for example Unicode character is supported in index name.
 
 Examples
 --------
@@ -89,7 +89,7 @@ Case Sensitivity
 Description
 -----------
 
-Identifiers are treated in case sensitive manner. So it must be exactly same as what is stored in Elasticsearch.
+Identifiers are treated in case sensitive manner. So it must be exactly same as what is stored in OpenSearch.
 
 Examples
 --------
