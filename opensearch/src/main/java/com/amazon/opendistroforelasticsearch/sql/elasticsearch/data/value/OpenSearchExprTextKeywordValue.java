@@ -23,7 +23,7 @@ import com.amazon.opendistroforelasticsearch.sql.data.type.ExprType;
 
 /**
  * Expression Text Keyword Value, it is an extension of the ExprValue by Elasticsearch.
- * This mostly represents a multi-field in Elasticsearch which has a text field and a
+ * This mostly represents a multi-field in OpenSearch which has a text field and a
  * keyword field inside to preserve the original text.
  */
 public class OpenSearchExprTextKeywordValue extends ExprStringValue {

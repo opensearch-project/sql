@@ -36,7 +36,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
 
 /**
- * Elasticsearch System Index Table Implementation.
+ * OpenSearch System Index Table Implementation.
  */
 public class OpenSearchSystemIndex implements Table {
   /**

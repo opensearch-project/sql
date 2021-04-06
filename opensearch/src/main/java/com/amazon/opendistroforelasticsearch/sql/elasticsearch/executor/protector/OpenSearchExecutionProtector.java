@@ -35,13 +35,13 @@ import com.amazon.opendistroforelasticsearch.sql.storage.TableScanOperator;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Elasticsearch Execution Protector.
+ * OpenSearch Execution Protector.
  */
 @RequiredArgsConstructor
 public class OpenSearchExecutionProtector extends ExecutionProtector {
 
   /**
-   * Elasticsearch resource monitor.
+   * OpenSearch resource monitor.
    */
   private final ResourceMonitor resourceMonitor;
 

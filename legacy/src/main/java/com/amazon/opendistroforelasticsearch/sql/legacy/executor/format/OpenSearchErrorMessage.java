@@ -28,7 +28,7 @@ public class OpenSearchErrorMessage extends ErrorMessage<OpenSearchException> {
 
     @Override
     protected String fetchReason() {
-        return "Error occurred in Elasticsearch engine: " + exception.getMessage();
+        return "Error occurred in OpenSearch engine: " + exception.getMessage();
     }
 
     /** Currently Sql-Jdbc plugin only supports string type as reason and details in the error messages */
@@ -41,7 +41,7 @@ public class OpenSearchErrorMessage extends ErrorMessage<OpenSearchException> {
             details.append(defaultDetails(exception));
         }
         details.append("\nFor more details, please send request for Json format to see the raw response from "
-                + "elasticsearch engine.");
+                + "OpenSearch engine.");
         return details.toString();
     }
 

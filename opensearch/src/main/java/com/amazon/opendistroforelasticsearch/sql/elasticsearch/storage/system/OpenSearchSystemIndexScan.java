@@ -26,7 +26,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 
 /**
- * Elasticsearch index scan operator.
+ * OpenSearch index scan operator.
  */
 @RequiredArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)

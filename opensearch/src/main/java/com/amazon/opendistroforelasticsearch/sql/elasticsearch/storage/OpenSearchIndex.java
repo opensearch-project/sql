@@ -42,16 +42,16 @@ import lombok.RequiredArgsConstructor;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.search.aggregations.AggregationBuilder;
 
-/** Elasticsearch table (index) implementation. */
+/** OpenSearch table (index) implementation. */
 @RequiredArgsConstructor
 public class OpenSearchIndex implements Table {
 
-  /** Elasticsearch client connection. */
+  /** OpenSearch client connection. */
   private final OpenSearchClient client;
 
   private final Settings settings;
 
-  /** Current Elasticsearch index name. */
+  /** Current OpenSearch index name. */
   private final String indexName;
 
   /**
@@ -82,7 +82,7 @@ public class OpenSearchIndex implements Table {
 
     /*
      * Visit logical plan with index scan as context so logical operators visited, such as
-     * aggregation, filter, will accumulate (push down) Elasticsearch query and aggregation DSL on
+     * aggregation, filter, will accumulate (push down) OpenSearch query and aggregation DSL on
      * index scan.
      */
     return plan.accept(new OpenSearchDefaultImplementor(indexScan), indexScan);

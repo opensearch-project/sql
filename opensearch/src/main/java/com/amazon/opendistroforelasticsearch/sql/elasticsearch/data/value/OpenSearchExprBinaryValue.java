@@ -22,7 +22,7 @@ import com.amazon.opendistroforelasticsearch.sql.elasticsearch.data.type.OpenSea
 import lombok.EqualsAndHashCode;
 
 /**
- * Elasticsearch BinaryValue.
+ * OpenSearch BinaryValue.
  * Todo, add this to avoid the unknown value type exception, the implementation will be changed.
  */
 @EqualsAndHashCode(callSuper = false)

@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Elasticsearch client abstraction to wrap different Elasticsearch client implementation. For
+ * OpenSearch client abstraction to wrap different OpenSearch client implementation. For
  * example, implementation by node client for ES plugin or by REST client for standalone mode.
  */
 public interface OpenSearchClient {

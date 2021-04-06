@@ -21,7 +21,7 @@ import com.amazon.opendistroforelasticsearch.sql.data.model.ExprValue;
 import java.util.List;
 
 /**
- * Elasticsearch system request query against the system index.
+ * OpenSearch system request query against the system index.
  */
 public interface OpenSearchSystemRequest {
 

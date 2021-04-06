@@ -33,7 +33,7 @@ import lombok.ToString;
 import org.apache.commons.lang3.tuple.Pair;
 
 /**
- * Elasticsearch Logical Index Scan Operation.
+ * OpenSearch Logical Index Scan Operation.
  */
 @Getter
 @ToString

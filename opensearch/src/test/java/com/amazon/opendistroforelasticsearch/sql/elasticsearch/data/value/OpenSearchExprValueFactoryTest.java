@@ -327,7 +327,7 @@ class OpenSearchExprValueFactoryTest {
   }
 
   /**
-   * Return the first element if is Elasticsearch Array.
+   * Return the first element if is OpenSearch Array.
    * https://www.elastic.co/guide/en/elasticsearch/reference/current/array.html.
    */
   @Test

@@ -47,7 +47,7 @@ class OpenSearchErrorMessageTest {
 
     OpenSearchErrorMessage errorMessage =
         new OpenSearchErrorMessage(openSearchException, SERVICE_UNAVAILABLE.getStatus());
-    assertEquals("Error occurred in Elasticsearch engine: error", errorMessage.fetchReason());
+    assertEquals("Error occurred in OpenSearch engine: error", errorMessage.fetchReason());
   }
 
   @Test
@@ -58,7 +58,7 @@ class OpenSearchErrorMessageTest {
         new OpenSearchErrorMessage(openSearchException, SERVICE_UNAVAILABLE.getStatus());
     assertEquals("detail error\n"
             + "For more details, please send request for "
-            + "Json format to see the raw response from elasticsearch engine.",
+            + "Json format to see the raw response from OpenSearch engine.",
         errorMessage.fetchDetails());
   }
 
@@ -75,7 +75,7 @@ class OpenSearchErrorMessageTest {
     assertEquals("Shard[1]: java.lang.IllegalStateException: illegal state\n"
             + "\n"
             + "For more details, please send request for Json format to see the "
-            + "raw response from elasticsearch engine.",
+            + "raw response from OpenSearch engine.",
         errorMessage.fetchDetails());
   }
 }

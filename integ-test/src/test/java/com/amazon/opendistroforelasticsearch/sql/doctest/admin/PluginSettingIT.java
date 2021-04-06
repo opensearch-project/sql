@@ -72,7 +72,7 @@ public class PluginSettingIT extends DocTest {
     docSetting(
         QUERY_SLOWLOG,
         "You can configure the time limit (seconds) for slow query which would be logged as " +
-            "'Slow query: elapsed=xxx (ms)' in elasticsearch.log.",
+            "'Slow query: elapsed=xxx (ms)' in opensearch.log.",
         10
     );
   }

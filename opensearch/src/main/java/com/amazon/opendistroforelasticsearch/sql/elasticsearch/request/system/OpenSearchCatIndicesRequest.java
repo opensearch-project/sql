@@ -39,7 +39,7 @@ public class OpenSearchCatIndicesRequest implements OpenSearchSystemRequest {
 
   private static final String DEFAULT_TABLE_TAPE = "BASE TABLE";
 
-  /** Elasticsearch client connection. */
+  /** OpenSearch client connection. */
   private final OpenSearchClient client;
 
   /**

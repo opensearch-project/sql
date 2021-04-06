@@ -34,7 +34,7 @@ import org.opensearch.search.sort.SortOrder;
 public class SortQueryBuilder {
 
   /**
-   * The mapping between Core Engine sort order and Elasticsearch sort order.
+   * The mapping between Core Engine sort order and OpenSearch sort order.
    */
   private Map<Sort.SortOrder, SortOrder> sortOrderMap =
       new ImmutableMap.Builder<Sort.SortOrder, SortOrder>()
@@ -43,7 +43,7 @@ public class SortQueryBuilder {
           .build();
 
   /**
-   * The mapping between Core Engine null order and Elasticsearch null order.
+   * The mapping between Core Engine null order and OpenSearch null order.
    */
   private Map<Sort.NullOrder, String> missingMap =
       new ImmutableMap.Builder<Sort.NullOrder, String>()

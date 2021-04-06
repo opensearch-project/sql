@@ -29,7 +29,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class OpenSearchStorageEngine implements StorageEngine {
 
-  /** Elasticsearch client connection. */
+  /** OpenSearch client connection. */
   private final OpenSearchClient client;
 
   private final Settings settings;

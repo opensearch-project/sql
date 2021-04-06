@@ -1035,7 +1035,7 @@ public class SQLFunctions {
      *
      * @param field
      * @return Schema.Type.TEXT or DOUBLE
-     * There are only two ORDER BY types (TEXT, NUMBER) in Elasticsearch, so the Type that is returned here essentially
+     * There are only two ORDER BY types (TEXT, NUMBER) in OpenSearch, so the Type that is returned here essentially
      * indicates the category of the function as opposed to the actual return type.
      */
     public static Schema.Type getOrderByFieldType(Field field) {

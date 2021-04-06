@@ -98,7 +98,7 @@ public class MetricAggregationBuilder
   }
 
   /**
-   * Replace star or literal with Elasticsearch metadata field "_index". Because:
+   * Replace star or literal with OpenSearch metadata field "_index". Because:
    * 1) Analyzer already converts * to string literal, literal check here can handle
    *    both COUNT(*) and COUNT(1).
    * 2) Value count aggregation on _index counts all docs (after filter), therefore

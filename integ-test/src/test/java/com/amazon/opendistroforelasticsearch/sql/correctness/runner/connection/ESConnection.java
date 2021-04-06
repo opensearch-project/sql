@@ -25,17 +25,17 @@ import org.opensearch.client.Response;
 import org.opensearch.client.RestClient;
 
 /**
- * Elasticsearch database connection for insertion. This class wraps JDBCConnection to delegate query method.
+ * OpenSearch database connection for insertion. This class wraps JDBCConnection to delegate query method.
  */
 public class ESConnection implements DBConnection {
 
   /**
-   * Connection via our Elasticsearch JDBC driver
+   * Connection via our OpenSearch JDBC driver
    */
   private final DBConnection connection;
 
   /**
-   * Native Elasticsearch REST client for operation unsupported by driver such as CREATE/INSERT
+   * Native OpenSearch REST client for operation unsupported by driver such as CREATE/INSERT
    */
   private final RestClient client;
 
@@ -80,8 +80,8 @@ public class ESConnection implements DBConnection {
 
   @Override
   public void close() {
-    // Only close database connection and leave ES REST connection alone
-    // because it's initialized and manged by ES test base class.
+    // Only close database connection and leave OpenSearch REST connection alone
+    // because it's initialized and manged by OpenSearch test base class.
     connection.close();
   }
 

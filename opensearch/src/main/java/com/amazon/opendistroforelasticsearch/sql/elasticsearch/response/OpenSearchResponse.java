@@ -30,7 +30,7 @@ import org.opensearch.search.SearchHits;
 import org.opensearch.search.aggregations.Aggregations;
 
 /**
- * Elasticsearch search response.
+ * OpenSearch search response.
  */
 @EqualsAndHashCode
 @ToString

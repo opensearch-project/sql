@@ -27,13 +27,13 @@ import lombok.ToString;
 import org.opensearch.cluster.metadata.MappingMetadata;
 
 /**
- * Elasticsearch index mapping. Because there is no specific behavior for different field types,
+ * OpenSearch index mapping. Because there is no specific behavior for different field types,
  * string is used to represent field types.
  */
 @ToString
 public class IndexMapping {
 
-  /** Field mappings from field name to field type in Elasticsearch date type system. */
+  /** Field mappings from field name to field type in OpenSearch date type system. */
   private final Map<String, String> fieldMappings;
 
   public IndexMapping(Map<String, String> fieldMappings) {

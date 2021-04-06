@@ -41,14 +41,14 @@ import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.common.settings.Settings;
 
 /**
- * Elasticsearch REST client to support standalone mode that runs entire engine from remote.
+ * OpenSearch REST client to support standalone mode that runs entire engine from remote.
  *
  * <p>TODO: Support for authN and authZ with AWS Sigv4 or security plugin.
  */
 @RequiredArgsConstructor
 public class OpenSearchRestClient implements OpenSearchClient {
 
-  /** Elasticsearch high level REST client. */
+  /** OpenSearch high level REST client. */
   private final RestHighLevelClient client;
 
   @Override

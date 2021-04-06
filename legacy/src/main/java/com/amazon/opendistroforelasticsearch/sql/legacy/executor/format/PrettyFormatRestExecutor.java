@@ -81,7 +81,7 @@ public class PrettyFormatRestExecutor implements RestExecutor {
             }
         } catch (Exception e) {
             if (e instanceof OpenSearchException) {
-                LOG.warn("An error occurred in Elasticsearch engine: "
+                LOG.warn("An error occurred in OpenSearch engine: "
                         + ((OpenSearchException) e).getDetailedMessage(), e);
             } else {
                 LOG.warn("Error happened in pretty formatter", e);

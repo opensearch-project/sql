@@ -26,7 +26,7 @@ import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Elasticsearch IP ExprValue.
+ * OpenSearch IP ExprValue.
  * Todo, add this to avoid the unknown value type exception, the implementation will be changed.
  */
 @RequiredArgsConstructor

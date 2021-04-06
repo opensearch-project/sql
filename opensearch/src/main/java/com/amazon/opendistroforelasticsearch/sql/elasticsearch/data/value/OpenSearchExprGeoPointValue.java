@@ -26,7 +26,7 @@ import java.util.Objects;
 import lombok.Data;
 
 /**
- * Elasticsearch GeoPointValue.
+ * OpenSearch GeoPointValue.
  * Todo, add this to avoid the unknown value type exception, the implementation will be changed.
  */
 public class OpenSearchExprGeoPointValue extends AbstractExprValue {

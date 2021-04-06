@@ -33,7 +33,7 @@ import org.opensearch.search.SearchHits;
 import org.opensearch.search.builder.SearchSourceBuilder;
 
 /**
- * Elasticsearch search request. This has to be stateful because it needs to:
+ * OpenSearch search request. This has to be stateful because it needs to:
  *
  * <p>1) Accumulate search source builder when visiting logical plan to push down operation. 2)
  * Indicate the search already done.
@@ -101,7 +101,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   }
 
   /**
-   * Generate Elasticsearch search request.
+   * Generate OpenSearch search request.
    *
    * @return search request
    */

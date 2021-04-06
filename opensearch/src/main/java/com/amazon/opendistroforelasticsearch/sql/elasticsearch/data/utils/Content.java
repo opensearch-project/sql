@@ -24,8 +24,8 @@ import org.apache.commons.lang3.tuple.Pair;
  * Regardless the underling data format, the {@link Content} define the data in abstract manner.
  * which could be parsed by ElasticsearchExprValueFactory.
  * There are two major use cases:
- * 1. Represent the JSON data retrieve from Elasticsearch search response.
- * 2. Represent the Object data extract from the Elasticsearch aggregation response.
+ * 1. Represent the JSON data retrieve from OpenSearch search response.
+ * 2. Represent the Object data extract from the OpenSearch aggregation response.
  */
 public interface Content {
 

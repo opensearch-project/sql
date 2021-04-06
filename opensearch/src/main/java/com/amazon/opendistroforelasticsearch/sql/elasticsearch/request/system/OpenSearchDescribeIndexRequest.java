@@ -52,7 +52,7 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
   private static final String DEFAULT_IS_AUTOINCREMENT = "NO";
 
   /**
-   * Type mapping from Elasticsearch data type to expression type in our type system in query
+   * Type mapping from OpenSearch data type to expression type in our type system in query
    * engine. TODO: geo, ip etc.
    */
   private static final Map<String, ExprType> ES_TYPE_TO_EXPR_TYPE_MAPPING =
@@ -78,12 +78,12 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
           .build();
 
   /**
-   * Elasticsearch client connection.
+   * OpenSearch client connection.
    */
   private final OpenSearchClient client;
 
   /**
-   * Elasticsearch index name.
+   * OpenSearch index name.
    */
   private final String indexName;
 

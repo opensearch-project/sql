@@ -77,7 +77,7 @@ import lombok.Setter;
 import org.opensearch.common.time.DateFormatters;
 
 /**
- * Construct ExprValue from Elasticsearch response.
+ * Construct ExprValue from OpenSearch response.
  */
 @AllArgsConstructor
 public class OpenSearchExprValueFactory {
@@ -121,7 +121,7 @@ public class OpenSearchExprValueFactory {
           .build();
 
   /**
-   * The struct construction has the following assumption. 1. The field has Elasticsearch Object
+   * The struct construction has the following assumption. 1. The field has OpenSearch Object
    * data type. https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html 2. The
    * deeper field is flattened in the typeMapping. e.g. {"employ", "STRUCT"} {"employ.id",
    * "INTEGER"} {"employ.state", "STRING"}
@@ -184,7 +184,7 @@ public class OpenSearchExprValueFactory {
   private ExprValue constructTimestamp(String value) {
     try {
       return new ExprTimestampValue(
-          // Using Elasticsearch DateFormatters for now.
+          // Using OpenSearch DateFormatters for now.
           DateFormatters.from(DATE_TIME_FORMATTER.parse(value)).toInstant());
     } catch (DateTimeParseException e) {
       throw new IllegalStateException(

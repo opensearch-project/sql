@@ -31,7 +31,7 @@ import java.util.Map;
  * Test configuration parse the following information from command line arguments:
  * 1) Test schema and data
  * 2) Test queries
- * 3) Elasticsearch connection URL
+ * 3) OpenSearch connection URL
  * 4) Other database connection URLs
  */
 public class TestConfig {
@@ -47,7 +47,7 @@ public class TestConfig {
   private final String esHostUrl;
 
   /**
-   * Test against some database rather than Elasticsearch via our JDBC driver
+   * Test against some database rather than OpenSearch via our JDBC driver
    */
   private final String dbConnectionUrl;
 
@@ -144,7 +144,7 @@ public class TestConfig {
     if (!dbConnectionUrl.isEmpty()) {
       return dbConnectionUrl;
     }
-    return esHostUrl.isEmpty() ? "(Use internal Elasticsearch in workspace)" : esHostUrl;
+    return esHostUrl.isEmpty() ? "(Use internal OpenSearch in workspace)" : esHostUrl;
   }
 
   private String otherDbConnectionInfoToString() {

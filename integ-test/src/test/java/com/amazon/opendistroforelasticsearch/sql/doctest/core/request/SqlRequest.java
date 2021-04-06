@@ -26,14 +26,14 @@ import org.opensearch.client.ResponseException;
 import org.opensearch.client.RestClient;
 
 /**
- * Request to SQL plugin to isolate Elasticsearch native request
+ * Request to SQL plugin to isolate OpenSearch native request
  */
 public class SqlRequest {
 
   public static final SqlRequest NONE = null;
 
   /**
-   * Native Elasticsearch request object
+   * Native OpenSearch request object
    */
   private final Request request;
 
@@ -42,7 +42,7 @@ public class SqlRequest {
   }
 
   /**
-   * Send request to Elasticsearch via client and create response for it.
+   * Send request to OpenSearch via client and create response for it.
    *
    * @param client restful client connection
    * @return sql response
@@ -64,7 +64,7 @@ public class SqlRequest {
   /**
    * Expose request for request formatter.
    *
-   * @return native Elasticsearch format
+   * @return native OpenSearch format
    */
   public Request request() {
     return request;

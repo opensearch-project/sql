@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 
-/** Elasticsearch execution engine implementation. */
+/** OpenSearch execution engine implementation. */
 @RequiredArgsConstructor
 public class OpenSearchExecutionEngine implements ExecutionEngine {
 

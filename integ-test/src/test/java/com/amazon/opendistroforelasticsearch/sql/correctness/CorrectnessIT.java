@@ -98,7 +98,7 @@ public class CorrectnessIT extends OpenSearchIntegTestCase {
   }
 
   /**
-   * Use Elasticsearch cluster given on CLI arg or internal embedded in SQLIntegTestCase
+   * Use OpenSearch cluster given on CLI arg or internal embedded in SQLIntegTestCase
    */
   private DBConnection getESConnection(TestConfig config) {
     RestClient client;

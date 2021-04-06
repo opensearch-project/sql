@@ -32,13 +32,13 @@ import java.util.Arrays;
 import lombok.experimental.UtilityClass;
 
 /**
- * Elasticsearch storage specified logical plan optimizer.
+ * OpenSearch storage specified logical plan optimizer.
  */
 @UtilityClass
 public class OpenSearchLogicalPlanOptimizerFactory {
 
   /**
-   * Create Elasticsearch storage specified logical plan optimizer.
+   * Create OpenSearch storage specified logical plan optimizer.
    */
   public static LogicalPlanOptimizer create() {
     return new LogicalPlanOptimizer(Arrays.asList(

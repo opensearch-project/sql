@@ -27,7 +27,7 @@ import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.search.builder.SearchSourceBuilder;
 
 /**
- * Elasticsearch search request.
+ * OpenSearch search request.
  */
 public interface OpenSearchRequest {
 

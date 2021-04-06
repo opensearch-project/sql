@@ -23,7 +23,7 @@ import org.opensearch.action.search.SearchPhaseExecutionException;
 import org.opensearch.action.search.ShardSearchFailure;
 
 /**
- * Elasticsearch Error Message.
+ * OpenSearch Error Message.
  */
 public class OpenSearchErrorMessage extends ErrorMessage {
 
@@ -33,7 +33,7 @@ public class OpenSearchErrorMessage extends ErrorMessage {
 
   @Override
   protected String fetchReason() {
-    return "Error occurred in Elasticsearch engine: " + exception.getMessage();
+    return "Error occurred in OpenSearch engine: " + exception.getMessage();
   }
 
   /**
@@ -51,7 +51,7 @@ public class OpenSearchErrorMessage extends ErrorMessage {
     }
     details.append(
         "\nFor more details, please send request for Json format to see the raw response from "
-            + "elasticsearch engine.");
+            + "OpenSearch engine.");
     return details.toString();
   }
 

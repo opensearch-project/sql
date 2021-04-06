@@ -45,7 +45,7 @@ import org.opensearch.common.collect.ImmutableOpenMap;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.threadpool.ThreadPool;
 
-/** Elasticsearch connection by node client. */
+/** OpenSearch connection by node client. */
 public class OpenSearchNodeClient implements OpenSearchClient {
 
   /** Default types and field filter to match all. */
@@ -57,7 +57,7 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   /** Current cluster state on local node. */
   private final ClusterService clusterService;
 
-  /** Node client provided by Elasticsearch container. */
+  /** Node client provided by OpenSearch container. */
   private final NodeClient client;
 
   /** Index name expression resolver to get concrete index name. */
@@ -83,7 +83,7 @@ public class OpenSearchNodeClient implements OpenSearchClient {
    * mapping cache, cluster state listener (mainly for performance and debugging).
    *
    * @param indexExpression index name expression
-   * @return index mapping(s) in our class to isolate Elasticsearch API. IndexNotFoundException is
+   * @return index mapping(s) in our class to isolate OpenSearch API. IndexNotFoundException is
    *     thrown if no index matched.
    */
   @Override

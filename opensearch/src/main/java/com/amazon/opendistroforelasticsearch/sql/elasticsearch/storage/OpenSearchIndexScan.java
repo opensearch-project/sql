@@ -47,13 +47,13 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.SortBuilder;
 
 /**
- * Elasticsearch index scan operator.
+ * OpenSearch index scan operator.
  */
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @ToString(onlyExplicitlyIncluded = true)
 public class OpenSearchIndexScan extends TableScanOperator {
 
-  /** Elasticsearch client. */
+  /** OpenSearch client. */
   private final OpenSearchClient client;
 
   /** Search request. */

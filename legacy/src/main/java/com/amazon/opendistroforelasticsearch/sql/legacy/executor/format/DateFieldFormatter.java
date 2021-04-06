@@ -153,7 +153,7 @@ public class DateFieldFormatter {
         Date parsedDate = null;
 
         // Apache Commons DateUtils uses the default TimeZone for the JVM when parsing.
-        // However, since all dates on Elasticsearch are stored as UTC, we need to
+        // However, since all dates on OpenSearch are stored as UTC, we need to
         // parse these values using the UTC timezone.
         TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
         for (String columnFormat : formats) {

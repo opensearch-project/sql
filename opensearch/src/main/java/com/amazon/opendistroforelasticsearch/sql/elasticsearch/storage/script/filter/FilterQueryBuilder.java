@@ -63,7 +63,7 @@ public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Obje
           .build();
 
   /**
-   * Build Elasticsearch filter query from expression.
+   * Build OpenSearch filter query from expression.
    * @param expr  expression
    * @return      query
    */

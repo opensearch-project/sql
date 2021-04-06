@@ -91,7 +91,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
   }
 
   /**
-   * Generate Elasticsearch search request.
+   * Generate OpenSearch search request.
    *
    * @return search request
    */
@@ -112,7 +112,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
   }
 
   /**
-   * Generate Elasticsearch scroll request by scroll id maintained.
+   * Generate OpenSearch scroll request by scroll id maintained.
    *
    * @return scroll request
    */

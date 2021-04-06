@@ -34,13 +34,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum OpenSearchDataType implements ExprType {
   /**
-   * Elasticsearch Text.
+   * OpenSearch Text.
    * Ref: https://www.elastic.co/guide/en/elasticsearch/reference/current/text.html
    */
   ES_TEXT(Collections.singletonList(STRING), "string"),
 
   /**
-   * Elasticsearch multi-fields which has text and keyword.
+   * OpenSearch multi-fields which has text and keyword.
    * Ref: https://www.elastic.co/guide/en/elasticsearch/reference/current/multi-fields.html
    */
   ES_TEXT_KEYWORD(Arrays.asList(STRING, ES_TEXT), "string"),
