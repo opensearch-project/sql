@@ -45,7 +45,7 @@ import org.opensearch.client.RestHighLevelClient;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 /**
- * Run PPL with query engine outside Elasticsearch cluster. This IT doesn't require our plugin
+ * Run PPL with query engine outside OpenSearch cluster. This IT doesn't require our plugin
  * installed actually. The client application, ex. JDBC driver, needs to initialize all components
  * itself required by ppl service.
  */

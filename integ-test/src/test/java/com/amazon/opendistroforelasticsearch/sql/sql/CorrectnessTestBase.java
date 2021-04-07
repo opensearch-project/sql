@@ -53,7 +53,7 @@ public abstract class CorrectnessTestBase extends RestIntegTestCase {
     }
 
     TestConfig config = new TestConfig(emptyMap());
-    runner = new ComparisonTest(getESConnection(),
+    runner = new ComparisonTest(getOpenSearchConnection(),
                                 getOtherDBConnections(config));
 
     runner.connect();
@@ -96,9 +96,9 @@ public abstract class CorrectnessTestBase extends RestIntegTestCase {
   }
 
   /**
-   * Use Elasticsearch cluster initialized by OpenSearch Gradle task.
+   * Use OpenSearch cluster initialized by OpenSearch Gradle task.
    */
-  private DBConnection getESConnection() {
+  private DBConnection getOpenSearchConnection() {
     String openSearchHost = client().getNodes().get(0).getHost().toString();
     return new OpenSearchConnection("jdbc:elasticsearch://" + openSearchHost, client());
   }
