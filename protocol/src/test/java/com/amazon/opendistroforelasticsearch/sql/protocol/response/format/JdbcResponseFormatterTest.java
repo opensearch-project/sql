@@ -156,7 +156,7 @@ class JdbcResponseFormatterTest {
   }
 
   @Test
-  void format_server_error_response_due_to_elasticsearch() {
+  void format_server_error_response_due_to_opensearch() {
     assertJsonEquals(
         "{\"error\":"
             + "{\""

@@ -2,14 +2,14 @@
 
 # Rewrite EXISTS in Nested Query
 
-Opendistro-sql use ElasticSearch nested query to query the nested field. In ElasticSearch domain, the nested query can filter the nested field based the query logic which is correspond to the [EXISTS in PartiQL](https://partiql.org/tutorial.html#use-case-checking-whether-a-nested-collection-satisfies-a-condition). It means, there could be a way to translate the EXISTS query based on the nested query.
+Opendistro-sql use OpenSearch nested query to query the nested field. In OpenSearch domain, the nested query can filter the nested field based the query logic which is correspond to the [EXISTS in PartiQL](https://partiql.org/tutorial.html#use-case-checking-whether-a-nested-collection-satisfies-a-condition). It means, there could be a way to translate the EXISTS query based on the nested query.
 Let’s go though the use cases find out how to translate the SQL to DSL.
 
 ## Use cases
 
 ### **1.  EXISTS**
 
-If the SQL doesn’t have condition in the subquery, the [ElasticSearch exists](https://www.elastic.co/guide/en/elasticsearch/reference/7.3/query-dsl-exists-query.html) could be used to translate the SQL to DSL.
+If the SQL doesn’t have condition in the subquery, the [OpenSearch exists](https://www.elastic.co/guide/en/elasticsearch/reference/7.3/query-dsl-exists-query.html) could be used to translate the SQL to DSL.
 
 ```
 SELECT e.name AS employeeName

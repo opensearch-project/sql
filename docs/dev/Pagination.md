@@ -17,7 +17,7 @@ General cursor support: https://github.com/opendistro-for-elasticsearch/sql/issu
 
 There are two typical use cases of cursor:
 
-* In the absence of cursor they are limited by the max of 10000 documents by Elasticsearch by default. The max number fo results could be changed using `index.max_result_window` setting on index level. Since the number of docs for an index can vary, the user would not know unless they see inconsistent result, and they have to change this setting manually which is not a very good experience.
+* In the absence of cursor they are limited by the max of 10000 documents by OpenSearch by default. The max number fo results could be changed using `index.max_result_window` setting on index level. Since the number of docs for an index can vary, the user would not know unless they see inconsistent result, and they have to change this setting manually which is not a very good experience.
 * Interaction with SQL plugin via Kibana or other web interfaces to skim through only the first few pages of a large result set.
 * Integration with BI tools or other batch processing program via JDBC/ODBC driver to load full result set for analysis.
 
@@ -71,7 +71,7 @@ With a non-keyset client-side cursor, the server sends the entire result set acr
 **Cons:**
 
 * Client-side cursors may place a significant load on your workstation if they include too many rows
-* Since we are limited by Elasticsearch to get all the results we **cannot** materialize this.
+* Since we are limited by OpenSearch to get all the results we **cannot** materialize this.
 * This will require significant work for each client JDBC driver, ODBC driver, SQL CLI,  Kibana on how to maintain the client resources and parse the state. It is therefore not scalable. 
 * This defeats the purpose of pagination if we load the whole data to client side, as the user/application might only need the first few pages and discard the rest. This will also put pressure on network traffic and can increase latency.
 
@@ -97,7 +97,7 @@ Based on the cons of client side cursors, and the limitation imposed by Elastics
 
 Here is a sample of the request response API for the cursor queries. The client only needs cursor field to fetch the next page. This interface allows clients to de-couple the parsing logic of state.
 
-Since we are implementing server side cursors, either OpenDistro SQL plugin or Elasticsearch needs to maintain state which consumes hardware resources like memory, file descriptors etc. The conserve such resources we provide a clear cursor API to clear resources explicitly, before it is automatically cleaned after expiry.
+Since we are implementing server side cursors, either OpenDistro SQL plugin or OpenSearch needs to maintain state which consumes hardware resources like memory, file descriptors etc. The conserve such resources we provide a clear cursor API to clear resources explicitly, before it is automatically cleaned after expiry.
 
 ```
 # 1.Creates a cursor
@@ -198,7 +198,7 @@ Since we are supporting cursor for different type of queries using different imp
 
 **3.6.1 SELECT**
 
-Simple SELECT with WHERE and ORDER BY clause can be supported by using the following Elasticsearch APIs
+Simple SELECT with WHERE and ORDER BY clause can be supported by using the following OpenSearch APIs
 **(A) From and Size**
 From ideal pagination point of view from and size is API needed by the client. Pagination of results can be done by using the from and size but the cost becomes prohibitive when the deep pagination is reached. The `index.max_result_window` which defaults to 10,000 is a safeguard, search requests take heap memory and time proportional to `from + size`.
 
@@ -430,12 +430,12 @@ Right now there is inconsistency in results for `csv` and `jdbc` format. This is
 - If SQL query limit is less than `fetch_size`, no cursor context will be open and all results will be fetched in first page.
 - Negative or non-numeric values of `fetch_size` will throw `400` exception.
 - If `cursor` is given as JSON field in request, other fields like `fetch_size` , `query`, `filter`, `parameters` will be ignored. 
-- Like Elasticsearch’s scroll, SQL plugin may keep state in Elasticsearch to support the cursor. Unlike scroll, receiving the last page is enough to guarantee that the Elasticsearch state is cleared.
+- Like Elasticsearch’s scroll, SQL plugin may keep state in OpenSearch to support the cursor. Unlike scroll, receiving the last page is enough to guarantee that the OpenSearch state is cleared.
 - Multiple invocations of clearing the cursor, will succeed.
 - Using the cursor after context is expired will throw error.
 
 ### 4.3 Settings:
-When Elasticsearch bootstraps, SQL plugin will register a few settings in Elasticsearch cluster settings.
+When OpenSearch bootstraps, SQL plugin will register a few settings in OpenSearch cluster settings.
 Most of the settings are able to change dynamically so you can control the behavior of SQL plugin without need to bounce your cluster.
 For cursors we will be exposing the following settings:
 

@@ -68,7 +68,7 @@ class OpenSearchMemoryHealthyTest {
   }
 
   @Test
-  void constructElasticsearchMemoryMonitorWithoutArguments() {
+  void constructOpenSearchMemoryMonitorWithoutArguments() {
     OpenSearchMemoryHealthy monitor = new OpenSearchMemoryHealthy();
     assertNotNull(monitor);
   }

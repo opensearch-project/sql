@@ -331,7 +331,7 @@ class OpenSearchExprValueFactoryTest {
    * https://www.elastic.co/guide/en/elasticsearch/reference/current/array.html.
    */
   @Test
-  public void constructFromElasticsearchArrayReturnFirstElement() {
+  public void constructFromOpenSearchArrayReturnFirstElement() {
     assertEquals(integerValue(1), tupleValue("{\"intV\":[1, 2, 3]}").get("intV"));
     assertEquals(new ExprTupleValue(
         new LinkedHashMap<String, ExprValue>() {
