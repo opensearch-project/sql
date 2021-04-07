@@ -4,8 +4,6 @@ plugins {
     id 'antlr'
 }
 
-version '1.8.0.0'
-
 generateGrammarSource {
     arguments += ['-visitor', '-package', 'com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser']
     source = sourceSets.main.antlr
