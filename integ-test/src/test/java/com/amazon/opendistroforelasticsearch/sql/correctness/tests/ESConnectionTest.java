@@ -52,7 +52,7 @@ public class ESConnectionTest {
 
   @Before
   public void setUp() throws IOException {
-    conn = new ESConnection("jdbc:elasticsearch://localhost:12345", client);
+    conn = new ESConnection("jdbc:opensearch://localhost:12345", client);
 
     Response response = mock(Response.class);
     when(client.performRequest(any(Request.class))).thenReturn(response);

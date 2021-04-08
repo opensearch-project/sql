@@ -109,7 +109,7 @@ public class CorrectnessIT extends ESIntegTestCase {
     } else {
       client = RestClient.builder(HttpHost.create(esHost)).build();
     }
-    return new ESConnection("jdbc:elasticsearch://" + esHost, client);
+    return new ESConnection("jdbc:opensearch://" + esHost, client);
   }
 
   /**
