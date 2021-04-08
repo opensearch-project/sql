@@ -66,10 +66,10 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Elasticsearch implementaion for a {@link ResultSet}
+ * OpenSearch implementaion for a {@link ResultSet}
  * <p>
  * Column names or labels received in APIs are treated in a
- * case-sensitive manner since Elasticsearch field names are
+ * case-sensitive manner since OpenSearch field names are
  * case-sensitive.
  * </p>
  * The lookup

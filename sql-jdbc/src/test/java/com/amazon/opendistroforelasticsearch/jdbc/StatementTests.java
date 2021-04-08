@@ -154,8 +154,6 @@ public class StatementTests implements WireMockServerHelpers {
                 InternalServerErrorException.class, () -> st.executeQuery(queryMock.getSql()));
 
         String expectedDetails = "java.lang.NullPointerException\n\t" +
-                "at org.elasticsearch.plugin.nlpcn.Schema.getTypeFromMetaData(Schema.java:156)\n\t" +
-                "at org.elasticsearch.plugin.nlpcn.Schema.populateColumns(Schema.java:146)\n\t" +
                 "at java.base/java.lang.Thread.run(Thread.java:844)\n";
 
         assertEquals("error reason", ex.getReason());
