@@ -18,7 +18,7 @@ package com.amazon.opendistroforelasticsearch.jdbc;
 
 import com.amazon.opendistroforelasticsearch.jdbc.test.PerClassWireMockServerExtension;
 import com.amazon.opendistroforelasticsearch.jdbc.test.WireMockServerHelpers;
-import com.amazon.opendistroforelasticsearch.jdbc.test.mocks.MockES;
+import com.amazon.opendistroforelasticsearch.jdbc.test.mocks.MockOpenSearch;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,14 +38,14 @@ public class DriverTests implements WireMockServerHelpers {
         mockServer.stubFor(get(urlEqualTo("/"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json")
-                        .withBody(MockES.INSTANCE.getConnectionResponse())));
+                        .withBody(MockOpenSearch.INSTANCE.getConnectionResponse())));
 
         Driver driver = new Driver();
         Connection con = assertDoesNotThrow(() -> driver.connect(
                 getBaseURLForMockServer(mockServer), (Properties) null));
 
         assertConnectionOpen(con);
-        MockES.INSTANCE.assertMockESConnectionResponse((ElasticsearchConnection) con);
+        MockOpenSearch.INSTANCE.assertMockOpenSearchConnectionResponse((OpenSearchConnection) con);
     }
 
 

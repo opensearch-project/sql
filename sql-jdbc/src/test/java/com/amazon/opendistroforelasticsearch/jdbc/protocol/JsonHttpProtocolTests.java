@@ -25,7 +25,7 @@ import com.amazon.opendistroforelasticsearch.jdbc.protocol.http.JsonHttpProtocol
 import com.amazon.opendistroforelasticsearch.jdbc.protocol.http.JsonQueryRequest;
 import com.amazon.opendistroforelasticsearch.jdbc.protocol.http.JsonQueryResponse;
 import com.amazon.opendistroforelasticsearch.jdbc.test.mocks.MockCloseableHttpResponseBuilder;
-import com.amazon.opendistroforelasticsearch.jdbc.test.mocks.MockES;
+import com.amazon.opendistroforelasticsearch.jdbc.test.mocks.MockOpenSearch;
 import com.amazon.opendistroforelasticsearch.jdbc.test.mocks.MockHttpTransport;
 import com.amazon.opendistroforelasticsearch.jdbc.test.mocks.QueryMock;
 import com.amazon.opendistroforelasticsearch.jdbc.transport.TransportException;
@@ -52,7 +52,7 @@ public class JsonHttpProtocolTests {
     void testConnect() throws IOException {
         CloseableHttpResponse mockResponse = new MockCloseableHttpResponseBuilder()
                 .withHttpReturnCode(200)
-                .withResponseBody(MockES.INSTANCE.getConnectionResponse())
+                .withResponseBody(MockOpenSearch.INSTANCE.getConnectionResponse())
                 .build();
 
         HttpTransport mockTransport = mock(HttpTransport.class);

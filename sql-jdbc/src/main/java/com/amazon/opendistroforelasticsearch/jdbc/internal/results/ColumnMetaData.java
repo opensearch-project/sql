@@ -16,7 +16,7 @@
 
 package com.amazon.opendistroforelasticsearch.jdbc.internal.results;
 
-import com.amazon.opendistroforelasticsearch.jdbc.types.ElasticsearchType;
+import com.amazon.opendistroforelasticsearch.jdbc.types.OpenSearchType;
 import com.amazon.opendistroforelasticsearch.jdbc.protocol.ColumnDescriptor;
 
 public class ColumnMetaData {
@@ -28,7 +28,7 @@ public class ColumnMetaData {
     private String tableName;
     private String catalogName;
     private String esTypeName;
-    private ElasticsearchType esType;
+    private OpenSearchType esType;
 
     public ColumnMetaData(ColumnDescriptor descriptor) {
         this.name = descriptor.getName();
@@ -37,7 +37,7 @@ public class ColumnMetaData {
         this.label = descriptor.getLabel() == null ? this.name : descriptor.getLabel();
 
         this.esTypeName = descriptor.getType();
-        this.esType = ElasticsearchType.fromTypeName(esTypeName);
+        this.esType = OpenSearchType.fromTypeName(esTypeName);
 
         // use canned values until server can return this
         this.precision = this.esType.getPrecision();
@@ -77,7 +77,7 @@ public class ColumnMetaData {
         return catalogName;
     }
 
-    public ElasticsearchType getEsType() {
+    public OpenSearchType getEsType() {
         return esType;
     }
 

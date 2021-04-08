@@ -22,7 +22,7 @@ import com.amazon.opendistroforelasticsearch.jdbc.config.TrustStoreLocationConne
 import com.amazon.opendistroforelasticsearch.jdbc.config.TrustStorePasswordConnectionProperty;
 import com.amazon.opendistroforelasticsearch.jdbc.test.TLSServer;
 import com.amazon.opendistroforelasticsearch.jdbc.test.TestResources;
-import com.amazon.opendistroforelasticsearch.jdbc.test.mocks.MockES;
+import com.amazon.opendistroforelasticsearch.jdbc.test.mocks.MockOpenSearch;
 import org.eclipse.jetty.server.Server;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -93,7 +93,7 @@ public class SSLClientAuthTests {
         props.setProperty(KeyStorePasswordConnectionProperty.KEY, "changeit");
 
         Connection con = Assertions.assertDoesNotThrow(() -> new Driver().connect(connectURL, props));
-        MockES.INSTANCE.assertMockESConnectionResponse((ElasticsearchConnection) con);
+        MockOpenSearch.INSTANCE.assertMockOpenSearchConnectionResponse((OpenSearchConnection) con);
     }
 
 

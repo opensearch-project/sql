@@ -16,20 +16,20 @@
 
 package com.amazon.opendistroforelasticsearch.jdbc.types;
 
-public class UnrecognizedElasticsearchTypeException extends IllegalArgumentException {
+public class UnrecognizedOpenSearchTypeException extends IllegalArgumentException {
 
-    public UnrecognizedElasticsearchTypeException() {
+    public UnrecognizedOpenSearchTypeException() {
     }
 
-    public UnrecognizedElasticsearchTypeException(String s) {
+    public UnrecognizedOpenSearchTypeException(String s) {
         super(s);
     }
 
-    public UnrecognizedElasticsearchTypeException(String message, Throwable cause) {
+    public UnrecognizedOpenSearchTypeException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public UnrecognizedElasticsearchTypeException(Throwable cause) {
+    public UnrecognizedOpenSearchTypeException(Throwable cause) {
         super(cause);
     }
 }

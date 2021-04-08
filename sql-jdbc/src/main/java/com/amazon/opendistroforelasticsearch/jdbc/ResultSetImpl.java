@@ -34,7 +34,7 @@ import com.amazon.opendistroforelasticsearch.jdbc.protocol.http.JsonCursorHttpPr
 import com.amazon.opendistroforelasticsearch.jdbc.transport.http.HttpTransport;
 import com.amazon.opendistroforelasticsearch.jdbc.types.TypeConverter;
 import com.amazon.opendistroforelasticsearch.jdbc.types.TypeConverters;
-import com.amazon.opendistroforelasticsearch.jdbc.types.UnrecognizedElasticsearchTypeException;
+import com.amazon.opendistroforelasticsearch.jdbc.types.UnrecognizedOpenSearchTypeException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -112,7 +112,7 @@ public class ResultSetImpl implements ResultSet, JdbcWrapper, LoggingSource {
             this.cursorId = cursorId;
             this.open = true;
 
-        } catch (UnrecognizedElasticsearchTypeException ex) {
+        } catch (UnrecognizedOpenSearchTypeException ex) {
             logAndThrowSQLException(log, new SQLException("Exception creating a ResultSet.", ex));
         }
 

@@ -52,7 +52,7 @@ import java.util.logging.Logger;
  * for such properties return the value that was explicitly set on
  * the DataSource, and not the value that might be present on the JDBC URL.
  */
-public class ElasticsearchDataSource implements DataSource, JdbcWrapper, LoggingSource {
+public class OpenSearchDataSource implements DataSource, JdbcWrapper, LoggingSource {
 
     private String url;
 

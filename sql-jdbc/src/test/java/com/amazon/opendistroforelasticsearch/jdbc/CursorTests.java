@@ -21,7 +21,7 @@ import com.amazon.opendistroforelasticsearch.jdbc.internal.results.Cursor;
 import com.amazon.opendistroforelasticsearch.jdbc.internal.results.Row;
 import com.amazon.opendistroforelasticsearch.jdbc.internal.results.Schema;
 import com.amazon.opendistroforelasticsearch.jdbc.protocol.http.JsonQueryResponse;
-import com.amazon.opendistroforelasticsearch.jdbc.types.ElasticsearchType;
+import com.amazon.opendistroforelasticsearch.jdbc.types.OpenSearchType;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -39,7 +39,7 @@ public class CursorTests {
     @ValueSource(ints = {0, 1, 2, 7, 10, 11})
     void testCursorNext(final int rowCount) {
         Schema schema = new Schema(Arrays.asList(
-                toColumnMetaData("rownum", ElasticsearchType.INTEGER.getTypeName())));
+                toColumnMetaData("rownum", OpenSearchType.INTEGER.getTypeName())));
 
         List<Row> rows = new ArrayList<>();
         for (int rowNum = 1; rowNum <= rowCount; rowNum++) {
@@ -67,10 +67,10 @@ public class CursorTests {
         final double DOUBLEVAL = 100.25;
 
         final List<ColumnMetaData> columnMetaDatas = Arrays.asList(
-                toColumnMetaData("rownum", ElasticsearchType.INTEGER.getTypeName()),
-                toColumnMetaData("stringval", ElasticsearchType.TEXT.getTypeName()),
-                toColumnMetaData("longval", ElasticsearchType.LONG.getTypeName()),
-                toColumnMetaData("doubleval", ElasticsearchType.DOUBLE.getTypeName())
+                toColumnMetaData("rownum", OpenSearchType.INTEGER.getTypeName()),
+                toColumnMetaData("stringval", OpenSearchType.TEXT.getTypeName()),
+                toColumnMetaData("longval", OpenSearchType.LONG.getTypeName()),
+                toColumnMetaData("doubleval", OpenSearchType.DOUBLE.getTypeName())
         );
 
         Schema schema = new Schema(columnMetaDatas);
@@ -111,10 +111,10 @@ public class CursorTests {
         final double DOUBLEVAL = 100.25;
 
         final List<ColumnMetaData> columnMetaDatas = Arrays.asList(
-                toColumnMetaData("rownum", ElasticsearchType.INTEGER.getTypeName()),
-                toColumnMetaData("stringval", ElasticsearchType.TEXT.getTypeName(), "stringlabel"),
-                toColumnMetaData("longval", ElasticsearchType.LONG.getTypeName()),
-                toColumnMetaData("doubleval", ElasticsearchType.DOUBLE.getTypeName(), "doubleLabel")
+                toColumnMetaData("rownum", OpenSearchType.INTEGER.getTypeName()),
+                toColumnMetaData("stringval", OpenSearchType.TEXT.getTypeName(), "stringlabel"),
+                toColumnMetaData("longval", OpenSearchType.LONG.getTypeName()),
+                toColumnMetaData("doubleval", OpenSearchType.DOUBLE.getTypeName(), "doubleLabel")
         );
 
         Schema schema = new Schema(columnMetaDatas);

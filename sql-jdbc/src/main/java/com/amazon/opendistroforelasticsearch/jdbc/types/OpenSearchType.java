@@ -25,12 +25,12 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Enum for Elasticsearch Data Types.
+ * Enum for OpenSearch Data Types.
  * <p>
  * Each type encapsulates mapping to its corresponding JDBC Type and
  * associated properties.
  * <p>
- * Where required, an Elasticsearch data type is mapped to the least
+ * Where required, an OpenSearch data type is mapped to the least
  * precise {@link JDBCType} that can accurately represent it based on
  * the following:
  *
@@ -41,19 +41,19 @@ import java.util.Map;
  * the JDBC Spec - Table B-1: JDBC Types Mapped to Java Types
  * </li>
  * <li>
- * Precision of Elasticsearch types is based on
- * Elasticsearch Reference > Mapping > Field datatypes
+ * Precision of OpenSearch types is based on
+ * OpenSearch Reference > Mapping > Field datatypes
  * </li>
  * </ol>
  */
-public enum ElasticsearchType {
+public enum OpenSearchType {
 
     // Precision values based on number of decimal digits supported by Java types
     // Display size values based on precision plus additional buffer for visual representation
     // - Java long is a 64-bit integral value ~ 19 decimal digits
     // - Java double has 53-bit precision ~ 15 decimal digits
     // - Java float has 24-bit precision ~ 7 decimal digits
-    // - scaled_float is internally an elasticsearch long, but treated as Java Double here
+    // - scaled_float is internally an OpenSearch long, but treated as Java Double here
     // - ISO8601 representation of DateTime values as yyyy-mm-ddThh:mm:ss.mmmZ ~ 24 chars
 
     // Some Types not fully supported yet: VARBINARY, GEO_POINT, NESTED
@@ -80,7 +80,7 @@ public enum ElasticsearchType {
     UNDEFINED(JDBCType.NULL, null, 0, 0, false),
     UNSUPPORTED(JDBCType.OTHER, null, 0, 0, false);
 
-    private static final Map<JDBCType, ElasticsearchType> jdbcTypeToESTypeMap;
+    private static final Map<JDBCType, OpenSearchType> jdbcTypeToESTypeMap;
 
     static {
         // Map JDBCType to corresponding ElasticsearchType
@@ -102,7 +102,7 @@ public enum ElasticsearchType {
     }
 
     /**
-     * Elasticsearch designated type name
+     * OpenSearch designated type name
      */
     private final String typeName;
 
@@ -152,8 +152,8 @@ public enum ElasticsearchType {
      */
     private final boolean isSigned;
 
-    ElasticsearchType(JDBCType jdbcType, Class<?> javaClass, int precision,
-                      int displaySize, boolean isSigned) {
+    OpenSearchType(JDBCType jdbcType, Class<?> javaClass, int precision,
+                   int displaySize, boolean isSigned) {
         this.typeName = name().toLowerCase(Locale.ROOT);
         this.jdbcType = jdbcType;
         this.javaClassName = javaClass == null ? null : javaClass.getName();
@@ -162,7 +162,7 @@ public enum ElasticsearchType {
         this.isSigned = isSigned;
     }
 
-    public static ElasticsearchType fromJdbcType(JDBCType jdbcType) {
+    public static OpenSearchType fromJdbcType(JDBCType jdbcType) {
         if (!jdbcTypeToESTypeMap.containsKey(jdbcType)) {
             throw new IllegalArgumentException("Unsupported JDBC type \"" + jdbcType + "\"");
         }
@@ -170,31 +170,31 @@ public enum ElasticsearchType {
     }
 
     /**
-     * Returns the {@link ElasticsearchType} for the specified elasticsearch
+     * Returns the {@link OpenSearchType} for the specified OpenSearch
      * data type name.
      */
-    public static ElasticsearchType fromTypeName(String typeName) {
+    public static OpenSearchType fromTypeName(String typeName) {
         return fromTypeName(typeName, false);
     }
 
     /**
-     * Parses a specified Elasticsearch type name to determine
-     * the corresponding {@link ElasticsearchType}
+     * Parses a specified OpenSearch type name to determine
+     * the corresponding {@link OpenSearchType}
      *
-     * @param typeName The Elasticsearch Type name to parse
+     * @param typeName The OpenSearch Type name to parse
      * @param errorOnUnknownType If true, the method throws an
-     *         {@link UnrecognizedElasticsearchTypeException}
+     *         {@link UnrecognizedOpenSearchTypeException}
      *         if the type name specified is not recognized.
      *
-     * @return the {@link ElasticsearchType} value corresponding to the
+     * @return the {@link OpenSearchType} value corresponding to the
      *         specified type name
      */
-    public static ElasticsearchType fromTypeName(String typeName, boolean errorOnUnknownType) {
+    public static OpenSearchType fromTypeName(String typeName, boolean errorOnUnknownType) {
         try {
-            return ElasticsearchType.valueOf(typeName.toUpperCase(Locale.ROOT));
+            return OpenSearchType.valueOf(typeName.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException iae) {
             if (errorOnUnknownType)
-                throw new UnrecognizedElasticsearchTypeException("Unknown Type: \"" + typeName + "\"", iae);
+                throw new UnrecognizedOpenSearchTypeException("Unknown Type: \"" + typeName + "\"", iae);
             else
                 return UNSUPPORTED;
         }

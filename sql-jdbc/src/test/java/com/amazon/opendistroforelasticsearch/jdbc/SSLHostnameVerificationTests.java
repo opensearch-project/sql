@@ -20,7 +20,7 @@ import com.amazon.opendistroforelasticsearch.jdbc.config.HostnameVerificationCon
 import com.amazon.opendistroforelasticsearch.jdbc.config.TrustSelfSignedConnectionProperty;
 import com.amazon.opendistroforelasticsearch.jdbc.test.TLSServer;
 import com.amazon.opendistroforelasticsearch.jdbc.test.TestResources;
-import com.amazon.opendistroforelasticsearch.jdbc.test.mocks.MockES;
+import com.amazon.opendistroforelasticsearch.jdbc.test.mocks.MockOpenSearch;
 import org.eclipse.jetty.server.Server;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -79,7 +79,7 @@ public class SSLHostnameVerificationTests {
 
         Connection con = Assertions.assertDoesNotThrow(() -> new Driver().connect(connectURL, props));
 
-        MockES.INSTANCE.assertMockESConnectionResponse((ElasticsearchConnection) con);
+        MockOpenSearch.INSTANCE.assertMockOpenSearchConnectionResponse((OpenSearchConnection) con);
     }
 
     @Test

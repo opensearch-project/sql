@@ -21,7 +21,7 @@ import com.amazon.opendistroforelasticsearch.jdbc.internal.Version;
 import com.amazon.opendistroforelasticsearch.jdbc.logging.LoggingSource;
 import com.amazon.opendistroforelasticsearch.jdbc.protocol.ColumnDescriptor;
 import com.amazon.opendistroforelasticsearch.jdbc.protocol.QueryResponse;
-import com.amazon.opendistroforelasticsearch.jdbc.types.ElasticsearchType;
+import com.amazon.opendistroforelasticsearch.jdbc.types.OpenSearchType;
 import com.amazon.opendistroforelasticsearch.jdbc.logging.Logger;
 
 import java.sql.Connection;
@@ -93,7 +93,7 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData, JdbcWrapper, Logg
 
     @Override
     public String getDatabaseProductName() throws SQLException {
-        return "Elasticsearch";
+        return "OpenSearch";
     }
 
     @Override
@@ -103,7 +103,7 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData, JdbcWrapper, Logg
 
     @Override
     public String getDriverName() throws SQLException {
-        return "Elasticsearch JDBC Driver";
+        return "OpenSearch JDBC Driver";
     }
 
     @Override
@@ -647,7 +647,7 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData, JdbcWrapper, Logg
                 rscd("RESERVED5"),
                 rscd("RESERVED6"),
                 rscd("REMARKS"),
-                rscd("PROCEDURE_TYPE", ElasticsearchType.SHORT.getTypeName()),
+                rscd("PROCEDURE_TYPE", OpenSearchType.SHORT.getTypeName()),
                 rscd("SPECIFIC_NAME")
         );
     }
@@ -660,20 +660,20 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData, JdbcWrapper, Logg
                 rscd("PROCEDURE_SCHEM"),
                 rscd("PROCEDURE_NAME"),
                 rscd("COLUMN_NAME"),
-                rscd("COLUMN_TYPE", ElasticsearchType.SHORT.getTypeName()),
-                rscd("DATA_TYPE", ElasticsearchType.INTEGER.getTypeName()),
+                rscd("COLUMN_TYPE", OpenSearchType.SHORT.getTypeName()),
+                rscd("DATA_TYPE", OpenSearchType.INTEGER.getTypeName()),
                 rscd("TYPE_NAME"),
-                rscd("PRECISION", ElasticsearchType.INTEGER.getTypeName()),
-                rscd("LENGTH", ElasticsearchType.INTEGER.getTypeName()),
-                rscd("SCALE", ElasticsearchType.SHORT.getTypeName()),
-                rscd("RADIX", ElasticsearchType.SHORT.getTypeName()),
-                rscd("NULLABLE", ElasticsearchType.SHORT.getTypeName()),
+                rscd("PRECISION", OpenSearchType.INTEGER.getTypeName()),
+                rscd("LENGTH", OpenSearchType.INTEGER.getTypeName()),
+                rscd("SCALE", OpenSearchType.SHORT.getTypeName()),
+                rscd("RADIX", OpenSearchType.SHORT.getTypeName()),
+                rscd("NULLABLE", OpenSearchType.SHORT.getTypeName()),
                 rscd("REMARKS"),
                 rscd("COLUMN_DEF"),
-                rscd("SQL_DATA_TYPE", ElasticsearchType.INTEGER.getTypeName()),
-                rscd("SQL_DATETIME_SUB", ElasticsearchType.INTEGER.getTypeName()),
-                rscd("CHAR_OCTET_LENGTH", ElasticsearchType.INTEGER.getTypeName()),
-                rscd("ORDINAL_POSITION", ElasticsearchType.INTEGER.getTypeName()),
+                rscd("SQL_DATA_TYPE", OpenSearchType.INTEGER.getTypeName()),
+                rscd("SQL_DATETIME_SUB", OpenSearchType.INTEGER.getTypeName()),
+                rscd("CHAR_OCTET_LENGTH", OpenSearchType.INTEGER.getTypeName()),
+                rscd("ORDINAL_POSITION", OpenSearchType.INTEGER.getTypeName()),
                 rscd("IS_NULLABLE"),
                 rscd("SPECIFIC_NAME")
         );
@@ -824,26 +824,26 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData, JdbcWrapper, Logg
 
         List<ResultSetColumnDescriptor> columnDescriptors = new ArrayList<>();
         columnDescriptors.add(rscd("TYPE_NAME"));
-        columnDescriptors.add(rscd("DATA_TYPE", ElasticsearchType.INTEGER.getTypeName()));
-        columnDescriptors.add(rscd("PRECISION", ElasticsearchType.INTEGER.getTypeName()));
+        columnDescriptors.add(rscd("DATA_TYPE", OpenSearchType.INTEGER.getTypeName()));
+        columnDescriptors.add(rscd("PRECISION", OpenSearchType.INTEGER.getTypeName()));
         columnDescriptors.add(rscd("LITERAL_PREFIX"));
         columnDescriptors.add(rscd("LITERAL_SUFFIX"));
         columnDescriptors.add(rscd("CREATE_PARAMS"));
-        columnDescriptors.add(rscd("NULLABLE", ElasticsearchType.SHORT.getTypeName()));
-        columnDescriptors.add(rscd("CASE_SENSITIVE", ElasticsearchType.BOOLEAN.getTypeName()));
-        columnDescriptors.add(rscd("SEARCHABLE", ElasticsearchType.SHORT.getTypeName()));
-        columnDescriptors.add(rscd("UNSIGNED_ATTRIBUTE", ElasticsearchType.BOOLEAN.getTypeName()));
-        columnDescriptors.add(rscd("FIXED_PREC_SCALE", ElasticsearchType.BOOLEAN.getTypeName()));
-        columnDescriptors.add(rscd("AUTO_INCREMENT", ElasticsearchType.BOOLEAN.getTypeName()));
+        columnDescriptors.add(rscd("NULLABLE", OpenSearchType.SHORT.getTypeName()));
+        columnDescriptors.add(rscd("CASE_SENSITIVE", OpenSearchType.BOOLEAN.getTypeName()));
+        columnDescriptors.add(rscd("SEARCHABLE", OpenSearchType.SHORT.getTypeName()));
+        columnDescriptors.add(rscd("UNSIGNED_ATTRIBUTE", OpenSearchType.BOOLEAN.getTypeName()));
+        columnDescriptors.add(rscd("FIXED_PREC_SCALE", OpenSearchType.BOOLEAN.getTypeName()));
+        columnDescriptors.add(rscd("AUTO_INCREMENT", OpenSearchType.BOOLEAN.getTypeName()));
         columnDescriptors.add(rscd("LOCAL_TYPE_NAME"));
-        columnDescriptors.add(rscd("MINIMUM_SCALE", ElasticsearchType.SHORT.getTypeName()));
-        columnDescriptors.add(rscd("MAXIMUM_SCALE", ElasticsearchType.SHORT.getTypeName()));
-        columnDescriptors.add(rscd("SQL_DATA_TYPE", ElasticsearchType.INTEGER.getTypeName()));
-        columnDescriptors.add(rscd("SQL_DATETIME_SUB", ElasticsearchType.INTEGER.getTypeName()));
-        columnDescriptors.add(rscd("NUM_PREC_RADIX", ElasticsearchType.INTEGER.getTypeName()));
+        columnDescriptors.add(rscd("MINIMUM_SCALE", OpenSearchType.SHORT.getTypeName()));
+        columnDescriptors.add(rscd("MAXIMUM_SCALE", OpenSearchType.SHORT.getTypeName()));
+        columnDescriptors.add(rscd("SQL_DATA_TYPE", OpenSearchType.INTEGER.getTypeName()));
+        columnDescriptors.add(rscd("SQL_DATETIME_SUB", OpenSearchType.INTEGER.getTypeName()));
+        columnDescriptors.add(rscd("NUM_PREC_RADIX", OpenSearchType.INTEGER.getTypeName()));
 
         List<List<Object>> dataRows = new ArrayList<>();
-        for (ElasticsearchType esType : ElasticsearchType.values()) {
+        for (OpenSearchType esType : OpenSearchType.values()) {
             dataRows.add(Arrays.asList(
                     esType.name(),
                     esType.getJdbcType().getVendorTypeNumber(),
@@ -852,7 +852,7 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData, JdbcWrapper, Logg
                     "'",
                     null,
                     typeNullableUnknown,
-                    (esType == ElasticsearchType.TEXT || esType == ElasticsearchType.KEYWORD), // case sensitive
+                    (esType == OpenSearchType.TEXT || esType == OpenSearchType.KEYWORD), // case sensitive
                     typeSearchable,
                     !esType.isSigned(),
                     false,
@@ -944,9 +944,9 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData, JdbcWrapper, Logg
                 rscd("TYPE_SCHEM"),
                 rscd("TYPE_NAME"),
                 rscd("CLASS_NAME"),
-                rscd("DATA_TYPE", ElasticsearchType.INTEGER.getTypeName()),
+                rscd("DATA_TYPE", OpenSearchType.INTEGER.getTypeName()),
                 rscd("REMARKS"),
-                rscd("BASE_TYPE", ElasticsearchType.SHORT.getTypeName())
+                rscd("BASE_TYPE", OpenSearchType.SHORT.getTypeName())
         );
     }
 
@@ -1005,23 +1005,23 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData, JdbcWrapper, Logg
                 rscd("TYPE_SCHEM"),
                 rscd("TYPE_NAME"),
                 rscd("ATTR_NAME"),
-                rscd("DATA_TYPE", ElasticsearchType.INTEGER.getTypeName()),
+                rscd("DATA_TYPE", OpenSearchType.INTEGER.getTypeName()),
                 rscd("ATTR_TYPE_NAME"),
-                rscd("ATTR_SIZE", ElasticsearchType.INTEGER.getTypeName()),
-                rscd("DECIMAL_DIGITS", ElasticsearchType.INTEGER.getTypeName()),
-                rscd("NUM_PREC_RADIX", ElasticsearchType.INTEGER.getTypeName()),
-                rscd("NULLABLE", ElasticsearchType.INTEGER.getTypeName()),
+                rscd("ATTR_SIZE", OpenSearchType.INTEGER.getTypeName()),
+                rscd("DECIMAL_DIGITS", OpenSearchType.INTEGER.getTypeName()),
+                rscd("NUM_PREC_RADIX", OpenSearchType.INTEGER.getTypeName()),
+                rscd("NULLABLE", OpenSearchType.INTEGER.getTypeName()),
                 rscd("REMARKS"),
                 rscd("ATTR_DEF"),
-                rscd("SQL_DATA_TYPE", ElasticsearchType.INTEGER.getTypeName()),
-                rscd("SQL_DATETIME_SUB", ElasticsearchType.INTEGER.getTypeName()),
-                rscd("CHAR_OCTET_LENGTH", ElasticsearchType.INTEGER.getTypeName()),
-                rscd("ORDINAL_POSITION", ElasticsearchType.INTEGER.getTypeName()),
+                rscd("SQL_DATA_TYPE", OpenSearchType.INTEGER.getTypeName()),
+                rscd("SQL_DATETIME_SUB", OpenSearchType.INTEGER.getTypeName()),
+                rscd("CHAR_OCTET_LENGTH", OpenSearchType.INTEGER.getTypeName()),
+                rscd("ORDINAL_POSITION", OpenSearchType.INTEGER.getTypeName()),
                 rscd("IS_NULLABLE"),
                 rscd("SCOPE_CATALOG"),
                 rscd("SCOPE_SCHEMA"),
                 rscd("SCOPE_TABLE"),
-                rscd("SOURCE_DATA_TYPE", ElasticsearchType.SHORT.getTypeName())
+                rscd("SOURCE_DATA_TYPE", OpenSearchType.SHORT.getTypeName())
         );
     }
 
@@ -1097,7 +1097,7 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData, JdbcWrapper, Logg
                 rscd("FUNCTION_SCHEM"),
                 rscd("FUNCTION_NAME"),
                 rscd("REMARKS"),
-                rscd("FUNCTION_TYPE", ElasticsearchType.SHORT.getTypeName()),
+                rscd("FUNCTION_TYPE", OpenSearchType.SHORT.getTypeName()),
                 rscd("SPECIFIC_NAME")
         );
     }
@@ -1110,17 +1110,17 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData, JdbcWrapper, Logg
                 rscd("FUNCTION_SCHEM"),
                 rscd("FUNCTION_NAME"),
                 rscd("COLUMN_NAME"),
-                rscd("COLUMN_TYPE", ElasticsearchType.SHORT.getTypeName()),
-                rscd("DATA_TYPE", ElasticsearchType.INTEGER.getTypeName()),
+                rscd("COLUMN_TYPE", OpenSearchType.SHORT.getTypeName()),
+                rscd("DATA_TYPE", OpenSearchType.INTEGER.getTypeName()),
                 rscd("TYPE_NAME"),
-                rscd("PRECISION", ElasticsearchType.INTEGER.getTypeName()),
-                rscd("LENGTH", ElasticsearchType.INTEGER.getTypeName()),
-                rscd("SCALE", ElasticsearchType.SHORT.getTypeName()),
-                rscd("RADIX", ElasticsearchType.SHORT.getTypeName()),
-                rscd("NULLABLE", ElasticsearchType.SHORT.getTypeName()),
+                rscd("PRECISION", OpenSearchType.INTEGER.getTypeName()),
+                rscd("LENGTH", OpenSearchType.INTEGER.getTypeName()),
+                rscd("SCALE", OpenSearchType.SHORT.getTypeName()),
+                rscd("RADIX", OpenSearchType.SHORT.getTypeName()),
+                rscd("NULLABLE", OpenSearchType.SHORT.getTypeName()),
                 rscd("REMARKS"),
-                rscd("CHAR_OCTET_LENGTH", ElasticsearchType.INTEGER.getTypeName()),
-                rscd("ORDINAL_POSITION", ElasticsearchType.INTEGER.getTypeName()),
+                rscd("CHAR_OCTET_LENGTH", OpenSearchType.INTEGER.getTypeName()),
+                rscd("ORDINAL_POSITION", OpenSearchType.INTEGER.getTypeName()),
                 rscd("IS_NULLABLE"),
                 rscd("SPECIFIC_NAME")
         );
@@ -1135,13 +1135,13 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData, JdbcWrapper, Logg
                 rscd("TABLE_SCHEM"),
                 rscd("TABLE_NAME"),
                 rscd("COLUMN_NAME"),
-                rscd("DATA_TYPE", ElasticsearchType.INTEGER.getTypeName()),
-                rscd("COLUMN_SIZE", ElasticsearchType.INTEGER.getTypeName()),
-                rscd("DECIMAL_DIGITS", ElasticsearchType.INTEGER.getTypeName()),
-                rscd("NUM_PREC_RADIX", ElasticsearchType.INTEGER.getTypeName()),
+                rscd("DATA_TYPE", OpenSearchType.INTEGER.getTypeName()),
+                rscd("COLUMN_SIZE", OpenSearchType.INTEGER.getTypeName()),
+                rscd("DECIMAL_DIGITS", OpenSearchType.INTEGER.getTypeName()),
+                rscd("NUM_PREC_RADIX", OpenSearchType.INTEGER.getTypeName()),
                 rscd("COLUMN_USAGE"),
                 rscd("REMARKS"),
-                rscd("CHAR_OCTET_LENGTH", ElasticsearchType.INTEGER.getTypeName()),
+                rscd("CHAR_OCTET_LENGTH", OpenSearchType.INTEGER.getTypeName()),
                 rscd("IS_NULLABLE")
         );
     }
@@ -1152,7 +1152,7 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData, JdbcWrapper, Logg
     }
 
     static ResultSetColumnDescriptor rscd(String name) {
-        return rscd(name, ElasticsearchType.TEXT.getTypeName(), null);
+        return rscd(name, OpenSearchType.TEXT.getTypeName(), null);
     }
 
     static ResultSetColumnDescriptor rscd(String name, String type) {
@@ -1231,17 +1231,17 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData, JdbcWrapper, Logg
 
             private int getDataType() {
                 String esDataType = (String) cursor.getColumn(5);
-                return ElasticsearchType.fromTypeName(esDataType, false).sqlTypeNumber();
+                return OpenSearchType.fromTypeName(esDataType, false).sqlTypeNumber();
             }
 
             private String getDataTypeName() {
                 String esDataType = (String) cursor.getColumn(5);
-                return ElasticsearchType.fromTypeName(esDataType, false).name();
+                return OpenSearchType.fromTypeName(esDataType, false).name();
             }
 
             private int getColumnSize() {
                 String esDataType = (String) cursor.getColumn(5);
-                return ElasticsearchType.fromTypeName(esDataType, false).getPrecision();
+                return OpenSearchType.fromTypeName(esDataType, false).getPrecision();
             }
 
             @Override
@@ -1277,7 +1277,7 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData, JdbcWrapper, Logg
             for (ColumnDescriptor cd : queryResponse.getColumnDescriptors()) {
                 if ("DATA_TYPE".equals(cd.getName()) || "COLUMN_SIZE".equals(cd.getName())) {
                     columnDescriptors.add(
-                            rscd(cd.getName(), ElasticsearchType.INTEGER.getTypeName()));
+                            rscd(cd.getName(), OpenSearchType.INTEGER.getTypeName()));
                 } else {
                     columnDescriptors.add(rscd(cd.getName(), cd.getType()));
                 }

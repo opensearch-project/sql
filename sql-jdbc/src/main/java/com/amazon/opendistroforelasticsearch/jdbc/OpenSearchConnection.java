@@ -16,12 +16,12 @@
 
 package com.amazon.opendistroforelasticsearch.jdbc;
 
-public interface ElasticsearchVersion {
-    int getMajor();
+import java.sql.SQLException;
 
-    int getMinor();
+public interface OpenSearchConnection extends java.sql.Connection {
 
-    int getRevision();
+    String getClusterName() throws SQLException;
 
-    String getFullVersion();
+    String getClusterUUID() throws SQLException;
+
 }

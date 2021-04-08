@@ -16,17 +16,17 @@
 
 package com.amazon.opendistroforelasticsearch.jdbc.protocol.http;
 
-import com.amazon.opendistroforelasticsearch.jdbc.ElasticsearchVersion;
+import com.amazon.opendistroforelasticsearch.jdbc.OpenSearchVersion;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class JsonElasticsearchVersion implements ElasticsearchVersion {
+public class JsonOpenSearchVersion implements OpenSearchVersion {
 
     private String fullVersion;
     private int[] version = new int[3];
 
-    public JsonElasticsearchVersion(@JsonProperty("number") String fullVersion) {
+    public JsonOpenSearchVersion(@JsonProperty("number") String fullVersion) {
         if (fullVersion == null)
             return;
 

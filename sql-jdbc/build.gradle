@@ -71,7 +71,7 @@ tasks.withType(JavaCompile) {
 }
 
 static def getShadowPath(String path) {
-    return 'com.amazonaws.opendistro.elasticsearch.sql.jdbc.shadow.' + path
+    return 'com.amazonaws.opendistro.opensearch.sql.jdbc.shadow.' + path
 }
 
 shadowJar {
