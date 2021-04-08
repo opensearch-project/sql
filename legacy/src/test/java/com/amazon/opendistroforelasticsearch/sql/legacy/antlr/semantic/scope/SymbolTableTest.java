@@ -17,19 +17,19 @@ package com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.scope;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.Type;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.TypeExpression;
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESIndex;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchIndex;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Map;
 import java.util.Optional;
 
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.BOOLEAN;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.DATE;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.KEYWORD;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.NUMBER;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.TEXT;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESIndex.IndexType.NESTED_FIELD;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.BOOLEAN;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.DATE;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.KEYWORD;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.NUMBER;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.TEXT;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchIndex.IndexType.NESTED_FIELD;
 import static org.hamcrest.Matchers.aMapWithSize;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.hasEntry;
@@ -69,7 +69,7 @@ public class SymbolTableTest {
 
     @Test
     public void defineFieldSymbolShouldBeAbleToResolveByPrefix() {
-        symbolTable.store(new Symbol(Namespace.FIELD_NAME, "s.projects"), new ESIndex("s.projects", NESTED_FIELD));
+        symbolTable.store(new Symbol(Namespace.FIELD_NAME, "s.projects"), new OpenSearchIndex("s.projects", NESTED_FIELD));
         symbolTable.store(new Symbol(Namespace.FIELD_NAME, "s.projects.release"), DATE);
         symbolTable.store(new Symbol(Namespace.FIELD_NAME, "s.projects.active"), BOOLEAN);
         symbolTable.store(new Symbol(Namespace.FIELD_NAME, "s.address"), TEXT);
@@ -81,7 +81,7 @@ public class SymbolTableTest {
             typeByName,
             allOf(
                 aMapWithSize(3),
-                hasEntry("s.projects", (Type) new ESIndex("s.projects", NESTED_FIELD)),
+                hasEntry("s.projects", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
                 hasEntry("s.projects.release", DATE),
                 hasEntry("s.projects.active", BOOLEAN)
             )

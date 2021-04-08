@@ -24,7 +24,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import static com.alibaba.druid.sql.ast.statement.SQLJoinTableSource.JoinType.COMMA;
 
 /**
- * Table (ES Index) expression in FROM statement.
+ * Table (OpenSearch Index) expression in FROM statement.
  */
 class From extends SQLClause<SQLTableSource> {
 

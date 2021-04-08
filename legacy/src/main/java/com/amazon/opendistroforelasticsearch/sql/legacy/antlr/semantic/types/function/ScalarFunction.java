@@ -17,14 +17,14 @@ package com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.fu
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.Type;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.TypeExpression;
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType;
 
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.BOOLEAN;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.DOUBLE;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.ES_TYPE;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.INTEGER;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.NUMBER;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.STRING;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.BOOLEAN;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.DOUBLE;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.OPENSEARCH_TYPE;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.INTEGER;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.NUMBER;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.STRING;
 import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.special.Generic.T;
 
 /**
@@ -47,22 +47,22 @@ public enum ScalarFunction implements TypeExpression {
     COS(func(T(NUMBER)).to(DOUBLE)),
     COSH(func(T(NUMBER)).to(DOUBLE)),
     COT(func(T(NUMBER)).to(DOUBLE)),
-    CURDATE(func().to(ESDataType.DATE)),
-    DATE(func(ESDataType.DATE).to(ESDataType.DATE)),
+    CURDATE(func().to(OpenSearchDataType.DATE)),
+    DATE(func(OpenSearchDataType.DATE).to(OpenSearchDataType.DATE)),
     DATE_FORMAT(
-        func(ESDataType.DATE, STRING).to(STRING),
-        func(ESDataType.DATE, STRING, STRING).to(STRING)
+        func(OpenSearchDataType.DATE, STRING).to(STRING),
+        func(OpenSearchDataType.DATE, STRING, STRING).to(STRING)
     ),
-    DAYOFMONTH(func(ESDataType.DATE).to(INTEGER)),
+    DAYOFMONTH(func(OpenSearchDataType.DATE).to(INTEGER)),
     DEGREES(func(T(NUMBER)).to(DOUBLE)),
     DIVIDE(func(T(NUMBER), NUMBER).to(T)),
     E(func().to(DOUBLE)),
     EXP(func(T(NUMBER)).to(T)),
     EXPM1(func(T(NUMBER)).to(T)),
     FLOOR(func(T(NUMBER)).to(T)),
-    IF(func(BOOLEAN, ES_TYPE, ES_TYPE).to(ES_TYPE)),
-    IFNULL(func(ES_TYPE, ES_TYPE).to(ES_TYPE)),
-    ISNULL(func(ES_TYPE).to(INTEGER)),
+    IF(func(BOOLEAN, OPENSEARCH_TYPE, OPENSEARCH_TYPE).to(OPENSEARCH_TYPE)),
+    IFNULL(func(OPENSEARCH_TYPE, OPENSEARCH_TYPE).to(OPENSEARCH_TYPE)),
+    ISNULL(func(OPENSEARCH_TYPE).to(INTEGER)),
     LEFT(func(T(STRING), INTEGER).to(T)),
     LENGTH(func(STRING).to(INTEGER)),
     LN(func(T(NUMBER)).to(DOUBLE)),
@@ -81,12 +81,12 @@ public enum ScalarFunction implements TypeExpression {
         func(T(STRING), STRING).to(T)
     ),
     LTRIM(func(T(STRING)).to(T)),
-    MAKETIME(func(INTEGER, INTEGER, INTEGER).to(ESDataType.DATE)),
+    MAKETIME(func(INTEGER, INTEGER, INTEGER).to(OpenSearchDataType.DATE)),
     MODULUS(func(T(NUMBER), NUMBER).to(T)),
-    MONTH(func(ESDataType.DATE).to(INTEGER)),
-    MONTHNAME(func(ESDataType.DATE).to(STRING)),
+    MONTH(func(OpenSearchDataType.DATE).to(INTEGER)),
+    MONTHNAME(func(OpenSearchDataType.DATE).to(STRING)),
     MULTIPLY(func(T(NUMBER), NUMBER).to(NUMBER)),
-    NOW(func().to(ESDataType.DATE)),
+    NOW(func().to(OpenSearchDataType.DATE)),
     PI(func().to(DOUBLE)),
     POW(
             func(T(NUMBER)).to(T),
@@ -114,13 +114,13 @@ public enum ScalarFunction implements TypeExpression {
     SUBSTRING(func(T(STRING), INTEGER, INTEGER).to(T)),
     SUBTRACT(func(T(NUMBER), NUMBER).to(T)),
     TAN(func(T(NUMBER)).to(DOUBLE)),
-    TIMESTAMP(func(ESDataType.DATE).to(ESDataType.DATE)),
+    TIMESTAMP(func(OpenSearchDataType.DATE).to(OpenSearchDataType.DATE)),
     TRIM(func(T(STRING)).to(T)),
     UPPER(
         func(T(STRING)).to(T),
         func(T(STRING), STRING).to(T)
     ),
-    YEAR(func(ESDataType.DATE).to(INTEGER));
+    YEAR(func(OpenSearchDataType.DATE).to(INTEGER));
 
     private final TypeExpressionSpec[] specifications;
 

@@ -21,14 +21,14 @@ Regular Identifiers
 Description
 -----------
 
-According to ANSI SQL standard, a regular identifier is a string of characters that must start with ASCII letter (lower or upper case). The subsequent character can be a combination of letter, digit, underscore (``_``). It cannot be a reversed key word. And whitespace and other special characters are not allowed. Additionally in our SQL parser, we make extension to the rule for Elasticsearch storage as shown in next sub-section.
+According to ANSI SQL standard, a regular identifier is a string of characters that must start with ASCII letter (lower or upper case). The subsequent character can be a combination of letter, digit, underscore (``_``). It cannot be a reversed key word. And whitespace and other special characters are not allowed. Additionally in our SQL parser, we make extension to the rule for OpenSearch storage as shown in next sub-section.
 
 Extensions
 ----------
 
-For Elasticsearch, the following identifiers are supported extensionally by our SQL parser for convenience (without the need of being delimited as shown in next section):
+For OpenSearch, the following identifiers are supported extensionally by our SQL parser for convenience (without the need of being delimited as shown in next section):
 
-1. Identifiers prefixed by dot ``.``: this is called hidden index in Elasticsearch, for example ``.kibana``.
+1. Identifiers prefixed by dot ``.``: this is called hidden index in OpenSearch, for example ``.kibana``.
 2. Identifiers prefixed by at sign ``@``: this is common for meta fields generated in Logstash ingestion.
 3. Identifiers with ``-`` in the middle: this is mostly the case for index name with date information.
 4. Identifiers with star ``*`` present: this is mostly an index pattern for wildcard match.
@@ -67,7 +67,7 @@ Here are typical examples of the use of delimited identifiers:
 
 1. Identifiers of reserved key word name
 2. Identifiers with dot ``.`` present: similarly as ``-`` in index name to include date information, it is required to be quoted so parser can differentiate it from identifier with qualifiers.
-3. Identifiers with other special character: Elasticsearch has its own rule which allows more special character, for example Unicode character is supported in index name.
+3. Identifiers with other special character: OpenSearch has its own rule which allows more special character, for example Unicode character is supported in index name.
 
 Examples
 --------
@@ -92,7 +92,7 @@ Case Sensitivity
 Description
 -----------
 
-In SQL-92, regular identifiers are case insensitive and converted to upper case automatically just like key word. While characters in a delimited identifier appear as they are. However, in our SQL implementation, identifiers are treated in case sensitive manner. So it must be exactly same as what is stored in Elasticsearch which is different from ANSI standard.
+In SQL-92, regular identifiers are case insensitive and converted to upper case automatically just like key word. While characters in a delimited identifier appear as they are. However, in our SQL implementation, identifiers are treated in case sensitive manner. So it must be exactly same as what is stored in OpenSearch which is different from ANSI standard.
 
 Examples
 --------
@@ -106,7 +106,7 @@ Identifier Qualifiers
 Description
 -----------
 
-An identifier can be qualified by qualifier(s) or not. The qualifier is meant to avoid ambiguity when interpreting the identifier name. Thus, the name symbol can be associated with a concrete field in Elasticsearch correctly.
+An identifier can be qualified by qualifier(s) or not. The qualifier is meant to avoid ambiguity when interpreting the identifier name. Thus, the name symbol can be associated with a concrete field in OpenSearch correctly.
 
 In particular, identifier qualifiers follow the specification as below:
 

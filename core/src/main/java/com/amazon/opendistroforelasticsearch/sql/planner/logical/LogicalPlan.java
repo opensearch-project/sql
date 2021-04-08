@@ -16,7 +16,6 @@
 package com.amazon.opendistroforelasticsearch.sql.planner.logical;
 
 import com.amazon.opendistroforelasticsearch.sql.planner.PlanNode;
-import java.util.Collections;
 import java.util.List;
 import lombok.EqualsAndHashCode;
 

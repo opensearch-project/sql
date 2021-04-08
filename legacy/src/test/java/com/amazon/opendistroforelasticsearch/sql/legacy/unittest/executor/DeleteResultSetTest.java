@@ -19,14 +19,14 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.domain.Delete;
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.format.DataRows;
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.format.DeleteResultSet;
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.format.Schema;
-import org.elasticsearch.client.node.NodeClient;
+import org.opensearch.client.node.NodeClient;
 
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.opensearch.common.xcontent.DeprecationHandler;
+import org.opensearch.common.xcontent.NamedXContentRegistry;
 
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.reindex.BulkByScrollResponse;
+import org.opensearch.common.xcontent.XContentParser;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.index.reindex.BulkByScrollResponse;
 
 import org.junit.Test;
 import org.mockito.Mock;

@@ -29,21 +29,21 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.util.EntityUtils;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.RestClientBuilder;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.test.rest.ESRestTestCase;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.opensearch.client.Request;
+import org.opensearch.client.Response;
+import org.opensearch.client.RestClient;
+import org.opensearch.client.RestClientBuilder;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.test.rest.OpenSearchRestTestCase;
 
 /**
  * ODFE integration test base class to support both security disabled and enabled ODFE cluster.
  */
-public abstract class ODFERestTestCase extends ESRestTestCase {
+public abstract class ODFERestTestCase extends OpenSearchRestTestCase {
 
   protected boolean isHttps() {
     boolean isHttps = Optional.ofNullable(System.getProperty("https"))

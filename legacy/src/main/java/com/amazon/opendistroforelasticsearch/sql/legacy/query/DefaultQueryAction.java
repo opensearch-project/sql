@@ -36,20 +36,20 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.rewriter.nestedfield.Nes
 import com.amazon.opendistroforelasticsearch.sql.legacy.utils.SQLFunctions;
 
 import com.google.common.annotations.VisibleForTesting;
-import org.elasticsearch.action.search.SearchAction;
-import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.action.search.SearchType;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.script.Script;
-import org.elasticsearch.script.ScriptType;
-import org.elasticsearch.search.sort.FieldSortBuilder;
-import org.elasticsearch.search.sort.NestedSortBuilder;
-import org.elasticsearch.search.sort.ScoreSortBuilder;
-import org.elasticsearch.search.sort.ScriptSortBuilder.ScriptSortType;
-import org.elasticsearch.search.sort.SortBuilders;
-import org.elasticsearch.search.sort.SortOrder;
+import org.opensearch.action.search.SearchAction;
+import org.opensearch.action.search.SearchRequestBuilder;
+import org.opensearch.action.search.SearchType;
+import org.opensearch.client.Client;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.script.Script;
+import org.opensearch.script.ScriptType;
+import org.opensearch.search.sort.FieldSortBuilder;
+import org.opensearch.search.sort.NestedSortBuilder;
+import org.opensearch.search.sort.ScoreSortBuilder;
+import org.opensearch.search.sort.ScriptSortBuilder.ScriptSortType;
+import org.opensearch.search.sort.SortBuilders;
+import org.opensearch.search.sort.SortOrder;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -64,7 +64,7 @@ import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.SqlSetting
 import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.SqlSettings.CURSOR_KEEPALIVE;
 
 /**
- * Transform SQL query to standard Elasticsearch search query
+ * Transform SQL query to standard OpenSearch search query
  */
 public class DefaultQueryAction extends QueryAction {
 
@@ -83,11 +83,11 @@ public class DefaultQueryAction extends QueryAction {
     }
 
     @Override
-    public SqlElasticSearchRequestBuilder explain() throws SqlParseException {
-        Objects.requireNonNull(this.sqlRequest, "SqlRequest is required for ES request build");
+    public SqlOpenSearchRequestBuilder explain() throws SqlParseException {
+        Objects.requireNonNull(this.sqlRequest, "SqlRequest is required for OpenSearch request build");
         buildRequest();
         checkAndSetScroll();
-        return new SqlElasticSearchRequestBuilder(request);
+        return new SqlOpenSearchRequestBuilder(request);
     }
 
     private void buildRequest() throws SqlParseException {
@@ -230,7 +230,7 @@ public class DefaultQueryAction extends QueryAction {
     }
 
     /**
-     * Add sorts to the elasticsearch query based on the 'ORDER BY' clause.
+     * Add sorts to the OpenSearch query based on the 'ORDER BY' clause.
      *
      * @param orderBys list of Order object
      */
@@ -306,7 +306,7 @@ public class DefaultQueryAction extends QueryAction {
     }
 
     /**
-     * Add from and size to the ES query based on the 'LIMIT' clause
+     * Add from and size to the OpenSearch query based on the 'LIMIT' clause
      *
      * @param from starts from document at position from
      * @param size number of documents to return.

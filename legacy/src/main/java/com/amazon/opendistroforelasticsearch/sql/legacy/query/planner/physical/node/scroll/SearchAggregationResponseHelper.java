@@ -17,13 +17,13 @@ package com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.physical.
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.expression.domain.BindingTuple;
 import com.google.common.annotations.VisibleForTesting;
-import org.elasticsearch.search.aggregations.Aggregation;
-import org.elasticsearch.search.aggregations.Aggregations;
-import org.elasticsearch.search.aggregations.bucket.histogram.Histogram;
-import org.elasticsearch.search.aggregations.bucket.terms.Terms;
-import org.elasticsearch.search.aggregations.metrics.NumericMetricsAggregation;
-import org.elasticsearch.search.aggregations.metrics.Percentile;
-import org.elasticsearch.search.aggregations.metrics.Percentiles;
+import org.opensearch.search.aggregations.Aggregation;
+import org.opensearch.search.aggregations.Aggregations;
+import org.opensearch.search.aggregations.bucket.histogram.Histogram;
+import org.opensearch.search.aggregations.bucket.terms.Terms;
+import org.opensearch.search.aggregations.metrics.NumericMetricsAggregation;
+import org.opensearch.search.aggregations.metrics.Percentile;
+import org.opensearch.search.aggregations.metrics.Percentiles;
 
 import java.util.ArrayList;
 import java.util.HashMap;

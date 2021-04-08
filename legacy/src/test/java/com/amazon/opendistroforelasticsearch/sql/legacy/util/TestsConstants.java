@@ -23,7 +23,7 @@ public class TestsConstants {
     public final static String PERSISTENT = "persistent";
     public final static String TRANSIENT = "transient";
 
-    public final static String TEST_INDEX = "elasticsearch-sql_test_index";
+    public final static String TEST_INDEX = "opensearch-sql_test_index";
 
     public final static String TEST_INDEX_ONLINE = TEST_INDEX + "_online";
     public final static String TEST_INDEX_ACCOUNT = TEST_INDEX + "_account";

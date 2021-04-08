@@ -35,7 +35,7 @@ public class TestConfigTest {
   @Test
   public void testDefaultConfig() {
     TestConfig config = new TestConfig(emptyMap());
-    assertThat(config.getESHostUrl(), is(emptyString()));
+    assertThat(config.getOpenSearchHostUrl(), is(emptyString()));
     assertThat(
         config.getOtherDbConnectionNameAndUrls(),
         allOf(
@@ -49,7 +49,7 @@ public class TestConfigTest {
   public void testCustomESUrls() {
     Map<String, String> args = ImmutableMap.of("esHost", "localhost:9200");
     TestConfig config = new TestConfig(args);
-    assertThat(config.getESHostUrl(), is("localhost:9200"));
+    assertThat(config.getOpenSearchHostUrl(), is("localhost:9200"));
   }
 
   @Test

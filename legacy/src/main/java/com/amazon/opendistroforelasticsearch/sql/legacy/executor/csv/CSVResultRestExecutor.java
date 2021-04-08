@@ -20,10 +20,10 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.executor.RestExecutor;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.QueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.join.BackOffRetryStrategy;
 import com.google.common.base.Joiner;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.rest.BytesRestResponse;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestStatus;
+import org.opensearch.client.Client;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.RestStatus;
 
 import java.util.List;
 import java.util.Map;

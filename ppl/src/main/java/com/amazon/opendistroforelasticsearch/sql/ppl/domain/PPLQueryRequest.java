@@ -16,7 +16,6 @@
 package com.amazon.opendistroforelasticsearch.sql.ppl.domain;
 
 import com.amazon.opendistroforelasticsearch.sql.protocol.response.format.Format;
-import com.google.common.base.Strings;
 import java.util.Locale;
 import java.util.Optional;
 import lombok.Getter;

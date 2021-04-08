@@ -16,7 +16,7 @@
 package com.amazon.opendistroforelasticsearch.sql.legacy.domain;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.Type;
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.special.Product;
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.format.Schema;
 import com.google.common.collect.ImmutableList;
@@ -33,19 +33,19 @@ import java.util.stream.Collectors;
 public class ColumnTypeProvider {
     private final List<Schema.Type> typeList;
 
-    private static final Map<ESDataType, Schema.Type> TYPE_MAP =
-            new ImmutableMap.Builder<ESDataType, Schema.Type>()
-                    .put(ESDataType.SHORT, Schema.Type.SHORT)
-                    .put(ESDataType.LONG, Schema.Type.LONG)
-                    .put(ESDataType.INTEGER, Schema.Type.INTEGER)
-                    .put(ESDataType.FLOAT, Schema.Type.FLOAT)
-                    .put(ESDataType.DOUBLE, Schema.Type.DOUBLE)
-                    .put(ESDataType.KEYWORD, Schema.Type.KEYWORD)
-                    .put(ESDataType.TEXT, Schema.Type.TEXT)
-                    .put(ESDataType.STRING, Schema.Type.TEXT)
-                    .put(ESDataType.DATE, Schema.Type.DATE)
-                    .put(ESDataType.BOOLEAN, Schema.Type.BOOLEAN)
-                    .put(ESDataType.UNKNOWN, Schema.Type.DOUBLE)
+    private static final Map<OpenSearchDataType, Schema.Type> TYPE_MAP =
+            new ImmutableMap.Builder<OpenSearchDataType, Schema.Type>()
+                    .put(OpenSearchDataType.SHORT, Schema.Type.SHORT)
+                    .put(OpenSearchDataType.LONG, Schema.Type.LONG)
+                    .put(OpenSearchDataType.INTEGER, Schema.Type.INTEGER)
+                    .put(OpenSearchDataType.FLOAT, Schema.Type.FLOAT)
+                    .put(OpenSearchDataType.DOUBLE, Schema.Type.DOUBLE)
+                    .put(OpenSearchDataType.KEYWORD, Schema.Type.KEYWORD)
+                    .put(OpenSearchDataType.TEXT, Schema.Type.TEXT)
+                    .put(OpenSearchDataType.STRING, Schema.Type.TEXT)
+                    .put(OpenSearchDataType.DATE, Schema.Type.DATE)
+                    .put(OpenSearchDataType.BOOLEAN, Schema.Type.BOOLEAN)
+                    .put(OpenSearchDataType.UNKNOWN, Schema.Type.DOUBLE)
                     .build();
     public static final Schema.Type COLUMN_DEFAULT_TYPE = Schema.Type.DOUBLE;
 
@@ -75,7 +75,7 @@ public class ColumnTypeProvider {
         if (type instanceof Product) {
             List<Type> types = ((Product) type).getTypes();
             return types.stream().map(t -> convertType(t)).collect(Collectors.toList());
-        } else if (type instanceof ESDataType) {
+        } else if (type instanceof OpenSearchDataType) {
             return ImmutableList.of(convertType(type));
         } else {
             return ImmutableList.of(COLUMN_DEFAULT_TYPE);

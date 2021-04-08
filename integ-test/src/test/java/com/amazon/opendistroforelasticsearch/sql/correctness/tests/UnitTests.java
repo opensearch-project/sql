@@ -25,7 +25,7 @@ import org.junit.runners.Suite;
     TestDataSetTest.class,
     TestQuerySetTest.class,
     TestReportTest.class,
-    ESConnectionTest.class,
+    OpenSearchConnectionTest.class,
     JDBCConnectionTest.class,
     DBResultTest.class,
     RowTest.class,

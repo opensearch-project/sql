@@ -17,17 +17,17 @@ package com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.physical.
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.physical.Row;
 import com.google.common.base.Strings;
-import org.elasticsearch.common.document.DocumentField;
-import org.elasticsearch.common.text.Text;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.search.SearchHit;
+import org.opensearch.common.document.DocumentField;
+import org.opensearch.common.text.Text;
+import org.opensearch.index.mapper.MapperService;
+import org.opensearch.search.SearchHit;
 
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Search hit row that implements basic accessor for SearchHit.
- * Encapsulate all ES specific knowledge: how to parse source including nested path.
+ * Encapsulate all OpenSearch specific knowledge: how to parse source including nested path.
  * <p>
  * State transition:
  * for example, SELECT e.name.first AS firstName, e.age AS age FROM E e JOIN D d ON ... ORDER BY ...
@@ -47,7 +47,7 @@ import java.util.Map;
 class SearchHitRow implements Row<SearchHit> {
 
     /**
-     * Native ES data object for each row
+     * Native OpenSearch data object for each row
      */
     private final SearchHit hit;
 

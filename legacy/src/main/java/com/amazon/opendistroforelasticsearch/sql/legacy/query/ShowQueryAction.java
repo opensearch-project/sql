@@ -17,8 +17,8 @@ package com.amazon.opendistroforelasticsearch.sql.legacy.query;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.domain.IndexStatement;
 import com.amazon.opendistroforelasticsearch.sql.legacy.domain.QueryStatement;
-import org.elasticsearch.action.admin.indices.get.GetIndexRequestBuilder;
-import org.elasticsearch.client.Client;
+import org.opensearch.action.admin.indices.get.GetIndexRequestBuilder;
+import org.opensearch.client.Client;
 
 import static com.amazon.opendistroforelasticsearch.sql.legacy.utils.Util.prepareIndexRequestBuilder;
 
@@ -37,9 +37,9 @@ public class ShowQueryAction extends QueryAction {
     }
 
     @Override
-    public SqlElasticSearchRequestBuilder explain() {
+    public SqlOpenSearchRequestBuilder explain() {
         final GetIndexRequestBuilder indexRequestBuilder = prepareIndexRequestBuilder(client, statement);
 
-        return new SqlElasticSearchRequestBuilder(indexRequestBuilder);
+        return new SqlOpenSearchRequestBuilder(indexRequestBuilder);
     }
 }

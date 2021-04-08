@@ -17,14 +17,14 @@ package com.amazon.opendistroforelasticsearch.sql.legacy.unittest;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.util.TestsConstants;
 import com.amazon.opendistroforelasticsearch.sql.legacy.exception.SqlParseException;
-import com.amazon.opendistroforelasticsearch.sql.legacy.query.ESActionFactory;
+import com.amazon.opendistroforelasticsearch.sql.legacy.query.OpenSearchActionFactory;
 import com.amazon.opendistroforelasticsearch.sql.legacy.util.CheckScriptContents;
 import org.apache.lucene.search.join.ScoreMode;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.index.query.AbstractQueryBuilder;
-import org.elasticsearch.index.query.MultiMatchQueryBuilder;
-import org.elasticsearch.search.builder.SearchSourceBuilder.ScriptField;
+import org.opensearch.client.Client;
+import org.opensearch.common.Strings;
+import org.opensearch.index.query.AbstractQueryBuilder;
+import org.opensearch.index.query.MultiMatchQueryBuilder;
+import org.opensearch.search.builder.SearchSourceBuilder.ScriptField;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -32,13 +32,13 @@ import org.mockito.Mockito;
 import java.sql.SQLFeatureNotSupportedException;
 
 import static com.amazon.opendistroforelasticsearch.sql.legacy.util.SqlExplainUtils.explain;
-import static org.elasticsearch.index.query.QueryBuilders.constantScoreQuery;
-import static org.elasticsearch.index.query.QueryBuilders.matchPhraseQuery;
-import static org.elasticsearch.index.query.QueryBuilders.matchQuery;
-import static org.elasticsearch.index.query.QueryBuilders.multiMatchQuery;
-import static org.elasticsearch.index.query.QueryBuilders.nestedQuery;
-import static org.elasticsearch.index.query.QueryBuilders.queryStringQuery;
-import static org.elasticsearch.index.query.QueryBuilders.wildcardQuery;
+import static org.opensearch.index.query.QueryBuilders.constantScoreQuery;
+import static org.opensearch.index.query.QueryBuilders.matchPhraseQuery;
+import static org.opensearch.index.query.QueryBuilders.matchQuery;
+import static org.opensearch.index.query.QueryBuilders.multiMatchQuery;
+import static org.opensearch.index.query.QueryBuilders.nestedQuery;
+import static org.opensearch.index.query.QueryBuilders.queryStringQuery;
+import static org.opensearch.index.query.QueryBuilders.wildcardQuery;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertTrue;
@@ -274,27 +274,27 @@ public class QueryFunctionsTest {
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void emptyQueryShouldThrowSQLFeatureNotSupportedException() throws SQLFeatureNotSupportedException, SqlParseException {
-        ESActionFactory.create(Mockito.mock(Client.class), "");
+        OpenSearchActionFactory.create(Mockito.mock(Client.class), "");
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void emptyNewLineQueryShouldThrowSQLFeatureNotSupportedException() throws SQLFeatureNotSupportedException, SqlParseException {
-        ESActionFactory.create(Mockito.mock(Client.class), "\n");
+        OpenSearchActionFactory.create(Mockito.mock(Client.class), "\n");
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void emptyNewLineQueryShouldThrowSQLFeatureNotSupportedException2() throws SQLFeatureNotSupportedException, SqlParseException {
-        ESActionFactory.create(Mockito.mock(Client.class), "\r\n");
+        OpenSearchActionFactory.create(Mockito.mock(Client.class), "\r\n");
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void queryWithoutSpaceShouldSQLFeatureNotSupportedException() throws SQLFeatureNotSupportedException, SqlParseException {
-        ESActionFactory.create(Mockito.mock(Client.class), "SELE");
+        OpenSearchActionFactory.create(Mockito.mock(Client.class), "SELE");
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void spacesOnlyQueryShouldThrowSQLFeatureNotSupportedException() throws SQLFeatureNotSupportedException, SqlParseException {
-        ESActionFactory.create(Mockito.mock(Client.class), "      ");
+        OpenSearchActionFactory.create(Mockito.mock(Client.class), "      ");
     }
 
     private String query(String from, String... statements) {

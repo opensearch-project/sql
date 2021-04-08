@@ -34,7 +34,7 @@ import com.google.common.base.Strings;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.core.ColumnNode;
 
-import org.elasticsearch.client.Client;
+import org.opensearch.client.Client;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.util.List;

@@ -22,7 +22,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.converter.
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.physical.PhysicalOperator;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.physical.node.scroll.PhysicalScroll;
 import lombok.Getter;
-import org.elasticsearch.client.Client;
+import org.opensearch.client.Client;
 
 import java.util.ArrayList;
 import java.util.List;

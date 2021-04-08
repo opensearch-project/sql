@@ -16,7 +16,7 @@
 package com.amazon.opendistroforelasticsearch.sql.legacy.request;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.esdomain.LocalClusterState;
-import org.elasticsearch.rest.RestRequest;
+import org.opensearch.rest.RestRequest;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -43,7 +43,7 @@ public class SqlRequestFactory {
             case POST:
                 return parseSqlRequestFromPayload(request);
             default:
-                throw new IllegalArgumentException("ES SQL doesn't supported HTTP " + request.method().name());
+                throw new IllegalArgumentException("OpenSearch SQL doesn't supported HTTP " + request.method().name());
         }
     }
 

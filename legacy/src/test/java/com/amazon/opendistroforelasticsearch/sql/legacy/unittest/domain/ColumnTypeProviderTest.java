@@ -15,7 +15,7 @@
 
 package com.amazon.opendistroforelasticsearch.sql.legacy.unittest.domain;
 
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.operator.SetOperator;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.special.Product;
 import com.amazon.opendistroforelasticsearch.sql.legacy.domain.ColumnTypeProvider;
@@ -29,13 +29,13 @@ import static org.junit.Assert.assertEquals;
 public class ColumnTypeProviderTest {
     @Test
     public void singleESDataTypeShouldReturnCorrectSchemaType() {
-        assertEquals(Schema.Type.LONG, new ColumnTypeProvider(ESDataType.LONG).get(0));
+        assertEquals(Schema.Type.LONG, new ColumnTypeProvider(OpenSearchDataType.LONG).get(0));
     }
 
     @Test
     public void productTypeShouldReturnCorrectSchemaType() {
         ColumnTypeProvider columnTypeProvider =
-                new ColumnTypeProvider(new Product(ImmutableList.of(ESDataType.LONG, ESDataType.SHORT)));
+                new ColumnTypeProvider(new Product(ImmutableList.of(OpenSearchDataType.LONG, OpenSearchDataType.SHORT)));
         assertEquals(Schema.Type.LONG, columnTypeProvider.get(0));
         assertEquals(Schema.Type.SHORT, columnTypeProvider.get(1));
     }

@@ -26,8 +26,8 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.physical.R
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.physical.estimation.Cost;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
-import org.elasticsearch.action.ActionResponse;
-import org.elasticsearch.action.search.SearchResponse;
+import org.opensearch.action.ActionResponse;
+import org.opensearch.action.search.SearchResponse;
 
 import java.util.Iterator;
 

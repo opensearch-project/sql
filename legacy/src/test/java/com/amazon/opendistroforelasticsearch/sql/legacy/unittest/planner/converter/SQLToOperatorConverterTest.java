@@ -23,7 +23,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.expression.domain.Bindin
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.converter.SQLToOperatorConverter;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.physical.PhysicalOperator;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.physical.node.project.PhysicalProject;
-import org.elasticsearch.client.Client;
+import org.opensearch.client.Client;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

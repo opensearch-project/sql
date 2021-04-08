@@ -25,13 +25,13 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.query.QueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.join.BackOffRetryStrategy;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.rest.BytesRestResponse;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestStatus;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.OpenSearchException;
+import org.opensearch.client.Client;
+import org.opensearch.common.Strings;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.RestStatus;
 
 import java.util.Map;
 
@@ -80,9 +80,9 @@ public class PrettyFormatRestExecutor implements RestExecutor {
                 protocol = new Protocol(client, queryAction, queryResult, format, Cursor.NULL_CURSOR);
             }
         } catch (Exception e) {
-            if (e instanceof ElasticsearchException) {
-                LOG.warn("An error occurred in Elasticsearch engine: "
-                        + ((ElasticsearchException) e).getDetailedMessage(), e);
+            if (e instanceof OpenSearchException) {
+                LOG.warn("An error occurred in OpenSearch engine: "
+                        + ((OpenSearchException) e).getDetailedMessage(), e);
             } else {
                 LOG.warn("Error happened in pretty formatter", e);
             }

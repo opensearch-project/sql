@@ -30,7 +30,7 @@ import com.amazon.opendistroforelasticsearch.sql.doctest.core.response.SqlRespon
 import com.amazon.opendistroforelasticsearch.sql.legacy.utils.StringUtils;
 import com.google.common.base.Strings;
 import java.util.Arrays;
-import org.elasticsearch.client.RestClient;
+import org.opensearch.client.RestClient;
 
 /**
  * Build document by custom DSL. To make it more readable, each doc test needs to implement this interface

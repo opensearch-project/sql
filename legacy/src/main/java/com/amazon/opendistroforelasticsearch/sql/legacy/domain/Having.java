@@ -23,8 +23,8 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.parser.HavingParser;
 import com.amazon.opendistroforelasticsearch.sql.legacy.parser.NestedType;
 import com.amazon.opendistroforelasticsearch.sql.legacy.parser.WhereParser;
 import com.google.common.collect.Iterables;
-import org.elasticsearch.script.Script;
-import org.elasticsearch.search.aggregations.AggregationBuilder;
+import org.opensearch.script.Script;
+import org.opensearch.search.aggregations.AggregationBuilder;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -33,14 +33,14 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.stream.Collectors.joining;
-import static org.elasticsearch.search.aggregations.PipelineAggregatorBuilders.bucketSelector;
+import static org.opensearch.search.aggregations.PipelineAggregatorBuilders.bucketSelector;
 
 /**
  * Domain object for HAVING clause in SQL which covers both the parsing and explain logic.
  * <p>
  * Responsibilities:
  * 1. Parsing: parse conditions out during initialization
- * 2. Explain: translate conditions to ES query DSL (Bucket Selector Aggregation)
+ * 2. Explain: translate conditions to OpenSearch query DSL (Bucket Selector Aggregation)
  */
 public class Having {
 
@@ -89,7 +89,7 @@ public class Having {
 
     /**
      * Add Bucket Selector Aggregation under group by aggregation with sibling of aggregation of fields in SELECT.
-     * ES makes sure that all sibling runs before bucket selector aggregation.
+     * OpenSearch makes sure that all sibling runs before bucket selector aggregation.
      *
      * @param groupByAgg aggregation builder for GROUP BY clause
      * @param fields     fields in SELECT clause

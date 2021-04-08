@@ -4,12 +4,6 @@ plugins {
     id 'antlr'
 }
 
-version '1.8.0.0'
-
-repositories {
-    mavenCentral()
-}
-
 generateGrammarSource {
     arguments += ['-visitor', '-package', 'com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser']
     source = sourceSets.main.antlr
@@ -45,7 +39,7 @@ compileTestJava {
     }
 }
 
-// TODO: Need to update integration test to use ElasticSearch test framework
+// TODO: Need to update integration test to use OpenSearch test framework
 test {
     include '**/*Test.class'
     exclude 'com/amazon/opendistroforelasticsearch/sql/intgtest/**'
@@ -63,8 +57,8 @@ test {
 dependencies {
     compile group: 'com.alibaba', name: 'druid', version:'1.0.15'
     compile group: 'org.locationtech.spatial4j', name: 'spatial4j', version:'0.7'
-    compile group: "org.elasticsearch.plugin", name: 'parent-join-client', version: "${es_version}"
-    compile group: "org.elasticsearch.plugin", name: 'reindex-client', version: "${es_version}"
+    compile group: "org.opensearch.plugin", name: 'parent-join-client', version: "${es_version}"
+    compile group: "org.opensearch.plugin", name: 'reindex-client', version: "${es_version}"
     constraints {
         implementation('commons-codec:commons-codec:1.13') {
             because 'https://www.whitesourcesoftware.com/vulnerability-database/WS-2019-0379'
@@ -74,28 +68,19 @@ dependencies {
     implementation group: 'com.google.guava', name: 'guava', version: '29.0-jre'
     compile group: 'org.json', name: 'json', version:'20180813'
     compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.10'
-    compile group: 'org.elasticsearch', name: 'elasticsearch', version: "${es_version}"
+    compile group: 'org.opensearch', name: 'opensearch', version: "${es_version}"
     compile project(':sql')
     compile project(':common')
-    compile project(':elasticsearch')
+    compile project(':opensearch')
 
     // ANTLR gradle plugin and runtime dependency
     antlr "org.antlr:antlr4:4.7.1"
     compile "org.antlr:antlr4-runtime:4.7.1"
-
-    //compileOnly group: 'org.locationtech.jts', name: 'jts-core', version:'1.15.0'
-    // compileOnly group: 'org.elasticsearch', name: 'elasticsearch', version:'6.5.3'
-    // compileOnly group: 'com.unboundid', name: 'unboundid-ldapsdk', version:'3.2.0'
-    // compileOnly group: 'org.bouncycastle', name: 'bcprov-jdk15on', version:'1.58'
-    // compileOnly group: 'log4j', name: 'log4j', version:'1.2.17'
-    // compileOnly group: 'org.apache.logging.log4j', name: 'log4j-api', version:'2.7'
-    // compileOnly group: 'org.apache.logging.log4j', name: 'log4j-core', version:'2.7'
     compileOnly group: 'javax.servlet', name: 'servlet-api', version:'2.5'
 
     testCompile group: 'org.hamcrest', name: 'hamcrest-core', version:'2.2'
-    // testCompile group: 'com.alibaba', name: 'fastjson', version:'1.2.56'
     testCompile group: 'org.mockito', name: 'mockito-core', version:'3.5.0'
     testCompile group: 'junit', name: 'junit', version: '4.12'
-    testCompile group: "org.elasticsearch.client", name: 'transport', version: "${es_version}"
+    testCompile group: "org.opensearch.client", name: 'transport', version: "${es_version}"
 
 }

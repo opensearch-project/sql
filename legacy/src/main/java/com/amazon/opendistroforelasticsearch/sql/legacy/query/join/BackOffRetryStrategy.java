@@ -19,7 +19,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.metrics.MetricName;
 import com.amazon.opendistroforelasticsearch.sql.legacy.metrics.Metrics;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.collect.Tuple;
+import org.opensearch.common.collect.Tuple;
 
 import java.util.ArrayList;
 import java.util.Arrays;

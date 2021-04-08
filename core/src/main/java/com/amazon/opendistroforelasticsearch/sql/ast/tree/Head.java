@@ -16,7 +16,6 @@
 package com.amazon.opendistroforelasticsearch.sql.ast.tree;
 
 import com.amazon.opendistroforelasticsearch.sql.ast.AbstractNodeVisitor;
-import com.amazon.opendistroforelasticsearch.sql.ast.expression.UnresolvedArgument;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import lombok.AllArgsConstructor;

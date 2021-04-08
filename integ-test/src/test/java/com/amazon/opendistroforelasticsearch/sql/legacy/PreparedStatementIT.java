@@ -23,7 +23,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 // Refer to https://www.elastic.co/guide/en/elasticsearch/reference/6.5/integration-tests.html
-// for detailed ESIntegTestCase usages doc.
+// for detailed OpenSearchIntegTestCase usages doc.
 public class PreparedStatementIT extends SQLIntegTestCase {
 
   @Override
@@ -71,8 +71,8 @@ public class PreparedStatementIT extends SQLIntegTestCase {
     /* currently the integ test case will fail if run using Intellj, have to run using gradle command
      * because the integ test cluster created by IntellJ has http diabled, need to spend some time later to
      * figure out how to configure the integ test cluster properly. Related online resources:
-     *     https://discuss.elastic.co/t/http-enabled-with-esintegtestcase/102032
-     *     https://discuss.elastic.co/t/help-with-esintegtestcase/105245
+     *     https://discuss.elastic.co/t/http-enabled-with-OpenSearchIntegTestCase/102032
+     *     https://discuss.elastic.co/t/help-with-OpenSearchIntegTestCase/105245
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
         return Arrays.asList(MockTcpTransportPlugin.class);

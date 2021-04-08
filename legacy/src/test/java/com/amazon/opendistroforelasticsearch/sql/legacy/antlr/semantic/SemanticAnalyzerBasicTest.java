@@ -19,8 +19,8 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.scope.Nam
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.scope.SemanticContext;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.scope.Symbol;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.Type;
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESIndex;
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.visitor.ESMappingLoader;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchIndex;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.visitor.OpenSearchMappingLoader;
 import com.amazon.opendistroforelasticsearch.sql.legacy.esdomain.LocalClusterState;
 import org.junit.Assert;
 import org.junit.Before;
@@ -29,18 +29,18 @@ import org.junit.Test;
 import java.util.Map;
 import java.util.Optional;
 
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.BOOLEAN;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.DATE;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.DOUBLE;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.GEO_POINT;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.INTEGER;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.KEYWORD;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.LONG;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.OBJECT;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.TEXT;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.UNKNOWN;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESIndex.IndexType.INDEX;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESIndex.IndexType.NESTED_FIELD;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.BOOLEAN;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.DATE;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.DOUBLE;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.GEO_POINT;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.INTEGER;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.KEYWORD;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.LONG;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.OBJECT;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.TEXT;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.UNKNOWN;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchIndex.IndexType.INDEX;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchIndex.IndexType.NESTED_FIELD;
 import static org.hamcrest.Matchers.aMapWithSize;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.hasEntry;
@@ -54,12 +54,12 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
 
     private SemanticContext context;
 
-    private ESMappingLoader analyzer;
+    private OpenSearchMappingLoader analyzer;
 
     @Before
     public void setUp() {
         context = new SemanticContext();
-        analyzer = new ESMappingLoader(context, LocalClusterState.state(), 1000);
+        analyzer = new OpenSearchMappingLoader(context, LocalClusterState.state(), 1000);
     }
 
     @Test
@@ -71,7 +71,7 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
             typeByName,
             allOf(
                 aMapWithSize(21),
-                hasEntry("semantics", (Type) new ESIndex("semantics", INDEX)),
+                hasEntry("semantics", (Type) new OpenSearchIndex("semantics", INDEX)),
                 hasEntry("address", TEXT),
                 hasEntry("age", INTEGER),
                 hasEntry("balance", DOUBLE),
@@ -82,10 +82,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("field with spaces", TEXT),
                 hasEntry("employer", TEXT),
                 hasEntry("employer.keyword", KEYWORD),
-                hasEntry("projects", (Type) new ESIndex("projects", NESTED_FIELD)),
+                hasEntry("projects", (Type) new OpenSearchIndex("projects", NESTED_FIELD)),
                 hasEntry("projects.active", BOOLEAN),
                 hasEntry("projects.release", DATE),
-                hasEntry("projects.members", (Type) new ESIndex("projects.members", NESTED_FIELD)),
+                hasEntry("projects.members", (Type) new OpenSearchIndex("projects.members", NESTED_FIELD)),
                 hasEntry("projects.members.name", TEXT),
                 hasEntry("manager", OBJECT),
                 hasEntry("manager.name", TEXT),
@@ -95,13 +95,13 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
             )
         );
 
-        analyzer.visitAs("", new ESIndex("semantics", INDEX));
+        analyzer.visitAs("", new OpenSearchIndex("semantics", INDEX));
         typeByName = context.peek().resolveAll(Namespace.FIELD_NAME);
         assertThat(
             typeByName,
             allOf(
                 aMapWithSize(41),
-                hasEntry("semantics", (Type) new ESIndex("semantics", INDEX)),
+                hasEntry("semantics", (Type) new OpenSearchIndex("semantics", INDEX)),
                 hasEntry("address", TEXT),
                 hasEntry("age", INTEGER),
                 hasEntry("balance", DOUBLE),
@@ -112,10 +112,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("field with spaces", TEXT),
                 hasEntry("employer", TEXT),
                 hasEntry("employer.keyword", KEYWORD),
-                hasEntry("projects", (Type) new ESIndex("projects", NESTED_FIELD)),
+                hasEntry("projects", (Type) new OpenSearchIndex("projects", NESTED_FIELD)),
                 hasEntry("projects.active", BOOLEAN),
                 hasEntry("projects.release", DATE),
-                hasEntry("projects.members", (Type) new ESIndex("projects.members", NESTED_FIELD)),
+                hasEntry("projects.members", (Type) new OpenSearchIndex("projects.members", NESTED_FIELD)),
                 hasEntry("projects.members.name", TEXT),
                 hasEntry("manager", OBJECT),
                 hasEntry("manager.name", TEXT),
@@ -133,10 +133,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("semantics.field with spaces", TEXT),
                 hasEntry("semantics.employer", TEXT),
                 hasEntry("semantics.employer.keyword", KEYWORD),
-                hasEntry("semantics.projects", (Type) new ESIndex("semantics.projects", NESTED_FIELD)),
+                hasEntry("semantics.projects", (Type) new OpenSearchIndex("semantics.projects", NESTED_FIELD)),
                 hasEntry("semantics.projects.active", BOOLEAN),
                 hasEntry("semantics.projects.release", DATE),
-                hasEntry("semantics.projects.members", (Type) new ESIndex("semantics.projects.members", NESTED_FIELD)),
+                hasEntry("semantics.projects.members", (Type) new OpenSearchIndex("semantics.projects.members", NESTED_FIELD)),
                 hasEntry("semantics.projects.members.name", TEXT),
                 hasEntry("semantics.manager", OBJECT),
                 hasEntry("semantics.manager.name", TEXT),
@@ -149,7 +149,7 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
 
     @Test
     public void contextShouldIncludeAllFieldsPrefixedByIndexAliasAfterVisitingIndexNameWithAliasInFromClause() {
-        ESIndex indexType = new ESIndex("semantics", INDEX);
+        OpenSearchIndex indexType = new OpenSearchIndex("semantics", INDEX);
         analyzer.visitIndexName("semantics");
         analyzer.visitAs("s", indexType);
 
@@ -170,10 +170,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("field with spaces", TEXT),
                 hasEntry("employer", TEXT),
                 hasEntry("employer.keyword", KEYWORD),
-                hasEntry("projects", (Type) new ESIndex("projects", NESTED_FIELD)),
+                hasEntry("projects", (Type) new OpenSearchIndex("projects", NESTED_FIELD)),
                 hasEntry("projects.active", BOOLEAN),
                 hasEntry("projects.release", DATE),
-                hasEntry("projects.members", (Type) new ESIndex("projects.members", NESTED_FIELD)),
+                hasEntry("projects.members", (Type) new OpenSearchIndex("projects.members", NESTED_FIELD)),
                 hasEntry("projects.members.name", TEXT),
                 hasEntry("manager", OBJECT),
                 hasEntry("manager.name", TEXT),
@@ -191,10 +191,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("s.field with spaces", TEXT),
                 hasEntry("s.employer", TEXT),
                 hasEntry("s.employer.keyword", KEYWORD),
-                hasEntry("s.projects", (Type) new ESIndex("s.projects", NESTED_FIELD)),
+                hasEntry("s.projects", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
                 hasEntry("s.projects.active", BOOLEAN),
                 hasEntry("s.projects.release", DATE),
-                hasEntry("s.projects.members", (Type) new ESIndex("s.projects.members", NESTED_FIELD)),
+                hasEntry("s.projects.members", (Type) new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
                 hasEntry("s.projects.members.name", TEXT),
                 hasEntry("s.manager", OBJECT),
                 hasEntry("s.manager.name", TEXT),
@@ -207,11 +207,11 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
 
     @Test
     public void contextShouldIncludeSameFieldsAfterVisitingNestedFieldWithoutAliasInFromClause() {
-        ESIndex indexType = new ESIndex("semantics", INDEX);
+        OpenSearchIndex indexType = new OpenSearchIndex("semantics", INDEX);
         analyzer.visitIndexName("semantics");
         analyzer.visitAs("s", indexType);
         analyzer.visitIndexName("s.projects");
-        analyzer.visitAs("", new ESIndex("s.projects", NESTED_FIELD));
+        analyzer.visitAs("", new OpenSearchIndex("s.projects", NESTED_FIELD));
 
         Map<String, Type> typeByName = context.peek().resolveAll(Namespace.FIELD_NAME);
         assertThat(
@@ -230,10 +230,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("field with spaces", TEXT),
                 hasEntry("employer", TEXT),
                 hasEntry("employer.keyword", KEYWORD),
-                hasEntry("projects", (Type) new ESIndex("projects", NESTED_FIELD)),
+                hasEntry("projects", (Type) new OpenSearchIndex("projects", NESTED_FIELD)),
                 hasEntry("projects.active", BOOLEAN),
                 hasEntry("projects.release", DATE),
-                hasEntry("projects.members", (Type) new ESIndex("projects.members", NESTED_FIELD)),
+                hasEntry("projects.members", (Type) new OpenSearchIndex("projects.members", NESTED_FIELD)),
                 hasEntry("projects.members.name", TEXT),
                 hasEntry("manager", OBJECT),
                 hasEntry("manager.name", TEXT),
@@ -251,10 +251,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("s.field with spaces", TEXT),
                 hasEntry("s.employer", TEXT),
                 hasEntry("s.employer.keyword", KEYWORD),
-                hasEntry("s.projects", (Type) new ESIndex("s.projects", NESTED_FIELD)),
+                hasEntry("s.projects", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
                 hasEntry("s.projects.active", BOOLEAN),
                 hasEntry("s.projects.release", DATE),
-                hasEntry("s.projects.members", (Type) new ESIndex("s.projects.members", NESTED_FIELD)),
+                hasEntry("s.projects.members", (Type) new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
                 hasEntry("s.projects.members.name", TEXT),
                 hasEntry("s.manager", OBJECT),
                 hasEntry("s.manager.name", TEXT),
@@ -267,11 +267,11 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
 
     @Test
     public void contextShouldIncludeMoreFieldsPrefixedByNestedFieldAliasAfterVisitingNestedFieldWithAliasInFromClause() {
-        ESIndex indexType = new ESIndex("semantics", INDEX);
+        OpenSearchIndex indexType = new OpenSearchIndex("semantics", INDEX);
         analyzer.visitIndexName("semantics");
         analyzer.visitAs("s", indexType);
         analyzer.visitIndexName("s.projects");
-        analyzer.visitAs("p", new ESIndex("s.projects", NESTED_FIELD));
+        analyzer.visitAs("p", new OpenSearchIndex("s.projects", NESTED_FIELD));
 
         Map<String, Type> typeByName = context.peek().resolveAll(Namespace.FIELD_NAME);
         assertThat(
@@ -291,10 +291,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("field with spaces", TEXT),
                 hasEntry("employer", TEXT),
                 hasEntry("employer.keyword", KEYWORD),
-                hasEntry("projects", (Type) new ESIndex("projects", NESTED_FIELD)),
+                hasEntry("projects", (Type) new OpenSearchIndex("projects", NESTED_FIELD)),
                 hasEntry("projects.active", BOOLEAN),
                 hasEntry("projects.release", DATE),
-                hasEntry("projects.members", (Type) new ESIndex("projects.members", NESTED_FIELD)),
+                hasEntry("projects.members", (Type) new OpenSearchIndex("projects.members", NESTED_FIELD)),
                 hasEntry("projects.members.name", TEXT),
                 hasEntry("manager", OBJECT),
                 hasEntry("manager.name", TEXT),
@@ -312,10 +312,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("s.field with spaces", TEXT),
                 hasEntry("s.employer", TEXT),
                 hasEntry("s.employer.keyword", KEYWORD),
-                hasEntry("s.projects", (Type) new ESIndex("s.projects", NESTED_FIELD)),
+                hasEntry("s.projects", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
                 hasEntry("s.projects.active", BOOLEAN),
                 hasEntry("s.projects.release", DATE),
-                hasEntry("s.projects.members", (Type) new ESIndex("s.projects.members", NESTED_FIELD)),
+                hasEntry("s.projects.members", (Type) new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
                 hasEntry("s.projects.members.name", TEXT),
                 hasEntry("s.manager", OBJECT),
                 hasEntry("s.manager.name", TEXT),
@@ -323,10 +323,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("s.manager.address", KEYWORD),
                 hasEntry("s.manager.salary", LONG),
                 // Valid because of nested field alias specified
-                hasEntry("p", (Type) new ESIndex("s.projects", NESTED_FIELD)),
+                hasEntry("p", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
                 hasEntry("p.active", BOOLEAN),
                 hasEntry("p.release", DATE),
-                hasEntry("p.members", (Type) new ESIndex("s.projects.members", NESTED_FIELD)),
+                hasEntry("p.members", (Type) new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
                 hasEntry("p.members.name", TEXT)
             )
         );
@@ -334,11 +334,11 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
 
     @Test
     public void contextShouldIncludeMoreFieldsPrefixedByNestedFieldAliasAfterVisitingDeepNestedFieldWithAliasInFromClause() {
-        ESIndex indexType = new ESIndex("semantics", INDEX);
+        OpenSearchIndex indexType = new OpenSearchIndex("semantics", INDEX);
         analyzer.visitIndexName("semantics");
         analyzer.visitAs("s", indexType);
         analyzer.visitIndexName("s.projects.members");
-        analyzer.visitAs("m", new ESIndex("s.projects.members", NESTED_FIELD));
+        analyzer.visitAs("m", new OpenSearchIndex("s.projects.members", NESTED_FIELD));
 
         Map<String, Type> typeByName = context.peek().resolveAll(Namespace.FIELD_NAME);
 
@@ -358,10 +358,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("field with spaces", TEXT),
                 hasEntry("employer", TEXT),
                 hasEntry("employer.keyword", KEYWORD),
-                hasEntry("projects", (Type) new ESIndex("projects", NESTED_FIELD)),
+                hasEntry("projects", (Type) new OpenSearchIndex("projects", NESTED_FIELD)),
                 hasEntry("projects.active", BOOLEAN),
                 hasEntry("projects.release", DATE),
-                hasEntry("projects.members", (Type) new ESIndex("projects.members", NESTED_FIELD)),
+                hasEntry("projects.members", (Type) new OpenSearchIndex("projects.members", NESTED_FIELD)),
                 hasEntry("projects.members.name", TEXT),
                 hasEntry("manager", OBJECT),
                 hasEntry("manager.name", TEXT),
@@ -379,10 +379,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("s.field with spaces", TEXT),
                 hasEntry("s.employer", TEXT),
                 hasEntry("s.employer.keyword", KEYWORD),
-                hasEntry("s.projects", (Type) new ESIndex("s.projects", NESTED_FIELD)),
+                hasEntry("s.projects", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
                 hasEntry("s.projects.active", BOOLEAN),
                 hasEntry("s.projects.release", DATE),
-                hasEntry("s.projects.members", (Type) new ESIndex("s.projects.members", NESTED_FIELD)),
+                hasEntry("s.projects.members", (Type) new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
                 hasEntry("s.projects.members.name", TEXT),
                 hasEntry("s.manager", OBJECT),
                 hasEntry("s.manager.name", TEXT),
@@ -390,7 +390,7 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("s.manager.address", KEYWORD),
                 hasEntry("s.manager.salary", LONG),
                 // Valid because of deep nested field alias specified
-                hasEntry("m", (Type) new ESIndex("s.projects.members", NESTED_FIELD)),
+                hasEntry("m", (Type) new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
                 hasEntry("m.name", TEXT)
             )
         );
@@ -398,13 +398,13 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
 
     @Test
     public void contextShouldIncludeMoreFieldsPrefixedByNestedFieldAliasAfterVisitingAllNestedFieldsWithAliasInFromClause() {
-        ESIndex indexType = new ESIndex("semantics", INDEX);
+        OpenSearchIndex indexType = new OpenSearchIndex("semantics", INDEX);
         analyzer.visitIndexName("semantics");
         analyzer.visitAs("s", indexType);
         analyzer.visitIndexName("s.projects");
-        analyzer.visitAs("p", new ESIndex("s.projects", NESTED_FIELD));
+        analyzer.visitAs("p", new OpenSearchIndex("s.projects", NESTED_FIELD));
         analyzer.visitIndexName("s.projects.members");
-        analyzer.visitAs("m", new ESIndex("s.projects.members", NESTED_FIELD));
+        analyzer.visitAs("m", new OpenSearchIndex("s.projects.members", NESTED_FIELD));
 
         Map<String, Type> typeByName = context.peek().resolveAll(Namespace.FIELD_NAME);
         assertThat(
@@ -423,10 +423,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("field with spaces", TEXT),
                 hasEntry("employer", TEXT),
                 hasEntry("employer.keyword", KEYWORD),
-                hasEntry("projects", (Type) new ESIndex("projects", NESTED_FIELD)),
+                hasEntry("projects", (Type) new OpenSearchIndex("projects", NESTED_FIELD)),
                 hasEntry("projects.active", BOOLEAN),
                 hasEntry("projects.release", DATE),
-                hasEntry("projects.members", (Type) new ESIndex("projects.members", NESTED_FIELD)),
+                hasEntry("projects.members", (Type) new OpenSearchIndex("projects.members", NESTED_FIELD)),
                 hasEntry("projects.members.name", TEXT),
                 hasEntry("manager", OBJECT),
                 hasEntry("manager.name", TEXT),
@@ -444,10 +444,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("s.field with spaces", TEXT),
                 hasEntry("s.employer", TEXT),
                 hasEntry("s.employer.keyword", KEYWORD),
-                hasEntry("s.projects", (Type) new ESIndex("s.projects", NESTED_FIELD)),
+                hasEntry("s.projects", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
                 hasEntry("s.projects.active", BOOLEAN),
                 hasEntry("s.projects.release", DATE),
-                hasEntry("s.projects.members", (Type) new ESIndex("s.projects.members", NESTED_FIELD)),
+                hasEntry("s.projects.members", (Type) new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
                 hasEntry("s.projects.members.name", TEXT),
                 hasEntry("s.manager", OBJECT),
                 hasEntry("s.manager.name", TEXT),
@@ -455,13 +455,13 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("s.manager.address", KEYWORD),
                 hasEntry("s.manager.salary", LONG),
                 // Valid because of nested field alias specified
-                hasEntry("p", (Type) new ESIndex("s.projects", NESTED_FIELD)),
+                hasEntry("p", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
                 hasEntry("p.active", BOOLEAN),
                 hasEntry("p.release", DATE),
-                hasEntry("p.members", (Type) new ESIndex("s.projects.members", NESTED_FIELD)),
+                hasEntry("p.members", (Type) new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
                 hasEntry("p.members.name", TEXT),
                 // Valid because of deep nested field alias specified
-                hasEntry("m", (Type) new ESIndex("s.projects.members", NESTED_FIELD)),
+                hasEntry("m", (Type) new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
                 hasEntry("m.name", TEXT)
             )
         );
@@ -469,13 +469,13 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
 
     @Test
     public void contextShouldIncludeMoreFieldsPrefixedByNestedFieldAliasAfterVisitingNestedFieldWithAliasInSubqueryFromClause() {
-        ESIndex indexType = new ESIndex("semantics", INDEX);
+        OpenSearchIndex indexType = new OpenSearchIndex("semantics", INDEX);
         analyzer.visitIndexName("semantics");
         analyzer.visitAs("s", indexType);
 
         context.push();
         analyzer.visitIndexName("s.projects");
-        analyzer.visitAs("p", new ESIndex("s.projects", NESTED_FIELD));
+        analyzer.visitAs("p", new OpenSearchIndex("s.projects", NESTED_FIELD));
 
         Map<String, Type> typeByName = context.peek().resolveAll(Namespace.FIELD_NAME);
         assertThat(
@@ -495,10 +495,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("field with spaces", TEXT),
                 hasEntry("employer", TEXT),
                 hasEntry("employer.keyword", KEYWORD),
-                hasEntry("projects", (Type) new ESIndex("projects", NESTED_FIELD)),
+                hasEntry("projects", (Type) new OpenSearchIndex("projects", NESTED_FIELD)),
                 hasEntry("projects.active", BOOLEAN),
                 hasEntry("projects.release", DATE),
-                hasEntry("projects.members", (Type) new ESIndex("projects.members", NESTED_FIELD)),
+                hasEntry("projects.members", (Type) new OpenSearchIndex("projects.members", NESTED_FIELD)),
                 hasEntry("projects.members.name", TEXT),
                 hasEntry("manager", OBJECT),
                 hasEntry("manager.name", TEXT),
@@ -516,10 +516,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("s.field with spaces", TEXT),
                 hasEntry("s.employer", TEXT),
                 hasEntry("s.employer.keyword", KEYWORD),
-                hasEntry("s.projects", (Type) new ESIndex("s.projects", NESTED_FIELD)),
+                hasEntry("s.projects", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
                 hasEntry("s.projects.active", BOOLEAN),
                 hasEntry("s.projects.release", DATE),
-                hasEntry("s.projects.members", (Type) new ESIndex("s.projects.members", NESTED_FIELD)),
+                hasEntry("s.projects.members", (Type) new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
                 hasEntry("s.projects.members.name", TEXT),
                 hasEntry("s.manager", OBJECT),
                 hasEntry("s.manager.name", TEXT),
@@ -527,10 +527,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("s.manager.address", KEYWORD),
                 hasEntry("s.manager.salary", LONG),
                 // Valid because of nested field alias specified
-                hasEntry("p", (Type) new ESIndex("s.projects", NESTED_FIELD)),
+                hasEntry("p", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
                 hasEntry("p.active", BOOLEAN),
                 hasEntry("p.release", DATE),
-                hasEntry("p.members", (Type) new ESIndex("s.projects.members", NESTED_FIELD)),
+                hasEntry("p.members", (Type) new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
                 hasEntry("p.members.name", TEXT)
             )
         );
@@ -553,10 +553,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("field with spaces", TEXT),
                 hasEntry("employer", TEXT),
                 hasEntry("employer.keyword", KEYWORD),
-                hasEntry("projects", (Type) new ESIndex("projects", NESTED_FIELD)),
+                hasEntry("projects", (Type) new OpenSearchIndex("projects", NESTED_FIELD)),
                 hasEntry("projects.active", BOOLEAN),
                 hasEntry("projects.release", DATE),
-                hasEntry("projects.members", (Type) new ESIndex("projects.members", NESTED_FIELD)),
+                hasEntry("projects.members", (Type) new OpenSearchIndex("projects.members", NESTED_FIELD)),
                 hasEntry("projects.members.name", TEXT),
                 hasEntry("manager", OBJECT),
                 hasEntry("manager.name", TEXT),
@@ -574,10 +574,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("s.field with spaces", TEXT),
                 hasEntry("s.employer", TEXT),
                 hasEntry("s.employer.keyword", KEYWORD),
-                hasEntry("s.projects", (Type) new ESIndex("s.projects", NESTED_FIELD)),
+                hasEntry("s.projects", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
                 hasEntry("s.projects.active", BOOLEAN),
                 hasEntry("s.projects.release", DATE),
-                hasEntry("s.projects.members", (Type) new ESIndex("s.projects.members", NESTED_FIELD)),
+                hasEntry("s.projects.members", (Type) new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
                 hasEntry("s.projects.members.name", TEXT),
                 hasEntry("s.manager", OBJECT),
                 hasEntry("s.manager.name", TEXT),

@@ -54,7 +54,7 @@ For actually testing the code, the goal is to thoroughly test every case, rather
 ### 1.4.2 How to run existing doctest?
 Doctest runs with project build by `./gradlew build`. You can also only run doctest by `./gradlew doctest`
 
-Make sure you don't have any Elasticsearch instance running at `http://localhost:9200`
+Make sure you don't have any OpenSearch instance running at `http://localhost:9200`
 
 ### 1.4.2 How to write documentation with doctest?
 1. If you want to add a new doc, you can add it to `docs` folder, under correct sub-folder, in `.rst` format. 

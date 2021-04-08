@@ -48,22 +48,22 @@ import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.rest.RestStatus;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.opensearch.client.Request;
+import org.opensearch.client.Response;
+import org.opensearch.common.Strings;
+import org.opensearch.common.xcontent.XContentBuilder;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.rest.RestStatus;
 
 /**
  * SQL plugin integration test base class (migrated from SQLIntegTestCase)
  * <p>
  * The execution of order is as follows:
  * <p>
- * ESRestTestCase:   1) initClient()                                       N+1) closeClient()
+ * OpenSearchRestTestCase:   1) initClient()                                       N+1) closeClient()
  * \                                                     /
  * SQLIntegTestCase:     2) setUpIndices() -&gt; 4) setUpIndices() ... -&gt; N) cleanUpIndices()
  * \                      \

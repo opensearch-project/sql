@@ -20,9 +20,9 @@ import static com.amazon.opendistroforelasticsearch.sql.legacy.TestsConstants.TE
 import com.amazon.opendistroforelasticsearch.sql.common.antlr.SyntaxCheckException;
 import com.amazon.opendistroforelasticsearch.sql.exception.SemanticCheckException;
 import java.io.IOException;
-import org.elasticsearch.client.ResponseException;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.client.ResponseException;
 
 public class QueryAnalysisIT extends PPLIntegTestCase {
 

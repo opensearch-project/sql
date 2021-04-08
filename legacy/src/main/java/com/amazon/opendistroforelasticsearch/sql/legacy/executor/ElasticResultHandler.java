@@ -15,7 +15,7 @@
 
 package com.amazon.opendistroforelasticsearch.sql.legacy.executor;
 
-import org.elasticsearch.search.SearchHit;
+import org.opensearch.search.SearchHit;
 
 import java.util.Map;
 

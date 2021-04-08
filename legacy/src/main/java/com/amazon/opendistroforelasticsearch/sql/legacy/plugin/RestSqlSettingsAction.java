@@ -20,21 +20,21 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.utils.LogUtils;
 import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchGenerationException;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
-import org.elasticsearch.client.Requests;
-import org.elasticsearch.client.node.NodeClient;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.rest.BaseRestHandler;
-import org.elasticsearch.rest.BytesRestResponse;
-import org.elasticsearch.rest.RestController;
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.rest.action.RestToXContentListener;
+import org.opensearch.OpenSearchGenerationException;
+import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.opensearch.client.Requests;
+import org.opensearch.client.node.NodeClient;
+import org.opensearch.common.Strings;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentBuilder;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.common.xcontent.XContentParser;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.rest.BaseRestHandler;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestController;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.action.RestToXContentListener;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -43,7 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.elasticsearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
+import static org.opensearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
 
 /**
  * Interface to manage opendistro.sql.* cluster settings
@@ -79,7 +79,7 @@ public class RestSqlSettingsAction extends BaseRestHandler {
     }
 
     /**
-     * @see org.elasticsearch.rest.action.admin.cluster.RestClusterUpdateSettingsAction
+     * @see org.opensearch.rest.action.admin.cluster.RestClusterUpdateSettingsAction
      */
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
@@ -126,7 +126,7 @@ public class RestSqlSettingsAction extends BaseRestHandler {
             settingsBuilder.keys().removeIf(key -> !key.startsWith(SQL_SETTINGS_PREFIX));
             return settingsBuilder.build();
         } catch (IOException e) {
-            throw new ElasticsearchGenerationException("Failed to generate [" + source + "]", e);
+            throw new OpenSearchGenerationException("Failed to generate [" + source + "]", e);
         }
     }
 }

@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.amazon.opendistroforelasticsearch.sql.exception.ExpressionEvaluationException;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 

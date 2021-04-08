@@ -22,7 +22,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.query.DefaultQueryAction
 import com.amazon.opendistroforelasticsearch.sql.legacy.request.SqlRequest;
 import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
-import org.elasticsearch.client.Client;
+import org.opensearch.client.Client;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
@@ -96,7 +96,7 @@ public class AliasInliningTests {
 
     @Test
     public void groupAndSortBySameExprAlias() throws SqlParseException {
-        String query = "SELECT date_format(timestamp, 'yyyy-MM') es-table.timestamp_tg, COUNT(*) count, COUNT(DistanceKilometers) es-table.DistanceKilometers_count\n" +
+        String query = "SELECT date_format(timestamp, 'yyyy-MM') opensearch-table.timestamp_tg, COUNT(*) count, COUNT(DistanceKilometers) opensearch-table.DistanceKilometers_count\n" +
                 "FROM kibana_sample_data_flights\n" +
                 "GROUP BY date_format(timestamp, 'yyyy-MM')\n" +
                 "ORDER BY date_format(timestamp, 'yyyy-MM') DESC\n" +
@@ -105,7 +105,7 @@ public class AliasInliningTests {
 
         JSONObject parseQuery = new JSONObject(dsl);
 
-        assertThat(parseQuery.query("/aggregations/es-table.timestamp_tg/terms/script"), notNullValue());
+        assertThat(parseQuery.query("/aggregations/opensearch-table.timestamp_tg/terms/script"), notNullValue());
 
     }
 

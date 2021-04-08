@@ -16,7 +16,7 @@
 package com.amazon.opendistroforelasticsearch.sql.legacy.unittest.planner;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.core.QueryPlanner;
-import org.elasticsearch.search.SearchHits;
+import org.opensearch.search.SearchHits;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Spy;

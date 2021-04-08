@@ -8,12 +8,12 @@
 # Open Distro for Elasticsearch SQL
 
 
-Open Distro for Elasticsearch enables you to extract insights out of Elasticsearch using the familiar SQL query syntax. Use aggregations, group by, and where clauses to investigate your data. Read your data as JSON documents or CSV tables so you have the flexibility to use the format that works best for you.
+Open Distro for Elasticsearch enables you to extract insights out of OpenSearch using the familiar SQL query syntax. Use aggregations, group by, and where clauses to investigate your data. Read your data as JSON documents or CSV tables so you have the flexibility to use the format that works best for you.
 
 
 ## SQL Related Projects
 
-The following projects have been merged into this repository as separate folders as of July 9, 2020. Please refer to links below for details. This document will focus on the SQL plugin for Elasticsearch.
+The following projects have been merged into this repository as separate folders as of July 9, 2020. Please refer to links below for details. This document will focus on the SQL plugin for OpenSearch.
 
 * [SQL CLI](https://github.com/opendistro-for-elasticsearch/sql/tree/master/sql-cli)
 * [SQL JDBC](https://github.com/opendistro-for-elasticsearch/sql/tree/master/sql-jdbc)
@@ -33,9 +33,9 @@ Recently we have been actively improving our query engine primarily for better c
 
 ## Setup
 
-Install as plugin: build plugin from source code by following the instruction in Build section and install it to your Elasticsearch.
+Install as plugin: build plugin from source code by following the instruction in Build section and install it to your OpenSearch.
 
-After doing this, you need to restart the Elasticsearch server. Otherwise you may get errors like `Invalid index name [sql], must not start with '']; ","status":400}`.
+After doing this, you need to restart the OpenSearch server. Otherwise you may get errors like `Invalid index name [sql], must not start with '']; ","status":400}`.
 
 
 ## Build
@@ -60,7 +60,7 @@ POST https://<host>:<port>/_opendistro/_sql
 }
 ```
 
-* Explain SQL to elasticsearch query DSL
+* Explain SQL to OpenSearch query DSL
 ```
 POST _opendistro/_sql/_explain
 {

@@ -1,11 +1,11 @@
-import org.elasticsearch.gradle.testclusters.RunTask
+import org.opensearch.gradle.testclusters.RunTask
 
 plugins {
     id "com.wiredforcode.spawn" version "0.8.2"
     id 'base'
 }
 
-apply plugin: 'elasticsearch.testclusters'
+apply plugin: 'opensearch.testclusters'
 
 def path = project(':').projectDir
 // temporary fix, because currently we are under migration to new architecture. Need to run ./gradlew run from
@@ -49,6 +49,6 @@ testClusters {
     }
 }
 tasks.register("runRestTestCluster", RunTask) {
-    description = 'Runs elasticsearch ODFE SQL plugin'
+    description = 'Runs ODFE SQL plugin in OpenSearch'
     useCluster testClusters.docTestCluster;
 }

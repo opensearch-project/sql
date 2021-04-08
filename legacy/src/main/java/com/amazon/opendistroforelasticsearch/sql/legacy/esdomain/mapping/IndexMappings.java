@@ -15,9 +15,9 @@
 
 package com.amazon.opendistroforelasticsearch.sql.legacy.esdomain.mapping;
 
-import org.elasticsearch.cluster.metadata.MappingMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.opensearch.cluster.metadata.MappingMetadata;
+import org.opensearch.cluster.metadata.Metadata;
+import org.opensearch.common.collect.ImmutableOpenMap;
 
 import java.util.Map;
 import java.util.Objects;
