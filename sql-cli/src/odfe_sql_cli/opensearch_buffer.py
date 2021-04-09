@@ -19,7 +19,7 @@ from prompt_toolkit.filters import Condition
 from prompt_toolkit.application import get_app
 
 
-def es_is_multiline(odfesql_cli):
+def opensearch_is_multiline(odfesql_cli):
     """Return function that returns boolean to enable/unable multiline mode."""
 
     @Condition

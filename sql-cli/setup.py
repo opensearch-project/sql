@@ -49,7 +49,7 @@ setup(
     url="https://opendistro.github.io/for-elasticsearch-docs/docs/sql/cli/",
     packages=find_packages('src'),
     package_dir={'': 'src'},
-    package_data={"odfe_sql_cli": ["conf/clirc", "esliterals/esliterals.json"]},
+    package_data={"odfe_sql_cli": ["conf/clirc", "opensearch_literals/opensearch_literals.json"]},
     description=description,
     long_description=long_description,
     long_description_content_type="text/markdown",

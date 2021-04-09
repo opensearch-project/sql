@@ -7,15 +7,15 @@
 - `pip install --editable .` will install all dependencies from `setup.py`.
 
 ### Run CLI
-- Start an Elasticsearch instance from either local, Docker with Open Distro SQL plugin, or AWS Elasticsearch
-- To launch the cli, use 'wake' word `odfesql` followed by endpoint of your running ES instance. If not specifying 
+- Start an OpenSearch instance from either local, Docker with Open Distro SQL plugin, or AWS Elasticsearch
+- To launch the cli, use 'wake' word `odfesql` followed by endpoint of your running OpenSearch instance. If not specifying 
 any endpoint, it uses http://localhost:9200 by default. If not provided with port number, http endpoint uses 9200 and 
 https uses 443 by default.
 
 ### Testing
 - Prerequisites
     - Build the application
-    - Start a local Elasticsearch instance (OSS) with 
+    - Start a local OpenSearch instance with 
     [Open Distro SQL plugin for Elasticsearch](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/) installed
     and listening at http://localhost:9200.
 - Pytest

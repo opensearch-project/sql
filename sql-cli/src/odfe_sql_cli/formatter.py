@@ -58,7 +58,7 @@ class Formatter:
     def format_output(self, data):
         """Format data.
 
-        :param data: raw data get from ES
+        :param data: raw data get from OpenSearch
         :return: formatted output, it's either table or vertical format
         """
         formatter = TabularOutputFormatter(format_name=self.table_format)

@@ -18,7 +18,7 @@ import click
 import sys
 
 from .config import config_location
-from .esconnection import ESConnection
+from .opensearch_connection import OpenSearchConnection
 from .utils import OutputSettings
 from .odfesql_cli import OdfeSqlCli
 from .formatter import Formatter
@@ -29,7 +29,7 @@ click.disable_unicode_literals_warning = True
 @click.command()
 @click.argument("endpoint", default="http://localhost:9200")
 @click.option("-q", "--query", "query", type=click.STRING, help="Run single query in non-interactive mode")
-@click.option("-e", "--explain", "explain", is_flag=True, help="Explain SQL to ES DSL")
+@click.option("-e", "--explain", "explain", is_flag=True, help="Explain SQL to OpenSearch DSL")
 @click.option(
     "--clirc",
     default=config_location() + "config",
@@ -106,12 +106,12 @@ def cli(
 
     # handle single query without more interaction with user
     if query:
-        es_executor = ESConnection(endpoint, http_auth, use_aws_authentication)
-        es_executor.set_connection()
+        opensearch_executor = OpenSearchConnection(endpoint, http_auth, use_aws_authentication)
+        opensearch_executor.set_connection()
         if explain:
-            output = es_executor.execute_query(query, explain=True, use_console=False)
+            output = opensearch_executor.execute_query(query, explain=True, use_console=False)
         else:
-            output = es_executor.execute_query(query, output_format=result_format, use_console=False)
+            output = opensearch_executor.execute_query(query, output_format=result_format, use_console=False)
             if output and result_format == "jdbc":
                 settings = OutputSettings(table_format="psql", is_vertical=is_vertical)
                 formatter = Formatter(settings)

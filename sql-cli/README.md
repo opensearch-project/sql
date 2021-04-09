@@ -10,8 +10,8 @@
 The SQL CLI component in Open Distro for Elasticsearch (ODFE) is a stand-alone Python application and can be launched by a 'wake' word `odfesql`. 
 
 It only supports [Open Distro for Elasticsearch (ODFE) SQL Plugin](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/)
-You must have the ODFE SQL plugin installed to your Elasticsearch instance to connect. 
-Users can run this CLI from MacOS and Linux, and connect to any valid Elasticsearch end-point such as Amazon Elasticsearch Service (AES).
+You must have the ODFE SQL plugin installed to your OpenSearch instance to connect. 
+Users can run this CLI from MacOS and Linux, and connect to any valid OpenSearch end-point such as Amazon Elasticsearch Service (AES).
 
 ![](./screenshots/usage.gif)
 
@@ -27,13 +27,13 @@ Users can run this CLI from MacOS and Linux, and connect to any valid Elasticsea
 * Field names with color
 * Enabled horizontal display (by default) and vertical display when output is too wide for your terminal, for better visualization
 * Pagination for large output
-* Connect to Elasticsearch with/without security enabled on either **Elasticsearch OSS or Amazon Elasticsearch Service domains**.
+* Connect to OpenSearch with/without security enabled on either **OpenSearch or Amazon Elasticsearch Service domains**.
 * Supports loading configuration files
 * Supports all SQL plugin queries
 
 ## Install
 
-Launch your local Elasticsearch instance and make sure you have the Open Distro for Elasticsearch SQL plugin installed.
+Launch your local OpenSearch instance and make sure you have the Open Distro for Elasticsearch SQL plugin installed.
 
 To install the SQL CLI:
 
@@ -75,9 +75,8 @@ You can also configure the following connection properties:
 
 * `endpoint`: You do not need to specify an option, anything that follows the launch command `odfesql` is considered as the endpoint. If you do not provide an endpoint, by default, the SQL CLI connects to [http://localhost:9200](http://localhost:9200/).
 * `-u/-w`: Supports username and password for HTTP basic authentication, such as:
-    * Elasticsearch OSS with [Open Distro for Elasticsearch Security Plugin](https://opendistro.github.io/for-elasticsearch-docs/docs/install/plugins/) installed
+    * OpenSearch with [Open Distro for Elasticsearch Security Plugin](https://opendistro.github.io/for-elasticsearch-docs/docs/install/plugins/) installed
     * Amazon Elasticsearch Service domain with [Fine Grained Access Control](https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/fgac.html) enabled
-    * Elasticsearch with X-pack security enabled
 * `--aws-auth`: Turns on AWS sigV4 authentication to connect to an Amazon Elasticsearch Service endpoint. Use with the AWS CLI (`aws configure`) to retrieve the local AWS configuration to authenticate and connect.
 
 For a list of all available configurations, see [clirc](https://github.com/opendistro-for-elasticsearch/sql/blob/master/sql-cli/src/odfe_sql_cli/conf/clirc).

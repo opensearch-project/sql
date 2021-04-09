@@ -20,10 +20,9 @@
 
 ## Connection
 
-* [ ] Test connection to a local Elasticsearch instance
-    * [ ] Standard Elastic version, with/without authentication by Elastic X-pack security (https://www.elastic.co/guide/en/elasticsearch/reference/7.6/security-getting-started.html)
-    * [ ] OSS version, no authentication
-    * [ ] OSS version, install [ODFE Security plugin](https://opendistro.github.io/for-elasticsearch-docs/docs/install/plugins/) to enable authentication and SSL
+* [ ] Test connection to a local OpenSearch instance
+    * [ ] OpenSearch, no authentication
+    * [ ] OpenSearch, install [ODFE Security plugin](https://opendistro.github.io/for-elasticsearch-docs/docs/install/plugins/) to enable authentication and SSL
     * Run command like `odfesql <endpoint> -u <username> -w <password>` to connect to instance with authentication.
 * [ ] Test connection to [Amazon Elasticsearch domain](https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-gsg.html) with
 [Fine Grained Access Control](https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/fgac.html) enabled. 

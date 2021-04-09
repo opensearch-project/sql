@@ -17,11 +17,11 @@ import pytest
 from prompt_toolkit.shortcuts import PromptSession
 from prompt_toolkit.input.defaults import create_pipe_input
 
-from src.odfe_sql_cli.esbuffer import es_is_multiline
+from src.odfe_sql_cli.opensearch_buffer import opensearch_is_multiline
 from .utils import estest, load_data, TEST_INDEX_NAME, ENDPOINT
 from src.odfe_sql_cli.odfesql_cli import OdfeSqlCli
-from src.odfe_sql_cli.esconnection import ESConnection
-from src.odfe_sql_cli.esstyle import style_factory
+from src.odfe_sql_cli.opensearch_connection import OpenSearchConnection
+from src.odfe_sql_cli.opensearch_style import style_factory
 
 AUTH = None
 QUERY_WITH_CTRL_D = "select * from %s;\r\x04\r" % TEST_INDEX_NAME
@@ -36,12 +36,12 @@ def cli(default_config_location):
 
 class TestOdfeSqlCli:
     def test_connect(self, cli):
-        with mock.patch.object(ESConnection, "__init__", return_value=None) as mock_ESConnection, mock.patch.object(
-            ESConnection, "set_connection"
+        with mock.patch.object(OpenSearchConnection, "__init__", return_value=None) as mock_OpenSearchConnection, mock.patch.object(
+            OpenSearchConnection, "set_connection"
         ) as mock_set_connectiuon:
             cli.connect(endpoint=ENDPOINT)
 
-            mock_ESConnection.assert_called_with(ENDPOINT, AUTH, USE_AWS_CREDENTIALS, QUERY_LANGUAGE)
+            mock_OpenSearchConnection.assert_called_with(ENDPOINT, AUTH, USE_AWS_CREDENTIALS, QUERY_LANGUAGE)
             mock_set_connectiuon.assert_called()
 
     @estest
@@ -62,7 +62,7 @@ class TestOdfeSqlCli:
             inp.send_text(QUERY_WITH_CTRL_D)
 
             mock_prompt.return_value = PromptSession(
-                input=inp, multiline=es_is_multiline(cli), style=style_factory(cli.syntax_style, cli.cli_style)
+                input=inp, multiline=opensearch_is_multiline(cli), style=style_factory(cli.syntax_style, cli.cli_style)
             )
 
             cli.connect(ENDPOINT)
