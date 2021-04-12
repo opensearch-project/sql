@@ -843,18 +843,18 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData, JdbcWrapper, Logg
         columnDescriptors.add(rscd("NUM_PREC_RADIX", OpenSearchType.INTEGER.getTypeName()));
 
         List<List<Object>> dataRows = new ArrayList<>();
-        for (OpenSearchType esType : OpenSearchType.values()) {
+        for (OpenSearchType openSearchType : OpenSearchType.values()) {
             dataRows.add(Arrays.asList(
-                    esType.name(),
-                    esType.getJdbcType().getVendorTypeNumber(),
-                    esType.getPrecision(),
+                    openSearchType.name(),
+                    openSearchType.getJdbcType().getVendorTypeNumber(),
+                    openSearchType.getPrecision(),
                     "'",
                     "'",
                     null,
                     typeNullableUnknown,
-                    (esType == OpenSearchType.TEXT || esType == OpenSearchType.KEYWORD), // case sensitive
+                    (openSearchType == OpenSearchType.TEXT || openSearchType == OpenSearchType.KEYWORD), // case sensitive
                     typeSearchable,
-                    !esType.isSigned(),
+                    !openSearchType.isSigned(),
                     false,
                     false,
                     null,

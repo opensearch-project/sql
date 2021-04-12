@@ -174,7 +174,7 @@ public class MockResultSetMetaData implements ResultSetMetaData, JdbcWrapper {
         public Builder column(String columnName, OpenSearchType columnType) {
             column();
             setColumnName(columnName);
-            setColumnESType(columnType);
+            setColumnOpenSearchType(columnType);
             return this;
         }
 
@@ -233,13 +233,13 @@ public class MockResultSetMetaData implements ResultSetMetaData, JdbcWrapper {
             return this;
         }
 
-        public Builder setColumnESType(final OpenSearchType esType) {
-            setColumnType(esType.getJdbcType().getVendorTypeNumber());
-            setPrecision(esType.getPrecision());
-            setColumnDisplaySize(esType.getDisplaySize());
-            setColumnClassName(esType.getJavaClassName());
-            setColumnTypeName(esType.getJdbcType().getName());
-            setSigned(esType.isSigned());
+        public Builder setColumnOpenSearchType(final OpenSearchType openSearchType) {
+            setColumnType(openSearchType.getJdbcType().getVendorTypeNumber());
+            setPrecision(openSearchType.getPrecision());
+            setColumnDisplaySize(openSearchType.getDisplaySize());
+            setColumnClassName(openSearchType.getJavaClassName());
+            setColumnTypeName(openSearchType.getJdbcType().getName());
+            setSigned(openSearchType.isSigned());
             return this;
         }
 
