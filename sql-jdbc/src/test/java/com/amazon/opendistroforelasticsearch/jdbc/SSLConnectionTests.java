@@ -62,7 +62,7 @@ public class SSLConnectionTests {
                 keyStoreFile.toAbsolutePath().toString(),
                 "changeit",
                 "JKS",
-                new TLSServer.MockESConnectionHandler());
+                new TLSServer.MockOpenSearchConnectionHandler());
 
         connectURL = TLSServer.getBaseURLForConnect(jettyServer);
         System.out.println("Started on: " + connectURL);

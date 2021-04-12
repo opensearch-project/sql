@@ -113,7 +113,7 @@ public class TLSServer {
         return jettyServer;
     }
 
-    public static class MockESConnectionHandler extends AbstractHandler {
+    public static class MockOpenSearchConnectionHandler extends AbstractHandler {
         @Override
         public void handle(
                 String target,

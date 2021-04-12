@@ -585,7 +585,7 @@ public class ResultSetImpl implements ResultSet, JdbcWrapper, LoggingSource {
 
     protected <T> T getObjectX(int columnIndex, Class<T> javaClass, Map<String, Object> conversionParams) throws SQLException {
         Object value = getColumn(columnIndex);
-        TypeConverter tc = TypeConverters.getInstance(getColumnMetaData(columnIndex).getEsType().getJdbcType());
+        TypeConverter tc = TypeConverters.getInstance(getColumnMetaData(columnIndex).getOpenSearchType().getJdbcType());
         return tc.convert(value, javaClass, conversionParams);
     }
 
@@ -1025,7 +1025,7 @@ public class ResultSetImpl implements ResultSet, JdbcWrapper, LoggingSource {
         String columnSQLTypeName = null;
         Class targetClass = null;
         if (map != null) {
-            columnSQLTypeName = getColumnMetaData(columnIndex).getEsType().getJdbcType().getName();
+            columnSQLTypeName = getColumnMetaData(columnIndex).getOpenSearchType().getJdbcType().getName();
             targetClass = map.get(columnSQLTypeName);
         }
 

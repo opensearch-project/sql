@@ -27,8 +27,8 @@ public class ColumnMetaData {
     private int scale = -1;
     private String tableName;
     private String catalogName;
-    private String esTypeName;
-    private OpenSearchType esType;
+    private String openSearchTypeName;
+    private OpenSearchType openSearchType;
 
     public ColumnMetaData(ColumnDescriptor descriptor) {
         this.name = descriptor.getName();
@@ -36,11 +36,11 @@ public class ColumnMetaData {
         // if a label isn't specified, the name is the label
         this.label = descriptor.getLabel() == null ? this.name : descriptor.getLabel();
 
-        this.esTypeName = descriptor.getType();
-        this.esType = OpenSearchType.fromTypeName(esTypeName);
+        this.openSearchTypeName = descriptor.getType();
+        this.openSearchType = OpenSearchType.fromTypeName(openSearchTypeName);
 
         // use canned values until server can return this
-        this.precision = this.esType.getPrecision();
+        this.precision = this.openSearchType.getPrecision();
         this.scale = 0;
 
         // JDBC has these, but our protocol does not yet convey these
@@ -77,11 +77,11 @@ public class ColumnMetaData {
         return catalogName;
     }
 
-    public OpenSearchType getEsType() {
-        return esType;
+    public OpenSearchType getOpenSearchType() {
+        return openSearchType;
     }
 
-    public String getEsTypeName() {
-        return esTypeName;
+    public String getOpenSearchTypeName() {
+        return openSearchTypeName;
     }
 }

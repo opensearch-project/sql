@@ -80,25 +80,25 @@ public enum OpenSearchType {
     UNDEFINED(JDBCType.NULL, null, 0, 0, false),
     UNSUPPORTED(JDBCType.OTHER, null, 0, 0, false);
 
-    private static final Map<JDBCType, OpenSearchType> jdbcTypeToESTypeMap;
+    private static final Map<JDBCType, OpenSearchType> jdbcTypeToOpenSearchTypeMap;
 
     static {
         // Map JDBCType to corresponding ElasticsearchType
-        jdbcTypeToESTypeMap = new HashMap<>();
-        jdbcTypeToESTypeMap.put(JDBCType.NULL, UNDEFINED);
-        jdbcTypeToESTypeMap.put(JDBCType.BOOLEAN, BOOLEAN);
-        jdbcTypeToESTypeMap.put(JDBCType.TINYINT, BYTE);
-        jdbcTypeToESTypeMap.put(JDBCType.SMALLINT, SHORT);
-        jdbcTypeToESTypeMap.put(JDBCType.INTEGER, INTEGER);
-        jdbcTypeToESTypeMap.put(JDBCType.BIGINT, LONG);
-        jdbcTypeToESTypeMap.put(JDBCType.DOUBLE, DOUBLE);
-        jdbcTypeToESTypeMap.put(JDBCType.REAL, FLOAT);
-        jdbcTypeToESTypeMap.put(JDBCType.FLOAT, DOUBLE);
-        jdbcTypeToESTypeMap.put(JDBCType.VARCHAR, KEYWORD);
-        jdbcTypeToESTypeMap.put(JDBCType.TIMESTAMP, TIMESTAMP);
-        jdbcTypeToESTypeMap.put(JDBCType.TIME, TIME);
-        jdbcTypeToESTypeMap.put(JDBCType.DATE, DATE);
-        jdbcTypeToESTypeMap.put(JDBCType.VARBINARY, BINARY);
+        jdbcTypeToOpenSearchTypeMap = new HashMap<>();
+        jdbcTypeToOpenSearchTypeMap.put(JDBCType.NULL, UNDEFINED);
+        jdbcTypeToOpenSearchTypeMap.put(JDBCType.BOOLEAN, BOOLEAN);
+        jdbcTypeToOpenSearchTypeMap.put(JDBCType.TINYINT, BYTE);
+        jdbcTypeToOpenSearchTypeMap.put(JDBCType.SMALLINT, SHORT);
+        jdbcTypeToOpenSearchTypeMap.put(JDBCType.INTEGER, INTEGER);
+        jdbcTypeToOpenSearchTypeMap.put(JDBCType.BIGINT, LONG);
+        jdbcTypeToOpenSearchTypeMap.put(JDBCType.DOUBLE, DOUBLE);
+        jdbcTypeToOpenSearchTypeMap.put(JDBCType.REAL, FLOAT);
+        jdbcTypeToOpenSearchTypeMap.put(JDBCType.FLOAT, DOUBLE);
+        jdbcTypeToOpenSearchTypeMap.put(JDBCType.VARCHAR, KEYWORD);
+        jdbcTypeToOpenSearchTypeMap.put(JDBCType.TIMESTAMP, TIMESTAMP);
+        jdbcTypeToOpenSearchTypeMap.put(JDBCType.TIME, TIME);
+        jdbcTypeToOpenSearchTypeMap.put(JDBCType.DATE, DATE);
+        jdbcTypeToOpenSearchTypeMap.put(JDBCType.VARBINARY, BINARY);
     }
 
     /**
@@ -163,10 +163,10 @@ public enum OpenSearchType {
     }
 
     public static OpenSearchType fromJdbcType(JDBCType jdbcType) {
-        if (!jdbcTypeToESTypeMap.containsKey(jdbcType)) {
+        if (!jdbcTypeToOpenSearchTypeMap.containsKey(jdbcType)) {
             throw new IllegalArgumentException("Unsupported JDBC type \"" + jdbcType + "\"");
         }
-        return jdbcTypeToESTypeMap.get(jdbcType);
+        return jdbcTypeToOpenSearchTypeMap.get(jdbcType);
     }
 
     /**

@@ -65,7 +65,7 @@ public class SSLClientAuthTests {
                 "changeit",
                 "JKS",
                 true,
-                new TLSServer.MockESConnectionHandler());
+                new TLSServer.MockOpenSearchConnectionHandler());
 
         connectURL = TLSServer.getBaseURLForConnect(jettyServer);
         System.out.println("Started on: " + connectURL);

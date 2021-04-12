@@ -58,7 +58,7 @@ public class Schema {
      *
      * @return {@link OpenSearchType} for the specified column
      */
-    public OpenSearchType getElasticsearchType(int index) {
-        return columnMetaDataList.get(index).getEsType();
+    public OpenSearchType getOpenSearchType(int index) {
+        return columnMetaDataList.get(index).getOpenSearchType();
     }
 }
