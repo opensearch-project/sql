@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  *
  */
-#ifndef ES_RESULT_QUEUE
-#define ES_RESULT_QUEUE
+#ifndef OPENSEARCH_RESULT_QUEUE
+#define OPENSEARCH_RESULT_QUEUE
 
 #include <mutex>
 #include <queue>
@@ -23,19 +23,19 @@
 
 #define QUEUE_TIMEOUT 20 // milliseconds
 
-struct ESResult;
+struct OpenSearchResult;
 
-class ESResultQueue {
+class OpenSearchResultQueue {
     public:
-        ESResultQueue(unsigned int capacity);
-        ~ESResultQueue();
+        OpenSearchResultQueue(unsigned int capacity);
+        ~OpenSearchResultQueue();
 
         void clear();
-        bool pop(unsigned int timeout_ms, ESResult*& result);
-        bool push(unsigned int timeout_ms, ESResult* result);
+        bool pop(unsigned int timeout_ms, OpenSearchResult*& result);
+        bool push(unsigned int timeout_ms, OpenSearchResult* result);
 
     private:
-        std::queue<ESResult*> m_queue;
+        std::queue< OpenSearchResult*> m_queue;
         std::mutex m_queue_mutex;
         opensearch_semaphore m_push_semaphore;
         opensearch_semaphore m_pop_semaphore;

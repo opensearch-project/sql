@@ -31,7 +31,7 @@ typedef enum QueryResultCode_ {
     PORES_COMMAND_OK, /* a query command that doesn't return
                        * anything was executed properly by the backend */
     PORES_TUPLES_OK,  /* a query command that returns tuples
-                       * was executed properly by the backend, ESresult
+                       * was executed properly by the backend, OpenSearchResult
                        * contains the resulttuples */
     PORES_COPY_OUT,
     PORES_COPY_IN,

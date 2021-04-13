@@ -334,7 +334,7 @@ typedef struct ColumnInfo {
     }
 } ColumnInfo;
 
-typedef struct ESResult {
+typedef struct OpenSearchResult {
     uint32_t ref_count;  // reference count. A ColumnInfo can be shared by
                          // several qresults.
     uint16_t num_fields;
@@ -343,13 +343,13 @@ typedef struct ESResult {
     std::string result_json;
     std::string command_type;  // SELECT / FETCH / etc
     rabbit::document es_result_doc;
-    ESResult() {
+    OpenSearchResult() {
         ref_count = 0;
         num_fields = 0;
         result_json = "";
         command_type = "";
     }
-} ESResult;
+} OpenSearchResult;
 
 #endif
 #endif

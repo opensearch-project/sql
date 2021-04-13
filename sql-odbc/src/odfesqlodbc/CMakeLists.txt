@@ -26,7 +26,7 @@ set(					SOURCE_FILES
 							es_utility.cpp opensearch_communication.cpp opensearch_connection.cpp es_odbc.c
         opensearch_driver_connect.cpp opensearch_helper.cpp opensearch_info.cpp opensearch_parse_result.cpp
 		opensearch_semaphore.cpp opensearch_statement.cpp win_unicode.c				odbcapi.c
-							odbcapiw.c				es_result_queue.cpp
+							odbcapiw.c opensearch_result_queue.cpp
 	)
 if(WIN32)
 set(SOURCE_FILES ${SOURCE_FILES} dlg_wingui.c setup.c)
@@ -41,7 +41,7 @@ set(					HEADER_FILES
 							misc.h					multibyte.h				mylog.h				es_utility.h
 							resource.h				statement.h				tuple.h				unicode_support.h
 		opensearch_apifunc.h es_odbc.h opensearch_semaphore.h qresult.h
-							version.h				win_setup.h				es_result_queue.h
+							version.h				win_setup.h opensearch_result_queue.h
 	)
 
 # Generate dll (SHARED)

@@ -72,7 +72,7 @@ TEST(TestConnExecDirect, ValidQueryAllColumns) {
     ASSERT_TRUE(conn.ConnectDBStart());
 
     conn.ExecDirect(all_columns_flights_query.c_str(), fetch_size.c_str());
-    ESResult* result = conn.PopResult();
+    OpenSearchResult* result = conn.PopResult();
     EXPECT_EQ("SELECT", result->command_type);
     EXPECT_FALSE(result->result_json.empty());
     EXPECT_EQ(all_columns_flights_count, result->num_fields);
@@ -85,7 +85,7 @@ TEST(TestConnExecDirect, ValidQuerySomeColumns) {
     ASSERT_TRUE(conn.ConnectDBStart());
 
     conn.ExecDirect(some_columns_flights_query.c_str(), fetch_size.c_str());
-    ESResult* result = conn.PopResult();
+    OpenSearchResult* result = conn.PopResult();
     EXPECT_EQ("SELECT", result->command_type);
     EXPECT_FALSE(result->result_json.empty());
     EXPECT_EQ(some_columns_flights_count, result->num_fields);
@@ -98,7 +98,7 @@ TEST(TestConnExecDirect, InvalidQuery) {
     ASSERT_TRUE(conn.ConnectDBStart());
 
     conn.ExecDirect(invalid_query.c_str(), fetch_size.c_str());
-    ESResult* result = conn.PopResult();
+    OpenSearchResult* result = conn.PopResult();
     EXPECT_EQ(NULL, (void*)result);
 }
 
@@ -109,7 +109,7 @@ TEST(TestConnPopResult, PopEmptyQueue) {
     ASSERT_TRUE(conn.ConnectionOptions(valid_conn_opt_val, false, 0, 0));
     ASSERT_TRUE(conn.ConnectDBStart());
 
-    ESResult* result = conn.PopResult();
+    OpenSearchResult* result = conn.PopResult();
     EXPECT_EQ(NULL, (void*)result);
 }
 
@@ -122,7 +122,7 @@ TEST(TestConnPopResult, PopTwoQueryResults) {
     conn.ExecDirect(all_columns_flights_query.c_str(), fetch_size.c_str());
 
     // Pop some_columns
-    ESResult* result = conn.PopResult();
+    OpenSearchResult* result = conn.PopResult();
     EXPECT_EQ(some_columns_flights_count, result->num_fields);
 
     // Pop all_columns

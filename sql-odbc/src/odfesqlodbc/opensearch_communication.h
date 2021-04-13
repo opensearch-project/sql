@@ -23,7 +23,7 @@
 #include <future>
 #include <regex>
 #include "es_types.h"
-#include "es_result_queue.h"
+#include "opensearch_result_queue.h"
 
 //Keep rabbit at top otherwise it gives build error because of some variable names like max, min
 #ifdef __APPLE__
@@ -61,7 +61,7 @@ class OpenSearchCommunication {
     void LogMsg(ESLogLevel level, const char* msg);
     int ExecDirect(const char* query, const char* fetch_size_);
     void SendCursorQueries(std::string cursor);
-    ESResult* PopResult();
+    OpenSearchResult* PopResult();
     std::string GetClientEncoding();
     bool SetClientEncoding(std::string& encoding);
     bool IsSQLPluginInstalled(const std::string& plugin_response);
@@ -83,10 +83,11 @@ class OpenSearchCommunication {
     void InitializeConnection();
     bool CheckConnectionOptions();
     bool EstablishConnection();
-    void ConstructESResult(ESResult& result);
-    void GetJsonSchema(ESResult& es_result);
-    void PrepareCursorResult(ESResult& es_result);
-    std::shared_ptr< ErrorDetails > ParseErrorResponse(ESResult& es_result);
+    void ConstructOpenSearchResult(OpenSearchResult& result);
+    void GetJsonSchema(OpenSearchResult& es_result);
+    void PrepareCursorResult(OpenSearchResult& es_result);
+    std::shared_ptr< ErrorDetails > ParseErrorResponse(
+        OpenSearchResult& es_result);
     void SetErrorDetails(std::string reason, std::string message,
                          ConnErrorType error_type);
     void SetErrorDetails(ErrorDetails details);
@@ -100,7 +101,7 @@ class OpenSearchCommunication {
     std::shared_ptr< ErrorDetails > m_error_details;
     bool m_valid_connection_options;
     bool m_is_retrieving;
-    ESResultQueue m_result_queue;
+    OpenSearchResultQueue m_result_queue;
     runtime_options m_rt_opts;
     std::string m_client_encoding;
     Aws::SDKOptions m_options;

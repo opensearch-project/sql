@@ -91,7 +91,7 @@ void OpenSearchSendCursorQueries(void* opensearch_conn, const char* cursor) {
     static_cast< OpenSearchCommunication* >(opensearch_conn)->SendCursorQueries(cursor);
 }
 
-ESResult* OpenSearchGetResult(void* opensearch_conn) {
+OpenSearchResult* OpenSearchGetResult(void* opensearch_conn) {
     return opensearch_conn
                ? static_cast< OpenSearchCommunication* >(opensearch_conn)->PopResult()
                    : NULL;
@@ -114,7 +114,7 @@ void OpenSearchDisconnect(void* opensearch_conn) {
     delete static_cast< OpenSearchCommunication* >(opensearch_conn);
 }
 
-void OpenSearchClearResult(ESResult* opensearch_result) {
+void OpenSearchClearResult(OpenSearchResult* opensearch_result) {
     delete opensearch_result;
 }
 

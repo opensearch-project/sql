@@ -35,14 +35,17 @@ typedef rabbit::array json_arr;
 typedef json_arr::iterator::result_type json_arr_it;
 
 bool _CC_from_OpenSearchResult(QResultClass *q_res, ConnectionClass *conn,
-                       const char *cursor, ESResult &opensearch_result);
+                       const char *cursor,
+                               OpenSearchResult &opensearch_result);
 bool _CC_Metadata_from_OpenSearchResult(QResultClass *q_res, ConnectionClass *conn,
-                                const char *cursor, ESResult &opensearch_result);
+                                const char *cursor,
+                                        OpenSearchResult &opensearch_result);
 bool _CC_No_Metadata_from_OpenSearchResult(QResultClass *q_res, ConnectionClass *conn,
-                                   const char *cursor, ESResult &opensearch_result);
+                                   const char *cursor,
+                                           OpenSearchResult &opensearch_result);
 void GetSchemaInfo(schema_type &schema, json_doc &opensearch_result_doc);
 bool AssignColumnHeaders(const schema_type &doc_schema, QResultClass *q_res,
-                         const ESResult &opensearch_result);
+                         const OpenSearchResult &opensearch_result);
 bool AssignTableData(json_doc &opensearch_result_doc, QResultClass *q_res,
                      size_t doc_schema_size, ColumnInfoClass &fields);
 bool AssignRowData(const json_arr_it &row, size_t row_schema_size,
@@ -112,20 +115,23 @@ std::string GetResultParserError() {
 }
 
 BOOL CC_from_OpenSearchResult(QResultClass *q_res, ConnectionClass *conn,
-                      const char *cursor, ESResult &opensearch_result) {
+                      const char *cursor,
+                              OpenSearchResult &opensearch_result) {
     ClearError();
     return _CC_from_OpenSearchResult(q_res, conn, cursor, opensearch_result) ? TRUE : FALSE;
 }
 
 BOOL CC_Metadata_from_OpenSearchResult(QResultClass *q_res, ConnectionClass *conn,
-                               const char *cursor, ESResult &opensearch_result) {
+                               const char *cursor,
+                                       OpenSearchResult &opensearch_result) {
     ClearError();
     return _CC_Metadata_from_OpenSearchResult(q_res, conn, cursor,
                                               opensearch_result) ? TRUE : FALSE;
 }
 
 BOOL CC_No_Metadata_from_OpenSearchResult(QResultClass *q_res, ConnectionClass *conn,
-                                  const char *cursor, ESResult &opensearch_result) {
+                                  const char *cursor,
+                                          OpenSearchResult &opensearch_result) {
     ClearError();
     return _CC_No_Metadata_from_OpenSearchResult(q_res, conn, cursor,
                                                  opensearch_result)
@@ -142,7 +148,8 @@ BOOL CC_Append_Table_Data(json_doc &opensearch_result_doc, QResultClass *q_res,
 }
 
 bool _CC_No_Metadata_from_OpenSearchResult(QResultClass *q_res, ConnectionClass *conn,
-                                   const char *cursor, ESResult &opensearch_result) {
+                                   const char *cursor,
+    OpenSearchResult &opensearch_result) {
     // Note - NULL conn and/or cursor is valid
     if (q_res == NULL)
         return false;
@@ -179,7 +186,8 @@ bool _CC_No_Metadata_from_OpenSearchResult(QResultClass *q_res, ConnectionClass 
 }
 
 bool _CC_Metadata_from_OpenSearchResult(QResultClass *q_res, ConnectionClass *conn,
-                                const char *cursor, ESResult &opensearch_result) {
+                                const char *cursor,
+                                        OpenSearchResult &opensearch_result) {
     // Note - NULL conn and/or cursor is valid
     if (q_res == NULL)
         return false;
@@ -216,7 +224,8 @@ bool _CC_Metadata_from_OpenSearchResult(QResultClass *q_res, ConnectionClass *co
 }
 
 bool _CC_from_OpenSearchResult(QResultClass *q_res, ConnectionClass *conn,
-                       const char *cursor, ESResult &opensearch_result) {
+                       const char *cursor,
+                               OpenSearchResult &opensearch_result) {
     // Note - NULL conn and/or cursor is valid
     if (q_res == NULL)
         return false;
@@ -266,7 +275,7 @@ void GetSchemaInfo(schema_type &schema, json_doc &opensearch_result_doc) {
 }
 
 bool AssignColumnHeaders(const schema_type &doc_schema, QResultClass *q_res,
-                         const ESResult &opensearch_result) {
+                         const OpenSearchResult &opensearch_result) {
     // Verify server_info size matches the schema size
     if (opensearch_result.column_info.size() != doc_schema.size())
         return false;

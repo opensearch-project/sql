@@ -33,11 +33,14 @@ typedef rabbit::document json_doc;
 // is sometimes used Cannot pass q_res as reference because it breaks qresult.h
 // macros that expect to use -> operator
 BOOL CC_from_OpenSearchResult(QResultClass *q_res, ConnectionClass *conn,
-                      const char *cursor, ESResult &opensearch_result);
+                      const char *cursor,
+                              OpenSearchResult &opensearch_result);
 BOOL CC_Metadata_from_OpenSearchResult(QResultClass *q_res, ConnectionClass *conn,
-                               const char *cursor, ESResult &opensearch_result);
+                               const char *cursor,
+                                       OpenSearchResult &opensearch_result);
 BOOL CC_No_Metadata_from_OpenSearchResult(QResultClass *q_res, ConnectionClass *conn,
-                                  const char *cursor, ESResult &opensearch_result);
+                                  const char *cursor,
+                                          OpenSearchResult &opensearch_result);
 BOOL CC_Append_Table_Data(json_doc &opensearch_result_doc, QResultClass *q_res,
                           size_t doc_schema_size, ColumnInfoClass &fields);
 #endif

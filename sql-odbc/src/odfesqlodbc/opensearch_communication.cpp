@@ -131,7 +131,7 @@ void OpenSearchCommunication::AwsHttpResponseToString(
     output.assign(buf.data(), avail);
 }
 
-void OpenSearchCommunication::PrepareCursorResult(ESResult& es_result) {
+void OpenSearchCommunication::PrepareCursorResult(OpenSearchResult& es_result) {
     // Prepare document and validate result
     try {
         LogMsg(ES_DEBUG, "Parsing result JSON with cursor.");
@@ -148,7 +148,7 @@ void OpenSearchCommunication::PrepareCursorResult(ESResult& es_result) {
 }
 
 std::shared_ptr< ErrorDetails > OpenSearchCommunication::ParseErrorResponse(
-    ESResult& es_result) {
+    OpenSearchResult& es_result) {
     // Prepare document and validate schema
     try {
         LogMsg(ES_DEBUG, "Parsing error response (with schema validation)");
@@ -190,7 +190,7 @@ void OpenSearchCommunication::SetErrorDetails(ErrorDetails details) {
     m_error_details = error_details;
 }
 
-void OpenSearchCommunication::GetJsonSchema(ESResult& es_result) {
+void OpenSearchCommunication::GetJsonSchema(OpenSearchResult& es_result) {
     // Prepare document and validate schema
     try {
         LogMsg(ES_DEBUG, "Parsing result JSON with schema.");
@@ -555,7 +555,7 @@ std::vector< std::string > OpenSearchCommunication::GetColumnsWithSelectQuery(
     }
 
     // Convert body from Aws IOStream to string
-    std::unique_ptr< ESResult > result = std::make_unique< ESResult >();
+    std::unique_ptr< OpenSearchResult > result = std::make_unique< OpenSearchResult >();
     AwsHttpResponseToString(response, result->result_json);
 
     // If response was not valid, set error
@@ -629,7 +629,7 @@ int OpenSearchCommunication::ExecDirect(const char* query, const char* fetch_siz
     }
 
     // Convert body from Aws IOStream to string
-    std::unique_ptr< ESResult > result = std::make_unique< ESResult >();
+    std::unique_ptr< OpenSearchResult > result = std::make_unique< OpenSearchResult >();
     AwsHttpResponseToString(response, result->result_json);
 
     // If response was not valid, set error
@@ -653,7 +653,7 @@ int OpenSearchCommunication::ExecDirect(const char* query, const char* fetch_siz
 
     // Add to result queue and return
     try {
-        ConstructESResult(*result);
+        ConstructOpenSearchResult(*result);
     } catch (std::runtime_error& e) {
         m_error_message =
             "Received runtime exception: " + std::string(e.what());
@@ -705,7 +705,7 @@ void OpenSearchCommunication::SendCursorQueries(std::string cursor) {
                 return;
             }
 
-            std::unique_ptr< ESResult > result = std::make_unique< ESResult >();
+            std::unique_ptr< OpenSearchResult > result = std::make_unique< OpenSearchResult >();
             AwsHttpResponseToString(response, result->result_json);
             PrepareCursorResult(*result);
 
@@ -759,7 +759,7 @@ void OpenSearchCommunication::StopResultRetrieval() {
     m_result_queue.clear();
 }
 
-void OpenSearchCommunication::ConstructESResult(ESResult& result) {
+void OpenSearchCommunication::ConstructOpenSearchResult(OpenSearchResult& result) {
     GetJsonSchema(result);
     rabbit::array schema_array = result.es_result_doc["schema"];
     for (rabbit::array::iterator it = schema_array.begin();
@@ -797,8 +797,8 @@ inline void OpenSearchCommunication::LogMsg(ESLogLevel level, const char* msg) {
 #endif  // WIN32
 }
 
-ESResult* OpenSearchCommunication::PopResult() {
-    ESResult* result = NULL;
+OpenSearchResult* OpenSearchCommunication::PopResult() {
+    OpenSearchResult* result = NULL;
     while (!m_result_queue.pop(QUEUE_TIMEOUT, result) && m_is_retrieving) {
     }
 

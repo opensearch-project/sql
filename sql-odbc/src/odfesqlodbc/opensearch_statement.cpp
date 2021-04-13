@@ -171,7 +171,7 @@ SQLRETURN GetNextResultSet(StatementClass *stmt) {
         return SQL_ERROR;
     }
 
-    ESResult *es_res = OpenSearchGetResult(conn->esconn);
+    OpenSearchResult *es_res = OpenSearchGetResult(conn->esconn);
     if (es_res != NULL) {
         // Save server cursor id to fetch more pages later
         if (es_res->es_result_doc.has("cursor")) {
@@ -253,8 +253,8 @@ QResultClass *SendQueryGetResult(StatementClass *stmt, BOOL commit) {
     }
     res->rstatus = PORES_COMMAND_OK;
 
-    // Get ESResult
-    ESResult *es_res = OpenSearchGetResult(conn->esconn);
+    // Get OpenSearchResult
+    OpenSearchResult *es_res = OpenSearchGetResult(conn->esconn);
     if (es_res == NULL) {
         QR_Destructor(res);
         return NULL;
@@ -273,11 +273,11 @@ QResultClass *SendQueryGetResult(StatementClass *stmt, BOOL commit) {
     }
 
     if (commit) {
-        // Deallocate ESResult
+        // Deallocate OpenSearchResult
         OpenSearchClearResult(es_res);
         res->es_result = NULL;
     } else {
-        // Set ESResult into connection class so it can be used later
+        // Set OpenSearchResult into connection class so it can be used later
         res->es_result = es_res;
     }
     return res;
@@ -293,7 +293,7 @@ RETCODE AssignResult(StatementClass *stmt) {
     }
 
     // Commit result to QResultClass
-    ESResult *es_res = static_cast< ESResult * >(res->es_result);
+    OpenSearchResult *es_res = static_cast< OpenSearchResult * >(res->es_result);
     ConnectionClass *conn = SC_get_conn(stmt);
     if (!CC_No_Metadata_from_OpenSearchResult(res, conn, res->cursor_name,
                                               *es_res)) {
@@ -310,7 +310,7 @@ RETCODE AssignResult(StatementClass *stmt) {
 
 void ClearOpenSearchResult(void *opensearch_result) {
     if (opensearch_result != NULL) {
-        ESResult *es_res = static_cast< ESResult * >(opensearch_result);
+        OpenSearchResult *es_res = static_cast< OpenSearchResult * >(opensearch_result);
         OpenSearchClearResult(es_res);
     }
 }

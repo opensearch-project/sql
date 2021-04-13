@@ -23,8 +23,8 @@
 // C++ interface
 std::string OpenSearchGetClientEncoding(void* opensearch_conn);
 bool OpenSearchSetClientEncoding(void* opensearch_conn, std::string& encoding);
-ESResult* OpenSearchGetResult(void* opensearch_conn);
-void OpenSearchClearResult(ESResult* opensearch_result);
+OpenSearchResult* OpenSearchGetResult(void* opensearch_conn);
+void OpenSearchClearResult(OpenSearchResult* opensearch_result);
 void* OpenSearchConnectDBParams(runtime_options& rt_opts, int expand_dbname,
                         unsigned int option_count);
 std::string GetServerVersion(void* opensearch_conn);
