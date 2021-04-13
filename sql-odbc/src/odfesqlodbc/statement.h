@@ -21,9 +21,9 @@
 
 #include "bind.h"
 #include "descriptor.h"
-#include "es_helper.h"
 #include "es_odbc.h"
 #include "es_types.h"
+#include "opensearch_helper.h"
 #include "tuple.h"
 
 // C Interface

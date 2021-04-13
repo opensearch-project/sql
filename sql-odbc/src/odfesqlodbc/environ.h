@@ -21,8 +21,8 @@
 extern "C" {
 #endif
 
-#include "es_helper.h"
 #include "es_odbc.h"
+#include "opensearch_helper.h"
 
 #define ENV_ALLOC_ERROR 1
 

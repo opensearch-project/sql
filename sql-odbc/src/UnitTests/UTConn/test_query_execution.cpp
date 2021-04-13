@@ -18,7 +18,7 @@
 #include "pch.h"
 #include "unit_test_helper.h"
 #include "opensearch_communication.h"
-#include "es_helper.h"
+#include "opensearch_helper.h"
 // clang-format on
 
 const std::string valid_host = (use_ssl ? "https://localhost" : "localhost");

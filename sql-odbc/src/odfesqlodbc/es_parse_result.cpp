@@ -18,8 +18,8 @@
 
 #include <unordered_map>
 
-#include "es_helper.h"
 #include "es_types.h"
+#include "opensearch_helper.h"
 #ifdef __APPLE__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"

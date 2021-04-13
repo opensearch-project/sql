@@ -17,9 +17,9 @@
 #include "es_statement.h"
 
 #include "environ.h"  // Critical section for statment
-#include "es_helper.h"
 #include "misc.h"
 #include "opensearch_apifunc.h"
+#include "opensearch_helper.h"
 #include "statement.h"
 
 extern "C" void *common_cs;
@@ -171,7 +171,7 @@ SQLRETURN GetNextResultSet(StatementClass *stmt) {
         return SQL_ERROR;
     }
 
-    ESResult *es_res = ESGetResult(conn->esconn);
+    ESResult *es_res = OpenSearchGetResult(conn->esconn);
     if (es_res != NULL) {
         // Save server cursor id to fetch more pages later
         if (es_res->es_result_doc.has("cursor")) {
@@ -245,7 +245,8 @@ QResultClass *SendQueryGetResult(StatementClass *stmt, BOOL commit) {
 
     // Send command
     ConnectionClass *conn = SC_get_conn(stmt);
-    if (ESExecDirect(conn->esconn, stmt->statement, conn->connInfo.fetch_size)
+    if (OpenSearchExecDirect(conn->esconn, stmt->statement,
+                             conn->connInfo.fetch_size)
         != 0) {
         QR_Destructor(res);
         return NULL;
@@ -253,7 +254,7 @@ QResultClass *SendQueryGetResult(StatementClass *stmt, BOOL commit) {
     res->rstatus = PORES_COMMAND_OK;
 
     // Get ESResult
-    ESResult *es_res = ESGetResult(conn->esconn);
+    ESResult *es_res = OpenSearchGetResult(conn->esconn);
     if (es_res == NULL) {
         QR_Destructor(res);
         return NULL;
@@ -272,7 +273,7 @@ QResultClass *SendQueryGetResult(StatementClass *stmt, BOOL commit) {
 
     if (commit) {
         // Deallocate ESResult
-        ESClearResult(es_res);
+        OpenSearchClearResult(es_res);
         res->es_result = NULL;
     } else {
         // Set ESResult into connection class so it can be used later
@@ -300,7 +301,7 @@ RETCODE AssignResult(StatementClass *stmt) {
     GetNextResultSet(stmt);
 
     // Deallocate and return result
-    ESClearResult(es_res);
+    OpenSearchClearResult(es_res);
     res->es_result = NULL;
     return SQL_SUCCESS;
 }
@@ -308,7 +309,7 @@ RETCODE AssignResult(StatementClass *stmt) {
 void ClearESResult(void *es_result) {
     if (es_result != NULL) {
         ESResult *es_res = static_cast< ESResult * >(es_result);
-        ESClearResult(es_res);
+        OpenSearchClearResult(es_res);
     }
 }
 

@@ -39,10 +39,10 @@
 
 #include "dlg_specific.h"
 #include "environ.h"
-#include "es_helper.h"
 #include "loadlib.h"
 #include "multibyte.h"
 #include "opensearch_apifunc.h"
+#include "opensearch_helper.h"
 #include "qresult.h"
 #include "statement.h"
 
@@ -111,17 +111,17 @@ int LIBES_connect(ConnectionClass *self) {
     rt_opts.crypt.verify_server = (self->connInfo.verify_server == 1);
     rt_opts.crypt.use_ssl = (self->connInfo.use_ssl == 1);
 
-    void *esconn = ESConnectDBParams(rt_opts, FALSE, OPTION_COUNT);
+    void *esconn = OpenSearchConnectDBParams(rt_opts, FALSE, OPTION_COUNT);
     if (esconn == NULL) {
         std::string err = GetErrorMsg(esconn);
         CC_set_error(self, CONN_OPENDB_ERROR,
-                     (err.empty()) ? "ESConnectDBParams error" : err.c_str(),
+                     (err.empty()) ? "OpenSearchConnectDBParams error" : err.c_str(),
                      "LIBES_connect");
         return 0;
     }
 
     // Check connection status
-    if (ESStatus(esconn) != CONNECTION_OK) {
+    if (OpenSearchStatus(esconn) != CONNECTION_OK) {
         std::string msg = GetErrorMsg(esconn);
         char error_message_out[ERROR_BUFF_SIZE] = "";
         if (!msg.empty())
@@ -132,7 +132,7 @@ int LIBES_connect(ConnectionClass *self) {
                          "Connection error: No message available.");
         CC_set_error(self, CONN_OPENDB_ERROR, error_message_out,
                      "LIBES_connect");
-        ESDisconnect(esconn);
+        OpenSearchDisconnect(esconn);
         return 0;
     }
 
@@ -177,9 +177,9 @@ int CC_send_client_encoding(ConnectionClass *self, const char *encoding) {
 
     // Update client encoding
     std::string des_db_encoding(encoding);
-    std::string cur_db_encoding = ESGetClientEncoding(self->esconn);
+    std::string cur_db_encoding = OpenSearchGetClientEncoding(self->esconn);
     if (des_db_encoding != cur_db_encoding) {
-        if (!ESSetClientEncoding(self->esconn, des_db_encoding)) {
+        if (!OpenSearchSetClientEncoding(self->esconn, des_db_encoding)) {
             return SQL_ERROR;
         }
     }
@@ -202,5 +202,5 @@ void CC_initialize_opensearch_version(ConnectionClass *self) {
 }
 
 void LIBES_disconnect(void *conn) {
-    ESDisconnect(conn);
+    OpenSearchDisconnect(conn);
 }
