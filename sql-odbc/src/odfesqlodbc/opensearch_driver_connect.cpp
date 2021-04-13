@@ -14,7 +14,7 @@
  *
  */
 
-#include "es_driver_connect.h"
+#include "opensearch_driver_connect.h"
 
 #include <stdio.h>
 #include <stdlib.h>

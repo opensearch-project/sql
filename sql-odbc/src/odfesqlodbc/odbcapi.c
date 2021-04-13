@@ -18,7 +18,6 @@
 #include <string.h>
 
 #include "environ.h"
-#include "es_driver_connect.h"
 #include "es_info.h"
 #include "es_odbc.h"
 #include "es_statement.h"
@@ -26,6 +25,7 @@
 #include "misc.h"
 #include "opensearch_apifunc.h"
 #include "opensearch_connection.h"
+#include "opensearch_driver_connect.h"
 #include "qresult.h"
 #include "statement.h"
 

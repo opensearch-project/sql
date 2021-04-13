@@ -24,8 +24,8 @@ set(					SOURCE_FILES
 							parse.c					results.c				statement.c					odbcapi30.c	
 							qresult.c				odbcapi30w.c opensearch_api30.c es_types.c
 							es_utility.cpp opensearch_communication.cpp opensearch_connection.cpp es_odbc.c
-							es_driver_connect.cpp	es_helper.cpp			es_info.cpp					es_parse_result.cpp
-							es_semaphore.cpp		es_statement.cpp		win_unicode.c				odbcapi.c
+        opensearch_driver_connect.cpp es_helper.cpp			es_info.cpp					es_parse_result.cpp
+		opensearch_semaphore.cpp es_statement.cpp		win_unicode.c				odbcapi.c
 							odbcapiw.c				es_result_queue.cpp
 	)
 if(WIN32)
@@ -36,11 +36,11 @@ set(					HEADER_FILES
 							bind.h					catfunc.h				columninfo.h
 							convert.h				descriptor.h			dlg_specific.h		drvconn.h
 							environ.h opensearch_apifunc.h opensearch_communication.h es_parse_result.h
-        opensearch_connection.h es_driver_connect.h		es_helper.h			es_info.h
+        opensearch_connection.h opensearch_driver_connect.h es_helper.h			es_info.h
 							es_statement.h 			es_types.h 				loadlib.h 		
 							misc.h					multibyte.h				mylog.h				es_utility.h
 							resource.h				statement.h				tuple.h				unicode_support.h
-		opensearch_apifunc.h es_odbc.h				es_semaphore.h		qresult.h
+		opensearch_apifunc.h es_odbc.h opensearch_semaphore.h qresult.h
 							version.h				win_setup.h				es_result_queue.h
 	)
 

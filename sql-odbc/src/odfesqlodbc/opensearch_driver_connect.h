@@ -14,8 +14,8 @@
  *
  */
 
-#ifndef __ES_DRIVER_CONNECT_H__
-#define __ES_DRIVER_CONNECT_H__
+#ifndef __OPENSEARCH_DRIVER_CONNECT_H__
+#define __OPENSEARCH_DRIVER_CONNECT_H__
 #include "opensearch_connection.h"
 
 // C Interface
@@ -31,4 +31,4 @@ RETCODE ESAPI_DriverConnect(HDBC hdbc, HWND hwnd, SQLCHAR *conn_str_in,
 }
 #endif
 
-#endif /* __ES_DRIVER_CONNECT_H__ */
+#endif /* __OPENSEARCH_DRIVER_CONNECT_H__ */
