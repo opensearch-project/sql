@@ -1,0 +1,9 @@
+{
+  "id": "opendistroQueryWorkbenchOpenSearchDashboards",
+  "version": "1.15.0.0",
+  "opensearchDashboardsVersion": "7.10.2",
+  "server": true,
+  "ui": true,
+  "requiredPlugins": ["navigation"],
+  "optionalPlugins": []
+}

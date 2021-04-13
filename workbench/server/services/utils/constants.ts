@@ -26,7 +26,6 @@ export const FORMAT_TEXT = `format=raw`;
 export const DEFAULT_HEADERS = {
   'Content-Type': 'application/json',
   Accept: 'application/json',
-  'User-Agent': 'Kibana',
 };
 
 export const CLUSTER = {

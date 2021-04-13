@@ -13,8 +13,8 @@
  *   permissions and limitations under the License.
  */
 
-import { schema } from '@kbn/config-schema';
-import { IKibanaResponse, IRouter, ResponseError } from '../../../../src/core/server';
+import { schema } from '@osd/config-schema';
+import { IOpenSearchDashboardsResponse, IRouter, ResponseError } from '../../../../src/core/server';
 import QueryService from '../services/QueryService';
 import {
   ROUTE_PATH_SQL_QUERY,
@@ -35,7 +35,7 @@ export default function query(server: IRouter, service: QueryService) {
         body: schema.any(),
       },
     },
-    async (context, request, response): Promise<IKibanaResponse<any | ResponseError>> => {
+    async (context, request, response): Promise<IOpenSearchDashboardsResponse<any | ResponseError>> => {
       const retVal = await service.describeSQLQuery(request);
       return response.ok({
         body: retVal,
@@ -50,7 +50,7 @@ export default function query(server: IRouter, service: QueryService) {
         body: schema.any(),
       },
     },
-    async (context, request, response): Promise<IKibanaResponse<any | ResponseError>> => {
+    async (context, request, response): Promise<IOpenSearchDashboardsResponse<any | ResponseError>> => {
       const retVal = await service.describePPLQuery(request);
       return response.ok({
         body: retVal,
@@ -65,7 +65,7 @@ export default function query(server: IRouter, service: QueryService) {
         body: schema.any(),
       },
     },
-    async (context, request, response): Promise<IKibanaResponse<any | ResponseError>> => {
+    async (context, request, response): Promise<IOpenSearchDashboardsResponse<any | ResponseError>> => {
       const retVal = await service.describeSQLCsv(request);
       return response.ok({
         body: retVal,
@@ -80,7 +80,7 @@ export default function query(server: IRouter, service: QueryService) {
         body: schema.any(),
       },
     },
-    async (context, request, response): Promise<IKibanaResponse<any | ResponseError>> => {
+    async (context, request, response): Promise<IOpenSearchDashboardsResponse<any | ResponseError>> => {
       const retVal = await service.describePPLCsv(request);
       return response.ok({
         body: retVal,
@@ -95,7 +95,7 @@ export default function query(server: IRouter, service: QueryService) {
         body: schema.any(),
       },
     },
-    async (context, request, response): Promise<IKibanaResponse<any | ResponseError>> => {
+    async (context, request, response): Promise<IOpenSearchDashboardsResponse<any | ResponseError>> => {
       const retVal = await service.describeSQLJson(request);
       return response.ok({
         body: retVal,
@@ -110,7 +110,7 @@ export default function query(server: IRouter, service: QueryService) {
         body: schema.any(),
       },
     },
-    async (context, request, response): Promise<IKibanaResponse<any | ResponseError>> => {
+    async (context, request, response): Promise<IOpenSearchDashboardsResponse<any | ResponseError>> => {
       const retVal = await service.describePPLJson(request);
       return response.ok({
         body: retVal,
@@ -125,7 +125,7 @@ export default function query(server: IRouter, service: QueryService) {
         body: schema.any(),
       },
     },
-    async (context, request, response): Promise<IKibanaResponse<any | ResponseError>> => {
+    async (context, request, response): Promise<IOpenSearchDashboardsResponse<any | ResponseError>> => {
       const retVal = await service.describeSQLText(request);
       return response.ok({
         body: retVal,
@@ -140,7 +140,7 @@ export default function query(server: IRouter, service: QueryService) {
         body: schema.any(),
       },
     },
-    async (context, request, response): Promise<IKibanaResponse<any | ResponseError>> => {
+    async (context, request, response): Promise<IOpenSearchDashboardsResponse<any | ResponseError>> => {
       const retVal = await service.describePPLText(request);
       return response.ok({
         body: retVal,

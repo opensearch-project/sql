@@ -1,6 +1,6 @@
-# Open Distro for Elasticsearch Query Workbench
+# OpenSearch Dashboards Query Workbench
 
-The Open Distro for Elasticsearch Query Workbench enables you to query your Elasticsearch data using either SQL or PPL syntax from a dedicated Kibana UI. You can download your query results data in JSON, JDBC, CSV and raw text formats.
+The OpenSearch Dashboards Query Workbench enables you to query your OpenSearch data using either SQL or PPL syntax from a dedicated OpenSearch Dashboards UI. You can download your query results data in JSON, JDBC, CSV and raw text formats.
 
 
 ## Documentation
@@ -10,31 +10,31 @@ Please see our technical [documentation](https://opendistro.github.io/for-elasti
 
 ## Setup
 
-1. Download Elasticsearch for the version that matches the [Kibana version specified in package.json](./package.json#L8).
-1. Download and install the most recent version of [Open Distro for Elasticsearch SQL plugin](https://github.com/opendistro-for-elasticsearch/sql).
-1. Download the Kibana source code for the [version specified in package.json](./package.json#L8) you want to set up.
+1. Download OpenSearch for the version that matches the [OpenSearch Dashboards version specified in package.json](./package.json#L8).
+1. Download and install the most recent version of [OpenSearch SQL plugin](https://github.com/opensearch-project/sql#open-distro-for-elasticsearch-sql).
+1. Download the OpenSearch Dashboards source code for the [version specified in package.json](./package.json#L8) you want to set up.
 
-   See the [Kibana contributing guide](https://github.com/elastic/kibana/blob/master/CONTRIBUTING.md#setting-up-your-development-environment) for more instructions on setting up your development environment.
+   See the [OpenSearch Dashboards contributing guide](https://github.com/opensearch-project/OpenSearch-Dashboards/blob/main/CONTRIBUTING.md) to get started.
    
-1. Change your node version to the version specified in `.node-version` inside the Kibana root directory.
-1. cd into the Kibana source code directory.
+1. Change your node version to the version specified in `.node-version` inside the OpenSearch Dashboards root directory.
+1. cd into the OpenSearch Dashboards source code directory.
 1. Check out this package from version control into the `plugins` directory.
 ```
-git clone git@github.com:opendistro-for-elasticsearch/sql.git plugins --no-checkout
+git clone git@github.com:opensearch-project/sql.git plugins --no-checkout
 cd plugins
-echo 'workbench/*' >> .git/info/sparse-checkout
+echo 'dashboards-workbench/*' >> .git/info/sparse-checkout
 git config core.sparseCheckout true
-git checkout master
+git checkout main
 ```
-6. Run `yarn kbn bootstrap` inside `kibana/plugins/workbench`.
+6. Run `yarn osd bootstrap` inside `OpenSearch-Dashboards/plugins/dashboards-workbench`.
 
 Ultimately, your directory structure should look like this:
 
 ```md
 .
-├── kibana
+├── OpenSearch-Dashboards
 │   └── plugins
-│       └── workbench
+│       └── dashboards-workbench
 ```
 
 
@@ -49,21 +49,21 @@ Example output: `./build/opendistro-query-workbench-*.zip`
 
 - `yarn start`
 
-  Starts Kibana and includes this plugin. Kibana will be available on `localhost:5601`.
+  Starts OpenSearch Dashboards and includes this plugin. OpenSearch Dashboards will be available on `localhost:5601`.
 
 - `NODE_PATH=../../node_modules yarn test:jest`
 
   Runs the plugin tests.
 
 
-## Contributing to Open Distro for Elasticsearch Query Workbench
+## Contributing to OpenSearch SQL Workbench
 
 - Refer to [CONTRIBUTING.md](./CONTRIBUTING.md).
-- Since this is a workbench, it can be useful to review the [Kibana contributing guide](https://github.com/elastic/kibana/blob/master/CONTRIBUTING.md) alongside the documentation around [workbenchs](https://www.elastic.co/guide/en/kibana/master/kibana-plugins.html) and [plugin development](https://www.elastic.co/guide/en/kibana/master/plugin-development.html).
+- We welcome you to get involved in development, documentation, testing the OpenSearch SQL Workbench plugin. See our [CONTRIBUTING.md](./CONTRIBUTING.md) and join in.
 
 ## Bugs, Enhancements or Questions
 
-Please file an issue to report any bugs you may find, enhancements you may need or questions you may have [here](https://github.com/opendistro-for-elasticsearch/sql/issues).
+Please file an issue to report any bugs you may find, enhancements you may need or questions you may have [here](https://github.com/opensearch-project/sql/issues).
 
 ## License
 
