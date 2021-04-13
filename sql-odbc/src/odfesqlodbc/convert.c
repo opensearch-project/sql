@@ -38,9 +38,9 @@
 
 #include "bind.h"
 #include "catfunc.h"
-#include "es_apifunc.h"
 #include "es_connection.h"
 #include "es_types.h"
+#include "opensearch_apifunc.h"
 #include "qresult.h"
 #include "statement.h"
 

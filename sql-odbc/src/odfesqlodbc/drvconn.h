@@ -39,7 +39,7 @@
 #include "resource.h"
 #endif
 #include "dlg_specific.h"
-#include "es_apifunc.h"
+#include "opensearch_apifunc.h"
 
 #define PASSWORD_IS_REQUIRED 1
 

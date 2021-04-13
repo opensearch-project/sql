@@ -30,7 +30,7 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "es_apifunc.h"
+#include "opensearch_apifunc.h"
 #include "es_helper.h"
 #include "es_statement.h"
 // clang-format on

@@ -35,11 +35,11 @@
 
 #include "dlg_specific.h"
 #include "environ.h"
-#include "es_apifunc.h"
 #include "es_connection.h"
 #include "es_helper.h"
 #include "loadlib.h"
 #include "multibyte.h"
+#include "opensearch_apifunc.h"
 #include "qresult.h"
 #include "statement.h"
 #ifndef WIN32

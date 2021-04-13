@@ -14,8 +14,8 @@
  *
  */
 
-#ifndef _ES_API_FUNC_H__
-#define _ES_API_FUNC_H__
+#ifndef _OPENSEARCH_API_FUNC_H__
+#define _OPENSEARCH_API_FUNC_H__
 
 #include <stdio.h>
 #include <string.h>
@@ -240,4 +240,4 @@ RETCODE SQL_API ESAPI_DescError(SQLHDESC DescriptorHandle,
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
-#endif /* define_ES_API_FUNC_H__ */
+#endif /* define_OPENSEARCH_API_FUNC_H__ */

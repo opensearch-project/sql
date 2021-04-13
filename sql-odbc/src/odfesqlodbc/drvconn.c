@@ -39,7 +39,7 @@
 #include "win_setup.h"
 #endif
 #include "dlg_specific.h"
-#include "es_apifunc.h"
+#include "opensearch_apifunc.h"
 
 #ifdef WIN32
 INT_PTR CALLBACK dconn_FDriverConnectProc(HWND hdlg, UINT wMsg, WPARAM wParam,

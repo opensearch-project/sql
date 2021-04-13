@@ -17,9 +17,9 @@
 #include "es_statement.h"
 
 #include "environ.h"  // Critical section for statment
-#include "es_apifunc.h"
 #include "es_helper.h"
 #include "misc.h"
+#include "opensearch_apifunc.h"
 #include "statement.h"
 
 extern "C" void *common_cs;

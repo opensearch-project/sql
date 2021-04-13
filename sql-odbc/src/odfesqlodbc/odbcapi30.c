@@ -18,10 +18,10 @@
 #include <string.h>
 
 #include "environ.h"
-#include "es_apifunc.h"
 #include "es_connection.h"
 #include "es_odbc.h"
 #include "misc.h"
+#include "opensearch_apifunc.h"
 #include "statement.h"
 
 /*	SQLAllocConnect/SQLAllocEnv/SQLAllocStmt -> SQLAllocHandle */

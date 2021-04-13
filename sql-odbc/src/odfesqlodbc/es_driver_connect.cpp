@@ -41,7 +41,7 @@
 
 #include "dlg_specific.h"
 #include "drvconn.h"
-#include "es_apifunc.h"
+#include "opensearch_apifunc.h"
 
 static RETCODE CheckDriverComplete(const SQLUSMALLINT driver_completion,
                                    const HWND hwnd, ConnInfo *ci,

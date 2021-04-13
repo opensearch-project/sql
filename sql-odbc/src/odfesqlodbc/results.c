@@ -22,14 +22,14 @@
 #include "convert.h"
 #include "dlg_specific.h"
 #include "environ.h"
-#include "es_apifunc.h"
 #include "es_connection.h"
 #include "es_odbc.h"
+#include "es_statement.h"
 #include "es_types.h"
 #include "misc.h"
+#include "opensearch_apifunc.h"
 #include "qresult.h"
 #include "statement.h"
-#include "es_statement.h"
 
 /*	Helper macro */
 #define getEffectiveOid(conn, fi) \
