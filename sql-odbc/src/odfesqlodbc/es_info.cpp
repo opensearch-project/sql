@@ -25,7 +25,7 @@
 #include <unordered_map>
 #include <vector>
 
-// TODO #324 (SQL Plugin)- Update if Elasticsearch extends support for multiple
+// TODO #324 (SQL Plugin)- Update if OpenSearch extends support for multiple
 // tables
 #define DEFAULT_TYPE_STR \
     { 'k', 'e', 'y', 'w', 'o', 'r', 'd', '\0' }

@@ -89,7 +89,7 @@ void SetAuthenticationVisibility(HWND hdlg, const struct authmode *am) {
 
 void SetDlgStuff(HWND hdlg, const ConnInfo *ci) {
     // Connection
-    SetDlgItemText(hdlg, IDC_DRIVER_VERSION, "V."ELASTICSEARCHDRIVERVERSION);
+    SetDlgItemText(hdlg, IDC_DRIVER_VERSION, "V."OPENSEARCHDRIVERVERSION);
     SetDlgItemText(hdlg, IDC_DSNAME, ci->dsn);
     SetDlgItemText(hdlg, IDC_SERVER, ci->server);
     SetDlgItemText(hdlg, IDC_PORT, ci->port);

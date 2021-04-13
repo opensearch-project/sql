@@ -192,7 +192,7 @@ RETCODE SQL_API ESAPI_GetInfo(HDBC hdbc, SQLUSMALLINT fInfoType,
             break;
 
         case SQL_DBMS_NAME: /* ODBC 1.0 */
-            p = "Elasticsearch";
+            p = "OpenSearch";
             break;
 
         case SQL_DBMS_VER: /* ODBC 1.0 */
@@ -218,7 +218,7 @@ RETCODE SQL_API ESAPI_GetInfo(HDBC hdbc, SQLUSMALLINT fInfoType,
             break;
 
         case SQL_DRIVER_VER: /* ODBC 1.0 */
-            p = ELASTICSEARCHDRIVERVERSION;
+            p = OPENSEARCHDRIVERVERSION;
             break;
 
         case SQL_EXPRESSIONS_IN_ORDERBY: /* ODBC 1.0 */
@@ -453,7 +453,7 @@ RETCODE SQL_API ESAPI_GetInfo(HDBC hdbc, SQLUSMALLINT fInfoType,
             break;
 
         case SQL_OWNER_USAGE: /* ODBC 2.0 */
-            // Elasticsearch does not support schemas.
+            // OpenSearch does not support schemas.
             // This will disable showing an empty schema box in Tableau.
             len = 4;
             value = 0;
@@ -577,7 +577,7 @@ RETCODE SQL_API ESAPI_GetInfo(HDBC hdbc, SQLUSMALLINT fInfoType,
 
         case SQL_TXN_CAPABLE: /* ODBC 1.0 */
             /*
-             * Elasticsearch does not support transactions.
+             * OpenSearch does not support transactions.
              */
             len = 2;
             value = SQL_TC_NONE;

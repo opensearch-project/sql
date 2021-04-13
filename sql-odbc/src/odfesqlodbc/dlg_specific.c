@@ -57,7 +57,7 @@ void makeConnectString(char *connect_string, const ConnInfo *ci, UWORD len) {
         connect_string, nlen,
         "%s=%s;" INI_SERVER
         "=%s;"
-        "database=elasticsearch;" INI_PORT "=%s;" INI_USERNAME_ABBR
+        "database=OpenSearch;" INI_PORT "=%s;" INI_USERNAME_ABBR
         "=%s;" INI_PASSWORD_ABBR "=%s;" INI_AUTH_MODE "=%s;" INI_REGION
         "=%s;" INI_SSL_USE "=%d;" INI_SSL_HOST_VERIFY "=%d;" INI_LOG_LEVEL
         "=%d;" INI_LOG_OUTPUT "=%s;" INI_TIMEOUT "=%s;" INI_FETCH_SIZE "=%s;",

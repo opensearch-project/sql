@@ -1,14 +1,14 @@
 Windows Registry Editor Version 5.00
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\ODBC\ODBCINST.INI\ODBC Drivers]
-"ElasticsearchODBC"="Installed"
+"OpenSearchODBC"="Installed"
 
-[HKEY_LOCAL_MACHINE\SOFTWARE\ODBC\ODBCINST.INI\ElasticsearchODBC]
+[HKEY_LOCAL_MACHINE\SOFTWARE\ODBC\ODBCINST.INI\OpenSearchODBC]
 "Driver"="<project-root>\\bin64\\Release\\odfesqlodbc.dll"
 "Setup"="<project-root>\\bin64\\Release\\odfesqlodbc.dll"
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\ODBC\ODBC.INI\ODBC Data Sources]
-"test_dsn"="ElasticsearchODBC"
+"test_dsn"="OpenSearchODBC"
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\ODBC\ODBC.INI\test_dsn]
 "host"="localhost"

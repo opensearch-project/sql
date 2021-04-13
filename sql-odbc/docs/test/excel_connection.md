@@ -8,7 +8,7 @@
 
 ## Microsoft Excel Connectivity
 
-There are multiple ways to load data from Elasticsearch in Microsoft Excel.
+There are multiple ways to load data from OpenSearch in Microsoft Excel.
 * [ODBC as Data Source](odbc_data_source_connection.md)
 * [Microsoft Query](microsoft_query_connection.md)
 * [Query Wizard](query_wizard_connection.md)

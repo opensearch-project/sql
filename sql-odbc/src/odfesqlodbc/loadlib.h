@@ -42,7 +42,7 @@ void CALL_ReleaseTransactionObject(void *);
 void CleanupDelayLoadedDLLs(void);
 #ifdef WIN32
 HMODULE MODULE_load_from_elasticodbc_path(const char *module_name);
-void AlreadyLoadedElasticsearchodbc(void);
+void AlreadyLoadedOpenSearchodbc(void);
 #endif /* WIN32 */
 
 #ifdef __cplusplus

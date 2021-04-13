@@ -78,7 +78,7 @@ RETCODE SQL_API SQLBindParam(HSTMT StatementHandle,
         return SQL_ERROR;
     SC_clear_error(stmt);
     SC_set_error(stmt, STMT_NOT_IMPLEMENTED_ERROR,
-                 "Elasticsearch does not support parameters.", "SQLBindParam");
+                 "OpenSearch does not support parameters.", "SQLBindParam");
     return SQL_ERROR;
 }
 

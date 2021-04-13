@@ -189,7 +189,7 @@ static SQLSMALLINT getNumericDecimalDigitsX(const ConnectionClass *conn,
     return (SQLSMALLINT)adtsize_or_longest;
 }
 
-static Int4 /* Elasticsearch restritiction */
+static Int4 /* OpenSearch restritiction */
 getNumericColumnSizeX(const ConnectionClass *conn, OID type, int atttypmod,
                       int adtsize_or_longest, int handle_unknown_size_as) {
     UNUSED(conn);
@@ -513,7 +513,7 @@ const char *estype_attr_to_name(const ConnectionClass *conn, OID type,
     }
 }
 
-Int4 /* Elasticsearch restriction */
+Int4 /* OpenSearch restriction */
 estype_attr_column_size(const ConnectionClass *conn, OID type, int atttypmod,
                         int adtsize_or_longest, int handle_unknown_size_as) {
     UNUSED(handle_unknown_size_as, adtsize_or_longest, atttypmod, conn);
@@ -1133,7 +1133,7 @@ const char *estype_to_name(const StatementClass *stmt, OID type, int col,
  *	If col >= 0, then will attempt to get the info from the result set.
  *	This is used for functions SQLDescribeCol and SQLColAttributes.
  */
-Int4 /* Elasticsearch restriction */
+Int4 /* OpenSearch restriction */
 estype_column_size(const StatementClass *stmt, OID type, int col,
                    int handle_unknown_size_as) {
     int atttypmod, adtsize_or_longestlen;

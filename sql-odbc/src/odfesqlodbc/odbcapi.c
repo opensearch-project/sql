@@ -461,7 +461,7 @@ RETCODE SQL_API SQLParamData(HSTMT StatementHandle, PTR *Value) {
         return SQL_ERROR;
     SC_clear_error(stmt);
     SC_set_error(stmt, STMT_NOT_IMPLEMENTED_ERROR,
-                 "Elasticsearch does not support parameters.", "SQLParamData");
+                 "OpenSearch does not support parameters.", "SQLParamData");
     return SQL_ERROR;
 }
 
@@ -503,7 +503,7 @@ RETCODE SQL_API SQLPutData(HSTMT StatementHandle, PTR Data,
         return SQL_ERROR;
     SC_clear_error(stmt);
     SC_set_error(stmt, STMT_NOT_IMPLEMENTED_ERROR,
-                 "Elasticsearch does not support parameters.", "SQLPutData");
+                 "OpenSearch does not support parameters.", "SQLPutData");
     return SQL_ERROR;
 }
 
@@ -548,7 +548,7 @@ RETCODE SQL_API SQLSetParam(HSTMT StatementHandle, SQLUSMALLINT ParameterNumber,
         return SQL_ERROR;
     SC_clear_error(stmt);
     SC_set_error(stmt, STMT_NOT_IMPLEMENTED_ERROR,
-                 "Elasticsearch does not support parameters.", "SQLSetParam");
+                 "OpenSearch does not support parameters.", "SQLSetParam");
     return SQL_ERROR;
 }
 
@@ -823,7 +823,7 @@ RETCODE SQL_API SQLDescribeParam(HSTMT hstmt, SQLUSMALLINT ipar,
 
     // COLNUM_ERROR translates to 'invalid descriptor index'
     SC_set_error(stmt, STMT_COLNUM_ERROR,
-                 "Elasticsearch does not support parameters.", "SQLNumParams");
+                 "OpenSearch does not support parameters.", "SQLNumParams");
     return SQL_ERROR;
 }
 
@@ -998,7 +998,7 @@ RETCODE SQL_API SQLNumParams(HSTMT hstmt, SQLSMALLINT *pcpar) {
         return SQL_ERROR;
     SC_clear_error(stmt);
     SC_set_error(stmt, STMT_NOT_IMPLEMENTED_ERROR,
-                 "Elasticsearch does not support parameters.", "SQLNumParams");
+                 "OpenSearch does not support parameters.", "SQLNumParams");
     return SQL_SUCCESS_WITH_INFO;
 }
 
@@ -1287,7 +1287,7 @@ RETCODE SQL_API SQLBindParameter(HSTMT hstmt, SQLUSMALLINT ipar,
         return SQL_ERROR;
     SC_clear_error(stmt);
     SC_set_error(stmt, STMT_NOT_IMPLEMENTED_ERROR,
-                 "Elasticsearch does not support parameters.",
+                 "OpenSearch does not support parameters.",
                  "SQLBindParameter");
     return SQL_ERROR;
 }

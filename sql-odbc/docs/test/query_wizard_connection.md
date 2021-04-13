@@ -15,7 +15,7 @@
 
 <img src="img/query_wizard_select_tables.png" width="500">
 
-* Specify conditions to apply filter if needed. Ensure selected operations are supported by Elasticsearch. Click on **Next**.
+* Specify conditions to apply filter if needed. Ensure selected operations are supported by OpenSearch. Click on **Next**.
 
 <img src="img/query_wizard_filter_data.png" width="500">
 
