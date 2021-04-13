@@ -32,7 +32,7 @@
 
 #include "opensearch_apifunc.h"
 #include "opensearch_helper.h"
-#include "es_statement.h"
+#include "opensearch_statement.h"
 // clang-format on
 
 /*	Map sql commands to statement types */

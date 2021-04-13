@@ -14,8 +14,8 @@
  *
  */
 
-#ifndef _ES_STATEMENT_H_
-#define _ES_STATEMENT_H_
+#ifndef _OPENSEARCH_STATEMENT_H_
+#define _OPENSEARCH_STATEMENT_H_
 
 #include "opensearch_parse_result.h"
 #include "qresult.h"
@@ -31,7 +31,7 @@ QResultClass *SendQueryGetResult(StatementClass *stmt, BOOL commit);
 RETCODE AssignResult(StatementClass *stmt);
 SQLRETURN ESAPI_Cancel(HSTMT hstmt);
 SQLRETURN GetNextResultSet(StatementClass *stmt);
-void ClearESResult(void *es_result);
+void ClearOpenSearchResult(void *opensearch_result);
 #ifdef __cplusplus
 }
 #endif

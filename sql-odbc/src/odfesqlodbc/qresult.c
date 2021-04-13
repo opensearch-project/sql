@@ -20,8 +20,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "es_statement.h"
 #include "misc.h"
+#include "opensearch_statement.h"
 #include "statement.h"
 
 /*
@@ -468,7 +468,7 @@ void QR_free_memory(QResultClass *self) {
         self->updated_tuples = NULL;
     }
     if (self->es_result) {
-        ClearESResult(self->es_result);
+        ClearOpenSearchResult(self->es_result);
         self->es_result = NULL;
     }
 

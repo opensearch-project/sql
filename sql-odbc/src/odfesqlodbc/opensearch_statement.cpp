@@ -14,7 +14,7 @@
  *
  */
 
-#include "es_statement.h"
+#include "opensearch_statement.h"
 
 #include "environ.h"  // Critical section for statment
 #include "misc.h"
@@ -308,9 +308,9 @@ RETCODE AssignResult(StatementClass *stmt) {
     return SQL_SUCCESS;
 }
 
-void ClearESResult(void *es_result) {
-    if (es_result != NULL) {
-        ESResult *es_res = static_cast< ESResult * >(es_result);
+void ClearOpenSearchResult(void *opensearch_result) {
+    if (opensearch_result != NULL) {
+        ESResult *es_res = static_cast< ESResult * >(opensearch_result);
         OpenSearchClearResult(es_res);
     }
 }
