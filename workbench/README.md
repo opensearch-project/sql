@@ -22,11 +22,11 @@ Please see our technical [documentation](https://opendistro.github.io/for-elasti
 ```
 git clone git@github.com:opensearch-project/sql.git plugins --no-checkout
 cd plugins
-echo 'dashboards-workbench/*' >> .git/info/sparse-checkout
+echo 'workbench/*' >> .git/info/sparse-checkout
 git config core.sparseCheckout true
 git checkout main
 ```
-6. Run `yarn osd bootstrap` inside `OpenSearch-Dashboards/plugins/dashboards-workbench`.
+6. Run `yarn osd bootstrap` inside `OpenSearch-Dashboards/plugins/workbench`.
 
 Ultimately, your directory structure should look like this:
 
@@ -34,7 +34,7 @@ Ultimately, your directory structure should look like this:
 .
 ├── OpenSearch-Dashboards
 │   └── plugins
-│       └── dashboards-workbench
+│       └── workbench
 ```
 
 
