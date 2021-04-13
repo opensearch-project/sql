@@ -92,7 +92,7 @@ const std::vector< short > flights_sql_data_type = {
     SQL_WVARCHAR, SQL_BIT,      SQL_REAL,     SQL_WVARCHAR,       SQL_WVARCHAR,
     SQL_WVARCHAR, SQL_WVARCHAR, SQL_WVARCHAR, SQL_WVARCHAR,       SQL_WVARCHAR};
 const std::string flights_catalog_odfe = "odfe-cluster";
-const std::string flights_catalog_elas = "elasticsearch";
+const std::string flights_catalog_elas = "opensearch";
 const std::string flights_table_name = "kibana_sample_data_flights";
 const std::string flights_decimal_digits = "10";
 const std::string flights_num_prec_radix = "2";

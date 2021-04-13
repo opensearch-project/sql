@@ -39,11 +39,11 @@ static const std::string PLUGIN_ENDPOINT_FORMAT_JSON =
 static const std::string OPENDISTRO_SQL_PLUGIN_NAME = "opendistro-sql";
 static const std::string ALLOCATION_TAG = "AWS_SIGV4_AUTH";
 static const std::string SERVICE_NAME = "es";
-static const std::string ESODBC_PROFILE_NAME = "elasticsearchodbc";
+static const std::string ESODBC_PROFILE_NAME = "opensearchodbc";
 static const std::string ERROR_MSG_PREFIX =
     "[Open Distro For Elasticsearch][SQL ODBC Driver][SQL Plugin] ";
 static const std::string JSON_SCHEMA =
-    "{"  // This was generated from the example elasticsearch data
+    "{"  // This was generated from the example OpenSearch data
     "\"type\": \"object\","
     "\"properties\": {"
     "\"schema\": {"
@@ -69,7 +69,7 @@ static const std::string JSON_SCHEMA =
     "\"required\": [\"schema\", \"total\", \"datarows\", \"size\", \"status\"]"
     "}";
 static const std::string CURSOR_JSON_SCHEMA =
-    "{"  // This was generated from the example elasticsearch data
+    "{"  // This was generated from the example OpenSearch data
     "\"type\": \"object\","
     "\"properties\": {"
     "\"cursor\": { \"type\": \"string\" },"
@@ -479,7 +479,7 @@ bool ESCommunication::EstablishConnection() {
         InitializeConnection();
     }
 
-    // Check whether SQL plugin has been installed on the Elasticsearch server.
+    // Check whether SQL plugin has been installed on the OpenSearch server.
     // This is required for executing driver queries with the server.
     LogMsg(ES_ALL, "Checking for SQL plugin");
     std::shared_ptr< Aws::Http::HttpResponse > response =

@@ -113,7 +113,7 @@ INT_PTR CALLBACK dconn_FDriverConnectProc(HWND hdlg, UINT wMsg, WPARAM wParam,
             ci = (ConnInfo *)lParam;
 
             /* Change the caption for the setup dialog */
-            SetWindowText(hdlg, "Elasticsearch Connection");
+            SetWindowText(hdlg, "OpenSearch Connection");
 
             /* Hide the DSN and description fields */
             ShowWindow(GetDlgItem(hdlg, IDC_DSNAMETEXT), SW_HIDE);

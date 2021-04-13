@@ -155,7 +155,7 @@ static FARPROC WINAPI DliErrorHook(unsigned dliNotify, PDelayLoadInfo pdli) {
     return (FARPROC)hmodule;
 }
 
-void AlreadyLoadedElasticsearchodbc(void) {
+void AlreadyLoadedOpenSearchodbc(void) {
     loaded_elasticodbc = TRUE;
 }
 

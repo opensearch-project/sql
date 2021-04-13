@@ -46,9 +46,9 @@ extern "C" {
 #define INVALID_DRIVER " @@driver not exist@@ "
 
 #ifdef UNICODE_SUPPORT
-#define INI_DSN "Elasticsearch35W"
+#define INI_DSN "OpenSearch35W"
 #else
-#define INI_DSN "Elasticsearch30"
+#define INI_DSN "OpenSearch30"
 #endif /* UNICODE_SUPPORT */
     
 #define INI_HOST "host"
@@ -76,7 +76,7 @@ extern "C" {
 #define DEFAULT_PORT ""
 #define DEFAULT_USERNAME ""
 #define DEFAULT_PASSWORD ""
-#define DEFAULT_DRIVERNAME "elasticsearchodbc"
+#define DEFAULT_DRIVERNAME "opensearchodbc"
 #define DEFAULT_DESC ""
 #define DEFAULT_DSN ""
 #define DEFAULT_REGION ""

@@ -1090,7 +1090,7 @@ int copy_and_convert_field(StatementClass *stmt, OID field_type, int atttypmod,
     }
 
     /*
-     * First convert any specific elasticsearch types into more useable data.
+     * First convert any specific OpenSearch types into more useable data.
      *
      * NOTE: Conversions from ES char/varchar of a date/time/timestamp value
      * to SQL_C_DATE,SQL_C_TIME, SQL_C_TIMESTAMP not supported
@@ -1344,7 +1344,7 @@ int copy_and_convert_field(StatementClass *stmt, OID field_type, int atttypmod,
                  * cbValueMax because the driver can't handle multiple
                  * calls to SQLGetData for these, yet.	Most likely, the
                  * buffer passed in will be big enough to handle the
-                 * maximum limit of elasticsearch, anyway.
+                 * maximum limit of OpenSearch, anyway.
                  *
                  * LongVarBinary types are handled correctly above, observing
                  * truncation and all that stuff since there is

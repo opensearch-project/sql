@@ -324,10 +324,10 @@ extern int posix_snprintf(char *buf, size_t size, const char *format, ...);
 
 /* Driver stuff */
 
-#define DRIVERNAME "Elasticsearch ODBC"
+#define DRIVERNAME "OpenSearch ODBC"
 
-#define DBMS_NAME_UNICODE "Elasticsearch Unicode"
-#define DBMS_NAME_ANSI "Elasticsearch ANSI"
+#define DBMS_NAME_UNICODE "OpenSearch Unicode"
+#define DBMS_NAME_ANSI "OpenSearch ANSI"
 
 #define DRIVER_ODBC_VER "03.51"
 
@@ -362,7 +362,7 @@ SQLULEN ucs2strlen(const SQLWCHAR *);
 #endif /* DBMS_NAME */
 
 #ifndef DBMS_NAME
-#define DBMS_NAME "Elasticsearch Legacy"
+#define DBMS_NAME "OpenSearch Legacy"
 #endif /* DBMS_NAME */
 #ifdef WIN32
 #ifdef UNICODE_SUPPORT

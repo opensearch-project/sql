@@ -1,6 +1,6 @@
 # Open Distro for Elasticsearch ODBC Driver
 
-ElasticsearchODBC is a read-only ODBC driver for Windows and Mac for connecting to Open Distro for Elasticsearch SQL support.
+OpenSearchODBC is a read-only ODBC driver for Windows and Mac for connecting to Open Distro for Elasticsearch SQL support.
 
 ## Specifications
 

@@ -696,7 +696,7 @@ BOOL INTFUNC ChangeDriverName(HWND hwndParent, LPSETUPDLG lpsetupdlg,
 
     if (!ci->dsn[0]) {
         err = IDS_BADDSN;
-    } else if (!driver_name || strnicmp(driver_name, "elasticsearch", 13)) {
+    } else if (!driver_name || strnicmp(driver_name, "opensearch", 10)) {
         err = IDS_BADDSN;
     } else {
         LPCSTR lpszDrvr = lpsetupdlg->lpszDrvr;

@@ -38,7 +38,7 @@ For **AWS_SIGV4**, select **Key** and set aws access credentials for user **PBIE
 
 ## Publish Report
 
-* Follow [instructions](./power_bi_support.md) to create graph using Open Disto For Elasticsearch Data connector.
+* Follow [instructions](./power_bi_support.md) to create graph using Open Distro For Elasticsearch Data connector.
 * Click on **Publish** to publish the report on Power BI service.
 
 <img src="img/pbi_publish_report.png">

@@ -184,7 +184,7 @@ TEST_SQL_SET_DESC_FIELD(Test_SQL_DESC_BIND_TYPE, SQL_DESC_BIND_TYPE, SQL_NTS, 0,
                         , SQL_SUCCESS, m_ard_hdesc, 0);
 
 TEST_SQL_SET_DESC_FIELD(Test_SQL_DESC_COUNT, SQL_DESC_COUNT, SQL_IS_SMALLINT, 0,
-                        SQLSMALLINT m_value_ptr = 25;
+                        SQLSMALLINT m_value_ptr = 27;
                         , SQL_SUCCESS, m_ard_hdesc, 0);
 
 TEST_SQL_SET_DESC_FIELD(Test_SQL_DESC_ROWS_PROCESSED_PTR,

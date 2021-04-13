@@ -283,7 +283,7 @@ struct ConnectionClass_ {
     char transact_status;             /* Is a transaction is currently
                                        * in progress */
     char cluster_name[MAX_INFO_STRING];
-    char es_version[MAX_INFO_STRING]; /* Version of Elasticsearch driver
+    char es_version[MAX_INFO_STRING]; /* Version of OpenSearch driver
                                        * we're connected to -
                                        * DJP 25-1-2001 */
     Int2 es_version_major;

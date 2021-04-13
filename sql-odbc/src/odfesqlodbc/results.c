@@ -968,7 +968,7 @@ RETCODE SQL_API ESAPI_GetData(HSTMT hstmt, SQLUSMALLINT icol,
 
         case COPY_UNSUPPORTED_TYPE:
             SC_set_error(stmt, STMT_RESTRICTED_DATA_TYPE_ERROR,
-                         "Received an unsupported type from Elasticsearch.",
+                         "Received an unsupported type from OpenSearch.",
                          func);
             result = SQL_ERROR;
             break;
