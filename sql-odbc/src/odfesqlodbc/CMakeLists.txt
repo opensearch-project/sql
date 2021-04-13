@@ -22,7 +22,7 @@ set(					SOURCE_FILES
 							environ.c				execute.c				info.c						loadlib.c
 							misc.c					multibyte.c				mylog.c						tuple.c
 							parse.c					results.c				statement.c					odbcapi30.c	
-							qresult.c				odbcapi30w.c			es_api30.c					es_types.c					
+							qresult.c				odbcapi30w.c opensearch_api30.c es_types.c
 							es_utility.cpp			es_communication.cpp	es_connection.cpp			es_odbc.c
 							es_driver_connect.cpp	es_helper.cpp			es_info.cpp					es_parse_result.cpp
 							es_semaphore.cpp		es_statement.cpp		win_unicode.c				odbcapi.c
