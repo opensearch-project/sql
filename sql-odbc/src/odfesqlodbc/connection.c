@@ -23,8 +23,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "misc.h"
 #include "opensearch_connection.h"
+#include "misc.h"
 
 /* for htonl */
 #ifdef WIN32
