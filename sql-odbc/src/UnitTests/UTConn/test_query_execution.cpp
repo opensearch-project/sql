@@ -43,24 +43,25 @@ runtime_options valid_conn_opt_val = {
     {"BASIC", valid_user, valid_pw, valid_region},
     {use_ssl, false, "", "", "", ""}};
 
-TEST(TestESExecDirect, ValidQuery) {
+TEST(TestOpenSearchExecDirect, ValidQuery) {
     OpenSearchCommunication conn;
     ASSERT_TRUE(conn.ConnectionOptions(valid_conn_opt_val, false, 0, 0));
     ASSERT_TRUE(conn.ConnectDBStart());
     EXPECT_EQ(EXECUTION_SUCCESS,
-        ESExecDirect(&conn, some_columns_flights_query.c_str(), fetch_size.c_str()));
+              OpenSearchExecDirect(&conn, some_columns_flights_query.c_str(), fetch_size.c_str()));
 }
 
-TEST(TestESExecDirect, MissingQuery) {
+TEST(TestOpenSearchExecDirect, MissingQuery) {
     OpenSearchCommunication conn;
     ASSERT_TRUE(conn.ConnectionOptions(valid_conn_opt_val, false, 0, 0));
     ASSERT_TRUE(conn.ConnectDBStart());
-    EXPECT_EQ(EXECUTION_ERROR, ESExecDirect(&conn, NULL, fetch_size.c_str()));
+    EXPECT_EQ(EXECUTION_ERROR,
+              OpenSearchExecDirect(&conn, NULL, fetch_size.c_str()));
 }
 
-TEST(TestESExecDirect, MissingConnection) {
+TEST(TestOpenSearchExecDirect, MissingConnection) {
     EXPECT_EQ(EXECUTION_ERROR,
-              ESExecDirect(NULL, query.c_str(), fetch_size.c_str()));
+              OpenSearchExecDirect(NULL, query.c_str(), fetch_size.c_str()));
 }
 
 // Conn::ExecDirect

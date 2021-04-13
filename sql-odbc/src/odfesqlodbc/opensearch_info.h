@@ -14,8 +14,8 @@
  *
  */
 
-#ifndef __ES_INFO_H__
-#define __ES_INFO_H__
+#ifndef __OPENSEARCH_INFO_H__
+#define __OPENSEARCH_INFO_H__
 #include "es_odbc.h"
 #include "opensearch_helper.h"
 #include "unicode_support.h"
@@ -62,4 +62,4 @@ RETCODE SQL_API ESAPI_GetTypeInfo(HSTMT hstmt, SQLSMALLINT fSqlType);
 }
 #endif
 
-#endif /* __ES_INFO_H__ */
+#endif /* __OPENSEARCH_INFO_H__ */

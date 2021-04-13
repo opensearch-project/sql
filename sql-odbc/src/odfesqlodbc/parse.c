@@ -19,13 +19,13 @@
 #include <string.h>
 
 #include "catfunc.h"
-#include "es_info.h"
 #include "es_odbc.h"
 #include "es_types.h"
 #include "misc.h"
 #include "multibyte.h"
 #include "opensearch_apifunc.h"
 #include "opensearch_connection.h"
+#include "opensearch_info.h"
 #include "qresult.h"
 #include "statement.h"
 
