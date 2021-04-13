@@ -28,12 +28,12 @@
 #include "catfunc.h"
 #include "dlg_specific.h"
 #include "environ.h"
-#include "es_connection.h"
 #include "es_info.h"
 #include "es_types.h"
 #include "misc.h"
 #include "multibyte.h"
 #include "opensearch_apifunc.h"
+#include "opensearch_connection.h"
 #include "qresult.h"
 #include "statement.h"
 #include "tuple.h"
@@ -193,7 +193,7 @@ RETCODE SQL_API ESAPI_GetInfo(HDBC hdbc, SQLUSMALLINT fInfoType,
             break;
 
         case SQL_DBMS_VER: /* ODBC 1.0 */
-            STRCPY_FIXED(tmp, conn->es_version);
+            STRCPY_FIXED(tmp, conn->opensearch_version);
             p = tmp;
             break;
 
@@ -353,7 +353,7 @@ RETCODE SQL_API ESAPI_GetInfo(HDBC hdbc, SQLUSMALLINT fInfoType,
 
         case SQL_MAX_TABLE_NAME_LEN: /* ODBC 1.0 */
             len = 2;
-            if (ES_VERSION_GT(conn, 7.4))
+            if (OPENSEARCH_VERSION_GT(conn, 7.4))
                 value = CC_get_max_idlen(conn);
 #ifdef MAX_TABLE_LEN
             else

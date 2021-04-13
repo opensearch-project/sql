@@ -23,8 +23,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "es_connection.h"
 #include "misc.h"
+#include "opensearch_connection.h"
 
 /* for htonl */
 #ifdef WIN32
@@ -35,11 +35,11 @@
 
 #include "dlg_specific.h"
 #include "environ.h"
-#include "es_connection.h"
 #include "es_helper.h"
 #include "loadlib.h"
 #include "multibyte.h"
 #include "opensearch_apifunc.h"
+#include "opensearch_connection.h"
 #include "qresult.h"
 #include "statement.h"
 #ifndef WIN32
@@ -114,8 +114,8 @@ RETCODE SQL_API ESAPI_Connect(HDBC hdbc, const SQLCHAR *szDSN,
     getDSNinfo(ci, NULL);
 
     logs_on_off(1, ci->drivers.loglevel, ci->drivers.loglevel);
-    /* initialize es_version from connInfo.protocol    */
-    CC_initialize_es_version(conn);
+    /* initialize opensearch_version from connInfo.protocol    */
+    CC_initialize_opensearch_version(conn);
 
     /*
      * override values from DSN info with UID and authStr(pwd) This only

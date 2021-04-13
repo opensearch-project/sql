@@ -19,7 +19,7 @@
 #define _WIN32_WINNT 0x0400
 #endif /* _WIN32_WINNT */
 
-#include "es_connection.h"
+#include "opensearch_connection.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -138,7 +138,7 @@ int LIBES_connect(ConnectionClass *self) {
 
     // Set server version
     std::string server_version = GetServerVersion(esconn);
-    STRCPY_FIXED(self->es_version, server_version.c_str());
+    STRCPY_FIXED(self->opensearch_version, server_version.c_str());
 
     std::string cluster_name = GetClusterName(esconn);
     STRCPY_FIXED(self->cluster_name, cluster_name.c_str());
@@ -195,10 +195,10 @@ int CC_send_client_encoding(ConnectionClass *self, const char *encoding) {
     return SQL_SUCCESS;
 }
 
-void CC_initialize_es_version(ConnectionClass *self) {
-    STRCPY_FIXED(self->es_version, "7.4");
-    self->es_version_major = 7;
-    self->es_version_minor = 4;
+void CC_initialize_opensearch_version(ConnectionClass *self) {
+    STRCPY_FIXED(self->opensearch_version, "7.4");
+    self->opensearch_version_major = 7;
+    self->opensearch_version_minor = 4;
 }
 
 void LIBES_disconnect(void *conn) {

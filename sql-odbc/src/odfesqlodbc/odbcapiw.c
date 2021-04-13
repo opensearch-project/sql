@@ -17,11 +17,11 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "es_connection.h"
 #include "es_driver_connect.h"
 #include "es_info.h"
 #include "es_odbc.h"
 #include "opensearch_apifunc.h"
+#include "opensearch_connection.h"
 #include "statement.h"
 #include "unicode_support.h"
 

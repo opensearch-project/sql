@@ -231,8 +231,8 @@ RETCODE ESAPI_DriverConnect(HDBC hdbc, HWND hwnd, SQLCHAR *conn_str_in,
             return return_code;
     }
 
-    // Initialize es_version
-    CC_initialize_es_version(conn);
+    // Initialize opensearch_version
+    CC_initialize_opensearch_version(conn);
 
     int reqs = 0;
     int retval = 0;

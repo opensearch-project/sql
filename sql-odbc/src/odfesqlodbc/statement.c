@@ -19,7 +19,7 @@
 #include "misc.h" // strncpy_null
 
 #include "bind.h"
-#include "es_connection.h"
+#include "opensearch_connection.h"
 #include "multibyte.h"
 #include "qresult.h"
 #include "convert.h"

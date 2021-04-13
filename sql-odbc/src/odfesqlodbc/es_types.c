@@ -18,7 +18,7 @@
 
 #include "dlg_specific.h"
 #include "environ.h"
-#include "es_connection.h"
+#include "opensearch_connection.h"
 #include "qresult.h"
 #include "statement.h"
 #ifndef WIN32
@@ -901,7 +901,7 @@ const char *sqltype_to_escast(const ConnectionClass *conn,
             esCast = "::timestamp";
             break;
         case SQL_GUID:
-            if (ES_VERSION_GE(conn, 8.3))
+            if (OPENSEARCH_VERSION_GE(conn, 8.3))
                 esCast = "::uuid";
             break;
         case SQL_INTERVAL_MONTH:
@@ -1016,7 +1016,7 @@ OID sqltype_to_estype(const ConnectionClass *conn, SQLSMALLINT fSqlType) {
 #endif /* UNICODE_SUPPORT */
 
         case SQL_GUID:
-            if (ES_VERSION_GE(conn, 8.3))
+            if (OPENSEARCH_VERSION_GE(conn, 8.3))
                 esType = ES_TYPE_UUID;
             break;
 

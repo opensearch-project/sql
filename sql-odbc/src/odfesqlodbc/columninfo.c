@@ -19,9 +19,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "es_connection.h"
 #include "es_types.h"
 #include "opensearch_apifunc.h"
+#include "opensearch_connection.h"
 
 ColumnInfoClass *CI_Constructor(void) {
     ColumnInfoClass *rv;
