@@ -15,12 +15,13 @@
  */
 
 #include "columninfo.h"
-#include "es_types.h"
 
 #include <stdlib.h>
 #include <string.h>
-#include "es_apifunc.h"
-#include "es_connection.h"
+
+#include "opensearch_apifunc.h"
+#include "opensearch_connection.h"
+#include "opensearch_types.h"
 
 ColumnInfoClass *CI_Constructor(void) {
     ColumnInfoClass *rv;

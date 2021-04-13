@@ -18,7 +18,7 @@
 #define ES_TYPES
 
 #include "dlg_specific.h"
-#include "es_odbc.h"
+#include "opensearch_odbc.h"
 #ifdef __cplusplus
 extern "C" {
 #endif

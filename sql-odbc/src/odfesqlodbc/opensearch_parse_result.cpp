@@ -14,12 +14,12 @@
  *
  */
 
-#include "es_parse_result.h"
+#include "opensearch_parse_result.h"
 
 #include <unordered_map>
 
-#include "es_helper.h"
-#include "es_types.h"
+#include "opensearch_helper.h"
+#include "opensearch_types.h"
 #ifdef __APPLE__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"

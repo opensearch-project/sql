@@ -17,7 +17,7 @@
 #ifndef __COLUMNINFO_H__
 #define __COLUMNINFO_H__
 
-#include "es_odbc.h"
+#include "opensearch_odbc.h"
 
 struct ColumnInfoClass_ {
     UInt4 refcount; /* reference count. A ColumnInfo can be shared by

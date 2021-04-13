@@ -17,8 +17,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "es_odbc.h"
 #include "misc.h"
+#include "opensearch_odbc.h"
 
 #ifndef WIN32
 #include <ctype.h>
@@ -27,10 +27,10 @@
 #include "bind.h"
 #include "convert.h"
 #include "environ.h"
-#include "es_apifunc.h"
-#include "es_connection.h"
-#include "es_statement.h"
-#include "es_types.h"
+#include "opensearch_apifunc.h"
+#include "opensearch_connection.h"
+#include "opensearch_statement.h"
+#include "opensearch_types.h"
 #include "qresult.h"
 #include "statement.h"
 

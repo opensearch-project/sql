@@ -20,9 +20,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "es_connection.h"
-#include "es_odbc.h"
 #include "misc.h"
+#include "opensearch_connection.h"
+#include "opensearch_odbc.h"
 
 #ifndef WIN32
 #include <sys/socket.h>
@@ -39,7 +39,7 @@
 #include "resource.h"
 #endif
 #include "dlg_specific.h"
-#include "es_apifunc.h"
+#include "opensearch_apifunc.h"
 
 #define PASSWORD_IS_REQUIRED 1
 

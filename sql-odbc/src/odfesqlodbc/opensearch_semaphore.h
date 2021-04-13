@@ -24,10 +24,10 @@
   #include <semaphore.h>
 #endif
 
-class es_semaphore {
+class opensearch_semaphore {
     public:
-        es_semaphore(unsigned int initial, unsigned int capacity);
-        ~es_semaphore();
+     opensearch_semaphore(unsigned int initial, unsigned int capacity);
+        ~opensearch_semaphore();
 
         void lock();
         void release();

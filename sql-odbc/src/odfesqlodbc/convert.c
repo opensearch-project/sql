@@ -38,9 +38,9 @@
 
 #include "bind.h"
 #include "catfunc.h"
-#include "es_apifunc.h"
-#include "es_connection.h"
-#include "es_types.h"
+#include "opensearch_apifunc.h"
+#include "opensearch_connection.h"
+#include "opensearch_types.h"
 #include "qresult.h"
 #include "statement.h"
 
@@ -1092,7 +1092,7 @@ int copy_and_convert_field(StatementClass *stmt, OID field_type, int atttypmod,
     /*
      * First convert any specific OpenSearch types into more useable data.
      *
-     * NOTE: Conversions from ES char/varchar of a date/time/timestamp value
+     * NOTE: Conversions from OpenSearch char/varchar of a date/time/timestamp value
      * to SQL_C_DATE,SQL_C_TIME, SQL_C_TIMESTAMP not supported
      */
     switch (field_type) {

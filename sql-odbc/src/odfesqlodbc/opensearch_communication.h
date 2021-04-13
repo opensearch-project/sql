@@ -22,8 +22,8 @@
 #include <queue>
 #include <future>
 #include <regex>
-#include "es_types.h"
-#include "es_result_queue.h"
+#include "opensearch_types.h"
+#include "opensearch_result_queue.h"
 
 //Keep rabbit at top otherwise it gives build error because of some variable names like max, min
 #ifdef __APPLE__

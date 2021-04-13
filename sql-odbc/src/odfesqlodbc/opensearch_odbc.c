@@ -20,10 +20,11 @@
 #endif /* _DEBUG */
 #endif /* WIN32 */
 #include <string.h>
+
 #include "dlg_specific.h"
 #include "environ.h"
-#include "es_odbc.h"
 #include "misc.h"
+#include "opensearch_odbc.h"
 
 #ifdef WIN32
 #include "loadlib.h"

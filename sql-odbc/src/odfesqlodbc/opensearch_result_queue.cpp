@@ -14,9 +14,9 @@
  *
  */
 
-#include "es_result_queue.h"
+#include "opensearch_result_queue.h"
 
-#include "es_types.h"
+#include "opensearch_types.h"
 
 ESResultQueue::ESResultQueue(unsigned int capacity)
     : m_push_semaphore(capacity, capacity),

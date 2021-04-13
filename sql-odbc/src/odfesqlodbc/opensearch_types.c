@@ -14,11 +14,11 @@
  *
  */
 
-#include "es_types.h"
+#include "opensearch_types.h"
 
 #include "dlg_specific.h"
 #include "environ.h"
-#include "es_connection.h"
+#include "opensearch_connection.h"
 #include "qresult.h"
 #include "statement.h"
 #ifndef WIN32

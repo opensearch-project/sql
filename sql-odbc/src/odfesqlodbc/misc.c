@@ -15,7 +15,7 @@
  */
 
 // clang-format off
-#include "es_odbc.h"
+#include "opensearch_odbc.h"
 #include "misc.h"
 
 #include <stdio.h>

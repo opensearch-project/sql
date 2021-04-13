@@ -19,7 +19,7 @@
 #include "misc.h" // strncpy_null
 
 #include "bind.h"
-#include "es_connection.h"
+#include "opensearch_connection.h"
 #include "multibyte.h"
 #include "qresult.h"
 #include "convert.h"
@@ -30,9 +30,9 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "es_apifunc.h"
-#include "es_helper.h"
-#include "es_statement.h"
+#include "opensearch_apifunc.h"
+#include "opensearch_helper.h"
+#include "opensearch_statement.h"
 // clang-format on
 
 /*	Map sql commands to statement types */

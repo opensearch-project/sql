@@ -14,14 +14,16 @@
  *
  */
 
+#include "multibyte.h"
+
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "es_apifunc.h"
-#include "es_connection.h"
+
 #include "misc.h"
-#include "multibyte.h"
+#include "opensearch_apifunc.h"
+#include "opensearch_connection.h"
 #ifndef WIN32
 #include <locale.h>
 #endif

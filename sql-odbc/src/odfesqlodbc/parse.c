@@ -14,22 +14,20 @@
  *
  */
 
-#include "es_odbc.h"
-
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "catfunc.h"
-#include "es_apifunc.h"
-#include "es_connection.h"
-#include "es_types.h"
-#include "qresult.h"
-#include "statement.h"
-
-#include "es_info.h"
 #include "misc.h"
 #include "multibyte.h"
+#include "opensearch_apifunc.h"
+#include "opensearch_connection.h"
+#include "opensearch_info.h"
+#include "opensearch_odbc.h"
+#include "opensearch_types.h"
+#include "qresult.h"
+#include "statement.h"
 
 Int4 FI_precision(const FIELD_INFO *fi) {
     OID ftype;

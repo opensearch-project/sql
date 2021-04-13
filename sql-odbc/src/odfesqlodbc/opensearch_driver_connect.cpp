@@ -14,13 +14,13 @@
  *
  */
 
-#include "es_driver_connect.h"
+#include "opensearch_driver_connect.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "es_odbc.h"
 #include "misc.h"
+#include "opensearch_odbc.h"
 
 #ifndef WIN32
 #include <sys/socket.h>
@@ -41,7 +41,7 @@
 
 #include "dlg_specific.h"
 #include "drvconn.h"
-#include "es_apifunc.h"
+#include "opensearch_apifunc.h"
 
 static RETCODE CheckDriverComplete(const SQLUSMALLINT driver_completion,
                                    const HWND hwnd, ConnInfo *ci,

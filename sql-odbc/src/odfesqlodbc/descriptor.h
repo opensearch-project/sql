@@ -17,7 +17,7 @@
 #ifndef __DESCRIPTOR_H__
 #define __DESCRIPTOR_H__
 
-#include "es_odbc.h"
+#include "opensearch_odbc.h"
 
 #ifdef WIN32
 #pragma warning(push)

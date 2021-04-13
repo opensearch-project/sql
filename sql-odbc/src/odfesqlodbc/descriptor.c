@@ -21,9 +21,9 @@
 #include <string.h>
 
 #include "environ.h"
-#include "es_apifunc.h"
-#include "es_connection.h"
 #include "misc.h"
+#include "opensearch_apifunc.h"
+#include "opensearch_connection.h"
 #include "qresult.h"
 #include "statement.h"
 

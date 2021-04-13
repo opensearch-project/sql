@@ -14,13 +14,13 @@
  *
  */
 
-#include "es_helper.h"
+#include "opensearch_helper.h"
 
 #include <atomic>
 #include <mutex>
 #include <thread>
 
-#include "es_communication.h"
+#include "opensearch_communication.h"
 
 void* ESConnectDBParams(runtime_options& rt_opts, int expand_dbname,
                         unsigned int option_count) {

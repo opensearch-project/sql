@@ -21,10 +21,10 @@
 
 #include "descriptor.h"
 #include "environ.h"
-#include "es_apifunc.h"
-#include "es_types.h"
 #include "misc.h"
 #include "multibyte.h"
+#include "opensearch_apifunc.h"
+#include "opensearch_types.h"
 #include "qresult.h"
 #include "statement.h"
 

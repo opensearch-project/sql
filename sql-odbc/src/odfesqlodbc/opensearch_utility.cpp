@@ -14,7 +14,7 @@
  *
  */
 
-#include "es_utility.h"
+#include "opensearch_utility.h"
 
 #include <ctype.h>
 #include <errno.h>

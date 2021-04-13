@@ -17,7 +17,7 @@
 #ifndef __CONVERT_H__
 #define __CONVERT_H__
 
-#include "es_odbc.h"
+#include "opensearch_odbc.h"
 
 #ifdef __cplusplus
 extern "C" {

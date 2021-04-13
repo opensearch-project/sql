@@ -16,7 +16,7 @@
 
 #ifndef __ES_DRIVER_CONNECT_H__
 #define __ES_DRIVER_CONNECT_H__
-#include "es_connection.h"
+#include "opensearch_connection.h"
 
 // C Interface
 #ifdef __cplusplus

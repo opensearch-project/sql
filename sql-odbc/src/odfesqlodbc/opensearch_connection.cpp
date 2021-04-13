@@ -19,7 +19,7 @@
 #define _WIN32_WINNT 0x0400
 #endif /* _WIN32_WINNT */
 
-#include "es_connection.h"
+#include "opensearch_connection.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -39,10 +39,10 @@
 
 #include "dlg_specific.h"
 #include "environ.h"
-#include "es_apifunc.h"
-#include "es_helper.h"
 #include "loadlib.h"
 #include "multibyte.h"
+#include "opensearch_apifunc.h"
+#include "opensearch_helper.h"
 #include "qresult.h"
 #include "statement.h"
 
@@ -59,7 +59,7 @@ char CC_connect(ConnectionClass *self) {
     if (self == NULL)
         return 0;
 
-    // Attempt to connect to ES
+    // Attempt to connect to OpenSearch
     int conn_code = LIBES_connect(self);
     if (conn_code <= 0)
         return static_cast< char >(conn_code);

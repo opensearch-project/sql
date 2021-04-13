@@ -17,7 +17,7 @@
 #ifndef __ES_HELPER_H__
 #define __ES_HELPER_H__
 
-#include "es_types.h"
+#include "opensearch_types.h"
 
 #ifdef __cplusplus
 // C++ interface

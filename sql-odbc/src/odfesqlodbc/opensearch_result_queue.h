@@ -16,9 +16,10 @@
 #ifndef ES_RESULT_QUEUE
 #define ES_RESULT_QUEUE
 
-#include <queue>
 #include <mutex>
-#include "es_semaphore.h"
+#include <queue>
+
+#include "opensearch_semaphore.h"
 
 #define QUEUE_TIMEOUT 20 // milliseconds
 
@@ -36,8 +37,8 @@ class ESResultQueue {
     private:
         std::queue<ESResult*> m_queue;
         std::mutex m_queue_mutex;
-        es_semaphore m_push_semaphore;
-        es_semaphore m_pop_semaphore;
+        opensearch_semaphore m_push_semaphore;
+        opensearch_semaphore m_pop_semaphore;
 };
 
 #endif

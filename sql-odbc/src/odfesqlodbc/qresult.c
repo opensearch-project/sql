@@ -20,8 +20,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "es_statement.h"
 #include "misc.h"
+#include "opensearch_statement.h"
 #include "statement.h"
 
 /*

@@ -18,8 +18,8 @@
 
 #include <ctype.h>
 
-#include "es_apifunc.h"
 #include "misc.h"
+#include "opensearch_apifunc.h"
 
 #define NULL_IF_NULL(a) ((a) ? ((const char *)(a)) : "(null)")
 

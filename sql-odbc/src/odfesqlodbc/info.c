@@ -14,29 +14,26 @@
  *
  */
 
-#include "es_odbc.h"
-#include "unicode_support.h"
-
 #include <stdio.h>
 #include <string.h>
+
+#include "opensearch_odbc.h"
+#include "unicode_support.h"
 
 #ifndef WIN32
 #include <ctype.h>
 #endif
 
-#include "dlg_specific.h"
-#include "es_types.h"
-#include "tuple.h"
-
 #include "bind.h"
 #include "catfunc.h"
+#include "dlg_specific.h"
 #include "environ.h"
-#include "es_apifunc.h"
-#include "es_connection.h"
-#include "es_info.h"
-#include "es_types.h"
 #include "misc.h"
 #include "multibyte.h"
+#include "opensearch_apifunc.h"
+#include "opensearch_connection.h"
+#include "opensearch_info.h"
+#include "opensearch_types.h"
 #include "qresult.h"
 #include "statement.h"
 #include "tuple.h"
