@@ -28,7 +28,7 @@
 #include <string.h>
 
 #include "dlg_specific.h"
-#include "es_apifunc.h"
+#include "opensearch_apifunc.h"
 #include "resource.h"
 #include "win_setup.h"
 

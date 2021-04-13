@@ -17,7 +17,7 @@
 // clang-format off
 #include "pch.h"
 #include "unit_test_helper.h"
-#include "es_communication.h"
+#include "opensearch_communication.h"
 // clang-format on
 
 const size_t valid_option_count = 4;
@@ -45,13 +45,13 @@ runtime_options missing_opt_val = {{"", "", "1", "0"},
                                    {use_ssl, false, "", "", "", ""}};
 
 TEST(TestESConnConnectionOptions, ValidParameters) {
-    ESCommunication conn;
+    OpenSearchCommunication conn;
     EXPECT_EQ(true,
               conn.ConnectionOptions(valid_opt_val, 1, 1, valid_option_count));
 }
 
 TEST(TestESConnConnectionOptions, MissingParameters) {
-    ESCommunication conn;
+    OpenSearchCommunication conn;
     EXPECT_EQ(false, conn.ConnectionOptions(missing_opt_val, 1, 1,
                                             missing_option_count));
 }
@@ -72,7 +72,7 @@ class TestESConnConnectDBStart : public testing::Test {
         // cleanup any pending stuff, but no exceptions allowed
     }
 
-    ESCommunication m_conn;
+    OpenSearchCommunication m_conn;
 };
 
 TEST_F(TestESConnConnectDBStart, ValidParameters) {
@@ -97,7 +97,7 @@ TEST_F(TestESConnConnectDBStart, MissingParameters) {
 }
 
 TEST(TestESConnDropDBConnection, InvalidParameters) {
-    ESCommunication conn;
+    OpenSearchCommunication conn;
     ASSERT_EQ(CONNECTION_BAD, conn.GetConnectionStatus());
     ASSERT_TRUE(
         conn.ConnectionOptions(invalid_opt_val, 1, 1, invalid_option_count));
@@ -108,7 +108,7 @@ TEST(TestESConnDropDBConnection, InvalidParameters) {
 }
 
 TEST(TestESConnDropDBConnection, MissingParameters) {
-    ESCommunication conn;
+    OpenSearchCommunication conn;
     ASSERT_EQ(CONNECTION_BAD, conn.GetConnectionStatus());
     ASSERT_NE(true, conn.ConnectionOptions(missing_opt_val, 1, 1,
                                            missing_option_count));
@@ -119,7 +119,7 @@ TEST(TestESConnDropDBConnection, MissingParameters) {
 }
 
 TEST(TestESConnDropDBConnection, ValidParameters) {
-    ESCommunication conn;
+    OpenSearchCommunication conn;
     ASSERT_NE(false,
               conn.ConnectionOptions(valid_opt_val, 1, 1, valid_option_count));
     ASSERT_NE(false, conn.ConnectDBStart());

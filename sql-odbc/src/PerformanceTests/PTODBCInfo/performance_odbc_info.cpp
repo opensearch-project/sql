@@ -16,7 +16,7 @@
 
 // clang-format off
 #include "pch.h"
-#include "es_communication.h"
+#include "opensearch_communication.h"
 #include "unit_test_helper.h"
 #include "it_odbc_helper.h"
 #include "chrono"
@@ -78,7 +78,7 @@ runtime_options rt_opts = []() {
 
 void GetVersionInfoString(std::string& version_info) {
     // Connect to DB
-    ESCommunication es_comm;
+    OpenSearchCommunication es_comm;
     es_comm.ConnectionOptions(rt_opts, false, 0, 0);
     ASSERT_TRUE(es_comm.ConnectDBStart());
 

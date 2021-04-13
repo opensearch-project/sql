@@ -20,12 +20,12 @@
 #include <mutex>
 #include <thread>
 
-#include "es_communication.h"
+#include "opensearch_communication.h"
 
 void* ESConnectDBParams(runtime_options& rt_opts, int expand_dbname,
                         unsigned int option_count) {
     // Initialize Connection
-    ESCommunication* conn = static_cast< ESCommunication* >(InitializeESConn());
+    OpenSearchCommunication* conn = static_cast< OpenSearchCommunication* >(InitializeESConn());
     if (!conn)
         return NULL;
 
@@ -48,66 +48,66 @@ void* ESConnectDBParams(runtime_options& rt_opts, int expand_dbname,
 
 ConnStatusType ESStatus(void* es_conn) {
     return es_conn
-               ? static_cast< ESCommunication* >(es_conn)->GetConnectionStatus()
+               ? static_cast< OpenSearchCommunication* >(es_conn)->GetConnectionStatus()
                : ConnStatusType::CONNECTION_BAD;
 }
 
 std::string GetErrorMsg(void* es_conn) {
-    return es_conn ? static_cast< ESCommunication* >(es_conn)->GetErrorMessage()
+    return es_conn ? static_cast< OpenSearchCommunication* >(es_conn)->GetErrorMessage()
                    : NULL;
 }
 
 ConnErrorType GetErrorType(void* es_conn) {
-    return es_conn ? static_cast< ESCommunication* >(es_conn)->GetErrorType()
+    return es_conn ? static_cast< OpenSearchCommunication* >(es_conn)->GetErrorType()
                    : ConnErrorType::CONN_ERROR_SUCCESS;
 }
 
 std::string GetServerVersion(void* es_conn) {
     return es_conn
-               ? static_cast< ESCommunication* >(es_conn)->GetServerVersion()
+               ? static_cast< OpenSearchCommunication* >(es_conn)->GetServerVersion()
                : "";
 }
 
 std::string GetClusterName(void* es_conn) {
-    return es_conn ? static_cast< ESCommunication* >(es_conn)->GetClusterName()
+    return es_conn ? static_cast< OpenSearchCommunication* >(es_conn)->GetClusterName()
                    : "";
 }
 
 void* InitializeESConn() {
-    return new ESCommunication();
+    return new OpenSearchCommunication();
 }
 
 int ESExecDirect(void* es_conn, const char* statement, const char* fetch_size) {
     return (es_conn && statement)
-               ? static_cast< ESCommunication* >(es_conn)->ExecDirect(
+               ? static_cast< OpenSearchCommunication* >(es_conn)->ExecDirect(
                    statement, fetch_size)
                : -1;
 }
 
 void ESSendCursorQueries(void* es_conn, const char* cursor) {
-    static_cast< ESCommunication* >(es_conn)->SendCursorQueries(cursor);
+    static_cast< OpenSearchCommunication* >(es_conn)->SendCursorQueries(cursor);
 }
 
 ESResult* ESGetResult(void* es_conn) {
-    return es_conn ? static_cast< ESCommunication* >(es_conn)->PopResult()
+    return es_conn ? static_cast< OpenSearchCommunication* >(es_conn)->PopResult()
                    : NULL;
 }
 
 std::string ESGetClientEncoding(void* es_conn) {
     return es_conn
-               ? static_cast< ESCommunication* >(es_conn)->GetClientEncoding()
+               ? static_cast< OpenSearchCommunication* >(es_conn)->GetClientEncoding()
                : "";
 }
 
 bool ESSetClientEncoding(void* es_conn, std::string& encoding) {
     return es_conn
-               ? static_cast< ESCommunication* >(es_conn)->SetClientEncoding(
+               ? static_cast< OpenSearchCommunication* >(es_conn)->SetClientEncoding(
                    encoding)
                : false;
 }
 
 void ESDisconnect(void* es_conn) {
-    delete static_cast< ESCommunication* >(es_conn);
+    delete static_cast< OpenSearchCommunication* >(es_conn);
 }
 
 void ESClearResult(ESResult* es_result) {
@@ -115,12 +115,12 @@ void ESClearResult(ESResult* es_result) {
 }
 
 void ESStopRetrieval(void* es_conn) {
-    static_cast< ESCommunication* >(es_conn)->StopResultRetrieval();
+    static_cast< OpenSearchCommunication* >(es_conn)->StopResultRetrieval();
 }
 
 std::vector< std::string > ESGetColumnsWithSelectQuery(
     void* es_conn, const std::string table_name) {
-    return static_cast< ESCommunication* >(es_conn)->GetColumnsWithSelectQuery(
+    return static_cast< OpenSearchCommunication* >(es_conn)->GetColumnsWithSelectQuery(
         table_name);
 }
 

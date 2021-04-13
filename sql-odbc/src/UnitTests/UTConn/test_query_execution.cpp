@@ -17,7 +17,7 @@
 // clang-format off
 #include "pch.h"
 #include "unit_test_helper.h"
-#include "es_communication.h"
+#include "opensearch_communication.h"
 #include "es_helper.h"
 // clang-format on
 
@@ -44,7 +44,7 @@ runtime_options valid_conn_opt_val = {
     {use_ssl, false, "", "", "", ""}};
 
 TEST(TestESExecDirect, ValidQuery) {
-    ESCommunication conn;
+    OpenSearchCommunication conn;
     ASSERT_TRUE(conn.ConnectionOptions(valid_conn_opt_val, false, 0, 0));
     ASSERT_TRUE(conn.ConnectDBStart());
     EXPECT_EQ(EXECUTION_SUCCESS,
@@ -52,7 +52,7 @@ TEST(TestESExecDirect, ValidQuery) {
 }
 
 TEST(TestESExecDirect, MissingQuery) {
-    ESCommunication conn;
+    OpenSearchCommunication conn;
     ASSERT_TRUE(conn.ConnectionOptions(valid_conn_opt_val, false, 0, 0));
     ASSERT_TRUE(conn.ConnectDBStart());
     EXPECT_EQ(EXECUTION_ERROR, ESExecDirect(&conn, NULL, fetch_size.c_str()));
@@ -66,7 +66,7 @@ TEST(TestESExecDirect, MissingConnection) {
 // Conn::ExecDirect
 
 TEST(TestConnExecDirect, ValidQueryAllColumns) {
-    ESCommunication conn;
+    OpenSearchCommunication conn;
     ASSERT_TRUE(conn.ConnectionOptions(valid_conn_opt_val, false, 0, 0));
     ASSERT_TRUE(conn.ConnectDBStart());
 
@@ -79,7 +79,7 @@ TEST(TestConnExecDirect, ValidQueryAllColumns) {
 }
 
 TEST(TestConnExecDirect, ValidQuerySomeColumns) {
-    ESCommunication conn;
+    OpenSearchCommunication conn;
     ASSERT_TRUE(conn.ConnectionOptions(valid_conn_opt_val, false, 0, 0));
     ASSERT_TRUE(conn.ConnectDBStart());
 
@@ -92,7 +92,7 @@ TEST(TestConnExecDirect, ValidQuerySomeColumns) {
 }
 
 TEST(TestConnExecDirect, InvalidQuery) {
-    ESCommunication conn;
+    OpenSearchCommunication conn;
     ASSERT_TRUE(conn.ConnectionOptions(valid_conn_opt_val, false, 0, 0));
     ASSERT_TRUE(conn.ConnectDBStart());
 
@@ -104,7 +104,7 @@ TEST(TestConnExecDirect, InvalidQuery) {
 // Conn::PopResult
 
 TEST(TestConnPopResult, PopEmptyQueue) {
-    ESCommunication conn;
+    OpenSearchCommunication conn;
     ASSERT_TRUE(conn.ConnectionOptions(valid_conn_opt_val, false, 0, 0));
     ASSERT_TRUE(conn.ConnectDBStart());
 
@@ -113,7 +113,7 @@ TEST(TestConnPopResult, PopEmptyQueue) {
 }
 
 TEST(TestConnPopResult, PopTwoQueryResults) {
-    ESCommunication conn;
+    OpenSearchCommunication conn;
     ASSERT_TRUE(conn.ConnectionOptions(valid_conn_opt_val, false, 0, 0));
     ASSERT_TRUE(conn.ConnectDBStart());
 

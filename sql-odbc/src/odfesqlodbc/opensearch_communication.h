@@ -14,8 +14,8 @@
  *
  */
 
-#ifndef ES_COMMUNICATION
-#define ES_COMMUNICATION
+#ifndef OPENSEARCH_COMMUNICATION
+#define OPENSEARCH_COMMUNICATION
 
 // clang-format off
 #include <memory>
@@ -44,10 +44,10 @@
 #include <aws/core/client/ClientConfiguration.h>
 // clang-format on
 
-class ESCommunication {
+class OpenSearchCommunication {
    public:
-    ESCommunication();
-    ~ESCommunication();
+    OpenSearchCommunication();
+    ~OpenSearchCommunication();
 
     // Create function for factory
     std::string GetErrorMessage();
