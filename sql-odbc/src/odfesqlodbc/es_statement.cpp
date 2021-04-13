@@ -262,8 +262,9 @@ QResultClass *SendQueryGetResult(StatementClass *stmt, BOOL commit) {
 
     BOOL success =
         commit
-            ? CC_from_ESResult(res, conn, res->cursor_name, *es_res)
-            : CC_Metadata_from_ESResult(res, conn, res->cursor_name, *es_res);
+            ? CC_from_OpenSearchResult(res, conn, res->cursor_name, *es_res)
+            : CC_Metadata_from_OpenSearchResult(res, conn, res->cursor_name,
+                                                   *es_res);
 
     // Convert result to QResultClass
     if (!success) {
@@ -294,7 +295,8 @@ RETCODE AssignResult(StatementClass *stmt) {
     // Commit result to QResultClass
     ESResult *es_res = static_cast< ESResult * >(res->es_result);
     ConnectionClass *conn = SC_get_conn(stmt);
-    if (!CC_No_Metadata_from_ESResult(res, conn, res->cursor_name, *es_res)) {
+    if (!CC_No_Metadata_from_OpenSearchResult(res, conn, res->cursor_name,
+                                              *es_res)) {
         QR_Destructor(res);
         return SQL_ERROR;
     }

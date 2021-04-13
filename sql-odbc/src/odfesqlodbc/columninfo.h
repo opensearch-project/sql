@@ -51,7 +51,7 @@ void CI_free_memory(ColumnInfoClass *self);
 /* without reading from a socket */
 void CI_set_num_fields(ColumnInfoClass *self, SQLSMALLINT new_num_fields);
 
-// Used in es_parse_results.cpp
+// Used in opensearch_parse_results.cpp
 #ifdef __cplusplus
 extern "C" {
 #endif
