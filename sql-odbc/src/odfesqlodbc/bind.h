@@ -18,7 +18,7 @@
 #define __BIND_H__
 
 #include "descriptor.h"
-#include "es_odbc.h"
+#include "opensearch_odbc.h"
 
 // C Interface
 #ifdef __cplusplus

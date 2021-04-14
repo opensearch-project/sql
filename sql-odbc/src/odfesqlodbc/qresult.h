@@ -18,8 +18,8 @@
 #define __QRESULT_H__
 
 #include "columninfo.h"
-#include "es_odbc.h"
 #include "opensearch_connection.h"
+#include "opensearch_odbc.h"
 #include "tuple.h"
 
 #ifdef __cplusplus

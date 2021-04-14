@@ -254,10 +254,10 @@ utf8_to_ucs2_lf(const char *utf8str, SQLLEN ilen, BOOL lfconv,
         ilen = strlen(utf8str);
     for (i = 0, ocount = 0, str = (SQLCHAR *)utf8str; i < ilen && *str;) {
         if ((*str & 0x80) == 0) {
-            if (lfconv && ES_LINEFEED == *str
-                && (i == 0 || ES_CARRIAGE_RETURN != str[-1])) {
+            if (lfconv && OPENSEARCH_LINEFEED == *str
+                && (i == 0 || OPENSEARCH_CARRIAGE_RETURN != str[-1])) {
                 if (ocount < bufcount)
-                    ucs2str[ocount] = ES_CARRIAGE_RETURN;
+                    ucs2str[ocount] = OPENSEARCH_CARRIAGE_RETURN;
                 ocount++;
             }
             if (ocount < bufcount)
@@ -482,10 +482,10 @@ static SQLULEN utf8_to_ucs4_lf(const char *utf8str, SQLLEN ilen, BOOL lfconv,
         ilen = strlen(utf8str);
     for (i = 0, ocount = 0, str = (SQLCHAR *)utf8str; i < ilen && *str;) {
         if ((*str & 0x80) == 0) {
-            if (lfconv && ES_LINEFEED == *str
-                && (i == 0 || ES_CARRIAGE_RETURN != str[-1])) {
+            if (lfconv && OPENSEARCH_LINEFEED == *str
+                && (i == 0 || OPENSEARCH_CARRIAGE_RETURN != str[-1])) {
                 if (ocount < bufcount)
-                    ucs4str[ocount] = ES_CARRIAGE_RETURN;
+                    ucs4str[ocount] = OPENSEARCH_CARRIAGE_RETURN;
                 ocount++;
             }
             if (ocount < bufcount)
@@ -587,11 +587,11 @@ static int ucs4_to_ucs2_lf(const unsigned int *ucs4str, SQLLEN ilen,
         sqlwdt = (SQLWCHAR *)&uintdt;
         ucdt = (UCHAR *)&uintdt;
         if (0 == sqlwdt[1]) {
-            if (lfconv && ES_LINEFEED == ucdt[0]
+            if (lfconv && OPENSEARCH_LINEFEED == ucdt[0]
                 && (i == 0
-                    || ES_CARRIAGE_RETURN != *((UCHAR *)&ucs4str[i - 1]))) {
+                    || OPENSEARCH_CARRIAGE_RETURN != *((UCHAR *)&ucs4str[i - 1]))) {
                 if (outlen < bufcount) {
-                    udt[0] = ES_CARRIAGE_RETURN;
+                    udt[0] = OPENSEARCH_CARRIAGE_RETURN;
                     udt[1] = 0;
                     ucs2str[outlen] = *((SQLWCHAR *)udt);
                 }
@@ -791,10 +791,10 @@ static SQLLEN mbstoc16_lf(char16_t *c16dt, const char *c8dt, size_t n,
 
     MYLOG(ES_DEBUG, " c16dt=%p size=" FORMAT_SIZE_T "\n", c16dt, n);
     for (i = 0, cdt = c8dt; i < n || (!c16dt); i++) {
-        if (lf_conv && ES_LINEFEED == *cdt && i > 0
-            && ES_CARRIAGE_RETURN != cdt[-1]) {
+        if (lf_conv && OPENSEARCH_LINEFEED == *cdt && i > 0
+            && OPENSEARCH_CARRIAGE_RETURN != cdt[-1]) {
             if (c16dt)
-                c16dt[i] = ES_CARRIAGE_RETURN;
+                c16dt[i] = OPENSEARCH_CARRIAGE_RETURN;
             i++;
         }
         brtn = mbrtoc16(c16dt ? c16dt + i : NULL, cdt, 4, &mbst);

@@ -17,10 +17,10 @@
 #include <string.h>
 
 #include "environ.h"
-#include "es_odbc.h"
 #include "misc.h"
 #include "opensearch_apifunc.h"
 #include "opensearch_connection.h"
+#include "opensearch_odbc.h"
 #include "qresult.h"
 #include "statement.h"
 #include "unicode_support.h"

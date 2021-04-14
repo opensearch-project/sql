@@ -17,7 +17,7 @@
 #ifndef __LOADLIB_H__
 #define __LOADLIB_H__
 
-#include "es_odbc.h"
+#include "opensearch_odbc.h"
 #ifdef HAVE_LIBLTDL
 #include <ltdl.h>
 #else

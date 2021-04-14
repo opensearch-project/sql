@@ -17,7 +17,7 @@
 #ifndef __DLG_SPECIFIC_H__
 #define __DLG_SPECIFIC_H__
 
-#include "es_odbc.h"
+#include "opensearch_odbc.h"
 
 #ifdef WIN32
 #include <windowsx.h>

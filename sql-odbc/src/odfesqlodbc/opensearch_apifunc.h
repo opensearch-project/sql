@@ -19,7 +19,8 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "es_odbc.h"
+
+#include "opensearch_odbc.h"
 
 #ifdef __cplusplus
 extern "C" {

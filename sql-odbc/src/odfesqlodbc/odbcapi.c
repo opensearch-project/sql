@@ -18,13 +18,13 @@
 #include <string.h>
 
 #include "environ.h"
-#include "es_odbc.h"
 #include "loadlib.h"
 #include "misc.h"
 #include "opensearch_apifunc.h"
 #include "opensearch_connection.h"
 #include "opensearch_driver_connect.h"
 #include "opensearch_info.h"
+#include "opensearch_odbc.h"
 #include "opensearch_statement.h"
 #include "qresult.h"
 #include "statement.h"

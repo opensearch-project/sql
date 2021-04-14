@@ -21,9 +21,9 @@
 
 #include "bind.h"
 #include "descriptor.h"
-#include "es_odbc.h"
-#include "opensearch_types.h"
 #include "opensearch_helper.h"
+#include "opensearch_odbc.h"
+#include "opensearch_types.h"
 #include "tuple.h"
 
 // C Interface
@@ -224,7 +224,7 @@ struct StatementClass_ {
     STMT_Status status;
     char *__error_message;
     int __error_number;
-    ES_ErrorInfo *eserror;
+    OpenSearch_ErrorInfo *eserror;
 
     SQLLEN currTuple; /* current absolute row number (GetData,
                        * SetPos, SQLFetch) */

@@ -536,9 +536,9 @@ static const struct {
         {DESC_COUNT_FIELD_INCORRECT, "07002", "07002"},
 };
 
-static ES_ErrorInfo *DC_create_errorinfo(const DescriptorClass *self) {
+static OpenSearch_ErrorInfo *DC_create_errorinfo(const DescriptorClass *self) {
     const DescriptorHeader *deschd = &(self->deschd);
-    ES_ErrorInfo *error;
+    OpenSearch_ErrorInfo *error;
     ConnectionClass *conn;
     EnvironmentClass *env;
     Int4 errornum;

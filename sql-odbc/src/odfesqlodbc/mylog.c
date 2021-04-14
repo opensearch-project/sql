@@ -23,9 +23,9 @@
 #include <time.h>
 
 #include "dlg_specific.h"
-#include "es_odbc.h"
 #include "misc.h"
 #include "opensearch_helper.h"
+#include "opensearch_odbc.h"
 
 #ifndef WIN32
 #include <errno.h>

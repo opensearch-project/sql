@@ -1235,7 +1235,7 @@ int copy_and_convert_field(StatementClass *stmt, OID field_type, int atttypmod,
              * This is a large object OID, which is used to store
              * LONGVARBINARY objects.
              */
-        case ES_TYPE_LO_UNDEFINED:
+        case OPENSEARCH_TYPE_LO_UNDEFINED:
 
             return convert_lo(stmt, value, fCType, rgbValueBindRow, cbValueMax,
                               pcbValueBindRow);
@@ -2131,7 +2131,7 @@ size_t convert_linefeeds(const char *si, char *dst, size_t max, BOOL convlf,
     for (i = 0; si[i] && out < max - 1; i++) {
         if (convlf && si[i] == '\n') {
             /* Only add the carriage-return if needed */
-            if (i > 0 && ES_CARRIAGE_RETURN == si[i - 1]) {
+            if (i > 0 && OPENSEARCH_CARRIAGE_RETURN == si[i - 1]) {
                 if (dst)
                     dst[out++] = si[i];
                 else
@@ -2141,7 +2141,7 @@ size_t convert_linefeeds(const char *si, char *dst, size_t max, BOOL convlf,
             *changed = TRUE;
 
             if (dst) {
-                dst[out++] = ES_CARRIAGE_RETURN;
+                dst[out++] = OPENSEARCH_CARRIAGE_RETURN;
                 dst[out++] = '\n';
             } else
                 out += 2;

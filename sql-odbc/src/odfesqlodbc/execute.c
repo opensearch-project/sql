@@ -17,8 +17,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "es_odbc.h"
 #include "misc.h"
+#include "opensearch_odbc.h"
 
 #ifndef WIN32
 #include <ctype.h>

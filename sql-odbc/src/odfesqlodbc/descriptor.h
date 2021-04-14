@@ -17,7 +17,7 @@
 #ifndef __DESCRIPTOR_H__
 #define __DESCRIPTOR_H__
 
-#include "es_odbc.h"
+#include "opensearch_odbc.h"
 
 #ifdef WIN32
 #pragma warning(push)
@@ -116,7 +116,7 @@ typedef struct DescriptorHeader_ {
     UInt4 error_index; /* 1-based index */
     Int4 __error_number;
     char *__error_message;
-    ES_ErrorInfo *eserror;
+    OpenSearch_ErrorInfo *eserror;
 } DescriptorHeader;
 
 /*
@@ -215,7 +215,7 @@ void IPD_free_params(IPDFields *self, char option);
 RETCODE DC_set_stmt(DescriptorClass *desc, StatementClass *stmt);
 void DC_set_error(DescriptorClass *desc, int errornumber, const char *errormsg);
 void DC_set_errormsg(DescriptorClass *desc, const char *errormsg);
-ES_ErrorInfo *DC_get_error(DescriptorClass *self);
+OpenSearch_ErrorInfo *DC_get_error(DescriptorClass *self);
 int DC_get_errornumber(const DescriptorClass *self);
 const char *DC_get_errormsg(const DescriptorClass *self);
 void DC_log_error(const char *func, const char *desc,

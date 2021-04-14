@@ -16,7 +16,7 @@
 
 // clang-format off
 #include "chrono"
-#include <es_odbc.h>
+#include <opensearch_odbc.h>
 #include <string>
 #include <vector>
 #include <iostream>

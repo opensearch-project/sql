@@ -16,8 +16,8 @@
 
 #ifndef __OPENSEARCH_INFO_H__
 #define __OPENSEARCH_INFO_H__
-#include "es_odbc.h"
 #include "opensearch_helper.h"
+#include "opensearch_odbc.h"
 #include "unicode_support.h"
 
 #ifndef WIN32

@@ -22,8 +22,8 @@
 #include <time.h>
 
 #include "descriptor.h"
-#include "es_odbc.h"
 #include "opensearch_helper.h"
+#include "opensearch_odbc.h"
 #include "opensearch_utility.h"
 
 #ifdef __cplusplus

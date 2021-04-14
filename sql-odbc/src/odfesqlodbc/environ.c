@@ -87,8 +87,8 @@ static void es_sqlstate_set(const EnvironmentClass *env, UCHAR *szSqlState,
                  SIZEOF_SQLSTATE);
 }
 
-ES_ErrorInfo *ER_Constructor(SDWORD errnumber, const char *msg) {
-    ES_ErrorInfo *error;
+OpenSearch_ErrorInfo *ER_Constructor(SDWORD errnumber, const char *msg) {
+    OpenSearch_ErrorInfo *error;
     ssize_t aladd, errsize;
 
     if (DESC_OK == errnumber)
@@ -102,9 +102,9 @@ ES_ErrorInfo *ER_Constructor(SDWORD errnumber, const char *msg) {
         errsize = -1;
         aladd = 0;
     }
-    error = (ES_ErrorInfo *)malloc(sizeof(ES_ErrorInfo) + aladd);
+    error = (OpenSearch_ErrorInfo *)malloc(sizeof(OpenSearch_ErrorInfo) + aladd);
     if (error) {
-        memset(error, 0, sizeof(ES_ErrorInfo));
+        memset(error, 0, sizeof(OpenSearch_ErrorInfo));
         error->status = errnumber;
         error->errorsize = (Int2)errsize;
         if (errsize > 0)
@@ -115,20 +115,20 @@ ES_ErrorInfo *ER_Constructor(SDWORD errnumber, const char *msg) {
     return error;
 }
 
-void ER_Destructor(ES_ErrorInfo *self) {
+void ER_Destructor(OpenSearch_ErrorInfo *self) {
     free(self);
 }
 
-ES_ErrorInfo *ER_Dup(const ES_ErrorInfo *self) {
-    ES_ErrorInfo *new;
+OpenSearch_ErrorInfo *ER_Dup(const OpenSearch_ErrorInfo *self) {
+    OpenSearch_ErrorInfo *new;
     Int4 alsize;
 
     if (!self)
         return NULL;
-    alsize = sizeof(ES_ErrorInfo);
+    alsize = sizeof(OpenSearch_ErrorInfo);
     if (self->errorsize > 0)
         alsize += self->errorsize;
-    new = (ES_ErrorInfo *)malloc(alsize);
+    new = (OpenSearch_ErrorInfo *)malloc(alsize);
     if (new)
         memcpy(new, self, alsize);
 
@@ -137,12 +137,12 @@ ES_ErrorInfo *ER_Dup(const ES_ErrorInfo *self) {
 
 #define DRVMNGRDIV 511
 /*		Returns the next SQL error information. */
-RETCODE SQL_API ER_ReturnError(ES_ErrorInfo *eserror, SQLSMALLINT RecNumber,
+RETCODE SQL_API ER_ReturnError(OpenSearch_ErrorInfo *eserror, SQLSMALLINT RecNumber,
                                SQLCHAR *szSqlState, SQLINTEGER *pfNativeError,
                                SQLCHAR *szErrorMsg, SQLSMALLINT cbErrorMsgMax,
                                SQLSMALLINT *pcbErrorMsg, UWORD flag) {
     /* CC: return an error of a hstmt  */
-    ES_ErrorInfo *error;
+    OpenSearch_ErrorInfo *error;
     BOOL partial_ok = ((flag & PODBC_ALLOW_PARTIAL_EXTRACT) != 0);
     const char *msg;
     SWORD msglen, stapos, wrtlen, pcblen;

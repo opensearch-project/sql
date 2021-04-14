@@ -279,7 +279,7 @@ estype_attr_to_concise_type(const ConnectionClass *conn, OID type,
 
         case OPENSEARCH_TYPE_BYTEA:
             return SQL_VARBINARY;
-        case ES_TYPE_LO_UNDEFINED:
+        case OPENSEARCH_TYPE_LO_UNDEFINED:
             return SQL_LONGVARBINARY;
 
         case OPENSEARCH_TYPE_INT2:
@@ -442,7 +442,7 @@ estype_attr_to_ctype(const ConnectionClass *conn, OID type, int atttypmod) {
 
         case OPENSEARCH_TYPE_BYTEA:
             return SQL_C_BINARY;
-        case ES_TYPE_LO_UNDEFINED:
+        case OPENSEARCH_TYPE_LO_UNDEFINED:
             return SQL_C_BINARY;
         case OPENSEARCH_TYPE_BPCHAR:
         case OPENSEARCH_TYPE_VARCHAR:
@@ -599,13 +599,13 @@ Int4 estype_attr_display_size(const ConnectionClass *conn, OID type,
         case OPENSEARCH_TYPE_MONEY:
             return 15; /* ($9,999,999.99) */
 
-        case OPENSEARCH_TYPE_FLOAT4: /* a sign, ES_REAL_DIGITS digits, a decimal point,
+        case OPENSEARCH_TYPE_FLOAT4: /* a sign, OPENSEARCH_REAL_DIGITS digits, a decimal point,
                                 the letter E, a sign, and 2 digits */
-            return (1 + ES_REAL_DIGITS + 1 + 1 + 3);
+            return (1 + OPENSEARCH_REAL_DIGITS + 1 + 1 + 3);
 
-        case OPENSEARCH_TYPE_FLOAT8: /* a sign, ES_DOUBLE_DIGITS digits, a decimal
+        case OPENSEARCH_TYPE_FLOAT8: /* a sign, OPENSEARCH_DOUBLE_DIGITS digits, a decimal
                                 point, the letter E, a sign, and 3 digits */
-            return (1 + ES_DOUBLE_DIGITS + 1 + 1 + 1 + 3);
+            return (1 + OPENSEARCH_DOUBLE_DIGITS + 1 + 1 + 1 + 3);
 
         case OPENSEARCH_TYPE_MACADDR:
             return 17;

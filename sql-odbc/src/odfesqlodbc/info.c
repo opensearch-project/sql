@@ -14,11 +14,11 @@
  *
  */
 
-#include "es_odbc.h"
-#include "unicode_support.h"
-
 #include <stdio.h>
 #include <string.h>
+
+#include "opensearch_odbc.h"
+#include "unicode_support.h"
 
 #ifndef WIN32
 #include <ctype.h>

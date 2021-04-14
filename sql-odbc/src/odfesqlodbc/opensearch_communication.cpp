@@ -19,7 +19,7 @@
 // odfesqlodbc needs to be included before mylog, otherwise mylog will generate
 // compiler warnings
 // clang-format off
-#include "es_odbc.h"
+#include "opensearch_odbc.h"
 #include "mylog.h"
 #include <aws/core/utils/StringUtils.h>
 #include <aws/core/client/RetryStrategy.h>

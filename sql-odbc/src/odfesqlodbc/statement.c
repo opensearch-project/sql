@@ -788,8 +788,7 @@ static const struct {
      {STMT_NO_RESPONSE, "08S01", "08S01"},
      {STMT_COMMUNICATION_ERROR, "08S01", "08S01"}};
 
-static ES_ErrorInfo *SC_create_errorinfo(const StatementClass *self,
-                                         ES_ErrorInfo *eserror_fail_safe) {
+static OpenSearch_ErrorInfo *SC_create_errorinfo(const StatementClass *self, OpenSearch_ErrorInfo *eserror_fail_safe) {
     QResultClass *res = SC_get_Curres(self);
     ConnectionClass *conn = SC_get_conn(self);
     Int4 errornum;
@@ -798,7 +797,7 @@ static ES_ErrorInfo *SC_create_errorinfo(const StatementClass *self,
     BOOL looponce, loopend;
     char msg[4096], *wmsg;
     char *ermsg = NULL, *sqlstate = NULL;
-    ES_ErrorInfo *eserror;
+    OpenSearch_ErrorInfo *eserror;
 
     if (self->eserror)
         return self->eserror;
@@ -972,7 +971,7 @@ void SC_error_copy(StatementClass *self, const StatementClass *from,
 
 void SC_full_error_copy(StatementClass *self, const StatementClass *from,
                         BOOL allres) {
-    ES_ErrorInfo *eserror;
+    OpenSearch_ErrorInfo *eserror;
 
     MYLOG(ES_TRACE, "entering %p->%p\n", from, self);
     if (!from)
@@ -1009,7 +1008,7 @@ RETCODE SQL_API ESAPI_StmtError(SQLHSTMT hstmt, SQLSMALLINT RecNumber,
                                 SQLCHAR *szErrorMsg, SQLSMALLINT cbErrorMsgMax,
                                 SQLSMALLINT *pcbErrorMsg, UWORD flag) {
     /* CC: return an error of a hdesc  */
-    ES_ErrorInfo *eserror, error;
+    OpenSearch_ErrorInfo *eserror, error;
     StatementClass *stmt = (StatementClass *)hstmt;
     int errnum = SC_get_errornumber(stmt);
 
