@@ -14,8 +14,8 @@
  *
  */
 
-#ifndef ES_UTILITY_H
-#define ES_UTILITY_H
+#ifndef OPENSEARCH_UTILITY_H
+#define OPENSEARCH_UTILITY_H
 
 #include <stddef.h>
 
@@ -23,24 +23,24 @@
 extern "C" {
 #endif
 
-typedef struct ESExpBufferData {
+typedef struct OpenSearchExpBufferData {
     char *data;
     size_t len;
     size_t maxlen;
-} ESExpBufferData;
+} OpenSearchExpBufferData;
 
-typedef ESExpBufferData *ESExpBuffer;
+typedef OpenSearchExpBufferData *OpenSearchExpBuffer;
 
-#define ESExpBufferBroken(str) ((str) == NULL || (str)->maxlen == 0)
-#define ESExpBufferDataBroken(buf) ((buf).maxlen == 0)
+#define OpenSearchExpBufferBroken(str) ((str) == NULL || (str)->maxlen == 0)
+#define OpenSearchExpBufferDataBroken(buf) ((buf).maxlen == 0)
 #define INITIAL_EXPBUFFER_SIZE 256
 
-void InitESExpBuffer(ESExpBuffer str);
-void AppendESExpBuffer(ESExpBuffer str, const char *fmt, ...);
-void TermESExpBuffer(ESExpBuffer str);
+void InitOpenSearchExpBuffer(OpenSearchExpBuffer str);
+void AppendOpenSearchExpBuffer(OpenSearchExpBuffer str, const char *fmt, ...);
+void TermOpenSearchExpBuffer(OpenSearchExpBuffer str);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* ES_UTILITY_H */
+#endif /* OPENSEARCH_UTILITY_H */
