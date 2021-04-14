@@ -229,9 +229,10 @@ RETCODE SQL_API ESAPI_DescribeCol(HSTMT hstmt, SQLUSMALLINT icol,
             column_size = fi->column_size;
             decimal_digits = fi->decimal_digits;
         } else {
-            column_size =
-                estype_column_size(stmt, fieldtype, icol, unknown_sizes);
-            decimal_digits = estype_decimal_digits(stmt, fieldtype, icol);
+            column_size = opensearchtype_column_size(stmt, fieldtype, icol,
+                                                     unknown_sizes);
+            decimal_digits =
+                opensearchtype_decimal_digits(stmt, fieldtype, icol);
         }
 
         MYLOG(OPENSEARCH_DEBUG,
@@ -242,8 +243,9 @@ RETCODE SQL_API ESAPI_DescribeCol(HSTMT hstmt, SQLUSMALLINT icol,
         col_name = QR_get_fieldname(res, icol);
         fieldtype = QR_get_field_type(res, icol);
 
-        column_size = estype_column_size(stmt, fieldtype, icol, unknown_sizes);
-        decimal_digits = estype_decimal_digits(stmt, fieldtype, icol);
+        column_size =
+            opensearchtype_column_size(stmt, fieldtype, icol, unknown_sizes);
+        decimal_digits = opensearchtype_decimal_digits(stmt, fieldtype, icol);
     }
 
     MYLOG(OPENSEARCH_DEBUG, "col %d fieldname = '%s'\n", icol, NULL_IF_NULL(col_name));
@@ -277,8 +279,8 @@ RETCODE SQL_API ESAPI_DescribeCol(HSTMT hstmt, SQLUSMALLINT icol,
      * CONCISE(SQL) TYPE
      */
     if (pfSqlType) {
-        *pfSqlType =
-            estype_to_concise_type(stmt, fieldtype, icol, unknown_sizes);
+        *pfSqlType = opensearchtype_to_concise_type(stmt, fieldtype, icol,
+                                                    unknown_sizes);
 
         MYLOG(OPENSEARCH_DEBUG, "col %d *pfSqlType = %d\n", icol, *pfSqlType);
     }
@@ -314,7 +316,7 @@ RETCODE SQL_API ESAPI_DescribeCol(HSTMT hstmt, SQLUSMALLINT icol,
         if (SC_has_outer_join(stmt))
             *pfNullable = TRUE;
         else
-            *pfNullable = fi ? fi->nullable : estype_nullable(conn, fieldtype);
+            *pfNullable = fi ? fi->nullable : opensearchtype_nullable(conn, fieldtype);
 
         MYLOG(OPENSEARCH_DEBUG, "col %d  *pfNullable = %d\n", icol, *pfNullable);
     }
@@ -494,13 +496,14 @@ RETCODE SQL_API ESAPI_ColAttributes(HSTMT hstmt, SQLUSMALLINT icol,
     column_size =
         (USE_FI(fi, unknown_sizes) && fi->column_size > 0)
             ? fi->column_size
-            : estype_column_size(stmt, field_type, col_idx, unknown_sizes);
+            : opensearchtype_column_size(stmt, field_type, col_idx,
+                                                   unknown_sizes);
     switch (fDescType) {
         case SQL_COLUMN_AUTO_INCREMENT: /* == SQL_DESC_AUTO_UNIQUE_VALUE */
             if (fi && fi->auto_increment)
                 value = TRUE;
             else
-                value = estype_auto_increment(conn, field_type);
+                value = opensearchtype_auto_increment(conn, field_type);
             if (value == -1) /* non-numeric becomes FALSE (ODBC Doc) */
                 value = FALSE;
             MYLOG(OPENSEARCH_DEBUG, "AUTO_INCREMENT=" FORMAT_LEN "\n", value);
@@ -508,7 +511,7 @@ RETCODE SQL_API ESAPI_ColAttributes(HSTMT hstmt, SQLUSMALLINT icol,
             break;
 
         case SQL_COLUMN_CASE_SENSITIVE: /* == SQL_DESC_CASE_SENSITIVE */
-            value = estype_case_sensitive(conn, field_type);
+            value = opensearchtype_case_sensitive(conn, field_type);
             break;
 
             /*
@@ -519,8 +522,8 @@ RETCODE SQL_API ESAPI_ColAttributes(HSTMT hstmt, SQLUSMALLINT icol,
         case SQL_COLUMN_DISPLAY_SIZE: /* == SQL_DESC_DISPLAY_SIZE */
             value = (USE_FI(fi, unknown_sizes) && 0 != fi->display_size)
                         ? fi->display_size
-                        : estype_display_size(stmt, field_type, col_idx,
-                                              unknown_sizes);
+                        : opensearchtype_display_size(stmt, field_type, col_idx,
+                                                      unknown_sizes);
 
             MYLOG(OPENSEARCH_DEBUG, "col %d, display_size= " FORMAT_LEN "\n", col_idx,
                   value);
@@ -554,8 +557,8 @@ RETCODE SQL_API ESAPI_ColAttributes(HSTMT hstmt, SQLUSMALLINT icol,
         case SQL_COLUMN_LENGTH:
             value = (USE_FI(fi, unknown_sizes) && fi->length > 0)
                         ? fi->length
-                        : estype_buffer_length(stmt, field_type, col_idx,
-                                               unknown_sizes);
+                        : opensearchtype_buffer_length(stmt, field_type,
+                                                       col_idx, unknown_sizes);
             if (0 > value)
                 /* if (-1 == value)  I'm not sure which is right */
                 value = 0;
@@ -565,7 +568,7 @@ RETCODE SQL_API ESAPI_ColAttributes(HSTMT hstmt, SQLUSMALLINT icol,
             break;
 
         case SQL_COLUMN_MONEY: /* == SQL_DESC_FIXED_PREC_SCALE */
-            value = estype_money(conn, field_type);
+            value = opensearchtype_money(conn, field_type);
             MYLOG(OPENSEARCH_ALL, "COLUMN_MONEY=" FORMAT_LEN "\n", value);
             break;
 
@@ -573,7 +576,7 @@ RETCODE SQL_API ESAPI_ColAttributes(HSTMT hstmt, SQLUSMALLINT icol,
             if (SC_has_outer_join(stmt))
                 value = TRUE;
             else
-                value = fi ? fi->nullable : estype_nullable(conn, field_type);
+                value = fi ? fi->nullable : opensearchtype_nullable(conn, field_type);
             MYLOG(OPENSEARCH_ALL, "COLUMN_NULLABLE=" FORMAT_LEN "\n", value);
             break;
 
@@ -597,14 +600,14 @@ RETCODE SQL_API ESAPI_ColAttributes(HSTMT hstmt, SQLUSMALLINT icol,
             break;
 
         case SQL_COLUMN_SCALE: /* in 2.x */
-            value = estype_decimal_digits(stmt, field_type, col_idx);
+            value = opensearchtype_decimal_digits(stmt, field_type, col_idx);
             MYLOG(OPENSEARCH_ALL, "COLUMN_SCALE=" FORMAT_LEN "\n", value);
             if (value < 0)
                 value = 0;
             break;
 
         case SQL_COLUMN_SEARCHABLE: /* == SQL_DESC_SEARCHABLE */
-            value = estype_searchable(conn, field_type);
+            value = opensearchtype_searchable(conn, field_type);
             break;
 
         case SQL_COLUMN_TABLE_NAME: /* == SQL_DESC_TABLE_NAME */
@@ -614,18 +617,18 @@ RETCODE SQL_API ESAPI_ColAttributes(HSTMT hstmt, SQLUSMALLINT icol,
             break;
 
         case SQL_COLUMN_TYPE: /* == SQL_DESC_CONCISE_TYPE */
-            value = estype_to_concise_type(stmt, field_type, col_idx,
-                                           unknown_sizes);
+            value = opensearchtype_to_concise_type(stmt, field_type, col_idx,
+                                                   unknown_sizes);
             MYLOG(OPENSEARCH_DEBUG, "COLUMN_TYPE=" FORMAT_LEN "\n", value);
             break;
 
         case SQL_COLUMN_TYPE_NAME: /* == SQL_DESC_TYPE_NAME */
-            p = estype_to_name(stmt, field_type, col_idx,
-                               fi && fi->auto_increment);
+            p = opensearchtype_to_name(stmt, field_type, col_idx,
+                                       fi && fi->auto_increment);
             break;
 
         case SQL_COLUMN_UNSIGNED: /* == SQL_DESC_UNSINGED */
-            value = estype_unsigned(conn, field_type);
+            value = opensearchtype_unsigned(conn, field_type);
             if (value == -1) /* non-numeric becomes TRUE (ODBC Doc) */
                 value = SQL_TRUE;
 
@@ -673,8 +676,8 @@ RETCODE SQL_API ESAPI_ColAttributes(HSTMT hstmt, SQLUSMALLINT icol,
         case SQL_DESC_LENGTH: /* different from SQL_COLUMN_LENGTH */
             value = (fi && column_size > 0)
                         ? column_size
-                        : estype_desclength(stmt, field_type, col_idx,
-                                            unknown_sizes);
+                        : opensearchtype_desclength(stmt, field_type, col_idx,
+                                                    unknown_sizes);
             if (-1 == value)
                 value = 0;
 
@@ -684,7 +687,7 @@ RETCODE SQL_API ESAPI_ColAttributes(HSTMT hstmt, SQLUSMALLINT icol,
         case SQL_DESC_OCTET_LENGTH:
             value = (USE_FI(fi, unknown_sizes) && fi->length > 0)
                         ? fi->length
-                        : estype_attr_transfer_octet_length(
+                        : opensearchtype_attr_transfer_octet_length(
                             conn, field_type, column_size, unknown_sizes);
             if (-1 == value)
                 value = 0;
@@ -693,8 +696,8 @@ RETCODE SQL_API ESAPI_ColAttributes(HSTMT hstmt, SQLUSMALLINT icol,
             break;
         case SQL_DESC_PRECISION: /* different from SQL_COLUMN_PRECISION */
             if (value = FI_precision(fi), value <= 0)
-                value =
-                    estype_precision(stmt, field_type, col_idx, unknown_sizes);
+                value = opensearchtype_precision(stmt, field_type, col_idx,
+                                                 unknown_sizes);
             if (value < 0)
                 value = 0;
 
@@ -702,26 +705,26 @@ RETCODE SQL_API ESAPI_ColAttributes(HSTMT hstmt, SQLUSMALLINT icol,
                   col_idx, value);
             break;
         case SQL_DESC_SCALE: /* different from SQL_COLUMN_SCALE */
-            value = estype_scale(stmt, field_type, col_idx);
+            value = opensearchtype_scale(stmt, field_type, col_idx);
             if (value < 0)
                 value = 0;
             break;
         case SQL_DESC_LOCAL_TYPE_NAME:
-            p = estype_to_name(stmt, field_type, col_idx,
-                               fi && fi->auto_increment);
+            p = opensearchtype_to_name(stmt, field_type, col_idx,
+                                       fi && fi->auto_increment);
             break;
         case SQL_DESC_TYPE:
-            value =
-                estype_to_sqldesctype(stmt, field_type, col_idx, unknown_sizes);
+            value = opensearchtype_to_sqldesctype(stmt, field_type, col_idx,
+                                                  unknown_sizes);
             break;
         case SQL_DESC_NUM_PREC_RADIX:
-            value = estype_radix(conn, field_type);
+            value = opensearchtype_radix(conn, field_type);
             break;
         case SQL_DESC_LITERAL_PREFIX:
-            p = estype_literal_prefix(conn, field_type);
+            p = opensearchtype_literal_prefix(conn, field_type);
             break;
         case SQL_DESC_LITERAL_SUFFIX:
-            p = estype_literal_suffix(conn, field_type);
+            p = opensearchtype_literal_suffix(conn, field_type);
             break;
         case SQL_DESC_UNNAMED:
             value = (fi && NAME_IS_NULL(fi->column_name)

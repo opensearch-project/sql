@@ -237,8 +237,8 @@ static SQLSMALLINT getIntervalDecimalDigits(OID type, int atttypmod) {
 #endif  // ES_INTERVAL_AS_SQL_INTERVAL
 
 SQLSMALLINT
-estype_attr_to_concise_type(const ConnectionClass *conn, OID type,
-                            int atttypmod, int adtsize_or_longestlen,
+opensearchtype_attr_to_concise_type(const ConnectionClass *conn, OID type,
+                            int typmod, int adtsize_or_longestlen,
                             int handle_unknown_size_as) {
     EnvironmentClass *env = (EnvironmentClass *)CC_get_env(conn);
 #ifdef ES_INTERVAL_AS_SQL_INTERVAL
@@ -256,7 +256,7 @@ estype_attr_to_concise_type(const ConnectionClass *conn, OID type,
         case OPENSEARCH_TYPE_BPCHAR:
             bFixed = TRUE;
         case OPENSEARCH_TYPE_VARCHAR:
-            if (getCharColumnSizeX(conn, type, atttypmod, adtsize_or_longestlen,
+            if (getCharColumnSizeX(conn, type, typmod, adtsize_or_longestlen,
                                    handle_unknown_size_as)
                 > MAX_VARCHAR_SIZE)
                 bLongVarchar = TRUE;
@@ -268,7 +268,7 @@ estype_attr_to_concise_type(const ConnectionClass *conn, OID type,
         case OPENSEARCH_TYPE_TEXT:
             bLongVarchar = DEFAULT_TEXTASLONGVARCHAR;
             if (bLongVarchar) {
-                int column_size = getCharColumnSizeX(conn, type, atttypmod,
+                int column_size = getCharColumnSizeX(conn, type, typmod,
                                                      adtsize_or_longestlen,
                                                      handle_unknown_size_as);
                 if (column_size > 0 && column_size <= MAX_VARCHAR_SIZE)
@@ -351,7 +351,7 @@ estype_attr_to_concise_type(const ConnectionClass *conn, OID type,
 
             bLongVarchar = DEFAULT_UNKNOWNSASLONGVARCHAR;
             if (bLongVarchar) {
-                int column_size = getCharColumnSizeX(conn, type, atttypmod,
+                int column_size = getCharColumnSizeX(conn, type, typmod,
                                                      adtsize_or_longestlen,
                                                      handle_unknown_size_as);
                 if (column_size > 0 && column_size <= MAX_VARCHAR_SIZE)
@@ -367,7 +367,7 @@ estype_attr_to_concise_type(const ConnectionClass *conn, OID type,
 }
 
 SQLSMALLINT
-estype_attr_to_sqldesctype(const ConnectionClass *conn, OID type, int atttypmod,
+opensearchtype_attr_to_sqldesctype(const ConnectionClass *conn, OID type, int typmod,
                            int adtsize_or_longestlen,
                            int handle_unknown_size_as) {
     SQLSMALLINT rettype;
@@ -376,9 +376,9 @@ estype_attr_to_sqldesctype(const ConnectionClass *conn, OID type, int atttypmod,
     if (OPENSEARCH_TYPE_INTERVAL == type)
         return SQL_INTERVAL;
 #endif /* ES_INTERVAL_AS_SQL_INTERVAL */
-    switch (rettype = estype_attr_to_concise_type(conn, type, atttypmod,
-                                                  adtsize_or_longestlen,
-                                                  handle_unknown_size_as)) {
+    switch (rettype = opensearchtype_attr_to_concise_type(
+                conn, type, typmod, adtsize_or_longestlen,
+                handle_unknown_size_as)) {
         case SQL_TYPE_DATE:
         case SQL_TYPE_TIME:
         case SQL_TYPE_TIMESTAMP:
@@ -388,15 +388,15 @@ estype_attr_to_sqldesctype(const ConnectionClass *conn, OID type, int atttypmod,
 }
 
 SQLSMALLINT
-estype_attr_to_datetime_sub(const ConnectionClass *conn, OID type,
-                            int atttypmod) {
-    UNUSED(conn, type, atttypmod);
+opensearchtype_attr_to_datetime_sub(const ConnectionClass *conn, OID type,
+                            int typmod) {
+    UNUSED(conn, type, typmod);
     return -1;
 }
 
 SQLSMALLINT
-estype_attr_to_ctype(const ConnectionClass *conn, OID type, int atttypmod) {
-    UNUSED(atttypmod);
+opensearchtype_attr_to_ctype(const ConnectionClass *conn, OID type, int typmod) {
+    UNUSED(typmod);
     EnvironmentClass *env = (EnvironmentClass *)CC_get_env(conn);
 #ifdef ES_INTERVAL_AS_SQL_INTERVAL
     SQLSMALLINT ctype;
@@ -474,7 +474,7 @@ estype_attr_to_ctype(const ConnectionClass *conn, OID type, int atttypmod) {
     }
 }
 
-const char *estype_attr_to_name(const ConnectionClass *conn, OID type,
+const char *opensearchtype_attr_to_name(const ConnectionClass *conn, OID type,
                                 int typmod, BOOL auto_increment) {
     UNUSED(conn, typmod, conn, auto_increment);
     switch (type) {
@@ -514,7 +514,7 @@ const char *estype_attr_to_name(const ConnectionClass *conn, OID type,
 }
 
 Int4 /* OpenSearch restriction */
-estype_attr_column_size(const ConnectionClass *conn, OID type, int atttypmod,
+opensearchtype_attr_column_size(const ConnectionClass *conn, OID type, int atttypmod,
                         int adtsize_or_longest, int handle_unknown_size_as) {
     UNUSED(handle_unknown_size_as, adtsize_or_longest, atttypmod, conn);
     switch (type) {
@@ -552,7 +552,7 @@ estype_attr_column_size(const ConnectionClass *conn, OID type, int atttypmod,
 }
 
 SQLSMALLINT
-estype_attr_precision(const ConnectionClass *conn, OID type, int atttypmod,
+opensearchtype_attr_precision(const ConnectionClass *conn, OID type, int atttypmod,
                       int adtsize_or_longest, int handle_unknown_size_as) {
     switch (type) {
         case OPENSEARCH_TYPE_NUMERIC:
@@ -571,7 +571,7 @@ estype_attr_precision(const ConnectionClass *conn, OID type, int atttypmod,
     return -1;
 }
 
-Int4 estype_attr_display_size(const ConnectionClass *conn, OID type,
+Int4 opensearchtype_attr_display_size(const ConnectionClass *conn, OID type,
                               int atttypmod, int adtsize_or_longestlen,
                               int handle_unknown_size_as) {
     int dsize;
@@ -619,13 +619,13 @@ Int4 estype_attr_display_size(const ConnectionClass *conn, OID type,
 
             /* Character types use regular precision */
         default:
-            return estype_attr_column_size(conn, type, atttypmod,
-                                           adtsize_or_longestlen,
-                                           handle_unknown_size_as);
+            return opensearchtype_attr_column_size(conn, type, atttypmod,
+                                                   adtsize_or_longestlen,
+                                                   handle_unknown_size_as);
     }
 }
 
-Int4 estype_attr_buffer_length(const ConnectionClass *conn, OID type,
+Int4 opensearchtype_attr_buffer_length(const ConnectionClass *conn, OID type,
                                int atttypmod, int adtsize_or_longestlen,
                                int handle_unknown_size_as) {
     int dsize;
@@ -640,7 +640,7 @@ Int4 estype_attr_buffer_length(const ConnectionClass *conn, OID type,
             return 4; /* sizeof(SQLINTEGER) */
 
         case OPENSEARCH_TYPE_INT8:
-            if (SQL_C_CHAR == estype_attr_to_ctype(conn, type, atttypmod))
+            if (SQL_C_CHAR == opensearchtype_attr_to_ctype(conn, type, atttypmod))
                 return 20; /* signed: 19 digits + sign */
             return 8;      /* sizeof(SQLSBININT) */
 
@@ -679,9 +679,9 @@ Int4 estype_attr_buffer_length(const ConnectionClass *conn, OID type,
         case OPENSEARCH_TYPE_VARCHAR:
         case OPENSEARCH_TYPE_BPCHAR: {
             int coef = 1;
-            Int4 prec = estype_attr_column_size(conn, type, atttypmod,
-                                                adtsize_or_longestlen,
-                                                handle_unknown_size_as),
+            Int4 prec = opensearchtype_attr_column_size(conn, type, atttypmod,
+                                                        adtsize_or_longestlen,
+                                                        handle_unknown_size_as),
                  maxvarc;
             if (SQL_NO_TOTAL == prec)
                 return prec;
@@ -706,15 +706,15 @@ Int4 estype_attr_buffer_length(const ConnectionClass *conn, OID type,
 #endif /* ES_INTERVAL_AS_SQL_INTERVAL */
 
         default:
-            return estype_attr_column_size(conn, type, atttypmod,
-                                           adtsize_or_longestlen,
-                                           handle_unknown_size_as);
+            return opensearchtype_attr_column_size(conn, type, atttypmod,
+                                                   adtsize_or_longestlen,
+                                                   handle_unknown_size_as);
     }
 }
 
 /*
  */
-Int4 estype_attr_desclength(const ConnectionClass *conn, OID type,
+Int4 opensearchtype_attr_desclength(const ConnectionClass *conn, OID type,
                             int atttypmod, int adtsize_or_longestlen,
                             int handle_unknown_size_as) {
     int dsize;
@@ -752,19 +752,19 @@ Int4 estype_attr_desclength(const ConnectionClass *conn, OID type,
         case OPENSEARCH_TYPE_TIMESTAMP:
         case OPENSEARCH_TYPE_VARCHAR:
         case OPENSEARCH_TYPE_BPCHAR:
-            return estype_attr_column_size(conn, type, atttypmod,
-                                           adtsize_or_longestlen,
-                                           handle_unknown_size_as);
+            return opensearchtype_attr_column_size(conn, type, atttypmod,
+                                                   adtsize_or_longestlen,
+                                                   handle_unknown_size_as);
         default:
-            return estype_attr_column_size(conn, type, atttypmod,
-                                           adtsize_or_longestlen,
-                                           handle_unknown_size_as);
+            return opensearchtype_attr_column_size(conn, type, atttypmod,
+                                                   adtsize_or_longestlen,
+                                                   handle_unknown_size_as);
     }
 }
 
-Int2 estype_attr_decimal_digits(const ConnectionClass *conn, OID type,
+Int2 opensearchtype_attr_decimal_digits(const ConnectionClass *conn, OID type,
                                 int atttypmod, int adtsize_or_longestlen,
-                                int UNUSED_handle_unknown_size_as) {
+                                int handle_unknown_size_as) {
     switch (type) {
         case OPENSEARCH_TYPE_INT2:
         case OPENSEARCH_TYPE_OID:
@@ -792,7 +792,7 @@ Int2 estype_attr_decimal_digits(const ConnectionClass *conn, OID type,
         case OPENSEARCH_TYPE_NUMERIC:
             return getNumericDecimalDigitsX(conn, type, atttypmod,
                                             adtsize_or_longestlen,
-                                            UNUSED_handle_unknown_size_as);
+                                            handle_unknown_size_as);
 
 #ifdef ES_INTERVAL_AS_SQL_INTERVAL
         case OPENSEARCH_TYPE_INTERVAL:
@@ -804,19 +804,19 @@ Int2 estype_attr_decimal_digits(const ConnectionClass *conn, OID type,
     }
 }
 
-Int2 estype_attr_scale(const ConnectionClass *conn, OID type, int atttypmod,
+Int2 opensearchtype_attr_scale(const ConnectionClass *conn, OID type, int atttypmod,
                        int adtsize_or_longestlen,
-                       int UNUSED_handle_unknown_size_as) {
+                       int handle_unknown_size_as) {
     switch (type) {
         case OPENSEARCH_TYPE_NUMERIC:
             return getNumericDecimalDigitsX(conn, type, atttypmod,
                                             adtsize_or_longestlen,
-                                            UNUSED_handle_unknown_size_as);
+                                            handle_unknown_size_as);
     }
     return -1;
 }
 
-Int4 estype_attr_transfer_octet_length(const ConnectionClass *conn, OID type,
+Int4 opensearchtype_attr_transfer_octet_length(const ConnectionClass *conn, OID type,
                                        int atttypmod,
                                        int handle_unknown_size_as) {
     int coef = 1;
@@ -827,9 +827,9 @@ Int4 estype_attr_transfer_octet_length(const ConnectionClass *conn, OID type,
         case OPENSEARCH_TYPE_BPCHAR:
         case OPENSEARCH_TYPE_TEXT:
         case OPENSEARCH_TYPE_UNKNOWN:
-            column_size = estype_attr_column_size(
-                conn, type, atttypmod,
-                                                  OPENSEARCH_ADT_UNSET, handle_unknown_size_as);
+            column_size = opensearchtype_attr_column_size(
+                conn, type, atttypmod, OPENSEARCH_ADT_UNSET,
+                handle_unknown_size_as);
             if (SQL_NO_TOTAL == column_size)
                 return column_size;
 #ifdef UNICODE_SUPPORT
@@ -847,14 +847,14 @@ Int4 estype_attr_transfer_octet_length(const ConnectionClass *conn, OID type,
                 return maxvarc;
             return coef * column_size;
         case OPENSEARCH_TYPE_BYTEA:
-            return estype_attr_column_size(conn, type, atttypmod,
-                                           OPENSEARCH_ADT_UNSET,
-                                           handle_unknown_size_as);
+            return opensearchtype_attr_column_size(conn, type, atttypmod,
+                                                   OPENSEARCH_ADT_UNSET,
+                                                   handle_unknown_size_as);
         default:
             if (type == (OID)conn->lobj_type)
-                return estype_attr_column_size(conn, type, atttypmod,
-                                               OPENSEARCH_ADT_UNSET,
-                                               handle_unknown_size_as);
+                return opensearchtype_attr_column_size(conn, type, atttypmod,
+                                                       OPENSEARCH_ADT_UNSET,
+                                                       handle_unknown_size_as);
     }
     return -1;
 }
@@ -926,7 +926,7 @@ const char *sqltype_to_escast(const ConnectionClass *conn,
     return esCast;
 }
 
-OID sqltype_to_estype(const ConnectionClass *conn, SQLSMALLINT fSqlType) {
+OID sqltype_to_opensearchtype(const ConnectionClass *conn, SQLSMALLINT fSqlType) {
     OID esType = 0;
     switch (fSqlType) {
         case SQL_BINARY:
@@ -1097,33 +1097,33 @@ static int getAtttypmodEtc(const StatementClass *stmt, int col,
  *other es routines in here return a suitable default.
  */
 SQLSMALLINT
-estype_to_concise_type(const StatementClass *stmt, OID type, int col,
+opensearchtype_to_concise_type(const StatementClass *stmt, OID type, int col,
                        int handle_unknown_size_as) {
     int atttypmod, adtsize_or_longestlen;
 
     atttypmod = getAtttypmodEtc(stmt, col, &adtsize_or_longestlen);
-    return estype_attr_to_concise_type(SC_get_conn(stmt), type, atttypmod,
-                                       adtsize_or_longestlen,
-                                       handle_unknown_size_as);
+    return opensearchtype_attr_to_concise_type(SC_get_conn(stmt), type,
+                                               atttypmod, adtsize_or_longestlen,
+                                               handle_unknown_size_as);
 }
 
 SQLSMALLINT
-estype_to_sqldesctype(const StatementClass *stmt, OID type, int col,
+opensearchtype_to_sqldesctype(const StatementClass *stmt, OID type, int col,
                       int handle_unknown_size_as) {
     int adtsize_or_longestlen;
     int atttypmod = getAtttypmodEtc(stmt, col, &adtsize_or_longestlen);
 
-    return estype_attr_to_sqldesctype(SC_get_conn(stmt), type, atttypmod,
-                                      adtsize_or_longestlen,
-                                      handle_unknown_size_as);
+    return opensearchtype_attr_to_sqldesctype(SC_get_conn(stmt), type,
+                                              atttypmod, adtsize_or_longestlen,
+                                              handle_unknown_size_as);
 }
 
-const char *estype_to_name(const StatementClass *stmt, OID type, int col,
+const char *opensearchtype_to_name(const StatementClass *stmt, OID type, int col,
                            BOOL auto_increment) {
     int atttypmod = getAtttypmodEtc(stmt, col, NULL);
 
-    return estype_attr_to_name(SC_get_conn(stmt), type, atttypmod,
-                               auto_increment);
+    return opensearchtype_attr_to_name(SC_get_conn(stmt), type, atttypmod,
+                                       auto_increment);
 }
 
 /*
@@ -1136,12 +1136,12 @@ const char *estype_to_name(const StatementClass *stmt, OID type, int col,
  *	This is used for functions SQLDescribeCol and SQLColAttributes.
  */
 Int4 /* OpenSearch restriction */
-estype_column_size(const StatementClass *stmt, OID type, int col,
+opensearchtype_column_size(const StatementClass *stmt, OID type, int col,
                    int handle_unknown_size_as) {
     int atttypmod, adtsize_or_longestlen;
 
     atttypmod = getAtttypmodEtc(stmt, col, &adtsize_or_longestlen);
-    return estype_attr_column_size(
+    return opensearchtype_attr_column_size(
         SC_get_conn(stmt), type, atttypmod, adtsize_or_longestlen,
         stmt->catalog_result ? UNKNOWNS_AS_LONGEST : handle_unknown_size_as);
 }
@@ -1150,22 +1150,22 @@ estype_column_size(const StatementClass *stmt, OID type, int col,
  *	precision in ODBC 3.x.
  */
 SQLSMALLINT
-estype_precision(const StatementClass *stmt, OID type, int col,
+opensearchtype_precision(const StatementClass *stmt, OID type, int col,
                  int handle_unknown_size_as) {
     int atttypmod, adtsize_or_longestlen;
 
     atttypmod = getAtttypmodEtc(stmt, col, &adtsize_or_longestlen);
-    return estype_attr_precision(
+    return opensearchtype_attr_precision(
         SC_get_conn(stmt), type, atttypmod, adtsize_or_longestlen,
         stmt->catalog_result ? UNKNOWNS_AS_LONGEST : handle_unknown_size_as);
 }
 
-Int4 estype_display_size(const StatementClass *stmt, OID type, int col,
+Int4 opensearchtype_display_size(const StatementClass *stmt, OID type, int col,
                          int handle_unknown_size_as) {
     int atttypmod, adtsize_or_longestlen;
 
     atttypmod = getAtttypmodEtc(stmt, col, &adtsize_or_longestlen);
-    return estype_attr_display_size(
+    return opensearchtype_attr_display_size(
         SC_get_conn(stmt), type, atttypmod, adtsize_or_longestlen,
         stmt->catalog_result ? UNKNOWNS_AS_LONGEST : handle_unknown_size_as);
 }
@@ -1174,24 +1174,24 @@ Int4 estype_display_size(const StatementClass *stmt, OID type, int col,
  *	The length in bytes of data transferred on an SQLGetData, SQLFetch,
  *	or SQLFetchScroll operation if SQL_C_DEFAULT is specified.
  */
-Int4 estype_buffer_length(const StatementClass *stmt, OID type, int col,
+Int4 opensearchtype_buffer_length(const StatementClass *stmt, OID type, int col,
                           int handle_unknown_size_as) {
     int atttypmod, adtsize_or_longestlen;
 
     atttypmod = getAtttypmodEtc(stmt, col, &adtsize_or_longestlen);
-    return estype_attr_buffer_length(
+    return opensearchtype_attr_buffer_length(
         SC_get_conn(stmt), type, atttypmod, adtsize_or_longestlen,
         stmt->catalog_result ? UNKNOWNS_AS_LONGEST : handle_unknown_size_as);
 }
 
 /*
  */
-Int4 estype_desclength(const StatementClass *stmt, OID type, int col,
+Int4 opensearchtype_desclength(const StatementClass *stmt, OID type, int col,
                        int handle_unknown_size_as) {
     int atttypmod, adtsize_or_longestlen;
 
     atttypmod = getAtttypmodEtc(stmt, col, &adtsize_or_longestlen);
-    return estype_attr_desclength(
+    return opensearchtype_attr_desclength(
         SC_get_conn(stmt), type, atttypmod, adtsize_or_longestlen,
         stmt->catalog_result ? UNKNOWNS_AS_LONGEST : handle_unknown_size_as);
 }
@@ -1200,7 +1200,7 @@ Int4 estype_desclength(const StatementClass *stmt, OID type, int col,
 /*
  *	Transfer octet length.
  */
-Int4 estype_transfer_octet_length(const StatementClass *stmt, OID type,
+Int4 opensearchtype_transfer_octet_length(const StatementClass *stmt, OID type,
                                   int column_size) {
     ConnectionClass *conn = SC_get_conn(stmt);
 
@@ -1239,7 +1239,7 @@ Int4 estype_transfer_octet_length(const StatementClass *stmt, OID type,
 /*
  *	corrsponds to "min_scale" in ODBC 2.x.
  */
-Int2 estype_min_decimal_digits(const ConnectionClass *conn, OID type) {
+Int2 opensearchtype_min_decimal_digits(const ConnectionClass *conn, OID type) {
     UNUSED(conn, type);
     return -1;
 }
@@ -1247,7 +1247,7 @@ Int2 estype_min_decimal_digits(const ConnectionClass *conn, OID type) {
 /*
  *	corrsponds to "max_scale" in ODBC 2.x.
  */
-Int2 estype_max_decimal_digits(const ConnectionClass *conn, OID type) {
+Int2 opensearchtype_max_decimal_digits(const ConnectionClass *conn, OID type) {
     UNUSED(conn, type);
     return -1;
 }
@@ -1255,43 +1255,43 @@ Int2 estype_max_decimal_digits(const ConnectionClass *conn, OID type) {
 /*
  *	corrsponds to "scale" in ODBC 2.x.
  */
-Int2 estype_decimal_digits(const StatementClass *stmt, OID type, int col) {
+Int2 opensearchtype_decimal_digits(const StatementClass *stmt, OID type, int col) {
     int atttypmod, adtsize_or_longestlen;
 
     atttypmod = getAtttypmodEtc(stmt, col, &adtsize_or_longestlen);
-    return estype_attr_decimal_digits(SC_get_conn(stmt), type, atttypmod,
-                                      adtsize_or_longestlen,
-                                      UNUSED_HANDLE_UNKNOWN_SIZE_AS);
+    return opensearchtype_attr_decimal_digits(SC_get_conn(stmt), type,
+                                              atttypmod, adtsize_or_longestlen,
+                                              UNUSED_HANDLE_UNKNOWN_SIZE_AS);
 }
 
 /*
  *	"scale" in ODBC 3.x.
  */
-Int2 estype_scale(const StatementClass *stmt, OID type, int col) {
+Int2 opensearchtype_scale(const StatementClass *stmt, OID type, int col) {
     int atttypmod, adtsize_or_longestlen;
 
     atttypmod = getAtttypmodEtc(stmt, col, &adtsize_or_longestlen);
-    return estype_attr_scale(SC_get_conn(stmt), type, atttypmod,
-                             adtsize_or_longestlen,
-                             UNUSED_HANDLE_UNKNOWN_SIZE_AS);
+    return opensearchtype_attr_scale(SC_get_conn(stmt), type, atttypmod,
+                                     adtsize_or_longestlen,
+                                     UNUSED_HANDLE_UNKNOWN_SIZE_AS);
 }
 
-Int2 estype_radix(const ConnectionClass *conn, OID type) {
+Int2 opensearchtype_radix(const ConnectionClass *conn, OID type) {
     UNUSED(conn, type);
     return 10;
 }
 
-Int2 estype_nullable(const ConnectionClass *conn, OID type) {
+Int2 opensearchtype_nullable(const ConnectionClass *conn, OID type) {
     UNUSED(conn, type);
     return SQL_NULLABLE_UNKNOWN; /* everything should be nullable unknown */
 }
 
-Int2 estype_auto_increment(const ConnectionClass *conn, OID type) {
+Int2 opensearchtype_auto_increment(const ConnectionClass *conn, OID type) {
     UNUSED(conn, type);
     return SQL_FALSE;
 }
 
-Int2 estype_case_sensitive(const ConnectionClass *conn, OID type) {
+Int2 opensearchtype_case_sensitive(const ConnectionClass *conn, OID type) {
     UNUSED(conn, type);
     switch (type) {
         case OPENSEARCH_TYPE_KEYWORD:
@@ -1303,17 +1303,17 @@ Int2 estype_case_sensitive(const ConnectionClass *conn, OID type) {
     }
 }
 
-Int2 estype_money(const ConnectionClass *conn, OID type) {
+Int2 opensearchtype_money(const ConnectionClass *conn, OID type) {
     UNUSED(conn, type);
     return SQL_FALSE;
 }
 
-Int2 estype_searchable(const ConnectionClass *conn, OID type) {
+Int2 opensearchtype_searchable(const ConnectionClass *conn, OID type) {
     UNUSED(conn, type);
     return SQL_SEARCHABLE;
 }
 
-Int2 estype_unsigned(const ConnectionClass *conn, OID type) {
+Int2 opensearchtype_unsigned(const ConnectionClass *conn, OID type) {
     UNUSED(conn);
     switch (type) {
         case OPENSEARCH_TYPE_BOOL:
@@ -1339,7 +1339,7 @@ Int2 estype_unsigned(const ConnectionClass *conn, OID type) {
     }
 }
 
-const char *estype_literal_prefix(const ConnectionClass *conn, OID type) {
+const char *opensearchtype_literal_prefix(const ConnectionClass *conn, OID type) {
     UNUSED(conn);
     switch (type) {
         case OPENSEARCH_TYPE_KEYWORD:
@@ -1352,7 +1352,7 @@ const char *estype_literal_prefix(const ConnectionClass *conn, OID type) {
     }
 }
 
-const char *estype_literal_suffix(const ConnectionClass *conn, OID type) {
+const char *opensearchtype_literal_suffix(const ConnectionClass *conn, OID type) {
     UNUSED(conn);
     switch (type) {
         case OPENSEARCH_TYPE_KEYWORD:
@@ -1365,7 +1365,7 @@ const char *estype_literal_suffix(const ConnectionClass *conn, OID type) {
     }
 }
 
-const char *estype_create_params(const ConnectionClass *conn, OID type) {
+const char *opensearchtype_create_params(const ConnectionClass *conn, OID type) {
     UNUSED(conn, type);
     return NULL;
 }

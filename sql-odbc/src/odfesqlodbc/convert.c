@@ -1255,7 +1255,7 @@ int copy_and_convert_field(StatementClass *stmt, OID field_type, int atttypmod,
 
     /* Change default into something useable */
     if (fCType == SQL_C_DEFAULT) {
-        fCType = estype_attr_to_ctype(conn, field_type, atttypmod);
+        fCType = opensearchtype_attr_to_ctype(conn, field_type, atttypmod);
 #ifdef UNICODE_SUPPORT
         if (fCType == SQL_C_WCHAR && CC_default_is_c(conn))
             fCType = SQL_C_CHAR;

@@ -105,7 +105,7 @@ extern "C" {
 /* extern Int4 opensearch_types_defined[]; */
 extern SQLSMALLINT sqlTypes[];
 
-/*	Defines for estype_precision */
+/*	Defines for opensearchtype_precision */
 #define OPENSEARCH_ATP_UNSET (-3)   /* atttypmod */
 #define OPENSEARCH_ADT_UNSET (-3)   /* adtsize_or_longestlen */
 #define OPENSEARCH_UNKNOWNS_UNSET 0 /* UNKNOWNS_AS_MAX */
@@ -119,91 +119,91 @@ extern SQLSMALLINT sqlTypes[];
  */
 
 OID es_true_type(const ConnectionClass *, OID, OID);
-OID sqltype_to_estype(const ConnectionClass *conn, SQLSMALLINT fSqlType);
+OID sqltype_to_opensearchtype(const ConnectionClass *conn, SQLSMALLINT fSqlType);
 const char *sqltype_to_escast(const ConnectionClass *conn,
                               SQLSMALLINT fSqlType);
 
-SQLSMALLINT estype_to_concise_type(const StatementClass *stmt, OID type,
+SQLSMALLINT opensearchtype_to_concise_type(const StatementClass *stmt, OID type,
                                    int col, int handle_unknown_size_as);
-SQLSMALLINT estype_to_sqldesctype(const StatementClass *stmt, OID type, int col,
+SQLSMALLINT opensearchtype_to_sqldesctype(const StatementClass *stmt, OID type, int col,
                                   int handle_unknown_size_as);
-const char *estype_to_name(const StatementClass *stmt, OID type, int col,
+const char *opensearchtype_to_name(const StatementClass *stmt, OID type, int col,
                            BOOL auto_increment);
 
-SQLSMALLINT estype_attr_to_concise_type(const ConnectionClass *conn, OID type,
+SQLSMALLINT opensearchtype_attr_to_concise_type(const ConnectionClass *conn, OID type,
                                         int typmod, int adtsize_or_longestlen,
                                         int handle_unknown_size_as);
-SQLSMALLINT estype_attr_to_sqldesctype(const ConnectionClass *conn, OID type,
+SQLSMALLINT opensearchtype_attr_to_sqldesctype(const ConnectionClass *conn, OID type,
                                        int typmod, int adtsize_or_longestlen,
                                        int handle_unknown_size_as);
-SQLSMALLINT estype_attr_to_datetime_sub(const ConnectionClass *conn, OID type,
+SQLSMALLINT opensearchtype_attr_to_datetime_sub(const ConnectionClass *conn, OID type,
                                         int typmod);
-SQLSMALLINT estype_attr_to_ctype(const ConnectionClass *conn, OID type,
+SQLSMALLINT opensearchtype_attr_to_ctype(const ConnectionClass *conn, OID type,
                                  int typmod);
-const char *estype_attr_to_name(const ConnectionClass *conn, OID type,
+const char *opensearchtype_attr_to_name(const ConnectionClass *conn, OID type,
                                 int typmod, BOOL auto_increment);
-Int4 estype_attr_column_size(const ConnectionClass *conn, OID type,
+Int4 opensearchtype_attr_column_size(const ConnectionClass *conn, OID type,
                              int atttypmod, int adtsize_or_longest,
                              int handle_unknown_size_as);
-Int4 estype_attr_buffer_length(const ConnectionClass *conn, OID type,
+Int4 opensearchtype_attr_buffer_length(const ConnectionClass *conn, OID type,
                                int atttypmod, int adtsize_or_longestlen,
                                int handle_unknown_size_as);
-Int4 estype_attr_display_size(const ConnectionClass *conn, OID type,
+Int4 opensearchtype_attr_display_size(const ConnectionClass *conn, OID type,
                               int atttypmod, int adtsize_or_longestlen,
                               int handle_unknown_size_as);
-Int2 estype_attr_decimal_digits(const ConnectionClass *conn, OID type,
+Int2 opensearchtype_attr_decimal_digits(const ConnectionClass *conn, OID type,
                                 int atttypmod, int adtsize_or_longestlen,
                                 int handle_unknown_size_as);
-Int4 estype_attr_transfer_octet_length(const ConnectionClass *conn, OID type,
+Int4 opensearchtype_attr_transfer_octet_length(const ConnectionClass *conn, OID type,
                                        int atttypmod,
                                        int handle_unknown_size_as);
-SQLSMALLINT estype_attr_precision(const ConnectionClass *conn, OID type,
+SQLSMALLINT opensearchtype_attr_precision(const ConnectionClass *conn, OID type,
                                   int atttypmod, int adtsize_or_longest,
                                   int handle_unknown_size_as);
-Int4 estype_attr_desclength(const ConnectionClass *conn, OID type,
+Int4 opensearchtype_attr_desclength(const ConnectionClass *conn, OID type,
                             int atttypmod, int adtsize_or_longestlen,
                             int handle_unknown_size_as);
-Int2 estype_attr_scale(const ConnectionClass *conn, OID type, int atttypmod,
+Int2 opensearchtype_attr_scale(const ConnectionClass *conn, OID type, int atttypmod,
                        int adtsize_or_longestlen, int handle_unknown_size_as);
 
 /*	These functions can use static numbers or result sets(col parameter) */
-Int4 estype_column_size(
+Int4 opensearchtype_column_size(
     const StatementClass *stmt, OID type, int col,
     int handle_unknown_size_as); /* corresponds to "precision" in ODBC 2.x */
-SQLSMALLINT estype_precision(
+SQLSMALLINT opensearchtype_precision(
     const StatementClass *stmt, OID type, int col,
     int handle_unknown_size_as); /* "precsion in ODBC 3.x */
 /* the following size/length are of Int4 due to ES restriction */
-Int4 estype_display_size(const StatementClass *stmt, OID type, int col,
+Int4 opensearchtype_display_size(const StatementClass *stmt, OID type, int col,
                          int handle_unknown_size_as);
-Int4 estype_buffer_length(const StatementClass *stmt, OID type, int col,
+Int4 opensearchtype_buffer_length(const StatementClass *stmt, OID type, int col,
                           int handle_unknown_size_as);
-Int4 estype_desclength(const StatementClass *stmt, OID type, int col,
+Int4 opensearchtype_desclength(const StatementClass *stmt, OID type, int col,
                        int handle_unknown_size_as);
-// Int4		estype_transfer_octet_length(const ConnectionClass *conn, OID type,
+// Int4		opensearchtype_transfer_octet_length(const ConnectionClass *conn, OID type,
 // int column_size);
 
-SQLSMALLINT estype_decimal_digits(
+SQLSMALLINT opensearchtype_decimal_digits(
     const StatementClass *stmt, OID type,
     int col); /* corresponds to "scale" in ODBC 2.x */
-SQLSMALLINT estype_min_decimal_digits(
+SQLSMALLINT opensearchtype_min_decimal_digits(
     const ConnectionClass *conn,
     OID type); /* corresponds to "min_scale" in ODBC 2.x */
-SQLSMALLINT estype_max_decimal_digits(
+SQLSMALLINT opensearchtype_max_decimal_digits(
     const ConnectionClass *conn,
     OID type); /* corresponds to "max_scale" in ODBC 2.x */
-SQLSMALLINT estype_scale(const StatementClass *stmt, OID type,
+SQLSMALLINT opensearchtype_scale(const StatementClass *stmt, OID type,
                          int col); /* ODBC 3.x " */
-Int2 estype_radix(const ConnectionClass *conn, OID type);
-Int2 estype_nullable(const ConnectionClass *conn, OID type);
-Int2 estype_auto_increment(const ConnectionClass *conn, OID type);
-Int2 estype_case_sensitive(const ConnectionClass *conn, OID type);
-Int2 estype_money(const ConnectionClass *conn, OID type);
-Int2 estype_searchable(const ConnectionClass *conn, OID type);
-Int2 estype_unsigned(const ConnectionClass *conn, OID type);
-const char *estype_literal_prefix(const ConnectionClass *conn, OID type);
-const char *estype_literal_suffix(const ConnectionClass *conn, OID type);
-const char *estype_create_params(const ConnectionClass *conn, OID type);
+Int2 opensearchtype_radix(const ConnectionClass *conn, OID type);
+Int2 opensearchtype_nullable(const ConnectionClass *conn, OID type);
+Int2 opensearchtype_auto_increment(const ConnectionClass *conn, OID type);
+Int2 opensearchtype_case_sensitive(const ConnectionClass *conn, OID type);
+Int2 opensearchtype_money(const ConnectionClass *conn, OID type);
+Int2 opensearchtype_searchable(const ConnectionClass *conn, OID type);
+Int2 opensearchtype_unsigned(const ConnectionClass *conn, OID type);
+const char *opensearchtype_literal_prefix(const ConnectionClass *conn, OID type);
+const char *opensearchtype_literal_suffix(const ConnectionClass *conn, OID type);
+const char *opensearchtype_create_params(const ConnectionClass *conn, OID type);
 
 SQLSMALLINT sqltype_to_default_ctype(const ConnectionClass *stmt,
                                      SQLSMALLINT sqltype);

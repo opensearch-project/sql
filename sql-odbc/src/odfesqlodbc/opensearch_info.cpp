@@ -947,18 +947,18 @@ RETCODE SetTypeResult(ConnectionClass *conn, StatementClass *stmt,
     }
 
     set_tuplefield_string(&tuple[GETTYPE_TYPE_NAME],
-                          estype_attr_to_name(conn, esType, -1, FALSE));
+                          opensearchtype_attr_to_name(conn, esType, -1, FALSE));
     set_tuplefield_int2(&tuple[GETTYPE_NULLABLE],
-                        estype_nullable(conn, esType));
+                        opensearchtype_nullable(conn, esType));
 
     set_tuplefield_int2(&tuple[GETTYPE_DATA_TYPE],
                         static_cast< short >(sqlType));
     set_tuplefield_int2(&tuple[GETTYPE_CASE_SENSITIVE],
-                        estype_case_sensitive(conn, esType));
+                        opensearchtype_case_sensitive(conn, esType));
     set_tuplefield_int2(&tuple[GETTYPE_SEARCHABLE],
-                        estype_searchable(conn, esType));
+                        opensearchtype_searchable(conn, esType));
     set_tuplefield_int2(&tuple[GETTYPE_FIXED_PREC_SCALE],
-                        estype_money(conn, esType));
+                        opensearchtype_money(conn, esType));
 
     //  Localized data-source dependent data type name (always NULL)
     set_tuplefield_null(&tuple[GETTYPE_LOCAL_TYPE_NAME]);
@@ -966,28 +966,30 @@ RETCODE SetTypeResult(ConnectionClass *conn, StatementClass *stmt,
     // These values can be NULL
     set_nullfield_int4(
         &tuple[GETTYPE_COLUMN_SIZE],
-        estype_attr_column_size(conn, esType, OPENSEARCH_ATP_UNSET,
-                                OPENSEARCH_ADT_UNSET, OPENSEARCH_UNKNOWNS_UNSET));
+                       opensearchtype_attr_column_size(
+                           conn, esType, OPENSEARCH_ATP_UNSET,
+                           OPENSEARCH_ADT_UNSET, OPENSEARCH_UNKNOWNS_UNSET));
     set_nullfield_string(&tuple[GETTYPE_LITERAL_PREFIX],
-                         estype_literal_prefix(conn, esType));
+                         opensearchtype_literal_prefix(conn, esType));
     set_nullfield_string(&tuple[GETTYPE_LITERAL_SUFFIX],
-                         estype_literal_suffix(conn, esType));
+                         opensearchtype_literal_suffix(conn, esType));
     set_nullfield_string(&tuple[GETTYPE_CREATE_PARAMS],
-                         estype_create_params(conn, esType));
+                         opensearchtype_create_params(conn, esType));
     set_nullfield_int2(&tuple[GETTYPE_UNSIGNED_ATTRIBUTE],
-                       estype_unsigned(conn, esType));
+                       opensearchtype_unsigned(conn, esType));
     set_nullfield_int2(&tuple[GETTYPE_AUTO_UNIQUE_VALUE],
-                       estype_auto_increment(conn, esType));
+                       opensearchtype_auto_increment(conn, esType));
     set_nullfield_int2(&tuple[GETTYPE_MINIMUM_SCALE],
-                       estype_min_decimal_digits(conn, esType));
+                       opensearchtype_min_decimal_digits(conn, esType));
     set_nullfield_int2(&tuple[GETTYPE_MAXIMUM_SCALE],
-                       estype_max_decimal_digits(conn, esType));
+                       opensearchtype_max_decimal_digits(conn, esType));
     set_tuplefield_int2(&tuple[GETTYPE_SQL_DATA_TYPE],
                         static_cast< short >(sqlType));
     set_nullfield_int2(&tuple[GETTYPE_SQL_DATETIME_SUB],
-                       estype_attr_to_datetime_sub(conn, esType, OPENSEARCH_ATP_UNSET));
+                       opensearchtype_attr_to_datetime_sub(
+                           conn, esType, OPENSEARCH_ATP_UNSET));
     set_nullfield_int4(&tuple[GETTYPE_NUM_PREC_RADIX],
-                       estype_radix(conn, esType));
+                       opensearchtype_radix(conn, esType));
     set_nullfield_int4(&tuple[GETTYPE_INTERVAL_PRECISION], 0);
 
     return SQL_SUCCESS;
