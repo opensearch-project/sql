@@ -26,7 +26,7 @@ import com.amazon.opendistroforelasticsearch.jdbc.protocol.ProtocolFactory;
 import com.amazon.opendistroforelasticsearch.jdbc.protocol.exceptions.ResponseException;
 import com.amazon.opendistroforelasticsearch.jdbc.transport.Transport;
 import com.amazon.opendistroforelasticsearch.jdbc.transport.TransportFactory;
-import com.amazon.opendistroforelasticsearch.jdbc.types.ElasticsearchType;
+import com.amazon.opendistroforelasticsearch.jdbc.types.OpenSearchType;
 import com.amazon.opendistroforelasticsearch.jdbc.test.mocks.MockResultSet;
 import com.amazon.opendistroforelasticsearch.jdbc.test.mocks.MockResultSetMetaData;
 import com.amazon.opendistroforelasticsearch.jdbc.test.mocks.MockResultSetRows;
@@ -54,7 +54,7 @@ public class DatabaseMetaDataTests {
         assertEquals("6.3.2", dbmd.getDatabaseProductVersion());
         assertEquals(6, dbmd.getDatabaseMajorVersion());
         assertEquals(3, dbmd.getDatabaseMinorVersion());
-        assertEquals("Elasticsearch", dbmd.getDatabaseProductName());
+        assertEquals("OpenSearch", dbmd.getDatabaseProductName());
 
         assertFalse(con.isClosed());
     }
@@ -68,23 +68,23 @@ public class DatabaseMetaDataTests {
                 .column("TYPE_SCHEM")
                 .column("TYPE_NAME")
                 .column("ATTR_NAME")
-                .column("DATA_TYPE", ElasticsearchType.INTEGER)
+                .column("DATA_TYPE", OpenSearchType.INTEGER)
                 .column("ATTR_TYPE_NAME")
-                .column("ATTR_SIZE", ElasticsearchType.INTEGER)
-                .column("DECIMAL_DIGITS", ElasticsearchType.INTEGER)
-                .column("NUM_PREC_RADIX", ElasticsearchType.INTEGER)
-                .column("NULLABLE", ElasticsearchType.INTEGER)
+                .column("ATTR_SIZE", OpenSearchType.INTEGER)
+                .column("DECIMAL_DIGITS", OpenSearchType.INTEGER)
+                .column("NUM_PREC_RADIX", OpenSearchType.INTEGER)
+                .column("NULLABLE", OpenSearchType.INTEGER)
                 .column("REMARKS")
                 .column("ATTR_DEF")
-                .column("SQL_DATA_TYPE", ElasticsearchType.INTEGER)
-                .column("SQL_DATETIME_SUB", ElasticsearchType.INTEGER)
-                .column("CHAR_OCTET_LENGTH", ElasticsearchType.INTEGER)
-                .column("ORDINAL_POSITION", ElasticsearchType.INTEGER)
+                .column("SQL_DATA_TYPE", OpenSearchType.INTEGER)
+                .column("SQL_DATETIME_SUB", OpenSearchType.INTEGER)
+                .column("CHAR_OCTET_LENGTH", OpenSearchType.INTEGER)
+                .column("ORDINAL_POSITION", OpenSearchType.INTEGER)
                 .column("IS_NULLABLE")
                 .column("SCOPE_CATALOG")
                 .column("SCOPE_SCHEMA")
                 .column("SCOPE_TABLE")
-                .column("SOURCE_DATA_TYPE", ElasticsearchType.SHORT)
+                .column("SOURCE_DATA_TYPE", OpenSearchType.SHORT)
                 .build();
 
         DatabaseMetaData dbmd = con.getMetaData();
@@ -150,9 +150,9 @@ public class DatabaseMetaDataTests {
                 .column("TYPE_SCHEM")
                 .column("TYPE_NAME")
                 .column("CLASS_NAME")
-                .column("DATA_TYPE", ElasticsearchType.INTEGER)
+                .column("DATA_TYPE", OpenSearchType.INTEGER)
                 .column("REMARKS")
-                .column("BASE_TYPE", ElasticsearchType.SHORT)
+                .column("BASE_TYPE", OpenSearchType.SHORT)
                 .build();
 
         DatabaseMetaData dbmd = con.getMetaData();
@@ -177,7 +177,7 @@ public class DatabaseMetaDataTests {
                 .column("RESERVED5")
                 .column("RESERVED6")
                 .column("REMARKS")
-                .column("PROCEDURE_TYPE", ElasticsearchType.SHORT)
+                .column("PROCEDURE_TYPE", OpenSearchType.SHORT)
                 .column("SPECIFIC_NAME")
                 .build();
 
@@ -200,20 +200,20 @@ public class DatabaseMetaDataTests {
                 .column("PROCEDURE_SCHEM")
                 .column("PROCEDURE_NAME")
                 .column("COLUMN_NAME")
-                .column("COLUMN_TYPE", ElasticsearchType.SHORT)
-                .column("DATA_TYPE", ElasticsearchType.INTEGER)
+                .column("COLUMN_TYPE", OpenSearchType.SHORT)
+                .column("DATA_TYPE", OpenSearchType.INTEGER)
                 .column("TYPE_NAME")
-                .column("PRECISION", ElasticsearchType.INTEGER)
-                .column("LENGTH", ElasticsearchType.INTEGER)
-                .column("SCALE", ElasticsearchType.SHORT)
-                .column("RADIX", ElasticsearchType.SHORT)
-                .column("NULLABLE", ElasticsearchType.SHORT)
+                .column("PRECISION", OpenSearchType.INTEGER)
+                .column("LENGTH", OpenSearchType.INTEGER)
+                .column("SCALE", OpenSearchType.SHORT)
+                .column("RADIX", OpenSearchType.SHORT)
+                .column("NULLABLE", OpenSearchType.SHORT)
                 .column("REMARKS")
                 .column("COLUMN_DEF")
-                .column("SQL_DATA_TYPE", ElasticsearchType.INTEGER)
-                .column("SQL_DATETIME_SUB", ElasticsearchType.INTEGER)
-                .column("CHAR_OCTET_LENGTH", ElasticsearchType.INTEGER)
-                .column("ORDINAL_POSITION", ElasticsearchType.INTEGER)
+                .column("SQL_DATA_TYPE", OpenSearchType.INTEGER)
+                .column("SQL_DATETIME_SUB", OpenSearchType.INTEGER)
+                .column("CHAR_OCTET_LENGTH", OpenSearchType.INTEGER)
+                .column("ORDINAL_POSITION", OpenSearchType.INTEGER)
                 .column("IS_NULLABLE")
                 .column("SPECIFIC_NAME")
                 .build();
@@ -237,7 +237,7 @@ public class DatabaseMetaDataTests {
                 .column("FUNCTION_SCHEM")
                 .column("FUNCTION_NAME")
                 .column("REMARKS")
-                .column("FUNCTION_TYPE", ElasticsearchType.SHORT)
+                .column("FUNCTION_TYPE", OpenSearchType.SHORT)
                 .column("SPECIFIC_NAME")
                 .build();
 
@@ -261,17 +261,17 @@ public class DatabaseMetaDataTests {
                 .column("FUNCTION_SCHEM")
                 .column("FUNCTION_NAME")
                 .column("COLUMN_NAME")
-                .column("COLUMN_TYPE", ElasticsearchType.SHORT)
-                .column("DATA_TYPE", ElasticsearchType.INTEGER)
+                .column("COLUMN_TYPE", OpenSearchType.SHORT)
+                .column("DATA_TYPE", OpenSearchType.INTEGER)
                 .column("TYPE_NAME")
-                .column("PRECISION", ElasticsearchType.INTEGER)
-                .column("LENGTH", ElasticsearchType.INTEGER)
-                .column("SCALE", ElasticsearchType.SHORT)
-                .column("RADIX", ElasticsearchType.SHORT)
-                .column("NULLABLE", ElasticsearchType.SHORT)
+                .column("PRECISION", OpenSearchType.INTEGER)
+                .column("LENGTH", OpenSearchType.INTEGER)
+                .column("SCALE", OpenSearchType.SHORT)
+                .column("RADIX", OpenSearchType.SHORT)
+                .column("NULLABLE", OpenSearchType.SHORT)
                 .column("REMARKS")
-                .column("CHAR_OCTET_LENGTH", ElasticsearchType.INTEGER)
-                .column("ORDINAL_POSITION", ElasticsearchType.INTEGER)
+                .column("CHAR_OCTET_LENGTH", OpenSearchType.INTEGER)
+                .column("ORDINAL_POSITION", OpenSearchType.INTEGER)
                 .column("IS_NULLABLE")
                 .column("SPECIFIC_NAME")
                 .build();
@@ -295,13 +295,13 @@ public class DatabaseMetaDataTests {
                 .column("TABLE_SCHEM")
                 .column("TABLE_NAME")
                 .column("COLUMN_NAME")
-                .column("DATA_TYPE", ElasticsearchType.INTEGER)
-                .column("COLUMN_SIZE", ElasticsearchType.INTEGER)
-                .column("DECIMAL_DIGITS", ElasticsearchType.INTEGER)
-                .column("NUM_PREC_RADIX", ElasticsearchType.INTEGER)
+                .column("DATA_TYPE", OpenSearchType.INTEGER)
+                .column("COLUMN_SIZE", OpenSearchType.INTEGER)
+                .column("DECIMAL_DIGITS", OpenSearchType.INTEGER)
+                .column("NUM_PREC_RADIX", OpenSearchType.INTEGER)
                 .column("COLUMN_USAGE")
                 .column("REMARKS")
-                .column("CHAR_OCTET_LENGTH", ElasticsearchType.INTEGER)
+                .column("CHAR_OCTET_LENGTH", OpenSearchType.INTEGER)
                 .column("IS_NULLABLE")
                 .build();
 
@@ -397,7 +397,7 @@ public class DatabaseMetaDataTests {
 
     private MockResultSet getExpectedCatalogsResultSet() {
         MockResultSetMetaData mockResultSetMetaData = MockResultSetMetaData.builder()
-                .column("TABLE_CAT", ElasticsearchType.TEXT)
+                .column("TABLE_CAT", OpenSearchType.TEXT)
                 .build();
 
         MockResultSetRows mockResultSetRows = MockResultSetRows.builder()
@@ -426,8 +426,8 @@ public class DatabaseMetaDataTests {
 
     private MockResultSetMetaData getMockSchemaResultSetMetaData() {
         return MockResultSetMetaData.builder()
-                .column("TABLE_SCHEM", ElasticsearchType.TEXT)
-                .column("TABLE_CATALOG", ElasticsearchType.TEXT)
+                .column("TABLE_SCHEM", OpenSearchType.TEXT)
+                .column("TABLE_CATALOG", OpenSearchType.TEXT)
                 .build();
     }
 
@@ -443,7 +443,7 @@ public class DatabaseMetaDataTests {
                 .thenReturn(mockProtocol);
 
         ClusterMetadata mockClusterMetaData = mock(ClusterMetadata.class);
-        ElasticsearchVersion mockEV = mock(ElasticsearchVersion.class);
+        OpenSearchVersion mockEV = mock(OpenSearchVersion.class);
 
         when(mockEV.getFullVersion()).thenReturn("6.3.2");
         when(mockEV.getMajor()).thenReturn(6);

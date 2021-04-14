@@ -16,10 +16,10 @@
 
 package com.amazon.opendistroforelasticsearch.jdbc.test.mocks;
 
-import com.amazon.opendistroforelasticsearch.jdbc.ElasticsearchConnection;
+import com.amazon.opendistroforelasticsearch.jdbc.OpenSearchConnection;
 import com.amazon.opendistroforelasticsearch.jdbc.protocol.http.JsonHttpProtocol;
 import com.amazon.opendistroforelasticsearch.jdbc.test.TestResources;
-import com.amazon.opendistroforelasticsearch.jdbc.types.ElasticsearchType;
+import com.amazon.opendistroforelasticsearch.jdbc.types.OpenSearchType;
 import com.github.tomakehurst.wiremock.WireMockServer;
 
 import java.io.IOException;
@@ -66,15 +66,15 @@ public abstract class QueryMock {
                 .withHeader("Accept", equalTo("application/json"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json")
-                        .withBody(MockES.INSTANCE.getConnectionResponse())));
+                        .withBody(MockOpenSearch.INSTANCE.getConnectionResponse())));
     }
 
     public String getResponseBody() throws IOException {
         return TestResources.readResourceAsString(getResponseResourcePath());
     }
 
-    public void assertConnectionResponse(ElasticsearchConnection esConnection) throws SQLException {
-        MockES.INSTANCE.assertMockESConnectionResponse(esConnection);
+    public void assertConnectionResponse(OpenSearchConnection esConnection) throws SQLException {
+        MockOpenSearch.INSTANCE.assertMockOpenSearchConnectionResponse(esConnection);
     }
 
     public static class NycTaxisQueryMock extends QueryMock {
@@ -92,12 +92,12 @@ public abstract class QueryMock {
         @Override
         public MockResultSet getMockResultSet() {
             MockResultSetMetaData mockResultSetMetaData = MockResultSetMetaData.builder()
-                    .column("pickup_datetime", ElasticsearchType.TIMESTAMP)
-                    .column("trip_type", ElasticsearchType.KEYWORD)
-                    .column("passenger_count", ElasticsearchType.INTEGER)
-                    .column("fare_amount", ElasticsearchType.SCALED_FLOAT)
-                    .column("extra", ElasticsearchType.SCALED_FLOAT)
-                    .column("vendor_id", ElasticsearchType.KEYWORD)
+                    .column("pickup_datetime", OpenSearchType.TIMESTAMP)
+                    .column("trip_type", OpenSearchType.KEYWORD)
+                    .column("passenger_count", OpenSearchType.INTEGER)
+                    .column("fare_amount", OpenSearchType.SCALED_FLOAT)
+                    .column("extra", OpenSearchType.SCALED_FLOAT)
+                    .column("vendor_id", OpenSearchType.KEYWORD)
                     .build();
 
             MockResultSetRows mockResultSetRows = MockResultSetRows.builder()
@@ -157,14 +157,14 @@ public abstract class QueryMock {
         @Override
         public MockResultSet getMockResultSet() {
             MockResultSetMetaData mockResultSetMetaData = MockResultSetMetaData.builder()
-                    .column("pickup_datetime", ElasticsearchType.TIMESTAMP)
+                    .column("pickup_datetime", OpenSearchType.TIMESTAMP)
                     .setColumnLabel("pdt")
-                    .column("trip_type", ElasticsearchType.KEYWORD)
-                    .column("passenger_count", ElasticsearchType.INTEGER)
+                    .column("trip_type", OpenSearchType.KEYWORD)
+                    .column("passenger_count", OpenSearchType.INTEGER)
                     .setColumnLabel("pc")
-                    .column("fare_amount", ElasticsearchType.SCALED_FLOAT)
-                    .column("extra", ElasticsearchType.SCALED_FLOAT)
-                    .column("vendor_id", ElasticsearchType.KEYWORD)
+                    .column("fare_amount", OpenSearchType.SCALED_FLOAT)
+                    .column("extra", OpenSearchType.SCALED_FLOAT)
+                    .column("vendor_id", OpenSearchType.KEYWORD)
                     .build();
 
             MockResultSetRows mockResultSetRows = MockResultSetRows.builder()

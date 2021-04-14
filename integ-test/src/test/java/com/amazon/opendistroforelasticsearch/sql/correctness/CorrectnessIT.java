@@ -109,7 +109,7 @@ public class CorrectnessIT extends OpenSearchIntegTestCase {
     } else {
       client = RestClient.builder(HttpHost.create(openSearchHost)).build();
     }
-    return new OpenSearchConnection("jdbc:elasticsearch://" + openSearchHost, client);
+    return new OpenSearchConnection("jdbc:opensearch://" + openSearchHost, client);
   }
 
   /**

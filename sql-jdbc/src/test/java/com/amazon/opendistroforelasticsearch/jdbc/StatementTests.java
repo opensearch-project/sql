@@ -111,7 +111,7 @@ public class StatementTests implements WireMockServerHelpers {
         when(mockProtocol.execute(any(QueryRequest.class)))
                 .thenReturn(mock(QueryResponse.class));
 
-        String url = "jdbc:elasticsearch://localhost:9200?fetchSize=400";
+        String url = "jdbc:opensearch://localhost:9200?fetchSize=400";
 
         ConnectionConfig connectionConfig = ConnectionConfig.builder().setUrl(url).build();
         Connection con = new ConnectionImpl(connectionConfig, tf, pf, NoOpLogger.INSTANCE);
@@ -154,8 +154,6 @@ public class StatementTests implements WireMockServerHelpers {
                 InternalServerErrorException.class, () -> st.executeQuery(queryMock.getSql()));
 
         String expectedDetails = "java.lang.NullPointerException\n\t" +
-                "at org.elasticsearch.plugin.nlpcn.Schema.getTypeFromMetaData(Schema.java:156)\n\t" +
-                "at org.elasticsearch.plugin.nlpcn.Schema.populateColumns(Schema.java:146)\n\t" +
                 "at java.base/java.lang.Thread.run(Thread.java:844)\n";
 
         assertEquals("error reason", ex.getReason());

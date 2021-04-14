@@ -29,7 +29,7 @@ import java.util.StringTokenizer;
 
 public class UrlParser {
 
-    public static final String URL_PREFIX = "jdbc:elasticsearch://";
+    public static final String URL_PREFIX = "jdbc:opensearch://";
     private static final int URL_PREFIX_LEN = URL_PREFIX.length();
 
     private static final String SCHEME_DELIM = "://";

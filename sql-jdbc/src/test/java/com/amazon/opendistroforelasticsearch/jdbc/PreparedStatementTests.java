@@ -159,7 +159,7 @@ public class PreparedStatementTests {
         when(mockProtocol.execute(any(QueryRequest.class)))
                 .thenReturn(mock(QueryResponse.class));
 
-        String url = "jdbc:elasticsearch://localhost:9200?fetchSize=400";
+        String url = "jdbc:opensearch://localhost:9200?fetchSize=400";
 
         ConnectionConfig connectionConfig = ConnectionConfig.builder().setUrl(url).build();
         Connection con = new ConnectionImpl(connectionConfig, tf, pf, NoOpLogger.INSTANCE);

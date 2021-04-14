@@ -39,7 +39,7 @@ import java.util.Properties;
 import java.util.logging.Logger;
 
 /**
- * Elasticsearch {@link DataSource} implementation.
+ * OpenSearch {@link DataSource} implementation.
  * <p>
  * Connection properties are expected to be included in a
  * JDBC connection URL and supplied to the DataSource via
@@ -52,7 +52,7 @@ import java.util.logging.Logger;
  * for such properties return the value that was explicitly set on
  * the DataSource, and not the value that might be present on the JDBC URL.
  */
-public class ElasticsearchDataSource implements DataSource, JdbcWrapper, LoggingSource {
+public class OpenSearchDataSource implements DataSource, JdbcWrapper, LoggingSource {
 
     private String url;
 

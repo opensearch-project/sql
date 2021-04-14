@@ -21,8 +21,8 @@ import com.amazon.opendistroforelasticsearch.jdbc.logging.NoOpLogger;
 import com.amazon.opendistroforelasticsearch.jdbc.protocol.QueryResponse;
 import com.amazon.opendistroforelasticsearch.jdbc.protocol.http.JsonHttpProtocol;
 import com.amazon.opendistroforelasticsearch.jdbc.test.TestResources;
-import com.amazon.opendistroforelasticsearch.jdbc.test.mocks.MockES;
-import com.amazon.opendistroforelasticsearch.jdbc.types.ElasticsearchType;
+import com.amazon.opendistroforelasticsearch.jdbc.test.mocks.MockOpenSearch;
+import com.amazon.opendistroforelasticsearch.jdbc.types.OpenSearchType;
 import com.amazon.opendistroforelasticsearch.jdbc.test.PerTestWireMockServerExtension;
 import com.amazon.opendistroforelasticsearch.jdbc.test.WireMockServerHelpers;
 import com.amazon.opendistroforelasticsearch.jdbc.test.mocks.MockResultSet;
@@ -189,18 +189,18 @@ public class ResultSetTests implements WireMockServerHelpers {
         assertNotNull(rs);
 
         MockResultSetMetaData mockResultSetMetaData = MockResultSetMetaData.builder()
-                .column("testBoolean", ElasticsearchType.BOOLEAN)
-                .column("docId", ElasticsearchType.TEXT)
-                .column("testByte", ElasticsearchType.BYTE)
-                .column("testFloat", ElasticsearchType.FLOAT)
-                .column("testLong", ElasticsearchType.LONG)
-                .column("testShort", ElasticsearchType.SHORT)
-                .column("testHalfFloat", ElasticsearchType.HALF_FLOAT)
-                .column("testTimeStamp", ElasticsearchType.TIMESTAMP)
-                .column("testScaledFloat", ElasticsearchType.SCALED_FLOAT)
-                .column("testKeyword", ElasticsearchType.KEYWORD)
-                .column("testText", ElasticsearchType.TEXT)
-                .column("testDouble", ElasticsearchType.DOUBLE)
+                .column("testBoolean", OpenSearchType.BOOLEAN)
+                .column("docId", OpenSearchType.TEXT)
+                .column("testByte", OpenSearchType.BYTE)
+                .column("testFloat", OpenSearchType.FLOAT)
+                .column("testLong", OpenSearchType.LONG)
+                .column("testShort", OpenSearchType.SHORT)
+                .column("testHalfFloat", OpenSearchType.HALF_FLOAT)
+                .column("testTimeStamp", OpenSearchType.TIMESTAMP)
+                .column("testScaledFloat", OpenSearchType.SCALED_FLOAT)
+                .column("testKeyword", OpenSearchType.KEYWORD)
+                .column("testText", OpenSearchType.TEXT)
+                .column("testDouble", OpenSearchType.DOUBLE)
                 .build();
 
         MockResultSetRows mockResultSetRows = MockResultSetRows.builder()
@@ -273,7 +273,7 @@ public class ResultSetTests implements WireMockServerHelpers {
                 .withHeader("Accept", equalTo("application/json"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json")
-                        .withBody(MockES.INSTANCE.getConnectionResponse())));
+                        .withBody(MockOpenSearch.INSTANCE.getConnectionResponse())));
     }
 
 }

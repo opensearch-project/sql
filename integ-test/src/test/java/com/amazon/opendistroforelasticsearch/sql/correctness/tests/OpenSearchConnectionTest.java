@@ -52,7 +52,7 @@ public class OpenSearchConnectionTest {
 
   @Before
   public void setUp() throws IOException {
-    conn = new OpenSearchConnection("jdbc:elasticsearch://localhost:12345", client);
+    conn = new OpenSearchConnection("jdbc:opensearch://localhost:12345", client);
 
     Response response = mock(Response.class);
     when(client.performRequest(any(Request.class))).thenReturn(response);
