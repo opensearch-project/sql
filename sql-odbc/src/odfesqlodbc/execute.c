@@ -17,8 +17,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "misc.h"
 #include "opensearch_odbc.h"
+#include "misc.h"
 
 #ifndef WIN32
 #include <ctype.h>
@@ -118,7 +118,7 @@ RETCODE SQL_API ESAPI_NativeSql(HDBC hdbc, const SQLCHAR *szSqlStrIn,
     ConnectionClass *conn = (ConnectionClass *)hdbc;
     RETCODE result;
 
-    MYLOG(ES_TRACE, "entering...cbSqlStrIn=" FORMAT_INTEGER "\n", cbSqlStrIn);
+    MYLOG(OPENSEARCH_TRACE, "entering...cbSqlStrIn=" FORMAT_INTEGER "\n", cbSqlStrIn);
 
     ptr = (cbSqlStrIn == 0) ? "" : make_string(szSqlStrIn, cbSqlStrIn, NULL, 0);
     if (!ptr) {

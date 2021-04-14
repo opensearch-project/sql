@@ -23,9 +23,9 @@
 #include <time.h>
 
 #include "dlg_specific.h"
+#include "opensearch_odbc.h"
 #include "misc.h"
 #include "opensearch_helper.h"
-#include "opensearch_odbc.h"
 
 #ifndef WIN32
 #include <errno.h>
@@ -156,7 +156,7 @@ const char *GetExeProgramName() {
 
 static void *qlog_cs, *mylog_cs;
 
-static int mylog_on = ES_WARNING, qlog_on = ES_WARNING;
+static int mylog_on = OPENSEARCH_WARNING, qlog_on = OPENSEARCH_WARNING;
 
 #define INIT_QLOG_CS XPlatformInitializeCriticalSection(&qlog_cs)
 #define ENTER_QLOG_CS XPlatformEnterCriticalSection(qlog_cs)
@@ -231,7 +231,7 @@ void logs_on_off(int cnopen, int mylog_onoff, int qlog_onoff) {
     else if (getGlobalCommlog() > 0)
         qlog_on = getGlobalCommlog();
     LEAVE_QLOG_CS;
-    MYLOG(ES_DEBUG, "mylog_on=%d qlog_on=%d\n", mylog_on, qlog_on);
+    MYLOG(OPENSEARCH_DEBUG, "mylog_on=%d qlog_on=%d\n", mylog_on, qlog_on);
 }
 
 #ifdef WIN32
@@ -488,7 +488,7 @@ void logInstallerError(int ret, const char *dir) {
     msg[0] = '\0';
     ret = SQLInstallerError(1, &err, msg, sizeof(msg), NULL);
     if (msg[0] != '\0')
-        MYLOG(ES_DEBUG, "Dir= %s ErrorMsg = %s\n", dir, msg);
+        MYLOG(OPENSEARCH_DEBUG, "Dir= %s ErrorMsg = %s\n", dir, msg);
 }
 
 int getLogDir(char *dir, int dirmax) {
@@ -530,7 +530,7 @@ void InitializeLogging(void) {
     mylog_initialize();
     qlog_initialize();
     start_logging();
-    MYLOG(ES_DEBUG, "Log Output Dir: %s\n", logdir);
+    MYLOG(OPENSEARCH_DEBUG, "Log Output Dir: %s\n", logdir);
 }
 
 void FinalizeLogging(void) {

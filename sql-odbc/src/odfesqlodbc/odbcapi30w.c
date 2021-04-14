@@ -17,10 +17,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "opensearch_odbc.h"
 #include "misc.h"
 #include "opensearch_apifunc.h"
 #include "opensearch_connection.h"
-#include "opensearch_odbc.h"
 #include "statement.h"
 #include "unicode_support.h"
 
@@ -30,7 +30,7 @@ RETCODE SQL_API SQLGetStmtAttrW(SQLHSTMT hstmt, SQLINTEGER fAttribute,
     UNUSED(hstmt, fAttribute, rgbValue, cbValueMax, pcbValue);
     RETCODE ret;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     ENTER_STMT_CS((StatementClass *)hstmt);
     SC_clear_error((StatementClass *)hstmt);
     ret = ESAPI_GetStmtAttr(hstmt, fAttribute, rgbValue, cbValueMax, pcbValue);
@@ -43,7 +43,7 @@ RETCODE SQL_API SQLSetStmtAttrW(SQLHSTMT hstmt, SQLINTEGER fAttribute,
     RETCODE ret;
     StatementClass *stmt = (StatementClass *)hstmt;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     ENTER_STMT_CS(stmt);
     SC_clear_error(stmt);
     ret = ESAPI_SetStmtAttr(hstmt, fAttribute, rgbValue, cbValueMax);
@@ -56,7 +56,7 @@ RETCODE SQL_API SQLGetConnectAttrW(HDBC hdbc, SQLINTEGER fAttribute,
                                    SQLINTEGER *pcbValue) {
     RETCODE ret;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     ENTER_CONN_CS((ConnectionClass *)hdbc);
     CC_clear_error((ConnectionClass *)hdbc);
     ret =
@@ -70,7 +70,7 @@ RETCODE SQL_API SQLSetConnectAttrW(HDBC hdbc, SQLINTEGER fAttribute,
     RETCODE ret;
     ConnectionClass *conn = (ConnectionClass *)hdbc;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     ENTER_CONN_CS(conn);
     CC_clear_error(conn);
     CC_set_in_unicode_driver(conn);
@@ -89,7 +89,7 @@ RETCODE SQL_API SQLSetDescFieldW(SQLHDESC DescriptorHandle,
     char *uval = NULL;
     BOOL val_alloced = FALSE;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (BufferLength > 0 || SQL_NTS == BufferLength) {
         switch (FieldIdentifier) {
             case SQL_DESC_BASE_COLUMN_NAME:
@@ -132,7 +132,7 @@ RETCODE SQL_API SQLGetDescFieldW(SQLHDESC hdesc, SQLSMALLINT iRecord,
     SQLINTEGER blen = 0, bMax, *pcbV;
     char *rgbV = NULL, *rgbVt;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     switch (iField) {
         case SQL_DESC_BASE_COLUMN_NAME:
         case SQL_DESC_BASE_TABLE_NAME:
@@ -194,7 +194,7 @@ RETCODE SQL_API SQLGetDiagRecW(SQLSMALLINT fHandleType, SQLHANDLE handle,
     SQLSMALLINT buflen, tlen;
     char qstr_ansi[8], *mtxt = NULL;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     buflen = 0;
     if (szErrorMsg && cbErrorMsgMax > 0) {
         buflen = cbErrorMsgMax;
@@ -247,7 +247,7 @@ SQLRETURN SQL_API SQLColAttributeW(SQLHSTMT hstmt, SQLUSMALLINT iCol,
     SQLSMALLINT *rgbL, blen = 0, bMax;
     char *rgbD = NULL, *rgbDt;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
@@ -318,7 +318,7 @@ RETCODE SQL_API SQLGetDiagFieldW(SQLSMALLINT fHandleType, SQLHANDLE handle,
     SQLSMALLINT *rgbL, blen = 0, bMax;
     char *rgbD = NULL, *rgbDt;
 
-    MYLOG(ES_TRACE, "entering Handle=(%u,%p) Rec=%d Id=%d info=(%p,%d)\n", fHandleType,
+    MYLOG(OPENSEARCH_TRACE, "entering Handle=(%u,%p) Rec=%d Id=%d info=(%p,%d)\n", fHandleType,
           handle, iRecord, fDiagField, rgbDiagInfo, cbDiagInfoMax);
     switch (fDiagField) {
         case SQL_DIAG_DYNAMIC_FUNCTION:
@@ -384,8 +384,8 @@ RETCODE SQL_API SQLGetDescRecW(SQLHDESC DescriptorHandle, SQLSMALLINT RecNumber,
                                SQLSMALLINT *Nullable) {
     UNUSED(DescriptorHandle, RecNumber, Name, BufferLength, StringLength, Type,
            SubType, Length, Precision, Scale, Nullable);
-    MYLOG(ES_TRACE, "entering\n");
-    MYLOG(ES_DEBUG, "Error not implemented\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_DEBUG, "Error not implemented\n");
     return SQL_ERROR;
 }
 
@@ -397,7 +397,7 @@ RETCODE SQL_API SQLSetDescRecW(SQLHDESC DescriptorHandle, SQLSMALLINT RecNumber,
                                SQLLEN *StringLength, SQLLEN *Indicator) {
     UNUSED(DescriptorHandle, RecNumber, Type, SubType, Length, Precision, Scale,
            Data, StringLength, Indicator);
-    MYLOG(ES_TRACE, "entering\n");
-    MYLOG(ES_DEBUG, "Error not implemented\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_DEBUG, "Error not implemented\n");
     return SQL_ERROR;
 }

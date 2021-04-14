@@ -58,7 +58,7 @@ class OpenSearchCommunication {
     bool ConnectDBStart();
     ConnStatusType GetConnectionStatus();
     void DropDBConnection();
-    void LogMsg(ESLogLevel level, const char* msg);
+    void LogMsg(OpenSearchLogLevel level, const char* msg);
     int ExecDirect(const char* query, const char* fetch_size_);
     void SendCursorQueries(std::string cursor);
     OpenSearchResult* PopResult();

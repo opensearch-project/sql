@@ -19,9 +19,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "opensearch_odbc.h"
 #include "misc.h"
 #include "opensearch_connection.h"
-#include "opensearch_odbc.h"
 
 #ifndef WIN32
 #include <sys/socket.h>
@@ -83,7 +83,7 @@ RETCODE
 dconn_DoDialog(HWND hwnd, ConnInfo *ci) {
     INT_PTR dialog_result;
 
-    MYLOG(ES_TRACE, "entering ci = %p\n", ci);
+    MYLOG(OPENSEARCH_TRACE, "entering ci = %p\n", ci);
 
     if (hwnd) {
         dialog_result =
@@ -91,7 +91,7 @@ dconn_DoDialog(HWND hwnd, ConnInfo *ci) {
                            dconn_FDriverConnectProc, (LPARAM)ci);
         if (-1 == dialog_result) {
             int errc = GetLastError();
-            MYLOG(ES_DEBUG, " LastError=%d\n", errc);
+            MYLOG(OPENSEARCH_DEBUG, " LastError=%d\n", errc);
         }
         if (!dialog_result || (dialog_result == -1))
             return SQL_NO_DATA_FOUND;
@@ -99,13 +99,13 @@ dconn_DoDialog(HWND hwnd, ConnInfo *ci) {
             return SQL_SUCCESS;
     }
 
-    MYLOG(ES_DEBUG, " No window specified\n");
+    MYLOG(OPENSEARCH_DEBUG, " No window specified\n");
     return SQL_ERROR;
 }
 
 INT_PTR CALLBACK dconn_FDriverConnectProc(HWND hdlg, UINT wMsg, WPARAM wParam,
                                           LPARAM lParam) {
-    MYLOG(ES_DEBUG, "dconn_FDriverConnectProc\n");
+    MYLOG(OPENSEARCH_DEBUG, "dconn_FDriverConnectProc\n");
     ConnInfo *ci;
 
     switch (wMsg) {
@@ -215,12 +215,12 @@ BOOL dconn_get_attributes(copyfunc func, const char *connect_string,
     strtok_arg = our_connect_string;
 
 #ifdef FORCE_PASSWORD_DISPLAY
-    MYLOG(ES_DEBUG, "our_connect_string = '%s'\n", our_connect_string);
+    MYLOG(OPENSEARCH_DEBUG, "our_connect_string = '%s'\n", our_connect_string);
 #else
     if (get_mylog()) {
         char *hide_str = hide_password(our_connect_string);
 
-        MYLOG(ES_DEBUG, "our_connect_string = '%s'\n", hide_str);
+        MYLOG(OPENSEARCH_DEBUG, "our_connect_string = '%s'\n", hide_str);
         free(hide_str);
     }
 #endif /* FORCE_PASSWORD_DISPLAY */
@@ -273,7 +273,7 @@ BOOL dconn_get_attributes(copyfunc func, const char *connect_string,
                     if (NULL == closep) {
                         if (!delp) /* error */
                         {
-                            MYLOG(ES_DEBUG,
+                            MYLOG(OPENSEARCH_DEBUG,
                                   "closing bracket doesn't exist 1\n");
                             ret = FALSE;
                             goto cleanup;
@@ -281,7 +281,7 @@ BOOL dconn_get_attributes(copyfunc func, const char *connect_string,
                         closep = strchr(delp + 1, CLOSING_BRACKET);
                         if (!closep) /* error */
                         {
-                            MYLOG(ES_DEBUG,
+                            MYLOG(OPENSEARCH_DEBUG,
                                   "closing bracket doesn't exist 2\n");
                             ret = FALSE;
                             goto cleanup;
@@ -307,7 +307,7 @@ BOOL dconn_get_attributes(copyfunc func, const char *connect_string,
                             eoftok = TRUE;
                         break;
                     }
-                    MYLOG(ES_DEBUG,
+                    MYLOG(OPENSEARCH_DEBUG,
                           "subsequent char to the closing bracket is %c "
                           "value=%s\n",
                           closep[1], value);

@@ -18,13 +18,13 @@
 #include <string.h>
 
 #include "environ.h"
+#include "opensearch_odbc.h"
 #include "loadlib.h"
 #include "misc.h"
 #include "opensearch_apifunc.h"
 #include "opensearch_connection.h"
 #include "opensearch_driver_connect.h"
 #include "opensearch_info.h"
-#include "opensearch_odbc.h"
 #include "opensearch_statement.h"
 #include "qresult.h"
 #include "statement.h"
@@ -47,7 +47,7 @@ RETCODE SQL_API SQLBindCol(HSTMT StatementHandle, SQLUSMALLINT ColumnNumber,
     RETCODE ret;
     StatementClass *stmt = (StatementClass *)StatementHandle;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     ENTER_STMT_CS(stmt);
     SC_clear_error(stmt);
     ret = ESAPI_BindCol(StatementHandle, ColumnNumber, TargetType, TargetValue,
@@ -57,7 +57,7 @@ RETCODE SQL_API SQLBindCol(HSTMT StatementHandle, SQLUSMALLINT ColumnNumber,
 }
 
 RETCODE SQL_API SQLCancel(HSTMT StatementHandle) {
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (!StatementHandle)
         return SQL_INVALID_HANDLE;
     if (SC_connection_lost_check((StatementClass *)StatementHandle,
@@ -86,7 +86,7 @@ RETCODE SQL_API SQLColumns(HSTMT StatementHandle, SQLCHAR *CatalogName,
             *clName = ColumnName;
     UWORD flag = PODBC_SEARCH_PUBLIC_SCHEMA;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
@@ -154,7 +154,7 @@ RETCODE SQL_API SQLConnect(HDBC ConnectionHandle, SQLCHAR *ServerName,
     RETCODE ret;
     ConnectionClass *conn = (ConnectionClass *)ConnectionHandle;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     ENTER_CONN_CS(conn);
     CC_clear_error(conn);
     ret = ESAPI_Connect(ConnectionHandle, ServerName, NameLength1, UserName,
@@ -171,7 +171,7 @@ RETCODE SQL_API SQLDriverConnect(HDBC hdbc, HWND hwnd, SQLCHAR *szConnStrIn,
     RETCODE ret;
     ConnectionClass *conn = (ConnectionClass *)hdbc;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     ENTER_CONN_CS(conn);
     CC_clear_error(conn);
     ret =
@@ -187,7 +187,7 @@ RETCODE SQL_API SQLBrowseConnect(HDBC hdbc, SQLCHAR *szConnStrIn,
     RETCODE ret;
     ConnectionClass *conn = (ConnectionClass *)hdbc;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     ENTER_CONN_CS(conn);
     CC_clear_error(conn);
     ret = ESAPI_BrowseConnect(hdbc, szConnStrIn, cbConnStrIn, szConnStrOut,
@@ -203,7 +203,7 @@ RETCODE SQL_API SQLDataSources(HENV EnvironmentHandle, SQLUSMALLINT Direction,
                                SQLSMALLINT *NameLength2) {
     UNUSED(EnvironmentHandle, Direction, ServerName, BufferLength1, NameLength1,
            Description, BufferLength2, NameLength2);
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     return SQL_ERROR;
 }
 
@@ -215,7 +215,7 @@ RETCODE SQL_API SQLDescribeCol(HSTMT StatementHandle, SQLUSMALLINT ColumnNumber,
     RETCODE ret;
     StatementClass *stmt = (StatementClass *)StatementHandle;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
@@ -233,7 +233,7 @@ RETCODE SQL_API SQLDisconnect(HDBC ConnectionHandle) {
     RETCODE ret;
     ConnectionClass *conn = (ConnectionClass *)ConnectionHandle;
 
-    MYLOG(ES_TRACE, "entering for %p\n", ConnectionHandle);
+    MYLOG(OPENSEARCH_TRACE, "entering for %p\n", ConnectionHandle);
 #ifdef _HANDLE_ENLIST_IN_DTC_
     if (CC_is_in_global_trans(conn))
         CALL_DtcOnDisconnect(conn);
@@ -278,7 +278,7 @@ RETCODE SQL_API SQLExecute(HSTMT StatementHandle) {
         return SQL_ERROR;
 
     StatementClass *stmt = (StatementClass *)StatementHandle;
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
@@ -304,7 +304,7 @@ RETCODE SQL_API SQLFetch(HSTMT StatementHandle) {
     SQLUSMALLINT *rowStatusArray = irdopts->rowStatusArray;
     SQLULEN *pcRow = irdopts->rowsFetched;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
@@ -323,7 +323,7 @@ RETCODE SQL_API SQLFreeStmt(HSTMT StatementHandle, SQLUSMALLINT Option) {
     StatementClass *stmt = (StatementClass *)StatementHandle;
     ConnectionClass *conn = NULL;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
 
     if (stmt) {
         if (Option == SQL_DROP) {
@@ -354,7 +354,7 @@ RETCODE SQL_API SQLGetCursorName(HSTMT StatementHandle, SQLCHAR *CursorName,
     RETCODE ret;
     StatementClass *stmt = (StatementClass *)StatementHandle;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     ENTER_STMT_CS(stmt);
     SC_clear_error(stmt);
     ret = ESAPI_GetCursorName(StatementHandle, CursorName, BufferLength,
@@ -370,7 +370,7 @@ RETCODE SQL_API SQLGetData(HSTMT StatementHandle, SQLUSMALLINT ColumnNumber,
     RETCODE ret;
     StatementClass *stmt = (StatementClass *)StatementHandle;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
@@ -387,7 +387,7 @@ RETCODE SQL_API SQLGetFunctions(HDBC ConnectionHandle, SQLUSMALLINT FunctionId,
     RETCODE ret;
     ConnectionClass *conn = (ConnectionClass *)ConnectionHandle;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     ENTER_CONN_CS(conn);
     CC_clear_error(conn);
     if (FunctionId == SQL_API_ODBC3_ALL_FUNCTIONS)
@@ -408,7 +408,7 @@ RETCODE SQL_API SQLGetInfo(HDBC ConnectionHandle, SQLUSMALLINT InfoType,
 
     ENTER_CONN_CS(conn);
     CC_clear_error(conn);
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if ((ret = ESAPI_GetInfo(ConnectionHandle, InfoType, InfoValue,
                              BufferLength, StringLength))
         == SQL_ERROR)
@@ -422,7 +422,7 @@ RETCODE SQL_API SQLGetTypeInfo(HSTMT StatementHandle, SQLSMALLINT DataType) {
     RETCODE ret;
     StatementClass *stmt = (StatementClass *)StatementHandle;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check((StatementClass *)StatementHandle,
                                  __FUNCTION__))
         return SQL_ERROR;
@@ -443,7 +443,7 @@ RETCODE SQL_API SQLNumResultCols(HSTMT StatementHandle,
     RETCODE ret;
     StatementClass *stmt = (StatementClass *)StatementHandle;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
@@ -474,7 +474,7 @@ RETCODE SQL_API SQLPrepare(HSTMT StatementHandle, SQLCHAR *StatementText,
     CSTR func = "SQLPrepare";
     StatementClass *stmt = (StatementClass *)StatementHandle;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
@@ -511,7 +511,7 @@ RETCODE SQL_API SQLRowCount(HSTMT StatementHandle, SQLLEN *RowCount) {
     RETCODE ret;
     StatementClass *stmt = (StatementClass *)StatementHandle;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
@@ -528,7 +528,7 @@ RETCODE SQL_API SQLSetCursorName(HSTMT StatementHandle, SQLCHAR *CursorName,
     RETCODE ret;
     StatementClass *stmt = (StatementClass *)StatementHandle;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     ENTER_STMT_CS(stmt);
     SC_clear_error(stmt);
     ret = ESAPI_SetCursorName(StatementHandle, CursorName, NameLength);
@@ -564,7 +564,7 @@ RETCODE SQL_API SQLSpecialColumns(HSTMT StatementHandle,
     StatementClass *stmt = (StatementClass *)StatementHandle;
     SQLCHAR *ctName = CatalogName, *scName = SchemaName, *tbName = TableName;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
@@ -625,7 +625,7 @@ RETCODE SQL_API SQLStatistics(HSTMT StatementHandle, SQLCHAR *CatalogName,
     StatementClass *stmt = (StatementClass *)StatementHandle;
     SQLCHAR *ctName = CatalogName, *scName = SchemaName, *tbName = TableName;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
@@ -687,7 +687,7 @@ RETCODE SQL_API SQLTables(HSTMT StatementHandle, SQLCHAR *CatalogName,
     SQLCHAR *ctName = CatalogName, *scName = SchemaName, *tbName = TableName;
     UWORD flag = 0;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
@@ -751,7 +751,7 @@ RETCODE SQL_API SQLColumnPrivileges(
             *tbName = szTableName, *clName = szColumnName;
     UWORD flag = 0;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
@@ -838,7 +838,7 @@ RETCODE SQL_API SQLExtendedFetch(HSTMT hstmt, SQLUSMALLINT fFetchType,
     RETCODE ret;
     StatementClass *stmt = (StatementClass *)hstmt;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
@@ -878,7 +878,7 @@ RETCODE SQL_API SQLForeignKeys(
             *pktbName = szPkTableName, *fkctName = szFkCatalogName,
             *fkscName = szFkSchemaName, *fktbName = szFkTableName;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
@@ -961,7 +961,7 @@ RETCODE SQL_API SQLMoreResults(HSTMT hstmt) {
     RETCODE ret;
     StatementClass *stmt = (StatementClass *)hstmt;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
@@ -979,7 +979,7 @@ RETCODE SQL_API SQLNativeSql(HDBC hdbc, SQLCHAR *szSqlStrIn,
     RETCODE ret;
     ConnectionClass *conn = (ConnectionClass *)hdbc;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     ENTER_CONN_CS(conn);
     CC_clear_error(conn);
     ret = ESAPI_NativeSql(hdbc, szSqlStrIn, cbSqlStrIn, szSqlStr, cbSqlStrMax,
@@ -1013,7 +1013,7 @@ RETCODE SQL_API SQLPrimaryKeys(HSTMT hstmt, SQLCHAR *szCatalogName,
     SQLCHAR *ctName = szCatalogName, *scName = szSchemaName,
             *tbName = szTableName;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
@@ -1073,7 +1073,7 @@ RETCODE SQL_API SQLProcedureColumns(
             *prName = szProcName, *clName = szColumnName;
     UWORD flag = 0;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
@@ -1145,7 +1145,7 @@ RETCODE SQL_API SQLProcedures(HSTMT hstmt, SQLCHAR *szCatalogName,
             *prName = szProcName;
     UWORD flag = 0;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
@@ -1223,7 +1223,7 @@ RETCODE SQL_API SQLTablePrivileges(HSTMT hstmt, SQLCHAR *szCatalogName,
             *tbName = szTableName;
     UWORD flag = 0;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
@@ -1298,7 +1298,7 @@ RETCODE SQL_API SQLBindParameter(HSTMT hstmt, SQLUSMALLINT ipar,
 RETCODE SQL_API SQLAllocStmt(SQLHDBC InputHandle, SQLHSTMT *OutputHandle) {
     RETCODE ret;
     ConnectionClass *conn;
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
 
     conn = (ConnectionClass *)InputHandle;
     ENTER_CONN_CS(conn);
@@ -1317,7 +1317,7 @@ RETCODE SQL_API SQLGetConnectOption(HDBC ConnectionHandle, SQLUSMALLINT Option,
                                     PTR Value) {
     RETCODE ret;
 
-    MYLOG(ES_TRACE, "entering " FORMAT_UINTEGER "\n", Option);
+    MYLOG(OPENSEARCH_TRACE, "entering " FORMAT_UINTEGER "\n", Option);
     ENTER_CONN_CS((ConnectionClass *)ConnectionHandle);
     CC_clear_error((ConnectionClass *)ConnectionHandle);
     ret = ESAPI_GetConnectOption(ConnectionHandle, Option, Value, NULL, 0);
@@ -1331,7 +1331,7 @@ RETCODE SQL_API SQLSetConnectOption(HDBC ConnectionHandle, SQLUSMALLINT Option,
     RETCODE ret;
     ConnectionClass *conn = (ConnectionClass *)ConnectionHandle;
 
-    MYLOG(ES_TRACE, "entering " FORMAT_INTEGER "\n", Option);
+    MYLOG(OPENSEARCH_TRACE, "entering " FORMAT_INTEGER "\n", Option);
     ENTER_CONN_CS(conn);
     CC_clear_error(conn);
     ret = ESAPI_SetConnectOption(ConnectionHandle, Option, Value);
@@ -1355,7 +1355,7 @@ SQLRETURN SQL_API SQLColAttributes(SQLHSTMT StatementHandle,
     RETCODE ret;
     StatementClass *stmt = (StatementClass *)StatementHandle;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
@@ -1376,7 +1376,7 @@ RETCODE SQL_API SQLError(SQLHENV EnvironmentHandle, SQLHDBC ConnectionHandle,
     RETCODE ret;
     SQLSMALLINT RecNumber = 1;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
 
     if (StatementHandle) {
         ret =
@@ -1393,7 +1393,7 @@ RETCODE SQL_API SQLError(SQLHENV EnvironmentHandle, SQLHDBC ConnectionHandle,
         ret = SQL_ERROR;
     }
 
-    MYLOG(ES_TRACE, "leaving %d\n", ret);
+    MYLOG(OPENSEARCH_TRACE, "leaving %d\n", ret);
     return ret;
 }
 #endif /* UNICODE_SUPPORTXX */

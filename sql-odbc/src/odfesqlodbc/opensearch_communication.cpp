@@ -134,7 +134,7 @@ void OpenSearchCommunication::AwsHttpResponseToString(
 void OpenSearchCommunication::PrepareCursorResult(OpenSearchResult& es_result) {
     // Prepare document and validate result
     try {
-        LogMsg(ES_DEBUG, "Parsing result JSON with cursor.");
+        LogMsg(OPENSEARCH_DEBUG, "Parsing result JSON with cursor.");
         es_result.es_result_doc.parse(es_result.result_json,
                                       CURSOR_JSON_SCHEMA);
     } catch (const rabbit::parse_error& e) {
@@ -151,7 +151,7 @@ std::shared_ptr< ErrorDetails > OpenSearchCommunication::ParseErrorResponse(
     OpenSearchResult& es_result) {
     // Prepare document and validate schema
     try {
-        LogMsg(ES_DEBUG, "Parsing error response (with schema validation)");
+        LogMsg(OPENSEARCH_DEBUG, "Parsing error response (with schema validation)");
         es_result.es_result_doc.parse(es_result.result_json,
                                       ERROR_RESPONSE_SCHEMA);
 
@@ -193,7 +193,7 @@ void OpenSearchCommunication::SetErrorDetails(ErrorDetails details) {
 void OpenSearchCommunication::GetJsonSchema(OpenSearchResult& es_result) {
     // Prepare document and validate schema
     try {
-        LogMsg(ES_DEBUG, "Parsing result JSON with schema.");
+        LogMsg(OPENSEARCH_DEBUG, "Parsing result JSON with schema.");
         es_result.es_result_doc.parse(es_result.result_json, JSON_SCHEMA);
     } catch (const rabbit::parse_error& e) {
         // The exception rabbit gives is quite useless - providing the json
@@ -221,12 +221,12 @@ OpenSearchCommunication::OpenSearchCommunication()
 #pragma clang diagnostic pop
 #endif  // __APPLE__
 {
-    LogMsg(ES_ALL, "Initializing Aws API.");
+    LogMsg(OPENSEARCH_ALL, "Initializing Aws API.");
     Aws::InitAPI(m_options);
 }
 
 OpenSearchCommunication::~OpenSearchCommunication() {
-    LogMsg(ES_ALL, "Shutting down Aws API.");
+    LogMsg(OPENSEARCH_ALL, "Shutting down Aws API.");
     Aws::ShutdownAPI(m_options);
 }
 
@@ -262,7 +262,7 @@ bool OpenSearchCommunication::ConnectionOptions2() {
 }
 
 bool OpenSearchCommunication::ConnectDBStart() {
-    LogMsg(ES_ALL, "Starting DB connection.");
+    LogMsg(OPENSEARCH_ALL, "Starting DB connection.");
     m_status = ConnStatusType::CONNECTION_BAD;
     if (!m_valid_connection_options) {
         // TODO: get error message from CheckConnectionOptions
@@ -270,7 +270,7 @@ bool OpenSearchCommunication::ConnectDBStart() {
             "Invalid connection options, unable to connect to DB.";
         SetErrorDetails("Invalid connection options", m_error_message,
                         ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
-        LogMsg(ES_ERROR, m_error_message.c_str());
+        LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
         DropDBConnection();
         return false;
     }
@@ -280,12 +280,12 @@ bool OpenSearchCommunication::ConnectDBStart() {
         m_error_message = "Failed to establish connection to DB.";
         SetErrorDetails("Connection error", m_error_message,
                         ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
-        LogMsg(ES_ERROR, m_error_message.c_str());
+        LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
         DropDBConnection();
         return false;
     }
 
-    LogMsg(ES_DEBUG, "Connection established.");
+    LogMsg(OPENSEARCH_DEBUG, "Connection established.");
     m_status = ConnStatusType::CONNECTION_OK;
     return true;
 }
@@ -295,7 +295,7 @@ ConnStatusType OpenSearchCommunication::GetConnectionStatus() {
 }
 
 void OpenSearchCommunication::DropDBConnection() {
-    LogMsg(ES_ALL, "Dropping DB connection.");
+    LogMsg(OPENSEARCH_ALL, "Dropping DB connection.");
     if (m_http_client) {
         m_http_client.reset();
     }
@@ -305,7 +305,7 @@ void OpenSearchCommunication::DropDBConnection() {
 }
 
 bool OpenSearchCommunication::CheckConnectionOptions() {
-    LogMsg(ES_ALL, "Verifying connection options.");
+    LogMsg(OPENSEARCH_ALL, "Verifying connection options.");
     m_error_message = "";
     if (m_rt_opts.auth.auth_type != AUTHTYPE_NONE
         && m_rt_opts.auth.auth_type != AUTHTYPE_IAM) {
@@ -330,11 +330,11 @@ bool OpenSearchCommunication::CheckConnectionOptions() {
     }
 
     if (m_error_message != "") {
-        LogMsg(ES_ERROR, m_error_message.c_str());
+        LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
         m_valid_connection_options = false;
         return false;
     } else {
-        LogMsg(ES_DEBUG, "Required connection option are valid.");
+        LogMsg(OPENSEARCH_DEBUG, "Required connection option are valid.");
         m_valid_connection_options = true;
     }
     return m_valid_connection_options;
@@ -431,7 +431,7 @@ bool OpenSearchCommunication::IsSQLPluginInstalled(const std::string& plugin_res
                 if (!plugin_name.compare(OPENDISTRO_SQL_PLUGIN_NAME)) {
                     std::string sql_plugin_version =
                         it.at("version").as_string();
-                    LogMsg(ES_INFO, std::string("Found SQL plugin version '"
+                    LogMsg(OPENSEARCH_INFO, std::string("Found SQL plugin version '"
                                                 + sql_plugin_version + "'.")
                                         .c_str());
                     return true;
@@ -469,20 +469,20 @@ bool OpenSearchCommunication::IsSQLPluginInstalled(const std::string& plugin_res
                         ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
     }
 
-    LogMsg(ES_ERROR, m_error_message.c_str());
+    LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
     return false;
 }
 
 bool OpenSearchCommunication::EstablishConnection() {
     // Generate HttpClient Connection class if it does not exist
-    LogMsg(ES_ALL, "Attempting to establish DB connection.");
+    LogMsg(OPENSEARCH_ALL, "Attempting to establish DB connection.");
     if (!m_http_client) {
         InitializeConnection();
     }
 
     // Check whether SQL plugin has been installed on the OpenSearch server.
     // This is required for executing driver queries with the server.
-    LogMsg(ES_ALL, "Checking for SQL plugin");
+    LogMsg(OPENSEARCH_ALL, "Checking for SQL plugin");
     std::shared_ptr< Aws::Http::HttpResponse > response =
         IssueRequest(PLUGIN_ENDPOINT_FORMAT_JSON,
                      Aws::Http::HttpMethod::HTTP_GET, "", "", "");
@@ -519,7 +519,7 @@ bool OpenSearchCommunication::EstablishConnection() {
             }
         }
     }
-    LogMsg(ES_ERROR, m_error_message.c_str());
+    LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
     return false;
 }
 
@@ -529,14 +529,14 @@ std::vector< std::string > OpenSearchCommunication::GetColumnsWithSelectQuery(
     if (table_name.empty()) {
         m_error_type = ConnErrorType::CONN_ERROR_INVALID_NULL_PTR;
         m_error_message = "Query is NULL";
-        LogMsg(ES_ERROR, m_error_message.c_str());
+        LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
         return list_of_column;
     }
 
     // Prepare query
     std::string query = "SELECT * FROM " + table_name + " LIMIT 0";
     std::string msg = "Attempting to execute a query \"" + query + "\"";
-    LogMsg(ES_DEBUG, msg.c_str());
+    LogMsg(OPENSEARCH_DEBUG, msg.c_str());
 
     // Issue request
     std::shared_ptr< Aws::Http::HttpResponse > response =
@@ -550,7 +550,7 @@ std::vector< std::string > OpenSearchCommunication::GetColumnsWithSelectQuery(
             "Received NULL response.";
         SetErrorDetails("HTTP client error", m_error_message,
                         ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
-        LogMsg(ES_ERROR, m_error_message.c_str());
+        LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
         return list_of_column;
     }
 
@@ -574,7 +574,7 @@ std::vector< std::string > OpenSearchCommunication::GetColumnsWithSelectQuery(
         }
         SetErrorDetails("Connection error", m_error_message,
                         ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
-        LogMsg(ES_ERROR, m_error_message.c_str());
+        LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
         return list_of_column;
     }
 
@@ -596,13 +596,13 @@ int OpenSearchCommunication::ExecDirect(const char* query, const char* fetch_siz
         m_error_message = "Query is NULL";
         SetErrorDetails("Execution error", m_error_message,
                         ConnErrorType::CONN_ERROR_INVALID_NULL_PTR);
-        LogMsg(ES_ERROR, m_error_message.c_str());
+        LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
         return -1;
     } else if (!m_http_client) {
         m_error_message = "Unable to connect. Please try connecting again.";
         SetErrorDetails("Execution error", m_error_message,
                         ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
-        LogMsg(ES_ERROR, m_error_message.c_str());
+        LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
         return -1;
     }
 
@@ -610,7 +610,7 @@ int OpenSearchCommunication::ExecDirect(const char* query, const char* fetch_siz
     std::string statement(query);
     std::string fetch_size(fetch_size_);
     std::string msg = "Attempting to execute a query \"" + statement + "\"";
-    LogMsg(ES_DEBUG, msg.c_str());
+    LogMsg(OPENSEARCH_DEBUG, msg.c_str());
 
     // Issue request
     std::shared_ptr< Aws::Http::HttpResponse > response =
@@ -624,7 +624,7 @@ int OpenSearchCommunication::ExecDirect(const char* query, const char* fetch_siz
             "Received NULL response.";
         SetErrorDetails("Execution error", m_error_message,
                         ConnErrorType::CONN_ERROR_QUERY_SYNTAX);
-        LogMsg(ES_ERROR, m_error_message.c_str());
+        LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
         return -1;
     }
 
@@ -647,7 +647,7 @@ int OpenSearchCommunication::ExecDirect(const char* query, const char* fetch_siz
             m_error_message +=
                 " Response error: '" + result->result_json + "'.";
         }
-        LogMsg(ES_ERROR, m_error_message.c_str());
+        LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
         return -1;
     }
 
@@ -662,7 +662,7 @@ int OpenSearchCommunication::ExecDirect(const char* query, const char* fetch_siz
         }
         SetErrorDetails("Execution error", m_error_message,
                         ConnErrorType::CONN_ERROR_QUERY_SYNTAX);
-        LogMsg(ES_ERROR, m_error_message.c_str());
+        LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
         return -1;
     }
 
@@ -701,7 +701,7 @@ void OpenSearchCommunication::SendCursorQueries(std::string cursor) {
                     "Received NULL response.";
                 SetErrorDetails("Cursor error", m_error_message,
                                 ConnErrorType::CONN_ERROR_QUERY_SYNTAX);
-                LogMsg(ES_ERROR, m_error_message.c_str());
+                LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
                 return;
             }
 
@@ -730,7 +730,7 @@ void OpenSearchCommunication::SendCursorQueries(std::string cursor) {
             "Received runtime exception: " + std::string(e.what());
         SetErrorDetails("Cursor error", m_error_message,
                         ConnErrorType::CONN_ERROR_QUERY_SYNTAX);
-        LogMsg(ES_ERROR, m_error_message.c_str());
+        LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
     }
 
     if (!m_is_retrieving) {
@@ -750,7 +750,7 @@ void OpenSearchCommunication::SendCloseCursorRequest(const std::string& cursor) 
             "Received NULL response.";
         SetErrorDetails("Cursor error", m_error_message,
                         ConnErrorType::CONN_ERROR_QUERY_SYNTAX);
-        LogMsg(ES_ERROR, m_error_message.c_str());
+        LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
     }
 }
 
@@ -784,7 +784,7 @@ void OpenSearchCommunication::ConstructOpenSearchResult(OpenSearchResult& result
     result.num_fields = (uint16_t)schema_array.size();
 }
 
-inline void OpenSearchCommunication::LogMsg(ESLogLevel level, const char* msg) {
+inline void OpenSearchCommunication::LogMsg(OpenSearchLogLevel level, const char* msg) {
 #if WIN32
 #pragma warning(push)
 #pragma warning(disable : 4551)
@@ -818,7 +818,7 @@ bool OpenSearchCommunication::SetClientEncoding(std::string& encoding) {
         m_client_encoding = encoding;
         return true;
     }
-    LogMsg(ES_ERROR,
+    LogMsg(OPENSEARCH_ERROR,
            std::string("Failed to find encoding " + encoding).c_str());
     return false;
 }
@@ -837,7 +837,7 @@ std::string OpenSearchCommunication::GetServerVersion() {
             "Received NULL response.";
         SetErrorDetails("Connection error", m_error_message,
                         ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
-        LogMsg(ES_ERROR, m_error_message.c_str());
+        LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
         return "";
     }
 
@@ -856,26 +856,26 @@ std::string OpenSearchCommunication::GetServerVersion() {
                               + std::string(e.what());
             SetErrorDetails("Connection error", m_error_message,
                             ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
-            LogMsg(ES_ERROR, m_error_message.c_str());
+            LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
         } catch (const rabbit::parse_error& e) {
             m_error_message = "Error parsing main endpoint response: "
                               + std::string(e.what());
             SetErrorDetails("Connection error", m_error_message,
                             ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
-            LogMsg(ES_ERROR, m_error_message.c_str());
+            LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
         } catch (const std::exception& e) {
             m_error_message = "Error parsing main endpoint response: "
                               + std::string(e.what());
             SetErrorDetails("Connection error", m_error_message,
                             ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
-            LogMsg(ES_ERROR, m_error_message.c_str());
+            LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
         } catch (...) {
-            LogMsg(ES_ERROR,
+            LogMsg(OPENSEARCH_ERROR,
                    "Unknown exception thrown when parsing main endpoint "
                    "response.");
         }
     }
-    LogMsg(ES_ERROR, m_error_message.c_str());
+    LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
     return "";
 }
 
@@ -893,7 +893,7 @@ std::string OpenSearchCommunication::GetClusterName() {
             "Received NULL response.";
         SetErrorDetails("Connection error", m_error_message,
                         ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
-        LogMsg(ES_ERROR, m_error_message.c_str());
+        LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
         return "";
     }
 
@@ -912,25 +912,25 @@ std::string OpenSearchCommunication::GetClusterName() {
                               + std::string(e.what());
             SetErrorDetails("Connection error", m_error_message,
                             ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
-            LogMsg(ES_ERROR, m_error_message.c_str());
+            LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
         } catch (const rabbit::parse_error& e) {
             m_error_message = "Error parsing main endpoint response: "
                               + std::string(e.what());
             SetErrorDetails("Connection error", m_error_message,
                             ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
-            LogMsg(ES_ERROR, m_error_message.c_str());
+            LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
         } catch (const std::exception& e) {
             m_error_message = "Error parsing main endpoint response: "
                               + std::string(e.what());
             SetErrorDetails("Connection error", m_error_message,
                             ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
-            LogMsg(ES_ERROR, m_error_message.c_str());
+            LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
         } catch (...) {
-            LogMsg(ES_ERROR,
+            LogMsg(OPENSEARCH_ERROR,
                    "Unknown exception thrown when parsing main endpoint "
                    "response.");
         }
     }
-    LogMsg(ES_ERROR, m_error_message.c_str());
+    LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
     return "";
 }

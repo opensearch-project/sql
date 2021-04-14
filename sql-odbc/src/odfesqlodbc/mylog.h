@@ -125,17 +125,17 @@ const char *po_basename(const char *path);
     } while (0)
 #endif /* __GNUC__ */
 
-enum ESLogLevel {
+enum OpenSearchLogLevel {
     // Prefixing with OPENSEARCH_ because C does not support namespaces and we may get a
     // collision, given how common these names are
-    ES_OFF,
-    ES_FATAL,
-    ES_ERROR,
-    ES_WARNING,
-    ES_INFO,
-    ES_DEBUG,
-    ES_TRACE,
-    ES_ALL
+    OPENSEARCH_OFF,
+    OPENSEARCH_FATAL,
+    OPENSEARCH_ERROR,
+    OPENSEARCH_WARNING,
+    OPENSEARCH_INFO,
+    OPENSEARCH_DEBUG,
+    OPENSEARCH_TRACE,
+    OPENSEARCH_ALL
 };
 
 int get_qlog(void);

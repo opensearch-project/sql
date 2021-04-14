@@ -117,7 +117,7 @@ HMODULE MODULE_load_from_elasticodbc_path(const char *module_name) {
         if (_strnicmp(szFileName, sysdir, strlen(sysdir)) != 0) {
             hmodule =
                 LoadLibraryEx(szFileName, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
-            MYLOG(ES_DEBUG, "elasticodbc path based %s loaded module=%p\n",
+            MYLOG(OPENSEARCH_DEBUG, "elasticodbc path based %s loaded module=%p\n",
                   module_name, hmodule);
         }
     }
@@ -128,7 +128,7 @@ static FARPROC WINAPI DliErrorHook(unsigned dliNotify, PDelayLoadInfo pdli) {
     HMODULE hmodule = NULL;
     const char *call_module = NULL;
 
-    MYLOG(ES_DEBUG, "Dli%sHook %s Notify=%d\n",
+    MYLOG(OPENSEARCH_DEBUG, "Dli%sHook %s Notify=%d\n",
           (dliFailLoadLib == dliNotify || dliFailGetProc == dliNotify)
               ? "Error"
               : "Notify",
@@ -174,18 +174,18 @@ void CleanupDelayLoadedDLLs(void) {
     /* The dll names are case sensitive for the unload helper */
     if (loaded_elasticenlist) {
         if (enlist_module != NULL) {
-            MYLOG(ES_DEBUG, "Freeing Library %s\n", elasticenlistdll);
+            MYLOG(OPENSEARCH_DEBUG, "Freeing Library %s\n", elasticenlistdll);
             FreeLibrary(enlist_module);
         }
-        MYLOG(ES_DEBUG, "%s unloading\n", elasticenlistdll);
+        MYLOG(OPENSEARCH_DEBUG, "%s unloading\n", elasticenlistdll);
         success = (*func)(elasticenlistdll);
-        MYLOG(ES_DEBUG, "%s unloaded success=%d\n", elasticenlistdll, success);
+        MYLOG(OPENSEARCH_DEBUG, "%s unloaded success=%d\n", elasticenlistdll, success);
         loaded_elasticenlist = FALSE;
     }
     if (loaded_elasticodbc) {
-        MYLOG(ES_DEBUG, "%s unloading\n", elasticodbcdll);
+        MYLOG(OPENSEARCH_DEBUG, "%s unloading\n", elasticodbcdll);
         success = (*func)(elasticodbcdll);
-        MYLOG(ES_DEBUG, "%s unloaded success=%d\n", elasticodbcdll, success);
+        MYLOG(OPENSEARCH_DEBUG, "%s unloaded success=%d\n", elasticodbcdll, success);
         loaded_elasticodbc = FALSE;
     }
     return;

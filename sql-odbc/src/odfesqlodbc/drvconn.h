@@ -20,9 +20,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "opensearch_odbc.h"
 #include "misc.h"
 #include "opensearch_connection.h"
-#include "opensearch_odbc.h"
 
 #ifndef WIN32
 #include <sys/socket.h>

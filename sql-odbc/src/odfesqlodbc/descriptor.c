@@ -30,13 +30,13 @@
 void TI_Destructor(TABLE_INFO **ti, int count) {
     int i;
 
-    MYLOG(ES_TRACE, "entering count=%d\n", count);
+    MYLOG(OPENSEARCH_TRACE, "entering count=%d\n", count);
     if (ti) {
         for (i = 0; i < count; i++) {
             if (ti[i]) {
                 COL_INFO *coli = ti[i]->col_info;
                 if (coli) {
-                    MYLOG(ES_ALL, "!!!refcnt %p:%d -> %d\n", coli, coli->refcnt,
+                    MYLOG(OPENSEARCH_ALL, "!!!refcnt %p:%d -> %d\n", coli, coli->refcnt,
                           coli->refcnt - 1);
                     coli->refcnt--;
                     if (coli->refcnt <= 0
@@ -60,7 +60,7 @@ void TI_Destructor(TABLE_INFO **ti, int count) {
 void FI_Destructor(FIELD_INFO **fi, int count, BOOL freeFI) {
     int i;
 
-    MYLOG(ES_TRACE, "entering count=%d\n", count);
+    MYLOG(OPENSEARCH_TRACE, "entering count=%d\n", count);
     if (fi) {
         for (i = 0; i < count; i++) {
             if (fi[i]) {
@@ -102,7 +102,7 @@ void DC_Constructor(DescriptorClass *self, BOOL embedded,
 }
 
 static void ARDFields_free(ARDFields *self) {
-    MYLOG(ES_TRACE, "entering %p bookmark=%p\n", self, self->bookmark);
+    MYLOG(OPENSEARCH_TRACE, "entering %p bookmark=%p\n", self, self->bookmark);
     if (self->bookmark) {
         free(self->bookmark);
         self->bookmark = NULL;
@@ -228,7 +228,7 @@ char CC_add_descriptor(ConnectionClass *self, DescriptorClass *desc) {
     int new_num_descs;
     DescriptorClass **descs;
 
-    MYLOG(ES_TRACE, "entering self=%p, desc=%p\n", self, desc);
+    MYLOG(OPENSEARCH_TRACE, "entering self=%p, desc=%p\n", self, desc);
 
     for (i = 0; i < self->num_descs; i++) {
         if (!self->descs[i]) {
@@ -264,7 +264,7 @@ RETCODE SQL_API ESAPI_AllocDesc(HDBC ConnectionHandle,
     RETCODE ret = SQL_SUCCESS;
     DescriptorClass *desc;
 
-    MYLOG(ES_TRACE, "entering...\n");
+    MYLOG(OPENSEARCH_TRACE, "entering...\n");
 
     desc = (DescriptorClass *)malloc(sizeof(DescriptorClass));
     if (desc) {
@@ -290,7 +290,7 @@ RETCODE SQL_API ESAPI_FreeDesc(SQLHDESC DescriptorHandle) {
     DescriptorClass *desc = (DescriptorClass *)DescriptorHandle;
     RETCODE ret = SQL_SUCCESS;
 
-    MYLOG(ES_TRACE, "entering...\n");
+    MYLOG(OPENSEARCH_TRACE, "entering...\n");
     DC_Destructor(desc);
     if (!desc->deschd.embedded) {
         int i;
@@ -391,26 +391,26 @@ RETCODE SQL_API ESAPI_CopyDesc(SQLHDESC SourceDescHandle,
     APDFields *apd_src, *apd_tgt;
     IPDFields *ipd_src, *ipd_tgt;
 
-    MYLOG(ES_TRACE, "entering...\n");
+    MYLOG(OPENSEARCH_TRACE, "entering...\n");
     src = (DescriptorClass *)SourceDescHandle;
     target = (DescriptorClass *)TargetDescHandle;
     srchd = &(src->deschd);
     targethd = &(target->deschd);
     if (!srchd->type_defined) {
-        MYLOG(ES_ERROR, "source type undefined\n");
+        MYLOG(OPENSEARCH_ERROR, "source type undefined\n");
         DC_set_error(target, DESC_EXEC_ERROR, "source handle type undefined");
         return ret;
     }
     if (targethd->type_defined) {
-        MYLOG(ES_DEBUG, "source type=%d -> target type=%d\n", srchd->desc_type,
+        MYLOG(OPENSEARCH_DEBUG, "source type=%d -> target type=%d\n", srchd->desc_type,
               targethd->desc_type);
         if (SQL_ATTR_IMP_ROW_DESC == targethd->desc_type) {
-            MYLOG(ES_DEBUG, "can't modify IRD\n");
+            MYLOG(OPENSEARCH_DEBUG, "can't modify IRD\n");
             DC_set_error(target, DESC_EXEC_ERROR, "can't copy to IRD");
             return ret;
         } else if (targethd->desc_type != srchd->desc_type) {
             if (targethd->embedded) {
-                MYLOG(ES_DEBUG, "src type != target type\n");
+                MYLOG(OPENSEARCH_DEBUG, "src type != target type\n");
                 DC_set_error(
                     target, DESC_EXEC_ERROR,
                     "copying different type descriptor to embedded one");
@@ -422,21 +422,21 @@ RETCODE SQL_API ESAPI_CopyDesc(SQLHDESC SourceDescHandle,
     ret = SQL_SUCCESS;
     switch (srchd->desc_type) {
         case SQL_ATTR_APP_ROW_DESC:
-            MYLOG(ES_DEBUG, "src=%p target=%p type=%d", src, target,
+            MYLOG(OPENSEARCH_DEBUG, "src=%p target=%p type=%d", src, target,
                   srchd->desc_type);
             if (!targethd->type_defined) {
                 targethd->desc_type = srchd->desc_type;
             }
             ard_src = &(src->ardf);
-            MYPRINTF(ES_DEBUG,
+            MYPRINTF(OPENSEARCH_DEBUG,
                      " rowset_size=" FORMAT_LEN " bind_size=" FORMAT_UINTEGER
                      " ope_ptr=%p off_ptr=%p\n",
                      ard_src->size_of_rowset, ard_src->bind_size,
                      ard_src->row_operation_ptr, ard_src->row_offset_ptr);
             ard_tgt = &(target->ardf);
-            MYPRINTF(ES_DEBUG, " target=%p", ard_tgt);
+            MYPRINTF(OPENSEARCH_DEBUG, " target=%p", ard_tgt);
             ARDFields_copy(ard_src, ard_tgt);
-            MYPRINTF(ES_DEBUG, " offset_ptr=%p\n", ard_tgt->row_offset_ptr);
+            MYPRINTF(OPENSEARCH_DEBUG, " offset_ptr=%p\n", ard_tgt->row_offset_ptr);
             break;
         case SQL_ATTR_APP_PARAM_DESC:
             if (!targethd->type_defined) {
@@ -455,7 +455,7 @@ RETCODE SQL_API ESAPI_CopyDesc(SQLHDESC SourceDescHandle,
             IPDFields_copy(ipd_src, ipd_tgt);
             break;
         default:
-            MYLOG(ES_DEBUG, "invalid descriptor handle type=%d\n",
+            MYLOG(OPENSEARCH_DEBUG, "invalid descriptor handle type=%d\n",
                   srchd->desc_type);
             DC_set_error(target, DESC_EXEC_ERROR, "invalid descriptor type");
             ret = SQL_ERROR;
@@ -567,7 +567,7 @@ void DC_log_error(const char *func, const char *desc,
                   const DescriptorClass *self) {
 #define nullcheck(a) (a ? a : "(NULL)")
     if (self) {
-        MYLOG(ES_DEBUG,
+        MYLOG(OPENSEARCH_DEBUG,
               "DESCRIPTOR ERROR: func=%s, desc='%s', errnum=%d, errmsg='%s'\n",
               func, desc, self->deschd.__error_number,
               nullcheck(self->deschd.__error_message));
@@ -583,7 +583,7 @@ RETCODE SQL_API ESAPI_DescError(SQLHDESC hdesc, SQLSMALLINT RecNumber,
     DescriptorClass *desc = (DescriptorClass *)hdesc;
     DescriptorHeader *deschd = &(desc->deschd);
 
-    MYLOG(ES_TRACE, "entering RecN=%hd\n", RecNumber);
+    MYLOG(OPENSEARCH_TRACE, "entering RecN=%hd\n", RecNumber);
     deschd->eserror = DC_create_errorinfo(desc);
     return ER_ReturnError(deschd->eserror, RecNumber, szSqlState, pfNativeError,
                           szErrorMsg, cbErrorMsgMax, pcbErrorMsg, flag);

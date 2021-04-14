@@ -60,7 +60,7 @@ A list of options available for configuring driver behaviour is available [here]
 To setup a connection, the driver uses an ODBC connection string. Connection strings are semicolon-delimited strings specifying the set of options to use for a connection. Typically, a connection string will either:
 
 1. specify a Data Source Name containing a pre-configured set of options (`DSN=xxx;User=xxx;Password=xxx;`)
-2. or configure options explicitly using the string (`Host=xxx;Port=xxx;LogLevel=ES_DEBUG;...`)
+2. or configure options explicitly using the string (`Host=xxx;Port=xxx;LogLevel=OPENSEARCH_DEBUG;...`)
 
 ## Building from source
 
