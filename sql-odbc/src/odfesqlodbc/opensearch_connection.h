@@ -409,8 +409,8 @@ int eatTableIdentifiers(const UCHAR *str, int ccsc, opensearchNAME *table,
                         opensearchNAME *schema);
 
 char CC_connect(ConnectionClass *self);
-int LIBES_connect(ConnectionClass *self);
-void LIBES_disconnect(void *conn);
+int LIBOPENSEARCH_connect(ConnectionClass *self);
+void LIBOPENSEARCH_disconnect(void *conn);
 int CC_send_client_encoding(ConnectionClass *self, const char *encoding);
 void CC_set_locale_encoding(ConnectionClass *self, const char *encoding);
 void CC_initialize_opensearch_version(ConnectionClass *self);

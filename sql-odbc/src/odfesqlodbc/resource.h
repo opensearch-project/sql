@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by es_odbc.rc
+// Used by opensearch_odbc.rc
 //
 #define IDS_BADDSN                      1
 #define IDS_MSGTITLE                    2

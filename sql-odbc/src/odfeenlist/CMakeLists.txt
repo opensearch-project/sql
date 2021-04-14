@@ -17,7 +17,7 @@ project(odfeenlist)
 
 # Source files for odfeenlist
 set(SOURCE_FILES msdtc_enlist.cpp)
-set(HEADER_FILES elasticenlist.h)
+set(HEADER_FILES opensearch_enlist.h)
 
 # Generate static lib
 add_library(odfeenlist STATIC ${SOURCE_FILES} ${HEADER_FILES})

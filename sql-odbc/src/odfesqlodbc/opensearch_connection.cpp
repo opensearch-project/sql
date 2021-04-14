@@ -59,8 +59,8 @@ char CC_connect(ConnectionClass *self) {
     if (self == NULL)
         return 0;
 
-    // Attempt to connect to ES
-    int conn_code = LIBES_connect(self);
+    // Attempt to connect to OpenSearch
+    int conn_code = LIBOPENSEARCH_connect(self);
     if (conn_code <= 0)
         return static_cast< char >(conn_code);
 
@@ -89,7 +89,7 @@ char CC_connect(ConnectionClass *self) {
     return 1;
 }
 
-int LIBES_connect(ConnectionClass *self) {
+int LIBOPENSEARCH_connect(ConnectionClass *self) {
     if (self == NULL)
         return 0;
 
@@ -116,7 +116,7 @@ int LIBES_connect(ConnectionClass *self) {
         std::string err = GetErrorMsg(opensearchconn);
         CC_set_error(self, CONN_OPENDB_ERROR,
                      (err.empty()) ? "OpenSearchConnectDBParams error" : err.c_str(),
-                     "LIBES_connect");
+                     "LIBOPENSEARCH_connect");
         return 0;
     }
 
@@ -131,7 +131,7 @@ int LIBES_connect(ConnectionClass *self) {
             STRCPY_FIXED(error_message_out,
                          "Connection error: No message available.");
         CC_set_error(self, CONN_OPENDB_ERROR, error_message_out,
-                     "LIBES_connect");
+                     "LIBOPENSEARCH_connect");
         OpenSearchDisconnect(opensearchconn);
         return 0;
     }
@@ -201,6 +201,6 @@ void CC_initialize_opensearch_version(ConnectionClass *self) {
     self->opensearch_version_minor = 4;
 }
 
-void LIBES_disconnect(void *conn) {
+void LIBOPENSEARCH_disconnect(void *conn) {
     OpenSearchDisconnect(conn);
 }

@@ -417,15 +417,15 @@ CC_cleanup(ConnectionClass *self, BOOL keepCommunication) {
     /* We are always in the middle of a transaction, */
     /* even if we are in auto commit. */
     if (self->opensearchconn) {
-        QLOG(0, "LIBES_disconnect: %p\n", self->opensearchconn);
-        LIBES_disconnect(self->opensearchconn);
+        QLOG(0, "LIBOPENSEARCH_disconnect: %p\n", self->opensearchconn);
+        LIBOPENSEARCH_disconnect(self->opensearchconn);
         self->opensearchconn = NULL;
     } else {
         ret = SQL_ERROR;
         CC_set_error(self, CC_not_connected(self), "Connection not open", func);
     }
 
-    MYLOG(OPENSEARCH_DEBUG, "after LIBES_disconnect\n");
+    MYLOG(OPENSEARCH_DEBUG, "after LIBOPENSEARCH_disconnect\n");
 
     /* Free all the stmts on this connection */
     for (i = 0; i < self->num_stmts; i++) {
