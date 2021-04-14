@@ -21,7 +21,7 @@
 #include <errno.h>
 #endif /* WIN32 */
 
-#include "elasticenlist.h"
+#include "opensearch_enlist.h"
 #include "loadlib.h"
 #include "misc.h"
 
@@ -30,18 +30,18 @@
 #pragma comment(lib, "Delayimp")
 #ifdef _HANDLE_ENLIST_IN_DTC_
 #ifdef UNICODE_SUPPORT
-#pragma comment(lib, "elasticenlist")
+#pragma comment(lib, "opensearch_enlist")
 #else
-#pragma comment(lib, "elasticenlista")
+#pragma comment(lib, "opensearch_enlista")
 #endif /* UNICODE_SUPPORT */
 #endif /* _HANDLE_ENLIST_IN_DTC_ */
 // The followings works under VC++6.0 but doesn't work under VC++7.0.
 // Please add the equivalent linker options using command line etc.
 #if (_MSC_VER == 1200) && defined(DYNAMIC_LOAD)  // VC6.0
 #ifdef UNICODE_SUPPORT
-#pragma comment(linker, "/Delayload:elasticenlist.dll")
+#pragma comment(linker, "/Delayload:opensearch_enlist.dll")
 #else
-#pragma comment(linker, "/Delayload:elasticenlista.dll")
+#pragma comment(linker, "/Delayload:opensearch_enlista.dll")
 #endif /* UNICODE_SUPPORT */
 #pragma comment(linker, "/Delay:UNLOAD")
 #endif /* _MSC_VER */
@@ -50,13 +50,13 @@
 #if defined(DYNAMIC_LOAD)
 #define WIN_DYN_LOAD
 #ifdef UNICODE_SUPPORT
-CSTR elasticenlist = "elasticenlist";
-CSTR elasticenlistdll = "elasticenlist.dll";
+CSTR opensearch_enlist = "opensearch_enlist";
+CSTR opensearch_enlistdll = "opensearch_enlist.dll";
 CSTR elasticodbc = "odfesqlodbc35w";
 CSTR elasticodbcdll = "odfesqlodbc35w.dll";
 #else
-CSTR elasticenlist = "elasticenlista";
-CSTR elasticenlistdll = "elasticenlista.dll";
+CSTR opensearch_enlist = "opensearch_enlista";
+CSTR opensearch_enlistdll = "opensearch_enlista.dll";
 CSTR elasticodbc = "odfesqlodbc30a";
 CSTR elasticodbcdll = "odfesqlodbc30a.dll";
 #endif /* UNICODE_SUPPORT */
@@ -97,7 +97,7 @@ extern PfnDliHook __pfnDliNotifyHook2;
 #endif /* _MSC_DELAY_LOAD_IMPORT */
 
 #if defined(_MSC_DELAY_LOAD_IMPORT)
-static BOOL loaded_elasticenlist = FALSE;
+static BOOL loaded_opensearch_enlist = FALSE;
 static HMODULE enlist_module = NULL;
 static BOOL loaded_elasticodbc = FALSE;
 /*
@@ -144,8 +144,8 @@ static FARPROC WINAPI DliErrorHook(unsigned dliNotify, PDelayLoadInfo pdli) {
                     NULL == hmodule)
                     hmodule = LoadLibrary(call_module);
                 if (NULL != hmodule) {
-                    if (elasticenlist == call_module)
-                        loaded_elasticenlist = TRUE;
+                    if (opensearch_enlist == call_module)
+                        loaded_opensearch_enlist = TRUE;
                     else if (elasticodbc == call_module)
                         loaded_elasticodbc = TRUE;
                 }
@@ -172,15 +172,15 @@ void CleanupDelayLoadedDLLs(void) {
     UnloadFunc func = __FUnloadDelayLoadedDLL2;
 #endif
     /* The dll names are case sensitive for the unload helper */
-    if (loaded_elasticenlist) {
+    if (loaded_opensearch_enlist) {
         if (enlist_module != NULL) {
-            MYLOG(OPENSEARCH_DEBUG, "Freeing Library %s\n", elasticenlistdll);
+            MYLOG(OPENSEARCH_DEBUG, "Freeing Library %s\n", opensearch_enlistdll);
             FreeLibrary(enlist_module);
         }
-        MYLOG(OPENSEARCH_DEBUG, "%s unloading\n", elasticenlistdll);
-        success = (*func)(elasticenlistdll);
-        MYLOG(OPENSEARCH_DEBUG, "%s unloaded success=%d\n", elasticenlistdll, success);
-        loaded_elasticenlist = FALSE;
+        MYLOG(OPENSEARCH_DEBUG, "%s unloading\n", opensearch_enlistdll);
+        success = (*func)(opensearch_enlistdll);
+        MYLOG(OPENSEARCH_DEBUG, "%s unloaded success=%d\n", opensearch_enlistdll, success);
+        loaded_opensearch_enlist = FALSE;
     }
     if (loaded_elasticodbc) {
         MYLOG(OPENSEARCH_DEBUG, "%s unloading\n", elasticodbcdll);
@@ -202,37 +202,37 @@ RETCODE CALL_EnlistInDtc(ConnectionClass *conn, void *pTra, int method) {
     BOOL loaded = TRUE;
 
 #if defined(_MSC_DELAY_LOAD_IMPORT)
-    if (!loaded_elasticenlist) {
+    if (!loaded_opensearch_enlist) {
         TRY_DLI_HOOK
         ret = EnlistInDtc(conn, pTra, method);
     }
     __except ((GetExceptionCode() & 0xffff) == ERROR_MOD_NOT_FOUND
                   ? EXCEPTION_EXECUTE_HANDLER
                   : EXCEPTION_CONTINUE_SEARCH) {
-        if (enlist_module = MODULE_load_from_elasticodbc_path(elasticenlist),
+        if (enlist_module = MODULE_load_from_elasticodbc_path(opensearch_enlist),
             NULL == enlist_module)
             loaded = FALSE;
         else
             ret = EnlistInDtc(conn, pTra, method);
     }
     if (loaded)
-        loaded_elasticenlist = TRUE;
+        loaded_opensearch_enlist = TRUE;
     RELEASE_NOTIFY_HOOK
 }
 else ret = EnlistInDtc(conn, pTra, method);
 #else
     ret = EnlistInDtc(conn, pTra, method);
-    loaded_elasticenlist = TRUE;
+    loaded_opensearch_enlist = TRUE;
 #endif /* _MSC_DELAY_LOAD_IMPORT */
 return ret;
 }
 RETCODE CALL_DtcOnDisconnect(ConnectionClass *conn) {
-    if (loaded_elasticenlist)
+    if (loaded_opensearch_enlist)
         return DtcOnDisconnect(conn);
     return FALSE;
 }
 RETCODE CALL_IsolateDtcConn(ConnectionClass *conn, BOOL continueConnection) {
-    if (loaded_elasticenlist)
+    if (loaded_opensearch_enlist)
         return IsolateDtcConn(conn, continueConnection);
     return FALSE;
 }
@@ -242,32 +242,32 @@ void *CALL_GetTransactionObject(HRESULT *hres) {
     BOOL loaded = TRUE;
 
 #if defined(_MSC_DELAY_LOAD_IMPORT)
-    if (!loaded_elasticenlist) {
+    if (!loaded_opensearch_enlist) {
         TRY_DLI_HOOK
         ret = GetTransactionObject(hres);
     }
     __except ((GetExceptionCode() & 0xffff) == ERROR_MOD_NOT_FOUND
                   ? EXCEPTION_EXECUTE_HANDLER
                   : EXCEPTION_CONTINUE_SEARCH) {
-        if (enlist_module = MODULE_load_from_elasticodbc_path(elasticenlist),
+        if (enlist_module = MODULE_load_from_elasticodbc_path(opensearch_enlist),
             NULL == enlist_module)
             loaded = FALSE;
         else
             ret = GetTransactionObject(hres);
     }
     if (loaded)
-        loaded_elasticenlist = TRUE;
+        loaded_opensearch_enlist = TRUE;
     RELEASE_NOTIFY_HOOK
 }
 else ret = GetTransactionObject(hres);
 #else
     ret = GetTransactionObject(hres);
-    loaded_elasticenlist = TRUE;
+    loaded_opensearch_enlist = TRUE;
 #endif /* _MSC_DELAY_LOAD_IMPORT */
 return ret;
 }
 void CALL_ReleaseTransactionObject(void *pObj) {
-    if (loaded_elasticenlist)
+    if (loaded_opensearch_enlist)
         ReleaseTransactionObject(pObj);
     return;
 }

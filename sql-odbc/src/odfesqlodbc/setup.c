@@ -15,7 +15,7 @@
  */
 
 #ifdef WIN32
-#include "elasticenlist.h"
+#include "opensearch_enlist.h"
 #include "opensearch_odbc.h"
 #include "loadlib.h"
 #include "misc.h"  // strncpy_null
