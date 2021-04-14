@@ -233,10 +233,10 @@ RETCODE SQL_API OPENSEARCHAPI_GetDiagField(SQLSMALLINT HandleType, SQLHANDLE Han
                         case SQL_SUCCESS:
                         case SQL_SUCCESS_WITH_INFO:
                             ret = SQL_SUCCESS;
-                            if (pcbErrm > 0 && stmt->openSearchError)
+                            if (pcbErrm > 0 && stmt->opensearch_error)
 
                                 *((SQLINTEGER *)DiagInfoPtr) =
-                                    (pcbErrm - 1) / stmt->openSearchError->recsize + 1;
+                                    (pcbErrm - 1) / stmt->opensearch_error->recsize + 1;
                             break;
                         default:
                             break;
