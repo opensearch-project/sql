@@ -91,14 +91,14 @@ int opensearch_CS_code(const char *characterset_string) {
     int i, c = -1;
 
     for (i = 0; CS_Table[i].code != OTHER; i++) {
-        if (0 == stricmp(stat_string, CS_Table[i].name)) {
+        if (0 == stricmp(characterset_string, CS_Table[i].name)) {
             c = CS_Table[i].code;
             break;
         }
     }
     if (c < 0) {
         for (i = 0; CS_Alias[i].code != OTHER; i++) {
-            if (0 == stricmp(stat_string, CS_Alias[i].name)) {
+            if (0 == stricmp(characterset_string, CS_Alias[i].name)) {
                 c = CS_Alias[i].code;
                 break;
             }
