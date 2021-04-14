@@ -276,7 +276,7 @@ struct StatementClass_ {
     po_ind_t lock_CC_for_rb;   /* lock CC for statement rollback ? */
     po_ind_t join_info;        /* have joins ? */
     po_ind_t parse_method;     /* parse_statement is forced or ? */
-    esNAME cursor_name;
+    opensearchNAME cursor_name;
     char *plan_name;
     unsigned char miscinfo;
     unsigned char execinfo;

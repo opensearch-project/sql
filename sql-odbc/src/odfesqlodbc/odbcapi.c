@@ -33,7 +33,7 @@ BOOL SC_connection_lost_check(StatementClass *stmt, const char *funcname) {
     ConnectionClass *conn = SC_get_conn(stmt);
     char message[64];
 
-    if (NULL != conn->esconn)
+    if (NULL != conn->opensearchconn)
         return FALSE;
     SC_clear_error(stmt);
     SPRINTF_FIXED(message, "%s unable due to the connection lost", funcname);

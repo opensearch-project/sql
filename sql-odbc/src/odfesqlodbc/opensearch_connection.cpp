@@ -111,9 +111,9 @@ int LIBES_connect(ConnectionClass *self) {
     rt_opts.crypt.verify_server = (self->connInfo.verify_server == 1);
     rt_opts.crypt.use_ssl = (self->connInfo.use_ssl == 1);
 
-    void *esconn = OpenSearchConnectDBParams(rt_opts, FALSE, OPTION_COUNT);
-    if (esconn == NULL) {
-        std::string err = GetErrorMsg(esconn);
+    void *opensearchconn = OpenSearchConnectDBParams(rt_opts, FALSE, OPTION_COUNT);
+    if (opensearchconn == NULL) {
+        std::string err = GetErrorMsg(opensearchconn);
         CC_set_error(self, CONN_OPENDB_ERROR,
                      (err.empty()) ? "OpenSearchConnectDBParams error" : err.c_str(),
                      "LIBES_connect");
@@ -121,8 +121,8 @@ int LIBES_connect(ConnectionClass *self) {
     }
 
     // Check connection status
-    if (OpenSearchStatus(esconn) != CONNECTION_OK) {
-        std::string msg = GetErrorMsg(esconn);
+    if (OpenSearchStatus(opensearchconn) != CONNECTION_OK) {
+        std::string msg = GetErrorMsg(opensearchconn);
         char error_message_out[ERROR_BUFF_SIZE] = "";
         if (!msg.empty())
             SPRINTF_FIXED(error_message_out, "Connection error: %s",
@@ -132,18 +132,18 @@ int LIBES_connect(ConnectionClass *self) {
                          "Connection error: No message available.");
         CC_set_error(self, CONN_OPENDB_ERROR, error_message_out,
                      "LIBES_connect");
-        OpenSearchDisconnect(esconn);
+        OpenSearchDisconnect(opensearchconn);
         return 0;
     }
 
     // Set server version
-    std::string server_version = GetServerVersion(esconn);
+    std::string server_version = GetServerVersion(opensearchconn);
     STRCPY_FIXED(self->opensearch_version, server_version.c_str());
 
-    std::string cluster_name = GetClusterName(esconn);
+    std::string cluster_name = GetClusterName(opensearchconn);
     STRCPY_FIXED(self->cluster_name, cluster_name.c_str());
 
-    self->esconn = (void *)esconn;
+    self->opensearchconn = (void *)opensearchconn;
     return 1;
 }
 
@@ -177,9 +177,9 @@ int CC_send_client_encoding(ConnectionClass *self, const char *encoding) {
 
     // Update client encoding
     std::string des_db_encoding(encoding);
-    std::string cur_db_encoding = OpenSearchGetClientEncoding(self->esconn);
+    std::string cur_db_encoding = OpenSearchGetClientEncoding(self->opensearchconn);
     if (des_db_encoding != cur_db_encoding) {
-        if (!OpenSearchSetClientEncoding(self->esconn, des_db_encoding)) {
+        if (!OpenSearchSetClientEncoding(self->opensearchconn, des_db_encoding)) {
             return SQL_ERROR;
         }
     }

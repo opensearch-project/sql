@@ -114,7 +114,7 @@ void SetDlgStuff(HWND hdlg, const ConnInfo *ci) {
     SetDlgItemText(hdlg, IDC_REGION, ci->region);
 }
 
-static void GetNameField(HWND hdlg, int item, esNAME *name) {
+static void GetNameField(HWND hdlg, int item, opensearchNAME *name) {
     char medium_buf[MEDIUM_REGISTRY_LEN + 1];
     GetDlgItemText(hdlg, item, medium_buf, sizeof(medium_buf));
     STR_TO_NAME((*name), medium_buf);

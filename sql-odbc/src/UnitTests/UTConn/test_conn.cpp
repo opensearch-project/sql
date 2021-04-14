@@ -44,21 +44,21 @@ runtime_options missing_opt_val = {{"", "", "1", "0"},
                                    {"BASIC", "", invalid_pw, valid_region},
                                    {use_ssl, false, "", "", "", ""}};
 
-TEST(TestESConnConnectionOptions, ValidParameters) {
+TEST(TestOpenSearchConnConnectionOptions, ValidParameters) {
     OpenSearchCommunication conn;
     EXPECT_EQ(true,
               conn.ConnectionOptions(valid_opt_val, 1, 1, valid_option_count));
 }
 
-TEST(TestESConnConnectionOptions, MissingParameters) {
+TEST(TestOpenSearchConnConnectionOptions, MissingParameters) {
     OpenSearchCommunication conn;
     EXPECT_EQ(false, conn.ConnectionOptions(missing_opt_val, 1, 1,
                                             missing_option_count));
 }
 
-class TestESConnConnectDBStart : public testing::Test {
+class TestOpenSearchConnConnectDBStart : public testing::Test {
    public:
-    TestESConnConnectDBStart() {
+    TestOpenSearchConnConnectDBStart() {
     }
 
     void SetUp() {
@@ -68,35 +68,35 @@ class TestESConnConnectDBStart : public testing::Test {
         m_conn.DropDBConnection();
     }
 
-    ~TestESConnConnectDBStart() {
+    ~TestOpenSearchConnConnectDBStart() {
         // cleanup any pending stuff, but no exceptions allowed
     }
 
     OpenSearchCommunication m_conn;
 };
 
-TEST_F(TestESConnConnectDBStart, ValidParameters) {
+TEST_F(TestOpenSearchConnConnectDBStart, ValidParameters) {
     ASSERT_NE(false, m_conn.ConnectionOptions(valid_opt_val, 1, 1,
                                               valid_option_count));
     EXPECT_EQ(true, m_conn.ConnectDBStart());
     EXPECT_EQ(CONNECTION_OK, m_conn.GetConnectionStatus());
 }
 
-TEST_F(TestESConnConnectDBStart, InvalidParameters) {
+TEST_F(TestOpenSearchConnConnectDBStart, InvalidParameters) {
     ASSERT_TRUE(
         m_conn.ConnectionOptions(invalid_opt_val, 1, 1, invalid_option_count));
     EXPECT_EQ(false, m_conn.ConnectDBStart());
     EXPECT_EQ(CONNECTION_BAD, m_conn.GetConnectionStatus());
 }
 
-TEST_F(TestESConnConnectDBStart, MissingParameters) {
+TEST_F(TestOpenSearchConnConnectDBStart, MissingParameters) {
     ASSERT_NE(true, m_conn.ConnectionOptions(missing_opt_val, 1, 1,
                                              missing_option_count));
     EXPECT_EQ(false, m_conn.ConnectDBStart());
     EXPECT_EQ(CONNECTION_BAD, m_conn.GetConnectionStatus());
 }
 
-TEST(TestESConnDropDBConnection, InvalidParameters) {
+TEST(TestOpenSearchConnDropDBConnection, InvalidParameters) {
     OpenSearchCommunication conn;
     ASSERT_EQ(CONNECTION_BAD, conn.GetConnectionStatus());
     ASSERT_TRUE(
@@ -107,7 +107,7 @@ TEST(TestESConnDropDBConnection, InvalidParameters) {
     EXPECT_EQ(CONNECTION_BAD, conn.GetConnectionStatus());
 }
 
-TEST(TestESConnDropDBConnection, MissingParameters) {
+TEST(TestOpenSearchConnDropDBConnection, MissingParameters) {
     OpenSearchCommunication conn;
     ASSERT_EQ(CONNECTION_BAD, conn.GetConnectionStatus());
     ASSERT_NE(true, conn.ConnectionOptions(missing_opt_val, 1, 1,
@@ -118,7 +118,7 @@ TEST(TestESConnDropDBConnection, MissingParameters) {
     EXPECT_EQ(CONNECTION_BAD, conn.GetConnectionStatus());
 }
 
-TEST(TestESConnDropDBConnection, ValidParameters) {
+TEST(TestOpenSearchConnDropDBConnection, ValidParameters) {
     OpenSearchCommunication conn;
     ASSERT_NE(false,
               conn.ConnectionOptions(valid_opt_val, 1, 1, valid_option_count));

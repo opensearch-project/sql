@@ -218,8 +218,8 @@ typedef enum {
 struct col_info {
     Int2 refcnt;
     QResultClass *result;
-    esNAME schema_name;
-    esNAME table_name;
+    opensearchNAME schema_name;
+    opensearchNAME table_name;
     OID table_oid;
     int table_info;
     time_t acc_time;
@@ -271,7 +271,7 @@ struct ConnectionClass_ {
     StatementClass **stmts;
     Int2 num_stmts;
     Int2 ncursors;
-    void *esconn;
+    void *opensearchconn;
     Int4 lobj_type;
     Int2 coli_allocated;
     Int2 ntables;
@@ -320,8 +320,8 @@ struct ConnectionClass_ {
     SQLUINTEGER
     default_isolation; /* server's default isolation initially unkown */
     DescriptorClass **descs;
-    esNAME schemaIns;
-    esNAME tableIns;
+    opensearchNAME schemaIns;
+    opensearchNAME tableIns;
     SQLULEN stmt_timeout_in_effect;
     void *cs;
     void *slock;
@@ -405,8 +405,8 @@ char *identifierEscape(const SQLCHAR *src, SQLLEN srclen,
                        const ConnectionClass *conn, char *buf, size_t bufsize,
                        BOOL double_quote);
 int findIdentifier(const UCHAR *str, int ccsc, const UCHAR **next_token);
-int eatTableIdentifiers(const UCHAR *str, int ccsc, esNAME *table,
-                        esNAME *schema);
+int eatTableIdentifiers(const UCHAR *str, int ccsc, opensearchNAME *table,
+                        opensearchNAME *schema);
 
 char CC_connect(ConnectionClass *self);
 int LIBES_connect(ConnectionClass *self);

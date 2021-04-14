@@ -23,9 +23,9 @@
 
 #define NULL_IF_NULL(a) ((a) ? ((const char *)(a)) : "(null)")
 
-static void encode(const esNAME, char *out, int outlen);
-static esNAME decode(const char *in);
-static esNAME decode_or_remove_braces(const char *in);
+static void encode(const opensearchNAME, char *out, int outlen);
+static opensearchNAME decode(const char *in);
+static opensearchNAME decode_or_remove_braces(const char *in);
 
 #define OVR_EXTRA_BITS                                                      \
     (BIT_FORCEABBREVCONNSTR | BIT_FAKE_MSS | BIT_BDE_ENVIRONMENT            \
@@ -335,7 +335,7 @@ void writeDSNinfo(const ConnInfo *ci) {
 
 }
 
-static void encode(const esNAME in, char *out, int outlen) {
+static void encode(const opensearchNAME in, char *out, int outlen) {
     size_t i, ilen = 0;
     int o = 0;
     char inc, *ins;
@@ -383,10 +383,10 @@ static unsigned int conv_from_hex(const char *s) {
     return y;
 }
 
-static esNAME decode(const char *in) {
+static opensearchNAME decode(const char *in) {
     size_t i, ilen = strlen(in), o = 0;
     char inc, *outs;
-    esNAME out;
+    opensearchNAME out;
 
     INIT_NAME(out);
     if (0 == ilen) {
@@ -416,7 +416,7 @@ static esNAME decode(const char *in) {
  *	Remove braces if the input value is enclosed by braces({}).
  *	Othewise decode the input value.
  */
-static esNAME decode_or_remove_braces(const char *in) {
+static opensearchNAME decode_or_remove_braces(const char *in) {
     if (OPENING_BRACKET == in[0]) {
         size_t inlen = strlen(in);
         if (CLOSING_BRACKET == in[inlen - 1]) /* enclosed with braces */
@@ -424,7 +424,7 @@ static esNAME decode_or_remove_braces(const char *in) {
             int i;
             const char *istr, *eptr;
             char *ostr;
-            esNAME out;
+            opensearchNAME out;
 
             INIT_NAME(out);
             if (NULL == (ostr = (char *)malloc(inlen)))

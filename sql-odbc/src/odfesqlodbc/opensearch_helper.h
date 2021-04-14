@@ -42,7 +42,7 @@ void XPlatformEnterCriticalSection(void* critical_section_helper);
 void XPlatformLeaveCriticalSection(void* critical_section_helper);
 void XPlatformDeleteCriticalSection(void** critical_section_helper);
 ConnStatusType OpenSearchStatus(void* opensearch_conn);
-int OpenSearchExecDirect(void* es_conn, const char* statement, const char* fetch_size);
+int OpenSearchExecDirect(void* opensearch_conn, const char* statement, const char* fetch_size);
 void OpenSearchSendCursorQueries(void* opensearch_conn, const char* cursor);
 void OpenSearchDisconnect(void* opensearch_conn);
 void OpenSearchStopRetrieval(void* opensearch_conn);

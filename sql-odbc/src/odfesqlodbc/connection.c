@@ -416,10 +416,10 @@ CC_cleanup(ConnectionClass *self, BOOL keepCommunication) {
     /* Cancel an ongoing transaction */
     /* We are always in the middle of a transaction, */
     /* even if we are in auto commit. */
-    if (self->esconn) {
-        QLOG(0, "LIBES_disconnect: %p\n", self->esconn);
-        LIBES_disconnect(self->esconn);
-        self->esconn = NULL;
+    if (self->opensearchconn) {
+        QLOG(0, "LIBES_disconnect: %p\n", self->opensearchconn);
+        LIBES_disconnect(self->opensearchconn);
+        self->opensearchconn = NULL;
     } else {
         ret = SQL_ERROR;
         CC_set_error(self, CC_not_connected(self), "Connection not open", func);
@@ -645,8 +645,8 @@ void CC_log_error(const char *func, const char *desc,
         MYLOG(OPENSEARCH_ERROR,
               "            henv=%p, conn=%p, status=%u, num_stmts=%d\n",
               self->henv, self, self->status, self->num_stmts);
-        MYLOG(OPENSEARCH_ERROR, "            esconn=%p, stmts=%p, lobj_type=%d\n",
-              self->esconn, self->stmts, self->lobj_type);
+        MYLOG(OPENSEARCH_ERROR, "            opensearchconn=%p, stmts=%p, lobj_type=%d\n",
+              self->opensearchconn, self->stmts, self->lobj_type);
     } else {
         MYLOG(OPENSEARCH_ERROR, "INVALID CONNECTION HANDLE ERROR: func=%s, desc='%s'\n",
               func, desc);

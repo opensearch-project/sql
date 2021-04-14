@@ -29,10 +29,10 @@ typedef struct InheritanceClass {
     UInt4 allocated;
     UInt4 count;
     OID cur_tableoid;
-    esNAME cur_fullTable;
+    opensearchNAME cur_fullTable;
     struct {
         OID tableoid;
-        esNAME fullTable;
+        opensearchNAME fullTable;
     } inf[1];
 } InheritanceClass;
 
@@ -46,11 +46,11 @@ enum {
 typedef struct {
     OID table_oid;
     COL_INFO *col_info; /* cached SQLColumns info for this table */
-    esNAME schema_name;
-    esNAME table_name;
-    esNAME table_alias;
-    esNAME bestitem;
-    esNAME bestqual;
+    opensearchNAME schema_name;
+    opensearchNAME table_name;
+    opensearchNAME table_alias;
+    opensearchNAME bestitem;
+    opensearchNAME bestqual;
     UInt4 flags;
     InheritanceClass *ih;
 } TABLE_INFO;
@@ -80,10 +80,10 @@ typedef struct {
     char flag;
     char updatable;
     Int2 attnum;
-    esNAME schema_name;
+    opensearchNAME schema_name;
     TABLE_INFO *ti; /* to resolve explicit table names */
-    esNAME column_name;
-    esNAME column_alias;
+    opensearchNAME column_name;
+    opensearchNAME column_alias;
     char nullable;
     char auto_increment;
     char func;
@@ -99,7 +99,7 @@ typedef struct {
     char quote;
     char dquote;
     char numeric;
-    esNAME before_dot;
+    opensearchNAME before_dot;
 } FIELD_INFO;
 Int4 FI_precision(const FIELD_INFO *);
 void FI_Destructor(FIELD_INFO **, int, BOOL freeFI);

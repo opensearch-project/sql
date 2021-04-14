@@ -82,7 +82,7 @@ typedef struct {
  * ParameterImplClass -- stores implementation information about a parameter
  */
 struct ParameterImplClass_ {
-    esNAME paramName; /* this is unavailable even in 8.1 */
+    opensearchNAME paramName; /* this is unavailable even in 8.1 */
     SQLSMALLINT paramType;
     SQLSMALLINT SQLType;
     OID ESType;

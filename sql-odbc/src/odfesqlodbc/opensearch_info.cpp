@@ -856,7 +856,7 @@ ESAPI_Columns(HSTMT hstmt, const SQLCHAR *catalog_name_sql,
         if (table_valid) {
             ConnectionClass *conn = SC_get_conn(stmt);
             list_of_columns =
-                OpenSearchGetColumnsWithSelectQuery(conn->esconn, table_name);
+                OpenSearchGetColumnsWithSelectQuery(conn->opensearchconn, table_name);
         }
 
         // TODO #324 (SQL Plugin)- evaluate catalog & schema support

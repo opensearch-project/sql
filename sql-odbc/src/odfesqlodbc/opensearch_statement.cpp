@@ -67,8 +67,8 @@ RETCODE ExecuteStatement(StatementClass *stmt, BOOL commit) {
 
     QResultClass *res = SendQueryGetResult(stmt, commit);
     if (!res) {
-        std::string es_conn_err = GetErrorMsg(SC_get_conn(stmt)->esconn);
-        ConnErrorType es_err_type = GetErrorType(SC_get_conn(stmt)->esconn);
+        std::string es_conn_err = GetErrorMsg(SC_get_conn(stmt)->opensearchconn);
+        ConnErrorType es_err_type = GetErrorType(SC_get_conn(stmt)->opensearchconn);
         std::string es_parse_err = GetResultParserError();
         if (!es_conn_err.empty()) {
             if (es_err_type == ConnErrorType::CONN_ERROR_QUERY_SYNTAX) {
@@ -171,7 +171,7 @@ SQLRETURN GetNextResultSet(StatementClass *stmt) {
         return SQL_ERROR;
     }
 
-    OpenSearchResult *es_res = OpenSearchGetResult(conn->esconn);
+    OpenSearchResult *es_res = OpenSearchGetResult(conn->opensearchconn);
     if (es_res != NULL) {
         // Save server cursor id to fetch more pages later
         if (es_res->opensearch_result_doc.has("cursor")) {
@@ -245,7 +245,7 @@ QResultClass *SendQueryGetResult(StatementClass *stmt, BOOL commit) {
 
     // Send command
     ConnectionClass *conn = SC_get_conn(stmt);
-    if (OpenSearchExecDirect(conn->esconn, stmt->statement,
+    if (OpenSearchExecDirect(conn->opensearchconn, stmt->statement,
                              conn->connInfo.fetch_size)
         != 0) {
         QR_Destructor(res);
@@ -254,7 +254,7 @@ QResultClass *SendQueryGetResult(StatementClass *stmt, BOOL commit) {
     res->rstatus = PORES_COMMAND_OK;
 
     // Get OpenSearchResult
-    OpenSearchResult *es_res = OpenSearchGetResult(conn->esconn);
+    OpenSearchResult *es_res = OpenSearchGetResult(conn->opensearchconn);
     if (es_res == NULL) {
         QR_Destructor(res);
         return NULL;

@@ -24,7 +24,7 @@ extern "C" {
 #endif
 
 /* the type numbers are defined by the OID's of the types' rows */
-/* in table es_type */
+/* in table opensearch_type */
 
 #ifdef NOT_USED
 #define ES_TYPE_LO ? ? ? ? /* waiting for permanent type */

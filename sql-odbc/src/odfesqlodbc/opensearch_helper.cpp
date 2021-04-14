@@ -80,9 +80,9 @@ void* InitializeOpenSearchConn() {
     return new OpenSearchCommunication();
 }
 
-int OpenSearchExecDirect(void* es_conn, const char* statement, const char* fetch_size) {
-    return (es_conn && statement)
-               ? static_cast< OpenSearchCommunication* >(es_conn)->ExecDirect(
+int OpenSearchExecDirect(void* opensearch_conn, const char* statement, const char* fetch_size) {
+    return (opensearch_conn && statement)
+               ? static_cast< OpenSearchCommunication* >(opensearch_conn)->ExecDirect(
                    statement, fetch_size)
                : -1;
 }

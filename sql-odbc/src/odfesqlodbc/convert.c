@@ -1910,7 +1910,7 @@ int findIdentifier(const UCHAR *str, int ccsc, const UCHAR **next_token) {
     return slen;
 }
 
-static esNAME lower_or_remove_dquote(esNAME nm, const UCHAR *src, int srclen,
+static opensearchNAME lower_or_remove_dquote(opensearchNAME nm, const UCHAR *src, int srclen,
                                      int ccsc) {
     int i, outlen;
     char *tc;
@@ -1953,8 +1953,8 @@ static esNAME lower_or_remove_dquote(esNAME nm, const UCHAR *src, int srclen,
     return nm;
 }
 
-int eatTableIdentifiers(const UCHAR *str, int ccsc, esNAME *table,
-                        esNAME *schema) {
+int eatTableIdentifiers(const UCHAR *str, int ccsc, opensearchNAME *table,
+                        opensearchNAME *schema) {
     int len;
     const UCHAR *next_token;
     const UCHAR *tstr = str;

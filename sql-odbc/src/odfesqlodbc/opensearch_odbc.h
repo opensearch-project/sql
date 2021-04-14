@@ -465,10 +465,10 @@ typedef struct IPDFields_ IPDFields;
 typedef struct col_info COL_INFO;
 typedef struct lo_arg LO_ARG;
 
-/*	esNAME type define */
+/*	opensearchNAME type define */
 typedef struct {
     char *name;
-} esNAME;
+} opensearchNAME;
 #define GET_NAME(the_name) ((the_name).name)
 #define SAFE_NAME(the_name) ((the_name).name ? (the_name).name : NULL_STRING)
 #define PRINT_NAME(the_name) ((the_name).name ? (the_name).name : PRINT_NULL)
@@ -526,10 +526,10 @@ typedef struct {
 
 #define NAMECMP(name1, name2) (strcmp(SAFE_NAME(name1), SAFE_NAME(name2)))
 #define NAMEICMP(name1, name2) (stricmp(SAFE_NAME(name1), SAFE_NAME(name2)))
-/*	esNAME define end */
+/*	opensearchNAME define end */
 
 typedef struct GlobalValues_ {
-    esNAME drivername;
+    opensearchNAME drivername;
     char output_dir[LARGE_REGISTRY_LEN];
     int loglevel;
 } GLOBAL_VALUES;
@@ -626,7 +626,7 @@ typedef struct {
     // Authentication
     char authtype[MEDIUM_REGISTRY_LEN];
     char username[MEDIUM_REGISTRY_LEN];
-    esNAME password;
+    opensearchNAME password;
     char region[MEDIUM_REGISTRY_LEN];
 
     // Encryption
