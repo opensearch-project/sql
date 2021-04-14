@@ -939,7 +939,7 @@ OID sqltype_to_opensearchtype(const ConnectionClass *conn, SQLSMALLINT fSqlType)
 
 #ifdef UNICODE_SUPPORT
         case SQL_WCHAR:
-            esType = OPENSEARCH_TYPE_BPCHAR;
+            openSearchType = OPENSEARCH_TYPE_BPCHAR;
             break;
 #endif /* UNICODE_SUPPORT */
 
@@ -980,7 +980,7 @@ OID sqltype_to_opensearchtype(const ConnectionClass *conn, SQLSMALLINT fSqlType)
 
 #ifdef UNICODE_SUPPORT
         case SQL_WLONGVARCHAR:
-            esType = OPENSEARCH_TYPE_VARCHAR;
+            openSearchType = OPENSEARCH_TYPE_VARCHAR;
             break;
 #endif /* UNICODE_SUPPORT */
 
@@ -1013,7 +1013,7 @@ OID sqltype_to_opensearchtype(const ConnectionClass *conn, SQLSMALLINT fSqlType)
 
 #ifdef UNICODE_SUPPORT
         case SQL_WVARCHAR:
-            esType = OPENSEARCH_TYPE_VARCHAR;
+            openSearchType = OPENSEARCH_TYPE_VARCHAR;
             break;
 #endif /* UNICODE_SUPPORT */
 

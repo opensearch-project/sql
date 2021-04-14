@@ -224,7 +224,7 @@ struct StatementClass_ {
     STMT_Status status;
     char *__error_message;
     int __error_number;
-    OpenSearch_ErrorInfo *eserror;
+    OpenSearch_ErrorInfo *opensearch_error;
 
     SQLLEN currTuple; /* current absolute row number (GetData,
                        * SetPos, SQLFetch) */

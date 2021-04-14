@@ -287,7 +287,7 @@ StatementClass *SC_Constructor(ConnectionClass *conn) {
 
         rv->__error_message = NULL;
         rv->__error_number = 0;
-        rv->eserror = NULL;
+        rv->opensearch_error = NULL;
 
         rv->statement = NULL;
         rv->load_statement = NULL;
@@ -386,8 +386,8 @@ char SC_Destructor(StatementClass *self) {
 
     if (self->__error_message)
         free(self->__error_message);
-    if (self->eserror)
-        ER_Destructor(self->eserror);
+    if (self->opensearch_error)
+        ER_Destructor(self->opensearch_error);
     cancelNeedDataState(self);
     if (self->callbacks)
         free(self->callbacks);
@@ -712,9 +712,9 @@ void SC_clear_error(StatementClass *self) {
         free(self->__error_message);
         self->__error_message = NULL;
     }
-    if (self->eserror) {
-        ER_Destructor(self->eserror);
-        self->eserror = NULL;
+    if (self->opensearch_error) {
+        ER_Destructor(self->opensearch_error);
+        self->opensearch_error = NULL;
     }
     self->diag_row_count = 0;
     if (res = SC_get_Curres(self), res) {
@@ -799,8 +799,8 @@ static OpenSearch_ErrorInfo *SC_create_errorinfo(const StatementClass *self, Ope
     char *ermsg = NULL, *sqlstate = NULL;
     OpenSearch_ErrorInfo *eserror;
 
-    if (self->eserror)
-        return self->eserror;
+    if (self->opensearch_error)
+        return self->opensearch_error;
     errornum = self->__error_number;
     if (errornum == 0)
         return NULL;
@@ -946,9 +946,9 @@ void SC_error_copy(StatementClass *self, const StatementClass *from,
         self->__error_message =
             from->__error_message ? strdup(from->__error_message) : NULL;
     }
-    if (self->eserror) {
-        ER_Destructor(self->eserror);
-        self->eserror = NULL;
+    if (self->opensearch_error) {
+        ER_Destructor(self->opensearch_error);
+        self->opensearch_error = NULL;
     }
     self_res = SC_get_Curres(self);
     from_res = SC_get_Curres(from);
@@ -985,10 +985,10 @@ void SC_full_error_copy(StatementClass *self, const StatementClass *from,
     if (from->__error_message)
         self->__error_message = strdup(from->__error_message);
     self->__error_number = from->__error_number;
-    if (from->eserror) {
-        if (self->eserror)
-            ER_Destructor(self->eserror);
-        self->eserror = ER_Dup(from->eserror);
+    if (from->opensearch_error) {
+        if (self->opensearch_error)
+            ER_Destructor(self->opensearch_error);
+        self->opensearch_error = ER_Dup(from->opensearch_error);
         return;
     } else if (!allres)
         return;
@@ -997,9 +997,9 @@ void SC_full_error_copy(StatementClass *self, const StatementClass *from,
         ER_Destructor(eserror);
         return;
     }
-    if (self->eserror)
-        ER_Destructor(self->eserror);
-    self->eserror = eserror;
+    if (self->opensearch_error)
+        ER_Destructor(self->opensearch_error);
+    self->opensearch_error = eserror;
 }
 
 /* Returns the next SQL error information. */
@@ -1008,17 +1008,17 @@ RETCODE SQL_API ESAPI_StmtError(SQLHSTMT hstmt, SQLSMALLINT RecNumber,
                                 SQLCHAR *szErrorMsg, SQLSMALLINT cbErrorMsgMax,
                                 SQLSMALLINT *pcbErrorMsg, UWORD flag) {
     /* CC: return an error of a hdesc  */
-    OpenSearch_ErrorInfo *eserror, error;
+    OpenSearch_ErrorInfo *opensearch_error, error;
     StatementClass *stmt = (StatementClass *)hstmt;
     int errnum = SC_get_errornumber(stmt);
 
-    if (eserror = SC_create_errorinfo(stmt, &error), NULL == eserror)
+    if (opensearch_error = SC_create_errorinfo(stmt, &error), NULL == opensearch_error)
         return SQL_NO_DATA_FOUND;
-    if (eserror != &error)
-        stmt->eserror = eserror;
-    if (STMT_NO_MEMORY_ERROR == errnum && !eserror->__error_message[0])
-        STRCPY_FIXED(eserror->__error_message, "Memory Allocation Error??");
-    return ER_ReturnError(eserror, RecNumber, szSqlState, pfNativeError,
+    if (opensearch_error != &error)
+        stmt->opensearch_error = opensearch_error;
+    if (STMT_NO_MEMORY_ERROR == errnum && !opensearch_error->__error_message[0])
+        STRCPY_FIXED(opensearch_error->__error_message, "Memory Allocation Error??");
+    return ER_ReturnError(opensearch_error, RecNumber, szSqlState, pfNativeError,
                           szErrorMsg, cbErrorMsgMax, pcbErrorMsg, flag);
 }
 

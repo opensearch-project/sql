@@ -145,9 +145,9 @@ void DC_Destructor(DescriptorClass *self) {
         free(deschd->__error_message);
         deschd->__error_message = NULL;
     }
-    if (deschd->eserror) {
-        ER_Destructor(deschd->eserror);
-        deschd->eserror = NULL;
+    if (deschd->opensearch_error) {
+        ER_Destructor(deschd->opensearch_error);
+        deschd->opensearch_error = NULL;
     }
     if (deschd->type_defined) {
         switch (deschd->desc_type) {
@@ -544,8 +544,8 @@ static OpenSearch_ErrorInfo *DC_create_errorinfo(const DescriptorClass *self) {
     Int4 errornum;
     BOOL env_is_odbc3 = TRUE;
 
-    if (deschd->eserror)
-        return deschd->eserror;
+    if (deschd->opensearch_error)
+        return deschd->opensearch_error;
     errornum = deschd->__error_number;
     error = ER_Constructor(errornum, deschd->__error_message);
     if (!error)
@@ -584,7 +584,7 @@ RETCODE SQL_API ESAPI_DescError(SQLHDESC hdesc, SQLSMALLINT RecNumber,
     DescriptorHeader *deschd = &(desc->deschd);
 
     MYLOG(OPENSEARCH_TRACE, "entering RecN=%hd\n", RecNumber);
-    deschd->eserror = DC_create_errorinfo(desc);
-    return ER_ReturnError(deschd->eserror, RecNumber, szSqlState, pfNativeError,
+    deschd->opensearch_error = DC_create_errorinfo(desc);
+    return ER_ReturnError(deschd->opensearch_error, RecNumber, szSqlState, pfNativeError,
                           szErrorMsg, cbErrorMsgMax, pcbErrorMsg, flag);
 }

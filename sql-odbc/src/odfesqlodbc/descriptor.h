@@ -116,7 +116,7 @@ typedef struct DescriptorHeader_ {
     UInt4 error_index; /* 1-based index */
     Int4 __error_number;
     char *__error_message;
-    OpenSearch_ErrorInfo *eserror;
+    OpenSearch_ErrorInfo *opensearch_error;
 } DescriptorHeader;
 
 /*

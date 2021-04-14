@@ -322,7 +322,7 @@ SQLRETURN ESAPI_Cancel(HSTMT hstmt) {
     StatementClass *stmt = (StatementClass *)hstmt;
 
     // Get execution delegate (if applicable) and initialize return code
-    StatementClass *estmt =
+    StatementClass *opensearchtmt =
         (stmt->execute_delegate == NULL) ? stmt : stmt->execute_delegate;
     SQLRETURN ret = SQL_SUCCESS;
 
@@ -330,15 +330,15 @@ SQLRETURN ESAPI_Cancel(HSTMT hstmt) {
     ENTER_COMMON_CS;
 
     // Waiting for more data from SQLParamData/SQLPutData - cancel statement
-    if (estmt->data_at_exec >= 0) {
+    if (opensearchtmt->data_at_exec >= 0) {
         // Enter statement critical section
         ENTER_STMT_CS(stmt);
 
         // Clear info and cancel need data
         SC_clear_error(stmt);
-        estmt->data_at_exec = -1;
-        estmt->put_data = FALSE;
-        cancelNeedDataState(estmt);
+        opensearchtmt->data_at_exec = -1;
+        opensearchtmt->put_data = FALSE;
+        cancelNeedDataState(opensearchtmt);
 
         // Leave statement critical section
         LEAVE_STMT_CS(stmt);

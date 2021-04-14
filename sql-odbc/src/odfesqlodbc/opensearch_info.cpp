@@ -1027,15 +1027,15 @@ RETCODE SQL_API ESAPI_GetTypeInfo(HSTMT hstmt, SQLSMALLINT fSqlType) {
         if (fSqlType == SQL_ALL_TYPES) {
             for (std::pair< int, std::vector< int > > sqlType :
                  sql_es_type_map) {
-                for (auto const &esType : sqlType.second) {
+                for (auto const &openSearchType : sqlType.second) {
                     result =
-                        SetTypeResult(conn, stmt, res, esType, sqlType.first);
+                        SetTypeResult(conn, stmt, res, openSearchType, sqlType.first);
                 }
             }
         } else {
             if (sql_es_type_map.count(fSqlType) > 0) {
-                for (auto esType : sql_es_type_map.at(fSqlType)) {
-                    result = SetTypeResult(conn, stmt, res, esType, fSqlType);
+                for (auto openSearchType : sql_es_type_map.at(fSqlType)) {
+                    result = SetTypeResult(conn, stmt, res, openSearchType, fSqlType);
                 }
             }
         }
