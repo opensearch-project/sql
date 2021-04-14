@@ -20,7 +20,7 @@
 
 #include "catfunc.h"
 #include "es_odbc.h"
-#include "es_types.h"
+#include "opensearch_types.h"
 #include "misc.h"
 #include "multibyte.h"
 #include "opensearch_apifunc.h"
@@ -36,10 +36,10 @@ Int4 FI_precision(const FIELD_INFO *fi) {
         return -1;
     ftype = FI_type(fi);
     switch (ftype) {
-        case ES_TYPE_NUMERIC:
+        case OPENSEARCH_TYPE_NUMERIC:
             return fi->column_size;
-        case ES_TYPE_DATETIME:
-        case ES_TYPE_TIMESTAMP_NO_TMZONE:
+        case OPENSEARCH_TYPE_DATETIME:
+        case OPENSEARCH_TYPE_TIMESTAMP_NO_TMZONE:
             return fi->decimal_digits;
     }
     return 0;

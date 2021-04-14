@@ -23,7 +23,7 @@
 #include "dlg_specific.h"
 #include "environ.h"
 #include "es_odbc.h"
-#include "es_types.h"
+#include "opensearch_types.h"
 #include "misc.h"
 #include "opensearch_apifunc.h"
 #include "opensearch_connection.h"
@@ -636,7 +636,7 @@ RETCODE SQL_API ESAPI_ColAttributes(HSTMT hstmt, SQLUSMALLINT icol,
             /*
              * Neither Access or Borland care about this.
              *
-             * if (field_type == ES_TYPE_OID) pfDesc = SQL_ATTR_READONLY;
+             * if (field_type == OPENSEARCH_TYPE_OID) pfDesc = SQL_ATTR_READONLY;
              * else
              */
             if (!stmt_updatable)

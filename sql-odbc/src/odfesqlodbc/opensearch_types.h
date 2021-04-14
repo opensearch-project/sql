@@ -14,8 +14,8 @@
  *
  */
 
-#ifndef ES_TYPES
-#define ES_TYPES
+#ifndef OPENSEARCH_TYPES
+#define OPENSEARCH_TYPES
 
 #include "dlg_specific.h"
 #include "es_odbc.h"
@@ -30,92 +30,92 @@ extern "C" {
 #define ES_TYPE_LO ? ? ? ? /* waiting for permanent type */
 #endif
 
-#define ES_TYPE_NAME_BOOLEAN "boolean"
-#define ES_TYPE_NAME_BYTE "byte"
-#define ES_TYPE_NAME_SHORT "short"
-#define ES_TYPE_NAME_INTEGER "integer"
-#define ES_TYPE_NAME_LONG "long"
-#define ES_TYPE_NAME_HALF_FLOAT "half_float"
-#define ES_TYPE_NAME_FLOAT "float"
-#define ES_TYPE_NAME_DOUBLE "double"
-#define ES_TYPE_NAME_SCALED_FLOAT "scaled_float"
-#define ES_TYPE_NAME_KEYWORD "keyword"
-#define ES_TYPE_NAME_TEXT "text"
-#define ES_TYPE_NAME_NESTED "nested"
-#define ES_TYPE_NAME_DATE "date"
-#define ES_TYPE_NAME_OBJECT "object"
-#define ES_TYPE_NAME_VARCHAR "varchar"
-#define ES_TYPE_NAME_UNSUPPORTED "unsupported"
+#define OPENSEARCH_TYPE_NAME_BOOLEAN "boolean"
+#define OPENSEARCH_TYPE_NAME_BYTE "byte"
+#define OPENSEARCH_TYPE_NAME_SHORT "short"
+#define OPENSEARCH_TYPE_NAME_INTEGER "integer"
+#define OPENSEARCH_TYPE_NAME_LONG "long"
+#define OPENSEARCH_TYPE_NAME_HALF_FLOAT "half_float"
+#define OPENSEARCH_TYPE_NAME_FLOAT "float"
+#define OPENSEARCH_TYPE_NAME_DOUBLE "double"
+#define OPENSEARCH_TYPE_NAME_SCALED_FLOAT "scaled_float"
+#define OPENSEARCH_TYPE_NAME_KEYWORD "keyword"
+#define OPENSEARCH_TYPE_NAME_TEXT "text"
+#define OPENSEARCH_TYPE_NAME_NESTED "nested"
+#define OPENSEARCH_TYPE_NAME_DATE "date"
+#define OPENSEARCH_TYPE_NAME_OBJECT "object"
+#define OPENSEARCH_TYPE_NAME_VARCHAR "varchar"
+#define OPENSEARCH_TYPE_NAME_UNSUPPORTED "unsupported"
 
 #define MS_ACCESS_SERIAL "int identity"
-#define ES_TYPE_BOOL 16
-#define ES_TYPE_BYTEA 17
-#define ES_TYPE_CHAR 18
-#define ES_TYPE_NAME 19
-#define ES_TYPE_INT8 20
-#define ES_TYPE_INT2 21
-#define ES_TYPE_INT2VECTOR 22
-#define ES_TYPE_INT4 23
-#define ES_TYPE_REGPROC 24
-#define ES_TYPE_TEXT 25
-#define ES_TYPE_OID 26
-#define ES_TYPE_TID 27
-#define ES_TYPE_XID 28
-#define ES_TYPE_CID 29
-#define ES_TYPE_OIDVECTOR 30
-#define ES_TYPE_INT1 31
-#define ES_TYPE_HALF_FLOAT 32
-#define ES_TYPE_SCALED_FLOAT 33
-#define ES_TYPE_KEYWORD 34
-#define ES_TYPE_NESTED 35
-#define ES_TYPE_OBJECT 36
-#define ES_TYPE_XML 142
-#define ES_TYPE_XMLARRAY 143
-#define ES_TYPE_CIDR 650
-#define ES_TYPE_FLOAT4 700
-#define ES_TYPE_FLOAT8 701
-#define ES_TYPE_ABSTIME 702
-#define ES_TYPE_UNKNOWN 705
-#define ES_TYPE_MONEY 790
-#define ES_TYPE_MACADDR 829
-#define ES_TYPE_INET 869
-#define ES_TYPE_TEXTARRAY 1009
-#define ES_TYPE_BPCHARARRAY 1014
-#define ES_TYPE_VARCHARARRAY 1015
-#define ES_TYPE_BPCHAR 1042
-#define ES_TYPE_VARCHAR 1043
-#define ES_TYPE_DATE 1082
-#define ES_TYPE_TIME 1083
-#define ES_TYPE_TIMESTAMP_NO_TMZONE 1114 /* since 7.2 */
-#define ES_TYPE_DATETIME 1184            /* timestamptz */
-#define ES_TYPE_INTERVAL 1186
-#define ES_TYPE_TIME_WITH_TMZONE 1266 /* since 7.1 */
-#define ES_TYPE_TIMESTAMP 1296        /* deprecated since 7.0 */
-#define ES_TYPE_BIT 1560
-#define ES_TYPE_NUMERIC 1700
-#define ES_TYPE_REFCURSOR 1790
-#define ES_TYPE_RECORD 2249
-#define ES_TYPE_ANY 2276
-#define ES_TYPE_VOID 2278
-#define ES_TYPE_UUID 2950
+#define OPENSEARCH_TYPE_BOOL 16
+#define OPENSEARCH_TYPE_BYTEA 17
+#define OPENSEARCH_TYPE_CHAR 18
+#define OPENSEARCH_TYPE_NAME 19
+#define OPENSEARCH_TYPE_INT8 20
+#define OPENSEARCH_TYPE_INT2 21
+#define OPENSEARCH_TYPE_INT2VECTOR 22
+#define OPENSEARCH_TYPE_INT4 23
+#define OPENSEARCH_TYPE_REGPROC 24
+#define OPENSEARCH_TYPE_TEXT 25
+#define OPENSEARCH_TYPE_OID 26
+#define OPENSEARCH_TYPE_TID 27
+#define OPENSEARCH_TYPE_XID 28
+#define OPENSEARCH_TYPE_CID 29
+#define OPENSEARCH_TYPE_OIDVECTOR 30
+#define OPENSEARCH_TYPE_INT1 31
+#define OPENSEARCH_TYPE_HALF_FLOAT 32
+#define OPENSEARCH_TYPE_SCALED_FLOAT 33
+#define OPENSEARCH_TYPE_KEYWORD 34
+#define OPENSEARCH_TYPE_NESTED 35
+#define OPENSEARCH_TYPE_OBJECT 36
+#define OPENSEARCH_TYPE_XML 142
+#define OPENSEARCH_TYPE_XMLARRAY 143
+#define OPENSEARCH_TYPE_CIDR 650
+#define OPENSEARCH_TYPE_FLOAT4 700
+#define OPENSEARCH_TYPE_FLOAT8 701
+#define OPENSEARCH_TYPE_ABSTIME 702
+#define OPENSEARCH_TYPE_UNKNOWN 705
+#define OPENSEARCH_TYPE_MONEY 790
+#define OPENSEARCH_TYPE_MACADDR 829
+#define OPENSEARCH_TYPE_INET 869
+#define OPENSEARCH_TYPE_TEXTARRAY 1009
+#define OPENSEARCH_TYPE_BPCHARARRAY 1014
+#define OPENSEARCH_TYPE_VARCHARARRAY 1015
+#define OPENSEARCH_TYPE_BPCHAR 1042
+#define OPENSEARCH_TYPE_VARCHAR 1043
+#define OPENSEARCH_TYPE_DATE 1082
+#define OPENSEARCH_TYPE_TIME 1083
+#define OPENSEARCH_TYPE_TIMESTAMP_NO_TMZONE 1114 /* since 7.2 */
+#define OPENSEARCH_TYPE_DATETIME 1184            /* timestamptz */
+#define OPENSEARCH_TYPE_INTERVAL 1186
+#define OPENSEARCH_TYPE_TIME_WITH_TMZONE 1266 /* since 7.1 */
+#define OPENSEARCH_TYPE_TIMESTAMP 1296        /* deprecated since 7.0 */
+#define OPENSEARCH_TYPE_BIT 1560
+#define OPENSEARCH_TYPE_NUMERIC 1700
+#define OPENSEARCH_TYPE_REFCURSOR 1790
+#define OPENSEARCH_TYPE_RECORD 2249
+#define OPENSEARCH_TYPE_ANY 2276
+#define OPENSEARCH_TYPE_VOID 2278
+#define OPENSEARCH_TYPE_UUID 2950
 #define INTERNAL_ASIS_TYPE (-9999)
 
 #define TYPE_MAY_BE_ARRAY(type) \
-    ((type) == ES_TYPE_XMLARRAY || ((type) >= 1000 && (type) <= 1041))
-/* extern Int4 es_types_defined[]; */
+    ((type) == OPENSEARCH_TYPE_XMLARRAY || ((type) >= 1000 && (type) <= 1041))
+/* extern Int4 opensearch_types_defined[]; */
 extern SQLSMALLINT sqlTypes[];
 
 /*	Defines for estype_precision */
-#define ES_ATP_UNSET (-3)   /* atttypmod */
-#define ES_ADT_UNSET (-3)   /* adtsize_or_longestlen */
-#define ES_UNKNOWNS_UNSET 0 /* UNKNOWNS_AS_MAX */
-#define ES_WIDTH_OF_BOOLS_AS_CHAR 5
+#define OPENSEARCH_ATP_UNSET (-3)   /* atttypmod */
+#define OPENSEARCH_ADT_UNSET (-3)   /* adtsize_or_longestlen */
+#define OPENSEARCH_UNKNOWNS_UNSET 0 /* UNKNOWNS_AS_MAX */
+#define OPENSEARCH_WIDTH_OF_BOOLS_AS_CHAR 5
 
 /*
  *	SQL_INTERVAL support is disabled because I found
  *	some applications which are unhappy with it.
  *
-#define	ES_INTERVAL_AS_SQL_INTERVAL
+#define	OPENSEARCH_INTERVAL_AS_SQL_INTERVAL
  */
 
 OID es_true_type(const ConnectionClass *, OID, OID);

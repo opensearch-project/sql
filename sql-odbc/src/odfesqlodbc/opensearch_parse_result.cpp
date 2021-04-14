@@ -18,7 +18,7 @@
 
 #include <unordered_map>
 
-#include "es_types.h"
+#include "opensearch_types.h"
 #include "opensearch_helper.h"
 #ifdef __APPLE__
 #pragma clang diagnostic push
@@ -72,33 +72,33 @@ static const std::string JSON_KW_CURSOR = "cursor";
 
 // clang-format on
 const std::unordered_map< std::string, OID > type_to_oid_map = {
-    {ES_TYPE_NAME_BOOLEAN, ES_TYPE_BOOL},
-    {ES_TYPE_NAME_BYTE, ES_TYPE_INT2},
-    {ES_TYPE_NAME_SHORT, ES_TYPE_INT2},
-    {ES_TYPE_NAME_INTEGER, ES_TYPE_INT4},
-    {ES_TYPE_NAME_LONG, ES_TYPE_INT8},
-    {ES_TYPE_NAME_HALF_FLOAT, ES_TYPE_FLOAT4},
-    {ES_TYPE_NAME_FLOAT, ES_TYPE_FLOAT4},
-    {ES_TYPE_NAME_DOUBLE, ES_TYPE_FLOAT8},
-    {ES_TYPE_NAME_SCALED_FLOAT, ES_TYPE_FLOAT8},
-    {ES_TYPE_NAME_KEYWORD, ES_TYPE_VARCHAR},
-    {ES_TYPE_NAME_TEXT, ES_TYPE_VARCHAR},
-    {ES_TYPE_NAME_DATE, ES_TYPE_TIMESTAMP},
-    {ES_TYPE_NAME_OBJECT, ES_TYPE_VARCHAR},
-    {ES_TYPE_NAME_VARCHAR, ES_TYPE_VARCHAR},
-    {ES_TYPE_NAME_DATE, ES_TYPE_DATE}};
+    {OPENSEARCH_TYPE_NAME_BOOLEAN, OPENSEARCH_TYPE_BOOL},
+    {OPENSEARCH_TYPE_NAME_BYTE, OPENSEARCH_TYPE_INT2},
+    {OPENSEARCH_TYPE_NAME_SHORT, OPENSEARCH_TYPE_INT2},
+    {OPENSEARCH_TYPE_NAME_INTEGER, OPENSEARCH_TYPE_INT4},
+    {OPENSEARCH_TYPE_NAME_LONG, OPENSEARCH_TYPE_INT8},
+    {OPENSEARCH_TYPE_NAME_HALF_FLOAT, OPENSEARCH_TYPE_FLOAT4},
+    {OPENSEARCH_TYPE_NAME_FLOAT, OPENSEARCH_TYPE_FLOAT4},
+    {OPENSEARCH_TYPE_NAME_DOUBLE, OPENSEARCH_TYPE_FLOAT8},
+    {OPENSEARCH_TYPE_NAME_SCALED_FLOAT, OPENSEARCH_TYPE_FLOAT8},
+    {OPENSEARCH_TYPE_NAME_KEYWORD, OPENSEARCH_TYPE_VARCHAR},
+    {OPENSEARCH_TYPE_NAME_TEXT, OPENSEARCH_TYPE_VARCHAR},
+    {OPENSEARCH_TYPE_NAME_DATE, OPENSEARCH_TYPE_TIMESTAMP},
+    {OPENSEARCH_TYPE_NAME_OBJECT, OPENSEARCH_TYPE_VARCHAR},
+    {OPENSEARCH_TYPE_NAME_VARCHAR, OPENSEARCH_TYPE_VARCHAR},
+    {OPENSEARCH_TYPE_NAME_DATE, OPENSEARCH_TYPE_DATE}};
 
 #define ES_VARCHAR_SIZE (-2)
 const std::unordered_map< OID, int16_t > oid_to_size_map = {
-    {ES_TYPE_BOOL, (int16_t)1},
-    {ES_TYPE_INT2, (int16_t)2},
-    {ES_TYPE_INT4, (int16_t)4},
-    {ES_TYPE_INT8, (int16_t)8},
-    {ES_TYPE_FLOAT4, (int16_t)4},
-    {ES_TYPE_FLOAT8, (int16_t)8},
-    {ES_TYPE_VARCHAR, (int16_t)ES_VARCHAR_SIZE},
-    {ES_TYPE_DATE, (int16_t)ES_VARCHAR_SIZE},
-    {ES_TYPE_TIMESTAMP, (int16_t)1}};
+    {OPENSEARCH_TYPE_BOOL, (int16_t)1},
+    {OPENSEARCH_TYPE_INT2, (int16_t)2},
+    {OPENSEARCH_TYPE_INT4, (int16_t)4},
+    {OPENSEARCH_TYPE_INT8, (int16_t)8},
+    {OPENSEARCH_TYPE_FLOAT4, (int16_t)4},
+    {OPENSEARCH_TYPE_FLOAT8, (int16_t)8},
+    {OPENSEARCH_TYPE_VARCHAR, (int16_t)ES_VARCHAR_SIZE},
+    {OPENSEARCH_TYPE_DATE, (int16_t)ES_VARCHAR_SIZE},
+    {OPENSEARCH_TYPE_TIMESTAMP, (int16_t)1}};
 
 // Using global variable here so that the error message can be propagated
 // without going otu of scope
@@ -289,7 +289,7 @@ bool AssignColumnHeaders(const schema_type &doc_schema, QResultClass *q_res,
     for (size_t i = 0; i < doc_schema.size(); i++) {
         auto type_size_ptr = oid_to_size_map.find(doc_schema[i].second);
         int16_t type_size = (type_size_ptr == oid_to_size_map.end())
-                                ? ES_ADT_UNSET
+                                ? OPENSEARCH_ADT_UNSET
                                 : type_size_ptr->second;
         CI_set_field_info(QR_get_fields(q_res), (int)i,
                           doc_schema[i].first.c_str(), doc_schema[i].second,

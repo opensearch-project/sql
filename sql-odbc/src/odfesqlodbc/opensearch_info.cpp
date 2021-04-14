@@ -72,32 +72,33 @@
 #define INTERVAL_PRECISION "INTERVAL_PRECISION"
 
 const std::unordered_map< int, std::vector< int > > sql_es_type_map = {
-    {SQL_BIT, {ES_TYPE_BOOL}},
-    {SQL_TINYINT, {ES_TYPE_INT1}},
-    {SQL_SMALLINT, {ES_TYPE_INT2}},
-    {SQL_INTEGER, {ES_TYPE_INT4}},
-    {SQL_BIGINT, {ES_TYPE_INT8}},
-    {SQL_REAL, {ES_TYPE_HALF_FLOAT, ES_TYPE_FLOAT4}},
-    {SQL_DOUBLE, {ES_TYPE_FLOAT8, ES_TYPE_SCALED_FLOAT}},
+    {SQL_BIT, {OPENSEARCH_TYPE_BOOL}},
+    {SQL_TINYINT, {OPENSEARCH_TYPE_INT1}},
+    {SQL_SMALLINT, {OPENSEARCH_TYPE_INT2}},
+    {SQL_INTEGER, {OPENSEARCH_TYPE_INT4}},
+    {SQL_BIGINT, {OPENSEARCH_TYPE_INT8}},
+    {SQL_REAL, {OPENSEARCH_TYPE_HALF_FLOAT, OPENSEARCH_TYPE_FLOAT4}},
+    {SQL_DOUBLE, {OPENSEARCH_TYPE_FLOAT8, OPENSEARCH_TYPE_SCALED_FLOAT}},
     {SQL_WVARCHAR,
-     {ES_TYPE_KEYWORD, ES_TYPE_TEXT, ES_TYPE_NESTED, ES_TYPE_OBJECT}},
-    {SQL_TYPE_TIMESTAMP, {ES_TYPE_DATETIME}}};
+     {OPENSEARCH_TYPE_KEYWORD, OPENSEARCH_TYPE_TEXT, OPENSEARCH_TYPE_NESTED,
+      OPENSEARCH_TYPE_OBJECT}},
+    {SQL_TYPE_TIMESTAMP, {OPENSEARCH_TYPE_DATETIME}}};
 
 const std::unordered_map< std::string, int > data_name_data_type_map = {
-    {ES_TYPE_NAME_BOOLEAN, SQL_BIT},
-    {ES_TYPE_NAME_BYTE, SQL_TINYINT},
-    {ES_TYPE_NAME_SHORT, SQL_SMALLINT},
-    {ES_TYPE_NAME_INTEGER, SQL_INTEGER},
-    {ES_TYPE_NAME_LONG, SQL_BIGINT},
-    {ES_TYPE_NAME_HALF_FLOAT, SQL_REAL},
-    {ES_TYPE_NAME_FLOAT, SQL_REAL},
-    {ES_TYPE_NAME_DOUBLE, SQL_DOUBLE},
-    {ES_TYPE_NAME_SCALED_FLOAT, SQL_DOUBLE},
-    {ES_TYPE_NAME_KEYWORD, SQL_WVARCHAR},
-    {ES_TYPE_NAME_TEXT, SQL_WVARCHAR},
-    {ES_TYPE_NAME_DATE, SQL_TYPE_TIMESTAMP},
-    {ES_TYPE_NAME_OBJECT, SQL_WVARCHAR},
-    {ES_TYPE_NAME_NESTED, SQL_WVARCHAR}};
+    {OPENSEARCH_TYPE_NAME_BOOLEAN, SQL_BIT},
+    {OPENSEARCH_TYPE_NAME_BYTE, SQL_TINYINT},
+    {OPENSEARCH_TYPE_NAME_SHORT, SQL_SMALLINT},
+    {OPENSEARCH_TYPE_NAME_INTEGER, SQL_INTEGER},
+    {OPENSEARCH_TYPE_NAME_LONG, SQL_BIGINT},
+    {OPENSEARCH_TYPE_NAME_HALF_FLOAT, SQL_REAL},
+    {OPENSEARCH_TYPE_NAME_FLOAT, SQL_REAL},
+    {OPENSEARCH_TYPE_NAME_DOUBLE, SQL_DOUBLE},
+    {OPENSEARCH_TYPE_NAME_SCALED_FLOAT, SQL_DOUBLE},
+    {OPENSEARCH_TYPE_NAME_KEYWORD, SQL_WVARCHAR},
+    {OPENSEARCH_TYPE_NAME_TEXT, SQL_WVARCHAR},
+    {OPENSEARCH_TYPE_NAME_DATE, SQL_TYPE_TIMESTAMP},
+    {OPENSEARCH_TYPE_NAME_OBJECT, SQL_WVARCHAR},
+    {OPENSEARCH_TYPE_NAME_NESTED, SQL_WVARCHAR}};
 
 // Boilerplate code for easy column bind handling
 class BindTemplate {
@@ -455,20 +456,22 @@ void AssignTableBindTemplates(bind_vector &tabs) {
 void SetupTableQResInfo(QResultClass *res, EnvironmentClass *env) {
     if (EN_is_odbc3(env)) {
         QR_set_field_info_v(res, TABLES_CATALOG_NAME, TABLE_CAT,
-                            ES_TYPE_VARCHAR, MAX_INFO_STRING);
+                            OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
         QR_set_field_info_v(res, TABLES_SCHEMA_NAME, TABLE_SCHEM,
-                            ES_TYPE_VARCHAR, MAX_INFO_STRING);
+                            OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
     } else {
         QR_set_field_info_v(res, TABLES_CATALOG_NAME, TABLE_QUALIFIER,
-                            ES_TYPE_VARCHAR, MAX_INFO_STRING);
+                            OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
         QR_set_field_info_v(res, TABLES_SCHEMA_NAME, TABLE_OWNER,
-                            ES_TYPE_VARCHAR, MAX_INFO_STRING);
+                            OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
     }
-    QR_set_field_info_v(res, TABLES_TABLE_NAME, TABLE_NAME, ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, TABLES_TABLE_NAME, TABLE_NAME,
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, TABLES_TABLE_TYPE, TABLE_TYPE, ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, TABLES_TABLE_TYPE, TABLE_TYPE,
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, TABLES_REMARKS, REMARKS, ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, TABLES_REMARKS, REMARKS, OPENSEARCH_TYPE_VARCHAR,
                         INFO_VARCHAR_SIZE);
 }
 
@@ -614,35 +617,47 @@ void AssignColumnBindTemplates(bind_vector &cols);
 void SetupColumnQResInfo(QResultClass *res, EnvironmentClass *unused) {
     (void)(unused);
 
-    QR_set_field_info_v(res, COLUMNS_CATALOG_NAME, TABLE_CAT, ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, COLUMNS_CATALOG_NAME, TABLE_CAT,
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, COLUMNS_SCHEMA_NAME, TABLE_SCHEM, ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, COLUMNS_SCHEMA_NAME, TABLE_SCHEM,
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, COLUMNS_TABLE_NAME, TABLE_NAME, ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, COLUMNS_TABLE_NAME, TABLE_NAME,
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, COLUMNS_COLUMN_NAME, COLUMN_NAME, ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, COLUMNS_COLUMN_NAME, COLUMN_NAME,
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, COLUMNS_DATA_TYPE, DATA_TYPE, ES_TYPE_INT2, 2);
-    QR_set_field_info_v(res, COLUMNS_TYPE_NAME, TYPE_NAME, ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, COLUMNS_DATA_TYPE, DATA_TYPE, OPENSEARCH_TYPE_INT2, 2);
+    QR_set_field_info_v(res, COLUMNS_TYPE_NAME, TYPE_NAME,
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, COLUMNS_PRECISION, COLUMN_SIZE, ES_TYPE_INT4, 4);
-    QR_set_field_info_v(res, COLUMNS_LENGTH, BUFFER_LENGTH, ES_TYPE_INT4, 4);
-    QR_set_field_info_v(res, COLUMNS_SCALE, DECIMAL_DIGITS, ES_TYPE_INT2, 2);
-    QR_set_field_info_v(res, COLUMNS_RADIX, NUM_PREC_RADIX, ES_TYPE_INT2, 2);
-    QR_set_field_info_v(res, COLUMNS_NULLABLE, NULLABLE, ES_TYPE_INT2, 2);
-    QR_set_field_info_v(res, COLUMNS_REMARKS, REMARKS, ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, COLUMNS_PRECISION, COLUMN_SIZE,
+                        OPENSEARCH_TYPE_INT4, 4);
+    QR_set_field_info_v(res, COLUMNS_LENGTH, BUFFER_LENGTH,
+                        OPENSEARCH_TYPE_INT4, 4);
+    QR_set_field_info_v(res, COLUMNS_SCALE, DECIMAL_DIGITS,
+                        OPENSEARCH_TYPE_INT2, 2);
+    QR_set_field_info_v(res, COLUMNS_RADIX, NUM_PREC_RADIX,
+                        OPENSEARCH_TYPE_INT2, 2);
+    QR_set_field_info_v(res, COLUMNS_NULLABLE, NULLABLE, OPENSEARCH_TYPE_INT2, 2);
+    QR_set_field_info_v(res, COLUMNS_REMARKS, REMARKS, OPENSEARCH_TYPE_VARCHAR,
                         INFO_VARCHAR_SIZE);
-    QR_set_field_info_v(res, COLUMNS_COLUMN_DEF, COLUMN_DEF, ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, COLUMNS_COLUMN_DEF, COLUMN_DEF,
+                        OPENSEARCH_TYPE_VARCHAR,
                         INFO_VARCHAR_SIZE);
-    QR_set_field_info_v(res, COLUMNS_SQL_DATA_TYPE, SQL_DATA_TYPE, ES_TYPE_INT2,
+    QR_set_field_info_v(res, COLUMNS_SQL_DATA_TYPE, SQL_DATA_TYPE,
+                        OPENSEARCH_TYPE_INT2,
                         2);
     QR_set_field_info_v(res, COLUMNS_SQL_DATETIME_SUB, SQL_DATETIME_SUB,
-                        ES_TYPE_INT2, 2);
+                        OPENSEARCH_TYPE_INT2, 2);
     QR_set_field_info_v(res, COLUMNS_CHAR_OCTET_LENGTH, CHAR_OCTET_LENGTH,
-                        ES_TYPE_INT4, 4);
+                        OPENSEARCH_TYPE_INT4, 4);
     QR_set_field_info_v(res, COLUMNS_ORDINAL_POSITION, ORDINAL_POSITION,
-                        ES_TYPE_INT4, 4);
-    QR_set_field_info_v(res, COLUMNS_IS_NULLABLE, IS_NULLABLE, ES_TYPE_VARCHAR,
+                        OPENSEARCH_TYPE_INT4, 4);
+    QR_set_field_info_v(res, COLUMNS_IS_NULLABLE, IS_NULLABLE,
+                        OPENSEARCH_TYPE_VARCHAR,
                         INFO_VARCHAR_SIZE);
 }
 
@@ -878,40 +893,46 @@ void CleanUp_GetTypeInfo(StatementClass *stmt, const RETCODE ret = SQL_ERROR) {
 }
 
 void SetupTypeQResInfo(QResultClass *res) {
-    QR_set_field_info_v(res, GETTYPE_TYPE_NAME, TYPE_NAME, ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, GETTYPE_TYPE_NAME, TYPE_NAME,
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, GETTYPE_DATA_TYPE, DATA_TYPE, ES_TYPE_INT2, 2);
-    QR_set_field_info_v(res, GETTYPE_COLUMN_SIZE, PRECISION, ES_TYPE_INT4, 4);
+    QR_set_field_info_v(res, GETTYPE_DATA_TYPE, DATA_TYPE, OPENSEARCH_TYPE_INT2, 2);
+    QR_set_field_info_v(res, GETTYPE_COLUMN_SIZE, PRECISION,
+                        OPENSEARCH_TYPE_INT4, 4);
     QR_set_field_info_v(res, GETTYPE_LITERAL_PREFIX, LITERAL_PREFIX,
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
     QR_set_field_info_v(res, GETTYPE_LITERAL_SUFFIX, LITERAL_SUFFIX,
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
     QR_set_field_info_v(res, GETTYPE_CREATE_PARAMS, CREATE_PARAMS,
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
-    QR_set_field_info_v(res, GETTYPE_NULLABLE, NULLABLE, ES_TYPE_INT2, 2);
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
+    QR_set_field_info_v(res, GETTYPE_NULLABLE, NULLABLE, OPENSEARCH_TYPE_INT2, 2);
     QR_set_field_info_v(res, GETTYPE_CASE_SENSITIVE, CASE_SENSITIVE,
-                        ES_TYPE_INT2, 2);
-    QR_set_field_info_v(res, GETTYPE_SEARCHABLE, SEARCHABLE, ES_TYPE_INT2, 2);
+                        OPENSEARCH_TYPE_INT2, 2);
+    QR_set_field_info_v(res, GETTYPE_SEARCHABLE, SEARCHABLE,
+                        OPENSEARCH_TYPE_INT2, 2);
     QR_set_field_info_v(res, GETTYPE_UNSIGNED_ATTRIBUTE, UNSIGNED_ATTRIBUTE,
-                        ES_TYPE_INT2, 2);
+                        OPENSEARCH_TYPE_INT2, 2);
     QR_set_field_info_v(res, GETTYPE_FIXED_PREC_SCALE, FIXED_PREC_SCALE,
-                        ES_TYPE_INT2, 2);
+                        OPENSEARCH_TYPE_INT2, 2);
     QR_set_field_info_v(res, GETTYPE_AUTO_UNIQUE_VALUE, AUTO_INCREMENT,
-                        ES_TYPE_INT2, 2);
+                        OPENSEARCH_TYPE_INT2, 2);
     QR_set_field_info_v(res, GETTYPE_LOCAL_TYPE_NAME, LOCAL_TYPE_NAME,
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
-    QR_set_field_info_v(res, GETTYPE_MINIMUM_SCALE, MINIMUM_SCALE, ES_TYPE_INT2,
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
+    QR_set_field_info_v(res, GETTYPE_MINIMUM_SCALE, MINIMUM_SCALE,
+                        OPENSEARCH_TYPE_INT2,
                         2);
-    QR_set_field_info_v(res, GETTYPE_MAXIMUM_SCALE, MAXIMUM_SCALE, ES_TYPE_INT2,
+    QR_set_field_info_v(res, GETTYPE_MAXIMUM_SCALE, MAXIMUM_SCALE,
+                        OPENSEARCH_TYPE_INT2,
                         2);
-    QR_set_field_info_v(res, GETTYPE_SQL_DATA_TYPE, SQL_DATA_TYPE, ES_TYPE_INT2,
+    QR_set_field_info_v(res, GETTYPE_SQL_DATA_TYPE, SQL_DATA_TYPE,
+                        OPENSEARCH_TYPE_INT2,
                         2);
     QR_set_field_info_v(res, GETTYPE_SQL_DATETIME_SUB, SQL_DATETIME_SUB,
-                        ES_TYPE_INT2, 2);
+                        OPENSEARCH_TYPE_INT2, 2);
     QR_set_field_info_v(res, GETTYPE_NUM_PREC_RADIX, NUM_PREC_RADIX,
-                        ES_TYPE_INT4, 4);
+                        OPENSEARCH_TYPE_INT4, 4);
     QR_set_field_info_v(res, GETTYPE_INTERVAL_PRECISION, INTERVAL_PRECISION,
-                        ES_TYPE_INT2, 2);
+                        OPENSEARCH_TYPE_INT2, 2);
 }
 
 RETCODE SetTypeResult(ConnectionClass *conn, StatementClass *stmt,
@@ -945,8 +966,8 @@ RETCODE SetTypeResult(ConnectionClass *conn, StatementClass *stmt,
     // These values can be NULL
     set_nullfield_int4(
         &tuple[GETTYPE_COLUMN_SIZE],
-        estype_attr_column_size(conn, esType, ES_ATP_UNSET, ES_ADT_UNSET,
-                                ES_UNKNOWNS_UNSET));
+        estype_attr_column_size(conn, esType, OPENSEARCH_ATP_UNSET,
+                                OPENSEARCH_ADT_UNSET, OPENSEARCH_UNKNOWNS_UNSET));
     set_nullfield_string(&tuple[GETTYPE_LITERAL_PREFIX],
                          estype_literal_prefix(conn, esType));
     set_nullfield_string(&tuple[GETTYPE_LITERAL_SUFFIX],
@@ -964,7 +985,7 @@ RETCODE SetTypeResult(ConnectionClass *conn, StatementClass *stmt,
     set_tuplefield_int2(&tuple[GETTYPE_SQL_DATA_TYPE],
                         static_cast< short >(sqlType));
     set_nullfield_int2(&tuple[GETTYPE_SQL_DATETIME_SUB],
-                       estype_attr_to_datetime_sub(conn, esType, ES_ATP_UNSET));
+                       estype_attr_to_datetime_sub(conn, esType, OPENSEARCH_ATP_UNSET));
     set_nullfield_int4(&tuple[GETTYPE_NUM_PREC_RADIX],
                        estype_radix(conn, esType));
     set_nullfield_int4(&tuple[GETTYPE_INTERVAL_PRECISION], 0);

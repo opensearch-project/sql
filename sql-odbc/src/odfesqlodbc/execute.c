@@ -27,7 +27,7 @@
 #include "bind.h"
 #include "convert.h"
 #include "environ.h"
-#include "es_types.h"
+#include "opensearch_types.h"
 #include "opensearch_apifunc.h"
 #include "opensearch_connection.h"
 #include "opensearch_statement.h"

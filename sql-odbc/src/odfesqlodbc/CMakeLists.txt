@@ -22,7 +22,7 @@ set(					SOURCE_FILES
 							environ.c				execute.c				info.c						loadlib.c
 							misc.c					multibyte.c				mylog.c						tuple.c
 							parse.c					results.c				statement.c					odbcapi30.c	
-							qresult.c				odbcapi30w.c opensearch_api30.c es_types.c
+							qresult.c				odbcapi30w.c opensearch_api30.c opensearch_types.c
 		opensearch_utility.cpp opensearch_communication.cpp opensearch_connection.cpp es_odbc.c
         opensearch_driver_connect.cpp opensearch_helper.cpp opensearch_info.cpp opensearch_parse_result.cpp
 		opensearch_semaphore.cpp opensearch_statement.cpp win_unicode.c				odbcapi.c
@@ -37,7 +37,7 @@ set(					HEADER_FILES
 							convert.h				descriptor.h			dlg_specific.h		drvconn.h
 							environ.h opensearch_apifunc.h opensearch_communication.h opensearch_parse_result.h
         opensearch_connection.h opensearch_driver_connect.h opensearch_helper.h opensearch_info.h
-        opensearch_statement.h es_types.h 				loadlib.h
+        opensearch_statement.h opensearch_types.h loadlib.h
 							misc.h					multibyte.h				mylog.h opensearch_utility.h
 							resource.h				statement.h				tuple.h				unicode_support.h
 		opensearch_apifunc.h es_odbc.h opensearch_semaphore.h qresult.h
