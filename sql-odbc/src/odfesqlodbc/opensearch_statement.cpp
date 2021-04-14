@@ -174,16 +174,16 @@ SQLRETURN GetNextResultSet(StatementClass *stmt) {
     OpenSearchResult *es_res = OpenSearchGetResult(conn->esconn);
     if (es_res != NULL) {
         // Save server cursor id to fetch more pages later
-        if (es_res->es_result_doc.has("cursor")) {
+        if (es_res->opensearch_result_doc.has("cursor")) {
             QR_set_server_cursor_id(
-                q_res, es_res->es_result_doc["cursor"].as_string().c_str());
+                q_res, es_res->opensearch_result_doc["cursor"].as_string().c_str());
         } else {
             QR_set_server_cursor_id(q_res, NULL);
         }
 
         // Responsible for looping through rows, allocating tuples and
         // appending these rows in q_result
-        CC_Append_Table_Data(es_res->es_result_doc, q_res, total_columns,
+        CC_Append_Table_Data(es_res->opensearch_result_doc, q_res, total_columns,
                              *(q_res->fields));
     }
 
@@ -275,10 +275,10 @@ QResultClass *SendQueryGetResult(StatementClass *stmt, BOOL commit) {
     if (commit) {
         // Deallocate OpenSearchResult
         OpenSearchClearResult(es_res);
-        res->es_result = NULL;
+        res->opensearch_result = NULL;
     } else {
         // Set OpenSearchResult into connection class so it can be used later
-        res->es_result = es_res;
+        res->opensearch_result = es_res;
     }
     return res;
 }
@@ -288,12 +288,12 @@ RETCODE AssignResult(StatementClass *stmt) {
         return SQL_ERROR;
 
     QResultClass *res = SC_get_Result(stmt);
-    if (!res || !res->es_result) {
+    if (!res || !res->opensearch_result) {
         return SQL_ERROR;
     }
 
     // Commit result to QResultClass
-    OpenSearchResult *es_res = static_cast< OpenSearchResult * >(res->es_result);
+    OpenSearchResult *es_res = static_cast< OpenSearchResult * >(res->opensearch_result);
     ConnectionClass *conn = SC_get_conn(stmt);
     if (!CC_No_Metadata_from_OpenSearchResult(res, conn, res->cursor_name,
                                               *es_res)) {
@@ -304,7 +304,7 @@ RETCODE AssignResult(StatementClass *stmt) {
 
     // Deallocate and return result
     OpenSearchClearResult(es_res);
-    res->es_result = NULL;
+    res->opensearch_result = NULL;
     return SQL_SUCCESS;
 }
 

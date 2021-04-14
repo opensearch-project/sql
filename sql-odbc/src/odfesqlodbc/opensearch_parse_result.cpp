@@ -156,12 +156,12 @@ bool _CC_No_Metadata_from_OpenSearchResult(QResultClass *q_res, ConnectionClass 
 
     try {
         schema_type doc_schema;
-        GetSchemaInfo(doc_schema, opensearch_result.es_result_doc);
+        GetSchemaInfo(doc_schema, opensearch_result.opensearch_result_doc);
 
         SQLULEN starting_cached_rows = q_res->num_cached_rows;
 
         // Assign table data and column headers
-        if (!AssignTableData(opensearch_result.es_result_doc, q_res, doc_schema.size(),
+        if (!AssignTableData(opensearch_result.opensearch_result_doc, q_res, doc_schema.size(),
                              *(q_res->fields)))
             return false;
 
@@ -195,7 +195,7 @@ bool _CC_Metadata_from_OpenSearchResult(QResultClass *q_res, ConnectionClass *co
     QR_set_conn(q_res, conn);
     try {
         schema_type doc_schema;
-        GetSchemaInfo(doc_schema, opensearch_result.es_result_doc);
+        GetSchemaInfo(doc_schema, opensearch_result.opensearch_result_doc);
 
         // Assign table data and column headers
         if (!AssignColumnHeaders(doc_schema, q_res, opensearch_result))
@@ -233,12 +233,12 @@ bool _CC_from_OpenSearchResult(QResultClass *q_res, ConnectionClass *conn,
     QR_set_conn(q_res, conn);
     try {
         schema_type doc_schema;
-        GetSchemaInfo(doc_schema, opensearch_result.es_result_doc);
+        GetSchemaInfo(doc_schema, opensearch_result.opensearch_result_doc);
         SQLULEN starting_cached_rows = q_res->num_cached_rows;
 
         // Assign table data and column headers
         if ((!AssignColumnHeaders(doc_schema, q_res, opensearch_result))
-            || (!AssignTableData(opensearch_result.es_result_doc, q_res, doc_schema.size(),
+            || (!AssignTableData(opensearch_result.opensearch_result_doc, q_res, doc_schema.size(),
                                  *(q_res->fields))))
             return false;
 

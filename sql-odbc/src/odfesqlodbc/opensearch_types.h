@@ -342,7 +342,7 @@ typedef struct OpenSearchResult {
     std::string cursor;
     std::string result_json;
     std::string command_type;  // SELECT / FETCH / etc
-    rabbit::document es_result_doc;
+    rabbit::document opensearch_result_doc;
     OpenSearchResult() {
         ref_count = 0;
         num_fields = 0;

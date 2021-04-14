@@ -190,7 +190,7 @@ QResultClass *QR_Constructor(void) {
         rv->dl_count = 0;
         rv->deleted = NULL;
         rv->deleted_keyset = NULL;
-        rv->es_result = NULL;
+        rv->opensearch_result = NULL;
         rv->server_cursor_id = NULL;
     }
 
@@ -467,9 +467,9 @@ void QR_free_memory(QResultClass *self) {
         free(self->updated_tuples);
         self->updated_tuples = NULL;
     }
-    if (self->es_result) {
-        ClearOpenSearchResult(self->es_result);
-        self->es_result = NULL;
+    if (self->opensearch_result) {
+        ClearOpenSearchResult(self->opensearch_result);
+        self->opensearch_result = NULL;
     }
 
     self->up_alloc = 0;

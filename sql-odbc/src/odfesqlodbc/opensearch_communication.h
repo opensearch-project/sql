@@ -84,10 +84,10 @@ class OpenSearchCommunication {
     bool CheckConnectionOptions();
     bool EstablishConnection();
     void ConstructOpenSearchResult(OpenSearchResult& result);
-    void GetJsonSchema(OpenSearchResult& es_result);
-    void PrepareCursorResult(OpenSearchResult& es_result);
+    void GetJsonSchema(OpenSearchResult& opensearch_result);
+    void PrepareCursorResult(OpenSearchResult& opensearch_result);
     std::shared_ptr< ErrorDetails > ParseErrorResponse(
-        OpenSearchResult& es_result);
+        OpenSearchResult& opensearch_result);
     void SetErrorDetails(std::string reason, std::string message,
                          ConnErrorType error_type);
     void SetErrorDetails(ErrorDetails details);

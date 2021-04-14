@@ -131,44 +131,46 @@ void OpenSearchCommunication::AwsHttpResponseToString(
     output.assign(buf.data(), avail);
 }
 
-void OpenSearchCommunication::PrepareCursorResult(OpenSearchResult& es_result) {
+void OpenSearchCommunication::PrepareCursorResult(OpenSearchResult& opensearch_result) {
     // Prepare document and validate result
     try {
         LogMsg(OPENSEARCH_DEBUG, "Parsing result JSON with cursor.");
-        es_result.es_result_doc.parse(es_result.result_json,
+        opensearch_result.opensearch_result_doc.parse(
+            opensearch_result.result_json,
                                       CURSOR_JSON_SCHEMA);
     } catch (const rabbit::parse_error& e) {
         // The exception rabbit gives is quite useless - providing the json
         // will aid debugging for users
         std::string str = "Exception obtained '" + std::string(e.what())
                           + "' when parsing json string '"
-                          + es_result.result_json + "'.";
+                          + opensearch_result.result_json + "'.";
         throw std::runtime_error(str.c_str());
     }
 }
 
 std::shared_ptr< ErrorDetails > OpenSearchCommunication::ParseErrorResponse(
-    OpenSearchResult& es_result) {
+    OpenSearchResult& opensearch_result) {
     // Prepare document and validate schema
     try {
         LogMsg(OPENSEARCH_DEBUG, "Parsing error response (with schema validation)");
-        es_result.es_result_doc.parse(es_result.result_json,
+        opensearch_result.opensearch_result_doc.parse(
+            opensearch_result.result_json,
                                       ERROR_RESPONSE_SCHEMA);
 
         auto error_details = std::make_shared< ErrorDetails >();
         error_details->reason =
-            es_result.es_result_doc["error"]["reason"].as_string();
+            opensearch_result.opensearch_result_doc["error"]["reason"].as_string();
         error_details->details =
-            es_result.es_result_doc["error"]["details"].as_string();
+            opensearch_result.opensearch_result_doc["error"]["details"].as_string();
         error_details->source_type =
-            es_result.es_result_doc["error"]["type"].as_string();
+            opensearch_result.opensearch_result_doc["error"]["type"].as_string();
         return error_details;
     } catch (const rabbit::parse_error& e) {
         // The exception rabbit gives is quite useless - providing the json
         // will aid debugging for users
         std::string str = "Exception obtained '" + std::string(e.what())
                           + "' when parsing json string '"
-                          + es_result.result_json + "'.";
+                          + opensearch_result.result_json + "'.";
         throw std::runtime_error(str.c_str());
     }
 }
@@ -190,17 +192,18 @@ void OpenSearchCommunication::SetErrorDetails(ErrorDetails details) {
     m_error_details = error_details;
 }
 
-void OpenSearchCommunication::GetJsonSchema(OpenSearchResult& es_result) {
+void OpenSearchCommunication::GetJsonSchema(OpenSearchResult& opensearch_result) {
     // Prepare document and validate schema
     try {
         LogMsg(OPENSEARCH_DEBUG, "Parsing result JSON with schema.");
-        es_result.es_result_doc.parse(es_result.result_json, JSON_SCHEMA);
+        opensearch_result.opensearch_result_doc.parse(
+            opensearch_result.result_json, JSON_SCHEMA);
     } catch (const rabbit::parse_error& e) {
         // The exception rabbit gives is quite useless - providing the json
         // will aid debugging for users
         std::string str = "Exception obtained '" + std::string(e.what())
                           + "' when parsing json string '"
-                          + es_result.result_json + "'.";
+                          + opensearch_result.result_json + "'.";
         throw std::runtime_error(str.c_str());
     }
 }
@@ -580,7 +583,7 @@ std::vector< std::string > OpenSearchCommunication::GetColumnsWithSelectQuery(
 
     GetJsonSchema(*result);
 
-    rabbit::array schema_array = result->es_result_doc["schema"];
+    rabbit::array schema_array = result->opensearch_result_doc["schema"];
     for (rabbit::array::iterator it = schema_array.begin();
          it != schema_array.end(); ++it) {
         std::string column_name = it->at("name").as_string();
@@ -709,9 +712,9 @@ void OpenSearchCommunication::SendCursorQueries(std::string cursor) {
             AwsHttpResponseToString(response, result->result_json);
             PrepareCursorResult(*result);
 
-            if (result->es_result_doc.has("cursor")) {
-                cursor = result->es_result_doc["cursor"].as_string();
-                result->cursor = result->es_result_doc["cursor"].as_string();
+            if (result->opensearch_result_doc.has("cursor")) {
+                cursor = result->opensearch_result_doc["cursor"].as_string();
+                result->cursor = result->opensearch_result_doc["cursor"].as_string();
             } else {
                 SendCloseCursorRequest(cursor);
                 cursor.clear();
@@ -761,7 +764,7 @@ void OpenSearchCommunication::StopResultRetrieval() {
 
 void OpenSearchCommunication::ConstructOpenSearchResult(OpenSearchResult& result) {
     GetJsonSchema(result);
-    rabbit::array schema_array = result.es_result_doc["schema"];
+    rabbit::array schema_array = result.opensearch_result_doc["schema"];
     for (rabbit::array::iterator it = schema_array.begin();
          it != schema_array.end(); ++it) {
         std::string column_name = it->at("name").as_string();
@@ -777,8 +780,8 @@ void OpenSearchCommunication::ConstructOpenSearchResult(OpenSearchResult& result
 
         result.column_info.push_back(col_info);
     }
-    if (result.es_result_doc.has("cursor")) {
-        result.cursor = result.es_result_doc["cursor"].as_string();
+    if (result.opensearch_result_doc.has("cursor")) {
+        result.cursor = result.opensearch_result_doc["cursor"].as_string();
     }
     result.command_type = "SELECT";
     result.num_fields = (uint16_t)schema_array.size();

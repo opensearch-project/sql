@@ -43,16 +43,16 @@
 
 #ifdef WIN32
 #define DIRSEPARATOR "\\"
-#define ES_BINARY O_BINARY
-#define ES_BINARY_R "rb"
-#define ES_BINARY_W "wb"
-#define ES_BINARY_A "ab"
+#define OPENSEARCH_BINARY O_BINARY
+#define OPENSEARCH_BINARY_R "rb"
+#define OPENSEARCH_BINARY_W "wb"
+#define OPENSEARCH_BINARY_A "ab"
 #else
 #define DIRSEPARATOR "/"
-#define ES_BINARY 0
-#define ES_BINARY_R "r"
-#define ES_BINARY_W "w"
-#define ES_BINARY_A "a"
+#define OPENSEARCH_BINARY 0
+#define OPENSEARCH_BINARY_R "r"
+#define OPENSEARCH_BINARY_W "w"
+#define OPENSEARCH_BINARY_A "a"
 #endif /* WIN32 */
 
 static char *logdir = NULL;
@@ -255,14 +255,14 @@ static void MLOG_open() {
 
     generate_filename(logdir ? logdir : MYLOGDIR, MYLOGFILE, filebuf,
                       sizeof(filebuf));
-    MLOGFP = fopen(filebuf, ES_BINARY_A);
+    MLOGFP = fopen(filebuf, OPENSEARCH_BINARY_A);
     if (!MLOGFP) {
         int lasterror = GENERAL_ERRNO;
 
         open_error = TRUE;
         SPRINTF_FIXED(errbuf, "%s open error %d\n", filebuf, lasterror);
         generate_homefile(MYLOGFILE, filebuf, sizeof(filebuf));
-        MLOGFP = fopen(filebuf, ES_BINARY_A);
+        MLOGFP = fopen(filebuf, OPENSEARCH_BINARY_A);
     }
     if (MLOGFP) {
         if (open_error)
@@ -370,10 +370,10 @@ static int qlog_misc(unsigned int option, const char *fmt, va_list args) {
     if (!QLOGFP) {
         generate_filename(logdir ? logdir : QLOGDIR, QLOGFILE, filebuf,
                           sizeof(filebuf));
-        QLOGFP = fopen(filebuf, ES_BINARY_A);
+        QLOGFP = fopen(filebuf, OPENSEARCH_BINARY_A);
         if (!QLOGFP) {
             generate_homefile(QLOGFILE, filebuf, sizeof(filebuf));
-            QLOGFP = fopen(filebuf, ES_BINARY_A);
+            QLOGFP = fopen(filebuf, OPENSEARCH_BINARY_A);
         }
         if (!QLOGFP)
             qlog_on = 0;
