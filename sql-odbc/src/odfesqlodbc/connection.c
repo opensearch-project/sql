@@ -55,10 +55,10 @@
 
 #define PROTOCOL3_OPTS_MAX 30
 
-RETCODE SQL_API ESAPI_AllocConnect(HENV henv, HDBC *phdbc) {
+RETCODE SQL_API OPENSEARCHAPI_AllocConnect(HENV henv, HDBC *phdbc) {
     EnvironmentClass *env = (EnvironmentClass *)henv;
     ConnectionClass *conn;
-    CSTR func = "ESAPI_AllocConnect";
+    CSTR func = "OPENSEARCHAPI_AllocConnect";
 
     MYLOG(OPENSEARCH_TRACE, "entering...\n");
 
@@ -88,13 +88,13 @@ RETCODE SQL_API ESAPI_AllocConnect(HENV henv, HDBC *phdbc) {
     return SQL_SUCCESS;
 }
 
-RETCODE SQL_API ESAPI_Connect(HDBC hdbc, const SQLCHAR *szDSN,
+RETCODE SQL_API OPENSEARCHAPI_Connect(HDBC hdbc, const SQLCHAR *szDSN,
                               SQLSMALLINT cbDSN, const SQLCHAR *szUID,
                               SQLSMALLINT cbUID, const SQLCHAR *szAuthStr,
                               SQLSMALLINT cbAuthStr) {
     ConnectionClass *conn = (ConnectionClass *)hdbc;
     ConnInfo *ci;
-    CSTR func = "ESAPI_Connect";
+    CSTR func = "OPENSEARCHAPI_Connect";
     RETCODE ret = SQL_SUCCESS;
     char fchar, *tmpstr;
 
@@ -148,14 +148,14 @@ RETCODE SQL_API ESAPI_Connect(HDBC hdbc, const SQLCHAR *szDSN,
     return ret;
 }
 
-RETCODE SQL_API ESAPI_BrowseConnect(HDBC hdbc, const SQLCHAR *szConnStrIn,
+RETCODE SQL_API OPENSEARCHAPI_BrowseConnect(HDBC hdbc, const SQLCHAR *szConnStrIn,
                                     SQLSMALLINT cbConnStrIn,
                                     SQLCHAR *szConnStrOut,
                                     SQLSMALLINT cbConnStrOutMax,
                                     SQLSMALLINT *pcbConnStrOut) {
     UNUSED(szConnStrIn, cbConnStrIn, szConnStrOut, cbConnStrOutMax,
            cbConnStrOutMax, pcbConnStrOut);
-    CSTR func = "ESAPI_BrowseConnect";
+    CSTR func = "OPENSEARCHAPI_BrowseConnect";
     ConnectionClass *conn = (ConnectionClass *)hdbc;
 
     MYLOG(OPENSEARCH_TRACE, "entering...\n");
@@ -166,9 +166,9 @@ RETCODE SQL_API ESAPI_BrowseConnect(HDBC hdbc, const SQLCHAR *szConnStrIn,
 }
 
 /* Drop any hstmts open on hdbc and disconnect from database */
-RETCODE SQL_API ESAPI_Disconnect(HDBC hdbc) {
+RETCODE SQL_API OPENSEARCHAPI_Disconnect(HDBC hdbc) {
     ConnectionClass *conn = (ConnectionClass *)hdbc;
-    CSTR func = "ESAPI_Disconnect";
+    CSTR func = "OPENSEARCHAPI_Disconnect";
     RETCODE ret = SQL_SUCCESS;
 
     MYLOG(OPENSEARCH_TRACE, "entering...\n");
@@ -199,9 +199,9 @@ RETCODE SQL_API ESAPI_Disconnect(HDBC hdbc) {
     return ret;
 }
 
-RETCODE SQL_API ESAPI_FreeConnect(HDBC hdbc) {
+RETCODE SQL_API OPENSEARCHAPI_FreeConnect(HDBC hdbc) {
     ConnectionClass *conn = (ConnectionClass *)hdbc;
-    CSTR func = "ESAPI_FreeConnect";
+    CSTR func = "OPENSEARCHAPI_FreeConnect";
     EnvironmentClass *env;
 
     MYLOG(OPENSEARCH_TRACE, "entering...hdbc=%p\n", hdbc);

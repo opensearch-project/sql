@@ -256,7 +256,7 @@ struct StatementClass_ {
     Int2 statement_type; /* According to the defines above */
     Int2 num_params;
     Int2 data_at_exec; /* Number of params needing SQLPutData */
-    UDWORD iflag;      /* ESAPI_AllocStmt parameter */
+    UDWORD iflag;      /* OPENSEARCHAPI_AllocStmt parameter */
     PutDataInfo pdata_info;
     po_ind_t parse_status;
     po_ind_t proc_return;

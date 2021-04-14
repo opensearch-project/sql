@@ -37,8 +37,8 @@ void *conns_cs = NULL;
 void *common_cs = NULL;
 void *common_lcs = NULL;
 
-RETCODE SQL_API ESAPI_AllocEnv(HENV *phenv) {
-    CSTR func = "ESAPI_AllocEnv";
+RETCODE SQL_API OPENSEARCHAPI_AllocEnv(HENV *phenv) {
+    CSTR func = "OPENSEARCHAPI_AllocEnv";
     SQLRETURN ret = SQL_SUCCESS;
 
     MYLOG(OPENSEARCH_TRACE, "entering\n");
@@ -61,8 +61,8 @@ RETCODE SQL_API ESAPI_AllocEnv(HENV *phenv) {
     return ret;
 }
 
-RETCODE SQL_API ESAPI_FreeEnv(HENV henv) {
-    CSTR func = "ESAPI_FreeEnv";
+RETCODE SQL_API OPENSEARCHAPI_FreeEnv(HENV henv) {
+    CSTR func = "OPENSEARCHAPI_FreeEnv";
     SQLRETURN ret = SQL_SUCCESS;
     EnvironmentClass *env = (EnvironmentClass *)henv;
 
@@ -211,7 +211,7 @@ RETCODE SQL_API ER_ReturnError(OpenSearch_ErrorInfo *openSearchError, SQLSMALLIN
         return SQL_SUCCESS;
 }
 
-RETCODE SQL_API ESAPI_ConnectError(HDBC hdbc, SQLSMALLINT RecNumber,
+RETCODE SQL_API OPENSEARCHAPI_ConnectError(HDBC hdbc, SQLSMALLINT RecNumber,
                                    SQLCHAR *szSqlState,
                                    SQLINTEGER *pfNativeError,
                                    SQLCHAR *szErrorMsg,
@@ -337,7 +337,7 @@ RETCODE SQL_API ESAPI_ConnectError(HDBC hdbc, SQLSMALLINT RecNumber,
         return SQL_SUCCESS;
 }
 
-RETCODE SQL_API ESAPI_EnvError(HENV henv, SQLSMALLINT RecNumber,
+RETCODE SQL_API OPENSEARCHAPI_EnvError(HENV henv, SQLSMALLINT RecNumber,
                                SQLCHAR *szSqlState, SQLINTEGER *pfNativeError,
                                SQLCHAR *szErrorMsg, SQLSMALLINT cbErrorMsgMax,
                                SQLSMALLINT *pcbErrorMsg, UWORD flag) {

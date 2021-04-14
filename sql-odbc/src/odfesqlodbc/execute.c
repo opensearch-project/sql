@@ -34,7 +34,7 @@
 #include "qresult.h"
 #include "statement.h"
 
-RETCODE SQL_API ESAPI_Prepare(HSTMT hstmt, const SQLCHAR *stmt_str,
+RETCODE SQL_API OPENSEARCHAPI_Prepare(HSTMT hstmt, const SQLCHAR *stmt_str,
                               SQLINTEGER stmt_sz) {
     if (hstmt == NULL)
         return SQL_ERROR;
@@ -55,7 +55,7 @@ RETCODE SQL_API ESAPI_Prepare(HSTMT hstmt, const SQLCHAR *stmt_str,
     return ret;
 }
 
-RETCODE SQL_API ESAPI_Execute(HSTMT hstmt) {
+RETCODE SQL_API OPENSEARCHAPI_Execute(HSTMT hstmt) {
     if (hstmt == NULL)
         return SQL_ERROR;
 
@@ -85,7 +85,7 @@ RETCODE SQL_API ESAPI_Execute(HSTMT hstmt) {
     return ret;
 }
 
-RETCODE SQL_API ESAPI_ExecDirect(HSTMT hstmt, const SQLCHAR *stmt_str,
+RETCODE SQL_API OPENSEARCHAPI_ExecDirect(HSTMT hstmt, const SQLCHAR *stmt_str,
                                  SQLINTEGER stmt_sz, BOOL commit) {
     if (hstmt == NULL)
         return SQL_ERROR;
@@ -109,10 +109,10 @@ RETCODE SQL_API ESAPI_ExecDirect(HSTMT hstmt, const SQLCHAR *stmt_str,
  *	Currently, just copy the input string without modification
  *	observing buffer limits and truncation.
  */
-RETCODE SQL_API ESAPI_NativeSql(HDBC hdbc, const SQLCHAR *szSqlStrIn,
+RETCODE SQL_API OPENSEARCHAPI_NativeSql(HDBC hdbc, const SQLCHAR *szSqlStrIn,
                                 SQLINTEGER cbSqlStrIn, SQLCHAR *szSqlStr,
                                 SQLINTEGER cbSqlStrMax, SQLINTEGER *pcbSqlStr) {
-    CSTR func = "ESAPI_NativeSql";
+    CSTR func = "OPENSEARCHAPI_NativeSql";
     size_t len = 0;
     char *ptr;
     ConnectionClass *conn = (ConnectionClass *)hdbc;

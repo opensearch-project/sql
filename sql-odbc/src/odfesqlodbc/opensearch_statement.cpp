@@ -315,7 +315,7 @@ void ClearOpenSearchResult(void *opensearch_result) {
     }
 }
 
-SQLRETURN ESAPI_Cancel(HSTMT hstmt) {
+SQLRETURN OPENSEARCHAPI_Cancel(HSTMT hstmt) {
     // Verify pointer validity and convert to StatementClass
     if (hstmt == NULL)
         return SQL_INVALID_HANDLE;

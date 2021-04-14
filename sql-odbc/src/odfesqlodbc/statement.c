@@ -94,8 +94,8 @@ static const struct {
 static void SC_set_error_if_not_set(StatementClass *self, int errornumber,
                                     const char *errmsg, const char *func);
 
-RETCODE SQL_API ESAPI_AllocStmt(HDBC hdbc, HSTMT *phstmt, UDWORD flag) {
-    CSTR func = "ESAPI_AllocStmt";
+RETCODE SQL_API OPENSEARCHAPI_AllocStmt(HDBC hdbc, HSTMT *phstmt, UDWORD flag) {
+    CSTR func = "OPENSEARCHAPI_AllocStmt";
     ConnectionClass *conn = (ConnectionClass *)hdbc;
     StatementClass *stmt;
     ARDFields *ardopts;
@@ -148,8 +148,8 @@ RETCODE SQL_API ESAPI_AllocStmt(HDBC hdbc, HSTMT *phstmt, UDWORD flag) {
     return SQL_SUCCESS;
 }
 
-RETCODE SQL_API ESAPI_FreeStmt(HSTMT hstmt, SQLUSMALLINT fOption) {
-    CSTR func = "ESAPI_FreeStmt";
+RETCODE SQL_API OPENSEARCHAPI_FreeStmt(HSTMT hstmt, SQLUSMALLINT fOption) {
+    CSTR func = "OPENSEARCHAPI_FreeStmt";
     StatementClass *stmt = (StatementClass *)hstmt;
 
     MYLOG(OPENSEARCH_TRACE, "entering...hstmt=%p, fOption=%hi\n", hstmt, fOption);
@@ -191,7 +191,7 @@ RETCODE SQL_API ESAPI_FreeStmt(HSTMT hstmt, SQLUSMALLINT fOption) {
         }
 
         if (stmt->execute_delegate) {
-            ESAPI_FreeStmt(stmt->execute_delegate, SQL_DROP);
+            OPENSEARCHAPI_FreeStmt(stmt->execute_delegate, SQL_DROP);
             stmt->execute_delegate = NULL;
         }
         if (stmt->execute_parent)
@@ -209,7 +209,7 @@ RETCODE SQL_API ESAPI_FreeStmt(HSTMT hstmt, SQLUSMALLINT fOption) {
          */
         stmt->transition_status = STMT_TRANSITION_ALLOCATED;
         if (stmt->execute_delegate) {
-            ESAPI_FreeStmt(stmt->execute_delegate, SQL_DROP);
+            OPENSEARCHAPI_FreeStmt(stmt->execute_delegate, SQL_DROP);
             stmt->execute_delegate = NULL;
         }
         if (!SC_recycle_statement(stmt)) {
@@ -220,7 +220,7 @@ RETCODE SQL_API ESAPI_FreeStmt(HSTMT hstmt, SQLUSMALLINT fOption) {
         ;
     else {
         SC_set_error(stmt, STMT_OPTION_OUT_OF_RANGE_ERROR,
-                     "Invalid option passed to ESAPI_FreeStmt.", func);
+                     "Invalid option passed to OPENSEARCHAPI_FreeStmt.", func);
         return SQL_ERROR;
     }
 
@@ -903,7 +903,7 @@ void SC_reset_delegate(RETCODE retcode, StatementClass *stmt) {
 
     if (!delegate)
         return;
-    ESAPI_FreeStmt(delegate, SQL_DROP);
+    OPENSEARCHAPI_FreeStmt(delegate, SQL_DROP);
 }
 
 void SC_set_error(StatementClass *self, int number, const char *message,
@@ -1003,7 +1003,7 @@ void SC_full_error_copy(StatementClass *self, const StatementClass *from,
 }
 
 /* Returns the next SQL error information. */
-RETCODE SQL_API ESAPI_StmtError(SQLHSTMT hstmt, SQLSMALLINT RecNumber,
+RETCODE SQL_API OPENSEARCHAPI_StmtError(SQLHSTMT hstmt, SQLSMALLINT RecNumber,
                                 SQLCHAR *szSqlState, SQLINTEGER *pfNativeError,
                                 SQLCHAR *szErrorMsg, SQLSMALLINT cbErrorMsgMax,
                                 SQLSMALLINT *pcbErrorMsg, UWORD flag) {

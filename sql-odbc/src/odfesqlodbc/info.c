@@ -44,10 +44,10 @@
 #define TRIGGER_DELETE 0x01
 #define TRIGGER_UPDATE 0x02
 
-RETCODE SQL_API ESAPI_GetInfo(HDBC hdbc, SQLUSMALLINT fInfoType,
+RETCODE SQL_API OPENSEARCHAPI_GetInfo(HDBC hdbc, SQLUSMALLINT fInfoType,
                               PTR rgbInfoValue, SQLSMALLINT cbInfoValueMax,
                               SQLSMALLINT *pcbInfoValue) {
-    CSTR func = "ESAPI_GetInfo";
+    CSTR func = "OPENSEARCHAPI_GetInfo";
     ConnectionClass *conn = (ConnectionClass *)hdbc;
     ConnInfo *ci;
     const char *p = NULL;
@@ -858,7 +858,7 @@ RETCODE SQL_API ESAPI_GetInfo(HDBC hdbc, SQLUSMALLINT fInfoType,
         default:
             /* unrecognized key */
             CC_set_error(conn, CONN_NOT_IMPLEMENTED_ERROR,
-                         "Unrecognized key passed to ESAPI_GetInfo.", NULL);
+                         "Unrecognized key passed to OPENSEARCHAPI_GetInfo.", NULL);
             goto cleanup;
     }
 
@@ -941,7 +941,7 @@ cleanup:
 #define OPENSEARCHTYPE_TO_NAME(conn, openSearchType, auto_increment) \
     opensearchtype_attr_to_name(conn, openSearchType, OPENSEARCH_ATP_UNSET, auto_increment)
 
-RETCODE SQL_API ESAPI_GetFunctions(HDBC hdbc, SQLUSMALLINT fFunction,
+RETCODE SQL_API OPENSEARCHAPI_GetFunctions(HDBC hdbc, SQLUSMALLINT fFunction,
                                    SQLUSMALLINT *pfExists) {
     UNUSED(hdbc);
     MYLOG(OPENSEARCH_TRACE, "entering...%u\n", fFunction);
@@ -1267,14 +1267,14 @@ char *identifierEscape(const SQLCHAR *src, SQLLEN srclen,
     opensearchtype_attr_transfer_octet_length(conn, openSearchType, atttypmod,     \
                                       OPENSEARCH_UNKNOWNS_UNSET)
 
-RETCODE SQL_API ESAPI_SpecialColumns(
+RETCODE SQL_API OPENSEARCHAPI_SpecialColumns(
     HSTMT hstmt, SQLUSMALLINT fColType, const SQLCHAR *szTableQualifier,
     SQLSMALLINT cbTableQualifier, const SQLCHAR *szTableOwner, /* OA E*/
     SQLSMALLINT cbTableOwner, const SQLCHAR *szTableName,      /* OA(R) E*/
     SQLSMALLINT cbTableName, SQLUSMALLINT fScope, SQLUSMALLINT fNullable) {
     UNUSED(fColType, szTableQualifier, cbTableQualifier, szTableOwner,
            cbTableOwner, szTableName, cbTableName, fScope, fNullable);
-    CSTR func = "ESAPI_SpecialColumns";
+    CSTR func = "OPENSEARCHAPI_SpecialColumns";
 
     // Initialize Statement
     StatementClass *stmt = (StatementClass *)hstmt;
@@ -1287,7 +1287,7 @@ RETCODE SQL_API ESAPI_SpecialColumns(
     if (!res) {
         SC_set_error(
             stmt, STMT_NO_MEMORY_ERROR,
-            "Couldn't allocate memory for ESAPI_SpecialColumns result.", func);
+            "Couldn't allocate memory for OPENSEARCHAPI_SpecialColumns result.", func);
         return SQL_ERROR;
     }
 
@@ -1335,14 +1335,14 @@ RETCODE SQL_API ESAPI_SpecialColumns(
 }
 
 #define INDOPTION_DESC 0x0001 /* values are in reverse order */
-RETCODE SQL_API ESAPI_Statistics(
+RETCODE SQL_API OPENSEARCHAPI_Statistics(
     HSTMT hstmt, const SQLCHAR *szTableQualifier,              /* OA X*/
     SQLSMALLINT cbTableQualifier, const SQLCHAR *szTableOwner, /* OA E*/
     SQLSMALLINT cbTableOwner, const SQLCHAR *szTableName,      /* OA(R) E*/
     SQLSMALLINT cbTableName, SQLUSMALLINT fUnique, SQLUSMALLINT fAccuracy) {
     UNUSED(szTableQualifier, cbTableQualifier, szTableOwner, cbTableOwner,
            szTableName, cbTableName, fUnique, fAccuracy);
-    CSTR func = "ESAPI_Statistics";
+    CSTR func = "OPENSEARCHAPI_Statistics";
 
     // Initialize Statement
     StatementClass *stmt = (StatementClass *)hstmt;
@@ -1354,7 +1354,7 @@ RETCODE SQL_API ESAPI_Statistics(
     QResultClass *res = QR_Constructor();
     if (!res) {
         SC_set_error(stmt, STMT_NO_MEMORY_ERROR,
-                     "Couldn't allocate memory for ESAPI_Statistics result.",
+                     "Couldn't allocate memory for OPENSEARCHAPI_Statistics result.",
                      func);
         return SQL_ERROR;
     }
@@ -1413,7 +1413,7 @@ RETCODE SQL_API ESAPI_Statistics(
     return SQL_SUCCESS;
 }
 
-RETCODE SQL_API ESAPI_ColumnPrivileges(
+RETCODE SQL_API OPENSEARCHAPI_ColumnPrivileges(
     HSTMT hstmt, const SQLCHAR *szTableQualifier,              /* OA X*/
     SQLSMALLINT cbTableQualifier, const SQLCHAR *szTableOwner, /* OA E*/
     SQLSMALLINT cbTableOwner, const SQLCHAR *szTableName,      /* OA(R) E*/
@@ -1421,7 +1421,7 @@ RETCODE SQL_API ESAPI_ColumnPrivileges(
     SQLSMALLINT cbColumnName, UWORD flag) {
     UNUSED(szTableQualifier, cbTableQualifier, szTableOwner, cbTableOwner,
            szTableName, cbTableName, szColumnName, cbColumnName, flag);
-    CSTR func = "ESAPI_ColumnPrivileges";
+    CSTR func = "OPENSEARCHAPI_ColumnPrivileges";
 
     // Initialize Statement
     StatementClass *stmt = (StatementClass *)hstmt;
@@ -1434,7 +1434,7 @@ RETCODE SQL_API ESAPI_ColumnPrivileges(
     if (!res) {
         SC_set_error(
             stmt, STMT_NO_MEMORY_ERROR,
-            "Couldn't allocate memory for ESAPI_ColumnPrivileges result.",
+            "Couldn't allocate memory for OPENSEARCHAPI_ColumnPrivileges result.",
             func);
         return SQL_ERROR;
     }
@@ -1491,7 +1491,7 @@ RETCODE SQL_API ESAPI_ColumnPrivileges(
  *
  *	Retrieve the primary key columns for the specified table.
  */
-RETCODE SQL_API ESAPI_PrimaryKeys(HSTMT hstmt,
+RETCODE SQL_API OPENSEARCHAPI_PrimaryKeys(HSTMT hstmt,
                                   const SQLCHAR *szTableQualifier, /* OA X*/
                                   SQLSMALLINT cbTableQualifier,
                                   const SQLCHAR *szTableOwner, /* OA E*/
@@ -1500,7 +1500,7 @@ RETCODE SQL_API ESAPI_PrimaryKeys(HSTMT hstmt,
                                   SQLSMALLINT cbTableName, OID reloid) {
     UNUSED(szTableQualifier, cbTableQualifier, szTableOwner, cbTableOwner,
            szTableName, cbTableName, reloid);
-    CSTR func = "ESAPI_PrimaryKeys";
+    CSTR func = "OPENSEARCHAPI_PrimaryKeys";
 
     // Initialize Statement
     StatementClass *stmt = (StatementClass *)hstmt;
@@ -1512,7 +1512,7 @@ RETCODE SQL_API ESAPI_PrimaryKeys(HSTMT hstmt,
     QResultClass *res = QR_Constructor();
     if (res == NULL) {
         SC_set_error(stmt, STMT_NO_MEMORY_ERROR,
-                     "Couldn't allocate memory for ESAPI_PrimaryKeys result.",
+                     "Couldn't allocate memory for OPENSEARCHAPI_PrimaryKeys result.",
                      func);
         return SQL_ERROR;
     }
@@ -1558,7 +1558,7 @@ RETCODE SQL_API ESAPI_PrimaryKeys(HSTMT hstmt,
     return ret;
 }
 
-RETCODE SQL_API ESAPI_ForeignKeys(
+RETCODE SQL_API OPENSEARCHAPI_ForeignKeys(
     HSTMT hstmt, const SQLCHAR *szPkTableQualifier,                /* OA X*/
     SQLSMALLINT cbPkTableQualifier, const SQLCHAR *szPkTableOwner, /* OA E*/
     SQLSMALLINT cbPkTableOwner, const SQLCHAR *szPkTableName,      /* OA(R) E*/
@@ -1570,7 +1570,7 @@ RETCODE SQL_API ESAPI_ForeignKeys(
            cbPkTableOwner, szPkTableName, cbPkTableName, szFkTableQualifier,
            cbFkTableQualifier, szFkTableOwner, cbFkTableOwner, szFkTableName,
            cbFkTableName);
-    CSTR func = "ESAPI_ForeignKeys";
+    CSTR func = "OPENSEARCHAPI_ForeignKeys";
 
     // Initialize Statement
     StatementClass *stmt = (StatementClass *)hstmt;
@@ -1582,7 +1582,7 @@ RETCODE SQL_API ESAPI_ForeignKeys(
     QResultClass *res = QR_Constructor();
     if (!res) {
         SC_set_error(stmt, STMT_NO_MEMORY_ERROR,
-                     "Couldn't allocate memory for ESAPI_ForeignKeys result.",
+                     "Couldn't allocate memory for OPENSEARCHAPI_ForeignKeys result.",
                      func);
         return SQL_ERROR;
     }
@@ -1649,7 +1649,7 @@ RETCODE SQL_API ESAPI_ForeignKeys(
 #define PRORET_COUNT
 #define DISPLAY_ARGNAME
 
-RETCODE SQL_API ESAPI_ProcedureColumns(
+RETCODE SQL_API OPENSEARCHAPI_ProcedureColumns(
     HSTMT hstmt, const SQLCHAR *szProcQualifier,             /* OA X*/
     SQLSMALLINT cbProcQualifier, const SQLCHAR *szProcOwner, /* PV E*/
     SQLSMALLINT cbProcOwner, const SQLCHAR *szProcName,      /* PV E*/
@@ -1657,7 +1657,7 @@ RETCODE SQL_API ESAPI_ProcedureColumns(
     SQLSMALLINT cbColumnName, UWORD flag) {
     UNUSED(szProcQualifier, cbProcQualifier, szProcOwner, cbProcOwner,
            szProcName, cbProcName, szColumnName, cbColumnName, flag);
-    CSTR func = "ESAPI_ProcedureColumns";
+    CSTR func = "OPENSEARCHAPI_ProcedureColumns";
 
     // Initialize Statement
     StatementClass *stmt = (StatementClass *)hstmt;
@@ -1670,7 +1670,7 @@ RETCODE SQL_API ESAPI_ProcedureColumns(
     if (res == NULL) {
         SC_set_error(
             stmt, STMT_NO_MEMORY_ERROR,
-            "Couldn't allocate memory for ESAPI_ProcedureColumns result.",
+            "Couldn't allocate memory for OPENSEARCHAPI_ProcedureColumns result.",
             func);
         return SQL_ERROR;
     }
@@ -1743,7 +1743,7 @@ RETCODE SQL_API ESAPI_ProcedureColumns(
     return ret;
 }
 
-RETCODE SQL_API ESAPI_Procedures(HSTMT hstmt,
+RETCODE SQL_API OPENSEARCHAPI_Procedures(HSTMT hstmt,
                                  const SQLCHAR *szProcQualifier, /* OA X*/
                                  SQLSMALLINT cbProcQualifier,
                                  const SQLCHAR *szProcOwner, /* PV E*/
@@ -1752,7 +1752,7 @@ RETCODE SQL_API ESAPI_Procedures(HSTMT hstmt,
                                  SQLSMALLINT cbProcName, UWORD flag) {
     UNUSED(szProcQualifier, cbProcQualifier, szProcOwner, cbProcOwner,
            szProcName, cbProcName, flag);
-    CSTR func = "ESAPI_Procedures";
+    CSTR func = "OPENSEARCHAPI_Procedures";
 
     // Initialize Statement
     StatementClass *stmt = (StatementClass *)hstmt;
@@ -1764,7 +1764,7 @@ RETCODE SQL_API ESAPI_Procedures(HSTMT hstmt,
     QResultClass *res = QR_Constructor();
     if (res == NULL) {
         SC_set_error(stmt, STMT_NO_MEMORY_ERROR,
-                     "Couldn't allocate memory for ESAPI_Procedures result.",
+                     "Couldn't allocate memory for OPENSEARCHAPI_Procedures result.",
                      func);
         return SQL_ERROR;
     }
@@ -1816,7 +1816,7 @@ RETCODE SQL_API ESAPI_Procedures(HSTMT hstmt,
 #define ACLMAX 8
 #define ALL_PRIVILIGES "arwdRxt"
 
-RETCODE SQL_API ESAPI_TablePrivileges(HSTMT hstmt,
+RETCODE SQL_API OPENSEARCHAPI_TablePrivileges(HSTMT hstmt,
                                       const SQLCHAR *szTableQualifier, /* OA X*/
                                       SQLSMALLINT cbTableQualifier,
                                       const SQLCHAR *szTableOwner, /* PV E*/
@@ -1825,7 +1825,7 @@ RETCODE SQL_API ESAPI_TablePrivileges(HSTMT hstmt,
                                       SQLSMALLINT cbTableName, UWORD flag) {
     UNUSED(szTableQualifier, cbTableQualifier, szTableOwner, cbTableOwner,
            szTableName, cbTableName, flag);
-    CSTR func = "ESAPI_TablePrivileges";
+    CSTR func = "OPENSEARCHAPI_TablePrivileges";
 
     // Initialize Statement
     StatementClass *stmt = (StatementClass *)hstmt;
@@ -1837,7 +1837,7 @@ RETCODE SQL_API ESAPI_TablePrivileges(HSTMT hstmt,
     QResultClass *res = QR_Constructor();
     if (!res) {
         SC_set_error(stmt, STMT_NO_MEMORY_ERROR,
-                     "Couldn't allocate memory for ESAPI_Statistics result.",
+                     "Couldn't allocate memory for OPENSEARCHAPI_Statistics result.",
                      func);
         return SQL_ERROR;
     }

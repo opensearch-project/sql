@@ -736,7 +736,7 @@ static int setup_getdataclass(SQLLEN *const length_return,
     }
     if (fCType == SQL_C_WCHAR) {
         if (BYTEA_PROCESS_ESCAPE == bytea_process_kind)
-            unicode_count = (int)convert_from_esbinary(neut_str, NULL, 0) * 2;
+            unicode_count = (int)convert_from_opensearchbinary(neut_str, NULL, 0) * 2;
         else if (hybrid) {
             MYLOG(OPENSEARCH_DEBUG, "hybrid estimate\n");
             if ((unicode_count =
@@ -800,7 +800,7 @@ static int setup_getdataclass(SQLLEN *const length_return,
 #ifdef UNICODE_SUPPORT
         if (fCType == SQL_C_WCHAR) {
             if (BYTEA_PROCESS_ESCAPE == bytea_process_kind) {
-                len = convert_from_esbinary(neut_str, esdc->ttlbuf,
+                len = convert_from_opensearchbinary(neut_str, esdc->ttlbuf,
                                             esdc->ttlbuflen);
                 len = es_bin2whex(esdc->ttlbuf, (SQLWCHAR *)esdc->ttlbuf, len);
             } else {

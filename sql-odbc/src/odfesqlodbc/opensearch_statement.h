@@ -29,7 +29,7 @@ RETCODE PrepareStatement(StatementClass* stmt, const SQLCHAR *stmt_str, SQLINTEG
 RETCODE ExecuteStatement(StatementClass *stmt, BOOL commit);
 QResultClass *SendQueryGetResult(StatementClass *stmt, BOOL commit);
 RETCODE AssignResult(StatementClass *stmt);
-SQLRETURN ESAPI_Cancel(HSTMT hstmt);
+SQLRETURN OPENSEARCHAPI_Cancel(HSTMT hstmt);
 SQLRETURN GetNextResultSet(StatementClass *stmt);
 void ClearOpenSearchResult(void *opensearch_result);
 #ifdef __cplusplus

@@ -22,7 +22,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-RETCODE ESAPI_DriverConnect(HDBC hdbc, HWND hwnd, SQLCHAR *conn_str_in,
+RETCODE OPENSEARCHAPI_DriverConnect(HDBC hdbc, HWND hwnd, SQLCHAR *conn_str_in,
                             SQLSMALLINT conn_str_in_len, SQLCHAR *conn_str_out,
                             SQLSMALLINT conn_str_out_len,
                             SQLSMALLINT *pcb_conn_str_out,

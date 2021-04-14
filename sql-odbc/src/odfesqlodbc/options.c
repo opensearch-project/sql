@@ -276,9 +276,9 @@ static RETCODE set_statement_option(ConnectionClass *conn, StatementClass *stmt,
 }
 
 /* Implements only SQL_AUTOCOMMIT */
-RETCODE SQL_API ESAPI_SetConnectOption(HDBC hdbc, SQLUSMALLINT fOption,
+RETCODE SQL_API OPENSEARCHAPI_SetConnectOption(HDBC hdbc, SQLUSMALLINT fOption,
                                        SQLULEN vParam) {
-    CSTR func = "ESAPI_SetConnectOption";
+    CSTR func = "OPENSEARCHAPI_SetConnectOption";
     ConnectionClass *conn = (ConnectionClass *)hdbc;
     char changed = FALSE;
     RETCODE retval;
@@ -437,10 +437,10 @@ RETCODE SQL_API ESAPI_SetConnectOption(HDBC hdbc, SQLUSMALLINT fOption,
 }
 
 /* This function just can tell you whether you are in Autcommit mode or not */
-RETCODE SQL_API ESAPI_GetConnectOption(HDBC hdbc, SQLUSMALLINT fOption,
+RETCODE SQL_API OPENSEARCHAPI_GetConnectOption(HDBC hdbc, SQLUSMALLINT fOption,
                                        PTR pvParam, SQLINTEGER *StringLength,
                                        SQLINTEGER BufferLength) {
-    CSTR func = "ESAPI_GetConnectOption";
+    CSTR func = "OPENSEARCHAPI_GetConnectOption";
     ConnectionClass *conn = (ConnectionClass *)hdbc;
     const char *p = NULL;
     SQLLEN len = sizeof(SQLINTEGER);
@@ -559,9 +559,9 @@ RETCODE SQL_API ESAPI_GetConnectOption(HDBC hdbc, SQLUSMALLINT fOption,
     return result;
 }
 
-RETCODE SQL_API ESAPI_SetStmtOption(HSTMT hstmt, SQLUSMALLINT fOption,
+RETCODE SQL_API OPENSEARCHAPI_SetStmtOption(HSTMT hstmt, SQLUSMALLINT fOption,
                                     SQLULEN vParam) {
-    CSTR func = "ESAPI_SetStmtOption";
+    CSTR func = "OPENSEARCHAPI_SetStmtOption";
     StatementClass *stmt = (StatementClass *)hstmt;
     RETCODE retval;
 
@@ -581,11 +581,11 @@ RETCODE SQL_API ESAPI_SetStmtOption(HSTMT hstmt, SQLUSMALLINT fOption,
     return retval;
 }
 
-RETCODE SQL_API ESAPI_GetStmtOption(HSTMT hstmt, SQLUSMALLINT fOption,
+RETCODE SQL_API OPENSEARCHAPI_GetStmtOption(HSTMT hstmt, SQLUSMALLINT fOption,
                                     PTR pvParam, SQLINTEGER *StringLength,
                                     SQLINTEGER BufferLength) {
     UNUSED(BufferLength);
-    CSTR func = "ESAPI_GetStmtOption";
+    CSTR func = "OPENSEARCHAPI_GetStmtOption";
     StatementClass *stmt = (StatementClass *)hstmt;
     QResultClass *res;
     SQLLEN ridx;

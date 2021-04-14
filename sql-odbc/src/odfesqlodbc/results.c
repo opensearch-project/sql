@@ -36,8 +36,8 @@
     opensearch_true_type((conn), (fi)->columntype, FI_type(fi))
 #define NULL_IF_NULL(a) ((a) ? ((const char *)(a)) : "(null)")
 
-RETCODE SQL_API ESAPI_RowCount(HSTMT hstmt, SQLLEN *pcrow) {
-    CSTR func = "ESAPI_RowCount";
+RETCODE SQL_API OPENSEARCHAPI_RowCount(HSTMT hstmt, SQLLEN *pcrow) {
+    CSTR func = "OPENSEARCHAPI_RowCount";
     StatementClass *stmt = (StatementClass *)hstmt;
     QResultClass *res;
 
@@ -69,8 +69,8 @@ RETCODE SQL_API ESAPI_RowCount(HSTMT hstmt, SQLLEN *pcrow) {
  *	This returns the number of columns associated with the database
  *	attached to "hstmt".
  */
-RETCODE SQL_API ESAPI_NumResultCols(HSTMT hstmt, SQLSMALLINT *pccol) {
-    CSTR func = "ESAPI_NumResultCols";
+RETCODE SQL_API OPENSEARCHAPI_NumResultCols(HSTMT hstmt, SQLSMALLINT *pccol) {
+    CSTR func = "OPENSEARCHAPI_NumResultCols";
     StatementClass *stmt = (StatementClass *)hstmt;
     QResultClass *result;
     RETCODE ret = SQL_SUCCESS;
@@ -109,13 +109,13 @@ cleanup:
  *	Return information about the database column the user wants
  *	information about.
  */
-RETCODE SQL_API ESAPI_DescribeCol(HSTMT hstmt, SQLUSMALLINT icol,
+RETCODE SQL_API OPENSEARCHAPI_DescribeCol(HSTMT hstmt, SQLUSMALLINT icol,
                                   SQLCHAR *szColName, SQLSMALLINT cbColNameMax,
                                   SQLSMALLINT *pcbColName,
                                   SQLSMALLINT *pfSqlType, SQLULEN *pcbColDef,
                                   SQLSMALLINT *pibScale,
                                   SQLSMALLINT *pfNullable) {
-    CSTR func = "ESAPI_DescribeCol";
+    CSTR func = "OPENSEARCHAPI_DescribeCol";
 
     /* gets all the information about a specific column */
     StatementClass *stmt = (StatementClass *)hstmt;
@@ -327,11 +327,11 @@ cleanup:
 }
 
 /*		Returns result column descriptor information for a result set. */
-RETCODE SQL_API ESAPI_ColAttributes(HSTMT hstmt, SQLUSMALLINT icol,
+RETCODE SQL_API OPENSEARCHAPI_ColAttributes(HSTMT hstmt, SQLUSMALLINT icol,
                                     SQLUSMALLINT fDescType, PTR rgbDesc,
                                     SQLSMALLINT cbDescMax, SQLSMALLINT *pcbDesc,
                                     SQLLEN *pfDesc) {
-    CSTR func = "ESAPI_ColAttributes";
+    CSTR func = "OPENSEARCHAPI_ColAttributes";
     StatementClass *stmt = (StatementClass *)hstmt;
     IRDFields *irdflds;
     OID field_type = 0;
@@ -773,10 +773,10 @@ RETCODE SQL_API ESAPI_ColAttributes(HSTMT hstmt, SQLUSMALLINT icol,
 }
 
 /*	Returns result data for a single column in the current row. */
-RETCODE SQL_API ESAPI_GetData(HSTMT hstmt, SQLUSMALLINT icol,
+RETCODE SQL_API OPENSEARCHAPI_GetData(HSTMT hstmt, SQLUSMALLINT icol,
                               SQLSMALLINT fCType, PTR rgbValue,
                               SQLLEN cbValueMax, SQLLEN *pcbValue) {
-    CSTR func = "ESAPI_GetData";
+    CSTR func = "OPENSEARCHAPI_GetData";
     QResultClass *res;
     StatementClass *stmt = (StatementClass *)hstmt;
     UInt2 num_cols;
@@ -1022,8 +1022,8 @@ cleanup:
  *		Returns data for bound columns in the current row ("hstmt->iCursor"),
  *		advances the cursor.
  */
-RETCODE SQL_API ESAPI_Fetch(HSTMT hstmt) {
-    CSTR func = "ESAPI_Fetch";
+RETCODE SQL_API OPENSEARCHAPI_Fetch(HSTMT hstmt) {
+    CSTR func = "OPENSEARCHAPI_Fetch";
     StatementClass *stmt = (StatementClass *)hstmt;
     ARDFields *opts;
     QResultClass *res;
@@ -1042,7 +1042,7 @@ RETCODE SQL_API ESAPI_Fetch(HSTMT hstmt) {
 
     if (!(res = SC_get_Curres(stmt), res)) {
         SC_set_error(stmt, STMT_INVALID_CURSOR_STATE_ERROR,
-                     "Null statement result in ESAPI_Fetch.", func);
+                     "Null statement result in OPENSEARCHAPI_Fetch.", func);
         return SQL_ERROR;
     }
 
@@ -1051,7 +1051,7 @@ RETCODE SQL_API ESAPI_Fetch(HSTMT hstmt) {
     if ((bookmark = opts->bookmark, bookmark) && bookmark->buffer) {
         SC_set_error(
             stmt, STMT_COLNUM_ERROR,
-            "Not allowed to bind a bookmark column when using ESAPI_Fetch",
+            "Not allowed to bind a bookmark column when using OPENSEARCHAPI_Fetch",
             func);
         return SQL_ERROR;
     }
@@ -1230,12 +1230,12 @@ getNthValid(const QResultClass *res, SQLLEN sta, UWORD orientation, SQLULEN nth,
     }
 
 /*	This fetchs a block of data (rowset). */
-RETCODE SQL_API ESAPI_ExtendedFetch(HSTMT hstmt, SQLUSMALLINT fFetchType,
+RETCODE SQL_API OPENSEARCHAPI_ExtendedFetch(HSTMT hstmt, SQLUSMALLINT fFetchType,
                                     SQLLEN irow, SQLULEN *pcrow,
                                     SQLUSMALLINT *rgfRowStatus,
                                     SQLLEN bookmark_offset, SQLLEN rowsetSize) {
     UNUSED(bookmark_offset, irow);
-    CSTR func = "ESAPI_ExtendedFetch";
+    CSTR func = "OPENSEARCHAPI_ExtendedFetch";
     StatementClass *stmt = (StatementClass *)hstmt;
     ARDFields *opts;
     QResultClass *res;
@@ -1272,7 +1272,7 @@ RETCODE SQL_API ESAPI_ExtendedFetch(HSTMT hstmt, SQLUSMALLINT fFetchType,
 
     if (!(res = SC_get_Curres(stmt), res)) {
         SC_set_error(stmt, STMT_INVALID_CURSOR_STATE_ERROR,
-                     "Null statement result in ESAPI_ExtendedFetch.", func);
+                     "Null statement result in OPENSEARCHAPI_ExtendedFetch.", func);
         return SQL_ERROR;
     }
 
@@ -1364,7 +1364,7 @@ RETCODE SQL_API ESAPI_ExtendedFetch(HSTMT hstmt, SQLUSMALLINT fFetchType,
             break;
         default:
             SC_set_error(stmt, STMT_FETCH_OUT_OF_RANGE,
-                         "Unsupported ESAPI_ExtendedFetch Direction", func);
+                         "Unsupported OPENSEARCHAPI_ExtendedFetch Direction", func);
             return SQL_ERROR;
     }
 
@@ -1564,7 +1564,7 @@ cleanup:
  *		the "hstmt".
  */
 /* CC: return SQL_NO_DATA_FOUND since we do not support multiple result sets */
-RETCODE SQL_API ESAPI_MoreResults(HSTMT hstmt) {
+RETCODE SQL_API OPENSEARCHAPI_MoreResults(HSTMT hstmt) {
     StatementClass *stmt = (StatementClass *)hstmt;
     QResultClass *res;
     RETCODE ret = SQL_SUCCESS;
@@ -1579,7 +1579,7 @@ RETCODE SQL_API ESAPI_MoreResults(HSTMT hstmt) {
         SQLSMALLINT num_p;
 
         if (stmt->multi_statement < 0)
-            ESAPI_NumParams(stmt, &num_p);
+            OPENSEARCHAPI_NumParams(stmt, &num_p);
         if (stmt->multi_statement > 0) {
             const char *cmdstr;
 
@@ -1594,7 +1594,7 @@ RETCODE SQL_API ESAPI_MoreResults(HSTMT hstmt) {
         SC_set_rowset_start(stmt, -1, FALSE);
         stmt->currTuple = -1;
     } else {
-        ESAPI_FreeStmt(hstmt, SQL_CLOSE);
+        OPENSEARCHAPI_FreeStmt(hstmt, SQL_CLOSE);
         ret = SQL_NO_DATA_FOUND;
     }
     MYLOG(OPENSEARCH_DEBUG, "leaving %d\n", ret);
@@ -1618,9 +1618,9 @@ SQLLEN ClearCachedRows(TupleField *tuple, int num_fields, SQLLEN num_rows) {
 }
 
 /*	Set the cursor name on a statement handle */
-RETCODE SQL_API ESAPI_SetCursorName(HSTMT hstmt, const SQLCHAR *szCursor,
+RETCODE SQL_API OPENSEARCHAPI_SetCursorName(HSTMT hstmt, const SQLCHAR *szCursor,
                                     SQLSMALLINT cbCursor) {
-    CSTR func = "ESAPI_SetCursorName";
+    CSTR func = "OPENSEARCHAPI_SetCursorName";
     StatementClass *stmt = (StatementClass *)hstmt;
 
     MYLOG(OPENSEARCH_TRACE, "entering hstmt=%p, szCursor=%p, cbCursorMax=%d\n", hstmt,
@@ -1637,10 +1637,10 @@ RETCODE SQL_API ESAPI_SetCursorName(HSTMT hstmt, const SQLCHAR *szCursor,
 }
 
 /*	Return the cursor name for a statement handle */
-RETCODE SQL_API ESAPI_GetCursorName(HSTMT hstmt, SQLCHAR *szCursor,
+RETCODE SQL_API OPENSEARCHAPI_GetCursorName(HSTMT hstmt, SQLCHAR *szCursor,
                                     SQLSMALLINT cbCursorMax,
                                     SQLSMALLINT *pcbCursor) {
-    CSTR func = "ESAPI_GetCursorName";
+    CSTR func = "OPENSEARCHAPI_GetCursorName";
     StatementClass *stmt = (StatementClass *)hstmt;
     size_t len = 0;
     RETCODE result;

@@ -29,11 +29,11 @@
 #include "statement.h"
 
 /*	Associate a user-supplied buffer with a database column. */
-RETCODE SQL_API ESAPI_BindCol(HSTMT hstmt, SQLUSMALLINT icol,
+RETCODE SQL_API OPENSEARCHAPI_BindCol(HSTMT hstmt, SQLUSMALLINT icol,
                               SQLSMALLINT fCType, PTR rgbValue,
                               SQLLEN cbValueMax, SQLLEN *pcbValue) {
     StatementClass *stmt = (StatementClass *)hstmt;
-    CSTR func = "ESAPI_BindCol";
+    CSTR func = "OPENSEARCHAPI_BindCol";
     ARDFields *opts;
     GetDataInfo *gdata_info;
     BindInfoClass *bookmark;
@@ -170,13 +170,13 @@ cleanup:
     return ret;
 }
 
-RETCODE SQL_API ESAPI_NumParams(HSTMT hstmt, SQLSMALLINT *pcpar) {
+RETCODE SQL_API OPENSEARCHAPI_NumParams(HSTMT hstmt, SQLSMALLINT *pcpar) {
     StatementClass *stmt = (StatementClass *)hstmt;
     if (pcpar != NULL) {
         *pcpar = 0;
     } else {
         SC_set_error(stmt, STMT_EXEC_ERROR, "Parameter count address is null",
-                     "ESAPI_NumParams");
+                     "OPENSEARCHAPI_NumParams");
         return SQL_ERROR;
     }
     return SQL_SUCCESS;

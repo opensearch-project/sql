@@ -41,7 +41,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-RETCODE SQL_API ESAPI_Tables(HSTMT hstmt, const SQLCHAR* catalog_name_sql,
+RETCODE SQL_API OPENSEARCHAPI_Tables(HSTMT hstmt, const SQLCHAR* catalog_name_sql,
                              const SQLSMALLINT catalog_name_sz,
                              const SQLCHAR* schema_name_sql,
                              const SQLSMALLINT schema_name_sz,
@@ -50,14 +50,14 @@ RETCODE SQL_API ESAPI_Tables(HSTMT hstmt, const SQLCHAR* catalog_name_sql,
                              const SQLCHAR* table_type_sql,
                              const SQLSMALLINT table_type_sz, const UWORD flag);
 RETCODE SQL_API
-ESAPI_Columns(HSTMT hstmt, const SQLCHAR* catalog_name_sql,
+OPENSEARCHAPI_Columns(HSTMT hstmt, const SQLCHAR* catalog_name_sql,
               const SQLSMALLINT catalog_name_sz, const SQLCHAR* schema_name_sql,
               const SQLSMALLINT schema_name_sz, const SQLCHAR* table_name_sql,
               const SQLSMALLINT table_name_sz, const SQLCHAR* column_name_sql,
               const SQLSMALLINT column_name_sz, const UWORD flag,
               const OID reloid, const Int2 attnum);
 
-RETCODE SQL_API ESAPI_GetTypeInfo(HSTMT hstmt, SQLSMALLINT fSqlType);
+RETCODE SQL_API OPENSEARCHAPI_GetTypeInfo(HSTMT hstmt, SQLSMALLINT fSqlType);
 #ifdef __cplusplus
 }
 #endif

@@ -136,7 +136,7 @@ class BindTemplate {
     }
 
     void BindColumn(StatementClass *stmt) {
-        RETCODE err = ESAPI_BindCol(stmt, m_ordinal, GetType(),
+        RETCODE err = OPENSEARCHAPI_BindCol(stmt, m_ordinal, GetType(),
                                     GetDataForBind(), GetSize(), &m_len);
         if (!SQL_SUCCEEDED(err)) {
             std::string error_msg =
@@ -381,18 +381,18 @@ void CleanUp(StatementClass *stmt, StatementClass *sub_stmt,
     SC_set_current_col(stmt, -1);
 
     if (sub_stmt)
-        ESAPI_FreeStmt(sub_stmt, SQL_DROP);
+        OPENSEARCHAPI_FreeStmt(sub_stmt, SQL_DROP);
 }
 
 void ExecuteQuery(ConnectionClass *conn, HSTMT *stmt,
                   const std::string &query) {
     // Prepare statement
-    if (!SQL_SUCCEEDED(ESAPI_AllocStmt(conn, stmt, 0))) {
+    if (!SQL_SUCCEEDED(OPENSEARCHAPI_AllocStmt(conn, stmt, 0))) {
         throw std::runtime_error("Failed to allocate memory for statement.");
     }
 
     // Execute query
-    if (!SQL_SUCCEEDED(ESAPI_ExecDirect(
+    if (!SQL_SUCCEEDED(OPENSEARCHAPI_ExecDirect(
             *stmt, reinterpret_cast< const SQLCHAR * >(query.c_str()), SQL_NTS,
             1))) {
         std::string error_msg = "Failed to execute query '" + query + "'.";
@@ -524,7 +524,7 @@ void SetTableTuples(QResultClass *res, const TableResultSet res_type,
     if (res_type == TableResultSet::All) {
         RETCODE result = SQL_NO_DATA_FOUND;
         int ordinal_position = 0;
-        while (SQL_SUCCEEDED(result = ESAPI_Fetch(tbl_stmt))) {
+        while (SQL_SUCCEEDED(result = OPENSEARCHAPI_Fetch(tbl_stmt))) {
             if (bind_tbl[TABLES_TABLE_TYPE]->AsString() == "BASE TABLE") {
                 std::string table("TABLE");
                 bind_tbl[TABLES_TABLE_TYPE]->UpdateData((void *)table.c_str(),
@@ -554,7 +554,7 @@ void SetTableTuples(QResultClass *res, const TableResultSet res_type,
 
         // Loop through all data
         RETCODE result = SQL_NO_DATA_FOUND;
-        while (SQL_SUCCEEDED(result = ESAPI_Fetch(tbl_stmt))) {
+        while (SQL_SUCCEEDED(result = OPENSEARCHAPI_Fetch(tbl_stmt))) {
             // Replace BASE TABLE with TABLE for Excel & Power BI SQLTables call
             if (bind_tbl[TABLES_TABLE_TYPE]->AsString() == "BASE TABLE") {
                 std::string table("TABLE");
@@ -574,7 +574,7 @@ void SetTableTuples(QResultClass *res, const TableResultSet res_type,
     // Special cases - only need single grab for this one
     else {
         RETCODE result;
-        if (!SQL_SUCCEEDED(result = ESAPI_Fetch(tbl_stmt))) {
+        if (!SQL_SUCCEEDED(result = OPENSEARCHAPI_Fetch(tbl_stmt))) {
             SC_full_error_copy(stmt, tbl_stmt, FALSE);
             throw std::runtime_error(
                 std::string("Failed to fetch data after query. Error code :"
@@ -729,12 +729,12 @@ void GetCatalogData(const std::string &query, StatementClass *stmt,
 }
 
 RETCODE SQL_API
-ESAPI_Tables(HSTMT hstmt, const SQLCHAR *catalog_name_sql,
+OPENSEARCHAPI_Tables(HSTMT hstmt, const SQLCHAR *catalog_name_sql,
              const SQLSMALLINT catalog_name_sz, const SQLCHAR *schema_name_sql,
              const SQLSMALLINT schema_name_sz, const SQLCHAR *table_name_sql,
              const SQLSMALLINT table_name_sz, const SQLCHAR *table_type_sql,
              const SQLSMALLINT table_type_sz, const UWORD flag) {
-    CSTR func = "ESAPI_Tables";
+    CSTR func = "OPENSEARCHAPI_Tables";
     StatementClass *stmt = (StatementClass *)hstmt;
     StatementClass *tbl_stmt = NULL;
     RETCODE result = SQL_ERROR;
@@ -814,7 +814,7 @@ ESAPI_Tables(HSTMT hstmt, const SQLCHAR *catalog_name_sql,
 }
 
 RETCODE SQL_API
-ESAPI_Columns(HSTMT hstmt, const SQLCHAR *catalog_name_sql,
+OPENSEARCHAPI_Columns(HSTMT hstmt, const SQLCHAR *catalog_name_sql,
               const SQLSMALLINT catalog_name_sz, const SQLCHAR *schema_name_sql,
               const SQLSMALLINT schema_name_sz, const SQLCHAR *table_name_sql,
               const SQLSMALLINT table_name_sz, const SQLCHAR *column_name_sql,
@@ -823,7 +823,7 @@ ESAPI_Columns(HSTMT hstmt, const SQLCHAR *catalog_name_sql,
     (void)(reloid);
     (void)(attnum);
 
-    CSTR func = "ESAPI_Columns";
+    CSTR func = "OPENSEARCHAPI_Columns";
 
     // Declare outside of try so we can clean them up properly if an exception
     // occurs
@@ -995,8 +995,8 @@ RETCODE SetTypeResult(ConnectionClass *conn, StatementClass *stmt,
     return SQL_SUCCESS;
 }
 
-RETCODE SQL_API ESAPI_GetTypeInfo(HSTMT hstmt, SQLSMALLINT fSqlType) {
-    CSTR func = "ESAPI_GetTypeInfo";
+RETCODE SQL_API OPENSEARCHAPI_GetTypeInfo(HSTMT hstmt, SQLSMALLINT fSqlType) {
+    CSTR func = "OPENSEARCHAPI_GetTypeInfo";
     StatementClass *stmt = (StatementClass *)hstmt;
     ConnectionClass *conn;
     conn = SC_get_conn(stmt);
