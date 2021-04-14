@@ -74,7 +74,7 @@ SQLSMALLINT sqlTypes[] = {
 #define ALLOWED_C_BIGINT SQL_C_CHAR
 #endif
 
-OID es_true_type(const ConnectionClass *conn, OID type, OID basetype) {
+OID opensearch_true_type(const ConnectionClass *conn, OID type, OID basetype) {
     if (0 == basetype)
         return type;
     else if (0 == type)
@@ -862,7 +862,7 @@ Int4 opensearchtype_attr_transfer_octet_length(const ConnectionClass *conn, OID 
 /*
  * Casting parameters e.g. ?::timestamp is much more flexible
  * than specifying parameter datatype oids determined by
- * sqltype_to_bind_estype() via parse message.
+ * sqltype_to_bind_opensearchtype() via parse message.
  */
 const char *sqltype_to_escast(const ConnectionClass *conn,
                               SQLSMALLINT fSqlType) {
@@ -927,14 +927,14 @@ const char *sqltype_to_escast(const ConnectionClass *conn,
 }
 
 OID sqltype_to_opensearchtype(const ConnectionClass *conn, SQLSMALLINT fSqlType) {
-    OID esType = 0;
+    OID openSearchType = 0;
     switch (fSqlType) {
         case SQL_BINARY:
-            esType = OPENSEARCH_TYPE_BYTEA;
+            openSearchType = OPENSEARCH_TYPE_BYTEA;
             break;
 
         case SQL_CHAR:
-            esType = OPENSEARCH_TYPE_BPCHAR;
+            openSearchType = OPENSEARCH_TYPE_BPCHAR;
             break;
 
 #ifdef UNICODE_SUPPORT
@@ -944,38 +944,38 @@ OID sqltype_to_opensearchtype(const ConnectionClass *conn, SQLSMALLINT fSqlType)
 #endif /* UNICODE_SUPPORT */
 
         case SQL_BIT:
-            esType = OPENSEARCH_TYPE_BOOL;
+            openSearchType = OPENSEARCH_TYPE_BOOL;
             break;
 
         case SQL_TYPE_DATE:
         case SQL_DATE:
-            esType = OPENSEARCH_TYPE_DATE;
+            openSearchType = OPENSEARCH_TYPE_DATE;
             break;
 
         case SQL_DOUBLE:
         case SQL_FLOAT:
-            esType = OPENSEARCH_TYPE_FLOAT8;
+            openSearchType = OPENSEARCH_TYPE_FLOAT8;
             break;
 
         case SQL_DECIMAL:
         case SQL_NUMERIC:
-            esType = OPENSEARCH_TYPE_NUMERIC;
+            openSearchType = OPENSEARCH_TYPE_NUMERIC;
             break;
 
         case SQL_BIGINT:
-            esType = OPENSEARCH_TYPE_INT8;
+            openSearchType = OPENSEARCH_TYPE_INT8;
             break;
 
         case SQL_INTEGER:
-            esType = OPENSEARCH_TYPE_INT4;
+            openSearchType = OPENSEARCH_TYPE_INT4;
             break;
 
         case SQL_LONGVARBINARY:
-            esType = conn->lobj_type;
+            openSearchType = conn->lobj_type;
             break;
 
         case SQL_LONGVARCHAR:
-            esType = OPENSEARCH_TYPE_VARCHAR;
+            openSearchType = OPENSEARCH_TYPE_VARCHAR;
             break;
 
 #ifdef UNICODE_SUPPORT
@@ -985,30 +985,30 @@ OID sqltype_to_opensearchtype(const ConnectionClass *conn, SQLSMALLINT fSqlType)
 #endif /* UNICODE_SUPPORT */
 
         case SQL_REAL:
-            esType = OPENSEARCH_TYPE_FLOAT4;
+            openSearchType = OPENSEARCH_TYPE_FLOAT4;
             break;
 
         case SQL_SMALLINT:
         case SQL_TINYINT:
-            esType = OPENSEARCH_TYPE_INT2;
+            openSearchType = OPENSEARCH_TYPE_INT2;
             break;
 
         case SQL_TIME:
         case SQL_TYPE_TIME:
-            esType = OPENSEARCH_TYPE_TIME;
+            openSearchType = OPENSEARCH_TYPE_TIME;
             break;
 
         case SQL_TIMESTAMP:
         case SQL_TYPE_TIMESTAMP:
-            esType = OPENSEARCH_TYPE_DATETIME;
+            openSearchType = OPENSEARCH_TYPE_DATETIME;
             break;
 
         case SQL_VARBINARY:
-            esType = OPENSEARCH_TYPE_BYTEA;
+            openSearchType = OPENSEARCH_TYPE_BYTEA;
             break;
 
         case SQL_VARCHAR:
-            esType = OPENSEARCH_TYPE_VARCHAR;
+            openSearchType = OPENSEARCH_TYPE_VARCHAR;
             break;
 
 #ifdef UNICODE_SUPPORT
@@ -1019,7 +1019,7 @@ OID sqltype_to_opensearchtype(const ConnectionClass *conn, SQLSMALLINT fSqlType)
 
         case SQL_GUID:
             if (OPENSEARCH_VERSION_GE(conn, 8.3))
-                esType = OPENSEARCH_TYPE_UUID;
+                openSearchType = OPENSEARCH_TYPE_UUID;
             break;
 
         case SQL_INTERVAL_MONTH:
@@ -1035,11 +1035,11 @@ OID sqltype_to_opensearchtype(const ConnectionClass *conn, SQLSMALLINT fSqlType)
         case SQL_INTERVAL_HOUR_TO_MINUTE:
         case SQL_INTERVAL_HOUR_TO_SECOND:
         case SQL_INTERVAL_MINUTE_TO_SECOND:
-            esType = OPENSEARCH_TYPE_INTERVAL;
+            openSearchType = OPENSEARCH_TYPE_INTERVAL;
             break;
     }
 
-    return esType;
+    return openSearchType;
 }
 
 static int getAtttypmodEtc(const StatementClass *stmt, int col,

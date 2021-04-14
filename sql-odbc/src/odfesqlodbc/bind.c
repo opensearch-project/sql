@@ -304,7 +304,7 @@ void reset_a_iparameter_binding(IPDFields *self, int ipar) {
     self->parameters[ipar].decimal_digits = 0;
     self->parameters[ipar].precision = 0;
     self->parameters[ipar].scale = 0;
-    PIC_set_estype(self->parameters[ipar], 0);
+    PIC_set_opensearch_type(self->parameters[ipar], 0);
 }
 
 int CountParameters(const StatementClass *self, Int2 *inputCount, Int2 *ioCount,

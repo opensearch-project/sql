@@ -917,29 +917,29 @@ cleanup:
 /*
  *	macros for opensearchtype_xxxx() calls which have OPENSEARCH_ATP_UNSET parameters
  */
-#define OPENSEARCHTYPE_COLUMN_SIZE(conn, esType)                              \
-    estype_attr_column_size(conn, esType, OPENSEARCH_ATP_UNSET, \
+#define OPENSEARCHTYPE_COLUMN_SIZE(conn, openSearchType)                              \
+    opensearchtype_attr_column_size(conn, openSearchType, OPENSEARCH_ATP_UNSET, \
                             OPENSEARCH_ADT_UNSET, OPENSEARCH_UNKNOWNS_UNSET)
-#define OPENSEARCHTYPE_TO_CONCISE_TYPE(conn, esType)                              \
-    estype_attr_to_concise_type(conn, esType, OPENSEARCH_ATP_UNSET, \
+#define OPENSEARCHTYPE_TO_CONCISE_TYPE(conn, openSearchType)                              \
+    opensearchtype_attr_to_concise_type(conn, openSearchType, OPENSEARCH_ATP_UNSET, \
                                 OPENSEARCH_ADT_UNSET,               \
                                 OPENSEARCH_UNKNOWNS_UNSET)
-#define OPENSEARCHTYPE_TO_SQLDESCTYPE(conn, esType)                              \
-    estype_attr_to_sqldesctype(conn, esType, OPENSEARCH_ATP_UNSET, \
+#define OPENSEARCHTYPE_TO_SQLDESCTYPE(conn, openSearchType)                              \
+    opensearchtype_attr_to_sqldesctype(conn, openSearchType, OPENSEARCH_ATP_UNSET, \
                                OPENSEARCH_ADT_UNSET,               \
                                OPENSEARCH_UNKNOWNS_UNSET)
-#define OPENSEARCHTYPE_BUFFER_LENGTH(conn, esType)                              \
-    estype_attr_buffer_length(conn, esType, OPENSEARCH_ATP_UNSET, \
+#define OPENSEARCHTYPE_BUFFER_LENGTH(conn, openSearchType)                              \
+    opensearchtype_attr_buffer_length(conn, openSearchType, OPENSEARCH_ATP_UNSET, \
                               OPENSEARCH_ADT_UNSET, OPENSEARCH_UNKNOWNS_UNSET)
-#define OPENSEARCHTYPE_DECIMAL_DIGITS(conn, esType)                              \
-    estype_attr_decimal_digits(conn, esType, OPENSEARCH_ATP_UNSET, \
+#define OPENSEARCHTYPE_DECIMAL_DIGITS(conn, openSearchType)                              \
+    opensearchtype_attr_decimal_digits(conn, openSearchType, OPENSEARCH_ATP_UNSET, \
                                OPENSEARCH_ADT_UNSET,               \
                                OPENSEARCH_UNKNOWNS_UNSET)
-#define OPENSEARCHTYPE_TRANSFER_OCTET_LENGTH(conn, esType)                \
-    estype_attr_transfer_octet_length(conn, esType, OPENSEARCH_ATP_UNSET, \
+#define OPENSEARCHTYPE_TRANSFER_OCTET_LENGTH(conn, openSearchType)                \
+    opensearchtype_attr_transfer_octet_length(conn, openSearchType, OPENSEARCH_ATP_UNSET, \
                                       OPENSEARCH_UNKNOWNS_UNSET)
-#define OPENSEARCHTYPE_TO_NAME(conn, esType, auto_increment) \
-    estype_attr_to_name(conn, esType, OPENSEARCH_ATP_UNSET, auto_increment)
+#define OPENSEARCHTYPE_TO_NAME(conn, openSearchType, auto_increment) \
+    opensearchtype_attr_to_name(conn, openSearchType, OPENSEARCH_ATP_UNSET, auto_increment)
 
 RETCODE SQL_API ESAPI_GetFunctions(HDBC hdbc, SQLUSMALLINT fFunction,
                                    SQLUSMALLINT *pfExists) {
@@ -1242,29 +1242,29 @@ char *identifierEscape(const SQLCHAR *src, SQLLEN srclen,
 #define TABLE_IN_RELKIND "('r', 'v', 'm', 'f', 'p')"
 
 /*
- *	macros for estype_attr_xxxx() calls which have
+ *	macros for opensearchtype_attr_xxxx() calls which have
  *		OPENSEARCH_ADT_UNSET or OPENSEARCH_UNKNOWNS_UNSET parameters
  */
-#define OPENSEARCHTYPE_ATTR_COLUMN_SIZE(conn, esType, atttypmod)           \
-    estype_attr_column_size(conn, esType, atttypmod, OPENSEARCH_ADT_UNSET, \
+#define OPENSEARCHTYPE_ATTR_COLUMN_SIZE(conn, openSearchType, atttypmod)           \
+    opensearchtype_attr_column_size(conn, openSearchType, atttypmod, OPENSEARCH_ADT_UNSET, \
                             OPENSEARCH_UNKNOWNS_UNSET)
-#define OPENSEARCHTYPE_ATTR_TO_CONCISE_TYPE(conn, esType, atttypmod)           \
-    estype_attr_to_concise_type(conn, esType, atttypmod, OPENSEARCH_ADT_UNSET, \
+#define OPENSEARCHTYPE_ATTR_TO_CONCISE_TYPE(conn, openSearchType, atttypmod)           \
+    opensearchtype_attr_to_concise_type(conn, openSearchType, atttypmod, OPENSEARCH_ADT_UNSET, \
                                 OPENSEARCH_UNKNOWNS_UNSET)
-#define OPENSEARCHTYPE_ATTR_TO_SQLDESCTYPE(conn, esType, atttypmod)           \
-    estype_attr_to_sqldesctype(conn, esType, atttypmod, OPENSEARCH_ADT_UNSET, \
+#define OPENSEARCHTYPE_ATTR_TO_SQLDESCTYPE(conn, openSearchType, atttypmod)           \
+    opensearchtype_attr_to_sqldesctype(conn, openSearchType, atttypmod, OPENSEARCH_ADT_UNSET, \
                                OPENSEARCH_UNKNOWNS_UNSET)
-#define OPENSEARCHTYPE_ATTR_DISPLAY_SIZE(conn, esType, atttypmod)           \
-    estype_attr_display_size(conn, esType, atttypmod, OPENSEARCH_ADT_UNSET, \
+#define OPENSEARCHTYPE_ATTR_DISPLAY_SIZE(conn, openSearchType, atttypmod)           \
+    opensearchtype_attr_display_size(conn, openSearchType, atttypmod, OPENSEARCH_ADT_UNSET, \
                              OPENSEARCH_UNKNOWNS_UNSET)
-#define OPENSEARCHTYPE_ATTR_BUFFER_LENGTH(conn, esType, atttypmod)           \
-    estype_attr_buffer_length(conn, esType, atttypmod, OPENSEARCH_ADT_UNSET, \
+#define OPENSEARCHTYPE_ATTR_BUFFER_LENGTH(conn, openSearchType, atttypmod)           \
+    opensearchtype_attr_buffer_length(conn, openSearchType, atttypmod, OPENSEARCH_ADT_UNSET, \
                               OPENSEARCH_UNKNOWNS_UNSET)
-#define OPENSEARCHTYPE_ATTR_DECIMAL_DIGITS(conn, esType, atttypmod)           \
-    estype_attr_decimal_digits(conn, esType, atttypmod, OPENSEARCH_ADT_UNSET, \
+#define OPENSEARCHTYPE_ATTR_DECIMAL_DIGITS(conn, openSearchType, atttypmod)           \
+    opensearchtype_attr_decimal_digits(conn, openSearchType, atttypmod, OPENSEARCH_ADT_UNSET, \
                                OPENSEARCH_UNKNOWNS_UNSET)
-#define OPENSEARCHTYPE_ATTR_TRANSFER_OCTET_LENGTH(conn, esType, atttypmod) \
-    estype_attr_transfer_octet_length(conn, esType, atttypmod,     \
+#define OPENSEARCHTYPE_ATTR_TRANSFER_OCTET_LENGTH(conn, openSearchType, atttypmod) \
+    opensearchtype_attr_transfer_octet_length(conn, openSearchType, atttypmod,     \
                                       OPENSEARCH_UNKNOWNS_UNSET)
 
 RETCODE SQL_API ESAPI_SpecialColumns(

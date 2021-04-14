@@ -179,7 +179,7 @@ enum {
 /*	Result style */
 enum { STMT_FETCH_NONE = 0, STMT_FETCH_NORMAL, STMT_FETCH_EXTENDED };
 
-#define ES_NUM_NORMAL_KEYS 2
+#define OPENSEARCH_NUM_NORMAL_KEYS 2
 
 typedef RETCODE (*NeedDataCallfunc)(RETCODE, void *);
 typedef struct {

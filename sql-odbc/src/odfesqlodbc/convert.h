@@ -38,7 +38,7 @@ int copy_and_convert_field(StatementClass *stmt, OID field_type, int atttypmod,
                            PTR rgbValue, SQLLEN cbValueMax, SQLLEN *pcbValue,
                            SQLLEN *pIndicator);
 
-SQLLEN es_hex2bin(const char *in, char *out, SQLLEN len);
+SQLLEN opensearch_hex2bin(const char *in, char *out, SQLLEN len);
 
 #ifdef __cplusplus
 }

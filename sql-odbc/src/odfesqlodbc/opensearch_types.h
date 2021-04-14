@@ -118,7 +118,7 @@ extern SQLSMALLINT sqlTypes[];
 #define	OPENSEARCH_INTERVAL_AS_SQL_INTERVAL
  */
 
-OID es_true_type(const ConnectionClass *, OID, OID);
+OID opensearch_true_type(const ConnectionClass *, OID, OID);
 OID sqltype_to_opensearchtype(const ConnectionClass *conn, SQLSMALLINT fSqlType);
 const char *sqltype_to_escast(const ConnectionClass *conn,
                               SQLSMALLINT fSqlType);

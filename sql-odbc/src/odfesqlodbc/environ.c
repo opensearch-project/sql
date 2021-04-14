@@ -81,7 +81,7 @@ cleanup:
 
 #define SIZEOF_SQLSTATE 6
 
-static void es_sqlstate_set(const EnvironmentClass *env, UCHAR *szSqlState,
+static void opensearch_sqlstate_set(const EnvironmentClass *env, UCHAR *szSqlState,
                             const char *ver3str, const char *ver2str) {
     strncpy_null((char *)szSqlState, EN_is_odbc3(env) ? ver3str : ver2str,
                  SIZEOF_SQLSTATE);
@@ -137,7 +137,7 @@ OpenSearch_ErrorInfo *ER_Dup(const OpenSearch_ErrorInfo *self) {
 
 #define DRVMNGRDIV 511
 /*		Returns the next SQL error information. */
-RETCODE SQL_API ER_ReturnError(OpenSearch_ErrorInfo *eserror, SQLSMALLINT RecNumber,
+RETCODE SQL_API ER_ReturnError(OpenSearch_ErrorInfo *openSearchError, SQLSMALLINT RecNumber,
                                SQLCHAR *szSqlState, SQLINTEGER *pfNativeError,
                                SQLCHAR *szErrorMsg, SQLSMALLINT cbErrorMsgMax,
                                SQLSMALLINT *pcbErrorMsg, UWORD flag) {
@@ -147,9 +147,9 @@ RETCODE SQL_API ER_ReturnError(OpenSearch_ErrorInfo *eserror, SQLSMALLINT RecNum
     const char *msg;
     SWORD msglen, stapos, wrtlen, pcblen;
 
-    if (!eserror)
+    if (!openSearchError)
         return SQL_NO_DATA_FOUND;
-    error = eserror;
+    error = openSearchError;
     msg = error->__error_message;
     MYLOG(OPENSEARCH_TRACE, "entering status = %d, msg = #%s#\n", error->status, msg);
     msglen = (SQLSMALLINT)strlen(msg);

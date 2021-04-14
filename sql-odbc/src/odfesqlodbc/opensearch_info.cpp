@@ -32,7 +32,7 @@
 #define DEFAULT_TYPE_INT (SQL_WVARCHAR)
 #define EMPTY_VARCHAR \
     { '\0' }
-#define ES_UNINITIALIZED (-2)
+#define OPENSEARCH_UNINITIALIZED (-2)
 #define COLUMN_TEMPLATE_COUNT 18
 #define TABLE_TEMPLATE_COUNT 5
 
@@ -104,7 +104,7 @@ const std::unordered_map< std::string, int > data_name_data_type_map = {
 class BindTemplate {
    public:
     BindTemplate(const bool can_be_null, const SQLUSMALLINT ordinal)
-        : m_len(ES_UNINITIALIZED), m_ordinal(ordinal) {
+        : m_len(OPENSEARCH_UNINITIALIZED), m_ordinal(ordinal) {
         if (!can_be_null)
             throw std::runtime_error(
                 "Do not use this constructor for values that can be NULL. A "
@@ -112,23 +112,23 @@ class BindTemplate {
                 "supplied default value must be used if value can be NULL.");
     }
     BindTemplate(const bool can_be_null, const SQLUSMALLINT ordinal, const Int2)
-        : m_len(ES_UNINITIALIZED), m_ordinal(ordinal) {
+        : m_len(OPENSEARCH_UNINITIALIZED), m_ordinal(ordinal) {
         (void)(can_be_null);
     }
     BindTemplate(const bool can_be_null, const SQLUSMALLINT ordinal, const Int4)
-        : m_len(ES_UNINITIALIZED), m_ordinal(ordinal) {
+        : m_len(OPENSEARCH_UNINITIALIZED), m_ordinal(ordinal) {
         (void)(can_be_null);
     }
     BindTemplate(const bool can_be_null, const SQLUSMALLINT ordinal,
                  const std::vector< SQLCHAR > &)
-        : m_len(ES_UNINITIALIZED), m_ordinal(ordinal) {
+        : m_len(OPENSEARCH_UNINITIALIZED), m_ordinal(ordinal) {
         (void)(can_be_null);
     }
     virtual ~BindTemplate() {
     }
 
     SQLPOINTER GetData() {
-        if (m_len == ES_UNINITIALIZED)
+        if (m_len == OPENSEARCH_UNINITIALIZED)
             throw std::runtime_error(
                 "Length is uninitialized - Fetch must be executed before data "
                 "is retreived.");

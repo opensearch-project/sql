@@ -788,7 +788,7 @@ static const struct {
      {STMT_NO_RESPONSE, "08S01", "08S01"},
      {STMT_COMMUNICATION_ERROR, "08S01", "08S01"}};
 
-static OpenSearch_ErrorInfo *SC_create_errorinfo(const StatementClass *self, OpenSearch_ErrorInfo *eserror_fail_safe) {
+static OpenSearch_ErrorInfo *SC_create_errorinfo(const StatementClass *self, OpenSearch_ErrorInfo *opensearch_error_fail_safe) {
     QResultClass *res = SC_get_Curres(self);
     ConnectionClass *conn = SC_get_conn(self);
     Int4 errornum;
@@ -797,7 +797,7 @@ static OpenSearch_ErrorInfo *SC_create_errorinfo(const StatementClass *self, Ope
     BOOL looponce, loopend;
     char msg[4096], *wmsg;
     char *ermsg = NULL, *sqlstate = NULL;
-    OpenSearch_ErrorInfo *eserror;
+    OpenSearch_ErrorInfo *opensearch_error;
 
     if (self->opensearch_error)
         return self->opensearch_error;
@@ -860,23 +860,23 @@ static OpenSearch_ErrorInfo *SC_create_errorinfo(const StatementClass *self, Ope
 
         ermsg = msg;
     }
-    eserror = ER_Constructor(self->__error_number, ermsg);
-    if (!eserror) {
-        if (eserror_fail_safe) {
-            memset(eserror_fail_safe, 0, sizeof(*eserror_fail_safe));
-            eserror = eserror_fail_safe;
-            eserror->status = self->__error_number;
-            eserror->errorsize = sizeof(eserror->__error_message);
-            STRCPY_FIXED(eserror->__error_message, ermsg);
-            eserror->recsize = -1;
+    opensearch_error = ER_Constructor(self->__error_number, ermsg);
+    if (!opensearch_error) {
+        if (opensearch_error_fail_safe) {
+            memset(opensearch_error_fail_safe, 0, sizeof(*opensearch_error_fail_safe));
+            opensearch_error = opensearch_error_fail_safe;
+            opensearch_error->status = self->__error_number;
+            opensearch_error->errorsize = sizeof(opensearch_error->__error_message);
+            STRCPY_FIXED(opensearch_error->__error_message, ermsg);
+            opensearch_error->recsize = -1;
         } else
             return NULL;
     }
     if (sqlstate)
-        STRCPY_FIXED(eserror->sqlstate, sqlstate);
+        STRCPY_FIXED(opensearch_error->sqlstate, sqlstate);
     else if (conn) {
         if (!msgend && conn->sqlstate[0])
-            STRCPY_FIXED(eserror->sqlstate, conn->sqlstate);
+            STRCPY_FIXED(opensearch_error->sqlstate, conn->sqlstate);
         else {
             EnvironmentClass *env = (EnvironmentClass *)CC_get_env(conn);
 
@@ -887,14 +887,14 @@ static OpenSearch_ErrorInfo *SC_create_errorinfo(const StatementClass *self, Ope
                               / sizeof(Statement_sqlstate[0])) {
                 errornum = 1 - LOWEST_STMT_ERROR;
             }
-            STRCPY_FIXED(eserror->sqlstate,
+            STRCPY_FIXED(opensearch_error->sqlstate,
                          EN_is_odbc3(env)
                              ? Statement_sqlstate[errornum].ver3str
                              : Statement_sqlstate[errornum].ver2str);
         }
     }
 
-    return eserror;
+    return opensearch_error;
 }
 
 void SC_reset_delegate(RETCODE retcode, StatementClass *stmt) {
@@ -971,7 +971,7 @@ void SC_error_copy(StatementClass *self, const StatementClass *from,
 
 void SC_full_error_copy(StatementClass *self, const StatementClass *from,
                         BOOL allres) {
-    OpenSearch_ErrorInfo *eserror;
+    OpenSearch_ErrorInfo *opensearch_error;
 
     MYLOG(OPENSEARCH_TRACE, "entering %p->%p\n", from, self);
     if (!from)
@@ -992,14 +992,14 @@ void SC_full_error_copy(StatementClass *self, const StatementClass *from,
         return;
     } else if (!allres)
         return;
-    eserror = SC_create_errorinfo(from, NULL);
-    if (!eserror || !eserror->__error_message[0]) {
-        ER_Destructor(eserror);
+    opensearch_error = SC_create_errorinfo(from, NULL);
+    if (!opensearch_error || !opensearch_error->__error_message[0]) {
+        ER_Destructor(opensearch_error);
         return;
     }
     if (self->opensearch_error)
         ER_Destructor(self->opensearch_error);
-    self->opensearch_error = eserror;
+    self->opensearch_error = opensearch_error;
 }
 
 /* Returns the next SQL error information. */

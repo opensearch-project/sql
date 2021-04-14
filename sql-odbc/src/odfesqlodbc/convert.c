@@ -78,7 +78,7 @@ static int convert_lo(StatementClass *stmt, const void *value,
                       SQLSMALLINT fCType, PTR rgbValue, SQLLEN cbValueMax,
                       SQLLEN *pcbValue);
 static int conv_from_octal(const char *s);
-static SQLLEN es_bin2hex(const char *src, char *dst, SQLLEN length);
+static SQLLEN opensearch_bin2hex(const char *src, char *dst, SQLLEN length);
 #ifdef UNICODE_SUPPORT
 static SQLLEN es_bin2whex(const char *src, SQLWCHAR *dst, SQLLEN length);
 #endif /* UNICODE_SUPPORT */
@@ -837,7 +837,7 @@ static int setup_getdataclass(SQLLEN *const length_return,
             len =
                 convert_from_esbinary(neut_str, esdc->ttlbuf, esdc->ttlbuflen);
             if (BYTEA_PROCESS_ESCAPE == bytea_process_kind)
-                len = es_bin2hex(esdc->ttlbuf, esdc->ttlbuf, len);
+                len = opensearch_bin2hex(esdc->ttlbuf, esdc->ttlbuf, len);
         } else
             convert_linefeeds(neut_str, esdc->ttlbuf, esdc->ttlbuflen, lf_conv,
                               &changed);
@@ -2186,7 +2186,7 @@ static size_t convert_from_esbinary(const char *value, char *rgbValue,
                 if (i < ilen) {
                     ilen -= i;
                     if (rgbValue)
-                        es_hex2bin(value + i, rgbValue + o, ilen);
+                        opensearch_hex2bin(value + i, rgbValue + o, ilen);
                     o += ilen / 2;
                 }
                 break;
@@ -2254,9 +2254,9 @@ static const char *hextbl = "0123456789ABCDEF";
 static SQLLEN es_bin2whex def_bin2hex(SQLWCHAR)
 #endif /* UNICODE_SUPPORT */
 
-    static SQLLEN es_bin2hex def_bin2hex(char)
+    static SQLLEN opensearch_bin2hex def_bin2hex(char)
 
-        SQLLEN es_hex2bin(const char *src, char *dst, SQLLEN length) {
+        SQLLEN opensearch_hex2bin(const char *in, char *out, SQLLEN len) {
     UCHAR chr;
     const char *src_wk;
     char *dst_wk;
@@ -2264,7 +2264,7 @@ static SQLLEN es_bin2whex def_bin2hex(SQLWCHAR)
     int val;
     BOOL HByte = TRUE;
 
-    for (i = 0, src_wk = src, dst_wk = dst; i < length; i++, src_wk++) {
+    for (i = 0, src_wk = in, dst_wk = out; i < len; i++, src_wk++) {
         chr = *src_wk;
         if (!chr)
             break;
@@ -2283,7 +2283,7 @@ static SQLLEN es_bin2whex def_bin2hex(SQLWCHAR)
         HByte = !HByte;
     }
     *dst_wk = '\0';
-    return length;
+    return len;
 }
 
 static int convert_lo(StatementClass *stmt, const void *value,

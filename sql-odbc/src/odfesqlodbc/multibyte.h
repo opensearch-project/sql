@@ -122,11 +122,11 @@ typedef struct {
 #ifdef __cplusplus
 extern "C" {
 #endif
-int es_CS_code(const char *stat_string);
+int opensearch_CS_code(const char *stat_string);
 int encoded_nextchar(encoded_str *encstr);
 int encoded_byte_check(encoded_str *encstr, size_t abspos);
 const char *derive_locale_encoding(const char *dbencoding);
-int es_mb_maxlen(int characterset_code);
+int opensearch_mb_maxlen(int characterset_code);
 #ifdef __cplusplus
 }
 #endif

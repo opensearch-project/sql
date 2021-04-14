@@ -187,8 +187,8 @@ int CC_send_client_encoding(ConnectionClass *self, const char *encoding) {
     // Update connection class to reflect updated client encoding
     char *prev_encoding = self->original_client_encoding;
     self->original_client_encoding = strdup(des_db_encoding.c_str());
-    self->ccsc = static_cast< short >(es_CS_code(des_db_encoding.c_str()));
-    self->mb_maxbyte_per_char = static_cast< short >(es_mb_maxlen(self->ccsc));
+    self->ccsc = static_cast< short >(opensearch_CS_code(des_db_encoding.c_str()));
+    self->mb_maxbyte_per_char = static_cast< short >(opensearch_mb_maxlen(self->ccsc));
     if (prev_encoding != NULL)
         free(prev_encoding);
 

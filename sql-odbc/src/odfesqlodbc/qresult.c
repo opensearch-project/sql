@@ -162,7 +162,7 @@ QResultClass *QR_Constructor(void) {
         rv->cursTuple = -1;
         rv->move_offset = 0;
         rv->num_fields = 0;
-        rv->num_key_fields = ES_NUM_NORMAL_KEYS; /* CTID + OID */
+        rv->num_key_fields = OPENSEARCH_NUM_NORMAL_KEYS; /* CTID + OID */
         rv->tupleField = NULL;
         rv->cursor_name = NULL;
         rv->aborted = FALSE;

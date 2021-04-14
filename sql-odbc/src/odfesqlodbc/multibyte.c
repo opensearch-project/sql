@@ -87,18 +87,18 @@ static ES_CS CS_Alias[] = {{"UNICODE", UTF8}, {"TCVN", WIN1258},
                            {"ALT", WIN866},   {"WIN", WIN1251},
                            {"KOI8R", KOI8R},  {"OTHER", OTHER}};
 
-int es_CS_code(const char *characterset_string) {
+int opensearch_CS_code(const char *characterset_string) {
     int i, c = -1;
 
     for (i = 0; CS_Table[i].code != OTHER; i++) {
-        if (0 == stricmp(characterset_string, CS_Table[i].name)) {
+        if (0 == stricmp(stat_string, CS_Table[i].name)) {
             c = CS_Table[i].code;
             break;
         }
     }
     if (c < 0) {
         for (i = 0; CS_Alias[i].code != OTHER; i++) {
-            if (0 == stricmp(characterset_string, CS_Alias[i].name)) {
+            if (0 == stricmp(stat_string, CS_Alias[i].name)) {
                 c = CS_Alias[i].code;
                 break;
             }
@@ -109,7 +109,7 @@ int es_CS_code(const char *characterset_string) {
     return (c);
 }
 
-int es_mb_maxlen(int characterset_code) {
+int opensearch_mb_maxlen(int characterset_code) {
     switch (characterset_code) {
         case UTF8:
             return 4;
@@ -133,7 +133,7 @@ int es_mb_maxlen(int characterset_code) {
     }
 }
 
-static int es_CS_stat(int stat, unsigned int character, int characterset_code) {
+static int opensearch_CS_stat(int stat, unsigned int character, int characterset_code) {
     if (character == 0)
         stat = 0;
     switch (characterset_code) {
@@ -358,7 +358,8 @@ int encoded_nextchar(encoded_str *encstr) {
     if (encstr->pos >= 0 && !encstr->encstr[encstr->pos])
         return 0;
     chr = encstr->encstr[++encstr->pos];
-    encstr->ccst = es_CS_stat(encstr->ccst, (unsigned int)chr, encstr->ccsc);
+    encstr->ccst =
+        opensearch_CS_stat(encstr->ccst, (unsigned int)chr, encstr->ccsc);
     return chr;
 }
 
@@ -366,6 +367,7 @@ int encoded_byte_check(encoded_str *encstr, size_t abspos) {
     int chr;
 
     chr = encstr->encstr[encstr->pos = abspos];
-    encstr->ccst = es_CS_stat(encstr->ccst, (unsigned int)chr, encstr->ccsc);
+    encstr->ccst =
+        opensearch_CS_stat(encstr->ccst, (unsigned int)chr, encstr->ccsc);
     return chr;
 }
