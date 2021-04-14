@@ -263,64 +263,64 @@ RETCODE SQL_API OPENSEARCHAPI_ConnectError(HDBC hdbc, SQLSMALLINT RecNumber,
         else
             switch (status) {
                 case CONN_OPTION_VALUE_CHANGED:
-                    es_sqlstate_set(env, szSqlState, "01S02", "01S02");
+                    opensearch_sqlstate_set(env, szSqlState, "01S02", "01S02");
                     break;
                 case CONN_TRUNCATED:
-                    es_sqlstate_set(env, szSqlState, "01004", "01004");
+                    opensearch_sqlstate_set(env, szSqlState, "01004", "01004");
                     /* data truncated */
                     break;
                 case CONN_INIREAD_ERROR:
-                    es_sqlstate_set(env, szSqlState, "IM002", "IM002");
+                    opensearch_sqlstate_set(env, szSqlState, "IM002", "IM002");
                     /* data source not found */
                     break;
                 case CONNECTION_SERVER_NOT_REACHED:
                 case CONN_OPENDB_ERROR:
-                    es_sqlstate_set(env, szSqlState, "08001", "08001");
+                    opensearch_sqlstate_set(env, szSqlState, "08001", "08001");
                     /* unable to connect to data source */
                     break;
                 case CONN_INVALID_AUTHENTICATION:
                 case CONN_AUTH_TYPE_UNSUPPORTED:
-                    es_sqlstate_set(env, szSqlState, "28000", "28000");
+                    opensearch_sqlstate_set(env, szSqlState, "28000", "28000");
                     break;
                 case CONN_STMT_ALLOC_ERROR:
-                    es_sqlstate_set(env, szSqlState, "HY001", "S1001");
+                    opensearch_sqlstate_set(env, szSqlState, "HY001", "S1001");
                     /* memory allocation failure */
                     break;
                 case CONN_IN_USE:
-                    es_sqlstate_set(env, szSqlState, "HY000", "S1000");
+                    opensearch_sqlstate_set(env, szSqlState, "HY000", "S1000");
                     /* general error */
                     break;
                 case CONN_UNSUPPORTED_OPTION:
-                    es_sqlstate_set(env, szSqlState, "HYC00", "IM001");
+                    opensearch_sqlstate_set(env, szSqlState, "HYC00", "IM001");
                     /* driver does not support this function */
                     break;
                 case CONN_INVALID_ARGUMENT_NO:
-                    es_sqlstate_set(env, szSqlState, "HY009", "S1009");
+                    opensearch_sqlstate_set(env, szSqlState, "HY009", "S1009");
                     /* invalid argument value */
                     break;
                 case CONN_TRANSACT_IN_PROGRES:
-                    es_sqlstate_set(env, szSqlState, "HY011", "S1011");
+                    opensearch_sqlstate_set(env, szSqlState, "HY011", "S1011");
                     break;
                 case CONN_NO_MEMORY_ERROR:
-                    es_sqlstate_set(env, szSqlState, "HY001", "S1001");
+                    opensearch_sqlstate_set(env, szSqlState, "HY001", "S1001");
                     break;
                 case CONN_NOT_IMPLEMENTED_ERROR:
-                    es_sqlstate_set(env, szSqlState, "HYC00", "S1C00");
+                    opensearch_sqlstate_set(env, szSqlState, "HYC00", "S1C00");
                     break;
                 case CONN_ILLEGAL_TRANSACT_STATE:
-                    es_sqlstate_set(env, szSqlState, "25000", "S1010");
+                    opensearch_sqlstate_set(env, szSqlState, "25000", "S1010");
                     break;
                 case CONN_VALUE_OUT_OF_RANGE:
-                    es_sqlstate_set(env, szSqlState, "HY019", "22003");
+                    opensearch_sqlstate_set(env, szSqlState, "HY019", "22003");
                     break;
                 case CONNECTION_COULD_NOT_SEND:
                 case CONNECTION_COULD_NOT_RECEIVE:
                 case CONNECTION_COMMUNICATION_ERROR:
                 case CONNECTION_NO_RESPONSE:
-                    es_sqlstate_set(env, szSqlState, "08S01", "08S01");
+                    opensearch_sqlstate_set(env, szSqlState, "08S01", "08S01");
                     break;
                 default:
-                    es_sqlstate_set(env, szSqlState, "HY000", "S1000");
+                    opensearch_sqlstate_set(env, szSqlState, "HY000", "S1000");
                     /* general error */
                     break;
             }
@@ -355,7 +355,7 @@ RETCODE SQL_API OPENSEARCHAPI_EnvError(HENV henv, SQLSMALLINT RecNumber,
         MYLOG(OPENSEARCH_ERROR, "EN_get_error: msg = #%s#\n", msg);
 
         if (NULL != szSqlState)
-            es_sqlstate_set(env, szSqlState, "00000", "00000");
+            opensearch_sqlstate_set(env, szSqlState, "00000", "00000");
         if (NULL != pcbErrorMsg)
             *pcbErrorMsg = 0;
         if ((NULL != szErrorMsg) && (cbErrorMsgMax > 0))
@@ -376,10 +376,10 @@ RETCODE SQL_API OPENSEARCHAPI_EnvError(HENV henv, SQLSMALLINT RecNumber,
         switch (status) {
             case ENV_ALLOC_ERROR:
                 /* memory allocation failure */
-                es_sqlstate_set(env, szSqlState, "HY001", "S1001");
+                opensearch_sqlstate_set(env, szSqlState, "HY001", "S1001");
                 break;
             default:
-                es_sqlstate_set(env, szSqlState, "HY000", "S1000");
+                opensearch_sqlstate_set(env, szSqlState, "HY000", "S1000");
                 /* general error */
                 break;
         }
