@@ -37,14 +37,14 @@ class UrlParserTests {
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "jdbc:elasticsearch://host:9200",
-            "jdbc:elasticsearch://host:9200/path",
-            "jdbc:elasticsearch://host:9200/path/",
-            "jdbc:elasticsearch://host:9200/path?option=value",
-            "jdbc:elasticsearch://host:9200/path?option=value&option2=value2",
-            "jdbc:elasticsearch://host/path",
-            "jdbc:elasticsearch://host/path/",
-            "jdbc:elasticsearch://host/path?option=value&option2=value2",
+            "jdbc:opensearch://host:9200",
+            "jdbc:opensearch://host:9200/path",
+            "jdbc:opensearch://host:9200/path/",
+            "jdbc:opensearch://host:9200/path?option=value",
+            "jdbc:opensearch://host:9200/path?option=value&option2=value2",
+            "jdbc:opensearch://host/path",
+            "jdbc:opensearch://host/path/",
+            "jdbc:opensearch://host/path?option=value&option2=value2",
     })
     void testIsAcceptable(String url) {
         assertTrue(UrlParser.isAcceptable(url), () -> url + " was not accepted");
@@ -52,10 +52,10 @@ class UrlParserTests {
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "jdbc:elasticsearch:/",
-            "elasticsearch://host:9200/path",
-            "jdbc:elasticsearch:",
-            "jdbc:elasticsearch",
+            "jdbc:opensearch:/",
+            "opensearch://host:9200/path",
+            "jdbc:opensearch:",
+            "jdbc:opensearch",
             "jdbc://host:9200/"
     })
     void testIsNotAcceptable(String url) {
@@ -70,29 +70,29 @@ class UrlParserTests {
     @Test
     void testPropertiesFromURL() throws URISyntaxException {
 
-        propertiesFromUrl("jdbc:elasticsearch://")
+        propertiesFromUrl("jdbc:opensearch://")
                 .match(); // empty properties
 
-        propertiesFromUrl("jdbc:elasticsearch://https://localhost:9200/")
+        propertiesFromUrl("jdbc:opensearch://https://localhost:9200/")
                 .match(
                         KeyValuePairs.skvp(HostConnectionProperty.KEY, "localhost"),
                         KeyValuePairs.skvp(PortConnectionProperty.KEY, "9200"),
                         KeyValuePairs.skvp(UseSSLConnectionProperty.KEY, "true"),
                         KeyValuePairs.skvp(PathConnectionProperty.KEY, "/"));
 
-        propertiesFromUrl("jdbc:elasticsearch://localhost:9200")
+        propertiesFromUrl("jdbc:opensearch://localhost:9200")
                 .match(
                         KeyValuePairs.skvp(HostConnectionProperty.KEY, "localhost"),
                         KeyValuePairs.skvp(PortConnectionProperty.KEY, "9200"),
                         KeyValuePairs.skvp(UseSSLConnectionProperty.KEY, "false"));
 
-        propertiesFromUrl("jdbc:elasticsearch://es-domain-name.sub.hostname.com:1080")
+        propertiesFromUrl("jdbc:opensearch://es-domain-name.sub.hostname.com:1080")
                 .match(
                         KeyValuePairs.skvp(HostConnectionProperty.KEY, "es-domain-name.sub.hostname.com"),
                         KeyValuePairs.skvp(PortConnectionProperty.KEY, "1080"),
                         KeyValuePairs.skvp(UseSSLConnectionProperty.KEY, "false"));
 
-        propertiesFromUrl("jdbc:elasticsearch://es-domain-name.sub.hostname.com:1090/")
+        propertiesFromUrl("jdbc:opensearch://es-domain-name.sub.hostname.com:1090/")
                 .match(
                         KeyValuePairs.skvp(HostConnectionProperty.KEY, "es-domain-name.sub.hostname.com"),
                         KeyValuePairs.skvp(PortConnectionProperty.KEY, "1090"),
@@ -104,10 +104,10 @@ class UrlParserTests {
     @Test
     public void testPropertiesFromLongUrl() {
         propertiesFromUrl(
-                "jdbc:elasticsearch://search-elasticsearch-es23-dedm-za-1-edmwao5g64rlo3hcohapy2jpru.us-east-1.es.a9.com")
+                "jdbc:opensearch://search-opensearch-es23-dedm-za-1-edmwao5g64rlo3hcohapy2jpru.us-east-1.es.a9.com")
                 .match(
                         KeyValuePairs.skvp(HostConnectionProperty.KEY,
-                                "search-elasticsearch-es23-dedm-za-1-edmwao5g64rlo3hcohapy2jpru.us-east-1.es.a9.com"),
+                                "search-opensearch-es23-dedm-za-1-edmwao5g64rlo3hcohapy2jpru.us-east-1.es.a9.com"),
                         KeyValuePairs.skvp(UseSSLConnectionProperty.KEY, "false"));
     }
 
@@ -121,7 +121,7 @@ class UrlParserTests {
 
     @Test
     public void testPropertiesFromUrlInvalidScheme() {
-        String url = "jdbc:elasticsearch://tcp://domain-name.sub-domain.com:9023";
+        String url = "jdbc:opensearch://tcp://domain-name.sub-domain.com:9023";
 
         URISyntaxException ex = assertThrows(URISyntaxException.class, () -> UrlParser.parseProperties(url));
         assertTrue(ex.getMessage().contains("Invalid scheme:tcp"));
@@ -129,9 +129,9 @@ class UrlParserTests {
 
     @Test
     public void testPropertiesFromUrlHttpsScheme() {
-        String url = "jdbc:elasticsearch://https://domain-name.sub-domain.com:9023";
+        String url = "jdbc:opensearch://https://domain-name.sub-domain.com:9023";
 
-        propertiesFromUrl("jdbc:elasticsearch://https://domain-name.sub-domain.com:9023")
+        propertiesFromUrl("jdbc:opensearch://https://domain-name.sub-domain.com:9023")
                 .match(
                         KeyValuePairs.skvp(HostConnectionProperty.KEY, "domain-name.sub-domain.com"),
                         KeyValuePairs.skvp(PortConnectionProperty.KEY, "9023"),
@@ -140,7 +140,7 @@ class UrlParserTests {
 
     @Test
     public void testPropertiesFromUrlHttpsSchemeAndPath() {
-        propertiesFromUrl("jdbc:elasticsearch://https://domain-name.sub-domain.com:9023/context/path")
+        propertiesFromUrl("jdbc:opensearch://https://domain-name.sub-domain.com:9023/context/path")
                 .match(
                         KeyValuePairs.skvp(HostConnectionProperty.KEY, "domain-name.sub-domain.com"),
                         KeyValuePairs.skvp(PortConnectionProperty.KEY, "9023"),
@@ -150,7 +150,7 @@ class UrlParserTests {
 
     @Test
     public void testPropertiesFromUrlAndQueryString() {
-        propertiesFromUrl("jdbc:elasticsearch://https://domain-name.sub-domain.com:9023/context/path?" +
+        propertiesFromUrl("jdbc:opensearch://https://domain-name.sub-domain.com:9023/context/path?" +
                 "user=username123&password=pass@$!w0rd")
                 .match(
                         KeyValuePairs.skvp(HostConnectionProperty.KEY, "domain-name.sub-domain.com"),
@@ -163,7 +163,7 @@ class UrlParserTests {
 
     @Test
     public void testPropertiesFromUrlWithInvalidQueryString() {
-        final String url = "jdbc:elasticsearch://https://domain-name.sub-domain.com:9023/context/path?prop=value=3";
+        final String url = "jdbc:opensearch://https://domain-name.sub-domain.com:9023/context/path?prop=value=3";
 
         URISyntaxException ex = assertThrows(URISyntaxException.class, () -> UrlParser.parseProperties(url));
         assertTrue(ex.getMessage().contains("Expected key=value pairs"));

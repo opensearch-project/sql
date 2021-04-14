@@ -30,7 +30,7 @@ public class JsonClusterMetadata implements ClusterMetadata {
     private String clusterUUID;
 
     @JsonProperty("version")
-    private JsonElasticsearchVersion version;
+    private JsonOpenSearchVersion version;
 
     @Override
     public String getClusterName() {
@@ -43,7 +43,7 @@ public class JsonClusterMetadata implements ClusterMetadata {
     }
 
     @Override
-    public JsonElasticsearchVersion getVersion() {
+    public JsonOpenSearchVersion getVersion() {
         return version;
     }
 
@@ -55,7 +55,7 @@ public class JsonClusterMetadata implements ClusterMetadata {
         this.clusterUUID = clusterUUID;
     }
 
-    public void setVersion(JsonElasticsearchVersion version) {
+    public void setVersion(JsonOpenSearchVersion version) {
         this.version = version;
     }
 }

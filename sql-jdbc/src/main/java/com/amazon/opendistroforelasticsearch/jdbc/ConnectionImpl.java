@@ -55,7 +55,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
-public class ConnectionImpl implements ElasticsearchConnection, JdbcWrapper, LoggingSource {
+public class ConnectionImpl implements OpenSearchConnection, JdbcWrapper, LoggingSource {
 
     private String url;
     private String user;

@@ -16,7 +16,7 @@
 
 package com.amazon.opendistroforelasticsearch.jdbc.test.mocks;
 
-import com.amazon.opendistroforelasticsearch.jdbc.ElasticsearchConnection;
+import com.amazon.opendistroforelasticsearch.jdbc.OpenSearchConnection;
 
 import java.sql.SQLException;
 
@@ -24,14 +24,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
- * Utility class for obtaining mocked ES responses for tests.
+ * Utility class for obtaining mocked OpenSearch responses for tests.
  */
-public class MockES {
-    // can be turned into a mock that can serve ES version specific
+public class MockOpenSearch {
+    // can be turned into a mock that can serve OpenSearch version specific
     // responses
-    public static final MockES INSTANCE = new MockES();
+    public static final MockOpenSearch INSTANCE = new MockOpenSearch();
 
-    private MockES() {
+    private MockOpenSearch() {
 
     }
 
@@ -55,13 +55,13 @@ public class MockES {
                 "}";
     }
 
-    public void assertMockESConnectionResponse(ElasticsearchConnection esCon) throws SQLException {
-        assertEquals("c1", esCon.getClusterName());
-        assertEquals("JpZSfOJiSLOntGp0zljpVQ", esCon.getClusterUUID());
+    public void assertMockOpenSearchConnectionResponse(OpenSearchConnection openSearchCon) throws SQLException {
+        assertEquals("c1", openSearchCon.getClusterName());
+        assertEquals("JpZSfOJiSLOntGp0zljpVQ", openSearchCon.getClusterUUID());
 
-        assertNotNull(esCon.getMetaData().getDatabaseProductVersion());
-        assertEquals("6.3.1", esCon.getMetaData().getDatabaseProductVersion());
-        assertEquals(6, esCon.getMetaData().getDatabaseMajorVersion());
-        assertEquals(3, esCon.getMetaData().getDatabaseMinorVersion());
+        assertNotNull(openSearchCon.getMetaData().getDatabaseProductVersion());
+        assertEquals("6.3.1", openSearchCon.getMetaData().getDatabaseProductVersion());
+        assertEquals(6, openSearchCon.getMetaData().getDatabaseMajorVersion());
+        assertEquals(3, openSearchCon.getMetaData().getDatabaseMinorVersion());
     }
 }

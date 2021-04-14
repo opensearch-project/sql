@@ -25,7 +25,7 @@ import com.amazon.opendistroforelasticsearch.jdbc.config.UserConnectionProperty;
 import com.amazon.opendistroforelasticsearch.jdbc.protocol.http.JsonHttpProtocol;
 import com.amazon.opendistroforelasticsearch.jdbc.test.PerTestWireMockServerExtension;
 import com.amazon.opendistroforelasticsearch.jdbc.test.WireMockServerHelpers;
-import com.amazon.opendistroforelasticsearch.jdbc.test.mocks.MockES;
+import com.amazon.opendistroforelasticsearch.jdbc.test.mocks.MockOpenSearch;
 import com.amazon.opendistroforelasticsearch.jdbc.test.mocks.QueryMock;
 import com.amazonaws.auth.SdkClock;
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -54,14 +54,14 @@ class ConnectionTests implements WireMockServerHelpers {
         mockServer.stubFor(get(urlEqualTo("/"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json")
-                        .withBody(MockES.INSTANCE.getConnectionResponse())));
+                        .withBody(MockOpenSearch.INSTANCE.getConnectionResponse())));
 
         Driver driver = new Driver();
         Connection con = Assertions.assertDoesNotThrow(
                 () -> driver.connect(getBaseURLForMockServer(mockServer), (Properties) null));
 
         assertConnectionOpen(con);
-        MockES.INSTANCE.assertMockESConnectionResponse((ElasticsearchConnection) con);
+        MockOpenSearch.INSTANCE.assertMockOpenSearchConnectionResponse((OpenSearchConnection) con);
         con.close();
     }
 
@@ -79,7 +79,7 @@ class ConnectionTests implements WireMockServerHelpers {
                 .withBasicAuth("user-name", "password-$#@!*%^123")
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json")
-                        .withBody(MockES.INSTANCE.getConnectionResponse())));
+                        .withBody(MockOpenSearch.INSTANCE.getConnectionResponse())));
 
         Properties props = new Properties();
         props.put(AuthConnectionProperty.KEY, "basic");
@@ -91,7 +91,7 @@ class ConnectionTests implements WireMockServerHelpers {
         mockServer.verify(2, getRequestedFor(urlEqualTo("/"))
                 .withHeader("Accept", equalTo("application/json")));
 
-        MockES.INSTANCE.assertMockESConnectionResponse((ElasticsearchConnection) con);
+        MockOpenSearch.INSTANCE.assertMockOpenSearchConnectionResponse((OpenSearchConnection) con);
         con.close();
     }
 
@@ -112,7 +112,7 @@ class ConnectionTests implements WireMockServerHelpers {
                 .withBasicAuth("user-name", "password-$#@!*%^123")
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json")
-                        .withBody(MockES.INSTANCE.getConnectionResponse())));
+                        .withBody(MockOpenSearch.INSTANCE.getConnectionResponse())));
 
         Properties props = new Properties();
         props.put(UserConnectionProperty.KEY, "user-name");
@@ -123,7 +123,7 @@ class ConnectionTests implements WireMockServerHelpers {
         mockServer.verify(2, getRequestedFor(urlEqualTo("/"))
                 .withHeader("Accept", equalTo("application/json")));
 
-        MockES.INSTANCE.assertMockESConnectionResponse((ElasticsearchConnection) con);
+        MockOpenSearch.INSTANCE.assertMockOpenSearchConnectionResponse((OpenSearchConnection) con);
         con.close();
     }
 
@@ -136,7 +136,7 @@ class ConnectionTests implements WireMockServerHelpers {
                         .withHeader("Accept-Encoding", equalTo("gzip,deflate"))
                         .willReturn(aResponse()
                                 .withHeader("Content-Type", "application/json")
-                                .withBody(MockES.INSTANCE.getConnectionResponse())));
+                                .withBody(MockOpenSearch.INSTANCE.getConnectionResponse())));
 
         Properties props = new Properties();
         props.setProperty(RequestCompressionConnectionProperty.KEY, "true");
@@ -144,7 +144,7 @@ class ConnectionTests implements WireMockServerHelpers {
         // WireMockServer returns a gzip response by default
         // if Accept-Enconding: gzip,deflate is present in the request
         Connection con = Assertions.assertDoesNotThrow(() -> new Driver().connect(getBaseURLForMockServer(mockServer), props));
-        MockES.INSTANCE.assertMockESConnectionResponse((ElasticsearchConnection) con);
+        MockOpenSearch.INSTANCE.assertMockOpenSearchConnectionResponse((OpenSearchConnection) con);
         con.close();
     }
 
@@ -156,7 +156,7 @@ class ConnectionTests implements WireMockServerHelpers {
                 get(urlEqualTo("/"))
                         .willReturn(aResponse()
                                 .withHeader("Content-Type", "application/json")
-                                .withBody(MockES.INSTANCE.getConnectionResponse())));
+                                .withBody(MockOpenSearch.INSTANCE.getConnectionResponse())));
 
         mockServer.stubFor(
                 get(urlEqualTo("/"))
@@ -172,7 +172,7 @@ class ConnectionTests implements WireMockServerHelpers {
         // WireMockServer returns a gzip response by default
         // if Accept-Enconding: gzip,deflate is present in the request
         Connection con = Assertions.assertDoesNotThrow(() -> new Driver().connect(getBaseURLForMockServer(mockServer), props));
-        MockES.INSTANCE.assertMockESConnectionResponse((ElasticsearchConnection) con);
+        MockOpenSearch.INSTANCE.assertMockOpenSearchConnectionResponse((OpenSearchConnection) con);
         con.close();
     }
 
@@ -184,7 +184,7 @@ class ConnectionTests implements WireMockServerHelpers {
                 get(urlEqualTo("/"))
                         .willReturn(aResponse()
                                 .withHeader("Content-Type", "application/json")
-                                .withBody(MockES.INSTANCE.getConnectionResponse())));
+                                .withBody(MockOpenSearch.INSTANCE.getConnectionResponse())));
 
         // return HTTP 400 if request contains Accept-Encoding: gzip
         mockServer.stubFor(
@@ -198,7 +198,7 @@ class ConnectionTests implements WireMockServerHelpers {
         Properties props = new Properties();
 
         Connection con = Assertions.assertDoesNotThrow(() -> new Driver().connect(getBaseURLForMockServer(mockServer), props));
-        MockES.INSTANCE.assertMockESConnectionResponse((ElasticsearchConnection) con);
+        MockOpenSearch.INSTANCE.assertMockOpenSearchConnectionResponse((OpenSearchConnection) con);
         con.close();
     }
 
@@ -218,7 +218,7 @@ class ConnectionTests implements WireMockServerHelpers {
                                 "Signature=80088eaaa2e7766ccee12014a5ab80d323635347157ea29935e990d34bcbff12"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json")
-                        .withBody(MockES.INSTANCE.getConnectionResponse())));
+                        .withBody(MockOpenSearch.INSTANCE.getConnectionResponse())));
 
 
         Properties props = new Properties();
@@ -232,7 +232,7 @@ class ConnectionTests implements WireMockServerHelpers {
         Connection con = Assertions.assertDoesNotThrow(() ->
                 new Driver().connect(getBaseURLForMockServer(mockServer), props));
 
-        MockES.INSTANCE.assertMockESConnectionResponse((ElasticsearchConnection) con);
+        MockOpenSearch.INSTANCE.assertMockOpenSearchConnectionResponse((OpenSearchConnection) con);
         con.close();
     }
 
@@ -254,7 +254,7 @@ class ConnectionTests implements WireMockServerHelpers {
                 () -> driver.connect(getURLForMockServerWithContext(mockServer, userContextPath), (Properties) null));
 
         assertConnectionOpen(con);
-        queryMock.assertConnectionResponse((ElasticsearchConnection) con);
+        queryMock.assertConnectionResponse((OpenSearchConnection) con);
 
         Statement st = con.createStatement();
 

@@ -16,12 +16,12 @@
 
 package com.amazon.opendistroforelasticsearch.jdbc.protocol;
 
-import com.amazon.opendistroforelasticsearch.jdbc.ElasticsearchVersion;
+import com.amazon.opendistroforelasticsearch.jdbc.OpenSearchVersion;
 
 public interface ClusterMetadata {
     String getClusterName();
 
     String getClusterUUID();
 
-    ElasticsearchVersion getVersion();
+    OpenSearchVersion getVersion();
 }

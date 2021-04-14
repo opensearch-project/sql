@@ -16,7 +16,7 @@
 
 package com.amazon.opendistroforelasticsearch.jdbc.internal.results;
 
-import com.amazon.opendistroforelasticsearch.jdbc.types.ElasticsearchType;
+import com.amazon.opendistroforelasticsearch.jdbc.types.OpenSearchType;
 
 import java.util.List;
 
@@ -51,14 +51,14 @@ public class Schema {
     }
 
     /**
-     * Returns the {@link ElasticsearchType} corresponding to a specific
+     * Returns the {@link OpenSearchType} corresponding to a specific
      * column in the result.
      *
      * @param index the index of the column to return the type for
      *
-     * @return {@link ElasticsearchType} for the specified column
+     * @return {@link OpenSearchType} for the specified column
      */
-    public ElasticsearchType getElasticsearchType(int index) {
-        return columnMetaDataList.get(index).getEsType();
+    public OpenSearchType getOpenSearchType(int index) {
+        return columnMetaDataList.get(index).getOpenSearchType();
     }
 }

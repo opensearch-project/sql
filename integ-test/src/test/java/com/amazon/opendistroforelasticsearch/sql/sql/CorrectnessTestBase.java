@@ -100,7 +100,7 @@ public abstract class CorrectnessTestBase extends RestIntegTestCase {
    */
   private DBConnection getESConnection() {
     String esHost = client().getNodes().get(0).getHost().toString();
-    return new ESConnection("jdbc:elasticsearch://" + esHost, client());
+    return new ESConnection("jdbc:opensearch://" + esHost, client());
   }
 
   /**
