@@ -73,10 +73,10 @@ void set_tuplefield_int2(TupleField *tuple_field, Int2 value);
 void set_tuplefield_int4(TupleField *tuple_field, Int4 value);
 SQLLEN ClearCachedRows(TupleField *tuple, int num_fields, SQLLEN num_rows);
 
-typedef struct _ES_BM_ {
+typedef struct _OPENSEARCH_BM_ {
     Int4 index;
     KeySet keys;
-} ES_BM;
+} OPENSEARCH_BM;
 
 #ifdef __cplusplus
 }

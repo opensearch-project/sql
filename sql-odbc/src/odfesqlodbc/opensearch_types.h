@@ -120,7 +120,7 @@ extern SQLSMALLINT sqlTypes[];
 
 OID opensearch_true_type(const ConnectionClass *, OID, OID);
 OID sqltype_to_opensearchtype(const ConnectionClass *conn, SQLSMALLINT fSqlType);
-const char *sqltype_to_escast(const ConnectionClass *conn,
+const char *sqltype_to_opensearchcast(const ConnectionClass *conn,
                               SQLSMALLINT fSqlType);
 
 SQLSMALLINT opensearchtype_to_concise_type(const StatementClass *stmt, OID type,

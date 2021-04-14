@@ -88,7 +88,7 @@ const std::unordered_map< std::string, OID > type_to_oid_map = {
     {OPENSEARCH_TYPE_NAME_VARCHAR, OPENSEARCH_TYPE_VARCHAR},
     {OPENSEARCH_TYPE_NAME_DATE, OPENSEARCH_TYPE_DATE}};
 
-#define ES_VARCHAR_SIZE (-2)
+#define OPENSEARCH_VARCHAR_SIZE (-2)
 const std::unordered_map< OID, int16_t > oid_to_size_map = {
     {OPENSEARCH_TYPE_BOOL, (int16_t)1},
     {OPENSEARCH_TYPE_INT2, (int16_t)2},
@@ -96,8 +96,8 @@ const std::unordered_map< OID, int16_t > oid_to_size_map = {
     {OPENSEARCH_TYPE_INT8, (int16_t)8},
     {OPENSEARCH_TYPE_FLOAT4, (int16_t)4},
     {OPENSEARCH_TYPE_FLOAT8, (int16_t)8},
-    {OPENSEARCH_TYPE_VARCHAR, (int16_t)ES_VARCHAR_SIZE},
-    {OPENSEARCH_TYPE_DATE, (int16_t)ES_VARCHAR_SIZE},
+    {OPENSEARCH_TYPE_VARCHAR, (int16_t)OPENSEARCH_VARCHAR_SIZE},
+    {OPENSEARCH_TYPE_DATE, (int16_t)OPENSEARCH_VARCHAR_SIZE},
     {OPENSEARCH_TYPE_TIMESTAMP, (int16_t)1}};
 
 // Using global variable here so that the error message can be propagated

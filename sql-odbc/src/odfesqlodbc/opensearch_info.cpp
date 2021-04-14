@@ -71,7 +71,7 @@
 #define MAXIMUM_SCALE "MAXIMUM_SCALE"
 #define INTERVAL_PRECISION "INTERVAL_PRECISION"
 
-const std::unordered_map< int, std::vector< int > > sql_es_type_map = {
+const std::unordered_map< int, std::vector< int > > sql_opensearch_type_map = {
     {SQL_BIT, {OPENSEARCH_TYPE_BOOL}},
     {SQL_TINYINT, {OPENSEARCH_TYPE_INT1}},
     {SQL_SMALLINT, {OPENSEARCH_TYPE_INT2}},
@@ -1026,15 +1026,16 @@ RETCODE SQL_API ESAPI_GetTypeInfo(HSTMT hstmt, SQLSMALLINT fSqlType) {
 
         if (fSqlType == SQL_ALL_TYPES) {
             for (std::pair< int, std::vector< int > > sqlType :
-                 sql_es_type_map) {
+                 sql_opensearch_type_map) {
                 for (auto const &openSearchType : sqlType.second) {
                     result =
                         SetTypeResult(conn, stmt, res, openSearchType, sqlType.first);
                 }
             }
         } else {
-            if (sql_es_type_map.count(fSqlType) > 0) {
-                for (auto openSearchType : sql_es_type_map.at(fSqlType)) {
+            if (sql_opensearch_type_map.count(fSqlType) > 0) {
+                for (auto openSearchType :
+                     sql_opensearch_type_map.at(fSqlType)) {
                     result = SetTypeResult(conn, stmt, res, openSearchType, fSqlType);
                 }
             }

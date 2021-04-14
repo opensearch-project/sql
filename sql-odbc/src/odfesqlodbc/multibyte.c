@@ -31,12 +31,12 @@
 #define TRUE 1
 #endif
 
-typedef struct ES_CS {
+typedef struct OPENSEARCH_CS {
     char *name;
     int code;
-} ES_CS;
+} OPENSEARCH_CS;
 
-static ES_CS CS_Table[] = {
+static OPENSEARCH_CS CS_Table[] = {
     {"SQL_ASCII", SQL_ASCII},
     {"EUC_JP", EUC_JP},
     {"EUC_CN", EUC_CN},
@@ -83,7 +83,7 @@ static ES_CS CS_Table[] = {
                                            X 0213, since 8.3 */
     {"OTHER", OTHER}};
 
-static ES_CS CS_Alias[] = {{"UNICODE", UTF8}, {"TCVN", WIN1258},
+static OPENSEARCH_CS CS_Alias[] = {{"UNICODE", UTF8}, {"TCVN", WIN1258},
                            {"ALT", WIN866},   {"WIN", WIN1251},
                            {"KOI8R", KOI8R},  {"OTHER", OTHER}};
 

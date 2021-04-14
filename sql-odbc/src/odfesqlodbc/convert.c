@@ -72,7 +72,7 @@ typedef struct {
 static BOOL convert_money(const char *s, char *sout, size_t soutmax);
 size_t convert_linefeeds(const char *s, char *dst, size_t max, BOOL convlf,
                          BOOL *changed);
-static size_t convert_from_esbinary(const char *value, char *rgbValue,
+static size_t convert_from_opensearchbinary(const char *value, char *rgbValue,
                                     SQLLEN cbValueMax);
 static int convert_lo(StatementClass *stmt, const void *value,
                       SQLSMALLINT fCType, PTR rgbValue, SQLLEN cbValueMax,
@@ -712,7 +712,7 @@ static int setup_getdataclass(SQLLEN *const length_return,
         {
             BOOL wcs_debug = 0;
             BOOL same_encoding =
-                (conn->ccsc == es_CS_code(conn->locale_encoding));
+                (conn->ccsc == opensearch_CS_code(conn->locale_encoding));
             BOOL is_utf8 = (UTF8 == conn->ccsc);
 
             switch (field_type) {
@@ -765,7 +765,7 @@ static int setup_getdataclass(SQLLEN *const length_return,
     if (already_processed) /* skip */
         ;
     else if (0 != bytea_process_kind) {
-        len = convert_from_esbinary(neut_str, NULL, 0);
+        len = convert_from_opensearchbinary(neut_str, NULL, 0);
         if (BYTEA_PROCESS_BINARY != bytea_process_kind)
             len *= 2;
         changed = TRUE;
@@ -834,8 +834,8 @@ static int setup_getdataclass(SQLLEN *const length_return,
         if (already_processed)
             ;
         else if (0 != bytea_process_kind) {
-            len =
-                convert_from_esbinary(neut_str, esdc->ttlbuf, esdc->ttlbuflen);
+            len = convert_from_opensearchbinary(neut_str, esdc->ttlbuf,
+                                                esdc->ttlbuflen);
             if (BYTEA_PROCESS_ESCAPE == bytea_process_kind)
                 len = opensearch_bin2hex(esdc->ttlbuf, esdc->ttlbuf, len);
         } else
@@ -2168,7 +2168,7 @@ static int conv_from_octal(const char *s) {
 }
 
 /*	convert octal escapes to bytes */
-static size_t convert_from_esbinary(const char *value, char *rgbValue,
+static size_t convert_from_opensearchbinary(const char *value, char *rgbValue,
                                     SQLLEN cbValueMax) {
     UNUSED(cbValueMax);
     size_t i, ilen = strlen(value);

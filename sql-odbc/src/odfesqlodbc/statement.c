@@ -1447,21 +1447,21 @@ int SC_Create_bookmark(StatementClass *self, BindInfoClass *bookmark,
     SQLUINTEGER bind_size = opts->bind_size;
     SQLULEN offset = opts->row_offset_ptr ? *opts->row_offset_ptr : 0;
     size_t cvtlen = sizeof(Int4);
-    ES_BM ES_bm;
+    OPENSEARCH_BM opensearch_bm;
 
     MYLOG(OPENSEARCH_TRACE, "entering type=%d buflen=" FORMAT_LEN " buf=%p\n",
           bookmark->returntype, bookmark->buflen, bookmark->buffer);
-    memset(&ES_bm, 0, sizeof(ES_bm));
+    memset(&opensearch_bm, 0, sizeof(opensearch_bm));
     if (SQL_C_BOOKMARK == bookmark->returntype)
         ;
-    else if (bookmark->buflen >= (SQLLEN)sizeof(ES_bm))
-        cvtlen = sizeof(ES_bm);
+    else if (bookmark->buflen >= (SQLLEN)sizeof(opensearch_bm))
+        cvtlen = sizeof(opensearch_bm);
     else if (bookmark->buflen >= 12)
         cvtlen = 12;
-    ES_bm.index = SC_make_int4_bookmark(currTuple);
+    opensearch_bm.index = SC_make_int4_bookmark(currTuple);
     if (keyset)
-        ES_bm.keys = *keyset;
-    memcpy(CALC_BOOKMARK_ADDR(bookmark, offset, bind_size, bind_row), &ES_bm,
+        opensearch_bm.keys = *keyset;
+    memcpy(CALC_BOOKMARK_ADDR(bookmark, offset, bind_size, bind_row), &opensearch_bm,
            cvtlen);
     if (bookmark->used) {
         SQLLEN *used = LENADDR_SHIFT(bookmark->used, offset);
@@ -1473,7 +1473,9 @@ int SC_Create_bookmark(StatementClass *self, BindInfoClass *bookmark,
         *used = cvtlen;
     }
     MYLOG(OPENSEARCH_TRACE, "leaving cvtlen=" FORMAT_SIZE_T " ix(bl,of)=%d(%d,%d)\n",
-          cvtlen, ES_bm.index, ES_bm.keys.blocknum, ES_bm.keys.offset);
+          cvtlen,
+          opensearch_bm.index, opensearch_bm.keys.blocknum,
+          opensearch_bm.keys.offset);
 
     return COPY_OK;
 }

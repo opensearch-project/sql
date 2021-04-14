@@ -864,47 +864,47 @@ Int4 opensearchtype_attr_transfer_octet_length(const ConnectionClass *conn, OID 
  * than specifying parameter datatype oids determined by
  * sqltype_to_bind_opensearchtype() via parse message.
  */
-const char *sqltype_to_escast(const ConnectionClass *conn,
+const char *sqltype_to_opensearchcast(const ConnectionClass *conn,
                               SQLSMALLINT fSqlType) {
-    const char *esCast = NULL_STRING;
+    const char *openSearchCast = NULL_STRING;
 
     switch (fSqlType) {
         case SQL_BINARY:
         case SQL_VARBINARY:
-            esCast = "::bytea";
+            openSearchCast = "::bytea";
             break;
         case SQL_TYPE_DATE:
         case SQL_DATE:
-            esCast = "::date";
+            openSearchCast = "::date";
             break;
         case SQL_DECIMAL:
         case SQL_NUMERIC:
-            esCast = "::numeric";
+            openSearchCast = "::numeric";
             break;
         case SQL_BIGINT:
-            esCast = "::int8";
+            openSearchCast = "::int8";
             break;
         case SQL_INTEGER:
-            esCast = "::int4";
+            openSearchCast = "::int4";
             break;
         case SQL_REAL:
-            esCast = "::float4";
+            openSearchCast = "::float4";
             break;
         case SQL_SMALLINT:
         case SQL_TINYINT:
-            esCast = "::int2";
+            openSearchCast = "::int2";
             break;
         case SQL_TIME:
         case SQL_TYPE_TIME:
-            esCast = "::time";
+            openSearchCast = "::time";
             break;
         case SQL_TIMESTAMP:
         case SQL_TYPE_TIMESTAMP:
-            esCast = "::timestamp";
+            openSearchCast = "::timestamp";
             break;
         case SQL_GUID:
             if (OPENSEARCH_VERSION_GE(conn, 8.3))
-                esCast = "::uuid";
+                openSearchCast = "::uuid";
             break;
         case SQL_INTERVAL_MONTH:
         case SQL_INTERVAL_YEAR:
@@ -919,11 +919,11 @@ const char *sqltype_to_escast(const ConnectionClass *conn,
         case SQL_INTERVAL_HOUR_TO_MINUTE:
         case SQL_INTERVAL_HOUR_TO_SECOND:
         case SQL_INTERVAL_MINUTE_TO_SECOND:
-            esCast = "::interval";
+            openSearchCast = "::interval";
             break;
     }
 
-    return esCast;
+    return openSearchCast;
 }
 
 OID sqltype_to_opensearchtype(const ConnectionClass *conn, SQLSMALLINT fSqlType) {
