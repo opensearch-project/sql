@@ -80,9 +80,9 @@ set(DSN_INSTALLER_SRC "${CMAKE_CURRENT_SOURCE_DIR}/DSNInstaller")
 # ODBC Driver version 
 set(DRIVER_PACKAGE_VERSION "1.15.0.0")
 set(DRIVER_PACKAGE_VERSION_COMMA_SEPARATED "1,15,0,0")
-add_compile_definitions( ES_ODBC_VERSION="${DRIVER_PACKAGE_VERSION}"
+add_compile_definitions( OPENSEARCH_ODBC_VERSION="${DRIVER_PACKAGE_VERSION}"
                          # Comma separated version is required for odbc administrator's driver file.
-                         ES_ODBC_DRVFILE_VERSION=${DRIVER_PACKAGE_VERSION_COMMA_SEPARATED} )
+                         OPENSEARCH_ODBC_DRVFILE_VERSION=${DRIVER_PACKAGE_VERSION_COMMA_SEPARATED} )
 
 # Extensions of base directories
 set(PERFORMANCE_TESTS "${CMAKE_CURRENT_SOURCE_DIR}/PerformanceTests")

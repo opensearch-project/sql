@@ -46,14 +46,14 @@ extern "C" {
 #endif
 
 DLL_DECLARE int mylog(const char *fmt, ...)
-    __attribute__((format(ES_PRINTF_ATTRIBUTE, 1, 2)));
+    __attribute__((format(OPENSEARCH_PRINTF_ATTRIBUTE, 1, 2)));
 DLL_DECLARE int myprintf(const char *fmt, ...)
-    __attribute__((format(ES_PRINTF_ATTRIBUTE, 1, 2)));
+    __attribute__((format(OPENSEARCH_PRINTF_ATTRIBUTE, 1, 2)));
 
 extern int qlog(const char *fmt, ...)
-    __attribute__((format(ES_PRINTF_ATTRIBUTE, 1, 2)));
+    __attribute__((format(OPENSEARCH_PRINTF_ATTRIBUTE, 1, 2)));
 extern int qprintf(char *fmt, ...)
-    __attribute__((format(ES_PRINTF_ATTRIBUTE, 1, 2)));
+    __attribute__((format(OPENSEARCH_PRINTF_ATTRIBUTE, 1, 2)));
 
 const char *po_basename(const char *path);
 
@@ -126,7 +126,7 @@ const char *po_basename(const char *path);
 #endif /* __GNUC__ */
 
 enum ESLogLevel {
-    // Prefixing with ES_ because C does not support namespaces and we may get a
+    // Prefixing with OPENSEARCH_ because C does not support namespaces and we may get a
     // collision, given how common these names are
     ES_OFF,
     ES_FATAL,

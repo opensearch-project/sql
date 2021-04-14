@@ -46,7 +46,7 @@ set(					HEADER_FILES
 
 # Generate dll (SHARED)
 if(WIN32)
-set(RESOURCE_FILES es_odbc.rc)
+set(RESOURCE_FILES opensearch_odbc.rc)
 add_library(odfesqlodbc SHARED ${SOURCE_FILES} ${HEADER_FILES} ${RESOURCE_FILES} ${AWSSDK_LIB_DIR})
 else()
 add_library(odfesqlodbc SHARED ${SOURCE_FILES} ${HEADER_FILES})
