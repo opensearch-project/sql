@@ -204,7 +204,7 @@ This project is based on the Apache 2.0-licensed [elasticsearch-sql](https://git
 
 ## Code of Conduct
 
-This project has adopted an [Open Source Code of Conduct](https://opendistro.github.io/for-elasticsearch/codeofconduct.html).
+This project has adopted an [Open Source Code of Conduct](./CODE_OF_CONDUCT.md).
 
 
 ## Security issue notifications
