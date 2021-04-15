@@ -1,5 +1,15 @@
-Open Distribution for Elasticsearch SQL
-Copyright 2018-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+OpenSearch
+Copyright 2021 OpenSearch Contributors
+
+This product includes software developed by
+Elasticsearch (http://www.elastic.co).
+Copyright 2009-2018 Elasticsearch
+
+This product includes software developed by The Apache Software
+Foundation (http://www.apache.org/).
+
+This product includes software developed by
+Joda.org (http://www.joda.org/).
 
 This project is based on the Apache 2.0-licensed elasticsearch-sql project (https://github.com/NLPchina/elasticsearch-sql):
 
