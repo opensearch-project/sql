@@ -81,7 +81,7 @@ GitHub provides additional document on [forking a repository](https://help.githu
 
 ## Developing
 
-For instructions for development in details, please refer to [Development Guide](./docs/developing.rst).
+For instructions for development in details, please refer to [Developer Guide](./DEVELOPER_GUIDE.rst).
 
 ## Finding contributions to work on
 Looking at the existing issues is a great way to find something to contribute on. As our projects, by default, use the default GitHub issue labels (enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at any ['help wanted'](../../labels/help%20wanted) issues is a great place to start.
