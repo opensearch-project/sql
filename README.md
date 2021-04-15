@@ -137,7 +137,7 @@ curl -XPOST https://localhost:9200/_opendistro/_sql -u admin:admin -k -d '{"quer
 
 			SELECT online FROM online GROUP BY date_range(field='insert_time','format'='yyyy-MM-dd' ,'2014-08-18','2014-08-17','now-8d','now-7d','now-6d','now')
 
-* ES Geographic
+* OpenSearch Geographic
 		
 		SELECT * FROM locations WHERE GEO_BOUNDING_BOX(fieldname,100.0,1.0,101,0.0)
 
@@ -166,7 +166,7 @@ curl -XPOST https://localhost:9200/_opendistro/_sql -u admin:admin -k -d '{"quer
 *  SQL Between
 *  SQL Aliases
 *  SQL Not Null
-*  SQL(ES) Date
+*  SQL(OpenSearch) Date
 *  SQL avg()
 *  SQL count()
 *  SQL max()
@@ -190,13 +190,13 @@ Please check out JDBC driver repository for more details.
 
 ## Beyond sql features
 
-*  ES TopHits
-*  ES MISSING
-*  ES STATS
-*  ES GEO_INTERSECTS
-*  ES GEO_BOUNDING_BOX
-*  ES GEO_DISTANCE
-*  ES GEOHASH_GRID aggregation
+*  OpenSearch TopHits
+*  OpenSearch MISSING
+*  OpenSearch STATS
+*  OpenSearch GEO_INTERSECTS
+*  OpenSearch GEO_BOUNDING_BOX
+*  OpenSearch GEO_DISTANCE
+*  OpenSearch GEOHASH_GRID aggregation
 
 ## Attribution
 

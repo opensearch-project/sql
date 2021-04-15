@@ -3,4 +3,4 @@ SELECT AVG(AvgTicketPrice) FILTER(WHERE Carrier = 'OpenSearch Dashboards Airline
 SELECT AVG(AvgTicketPrice + 1) FILTER(WHERE Carrier = 'OpenSearch Dashboards Airlines') AS filtered FROM opensearch_dashboards_sample_data_flights
 SELECT AVG(AvgTicketPrice) FILTER(WHERE Carrier = 'OpenSearch Dashboards Airlines') / 2 AS filtered FROM opensearch_dashboards_sample_data_flights
 SELECT AVG(AvgTicketPrice) FILTER(WHERE ABS(AvgTicketPrice) < 10000) AS filtered FROM opensearch_dashboards_sample_data_flights
-SELECT AVG(AvgTicketPrice) AS unfiltered, AVG(AvgTicketPrice) FILTER(WHERE Carrier = 'OpenSearch Dashboards Airlines') AS filtered1, AVG(AvgTicketPrice) FILTER(WHERE Carrier = 'ES-Air') AS filtered2 FROM opensearch_dashboards_sample_data_flights WHERE DestWeather = 'Sunny'
+SELECT AVG(AvgTicketPrice) AS unfiltered, AVG(AvgTicketPrice) FILTER(WHERE Carrier = 'OpenSearch Dashboards Airlines') AS filtered1, AVG(AvgTicketPrice) FILTER(WHERE Carrier = 'OpenSearch-Air') AS filtered2 FROM opensearch_dashboards_sample_data_flights WHERE DestWeather = 'Sunny'

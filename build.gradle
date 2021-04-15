@@ -45,7 +45,7 @@ plugins {
 
 // Repository on root level is for dependencies that project code depends on. And this block must be placed after plugins{}
 repositories {
-    mavenCentral() // For Elastic Libs that you can use to get started coding until open ES libs are available
+    mavenCentral() // For Elastic Libs that you can use to get started coding until open OpenSearch libs are available
 }
 
 ext {
