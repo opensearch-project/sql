@@ -29,14 +29,14 @@ Specific version of JDK is required to build the plugin because of the dependenc
 
 Here are the official instructions on how to set ``JAVA_HOME`` for different platforms: https://docs.oracle.com/cd/E19182-01/820-7851/inst_cli_jdk_javahome_t/. 
 
-OpenSearch & Kibana
--------------------
+OpenSearch & OpenSearch Dashboards
+----------------------------------
 
-For convenience, we recommend installing `OpenSearch <https://www.elastic.co/downloads/past-releases#elasticsearch-oss>`_ and `Kibana <https://www.elastic.co/downloads/past-releases#kibana-oss>`_ on your local machine. You can download the open source ZIP for each and extract them to a folder.
+For convenience, we recommend installing `OpenSearch <https://www.elastic.co/downloads/past-releases#elasticsearch-oss>`_ and `OpenSearch Dashboards <https://www.elastic.co/downloads/past-releases#kibana-oss>`_ on your local machine. You can download the open source ZIP for each and extract them to a folder.
 
 If you just want to have a quick look, you can also get an OpenSearch running with plugin installed by ``./gradlew :plugin:run``.
 
-Kibana is optional, but makes it easier to test your queries. Alternately, you can use curl from the terminal to run queries against the plugin.
+OpenSearch Dashboards is optional, but makes it easier to test your queries. Alternately, you can use curl from the terminal to run queries against the plugin.
 
 Getting Source Code
 ===================
@@ -57,7 +57,7 @@ If there is update in master or you want to keep the forked repository long livi
    $ git checkout <branch_name>
    $ git merge master
 
-After getting the source code as well as OpenSearch and Kibana, your workspace layout may look like this::
+After getting the source code as well as OpenSearch and OpenSearch Dashboards, your workspace layout may look like this::
 
    $ mkdir opendistro
    $ cd opendistro
@@ -65,8 +65,8 @@ After getting the source code as well as OpenSearch and Kibana, your workspace l
    total 32
    drwxr-xr-x  7 user group^users 4096 Nov 21 12:59 .
    drwxr-xr-x 19 user group^users 4096 Nov 21 09:44 ..
-   drwxr-xr-x 10 user group^users 4096 Nov  8 12:16 elasticsearch-7.3.2
-   drwxr-xr-x 14 user group^users 4096 Nov  8 12:14 kibana-7.3.2-linux-x86_64
+   drwxr-xr-x 10 user group^users 4096 Nov  8 12:16 opensearch
+   drwxr-xr-x 14 user group^users 4096 Nov  8 12:14 opensearch-dashboards
    drwxr-xr-x 16 user group^users 4096 Nov 15 10:59 sql
 
 
@@ -237,7 +237,7 @@ Sometimes your Gradle build fails or timeout due to OpenSearch integration test 
    $ ./gradlew stop
    $ ./gradlew start
 
-   #Check if ES integTest process hung there. Kill it if so.
+   #Check if OpenSearch integTest process hung there. Kill it if so.
    $ ps aux | grep -i opensearch
 
    #Clean and rebuild
@@ -293,7 +293,7 @@ For test cases, you can use the cases in the following checklist in case you mis
 For unit test:
 
 * Put your test class in the same package in src/test/java so you can access and test package-level method.
-* Make sure you are testing against the right abstraction with dependencies mocked. For example a bad practice is to create many classes by ESActionFactory class and write test cases on very high level. This makes it more like an integration test.
+* Make sure you are testing against the right abstraction with dependencies mocked. For example a bad practice is to create many classes by OpenSearchActionFactory class and write test cases on very high level. This makes it more like an integration test.
 
 For integration test:
 
@@ -333,7 +333,7 @@ Sometime you want to deploy your changes to local OpenSearch cluster, basically 
 
 To automate this common task, you can prepare an all-in-one command for reuse. Below is a sample command for macOS::
 
- ./gradlew assemble && {echo y | cp -f build/distributions/opendistro_sql-1*0.jar <Elasticsearch_home>/plugins/opendistro-sql} && {kill $(ps aux | awk '/[E]lasticsearch/ {print $2}'); sleep 3; nohup <Elasticsearch_home>/bin/elasticsearch > ~/Temp/opensearch.log 2>&1 &}
+ ./gradlew assemble && {echo y | cp -f build/distributions/opendistro_sql-1*0.jar <OpenSearch_home>/plugins/opendistro-sql} && {kill $(ps aux | awk '/[O]pensearch/ {print $2}'); sleep 3; nohup <OpenSearch_home>/bin/opensearch > ~/Temp/opensearch.log 2>&1 &}
 
 Note that for the first time you need to create ``opendistro-sql`` folder and unzip ``build/distribution/opendistro_sql-xxxx.zip`` to it.
 

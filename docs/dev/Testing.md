@@ -26,7 +26,7 @@ First we can improve the test coverage by improving the diversity of our test ca
 
 At this stage we don’t want to spend too much efforts on setting up a complicated infrastructure for testing. So we can take full advantage of capabilities that GitHub provides:
 
- 1. **Test Data & Cases**: Use test case set with Kibana flights and ecommerce sample index.
+ 1. **Test Data & Cases**: Use test case set with OpenSearch Dashboards flights and ecommerce sample index.
  2. **Trigger**: Set up another GitHub Action workflow.
  3. **Test Runner**: Use embedded OpenSearch and other IMDBs.
  4. **Reporting**: Use standard JUnit report or simple custom json format.
@@ -73,11 +73,11 @@ X98CCZO,Cape Town International Airport,false,5482.606664853586,...,Venice
 For now we don't implement a Fuzzer to generate test queries because test queries prepared manually is sufficient to help identify issues. So we just put all queries in a text file. In future, a fuzzer can generate queries and save to file to integrate with Test Runner smoothly.
 
 ```
-SELECT 1 AS `empty` FROM `kibana_sample_data_flights`
-SELECT substring(OriginWeather, 1, 2) AS OriginWeather FROM kibana_sample_data_flights
-SELECT SUM(FlightDelayMin) AS sum_FlightDelayMin_ok FROM kibana_sample_data_flights
-SELECT SUM(FlightDelay) AS sum_FlightDelay_ok FROM kibana_sample_data_flights
-SELECT SUM(DistanceMiles) AS sum_DistanceMiles_ok FROM kibana_sample_data_flights
+SELECT 1 AS `empty` FROM `opensearch_dashboards_sample_data_flights`
+SELECT substring(OriginWeather, 1, 2) AS OriginWeather FROM opensearch_dashboards_sample_data_flights
+SELECT SUM(FlightDelayMin) AS sum_FlightDelayMin_ok FROM opensearch_dashboards_sample_data_flights
+SELECT SUM(FlightDelay) AS sum_FlightDelay_ok FROM opensearch_dashboards_sample_data_flights
+SELECT SUM(DistanceMiles) AS sum_DistanceMiles_ok FROM opensearch_dashboards_sample_data_flights
 ```
 
 ### 3.3 Test Runner
@@ -160,7 +160,7 @@ TODO
 
 Use default test set and reference databases by `testType` argument given only. Because `integTestRunner` triggers quite a few integration tests which take long time and runs with `gradlew build` every time, `testType` is added to run doctest for documentation and comparison test separately.
 
-Note that for now test data set argument is not supported because it often requires code changes to map more ES data type to JDBC type as well as convert data.
+Note that for now test data set argument is not supported because it often requires code changes to map more OpenSearch data type to JDBC type as well as convert data.
 
 ```
 $ ./gradlew :integ-test:comparisonTest
@@ -173,7 +173,7 @@ $ ./gradlew :integ-test:comparisonTest
      H2 = jdbc:h2:mem:test;DB_CLOSE_DELAY=-1
     Test data set(s) :
     Test data set :
-     Table name: kibana_sample_data_flights
+     Table name: opensearch_dashboards_sample_data_flights
      Schema: {
       "mappings": {
         "properties": {
@@ -193,13 +193,13 @@ $ ./gradlew :integ-test:comparisonTest
 
      Data rows (first 5 in 21):
      [FlightNum, Origin, FlightDelay, DistanceMiles, FlightTimeMin, OriginWeather, dayOfWeek, AvgTicketPrice, Carrier, FlightDelayMin, OriginRegion, FlightDelayType, DestAirportID, Dest, FlightTimeHour, Cancelled, DistanceKilometers, OriginCityName, DestWeather, OriginCountry, DestCountry, DestRegion, OriginAirportID, DestCityName, timestamp]
-     [RGXY9H5, Chubu Centrair International Airport, false, 1619.970725161303, 124.1471507959044, Heavy Fog, 0, 626.1297405910661, Kibana Airlines, 0, SE-BD, No Delay, CAN, Guangzhou Baiyun International Airport, 2.06911917993174, true, 2607.0901667139924, Tokoname, Clear, JP, CN, SE-BD, NGO, Guangzhou, 2019-12-23T11:19:32]
-     [WOPNZEP, Munich Airport, true, 198.57903689856937, 34.9738738474057, Sunny, 0, 681.9911763989377, Kibana Airlines, 15, DE-BY, Carrier Delay, VE05, Venice Marco Polo Airport, 0.5828978974567617, false, 319.58198155849124, Munich, Cloudy, DE, IT, IT-34, MUC, Venice, 2019-12-23T12:32:26]
-     [G9J5O2V, Frankfurt am Main Airport, false, 4857.154739888458, 651.402736475921, Clear, 0, 868.0507463122127, Kibana Airlines, 0, DE-HE, No Delay, XIY, Xi'an Xianyang International Airport, 10.856712274598683, false, 7816.832837711051, Frankfurt am Main, Thunder & Lightning, DE, CN, SE-BD, FRA, Xi'an, 2019-12-23T03:48:33]
+     [RGXY9H5, Chubu Centrair International Airport, false, 1619.970725161303, 124.1471507959044, Heavy Fog, 0, 626.1297405910661, OpenSearch Dashboards Airlines, 0, SE-BD, No Delay, CAN, Guangzhou Baiyun International Airport, 2.06911917993174, true, 2607.0901667139924, Tokoname, Clear, JP, CN, SE-BD, NGO, Guangzhou, 2019-12-23T11:19:32]
+     [WOPNZEP, Munich Airport, true, 198.57903689856937, 34.9738738474057, Sunny, 0, 681.9911763989377, OpenSearch Dashboards Airlines, 15, DE-BY, Carrier Delay, VE05, Venice Marco Polo Airport, 0.5828978974567617, false, 319.58198155849124, Munich, Cloudy, DE, IT, IT-34, MUC, Venice, 2019-12-23T12:32:26]
+     [G9J5O2V, Frankfurt am Main Airport, false, 4857.154739888458, 651.402736475921, Clear, 0, 868.0507463122127, OpenSearch Dashboards Airlines, 0, DE-HE, No Delay, XIY, Xi'an Xianyang International Airport, 10.856712274598683, false, 7816.832837711051, Frankfurt am Main, Thunder & Lightning, DE, CN, SE-BD, FRA, Xi'an, 2019-12-23T03:48:33]
      [HM80A5V, Itami Airport, false, 5862.6666599206, 555.0027890084269, Heavy Fog, 0, 765.0413127727119, Logstash Airways, 0, SE-BD, No Delay, TV01, Treviso-Sant'Angelo Airport, 9.250046483473783, true, 9435.047413143258, Osaka, Clear, JP, IT, IT-34, ITM, Treviso, 2019-12-23T19:50:48]
 
     Test data set :
-     Table name: kibana_sample_data_ecommerce
+     Table name: opensearch_dashboards_sample_data_ecommerce
      Schema: {
       "mappings": {
         "properties": {
@@ -229,11 +229,11 @@ $ ./gradlew :integ-test:comparisonTest
      [Diane, , order, [Tigress Enterprises, Low Tide Media], Diane Turner, 2019-12-22T13:45:07+00:00, Turner, 6, 2, EUR, 107.94, 2, [Women's Clothing, Women's Shoes], 22, [ZO0059900599, ZO0381103811], 555222, diane, FEMALE, diane@turner-family.zzz, Sunday, 107.94]
 
     Test query set   : SQL queries (first 5 in 215):
-     SELECT SUBSTRING(`kibana_sample_data_flights`.`OriginWeather`, 1, 1024) AS `OriginWeather` FROM `kibana_sample_data_flights` GROUP BY 1
-     SELECT SUM(`kibana_sample_data_flights`.`FlightDelayMin`) AS `sum_Offset_ok` FROM `kibana_sample_data_flights` GROUP BY 1
-     SELECT SUM(`kibana_sample_data_flights`.`FlightDelay`) AS `sum_FlightDelay_ok` FROM `kibana_sample_data_flights` GROUP BY 1
-     SELECT SUM(`kibana_sample_data_flights`.`DistanceMiles`) AS `sum_DistanceMiles_ok` FROM `kibana_sample_data_flights` GROUP BY 1
-     SELECT YEAR(`kibana_sample_data_flights`.`timestamp`) AS `yr_timestamp_ok` FROM `kibana_sample_data_flights` GROUP BY 1
+     SELECT SUBSTRING(`opensearch_dashboards_sample_data_flights`.`OriginWeather`, 1, 1024) AS `OriginWeather` FROM `opensearch_dashboards_sample_data_flights` GROUP BY 1
+     SELECT SUM(`opensearch_dashboards_sample_data_flights`.`FlightDelayMin`) AS `sum_Offset_ok` FROM `opensearch_dashboards_sample_data_flights` GROUP BY 1
+     SELECT SUM(`opensearch_dashboards_sample_data_flights`.`FlightDelay`) AS `sum_FlightDelay_ok` FROM `opensearch_dashboards_sample_data_flights` GROUP BY 1
+     SELECT SUM(`opensearch_dashboards_sample_data_flights`.`DistanceMiles`) AS `sum_DistanceMiles_ok` FROM `opensearch_dashboards_sample_data_flights` GROUP BY 1
+     SELECT YEAR(`opensearch_dashboards_sample_data_flights`.`timestamp`) AS `yr_timestamp_ok` FROM `opensearch_dashboards_sample_data_flights` GROUP BY 1
 
     =================================
 
@@ -252,11 +252,11 @@ $ ./gradlew :integ-test:comparisonTest -Dqueries=sanity_integration_tests.txt
 
     ...
     Test query set   : SQL queries (first 5 in 7):
-     SELECT AvgTicketPrice, Cancelled, Carrier, FlightDelayMin, timestamp FROM kibana_sample_data_flights
-     SELECT AvgTicketPrice AS avg, Cancelled AS cancel, Carrier AS carrier, FlightDelayMin AS delay, timestamp AS ts FROM kibana_sample_data_flights
-     SELECT Carrier, AVG(FlightDelayMin) FROM kibana_sample_data_flights GROUP BY Carrier
-     SELECT Carrier, AVG(FlightDelayMin) FROM kibana_sample_data_flights GROUP BY Carrier HAVING AVG(FlightDelayMin) > 5
-     SELECT YEAR(timestamp) FROM kibana_sample_data_flights
+     SELECT AvgTicketPrice, Cancelled, Carrier, FlightDelayMin, timestamp FROM opensearch_dashboards_sample_data_flights
+     SELECT AvgTicketPrice AS avg, Cancelled AS cancel, Carrier AS carrier, FlightDelayMin AS delay, timestamp AS ts FROM opensearch_dashboards_sample_data_flights
+     SELECT Carrier, AVG(FlightDelayMin) FROM opensearch_dashboards_sample_data_flights GROUP BY Carrier
+     SELECT Carrier, AVG(FlightDelayMin) FROM opensearch_dashboards_sample_data_flights GROUP BY Carrier HAVING AVG(FlightDelayMin) > 5
+     SELECT YEAR(timestamp) FROM opensearch_dashboards_sample_data_flights
     ...
 ```
 

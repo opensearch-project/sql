@@ -41,7 +41,7 @@ public class AstQualifiedNameBuilderTest {
 
   @Test
   public void canBuildRegularIdentifierForOpenSearch() {
-    buildFromTableName(".kibana").expectQualifiedName(".kibana");
+    buildFromTableName(".opensearch_dashboards").expectQualifiedName(".opensearch_dashboards");
     buildFromIdentifier("@timestamp").expectQualifiedName("@timestamp");
     buildFromIdentifier("logs-2020-01").expectQualifiedName("logs-2020-01");
     buildFromIdentifier("*logs*").expectQualifiedName("*logs*");

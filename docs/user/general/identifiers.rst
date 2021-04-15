@@ -28,7 +28,7 @@ Extensions
 
 For OpenSearch, the following identifiers are supported extensionally by our SQL parser for convenience (without the need of being delimited as shown in next section):
 
-1. Identifiers prefixed by dot ``.``: this is called hidden index in OpenSearch, for example ``.kibana``.
+1. Identifiers prefixed by dot ``.``: this is called hidden index in OpenSearch, for example ``.opensearch_dashboards``.
 2. Identifiers prefixed by at sign ``@``: this is common for meta fields generated in Logstash ingestion.
 3. Identifiers with ``-`` in the middle: this is mostly the case for index name with date information.
 4. Identifiers with star ``*`` present: this is mostly an index pattern for wildcard match.

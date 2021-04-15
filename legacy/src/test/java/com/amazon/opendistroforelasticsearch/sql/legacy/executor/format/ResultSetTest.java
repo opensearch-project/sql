@@ -54,7 +54,7 @@ public class ResultSetTest {
   @Test
   public void testWildcardForSingleCharacter() {
     assertFalse(resultSet.matchesPatternIfRegex("accounts", "test.23"));
-    assertFalse(resultSet.matchesPatternIfRegex(".kibana", "test.23"));
+    assertFalse(resultSet.matchesPatternIfRegex(".opensearch_dashboards", "test.23"));
     assertTrue(resultSet.matchesPatternIfRegex("test123", "test.23"));
   }
 
@@ -81,7 +81,7 @@ public class ResultSetTest {
   @Test
   public void testIndexNameWithDot() {
     assertFalse(resultSet.matchesPatternIfRegex("accounts", "test.2020.10"));
-    assertFalse(resultSet.matchesPatternIfRegex(".kibana", "test.2020.10"));
+    assertFalse(resultSet.matchesPatternIfRegex(".opensearch_dashboards", "test.2020.10"));
     assertTrue(resultSet.matchesPatternIfRegex("test.2020.10", "test.2020.10"));
   }
 

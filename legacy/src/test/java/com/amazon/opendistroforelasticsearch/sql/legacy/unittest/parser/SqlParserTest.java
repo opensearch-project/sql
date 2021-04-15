@@ -107,7 +107,7 @@ public class SqlParserTest {
         Select select =
                 parser.parseSelect((SQLQueryExpr) queryToExpr(
                         "SELECT DestCountry, dayOfWeek, max(FlightDelayMin) - min(FlightDelayMin)" +
-                        "   FROM kibana_sample_data_flights\n" +
+                        "   FROM opensearch_dashboards_sample_data_flights\n" +
                         "   GROUP BY DestCountry, dayOfWeek\n"));
 
         AggregationQueryAction queryAction = new AggregationQueryAction(mock(Client.class), select);
@@ -123,7 +123,7 @@ public class SqlParserTest {
         Select select =
                 parser.parseSelect((SQLQueryExpr) queryToExpr(
                         "SELECT DestCountry, dayOfWeek, log(max(FlightDelayMin))" +
-                        "   FROM kibana_sample_data_flights\n" +
+                        "   FROM opensearch_dashboards_sample_data_flights\n" +
                         "   GROUP BY DestCountry, dayOfWeek\n"));
 
         AggregationQueryAction queryAction = new AggregationQueryAction(mock(Client.class), select);
@@ -139,7 +139,7 @@ public class SqlParserTest {
         Select select =
                 parser.parseSelect((SQLQueryExpr) queryToExpr(
                         "SELECT DestCountry, dayOfWeek, max(FlightDelayMin) - min(FlightDelayMin) " +
-                        "   FROM kibana_sample_data_flights\n" +
+                        "   FROM opensearch_dashboards_sample_data_flights\n" +
                         "   GROUP BY DestCountry, dayOfWeek\n" +
                         "   HAVING max(FlightDelayMin) - min(FlightDelayMin)) * count(FlightDelayMin) + 14 > 100"));
 
@@ -154,7 +154,7 @@ public class SqlParserTest {
         Select select =
                 parser.parseSelect((SQLQueryExpr) queryToExpr(
                         "SELECT DestCountry, dayOfWeek, max(FlightDelayMin) " +
-                        "   FROM kibana_sample_data_flights\n" +
+                        "   FROM opensearch_dashboards_sample_data_flights\n" +
                         "   GROUP BY DestCountry, dayOfWeek\n" +
                         "   HAVING max(FlightDelayMin) - min(FlightDelayMin) > 100"));
 
@@ -626,10 +626,10 @@ public class SqlParserTest {
 
     @Test
     public void indexNameWithDotAtTheStart() throws SqlParseException {
-        String query = "SELECT * FROM .kibana";
+        String query = "SELECT * FROM .opensearch_dashboards";
         SQLExpr sqlExpr = queryToExpr(query);
         Select select = parser.parseSelect((SQLQueryExpr) sqlExpr);
-        Assert.assertEquals(".kibana", select.getFrom().get(0).getIndex());
+        Assert.assertEquals(".opensearch_dashboards", select.getFrom().get(0).getIndex());
     }
 
     @Test

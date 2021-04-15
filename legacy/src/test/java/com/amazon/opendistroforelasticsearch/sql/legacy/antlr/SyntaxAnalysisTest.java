@@ -106,7 +106,7 @@ public class SyntaxAnalysisTest {
 
     @Test
     public void systemIndexNameShouldPass() {
-        validate("SELECT * FROM .kibana");
+        validate("SELECT * FROM .opensearch_dashboards");
     }
 
     @Test

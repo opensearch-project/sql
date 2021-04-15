@@ -84,12 +84,12 @@ public class TestConfig {
 
   private TestDataSet[] buildDefaultTestDataSet() {
     return new TestDataSet[] {
-        new TestDataSet("kibana_sample_data_flights",
-            readFile("kibana_sample_data_flights.json"),
-            readFile("kibana_sample_data_flights.csv")),
-        new TestDataSet("kibana_sample_data_ecommerce",
-            readFile("kibana_sample_data_ecommerce.json"),
-            readFile("kibana_sample_data_ecommerce.csv")),
+        new TestDataSet("opensearch_dashboards_sample_data_flights",
+            readFile("opensearch_dashboards_sample_data_flights.json"),
+            readFile("opensearch_dashboards_sample_data_flights.csv")),
+        new TestDataSet("opensearch_dashboards_sample_data_ecommerce",
+            readFile("opensearch_dashboards_sample_data_ecommerce.json"),
+            readFile("opensearch_dashboards_sample_data_ecommerce.csv")),
     };
   }
 

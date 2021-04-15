@@ -72,7 +72,7 @@ public enum SqlRequestFormat {
       return str.toString();
     }
   },
-  KIBANA_REQUEST {
+  OPENSEARCH_DASHBOARD_REQUEST {
     @Override
     public String format(SqlRequest sqlRequest) {
       Request request = sqlRequest.request();

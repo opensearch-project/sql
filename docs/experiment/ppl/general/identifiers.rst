@@ -25,7 +25,7 @@ A regular identifier is a string of characters that must start with ASCII letter
 
 For OpenSearch, the following identifiers are supported extensionally:
 
-1. Identifiers prefixed by dot ``.``: this is called hidden index in OpenSearch, for example ``.kibana``.
+1. Identifiers prefixed by dot ``.``: this is called hidden index in OpenSearch, for example ``.opensearch_dashboards``.
 2. Identifiers prefixed by at sign ``@``: this is common for meta fields generated in Logstash ingestion.
 3. Identifiers with ``-`` in the middle: this is mostly the case for index name with date information.
 4. Identifiers with star ``*`` present: this is mostly an index pattern for wildcard match.

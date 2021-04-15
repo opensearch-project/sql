@@ -45,7 +45,7 @@ Subquery in the `FROM` clause in this format: `SELECT outer FROM (SELECT inner)`
     SELECT t.f, t.d
     FROM (
         SELECT FlightNum as f, DestCountry as d
-        FROM kibana_sample_data_flights
+        FROM opensearch_dashboards_sample_data_flights
         WHERE OriginCountry = 'US') t
 
 But, if the outer query has `GROUP BY` or `ORDER BY`, then it's not supported.
@@ -67,7 +67,7 @@ For now, only the field defined in index is allowed, all the other calculated fi
 
     SELECT OriginCountry, AVG(FlightTimeMin) AS avg_flight_time,
            RANK() OVER (ORDER BY avg_flight_time) AS rnk
-    FROM kibana_sample_data_flights
+    FROM opensearch_dashboards_sample_data_flights
     GROUP BY OriginCountry
 
 Another limitation is that currently window function cannot be nested in another expression, for example, ``CASE WHEN RANK() OVER(...) THEN ...``.
@@ -78,7 +78,7 @@ Workaround for both limitations mentioned above is using a sub-query in FROM cla
       SUM(t.avg_flight_time) OVER(...)
     FROM (
         SELECT OriginCountry, AVG(FlightTimeMin) AS avg_flight_time,
-        FROM kibana_sample_data_flights
+        FROM opensearch_dashboards_sample_data_flights
         GROUP BY OriginCountry
     ) AS t
 
@@ -91,7 +91,7 @@ Currently, the pagination only supports basic queries. For example, the followin
     POST _opendistro/_sql/
     {
       "fetch_size" : 5,
-      "query" : "SELECT OriginCountry, DestCountry FROM kibana_sample_data_flights ORDER BY OriginCountry ASC"
+      "query" : "SELECT OriginCountry, DestCountry FROM opensearch_dashboards_sample_data_flights ORDER BY OriginCountry ASC"
     }
 
 The response in JDBC format with cursor id::

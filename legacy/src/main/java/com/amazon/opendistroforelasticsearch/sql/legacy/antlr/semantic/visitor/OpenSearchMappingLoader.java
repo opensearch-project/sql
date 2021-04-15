@@ -173,11 +173,11 @@ public class OpenSearchMappingLoader implements GenericSqlParseTreeVisitor<Type>
     }
 
     /**
-     * Check if index name is NOT nested, for example. return true for index 'accounts' or '.kibana'
+     * Check if index name is NOT nested, for example. return true for index 'accounts' or '.opensearch_dashboards'
      *  but return false for nested field name 'a.projects'.
      */
     private boolean isNotNested(String indexName) {
-        return indexName.indexOf('.', 1) == -1; // taking care of .kibana
+        return indexName.indexOf('.', 1) == -1; // taking care of .opensearch_dashboards
     }
 
     private Set<FieldMappings> getFieldMappings(String indexName) {

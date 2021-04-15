@@ -50,7 +50,7 @@ For these unsupported features, the query will be forwarded to the old query eng
 For the following features unsupported in the new engine, the query will be forwarded to the old query engine and thus you cannot use new features listed above:
 
 * **Cursor**: request with `fetch_size` parameter
-* **JSON response format**: was used to return ES DSL which is not accessible now. Replaced by default format in the new engine which is also in JSON.
+* **JSON response format**: was used to return OpenSearch DSL which is not accessible now. Replaced by default format in the new engine which is also in JSON.
 * **Nested field query**: including supports for nested field query
 * **JOINs**: including all types of JOIN queries
 * **OpenSearch functions**: fulltext search, metric and bucket functions

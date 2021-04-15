@@ -84,7 +84,7 @@ public abstract class ODFERestTestCase extends OpenSearchRestTestCase {
       JSONObject jsonObject = (JSONObject) object;
       String indexName = jsonObject.getString("index");
       //.opendistro_security isn't allowed to delete from cluster
-      if (!indexName.startsWith(".kibana") && !indexName.startsWith(".opendistro")) {
+      if (!indexName.startsWith(".opensearch_dashboards") && !indexName.startsWith(".opendistro")) {
         client().performRequest(new Request("DELETE", "/" + indexName));
       }
     }

@@ -17,7 +17,7 @@ package com.amazon.opendistroforelasticsearch.sql.doctest.core.builder;
 
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequest.UrlParam;
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.IGNORE_REQUEST;
-import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.KIBANA_REQUEST;
+import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.OPENSEARCH_DASHBOARD_REQUEST;
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.response.SqlResponseFormat.PRETTY_JSON_RESPONSE;
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.response.SqlResponseFormat.TABLE_RESPONSE;
 import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.RestSqlAction.EXPLAIN_API_ENDPOINT;
@@ -132,7 +132,7 @@ public interface DocBuilder {
    */
   default Example example(String title, String description, Requests requests) {
     return example(title, description, requests,
-        queryFormat(KIBANA_REQUEST, TABLE_RESPONSE),
+        queryFormat(OPENSEARCH_DASHBOARD_REQUEST, TABLE_RESPONSE),
         explainFormat(IGNORE_REQUEST, PRETTY_JSON_RESPONSE)
     );
   }

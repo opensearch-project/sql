@@ -76,17 +76,17 @@ Current SQL Documentation will need reconstruction in the future. Ideally, both 
 
 
 
-## 2.2 ES Test Instance
+## 2.2 OpenSearch Test Instance
 
 ### 2.2.1 Testing framework
 
 We have two options here
 
-1. Use ES integration testing framework, same as SQL Plugin integration test.
-2. Spin up ES instance with SQL Plugin installed without gradle build the package, simply `./gradlew run`
+1. Use OpenSearch integration testing framework, same as SQL Plugin integration test.
+2. Spin up OpenSearch instance with SQL Plugin installed without gradle build the package, simply `./gradlew run`
 
 
-The reason we are not using ES test framework, is due to the difficulty of integrating Python code to a Java based framework, considering we are using python built-in module `doctest` for implementation
+The reason we are not using OpenSearch test framework, is due to the difficulty of integrating Python code to a Java based framework, considering we are using python built-in module `doctest` for implementation
 
 ### 2.2.2 Gradle
 
@@ -96,11 +96,11 @@ The reason we are not using ES test framework, is due to the difficulty of integ
 2. Set up gradle build script, which enables doctest by `./gradlew doctest`
 3. Gradle tasks:
     1. bootstrap
-    2. StartES
+    2. StartOpenSearch
         1. ` ./gradlew run`
         2. https://github.com/elastic/elasticsearch/blob/master/TESTING.asciidoc#running-elasticsearch-from-a-checkout
     3. doctest
-    4. StopES
+    4. StopOpenSearch
 4. Integrate Doctest to project gradle build, which means `./gradlew build` will also run `doctest`
 
 
@@ -177,7 +177,7 @@ The code example in a doc using `bash` should be like this
 ```
 sh$ curl -XPOST "localhost:9200/_opendistro/_ppl/" 
           -H 'Content-Type: application/json' 
-          -d'{  "query": "search source=kibana_sample_data_flights OriginCountry = "IT" 
+          -d'{  "query": "search source=opensearch_dashboards_sample_data_flights OriginCountry = "IT" 
           DestiContry = "US" | fields FlightNum, DestCountry, OriginCountry "}'
    
     {
@@ -199,7 +199,7 @@ sh$ curl -XPOST "localhost:9200/_opendistro/_ppl/"
 
 ## 2.3 Test Data
 
-Use elasticsearch python library to create connection to ES instance. It can load test data into ES instance, and delete test index after testing.
+Use elasticsearch python library to create connection to OpenSearch instance. It can load test data into OpenSearch instance, and delete test index after testing.
 
 **Setup:** `bulk` API
 **TearDown:** `delete(index=["<test_index>"])`

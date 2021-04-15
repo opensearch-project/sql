@@ -47,7 +47,7 @@ public class SQLToOperatorConverterTest {
     @Test
     public void convertAggShouldPass() {
         String sql = "SELECT dayOfWeek, max(FlightDelayMin), MIN(FlightDelayMin) as min " +
-                     "FROM kibana_sample_data_flights " +
+                     "FROM opensearch_dashboards_sample_data_flights " +
                      "GROUP BY dayOfWeek";
         toExpr(sql).accept(converter);
         PhysicalOperator<BindingTuple> physicalOperator = converter.getPhysicalOperator();
@@ -58,7 +58,7 @@ public class SQLToOperatorConverterTest {
     @Test
     public void convertMaxMinusMinShouldPass() {
         String sql = "SELECT dayOfWeek, max(FlightDelayMin) - MIN(FlightDelayMin) as diff " +
-                     "FROM kibana_sample_data_flights " +
+                     "FROM opensearch_dashboards_sample_data_flights " +
                      "GROUP BY dayOfWeek";
         toExpr(sql).accept(converter);
         PhysicalOperator<BindingTuple> physicalOperator = converter.getPhysicalOperator();
@@ -69,7 +69,7 @@ public class SQLToOperatorConverterTest {
     @Test
     public void convertDistinctPass() {
         String sql = "SELECT dayOfWeek, max(FlightDelayMin) - MIN(FlightDelayMin) as diff " +
-                     "FROM kibana_sample_data_flights " +
+                     "FROM opensearch_dashboards_sample_data_flights " +
                      "GROUP BY dayOfWeek";
         toExpr(sql).accept(converter);
         PhysicalOperator<BindingTuple> physicalOperator = converter.getPhysicalOperator();

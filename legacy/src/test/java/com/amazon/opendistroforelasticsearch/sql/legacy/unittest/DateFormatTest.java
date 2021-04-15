@@ -74,7 +74,7 @@ public class DateFormatTest {
     @Test
     public void orderByTest() {
         String query = "SELECT agent, ip, date_format(utc_time, 'dd-MM-YYYY') date " +
-                "FROM kibana_sample_data_logs " +
+                "FROM opensearch_dashboards_sample_data_logs " +
                 "ORDER BY date_format(utc_time, 'dd-MM-YYYY') desc, ip";
 
         Select select = getSelect(query);
@@ -98,7 +98,7 @@ public class DateFormatTest {
     @Test
     public void groupByWithDescOrder() throws SqlParseException {
         String query = "SELECT date_format(utc_time, 'dd-MM-YYYY'), count(*) " +
-                "FROM kibana_sample_data_logs " +
+                "FROM opensearch_dashboards_sample_data_logs " +
                 "GROUP BY date_format(utc_time, 'dd-MM-YYYY') " +
                 "ORDER BY date_format(utc_time, 'dd-MM-YYYY') DESC";
 
@@ -110,7 +110,7 @@ public class DateFormatTest {
     @Test
     public void groupByWithAscOrder() throws SqlParseException {
         String query = "SELECT date_format(utc_time, 'dd-MM-YYYY'), count(*) " +
-                "FROM kibana_sample_data_logs " +
+                "FROM opensearch_dashboards_sample_data_logs " +
                 "GROUP BY date_format(utc_time, 'dd-MM-YYYY') " +
                 "ORDER BY date_format(utc_time, 'dd-MM-YYYY')";
 
@@ -123,7 +123,7 @@ public class DateFormatTest {
     @Ignore("https://github.com/opendistro-for-elasticsearch/sql/issues/158")
     public void groupByWithAndAlias() throws SqlParseException {
         String query = "SELECT date_format(utc_time, 'dd-MM-YYYY') x, count(*) " +
-                "FROM kibana_sample_data_logs " +
+                "FROM opensearch_dashboards_sample_data_logs " +
                 "GROUP BY x " +
                 "ORDER BY x";
 

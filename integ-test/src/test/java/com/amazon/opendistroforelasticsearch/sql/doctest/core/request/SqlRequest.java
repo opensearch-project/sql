@@ -15,7 +15,7 @@
 
 package com.amazon.opendistroforelasticsearch.sql.doctest.core.request;
 
-import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.KIBANA_REQUEST;
+import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.OPENSEARCH_DASHBOARD_REQUEST;
 
 import com.amazon.opendistroforelasticsearch.sql.doctest.core.response.SqlResponse;
 import com.amazon.opendistroforelasticsearch.sql.legacy.utils.StringUtils;
@@ -57,7 +57,7 @@ public class SqlRequest {
       }
 
       throw new IllegalStateException(StringUtils.format(
-          "Exception occurred during sending request %s", KIBANA_REQUEST.format(this)), e);
+          "Exception occurred during sending request %s", OPENSEARCH_DASHBOARD_REQUEST.format(this)), e);
     }
   }
 

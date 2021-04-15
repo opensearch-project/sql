@@ -32,7 +32,7 @@ class SystemIndexUtilsTest {
   @Test
   void test_system_index() {
     assertTrue(isSystemIndex("_ODFE_SYS_TABLE_META.ALL"));
-    assertFalse(isSystemIndex(".kibana"));
+    assertFalse(isSystemIndex(".opensearch_dashboards"));
   }
 
   @Test
