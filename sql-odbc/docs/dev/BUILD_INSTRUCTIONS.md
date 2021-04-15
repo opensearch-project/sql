@@ -115,7 +115,7 @@ To disable SSL/TLS in the tests, the main CMakeLists.txt file must be edited. Th
 
 To enable SSL/TLS on OpenSearch, you must edit the OpenSearch.yml file, found in the config directory of OpenSearch. An example OpenSearch yml file can be found in the dev folder of this project. The certificates specified MUST be in the config directory of the OpenSearch instance. For more information, please refer to the [OpenSearch security settings documentation](https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html).
 
-If you plan to use Kibana, as suggested for this project, you must also edit the Kibana settings. Notice, when specifying a certificate for Kibana, you do not need to place it in the Kibana config directory, but instead must provide the absolute path to it. An example Kibana.yml file can be found in the dev folder of this project. For more information, please refer to the [Kibana settings documentation](https://www.elastic.co/guide/en/kibana/current/settings.html).
+If you plan to use OpenSearch Dashboards, as suggested for this project, you must also edit the OpenSearch Dashboards settings. Notice, when specifying a certificate for OpenSearch Dashboards, you do not need to place it in the OpenSearch Dashboards config directory, but instead must provide the absolute path to it. An example opensearch_dashboards.yml file can be found in the dev folder of this project. For more information, please refer to the [OpenSearch Dashboards settings documentation](https://www.elastic.co/guide/en/kibana/current/settings.html).
 
 ### Setting up a DSN
 

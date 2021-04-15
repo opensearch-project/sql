@@ -81,14 +81,14 @@ class TestPagination : public testing::Test {
     SQLTCHAR m_out_conn_string[1024];
     SQLSMALLINT m_out_conn_string_length;
     std::wstring m_query =
-        L"SELECT Origin FROM kibana_sample_data_flights";
+        L"SELECT Origin FROM opensearch_dashboards_sample_data_flights";
 };
 
 TEST_F(TestPagination, EnablePagination) {
     // Default fetch size is -1 for driver.
     // Server default page size for all cursor requests is 1000.
 
-    //Total number of rows in kibana_sample_data_flights table
+    //Total number of rows in opensearch_dashboards_sample_data_flights table
     int total_rows = 13059;
     std::wstring fetch_size_15_conn_string =
         use_ssl ? L"Driver={OpenSearch ODBC};"

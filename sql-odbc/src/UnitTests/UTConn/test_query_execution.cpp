@@ -27,11 +27,11 @@ const std::string valid_user = "admin";
 const std::string valid_pw = "admin";
 const std::string valid_region = "us-west-3";
 const std::string query =
-    "SELECT Origin FROM kibana_sample_data_flights LIMIT 5";
+    "SELECT Origin FROM opensearch_dashboards_sample_data_flights LIMIT 5";
 const std::string all_columns_flights_query =
-    "SELECT * FROM kibana_sample_data_flights LIMIT 5";
+    "SELECT * FROM opensearch_dashboards_sample_data_flights LIMIT 5";
 const std::string some_columns_flights_query =
-    "SELECT Origin, OriginWeather FROM kibana_sample_data_flights LIMIT 5";
+    "SELECT Origin, OriginWeather FROM opensearch_dashboards_sample_data_flights LIMIT 5";
 const std::string invalid_query = "SELECT";
 const int EXECUTION_SUCCESS = 0;
 const int EXECUTION_ERROR = -1;

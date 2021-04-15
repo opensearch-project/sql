@@ -8,7 +8,7 @@ For this example, [ODBC](odbc_data_source_connection.md) connection is used with
 
 <img src="img/refresh_load_data.png">
 
-* Add a datarow in the table `sample_data_for_excel` using kibana.
+* Add a datarow in the table `sample_data_for_excel` using OpenSearch Dashboards.
 
 <img src="img/refresh_add_datarow.png" width=450>
 

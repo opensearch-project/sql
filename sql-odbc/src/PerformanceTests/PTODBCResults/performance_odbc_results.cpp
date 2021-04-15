@@ -37,7 +37,7 @@ typedef SQLLEN SQLROWOFFSET;
 #endif
 
 const wchar_t* const m_query =
-    L"SELECT * FROM kibana_sample_data_flights limit 10000";
+    L"SELECT * FROM opensearch_dashboards_sample_data_flights limit 10000";
 
 typedef struct Col {
     SQLLEN data_len;

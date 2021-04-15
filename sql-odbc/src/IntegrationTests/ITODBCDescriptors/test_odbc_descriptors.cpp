@@ -20,7 +20,7 @@
 #include "it_odbc_helper.h"
 // clang-format on
 
-const std::wstring data_set = L"kibana_sample_data_flights";
+const std::wstring data_set = L"opensearch_dashboards_sample_data_flights";
 const std::wstring single_col = L"Origin";
 const std::wstring single_row = L"1";
 const uint64_t multi_row_cnt = 25;
@@ -206,7 +206,7 @@ TEST_SQL_SET_DESC_FIELD(TestUndefinedError_SQL_DESC_BASE_COLUMN_NAME,
 
 TEST_SQL_SET_DESC_FIELD(TestUndefinedError_SQL_DESC_BASE_TABLE_NAME,
                         SQL_DESC_BASE_TABLE_NAME, SQL_NTS, 1,
-                        SQLCHAR m_value_ptr[255] = "kibana_sample_data_flights";
+                        SQLCHAR m_value_ptr[255] = "opensearch_dashboards_sample_data_flights";
                         , SQL_ERROR, m_ird_hdesc, 1);
 
 TEST_SQL_SET_DESC_FIELD(TestUndefinedError_SQL_DESC_CASE_SENSITIVE,
@@ -329,7 +329,7 @@ TEST_SQL_SET_DESC_FIELD(TestUndefinedError_SQL_DESC_SEARCHABLE,
 
 TEST_SQL_SET_DESC_FIELD(TestUndefinedError_SQL_DESC_TABLE_NAME,
                         SQL_DESC_TABLE_NAME, SQL_NTS, 1,
-                        SQLCHAR m_value_ptr[255] = "kibana_sample_data_flights";
+                        SQLCHAR m_value_ptr[255] = "opensearch_dashboards_sample_data_flights";
                         , SQL_ERROR, m_ird_hdesc, 1);
 
 TEST_SQL_SET_DESC_FIELD(TestUndefinedError_SQL_DESC_TYPE, SQL_DESC_TYPE,

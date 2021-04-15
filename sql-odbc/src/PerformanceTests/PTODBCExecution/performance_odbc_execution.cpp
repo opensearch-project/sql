@@ -24,7 +24,7 @@
 #define IT_SIZEOF(x) (NULL == (x) ? 0 : (sizeof((x)) / sizeof((x)[0])))
 #define ITERATION_COUNT 12
 std::wstring dsn_name = L"DSN=test_dsn";
-const wchar_t* const query = L"SELECT * FROM kibana_sample_data_flights limit 10000";
+const wchar_t* const query = L"SELECT * FROM opensearch_dashboards_sample_data_flights limit 10000";
 
 int Setup(SQLHENV* env, SQLHDBC* conn, SQLHSTMT* hstmt) {
     SQLTCHAR out_conn_string[1024];
