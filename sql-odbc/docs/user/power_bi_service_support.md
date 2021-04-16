@@ -1,4 +1,4 @@
-#  Connecting Open Distro For ElasticSearch to Microsoft Power BI Service
+#  Connecting OpenSearch to Microsoft Power BI Service
 
 ## Setup
 * Download and Install [On-premises data gateway](https://docs.microsoft.com/en-us/data-integration/gateway/service-gateway-install)
@@ -21,7 +21,7 @@
 <img src="img/pbi_service_cluster_setting.png">
 
 * Click on **Add data sources to use the gateway**.
-* Select Data Source Type as **Open Distro For Elasticsearch**.
+* Select Data Source Type as **OpenSearch**.
 * Enter Data Source Name and Server values.
 * Select required **Authentication Method**. Select **Anonymous** for auth **NONE**.
 For **AWS_SIGV4**, select **Key** and set aws access credentials for user **PBIEgwService** at path `C:\Windows\ServiceProfiles\PBIEgwService\.aws\`
@@ -38,7 +38,7 @@ For **AWS_SIGV4**, select **Key** and set aws access credentials for user **PBIE
 
 ## Publish Report
 
-* Follow [instructions](./power_bi_support.md) to create graph using Open Distro For Elasticsearch Data connector.
+* Follow [instructions](./power_bi_support.md) to create graph using OpenSearch Data connector.
 * Click on **Publish** to publish the report on Power BI service.
 
 <img src="img/pbi_publish_report.png">

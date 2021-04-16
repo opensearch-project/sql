@@ -41,7 +41,7 @@ static const std::string ALLOCATION_TAG = "AWS_SIGV4_AUTH";
 static const std::string SERVICE_NAME = "es";
 static const std::string ESODBC_PROFILE_NAME = "opensearchodbc";
 static const std::string ERROR_MSG_PREFIX =
-    "[Open Distro For Elasticsearch][SQL ODBC Driver][SQL Plugin] ";
+    "[OpenSearch][SQL ODBC Driver][SQL Plugin] ";
 static const std::string JSON_SCHEMA =
     "{"  // This was generated from the example OpenSearch data
     "\"type\": \"object\","

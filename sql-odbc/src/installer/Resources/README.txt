@@ -16,4 +16,4 @@ For example, if you want to use Tableau with OpenSearch Server,
 4. Click on 'Connect'. All connection attributes will be retrived.
 5. Click on 'Sign In'. You will be successfully connected to OpenSearch server.
 
-For more details, check 'https://github.com/opendistro-for-elasticsearch/sql/tree/master/sql-odbc'.
+For more details, check 'https://github.com/opensearch-project/sql/tree/main/sql-odbc'.

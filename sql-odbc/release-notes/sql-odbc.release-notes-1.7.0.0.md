@@ -1,6 +1,6 @@
 ## 2020-05-05, Version 1.7
 
-This is the first release of OpenDistro For ELasticsearch ODBC driver.
+This is the first release of OpenSearch ODBC driver.
 
 OpenSearch ODBC provides a driver for ODBC connectivity for OpenDistro SQL plugin. The driver has been developed from scratch and offers the following features in this initial release:
 

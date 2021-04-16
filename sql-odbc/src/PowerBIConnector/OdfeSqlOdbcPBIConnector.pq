@@ -14,12 +14,12 @@ shared OdfeSqlOdbcPBIConnector.Contents = Value.ReplaceType(OdfeSqlOdbcPBIConnec
 OdfeSqlOdbcPBIConnectorType = type function (
         Server as (type text meta [
             Documentation.FieldCaption = "Server",
-            Documentation.FieldDescription = "The hostname of the Open Distro For Elasticsearch server.",
+            Documentation.FieldDescription = "The hostname of the OpenSearch server.",
             Documentation.SampleValues = { "localhost:9200" }
         ])
     )
     as table meta [
-        Documentation.Name = "Open Distro For Elasticsearch"
+        Documentation.Name = "OpenSearch"
     ];
 
 OdfeSqlOdbcPBIConnectorImpl = (Server as text) as table =>

@@ -1,9 +1,9 @@
-#  Connecting Open Distro For ElasticSearch to Micosoft Excel on Mac OS
+#  Connecting OpenSearch to Micosoft Excel on Mac OS
 
 ## Prerequisites
 
 * Microsoft Excel 2016 and higher
-* [Open Distro for Elasticsearch](https://opendistro.github.io/for-elasticsearch-docs/docs/install/)
+* [OpenSearch](https://opendistro.github.io/for-elasticsearch-docs/docs/install/)
 * [OpenSearch SQL ODBC driver](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/odbc/)
 * A preconfigured [User or System DSN](mac_configure_dsn.md)
 

@@ -31,7 +31,7 @@ You can use the installers generated as part of the most recent release.
 To use the driver with Tableau:
 1. Copy the `.tdc` file from `<driver-install-dir>/resources` to `<windows-user-dir>/Documents/My Tableau Repository/Datasources`.
 
-This will customize the connection from Tableau to Open Distro for Elasticsearch, ensuring that the correct forms of queries are used. 
+This will customize the connection from Tableau to OpenSearch, ensuring that the correct forms of queries are used. 
 
 ### Mac
 
@@ -43,7 +43,7 @@ iODBC Driver Manager should be installed before installing the OpenSearch SQL OD
 To use the driver with Tableau:
 1. Copy the `.tdc` file from `<driver-install-dir>/resources` to `<mac-user-dir>/Documents/My Tableau Repository/Datasources`.
 
-This will customize the connection from Tableau to Open Distro for Elasticsearch, ensuring that the correct forms of queries are used.
+This will customize the connection from Tableau to OpenSearch, ensuring that the correct forms of queries are used.
 
 ## Using the Driver
 
@@ -51,7 +51,7 @@ The driver comes in the form of a library file:
 * Windows: `odfesqlodbc.dll`
 * Mac: `libodfesqlodbc.dylib`
 
-If using with ODBC compatible BI tools, refer to the tool documentation on configuring a new ODBC driver. In most cases, you will need to make the tool aware of the location of the driver library file and then use it to setup Open Distro for Elasticsearch database connections.
+If using with ODBC compatible BI tools, refer to the tool documentation on configuring a new ODBC driver. In most cases, you will need to make the tool aware of the location of the driver library file and then use it to setup OpenSearch database connections.
 
 ### Connection Strings and Configuring the Driver
 
@@ -82,7 +82,7 @@ From the projects root directory, then build the project using Visual Studio (Wi
 
 ## Documentation
 
-Please refer to the [documentation](https://opendistro.github.io/for-elasticsearch-docs/) for detailed information on installing and configuring Open Distro for Elasticsearch.
+Please refer to the [documentation](https://opendistro.github.io/for-elasticsearch-docs/) for detailed information on installing and configuring OpenSearch.
 
 ## Code of Conduct
 

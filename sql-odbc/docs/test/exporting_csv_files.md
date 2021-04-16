@@ -1,6 +1,6 @@
 ## Exporting CSV files in Microsoft Excel
 
-* Load data from Open Distro For Elasticsearch by any using any [connection mode](excel_connection.md).
+* Load data from OpenSearch by any using any [connection mode](excel_connection.md).
 
 For this example, [ODBC](odbc_data_source_connection.md) connection with SQL statement `SELECT * FROM opensearch_dashboards_sample_data_flights LIMIT 50` in advanced options is used.
 
