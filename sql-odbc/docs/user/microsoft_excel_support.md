@@ -70,7 +70,7 @@ Alternately, **Data** > **Refresh** option can also be used to refresh the data.
 
 ## Troubleshooting
 
-* If the table has large number of datarows, increase [the keepalive](https://github.com/opendistro-for-elasticsearch/sql/blob/master/docs/dev/Pagination.md#opendistrosqlcursorkeep_alive) value accordlingly. 
+* If the table has large number of datarows, increase [the keepalive](https://github.com/opensearch-project/sql/blob/main/docs/dev/Pagination.md#opendistrosqlcursorkeep_alive) value accordlingly. 
 
 * If the table has nested or object type column, you might get an error as below.
 
