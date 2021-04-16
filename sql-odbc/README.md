@@ -1,6 +1,6 @@
-# Open Distro for Elasticsearch ODBC Driver
+# OpenSearch ODBC Driver
 
-OpenSearchODBC is a read-only ODBC driver for Windows and Mac for connecting to Open Distro for Elasticsearch SQL support.
+OpenSearchODBC is a read-only ODBC driver for Windows and Mac for connecting to OpenSearch SQL support.
 
 ## Specifications
 
@@ -25,7 +25,7 @@ You can use the installers generated as part of the most recent release.
 
 ### Windows
 
-1. Run the `.msi` installer to install the Open Distro for Elasticsearch SQL ODBC Driver.
+1. Run the `.msi` installer to install the OpenSearch SQL ODBC Driver.
 2. [Test connection](./docs/user/windows_configure_dsn.md) using ODBC Data Source Administrator.
 
 To use the driver with Tableau:
@@ -35,10 +35,10 @@ This will customize the connection from Tableau to Open Distro for Elasticsearch
 
 ### Mac
 
-iODBC Driver Manager should be installed before installing the Open Distro for Elasticsearch SQL ODBC Driver on Mac.
+iODBC Driver Manager should be installed before installing the OpenSearch SQL ODBC Driver on Mac.
 
-1. Run the `.pkg` installer to install the Open Distro for Elasticsearch SQL ODBC Driver.
-2. Configure a Driver and DSN entry for the Open Distro for Elasticsearch SQL ODBC Driver, following the instructions [here](./docs/user/mac_configure_dsn.md).
+1. Run the `.pkg` installer to install the OpenSearch SQL ODBC Driver.
+2. Configure a Driver and DSN entry for the OpenSearch SQL ODBC Driver, following the instructions [here](./docs/user/mac_configure_dsn.md).
 
 To use the driver with Tableau:
 1. Copy the `.tdc` file from `<driver-install-dir>/resources` to `<mac-user-dir>/Documents/My Tableau Repository/Datasources`.

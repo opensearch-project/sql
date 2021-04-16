@@ -51,7 +51,7 @@ build
 msbuild .\build\odbc\PACKAGE.vcxproj -p:Configuration=Release
 ```
 
-`Open Distro for Elasticsearch SQL ODBC Driver-<version>-Windows-<Bitness>-bit.msi` will be generated in the build directory.
+`OpenSearch SQL ODBC Driver-<version>-Windows-<Bitness>-bit.msi` will be generated in the build directory.
 
 ### Testing
 See [run_tests.md](./run_tests.md)
@@ -96,7 +96,7 @@ cd cmake-build64/
 cpack .
 ```
 
-`Open Distro for Elasticsearch SQL ODBC Driver-<version>-Darwin.pkg` will be generated in the build directory.
+`OpenSearch SQL ODBC Driver-<version>-Darwin.pkg` will be generated in the build directory.
 
 ### Testing
 See [run_tests.md](./run_tests.md)

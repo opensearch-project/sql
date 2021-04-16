@@ -1,4 +1,4 @@
-# Opendistro ODBC Driver Cursor (Pagination) Support Design Documentation
+# OpenSearch ODBC Driver Cursor (Pagination) Support Design Documentation
 
 ## Overview
 OpenSearch ODBC Driver supports forward-only cursor. This document illustrates how the cursor(pagination) is handled in the driver. 

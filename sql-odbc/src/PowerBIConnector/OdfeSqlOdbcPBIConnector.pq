@@ -149,7 +149,7 @@ OnOdbcError = (errorRecord as record) =>
             OdbcErrorCode = 202
     in
         if IsDriverNotInstalled then
-            error Error.Record("", "The Open Distro For Elasticsearch SQL ODBC driver is not installed. Please install the driver")
+            error Error.Record("", "The OpenSearch SQL ODBC driver is not installed. Please install the driver")
         else if IsHostUnreachable then 
             error Error.Record("", "Couldn't reach server. Please double-check the server and auth. [" & ConnectionServer & "]")
         else 

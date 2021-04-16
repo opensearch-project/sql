@@ -3,7 +3,7 @@
 ## Prerequisites
 * Microsoft Power BI Desktop
 * [Open Distro for Elasticsearch](https://opendistro.github.io/for-elasticsearch-docs/docs/install/)
-* [Open Distro for Elasticsearch SQL ODBC driver](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/odbc/)
+* [OpenSearch SQL ODBC driver](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/odbc/)
 * [OdfeSqlOdbcPBIConnector.mez](../../src/PowerBIConnector/bin/Release/) 
 * Optional: [odfesqlodbc_import.pbids](../../src/PowerBIConnector/PBIDSExamples) to help with repeated connections to the same server 
 
@@ -86,7 +86,7 @@ It will take you straight to the **Navigator** window for selecting the tables f
 
 ## Troubleshooting 
 
-* If you get an following error, please install [Open Distro For Elasticsearch SQL ODBC Driver](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/odbc/).
+* If you get an following error, please install [OpenSearch SQL ODBC Driver](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/odbc/).
 
 <img src="img/pbi_error_driver_not_installed.png" width="350">
 

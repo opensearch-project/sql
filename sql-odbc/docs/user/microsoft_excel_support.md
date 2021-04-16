@@ -4,7 +4,7 @@
 
 * Microsoft Excel 2016 and higher
 * [Open Distro for Elasticsearch](https://opendistro.github.io/for-elasticsearch-docs/docs/install/)
-* [Open Distro for Elasticsearch SQL ODBC driver](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/odbc/)
+* [OpenSearch SQL ODBC driver](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/odbc/)
 * A preconfigured [User or System DSN](../../README.md)
 
 ## Test Successful Connection
