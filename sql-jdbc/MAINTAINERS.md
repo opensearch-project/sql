@@ -1,4 +1,4 @@
-# OpenSearch SQL Maintainers
+# OpenSearch JDBC Maintainers
 
 ## Maintainers
 

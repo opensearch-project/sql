@@ -1,4 +1,4 @@
-# OpenSearch SQL Maintainers
+# OpenSearch ODBC Maintainers
 
 ## Maintainers
 
