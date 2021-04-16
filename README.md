@@ -15,10 +15,10 @@ Open Distro for Elasticsearch enables you to extract insights out of OpenSearch 
 
 The following projects have been merged into this repository as separate folders as of July 9, 2020. Please refer to links below for details. This document will focus on the SQL plugin for OpenSearch.
 
-* [SQL CLI](https://github.com/opendistro-for-elasticsearch/sql/tree/master/sql-cli)
-* [SQL JDBC](https://github.com/opendistro-for-elasticsearch/sql/tree/master/sql-jdbc)
-* [SQL ODBC](https://github.com/opendistro-for-elasticsearch/sql/tree/master/sql-odbc)
-* [Query Workbench](https://github.com/opendistro-for-elasticsearch/sql/tree/master/workbench)
+* [SQL CLI](https://github.com/opensearch-project/sql/tree/main/sql-cli)
+* [SQL JDBC](https://github.com/opensearch-project/sql/tree/main/sql-jdbc)
+* [SQL ODBC](https://github.com/opensearch-project/sql/tree/main/sql-odbc)
+* [Query Workbench](https://github.com/opensearch-project/sql/tree/main/workbench)
 
 
 ## Documentation
