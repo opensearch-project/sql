@@ -40,8 +40,8 @@ public class AstQualifiedNameBuilderTest {
   }
 
   @Test
-  public void canBuildRegularIdentifierForElasticsearch() {
-    buildFromTableName(".kibana").expectQualifiedName(".kibana");
+  public void canBuildRegularIdentifierForOpenSearch() {
+    buildFromTableName(".opensearch_dashboards").expectQualifiedName(".opensearch_dashboards");
     buildFromIdentifier("@timestamp").expectQualifiedName("@timestamp");
     buildFromIdentifier("logs-2020-01").expectQualifiedName("logs-2020-01");
     buildFromIdentifier("*logs*").expectQualifiedName("*logs*");

@@ -15,11 +15,11 @@
 
 package com.amazon.opendistroforelasticsearch.sql.legacy.query;
 
-import org.elasticsearch.action.ActionRequest;
-import org.elasticsearch.action.ActionRequestBuilder;
-import org.elasticsearch.action.ActionResponse;
-import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.index.reindex.DeleteByQueryRequestBuilder;
+import org.opensearch.action.ActionRequest;
+import org.opensearch.action.ActionRequestBuilder;
+import org.opensearch.action.ActionResponse;
+import org.opensearch.action.search.SearchRequestBuilder;
+import org.opensearch.index.reindex.DeleteByQueryRequestBuilder;
 
 /**
  * Created by Eliran on 19/8/2015.

@@ -18,10 +18,10 @@ package com.amazon.opendistroforelasticsearch.sql.protocol.response.format;
 
 import com.amazon.opendistroforelasticsearch.sql.common.antlr.SyntaxCheckException;
 import com.amazon.opendistroforelasticsearch.sql.data.type.ExprType;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.response.error.ErrorMessage;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.response.error.ErrorMessageFactory;
 import com.amazon.opendistroforelasticsearch.sql.exception.QueryEngineException;
 import com.amazon.opendistroforelasticsearch.sql.executor.ExecutionEngine.Schema;
+import com.amazon.opendistroforelasticsearch.sql.opensearch.response.error.ErrorMessage;
+import com.amazon.opendistroforelasticsearch.sql.opensearch.response.error.ErrorMessageFactory;
 import com.amazon.opendistroforelasticsearch.sql.protocol.response.QueryResult;
 import java.util.List;
 import lombok.Builder;

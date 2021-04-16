@@ -19,10 +19,10 @@ package com.amazon.opendistroforelasticsearch.sql.legacy;
 import static com.amazon.opendistroforelasticsearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 
 import java.io.IOException;
-import org.elasticsearch.client.ResponseException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.opensearch.client.ResponseException;
 
 /**
  * Tests to cover requests with "?format=csv" parameter

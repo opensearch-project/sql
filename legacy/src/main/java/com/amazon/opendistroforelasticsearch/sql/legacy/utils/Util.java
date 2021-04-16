@@ -38,9 +38,9 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.domain.IndexStatement;
 import com.amazon.opendistroforelasticsearch.sql.legacy.domain.KVValue;
 import com.amazon.opendistroforelasticsearch.sql.legacy.exception.SqlParseException;
 import com.amazon.opendistroforelasticsearch.sql.legacy.parser.ElasticSqlExprParser;
-import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
-import org.elasticsearch.action.admin.indices.get.GetIndexRequestBuilder;
-import org.elasticsearch.client.Client;
+import org.opensearch.action.admin.indices.get.GetIndexRequest;
+import org.opensearch.action.admin.indices.get.GetIndexRequestBuilder;
+import org.opensearch.client.Client;
 
 import java.util.HashSet;
 import java.util.List;

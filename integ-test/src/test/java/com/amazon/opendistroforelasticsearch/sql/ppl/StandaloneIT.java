@@ -20,14 +20,14 @@ import static com.amazon.opendistroforelasticsearch.sql.protocol.response.format
 
 import com.amazon.opendistroforelasticsearch.sql.common.response.ResponseListener;
 import com.amazon.opendistroforelasticsearch.sql.common.setting.Settings;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.client.ElasticsearchClient;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.client.ElasticsearchRestClient;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.executor.ElasticsearchExecutionEngine;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.executor.protector.ElasticsearchExecutionProtector;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.storage.ElasticsearchStorageEngine;
 import com.amazon.opendistroforelasticsearch.sql.executor.ExecutionEngine;
 import com.amazon.opendistroforelasticsearch.sql.executor.ExecutionEngine.QueryResponse;
 import com.amazon.opendistroforelasticsearch.sql.monitor.AlwaysHealthyMonitor;
+import com.amazon.opendistroforelasticsearch.sql.opensearch.client.OpenSearchClient;
+import com.amazon.opendistroforelasticsearch.sql.opensearch.client.OpenSearchRestClient;
+import com.amazon.opendistroforelasticsearch.sql.opensearch.executor.OpenSearchExecutionEngine;
+import com.amazon.opendistroforelasticsearch.sql.opensearch.executor.protector.OpenSearchExecutionProtector;
+import com.amazon.opendistroforelasticsearch.sql.opensearch.storage.OpenSearchStorageEngine;
 import com.amazon.opendistroforelasticsearch.sql.ppl.config.PPLServiceConfig;
 import com.amazon.opendistroforelasticsearch.sql.ppl.domain.PPLQueryRequest;
 import com.amazon.opendistroforelasticsearch.sql.protocol.response.QueryResult;
@@ -38,17 +38,14 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
-import org.elasticsearch.client.Node;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.RestClientBuilder;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.opensearch.client.Request;
+import org.opensearch.client.RestClient;
+import org.opensearch.client.RestHighLevelClient;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 /**
- * Run PPL with query engine outside Elasticsearch cluster. This IT doesn't require our plugin
+ * Run PPL with query engine outside OpenSearch cluster. This IT doesn't require our plugin
  * installed actually. The client application, ex. JDBC driver, needs to initialize all components
  * itself required by ppl service.
  */
@@ -63,12 +60,12 @@ public class StandaloneIT extends PPLIntegTestCase {
     // Using client() defined in ODFERestTestCase.
     restClient = new InternalRestHighLevelClient(client());
 
-    ElasticsearchClient client = new ElasticsearchRestClient(restClient);
+    OpenSearchClient client = new OpenSearchRestClient(restClient);
     AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
     context.registerBean(StorageEngine.class,
-        () -> new ElasticsearchStorageEngine(client, defaultSettings()));
-    context.registerBean(ExecutionEngine.class, () -> new ElasticsearchExecutionEngine(client,
-        new ElasticsearchExecutionProtector(new AlwaysHealthyMonitor())));
+        () -> new OpenSearchStorageEngine(client, defaultSettings()));
+    context.registerBean(ExecutionEngine.class, () -> new OpenSearchExecutionEngine(client,
+        new OpenSearchExecutionProtector(new AlwaysHealthyMonitor())));
     context.register(PPLServiceConfig.class);
     context.refresh();
 

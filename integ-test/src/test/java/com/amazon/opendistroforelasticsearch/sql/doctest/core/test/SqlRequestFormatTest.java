@@ -17,7 +17,7 @@ package com.amazon.opendistroforelasticsearch.sql.doctest.core.test;
 
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.CURL_REQUEST;
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.IGNORE_REQUEST;
-import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.KIBANA_REQUEST;
+import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.OPENSEARCH_DASHBOARD_REQUEST;
 import static org.hamcrest.Matchers.emptyString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -54,17 +54,17 @@ public class SqlRequestFormatTest {
   }
 
   @Test
-  public void testKibanaFormat() {
+  public void testOpenSearchDashboardsFormat() {
     String expected =
         "POST /_opendistro/_sql?format=jdbc\n" +
             "{\n" +
             "  \"query\" : \"SELECT * FROM accounts\"\n" +
             "}";
-    assertThat(KIBANA_REQUEST.format(sqlRequest), is(expected));
+    assertThat(OPENSEARCH_DASHBOARD_REQUEST.format(sqlRequest), is(expected));
   }
 
   @Test
-  public void multiLineSqlInKibanaRequestShouldBeWellFormatted() {
+  public void multiLineSqlInOpenSearchDashboardRequestShouldBeWellFormatted() {
     SqlRequest multiLineSqlRequest = new SqlRequest(
         "POST",
         "/_opendistro/_sql",
@@ -80,7 +80,7 @@ public class SqlRequestFormatTest {
             "\tWHERE age > 30\n" +
             "\t\"\"\"\n" +
             "}";
-    assertThat(KIBANA_REQUEST.format(multiLineSqlRequest), is(expected));
+    assertThat(OPENSEARCH_DASHBOARD_REQUEST.format(multiLineSqlRequest), is(expected));
   }
 
 }

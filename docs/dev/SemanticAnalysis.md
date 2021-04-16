@@ -3,7 +3,7 @@
 ---
 ## 1.Overview
 
-Previously SQL plugin didn't do semantic analysis, for example field doesn't exist, function call on field with wrong type etc. So it had to rely on Elasticsearch engine to perform the "check" which is actual execution. 
+Previously SQL plugin didn't do semantic analysis, for example field doesn't exist, function call on field with wrong type etc. So it had to rely on OpenSearch engine to perform the "check" which is actual execution. 
 This led to bad user experience because of missing careful verification, cost of actual execution and confusing error message. In this work, we built a new semantic analyzer based on the new ANTLR generated parser introduced recently.
 With the new semantic analyzer, we manage to perform various verification in terms of meaning of the query and return clear and helpful message to user for troubleshoot.
 
@@ -172,11 +172,11 @@ Here is a simple diagram showing what Semantic Context looks like at runtime:
 
 Type system allows for type check for all symbols present in the SQL query. First of all, we need to define what is type. Typically, type consists of 2 kinds:
 
- * **Base type**: is based on Elasticsearch data type and organized into hierarchy with "class" type internally.
-    * **ES data type**: For example, INTEGER and LONG belongs to NUMBER, TEXT and KEYWORD belongs to STRING.
-    * **ES index**: we also have specific type for index, index pattern and nested field.
+ * **Base type**: is based on OpenSearch data type and organized into hierarchy with "class" type internally.
+    * **OpenSearch data type**: For example, INTEGER and LONG belongs to NUMBER, TEXT and KEYWORD belongs to STRING.
+    * **OpenSearch index**: we also have specific type for index, index pattern and nested field.
  * **Type expression**: is expression of multiple base type as argument type along with a constructor, for example, array constructor can construct integer to integer array, struct constructor can construct couple of base type into a new struct type. Similarly, function and comparison operator accepts arguments and generate result type. 
-    * **Function**: including scalar and aggregate function in SQL standard as well as functions for Elasticsearch. 
+    * **Function**: including scalar and aggregate function in SQL standard as well as functions for OpenSearch. 
     * **Operator**: including comparison operator (=, <, >), set operator (UNION, MINUS) and join operator (JOIN).
 
 But support for only simple type is not sufficient. The following special types needs to be covered:
@@ -184,7 +184,7 @@ But support for only simple type is not sufficient. The following special types 
  * **Generic type**: when we say `LOG(NUMBER) -> NUMBER` actually we want to return whatever input type (INTEGER, FLOAT) specifically instead of NUMBER.
  * **Vararg**: for example, function `CONCAT` can apply to arbitrary number of strings.
  * **Overloading**: function like `LOG` can have multiple specifications, one for not specifying base and another for base.
- * **Named argument**: most functions for Elasticsearch feature use named argument, for example `TOPHITS('size'=3,'age'='desc'`.
+ * **Named argument**: most functions for OpenSearch feature use named argument, for example `TOPHITS('size'=3,'age'='desc'`.
  * **Optional argument**: essentially this is same as function overloading.
 
 Currently we can add support for Generic Type and Overloading. To clarify, function specification involved in generic type like `SUBSTRING(func(T(STRING), INTEGER, INTEGER).to(T))` is similar as that in Java `<T extends String> T Substring(T, int, int)`.
@@ -269,7 +269,7 @@ Firstly, visitor needs to enforce the visiting order of SQL query. Because some 
 
 ### 4.2 Context Initialization
 
-This part is done in `ESMappingLoader` visitor each of whose visit methods runs ahead of `TypeChecker`. Take query `SELECT * FROM accounts a, a.projects p WHERE age > 20 AND p.active IS TRUE` for example. After visiting the FROM clause, the context completes the initialization with symbol well defined as follows:
+This part is done in `OpenSearchMappingLoader` visitor each of whose visit methods runs ahead of `TypeChecker`. Take query `SELECT * FROM accounts a, a.projects p WHERE age > 20 AND p.active IS TRUE` for example. After visiting the FROM clause, the context completes the initialization with symbol well defined as follows:
 
 ```
  # field names without alias prefix because alias is optional

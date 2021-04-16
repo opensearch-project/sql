@@ -355,7 +355,7 @@ public class AntlrSqlParseTreeVisitor<T extends Reducible> extends OpenDistroSql
 
     /**
      * Named argument, ex. TOPHITS('size'=3), is under FunctionArgs -> Predicate
-     * And the function name should be contained in esFunctionNameBase
+     * And the function name should be contained in openSearchFunctionNameBase
      */
     private boolean isNamedArgument(BinaryComparisonPredicateContext ctx) {
         if (ctx.getParent() != null && ctx.getParent().getParent() != null
@@ -363,7 +363,7 @@ public class AntlrSqlParseTreeVisitor<T extends Reducible> extends OpenDistroSql
                 && ctx.getParent().getParent().getParent() instanceof ScalarFunctionCallContext) {
 
             ScalarFunctionCallContext parent = (ScalarFunctionCallContext) ctx.getParent().getParent().getParent();
-            return parent.scalarFunctionName().functionNameBase().esFunctionNameBase() != null;
+            return parent.scalarFunctionName().functionNameBase().openSearchFunctionNameBase() != null;
         }
         return false;
     }

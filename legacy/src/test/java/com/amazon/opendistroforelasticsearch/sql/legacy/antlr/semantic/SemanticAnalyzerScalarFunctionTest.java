@@ -16,7 +16,7 @@
 package com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic;
 
 import org.junit.Ignore;
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType;
 import org.junit.Test;
 
 /**
@@ -276,6 +276,6 @@ public class SemanticAnalyzerScalarFunctionTest extends SemanticAnalyzerTestBase
 
     @Test
     public void castFunctionShouldPass() {
-        validateWithType("SELECT CAST(age AS DOUBLE) FROM semantics", ESDataType.DOUBLE);
+        validateWithType("SELECT CAST(age AS DOUBLE) FROM semantics", OpenSearchDataType.DOUBLE);
     }
 }

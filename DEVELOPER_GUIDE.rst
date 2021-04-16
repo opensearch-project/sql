@@ -17,7 +17,7 @@ Prerequisites
 JDK
 ---
 
-Specific version of JDK is required to build the plugin because of the dependency on Elasticsearch test framework in our integration test. So you must have the required version of JDK installation on your machine. After the installation, please configure the ``JAVA_HOME`` environment variable accordingly. If everything goes right, you should something similar to this sample output on macOS (take OpenJDK 14 for example)::
+Specific version of JDK is required to build the plugin because of the dependency on OpenSearch test framework in our integration test. So you must have the required version of JDK installation on your machine. After the installation, please configure the ``JAVA_HOME`` environment variable accordingly. If everything goes right, you should something similar to this sample output on macOS (take OpenJDK 14 for example)::
 
    $ echo $JAVA_HOME
    /Library/Java/JavaVirtualMachines/adoptopenjdk-14.jdk/Contents/Home
@@ -29,14 +29,14 @@ Specific version of JDK is required to build the plugin because of the dependenc
 
 Here are the official instructions on how to set ``JAVA_HOME`` for different platforms: https://docs.oracle.com/cd/E19182-01/820-7851/inst_cli_jdk_javahome_t/. 
 
-Elasticsearch & Kibana
-----------------------
+OpenSearch & OpenSearch Dashboards
+----------------------------------
 
-For convenience, we recommend installing `Elasticsearch <https://www.elastic.co/downloads/past-releases#elasticsearch-oss>`_ and `Kibana <https://www.elastic.co/downloads/past-releases#kibana-oss>`_ on your local machine. You can download the open source ZIP for each and extract them to a folder.
+For convenience, we recommend installing `OpenSearch <https://www.elastic.co/downloads/past-releases#elasticsearch-oss>`_ and `OpenSearch Dashboards <https://www.elastic.co/downloads/past-releases#kibana-oss>`_ on your local machine. You can download the open source ZIP for each and extract them to a folder.
 
-If you just want to have a quick look, you can also get an Elasticsearch running with plugin installed by ``./gradlew :plugin:run``.
+If you just want to have a quick look, you can also get an OpenSearch running with plugin installed by ``./gradlew :plugin:run``.
 
-Kibana is optional, but makes it easier to test your queries. Alternately, you can use curl from the terminal to run queries against the plugin.
+OpenSearch Dashboards is optional, but makes it easier to test your queries. Alternately, you can use curl from the terminal to run queries against the plugin.
 
 Getting Source Code
 ===================
@@ -57,7 +57,7 @@ If there is update in master or you want to keep the forked repository long livi
    $ git checkout <branch_name>
    $ git merge master
 
-After getting the source code as well as Elasticsearch and Kibana, your workspace layout may look like this::
+After getting the source code as well as OpenSearch and OpenSearch Dashboards, your workspace layout may look like this::
 
    $ mkdir opendistro
    $ cd opendistro
@@ -65,8 +65,8 @@ After getting the source code as well as Elasticsearch and Kibana, your workspac
    total 32
    drwxr-xr-x  7 user group^users 4096 Nov 21 12:59 .
    drwxr-xr-x 19 user group^users 4096 Nov 21 09:44 ..
-   drwxr-xr-x 10 user group^users 4096 Nov  8 12:16 elasticsearch-7.3.2
-   drwxr-xr-x 14 user group^users 4096 Nov  8 12:14 kibana-7.3.2-linux-x86_64
+   drwxr-xr-x 10 user group^users 4096 Nov  8 12:16 opensearch
+   drwxr-xr-x 14 user group^users 4096 Nov  8 12:14 opensearch-dashboards
    drwxr-xr-x 16 user group^users 4096 Nov 15 10:59 sql
 
 
@@ -78,12 +78,12 @@ You can develop the plugin in your favorite IDEs such as Eclipse and IntelliJ ID
 Java Language Level
 -------------------
 
-Although later version of JDK is required to build the plugin, the Java language level needs to be Java 8 for compatibility. Only in this case your plugin works with Elasticsearch running against JDK 8. Otherwise it will raise runtime exception when executing new API from new JDK. In case your IDE doesn’t set it right, you may want to double check your project setting after import.
+Although later version of JDK is required to build the plugin, the Java language level needs to be Java 8 for compatibility. Only in this case your plugin works with OpenSearch running against JDK 8. Otherwise it will raise runtime exception when executing new API from new JDK. In case your IDE doesn’t set it right, you may want to double check your project setting after import.
 
 Remote Debugging
 ----------------
 
-Firstly you need to add the following configuration to the JVM used by your IDE. For Intellij IDEA, it should be added to ``<ES installation>/config/jvm.options`` file. After configuring this, an agent in JVM will listen on the port when your Elasticsearch bootstraps and wait for IDE debugger to connect. So you should be able to debug by setting up a “Remote Run/Debug Configuration”::
+Firstly you need to add the following configuration to the JVM used by your IDE. For Intellij IDEA, it should be added to ``<OpenSearch installation>/config/jvm.options`` file. After configuring this, an agent in JVM will listen on the port when your OpenSearch bootstraps and wait for IDE debugger to connect. So you should be able to debug by setting up a “Remote Run/Debug Configuration”::
 
    -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005
 
@@ -142,7 +142,7 @@ The plugin codebase is in standard layout of Gradle project::
    ├── common
    ├── core
    ├── doctest
-   ├── elasticsearch
+   ├── opensearch
    ├── integ-test
    ├── legacy
    ├── plugin
@@ -156,11 +156,11 @@ The plugin codebase is in standard layout of Gradle project::
 
 Here are sub-folders (Gradle modules) for plugin source code:
 
-- ``plugin``: Elasticsearch plugin related code.
+- ``plugin``: OpenSearch plugin related code.
 - ``sql``: SQL language processor.
 - ``ppl``: PPL language processor.
 - ``core``: core query engine.
-- ``elasticsearch``: Elasticsearch storage engine.
+- ``opensearch``: OpenSearch storage engine.
 - ``protocol``: request/response protocol formatter.
 - ``common``: common util code.
 - ``integ-test``: integration and comparison test.
@@ -183,7 +183,7 @@ Note that other related project code has already merged into this single reposit
 Code Convention
 ---------------
 
-We’re integrated Checkstyle plugin into Gradle build: https://github.com/opendistro-for-elasticsearch/sql/blob/master/config/checkstyle/google_checks.xml. So any violation will fail the build. You need to identify the offending code from Gradle error message and fix them and rerun the Gradle build. Here are the highlight of some Checkstyle rules:
+We’re integrated Checkstyle plugin into Gradle build: https://github.com/opensearch-project/sql/blob/master/config/checkstyle/google_checks.xml. So any violation will fail the build. You need to identify the offending code from Gradle error message and fix them and rerun the Gradle build. Here are the highlight of some Checkstyle rules:
 
 * 2 spaces indentation.
 * No line starts with tab character in source file.
@@ -228,7 +228,7 @@ To run the task above for specific module, you can do ``./gradlew :<module_name>
 Troubleshooting
 ---------------
 
-Sometimes your Gradle build fails or timeout due to Elasticsearch integration test process hung there. You can check this by the following commands::
+Sometimes your Gradle build fails or timeout due to OpenSearch integration test process hung there. You can check this by the following commands::
 
    #Check if multiple Gradle daemons started by different JDK.
    #Kill unnecessary ones and restart if necessary.
@@ -236,8 +236,8 @@ Sometimes your Gradle build fails or timeout due to Elasticsearch integration te
    $ ./gradlew stop
    $ ./gradlew start
 
-   #Check if ES integTest process hung there. Kill it if so.
-   $ ps aux | grep -i elasticsearch
+   #Check if OpenSearch integTest process hung there. Kill it if so.
+   $ ps aux | grep -i opensearch
 
    #Clean and rebuild
    $ ./gradlew clean
@@ -251,7 +251,7 @@ For test cases, you can use the cases in the following checklist in case you mis
 - *Functions*
 
   - SQL functions
-  - Special Elasticsearch functions
+  - Special OpenSearch functions
   
 - *Basic Query*
 
@@ -292,11 +292,11 @@ For test cases, you can use the cases in the following checklist in case you mis
 For unit test:
 
 * Put your test class in the same package in src/test/java so you can access and test package-level method.
-* Make sure you are testing against the right abstraction with dependencies mocked. For example a bad practice is to create many classes by ESActionFactory class and write test cases on very high level. This makes it more like an integration test.
+* Make sure you are testing against the right abstraction with dependencies mocked. For example a bad practice is to create many classes by OpenSearchActionFactory class and write test cases on very high level. This makes it more like an integration test.
 
 For integration test:
 
-* Elasticsearch test framework is in use so an in-memory cluster will spin up for each test class.
+* OpenSearch test framework is in use so an in-memory cluster will spin up for each test class.
 * You can only access the plugin and verify the correctness of your functionality via REST client externally.
 * Our homemade comparison test framework is used heavily to compare with other databases without need of assertion written manually. More details can be found in `Testing <./dev/Testing.md>`_.
 
@@ -323,16 +323,16 @@ Finally thanks to JaCoCo library, you can check out the test coverage in ``<modu
 Deploying Locally
 -----------------
 
-Sometime you want to deploy your changes to local Elasticsearch cluster, basically there are couple of steps you need to follow:
+Sometime you want to deploy your changes to local OpenSearch cluster, basically there are couple of steps you need to follow:
 
 1. Re-assemble to generate plugin jar file with your changes.
 2. Replace the jar file with the new one in your workspace.
-3. Restart Elasticsearch cluster to take it effect.
+3. Restart OpenSearch cluster to take it effect.
 
 
 To automate this common task, you can prepare an all-in-one command for reuse. Below is a sample command for macOS::
 
- ./gradlew assemble && {echo y | cp -f build/distributions/opendistro_sql-1*0.jar <Elasticsearch_home>/plugins/opendistro-sql} && {kill $(ps aux | awk '/[E]lasticsearch/ {print $2}'); sleep 3; nohup <Elasticsearch_home>/bin/elasticsearch > ~/Temp/es.log 2>&1 &}
+ ./gradlew assemble && {echo y | cp -f build/distributions/opendistro_sql-1*0.jar <OpenSearch_home>/plugins/opendistro-sql} && {kill $(ps aux | awk '/[O]pensearch/ {print $2}'); sleep 3; nohup <OpenSearch_home>/bin/opensearch > ~/Temp/opensearch.log 2>&1 &}
 
 Note that for the first time you need to create ``opendistro-sql`` folder and unzip ``build/distribution/opendistro_sql-xxxx.zip`` to it.
 

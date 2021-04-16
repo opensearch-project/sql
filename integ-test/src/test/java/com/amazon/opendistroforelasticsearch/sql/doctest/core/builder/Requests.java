@@ -18,7 +18,7 @@ package com.amazon.opendistroforelasticsearch.sql.doctest.core.builder;
 import com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequest;
 import com.amazon.opendistroforelasticsearch.sql.doctest.core.response.SqlResponse;
 import java.util.Objects;
-import org.elasticsearch.client.RestClient;
+import org.opensearch.client.RestClient;
 
 /**
  * Query and explain request tuple.

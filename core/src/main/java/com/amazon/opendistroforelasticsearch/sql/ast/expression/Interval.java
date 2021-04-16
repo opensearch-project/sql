@@ -16,7 +16,6 @@
 package com.amazon.opendistroforelasticsearch.sql.ast.expression;
 
 import com.amazon.opendistroforelasticsearch.sql.ast.AbstractNodeVisitor;
-import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.List;
 import lombok.EqualsAndHashCode;

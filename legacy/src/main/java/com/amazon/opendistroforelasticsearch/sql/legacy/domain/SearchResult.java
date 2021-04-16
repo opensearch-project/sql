@@ -16,19 +16,19 @@
 package com.amazon.opendistroforelasticsearch.sql.legacy.domain;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.exception.SqlParseException;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.common.document.DocumentField;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHits;
-import org.elasticsearch.search.aggregations.Aggregation;
-import org.elasticsearch.search.aggregations.Aggregations;
-import org.elasticsearch.search.aggregations.bucket.filter.InternalFilter;
-import org.elasticsearch.search.aggregations.bucket.terms.InternalTerms;
-import org.elasticsearch.search.aggregations.bucket.terms.LongTerms;
-import org.elasticsearch.search.aggregations.bucket.terms.Terms.Bucket;
-import org.elasticsearch.search.aggregations.metrics.InternalNumericMetricsAggregation;
-import org.elasticsearch.search.aggregations.metrics.InternalTopHits;
-import org.elasticsearch.search.aggregations.metrics.InternalValueCount;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.common.document.DocumentField;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
+import org.opensearch.search.aggregations.Aggregation;
+import org.opensearch.search.aggregations.Aggregations;
+import org.opensearch.search.aggregations.bucket.filter.InternalFilter;
+import org.opensearch.search.aggregations.bucket.terms.InternalTerms;
+import org.opensearch.search.aggregations.bucket.terms.LongTerms;
+import org.opensearch.search.aggregations.bucket.terms.Terms.Bucket;
+import org.opensearch.search.aggregations.metrics.InternalNumericMetricsAggregation;
+import org.opensearch.search.aggregations.metrics.InternalTopHits;
+import org.opensearch.search.aggregations.metrics.InternalValueCount;
 
 import java.util.ArrayList;
 import java.util.Collection;

@@ -34,15 +34,15 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
-import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.bulk.BulkResponse;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.RestClient;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.json.JSONObject;
+import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.bulk.BulkResponse;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.client.Client;
+import org.opensearch.client.Request;
+import org.opensearch.client.Response;
+import org.opensearch.client.RestClient;
+import org.opensearch.common.xcontent.XContentType;
 
 public class TestUtils {
 
@@ -83,7 +83,7 @@ public class TestUtils {
   }
 
   /**
-   * Check if index already exists by ES index exists API which returns:
+   * Check if index already exists by OpenSearch index exists API which returns:
    * 200 - specified indices or aliases exist
    * 404 - one or more indices specified or aliases do not exist
    *
@@ -255,7 +255,7 @@ public class TestUtils {
 
   public static void loadBulk(Client client, String jsonPath, String defaultIndex)
       throws Exception {
-    System.out.println(String.format("Loading file %s into elasticsearch cluster", jsonPath));
+    System.out.println(String.format("Loading file %s into opensearch cluster", jsonPath));
     String absJsonPath = getResourceFilePath(jsonPath);
 
     BulkRequest bulkRequest = new BulkRequest();

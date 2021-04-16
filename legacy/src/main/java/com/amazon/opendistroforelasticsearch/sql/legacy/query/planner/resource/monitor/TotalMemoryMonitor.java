@@ -22,7 +22,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * Circuit breaker for total memory usage in JVM on current ES node.
+ * Circuit breaker for total memory usage in JVM on current OpenSearch node.
  */
 public class TotalMemoryMonitor implements Monitor {
 

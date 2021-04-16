@@ -23,7 +23,7 @@ import com.amazon.opendistroforelasticsearch.sql.correctness.report.TestReport;
 import com.amazon.opendistroforelasticsearch.sql.correctness.report.TestSummary;
 import com.amazon.opendistroforelasticsearch.sql.correctness.runner.ComparisonTest;
 import com.amazon.opendistroforelasticsearch.sql.correctness.runner.connection.DBConnection;
-import com.amazon.opendistroforelasticsearch.sql.correctness.runner.connection.ESConnection;
+import com.amazon.opendistroforelasticsearch.sql.correctness.runner.connection.OpenSearchConnection;
 import com.amazon.opendistroforelasticsearch.sql.correctness.runner.connection.JDBCConnection;
 import com.amazon.opendistroforelasticsearch.sql.correctness.testset.TestDataSet;
 import com.amazon.opendistroforelasticsearch.sql.correctness.testset.TestQuerySet;
@@ -53,7 +53,7 @@ public abstract class CorrectnessTestBase extends RestIntegTestCase {
     }
 
     TestConfig config = new TestConfig(emptyMap());
-    runner = new ComparisonTest(getESConnection(),
+    runner = new ComparisonTest(getOpenSearchConnection(),
                                 getOtherDBConnections(config));
 
     runner.connect();
@@ -96,11 +96,11 @@ public abstract class CorrectnessTestBase extends RestIntegTestCase {
   }
 
   /**
-   * Use Elasticsearch cluster initialized by ES Gradle task.
+   * Use OpenSearch cluster initialized by OpenSearch Gradle task.
    */
-  private DBConnection getESConnection() {
-    String esHost = client().getNodes().get(0).getHost().toString();
-    return new ESConnection("jdbc:opensearch://" + esHost, client());
+  private DBConnection getOpenSearchConnection() {
+    String openSearchHost = client().getNodes().get(0).getHost().toString();
+    return new OpenSearchConnection("jdbc:opensearch://" + openSearchHost, client());
   }
 
   /**

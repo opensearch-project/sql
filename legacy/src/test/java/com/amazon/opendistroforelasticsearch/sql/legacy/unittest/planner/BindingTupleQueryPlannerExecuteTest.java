@@ -21,10 +21,10 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.core.Bindi
 import com.amazon.opendistroforelasticsearch.sql.legacy.util.AggregationUtils;
 import com.amazon.opendistroforelasticsearch.sql.legacy.util.SqlParserUtils;
 import com.google.common.collect.ImmutableMap;
-import org.elasticsearch.action.ActionFuture;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.search.aggregations.Aggregations;
+import org.opensearch.action.ActionFuture;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.client.Client;
+import org.opensearch.search.aggregations.Aggregations;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

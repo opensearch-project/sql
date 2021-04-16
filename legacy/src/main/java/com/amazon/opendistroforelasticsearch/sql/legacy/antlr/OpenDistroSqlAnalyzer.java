@@ -19,7 +19,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroS
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.scope.SemanticContext;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.Type;
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.visitor.ESMappingLoader;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.visitor.OpenSearchMappingLoader;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.visitor.SemanticAnalyzer;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.visitor.TypeChecker;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.syntax.CaseInsensitiveCharStream;
@@ -92,7 +92,8 @@ public class OpenDistroSqlAnalyzer {
     /** Factory method for semantic analyzer to help assemble all required components together */
     private SemanticAnalyzer createAnalyzer(LocalClusterState clusterState) {
         SemanticContext context = new SemanticContext();
-        ESMappingLoader mappingLoader = new ESMappingLoader(context, clusterState, config.getAnalysisThreshold());
+        OpenSearchMappingLoader
+            mappingLoader = new OpenSearchMappingLoader(context, clusterState, config.getAnalysisThreshold());
         TypeChecker typeChecker = new TypeChecker(context, config.isFieldSuggestionEnabled());
         return new SemanticAnalyzer(mappingLoader, typeChecker);
     }

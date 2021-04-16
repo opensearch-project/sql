@@ -52,7 +52,7 @@ public class CSVResult {
     }
 
     /**
-     * Return CSV header names which are sanitized because Elasticsearch allows
+     * Return CSV header names which are sanitized because OpenSearch allows
      * special character present in field name too.
      * @return  CSV header name list after sanitized
      */

@@ -16,8 +16,8 @@
 
 package com.amazon.opendistroforelasticsearch.sql.legacy.executor.cursor;
 
-import org.elasticsearch.client.Client;
-import org.elasticsearch.rest.RestChannel;
+import org.opensearch.client.Client;
+import org.opensearch.rest.RestChannel;
 
 import java.util.Map;
 

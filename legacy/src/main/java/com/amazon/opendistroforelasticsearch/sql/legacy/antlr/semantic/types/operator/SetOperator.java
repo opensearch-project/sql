@@ -19,7 +19,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.Typ
 
 import java.util.List;
 
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.TYPE_ERROR;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.TYPE_ERROR;
 
 /**
  * Set operator between queries.

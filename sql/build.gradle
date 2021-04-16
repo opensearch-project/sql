@@ -35,10 +35,6 @@ plugins {
     id 'antlr'
 }
 
-repositories {
-    mavenCentral()
-}
-
 generateGrammarSource {
     arguments += ['-visitor', '-package', 'com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser']
     source = sourceSets.main.antlr

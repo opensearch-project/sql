@@ -16,7 +16,7 @@
 package com.amazon.opendistroforelasticsearch.sql.doctest.dql;
 
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.IGNORE_REQUEST;
-import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.KIBANA_REQUEST;
+import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.OPENSEARCH_DASHBOARD_REQUEST;
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.response.SqlResponseFormat.IGNORE_RESPONSE;
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.response.SqlResponseFormat.PRETTY_JSON_RESPONSE;
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.response.SqlResponseFormat.TABLE_UNSORTED_RESPONSE;
@@ -38,7 +38,7 @@ public class BasicQueryIT extends DocTest {
     section(
         title("SELECT"),
         description(
-            "``SELECT`` clause specifies which fields in Elasticsearch index should be retrieved."),
+            "``SELECT`` clause specifies which fields in OpenSearch index should be retrieved."),
         images("rdd/selectElements.png", "rdd/selectElement.png"),
         example(
             title("Selecting All Fields"),
@@ -79,20 +79,20 @@ public class BasicQueryIT extends DocTest {
     section(
         title("FROM"),
         description(
-            "``FROM`` clause specifies Elasticsearch index where the data should be retrieved from.",
+            "``FROM`` clause specifies OpenSearch index where the data should be retrieved from.",
             "You've seen how to specify a single index in FROM clause in last section. Here we",
             "provide examples for more use cases.\n\n" +
                 "Subquery in ``FROM`` clause is also supported. Please check out the documentation for more details."
         ),
         images("rdd/tableName.png"),
-        kibanaExample(
+        openSearchDashboardsExample(
             title("Using Index Alias"),
             description(
                 "Similarly you can give index in ``FROM`` clause an alias and use it across clauses in query."
             ),
             post("SELECT acc.account_number FROM accounts acc")
         ),
-        kibanaExample(
+        openSearchDashboardsExample(
             title("Selecting From Multiple Indices by Index Pattern"),
             description(
                 "Alternatively you can query from multiple indices of similar names by index pattern.",
@@ -100,11 +100,11 @@ public class BasicQueryIT extends DocTest {
             ),
             post("SELECT account_number FROM account*")
         ),
-        kibanaExample(
+        openSearchDashboardsExample(
             title("[Deprecating] Selecting From Specific Index Type"),
             description(
                 "You can also specify type name explicitly though this has been deprecated in",
-                "later Elasticsearch version."
+                "later OpenSearch version."
             ),
             post("SELECT account_number FROM accounts/account")
         )
@@ -116,7 +116,7 @@ public class BasicQueryIT extends DocTest {
     section(
         title("WHERE"),
         description(
-            "``WHERE`` clause specifies only Elasticsearch documents that meet the criteria should be affected.",
+            "``WHERE`` clause specifies only OpenSearch documents that meet the criteria should be affected.",
             "It consists of predicates that uses ``=``, ``<>``, ``>``, ``>=``, ``<``, ``<=``, ``IN``,",
             "``BETWEEN``, ``LIKE``, ``IS NULL`` or ``IS NOT NULL``. These predicates can be combined by",
             "logical operator ``NOT``, ``AND`` or ``OR`` to build more complex expression.\n\n" +
@@ -140,7 +140,7 @@ public class BasicQueryIT extends DocTest {
         example(
             title("Missing Fields"),
             description(
-                "As NoSQL database, Elasticsearch allows for flexible schema that documents in an index may have",
+                "As NoSQL database, OpenSearch allows for flexible schema that documents in an index may have",
                 "different fields. In this case, you can use ``IS NULL`` or ``IS NOT NULL`` to retrieve missing",
                 "fields or existing fields only.\n\n" +
                     "Note that for now we don't differentiate missing field and field set to ``NULL`` explicitly."
@@ -249,7 +249,7 @@ public class BasicQueryIT extends DocTest {
             title("Specifying Order for Null"),
             description(
                 "Additionally you can specify if documents with missing field be put first or last.",
-                "The default behavior of Elasticsearch is to return nulls or missing last.",
+                "The default behavior of OpenSearch is to return nulls or missing last.",
                 "You can make them present before non-nulls by using ``IS NOT NULL``."
             ),
             post(multiLine(
@@ -297,11 +297,11 @@ public class BasicQueryIT extends DocTest {
   }
 
   /**
-   * Document only Kibana request for example and ignore response as well as explain
+   * Document only OpenSearch Dashboard request for example and ignore response as well as explain
    */
-  private Example kibanaExample(String title, String description, Requests requests) {
+  private Example openSearchDashboardsExample(String title, String description, Requests requests) {
     return example(title, description, requests,
-        queryFormat(KIBANA_REQUEST, IGNORE_RESPONSE),
+        queryFormat(OPENSEARCH_DASHBOARD_REQUEST, IGNORE_RESPONSE),
         explainFormat(IGNORE_REQUEST, IGNORE_RESPONSE)
     );
   }
@@ -311,7 +311,7 @@ public class BasicQueryIT extends DocTest {
    */
   private Example orderByExample(String title, String description, Requests requests) {
     return example(title, description, requests,
-        queryFormat(KIBANA_REQUEST, TABLE_UNSORTED_RESPONSE),
+        queryFormat(OPENSEARCH_DASHBOARD_REQUEST, TABLE_UNSORTED_RESPONSE),
         explainFormat(IGNORE_REQUEST, PRETTY_JSON_RESPONSE)
     );
   }

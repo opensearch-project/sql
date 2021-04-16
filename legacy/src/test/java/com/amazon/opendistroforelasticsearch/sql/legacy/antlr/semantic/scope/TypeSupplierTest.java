@@ -16,7 +16,7 @@
 package com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.scope;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.SemanticAnalysisException;
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -29,23 +29,23 @@ public class TypeSupplierTest {
 
     @Test
     public void haveOneTypeShouldPass() {
-        TypeSupplier age = new TypeSupplier("age", ESDataType.INTEGER);
+        TypeSupplier age = new TypeSupplier("age", OpenSearchDataType.INTEGER);
 
-        assertEquals(ESDataType.INTEGER, age.get());
+        assertEquals(OpenSearchDataType.INTEGER, age.get());
     }
 
     @Test
     public void addSameTypeShouldPass() {
-        TypeSupplier age = new TypeSupplier("age", ESDataType.INTEGER);
-        age.add(ESDataType.INTEGER);
+        TypeSupplier age = new TypeSupplier("age", OpenSearchDataType.INTEGER);
+        age.add(OpenSearchDataType.INTEGER);
 
-        assertEquals(ESDataType.INTEGER, age.get());
+        assertEquals(OpenSearchDataType.INTEGER, age.get());
     }
 
     @Test
     public void haveTwoTypesShouldThrowException() {
-        TypeSupplier age = new TypeSupplier("age", ESDataType.INTEGER);
-        age.add(ESDataType.TEXT);
+        TypeSupplier age = new TypeSupplier("age", OpenSearchDataType.INTEGER);
+        age.add(OpenSearchDataType.TEXT);
 
         exception.expect(SemanticAnalysisException.class);
         exception.expectMessage("Field [age] have conflict type");

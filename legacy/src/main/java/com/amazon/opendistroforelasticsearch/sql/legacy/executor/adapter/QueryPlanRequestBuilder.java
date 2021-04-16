@@ -20,9 +20,9 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.core.Colum
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.core.BindingTupleQueryPlanner;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.SqlElasticRequestBuilder;
 import lombok.RequiredArgsConstructor;
-import org.elasticsearch.action.ActionRequest;
-import org.elasticsearch.action.ActionRequestBuilder;
-import org.elasticsearch.action.ActionResponse;
+import org.opensearch.action.ActionRequest;
+import org.opensearch.action.ActionRequestBuilder;
+import org.opensearch.action.ActionResponse;
 
 import java.util.List;
 

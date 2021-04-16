@@ -1,0 +1,102 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
+ */
+
+/*
+ * Licensed to Elasticsearch under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+plugins {
+    id 'java'
+    id "io.freefair.lombok"
+    id 'jacoco'
+}
+
+dependencies {
+    compile project(':core')
+    compile group: 'org.opensearch', name: 'opensearch', version: "${es_version}"
+    compile "io.github.resilience4j:resilience4j-retry:1.5.0"
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.10.5' 
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.4'
+    compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: '2.11.4'
+    compile group: 'org.json', name: 'json', version:'20180813'
+    compileOnly group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${es_version}"
+
+    testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')
+    testCompile group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
+    testCompile group: 'org.mockito', name: 'mockito-core', version: '3.5.0'
+    testCompile group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.5.0'
+    testCompile group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${es_version}"
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+    }
+}
+
+jacoco {
+    toolVersion = "0.8.5"
+}
+jacocoTestReport {
+    reports {
+        html.enabled true
+        xml.enabled true
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it)
+        }))
+    }
+}
+test.finalizedBy(project.tasks.jacocoTestReport)
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            element = 'CLASS'
+            excludes = [
+                    'com.amazon.opendistroforelasticsearch.sql.opensearch.security.SecurityAccess'
+            ]
+            limit {
+                counter = 'LINE'
+                minimum = 1.0
+            }
+            limit {
+                counter = 'BRANCH'
+                minimum = 1.0
+            }
+        }
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it)
+        }))
+    }
+}
+check.dependsOn jacocoTestCoverageVerification
+jacocoTestCoverageVerification.dependsOn jacocoTestReport

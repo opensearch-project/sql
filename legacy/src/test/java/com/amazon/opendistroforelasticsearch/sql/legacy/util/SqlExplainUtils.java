@@ -17,9 +17,9 @@ package com.amazon.opendistroforelasticsearch.sql.legacy.util;
 
 import com.alibaba.druid.sql.parser.ParserException;
 import com.amazon.opendistroforelasticsearch.sql.legacy.exception.SqlParseException;
-import com.amazon.opendistroforelasticsearch.sql.legacy.query.ESActionFactory;
+import com.amazon.opendistroforelasticsearch.sql.legacy.query.OpenSearchActionFactory;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.QueryAction;
-import org.elasticsearch.client.Client;
+import org.opensearch.client.Client;
 import org.mockito.Mockito;
 
 import java.sql.SQLFeatureNotSupportedException;
@@ -33,7 +33,7 @@ public class SqlExplainUtils {
         try {
             Client mockClient = Mockito.mock(Client.class);
             CheckScriptContents.stubMockClient(mockClient);
-            QueryAction queryAction = ESActionFactory.create(mockClient, query);
+            QueryAction queryAction = OpenSearchActionFactory.create(mockClient, query);
 
             return queryAction.explain().explain();
         } catch (SqlParseException | SQLFeatureNotSupportedException e) {

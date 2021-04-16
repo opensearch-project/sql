@@ -19,7 +19,7 @@ import com.alibaba.druid.sql.ast.statement.SQLUnionOperator;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.SemanticAnalysisException;
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.ElasticHitsExecutor;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.multi.MultiQueryRequestBuilder;
-import org.elasticsearch.client.Client;
+import org.opensearch.client.Client;
 
 /**
  * Created by Eliran on 21/8/2016.

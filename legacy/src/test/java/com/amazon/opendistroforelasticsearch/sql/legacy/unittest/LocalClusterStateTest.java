@@ -21,9 +21,9 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.esdomain.mapping.IndexMa
 import com.amazon.opendistroforelasticsearch.sql.legacy.esdomain.mapping.TypeMappings;
 import com.amazon.opendistroforelasticsearch.sql.legacy.util.TestsConstants;
 import com.amazon.opendistroforelasticsearch.sql.legacy.plugin.SqlSettings;
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterStateListener;
-import org.elasticsearch.cluster.service.ClusterService;
+import org.opensearch.cluster.ClusterChangedEvent;
+import org.opensearch.cluster.ClusterStateListener;
+import org.opensearch.cluster.service.ClusterService;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,7 +45,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Local cluster state testing without covering ES logic, ex. resolve index pattern.
+ * Local cluster state testing without covering OpenSearch logic, ex. resolve index pattern.
  */
 public class LocalClusterStateTest {
 
@@ -53,7 +53,7 @@ public class LocalClusterStateTest {
     private static final String TYPE_NAME = "account";
 
     private static final String MAPPING = "{\n" +
-        "  \"elasticsearch-sql_test_index_bank\": {\n" +
+        "  \"opensearch-sql_test_index_bank\": {\n" +
         "    \"mappings\": {\n" +
         "      \"account\": {\n" +
         "        \"properties\": {\n" +

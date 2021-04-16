@@ -20,7 +20,7 @@ import static com.amazon.opendistroforelasticsearch.sql.util.TestUtils.getResour
 import com.amazon.opendistroforelasticsearch.sql.correctness.report.TestReport;
 import com.amazon.opendistroforelasticsearch.sql.correctness.runner.ComparisonTest;
 import com.amazon.opendistroforelasticsearch.sql.correctness.runner.connection.DBConnection;
-import com.amazon.opendistroforelasticsearch.sql.correctness.runner.connection.ESConnection;
+import com.amazon.opendistroforelasticsearch.sql.correctness.runner.connection.OpenSearchConnection;
 import com.amazon.opendistroforelasticsearch.sql.correctness.runner.connection.JDBCConnection;
 import com.amazon.opendistroforelasticsearch.sql.correctness.testset.TestDataSet;
 import com.amazon.opendistroforelasticsearch.sql.legacy.CustomExternalTestCluster;
@@ -40,21 +40,21 @@ import java.util.TimeZone;
 import org.apache.http.HttpHost;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.client.RestClient;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.elasticsearch.test.TestCluster;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.client.RestClient;
+import org.opensearch.common.Strings;
+import org.opensearch.common.transport.TransportAddress;
+import org.opensearch.test.OpenSearchIntegTestCase;
+import org.opensearch.test.TestCluster;
 
 /**
  * Correctness integration test by performing comparison test with other databases.
  */
-@ESIntegTestCase.SuiteScopeTestCase
-@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.SUITE, numDataNodes = 3, supportsDedicatedMasters = false, transportClientRatio = 1)
+@OpenSearchIntegTestCase.SuiteScopeTestCase
+@OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE, numDataNodes = 3, supportsDedicatedMasters = false, transportClientRatio = 1)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class CorrectnessIT extends ESIntegTestCase {
+public class CorrectnessIT extends OpenSearchIntegTestCase {
 
   private static final Logger LOG = LogManager.getLogger();
 
@@ -92,24 +92,24 @@ public class CorrectnessIT extends ESIntegTestCase {
   private DBConnection getThisDBConnection(TestConfig config) {
     String dbUrl = config.getDbConnectionUrl();
     if (dbUrl.isEmpty()) {
-      return getESConnection(config);
+      return getOpenSearchConnection(config);
     }
     return new JDBCConnection("DB Tested", dbUrl);
   }
 
   /**
-   * Use Elasticsearch cluster given on CLI arg or internal embedded in SQLIntegTestCase
+   * Use OpenSearch cluster given on CLI arg or internal embedded in SQLIntegTestCase
    */
-  private DBConnection getESConnection(TestConfig config) {
+  private DBConnection getOpenSearchConnection(TestConfig config) {
     RestClient client;
-    String esHost = config.getESHostUrl();
-    if (esHost.isEmpty()) {
+    String openSearchHost = config.getOpenSearchHostUrl();
+    if (openSearchHost.isEmpty()) {
       client = getRestClient();
-      esHost = client.getNodes().get(0).getHost().toString();
+      openSearchHost = client.getNodes().get(0).getHost().toString();
     } else {
-      client = RestClient.builder(HttpHost.create(esHost)).build();
+      client = RestClient.builder(HttpHost.create(openSearchHost)).build();
     }
-    return new ESConnection("jdbc:opensearch://" + esHost, client);
+    return new OpenSearchConnection("jdbc:opensearch://" + openSearchHost, client);
   }
 
   /**

@@ -29,14 +29,14 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.query.multi.MultiQueryRe
 import com.amazon.opendistroforelasticsearch.sql.legacy.utils.Util;
 import org.apache.lucene.search.TotalHits;
 import org.apache.lucene.search.TotalHits.Relation;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.document.DocumentField;
-import org.elasticsearch.common.text.Text;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHits;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.client.Client;
+import org.opensearch.common.document.DocumentField;
+import org.opensearch.common.text.Text;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.index.mapper.MapperService;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
 
 import java.util.ArrayList;
 import java.util.Collections;

@@ -29,7 +29,7 @@ import static org.junit.Assert.*;
 public class DateFieldFormatterTest {
 
     @Test
-    public void testKibanaSampleDataEcommerceOrderDateField()
+    public void testOpenSearchDashboardsSampleDataEcommerceOrderDateField()
     {
         String columnName = "order_date";
         String dateFormat = "date_optional_time";
@@ -40,7 +40,7 @@ public class DateFieldFormatterTest {
     }
 
     @Test
-    public void testKibanaSampleDataFlightsTimestampField()
+    public void testOpenSearchDashboardsSampleDataFlightsTimestampField()
     {
         String columnName = "timestamp";
         String dateFormat = "date_optional_time";
@@ -51,7 +51,7 @@ public class DateFieldFormatterTest {
     }
 
     @Test
-    public void testKibanaSampleDataFlightsTimestampFieldNoTime()
+    public void testOpenSearchDashboardsSampleDataFlightsTimestampFieldNoTime()
     {
         String columnName = "timestamp";
         String dateFormat = "date_optional_time";
@@ -62,7 +62,7 @@ public class DateFieldFormatterTest {
     }
 
     @Test
-    public void testKibanaSampleDataLogsUtcDateField()
+    public void testOpenSearchDashboardsSampleDataLogsUtcDateField()
     {
         String columnName = "utc_date";
         String dateFormat = "date_optional_time";

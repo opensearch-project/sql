@@ -29,12 +29,12 @@ import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.SqlSetting
 import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.SqlSettings.QUERY_SLOWLOG;
 import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.SqlSettings.SQL_ENABLED;
 import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.SqlSettings.SQL_NEW_ENGINE_ENABLED;
-import static org.elasticsearch.common.settings.Setting.Property;
-import static org.elasticsearch.common.settings.Setting.Property.Dynamic;
-import static org.elasticsearch.common.settings.Setting.Property.Final;
-import static org.elasticsearch.common.settings.Setting.Property.IndexScope;
-import static org.elasticsearch.common.settings.Setting.Property.NodeScope;
-import static org.elasticsearch.common.settings.Settings.EMPTY;
+import static org.opensearch.common.settings.Setting.Property;
+import static org.opensearch.common.settings.Setting.Property.Dynamic;
+import static org.opensearch.common.settings.Setting.Property.Final;
+import static org.opensearch.common.settings.Setting.Property.IndexScope;
+import static org.opensearch.common.settings.Setting.Property.NodeScope;
+import static org.opensearch.common.settings.Settings.EMPTY;
 
 import com.amazon.opendistroforelasticsearch.sql.doctest.core.DocTest;
 import com.amazon.opendistroforelasticsearch.sql.doctest.core.annotation.DocTestConfig;
@@ -47,7 +47,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.utils.StringUtils;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.stream.Collectors;
-import org.elasticsearch.common.settings.Setting;
+import org.opensearch.common.settings.Setting;
 
 /**
  * Doc test for plugin settings.
@@ -72,7 +72,7 @@ public class PluginSettingIT extends DocTest {
     docSetting(
         QUERY_SLOWLOG,
         "You can configure the time limit (seconds) for slow query which would be logged as " +
-            "'Slow query: elapsed=xxx (ms)' in elasticsearch.log.",
+            "'Slow query: elapsed=xxx (ms)' in opensearch.log.",
         10
     );
   }

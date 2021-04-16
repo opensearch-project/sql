@@ -15,7 +15,7 @@
 
 package com.amazon.opendistroforelasticsearch.sql.legacy.executor.format;
 
-import org.elasticsearch.client.Client;
+import org.opensearch.client.Client;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

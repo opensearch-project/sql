@@ -13,7 +13,7 @@ Basic Queries
 Introduction
 ============
 
-``SELECT`` statement in SQL is the most common query that retrieves data from Elasticsearch index. In this doc, only simple ``SELECT`` statement with single index and query involved is covered. A ``SELECT`` statement includes ``SELECT``, ``FROM``, ``WHERE``, ``GROUP BY``, ``HAVING``, ``ORDER BY`` and ``LIMIT`` clause. Among these clauses, ``SELECT`` and ``FROM`` are the foundation to specify which fields to be fetched and which index they should be fetched from. All others are optional and used according to your needs. Please read on for their description, syntax and use cases in details.
+``SELECT`` statement in SQL is the most common query that retrieves data from OpenSearch index. In this doc, only simple ``SELECT`` statement with single index and query involved is covered. A ``SELECT`` statement includes ``SELECT``, ``FROM``, ``WHERE``, ``GROUP BY``, ``HAVING``, ``ORDER BY`` and ``LIMIT`` clause. Among these clauses, ``SELECT`` and ``FROM`` are the foundation to specify which fields to be fetched and which index they should be fetched from. All others are optional and used according to your needs. Please read on for their description, syntax and use cases in details.
 
 Syntax
 ------
@@ -33,7 +33,7 @@ Although multiple query statements to execute in batch is not supported, ending 
 Fundamentals
 ------------
 
-Apart from predefined keyword of SQL language, the most basic element is literal and identifier. Literal is numeric, string, date or boolean constant. Identifier represents Elasticsearch index or field name. With arithmetic operators and SQL functions applied, the basic literals and identifiers can be built into complex expression.
+Apart from predefined keyword of SQL language, the most basic element is literal and identifier. Literal is numeric, string, date or boolean constant. Identifier represents OpenSearch index or field name. With arithmetic operators and SQL functions applied, the basic literals and identifiers can be built into complex expression.
 
 Rule ``expressionAtom``:
 

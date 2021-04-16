@@ -17,7 +17,7 @@ package com.amazon.opendistroforelasticsearch.sql.doctest.core.builder;
 
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequest.UrlParam;
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.IGNORE_REQUEST;
-import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.KIBANA_REQUEST;
+import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.OPENSEARCH_DASHBOARD_REQUEST;
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.response.SqlResponseFormat.PRETTY_JSON_RESPONSE;
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.response.SqlResponseFormat.TABLE_RESPONSE;
 import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.RestSqlAction.EXPLAIN_API_ENDPOINT;
@@ -30,7 +30,7 @@ import com.amazon.opendistroforelasticsearch.sql.doctest.core.response.SqlRespon
 import com.amazon.opendistroforelasticsearch.sql.legacy.utils.StringUtils;
 import com.google.common.base.Strings;
 import java.util.Arrays;
-import org.elasticsearch.client.RestClient;
+import org.opensearch.client.RestClient;
 
 /**
  * Build document by custom DSL. To make it more readable, each doc test needs to implement this interface
@@ -132,7 +132,7 @@ public interface DocBuilder {
    */
   default Example example(String title, String description, Requests requests) {
     return example(title, description, requests,
-        queryFormat(KIBANA_REQUEST, TABLE_RESPONSE),
+        queryFormat(OPENSEARCH_DASHBOARD_REQUEST, TABLE_RESPONSE),
         explainFormat(IGNORE_REQUEST, PRETTY_JSON_RESPONSE)
     );
   }

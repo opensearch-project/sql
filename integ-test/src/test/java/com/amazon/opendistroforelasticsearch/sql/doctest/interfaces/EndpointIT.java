@@ -49,9 +49,9 @@ public class EndpointIT extends DocTest {
     section(
         title("Explain"),
         description(
-            "To translate your query, send it to explain endpoint. The explain output is Elasticsearch",
+            "To translate your query, send it to explain endpoint. The explain output is OpenSearch",
             "domain specific language (DSL) in JSON format. You can just copy and paste it to your",
-            "console to run it against Elasticsearch directly."
+            "console to run it against OpenSearch directly."
         ),
         example(
             description(),

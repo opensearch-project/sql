@@ -38,7 +38,7 @@ public class JdbcTestIT extends SQLIntegTestCase {
   public void testPercentilesQuery() {
     JSONObject response = executeJdbcRequest(
         "SELECT percentiles(age, 25.0, 50.0, 75.0, 99.9) age_percentiles " +
-            "FROM elasticsearch-sql_test_index_people");
+            "FROM opensearch-sql_test_index_people");
 
     assertThat(response.getJSONArray("datarows").length(), equalTo(1));
 
@@ -53,7 +53,7 @@ public class JdbcTestIT extends SQLIntegTestCase {
   public void testDateTimeInQuery() {
     JSONObject response = executeJdbcRequest(
         "SELECT date_format(insert_time, 'dd-MM-YYYY') " +
-            "FROM elasticsearch-sql_test_index_online " +
+            "FROM opensearch-sql_test_index_online " +
             "ORDER BY date_format(insert_time, 'dd-MM-YYYY') " +
             "LIMIT 1"
     );
@@ -67,7 +67,7 @@ public class JdbcTestIT extends SQLIntegTestCase {
 
   public void testDivisionInQuery() {
     JSONObject response = executeJdbcRequest(
-        "SELECT all_client/10 from elasticsearch-sql_test_index_online ORDER BY all_client/10 desc limit 1");
+        "SELECT all_client/10 from opensearch-sql_test_index_online ORDER BY all_client/10 desc limit 1");
 
     assertThat(
         response.getJSONArray("datarows")
@@ -79,7 +79,7 @@ public class JdbcTestIT extends SQLIntegTestCase {
   public void testGroupByInQuery() {
     JSONObject response = executeJdbcRequest(
         "SELECT date_format(insert_time, 'YYYY-MM-dd'), COUNT(*) " +
-            "FROM elasticsearch-sql_test_index_online " +
+            "FROM opensearch-sql_test_index_online " +
             "GROUP BY date_format(insert_time, 'YYYY-MM-dd')"
     );
 
@@ -94,7 +94,7 @@ public class JdbcTestIT extends SQLIntegTestCase {
   @Test
   public void numberOperatorNameCaseInsensitiveTest() {
     assertSchemaContains(
-        executeQuery("SELECT ABS(age) FROM elasticsearch-sql_test_index_account " +
+        executeQuery("SELECT ABS(age) FROM opensearch-sql_test_index_account " +
             "WHERE age IS NOT NULL ORDER BY age LIMIT 5", "jdbc"),
         "ABS(age)"
     );
@@ -103,7 +103,7 @@ public class JdbcTestIT extends SQLIntegTestCase {
   @Test
   public void trigFunctionNameCaseInsensitiveTest() {
     assertSchemaContains(
-        executeQuery("SELECT Cos(age) FROM elasticsearch-sql_test_index_account " +
+        executeQuery("SELECT Cos(age) FROM opensearch-sql_test_index_account " +
             "WHERE age is NOT NULL ORDER BY age LIMIT 5", "jdbc"),
         "Cos(age)"
     );
@@ -112,7 +112,7 @@ public class JdbcTestIT extends SQLIntegTestCase {
   @Test
   public void stringOperatorNameCaseInsensitiveTest() {
     assertSchemaContains(
-        executeQuery("SELECT SubStrinG(lastname, 0, 2) FROM elasticsearch-sql_test_index_account " +
+        executeQuery("SELECT SubStrinG(lastname, 0, 2) FROM opensearch-sql_test_index_account " +
             "ORDER BY age LIMIT 5", "jdbc"),
         "SubStrinG(lastname, 0, 2)"
     );
@@ -123,12 +123,12 @@ public class JdbcTestIT extends SQLIntegTestCase {
   public void dateFunctionNameCaseInsensitiveTest() {
     assertTrue(
         executeQuery(
-            "SELECT DATE_FORMAT(insert_time, 'yyyy-MM-dd', 'UTC') FROM elasticsearch-sql_test_index_online " +
+            "SELECT DATE_FORMAT(insert_time, 'yyyy-MM-dd', 'UTC') FROM opensearch-sql_test_index_online " +
                 "WHERE date_FORMAT(insert_time, 'yyyy-MM-dd', 'UTC') > '2014-01-01' " +
                 "GROUP BY DAte_format(insert_time, 'yyyy-MM-dd', 'UTC') " +
                 "ORDER BY date_forMAT(insert_time, 'yyyy-MM-dd', 'UTC')", "jdbc").equalsIgnoreCase(
             executeQuery(
-                "SELECT date_format(insert_time, 'yyyy-MM-dd', 'UTC') FROM elasticsearch-sql_test_index_online " +
+                "SELECT date_format(insert_time, 'yyyy-MM-dd', 'UTC') FROM opensearch-sql_test_index_online " +
                     "WHERE date_format(insert_time, 'yyyy-MM-dd', 'UTC') > '2014-01-01' " +
                     "GROUP BY date_format(insert_time, 'yyyy-MM-dd', 'UTC') " +
                     "ORDER BY date_format(insert_time, 'yyyy-MM-dd', 'UTC')", "jdbc")

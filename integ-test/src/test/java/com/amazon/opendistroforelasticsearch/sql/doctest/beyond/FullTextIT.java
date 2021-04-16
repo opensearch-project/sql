@@ -27,7 +27,7 @@ public class FullTextIT extends DocTest {
     section(
         title("Match Query"),
         description(
-            "Match query is the standard query for full-text search in Elasticsearch. Both ``MATCHQUERY`` and",
+            "Match query is the standard query for full-text search in OpenSearch. Both ``MATCHQUERY`` and",
             "``MATCH_QUERY`` are functions for performing match query."
         ),
         example(
@@ -122,7 +122,7 @@ public class FullTextIT extends DocTest {
     section(
         title("Score Query"),
         description(
-            "Elasticsearch supports to wrap a filter query so as to return a relevance score along with",
+            "OpenSearch supports to wrap a filter query so as to return a relevance score along with",
             "every matching document. ``SCORE``, ``SCOREQUERY`` and ``SCORE_QUERY`` can be used for this."
         ),
         example(

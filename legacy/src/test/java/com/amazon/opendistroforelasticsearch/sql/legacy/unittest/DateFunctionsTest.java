@@ -20,7 +20,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.parser.SqlParser;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static org.elasticsearch.search.builder.SearchSourceBuilder.ScriptField;
+import static org.opensearch.search.builder.SearchSourceBuilder.ScriptField;
 import static org.junit.Assert.assertTrue;
 import static com.amazon.opendistroforelasticsearch.sql.legacy.util.CheckScriptContents.getScriptFieldFromQuery;
 import static com.amazon.opendistroforelasticsearch.sql.legacy.util.CheckScriptContents.getScriptFilterFromQuery;

@@ -28,11 +28,11 @@ import static com.amazon.opendistroforelasticsearch.sql.legacy.utils.StringUtils
  */
 public class SemanticAnalyzer implements GenericSqlParseTreeVisitor<Type> {
 
-    private final ESMappingLoader mappingLoader;
+    private final OpenSearchMappingLoader mappingLoader;
 
     private final TypeChecker typeChecker;
 
-    public SemanticAnalyzer(ESMappingLoader mappingLoader, TypeChecker typeChecker) {
+    public SemanticAnalyzer(OpenSearchMappingLoader mappingLoader, TypeChecker typeChecker) {
         this.mappingLoader = mappingLoader;
         this.typeChecker = typeChecker;
     }
