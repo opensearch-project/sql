@@ -1,4 +1,4 @@
-# Opendistro SQL Cursor (Pagination) Support
+# OpenSearch SQL Cursor (Pagination) Support
 
 ## 1. Overview
 
@@ -97,7 +97,7 @@ Based on the cons of client side cursors, and the limitation imposed by OpenSear
 
 Here is a sample of the request response API for the cursor queries. The client only needs cursor field to fetch the next page. This interface allows clients to de-couple the parsing logic of state.
 
-Since we are implementing server side cursors, either OpenDistro SQL plugin or OpenSearch needs to maintain state which consumes hardware resources like memory, file descriptors etc. The conserve such resources we provide a clear cursor API to clear resources explicitly, before it is automatically cleaned after expiry.
+Since we are implementing server side cursors, either OpenSearch SQL plugin or OpenSearch needs to maintain state which consumes hardware resources like memory, file descriptors etc. The conserve such resources we provide a clear cursor API to clear resources explicitly, before it is automatically cleaned after expiry.
 
 ```
 # 1.Creates a cursor

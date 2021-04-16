@@ -1,4 +1,4 @@
-# How OpenDistro SQL Is Tested
+# How OpenSearch SQL Is Tested
 
 ## 1.Introduction
 
@@ -82,7 +82,7 @@ SELECT SUM(DistanceMiles) AS sum_DistanceMiles_ok FROM opensearch_dashboards_sam
 
 ### 3.3 Test Runner
 
-To simplify the test and be confident about the test result, Test Runner runs query by JDBC driver of OpenDistro SQL and other databases. In this case we don’t need to parse the data format returned from our plugin. And obviously another benefit is the correctness of JDBC driver is also covered.
+To simplify the test and be confident about the test result, Test Runner runs query by JDBC driver of OpenSearch SQL and other databases. In this case we don’t need to parse the data format returned from our plugin. And obviously another benefit is the correctness of JDBC driver is also covered.
 
 ![How We Do Comparison Test](img/how-we-do-comparison-test.png)
 

@@ -5,10 +5,10 @@
 [![Chat](https://img.shields.io/badge/chat-on%20forums-blue)](https://discuss.opendistrocommunity.dev/c/sql/)
 ![PRs welcome!](https://img.shields.io/badge/PRs-welcome!-success)
 
-# Open Distro for Elasticsearch SQL
+# OpenSearch SQL
 
 
-Open Distro for Elasticsearch enables you to extract insights out of OpenSearch using the familiar SQL query syntax. Use aggregations, group by, and where clauses to investigate your data. Read your data as JSON documents or CSV tables so you have the flexibility to use the format that works best for you.
+OpenSearch enables you to extract insights out of OpenSearch using the familiar SQL query syntax. Use aggregations, group by, and where clauses to investigate your data. Read your data as JSON documents or CSV tables so you have the flexibility to use the format that works best for you.
 
 
 ## SQL Related Projects
@@ -23,7 +23,7 @@ The following projects have been merged into this repository as separate folders
 
 ## Documentation
 
-Please refer to the [SQL Language Reference Manual](./docs/user/index.rst), [Piped Processing Language (PPL) Reference Manual](./docs/experiment/ppl/index.rst) and [Technical Documentation](https://opendistro.github.io/for-elasticsearch-docs) for detailed information on installing and configuring opendistro-elasticsearch-sql plugin. Looking to contribute? Read the instructions on [Development Guide](./docs/developing.rst) and then submit a patch!
+Please refer to the [SQL Language Reference Manual](./docs/user/index.rst), [Piped Processing Language (PPL) Reference Manual](./docs/experiment/ppl/index.rst) and [Technical Documentation](https://opendistro.github.io/for-elasticsearch-docs) for detailed information on installing and configuring plugin. Looking to contribute? Read the instructions on [Development Guide](./docs/developing.rst) and then submit a patch!
 
 
 ## SQL Engine V2
@@ -68,7 +68,7 @@ POST _opendistro/_sql/_explain
 }
 ```
 
-* For a sample curl command with the Open Distro for Elasticsearch Security plugin, try:
+* For a sample curl command with the OpenSearch Security plugin, try:
 ```
 curl -XPOST https://localhost:9200/_opendistro/_sql -u admin:admin -k -d '{"query": "SELECT * FROM my-index LIMIT 10"}' -H 'Content-Type: application/json'
 ```
@@ -204,7 +204,7 @@ This project is based on the Apache 2.0-licensed [elasticsearch-sql](https://git
 
 ## Code of Conduct
 
-This project has adopted an [Open Source Code of Conduct](https://opendistro.github.io/for-elasticsearch/codeofconduct.html).
+This project has adopted an [Open Source Code of Conduct](./CODE_OF_CONDUCT.md).
 
 
 ## Security issue notifications

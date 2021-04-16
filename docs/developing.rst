@@ -184,7 +184,7 @@ Note that other related project code has already merged into this single reposit
 Code Convention
 ---------------
 
-We’re integrated Checkstyle plugin into Gradle build: https://github.com/opendistro-for-elasticsearch/sql/blob/master/config/checkstyle/google_checks.xml. So any violation will fail the build. You need to identify the offending code from Gradle error message and fix them and rerun the Gradle build. Here are the highlight of some Checkstyle rules:
+We’re integrated Checkstyle plugin into Gradle build: https://github.com/opensearch-project/sql/blob/master/config/checkstyle/google_checks.xml. So any violation will fail the build. You need to identify the offending code from Gradle error message and fix them and rerun the Gradle build. Here are the highlight of some Checkstyle rules:
 
 * 2 spaces indentation.
 * No line starts with tab character in source file.

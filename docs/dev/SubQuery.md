@@ -2,7 +2,7 @@
 
 # Rewrite EXISTS in Nested Query
 
-Opendistro-sql use OpenSearch nested query to query the nested field. In OpenSearch domain, the nested query can filter the nested field based the query logic which is correspond to the [EXISTS in PartiQL](https://partiql.org/tutorial.html#use-case-checking-whether-a-nested-collection-satisfies-a-condition). It means, there could be a way to translate the EXISTS query based on the nested query.
+OpenSearch SQL uses OpenSearch nested query to query the nested field. In OpenSearch domain, the nested query can filter the nested field based the query logic which is correspond to the [EXISTS in PartiQL](https://partiql.org/tutorial.html#use-case-checking-whether-a-nested-collection-satisfies-a-condition). It means, there could be a way to translate the EXISTS query based on the nested query.
 Let’s go though the use cases find out how to translate the SQL to DSL.
 
 ## Use cases
@@ -115,7 +115,7 @@ WHERE EXISTS(SELECT *
   }
 }
 
-// Opendistro-SQL
+// OpenSearch SQL
 SELECT e.name 
 FROM employee_nested as e, e.projects as p 
 WHERE p.name LIKE 'security'
