@@ -15,8 +15,8 @@
 
 package com.amazon.opendistroforelasticsearch.sql.legacy.unittest.planner;
 
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHits;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -244,7 +244,7 @@ public class QueryPlannerBatchTest extends QueryPlannerTest {
         return concat(one, other, Matcher.class);
     }
 
-    /** Copy from ES ArrayUtils */
+    /** Copy from OpenSearch ArrayUtils */
     private static <T> T[] concat(T[] one, T[] other, Class<T> clazz) {
         T[] target = (T[]) Array.newInstance(clazz, one.length + other.length);
         System.arraycopy(one, 0, target, 0, one.length);

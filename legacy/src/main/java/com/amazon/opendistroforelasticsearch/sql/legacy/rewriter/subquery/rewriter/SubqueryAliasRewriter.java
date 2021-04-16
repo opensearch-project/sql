@@ -103,7 +103,7 @@ public class SubqueryAliasRewriter extends MySqlASTVisitorAdapter {
     }
 
     /**
-     * The table name in elasticsearch could be "index/type". Which represent as SQLBinaryOpExpr in AST.
+     * The table name in OpenSearch could be "index/type". Which represent as SQLBinaryOpExpr in AST.
      */
     private boolean isESTable(SQLBinaryOpExpr expr) {
         return expr.getOperator() == SQLBinaryOperator.Divide && expr.getParent() instanceof SQLExprTableSource;

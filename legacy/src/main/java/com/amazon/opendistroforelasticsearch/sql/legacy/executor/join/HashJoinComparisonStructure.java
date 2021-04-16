@@ -16,7 +16,7 @@
 package com.amazon.opendistroforelasticsearch.sql.legacy.executor.join;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.domain.Field;
-import org.elasticsearch.search.SearchHit;
+import org.opensearch.search.SearchHit;
 
 import java.util.ArrayList;
 import java.util.HashMap;

@@ -22,7 +22,6 @@ import static com.amazon.opendistroforelasticsearch.sql.util.MatcherUtils.verify
 import static com.amazon.opendistroforelasticsearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
-
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 

@@ -17,7 +17,7 @@
 package com.amazon.opendistroforelasticsearch.jdbc;
 
 import com.amazon.opendistroforelasticsearch.jdbc.protocol.JdbcQueryRequest;
-import com.amazon.opendistroforelasticsearch.jdbc.types.ElasticsearchType;
+import com.amazon.opendistroforelasticsearch.jdbc.types.OpenSearchType;
 import com.amazon.opendistroforelasticsearch.jdbc.types.TypeConverters;
 import com.amazon.opendistroforelasticsearch.jdbc.internal.util.SqlParser;
 import com.amazon.opendistroforelasticsearch.jdbc.logging.Logger;
@@ -96,7 +96,7 @@ public class PreparedStatementImpl extends StatementImpl implements PreparedStat
     public void setNull(int parameterIndex, int sqlType) throws SQLException {
         log.debug(() -> logEntry("setNull(%d, %d)", parameterIndex, sqlType));
         checkOpen();
-        setParameter(parameterIndex, ElasticsearchType.fromJdbcType(JDBCType.valueOf(sqlType)).getTypeName(), null);
+        setParameter(parameterIndex, OpenSearchType.fromJdbcType(JDBCType.valueOf(sqlType)).getTypeName(), null);
         log.debug(() -> logExit("setNull"));
     }
 
@@ -165,7 +165,7 @@ public class PreparedStatementImpl extends StatementImpl implements PreparedStat
     public void setString(int parameterIndex, String x) throws SQLException {
         log.debug(() -> logEntry("setString(%d, %s)", parameterIndex, x));
         checkOpen();
-        setParameter(parameterIndex, ElasticsearchType.fromJdbcType(JDBCType.VARCHAR).getTypeName(), x);
+        setParameter(parameterIndex, OpenSearchType.fromJdbcType(JDBCType.VARCHAR).getTypeName(), x);
         log.debug(() -> logExit("setString"));
     }
 
@@ -233,7 +233,7 @@ public class PreparedStatementImpl extends StatementImpl implements PreparedStat
     private void setObjectX(int parameterIndex, Object x, int targetSqlType, Map<String, Object> conversionParams)
             throws SQLException {
         JDBCType jdbcType = JDBCType.valueOf(targetSqlType);
-        ElasticsearchType esType = ElasticsearchType.fromJdbcType(jdbcType);
+        OpenSearchType openSearchType = OpenSearchType.fromJdbcType(jdbcType);
 
         Object value = TypeConverters.getInstance(jdbcType).convert(x, null, conversionParams);
 
@@ -244,7 +244,7 @@ public class PreparedStatementImpl extends StatementImpl implements PreparedStat
             value = JdbcDateTimeFormatter.JDBC_FORMAT.format((Date) value);
         }
 
-        setParameter(parameterIndex, esType.getTypeName(), value);
+        setParameter(parameterIndex, openSearchType.getTypeName(), value);
     }
 
     @Override

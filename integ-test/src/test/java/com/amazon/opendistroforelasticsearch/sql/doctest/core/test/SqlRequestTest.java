@@ -28,10 +28,10 @@ import com.google.common.io.CharStreams;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.RestClient;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.opensearch.client.Request;
+import org.opensearch.client.RestClient;
 
 /**
  * Test cases for {@link SqlRequest}

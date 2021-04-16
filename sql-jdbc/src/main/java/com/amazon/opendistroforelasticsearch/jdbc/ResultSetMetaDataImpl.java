@@ -70,13 +70,13 @@ public class ResultSetMetaDataImpl implements ResultSetMetaData, JdbcWrapper {
     @Override
     public boolean isSigned(int column) throws SQLException {
         checkAccessible(column);
-        return schema.getColumnMetaData(column-1).getEsType().isSigned();
+        return schema.getColumnMetaData(column-1).getOpenSearchType().isSigned();
     }
 
     @Override
     public int getColumnDisplaySize(int column) throws SQLException {
         checkAccessible(column);
-        return schema.getColumnMetaData(column-1).getEsType().getDisplaySize();
+        return schema.getColumnMetaData(column-1).getOpenSearchType().getDisplaySize();
     }
 
     @Override
@@ -124,13 +124,13 @@ public class ResultSetMetaDataImpl implements ResultSetMetaData, JdbcWrapper {
     @Override
     public int getColumnType(int column) throws SQLException {
         checkAccessible(column);
-        return schema.getElasticsearchType(column-1).getJdbcType().getVendorTypeNumber();
+        return schema.getOpenSearchType(column-1).getJdbcType().getVendorTypeNumber();
     }
 
     @Override
     public String getColumnTypeName(int column) throws SQLException {
         checkAccessible(column);
-        return schema.getElasticsearchType(column-1).getJdbcType().getName();
+        return schema.getOpenSearchType(column-1).getJdbcType().getName();
     }
 
     @Override
@@ -154,7 +154,7 @@ public class ResultSetMetaDataImpl implements ResultSetMetaData, JdbcWrapper {
     @Override
     public String getColumnClassName(int column) throws SQLException {
         checkAccessible(column);
-        return schema.getElasticsearchType(column-1).getJavaClassName();
+        return schema.getOpenSearchType(column-1).getJavaClassName();
     }
 
     private void checkAccessible(int columnIndex) throws SQLException {

@@ -29,7 +29,6 @@ import com.amazon.opendistroforelasticsearch.sql.correctness.runner.resultset.Ty
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;

@@ -22,7 +22,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.query.DefaultQueryAction
 import com.amazon.opendistroforelasticsearch.sql.legacy.request.SqlRequest;
 import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
-import org.elasticsearch.client.Client;
+import org.opensearch.client.Client;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
@@ -50,13 +50,13 @@ public class AliasInliningTests {
     @Test
     public void orderByAliasedFieldTest() throws SqlParseException {
         String originalQuery = "SELECT utc_time date " +
-                "FROM kibana_sample_data_logs " +
+                "FROM opensearch_dashboards_sample_data_logs " +
                 "ORDER BY date DESC";
         String originalDsl = parseAsSimpleQuery(originalQuery);
 
         String rewrittenQuery =
                 "SELECT utc_time date " +
-                "FROM kibana_sample_data_logs " +
+                "FROM opensearch_dashboards_sample_data_logs " +
                 "ORDER BY utc_time DESC";
 
         String rewrittenDsl = parseAsSimpleQuery(rewrittenQuery);
@@ -80,13 +80,13 @@ public class AliasInliningTests {
     @Test
     public void groupByAliasedFieldTest() throws SqlParseException {
         String originalQuery = "SELECT utc_time date " +
-                "FROM kibana_sample_data_logs " +
+                "FROM opensearch_dashboards_sample_data_logs " +
                 "GROUP BY date";
 
         String originalDsl = parseAsAggregationQuery(originalQuery);
 
         String rewrittenQuery = "SELECT utc_time date " +
-                "FROM kibana_sample_data_logs " +
+                "FROM opensearch_dashboards_sample_data_logs " +
                 "GROUP BY utc_time DESC";
 
         String rewrittenDsl = parseAsAggregationQuery(rewrittenQuery);
@@ -96,8 +96,8 @@ public class AliasInliningTests {
 
     @Test
     public void groupAndSortBySameExprAlias() throws SqlParseException {
-        String query = "SELECT date_format(timestamp, 'yyyy-MM') es-table.timestamp_tg, COUNT(*) count, COUNT(DistanceKilometers) es-table.DistanceKilometers_count\n" +
-                "FROM kibana_sample_data_flights\n" +
+        String query = "SELECT date_format(timestamp, 'yyyy-MM') opensearch-table.timestamp_tg, COUNT(*) count, COUNT(DistanceKilometers) opensearch-table.DistanceKilometers_count\n" +
+                "FROM opensearch_dashboards_sample_data_flights\n" +
                 "GROUP BY date_format(timestamp, 'yyyy-MM')\n" +
                 "ORDER BY date_format(timestamp, 'yyyy-MM') DESC\n" +
                 "LIMIT 2500";
@@ -105,7 +105,7 @@ public class AliasInliningTests {
 
         JSONObject parseQuery = new JSONObject(dsl);
 
-        assertThat(parseQuery.query("/aggregations/es-table.timestamp_tg/terms/script"), notNullValue());
+        assertThat(parseQuery.query("/aggregations/opensearch-table.timestamp_tg/terms/script"), notNullValue());
 
     }
 
@@ -113,7 +113,7 @@ public class AliasInliningTests {
     public void groupByAndSortAliased() throws SqlParseException {
         String dsl = parseAsAggregationQuery(
                 "SELECT date_format(utc_time, 'dd-MM-YYYY') date " +
-                        "FROM kibana_sample_data_logs " +
+                        "FROM opensearch_dashboards_sample_data_logs " +
                         "GROUP BY date " +
                         "ORDER BY date DESC");
 

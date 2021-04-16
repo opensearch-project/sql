@@ -21,7 +21,7 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.util.CheckScriptContents
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static org.elasticsearch.search.builder.SearchSourceBuilder.ScriptField;
+import static org.opensearch.search.builder.SearchSourceBuilder.ScriptField;
 import static org.junit.Assert.assertTrue;
 
 public class MathFunctionsTest {

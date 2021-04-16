@@ -45,7 +45,7 @@ public class TypeConverters {
     private static Map<JDBCType, TypeConverter> tcMap = new HashMap<>();
 
     static {
-        // TODO - JDBCType.VARBINARY - byte[] -> Try ES data type
+        // TODO - JDBCType.VARBINARY - byte[] -> Try OpenSearch data type
         tcMap.put(JDBCType.TIMESTAMP, new TimestampTypeConverter());
         tcMap.put(JDBCType.DATE, new DateTypeConverter());
         tcMap.put(JDBCType.TIME, new TimeTypeConverter());

@@ -25,10 +25,10 @@ import static org.mockito.Mockito.when;
 
 import com.amazon.opendistroforelasticsearch.sql.common.setting.Settings;
 import com.amazon.opendistroforelasticsearch.sql.sql.domain.SQLQueryRequest;
-import org.elasticsearch.client.node.NodeClient;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.opensearch.client.node.NodeClient;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.threadpool.ThreadPool;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,9 +52,9 @@ public class RestSQLQueryActionTest {
 
   @Before
   public void setup() {
-    nodeClient = new NodeClient(org.elasticsearch.common.settings.Settings.EMPTY, threadPool);
+    nodeClient = new NodeClient(org.opensearch.common.settings.Settings.EMPTY, threadPool);
     when(threadPool.getThreadContext())
-        .thenReturn(new ThreadContext(org.elasticsearch.common.settings.Settings.EMPTY));
+        .thenReturn(new ThreadContext(org.opensearch.common.settings.Settings.EMPTY));
   }
 
   @Test

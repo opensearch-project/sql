@@ -1,6 +1,6 @@
-## Open Distro for ElasticSearch - JDBC
+## OpenSearch - JDBC
 
-This is the driver for JDBC connectivity to a cluster running with Open Distro for Elasticsearch SQL support.
+This is the driver for JDBC connectivity to a cluster running with OpenSearch SQL support.
 
 ## Specifications
 
@@ -13,13 +13,13 @@ Java application that needs to use it.
 
 If using with JDBC compatible BI tools, refer to the tool documentation on configuring a new JDBC driver. Typically,
 all that's required is to make the tool aware of the location of the driver jar and then use it to setup database (i.e
-Elasticsearch) connections.
+OpenSearch) connections.
 
 ### Connection URL and other settings
 
 To setup a connection, the driver requires a JDBC connection URL. The connection URL is of the form:
 ```
-    jdbc:elasticsearch://[scheme://][host][:port][/context-path]?[property-key=value]&[property-key2=value2]..&[property-keyN=valueN]
+    jdbc:opensearch://[scheme://][host][:port][/context-path]?[property-key=value]&[property-key2=value2]..&[property-keyN=valueN]
 ```
 
 
@@ -58,11 +58,11 @@ To setup a connection, the driver requires a JDBC connection URL. The connection
   | ------------- |-------------| -----|---------|
   | user      | Connection username. mandatory if `auth` property selects a authentication scheme that mandates a username value | any string   | `null` |
   | password      | Connection password. mandatory if `auth` property selects a authentication scheme that mandates a password value | any string     |   `null` |
-  | fetchSize      | Cursor page size | positive integer value. Max value is limited by `index.max_result_window` Elasticsearch setting  |   `0` (for non-paginated response) |
+  | fetchSize      | Cursor page size | positive integer value. Max value is limited by `index.max_result_window` OpenSearch setting  |   `0` (for non-paginated response) |
   | logOutput | location where driver logs should be emitted | a valid file path     |    `null` (logs are disabled) |
   | logLevel | severity level for which driver logs should be emitted | in order from highest(least logging) to lowest(most logging): OFF, FATAL, ERROR, WARN, INFO, DEBUG, TRACE, ALL  |    OFF (logs are disabled) |
   | auth     | authentication mechanism to use | `NONE` (no auth), `BASIC` (HTTP Basic), `AWS_SIGV4` (AWS SIGV4) | `basic` if username and/or password is specified, `NONE` otherwise |
-  | awsCredentialsProvider | The AWS credential provider to be used when authentication mechanism is `AWS_SIGV4` (AWS SIGV4). If not set, the driver will use DefaultAWSCredentialsProviderChain to sign the request. Note that the driver renamed the namespaces of its dependencies, so the value has to be an instance of com.amazonaws.opendistro.elasticsearch.sql.jdbc.shadow.com.amazonaws.auth.AWSCredentialsProvider| Instance of an AWSCredentialProvider | DefaultAWSCredentialsProviderChain |
+  | awsCredentialsProvider | The AWS credential provider to be used when authentication mechanism is `AWS_SIGV4` (AWS SIGV4). If not set, the driver will use DefaultAWSCredentialsProviderChain to sign the request. Note that the driver renamed the namespaces of its dependencies, so the value has to be an instance of com.amazonaws.opendistro.opensearch.sql.jdbc.shadow.com.amazonaws.auth.AWSCredentialsProvider| Instance of an AWSCredentialProvider | DefaultAWSCredentialsProviderChain |
   | region | if authentication type is `aws_sigv4`, then this is the region value to use when signing requests. Only needed if the driver can not determine the region for the host endpoint. The driver will detect the region if the host endpoint matches a known url pattern. | a valid AWS region value e.g. us-east-1 | `null` (auto-detected if possible from the host endpoint) |
   | requestCompression | whether to indicate acceptance of compressed (gzip) responses when making server requests | `true` or `false` | `false` |
   | useSSL   | whether to establish the connection over SSL/TLS | `true` or `false` | `false` if scheme is `http`, `true` if scheme is `https` |
@@ -89,7 +89,7 @@ import java.sql.DriverManager;
 import java.sql.Statement;
 .
 .
-String url = "jdbc:elasticsearch://localhost:9200";
+String url = "jdbc:opensearch://localhost:9200";
 
 Connection con = DriverManager.getConnection(url);
 Statement st = con.createStatement();
@@ -108,7 +108,7 @@ import java.sql.DriverManager;
 import java.sql.Statement;
 .
 .
-String url = "jdbc:elasticsearch://https://remote-host-name";
+String url = "jdbc:opensearch://https://remote-host-name";
 
 Connection con = DriverManager.getConnection(url);
 Statement st = con.createStatement();
@@ -127,7 +127,7 @@ import java.sql.DriverManager;
 import java.sql.Statement;
 .
 .
-String url = "jdbc:elasticsearch://remote-host-name";
+String url = "jdbc:opensearch://remote-host-name";
 
 Properties properties = new Properties();
 properties.put("useSSL", "true");
@@ -149,7 +149,7 @@ import java.sql.DriverManager;
 import java.sql.Statement;
 .
 .
-String url = "jdbc:elasticsearch://https://remote-host-name";
+String url = "jdbc:opensearch://https://remote-host-name";
 String user = "username";
 String password = "password";
 
@@ -170,7 +170,7 @@ import java.sql.DriverManager;
 import java.sql.Statement;
 .
 .
-String url = "jdbc:elasticsearch://remote-host-name";
+String url = "jdbc:opensearch://remote-host-name";
 
 Properties properties = new Properties();
 properties.put("useSSL", "true");
@@ -194,7 +194,7 @@ import java.sql.DriverManager;
 import java.sql.Statement;
 .
 .
-String url = "jdbc:elasticsearch://remote-host-name";
+String url = "jdbc:opensearch://remote-host-name";
 
 Properties properties = new Properties();
 properties.put("useSSL", "true");
@@ -224,7 +224,7 @@ import java.sql.DriverManager;
 import java.sql.Statement;
 .
 .
-String url = "jdbc:elasticsearch://https://remote-host-name?auth=aws_sigv4";
+String url = "jdbc:opensearch://https://remote-host-name?auth=aws_sigv4";
 
 Connection con = DriverManager.getConnection(url);
 Statement st = con.createStatement();
@@ -242,7 +242,7 @@ import java.sql.DriverManager;
 import java.sql.Statement;
 .
 .
-String url = "jdbc:elasticsearch://https://remote-host-name";
+String url = "jdbc:opensearch://https://remote-host-name";
 
 Properties properties = new Properties();
 properties.put("auth", "aws_sigv4");
@@ -264,7 +264,7 @@ import java.sql.DriverManager;
 import java.sql.Statement;
 .
 .
-String url = "jdbc:elasticsearch://https://remote-host-name";
+String url = "jdbc:opensearch://https://remote-host-name";
 
 Properties properties = new Properties();
 properties.put("awsCredentialsProvider", new EnvironmentVariableCredentialsProvider());
@@ -286,7 +286,7 @@ import java.sql.DriverManager;
 import java.sql.Statement;
 .
 .
-String url = "jdbc:elasticsearch://https://remote-host-name?auth=aws_sigv4&region=us-west-1";
+String url = "jdbc:opensearch://https://remote-host-name?auth=aws_sigv4&region=us-west-1";
 
 Connection con = DriverManager.getConnection(url);
 Statement st = con.createStatement();
@@ -305,7 +305,7 @@ import java.sql.DriverManager;
 import java.sql.Statement;
 .
 .
-String url = "jdbc:elasticsearch://https://remote-host-name";
+String url = "jdbc:opensearch://https://remote-host-name";
 
 Properties properties = new Properties();
 properties.put("auth", "aws_sigv4");
@@ -321,7 +321,7 @@ con.close();
 ```
 ### Connecting using the DataSource interface
 
-The driver also provides a javax.sql.DataSource implementation via the `com.amazon.opendistroforelasticsearch.jdbc.ElasticsearchDataSource` class that can be used to obtain a connection. Here are some typical code samples:
+The driver also provides a javax.sql.DataSource implementation via the `com.amazon.opendistroforelasticsearch.jdbc.OpenSearchDataSource` class that can be used to obtain a connection. Here are some typical code samples:
 
 
 * Connect to localhost on port 9200 with no authentication over a plain connection
@@ -331,13 +331,13 @@ import java.sql.Connection;
 import java.sql.Statement;
 import javax.sql.DataSource;
 
-import com.amazon.opendistroforelasticsearch.jdbc.ElasticsearchDataSource;
+import com.amazon.opendistroforelasticsearch.jdbc.OpenSearchDataSource;
 
 .
 .
-String url = "jdbc:elasticsearch://localhost:9200";
+String url = "jdbc:opensearch://localhost:9200";
 
-ElasticsearchDataSource ds = new ElasticsearchDataSource();
+OpenSearchDataSource ds = new OpenSearchDataSource();
 ds.setUrl(url);
 
 Connection con = ds.getConnection(url);
@@ -356,13 +356,13 @@ import java.sql.Connection;
 import java.sql.Statement;
 import javax.sql.DataSource;
 
-import com.amazon.opendistroforelasticsearch.jdbc.ElasticsearchDataSource;
+import com.amazon.opendistroforelasticsearch.jdbc.OpenSearchDataSource;
 
 .
 .
-String url = "jdbc:elasticsearch://https://remote-host-name";
+String url = "jdbc:opensearch://https://remote-host-name";
 
-ElasticsearchDataSource ds = new ElasticsearchDataSource();
+OpenSearchDataSource ds = new OpenSearchDataSource();
 ds.setUrl(url);
 
 Connection con = ds.getConnection(url);
@@ -381,13 +381,13 @@ import java.sql.Connection;
 import java.sql.Statement;
 import javax.sql.DataSource;
 
-import com.amazon.opendistroforelasticsearch.jdbc.ElasticsearchDataSource;
+import com.amazon.opendistroforelasticsearch.jdbc.OpenSearchDataSource;
 
 .
 .
-String url = "jdbc:elasticsearch://https://remote-host-name";
+String url = "jdbc:opensearch://https://remote-host-name";
 
-ElasticsearchDataSource ds = new ElasticsearchDataSource();
+OpenSearchDataSource ds = new OpenSearchDataSource();
 ds.setUrl(url);
 
 Connection con = ds.getConnection(url, "user", "password");
@@ -407,13 +407,13 @@ import java.sql.Connection;
 import java.sql.Statement;
 import javax.sql.DataSource;
 
-import com.amazon.opendistroforelasticsearch.jdbc.ElasticsearchDataSource;
+import com.amazon.opendistroforelasticsearch.jdbc.OpenSearchDataSource;
 
 .
 .
-String url = "jdbc:elasticsearch://https://remote-host-name?auth=aws_sigv4";
+String url = "jdbc:opensearch://https://remote-host-name?auth=aws_sigv4";
 
-ElasticsearchDataSource ds = new ElasticsearchDataSource();
+OpenSearchDataSource ds = new OpenSearchDataSource();
 ds.setUrl(url);
 
 Connection con = ds.getConnection(url);
@@ -432,13 +432,13 @@ import java.sql.Connection;
 import java.sql.Statement;
 import javax.sql.DataSource;
 
-import com.amazon.opendistroforelasticsearch.jdbc.ElasticsearchDataSource;
+import com.amazon.opendistroforelasticsearch.jdbc.OpenSearchDataSource;
 
 .
 .
-String url = "jdbc:elasticsearch://https://remote-host-name?auth=aws_sigv4&region=us-west-1";
+String url = "jdbc:opensearch://https://remote-host-name?auth=aws_sigv4&region=us-west-1";
 
-ElasticsearchDataSource ds = new ElasticsearchDataSource();
+OpenSearchDataSource ds = new OpenSearchDataSource();
 ds.setUrl(url);
 ds.setAwsCredentialProvider(new EnvironmentVariableCredentialsProvider());
 
@@ -458,13 +458,13 @@ import java.sql.Connection;
 import java.sql.Statement;
 import javax.sql.DataSource;
 
-import com.amazon.opendistroforelasticsearch.jdbc.ElasticsearchDataSource;
+import com.amazon.opendistroforelasticsearch.jdbc.OpenSearchDataSource;
 
 .
 .
-String url = "jdbc:elasticsearch://https://remote-host-name?auth=aws_sigv4&region=us-west-1";
+String url = "jdbc:opensearch://https://remote-host-name?auth=aws_sigv4&region=us-west-1";
 
-ElasticsearchDataSource ds = new ElasticsearchDataSource();
+OpenSearchDataSource ds = new OpenSearchDataSource();
 ds.setUrl(url);
 
 Connection con = ds.getConnection(url);

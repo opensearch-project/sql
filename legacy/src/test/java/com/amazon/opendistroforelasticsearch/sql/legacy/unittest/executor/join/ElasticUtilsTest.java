@@ -19,8 +19,8 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.executor.join.ElasticUti
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.join.MetaSearchResult;
 import org.apache.lucene.search.TotalHits;
 import org.apache.lucene.search.TotalHits.Relation;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHits;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Test;

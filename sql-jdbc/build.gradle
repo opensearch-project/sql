@@ -32,7 +32,7 @@ plugins {
 group 'com.amazon.opendistroforelasticsearch.client'
 
 // keep version in sync with version in Driver source
-version '1.13.0.0'
+version '1.15.0.0'
 
 boolean snapshot = "true".equals(System.getProperty("build.snapshot", "true"));
 if (snapshot) {
@@ -71,7 +71,7 @@ tasks.withType(JavaCompile) {
 }
 
 static def getShadowPath(String path) {
-    return 'com.amazonaws.opendistro.elasticsearch.sql.jdbc.shadow.' + path
+    return 'com.amazonaws.opendistro.opensearch.sql.jdbc.shadow.' + path
 }
 
 shadowJar {

@@ -19,8 +19,8 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.domain.IndexStatement;
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.format.DataRows.Row;
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.format.Schema.Column;
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.format.Schema.Type;
-import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
-import org.elasticsearch.client.Client;
+import org.opensearch.action.admin.indices.get.GetIndexResponse;
+import org.opensearch.client.Client;
 
 import java.util.ArrayList;
 import java.util.Arrays;

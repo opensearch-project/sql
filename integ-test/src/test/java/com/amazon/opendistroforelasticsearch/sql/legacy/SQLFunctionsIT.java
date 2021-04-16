@@ -41,20 +41,20 @@ import static org.hamcrest.Matchers.not;
 import java.io.IOException;
 import java.util.Date;
 import java.util.stream.IntStream;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHits;
 import org.hamcrest.collection.IsMapContaining;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.common.xcontent.LoggingDeprecationHandler;
+import org.opensearch.common.xcontent.NamedXContentRegistry;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.common.xcontent.XContentParser;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
 
 
 /**
@@ -126,7 +126,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
   @Test
   public void caseChangeTest() throws IOException {
     String query = "SELECT LOWER(firstname) " +
-        "FROM elasticsearch-sql_test_index_account " +
+        "FROM opensearch-sql_test_index_account " +
         "WHERE UPPER(lastname)='DUKE' " +
         "ORDER BY upper(lastname) ";
 
@@ -145,7 +145,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
     // https://stackoverflow.com/questions/11063102/using-locales-with-javas-tolowercase-and-touppercase
 
     String query = "SELECT LOWER(state.keyword, 'tr') " +
-        "FROM elasticsearch-sql_test_index_account " +
+        "FROM opensearch-sql_test_index_account " +
         "WHERE account_number=1";
 
     assertThat(
@@ -158,7 +158,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
   @Test
   public void caseChangeWithAggregationTest() throws IOException {
     String query = "SELECT UPPER(e.firstname) AS upper, COUNT(*)" +
-        "FROM elasticsearch-sql_test_index_account e " +
+        "FROM opensearch-sql_test_index_account e " +
         "WHERE LOWER(e.lastname)='duke' " +
         "GROUP BY upper";
 
@@ -679,7 +679,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
   }
 
   /**
-   * The following tests for LEFT and RIGHT are ignored because the ES client fails to parse "LEFT"/"RIGHT" in
+   * The following tests for LEFT and RIGHT are ignored because the OpenSearch client fails to parse "LEFT"/"RIGHT" in
    * the integTest
    */
   @Ignore

@@ -17,7 +17,7 @@
 package com.amazon.opendistroforelasticsearch.jdbc.test;
 
 import com.amazon.opendistroforelasticsearch.jdbc.internal.util.UrlParser;
-import com.amazon.opendistroforelasticsearch.jdbc.test.mocks.MockES;
+import com.amazon.opendistroforelasticsearch.jdbc.test.mocks.MockOpenSearch;
 import org.eclipse.jetty.server.ConnectionFactory;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
@@ -113,7 +113,7 @@ public class TLSServer {
         return jettyServer;
     }
 
-    public static class MockESConnectionHandler extends AbstractHandler {
+    public static class MockOpenSearchConnectionHandler extends AbstractHandler {
         @Override
         public void handle(
                 String target,
@@ -123,7 +123,7 @@ public class TLSServer {
             response.setContentType("application/json");
             response.setStatus(200);
             baseRequest.setHandled(true);
-            response.getWriter().write(MockES.INSTANCE.getConnectionResponse());
+            response.getWriter().write(MockOpenSearch.INSTANCE.getConnectionResponse());
         }
     }
 

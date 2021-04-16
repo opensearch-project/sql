@@ -25,28 +25,28 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.physical.R
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.physical.estimation.Cost;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.physical.node.BatchPhysicalOperator;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.resource.ResourceManager;
-import org.elasticsearch.action.search.ClearScrollResponse;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.sort.FieldSortBuilder;
-import org.elasticsearch.search.sort.SortOrder;
+import org.opensearch.action.search.ClearScrollResponse;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.client.Client;
+import org.opensearch.common.Strings;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.sort.FieldSortBuilder;
+import org.opensearch.search.sort.SortOrder;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
 
 /**
- * ES Scroll API as physical implementation of TableScan
+ * OpenSearch Scroll API as physical implementation of TableScan
  */
 public class Scroll extends BatchPhysicalOperator<SearchHit> {
 
     /**
-     * Request to submit to ES to scroll over
+     * Request to submit to OpenSearch to scroll over
      */
     private final TableInJoinRequestBuilder request;
 
@@ -144,7 +144,7 @@ public class Scroll extends BatchPhysicalOperator<SearchHit> {
 
     /**
      * Extra filter pushed down from upstream. Re-parse WHERE clause with extra filter
-     * because ES RequestBuilder doesn't allow QueryBuilder inside be changed after added.
+     * because OpenSearch RequestBuilder doesn't allow QueryBuilder inside be changed after added.
      */
     private QueryBuilder generateNewQueryWithExtraFilter(BoolQueryBuilder filter) throws SqlParseException {
         Where where = request.getOriginalSelect().getWhere();

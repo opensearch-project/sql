@@ -64,7 +64,7 @@ class SQLSyntaxParserTest {
 
   @Test
   public void canParseHiddenIndexName() {
-    assertNotNull(parser.parse("SELECT * FROM .kibana"));
+    assertNotNull(parser.parse("SELECT * FROM .opensearch_dashboards"));
   }
 
   @Test

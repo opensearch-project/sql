@@ -28,12 +28,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.ResponseException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.client.Request;
+import org.opensearch.client.Response;
+import org.opensearch.client.ResponseException;
 
 public class CursorIT extends SQLIntegTestCase {
 
@@ -200,7 +200,7 @@ public class CursorIT extends SQLIntegTestCase {
 
   @Test
   public void noCursorWhenResultsLessThanFetchSize() throws IOException {
-    // fetch_size is 100, but actual number of rows returned from ElasticSearch is 97
+    // fetch_size is 100, but actual number of rows returned from OpenSearch is 97
     // a scroll context will be opened but will be closed after first page as all records are fetched
     String selectQuery = StringUtils.format(
         "SELECT * FROM %s WHERE balance < 25000 AND age > 36 LIMIT 2000", TEST_INDEX_ACCOUNT

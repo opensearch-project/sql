@@ -12,7 +12,7 @@ Full-text Search
 Introduction
 ============
 
-Full-text search is for searching a single stored document which is distinguished from regular search based on original texts in database. It tries to match search criteria by examining all of the words in each document. In Elasticsearch, full-text queries provided enables you to search text fields analyzed during indexing.
+Full-text search is for searching a single stored document which is distinguished from regular search based on original texts in database. It tries to match search criteria by examining all of the words in each document. In OpenSearch, full-text queries provided enables you to search text fields analyzed during indexing.
 
 Match Query
 ===========
@@ -20,7 +20,7 @@ Match Query
 Description
 -----------
 
-Match query is the standard query for full-text search in Elasticsearch. Both ``MATCHQUERY`` and ``MATCH_QUERY`` are functions for performing match query.
+Match query is the standard query for full-text search in OpenSearch. Both ``MATCHQUERY`` and ``MATCH_QUERY`` are functions for performing match query.
 
 Example 1
 ---------
@@ -404,7 +404,7 @@ Score Query
 Description
 -----------
 
-Elasticsearch supports to wrap a filter query so as to return a relevance score along with every matching document. ``SCORE``, ``SCOREQUERY`` and ``SCORE_QUERY`` can be used for this.
+OpenSearch supports to wrap a filter query so as to return a relevance score along with every matching document. ``SCORE``, ``SCOREQUERY`` and ``SCORE_QUERY`` can be used for this.
 
 Example
 -------

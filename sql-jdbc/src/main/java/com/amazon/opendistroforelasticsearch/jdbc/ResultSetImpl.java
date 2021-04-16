@@ -34,7 +34,7 @@ import com.amazon.opendistroforelasticsearch.jdbc.protocol.http.JsonCursorHttpPr
 import com.amazon.opendistroforelasticsearch.jdbc.transport.http.HttpTransport;
 import com.amazon.opendistroforelasticsearch.jdbc.types.TypeConverter;
 import com.amazon.opendistroforelasticsearch.jdbc.types.TypeConverters;
-import com.amazon.opendistroforelasticsearch.jdbc.types.UnrecognizedElasticsearchTypeException;
+import com.amazon.opendistroforelasticsearch.jdbc.types.UnrecognizedOpenSearchTypeException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -66,10 +66,10 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Elasticsearch implementaion for a {@link ResultSet}
+ * OpenSearch implementaion for a {@link ResultSet}
  * <p>
  * Column names or labels received in APIs are treated in a
- * case-sensitive manner since Elasticsearch field names are
+ * case-sensitive manner since OpenSearch field names are
  * case-sensitive.
  * </p>
  * The lookup
@@ -112,7 +112,7 @@ public class ResultSetImpl implements ResultSet, JdbcWrapper, LoggingSource {
             this.cursorId = cursorId;
             this.open = true;
 
-        } catch (UnrecognizedElasticsearchTypeException ex) {
+        } catch (UnrecognizedOpenSearchTypeException ex) {
             logAndThrowSQLException(log, new SQLException("Exception creating a ResultSet.", ex));
         }
 
@@ -585,7 +585,7 @@ public class ResultSetImpl implements ResultSet, JdbcWrapper, LoggingSource {
 
     protected <T> T getObjectX(int columnIndex, Class<T> javaClass, Map<String, Object> conversionParams) throws SQLException {
         Object value = getColumn(columnIndex);
-        TypeConverter tc = TypeConverters.getInstance(getColumnMetaData(columnIndex).getEsType().getJdbcType());
+        TypeConverter tc = TypeConverters.getInstance(getColumnMetaData(columnIndex).getOpenSearchType().getJdbcType());
         return tc.convert(value, javaClass, conversionParams);
     }
 
@@ -1025,7 +1025,7 @@ public class ResultSetImpl implements ResultSet, JdbcWrapper, LoggingSource {
         String columnSQLTypeName = null;
         Class targetClass = null;
         if (map != null) {
-            columnSQLTypeName = getColumnMetaData(columnIndex).getEsType().getJdbcType().getName();
+            columnSQLTypeName = getColumnMetaData(columnIndex).getOpenSearchType().getJdbcType().getName();
             targetClass = map.get(columnSQLTypeName);
         }
 

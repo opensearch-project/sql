@@ -15,17 +15,16 @@
 
 package com.amazon.opendistroforelasticsearch.sql.ppl;
 
-import org.json.JSONObject;
-import org.junit.Ignore;
-import org.junit.Test;
-
-import java.io.IOException;
-
 import static com.amazon.opendistroforelasticsearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static com.amazon.opendistroforelasticsearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static com.amazon.opendistroforelasticsearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 import static com.amazon.opendistroforelasticsearch.sql.util.MatcherUtils.rows;
 import static com.amazon.opendistroforelasticsearch.sql.util.MatcherUtils.verifyOrder;
+
+import java.io.IOException;
+import org.json.JSONObject;
+import org.junit.Ignore;
+import org.junit.Test;
 
 public class SortCommandIT extends PPLIntegTestCase {
 

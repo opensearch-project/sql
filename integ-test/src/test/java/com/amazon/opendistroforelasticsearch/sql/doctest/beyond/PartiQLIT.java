@@ -53,7 +53,7 @@ public class PartiQLIT extends DocTest {
         description(
             "In SQL-92, a database table can only have tuples that consists of scalar values.",
             "PartiQL extends SQL-92 to allow you query and unnest nested collection conveniently.",
-            "In Elasticsearch world, this is very useful for index with object or nested field."
+            "In OpenSearch world, this is very useful for index with object or nested field."
         ),
         example(
             title("Unnesting a Nested Collection"),

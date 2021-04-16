@@ -16,7 +16,7 @@
 package com.amazon.opendistroforelasticsearch.sql.legacy.executor;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.exception.SqlParseException;
-import org.elasticsearch.search.SearchHits;
+import org.opensearch.search.SearchHits;
 
 import java.io.IOException;
 

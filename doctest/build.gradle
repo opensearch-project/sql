@@ -1,11 +1,11 @@
-import org.elasticsearch.gradle.testclusters.RunTask
+import org.opensearch.gradle.testclusters.RunTask
 
 plugins {
     id "com.wiredforcode.spawn" version "0.8.2"
     id 'base'
 }
 
-apply plugin: 'elasticsearch.testclusters'
+apply plugin: 'opensearch.testclusters'
 
 def path = project(':').projectDir
 // temporary fix, because currently we are under migration to new architecture. Need to run ./gradlew run from
@@ -21,7 +21,9 @@ task bootstrap(type: Exec) {
 
 //evaluationDependsOn(':')
 task startES(type: SpawnProcessTask) {
-    command "${path}/gradlew -p ${plugin_path} runRestTestCluster"
+    def accessKey = System.env.AWS_ACCESS_KEY_ID ?: findProperty('aws_access_key_id')
+    def secretKey = System.env.AWS_SECRET_ACCESS_KEY ?: findProperty('aws_secret_access_key')
+    command "${path}/gradlew -p ${plugin_path} runRestTestCluster -Paws_access_key_id=$accessKey -Paws_secret_access_key=$secretKey"
     ready 'started'
 }
 
@@ -49,6 +51,6 @@ testClusters {
     }
 }
 tasks.register("runRestTestCluster", RunTask) {
-    description = 'Runs elasticsearch ODFE SQL plugin'
+    description = 'Runs ODFE SQL plugin in OpenSearch'
     useCluster testClusters.docTestCluster;
 }

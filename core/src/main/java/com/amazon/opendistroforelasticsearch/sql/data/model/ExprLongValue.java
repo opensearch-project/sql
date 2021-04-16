@@ -17,7 +17,6 @@ package com.amazon.opendistroforelasticsearch.sql.data.model;
 
 import com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType;
 import com.amazon.opendistroforelasticsearch.sql.data.type.ExprType;
-import com.google.common.base.Objects;
 
 /**
  * Expression Long Value.

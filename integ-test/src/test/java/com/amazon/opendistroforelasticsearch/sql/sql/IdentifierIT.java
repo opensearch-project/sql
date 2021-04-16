@@ -25,9 +25,9 @@ import static com.amazon.opendistroforelasticsearch.sql.util.TestUtils.performRe
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.SQLIntegTestCase;
 import java.io.IOException;
-import org.elasticsearch.client.Request;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.client.Request;
 
 /**
  * Integration tests for identifiers including index and field name symbol.

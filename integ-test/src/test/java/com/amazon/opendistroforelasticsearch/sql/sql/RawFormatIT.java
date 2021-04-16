@@ -16,7 +16,6 @@
 
 package com.amazon.opendistroforelasticsearch.sql.sql;
 
-import static com.amazon.opendistroforelasticsearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_CSV_SANITIZE;
 import static com.amazon.opendistroforelasticsearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_RAW_SANITIZE;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.SQLIntegTestCase;

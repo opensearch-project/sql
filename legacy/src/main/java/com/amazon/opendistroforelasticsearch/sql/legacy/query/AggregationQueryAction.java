@@ -30,26 +30,26 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.exception.SqlParseExcept
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.maker.AggMaker;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.maker.QueryMaker;
 import com.google.common.collect.Lists;
-import org.elasticsearch.action.search.SearchAction;
-import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.action.search.SearchType;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.join.aggregations.JoinAggregationBuilders;
-import org.elasticsearch.search.aggregations.AggregationBuilder;
-import org.elasticsearch.search.aggregations.AggregationBuilders;
-import org.elasticsearch.search.aggregations.BucketOrder;
-import org.elasticsearch.search.aggregations.bucket.nested.NestedAggregationBuilder;
-import org.elasticsearch.search.aggregations.bucket.nested.ReverseNestedAggregationBuilder;
-import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
-import org.elasticsearch.search.sort.SortOrder;
+import org.opensearch.action.search.SearchAction;
+import org.opensearch.action.search.SearchRequestBuilder;
+import org.opensearch.action.search.SearchType;
+import org.opensearch.client.Client;
+import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.join.aggregations.JoinAggregationBuilders;
+import org.opensearch.search.aggregations.AggregationBuilder;
+import org.opensearch.search.aggregations.AggregationBuilders;
+import org.opensearch.search.aggregations.BucketOrder;
+import org.opensearch.search.aggregations.bucket.nested.NestedAggregationBuilder;
+import org.opensearch.search.aggregations.bucket.nested.ReverseNestedAggregationBuilder;
+import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
+import org.opensearch.search.sort.SortOrder;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Transform SQL query to Elasticsearch aggregations query
+ * Transform SQL query to OpenSearch aggregations query
  */
 public class AggregationQueryAction extends QueryAction {
 
@@ -63,7 +63,7 @@ public class AggregationQueryAction extends QueryAction {
     }
 
     @Override
-    public SqlElasticSearchRequestBuilder explain() throws SqlParseException {
+    public SqlOpenSearchRequestBuilder explain() throws SqlParseException {
         this.request = new SearchRequestBuilder(client, SearchAction.INSTANCE);
 
         if (select.getRowCount() == null) {
@@ -238,7 +238,7 @@ public class AggregationQueryAction extends QueryAction {
         updateRequestWithHighlight(select, request);
         updateRequestWithCollapse(select, request);
         updateRequestWithPostFilter(select, request);
-        return new SqlElasticSearchRequestBuilder(request);
+        return new SqlOpenSearchRequestBuilder(request);
     }
 
     private AggregationBuilder getGroupAgg(Field groupByField, Select select) throws SqlParseException {
