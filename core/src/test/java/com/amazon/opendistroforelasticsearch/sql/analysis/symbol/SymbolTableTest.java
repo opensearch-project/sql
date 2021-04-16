@@ -31,7 +31,6 @@ import com.amazon.opendistroforelasticsearch.sql.data.type.ExprType;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 

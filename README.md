@@ -5,25 +5,25 @@
 [![Chat](https://img.shields.io/badge/chat-on%20forums-blue)](https://discuss.opendistrocommunity.dev/c/sql/)
 ![PRs welcome!](https://img.shields.io/badge/PRs-welcome!-success)
 
-# Open Distro for Elasticsearch SQL
+# OpenSearch SQL
 
 
-Open Distro for Elasticsearch enables you to extract insights out of Elasticsearch using the familiar SQL query syntax. Use aggregations, group by, and where clauses to investigate your data. Read your data as JSON documents or CSV tables so you have the flexibility to use the format that works best for you.
+OpenSearch enables you to extract insights out of OpenSearch using the familiar SQL query syntax. Use aggregations, group by, and where clauses to investigate your data. Read your data as JSON documents or CSV tables so you have the flexibility to use the format that works best for you.
 
 
 ## SQL Related Projects
 
-The following projects have been merged into this repository as separate folders as of July 9, 2020. Please refer to links below for details. This document will focus on the SQL plugin for Elasticsearch.
+The following projects have been merged into this repository as separate folders as of July 9, 2020. Please refer to links below for details. This document will focus on the SQL plugin for OpenSearch.
 
-* [SQL CLI](https://github.com/opendistro-for-elasticsearch/sql/tree/master/sql-cli)
-* [SQL JDBC](https://github.com/opendistro-for-elasticsearch/sql/tree/master/sql-jdbc)
-* [SQL ODBC](https://github.com/opendistro-for-elasticsearch/sql/tree/master/sql-odbc)
-* [Query Workbench](https://github.com/opendistro-for-elasticsearch/sql/tree/master/workbench)
+* [SQL CLI](https://github.com/opensearch-project/sql/tree/main/sql-cli)
+* [SQL JDBC](https://github.com/opensearch-project/sql/tree/main/sql-jdbc)
+* [SQL ODBC](https://github.com/opensearch-project/sql/tree/main/sql-odbc)
+* [Query Workbench](https://github.com/opensearch-project/sql/tree/main/workbench)
 
 
 ## Documentation
 
-Please refer to the [SQL Language Reference Manual](./docs/user/index.rst), [Piped Processing Language (PPL) Reference Manual](./docs/experiment/ppl/index.rst) and [Technical Documentation](https://opendistro.github.io/for-elasticsearch-docs) for detailed information on installing and configuring opendistro-elasticsearch-sql plugin. Looking to contribute? Read the instructions on [Development Guide](./docs/developing.rst) and then submit a patch!
+Please refer to the [SQL Language Reference Manual](./docs/user/index.rst), [Piped Processing Language (PPL) Reference Manual](./docs/experiment/ppl/index.rst) and [Technical Documentation](https://opendistro.github.io/for-elasticsearch-docs) for detailed information on installing and configuring plugin. Looking to contribute? Read the instructions on [Development Guide](./docs/developing.rst) and then submit a patch!
 
 
 ## SQL Engine V2
@@ -33,9 +33,9 @@ Recently we have been actively improving our query engine primarily for better c
 
 ## Setup
 
-Install as plugin: build plugin from source code by following the instruction in Build section and install it to your Elasticsearch.
+Install as plugin: build plugin from source code by following the instruction in Build section and install it to your OpenSearch.
 
-After doing this, you need to restart the Elasticsearch server. Otherwise you may get errors like `Invalid index name [sql], must not start with '']; ","status":400}`.
+After doing this, you need to restart the OpenSearch server. Otherwise you may get errors like `Invalid index name [sql], must not start with '']; ","status":400}`.
 
 
 ## Build
@@ -60,7 +60,7 @@ POST https://<host>:<port>/_opendistro/_sql
 }
 ```
 
-* Explain SQL to elasticsearch query DSL
+* Explain SQL to OpenSearch query DSL
 ```
 POST _opendistro/_sql/_explain
 {
@@ -68,7 +68,7 @@ POST _opendistro/_sql/_explain
 }
 ```
 
-* For a sample curl command with the Open Distro for Elasticsearch Security plugin, try:
+* For a sample curl command with the OpenSearch Security plugin, try:
 ```
 curl -XPOST https://localhost:9200/_opendistro/_sql -u admin:admin -k -d '{"query": "SELECT * FROM my-index LIMIT 10"}' -H 'Content-Type: application/json'
 ```
@@ -137,7 +137,7 @@ curl -XPOST https://localhost:9200/_opendistro/_sql -u admin:admin -k -d '{"quer
 
 			SELECT online FROM online GROUP BY date_range(field='insert_time','format'='yyyy-MM-dd' ,'2014-08-18','2014-08-17','now-8d','now-7d','now-6d','now')
 
-* ES Geographic
+* OpenSearch Geographic
 		
 		SELECT * FROM locations WHERE GEO_BOUNDING_BOX(fieldname,100.0,1.0,101,0.0)
 
@@ -166,7 +166,7 @@ curl -XPOST https://localhost:9200/_opendistro/_sql -u admin:admin -k -d '{"quer
 *  SQL Between
 *  SQL Aliases
 *  SQL Not Null
-*  SQL(ES) Date
+*  SQL(OpenSearch) Date
 *  SQL avg()
 *  SQL count()
 *  SQL max()
@@ -190,13 +190,13 @@ Please check out JDBC driver repository for more details.
 
 ## Beyond sql features
 
-*  ES TopHits
-*  ES MISSING
-*  ES STATS
-*  ES GEO_INTERSECTS
-*  ES GEO_BOUNDING_BOX
-*  ES GEO_DISTANCE
-*  ES GEOHASH_GRID aggregation
+*  OpenSearch TopHits
+*  OpenSearch MISSING
+*  OpenSearch STATS
+*  OpenSearch GEO_INTERSECTS
+*  OpenSearch GEO_BOUNDING_BOX
+*  OpenSearch GEO_DISTANCE
+*  OpenSearch GEOHASH_GRID aggregation
 
 ## Attribution
 
@@ -204,7 +204,7 @@ This project is based on the Apache 2.0-licensed [elasticsearch-sql](https://git
 
 ## Code of Conduct
 
-This project has adopted an [Open Source Code of Conduct](https://opendistro.github.io/for-elasticsearch/codeofconduct.html).
+This project has adopted an [Open Source Code of Conduct](./CODE_OF_CONDUCT.md).
 
 
 ## Security issue notifications

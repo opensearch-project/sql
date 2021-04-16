@@ -1,2 +1,2 @@
-SELECT FlightDelay FROM kibana_sample_data_flights GROUP BY FlightDelay
-SELECT FlightDelay, Cancelled FROM kibana_sample_data_flights GROUP BY FlightDelay, Cancelled
+SELECT FlightDelay FROM opensearch_dashboards_sample_data_flights GROUP BY FlightDelay
+SELECT FlightDelay, Cancelled FROM opensearch_dashboards_sample_data_flights GROUP BY FlightDelay, Cancelled

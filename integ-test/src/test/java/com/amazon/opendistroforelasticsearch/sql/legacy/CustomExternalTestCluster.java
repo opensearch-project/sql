@@ -16,7 +16,9 @@
 
 package com.amazon.opendistroforelasticsearch.sql.legacy;
 
-import static org.elasticsearch.test.ESTestCase.getTestTransportType;
+import static org.opensearch.action.admin.cluster.node.info.NodesInfoRequest.Metric.HTTP;
+import static org.opensearch.action.admin.cluster.node.info.NodesInfoRequest.Metric.SETTINGS;
+import static org.opensearch.test.OpenSearchTestCase.getTestTransportType;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -27,24 +29,21 @@ import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
-import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.network.NetworkModule;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.http.HttpInfo;
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.test.InternalTestCluster;
-import org.elasticsearch.test.TestCluster;
-import org.elasticsearch.transport.MockTransportClient;
-import org.elasticsearch.transport.nio.MockNioTransportPlugin;
-
-import static org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest.Metric.HTTP;
-import static org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest.Metric.SETTINGS;
+import org.opensearch.action.admin.cluster.node.info.NodeInfo;
+import org.opensearch.action.admin.cluster.node.info.NodesInfoResponse;
+import org.opensearch.client.Client;
+import org.opensearch.cluster.node.DiscoveryNode;
+import org.opensearch.common.io.stream.NamedWriteableRegistry;
+import org.opensearch.common.network.NetworkModule;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.transport.TransportAddress;
+import org.opensearch.env.Environment;
+import org.opensearch.http.HttpInfo;
+import org.opensearch.plugins.Plugin;
+import org.opensearch.test.InternalTestCluster;
+import org.opensearch.test.TestCluster;
+import org.opensearch.transport.MockTransportClient;
+import org.opensearch.transport.nio.MockNioTransportPlugin;
 
 public class CustomExternalTestCluster extends TestCluster {
 

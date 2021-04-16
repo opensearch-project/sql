@@ -25,8 +25,6 @@ import com.amazon.opendistroforelasticsearch.sql.doctest.core.markup.Document;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import org.apache.http.HttpEntity;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.RestClient;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,6 +33,8 @@ import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
+import org.opensearch.client.Response;
+import org.opensearch.client.RestClient;
 
 /**
  * Test cases for {@link DocBuilder}

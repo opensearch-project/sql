@@ -356,8 +356,8 @@ public class AstBuilderTest {
 
   @Test
   public void testIdentifierAsIndexNameStartWithDot() {
-    assertEqual("source=.kibana",
-        relation(".kibana"));
+    assertEqual("source=.opensearch_dashboards",
+        relation(".opensearch_dashboards"));
   }
 
   @Test

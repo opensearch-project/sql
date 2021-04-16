@@ -24,9 +24,9 @@ import com.google.common.io.Files;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.Response;
 import org.junit.Test;
+import org.opensearch.client.Request;
+import org.opensearch.client.Response;
 
 public class PrettyFormatterIT extends SQLIntegTestCase {
 

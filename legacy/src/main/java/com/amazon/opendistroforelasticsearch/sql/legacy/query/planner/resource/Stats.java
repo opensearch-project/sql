@@ -15,10 +15,10 @@
 
 package com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.resource;
 
-import org.elasticsearch.client.Client;
+import org.opensearch.client.Client;
 
 /**
- * Statistics collector collects from ES stats, JVM etc for other components:
+ * Statistics collector collects from OpenSearch stats, JVM etc for other components:
  * <p>
  * 1) Resource monitor
  * 2) Cost estimation
@@ -27,7 +27,7 @@ import org.elasticsearch.client.Client;
 public class Stats {
 
     /**
-     * Client connection to ES cluster (unused now)
+     * Client connection to OpenSearch cluster (unused now)
      */
     private Client client;
 

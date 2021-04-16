@@ -28,7 +28,6 @@ import static org.hamcrest.Matchers.hasItems;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
-import com.amazon.opendistroforelasticsearch.sql.common.utils.StringUtils;
 import com.google.common.base.Strings;
 import com.google.gson.JsonParser;
 import java.util.ArrayList;
@@ -38,14 +37,14 @@ import java.util.Map;
 import java.util.function.Function;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHits;
 import org.hamcrest.Description;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
 
 public class MatcherUtils {
 

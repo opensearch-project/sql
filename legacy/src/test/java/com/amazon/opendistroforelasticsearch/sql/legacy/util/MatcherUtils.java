@@ -16,8 +16,8 @@
 package com.amazon.opendistroforelasticsearch.sql.legacy.util;
 
 import com.google.common.base.Strings;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHits;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
 import org.hamcrest.Description;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;

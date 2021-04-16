@@ -36,20 +36,20 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.metrics.Metrics;
 import com.amazon.opendistroforelasticsearch.sql.legacy.utils.SQLFunctions;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
-import org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsResponse;
-import org.elasticsearch.action.search.ClearScrollResponse;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.document.DocumentField;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHits;
-import org.elasticsearch.search.aggregations.Aggregation;
-import org.elasticsearch.search.aggregations.Aggregations;
-import org.elasticsearch.search.aggregations.bucket.terms.Terms;
-import org.elasticsearch.search.aggregations.metrics.NumericMetricsAggregation;
-import org.elasticsearch.search.aggregations.metrics.Percentile;
-import org.elasticsearch.search.aggregations.metrics.Percentiles;
+import org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
+import org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsResponse;
+import org.opensearch.action.search.ClearScrollResponse;
+import org.opensearch.client.Client;
+import org.opensearch.common.Strings;
+import org.opensearch.common.document.DocumentField;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
+import org.opensearch.search.aggregations.Aggregation;
+import org.opensearch.search.aggregations.Aggregations;
+import org.opensearch.search.aggregations.bucket.terms.Terms;
+import org.opensearch.search.aggregations.metrics.NumericMetricsAggregation;
+import org.opensearch.search.aggregations.metrics.Percentile;
+import org.opensearch.search.aggregations.metrics.Percentiles;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -65,7 +65,7 @@ import java.util.stream.StreamSupport;
 
 import static java.util.Collections.unmodifiableMap;
 import static java.util.stream.Collectors.toSet;
-import static org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsResponse.FieldMappingMetadata;
+import static org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsResponse.FieldMappingMetadata;
 
 public class SelectResultSet extends ResultSet {
 
@@ -209,7 +209,7 @@ public class SelectResultSet extends ResultSet {
         if (indexMappings.containsKey(typeName)) {
             typeMappings = indexMappings.get(typeName);
         } else {
-            // Assuming ES version 6.x, there can be only one type per index so this for loop should grab the only type
+            // Assuming OpenSearch version 6.x, there can be only one type per index so this for loop should grab the only type
             for (String type : indexMappings.keySet()) {
                 typeMappings = indexMappings.get(type);
             }

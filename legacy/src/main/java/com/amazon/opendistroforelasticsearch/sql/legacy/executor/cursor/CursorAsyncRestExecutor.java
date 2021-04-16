@@ -22,12 +22,12 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.query.join.BackOffRetryS
 import com.amazon.opendistroforelasticsearch.sql.legacy.utils.LogUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.rest.BytesRestResponse;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestStatus;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.opensearch.client.Client;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.RestStatus;
+import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -37,7 +37,7 @@ import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.SqlSetting
 
 public class CursorAsyncRestExecutor {
     /**
-     * Custom thread pool name managed by ES
+     * Custom thread pool name managed by OpenSearch
      */
     public static final String SQL_WORKER_THREAD_POOL_NAME = "sql-worker";
 

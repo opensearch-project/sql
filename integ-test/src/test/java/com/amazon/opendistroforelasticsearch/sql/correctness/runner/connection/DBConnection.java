@@ -37,7 +37,7 @@ public interface DBConnection {
    * Create table with the schema.
    *
    * @param tableName table name
-   * @param schema    schema json in ES mapping format
+   * @param schema    schema json in OpenSearch mapping format
    */
   void create(String tableName, String schema);
 

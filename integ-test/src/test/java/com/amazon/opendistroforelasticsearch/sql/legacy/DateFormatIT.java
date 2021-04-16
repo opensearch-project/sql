@@ -53,7 +53,7 @@ public class DateFormatIT extends SQLIntegTestCase {
 
   /**
    * All of the following tests use UTC as their date_format timezone as this is the same timezone of the data
-   * being queried. This is to prevent discrepancies in the Elasticsearch query and the actual field data that is
+   * being queried. This is to prevent discrepancies in the OpenSearch query and the actual field data that is
    * being checked for the integration tests.
    * <p>
    * Large LIMIT values were given for some of these queries since the default result size of the query is 200 and
@@ -189,7 +189,7 @@ public class DateFormatIT extends SQLIntegTestCase {
   public void groupByAndSort() throws IOException {
     JSONObject aggregations = executeQuery(
         "SELECT date_format(insert_time, 'dd-MM-YYYY') " +
-            "FROM elasticsearch-sql_test_index_online " +
+            "FROM opensearch-sql_test_index_online " +
             "GROUP BY date_format(insert_time, 'dd-MM-YYYY') " +
             "ORDER BY date_format(insert_time, 'dd-MM-YYYY') DESC")
         .getJSONObject("aggregations");
@@ -201,7 +201,7 @@ public class DateFormatIT extends SQLIntegTestCase {
   public void groupByAndSortAliasedReversed() throws IOException {
     JSONObject aggregations = executeQuery(
         "SELECT date_format(insert_time, 'dd-MM-YYYY') date " +
-            "FROM elasticsearch-sql_test_index_online " +
+            "FROM opensearch-sql_test_index_online " +
             "GROUP BY date " +
             "ORDER BY date DESC")
         .getJSONObject("aggregations");
@@ -213,7 +213,7 @@ public class DateFormatIT extends SQLIntegTestCase {
   public void groupByAndSortAliased() throws IOException {
     JSONObject aggregations = executeQuery(
         "SELECT date_format(insert_time, 'dd-MM-YYYY') date " +
-            "FROM elasticsearch-sql_test_index_online " +
+            "FROM opensearch-sql_test_index_online " +
             "GROUP BY date " +
             "ORDER BY date ")
         .getJSONObject("aggregations");

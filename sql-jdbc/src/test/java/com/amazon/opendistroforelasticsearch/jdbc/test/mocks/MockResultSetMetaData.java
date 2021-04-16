@@ -17,7 +17,7 @@
 package com.amazon.opendistroforelasticsearch.jdbc.test.mocks;
 
 import com.amazon.opendistroforelasticsearch.jdbc.internal.JdbcWrapper;
-import com.amazon.opendistroforelasticsearch.jdbc.types.ElasticsearchType;
+import com.amazon.opendistroforelasticsearch.jdbc.types.OpenSearchType;
 
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -167,14 +167,14 @@ public class MockResultSetMetaData implements ResultSetMetaData, JdbcWrapper {
         }
 
         public Builder column(String columnName) {
-            column(columnName, ElasticsearchType.TEXT);
+            column(columnName, OpenSearchType.TEXT);
             return this;
         }
 
-        public Builder column(String columnName, ElasticsearchType columnType) {
+        public Builder column(String columnName, OpenSearchType columnType) {
             column();
             setColumnName(columnName);
-            setColumnESType(columnType);
+            setColumnOpenSearchType(columnType);
             return this;
         }
 
@@ -233,13 +233,13 @@ public class MockResultSetMetaData implements ResultSetMetaData, JdbcWrapper {
             return this;
         }
 
-        public Builder setColumnESType(final ElasticsearchType esType) {
-            setColumnType(esType.getJdbcType().getVendorTypeNumber());
-            setPrecision(esType.getPrecision());
-            setColumnDisplaySize(esType.getDisplaySize());
-            setColumnClassName(esType.getJavaClassName());
-            setColumnTypeName(esType.getJdbcType().getName());
-            setSigned(esType.isSigned());
+        public Builder setColumnOpenSearchType(final OpenSearchType openSearchType) {
+            setColumnType(openSearchType.getJdbcType().getVendorTypeNumber());
+            setPrecision(openSearchType.getPrecision());
+            setColumnDisplaySize(openSearchType.getDisplaySize());
+            setColumnClassName(openSearchType.getJavaClassName());
+            setColumnTypeName(openSearchType.getJdbcType().getName());
+            setSigned(openSearchType.isSigned());
             return this;
         }
 

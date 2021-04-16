@@ -16,7 +16,7 @@
 package com.amazon.opendistroforelasticsearch.sql.doctest.dml;
 
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.IGNORE_REQUEST;
-import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.KIBANA_REQUEST;
+import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.OPENSEARCH_DASHBOARD_REQUEST;
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.response.SqlResponseFormat.PRETTY_JSON_RESPONSE;
 
 import com.amazon.opendistroforelasticsearch.sql.doctest.core.DocTest;
@@ -44,7 +44,7 @@ public class DeleteIT extends DocTest {
                 "DELETE FROM accounts",
                 "WHERE age > 30"
             )),
-            queryFormat(KIBANA_REQUEST, PRETTY_JSON_RESPONSE),
+            queryFormat(OPENSEARCH_DASHBOARD_REQUEST, PRETTY_JSON_RESPONSE),
             explainFormat(IGNORE_REQUEST, PRETTY_JSON_RESPONSE)
         )
     );

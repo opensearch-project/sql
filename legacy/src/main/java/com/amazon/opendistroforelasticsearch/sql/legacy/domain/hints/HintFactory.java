@@ -19,9 +19,9 @@ package com.amazon.opendistroforelasticsearch.sql.legacy.domain.hints;
 import com.amazon.opendistroforelasticsearch.sql.legacy.exception.SqlParseException;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLParser;
-import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.yaml.YamlXContentParser;
+import org.opensearch.common.xcontent.LoggingDeprecationHandler;
+import org.opensearch.common.xcontent.NamedXContentRegistry;
+import org.opensearch.common.xcontent.yaml.YamlXContentParser;
 
 import java.io.IOException;
 import java.util.ArrayList;

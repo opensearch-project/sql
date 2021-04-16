@@ -16,13 +16,18 @@
 
 package com.amazon.opendistroforelasticsearch.sql.legacy.plugin;
 
+import static com.amazon.opendistroforelasticsearch.sql.executor.ExecutionEngine.QueryResponse;
+import static com.amazon.opendistroforelasticsearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
+import static org.opensearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
+import static org.opensearch.rest.RestStatus.OK;
+
 import com.amazon.opendistroforelasticsearch.sql.common.antlr.SyntaxCheckException;
 import com.amazon.opendistroforelasticsearch.sql.common.response.ResponseListener;
 import com.amazon.opendistroforelasticsearch.sql.common.setting.Settings;
-import com.amazon.opendistroforelasticsearch.sql.elasticsearch.security.SecurityAccess;
 import com.amazon.opendistroforelasticsearch.sql.executor.ExecutionEngine.ExplainResponse;
 import com.amazon.opendistroforelasticsearch.sql.legacy.metrics.MetricName;
 import com.amazon.opendistroforelasticsearch.sql.legacy.metrics.Metrics;
+import com.amazon.opendistroforelasticsearch.sql.opensearch.security.SecurityAccess;
 import com.amazon.opendistroforelasticsearch.sql.planner.physical.PhysicalPlan;
 import com.amazon.opendistroforelasticsearch.sql.protocol.response.QueryResult;
 import com.amazon.opendistroforelasticsearch.sql.protocol.response.format.CsvResponseFormatter;
@@ -34,28 +39,22 @@ import com.amazon.opendistroforelasticsearch.sql.protocol.response.format.Respon
 import com.amazon.opendistroforelasticsearch.sql.sql.SQLService;
 import com.amazon.opendistroforelasticsearch.sql.sql.config.SQLServiceConfig;
 import com.amazon.opendistroforelasticsearch.sql.sql.domain.SQLQueryRequest;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.client.node.NodeClient;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.rest.BaseRestHandler;
-import org.elasticsearch.rest.BytesRestResponse;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.rest.RestStatus;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import java.util.List;
-
-import static com.amazon.opendistroforelasticsearch.sql.executor.ExecutionEngine.QueryResponse;
-import static com.amazon.opendistroforelasticsearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
-import static org.elasticsearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
-import static org.elasticsearch.rest.RestStatus.OK;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.client.node.NodeClient;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.rest.BaseRestHandler;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestStatus;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 /**
- * New SQL REST action handler. This will not be registered to Elasticsearch unless:
+ * New SQL REST action handler. This will not be registered to OpenSearch unless:
  *  1) we want to test new SQL engine;
  *  2) all old functionalities migrated to new query engine and legacy REST handler removed.
  */
@@ -135,7 +134,7 @@ public class RestSQLQueryAction extends BaseRestHandler {
       context.registerBean(ClusterService.class, () -> clusterService);
       context.registerBean(NodeClient.class, () -> client);
       context.registerBean(Settings.class, () -> pluginSettings);
-      context.register(ElasticsearchSQLPluginConfig.class);
+      context.register(OpenSearchSQLPluginConfig.class);
       context.register(SQLServiceConfig.class);
       context.refresh();
       return context.getBean(SQLService.class);

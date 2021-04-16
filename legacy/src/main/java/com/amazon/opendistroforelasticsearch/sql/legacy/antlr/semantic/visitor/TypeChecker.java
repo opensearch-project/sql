@@ -23,9 +23,9 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.scope.Sem
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.scope.Symbol;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.Type;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.TypeExpression;
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.function.AggregateFunction;
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.function.ESScalarFunction;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.function.OpenSearchScalarFunction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.function.ScalarFunction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.operator.ComparisonOperator;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.operator.JoinOperator;
@@ -39,7 +39,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.UNKNOWN;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.UNKNOWN;
 
 /**
  * SQL semantic analyzer that determines if a syntactical correct query is meaningful.
@@ -87,7 +87,7 @@ public class TypeChecker implements GenericSqlParseTreeVisitor<Type> {
     @Override
     public void visitRoot() {
         defineFunctionNames(ScalarFunction.values());
-        defineFunctionNames(ESScalarFunction.values());
+        defineFunctionNames(OpenSearchScalarFunction.values());
         defineFunctionNames(AggregateFunction.values());
         defineOperatorNames(ComparisonOperator.values());
         defineOperatorNames(SetOperator.values());
@@ -152,28 +152,28 @@ public class TypeChecker implements GenericSqlParseTreeVisitor<Type> {
 
     @Override
     public Type visitString(String text) {
-        return ESDataType.STRING;
+        return OpenSearchDataType.STRING;
     }
 
     @Override
     public Type visitInteger(String text) {
-        return ESDataType.INTEGER;
+        return OpenSearchDataType.INTEGER;
     }
 
     @Override
     public Type visitFloat(String text) {
-        return ESDataType.FLOAT;
+        return OpenSearchDataType.FLOAT;
     }
 
     @Override
     public Type visitBoolean(String text) {
         // "IS [NOT] MISSING" can be used on any data type
-        return "MISSING".equalsIgnoreCase(text) ? UNKNOWN : ESDataType.BOOLEAN;
+        return "MISSING".equalsIgnoreCase(text) ? UNKNOWN : OpenSearchDataType.BOOLEAN;
     }
 
     @Override
     public Type visitDate(String text) {
-        return ESDataType.DATE;
+        return OpenSearchDataType.DATE;
     }
 
     @Override
@@ -183,7 +183,7 @@ public class TypeChecker implements GenericSqlParseTreeVisitor<Type> {
 
     @Override
     public Type visitConvertedType(String text) {
-        return ESDataType.typeOf(text);
+        return OpenSearchDataType.typeOf(text);
     }
 
     @Override

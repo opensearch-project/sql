@@ -19,11 +19,8 @@ package com.amazon.opendistroforelasticsearch.sql.expression.aggregation;
 
 import com.amazon.opendistroforelasticsearch.sql.data.model.ExprValue;
 import com.amazon.opendistroforelasticsearch.sql.expression.ExpressionNodeVisitor;
-import com.amazon.opendistroforelasticsearch.sql.storage.bindingtuple.BindingTuple;
-import com.google.common.base.Strings;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.ToString;
 
 /**
  * NamedAggregator expression that represents expression with name.

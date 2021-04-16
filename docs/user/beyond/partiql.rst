@@ -12,7 +12,7 @@ PartiQL (JSON) Support
 Introduction
 ============
 
-In Elasticsearch, there are two types of JSON field in Elasticsarch (called "properties"): ``object`` and ``nested``. An object field can have inner field(s) which could be a simple one or another object field recursively. A nested field is a special version of object type that allows inner field be queried independently.
+In OpenSearch, there are two types of JSON field (called "properties"): ``object`` and ``nested``. An object field can have inner field(s) which could be a simple one or another object field recursively. A nested field is a special version of object type that allows inner field be queried independently.
 
 To support queries for both types, we follow the query language syntax defined in PartiQL specification. PartiQL is a SQL-compatible query language that makes it easy and efficient to query semi-structured and nested data regardless of data format. For now our implementation is only partially compatible with PartiQL specification and more support will be provided in future.
 
@@ -176,7 +176,7 @@ Querying Nested Tuple Values
 Description
 -----------
 
-Before looking into how nested object field (tuple values) be queried, we need to figure out how many cases are there and how it being handled by our SQL implementation. Therefore, first of all, let's examine different cases by the query support matrix as follows. This matrix summerizes what has been supported so far for queries with the object and nested fields involved. Note that another complexity is that any field in Elasticsearch, regular or property, can have contain more than one values in a single document. This makes object field not always a tuple value which needs to be handled separately.
+Before looking into how nested object field (tuple values) be queried, we need to figure out how many cases are there and how it being handled by our SQL implementation. Therefore, first of all, let's examine different cases by the query support matrix as follows. This matrix summerizes what has been supported so far for queries with the object and nested fields involved. Note that another complexity is that any field in OpenSearch, regular or property, can have contain more than one values in a single document. This makes object field not always a tuple value which needs to be handled separately.
 
 +-------------------------+---------------+-----------------------+---------------------------------------------+-------------------------+
 |     Level/Field Type    | Object Fields | Object Fields (array) |                Nested Fields                |         Comment         |
@@ -230,7 +230,7 @@ Querying Nested Collection
 Description
 -----------
 
-In SQL-92, a database table can only have tuples that consists of scalar values. PartiQL extends SQL-92 to allow you query and unnest nested collection conveniently. In Elasticsearch world, this is very useful for index with object or nested field.
+In SQL-92, a database table can only have tuples that consists of scalar values. PartiQL extends SQL-92 to allow you query and unnest nested collection conveniently. In OpenSearch world, this is very useful for index with object or nested field.
 
 Example 1: Unnesting a Nested Collection
 ----------------------------------------

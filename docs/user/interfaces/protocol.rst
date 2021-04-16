@@ -28,7 +28,7 @@ The body of HTTP POST request can take a few more other fields with SQL query.
 Example 1
 ---------
 
-Use `filter` to add more conditions to Elasticsearch DSL directly.
+Use `filter` to add more conditions to OpenSearch DSL directly.
 
 SQL query::
 
@@ -208,13 +208,13 @@ Result set::
 	  "status" : 400
 	}
 
-Elasticsearch DSL
-=================
+OpenSearch DSL
+==============
 
 Description
 -----------
 
-The plugin returns original response from Elasticsearch in JSON. Because this is the native response from Elasticsearch, extra efforts are needed to parse and interpret it.
+The plugin returns original response from OpenSearch in JSON. Because this is the native response from OpenSearch, extra efforts are needed to parse and interpret it.
 
 Example
 -------

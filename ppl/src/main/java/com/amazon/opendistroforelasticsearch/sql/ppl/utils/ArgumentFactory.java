@@ -31,7 +31,6 @@ import com.amazon.opendistroforelasticsearch.sql.common.utils.StringUtils;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
 import org.antlr.v4.runtime.ParserRuleContext;
 
 

@@ -13,7 +13,7 @@ Basic Queries
 Introduction
 ============
 
-``SELECT`` statement in SQL is the most common query that retrieves data from Elasticsearch index. In this doc, only simple ``SELECT`` statement with single index and query involved is covered. A ``SELECT`` statement includes ``SELECT``, ``FROM``, ``WHERE``, ``GROUP BY``, ``HAVING``, ``ORDER BY`` and ``LIMIT`` clause. Among these clauses, ``SELECT`` and ``FROM`` are the foundation to specify which fields to be fetched and which index they should be fetched from. All others are optional and used according to your needs. Please read on for their description, syntax and use cases in details.
+``SELECT`` statement in SQL is the most common query that retrieves data from OpenSearch index. In this doc, only simple ``SELECT`` statement with single index and query involved is covered. A ``SELECT`` statement includes ``SELECT``, ``FROM``, ``WHERE``, ``GROUP BY``, ``HAVING``, ``ORDER BY`` and ``LIMIT`` clause. Among these clauses, ``SELECT`` and ``FROM`` are the foundation to specify which fields to be fetched and which index they should be fetched from. All others are optional and used according to your needs. Please read on for their description, syntax and use cases in details.
 
 Syntax
 ------
@@ -33,7 +33,7 @@ Although multiple query statements to execute in batch is not supported, ending 
 Fundamentals
 ------------
 
-Apart from predefined keyword of SQL language, the most basic element is literal and identifier. Literal is numeric, string, date or boolean constant. Identifier represents Elasticsearch index or field name. With arithmetic operators and SQL functions applied, the basic literals and identifiers can be built into complex expression.
+Apart from predefined keyword of SQL language, the most basic element is literal and identifier. Literal is numeric, string, date or boolean constant. Identifier represents OpenSearch index or field name. With arithmetic operators and SQL functions applied, the basic literals and identifiers can be built into complex expression.
 
 Rule ``expressionAtom``:
 
@@ -68,7 +68,7 @@ SELECT
 Description
 -----------
 
-``SELECT`` clause specifies which fields in Elasticsearch index should be retrieved.
+``SELECT`` clause specifies which fields in OpenSearch index should be retrieved.
 
 Syntax
 ------
@@ -273,7 +273,7 @@ FROM
 Description
 -----------
 
-``FROM`` clause specifies Elasticsearch index where the data should be retrieved from. You've seen how to specify a single index in FROM clause in last section. Here we provide examples for more use cases.
+``FROM`` clause specifies OpenSearch index where the data should be retrieved from. You've seen how to specify a single index in FROM clause in last section. Here we provide examples for more use cases.
 
 Subquery in ``FROM`` clause is also supported. Please check out the documentation for more details.
 
@@ -311,7 +311,7 @@ SQL query::
 Example 3: [Deprecating] Selecting From Specific Index Type
 -----------------------------------------------------------
 
-You can also specify type name explicitly though this has been deprecated in later Elasticsearch version.
+You can also specify type name explicitly though this has been deprecated in later OpenSearch version.
 
 SQL query::
 
@@ -326,7 +326,7 @@ WHERE
 Description
 -----------
 
-``WHERE`` clause specifies only Elasticsearch documents that meet the criteria should be affected. It consists of predicates that uses ``=``, ``<>``, ``>``, ``>=``, ``<``, ``<=``, ``IN``, ``BETWEEN``, ``LIKE``, ``IS NULL`` or ``IS NOT NULL``. These predicates can be combined by logical operator ``NOT``, ``AND`` or ``OR`` to build more complex expression.
+``WHERE`` clause specifies only OpenSearch documents that meet the criteria should be affected. It consists of predicates that uses ``=``, ``<>``, ``>``, ``>=``, ``<``, ``<=``, ``IN``, ``BETWEEN``, ``LIKE``, ``IS NULL`` or ``IS NOT NULL``. These predicates can be combined by logical operator ``NOT``, ``AND`` or ``OR`` to build more complex expression.
 
 For ``LIKE`` and other full text search topics, please refer to Full Text Search documentation.
 
@@ -397,7 +397,7 @@ Result set:
 Example 2: Missing Fields
 -------------------------
 
-As NoSQL database, Elasticsearch allows for flexible schema that documents in an index may have different fields. In this case, you can use ``IS NULL`` or ``IS NOT NULL`` to retrieve missing fields or existing fields only.
+As NoSQL database, OpenSearch allows for flexible schema that documents in an index may have different fields. In this case, you can use ``IS NULL`` or ``IS NOT NULL`` to retrieve missing fields or existing fields only.
 
 Note that for now we don't differentiate missing field and field set to ``NULL`` explicitly.
 
@@ -892,7 +892,7 @@ Result set:
 Example 2: Specifying Order for Null
 ------------------------------------
 
-Additionally you can specify if documents with missing field be put first or last. The default behavior of Elasticsearch is to return nulls or missing last. You can make them present before non-nulls by using ``IS NOT NULL``.
+Additionally you can specify if documents with missing field be put first or last. The default behavior of OpenSearch is to return nulls or missing last. You can make them present before non-nulls by using ``IS NOT NULL``.
 
 SQL query::
 
@@ -1113,6 +1113,6 @@ Offset position can be given following the OFFSET keyword as well, here is an ex
 
 Limitation
 ----------
-Generally, sort plan is pushed down into the Elasticsearch DSL in plan optimization, but note that if a query has complex sorting, like sort expression, which would not be pushed down during optimization (see `Optimizations <../optimization/optimization.rst>`_ for details), but computed in local memory. However, the engine fetches the index of a default size that is set in plugin setting (See `Settings <../admin/settings.rst>` opendistro.query.size_limit for details). Therefore, the result might not be absolutely correct if the index size is larger than the default size of index scan. For example, the engine has a index scan size of 200 and the index size is 500. Then a query with limit 300 can only fetch 200 rows of the index, compute and return the sorted result with 200 rows, while the rest 300 rows of the index are ignored and would not be fetched into the engine. To get an absolutely correct result, it is suggested to set the query size limit to a larger value before run the query.
+Generally, sort plan is pushed down into the OpenSearch DSL in plan optimization, but note that if a query has complex sorting, like sort expression, which would not be pushed down during optimization (see `Optimizations <../optimization/optimization.rst>`_ for details), but computed in local memory. However, the engine fetches the index of a default size that is set in plugin setting (See `Settings <../admin/settings.rst>` opendistro.query.size_limit for details). Therefore, the result might not be absolutely correct if the index size is larger than the default size of index scan. For example, the engine has a index scan size of 200 and the index size is 500. Then a query with limit 300 can only fetch 200 rows of the index, compute and return the sorted result with 200 rows, while the rest 300 rows of the index are ignored and would not be fetched into the engine. To get an absolutely correct result, it is suggested to set the query size limit to a larger value before run the query.
 
 

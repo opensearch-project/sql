@@ -15,7 +15,7 @@
 
 #### Documentation
 * Feature [#37](https://github.com/opendistro-for-elasticsearch/sql-jdbc/pull/37): Tableau documentation
-* Feature [#35](https://github.com/opendistro-for-elasticsearch/sql-jdbc/pull/35): Add documentation for connecting Tableau with OpenDistro for Elasticsearch using JDBC Driver
+* Feature [#35](https://github.com/opendistro-for-elasticsearch/sql-jdbc/pull/35): Add documentation for connecting Tableau with OpenSearch using JDBC Driver
 
 ### Bugfixes
 * BugFix [#47](https://github.com/opendistro-for-elasticsearch/sql-jdbc/pull/47): Result set metadata returns Elasticsearch type (issue: [#43](https://github.com/opendistro-for-elasticsearch/sql-jdbc/issues/43))

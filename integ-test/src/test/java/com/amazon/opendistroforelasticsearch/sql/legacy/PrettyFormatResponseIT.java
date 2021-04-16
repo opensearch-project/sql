@@ -33,12 +33,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
-import org.elasticsearch.client.Request;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.client.Request;
 
 /**
  * PrettyFormatResponseIT will likely be excluding some of the tests written in PrettyFormatResponseTest since
@@ -86,7 +86,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
     return sqlRequest;
   }
 
-  @Ignore("Index type is removed in ES 7+")
+  @Ignore("Index type is removed in OpenSearch 7+")
   @Test
   public void wrongIndexType() throws IOException {
     String type = "wrongType";

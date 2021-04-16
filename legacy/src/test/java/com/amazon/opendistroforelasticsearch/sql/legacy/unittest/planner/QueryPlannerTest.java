@@ -29,22 +29,22 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.parser.SqlParser;
 import com.amazon.opendistroforelasticsearch.sql.legacy.plugin.SqlSettings;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.QueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.SqlElasticRequestBuilder;
-import com.amazon.opendistroforelasticsearch.sql.legacy.query.join.ESJoinQueryActionFactory;
+import com.amazon.opendistroforelasticsearch.sql.legacy.query.join.OpenSearchJoinQueryActionFactory;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.HashJoinQueryPlanRequestBuilder;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.core.QueryPlanner;
 import com.amazon.opendistroforelasticsearch.sql.legacy.request.SqlRequest;
 import org.apache.lucene.search.TotalHits;
 import org.apache.lucene.search.TotalHits.Relation;
-import org.elasticsearch.action.ActionFuture;
-import org.elasticsearch.action.search.ClearScrollRequestBuilder;
-import org.elasticsearch.action.search.ClearScrollResponse;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.search.SearchScrollRequestBuilder;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHits;
+import org.opensearch.action.ActionFuture;
+import org.opensearch.action.search.ClearScrollRequestBuilder;
+import org.opensearch.action.search.ClearScrollResponse;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.search.SearchScrollRequestBuilder;
+import org.opensearch.client.Client;
+import org.opensearch.common.bytes.BytesArray;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.mockito.Mock;
@@ -183,7 +183,8 @@ public abstract class QueryPlannerTest {
         try {
             SQLQueryExpr sqlExpr = (SQLQueryExpr) toSqlExpr(sql);
             JoinSelect joinSelect = new SqlParser().parseJoinSelect(sqlExpr); // Ignore handleSubquery()
-            QueryAction queryAction = ESJoinQueryActionFactory.createJoinAction(client, joinSelect);
+            QueryAction queryAction = OpenSearchJoinQueryActionFactory
+                .createJoinAction(client, joinSelect);
             queryAction.setSqlRequest(new SqlRequest(sql, null));
             return queryAction.explain();
         }

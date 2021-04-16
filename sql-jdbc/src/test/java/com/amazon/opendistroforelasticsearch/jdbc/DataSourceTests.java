@@ -49,7 +49,7 @@ public class DataSourceTests implements WireMockServerHelpers {
 
     @Test
     void testDataSourceConfig() throws SQLException {
-        ElasticsearchDataSource eds = new ElasticsearchDataSource();
+        OpenSearchDataSource eds = new OpenSearchDataSource();
 
         Properties props = new Properties();
         props.setProperty(HostConnectionProperty.KEY, "some-host");
@@ -70,7 +70,7 @@ public class DataSourceTests implements WireMockServerHelpers {
 
     @Test
     void testDataSourceConfigWithDefaults() throws SQLException {
-        ElasticsearchDataSource eds = new ElasticsearchDataSource();
+        OpenSearchDataSource eds = new OpenSearchDataSource();
 
         Properties defaults = new Properties();
         defaults.setProperty(UserConnectionProperty.KEY, "default-user");
@@ -96,7 +96,7 @@ public class DataSourceTests implements WireMockServerHelpers {
 
     @Test
     void testDataSourceConfigUpdate() throws SQLException {
-        ElasticsearchDataSource eds = new ElasticsearchDataSource();
+        OpenSearchDataSource eds = new OpenSearchDataSource();
         Properties props = new Properties();
         props.setProperty(HostConnectionProperty.KEY, "some-host");
         props.setProperty(PortConnectionProperty.KEY, "1100");
@@ -119,7 +119,7 @@ public class DataSourceTests implements WireMockServerHelpers {
 
     @Test
     void testDataSourceConfigUpdateWithOverrides() throws SQLException {
-        ElasticsearchDataSource eds = new ElasticsearchDataSource();
+        OpenSearchDataSource eds = new OpenSearchDataSource();
         Properties props = new Properties();
         props.setProperty(HostConnectionProperty.KEY, "some-host");
         props.setProperty(PortConnectionProperty.KEY, "2100");
@@ -139,7 +139,7 @@ public class DataSourceTests implements WireMockServerHelpers {
 
     @Test
     void testDataSourceConfigUpdateWithOverridesPrecedence() throws SQLException {
-        ElasticsearchDataSource eds = new ElasticsearchDataSource();
+        OpenSearchDataSource eds = new OpenSearchDataSource();
         Properties props = new Properties();
         props.setProperty(HostConnectionProperty.KEY, "some-host");
         props.setProperty(PortConnectionProperty.KEY, "1100");
@@ -178,8 +178,8 @@ public class DataSourceTests implements WireMockServerHelpers {
         QueryMock queryMock = new QueryMock.NycTaxisQueryMock();
         queryMock.setupMockServerStub(mockServer);
 
-        DataSource ds = new ElasticsearchDataSource();
-        ((ElasticsearchDataSource) ds).setUrl(getBaseURLForMockServer(mockServer));
+        DataSource ds = new OpenSearchDataSource();
+        ((OpenSearchDataSource) ds).setUrl(getBaseURLForMockServer(mockServer));
 
         Connection con = ds.getConnection();
         Statement st = con.createStatement();
@@ -194,8 +194,8 @@ public class DataSourceTests implements WireMockServerHelpers {
         QueryMock queryMock = new QueryMock.NycTaxisQueryMock();
         queryMock.setupMockServerStub(mockServer);
 
-        DataSource ds = new ElasticsearchDataSource();
-        ((ElasticsearchDataSource) ds).setProperties(getConnectionPropertiesForMockServer(mockServer));
+        DataSource ds = new OpenSearchDataSource();
+        ((OpenSearchDataSource) ds).setProperties(getConnectionPropertiesForMockServer(mockServer));
 
         Connection con = ds.getConnection();
         Statement st = con.createStatement();

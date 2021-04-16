@@ -32,7 +32,7 @@ public class OrderIT extends SQLIntegTestCase {
 
   @Test
   public void simpleOrder() throws IOException {
-    String query = "SELECT id, name FROM elasticsearch-sql_test_index_order ORDER BY id";
+    String query = "SELECT id, name FROM opensearch-sql_test_index_order ORDER BY id";
     JSONArray result = getSortExplain(query);
     assertThat(result.length(), equalTo(1));
     JSONObject jsonObject = getSortByField(result, "id");
@@ -42,7 +42,7 @@ public class OrderIT extends SQLIntegTestCase {
 
   @Test
   public void orderByScore() throws IOException {
-    String query = "SELECT * FROM elasticsearch-sql_test_index_order ORDER BY _score";
+    String query = "SELECT * FROM opensearch-sql_test_index_order ORDER BY _score";
     JSONArray result = getSortExplain(query);
     assertThat(result.length(), equalTo(1));
     JSONObject jsonObject = getSortByField(result, "_score");
@@ -56,7 +56,7 @@ public class OrderIT extends SQLIntegTestCase {
 
   @Test
   public void simpleOrderMultipleFields() throws IOException {
-    String query = "SELECT id, name FROM elasticsearch-sql_test_index_order ORDER BY id, name";
+    String query = "SELECT id, name FROM opensearch-sql_test_index_order ORDER BY id, name";
     JSONArray result = getSortExplain(query);
     assertThat(result.length(), equalTo(2));
     assertTrue(result.getJSONObject(0).has("id"));
@@ -66,7 +66,7 @@ public class OrderIT extends SQLIntegTestCase {
   @Test
   public void explicitOrderType() throws IOException {
     String query =
-        "SELECT id, name FROM elasticsearch-sql_test_index_order ORDER BY id ASC, name DESC";
+        "SELECT id, name FROM opensearch-sql_test_index_order ORDER BY id ASC, name DESC";
     JSONArray result = getSortExplain(query);
     assertThat(result.length(), equalTo(2));
     assertThat(query(result, "/0/id/order"), equalTo("asc"));
@@ -75,7 +75,7 @@ public class OrderIT extends SQLIntegTestCase {
 
   @Test
   public void orderByIsNull() throws IOException {
-    String query = "SELECT * FROM elasticsearch-sql_test_index_order ORDER BY id IS NULL, id DESC";
+    String query = "SELECT * FROM opensearch-sql_test_index_order ORDER BY id IS NULL, id DESC";
     JSONArray result = getSortExplain(query);
     assertThat(result.length(), equalTo(1));
     assertThat(query(result, "/0/id/order"), equalTo("desc"));
@@ -86,9 +86,9 @@ public class OrderIT extends SQLIntegTestCase {
     assertThat(query(hits, "/0/_source/id"), equalTo("5"));
 
     // Another equivalent syntax
-    assertThat(explainQuery("SELECT * FROM elasticsearch-sql_test_index_order " +
+    assertThat(explainQuery("SELECT * FROM opensearch-sql_test_index_order " +
             "ORDER BY id IS NULL, id DESC"),
-        equalTo(explainQuery("SELECT * FROM elasticsearch-sql_test_index_order " +
+        equalTo(explainQuery("SELECT * FROM opensearch-sql_test_index_order " +
             "ORDER BY id IS NULL DESC"))
     );
   }
@@ -96,7 +96,7 @@ public class OrderIT extends SQLIntegTestCase {
   @Test
   public void orderByIsNotNull() throws IOException {
     String query =
-        "SELECT id, name FROM elasticsearch-sql_test_index_order ORDER BY name IS NOT NULL";
+        "SELECT id, name FROM opensearch-sql_test_index_order ORDER BY name IS NOT NULL";
     JSONArray result = getSortExplain(query);
     assertThat(1, equalTo(result.length()));
     assertThat(query(result, "/0/name.keyword/order"), equalTo("asc"));
@@ -109,9 +109,9 @@ public class OrderIT extends SQLIntegTestCase {
         equalTo("f"));
 
     // Another equivalent syntax
-    assertThat(explainQuery("SELECT id, name FROM elasticsearch-sql_test_index_order " +
+    assertThat(explainQuery("SELECT id, name FROM opensearch-sql_test_index_order " +
             "ORDER BY name IS NOT NULL"),
-        equalTo(explainQuery("SELECT id, name FROM elasticsearch-sql_test_index_order " +
+        equalTo(explainQuery("SELECT id, name FROM opensearch-sql_test_index_order " +
             "ORDER BY name IS NOT NULL ASC"))
     );
   }
@@ -119,7 +119,7 @@ public class OrderIT extends SQLIntegTestCase {
   @Test
   public void multipleOrderByWithNulls() throws IOException {
     String query =
-        "SELECT id, name FROM elasticsearch-sql_test_index_order ORDER BY id IS NULL, name IS NOT NULL";
+        "SELECT id, name FROM opensearch-sql_test_index_order ORDER BY id IS NULL, name IS NOT NULL";
     JSONArray result = getSortExplain(query);
     assertThat(result.length(), equalTo(2));
     assertThat(query(result, "/0/id/missing"), equalTo("_last"));
@@ -128,7 +128,7 @@ public class OrderIT extends SQLIntegTestCase {
 
   @Test
   public void testOrderByMergeForSameField() throws IOException {
-    String query = "SELECT * FROM elasticsearch-sql_test_index_order " +
+    String query = "SELECT * FROM opensearch-sql_test_index_order " +
         "ORDER BY id IS NULL, name DESC, id DESC, id IS NOT NULL, name IS NULL";
     JSONArray result = getSortExplain(query);
     assertThat(2, equalTo(result.length()));

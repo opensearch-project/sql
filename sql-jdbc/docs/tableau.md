@@ -1,10 +1,10 @@
-# Connecting Tableau with Open Distro for Elasticsearch
+# Connecting Tableau with OpenSearch
 
 ## Download and Installation
 
 * Download and install [Tableau Desktop](https://www.tableau.com/en-ca/products/desktop/download).
-* Install and configure [Open Distro for Elasticsearch](https://opendistro.github.io/for-elasticsearch-docs/docs/install/).
-* Download the [Open Distro for ElasticSearch JDBC Driver](https://github.com/opendistro-for-elasticsearch/sql/blob/master/sql-jdbc/README.md#download-and-installation).
+* Install and configure [OpenSearch](https://opendistro.github.io/for-elasticsearch-docs/docs/install/).
+* Download the [OpenSearch JDBC Driver](https://github.com/opensearch-project/sql/blob/master/sql-jdbc/README.md#download-and-installation).
 
 ## Setup
 
@@ -20,12 +20,12 @@ Place the `opendistro-sql-jdbc-x.x.x.x.jar` file in the folder for your operatin
 
 ### Create TDC file
 
-TDC file is required to add customization for the data connection. For reference, see the following sample `elasticsearch.tdc` file.
+TDC file is required to add customization for the data connection. For reference, see the following sample `opensearch.tdc` file.
 ```
 <?xml version='1.0' encoding='utf-16' ?>
 <connection-customization class='genericjdbc' enabled='true' version='2019.3'>
   <vendor name='genericjdbc' />
-  <driver name='elasticsearch' />
+  <driver name='opensearch' />
   <customizations>
 	<customization name='CAP_CREATE_TEMP_TABLES' value='no'/>
 	<customization name='CAP_SUPPRESS_DISCOVERY_QUERIES' value='yes' />
@@ -39,7 +39,7 @@ TDC file is required to add customization for the data connection. For reference
 </connection-customization> 
 ```
 * Using a text editor, add `<connection-customization>` section.
-* Name the file `elasticsearch.tdc` and save it to `My Tableau Repository\Datasources`.
+* Name the file `opensearch.tdc` and save it to `My Tableau Repository\Datasources`.
 * Restart Tableau to apply the change.
 
 For futher details check [using a .tdc file with Tableau](https://kb.tableau.com/articles/howto/using-a-tdc-file-with-tableau-server)
@@ -47,13 +47,13 @@ For futher details check [using a .tdc file with Tableau](https://kb.tableau.com
  ### Connection information
 
 You will need:
-* [JDBC connection string](https://github.com/opendistro-for-elasticsearch/sql/blob/master/sql-jdbc/README.md#connection-url-and-other-settings) to enter in the URL field when you connect.
+* [JDBC connection string](https://github.com/opensearch-project/sql/blob/master/sql-jdbc/README.md#connection-url-and-other-settings) to enter in the URL field when you connect.
 
-  Sample connection string for connecting to localhost: `jdbc:elasticsearch://localhost:9200`.
+  Sample connection string for connecting to localhost: `jdbc:opensearch://localhost:9200`.
 
 * Credentials for signing in to the server (user name and password).
 * (Optional) JDBC properties file to customize the driver behavior. For more details check [Customize JDBC Connections Using a Properties File](https://community.tableau.com/docs/DOC-17978)
-  * Create a properties file called `elasticsearch.properties`.
+  * Create a properties file called `opensearch.properties`.
   * Save the file to the `My Tableau Repository\Datasources` directory.
 
 

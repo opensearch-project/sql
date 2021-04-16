@@ -28,8 +28,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import org.apache.http.Header;
-import org.elasticsearch.client.Request;
 import org.json.JSONObject;
+import org.opensearch.client.Request;
 
 /**
  * Different SQL request formats.
@@ -72,7 +72,7 @@ public enum SqlRequestFormat {
       return str.toString();
     }
   },
-  KIBANA_REQUEST {
+  OPENSEARCH_DASHBOARD_REQUEST {
     @Override
     public String format(SqlRequest sqlRequest) {
       Request request = sqlRequest.request();

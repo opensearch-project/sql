@@ -31,9 +31,9 @@ import com.amazon.opendistroforelasticsearch.sql.doctest.core.response.SqlRespon
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import org.apache.http.HttpEntity;
-import org.elasticsearch.client.Response;
 import org.junit.Before;
 import org.junit.Test;
+import org.opensearch.client.Response;
 
 /**
  * Test cases for {@link SqlResponseFormat}

@@ -225,7 +225,7 @@ public class AggregationIT extends SQLIntegTestCase {
   @Test
   public void groupByUsingTableNamePrefixTest() throws Exception {
     JSONObject result = executeQuery(String.format(
-        "SELECT COUNT(*) FROM %s GROUP BY elasticsearch-sql_test_index_account.gender",
+        "SELECT COUNT(*) FROM %s GROUP BY opensearch-sql_test_index_account.gender",
         TEST_INDEX_ACCOUNT
     ));
     assertResultForGroupByTest(result);
@@ -272,9 +272,9 @@ public class AggregationIT extends SQLIntegTestCase {
   @Test
   public void groupByHavingUsingTableNamePrefixTest() throws Exception {
     JSONObject result = executeQuery(String.format(
-        "SELECT elasticsearch-sql_test_index_account.gender " +
+        "SELECT opensearch-sql_test_index_account.gender " +
             "FROM %s " +
-            "GROUP BY elasticsearch-sql_test_index_account.gender " +
+            "GROUP BY opensearch-sql_test_index_account.gender " +
             "HAVING COUNT(*) > 0", TEST_INDEX_ACCOUNT));
     assertResultForGroupByHavingTest(result);
   }

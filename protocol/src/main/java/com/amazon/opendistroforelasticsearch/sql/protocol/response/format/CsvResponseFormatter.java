@@ -15,17 +15,6 @@
 
 package com.amazon.opendistroforelasticsearch.sql.protocol.response.format;
 
-import com.amazon.opendistroforelasticsearch.sql.protocol.response.QueryResult;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
 public class CsvResponseFormatter extends FlatResponseFormatter {
   public CsvResponseFormatter() {
     super(",", true);

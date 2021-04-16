@@ -16,7 +16,7 @@
 package com.amazon.opendistroforelasticsearch.sql.doctest.dql;
 
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.IGNORE_REQUEST;
-import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.KIBANA_REQUEST;
+import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.OPENSEARCH_DASHBOARD_REQUEST;
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.response.SqlResponseFormat.IGNORE_RESPONSE;
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.response.SqlResponseFormat.TABLE_RESPONSE;
 
@@ -98,7 +98,7 @@ public class ComplexQueryIT extends DocTest {
                 "is used and preceded by ``INNER`` keyword optionally. The join predicate(s) is specified",
                 "by ``ON`` clause.\n\n",
                 "Remark that the explain API output for join queries looks complicated. This is because",
-                "a join query is associated with two Elasticsearch DSL queries underlying and execute in",
+                "a join query is associated with two OpenSearch DSL queries underlying and execute in",
                 "the separate query planner framework. You can interpret it by looking into the logical",
                 "plan and physical plan."
             ),
@@ -193,7 +193,7 @@ public class ComplexQueryIT extends DocTest {
 
   private Example joinExampleWithoutExplain(String title, String description, Requests requests) {
     return example(title, description, requests,
-        queryFormat(KIBANA_REQUEST, TABLE_RESPONSE),
+        queryFormat(OPENSEARCH_DASHBOARD_REQUEST, TABLE_RESPONSE),
         explainFormat(IGNORE_REQUEST, IGNORE_RESPONSE)
     );
   }

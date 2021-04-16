@@ -40,8 +40,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
-import org.elasticsearch.client.ResponseException;
-import org.elasticsearch.rest.RestStatus;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -50,6 +48,8 @@ import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.client.ResponseException;
+import org.opensearch.rest.RestStatus;
 
 public class QueryIT extends SQLIntegTestCase {
 
@@ -64,7 +64,7 @@ public class QueryIT extends SQLIntegTestCase {
    * - idsQueryMultipleId
    * - multipleIndicesOneNotExistWithoutHint
    * <p>
-   * The following tests are being ignored because subquery is still running in ES transport thread:
+   * The following tests are being ignored because subquery is still running in OpenSearch transport thread:
    * - twoSubQueriesTest()
    * - inTermsSubQueryTest()
    */
@@ -230,7 +230,7 @@ public class QueryIT extends SQLIntegTestCase {
     Set<String> expectedSource = new HashSet<>(Arrays.asList(arr));
 
     JSONObject response = executeQuery(String.format(Locale.ROOT,
-        "SELECT elasticsearch-sql_test_index_account.age, elasticsearch-sql_test_index_account.account_number" +
+        "SELECT opensearch-sql_test_index_account.age, opensearch-sql_test_index_account.account_number" +
             " FROM %s",
         TEST_INDEX_ACCOUNT));
     assertResponseForSelectSpecificFields(response, expectedSource);
@@ -302,7 +302,7 @@ public class QueryIT extends SQLIntegTestCase {
   @Test
   public void useTableNamePrefixInWhereClauseTest() throws IOException {
     JSONObject response = executeQuery(String.format(Locale.ROOT,
-        "SELECT * FROM %s WHERE elasticsearch-sql_test_index_account.city = 'Nogal' LIMIT 1000",
+        "SELECT * FROM %s WHERE opensearch-sql_test_index_account.city = 'Nogal' LIMIT 1000",
         TEST_INDEX_ACCOUNT
     ));
 
@@ -1577,7 +1577,7 @@ public class QueryIT extends SQLIntegTestCase {
   }
 
   // TODO Find way to check routing() without SearchRequestBuilder
-  //  to properly update these tests to ESIntegTestCase format
+  //  to properly update these tests to OpenSearchIntegTestCase format
 //    @Test
 //    public void routingRequestOneRounting() throws IOException {
 //        SqlElasticSearchRequestBuilder request = getRequestBuilder(String.format(Locale.ROOT,
@@ -1762,7 +1762,7 @@ public class QueryIT extends SQLIntegTestCase {
     String response = executeQuery("select log(balance + 2) from " + TEST_INDEX_BANK,
         "jdbc");
     queryInJdbcResponseShouldIndicateESException(response, "SearchPhaseExecutionException",
-        "please send request for Json format to see the raw response from elasticsearch engine.");
+        "please send request for Json format to see the raw response from OpenSearch engine.");
   }
 
   @Ignore("Goes in different route, does not call PrettyFormatRestExecutor.execute methods." +

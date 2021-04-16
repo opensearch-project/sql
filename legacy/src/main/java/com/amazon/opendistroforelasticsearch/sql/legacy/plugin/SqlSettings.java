@@ -16,7 +16,7 @@
 package com.amazon.opendistroforelasticsearch.sql.legacy.plugin;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.Format;
-import org.elasticsearch.common.settings.Setting;
+import org.opensearch.common.settings.Setting;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,9 +24,9 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.Collections.unmodifiableMap;
-import static org.elasticsearch.common.settings.Setting.Property.Dynamic;
-import static org.elasticsearch.common.settings.Setting.Property.NodeScope;
-import static org.elasticsearch.common.unit.TimeValue.timeValueMinutes;
+import static org.opensearch.common.settings.Setting.Property.Dynamic;
+import static org.opensearch.common.settings.Setting.Property.NodeScope;
+import static org.opensearch.common.unit.TimeValue.timeValueMinutes;
 
 /**
  * SQL plugin settings
@@ -34,9 +34,9 @@ import static org.elasticsearch.common.unit.TimeValue.timeValueMinutes;
 public class SqlSettings {
 
     /**
-     * Get plugin settings stored in cluster setting. Why not use ES slow log settings consistently?
+     * Get plugin settings stored in cluster setting. Why not use OpenSearch slow log settings consistently?
      * 1) It's per-index setting.
-     * 2) It has separate setting for Query and Fetch phase which are all ES internal concepts.
+     * 2) It has separate setting for Query and Fetch phase which are all OpenSearch internal concepts.
      */
     public static final String SQL_ENABLED = "opendistro.sql.enabled";
     public static final String SQL_NEW_ENGINE_ENABLED = "opendistro.sql.engine.new.enabled";

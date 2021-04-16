@@ -18,10 +18,10 @@ package com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.fu
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.Type;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.TypeExpression;
 
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.DOUBLE;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.ES_TYPE;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.INTEGER;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.ESDataType.NUMBER;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.DOUBLE;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.OPENSEARCH_TYPE;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.INTEGER;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.NUMBER;
 import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.special.Generic.T;
 
 /**
@@ -30,7 +30,7 @@ import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.ty
 public enum AggregateFunction implements TypeExpression {
     COUNT(
         func().to(INTEGER), // COUNT(*)
-        func(ES_TYPE).to(INTEGER)
+        func(OPENSEARCH_TYPE).to(INTEGER)
     ),
     MAX(func(T(NUMBER)).to(T)),
     MIN(func(T(NUMBER)).to(T)),

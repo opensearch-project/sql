@@ -16,7 +16,7 @@
 package com.amazon.opendistroforelasticsearch.sql.doctest.dql;
 
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.IGNORE_REQUEST;
-import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.KIBANA_REQUEST;
+import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.OPENSEARCH_DASHBOARD_REQUEST;
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.response.SqlResponseFormat.IGNORE_RESPONSE;
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.response.SqlResponseFormat.TABLE_RESPONSE;
 
@@ -67,7 +67,7 @@ public class MetaDataQueryIT extends DocTest {
    */
   private Example metadataQueryExample(String title, String description, Requests requests) {
     return example(title, description, requests,
-        queryFormat(KIBANA_REQUEST, TABLE_RESPONSE),
+        queryFormat(OPENSEARCH_DASHBOARD_REQUEST, TABLE_RESPONSE),
         explainFormat(IGNORE_REQUEST, IGNORE_RESPONSE)
     );
   }

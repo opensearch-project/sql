@@ -28,10 +28,10 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import org.elasticsearch.client.Request;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.client.Request;
 
 public class AdminIT extends SQLIntegTestCase {
 

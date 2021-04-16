@@ -18,21 +18,21 @@ package com.amazon.opendistroforelasticsearch.sql.sql;
 
 import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
 import static com.amazon.opendistroforelasticsearch.sql.util.MatcherUtils.featureValueOf;
-import static org.elasticsearch.rest.RestStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.is;
+import static org.opensearch.rest.RestStatus.BAD_REQUEST;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.SQLIntegTestCase;
 import java.io.IOException;
 import java.util.Locale;
 import java.util.function.Function;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.ResponseException;
-import org.elasticsearch.rest.RestStatus;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.opensearch.client.Request;
+import org.opensearch.client.RequestOptions;
+import org.opensearch.client.ResponseException;
+import org.opensearch.rest.RestStatus;
 
 /**
  * The query validation IT only covers test for error cases that not doable in comparison test.
@@ -56,7 +56,7 @@ public class QueryValidationIT extends SQLIntegTestCase {
         .hasErrorType("SemanticCheckException")
         .containsMessage("Expression [state] that contains non-aggregated column "
                        + "is not present in group by clause")
-        .whenExecute("SELECT state FROM elasticsearch-sql_test_index_account GROUP BY age");
+        .whenExecute("SELECT state FROM opensearch-sql_test_index_account GROUP BY age");
   }
 
   @Test
@@ -66,7 +66,7 @@ public class QueryValidationIT extends SQLIntegTestCase {
         .hasErrorType("SemanticCheckException")
         .containsMessage("Explicit GROUP BY clause is required because expression [state] "
             + "contains non-aggregated column")
-        .whenExecute("SELECT state, AVG(age) FROM elasticsearch-sql_test_index_account");
+        .whenExecute("SELECT state, AVG(age) FROM opensearch-sql_test_index_account");
   }
 
   @Test
@@ -76,7 +76,7 @@ public class QueryValidationIT extends SQLIntegTestCase {
         .hasErrorType("SemanticCheckException")
         .containsMessage(
             "can't resolve Symbol(namespace=FIELD_NAME, name=firstname.keyword) in type env")
-        .whenExecute("SELECT firstname.keyword FROM elasticsearch-sql_test_index_account");
+        .whenExecute("SELECT firstname.keyword FROM opensearch-sql_test_index_account");
   }
 
   @Test
@@ -87,7 +87,7 @@ public class QueryValidationIT extends SQLIntegTestCase {
         .containsMessage(
             "can't resolve Symbol(namespace=FIELD_NAME, name=state.keyword) in type env")
         .whenExecute(
-            "SELECT SUM(age) FROM elasticsearch-sql_test_index_account GROUP BY state.keyword");
+            "SELECT SUM(age) FROM opensearch-sql_test_index_account GROUP BY state.keyword");
   }
 
   public ResponseExceptionAssertion expectResponseException() {
@@ -95,7 +95,7 @@ public class QueryValidationIT extends SQLIntegTestCase {
   }
 
   /**
-   * Response exception assertion helper to assert property value in ES ResponseException
+   * Response exception assertion helper to assert property value in OpenSearch ResponseException
    * and Response inside. This serves as syntax sugar to improve the readability of test
    * code.
    */

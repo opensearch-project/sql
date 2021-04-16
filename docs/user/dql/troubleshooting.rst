@@ -62,7 +62,7 @@ Go to the step 2 if not working.
 
 #. Disable strict query analysis in new ANTLR parser with the following code block.
 
-#. Verify if the query can pass now. If the query fails as well, please create an issue in our `GitHub Issues <https://github.com/opendistro-for-elasticsearch/sql/issues>`_ section to report bugs fixing or request new features.
+#. Verify if the query can pass now. If the query fails as well, please create an issue in our `GitHub Issues <https://github.com/opensearch-project/sql/issues>`_ section to report bugs fixing or request new features.
 
 .. code-block:: JSON
 
@@ -97,4 +97,4 @@ Index Mapping Verification Exception
 
 **Workaround**
 
-If index in query is not an index pattern (index name ends with wildcard), check if the index has multiple types. If nothing works during your workaround, please create an issue in our `GitHub Issues <https://github.com/opendistro-for-elasticsearch/sql/issues>`_ section so that we can provide you with our suggestions and help.
+If index in query is not an index pattern (index name ends with wildcard), check if the index has multiple types. If nothing works during your workaround, please create an issue in our `GitHub Issues <https://github.com/opensearch-project/sql/issues>`_ section so that we can provide you with our suggestions and help.

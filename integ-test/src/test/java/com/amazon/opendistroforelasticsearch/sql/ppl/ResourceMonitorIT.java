@@ -20,10 +20,10 @@ import static com.amazon.opendistroforelasticsearch.sql.util.MatcherUtils.column
 import static com.amazon.opendistroforelasticsearch.sql.util.MatcherUtils.verifyColumn;
 
 import java.io.IOException;
-import org.elasticsearch.client.ResponseException;
 import org.hamcrest.Matchers;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.client.ResponseException;
 
 public class ResourceMonitorIT extends PPLIntegTestCase {
 

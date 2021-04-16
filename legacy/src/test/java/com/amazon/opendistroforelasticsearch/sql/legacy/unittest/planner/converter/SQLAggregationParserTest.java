@@ -52,7 +52,7 @@ public class SQLAggregationParserTest {
     @Test
     public void parseAggWithoutExpressionShouldPass() {
         String sql = "SELECT dayOfWeek, max(FlightDelayMin), MIN(FlightDelayMin) as min " +
-                     "FROM kibana_sample_data_flights " +
+                     "FROM opensearch_dashboards_sample_data_flights " +
                      "GROUP BY dayOfWeek";
         SQLAggregationParser parser = new SQLAggregationParser(new ColumnTypeProvider());
         parser.parse(mYSqlSelectQueryBlock(sql));
@@ -72,7 +72,7 @@ public class SQLAggregationParserTest {
     @Test
     public void parseAggWithFunctioniWithoutExpressionShouldPass() {
         String sql = "SELECT dayOfWeek, max(FlightDelayMin), MIN(FlightDelayMin) as min " +
-                     "FROM kibana_sample_data_flights " +
+                     "FROM opensearch_dashboards_sample_data_flights " +
                      "GROUP BY dayOfWeek";
         SQLAggregationParser parser = new SQLAggregationParser(new ColumnTypeProvider());
         parser.parse(mYSqlSelectQueryBlock(sql));
@@ -92,7 +92,7 @@ public class SQLAggregationParserTest {
     @Test
     public void parseAggWithExpressionShouldPass() {
         String sql = "SELECT dayOfWeek, max(FlightDelayMin) + MIN(FlightDelayMin) as sub " +
-                     "FROM kibana_sample_data_flights " +
+                     "FROM opensearch_dashboards_sample_data_flights " +
                      "GROUP BY dayOfWeek";
         SQLAggregationParser parser = new SQLAggregationParser(new ColumnTypeProvider());
         parser.parse(mYSqlSelectQueryBlock(sql));
@@ -111,7 +111,7 @@ public class SQLAggregationParserTest {
     @Test
     public void parseWithRawSelectFuncnameShouldPass() {
         String sql = "SELECT LOG(FlightDelayMin) " +
-                "FROM kibana_sample_data_flights " +
+                "FROM opensearch_dashboards_sample_data_flights " +
                 "GROUP BY log(FlightDelayMin)";
         SQLAggregationParser parser = new SQLAggregationParser(new ColumnTypeProvider());
         parser.parse(mYSqlSelectQueryBlock(sql));
@@ -135,7 +135,7 @@ public class SQLAggregationParserTest {
     @Test
     public void functionOverFiledShouldPass() {
         String sql = "SELECT dayOfWeek, max(FlightDelayMin) + MIN(FlightDelayMin) as sub " +
-                     "FROM kibana_sample_data_flights " +
+                     "FROM opensearch_dashboards_sample_data_flights " +
                      "GROUP BY dayOfWeek";
         SQLAggregationParser parser = new SQLAggregationParser(new ColumnTypeProvider());
         parser.parse(mYSqlSelectQueryBlock(sql));
@@ -154,7 +154,7 @@ public class SQLAggregationParserTest {
     @Test
     public void parseCompoundAggWithExpressionShouldPass() {
         String sql = "SELECT ASCII(dayOfWeek), log(max(FlightDelayMin) + MIN(FlightDelayMin)) as log " +
-                     "FROM kibana_sample_data_flights " +
+                     "FROM opensearch_dashboards_sample_data_flights " +
                      "GROUP BY ASCII(dayOfWeek)";
         SQLAggregationParser parser = new SQLAggregationParser(new ColumnTypeProvider());
         parser.parse(mYSqlSelectQueryBlock(sql));

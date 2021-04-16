@@ -16,7 +16,7 @@
 package com.amazon.opendistroforelasticsearch.sql.legacy.unittest.planner;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.util.MatcherUtils;
-import org.elasticsearch.search.SearchHit;
+import org.opensearch.search.SearchHit;
 import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 
