@@ -107,12 +107,12 @@ class OpenSearchConnection:
         else:
             opensearch_client = OpenSearch([self.endpoint], verify_certs=True)
 
-        # check connection. check Open Distro Elasticsearch SQL plugin availability.
+        # check connection. check OpenSearch SQL plugin availability.
         try:
             if not self.is_sql_plugin_installed(opensearch_client):
                 click.secho(
-                    message="Must have Open Distro SQL plugin installed in your Elasticsearch "
-                    "instance!\nCheck this out: https://github.com/opendistro-for-elasticsearch/sql",
+                    message="Must have OpenSearch SQL plugin installed in your OpenSearch"
+                    "instance!\nCheck this out: https://github.com/opensearch-project/sql",
                     fg="red",
                 )
                 click.echo(self.plugins)

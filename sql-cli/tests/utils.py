@@ -16,11 +16,11 @@ import json
 import pytest
 from elasticsearch import ConnectionError, helpers, ConnectionPool
 
-from src.odfe_sql_cli.opensearch_connection import OpenSearchConnection
-from src.odfe_sql_cli.utils import OutputSettings
-from src.odfe_sql_cli.formatter import Formatter
+from src.opensearch_sql_cli.opensearch_connection import OpenSearchConnection
+from src.opensearch_sql_cli.utils import OutputSettings
+from src.opensearch_sql_cli.formatter import Formatter
 
-TEST_INDEX_NAME = "odfesql_cli_test"
+TEST_INDEX_NAME = "opensearchsql_cli_test"
 ENDPOINT = "http://localhost:9200"
 
 

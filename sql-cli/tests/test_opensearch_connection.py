@@ -20,7 +20,7 @@ from elasticsearch.exceptions import ConnectionError
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 
 from .utils import estest, load_data, run, TEST_INDEX_NAME
-from src.odfe_sql_cli.opensearch_connection import OpenSearchConnection
+from src.opensearch_sql_cli.opensearch_connection import OpenSearchConnection
 
 INVALID_ENDPOINT = "http://invalid:9200"
 OPEN_DISTRO_ENDPOINT = "https://opedistro:9200"
@@ -59,7 +59,7 @@ class TestExecutor:
             "type": "IndexNotFoundException",
         }
 
-        with mock.patch("src.odfe_sql_cli.opensearch_connection.click.secho") as mock_secho:
+        with mock.patch("src.opensearch_sql_cli.opensearch_connection.click.secho") as mock_secho:
             run(connection, "select * from non-existed")
 
         mock_secho.assert_called_with(message=str(expected), fg="red")
@@ -68,7 +68,7 @@ class TestExecutor:
         test_executor = OpenSearchConnection(endpoint=INVALID_ENDPOINT)
         err_message = "Can not connect to endpoint %s" % INVALID_ENDPOINT
 
-        with mock.patch("sys.exit") as mock_sys_exit, mock.patch("src.odfe_sql_cli.opensearch_connection.click.secho") as mock_secho:
+        with mock.patch("sys.exit") as mock_sys_exit, mock.patch("src.opensearch_sql_cli.opensearch_connection.click.secho") as mock_secho:
             test_executor.set_connection()
 
         mock_sys_exit.assert_called()
@@ -83,7 +83,7 @@ class TestExecutor:
             else:
                 return ConnectionError()
 
-        with mock.patch("src.odfe_sql_cli.opensearch_connection.click.secho") as mock_secho, mock.patch.object(
+        with mock.patch("src.opensearch_sql_cli.opensearch_connection.click.secho") as mock_secho, mock.patch.object(
             test_esexecutor, "set_connection"
         ) as mock_set_connection:
             # Assume reconnection success

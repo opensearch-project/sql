@@ -23,9 +23,9 @@ import unittest
 import click
 
 from functools import partial
-from odfe_sql_cli.opensearch_connection import OpenSearchConnection
-from odfe_sql_cli.utils import OutputSettings
-from odfe_sql_cli.formatter import Formatter
+from opensearch_sql_cli.opensearch_connection import OpenSearchConnection
+from opensearch_sql_cli.utils import OutputSettings
+from opensearch_sql_cli.formatter import Formatter
 from elasticsearch import Elasticsearch as OpenSearch, helpers
 
 ENDPOINT = "http://localhost:9200"

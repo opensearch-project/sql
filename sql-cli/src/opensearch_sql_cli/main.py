@@ -20,7 +20,7 @@ import sys
 from .config import config_location
 from .opensearch_connection import OpenSearchConnection
 from .utils import OutputSettings
-from .odfesql_cli import OdfeSqlCli
+from .opensearchsql_cli import OpenSearchSqlCli
 from .formatter import Formatter
 
 click.disable_unicode_literals_warning = True
@@ -53,7 +53,7 @@ click.disable_unicode_literals_warning = True
     default=False,
     help="Convert output from horizontal to vertical. Only used for non-interactive mode",
 )
-@click.option("-u", "--username", help="Username to connect to the Elasticsearch")
+@click.option("-u", "--username", help="Username to connect to the OpenSearch")
 @click.option("-w", "--password", help="password corresponding to username")
 @click.option(
     "-p",
@@ -93,7 +93,7 @@ def cli(
     query_language,
 ):
     """
-    Provide endpoint for Elasticsearch client.
+    Provide endpoint for OpenSearch client.
     By default, it uses http://localhost:9200 to connect.
     """
 
@@ -122,14 +122,14 @@ def cli(
         sys.exit(0)
 
     # use console to interact with user
-    odfesql_cli = OdfeSqlCli(
+    opensearchsql_cli = OpenSearchSqlCli(
         clirc_file=clirc,
         always_use_pager=always_use_pager,
         use_aws_authentication=use_aws_authentication,
         query_language=query_language,
     )
-    odfesql_cli.connect(endpoint, http_auth)
-    odfesql_cli.run_cli()
+    opensearchsql_cli.connect(endpoint, http_auth)
+    opensearchsql_cli.run_cli()
 
 
 if __name__ == "__main__":

@@ -24,12 +24,12 @@ from configobj import ConfigObj
 def config_location():
     """Return absolute conf file path according to different OS."""
     if "XDG_CONFIG_HOME" in os.environ:
-        return "%s/odfesql-cli/" % expanduser(os.environ["XDG_CONFIG_HOME"])
+        return "%s/opensearchsql-cli/" % expanduser(os.environ["XDG_CONFIG_HOME"])
     elif platform.system() == "Windows":
         # USERPROFILE is typically C:\Users\{username}
-        return "%s\\AppData\\Local\\dbcli\\odfesql-cli\\" % os.getenv("USERPROFILE")
+        return "%s\\AppData\\Local\\dbcli\\opensearchsql-cli\\" % os.getenv("USERPROFILE")
     else:
-        return expanduser("~/.config/odfesql-cli/")
+        return expanduser("~/.config/opensearchsql-cli/")
 
 
 def _load_config(user_config, default_config=None):
@@ -68,7 +68,7 @@ def _write_default_config(source, destination, overwrite=False):
 # https://stackoverflow.com/questions/40193112/python-setuptools-distribute-configuration-files-to-os-specific-directories
 def get_config(clirc_file=None):
     """
-    Get config for odfesql cli.
+    Get config for opensearchsql cli.
 
     This config comes from either existing config in the OS, or create a config file in the OS, and write default config
     including in the package to it.

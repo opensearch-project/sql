@@ -44,8 +44,8 @@ COLOR_CODE_REGEX = re.compile(r"\x1b(\[.*?[@-~]|\].*?(\x07|\x1b\\))")
 click.disable_unicode_literals_warning = True
 
 
-class OdfeSqlCli:
-    """OdfeSqlCli instance is used to build and run the ODFE SQL CLI."""
+class OpenSearchSqlCli:
+    """OpenSearchSqlCli instance is used to build and run the OpenSearch SQL CLI."""
 
     def __init__(self, clirc_file=None, always_use_pager=False, use_aws_authentication=False, query_language="sql"):
         # Load conf file
@@ -115,18 +115,18 @@ class OdfeSqlCli:
         )
 
         # print Banner
-        banner = pyfiglet.figlet_format("Open Distro", font="slant")
+        banner = pyfiglet.figlet_format("OpenSearch", font="slant")
         print(banner)
 
         # print info on the welcome page
-        print("Server: Open Distro for ES %s" % self.opensearch_executor.opensearch_version)
+        print("Server: OpenSearch %s" % self.opensearch_executor.opensearch_version)
         print("CLI Version: %s" % __version__)
         print("Endpoint: %s" % self.opensearch_executor.endpoint)
         print("Query Language: %s" % self.query_language)
 
         while True:
             try:
-                text = self.prompt_app.prompt(message="odfesql> ")
+                text = self.prompt_app.prompt(message="opensearchsql> ")
             except KeyboardInterrupt:
                 continue  # Control-C pressed. Try again.
             except EOFError:
@@ -172,7 +172,7 @@ class OdfeSqlCli:
 
     def _get_literals(self):
         """Parse "opensearch_literals.json" with literal type of SQL "keywords" and "functions", which
-        are SQL keywords and functions supported by Open Distro SQL Plugin.
+        are SQL keywords and functions supported by OpenSearch SQL Plugin.
 
         :return: a dict that is parsed from opensearch_literals.json
         """
