@@ -27,11 +27,11 @@ import com.amazon.opendistroforelasticsearch.sql.common.utils.StringUtils;
 import com.amazon.opendistroforelasticsearch.sql.legacy.SQLIntegTestCase;
 import java.io.IOException;
 import java.util.Locale;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.Response;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.client.Request;
+import org.opensearch.client.RequestOptions;
+import org.opensearch.client.Response;
 
 public class DateTimeFunctionIT extends SQLIntegTestCase {
 

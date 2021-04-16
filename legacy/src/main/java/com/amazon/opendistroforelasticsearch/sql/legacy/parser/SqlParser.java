@@ -62,7 +62,7 @@ import static com.amazon.opendistroforelasticsearch.sql.legacy.utils.Util.NESTED
 
 
 /**
- * es sql support
+ * OpenSearch sql support
  *
  * @author ansj
  */

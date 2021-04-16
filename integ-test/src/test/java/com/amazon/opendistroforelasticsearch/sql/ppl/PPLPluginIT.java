@@ -26,15 +26,15 @@ import static org.hamcrest.Matchers.hasProperty;
 import com.amazon.opendistroforelasticsearch.sql.util.TestUtils;
 import java.io.IOException;
 import java.util.Locale;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.ResponseException;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 import org.json.JSONObject;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.opensearch.client.Request;
+import org.opensearch.client.Response;
+import org.opensearch.client.ResponseException;
 
 public class PPLPluginIT extends PPLIntegTestCase {
   @Rule

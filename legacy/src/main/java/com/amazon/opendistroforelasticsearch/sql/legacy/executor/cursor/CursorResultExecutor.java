@@ -25,22 +25,22 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.metrics.Metrics;
 import com.amazon.opendistroforelasticsearch.sql.legacy.rewriter.matchtoterm.VerificationException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.action.search.ClearScrollResponse;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.rest.BytesRestResponse;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHits;
+import org.opensearch.OpenSearchException;
+import org.opensearch.action.search.ClearScrollResponse;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.client.Client;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
 import org.json.JSONException;
 
 import java.util.Arrays;
 import java.util.Map;
 
 import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.SqlSettings.CURSOR_KEEPALIVE;
-import static org.elasticsearch.rest.RestStatus.OK;
+import static org.opensearch.rest.RestStatus.OK;
 
 public class CursorResultExecutor implements CursorRestExecutor {
 
@@ -62,7 +62,7 @@ public class CursorResultExecutor implements CursorRestExecutor {
             Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_CUS).increment();
             LOG.error("Error parsing the cursor", e);
             channel.sendResponse(new BytesRestResponse(channel, e));
-        } catch (ElasticsearchException e) {
+        } catch (OpenSearchException e) {
             int status = (e.status().getStatus());
             if (status > 399 && status < 500) {
                 Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_CUS).increment();

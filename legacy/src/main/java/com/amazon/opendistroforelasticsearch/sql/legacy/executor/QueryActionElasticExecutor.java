@@ -28,15 +28,15 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.query.DescribeQueryActio
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.QueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.ShowQueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.SqlElasticRequestBuilder;
-import com.amazon.opendistroforelasticsearch.sql.legacy.query.SqlElasticSearchRequestBuilder;
-import com.amazon.opendistroforelasticsearch.sql.legacy.query.join.ESJoinQueryAction;
+import com.amazon.opendistroforelasticsearch.sql.legacy.query.SqlOpenSearchRequestBuilder;
+import com.amazon.opendistroforelasticsearch.sql.legacy.query.join.OpenSearchJoinQueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.multi.MultiQueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.multi.MultiQueryRequestBuilder;
-import org.elasticsearch.action.ActionResponse;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.search.SearchHits;
-import org.elasticsearch.search.aggregations.Aggregations;
+import org.opensearch.action.ActionResponse;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.client.Client;
+import org.opensearch.search.SearchHits;
+import org.opensearch.search.aggregations.Aggregations;
 
 import java.io.IOException;
 import java.util.List;
@@ -46,11 +46,11 @@ import java.util.List;
  */
 public class QueryActionElasticExecutor {
     public static SearchHits executeSearchAction(DefaultQueryAction searchQueryAction) throws SqlParseException {
-        SqlElasticSearchRequestBuilder builder = searchQueryAction.explain();
+        SqlOpenSearchRequestBuilder builder = searchQueryAction.explain();
         return ((SearchResponse) builder.get()).getHits();
     }
 
-    public static SearchHits executeJoinSearchAction(Client client, ESJoinQueryAction joinQueryAction)
+    public static SearchHits executeJoinSearchAction(Client client, OpenSearchJoinQueryAction joinQueryAction)
             throws IOException, SqlParseException {
         SqlElasticRequestBuilder joinRequestBuilder = joinQueryAction.explain();
         ElasticJoinExecutor executor = ElasticJoinExecutor.createJoinExecutor(client, joinRequestBuilder);
@@ -60,7 +60,7 @@ public class QueryActionElasticExecutor {
 
     public static Aggregations executeAggregationAction(AggregationQueryAction aggregationQueryAction)
             throws SqlParseException {
-        SqlElasticSearchRequestBuilder select = aggregationQueryAction.explain();
+        SqlOpenSearchRequestBuilder select = aggregationQueryAction.explain();
         return ((SearchResponse) select.get()).getAggregations();
     }
 
@@ -107,8 +107,8 @@ public class QueryActionElasticExecutor {
         if (queryAction instanceof DescribeQueryAction) {
             return executeDescribeQueryAction((DescribeQueryAction) queryAction);
         }
-        if (queryAction instanceof ESJoinQueryAction) {
-            return executeJoinSearchAction(client, (ESJoinQueryAction) queryAction);
+        if (queryAction instanceof OpenSearchJoinQueryAction) {
+            return executeJoinSearchAction(client, (OpenSearchJoinQueryAction) queryAction);
         }
         if (queryAction instanceof MultiQueryAction) {
             return executeMultiQueryAction(client, (MultiQueryAction) queryAction);

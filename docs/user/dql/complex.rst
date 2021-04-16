@@ -9,7 +9,7 @@ Complex Queries
    :local:
    :depth: 2
 
-Besides simple SFW queries (SELECT-FROM-WHERE), there is also support for complex queries such as Subquery, ``JOIN``, ``UNION`` and ``MINUS``. For these queries, more than one Elasticsearch index and DSL query is involved. You can check out how they are performed behind the scene by our explain API.
+Besides simple SFW queries (SELECT-FROM-WHERE), there is also support for complex queries such as Subquery, ``JOIN``, ``UNION`` and ``MINUS``. For these queries, more than one OpenSearch index and DSL query is involved. You can check out how they are performed behind the scene by our explain API.
 
 Subquery
 ========
@@ -297,7 +297,7 @@ Example 1: Inner Join
 
 Inner join is very commonly used that creates a new result set by combining columns of two indices based on the join predicates specified. It iterates both indices and compare each document to find all that satisfy the join predicates. Keyword ``JOIN`` is used and preceded by ``INNER`` keyword optionally. The join predicate(s) is specified by ``ON`` clause.
 
- Remark that the explain API output for join queries looks complicated. This is because a join query is associated with two Elasticsearch DSL queries underlying and execute in the separate query planner framework. You can interpret it by looking into the logical plan and physical plan.
+ Remark that the explain API output for join queries looks complicated. This is because a join query is associated with two OpenSearch DSL queries underlying and execute in the separate query planner framework. You can interpret it by looking into the logical plan and physical plan.
 
 SQL query::
 

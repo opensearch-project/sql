@@ -197,8 +197,8 @@ public class JDBCConnection implements DBConnection {
     }
   }
 
-  private String mapToJDBCType(String esType) {
-    switch (esType.toUpperCase()) {
+  private String mapToJDBCType(String openSearchType) {
+    switch (openSearchType.toUpperCase()) {
       case "KEYWORD":
       case "TEXT":
         return "VARCHAR";
@@ -207,7 +207,7 @@ public class JDBCConnection implements DBConnection {
       case "HALF_FLOAT":
         return "FLOAT";
       default:
-        return esType;
+        return openSearchType;
     }
   }
 

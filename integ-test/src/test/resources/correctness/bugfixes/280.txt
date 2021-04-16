@@ -1,2 +1,2 @@
-SELECT SUM(AvgTicketPrice - 10) FROM kibana_sample_data_flights
-SELECT SUM(ABS(AvgTicketPrice * -2)) FROM kibana_sample_data_flights
+SELECT SUM(AvgTicketPrice - 10) FROM opensearch_dashboards_sample_data_flights
+SELECT SUM(ABS(AvgTicketPrice * -2)) FROM opensearch_dashboards_sample_data_flights

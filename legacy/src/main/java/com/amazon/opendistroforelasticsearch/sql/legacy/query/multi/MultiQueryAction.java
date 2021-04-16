@@ -21,8 +21,8 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.exception.SqlParseExcept
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.DefaultQueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.QueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.SqlElasticRequestBuilder;
-import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.client.Client;
+import org.opensearch.action.search.SearchRequestBuilder;
+import org.opensearch.client.Client;
 
 import java.util.HashSet;
 import java.util.List;

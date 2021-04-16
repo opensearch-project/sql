@@ -1,1 +1,1 @@
-SELECT COUNT(timestamp) FROM kibana_sample_data_flights
+SELECT COUNT(timestamp) FROM opensearch_dashboards_sample_data_flights

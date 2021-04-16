@@ -26,7 +26,7 @@ import org.junit.Test;
  */
 public class SemanticAnalyzerFromClauseTest extends SemanticAnalyzerTestBase {
 
-    @Ignore("IndexNotFoundException should be thrown from ES API directly")
+    @Ignore("IndexNotFoundException should be thrown from OpenSearch API directly")
     @Test
     public void nonExistingIndexNameShouldFail() {
         expectValidationFailWithErrorMessages(

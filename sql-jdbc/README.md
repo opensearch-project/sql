@@ -1,6 +1,6 @@
-## Open Distro for ElasticSearch - JDBC
+## OpenSearch - JDBC
 
-This is the driver for JDBC connectivity to a cluster running with Open Distro for Elasticsearch SQL support.
+This is the driver for JDBC connectivity to a cluster running with OpenSearch SQL support.
 
 ## Specifications
 

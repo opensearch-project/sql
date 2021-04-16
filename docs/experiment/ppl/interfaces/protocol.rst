@@ -128,8 +128,8 @@ PPL query::
     ... -d '{"query" : "source=unknown | fields firstname, lastname"}'
     {
       "error": {
-        "reason": "Error occurred in Elasticsearch engine: no such index [unknown]",
-        "details": "org.elasticsearch.index.IndexNotFoundException: no such index [unknown]\nFor more details, please send request for Json format to see the raw response from elasticsearch engine.",
+        "reason": "Error occurred in OpenSearch engine: no such index [unknown]",
+        "details": "org.opensearch.index.IndexNotFoundException: no such index [unknown]\nFor more details, please send request for Json format to see the raw response from OpenSearch engine.",
         "type": "IndexNotFoundException"
       },
       "status": 404

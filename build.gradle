@@ -15,17 +15,23 @@
 
 buildscript {
     ext {
-        es_version = "7.10.2"
+        es_version = "7.10.3-SNAPSHOT"
     }
 
     repositories {
         mavenCentral()
-        maven { url "https://plugins.gradle.org/m2/" }
+        maven {
+            url = 's3://search-vemsarat/'
+            credentials(AwsCredentials) {
+                accessKey = System.env.AWS_ACCESS_KEY_ID ?: findProperty('aws_access_key_id')
+                secretKey = System.env.AWS_SECRET_ACCESS_KEY ?: findProperty('aws_secret_access_key')
+            }
+        }
         jcenter()
     }
 
     dependencies {
-        classpath "org.elasticsearch.gradle:build-tools:${es_version}"
+        classpath "org.opensearch.gradle:build-tools:${es_version}"
     }
 }
 
@@ -39,11 +45,11 @@ plugins {
 
 // Repository on root level is for dependencies that project code depends on. And this block must be placed after plugins{}
 repositories {
-    mavenCentral() // For Elastic Libs that you can use to get started coding until open ES libs are available
+    mavenCentral() // For Elastic Libs that you can use to get started coding until open OpenSearch libs are available
 }
 
 ext {
-    opendistroVersion = '1.13.0'
+    opendistroVersion = '1.15.0'
     isSnapshot = "true" == System.getProperty("build.snapshot", "true")
 }
 
@@ -52,6 +58,19 @@ allprojects {
 
     plugins.withId('java') {
         sourceCompatibility = targetCompatibility = "1.8"
+    }
+}
+
+subprojects {
+    repositories {
+        mavenCentral()
+        maven {
+            url = 's3://search-vemsarat/'
+            credentials(AwsCredentials) {
+                accessKey = System.env.AWS_ACCESS_KEY_ID ?: findProperty('aws_access_key_id')
+                secretKey = System.env.AWS_SECRET_ACCESS_KEY ?: findProperty('aws_secret_access_key')
+            }
+        }
     }
 }
 

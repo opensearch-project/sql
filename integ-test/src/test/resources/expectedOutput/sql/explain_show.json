@@ -12,9 +12,9 @@
         },
         "children": [
           {
-            "name": "ElasticsearchSystemIndexScan",
+            "name": "OpenSearchSystemIndexScan",
             "description": {
-              "request": "ElasticsearchCatIndicesRequest{}"
+              "request": "OpenSearchCatIndicesRequest{}"
             },
             "children": []
           }

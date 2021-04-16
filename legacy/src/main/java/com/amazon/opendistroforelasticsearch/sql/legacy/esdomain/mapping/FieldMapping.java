@@ -22,12 +22,12 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.utils.StringUtils;
 import java.util.Map;
 
 import static java.util.Collections.emptyMap;
-import static org.elasticsearch.action.admin.indices.mapping.get.GetFieldMappingsResponse.FieldMappingMetadata;
+import static org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsResponse.FieldMappingMetadata;
 
 /**
- * Field mapping that parses native ES mapping.
+ * Field mapping that parses native OpenSearch mapping.
  * <p>
- * NOTE that approaches in this class are NOT reliable because of the ES mapping query API used.
+ * NOTE that approaches in this class are NOT reliable because of the OpenSearch mapping query API used.
  * We should deprecate this in future and parse field mapping in more solid way.
  */
 public class FieldMapping {
@@ -38,7 +38,7 @@ public class FieldMapping {
     private final String fieldName;
 
     /**
-     * Native mapping information returned from ES
+     * Native mapping information returned from OpenSearch
      */
     private final Map<String, FieldMappingMetadata> typeMappings;
 
@@ -120,7 +120,7 @@ public class FieldMapping {
     }
 
     /**
-     * Find field type in ES Get Field Mapping API response. Note that Get Field Mapping API does NOT return
+     * Find field type in OpenSearch Get Field Mapping API response. Note that Get Field Mapping API does NOT return
      * the type for object or nested field. In this case, object type is used as default under the assumption
      * that the field queried here must exist (which is true if semantic analyzer is enabled).
      *

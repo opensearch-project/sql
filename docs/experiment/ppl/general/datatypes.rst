@@ -63,47 +63,47 @@ The PPL support the following data types.
 Data Types Mapping
 ------------------
 
-The table below list the mapping between Elasticsearch Data Type, PPL Data Type and SQL Type.
+The table below list the mapping between OpenSearch Data Type, PPL Data Type and SQL Type.
 
-+--------------------+---------------+-----------+
-| Elasticsearch Type | PPL Type      | SQL Type  |
-+====================+===============+===========+
-| boolean            | boolean       | BOOLEAN   |
-+--------------------+---------------+-----------+
-| byte               | byte          | TINYINT   |
-+--------------------+---------------+-----------+
-| short              | byte          | SMALLINT  |
-+--------------------+---------------+-----------+
-| integer            | integer       | INTEGER   |
-+--------------------+---------------+-----------+
-| long               | long          | BIGINT    |
-+--------------------+---------------+-----------+
-| float              | float         | REAL      |
-+--------------------+---------------+-----------+
-| half_float         | float         | FLOAT     |
-+--------------------+---------------+-----------+
-| scaled_float       | float         | DOUBLE    |
-+--------------------+---------------+-----------+
-| double             | double        | DOUBLE    |
-+--------------------+---------------+-----------+
-| keyword            | string        | VARCHAR   |
-+--------------------+---------------+-----------+
-| text               | text          | VARCHAR   |
-+--------------------+---------------+-----------+
-| date               | timestamp     | TIMESTAMP |
-+--------------------+---------------+-----------+
-| ip                 | ip            | VARCHAR   |
-+--------------------+---------------+-----------+
-| date               | timestamp     | TIMESTAMP |
-+--------------------+---------------+-----------+
-| binary             | binary        | VARBINARY |
-+--------------------+---------------+-----------+
-| object             | struct        | STRUCT    |
-+--------------------+---------------+-----------+
-| nested             | array         | STRUCT    |
-+--------------------+---------------+-----------+
++-----------------+---------------+-----------+
+| OpenSearch Type | PPL Type      | SQL Type  |
++=================+===============+===========+
+| boolean         | boolean       | BOOLEAN   |
++-----------------+---------------+-----------+
+| byte            | byte          | TINYINT   |
++-----------------+---------------+-----------+
+| short           | byte          | SMALLINT  |
++-----------------+---------------+-----------+
+| integer         | integer       | INTEGER   |
++-----------------+---------------+-----------+
+| long            | long          | BIGINT    |
++-----------------+---------------+-----------+
+| float           | float         | REAL      |
++-----------------+---------------+-----------+
+| half_float      | float         | FLOAT     |
++-----------------+---------------+-----------+
+| scaled_float    | float         | DOUBLE    |
++-----------------+---------------+-----------+
+| double          | double        | DOUBLE    |
++-----------------+---------------+-----------+
+| keyword         | string        | VARCHAR   |
++-----------------+---------------+-----------+
+| text            | text          | VARCHAR   |
++-----------------+---------------+-----------+
+| date            | timestamp     | TIMESTAMP |
++-----------------+---------------+-----------+
+| ip              | ip            | VARCHAR   |
++-----------------+---------------+-----------+
+| date            | timestamp     | TIMESTAMP |
++-----------------+---------------+-----------+
+| binary          | binary        | VARBINARY |
++-----------------+---------------+-----------+
+| object          | struct        | STRUCT    |
++-----------------+---------------+-----------+
+| nested          | array         | STRUCT    |
++-----------------+---------------+-----------+
 
-Notes: Not all the PPL Type has correspond Elasticsearch Type. e.g. data and time. To use function which required such data type, user should explict convert the data type.
+Notes: Not all the PPL Type has correspond OpenSearch Type. e.g. data and time. To use function which required such data type, user should explict convert the data type.
 
 
 
@@ -116,7 +116,7 @@ TODO
 Date and Time Data Types
 ========================
 
-The date and time data types are the types that represent temporal values and PPL plugin supports types including DATE, TIME, DATETIME, TIMESTAMP and INTERVAL. By default, the Elasticsearch DSL uses date type as the only date and time related type, which has contained all information about an absolute time point. To integrate with PPL language, each of the types other than timestamp is holding part of temporal or timezone information, and the usage to explicitly clarify the date and time types is reflected in the datetime functions (see `Functions <functions.rst>`_ for details), where some functions might have restrictions in the input argument type.
+The date and time data types are the types that represent temporal values and PPL plugin supports types including DATE, TIME, DATETIME, TIMESTAMP and INTERVAL. By default, the OpenSearch DSL uses date type as the only date and time related type, which has contained all information about an absolute time point. To integrate with PPL language, each of the types other than timestamp is holding part of temporal or timezone information, and the usage to explicitly clarify the date and time types is reflected in the datetime functions (see `Functions <functions.rst>`_ for details), where some functions might have restrictions in the input argument type.
 
 
 Date
@@ -228,7 +228,7 @@ A string is a sequence of characters enclosed in either single or double quotes.
 Query Struct Data Types
 =======================
 
-In PPL, the Struct Data Types corresponding to the `Object field type in Elasticsearch <https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html>`_. The "." is used as the path selector when access the inner attribute of the struct data.
+In PPL, the Struct Data Types corresponding to the `Object field type in OpenSearch <https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html>`_. The "." is used as the path selector when access the inner attribute of the struct data.
 
 Example: People
 ---------------

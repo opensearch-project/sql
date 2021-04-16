@@ -24,13 +24,13 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.RestIntegTestCase;
 import java.io.IOException;
 import java.util.Locale;
 import java.util.function.Function;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.ResponseException;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
+import org.opensearch.client.Request;
+import org.opensearch.client.RequestOptions;
+import org.opensearch.client.Response;
+import org.opensearch.client.ResponseException;
 
 /**
  * Integration test for different type of expressions such as literals, arithmetic, predicate
@@ -53,7 +53,7 @@ public class ExpressionIT extends RestIntegTestCase {
   }
 
   /**
-   * Response exception assertion helper to assert property value in ES ResponseException
+   * Response exception assertion helper to assert property value in OpenSearch ResponseException
    * and Response inside. This serves as syntax sugar to improve the readability of test
    * code.
    */

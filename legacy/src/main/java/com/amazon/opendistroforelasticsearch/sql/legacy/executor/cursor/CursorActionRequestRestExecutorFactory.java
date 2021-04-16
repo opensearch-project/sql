@@ -16,7 +16,7 @@
 package com.amazon.opendistroforelasticsearch.sql.legacy.executor.cursor;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.Format;
-import org.elasticsearch.rest.RestRequest;
+import org.opensearch.rest.RestRequest;
 
 public class CursorActionRequestRestExecutorFactory {
 

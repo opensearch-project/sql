@@ -18,7 +18,7 @@ package com.amazon.opendistroforelasticsearch.sql.legacy.executor;
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.csv.CSVResultRestExecutor;
 import com.amazon.opendistroforelasticsearch.sql.legacy.executor.format.PrettyFormatRestExecutor;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.QueryAction;
-import com.amazon.opendistroforelasticsearch.sql.legacy.query.join.ESJoinQueryAction;
+import com.amazon.opendistroforelasticsearch.sql.legacy.query.join.OpenSearchJoinQueryAction;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.multi.MultiQueryAction;
 
 /**
@@ -51,7 +51,7 @@ public class ActionRequestRestExecutorFactory {
     }
 
     private static boolean isJoin(QueryAction queryAction) {
-        return queryAction instanceof ESJoinQueryAction;
+        return queryAction instanceof OpenSearchJoinQueryAction;
     }
 
     private static boolean isUnionMinus(QueryAction queryAction) {

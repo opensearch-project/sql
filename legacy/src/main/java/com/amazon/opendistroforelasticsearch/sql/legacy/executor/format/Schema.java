@@ -107,7 +107,7 @@ public class Schema implements Iterable<Schema.Column> {
         };
     }
 
-    // Only core ES datatypes currently supported
+    // Only core OpenSearch datatypes currently supported
     public enum Type {
         TEXT, KEYWORD, IP, // String types
         LONG, INTEGER, SHORT, BYTE, DOUBLE, FLOAT, HALF_FLOAT, SCALED_FLOAT, // Numeric types

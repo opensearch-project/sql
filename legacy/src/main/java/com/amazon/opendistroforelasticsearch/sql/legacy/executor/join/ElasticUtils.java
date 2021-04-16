@@ -19,27 +19,27 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.domain.Select;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.join.BackOffRetryStrategy;
 import com.google.common.collect.ImmutableMap;
 import org.apache.lucene.search.TotalHits.Relation;
-import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.xcontent.ToXContent.Params;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHits;
-import org.elasticsearch.search.sort.FieldSortBuilder;
-import org.elasticsearch.search.sort.SortOrder;
+import org.opensearch.action.search.SearchRequestBuilder;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.client.Client;
+import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.common.io.stream.BytesStreamOutput;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.xcontent.ToXContent.Params;
+import org.opensearch.common.xcontent.XContentBuilder;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
+import org.opensearch.search.sort.FieldSortBuilder;
+import org.opensearch.search.sort.SortOrder;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
-import static org.elasticsearch.common.xcontent.ToXContent.EMPTY_PARAMS;
+import static org.opensearch.common.xcontent.ToXContent.EMPTY_PARAMS;
 
 /**
  * Created by Eliran on 2/9/2016.

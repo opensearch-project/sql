@@ -17,7 +17,7 @@ package com.amazon.opendistroforelasticsearch.sql.legacy.query.join;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.domain.Field;
 import com.amazon.opendistroforelasticsearch.sql.legacy.domain.Select;
-import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.opensearch.action.search.SearchRequestBuilder;
 
 import java.util.List;
 

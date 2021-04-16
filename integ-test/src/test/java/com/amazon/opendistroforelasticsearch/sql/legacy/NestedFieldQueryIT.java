@@ -28,15 +28,6 @@ import static org.hamcrest.Matchers.is;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.function.Function;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.ResponseException;
-import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.rest.RestStatus;
-import org.elasticsearch.search.SearchHit;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.FeatureMatcher;
@@ -47,6 +38,15 @@ import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.client.ResponseException;
+import org.opensearch.common.xcontent.LoggingDeprecationHandler;
+import org.opensearch.common.xcontent.NamedXContentRegistry;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.common.xcontent.XContentParser;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.rest.RestStatus;
+import org.opensearch.search.SearchHit;
 
 /**
  * Integration test cases for both rewriting and projection logic.
@@ -269,7 +269,7 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
   @Test
   public void leftJoinSelectAll() throws IOException {
     String sql = "SELECT * " +
-        "FROM elasticsearch-sql_test_index_employee_nested e " +
+        "FROM opensearch-sql_test_index_employee_nested e " +
         "LEFT JOIN e.projects p";
     String explain = explainQuery(sql);
     assertThat(explain, containsString("{\"bool\":{\"must_not\":[{\"nested\":{\"query\":" +
@@ -284,7 +284,7 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
   @Test
   public void leftJoinSpecificFields() throws IOException {
     String sql = "SELECT e.name, p.name, p.started_year " +
-        "FROM elasticsearch-sql_test_index_employee_nested e " +
+        "FROM opensearch-sql_test_index_employee_nested e " +
         "LEFT JOIN e.projects p";
     String explain = explainQuery(sql);
     assertThat(explain, containsString("{\"bool\":{\"must_not\":[{\"nested\":{\"query\":" +
@@ -302,7 +302,7 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
   @Test
   public void leftJoinExceptionOnExtraNestedFields() throws IOException {
     String sql = "SELECT * " +
-        "FROM elasticsearch-sql_test_index_employee_nested e " +
+        "FROM opensearch-sql_test_index_employee_nested e " +
         "LEFT JOIN e.projects p, e.comments c";
 
     try {
@@ -370,7 +370,7 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
   @Test
   public void nestedFiledIsNotNull() throws IOException {
     String sql = "SELECT e.name " +
-        "FROM elasticsearch-sql_test_index_employee_nested as e, e.projects as p " +
+        "FROM opensearch-sql_test_index_employee_nested as e, e.projects as p " +
         "WHERE p IS NOT NULL";
 
     assertThat(
@@ -428,7 +428,7 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
   @Test
   public void countAggWithoutWhere() throws IOException {
     String sql = "SELECT e.name, COUNT(p) as c " +
-        "FROM elasticsearch-sql_test_index_employee_nested AS e, e.projects AS p " +
+        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
         "GROUP BY e.name " +
         "HAVING c > 1";
 
@@ -447,7 +447,7 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
   @Test
   public void countAggWithWhereOnParent() throws IOException {
     String sql = "SELECT e.name, COUNT(p) as c " +
-        "FROM elasticsearch-sql_test_index_employee_nested AS e, e.projects AS p " +
+        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
         "WHERE e.name like '%smith%' " +
         "GROUP BY e.name " +
         "HAVING c > 1";
@@ -467,7 +467,7 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
   @Test
   public void countAggWithWhereOnNested() throws IOException {
     String sql = "SELECT e.name, COUNT(p) as c " +
-        "FROM elasticsearch-sql_test_index_employee_nested AS e, e.projects AS p " +
+        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
         "WHERE p.name LIKE '%security%' " +
         "GROUP BY e.name " +
         "HAVING c > 1";
@@ -487,7 +487,7 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
   @Test
   public void countAggWithWhereOnParentOrNested() throws IOException {
     String sql = "SELECT e.name, COUNT(p) as c " +
-        "FROM elasticsearch-sql_test_index_employee_nested AS e, e.projects AS p " +
+        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
         "WHERE e.name like '%smith%' or p.name LIKE '%security%' " +
         "GROUP BY e.name " +
         "HAVING c > 1";
@@ -507,7 +507,7 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
   @Test
   public void countAggWithWhereOnParentAndNested() throws IOException {
     String sql = "SELECT e.name, COUNT(p) as c " +
-        "FROM elasticsearch-sql_test_index_employee_nested AS e, e.projects AS p " +
+        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
         "WHERE e.name like '%smith%' AND p.name LIKE '%security%' " +
         "GROUP BY e.name " +
         "HAVING c > 1";
@@ -527,7 +527,7 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
   @Test
   public void countAggWithWhereOnNestedAndNested() throws IOException {
     String sql = "SELECT e.name, COUNT(p) as c " +
-        "FROM elasticsearch-sql_test_index_employee_nested AS e, e.projects AS p " +
+        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
         "WHERE p.started_year > 2000 AND p.name LIKE '%security%' " +
         "GROUP BY e.name " +
         "HAVING c > 0";
@@ -547,7 +547,7 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
   @Test
   public void countAggWithWhereOnNestedOrNested() throws IOException {
     String sql = "SELECT e.name, COUNT(p) as c " +
-        "FROM elasticsearch-sql_test_index_employee_nested AS e, e.projects AS p " +
+        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
         "WHERE p.started_year > 2000 OR p.name LIKE '%security%' " +
         "GROUP BY e.name " +
         "HAVING c > 1";
@@ -567,7 +567,7 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
   @Test
   public void countAggOnNestedInnerFieldWithoutWhere() throws IOException {
     String sql = "SELECT e.name, COUNT(p.started_year) as count " +
-        "FROM elasticsearch-sql_test_index_employee_nested AS e, e.projects AS p " +
+        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
         "WHERE p.name LIKE '%security%' " +
         "GROUP BY e.name " +
         "HAVING count > 0";
@@ -591,7 +591,7 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
   @Test
   public void maxAggOnNestedInnerFieldWithoutWhere() throws IOException {
     String sql = "SELECT e.name, MAX(p.started_year) as max " +
-        "FROM elasticsearch-sql_test_index_employee_nested AS e, e.projects AS p " +
+        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
         "WHERE p.name LIKE '%security%' " +
         "GROUP BY e.name";
 
@@ -614,7 +614,7 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
   @Test
   public void havingCountAggWithoutWhere() throws IOException {
     String sql = "SELECT e.name " +
-        "FROM elasticsearch-sql_test_index_employee_nested AS e, e.projects AS p " +
+        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
         "GROUP BY e.name " +
         "HAVING COUNT(p) > 1";
 
@@ -633,7 +633,7 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
   @Test
   public void havingCountAggWithWhereOnParent() throws IOException {
     String sql = "SELECT e.name " +
-        "FROM elasticsearch-sql_test_index_employee_nested AS e, e.projects AS p " +
+        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
         "WHERE e.name like '%smith%' " +
         "GROUP BY e.name " +
         "HAVING COUNT(p) > 1";
@@ -653,7 +653,7 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
   @Test
   public void havingCountAggWithWhereOnNested() throws IOException {
     String sql = "SELECT e.name " +
-        "FROM elasticsearch-sql_test_index_employee_nested AS e, e.projects AS p " +
+        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
         "WHERE p.name LIKE '%security%' " +
         "GROUP BY e.name " +
         "HAVING COUNT(p) > 1";
@@ -673,7 +673,7 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
   @Test
   public void havingCountAggWithWhereOnParentOrNested() throws IOException {
     String sql = "SELECT e.name " +
-        "FROM elasticsearch-sql_test_index_employee_nested AS e, e.projects AS p " +
+        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
         "WHERE e.name like '%smith%' or p.name LIKE '%security%' " +
         "GROUP BY e.name " +
         "HAVING COUNT(p) > 1";
@@ -693,7 +693,7 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
   @Test
   public void havingCountAggWithWhereOnParentAndNested() throws IOException {
     String sql = "SELECT e.name " +
-        "FROM elasticsearch-sql_test_index_employee_nested AS e, e.projects AS p " +
+        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
         "WHERE e.name like '%smith%' AND p.name LIKE '%security%' " +
         "GROUP BY e.name " +
         "HAVING COUNT(p) > 1";
@@ -713,7 +713,7 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
   @Test
   public void havingCountAggWithWhereOnNestedAndNested() throws IOException {
     String sql = "SELECT e.name " +
-        "FROM elasticsearch-sql_test_index_employee_nested AS e, e.projects AS p " +
+        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
         "WHERE p.started_year > 2000 AND p.name LIKE '%security%' " +
         "GROUP BY e.name " +
         "HAVING COUNT(p) > 0";
@@ -733,7 +733,7 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
   @Test
   public void havingCountAggWithWhereOnNestedOrNested() throws IOException {
     String sql = "SELECT e.name " +
-        "FROM elasticsearch-sql_test_index_employee_nested AS e, e.projects AS p " +
+        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
         "WHERE p.started_year > 2000 OR p.name LIKE '%security%' " +
         "GROUP BY e.name " +
         "HAVING COUNT(p) > 1";
@@ -753,7 +753,7 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
   @Test
   public void havingCountAggOnNestedInnerFieldWithoutWhere() throws IOException {
     String sql = "SELECT e.name " +
-        "FROM elasticsearch-sql_test_index_employee_nested AS e, e.projects AS p " +
+        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
         "WHERE p.name LIKE '%security%' " +
         "GROUP BY e.name " +
         "HAVING COUNT(p.started_year) > 0";
@@ -777,7 +777,7 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
   @Test
   public void havingMaxAggOnNestedInnerFieldWithoutWhere() throws IOException {
     String sql = "SELECT e.name " +
-        "FROM elasticsearch-sql_test_index_employee_nested AS e, e.projects AS p " +
+        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
         "WHERE p.name LIKE '%security%' " +
         "GROUP BY e.name " +
         "HAVING MAX(p.started_year) > 1990";

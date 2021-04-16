@@ -466,7 +466,7 @@ keywordsCanBeId
     ;
 
 functionNameBase
-    : esFunctionNameBase
+    : openSearchFunctionNameBase
     | ABS | ACOS | ADD | ASCII | ASIN | ATAN | ATAN2 | CBRT | CEIL | CONCAT | CONCAT_WS
     | COS | COSH | COT | CURDATE | DATE | DATE_FORMAT | DAYOFMONTH | DEGREES
     | E | EXP | EXPM1 | FLOOR | IF | IFNULL | ISNULL | LEFT | LENGTH | LN | LOCATE | LOG
@@ -476,7 +476,7 @@ functionNameBase
     | UPPER | YEAR | ADDDATE | ADDTIME | GREATEST | LEAST | STRCMP
     ;
 
-esFunctionNameBase
+openSearchFunctionNameBase
     : DATE_HISTOGRAM | DAY_OF_MONTH | DAY_OF_YEAR | DAY_OF_WEEK | EXCLUDE
     | EXTENDED_STATS | FILTER | GEO_BOUNDING_BOX | GEO_CELL | GEO_DISTANCE | GEO_DISTANCE_RANGE | GEO_INTERSECTS
     | GEO_POLYGON | INCLUDE | IN_TERMS | HISTOGRAM | HOUR_OF_DAY

@@ -14,7 +14,7 @@ PPL Settings
 Introduction
 ============
 
-When Elasticsearch bootstraps, PPL plugin will register a few settings in Elasticsearch cluster settings. Most of the settings are able to change dynamically so you can control the behavior of PPL plugin without need to bounce your cluster.
+When OpenSearch bootstraps, PPL plugin will register a few settings in OpenSearch cluster settings. Most of the settings are able to change dynamically so you can control the behavior of PPL plugin without need to bounce your cluster.
 
 opendistro.ppl.enabled
 ======================
@@ -122,7 +122,7 @@ opendistro.query.size_limit
 Description
 -----------
 
-The size configure the maximum amount of documents to be pull from Elasticsearch. The default value is: 200
+The size configure the maximum amount of documents to be pull from OpenSearch. The default value is: 200
 
 Notes: This setting will impact the correctness of the aggregation operation, for example, there are 1000 docs in the index, by default, only 200 docs will be extract from index and do aggregation.
 

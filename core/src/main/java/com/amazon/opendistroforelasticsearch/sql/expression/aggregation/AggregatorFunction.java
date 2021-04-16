@@ -15,8 +15,6 @@
 
 package com.amazon.opendistroforelasticsearch.sql.expression.aggregation;
 
-import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.ARRAY;
-import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.DATE;
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.DATETIME;
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.DOUBLE;
@@ -24,12 +22,10 @@ import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.F
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.INTEGER;
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.LONG;
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.STRING;
-import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.STRUCT;
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.TIME;
 import static com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
 import com.amazon.opendistroforelasticsearch.sql.data.type.ExprCoreType;
-import com.amazon.opendistroforelasticsearch.sql.data.type.ExprType;
 import com.amazon.opendistroforelasticsearch.sql.expression.function.BuiltinFunctionName;
 import com.amazon.opendistroforelasticsearch.sql.expression.function.BuiltinFunctionRepository;
 import com.amazon.opendistroforelasticsearch.sql.expression.function.FunctionBuilder;
@@ -37,13 +33,8 @@ import com.amazon.opendistroforelasticsearch.sql.expression.function.FunctionNam
 import com.amazon.opendistroforelasticsearch.sql.expression.function.FunctionResolver;
 import com.amazon.opendistroforelasticsearch.sql.expression.function.FunctionSignature;
 import com.google.common.collect.ImmutableMap;
-
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
-import java.util.List;
 import java.util.stream.Collectors;
-
 import lombok.experimental.UtilityClass;
 
 /**

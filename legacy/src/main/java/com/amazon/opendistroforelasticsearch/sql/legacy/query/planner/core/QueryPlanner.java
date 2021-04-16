@@ -22,8 +22,8 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.logical.Lo
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.physical.PhysicalPlan;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.resource.ResourceManager;
 import com.amazon.opendistroforelasticsearch.sql.legacy.query.planner.resource.Stats;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.search.SearchHit;
+import org.opensearch.client.Client;
+import org.opensearch.search.SearchHit;
 
 import java.util.List;
 

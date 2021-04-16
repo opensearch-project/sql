@@ -1,1 +1,1 @@
-SELECT flights.`FlightNum` FROM kibana_sample_data_flights AS flights WHERE flights.`AvgTicketPrice` <= 500
+SELECT flights.`FlightNum` FROM opensearch_dashboards_sample_data_flights AS flights WHERE flights.`AvgTicketPrice` <= 500

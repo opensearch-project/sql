@@ -43,10 +43,11 @@ public class DateFieldFormatter {
     private static final String FORMAT_DELIMITER = "\\|\\|";
 
     private static final String FORMAT_DOT_DATE_AND_TIME = "yyyy-MM-dd'T'HH:mm:ss.SSSZ";
-    private static final String FORMAT_DOT_KIBANA_SAMPLE_DATA_LOGS_EXCEPTION = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
-    private static final String FORMAT_DOT_KIBANA_SAMPLE_DATA_FLIGHTS_EXCEPTION = "yyyy-MM-dd'T'HH:mm:ss";
-    private static final String FORMAT_DOT_KIBANA_SAMPLE_DATA_FLIGHTS_EXCEPTION_NO_TIME = "yyyy-MM-dd'T'";
-    private static final String FORMAT_DOT_KIBANA_SAMPLE_DATA_ECOMMERCE_EXCEPTION = "yyyy-MM-dd'T'HH:mm:ssXXX";
+    private static final String FORMAT_DOT_OPENSEARCH_DASHBOARDS_SAMPLE_DATA_LOGS_EXCEPTION = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
+    private static final String FORMAT_DOT_OPENSEARCH_DASHBOARDS_SAMPLE_DATA_FLIGHTS_EXCEPTION = "yyyy-MM-dd'T'HH:mm:ss";
+    private static final String
+        FORMAT_DOT_OPENSEARCH_DASHBOARDS_SAMPLE_DATA_FLIGHTS_EXCEPTION_NO_TIME = "yyyy-MM-dd'T'";
+    private static final String FORMAT_DOT_OPENSEARCH_DASHBOARDS_SAMPLE_DATA_ECOMMERCE_EXCEPTION = "yyyy-MM-dd'T'HH:mm:ssXXX";
     private static final String FORMAT_DOT_DATE = DateFormat.getFormatString("date");
 
     private final Map<String, List<String>> dateFieldFormatMap;
@@ -153,7 +154,7 @@ public class DateFieldFormatter {
         Date parsedDate = null;
 
         // Apache Commons DateUtils uses the default TimeZone for the JVM when parsing.
-        // However, since all dates on Elasticsearch are stored as UTC, we need to
+        // However, since all dates on OpenSearch are stored as UTC, we need to
         // parse these values using the UTC timezone.
         TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
         for (String columnFormat : formats) {
@@ -163,10 +164,10 @@ public class DateFieldFormatter {
                     case "strict_date_optional_time":
                         parsedDate = DateUtils.parseDate(
                             columnOriginalDate,
-                            FORMAT_DOT_KIBANA_SAMPLE_DATA_LOGS_EXCEPTION,
-                            FORMAT_DOT_KIBANA_SAMPLE_DATA_FLIGHTS_EXCEPTION,
-                            FORMAT_DOT_KIBANA_SAMPLE_DATA_FLIGHTS_EXCEPTION_NO_TIME,
-                            FORMAT_DOT_KIBANA_SAMPLE_DATA_ECOMMERCE_EXCEPTION,
+                            FORMAT_DOT_OPENSEARCH_DASHBOARDS_SAMPLE_DATA_LOGS_EXCEPTION,
+                            FORMAT_DOT_OPENSEARCH_DASHBOARDS_SAMPLE_DATA_FLIGHTS_EXCEPTION,
+                            FORMAT_DOT_OPENSEARCH_DASHBOARDS_SAMPLE_DATA_FLIGHTS_EXCEPTION_NO_TIME,
+                            FORMAT_DOT_OPENSEARCH_DASHBOARDS_SAMPLE_DATA_ECOMMERCE_EXCEPTION,
                             FORMAT_DOT_DATE_AND_TIME,
                             FORMAT_DOT_DATE);
                         break;
