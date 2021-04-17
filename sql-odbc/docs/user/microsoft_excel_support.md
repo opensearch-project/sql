@@ -1,10 +1,10 @@
-#  Connecting Open Distro For ElasticSearch to Microsoft Excel on Windows
+#  Connecting OpenSearch to Microsoft Excel on Windows
 
 ## Prerequisites
 
 * Microsoft Excel 2016 and higher
-* [Open Distro for Elasticsearch](https://opendistro.github.io/for-elasticsearch-docs/docs/install/)
-* [Open Distro for Elasticsearch SQL ODBC driver](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/odbc/)
+* [OpenSearch](https://opendistro.github.io/for-elasticsearch-docs/docs/install/)
+* [OpenSearch SQL ODBC driver](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/odbc/)
 * A preconfigured [User or System DSN](../../README.md)
 
 ## Test Successful Connection
@@ -70,7 +70,7 @@ Alternately, **Data** > **Refresh** option can also be used to refresh the data.
 
 ## Troubleshooting
 
-* If the table has large number of datarows, increase [the keepalive](https://github.com/opendistro-for-elasticsearch/sql/blob/master/docs/dev/Pagination.md#opendistrosqlcursorkeep_alive) value accordlingly. 
+* If the table has large number of datarows, increase [the keepalive](https://github.com/opensearch-project/sql/blob/main/docs/dev/Pagination.md#opendistrosqlcursorkeep_alive) value accordlingly. 
 
 * If the table has nested or object type column, you might get an error as below.
 
@@ -82,7 +82,7 @@ In this case, please use advanced options while connecting to the data source.
 
 <img src="img/excel_advanced_option.png" width=500>
 
-Also, make sure query doesn't include the name of nested or object type column name. For example, `SELECT products FROM kibana_sample_data_ecommerce` where product is nested type column might have data loss.
+Also, make sure query doesn't include the name of nested or object type column name. For example, `SELECT products FROM opensearch_dashboards_sample_data_ecommerce` where product is nested type column might have data loss.
 
 This issue will be resolved when [Object field is missing in SELECT result](https://github.com/opendistro-for-elasticsearch/sql/issues/564) is fixed.
 

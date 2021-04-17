@@ -17,8 +17,8 @@
 // clang-format off
 #include "pch.h"
 #include "unit_test_helper.h"
-#include "es_communication.h"
-#include "es_helper.h"
+#include "opensearch_communication.h"
+#include "opensearch_helper.h"
 // clang-format on
 
 const std::string valid_host = (use_ssl ? "https://localhost" : "localhost");
@@ -27,11 +27,11 @@ const std::string valid_user = "admin";
 const std::string valid_pw = "admin";
 const std::string valid_region = "us-west-3";
 const std::string query =
-    "SELECT Origin FROM kibana_sample_data_flights LIMIT 5";
+    "SELECT Origin FROM opensearch_dashboards_sample_data_flights LIMIT 5";
 const std::string all_columns_flights_query =
-    "SELECT * FROM kibana_sample_data_flights LIMIT 5";
+    "SELECT * FROM opensearch_dashboards_sample_data_flights LIMIT 5";
 const std::string some_columns_flights_query =
-    "SELECT Origin, OriginWeather FROM kibana_sample_data_flights LIMIT 5";
+    "SELECT Origin, OriginWeather FROM opensearch_dashboards_sample_data_flights LIMIT 5";
 const std::string invalid_query = "SELECT";
 const int EXECUTION_SUCCESS = 0;
 const int EXECUTION_ERROR = -1;
@@ -43,35 +43,36 @@ runtime_options valid_conn_opt_val = {
     {"BASIC", valid_user, valid_pw, valid_region},
     {use_ssl, false, "", "", "", ""}};
 
-TEST(TestESExecDirect, ValidQuery) {
-    ESCommunication conn;
+TEST(TestOpenSearchExecDirect, ValidQuery) {
+    OpenSearchCommunication conn;
     ASSERT_TRUE(conn.ConnectionOptions(valid_conn_opt_val, false, 0, 0));
     ASSERT_TRUE(conn.ConnectDBStart());
     EXPECT_EQ(EXECUTION_SUCCESS,
-        ESExecDirect(&conn, some_columns_flights_query.c_str(), fetch_size.c_str()));
+              OpenSearchExecDirect(&conn, some_columns_flights_query.c_str(), fetch_size.c_str()));
 }
 
-TEST(TestESExecDirect, MissingQuery) {
-    ESCommunication conn;
+TEST(TestOpenSearchExecDirect, MissingQuery) {
+    OpenSearchCommunication conn;
     ASSERT_TRUE(conn.ConnectionOptions(valid_conn_opt_val, false, 0, 0));
     ASSERT_TRUE(conn.ConnectDBStart());
-    EXPECT_EQ(EXECUTION_ERROR, ESExecDirect(&conn, NULL, fetch_size.c_str()));
+    EXPECT_EQ(EXECUTION_ERROR,
+              OpenSearchExecDirect(&conn, NULL, fetch_size.c_str()));
 }
 
-TEST(TestESExecDirect, MissingConnection) {
+TEST(TestOpenSearchExecDirect, MissingConnection) {
     EXPECT_EQ(EXECUTION_ERROR,
-              ESExecDirect(NULL, query.c_str(), fetch_size.c_str()));
+              OpenSearchExecDirect(NULL, query.c_str(), fetch_size.c_str()));
 }
 
 // Conn::ExecDirect
 
 TEST(TestConnExecDirect, ValidQueryAllColumns) {
-    ESCommunication conn;
+    OpenSearchCommunication conn;
     ASSERT_TRUE(conn.ConnectionOptions(valid_conn_opt_val, false, 0, 0));
     ASSERT_TRUE(conn.ConnectDBStart());
 
     conn.ExecDirect(all_columns_flights_query.c_str(), fetch_size.c_str());
-    ESResult* result = conn.PopResult();
+    OpenSearchResult* result = conn.PopResult();
     EXPECT_EQ("SELECT", result->command_type);
     EXPECT_FALSE(result->result_json.empty());
     EXPECT_EQ(all_columns_flights_count, result->num_fields);
@@ -79,12 +80,12 @@ TEST(TestConnExecDirect, ValidQueryAllColumns) {
 }
 
 TEST(TestConnExecDirect, ValidQuerySomeColumns) {
-    ESCommunication conn;
+    OpenSearchCommunication conn;
     ASSERT_TRUE(conn.ConnectionOptions(valid_conn_opt_val, false, 0, 0));
     ASSERT_TRUE(conn.ConnectDBStart());
 
     conn.ExecDirect(some_columns_flights_query.c_str(), fetch_size.c_str());
-    ESResult* result = conn.PopResult();
+    OpenSearchResult* result = conn.PopResult();
     EXPECT_EQ("SELECT", result->command_type);
     EXPECT_FALSE(result->result_json.empty());
     EXPECT_EQ(some_columns_flights_count, result->num_fields);
@@ -92,28 +93,28 @@ TEST(TestConnExecDirect, ValidQuerySomeColumns) {
 }
 
 TEST(TestConnExecDirect, InvalidQuery) {
-    ESCommunication conn;
+    OpenSearchCommunication conn;
     ASSERT_TRUE(conn.ConnectionOptions(valid_conn_opt_val, false, 0, 0));
     ASSERT_TRUE(conn.ConnectDBStart());
 
     conn.ExecDirect(invalid_query.c_str(), fetch_size.c_str());
-    ESResult* result = conn.PopResult();
+    OpenSearchResult* result = conn.PopResult();
     EXPECT_EQ(NULL, (void*)result);
 }
 
 // Conn::PopResult
 
 TEST(TestConnPopResult, PopEmptyQueue) {
-    ESCommunication conn;
+    OpenSearchCommunication conn;
     ASSERT_TRUE(conn.ConnectionOptions(valid_conn_opt_val, false, 0, 0));
     ASSERT_TRUE(conn.ConnectDBStart());
 
-    ESResult* result = conn.PopResult();
+    OpenSearchResult* result = conn.PopResult();
     EXPECT_EQ(NULL, (void*)result);
 }
 
 TEST(TestConnPopResult, PopTwoQueryResults) {
-    ESCommunication conn;
+    OpenSearchCommunication conn;
     ASSERT_TRUE(conn.ConnectionOptions(valid_conn_opt_val, false, 0, 0));
     ASSERT_TRUE(conn.ConnectDBStart());
 
@@ -121,7 +122,7 @@ TEST(TestConnPopResult, PopTwoQueryResults) {
     conn.ExecDirect(all_columns_flights_query.c_str(), fetch_size.c_str());
 
     // Pop some_columns
-    ESResult* result = conn.PopResult();
+    OpenSearchResult* result = conn.PopResult();
     EXPECT_EQ(some_columns_flights_count, result->num_fields);
 
     // Pop all_columns

@@ -46,14 +46,14 @@ extern "C" {
 #endif
 
 DLL_DECLARE int mylog(const char *fmt, ...)
-    __attribute__((format(ES_PRINTF_ATTRIBUTE, 1, 2)));
+    __attribute__((format(OPENSEARCH_PRINTF_ATTRIBUTE, 1, 2)));
 DLL_DECLARE int myprintf(const char *fmt, ...)
-    __attribute__((format(ES_PRINTF_ATTRIBUTE, 1, 2)));
+    __attribute__((format(OPENSEARCH_PRINTF_ATTRIBUTE, 1, 2)));
 
 extern int qlog(const char *fmt, ...)
-    __attribute__((format(ES_PRINTF_ATTRIBUTE, 1, 2)));
+    __attribute__((format(OPENSEARCH_PRINTF_ATTRIBUTE, 1, 2)));
 extern int qprintf(char *fmt, ...)
-    __attribute__((format(ES_PRINTF_ATTRIBUTE, 1, 2)));
+    __attribute__((format(OPENSEARCH_PRINTF_ATTRIBUTE, 1, 2)));
 
 const char *po_basename(const char *path);
 
@@ -125,17 +125,17 @@ const char *po_basename(const char *path);
     } while (0)
 #endif /* __GNUC__ */
 
-enum ESLogLevel {
-    // Prefixing with ES_ because C does not support namespaces and we may get a
+enum OpenSearchLogLevel {
+    // Prefixing with OPENSEARCH_ because C does not support namespaces and we may get a
     // collision, given how common these names are
-    ES_OFF,
-    ES_FATAL,
-    ES_ERROR,
-    ES_WARNING,
-    ES_INFO,
-    ES_DEBUG,
-    ES_TRACE,
-    ES_ALL
+    OPENSEARCH_OFF,
+    OPENSEARCH_FATAL,
+    OPENSEARCH_ERROR,
+    OPENSEARCH_WARNING,
+    OPENSEARCH_INFO,
+    OPENSEARCH_DEBUG,
+    OPENSEARCH_TRACE,
+    OPENSEARCH_ALL
 };
 
 int get_qlog(void);

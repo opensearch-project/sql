@@ -14,21 +14,26 @@
  *
  */
 
-#ifndef __ES_DRIVER_CONNECT_H__
-#define __ES_DRIVER_CONNECT_H__
-#include "es_connection.h"
+#ifndef _OPENSEARCH_STATEMENT_H_
+#define _OPENSEARCH_STATEMENT_H_
 
-// C Interface
+#include "opensearch_parse_result.h"
+#include "qresult.h"
+#include "statement.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-RETCODE ESAPI_DriverConnect(HDBC hdbc, HWND hwnd, SQLCHAR *conn_str_in,
-                            SQLSMALLINT conn_str_in_len, SQLCHAR *conn_str_out,
-                            SQLSMALLINT conn_str_out_len,
-                            SQLSMALLINT *pcb_conn_str_out,
-                            SQLUSMALLINT driver_completion);
+RETCODE RePrepareStatement(StatementClass *stmt);
+RETCODE PrepareStatement(StatementClass* stmt, const SQLCHAR *stmt_str, SQLINTEGER stmt_sz);
+RETCODE ExecuteStatement(StatementClass *stmt, BOOL commit);
+QResultClass *SendQueryGetResult(StatementClass *stmt, BOOL commit);
+RETCODE AssignResult(StatementClass *stmt);
+SQLRETURN OPENSEARCHAPI_Cancel(HSTMT hstmt);
+SQLRETURN GetNextResultSet(StatementClass *stmt);
+void ClearOpenSearchResult(void *opensearch_result);
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __ES_DRIVER_CONNECT_H__ */
+#endif

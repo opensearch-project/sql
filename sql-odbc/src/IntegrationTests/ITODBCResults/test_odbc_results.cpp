@@ -51,8 +51,8 @@ const DescribeColumnData column_data[] = {{L"Origin", SQL_WVARCHAR},
                                           {L"DestRegion", SQL_WVARCHAR},
                                           {L"OriginAirportID", SQL_WVARCHAR},
                                           {L"DestCityName", SQL_WVARCHAR}};
-const std::wstring flight_data_set = L"kibana_sample_data_flights";
-const std::wstring multi_type_data_set = L"kibana_sample_data_types";
+const std::wstring flight_data_set = L"opensearch_dashboards_sample_data_flights";
+const std::wstring multi_type_data_set = L"opensearch_dashboards_sample_data_types";
 const std::wstring single_col = L"Origin";
 // TODO (#110): Improve sample data result checks
 const std::wstring m_expected_origin_column_data_1 =

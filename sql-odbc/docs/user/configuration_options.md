@@ -32,7 +32,7 @@
 
 | Option | Description | Type | Default |
 |--------|-------------|------|---------------|
-| `LogLevel` | Severity level for driver logs. | one of `ES_OFF`, `ES_FATAL`, `ES_ERROR`, `ES_INFO`, `ES_DEBUG`, `ES_TRACE`, `ES_ALL` | `ES_WARNING` |
+| `LogLevel` | Severity level for driver logs. | one of `OPENSEARCH_OFF`, `OPENSEARCH_FATAL`, `OPENSEARCH_ERROR`, `OPENSEARCH_INFO`, `OPENSEARCH_DEBUG`, `OPENSEARCH_TRACE`, `OPENSEARCH_ALL` | `OPENSEARCH_WARNING` |
 | `LogOutput` | Location for storing driver logs. | string | WIN: `C:\`, MAC: `/tmp` |
 
 **NOTE:** Administrative privileges are required to change the value of logging options on Windows.

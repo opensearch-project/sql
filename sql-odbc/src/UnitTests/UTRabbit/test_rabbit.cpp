@@ -27,7 +27,7 @@
 #include "unit_test_helper.h"
 
 const std::string invalid_json_schema = "{ invalid schema }";
-const std::string valid_json_schema = "{" // This was generated from the example elasticsearch data
+const std::string valid_json_schema = "{" // This was generated from the example OpenSearch data
   "\"type\": \"object\","
   "\"properties\": {"
     "\"schema\": {"
@@ -51,7 +51,7 @@ const std::string valid_json_schema = "{" // This was generated from the example
   "},"
   "\"required\": [\"schema\", \"total\", \"datarows\", \"size\", \"status\"]"
 "}";
-const std::string valid_json_for_schema = "{" // This was taken from the example elasticsearch data
+const std::string valid_json_for_schema = "{" // This was taken from the example OpenSearch data
   "\"schema\": [{"
 	"\"name\": \"valid_name1\","
 	"\"type\": \"valid_type1\"},{"

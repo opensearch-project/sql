@@ -81,22 +81,22 @@ class TestPagination : public testing::Test {
     SQLTCHAR m_out_conn_string[1024];
     SQLSMALLINT m_out_conn_string_length;
     std::wstring m_query =
-        L"SELECT Origin FROM kibana_sample_data_flights";
+        L"SELECT Origin FROM opensearch_dashboards_sample_data_flights";
 };
 
 TEST_F(TestPagination, EnablePagination) {
     // Default fetch size is -1 for driver.
     // Server default page size for all cursor requests is 1000.
 
-    //Total number of rows in kibana_sample_data_flights table
+    //Total number of rows in opensearch_dashboards_sample_data_flights table
     int total_rows = 13059;
     std::wstring fetch_size_15_conn_string =
-        use_ssl ? L"Driver={Elasticsearch ODBC};"
+        use_ssl ? L"Driver={OpenSearch ODBC};"
                   L"host=https://localhost;port=9200;"
                   L"user=admin;password=admin;auth=BASIC;useSSL="
                   L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=10;"
-                : L"Driver={Elasticsearch ODBC};"
+                : L"Driver={OpenSearch ODBC};"
                   L"host=localhost;port=9200;"
                   L"user=admin;password=admin;auth=BASIC;useSSL="
                   L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
@@ -113,12 +113,12 @@ TEST_F(TestPagination, DisablePagination) {
     // Fetch size 0 implies no pagination
     int total_rows = 200;
     std::wstring fetch_size_15_conn_string =
-        use_ssl ? L"Driver={Elasticsearch ODBC};"
+        use_ssl ? L"Driver={OpenSearch ODBC};"
                   L"host=https://localhost;port=9200;"
                   L"user=admin;password=admin;auth=BASIC;useSSL="
                   L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=10;fetchSize=0;"
-                : L"Driver={Elasticsearch ODBC};"
+                : L"Driver={OpenSearch ODBC};"
                   L"host=localhost;port=9200;"
                   L"user=admin;password=admin;auth=BASIC;useSSL="
                   L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"

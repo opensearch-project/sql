@@ -18,10 +18,10 @@
 #include <string.h>
 
 #include "environ.h"
-#include "es_apifunc.h"
-#include "es_connection.h"
-#include "es_odbc.h"
+#include "opensearch_odbc.h"
 #include "misc.h"
+#include "opensearch_apifunc.h"
+#include "opensearch_connection.h"
 #include "statement.h"
 
 /*	SQLAllocConnect/SQLAllocEnv/SQLAllocStmt -> SQLAllocHandle */
@@ -30,20 +30,20 @@ RETCODE SQL_API SQLAllocHandle(SQLSMALLINT HandleType, SQLHANDLE InputHandle,
     RETCODE ret;
     ConnectionClass *conn;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     switch (HandleType) {
         case SQL_HANDLE_ENV:
-            ret = ESAPI_AllocEnv(OutputHandle);
+            ret = OPENSEARCHAPI_AllocEnv(OutputHandle);
             break;
         case SQL_HANDLE_DBC:
             ENTER_ENV_CS((EnvironmentClass *)InputHandle);
-            ret = ESAPI_AllocConnect(InputHandle, OutputHandle);
+            ret = OPENSEARCHAPI_AllocConnect(InputHandle, OutputHandle);
             LEAVE_ENV_CS((EnvironmentClass *)InputHandle);
             break;
         case SQL_HANDLE_STMT:
             conn = (ConnectionClass *)InputHandle;
             ENTER_CONN_CS(conn);
-            ret = ESAPI_AllocStmt(
+            ret = OPENSEARCHAPI_AllocStmt(
                 InputHandle, OutputHandle,
                 PODBC_EXTERNAL_STATEMENT | PODBC_INHERIT_CONNECT_OPTIONS);
             if (*OutputHandle)
@@ -53,9 +53,9 @@ RETCODE SQL_API SQLAllocHandle(SQLSMALLINT HandleType, SQLHANDLE InputHandle,
         case SQL_HANDLE_DESC:
             conn = (ConnectionClass *)InputHandle;
             ENTER_CONN_CS(conn);
-            ret = ESAPI_AllocDesc(InputHandle, OutputHandle);
+            ret = OPENSEARCHAPI_AllocDesc(InputHandle, OutputHandle);
             LEAVE_CONN_CS(conn);
-            MYLOG(ES_DEBUG, "OutputHandle=%p\n", *OutputHandle);
+            MYLOG(OPENSEARCH_DEBUG, "OutputHandle=%p\n", *OutputHandle);
             break;
         default:
             ret = SQL_ERROR;
@@ -78,7 +78,7 @@ RETCODE SQL_API SQLBindParam(HSTMT StatementHandle,
         return SQL_ERROR;
     SC_clear_error(stmt);
     SC_set_error(stmt, STMT_NOT_IMPLEMENTED_ERROR,
-                 "Elasticsearch does not support parameters.", "SQLBindParam");
+                 "OpenSearch does not support parameters.", "SQLBindParam");
     return SQL_ERROR;
 }
 
@@ -90,13 +90,13 @@ RETCODE SQL_API SQLCloseCursor(HSTMT StatementHandle) {
 
     RETCODE ret;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
     ENTER_STMT_CS(stmt);
     SC_clear_error(stmt);
-    ret = ESAPI_FreeStmt(StatementHandle, SQL_CLOSE);
+    ret = OPENSEARCHAPI_FreeStmt(StatementHandle, SQL_CLOSE);
     LEAVE_STMT_CS(stmt);
     return ret;
 }
@@ -118,13 +118,13 @@ SQLRETURN SQL_API SQLColAttribute(SQLHSTMT StatementHandle,
     RETCODE ret;
     StatementClass *stmt = (StatementClass *)StatementHandle;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
     ENTER_STMT_CS(stmt);
     SC_clear_error(stmt);
-    ret = ESAPI_ColAttributes(StatementHandle, ColumnNumber, FieldIdentifier,
+    ret = OPENSEARCHAPI_ColAttributes(StatementHandle, ColumnNumber, FieldIdentifier,
                               CharacterAttribute, BufferLength, StringLength,
                               NumericAttribute);
     LEAVE_STMT_CS(stmt);
@@ -137,8 +137,8 @@ RETCODE SQL_API SQLCopyDesc(SQLHDESC SourceDescHandle,
                             SQLHDESC TargetDescHandle) {
     RETCODE ret;
 
-    MYLOG(ES_TRACE, "entering\n");
-    ret = ESAPI_CopyDesc(SourceDescHandle, TargetDescHandle);
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
+    ret = OPENSEARCHAPI_CopyDesc(SourceDescHandle, TargetDescHandle);
     return ret;
 }
 
@@ -176,7 +176,7 @@ RETCODE SQL_API SQLFetchScroll(HSTMT StatementHandle,
     SQLULEN *pcRow = irdopts->rowsFetched;
     SQLLEN bkmarkoff = 0;
 
-    MYLOG(ES_TRACE, "entering %d," FORMAT_LEN "\n", FetchOrientation,
+    MYLOG(OPENSEARCH_TRACE, "entering %d," FORMAT_LEN "\n", FetchOrientation,
           FetchOffset);
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
@@ -187,7 +187,7 @@ RETCODE SQL_API SQLFetchScroll(HSTMT StatementHandle,
         if (stmt->options.bookmark_ptr) {
             bkmarkoff = FetchOffset;
             FetchOffset = *((Int4 *)stmt->options.bookmark_ptr);
-            MYLOG(ES_DEBUG,
+            MYLOG(OPENSEARCH_DEBUG,
                   "bookmark=" FORMAT_LEN " FetchOffset = " FORMAT_LEN "\n",
                   FetchOffset, bkmarkoff);
         } else {
@@ -199,14 +199,14 @@ RETCODE SQL_API SQLFetchScroll(HSTMT StatementHandle,
     if (SQL_SUCCESS == ret) {
         ARDFields *opts = SC_get_ARDF(stmt);
 
-        ret = ESAPI_ExtendedFetch(StatementHandle, FetchOrientation,
+        ret = OPENSEARCHAPI_ExtendedFetch(StatementHandle, FetchOrientation,
                                   FetchOffset, pcRow, rowStatusArray, bkmarkoff,
                                   opts->size_of_rowset);
         stmt->transition_status = STMT_TRANSITION_FETCH_SCROLL;
     }
     LEAVE_STMT_CS(stmt);
     if (ret != SQL_SUCCESS)
-        MYLOG(ES_TRACE, "leaving return = %d\n", ret);
+        MYLOG(OPENSEARCH_TRACE, "leaving return = %d\n", ret);
     return ret;
 }
 
@@ -216,14 +216,14 @@ RETCODE SQL_API SQLFreeHandle(SQLSMALLINT HandleType, SQLHANDLE Handle) {
     StatementClass *stmt;
     ConnectionClass *conn = NULL;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
 
     switch (HandleType) {
         case SQL_HANDLE_ENV:
-            ret = ESAPI_FreeEnv(Handle);
+            ret = OPENSEARCHAPI_FreeEnv(Handle);
             break;
         case SQL_HANDLE_DBC:
-            ret = ESAPI_FreeConnect(Handle);
+            ret = OPENSEARCHAPI_FreeConnect(Handle);
             break;
         case SQL_HANDLE_STMT:
             stmt = (StatementClass *)Handle;
@@ -234,14 +234,14 @@ RETCODE SQL_API SQLFreeHandle(SQLSMALLINT HandleType, SQLHANDLE Handle) {
                     ENTER_CONN_CS(conn);
             }
 
-            ret = ESAPI_FreeStmt(Handle, SQL_DROP);
+            ret = OPENSEARCHAPI_FreeStmt(Handle, SQL_DROP);
 
             if (conn)
                 LEAVE_CONN_CS(conn);
 
             break;
         case SQL_HANDLE_DESC:
-            ret = ESAPI_FreeDesc(Handle);
+            ret = OPENSEARCHAPI_FreeDesc(Handle);
             break;
         default:
             ret = SQL_ERROR;
@@ -259,8 +259,8 @@ RETCODE SQL_API SQLGetDescField(SQLHDESC DescriptorHandle,
                                 SQLINTEGER *StringLength) {
     RETCODE ret;
 
-    MYLOG(ES_TRACE, "entering\n");
-    ret = ESAPI_GetDescField(DescriptorHandle, RecNumber, FieldIdentifier,
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
+    ret = OPENSEARCHAPI_GetDescField(DescriptorHandle, RecNumber, FieldIdentifier,
                              Value, BufferLength, StringLength);
     return ret;
 }
@@ -274,8 +274,8 @@ RETCODE SQL_API SQLGetDescRec(SQLHDESC DescriptorHandle, SQLSMALLINT RecNumber,
                               SQLSMALLINT *Nullable) {
     UNUSED(DescriptorHandle, RecNumber, Name, BufferLength, StringLength, Type,
            SubType, Length, Precision, Scale, Nullable);
-    MYLOG(ES_TRACE, "entering\n");
-    MYLOG(ES_DEBUG, "Error not implemented\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_DEBUG, "Error not implemented\n");
     return SQL_ERROR;
 }
 
@@ -287,10 +287,10 @@ RETCODE SQL_API SQLGetDiagField(SQLSMALLINT HandleType, SQLHANDLE Handle,
                                 SQLSMALLINT *StringLength) {
     RETCODE ret;
 
-    MYLOG(ES_TRACE, "entering Handle=(%u,%p) Rec=%d Id=%d info=(%p,%d)\n",
+    MYLOG(OPENSEARCH_TRACE, "entering Handle=(%u,%p) Rec=%d Id=%d info=(%p,%d)\n",
           HandleType, Handle, RecNumber, DiagIdentifier, DiagInfo,
           BufferLength);
-    ret = ESAPI_GetDiagField(HandleType, Handle, RecNumber, DiagIdentifier,
+    ret = OPENSEARCHAPI_GetDiagField(HandleType, Handle, RecNumber, DiagIdentifier,
                              DiagInfo, BufferLength, StringLength);
     return ret;
 }
@@ -303,8 +303,8 @@ RETCODE SQL_API SQLGetDiagRec(SQLSMALLINT HandleType, SQLHANDLE Handle,
                               SQLSMALLINT *TextLength) {
     RETCODE ret;
 
-    MYLOG(ES_TRACE, "entering\n");
-    ret = ESAPI_GetDiagRec(HandleType, Handle, RecNumber, Sqlstate, NativeError,
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
+    ret = OPENSEARCHAPI_GetDiagRec(HandleType, Handle, RecNumber, Sqlstate, NativeError,
                            MessageText, BufferLength, TextLength);
     return ret;
 }
@@ -318,7 +318,7 @@ RETCODE SQL_API SQLGetEnvAttr(HENV EnvironmentHandle, SQLINTEGER Attribute,
     RETCODE ret;
     EnvironmentClass *env = (EnvironmentClass *)EnvironmentHandle;
 
-    MYLOG(ES_TRACE, "entering " FORMAT_INTEGER "\n", Attribute);
+    MYLOG(OPENSEARCH_TRACE, "entering " FORMAT_INTEGER "\n", Attribute);
     ENTER_ENV_CS(env);
     ret = SQL_SUCCESS;
     switch (Attribute) {
@@ -351,10 +351,10 @@ RETCODE SQL_API SQLGetConnectAttr(HDBC ConnectionHandle, SQLINTEGER Attribute,
                                   SQLINTEGER *StringLength) {
     RETCODE ret;
 
-    MYLOG(ES_TRACE, "entering " FORMAT_UINTEGER "\n", Attribute);
+    MYLOG(OPENSEARCH_TRACE, "entering " FORMAT_UINTEGER "\n", Attribute);
     ENTER_CONN_CS((ConnectionClass *)ConnectionHandle);
     CC_clear_error((ConnectionClass *)ConnectionHandle);
-    ret = ESAPI_GetConnectAttr(ConnectionHandle, Attribute, Value, BufferLength,
+    ret = OPENSEARCHAPI_GetConnectAttr(ConnectionHandle, Attribute, Value, BufferLength,
                                StringLength);
     LEAVE_CONN_CS((ConnectionClass *)ConnectionHandle);
     return ret;
@@ -367,11 +367,11 @@ RETCODE SQL_API SQLGetStmtAttr(HSTMT StatementHandle, SQLINTEGER Attribute,
     RETCODE ret;
     StatementClass *stmt = (StatementClass *)StatementHandle;
 
-    MYLOG(ES_TRACE, "entering Handle=%p " FORMAT_INTEGER "\n", StatementHandle,
+    MYLOG(OPENSEARCH_TRACE, "entering Handle=%p " FORMAT_INTEGER "\n", StatementHandle,
           Attribute);
     ENTER_STMT_CS(stmt);
     SC_clear_error(stmt);
-    ret = ESAPI_GetStmtAttr(StatementHandle, Attribute, Value, BufferLength,
+    ret = OPENSEARCHAPI_GetStmtAttr(StatementHandle, Attribute, Value, BufferLength,
                             StringLength);
     LEAVE_STMT_CS(stmt);
     return ret;
@@ -383,11 +383,11 @@ RETCODE SQL_API SQLSetConnectAttr(HDBC ConnectionHandle, SQLINTEGER Attribute,
     RETCODE ret;
     ConnectionClass *conn = (ConnectionClass *)ConnectionHandle;
 
-    MYLOG(ES_TRACE, "entering " FORMAT_INTEGER "\n", Attribute);
+    MYLOG(OPENSEARCH_TRACE, "entering " FORMAT_INTEGER "\n", Attribute);
     ENTER_CONN_CS(conn);
     CC_clear_error(conn);
     ret =
-        ESAPI_SetConnectAttr(ConnectionHandle, Attribute, Value, StringLength);
+        OPENSEARCHAPI_SetConnectAttr(ConnectionHandle, Attribute, Value, StringLength);
     LEAVE_CONN_CS(conn);
     return ret;
 }
@@ -399,9 +399,9 @@ RETCODE SQL_API SQLSetDescField(SQLHDESC DescriptorHandle,
                                 SQLINTEGER BufferLength) {
     RETCODE ret;
 
-    MYLOG(ES_TRACE, "entering h=%p rec=%d field=%d val=%p\n", DescriptorHandle,
+    MYLOG(OPENSEARCH_TRACE, "entering h=%p rec=%d field=%d val=%p\n", DescriptorHandle,
           RecNumber, FieldIdentifier, Value);
-    ret = ESAPI_SetDescField(DescriptorHandle, RecNumber, FieldIdentifier,
+    ret = OPENSEARCHAPI_SetDescField(DescriptorHandle, RecNumber, FieldIdentifier,
                              Value, BufferLength);
     return ret;
 }
@@ -414,8 +414,8 @@ RETCODE SQL_API SQLSetDescRec(SQLHDESC DescriptorHandle, SQLSMALLINT RecNumber,
                               SQLLEN *Indicator) {
     UNUSED(DescriptorHandle, RecNumber, Type, SubType, Length, Precision, Scale,
            Data, StringLength, Indicator);
-    MYLOG(ES_TRACE, "entering\n");
-    MYLOG(ES_DEBUG, "Error not implemented\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_DEBUG, "Error not implemented\n");
     return SQL_ERROR;
 }
 #endif /* UNICODE_SUPPORTXX */
@@ -427,7 +427,7 @@ RETCODE SQL_API SQLSetEnvAttr(HENV EnvironmentHandle, SQLINTEGER Attribute,
     RETCODE ret;
     EnvironmentClass *env = (EnvironmentClass *)EnvironmentHandle;
 
-    MYLOG(ES_TRACE, "entering att=" FORMAT_INTEGER "," FORMAT_ULEN "\n",
+    MYLOG(OPENSEARCH_TRACE, "entering att=" FORMAT_INTEGER "," FORMAT_ULEN "\n",
           Attribute, (SQLULEN)Value);
     ENTER_ENV_CS(env);
     switch (Attribute) {
@@ -481,11 +481,11 @@ RETCODE SQL_API SQLSetStmtAttr(HSTMT StatementHandle, SQLINTEGER Attribute,
     StatementClass *stmt = (StatementClass *)StatementHandle;
     RETCODE ret;
 
-    MYLOG(ES_TRACE, "entering Handle=%p " FORMAT_INTEGER "," FORMAT_ULEN "\n",
+    MYLOG(OPENSEARCH_TRACE, "entering Handle=%p " FORMAT_INTEGER "," FORMAT_ULEN "\n",
           StatementHandle, Attribute, (SQLULEN)Value);
     ENTER_STMT_CS(stmt);
     SC_clear_error(stmt);
-    ret = ESAPI_SetStmtAttr(StatementHandle, Attribute, Value, StringLength);
+    ret = OPENSEARCHAPI_SetStmtAttr(StatementHandle, Attribute, Value, StringLength);
     LEAVE_STMT_CS(stmt);
     return ret;
 }
@@ -493,7 +493,7 @@ RETCODE SQL_API SQLSetStmtAttr(HSTMT StatementHandle, SQLINTEGER Attribute,
 
 #define SQL_FUNC_ESET(pfExists, uwAPI) \
     (*(((UWORD *)(pfExists)) + ((uwAPI) >> 4)) |= (1 << ((uwAPI)&0x000F)))
-RETCODE SQL_API ESAPI_GetFunctions30(HDBC hdbc, SQLUSMALLINT fFunction,
+RETCODE SQL_API OPENSEARCHAPI_GetFunctions30(HDBC hdbc, SQLUSMALLINT fFunction,
                                      SQLUSMALLINT FAR *pfExists) {
     ConnectionClass *conn = (ConnectionClass *)hdbc;
     CC_clear_error(conn);

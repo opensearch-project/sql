@@ -14,18 +14,18 @@
  *
  */
 
-#include "es_helper.h"
+#include "opensearch_helper.h"
 
 #include <atomic>
 #include <mutex>
 #include <thread>
 
-#include "es_communication.h"
+#include "opensearch_communication.h"
 
-void* ESConnectDBParams(runtime_options& rt_opts, int expand_dbname,
+void* OpenSearchConnectDBParams(runtime_options& rt_opts, int expand_dbname,
                         unsigned int option_count) {
     // Initialize Connection
-    ESCommunication* conn = static_cast< ESCommunication* >(InitializeESConn());
+    OpenSearchCommunication* conn = static_cast< OpenSearchCommunication* >(InitializeOpenSearchConn());
     if (!conn)
         return NULL;
 
@@ -46,81 +46,85 @@ void* ESConnectDBParams(runtime_options& rt_opts, int expand_dbname,
     return conn;
 }
 
-ConnStatusType ESStatus(void* es_conn) {
-    return es_conn
-               ? static_cast< ESCommunication* >(es_conn)->GetConnectionStatus()
+ConnStatusType OpenSearchStatus(void* opensearch_conn) {
+    return opensearch_conn
+               ? static_cast< OpenSearchCommunication* >(opensearch_conn)->GetConnectionStatus()
                : ConnStatusType::CONNECTION_BAD;
 }
 
-std::string GetErrorMsg(void* es_conn) {
-    return es_conn ? static_cast< ESCommunication* >(es_conn)->GetErrorMessage()
+std::string GetErrorMsg(void* opensearch_conn) {
+    return opensearch_conn
+               ? static_cast< OpenSearchCommunication* >(opensearch_conn)->GetErrorMessage()
                    : NULL;
 }
 
-ConnErrorType GetErrorType(void* es_conn) {
-    return es_conn ? static_cast< ESCommunication* >(es_conn)->GetErrorType()
+ConnErrorType GetErrorType(void* opensearch_conn) {
+    return opensearch_conn
+               ? static_cast< OpenSearchCommunication* >(opensearch_conn)->GetErrorType()
                    : ConnErrorType::CONN_ERROR_SUCCESS;
 }
 
-std::string GetServerVersion(void* es_conn) {
-    return es_conn
-               ? static_cast< ESCommunication* >(es_conn)->GetServerVersion()
+std::string GetServerVersion(void* opensearch_conn) {
+    return opensearch_conn
+               ? static_cast< OpenSearchCommunication* >(opensearch_conn)->GetServerVersion()
                : "";
 }
 
-std::string GetClusterName(void* es_conn) {
-    return es_conn ? static_cast< ESCommunication* >(es_conn)->GetClusterName()
+std::string GetClusterName(void* opensearch_conn) {
+    return opensearch_conn
+               ? static_cast< OpenSearchCommunication* >(opensearch_conn)->GetClusterName()
                    : "";
 }
 
-void* InitializeESConn() {
-    return new ESCommunication();
+void* InitializeOpenSearchConn() {
+    return new OpenSearchCommunication();
 }
 
-int ESExecDirect(void* es_conn, const char* statement, const char* fetch_size) {
-    return (es_conn && statement)
-               ? static_cast< ESCommunication* >(es_conn)->ExecDirect(
+int OpenSearchExecDirect(void* opensearch_conn, const char* statement, const char* fetch_size) {
+    return (opensearch_conn && statement)
+               ? static_cast< OpenSearchCommunication* >(opensearch_conn)->ExecDirect(
                    statement, fetch_size)
                : -1;
 }
 
-void ESSendCursorQueries(void* es_conn, const char* cursor) {
-    static_cast< ESCommunication* >(es_conn)->SendCursorQueries(cursor);
+void OpenSearchSendCursorQueries(void* opensearch_conn, const char* cursor) {
+    static_cast< OpenSearchCommunication* >(opensearch_conn)->SendCursorQueries(cursor);
 }
 
-ESResult* ESGetResult(void* es_conn) {
-    return es_conn ? static_cast< ESCommunication* >(es_conn)->PopResult()
+OpenSearchResult* OpenSearchGetResult(void* opensearch_conn) {
+    return opensearch_conn
+               ? static_cast< OpenSearchCommunication* >(opensearch_conn)->PopResult()
                    : NULL;
 }
 
-std::string ESGetClientEncoding(void* es_conn) {
-    return es_conn
-               ? static_cast< ESCommunication* >(es_conn)->GetClientEncoding()
+std::string OpenSearchGetClientEncoding(void* opensearch_conn) {
+    return opensearch_conn
+               ? static_cast< OpenSearchCommunication* >(opensearch_conn)->GetClientEncoding()
                : "";
 }
 
-bool ESSetClientEncoding(void* es_conn, std::string& encoding) {
-    return es_conn
-               ? static_cast< ESCommunication* >(es_conn)->SetClientEncoding(
+bool OpenSearchSetClientEncoding(void* opensearch_conn, std::string& encoding) {
+    return opensearch_conn
+               ? static_cast< OpenSearchCommunication* >(opensearch_conn)->SetClientEncoding(
                    encoding)
                : false;
 }
 
-void ESDisconnect(void* es_conn) {
-    delete static_cast< ESCommunication* >(es_conn);
+void OpenSearchDisconnect(void* opensearch_conn) {
+    delete static_cast< OpenSearchCommunication* >(opensearch_conn);
 }
 
-void ESClearResult(ESResult* es_result) {
-    delete es_result;
+void OpenSearchClearResult(OpenSearchResult* opensearch_result) {
+    delete opensearch_result;
 }
 
-void ESStopRetrieval(void* es_conn) {
-    static_cast< ESCommunication* >(es_conn)->StopResultRetrieval();
+void OpenSearchStopRetrieval(void* opensearch_conn) {
+    static_cast< OpenSearchCommunication* >(opensearch_conn)->StopResultRetrieval();
 }
 
-std::vector< std::string > ESGetColumnsWithSelectQuery(
-    void* es_conn, const std::string table_name) {
-    return static_cast< ESCommunication* >(es_conn)->GetColumnsWithSelectQuery(
+std::vector< std::string > OpenSearchGetColumnsWithSelectQuery(
+    void* opensearch_conn, const std::string table_name) {
+    return static_cast< OpenSearchCommunication* >(opensearch_conn)->GetColumnsWithSelectQuery(
         table_name);
 }
 
@@ -160,7 +164,7 @@ class CriticalSectionHelper {
 #pragma warning(disable : 4551)  // MYLOG complains 'function call missing
                                  // argument list' on Windows, which is isn't
 #endif
-                MYLOG(ES_ERROR, "%s\n",
+                MYLOG(OPENSEARCH_ERROR, "%s\n",
                       "CRITICAL WARNING: ExitCritical section called when lock "
                       "count was already 0!");
 #ifdef WIN32
@@ -178,7 +182,7 @@ class CriticalSectionHelper {
 #pragma warning(disable : 4551)  // MYLOG complains 'function call missing
                                  // argument list' on Windows, which is isn't
 #endif
-            MYLOG(ES_ERROR, "%s\n",
+            MYLOG(OPENSEARCH_ERROR, "%s\n",
                   "CRITICAL WARNING: ExitCritical section called by thread "
                   "that does not own the lock!");
 #ifdef WIN32

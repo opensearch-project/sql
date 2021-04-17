@@ -52,7 +52,7 @@ class TestSQLExecute : public testing::Test {
     }
 
     std::wstring m_query =
-        L"SELECT Origin FROM kibana_sample_data_flights LIMIT 5";
+        L"SELECT Origin FROM opensearch_dashboards_sample_data_flights LIMIT 5";
     SQLHENV m_env = SQL_NULL_HENV;
     SQLHDBC m_conn = SQL_NULL_HDBC;
     SQLHSTMT m_hstmt = SQL_NULL_HSTMT;
@@ -80,14 +80,14 @@ class TestSQLPrepare : public testing::Test {
     }
 
     std::wstring m_query =
-        L"SELECT Origin FROM kibana_sample_data_flights LIMIT 5";
+        L"SELECT Origin FROM opensearch_dashboards_sample_data_flights LIMIT 5";
     std::wstring m_1_col =
-        L"SELECT Origin FROM kibana_sample_data_flights LIMIT 5";
+        L"SELECT Origin FROM opensearch_dashboards_sample_data_flights LIMIT 5";
     std::wstring m_2_col =
-        L"SELECT Origin, AvgTicketPrice FROM kibana_sample_data_flights LIMIT "
+        L"SELECT Origin, AvgTicketPrice FROM opensearch_dashboards_sample_data_flights LIMIT "
         L"5";
     std::wstring m_all_col =
-        L"SELECT * FROM kibana_sample_data_flights LIMIT 5";
+        L"SELECT * FROM opensearch_dashboards_sample_data_flights LIMIT 5";
     const SQLSMALLINT m_1_col_cnt = 1;
     const SQLSMALLINT m_2_col_cnt = 2;
     const SQLSMALLINT m_all_col_cnt = 25;
@@ -118,7 +118,7 @@ class TestSQLExecDirect : public testing::Test {
     }
 
     std::wstring m_query =
-        L"SELECT Origin FROM kibana_sample_data_flights LIMIT 5";
+        L"SELECT Origin FROM opensearch_dashboards_sample_data_flights LIMIT 5";
     SQLHENV m_env = SQL_NULL_HENV;
     SQLHDBC m_conn = SQL_NULL_HDBC;
     SQLHSTMT m_hstmt = SQL_NULL_HSTMT;
@@ -214,7 +214,7 @@ class TestSQLCancel : public testing::Test {
 
     const long long m_min_time_diff = 20;
     std::wstring m_query =
-        L"SELECT * FROM kibana_sample_data_flights AS f WHERE "
+        L"SELECT * FROM opensearch_dashboards_sample_data_flights AS f WHERE "
         L"f.Origin=f.Origin";
     SQLHENV m_env = SQL_NULL_HENV;
     SQLHDBC m_conn = SQL_NULL_HDBC;

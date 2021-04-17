@@ -19,7 +19,7 @@
 #include "misc.h" // strncpy_null
 
 #include "bind.h"
-#include "es_connection.h"
+#include "opensearch_connection.h"
 #include "multibyte.h"
 #include "qresult.h"
 #include "convert.h"
@@ -30,9 +30,9 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "es_apifunc.h"
-#include "es_helper.h"
-#include "es_statement.h"
+#include "opensearch_apifunc.h"
+#include "opensearch_helper.h"
+#include "opensearch_statement.h"
 // clang-format on
 
 /*	Map sql commands to statement types */
@@ -94,13 +94,13 @@ static const struct {
 static void SC_set_error_if_not_set(StatementClass *self, int errornumber,
                                     const char *errmsg, const char *func);
 
-RETCODE SQL_API ESAPI_AllocStmt(HDBC hdbc, HSTMT *phstmt, UDWORD flag) {
-    CSTR func = "ESAPI_AllocStmt";
+RETCODE SQL_API OPENSEARCHAPI_AllocStmt(HDBC hdbc, HSTMT *phstmt, UDWORD flag) {
+    CSTR func = "OPENSEARCHAPI_AllocStmt";
     ConnectionClass *conn = (ConnectionClass *)hdbc;
     StatementClass *stmt;
     ARDFields *ardopts;
 
-    MYLOG(ES_TRACE, "entering...\n");
+    MYLOG(OPENSEARCH_TRACE, "entering...\n");
 
     if (!conn) {
         CC_log_error(func, "", NULL);
@@ -109,7 +109,7 @@ RETCODE SQL_API ESAPI_AllocStmt(HDBC hdbc, HSTMT *phstmt, UDWORD flag) {
 
     stmt = SC_Constructor(conn);
 
-    MYLOG(ES_DEBUG, "**** : hdbc = %p, stmt = %p\n", hdbc, stmt);
+    MYLOG(OPENSEARCH_DEBUG, "**** : hdbc = %p, stmt = %p\n", hdbc, stmt);
 
     if (!stmt) {
         CC_set_error(conn, CONN_STMT_ALLOC_ERROR,
@@ -148,11 +148,11 @@ RETCODE SQL_API ESAPI_AllocStmt(HDBC hdbc, HSTMT *phstmt, UDWORD flag) {
     return SQL_SUCCESS;
 }
 
-RETCODE SQL_API ESAPI_FreeStmt(HSTMT hstmt, SQLUSMALLINT fOption) {
-    CSTR func = "ESAPI_FreeStmt";
+RETCODE SQL_API OPENSEARCHAPI_FreeStmt(HSTMT hstmt, SQLUSMALLINT fOption) {
+    CSTR func = "OPENSEARCHAPI_FreeStmt";
     StatementClass *stmt = (StatementClass *)hstmt;
 
-    MYLOG(ES_TRACE, "entering...hstmt=%p, fOption=%hi\n", hstmt, fOption);
+    MYLOG(OPENSEARCH_TRACE, "entering...hstmt=%p, fOption=%hi\n", hstmt, fOption);
 
     if (!stmt) {
         SC_log_error(func, "", NULL);
@@ -163,7 +163,7 @@ RETCODE SQL_API ESAPI_FreeStmt(HSTMT hstmt, SQLUSMALLINT fOption) {
     if (fOption == SQL_DROP) {
         ConnectionClass *conn = stmt->hdbc;
 
-        ESStopRetrieval(conn->esconn);
+        OpenSearchStopRetrieval(conn->opensearchconn);
 
         /* Remove the statement from the connection's statement list */
         if (conn) {
@@ -191,7 +191,7 @@ RETCODE SQL_API ESAPI_FreeStmt(HSTMT hstmt, SQLUSMALLINT fOption) {
         }
 
         if (stmt->execute_delegate) {
-            ESAPI_FreeStmt(stmt->execute_delegate, SQL_DROP);
+            OPENSEARCHAPI_FreeStmt(stmt->execute_delegate, SQL_DROP);
             stmt->execute_delegate = NULL;
         }
         if (stmt->execute_parent)
@@ -201,7 +201,7 @@ RETCODE SQL_API ESAPI_FreeStmt(HSTMT hstmt, SQLUSMALLINT fOption) {
     } else if (fOption == SQL_UNBIND)
         SC_unbind_cols(stmt);
     else if (fOption == SQL_CLOSE) {
-        ESStopRetrieval(stmt->hdbc->esconn);
+        OpenSearchStopRetrieval(stmt->hdbc->opensearchconn);
 
         /*
          * this should discard all the results, but leave the statement
@@ -209,7 +209,7 @@ RETCODE SQL_API ESAPI_FreeStmt(HSTMT hstmt, SQLUSMALLINT fOption) {
          */
         stmt->transition_status = STMT_TRANSITION_ALLOCATED;
         if (stmt->execute_delegate) {
-            ESAPI_FreeStmt(stmt->execute_delegate, SQL_DROP);
+            OPENSEARCHAPI_FreeStmt(stmt->execute_delegate, SQL_DROP);
             stmt->execute_delegate = NULL;
         }
         if (!SC_recycle_statement(stmt)) {
@@ -220,7 +220,7 @@ RETCODE SQL_API ESAPI_FreeStmt(HSTMT hstmt, SQLUSMALLINT fOption) {
         ;
     else {
         SC_set_error(stmt, STMT_OPTION_OUT_OF_RANGE_ERROR,
-                     "Invalid option passed to ESAPI_FreeStmt.", func);
+                     "Invalid option passed to OPENSEARCHAPI_FreeStmt.", func);
         return SQL_ERROR;
     }
 
@@ -287,7 +287,7 @@ StatementClass *SC_Constructor(ConnectionClass *conn) {
 
         rv->__error_message = NULL;
         rv->__error_number = 0;
-        rv->eserror = NULL;
+        rv->opensearch_error = NULL;
 
         rv->statement = NULL;
         rv->load_statement = NULL;
@@ -354,7 +354,7 @@ char SC_Destructor(StatementClass *self) {
     CSTR func = "SC_Destructor";
     QResultClass *res = SC_get_Result(self);
 
-    MYLOG(ES_TRACE, "entering self=%p, self->result=%p, self->hdbc=%p\n", self,
+    MYLOG(OPENSEARCH_TRACE, "entering self=%p, self->result=%p, self->hdbc=%p\n", self,
           res, self->hdbc);
     SC_clear_error(self);
     if (STMT_EXECUTING == self->status) {
@@ -386,8 +386,8 @@ char SC_Destructor(StatementClass *self) {
 
     if (self->__error_message)
         free(self->__error_message);
-    if (self->eserror)
-        ER_Destructor(self->eserror);
+    if (self->opensearch_error)
+        ER_Destructor(self->opensearch_error);
     cancelNeedDataState(self);
     if (self->callbacks)
         free(self->callbacks);
@@ -395,19 +395,19 @@ char SC_Destructor(StatementClass *self) {
     DELETE_STMT_CS(self);
     free(self);
 
-    MYLOG(ES_TRACE, "leaving\n");
+    MYLOG(OPENSEARCH_TRACE, "leaving\n");
 
     return TRUE;
 }
 
 void SC_init_Result(StatementClass *self) {
     self->result = self->curres = NULL;
-    MYLOG(ES_TRACE, "leaving(%p)\n", self);
+    MYLOG(OPENSEARCH_TRACE, "leaving(%p)\n", self);
 }
 
 void SC_set_Result(StatementClass *self, QResultClass *res) {
     if (res != self->result) {
-        MYLOG(ES_DEBUG, "(%p, %p)\n", self, res);
+        MYLOG(OPENSEARCH_DEBUG, "(%p, %p)\n", self, res);
         QR_Destructor(self->result);
         self->result = self->curres = res;
     }
@@ -441,11 +441,11 @@ void SC_set_rowset_start(StatementClass *stmt, SQLLEN start, BOOL valid_base) {
     QResultClass *res = SC_get_Curres(stmt);
     SQLLEN incr = start - stmt->rowset_start;
 
-    MYLOG(ES_DEBUG, "%p->SC_set_rowstart " FORMAT_LEN "->" FORMAT_LEN "(%s) ",
+    MYLOG(OPENSEARCH_DEBUG, "%p->SC_set_rowstart " FORMAT_LEN "->" FORMAT_LEN "(%s) ",
           stmt, stmt->rowset_start, start, valid_base ? "valid" : "unknown");
     if (res != NULL) {
         BOOL valid = QR_has_valid_base(res);
-        MYPRINTF(ES_DEBUG, ":(%p)QR is %s", res,
+        MYPRINTF(OPENSEARCH_DEBUG, ":(%p)QR is %s", res,
                  QR_has_valid_base(res) ? "valid" : "unknown");
 
         if (valid) {
@@ -462,12 +462,12 @@ void SC_set_rowset_start(StatementClass *stmt, SQLLEN start, BOOL valid_base) {
         }
         if (!QR_get_cursor(res))
             res->key_base = start;
-        MYPRINTF(ES_DEBUG, ":(%p)QR result=" FORMAT_LEN "(%s)", res,
+        MYPRINTF(OPENSEARCH_DEBUG, ":(%p)QR result=" FORMAT_LEN "(%s)", res,
                  QR_get_rowstart_in_cache(res),
                  QR_has_valid_base(res) ? "valid" : "unknown");
     }
     stmt->rowset_start = start;
-    MYPRINTF(ES_DEBUG, ":stmt result=" FORMAT_LEN "\n", stmt->rowset_start);
+    MYPRINTF(OPENSEARCH_DEBUG, ":stmt result=" FORMAT_LEN "\n", stmt->rowset_start);
 }
 void SC_inc_rowset_start(StatementClass *stmt, SQLLEN inc) {
     SQLLEN start = stmt->rowset_start + inc;
@@ -554,7 +554,7 @@ BOOL SC_opencheck(StatementClass *self, const char *func) {
      * We can dispose the result of Describe-only any time.
      */
     if (self->prepare && self->status == STMT_DESCRIBED) {
-        MYLOG(ES_DEBUG, "self->prepare && self->status == STMT_DESCRIBED\n");
+        MYLOG(OPENSEARCH_DEBUG, "self->prepare && self->status == STMT_DESCRIBED\n");
         return FALSE;
     }
     if (res = SC_get_Curres(self), NULL != res) {
@@ -603,7 +603,7 @@ char SC_recycle_statement(StatementClass *self) {
     CSTR func = "SC_recycle_statement";
     ConnectionClass *conn;
 
-    MYLOG(ES_TRACE, "entering self=%p\n", self);
+    MYLOG(OPENSEARCH_TRACE, "entering self=%p\n", self);
 
     SC_clear_error(self);
     /* This would not happen */
@@ -643,7 +643,7 @@ char SC_recycle_statement(StatementClass *self) {
             /* Free the parsed table/field information */
             SC_initialize_cols_info(self, TRUE, TRUE);
 
-            MYLOG(ES_DEBUG, "SC_clear_parse_status\n");
+            MYLOG(OPENSEARCH_DEBUG, "SC_clear_parse_status\n");
             SC_clear_parse_status(self, conn);
             break;
     }
@@ -665,7 +665,7 @@ char SC_recycle_statement(StatementClass *self) {
     SC_set_rowset_start(self, -1, FALSE);
     SC_set_current_col(self, -1);
     self->bind_row = 0;
-    MYLOG(ES_DEBUG, "statement=%p ommitted=0\n", self);
+    MYLOG(OPENSEARCH_DEBUG, "statement=%p ommitted=0\n", self);
     self->last_fetch_count = self->last_fetch_count_include_ommitted = 0;
 
     self->__error_message = NULL;
@@ -712,9 +712,9 @@ void SC_clear_error(StatementClass *self) {
         free(self->__error_message);
         self->__error_message = NULL;
     }
-    if (self->eserror) {
-        ER_Destructor(self->eserror);
-        self->eserror = NULL;
+    if (self->opensearch_error) {
+        ER_Destructor(self->opensearch_error);
+        self->opensearch_error = NULL;
     }
     self->diag_row_count = 0;
     if (res = SC_get_Curres(self), res) {
@@ -788,8 +788,7 @@ static const struct {
      {STMT_NO_RESPONSE, "08S01", "08S01"},
      {STMT_COMMUNICATION_ERROR, "08S01", "08S01"}};
 
-static ES_ErrorInfo *SC_create_errorinfo(const StatementClass *self,
-                                         ES_ErrorInfo *eserror_fail_safe) {
+static OpenSearch_ErrorInfo *SC_create_errorinfo(const StatementClass *self, OpenSearch_ErrorInfo *opensearch_error_fail_safe) {
     QResultClass *res = SC_get_Curres(self);
     ConnectionClass *conn = SC_get_conn(self);
     Int4 errornum;
@@ -798,10 +797,10 @@ static ES_ErrorInfo *SC_create_errorinfo(const StatementClass *self,
     BOOL looponce, loopend;
     char msg[4096], *wmsg;
     char *ermsg = NULL, *sqlstate = NULL;
-    ES_ErrorInfo *eserror;
+    OpenSearch_ErrorInfo *opensearch_error;
 
-    if (self->eserror)
-        return self->eserror;
+    if (self->opensearch_error)
+        return self->opensearch_error;
     errornum = self->__error_number;
     if (errornum == 0)
         return NULL;
@@ -861,23 +860,23 @@ static ES_ErrorInfo *SC_create_errorinfo(const StatementClass *self,
 
         ermsg = msg;
     }
-    eserror = ER_Constructor(self->__error_number, ermsg);
-    if (!eserror) {
-        if (eserror_fail_safe) {
-            memset(eserror_fail_safe, 0, sizeof(*eserror_fail_safe));
-            eserror = eserror_fail_safe;
-            eserror->status = self->__error_number;
-            eserror->errorsize = sizeof(eserror->__error_message);
-            STRCPY_FIXED(eserror->__error_message, ermsg);
-            eserror->recsize = -1;
+    opensearch_error = ER_Constructor(self->__error_number, ermsg);
+    if (!opensearch_error) {
+        if (opensearch_error_fail_safe) {
+            memset(opensearch_error_fail_safe, 0, sizeof(*opensearch_error_fail_safe));
+            opensearch_error = opensearch_error_fail_safe;
+            opensearch_error->status = self->__error_number;
+            opensearch_error->errorsize = sizeof(opensearch_error->__error_message);
+            STRCPY_FIXED(opensearch_error->__error_message, ermsg);
+            opensearch_error->recsize = -1;
         } else
             return NULL;
     }
     if (sqlstate)
-        STRCPY_FIXED(eserror->sqlstate, sqlstate);
+        STRCPY_FIXED(opensearch_error->sqlstate, sqlstate);
     else if (conn) {
         if (!msgend && conn->sqlstate[0])
-            STRCPY_FIXED(eserror->sqlstate, conn->sqlstate);
+            STRCPY_FIXED(opensearch_error->sqlstate, conn->sqlstate);
         else {
             EnvironmentClass *env = (EnvironmentClass *)CC_get_env(conn);
 
@@ -888,14 +887,14 @@ static ES_ErrorInfo *SC_create_errorinfo(const StatementClass *self,
                               / sizeof(Statement_sqlstate[0])) {
                 errornum = 1 - LOWEST_STMT_ERROR;
             }
-            STRCPY_FIXED(eserror->sqlstate,
+            STRCPY_FIXED(opensearch_error->sqlstate,
                          EN_is_odbc3(env)
                              ? Statement_sqlstate[errornum].ver3str
                              : Statement_sqlstate[errornum].ver2str);
         }
     }
 
-    return eserror;
+    return opensearch_error;
 }
 
 void SC_reset_delegate(RETCODE retcode, StatementClass *stmt) {
@@ -904,7 +903,7 @@ void SC_reset_delegate(RETCODE retcode, StatementClass *stmt) {
 
     if (!delegate)
         return;
-    ESAPI_FreeStmt(delegate, SQL_DROP);
+    OPENSEARCHAPI_FreeStmt(delegate, SQL_DROP);
 }
 
 void SC_set_error(StatementClass *self, int number, const char *message,
@@ -928,7 +927,7 @@ void SC_error_copy(StatementClass *self, const StatementClass *from,
     QResultClass *self_res, *from_res;
     BOOL repstate;
 
-    MYLOG(ES_TRACE, "entering %p->%p check=%i\n", from, self, check);
+    MYLOG(OPENSEARCH_TRACE, "entering %p->%p check=%i\n", from, self, check);
     if (!from)
         return; /* for safety */
     if (self == from)
@@ -947,9 +946,9 @@ void SC_error_copy(StatementClass *self, const StatementClass *from,
         self->__error_message =
             from->__error_message ? strdup(from->__error_message) : NULL;
     }
-    if (self->eserror) {
-        ER_Destructor(self->eserror);
-        self->eserror = NULL;
+    if (self->opensearch_error) {
+        ER_Destructor(self->opensearch_error);
+        self->opensearch_error = NULL;
     }
     self_res = SC_get_Curres(self);
     from_res = SC_get_Curres(from);
@@ -972,9 +971,9 @@ void SC_error_copy(StatementClass *self, const StatementClass *from,
 
 void SC_full_error_copy(StatementClass *self, const StatementClass *from,
                         BOOL allres) {
-    ES_ErrorInfo *eserror;
+    OpenSearch_ErrorInfo *opensearch_error;
 
-    MYLOG(ES_TRACE, "entering %p->%p\n", from, self);
+    MYLOG(OPENSEARCH_TRACE, "entering %p->%p\n", from, self);
     if (!from)
         return; /* for safety */
     if (self == from)
@@ -986,40 +985,40 @@ void SC_full_error_copy(StatementClass *self, const StatementClass *from,
     if (from->__error_message)
         self->__error_message = strdup(from->__error_message);
     self->__error_number = from->__error_number;
-    if (from->eserror) {
-        if (self->eserror)
-            ER_Destructor(self->eserror);
-        self->eserror = ER_Dup(from->eserror);
+    if (from->opensearch_error) {
+        if (self->opensearch_error)
+            ER_Destructor(self->opensearch_error);
+        self->opensearch_error = ER_Dup(from->opensearch_error);
         return;
     } else if (!allres)
         return;
-    eserror = SC_create_errorinfo(from, NULL);
-    if (!eserror || !eserror->__error_message[0]) {
-        ER_Destructor(eserror);
+    opensearch_error = SC_create_errorinfo(from, NULL);
+    if (!opensearch_error || !opensearch_error->__error_message[0]) {
+        ER_Destructor(opensearch_error);
         return;
     }
-    if (self->eserror)
-        ER_Destructor(self->eserror);
-    self->eserror = eserror;
+    if (self->opensearch_error)
+        ER_Destructor(self->opensearch_error);
+    self->opensearch_error = opensearch_error;
 }
 
 /* Returns the next SQL error information. */
-RETCODE SQL_API ESAPI_StmtError(SQLHSTMT hstmt, SQLSMALLINT RecNumber,
+RETCODE SQL_API OPENSEARCHAPI_StmtError(SQLHSTMT hstmt, SQLSMALLINT RecNumber,
                                 SQLCHAR *szSqlState, SQLINTEGER *pfNativeError,
                                 SQLCHAR *szErrorMsg, SQLSMALLINT cbErrorMsgMax,
                                 SQLSMALLINT *pcbErrorMsg, UWORD flag) {
     /* CC: return an error of a hdesc  */
-    ES_ErrorInfo *eserror, error;
+    OpenSearch_ErrorInfo *opensearch_error, error;
     StatementClass *stmt = (StatementClass *)hstmt;
     int errnum = SC_get_errornumber(stmt);
 
-    if (eserror = SC_create_errorinfo(stmt, &error), NULL == eserror)
+    if (opensearch_error = SC_create_errorinfo(stmt, &error), NULL == opensearch_error)
         return SQL_NO_DATA_FOUND;
-    if (eserror != &error)
-        stmt->eserror = eserror;
-    if (STMT_NO_MEMORY_ERROR == errnum && !eserror->__error_message[0])
-        STRCPY_FIXED(eserror->__error_message, "Memory Allocation Error??");
-    return ER_ReturnError(eserror, RecNumber, szSqlState, pfNativeError,
+    if (opensearch_error != &error)
+        stmt->opensearch_error = opensearch_error;
+    if (STMT_NO_MEMORY_ERROR == errnum && !opensearch_error->__error_message[0])
+        STRCPY_FIXED(opensearch_error->__error_message, "Memory Allocation Error??");
+    return ER_ReturnError(opensearch_error, RecNumber, szSqlState, pfNativeError,
                           szErrorMsg, cbErrorMsgMax, pcbErrorMsg, flag);
 }
 
@@ -1069,13 +1068,13 @@ SC_fetch(StatementClass *self) {
 
     /* TupleField *tupleField; */
 
-    MYLOG(ES_TRACE, "entering statement=%p res=%p ommitted=0\n", self, res);
+    MYLOG(OPENSEARCH_TRACE, "entering statement=%p res=%p ommitted=0\n", self, res);
     self->last_fetch_count = self->last_fetch_count_include_ommitted = 0;
     if (!res)
         return SQL_ERROR;
     coli = QR_get_fields(res); /* the column info */
 
-    MYLOG(ES_DEBUG, "fetch_cursor=%d, %p->total_read=" FORMAT_LEN "\n",
+    MYLOG(OPENSEARCH_DEBUG, "fetch_cursor=%d, %p->total_read=" FORMAT_LEN "\n",
           SC_is_fetchcursor(self), res, res->num_total_read);
 
     if (self->currTuple >= (Int4)QR_get_num_total_tuples(res) - 1
@@ -1089,14 +1088,14 @@ SC_fetch(StatementClass *self) {
         return SQL_NO_DATA_FOUND;
     }
 
-    MYLOG(ES_DEBUG, "**** : non-cursor_result\n");
+    MYLOG(OPENSEARCH_DEBUG, "**** : non-cursor_result\n");
     (self->currTuple)++;
 
     num_cols = QR_NumPublicResultCols(res);
 
     result = SQL_SUCCESS;
     self->last_fetch_count++;
-    MYLOG(ES_DEBUG, "stmt=%p ommitted++\n", self);
+    MYLOG(OPENSEARCH_DEBUG, "stmt=%p ommitted++\n", self);
     self->last_fetch_count_include_ommitted++;
 
     opts = SC_get_ARDF(self);
@@ -1121,7 +1120,7 @@ SC_fetch(StatementClass *self) {
     if (gdata->allocated != opts->allocated)
         extend_getdata_info(gdata, opts->allocated, TRUE);
     for (lf = 0; lf < num_cols; lf++) {
-        MYLOG(ES_DEBUG,
+        MYLOG(OPENSEARCH_DEBUG,
               "fetch: cols=%d, lf=%d, opts = %p, opts->bindings = %p, buffer[] "
               "= %p\n",
               num_cols, lf, opts, opts->bindings, opts->bindings[lf].buffer);
@@ -1138,28 +1137,28 @@ SC_fetch(StatementClass *self) {
             type = CI_get_oid(coli, lf);            /* speed things up */
             atttypmod = CI_get_atttypmod(coli, lf); /* speed things up */
 
-            MYLOG(ES_DEBUG, "type = %d, atttypmod = %d\n", type, atttypmod);
+            MYLOG(OPENSEARCH_DEBUG, "type = %d, atttypmod = %d\n", type, atttypmod);
 
             if (useCursor)
                 value = QR_get_value_backend(res, lf);
             else {
                 SQLLEN curt = GIdx2CacheIdx(self->currTuple, self, res);
-                MYLOG(ES_DEBUG,
+                MYLOG(OPENSEARCH_DEBUG,
                       "%p->base=" FORMAT_LEN " curr=" FORMAT_LEN
                       " st=" FORMAT_LEN " valid=%d\n",
                       res, QR_get_rowstart_in_cache(res), self->currTuple,
                       SC_get_rowset_start(self), QR_has_valid_base(res));
-                MYLOG(ES_DEBUG, "curt=" FORMAT_LEN "\n", curt);
+                MYLOG(OPENSEARCH_DEBUG, "curt=" FORMAT_LEN "\n", curt);
                 value = QR_get_value_backend_row(res, curt, lf);
             }
 
-            MYLOG(ES_DEBUG, "value = '%s'\n",
+            MYLOG(OPENSEARCH_DEBUG, "value = '%s'\n",
                   (value == NULL) ? "<NULL>" : value);
 
             retval = copy_and_convert_field_bindinfo(self, type, atttypmod,
                                                      value, lf);
 
-            MYLOG(ES_DEBUG, "copy_and_convert: retval = %d\n", retval);
+            MYLOG(OPENSEARCH_DEBUG, "copy_and_convert: retval = %d\n", retval);
 
             switch (retval) {
                 case COPY_OK:
@@ -1168,7 +1167,7 @@ SC_fetch(StatementClass *self) {
                 case COPY_UNSUPPORTED_TYPE:
                     SC_set_error(
                         self, STMT_RESTRICTED_DATA_TYPE_ERROR,
-                        "Received an unsupported type from Elasticsearch.",
+                        "Received an unsupported type from OpenSearch.",
                         func);
                     result = SQL_ERROR;
                     break;
@@ -1184,10 +1183,10 @@ SC_fetch(StatementClass *self) {
                 case COPY_RESULT_TRUNCATED:
                     SC_set_error(self, STMT_TRUNCATED,
                                  "Fetched item was truncated.", func);
-                    MYLOG(ES_DEBUG, "The %dth item was truncated\n", lf + 1);
-                    MYLOG(ES_DEBUG, "The buffer size = " FORMAT_LEN,
+                    MYLOG(OPENSEARCH_DEBUG, "The %dth item was truncated\n", lf + 1);
+                    MYLOG(OPENSEARCH_DEBUG, "The buffer size = " FORMAT_LEN,
                           opts->bindings[lf].buflen);
-                    MYLOG(ES_DEBUG, " and the value is '%s'\n", value);
+                    MYLOG(OPENSEARCH_DEBUG, " and the value is '%s'\n", value);
                     result = SQL_SUCCESS_WITH_INFO;
                     break;
 
@@ -1230,7 +1229,7 @@ RETCODE dequeueNeedDataCallback(RETCODE retcode, StatementClass *stmt) {
     void *data;
     int i, cnt;
 
-    MYLOG(ES_TRACE, "entering ret=%d count=%d\n", retcode, stmt->num_callbacks);
+    MYLOG(OPENSEARCH_TRACE, "entering ret=%d count=%d\n", retcode, stmt->num_callbacks);
     if (SQL_NEED_DATA == retcode)
         return retcode;
     if (stmt->num_callbacks <= 0)
@@ -1280,7 +1279,7 @@ void SC_log_error(const char *func, const char *desc,
                  head, func, desc, self->__error_number,
                  NULLCHECK(self->__error_message));
         }
-        MYLOG(ES_DEBUG, "%s: func=%s, desc='%s', errnum=%d, errmsg='%s'\n",
+        MYLOG(OPENSEARCH_DEBUG, "%s: func=%s, desc='%s', errnum=%d, errmsg='%s'\n",
               head, func, desc, self->__error_number,
               NULLCHECK(self->__error_message));
         if (SC_get_errornumber(self) > 0) {
@@ -1342,7 +1341,7 @@ void SC_log_error(const char *func, const char *desc,
             CC_log_error(func, desc, self->hdbc);
         }
     } else {
-        MYLOG(ES_DEBUG, "INVALID STATEMENT HANDLE ERROR: func=%s, desc='%s'\n",
+        MYLOG(OPENSEARCH_DEBUG, "INVALID STATEMENT HANDLE ERROR: func=%s, desc='%s'\n",
               func, desc);
     }
 }
@@ -1448,21 +1447,21 @@ int SC_Create_bookmark(StatementClass *self, BindInfoClass *bookmark,
     SQLUINTEGER bind_size = opts->bind_size;
     SQLULEN offset = opts->row_offset_ptr ? *opts->row_offset_ptr : 0;
     size_t cvtlen = sizeof(Int4);
-    ES_BM ES_bm;
+    OPENSEARCH_BM opensearch_bm;
 
-    MYLOG(ES_TRACE, "entering type=%d buflen=" FORMAT_LEN " buf=%p\n",
+    MYLOG(OPENSEARCH_TRACE, "entering type=%d buflen=" FORMAT_LEN " buf=%p\n",
           bookmark->returntype, bookmark->buflen, bookmark->buffer);
-    memset(&ES_bm, 0, sizeof(ES_bm));
+    memset(&opensearch_bm, 0, sizeof(opensearch_bm));
     if (SQL_C_BOOKMARK == bookmark->returntype)
         ;
-    else if (bookmark->buflen >= (SQLLEN)sizeof(ES_bm))
-        cvtlen = sizeof(ES_bm);
+    else if (bookmark->buflen >= (SQLLEN)sizeof(opensearch_bm))
+        cvtlen = sizeof(opensearch_bm);
     else if (bookmark->buflen >= 12)
         cvtlen = 12;
-    ES_bm.index = SC_make_int4_bookmark(currTuple);
+    opensearch_bm.index = SC_make_int4_bookmark(currTuple);
     if (keyset)
-        ES_bm.keys = *keyset;
-    memcpy(CALC_BOOKMARK_ADDR(bookmark, offset, bind_size, bind_row), &ES_bm,
+        opensearch_bm.keys = *keyset;
+    memcpy(CALC_BOOKMARK_ADDR(bookmark, offset, bind_size, bind_row), &opensearch_bm,
            cvtlen);
     if (bookmark->used) {
         SQLLEN *used = LENADDR_SHIFT(bookmark->used, offset);
@@ -1473,8 +1472,10 @@ int SC_Create_bookmark(StatementClass *self, BindInfoClass *bookmark,
             used = (SQLLEN *)((char *)used + (bind_row * sizeof(SQLLEN)));
         *used = cvtlen;
     }
-    MYLOG(ES_TRACE, "leaving cvtlen=" FORMAT_SIZE_T " ix(bl,of)=%d(%d,%d)\n",
-          cvtlen, ES_bm.index, ES_bm.keys.blocknum, ES_bm.keys.offset);
+    MYLOG(OPENSEARCH_TRACE, "leaving cvtlen=" FORMAT_SIZE_T " ix(bl,of)=%d(%d,%d)\n",
+          cvtlen,
+          opensearch_bm.index, opensearch_bm.keys.blocknum,
+          opensearch_bm.keys.offset);
 
     return COPY_OK;
 }

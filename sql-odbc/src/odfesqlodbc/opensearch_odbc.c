@@ -20,9 +20,10 @@
 #endif /* _DEBUG */
 #endif /* WIN32 */
 #include <string.h>
+
 #include "dlg_specific.h"
 #include "environ.h"
-#include "es_odbc.h"
+#include "opensearch_odbc.h"
 #include "misc.h"
 
 #ifdef WIN32
@@ -108,14 +109,14 @@ BOOL WINAPI DllMain(HANDLE hInst, ULONG ul_reason_for_call, LPVOID lpReserved) {
             else if (strnicmp(exename, "sqlservr", 8) == 0)
                 exeesm = 3;
             initialize_global_cs();
-            MYLOG(ES_DEBUG, "exe name=%s\n", exename);
+            MYLOG(OPENSEARCH_DEBUG, "exe name=%s\n", exename);
             break;
 
         case DLL_THREAD_ATTACH:
             break;
 
         case DLL_PROCESS_DETACH:
-            MYLOG(ES_DEBUG, "DETACHING %s\n", DRIVER_FILE_NAME);
+            MYLOG(OPENSEARCH_DEBUG, "DETACHING %s\n", DRIVER_FILE_NAME);
             CleanupDelayLoadedDLLs();
             /* my(q)log is unavailable from here */
             finalize_global_cs();

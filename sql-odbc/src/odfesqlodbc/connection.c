@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "es_connection.h"
+#include "opensearch_connection.h"
 #include "misc.h"
 
 /* for htonl */
@@ -35,11 +35,11 @@
 
 #include "dlg_specific.h"
 #include "environ.h"
-#include "es_apifunc.h"
-#include "es_connection.h"
-#include "es_helper.h"
 #include "loadlib.h"
 #include "multibyte.h"
+#include "opensearch_apifunc.h"
+#include "opensearch_connection.h"
+#include "opensearch_helper.h"
 #include "qresult.h"
 #include "statement.h"
 #ifndef WIN32
@@ -55,15 +55,15 @@
 
 #define PROTOCOL3_OPTS_MAX 30
 
-RETCODE SQL_API ESAPI_AllocConnect(HENV henv, HDBC *phdbc) {
+RETCODE SQL_API OPENSEARCHAPI_AllocConnect(HENV henv, HDBC *phdbc) {
     EnvironmentClass *env = (EnvironmentClass *)henv;
     ConnectionClass *conn;
-    CSTR func = "ESAPI_AllocConnect";
+    CSTR func = "OPENSEARCHAPI_AllocConnect";
 
-    MYLOG(ES_TRACE, "entering...\n");
+    MYLOG(OPENSEARCH_TRACE, "entering...\n");
 
     conn = CC_Constructor();
-    MYLOG(ES_DEBUG, "**** henv = %p, conn = %p\n", henv, conn);
+    MYLOG(OPENSEARCH_DEBUG, "**** henv = %p, conn = %p\n", henv, conn);
 
     if (!conn) {
         env->errormsg = "Couldn't allocate memory for Connection object.";
@@ -88,17 +88,17 @@ RETCODE SQL_API ESAPI_AllocConnect(HENV henv, HDBC *phdbc) {
     return SQL_SUCCESS;
 }
 
-RETCODE SQL_API ESAPI_Connect(HDBC hdbc, const SQLCHAR *szDSN,
+RETCODE SQL_API OPENSEARCHAPI_Connect(HDBC hdbc, const SQLCHAR *szDSN,
                               SQLSMALLINT cbDSN, const SQLCHAR *szUID,
                               SQLSMALLINT cbUID, const SQLCHAR *szAuthStr,
                               SQLSMALLINT cbAuthStr) {
     ConnectionClass *conn = (ConnectionClass *)hdbc;
     ConnInfo *ci;
-    CSTR func = "ESAPI_Connect";
+    CSTR func = "OPENSEARCHAPI_Connect";
     RETCODE ret = SQL_SUCCESS;
     char fchar, *tmpstr;
 
-    MYLOG(ES_TRACE, "entering..cbDSN=%hi.\n", cbDSN);
+    MYLOG(OPENSEARCH_TRACE, "entering..cbDSN=%hi.\n", cbDSN);
 
     if (!conn) {
         CC_log_error(func, "", NULL);
@@ -114,8 +114,8 @@ RETCODE SQL_API ESAPI_Connect(HDBC hdbc, const SQLCHAR *szDSN,
     getDSNinfo(ci, NULL);
 
     logs_on_off(1, ci->drivers.loglevel, ci->drivers.loglevel);
-    /* initialize es_version from connInfo.protocol    */
-    CC_initialize_es_version(conn);
+    /* initialize opensearch_version from connInfo.protocol    */
+    CC_initialize_opensearch_version(conn);
 
     /*
      * override values from DSN info with UID and authStr(pwd) This only
@@ -132,7 +132,7 @@ RETCODE SQL_API ESAPI_Connect(HDBC hdbc, const SQLCHAR *szDSN,
         free(tmpstr);
     }
 
-    MYLOG(ES_DEBUG, "conn = %p (DSN='%s', UID='%s', PWD='%s')\n", conn, ci->dsn,
+    MYLOG(OPENSEARCH_DEBUG, "conn = %p (DSN='%s', UID='%s', PWD='%s')\n", conn, ci->dsn,
           ci->username, NAME_IS_VALID(ci->password) ? "xxxxx" : "");
 
     if ((fchar = CC_connect(conn)) <= 0) {
@@ -143,22 +143,22 @@ RETCODE SQL_API ESAPI_Connect(HDBC hdbc, const SQLCHAR *szDSN,
     if (SQL_SUCCESS == ret && 2 == fchar)
         ret = SQL_SUCCESS_WITH_INFO;
 
-    MYLOG(ES_TRACE, "leaving..%d.\n", ret);
+    MYLOG(OPENSEARCH_TRACE, "leaving..%d.\n", ret);
 
     return ret;
 }
 
-RETCODE SQL_API ESAPI_BrowseConnect(HDBC hdbc, const SQLCHAR *szConnStrIn,
+RETCODE SQL_API OPENSEARCHAPI_BrowseConnect(HDBC hdbc, const SQLCHAR *szConnStrIn,
                                     SQLSMALLINT cbConnStrIn,
                                     SQLCHAR *szConnStrOut,
                                     SQLSMALLINT cbConnStrOutMax,
                                     SQLSMALLINT *pcbConnStrOut) {
     UNUSED(szConnStrIn, cbConnStrIn, szConnStrOut, cbConnStrOutMax,
            cbConnStrOutMax, pcbConnStrOut);
-    CSTR func = "ESAPI_BrowseConnect";
+    CSTR func = "OPENSEARCHAPI_BrowseConnect";
     ConnectionClass *conn = (ConnectionClass *)hdbc;
 
-    MYLOG(ES_TRACE, "entering...\n");
+    MYLOG(OPENSEARCH_TRACE, "entering...\n");
 
     CC_set_error(conn, CONN_NOT_IMPLEMENTED_ERROR, "Function not implemented",
                  func);
@@ -166,12 +166,12 @@ RETCODE SQL_API ESAPI_BrowseConnect(HDBC hdbc, const SQLCHAR *szConnStrIn,
 }
 
 /* Drop any hstmts open on hdbc and disconnect from database */
-RETCODE SQL_API ESAPI_Disconnect(HDBC hdbc) {
+RETCODE SQL_API OPENSEARCHAPI_Disconnect(HDBC hdbc) {
     ConnectionClass *conn = (ConnectionClass *)hdbc;
-    CSTR func = "ESAPI_Disconnect";
+    CSTR func = "OPENSEARCHAPI_Disconnect";
     RETCODE ret = SQL_SUCCESS;
 
-    MYLOG(ES_TRACE, "entering...\n");
+    MYLOG(OPENSEARCH_TRACE, "entering...\n");
 
     if (!conn) {
         CC_log_error(func, "", NULL);
@@ -188,23 +188,23 @@ RETCODE SQL_API ESAPI_Disconnect(HDBC hdbc) {
 
     logs_on_off(-1, conn->connInfo.drivers.loglevel,
                 conn->connInfo.drivers.loglevel);
-    MYLOG(ES_DEBUG, "about to CC_cleanup\n");
+    MYLOG(OPENSEARCH_DEBUG, "about to CC_cleanup\n");
 
     /* Close the connection and free statements */
     ret = CC_cleanup(conn, FALSE);
 
-    MYLOG(ES_DEBUG, "done CC_cleanup\n");
-    MYLOG(ES_TRACE, "leaving...\n");
+    MYLOG(OPENSEARCH_DEBUG, "done CC_cleanup\n");
+    MYLOG(OPENSEARCH_TRACE, "leaving...\n");
 
     return ret;
 }
 
-RETCODE SQL_API ESAPI_FreeConnect(HDBC hdbc) {
+RETCODE SQL_API OPENSEARCHAPI_FreeConnect(HDBC hdbc) {
     ConnectionClass *conn = (ConnectionClass *)hdbc;
-    CSTR func = "ESAPI_FreeConnect";
+    CSTR func = "OPENSEARCHAPI_FreeConnect";
     EnvironmentClass *env;
 
-    MYLOG(ES_TRACE, "entering...hdbc=%p\n", hdbc);
+    MYLOG(OPENSEARCH_TRACE, "entering...hdbc=%p\n", hdbc);
 
     if (!conn) {
         CC_log_error(func, "", NULL);
@@ -222,7 +222,7 @@ RETCODE SQL_API ESAPI_FreeConnect(HDBC hdbc) {
 
     CC_Destructor(conn);
 
-    MYLOG(ES_TRACE, "leaving...\n");
+    MYLOG(OPENSEARCH_TRACE, "leaving...\n");
 
     return SQL_SUCCESS;
 }
@@ -274,7 +274,7 @@ static ConnectionClass *CC_initialize(ConnectionClass *rv, BOOL lockinit) {
 
     rv->num_descs = STMT_INCREMENT;
 
-    rv->lobj_type = ES_TYPE_LO_UNDEFINED;
+    rv->lobj_type = OPENSEARCH_TYPE_LO_UNDEFINED;
     if (isMsAccess())
         rv->ms_jet = 1;
     rv->isolation = 0;  // means initially unknown server's default isolation
@@ -311,14 +311,14 @@ ConnectionClass *CC_Constructor() {
 }
 
 char CC_Destructor(ConnectionClass *self) {
-    MYLOG(ES_TRACE, "entering self=%p\n", self);
+    MYLOG(OPENSEARCH_TRACE, "entering self=%p\n", self);
 
     if (self->status == CONN_EXECUTING)
         return 0;
 
     CC_cleanup(self, FALSE); /* cleanup socket and statements */
 
-    MYLOG(ES_DEBUG, "after CC_Cleanup\n");
+    MYLOG(OPENSEARCH_DEBUG, "after CC_Cleanup\n");
 
     /* Free up statement holders */
     if (self->stmts) {
@@ -329,7 +329,7 @@ char CC_Destructor(ConnectionClass *self) {
         free(self->descs);
         self->descs = NULL;
     }
-    MYLOG(ES_DEBUG, "after free statement holders\n");
+    MYLOG(OPENSEARCH_DEBUG, "after free statement holders\n");
 
     NULL_THE_NAME(self->schemaIns);
     NULL_THE_NAME(self->tableIns);
@@ -340,7 +340,7 @@ char CC_Destructor(ConnectionClass *self) {
     DELETE_CONNLOCK(self);
     free(self);
 
-    MYLOG(ES_TRACE, "leaving\n");
+    MYLOG(OPENSEARCH_TRACE, "leaving\n");
 
     return 1;
 }
@@ -364,7 +364,7 @@ BOOL CC_set_autocommit(ConnectionClass *self, BOOL on) {
 
     if ((on && currsts) || (!on && !currsts))
         return on;
-    MYLOG(ES_DEBUG, " %d->%d\n", currsts, on);
+    MYLOG(OPENSEARCH_DEBUG, " %d->%d\n", currsts, on);
     if (on)
         self->transact_status |= CONN_IN_AUTOCOMMIT;
     else
@@ -410,22 +410,22 @@ CC_cleanup(ConnectionClass *self, BOOL keepCommunication) {
     if (self->status == CONN_EXECUTING)
         return FALSE;
 
-    MYLOG(ES_TRACE, "entering self=%p\n", self);
+    MYLOG(OPENSEARCH_TRACE, "entering self=%p\n", self);
 
     ENTER_CONN_CS(self);
     /* Cancel an ongoing transaction */
     /* We are always in the middle of a transaction, */
     /* even if we are in auto commit. */
-    if (self->esconn) {
-        QLOG(0, "LIBES_disconnect: %p\n", self->esconn);
-        LIBES_disconnect(self->esconn);
-        self->esconn = NULL;
+    if (self->opensearchconn) {
+        QLOG(0, "LIBOPENSEARCH_disconnect: %p\n", self->opensearchconn);
+        LIBOPENSEARCH_disconnect(self->opensearchconn);
+        self->opensearchconn = NULL;
     } else {
         ret = SQL_ERROR;
         CC_set_error(self, CC_not_connected(self), "Connection not open", func);
     }
 
-    MYLOG(ES_DEBUG, "after LIBES_disconnect\n");
+    MYLOG(OPENSEARCH_DEBUG, "after LIBOPENSEARCH_disconnect\n");
 
     /* Free all the stmts on this connection */
     for (i = 0; i < self->num_stmts; i++) {
@@ -491,12 +491,12 @@ CC_cleanup(ConnectionClass *self, BOOL keepCommunication) {
     }
 
     LEAVE_CONN_CS(self);
-    MYLOG(ES_TRACE, "leaving\n");
+    MYLOG(OPENSEARCH_TRACE, "leaving\n");
     return ret;
 }
 
-#ifndef ES_DIAG_SEVERITY_NONLOCALIZED
-#define ES_DIAG_SEVERITY_NONLOCALIZED 'V'
+#ifndef OPENSEARCH_DIAG_SEVERITY_NONLOCALIZED
+#define OPENSEARCH_DIAG_SEVERITY_NONLOCALIZED 'V'
 #endif
 
 #define TRANSACTION_ISOLATION "transaction_isolation"
@@ -506,7 +506,7 @@ char CC_add_statement(ConnectionClass *self, StatementClass *stmt) {
     int i;
     char ret = TRUE;
 
-    MYLOG(ES_DEBUG, "self=%p, stmt=%p\n", self, stmt);
+    MYLOG(OPENSEARCH_DEBUG, "self=%p, stmt=%p\n", self, stmt);
 
     CONNLOCK_ACQUIRE(self);
     for (i = 0; i < self->num_stmts; i++) {
@@ -550,7 +550,7 @@ char CC_add_statement(ConnectionClass *self, StatementClass *stmt) {
 static void CC_set_error_statements(ConnectionClass *self) {
     int i;
 
-    MYLOG(ES_TRACE, "entering self=%p\n", self);
+    MYLOG(OPENSEARCH_TRACE, "entering self=%p\n", self);
 
     for (i = 0; i < self->num_stmts; i++) {
         if (NULL != self->stmts[i])
@@ -615,7 +615,7 @@ void CC_set_errormsg(ConnectionClass *self, const char *message) {
 int CC_get_error(ConnectionClass *self, int *number, char **message) {
     int rv;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
 
     CONNLOCK_ACQUIRE(self);
 
@@ -627,7 +627,7 @@ int CC_get_error(ConnectionClass *self, int *number, char **message) {
 
     CONNLOCK_RELEASE(self);
 
-    MYLOG(ES_TRACE, "leaving\n");
+    MYLOG(OPENSEARCH_TRACE, "leaving\n");
 
     return rv;
 }
@@ -636,19 +636,19 @@ void CC_log_error(const char *func, const char *desc,
 #define NULLCHECK(a) (a ? a : "(NULL)")
 
     if (self) {
-        MYLOG(ES_ERROR,
+        MYLOG(OPENSEARCH_ERROR,
               "CONN ERROR: func=%s, desc='%s', errnum=%d, errmsg='%s'\n", func,
               desc, self->__error_number, NULLCHECK(self->__error_message));
-        MYLOG(ES_ERROR,
+        MYLOG(OPENSEARCH_ERROR,
               "            "
               "------------------------------------------------------------\n");
-        MYLOG(ES_ERROR,
+        MYLOG(OPENSEARCH_ERROR,
               "            henv=%p, conn=%p, status=%u, num_stmts=%d\n",
               self->henv, self, self->status, self->num_stmts);
-        MYLOG(ES_ERROR, "            esconn=%p, stmts=%p, lobj_type=%d\n",
-              self->esconn, self->stmts, self->lobj_type);
+        MYLOG(OPENSEARCH_ERROR, "            opensearchconn=%p, stmts=%p, lobj_type=%d\n",
+              self->opensearchconn, self->stmts, self->lobj_type);
     } else {
-        MYLOG(ES_ERROR, "INVALID CONNECTION HANDLE ERROR: func=%s, desc='%s'\n",
+        MYLOG(OPENSEARCH_ERROR, "INVALID CONNECTION HANDLE ERROR: func=%s, desc='%s'\n",
               func, desc);
     }
 }

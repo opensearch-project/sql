@@ -14,12 +14,12 @@
  *
  */
 
-#include "es_driver_connect.h"
+#include "opensearch_driver_connect.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "es_odbc.h"
+#include "opensearch_odbc.h"
 #include "misc.h"
 
 #ifndef WIN32
@@ -41,7 +41,7 @@
 
 #include "dlg_specific.h"
 #include "drvconn.h"
-#include "es_apifunc.h"
+#include "opensearch_apifunc.h"
 
 static RETCODE CheckDriverComplete(const SQLUSMALLINT driver_completion,
                                    const HWND hwnd, ConnInfo *ci,
@@ -82,7 +82,7 @@ static RETCODE GetRequirementsAndConnect(const SQLUSMALLINT driver_completion,
     // user can always hit Cancel to get out)
     if (paramRequired(ci, reqs)) {
         CC_set_error(conn, CONN_OPENDB_ERROR, "Please supply password",
-                     "ESAPI_DriverConnect->GetRequirements");
+                     "OPENSEARCHAPI_DriverConnect->GetRequirements");
         return SQL_ERROR;
     }
     ret_val = CC_connect(conn);
@@ -209,12 +209,12 @@ static SQLRETURN SetupConnString(const SQLCHAR *conn_str_in,
     return SQL_SUCCESS;
 }
 
-RETCODE ESAPI_DriverConnect(HDBC hdbc, HWND hwnd, SQLCHAR *conn_str_in,
+RETCODE OPENSEARCHAPI_DriverConnect(HDBC hdbc, HWND hwnd, SQLCHAR *conn_str_in,
                             SQLSMALLINT conn_str_in_len, SQLCHAR *conn_str_out,
                             SQLSMALLINT conn_str_out_len,
                             SQLSMALLINT *pcb_conn_str_out,
                             SQLUSMALLINT driver_completion) {
-    CSTR func = "ESAPI_DriverConnect";
+    CSTR func = "OPENSEARCHAPI_DriverConnect";
     ConnectionClass *conn = (ConnectionClass *)hdbc;
 
     if (!conn) {
@@ -231,8 +231,8 @@ RETCODE ESAPI_DriverConnect(HDBC hdbc, HWND hwnd, SQLCHAR *conn_str_in,
             return return_code;
     }
 
-    // Initialize es_version
-    CC_initialize_es_version(conn);
+    // Initialize opensearch_version
+    CC_initialize_opensearch_version(conn);
 
     int reqs = 0;
     int retval = 0;

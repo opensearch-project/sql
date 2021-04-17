@@ -17,7 +17,7 @@
 #ifndef __UNICODE_SUPPORT_H__
 #define __UNICODE_SUPPORT_H__
 
-#include "es_odbc.h"
+#include "opensearch_odbc.h"
 
 #ifdef UNICODE_SUPPORT
 #define WCLEN sizeof(SQLWCHAR)

@@ -15,12 +15,13 @@
  */
 
 #include "columninfo.h"
-#include "es_types.h"
 
 #include <stdlib.h>
 #include <string.h>
-#include "es_apifunc.h"
-#include "es_connection.h"
+
+#include "opensearch_types.h"
+#include "opensearch_apifunc.h"
+#include "opensearch_connection.h"
 
 ColumnInfoClass *CI_Constructor(void) {
     ColumnInfoClass *rv;
@@ -82,7 +83,7 @@ void CI_set_field_info(ColumnInfoClass *self, int field_num,
     self->coli_array[field_num].adtsize = new_adtsize;
     self->coli_array[field_num].atttypmod = new_atttypmod;
 
-    self->coli_array[field_num].display_size = ES_ADT_UNSET;
+    self->coli_array[field_num].display_size = OPENSEARCH_ADT_UNSET;
     self->coli_array[field_num].relid = new_relid;
     self->coli_array[field_num].attid = (short)new_attid;
 }

@@ -18,8 +18,8 @@
 #define __QRESULT_H__
 
 #include "columninfo.h"
-#include "es_connection.h"
-#include "es_odbc.h"
+#include "opensearch_connection.h"
+#include "opensearch_odbc.h"
 #include "tuple.h"
 
 #ifdef __cplusplus
@@ -31,7 +31,7 @@ typedef enum QueryResultCode_ {
     PORES_COMMAND_OK, /* a query command that doesn't return
                        * anything was executed properly by the backend */
     PORES_TUPLES_OK,  /* a query command that returns tuples
-                       * was executed properly by the backend, ESresult
+                       * was executed properly by the backend, OpenSearchResult
                        * contains the resulttuples */
     PORES_COPY_OUT,
     PORES_COPY_IN,
@@ -117,7 +117,7 @@ struct QResultClass_ {
     SQLLEN *updated;            /* updated index info */
     KeySet *updated_keyset;     /* uddated keyset info */
     TupleField *updated_tuples; /* uddated data by myself */
-    void *es_result;
+    void *opensearch_result;
     char *server_cursor_id;
 };
 
@@ -215,15 +215,15 @@ enum {
     } while (0)
 #define QR_set_next_in_cache(self, number)                               \
     do {                                                                 \
-        MYLOG(ES_ALL, "set the number to " FORMAT_LEN " to read next\n", \
+        MYLOG(OPENSEARCH_ALL, "set the number to " FORMAT_LEN " to read next\n", \
               number);                                                   \
         self->fetch_number = number;                                     \
     } while (0)
 #define QR_inc_next_in_cache(self)                                             \
     do {                                                                       \
-        MYLOG(ES_ALL, "increased the number " FORMAT_LEN, self->fetch_number); \
+        MYLOG(OPENSEARCH_ALL, "increased the number " FORMAT_LEN, self->fetch_number); \
         self->fetch_number++;                                                  \
-        MYLOG(ES_ALL, "to " FORMAT_LEN " to next read\n", self->fetch_number); \
+        MYLOG(OPENSEARCH_ALL, "to " FORMAT_LEN " to next read\n", self->fetch_number); \
     } while (0)
 
 #define QR_get_message(self) \

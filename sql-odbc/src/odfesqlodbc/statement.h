@@ -21,9 +21,9 @@
 
 #include "bind.h"
 #include "descriptor.h"
-#include "es_helper.h"
-#include "es_odbc.h"
-#include "es_types.h"
+#include "opensearch_helper.h"
+#include "opensearch_odbc.h"
+#include "opensearch_types.h"
 #include "tuple.h"
 
 // C Interface
@@ -179,7 +179,7 @@ enum {
 /*	Result style */
 enum { STMT_FETCH_NONE = 0, STMT_FETCH_NORMAL, STMT_FETCH_EXTENDED };
 
-#define ES_NUM_NORMAL_KEYS 2
+#define OPENSEARCH_NUM_NORMAL_KEYS 2
 
 typedef RETCODE (*NeedDataCallfunc)(RETCODE, void *);
 typedef struct {
@@ -224,7 +224,7 @@ struct StatementClass_ {
     STMT_Status status;
     char *__error_message;
     int __error_number;
-    ES_ErrorInfo *eserror;
+    OpenSearch_ErrorInfo *opensearch_error;
 
     SQLLEN currTuple; /* current absolute row number (GetData,
                        * SetPos, SQLFetch) */
@@ -256,7 +256,7 @@ struct StatementClass_ {
     Int2 statement_type; /* According to the defines above */
     Int2 num_params;
     Int2 data_at_exec; /* Number of params needing SQLPutData */
-    UDWORD iflag;      /* ESAPI_AllocStmt parameter */
+    UDWORD iflag;      /* OPENSEARCHAPI_AllocStmt parameter */
     PutDataInfo pdata_info;
     po_ind_t parse_status;
     po_ind_t proc_return;
@@ -276,7 +276,7 @@ struct StatementClass_ {
     po_ind_t lock_CC_for_rb;   /* lock CC for statement rollback ? */
     po_ind_t join_info;        /* have joins ? */
     po_ind_t parse_method;     /* parse_statement is forced or ? */
-    esNAME cursor_name;
+    opensearchNAME cursor_name;
     char *plan_name;
     unsigned char miscinfo;
     unsigned char execinfo;

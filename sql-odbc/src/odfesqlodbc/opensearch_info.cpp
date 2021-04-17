@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  *
  */
-#include "es_info.h"
+#include "opensearch_info.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -25,14 +25,14 @@
 #include <unordered_map>
 #include <vector>
 
-// TODO #324 (SQL Plugin)- Update if Elasticsearch extends support for multiple
+// TODO #324 (SQL Plugin)- Update if OpenSearch extends support for multiple
 // tables
 #define DEFAULT_TYPE_STR \
     { 'k', 'e', 'y', 'w', 'o', 'r', 'd', '\0' }
 #define DEFAULT_TYPE_INT (SQL_WVARCHAR)
 #define EMPTY_VARCHAR \
     { '\0' }
-#define ES_UNINITIALIZED (-2)
+#define OPENSEARCH_UNINITIALIZED (-2)
 #define COLUMN_TEMPLATE_COUNT 18
 #define TABLE_TEMPLATE_COUNT 5
 
@@ -71,39 +71,40 @@
 #define MAXIMUM_SCALE "MAXIMUM_SCALE"
 #define INTERVAL_PRECISION "INTERVAL_PRECISION"
 
-const std::unordered_map< int, std::vector< int > > sql_es_type_map = {
-    {SQL_BIT, {ES_TYPE_BOOL}},
-    {SQL_TINYINT, {ES_TYPE_INT1}},
-    {SQL_SMALLINT, {ES_TYPE_INT2}},
-    {SQL_INTEGER, {ES_TYPE_INT4}},
-    {SQL_BIGINT, {ES_TYPE_INT8}},
-    {SQL_REAL, {ES_TYPE_HALF_FLOAT, ES_TYPE_FLOAT4}},
-    {SQL_DOUBLE, {ES_TYPE_FLOAT8, ES_TYPE_SCALED_FLOAT}},
+const std::unordered_map< int, std::vector< int > > sql_opensearch_type_map = {
+    {SQL_BIT, {OPENSEARCH_TYPE_BOOL}},
+    {SQL_TINYINT, {OPENSEARCH_TYPE_INT1}},
+    {SQL_SMALLINT, {OPENSEARCH_TYPE_INT2}},
+    {SQL_INTEGER, {OPENSEARCH_TYPE_INT4}},
+    {SQL_BIGINT, {OPENSEARCH_TYPE_INT8}},
+    {SQL_REAL, {OPENSEARCH_TYPE_HALF_FLOAT, OPENSEARCH_TYPE_FLOAT4}},
+    {SQL_DOUBLE, {OPENSEARCH_TYPE_FLOAT8, OPENSEARCH_TYPE_SCALED_FLOAT}},
     {SQL_WVARCHAR,
-     {ES_TYPE_KEYWORD, ES_TYPE_TEXT, ES_TYPE_NESTED, ES_TYPE_OBJECT}},
-    {SQL_TYPE_TIMESTAMP, {ES_TYPE_DATETIME}}};
+     {OPENSEARCH_TYPE_KEYWORD, OPENSEARCH_TYPE_TEXT, OPENSEARCH_TYPE_NESTED,
+      OPENSEARCH_TYPE_OBJECT}},
+    {SQL_TYPE_TIMESTAMP, {OPENSEARCH_TYPE_DATETIME}}};
 
 const std::unordered_map< std::string, int > data_name_data_type_map = {
-    {ES_TYPE_NAME_BOOLEAN, SQL_BIT},
-    {ES_TYPE_NAME_BYTE, SQL_TINYINT},
-    {ES_TYPE_NAME_SHORT, SQL_SMALLINT},
-    {ES_TYPE_NAME_INTEGER, SQL_INTEGER},
-    {ES_TYPE_NAME_LONG, SQL_BIGINT},
-    {ES_TYPE_NAME_HALF_FLOAT, SQL_REAL},
-    {ES_TYPE_NAME_FLOAT, SQL_REAL},
-    {ES_TYPE_NAME_DOUBLE, SQL_DOUBLE},
-    {ES_TYPE_NAME_SCALED_FLOAT, SQL_DOUBLE},
-    {ES_TYPE_NAME_KEYWORD, SQL_WVARCHAR},
-    {ES_TYPE_NAME_TEXT, SQL_WVARCHAR},
-    {ES_TYPE_NAME_DATE, SQL_TYPE_TIMESTAMP},
-    {ES_TYPE_NAME_OBJECT, SQL_WVARCHAR},
-    {ES_TYPE_NAME_NESTED, SQL_WVARCHAR}};
+    {OPENSEARCH_TYPE_NAME_BOOLEAN, SQL_BIT},
+    {OPENSEARCH_TYPE_NAME_BYTE, SQL_TINYINT},
+    {OPENSEARCH_TYPE_NAME_SHORT, SQL_SMALLINT},
+    {OPENSEARCH_TYPE_NAME_INTEGER, SQL_INTEGER},
+    {OPENSEARCH_TYPE_NAME_LONG, SQL_BIGINT},
+    {OPENSEARCH_TYPE_NAME_HALF_FLOAT, SQL_REAL},
+    {OPENSEARCH_TYPE_NAME_FLOAT, SQL_REAL},
+    {OPENSEARCH_TYPE_NAME_DOUBLE, SQL_DOUBLE},
+    {OPENSEARCH_TYPE_NAME_SCALED_FLOAT, SQL_DOUBLE},
+    {OPENSEARCH_TYPE_NAME_KEYWORD, SQL_WVARCHAR},
+    {OPENSEARCH_TYPE_NAME_TEXT, SQL_WVARCHAR},
+    {OPENSEARCH_TYPE_NAME_DATE, SQL_TYPE_TIMESTAMP},
+    {OPENSEARCH_TYPE_NAME_OBJECT, SQL_WVARCHAR},
+    {OPENSEARCH_TYPE_NAME_NESTED, SQL_WVARCHAR}};
 
 // Boilerplate code for easy column bind handling
 class BindTemplate {
    public:
     BindTemplate(const bool can_be_null, const SQLUSMALLINT ordinal)
-        : m_len(ES_UNINITIALIZED), m_ordinal(ordinal) {
+        : m_len(OPENSEARCH_UNINITIALIZED), m_ordinal(ordinal) {
         if (!can_be_null)
             throw std::runtime_error(
                 "Do not use this constructor for values that can be NULL. A "
@@ -111,23 +112,23 @@ class BindTemplate {
                 "supplied default value must be used if value can be NULL.");
     }
     BindTemplate(const bool can_be_null, const SQLUSMALLINT ordinal, const Int2)
-        : m_len(ES_UNINITIALIZED), m_ordinal(ordinal) {
+        : m_len(OPENSEARCH_UNINITIALIZED), m_ordinal(ordinal) {
         (void)(can_be_null);
     }
     BindTemplate(const bool can_be_null, const SQLUSMALLINT ordinal, const Int4)
-        : m_len(ES_UNINITIALIZED), m_ordinal(ordinal) {
+        : m_len(OPENSEARCH_UNINITIALIZED), m_ordinal(ordinal) {
         (void)(can_be_null);
     }
     BindTemplate(const bool can_be_null, const SQLUSMALLINT ordinal,
                  const std::vector< SQLCHAR > &)
-        : m_len(ES_UNINITIALIZED), m_ordinal(ordinal) {
+        : m_len(OPENSEARCH_UNINITIALIZED), m_ordinal(ordinal) {
         (void)(can_be_null);
     }
     virtual ~BindTemplate() {
     }
 
     SQLPOINTER GetData() {
-        if (m_len == ES_UNINITIALIZED)
+        if (m_len == OPENSEARCH_UNINITIALIZED)
             throw std::runtime_error(
                 "Length is uninitialized - Fetch must be executed before data "
                 "is retreived.");
@@ -135,7 +136,7 @@ class BindTemplate {
     }
 
     void BindColumn(StatementClass *stmt) {
-        RETCODE err = ESAPI_BindCol(stmt, m_ordinal, GetType(),
+        RETCODE err = OPENSEARCHAPI_BindCol(stmt, m_ordinal, GetType(),
                                     GetDataForBind(), GetSize(), &m_len);
         if (!SQL_SUCCEEDED(err)) {
             std::string error_msg =
@@ -380,18 +381,18 @@ void CleanUp(StatementClass *stmt, StatementClass *sub_stmt,
     SC_set_current_col(stmt, -1);
 
     if (sub_stmt)
-        ESAPI_FreeStmt(sub_stmt, SQL_DROP);
+        OPENSEARCHAPI_FreeStmt(sub_stmt, SQL_DROP);
 }
 
 void ExecuteQuery(ConnectionClass *conn, HSTMT *stmt,
                   const std::string &query) {
     // Prepare statement
-    if (!SQL_SUCCEEDED(ESAPI_AllocStmt(conn, stmt, 0))) {
+    if (!SQL_SUCCEEDED(OPENSEARCHAPI_AllocStmt(conn, stmt, 0))) {
         throw std::runtime_error("Failed to allocate memory for statement.");
     }
 
     // Execute query
-    if (!SQL_SUCCEEDED(ESAPI_ExecDirect(
+    if (!SQL_SUCCEEDED(OPENSEARCHAPI_ExecDirect(
             *stmt, reinterpret_cast< const SQLCHAR * >(query.c_str()), SQL_NTS,
             1))) {
         std::string error_msg = "Failed to execute query '" + query + "'.";
@@ -455,20 +456,22 @@ void AssignTableBindTemplates(bind_vector &tabs) {
 void SetupTableQResInfo(QResultClass *res, EnvironmentClass *env) {
     if (EN_is_odbc3(env)) {
         QR_set_field_info_v(res, TABLES_CATALOG_NAME, TABLE_CAT,
-                            ES_TYPE_VARCHAR, MAX_INFO_STRING);
+                            OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
         QR_set_field_info_v(res, TABLES_SCHEMA_NAME, TABLE_SCHEM,
-                            ES_TYPE_VARCHAR, MAX_INFO_STRING);
+                            OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
     } else {
         QR_set_field_info_v(res, TABLES_CATALOG_NAME, TABLE_QUALIFIER,
-                            ES_TYPE_VARCHAR, MAX_INFO_STRING);
+                            OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
         QR_set_field_info_v(res, TABLES_SCHEMA_NAME, TABLE_OWNER,
-                            ES_TYPE_VARCHAR, MAX_INFO_STRING);
+                            OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
     }
-    QR_set_field_info_v(res, TABLES_TABLE_NAME, TABLE_NAME, ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, TABLES_TABLE_NAME, TABLE_NAME,
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, TABLES_TABLE_TYPE, TABLE_TYPE, ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, TABLES_TABLE_TYPE, TABLE_TYPE,
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, TABLES_REMARKS, REMARKS, ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, TABLES_REMARKS, REMARKS, OPENSEARCH_TYPE_VARCHAR,
                         INFO_VARCHAR_SIZE);
 }
 
@@ -521,7 +524,7 @@ void SetTableTuples(QResultClass *res, const TableResultSet res_type,
     if (res_type == TableResultSet::All) {
         RETCODE result = SQL_NO_DATA_FOUND;
         int ordinal_position = 0;
-        while (SQL_SUCCEEDED(result = ESAPI_Fetch(tbl_stmt))) {
+        while (SQL_SUCCEEDED(result = OPENSEARCHAPI_Fetch(tbl_stmt))) {
             if (bind_tbl[TABLES_TABLE_TYPE]->AsString() == "BASE TABLE") {
                 std::string table("TABLE");
                 bind_tbl[TABLES_TABLE_TYPE]->UpdateData((void *)table.c_str(),
@@ -551,7 +554,7 @@ void SetTableTuples(QResultClass *res, const TableResultSet res_type,
 
         // Loop through all data
         RETCODE result = SQL_NO_DATA_FOUND;
-        while (SQL_SUCCEEDED(result = ESAPI_Fetch(tbl_stmt))) {
+        while (SQL_SUCCEEDED(result = OPENSEARCHAPI_Fetch(tbl_stmt))) {
             // Replace BASE TABLE with TABLE for Excel & Power BI SQLTables call
             if (bind_tbl[TABLES_TABLE_TYPE]->AsString() == "BASE TABLE") {
                 std::string table("TABLE");
@@ -571,7 +574,7 @@ void SetTableTuples(QResultClass *res, const TableResultSet res_type,
     // Special cases - only need single grab for this one
     else {
         RETCODE result;
-        if (!SQL_SUCCEEDED(result = ESAPI_Fetch(tbl_stmt))) {
+        if (!SQL_SUCCEEDED(result = OPENSEARCHAPI_Fetch(tbl_stmt))) {
             SC_full_error_copy(stmt, tbl_stmt, FALSE);
             throw std::runtime_error(
                 std::string("Failed to fetch data after query. Error code :"
@@ -614,35 +617,47 @@ void AssignColumnBindTemplates(bind_vector &cols);
 void SetupColumnQResInfo(QResultClass *res, EnvironmentClass *unused) {
     (void)(unused);
 
-    QR_set_field_info_v(res, COLUMNS_CATALOG_NAME, TABLE_CAT, ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, COLUMNS_CATALOG_NAME, TABLE_CAT,
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, COLUMNS_SCHEMA_NAME, TABLE_SCHEM, ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, COLUMNS_SCHEMA_NAME, TABLE_SCHEM,
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, COLUMNS_TABLE_NAME, TABLE_NAME, ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, COLUMNS_TABLE_NAME, TABLE_NAME,
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, COLUMNS_COLUMN_NAME, COLUMN_NAME, ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, COLUMNS_COLUMN_NAME, COLUMN_NAME,
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, COLUMNS_DATA_TYPE, DATA_TYPE, ES_TYPE_INT2, 2);
-    QR_set_field_info_v(res, COLUMNS_TYPE_NAME, TYPE_NAME, ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, COLUMNS_DATA_TYPE, DATA_TYPE, OPENSEARCH_TYPE_INT2, 2);
+    QR_set_field_info_v(res, COLUMNS_TYPE_NAME, TYPE_NAME,
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, COLUMNS_PRECISION, COLUMN_SIZE, ES_TYPE_INT4, 4);
-    QR_set_field_info_v(res, COLUMNS_LENGTH, BUFFER_LENGTH, ES_TYPE_INT4, 4);
-    QR_set_field_info_v(res, COLUMNS_SCALE, DECIMAL_DIGITS, ES_TYPE_INT2, 2);
-    QR_set_field_info_v(res, COLUMNS_RADIX, NUM_PREC_RADIX, ES_TYPE_INT2, 2);
-    QR_set_field_info_v(res, COLUMNS_NULLABLE, NULLABLE, ES_TYPE_INT2, 2);
-    QR_set_field_info_v(res, COLUMNS_REMARKS, REMARKS, ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, COLUMNS_PRECISION, COLUMN_SIZE,
+                        OPENSEARCH_TYPE_INT4, 4);
+    QR_set_field_info_v(res, COLUMNS_LENGTH, BUFFER_LENGTH,
+                        OPENSEARCH_TYPE_INT4, 4);
+    QR_set_field_info_v(res, COLUMNS_SCALE, DECIMAL_DIGITS,
+                        OPENSEARCH_TYPE_INT2, 2);
+    QR_set_field_info_v(res, COLUMNS_RADIX, NUM_PREC_RADIX,
+                        OPENSEARCH_TYPE_INT2, 2);
+    QR_set_field_info_v(res, COLUMNS_NULLABLE, NULLABLE, OPENSEARCH_TYPE_INT2, 2);
+    QR_set_field_info_v(res, COLUMNS_REMARKS, REMARKS, OPENSEARCH_TYPE_VARCHAR,
                         INFO_VARCHAR_SIZE);
-    QR_set_field_info_v(res, COLUMNS_COLUMN_DEF, COLUMN_DEF, ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, COLUMNS_COLUMN_DEF, COLUMN_DEF,
+                        OPENSEARCH_TYPE_VARCHAR,
                         INFO_VARCHAR_SIZE);
-    QR_set_field_info_v(res, COLUMNS_SQL_DATA_TYPE, SQL_DATA_TYPE, ES_TYPE_INT2,
+    QR_set_field_info_v(res, COLUMNS_SQL_DATA_TYPE, SQL_DATA_TYPE,
+                        OPENSEARCH_TYPE_INT2,
                         2);
     QR_set_field_info_v(res, COLUMNS_SQL_DATETIME_SUB, SQL_DATETIME_SUB,
-                        ES_TYPE_INT2, 2);
+                        OPENSEARCH_TYPE_INT2, 2);
     QR_set_field_info_v(res, COLUMNS_CHAR_OCTET_LENGTH, CHAR_OCTET_LENGTH,
-                        ES_TYPE_INT4, 4);
+                        OPENSEARCH_TYPE_INT4, 4);
     QR_set_field_info_v(res, COLUMNS_ORDINAL_POSITION, ORDINAL_POSITION,
-                        ES_TYPE_INT4, 4);
-    QR_set_field_info_v(res, COLUMNS_IS_NULLABLE, IS_NULLABLE, ES_TYPE_VARCHAR,
+                        OPENSEARCH_TYPE_INT4, 4);
+    QR_set_field_info_v(res, COLUMNS_IS_NULLABLE, IS_NULLABLE,
+                        OPENSEARCH_TYPE_VARCHAR,
                         INFO_VARCHAR_SIZE);
 }
 
@@ -714,12 +729,12 @@ void GetCatalogData(const std::string &query, StatementClass *stmt,
 }
 
 RETCODE SQL_API
-ESAPI_Tables(HSTMT hstmt, const SQLCHAR *catalog_name_sql,
+OPENSEARCHAPI_Tables(HSTMT hstmt, const SQLCHAR *catalog_name_sql,
              const SQLSMALLINT catalog_name_sz, const SQLCHAR *schema_name_sql,
              const SQLSMALLINT schema_name_sz, const SQLCHAR *table_name_sql,
              const SQLSMALLINT table_name_sz, const SQLCHAR *table_type_sql,
              const SQLSMALLINT table_type_sz, const UWORD flag) {
-    CSTR func = "ESAPI_Tables";
+    CSTR func = "OPENSEARCHAPI_Tables";
     StatementClass *stmt = (StatementClass *)hstmt;
     StatementClass *tbl_stmt = NULL;
     RETCODE result = SQL_ERROR;
@@ -799,7 +814,7 @@ ESAPI_Tables(HSTMT hstmt, const SQLCHAR *catalog_name_sql,
 }
 
 RETCODE SQL_API
-ESAPI_Columns(HSTMT hstmt, const SQLCHAR *catalog_name_sql,
+OPENSEARCHAPI_Columns(HSTMT hstmt, const SQLCHAR *catalog_name_sql,
               const SQLSMALLINT catalog_name_sz, const SQLCHAR *schema_name_sql,
               const SQLSMALLINT schema_name_sz, const SQLCHAR *table_name_sql,
               const SQLSMALLINT table_name_sz, const SQLCHAR *column_name_sql,
@@ -808,7 +823,7 @@ ESAPI_Columns(HSTMT hstmt, const SQLCHAR *catalog_name_sql,
     (void)(reloid);
     (void)(attnum);
 
-    CSTR func = "ESAPI_Columns";
+    CSTR func = "OPENSEARCHAPI_Columns";
 
     // Declare outside of try so we can clean them up properly if an exception
     // occurs
@@ -841,7 +856,7 @@ ESAPI_Columns(HSTMT hstmt, const SQLCHAR *catalog_name_sql,
         if (table_valid) {
             ConnectionClass *conn = SC_get_conn(stmt);
             list_of_columns =
-                ESGetColumnsWithSelectQuery(conn->esconn, table_name);
+                OpenSearchGetColumnsWithSelectQuery(conn->opensearchconn, table_name);
         }
 
         // TODO #324 (SQL Plugin)- evaluate catalog & schema support
@@ -878,40 +893,46 @@ void CleanUp_GetTypeInfo(StatementClass *stmt, const RETCODE ret = SQL_ERROR) {
 }
 
 void SetupTypeQResInfo(QResultClass *res) {
-    QR_set_field_info_v(res, GETTYPE_TYPE_NAME, TYPE_NAME, ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, GETTYPE_TYPE_NAME, TYPE_NAME,
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, GETTYPE_DATA_TYPE, DATA_TYPE, ES_TYPE_INT2, 2);
-    QR_set_field_info_v(res, GETTYPE_COLUMN_SIZE, PRECISION, ES_TYPE_INT4, 4);
+    QR_set_field_info_v(res, GETTYPE_DATA_TYPE, DATA_TYPE, OPENSEARCH_TYPE_INT2, 2);
+    QR_set_field_info_v(res, GETTYPE_COLUMN_SIZE, PRECISION,
+                        OPENSEARCH_TYPE_INT4, 4);
     QR_set_field_info_v(res, GETTYPE_LITERAL_PREFIX, LITERAL_PREFIX,
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
     QR_set_field_info_v(res, GETTYPE_LITERAL_SUFFIX, LITERAL_SUFFIX,
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
     QR_set_field_info_v(res, GETTYPE_CREATE_PARAMS, CREATE_PARAMS,
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
-    QR_set_field_info_v(res, GETTYPE_NULLABLE, NULLABLE, ES_TYPE_INT2, 2);
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
+    QR_set_field_info_v(res, GETTYPE_NULLABLE, NULLABLE, OPENSEARCH_TYPE_INT2, 2);
     QR_set_field_info_v(res, GETTYPE_CASE_SENSITIVE, CASE_SENSITIVE,
-                        ES_TYPE_INT2, 2);
-    QR_set_field_info_v(res, GETTYPE_SEARCHABLE, SEARCHABLE, ES_TYPE_INT2, 2);
+                        OPENSEARCH_TYPE_INT2, 2);
+    QR_set_field_info_v(res, GETTYPE_SEARCHABLE, SEARCHABLE,
+                        OPENSEARCH_TYPE_INT2, 2);
     QR_set_field_info_v(res, GETTYPE_UNSIGNED_ATTRIBUTE, UNSIGNED_ATTRIBUTE,
-                        ES_TYPE_INT2, 2);
+                        OPENSEARCH_TYPE_INT2, 2);
     QR_set_field_info_v(res, GETTYPE_FIXED_PREC_SCALE, FIXED_PREC_SCALE,
-                        ES_TYPE_INT2, 2);
+                        OPENSEARCH_TYPE_INT2, 2);
     QR_set_field_info_v(res, GETTYPE_AUTO_UNIQUE_VALUE, AUTO_INCREMENT,
-                        ES_TYPE_INT2, 2);
+                        OPENSEARCH_TYPE_INT2, 2);
     QR_set_field_info_v(res, GETTYPE_LOCAL_TYPE_NAME, LOCAL_TYPE_NAME,
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
-    QR_set_field_info_v(res, GETTYPE_MINIMUM_SCALE, MINIMUM_SCALE, ES_TYPE_INT2,
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
+    QR_set_field_info_v(res, GETTYPE_MINIMUM_SCALE, MINIMUM_SCALE,
+                        OPENSEARCH_TYPE_INT2,
                         2);
-    QR_set_field_info_v(res, GETTYPE_MAXIMUM_SCALE, MAXIMUM_SCALE, ES_TYPE_INT2,
+    QR_set_field_info_v(res, GETTYPE_MAXIMUM_SCALE, MAXIMUM_SCALE,
+                        OPENSEARCH_TYPE_INT2,
                         2);
-    QR_set_field_info_v(res, GETTYPE_SQL_DATA_TYPE, SQL_DATA_TYPE, ES_TYPE_INT2,
+    QR_set_field_info_v(res, GETTYPE_SQL_DATA_TYPE, SQL_DATA_TYPE,
+                        OPENSEARCH_TYPE_INT2,
                         2);
     QR_set_field_info_v(res, GETTYPE_SQL_DATETIME_SUB, SQL_DATETIME_SUB,
-                        ES_TYPE_INT2, 2);
+                        OPENSEARCH_TYPE_INT2, 2);
     QR_set_field_info_v(res, GETTYPE_NUM_PREC_RADIX, NUM_PREC_RADIX,
-                        ES_TYPE_INT4, 4);
+                        OPENSEARCH_TYPE_INT4, 4);
     QR_set_field_info_v(res, GETTYPE_INTERVAL_PRECISION, INTERVAL_PRECISION,
-                        ES_TYPE_INT2, 2);
+                        OPENSEARCH_TYPE_INT2, 2);
 }
 
 RETCODE SetTypeResult(ConnectionClass *conn, StatementClass *stmt,
@@ -926,18 +947,18 @@ RETCODE SetTypeResult(ConnectionClass *conn, StatementClass *stmt,
     }
 
     set_tuplefield_string(&tuple[GETTYPE_TYPE_NAME],
-                          estype_attr_to_name(conn, esType, -1, FALSE));
+                          opensearchtype_attr_to_name(conn, esType, -1, FALSE));
     set_tuplefield_int2(&tuple[GETTYPE_NULLABLE],
-                        estype_nullable(conn, esType));
+                        opensearchtype_nullable(conn, esType));
 
     set_tuplefield_int2(&tuple[GETTYPE_DATA_TYPE],
                         static_cast< short >(sqlType));
     set_tuplefield_int2(&tuple[GETTYPE_CASE_SENSITIVE],
-                        estype_case_sensitive(conn, esType));
+                        opensearchtype_case_sensitive(conn, esType));
     set_tuplefield_int2(&tuple[GETTYPE_SEARCHABLE],
-                        estype_searchable(conn, esType));
+                        opensearchtype_searchable(conn, esType));
     set_tuplefield_int2(&tuple[GETTYPE_FIXED_PREC_SCALE],
-                        estype_money(conn, esType));
+                        opensearchtype_money(conn, esType));
 
     //  Localized data-source dependent data type name (always NULL)
     set_tuplefield_null(&tuple[GETTYPE_LOCAL_TYPE_NAME]);
@@ -945,35 +966,37 @@ RETCODE SetTypeResult(ConnectionClass *conn, StatementClass *stmt,
     // These values can be NULL
     set_nullfield_int4(
         &tuple[GETTYPE_COLUMN_SIZE],
-        estype_attr_column_size(conn, esType, ES_ATP_UNSET, ES_ADT_UNSET,
-                                ES_UNKNOWNS_UNSET));
+                       opensearchtype_attr_column_size(
+                           conn, esType, OPENSEARCH_ATP_UNSET,
+                           OPENSEARCH_ADT_UNSET, OPENSEARCH_UNKNOWNS_UNSET));
     set_nullfield_string(&tuple[GETTYPE_LITERAL_PREFIX],
-                         estype_literal_prefix(conn, esType));
+                         opensearchtype_literal_prefix(conn, esType));
     set_nullfield_string(&tuple[GETTYPE_LITERAL_SUFFIX],
-                         estype_literal_suffix(conn, esType));
+                         opensearchtype_literal_suffix(conn, esType));
     set_nullfield_string(&tuple[GETTYPE_CREATE_PARAMS],
-                         estype_create_params(conn, esType));
+                         opensearchtype_create_params(conn, esType));
     set_nullfield_int2(&tuple[GETTYPE_UNSIGNED_ATTRIBUTE],
-                       estype_unsigned(conn, esType));
+                       opensearchtype_unsigned(conn, esType));
     set_nullfield_int2(&tuple[GETTYPE_AUTO_UNIQUE_VALUE],
-                       estype_auto_increment(conn, esType));
+                       opensearchtype_auto_increment(conn, esType));
     set_nullfield_int2(&tuple[GETTYPE_MINIMUM_SCALE],
-                       estype_min_decimal_digits(conn, esType));
+                       opensearchtype_min_decimal_digits(conn, esType));
     set_nullfield_int2(&tuple[GETTYPE_MAXIMUM_SCALE],
-                       estype_max_decimal_digits(conn, esType));
+                       opensearchtype_max_decimal_digits(conn, esType));
     set_tuplefield_int2(&tuple[GETTYPE_SQL_DATA_TYPE],
                         static_cast< short >(sqlType));
     set_nullfield_int2(&tuple[GETTYPE_SQL_DATETIME_SUB],
-                       estype_attr_to_datetime_sub(conn, esType, ES_ATP_UNSET));
+                       opensearchtype_attr_to_datetime_sub(
+                           conn, esType, OPENSEARCH_ATP_UNSET));
     set_nullfield_int4(&tuple[GETTYPE_NUM_PREC_RADIX],
-                       estype_radix(conn, esType));
+                       opensearchtype_radix(conn, esType));
     set_nullfield_int4(&tuple[GETTYPE_INTERVAL_PRECISION], 0);
 
     return SQL_SUCCESS;
 }
 
-RETCODE SQL_API ESAPI_GetTypeInfo(HSTMT hstmt, SQLSMALLINT fSqlType) {
-    CSTR func = "ESAPI_GetTypeInfo";
+RETCODE SQL_API OPENSEARCHAPI_GetTypeInfo(HSTMT hstmt, SQLSMALLINT fSqlType) {
+    CSTR func = "OPENSEARCHAPI_GetTypeInfo";
     StatementClass *stmt = (StatementClass *)hstmt;
     ConnectionClass *conn;
     conn = SC_get_conn(stmt);
@@ -1003,16 +1026,17 @@ RETCODE SQL_API ESAPI_GetTypeInfo(HSTMT hstmt, SQLSMALLINT fSqlType) {
 
         if (fSqlType == SQL_ALL_TYPES) {
             for (std::pair< int, std::vector< int > > sqlType :
-                 sql_es_type_map) {
-                for (auto const &esType : sqlType.second) {
+                 sql_opensearch_type_map) {
+                for (auto const &openSearchType : sqlType.second) {
                     result =
-                        SetTypeResult(conn, stmt, res, esType, sqlType.first);
+                        SetTypeResult(conn, stmt, res, openSearchType, sqlType.first);
                 }
             }
         } else {
-            if (sql_es_type_map.count(fSqlType) > 0) {
-                for (auto esType : sql_es_type_map.at(fSqlType)) {
-                    result = SetTypeResult(conn, stmt, res, esType, fSqlType);
+            if (sql_opensearch_type_map.count(fSqlType) > 0) {
+                for (auto openSearchType :
+                     sql_opensearch_type_map.at(fSqlType)) {
+                    result = SetTypeResult(conn, stmt, res, openSearchType, fSqlType);
                 }
             }
         }

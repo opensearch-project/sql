@@ -14,14 +14,16 @@
  *
  */
 
+#include "multibyte.h"
+
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "es_apifunc.h"
-#include "es_connection.h"
+
 #include "misc.h"
-#include "multibyte.h"
+#include "opensearch_apifunc.h"
+#include "opensearch_connection.h"
 #ifndef WIN32
 #include <locale.h>
 #endif
@@ -29,12 +31,12 @@
 #define TRUE 1
 #endif
 
-typedef struct ES_CS {
+typedef struct OPENSEARCH_CS {
     char *name;
     int code;
-} ES_CS;
+} OPENSEARCH_CS;
 
-static ES_CS CS_Table[] = {
+static OPENSEARCH_CS CS_Table[] = {
     {"SQL_ASCII", SQL_ASCII},
     {"EUC_JP", EUC_JP},
     {"EUC_CN", EUC_CN},
@@ -81,11 +83,11 @@ static ES_CS CS_Table[] = {
                                            X 0213, since 8.3 */
     {"OTHER", OTHER}};
 
-static ES_CS CS_Alias[] = {{"UNICODE", UTF8}, {"TCVN", WIN1258},
+static OPENSEARCH_CS CS_Alias[] = {{"UNICODE", UTF8}, {"TCVN", WIN1258},
                            {"ALT", WIN866},   {"WIN", WIN1251},
                            {"KOI8R", KOI8R},  {"OTHER", OTHER}};
 
-int es_CS_code(const char *characterset_string) {
+int opensearch_CS_code(const char *characterset_string) {
     int i, c = -1;
 
     for (i = 0; CS_Table[i].code != OTHER; i++) {
@@ -107,7 +109,7 @@ int es_CS_code(const char *characterset_string) {
     return (c);
 }
 
-int es_mb_maxlen(int characterset_code) {
+int opensearch_mb_maxlen(int characterset_code) {
     switch (characterset_code) {
         case UTF8:
             return 4;
@@ -131,7 +133,7 @@ int es_mb_maxlen(int characterset_code) {
     }
 }
 
-static int es_CS_stat(int stat, unsigned int character, int characterset_code) {
+static int opensearch_CS_stat(int stat, unsigned int character, int characterset_code) {
     if (character == 0)
         stat = 0;
     switch (characterset_code) {
@@ -356,7 +358,8 @@ int encoded_nextchar(encoded_str *encstr) {
     if (encstr->pos >= 0 && !encstr->encstr[encstr->pos])
         return 0;
     chr = encstr->encstr[++encstr->pos];
-    encstr->ccst = es_CS_stat(encstr->ccst, (unsigned int)chr, encstr->ccsc);
+    encstr->ccst =
+        opensearch_CS_stat(encstr->ccst, (unsigned int)chr, encstr->ccsc);
     return chr;
 }
 
@@ -364,6 +367,7 @@ int encoded_byte_check(encoded_str *encstr, size_t abspos) {
     int chr;
 
     chr = encstr->encstr[encstr->pos = abspos];
-    encstr->ccst = es_CS_stat(encstr->ccst, (unsigned int)chr, encstr->ccsc);
+    encstr->ccst =
+        opensearch_CS_stat(encstr->ccst, (unsigned int)chr, encstr->ccsc);
     return chr;
 }

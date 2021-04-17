@@ -14,8 +14,8 @@
  *
  */
 
-#ifndef __ESODBC_H__
-#define __ESODBC_H__
+#ifndef __OPENSEARCHODBC_H__
+#define __OPENSEARCHODBC_H__
 #include <stdarg.h>
 
 /* #define	__MS_REPORTS_ANSI_CHAR__ */
@@ -54,15 +54,15 @@ void unused_vargs(int cnt, ...);
 
 #if defined(__GNUC__) || defined(__IBMC__)
 #if ((__GNUC__ * 100) + __GNUC_MINOR__) >= 404
-#define ES_PRINTF_ATTRIBUTE gnu_printf
+#define OPENSEARCH_PRINTF_ATTRIBUTE gnu_printf
 #else
-#define ES_PRINTF_ATTRIBUTE printf
+#define OPENSEARCH_PRINTF_ATTRIBUTE printf
 #endif
-#define es_attribute_printf(f, a) \
-    __attribute__((format(ES_PRINTF_ATTRIBUTE, f, a)))
+#define opensearch_attribute_printf(f, a) \
+    __attribute__((format(OPENSEARCH_PRINTF_ATTRIBUTE, f, a)))
 #else
 #define __attribute__(x)
-#define es_attribute_printf(f, a)
+#define opensearch_attribute_printf(f, a)
 #endif /* __GNUC__ || __IBMC__ */
 
 #ifdef _MEMORY_DEBUG_
@@ -324,10 +324,10 @@ extern int posix_snprintf(char *buf, size_t size, const char *format, ...);
 
 /* Driver stuff */
 
-#define DRIVERNAME "Elasticsearch ODBC"
+#define DRIVERNAME "OpenSearch ODBC"
 
-#define DBMS_NAME_UNICODE "Elasticsearch Unicode"
-#define DBMS_NAME_ANSI "Elasticsearch ANSI"
+#define DBMS_NAME_UNICODE "OpenSearch Unicode"
+#define DBMS_NAME_ANSI "OpenSearch ANSI"
 
 #define DRIVER_ODBC_VER "03.51"
 
@@ -362,7 +362,7 @@ SQLULEN ucs2strlen(const SQLWCHAR *);
 #endif /* DBMS_NAME */
 
 #ifndef DBMS_NAME
-#define DBMS_NAME "Elasticsearch Legacy"
+#define DBMS_NAME "OpenSearch Legacy"
 #endif /* DBMS_NAME */
 #ifdef WIN32
 #ifdef UNICODE_SUPPORT
@@ -391,8 +391,8 @@ BOOL isSqlServr(void);
 #define ODBC_ESCAPE_END '}'
 #define DOLLAR_QUOTE '$'
 #define LITERAL_EXT 'E'
-#define ES_CARRIAGE_RETURN '\r'
-#define ES_LINEFEED '\n'
+#define OPENSEARCH_CARRIAGE_RETURN '\r'
+#define OPENSEARCH_LINEFEED '\n'
 
 /* Limits */
 #define MAXESPATH 1024
@@ -465,10 +465,10 @@ typedef struct IPDFields_ IPDFields;
 typedef struct col_info COL_INFO;
 typedef struct lo_arg LO_ARG;
 
-/*	esNAME type define */
+/*	opensearchNAME type define */
 typedef struct {
     char *name;
-} esNAME;
+} opensearchNAME;
 #define GET_NAME(the_name) ((the_name).name)
 #define SAFE_NAME(the_name) ((the_name).name ? (the_name).name : NULL_STRING)
 #define PRINT_NAME(the_name) ((the_name).name ? (the_name).name : PRINT_NULL)
@@ -526,10 +526,10 @@ typedef struct {
 
 #define NAMECMP(name1, name2) (strcmp(SAFE_NAME(name1), SAFE_NAME(name2)))
 #define NAMEICMP(name1, name2) (stricmp(SAFE_NAME(name1), SAFE_NAME(name2)))
-/*	esNAME define end */
+/*	opensearchNAME define end */
 
 typedef struct GlobalValues_ {
-    esNAME drivername;
+    opensearchNAME drivername;
     char output_dir[LARGE_REGISTRY_LEN];
     int loglevel;
 } GLOBAL_VALUES;
@@ -568,20 +568,20 @@ typedef struct {
     char sqlstate[6];
     SQLLEN diag_row_count;
     char __error_message[40];
-} ES_ErrorInfo;
-ES_ErrorInfo *ER_Constructor(SDWORD errornumber, const char *errormsg);
-ES_ErrorInfo *ER_Dup(const ES_ErrorInfo *from);
-void ER_Destructor(ES_ErrorInfo *);
-RETCODE SQL_API ER_ReturnError(ES_ErrorInfo *, SQLSMALLINT, UCHAR *,
+} OpenSearch_ErrorInfo;
+OpenSearch_ErrorInfo *ER_Constructor(SDWORD errornumber, const char *errormsg);
+OpenSearch_ErrorInfo *ER_Dup(const OpenSearch_ErrorInfo *from);
+void ER_Destructor(OpenSearch_ErrorInfo *);
+RETCODE SQL_API ER_ReturnError(OpenSearch_ErrorInfo *, SQLSMALLINT, UCHAR *,
                                SQLINTEGER *, UCHAR *, SQLSMALLINT,
                                SQLSMALLINT *, UWORD);
 
 void logs_on_off(int cnopen, int, int);
 
-#define ES_TYPE_LO_UNDEFINED         \
+#define OPENSEARCH_TYPE_LO_UNDEFINED \
     (-999) /* hack until permanent \ \
             * type available */
-#define ES_TYPE_LO_NAME "lo"
+#define OPENSEARCH_TYPE_LO_NAME "lo"
 #define CTID_ATTNUM (-1) /* the attnum of ctid */
 #define OID_ATTNUM (-2)  /* the attnum of oid */
 #define XMIN_ATTNUM (-3) /* the attnum of xmin */
@@ -597,12 +597,12 @@ void logs_on_off(int cnopen, int, int);
     254 /* varchar field size \ \
          * used in info.c */
 
-#define ES_NUMERIC_MAX_PRECISION 1000
-#define ES_NUMERIC_MAX_SCALE 1000
+#define OPENSEARCH_NUMERIC_MAX_PRECISION 1000
+#define OPENSEARCH_NUMERIC_MAX_SCALE 1000
 
 /* Sufficient digits to recover original float values */
-#define ES_REAL_DIGITS 9
-#define ES_DOUBLE_DIGITS 17
+#define OPENSEARCH_REAL_DIGITS 9
+#define OPENSEARCH_DOUBLE_DIGITS 17
 
 #define INFO_INQUIRY_LEN                                                  \
     8192                             /* this seems sufficiently big for \ \
@@ -626,7 +626,7 @@ typedef struct {
     // Authentication
     char authtype[MEDIUM_REGISTRY_LEN];
     char username[MEDIUM_REGISTRY_LEN];
-    esNAME password;
+    opensearchNAME password;
     char region[MEDIUM_REGISTRY_LEN];
 
     // Encryption
@@ -676,4 +676,4 @@ enum {
 
 #include "mylog.h"
 
-#endif /* __ESODBC_H__ */
+#endif /* __OPENSEARCHODBC_H__ */

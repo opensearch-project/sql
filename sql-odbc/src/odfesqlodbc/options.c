@@ -17,10 +17,10 @@
 #include <string.h>
 
 #include "environ.h"
-#include "es_apifunc.h"
-#include "es_connection.h"
-#include "es_odbc.h"
+#include "opensearch_odbc.h"
 #include "misc.h"
+#include "opensearch_apifunc.h"
+#include "opensearch_connection.h"
 #include "qresult.h"
 #include "statement.h"
 #include "unicode_support.h"
@@ -53,7 +53,7 @@ static RETCODE set_statement_option(ConnectionClass *conn, StatementClass *stmt,
              * positioned update isn't supported so cursor concurrency is
              * read-only
              */
-            MYLOG(ES_DEBUG, "SQL_CONCURRENCY = " FORMAT_LEN " ", vParam);
+            MYLOG(OPENSEARCH_DEBUG, "SQL_CONCURRENCY = " FORMAT_LEN " ", vParam);
             setval = SQL_CONCUR_READ_ONLY;
             if (conn)
                 conn->stmtOptions.scroll_concurrency = (SQLUINTEGER)setval;
@@ -78,7 +78,7 @@ static RETCODE set_statement_option(ConnectionClass *conn, StatementClass *stmt,
              * if declare/fetch, then type can only be forward. otherwise,
              * it can only be forward or static.
              */
-            MYLOG(ES_DEBUG, "SQL_CURSOR_TYPE = " FORMAT_LEN " ", vParam);
+            MYLOG(OPENSEARCH_DEBUG, "SQL_CURSOR_TYPE = " FORMAT_LEN " ", vParam);
             setval = SQL_CURSOR_FORWARD_ONLY;
             if (SQL_CURSOR_STATIC == vParam)
                 setval = vParam;
@@ -106,7 +106,7 @@ static RETCODE set_statement_option(ConnectionClass *conn, StatementClass *stmt,
             break;
 
         case SQL_KEYSET_SIZE: /* ignored, but saved and returned	*/
-            MYLOG(ES_DEBUG, "SQL_KEYSET_SIZE, vParam = " FORMAT_LEN "\n",
+            MYLOG(OPENSEARCH_DEBUG, "SQL_KEYSET_SIZE, vParam = " FORMAT_LEN "\n",
                   vParam);
 
             if (conn)
@@ -122,7 +122,7 @@ static RETCODE set_statement_option(ConnectionClass *conn, StatementClass *stmt,
             break;
 
         case SQL_MAX_LENGTH: /* ignored, but saved */
-            MYLOG(ES_DEBUG, "SQL_MAX_LENGTH, vParam = " FORMAT_LEN "\n",
+            MYLOG(OPENSEARCH_DEBUG, "SQL_MAX_LENGTH, vParam = " FORMAT_LEN "\n",
                   vParam);
             if (conn)
                 conn->stmtOptions.maxLength = vParam;
@@ -136,7 +136,7 @@ static RETCODE set_statement_option(ConnectionClass *conn, StatementClass *stmt,
             break;
 
         case SQL_MAX_ROWS: /* ignored, but saved */
-            MYLOG(ES_DEBUG, "SQL_MAX_ROWS, vParam = " FORMAT_LEN "\n", vParam);
+            MYLOG(OPENSEARCH_DEBUG, "SQL_MAX_ROWS, vParam = " FORMAT_LEN "\n", vParam);
             if (conn)
                 conn->stmtOptions.maxRows = vParam;
             if (stmt) {
@@ -149,11 +149,11 @@ static RETCODE set_statement_option(ConnectionClass *conn, StatementClass *stmt,
             break;
 
         case SQL_NOSCAN: /* ignored */
-            MYLOG(ES_DEBUG, "SQL_NOSCAN, vParam = " FORMAT_LEN "\n", vParam);
+            MYLOG(OPENSEARCH_DEBUG, "SQL_NOSCAN, vParam = " FORMAT_LEN "\n", vParam);
             break;
 
         case SQL_QUERY_TIMEOUT: /* ignored */
-            MYLOG(ES_DEBUG, "SQL_QUERY_TIMEOUT, vParam = " FORMAT_LEN "\n",
+            MYLOG(OPENSEARCH_DEBUG, "SQL_QUERY_TIMEOUT, vParam = " FORMAT_LEN "\n",
                   vParam);
             if (conn)
                 conn->stmtOptions.stmt_timeout = (SQLULEN)vParam;
@@ -162,7 +162,7 @@ static RETCODE set_statement_option(ConnectionClass *conn, StatementClass *stmt,
             break;
 
         case SQL_RETRIEVE_DATA:
-            MYLOG(ES_DEBUG, "SQL_RETRIEVE_DATA, vParam = " FORMAT_LEN "\n",
+            MYLOG(OPENSEARCH_DEBUG, "SQL_RETRIEVE_DATA, vParam = " FORMAT_LEN "\n",
                   vParam);
             if (conn)
                 conn->stmtOptions.retrieve_data = (SQLUINTEGER)vParam;
@@ -171,7 +171,7 @@ static RETCODE set_statement_option(ConnectionClass *conn, StatementClass *stmt,
             break;
 
         case SQL_ROWSET_SIZE:
-            MYLOG(ES_DEBUG, "SQL_ROWSET_SIZE, vParam = " FORMAT_LEN "\n",
+            MYLOG(OPENSEARCH_DEBUG, "SQL_ROWSET_SIZE, vParam = " FORMAT_LEN "\n",
                   vParam);
 
             if (vParam < 1) {
@@ -203,7 +203,7 @@ static RETCODE set_statement_option(ConnectionClass *conn, StatementClass *stmt,
         case SQL_USE_BOOKMARKS:
             if (stmt) {
                 MYLOG(
-                    ES_DEBUG, "USE_BOOKMARKS %s\n",
+                    OPENSEARCH_DEBUG, "USE_BOOKMARKS %s\n",
                     (vParam == SQL_UB_OFF)
                         ? "off"
                         : ((vParam == SQL_UB_VARIABLE) ? "variable" : "fixed"));
@@ -276,15 +276,15 @@ static RETCODE set_statement_option(ConnectionClass *conn, StatementClass *stmt,
 }
 
 /* Implements only SQL_AUTOCOMMIT */
-RETCODE SQL_API ESAPI_SetConnectOption(HDBC hdbc, SQLUSMALLINT fOption,
+RETCODE SQL_API OPENSEARCHAPI_SetConnectOption(HDBC hdbc, SQLUSMALLINT fOption,
                                        SQLULEN vParam) {
-    CSTR func = "ESAPI_SetConnectOption";
+    CSTR func = "OPENSEARCHAPI_SetConnectOption";
     ConnectionClass *conn = (ConnectionClass *)hdbc;
     char changed = FALSE;
     RETCODE retval;
     BOOL autocomm_on;
 
-    MYLOG(ES_TRACE, "entering fOption = %d vParam = " FORMAT_LEN "\n", fOption,
+    MYLOG(OPENSEARCH_TRACE, "entering fOption = %d vParam = " FORMAT_LEN "\n", fOption,
           vParam);
     if (!conn) {
         CC_log_error(func, "", NULL);
@@ -349,7 +349,7 @@ RETCODE SQL_API ESAPI_SetConnectOption(HDBC hdbc, SQLUSMALLINT fOption,
                 break;
             conn->autocommit_public =
                 (autocomm_on ? SQL_AUTOCOMMIT_ON : SQL_AUTOCOMMIT_OFF);
-            MYLOG(ES_DEBUG,
+            MYLOG(OPENSEARCH_DEBUG,
                   "AUTOCOMMIT: transact_status=%d, vparam=" FORMAT_LEN "\n",
                   conn->transact_status, vParam);
 
@@ -416,7 +416,7 @@ RETCODE SQL_API ESAPI_SetConnectOption(HDBC hdbc, SQLUSMALLINT fOption,
 #endif /* UNICODE_SUPPORT */
                     cmp = strncmp((char *)vParam, "Microsoft Jet", 13);
                 if (0 == cmp) {
-                    MYLOG(ES_DEBUG, "Microsoft Jet !!!!\n");
+                    MYLOG(OPENSEARCH_DEBUG, "Microsoft Jet !!!!\n");
                     CC_set_errornumber(conn, 0);
                     conn->ms_jet = 1;
                     return SQL_SUCCESS;
@@ -437,16 +437,16 @@ RETCODE SQL_API ESAPI_SetConnectOption(HDBC hdbc, SQLUSMALLINT fOption,
 }
 
 /* This function just can tell you whether you are in Autcommit mode or not */
-RETCODE SQL_API ESAPI_GetConnectOption(HDBC hdbc, SQLUSMALLINT fOption,
+RETCODE SQL_API OPENSEARCHAPI_GetConnectOption(HDBC hdbc, SQLUSMALLINT fOption,
                                        PTR pvParam, SQLINTEGER *StringLength,
                                        SQLINTEGER BufferLength) {
-    CSTR func = "ESAPI_GetConnectOption";
+    CSTR func = "OPENSEARCHAPI_GetConnectOption";
     ConnectionClass *conn = (ConnectionClass *)hdbc;
     const char *p = NULL;
     SQLLEN len = sizeof(SQLINTEGER);
     SQLRETURN result = SQL_SUCCESS;
 
-    MYLOG(ES_TRACE, "entering...\n");
+    MYLOG(OPENSEARCH_TRACE, "entering...\n");
 
     if (!conn) {
         CC_log_error(func, "", NULL);
@@ -497,7 +497,7 @@ RETCODE SQL_API ESAPI_GetConnectOption(HDBC hdbc, SQLUSMALLINT fOption,
 #else
         case 1209:
 #endif /* SQL_ATTR_CONNECTION_DEAD */
-            MYLOG(ES_DEBUG, "CONNECTION_DEAD status=%d", conn->status);
+            MYLOG(OPENSEARCH_DEBUG, "CONNECTION_DEAD status=%d", conn->status);
             *((SQLUINTEGER *)pvParam) = CC_not_connected(conn);
             MYPRINTF(0, " val=" FORMAT_UINTEGER "\n",
                      *((SQLUINTEGER *)pvParam));
@@ -505,7 +505,7 @@ RETCODE SQL_API ESAPI_GetConnectOption(HDBC hdbc, SQLUSMALLINT fOption,
 
         case SQL_ATTR_ANSI_APP:
             *((SQLUINTEGER *)pvParam) = CC_is_in_ansi_app(conn);
-            MYLOG(ES_DEBUG, "ANSI_APP val=" FORMAT_UINTEGER "\n",
+            MYLOG(OPENSEARCH_DEBUG, "ANSI_APP val=" FORMAT_UINTEGER "\n",
                   *((SQLUINTEGER *)pvParam));
             break;
 
@@ -559,13 +559,13 @@ RETCODE SQL_API ESAPI_GetConnectOption(HDBC hdbc, SQLUSMALLINT fOption,
     return result;
 }
 
-RETCODE SQL_API ESAPI_SetStmtOption(HSTMT hstmt, SQLUSMALLINT fOption,
+RETCODE SQL_API OPENSEARCHAPI_SetStmtOption(HSTMT hstmt, SQLUSMALLINT fOption,
                                     SQLULEN vParam) {
-    CSTR func = "ESAPI_SetStmtOption";
+    CSTR func = "OPENSEARCHAPI_SetStmtOption";
     StatementClass *stmt = (StatementClass *)hstmt;
     RETCODE retval;
 
-    MYLOG(ES_DEBUG, " entering...\n");
+    MYLOG(OPENSEARCH_DEBUG, " entering...\n");
 
     /*
      * Though we could fake Access out by just returning SQL_SUCCESS all
@@ -581,18 +581,18 @@ RETCODE SQL_API ESAPI_SetStmtOption(HSTMT hstmt, SQLUSMALLINT fOption,
     return retval;
 }
 
-RETCODE SQL_API ESAPI_GetStmtOption(HSTMT hstmt, SQLUSMALLINT fOption,
+RETCODE SQL_API OPENSEARCHAPI_GetStmtOption(HSTMT hstmt, SQLUSMALLINT fOption,
                                     PTR pvParam, SQLINTEGER *StringLength,
                                     SQLINTEGER BufferLength) {
     UNUSED(BufferLength);
-    CSTR func = "ESAPI_GetStmtOption";
+    CSTR func = "OPENSEARCHAPI_GetStmtOption";
     StatementClass *stmt = (StatementClass *)hstmt;
     QResultClass *res;
     SQLLEN ridx;
     SQLINTEGER len = sizeof(SQLINTEGER);
     Int4 bookmark;
 
-    MYLOG(ES_TRACE, "entering...\n");
+    MYLOG(OPENSEARCH_TRACE, "entering...\n");
 
     /*
      * thought we could fake Access out by just returning SQL_SUCCESS all
@@ -655,19 +655,19 @@ RETCODE SQL_API ESAPI_GetStmtOption(HSTMT hstmt, SQLUSMALLINT fOption,
             break;
 
         case SQL_CONCURRENCY: /* NOT REALLY SUPPORTED */
-            MYLOG(ES_DEBUG, "SQL_CONCURRENCY " FORMAT_INTEGER "\n",
+            MYLOG(OPENSEARCH_DEBUG, "SQL_CONCURRENCY " FORMAT_INTEGER "\n",
                   stmt->options.scroll_concurrency);
             *((SQLINTEGER *)pvParam) = stmt->options.scroll_concurrency;
             break;
 
         case SQL_CURSOR_TYPE: /* PARTIAL SUPPORT */
-            MYLOG(ES_DEBUG, "SQL_CURSOR_TYPE " FORMAT_INTEGER "\n",
+            MYLOG(OPENSEARCH_DEBUG, "SQL_CURSOR_TYPE " FORMAT_INTEGER "\n",
                   stmt->options.cursor_type);
             *((SQLINTEGER *)pvParam) = stmt->options.cursor_type;
             break;
 
         case SQL_KEYSET_SIZE: /* NOT SUPPORTED, but saved */
-            MYLOG(ES_DEBUG, "SQL_KEYSET_SIZE\n");
+            MYLOG(OPENSEARCH_DEBUG, "SQL_KEYSET_SIZE\n");
             *((SQLLEN *)pvParam) = stmt->options.keyset_size;
             break;
 
@@ -677,7 +677,7 @@ RETCODE SQL_API ESAPI_GetStmtOption(HSTMT hstmt, SQLUSMALLINT fOption,
 
         case SQL_MAX_ROWS: /* NOT SUPPORTED, but saved */
             *((SQLLEN *)pvParam) = stmt->options.maxRows;
-            MYLOG(ES_DEBUG, "MAX_ROWS, returning " FORMAT_LEN "\n",
+            MYLOG(OPENSEARCH_DEBUG, "MAX_ROWS, returning " FORMAT_LEN "\n",
                   stmt->options.maxRows);
             break;
 

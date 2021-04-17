@@ -37,7 +37,7 @@
 #define IT_SIZEOF(x) (NULL == (x) ? 0 : (sizeof((x)) / sizeof((x)[0])))
 
 std::vector< std::pair< std::wstring, std::wstring > > conn_str_pair = {
-    {L"Driver", L"{Elasticsearch ODBC}"},
+    {L"Driver", L"{OpenSearch ODBC}"},
     {L"host", (use_ssl ? L"https://localhost" : L"localhost")},
     {L"port", L"9200"},
     {L"user", L"admin"},

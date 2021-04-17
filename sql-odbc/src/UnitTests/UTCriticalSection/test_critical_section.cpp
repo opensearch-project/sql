@@ -19,7 +19,7 @@
 #include <string>
 #include <thread>
 
-#include "es_helper.h"
+#include "opensearch_helper.h"
 #include "pch.h"
 #include "unit_test_helper.h"
 

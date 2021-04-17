@@ -1,9 +1,9 @@
-#  Connecting Open Distro For ElasticSearch to Microsoft Power BI Desktop
+#  Connecting OpenSearch to Microsoft Power BI Desktop
 
 ## Prerequisites
 * Microsoft Power BI Desktop
-* [Open Distro for Elasticsearch](https://opendistro.github.io/for-elasticsearch-docs/docs/install/)
-* [Open Distro for Elasticsearch SQL ODBC driver](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/odbc/)
+* [OpenSearch](https://opendistro.github.io/for-elasticsearch-docs/docs/install/)
+* [OpenSearch SQL ODBC driver](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/odbc/)
 * [OdfeSqlOdbcPBIConnector.mez](../../src/PowerBIConnector/bin/Release/) 
 * Optional: [odfesqlodbc_import.pbids](../../src/PowerBIConnector/PBIDSExamples) to help with repeated connections to the same server 
 
@@ -26,7 +26,7 @@
 
 <img src="img/pbi_disable_parallel_loading_tables.png"  width="500">
 
-* Click on **Home** > **Get Data** > **More** > **Other**. Select **Open Distro For Elasticsearch (Beta)**. Click on **Connect**.
+* Click on **Home** > **Get Data** > **More** > **Other**. Select **OpenSearch (Beta)**. Click on **Connect**.
 
 <img src="img/pbi_select_connector.png" width="500">
 
@@ -56,7 +56,7 @@
 
 More info: https://docs.microsoft.com/en-us/power-bi/connect-data/desktop-data-sources#using-pbids-files-to-get-data
 
-Example PBIDS file for Open Distro for Elasticsearch: (available here: [odfesqlodbc_import.pbids](../../src/PowerBIConnector/PBIDSExamples/odfesqlodbc_import.pbids))
+Example PBIDS file for OpenSearch: (available here: [odfesqlodbc_import.pbids](../../src/PowerBIConnector/PBIDSExamples/odfesqlodbc_import.pbids))
 ```json
 {
     "version": "0.1",
@@ -86,7 +86,7 @@ It will take you straight to the **Navigator** window for selecting the tables f
 
 ## Troubleshooting 
 
-* If you get an following error, please install [Open Distro For Elasticsearch SQL ODBC Driver](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/odbc/).
+* If you get an following error, please install [OpenSearch SQL ODBC Driver](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/odbc/).
 
 <img src="img/pbi_error_driver_not_installed.png" width="350">
 

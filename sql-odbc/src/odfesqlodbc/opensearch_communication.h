@@ -14,16 +14,16 @@
  *
  */
 
-#ifndef ES_COMMUNICATION
-#define ES_COMMUNICATION
+#ifndef OPENSEARCH_COMMUNICATION
+#define OPENSEARCH_COMMUNICATION
 
 // clang-format off
 #include <memory>
 #include <queue>
 #include <future>
 #include <regex>
-#include "es_types.h"
-#include "es_result_queue.h"
+#include "opensearch_types.h"
+#include "opensearch_result_queue.h"
 
 //Keep rabbit at top otherwise it gives build error because of some variable names like max, min
 #ifdef __APPLE__
@@ -44,10 +44,10 @@
 #include <aws/core/client/ClientConfiguration.h>
 // clang-format on
 
-class ESCommunication {
+class OpenSearchCommunication {
    public:
-    ESCommunication();
-    ~ESCommunication();
+    OpenSearchCommunication();
+    ~OpenSearchCommunication();
 
     // Create function for factory
     std::string GetErrorMessage();
@@ -58,10 +58,10 @@ class ESCommunication {
     bool ConnectDBStart();
     ConnStatusType GetConnectionStatus();
     void DropDBConnection();
-    void LogMsg(ESLogLevel level, const char* msg);
+    void LogMsg(OpenSearchLogLevel level, const char* msg);
     int ExecDirect(const char* query, const char* fetch_size_);
     void SendCursorQueries(std::string cursor);
-    ESResult* PopResult();
+    OpenSearchResult* PopResult();
     std::string GetClientEncoding();
     bool SetClientEncoding(std::string& encoding);
     bool IsSQLPluginInstalled(const std::string& plugin_response);
@@ -83,10 +83,11 @@ class ESCommunication {
     void InitializeConnection();
     bool CheckConnectionOptions();
     bool EstablishConnection();
-    void ConstructESResult(ESResult& result);
-    void GetJsonSchema(ESResult& es_result);
-    void PrepareCursorResult(ESResult& es_result);
-    std::shared_ptr< ErrorDetails > ParseErrorResponse(ESResult& es_result);
+    void ConstructOpenSearchResult(OpenSearchResult& result);
+    void GetJsonSchema(OpenSearchResult& opensearch_result);
+    void PrepareCursorResult(OpenSearchResult& opensearch_result);
+    std::shared_ptr< ErrorDetails > ParseErrorResponse(
+        OpenSearchResult& opensearch_result);
     void SetErrorDetails(std::string reason, std::string message,
                          ConnErrorType error_type);
     void SetErrorDetails(ErrorDetails details);
@@ -100,7 +101,7 @@ class ESCommunication {
     std::shared_ptr< ErrorDetails > m_error_details;
     bool m_valid_connection_options;
     bool m_is_retrieving;
-    ESResultQueue m_result_queue;
+    OpenSearchResultQueue m_result_queue;
     runtime_options m_rt_opts;
     std::string m_client_encoding;
     Aws::SDKOptions m_options;

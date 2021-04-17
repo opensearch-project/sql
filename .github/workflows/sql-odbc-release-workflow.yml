@@ -1,5 +1,5 @@
 name: Build and Release SQL-ODBC
-# This workflow is triggered on creating tags to master or an opendistro release branch
+# This workflow is triggered on creating tags to main or an opensearch release branch
 on:
   push:
     tags:
@@ -11,8 +11,8 @@ env:
   ODBC_BIN_PATH: "./build/odbc/bin"
   ODBC_BUILD_PATH: "./build/odbc/build"
   AWS_SDK_INSTALL_PATH: "./build/aws-sdk/install"
-  PLUGIN_NAME: opendistro-sql-odbc
-  OD_VERSION: 1.13.0.0
+  PLUGIN_NAME: opensearch-sql-odbc
+  OD_VERSION: 1.15.0.0
 
 jobs:
   build-mac:
@@ -82,7 +82,7 @@ jobs:
         run: |
           cd installer
 
-          pkg=`ls -1t *.pkg | grep "Open Distro for Elasticsearch SQL ODBC Driver" | head -1`
+          pkg=`ls -1t *.pkg | grep "OpenSearch SQL ODBC Driver" | head -1`
           mv "$pkg" "${{ env.PLUGIN_NAME }}-${{ env.OD_VERSION }}-macos-x64.pkg"
           pkg=`ls -1t *.pkg | grep "${{ env.PLUGIN_NAME }}-${{ env.OD_VERSION }}-macos-x64.pkg" | head -1`
 
@@ -140,7 +140,7 @@ jobs:
         run: |
           cd ci-output/installer
           
-          msi=`ls -1t *.msi | grep "Open Distro for Elasticsearch SQL ODBC Driver" | head -1`
+          msi=`ls -1t *.msi | grep "OpenSearch SQL ODBC Driver" | head -1`
           mv "$msi" "${{ env.PLUGIN_NAME }}-${{ env.OD_VERSION }}-windows-x86.msi"
           msi=`ls -1t *.msi | grep "${{ env.PLUGIN_NAME }}-${{ env.OD_VERSION }}-windows-x86.msi" | head -1`
 
@@ -198,7 +198,7 @@ jobs:
         run: |
           cd ci-output/installer
           
-          msi=`ls -1t *.msi | grep "Open Distro for Elasticsearch SQL ODBC Driver" | head -1`
+          msi=`ls -1t *.msi | grep "OpenSearch SQL ODBC Driver" | head -1`
           mv "$msi" "${{ env.PLUGIN_NAME }}-${{ env.OD_VERSION }}-windows-x64.msi"
           msi=`ls -1t *.msi | grep "${{ env.PLUGIN_NAME }}-${{ env.OD_VERSION }}-windows-x64.msi" | head -1`
           

@@ -14,33 +14,21 @@
  *
  */
 
-#ifndef ES_UTILITY_H
-#define ES_UTILITY_H
+#ifndef __OPENSEARCH_DRIVER_CONNECT_H__
+#define __OPENSEARCH_DRIVER_CONNECT_H__
+#include "opensearch_connection.h"
 
-#include <stddef.h>
-
+// C Interface
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef struct ESExpBufferData {
-    char *data;
-    size_t len;
-    size_t maxlen;
-} ESExpBufferData;
-
-typedef ESExpBufferData *ESExpBuffer;
-
-#define ESExpBufferBroken(str) ((str) == NULL || (str)->maxlen == 0)
-#define ESExpBufferDataBroken(buf) ((buf).maxlen == 0)
-#define INITIAL_EXPBUFFER_SIZE 256
-
-void InitESExpBuffer(ESExpBuffer str);
-void AppendESExpBuffer(ESExpBuffer str, const char *fmt, ...);
-void TermESExpBuffer(ESExpBuffer str);
-
+RETCODE OPENSEARCHAPI_DriverConnect(HDBC hdbc, HWND hwnd, SQLCHAR *conn_str_in,
+                            SQLSMALLINT conn_str_in_len, SQLCHAR *conn_str_out,
+                            SQLSMALLINT conn_str_out_len,
+                            SQLSMALLINT *pcb_conn_str_out,
+                            SQLUSMALLINT driver_completion);
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* ES_UTILITY_H */
+#endif /* __OPENSEARCH_DRIVER_CONNECT_H__ */

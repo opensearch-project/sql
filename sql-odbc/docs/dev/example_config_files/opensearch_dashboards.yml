@@ -1,7 +1,7 @@
-# The URLs of the Elasticsearch instances to use for all your queries.
-elasticsearch.hosts: ["https://localhost:9200"]
+# The URLs of the OpenSearch instances to use for all your queries.
+opensearch.hosts: ["https://localhost:9200"]
 
-elasticsearch.ssl.verificationMode: none
+opensearch.ssl.verificationMode: none
 
 server.ssl.enabled: true
 server.ssl.certificate: <PATH_TO_YOUR_CERT>/certificate.pem

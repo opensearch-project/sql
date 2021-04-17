@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  *
  */
-#ifndef ES_SEMAPHORE
-#define ES_SEMAPHORE
+#ifndef OPENSEARCH_SEMAPHORE
+#define OPENSEARCH_SEMAPHORE
 
 #ifdef WIN32
   #include <windows.h>
@@ -24,10 +24,10 @@
   #include <semaphore.h>
 #endif
 
-class es_semaphore {
+class opensearch_semaphore {
     public:
-        es_semaphore(unsigned int initial, unsigned int capacity);
-        ~es_semaphore();
+     opensearch_semaphore(unsigned int initial, unsigned int capacity);
+        ~opensearch_semaphore();
 
         void lock();
         void release();

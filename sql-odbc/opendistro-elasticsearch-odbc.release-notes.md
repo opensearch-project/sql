@@ -2,7 +2,7 @@
 
 ### Notable Changes
 
-This is the first release of OpenDistro For ELasticsearch ODBC driver.
+This is the first release of OpenSearch ODBC driver.
 
 OpenDistro ODBC provides a driver for ODBC connectivity for OpenDistro SQL plugin. The driver has been developed from scratch and offers the following features in this initial release:
 

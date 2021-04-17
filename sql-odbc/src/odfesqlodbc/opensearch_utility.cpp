@@ -14,7 +14,7 @@
  *
  */
 
-#include "es_utility.h"
+#include "opensearch_utility.h"
 
 #include <ctype.h>
 #include <errno.h>
@@ -32,7 +32,7 @@
 static char oom_buffer[1] = "";
 static char *oom_buffer_ptr = oom_buffer;
 
-static void MarkESExpBufferBroken(ESExpBuffer str) {
+static void MarkOpenSearchExpBufferBroken(OpenSearchExpBuffer str) {
     if (str->data != oom_buffer)
         free(str->data);
     str->data = oom_buffer_ptr;
@@ -40,12 +40,12 @@ static void MarkESExpBufferBroken(ESExpBuffer str) {
     str->maxlen = 0;
 }
 
-static bool EnlargeESExpBuffer(ESExpBuffer str, size_t needed) {
-    if (ESExpBufferBroken(str))
+static bool EnlargeOpenSearchExpBuffer(OpenSearchExpBuffer str, size_t needed) {
+    if (OpenSearchExpBufferBroken(str))
         return 0;
 
     if (needed >= ((size_t)INT_MAX - str->len)) {
-        MarkESExpBufferBroken(str);
+        MarkOpenSearchExpBufferBroken(str);
         return false;
     }
 
@@ -67,11 +67,11 @@ static bool EnlargeESExpBuffer(ESExpBuffer str, size_t needed) {
         return true;
     }
 
-    MarkESExpBufferBroken(str);
+    MarkOpenSearchExpBufferBroken(str);
     return false;
 }
 
-static bool AppendESExpBufferVA(ESExpBuffer str, const char *fmt,
+static bool AppendOpenSearchExpBufferVA(OpenSearchExpBuffer str, const char *fmt,
                                 va_list args) {
     size_t needed = 32;
     if (str->maxlen > (str->len + 16)) {
@@ -79,7 +79,7 @@ static bool AppendESExpBufferVA(ESExpBuffer str, const char *fmt,
 
         int nprinted = vsnprintf(str->data + str->len, avail, fmt, args);
         if ((nprinted < 0) || (nprinted > (INT_MAX - 1))) {
-            MarkESExpBufferBroken(str);
+            MarkOpenSearchExpBufferBroken(str);
             return true;
         } else if ((size_t)nprinted < avail) {
             str->len += nprinted;
@@ -87,10 +87,10 @@ static bool AppendESExpBufferVA(ESExpBuffer str, const char *fmt,
         }
         needed = nprinted + 1;
     }
-    return !EnlargeESExpBuffer(str, needed);
+    return !EnlargeOpenSearchExpBuffer(str, needed);
 }
 
-void InitESExpBuffer(ESExpBuffer str) {
+void InitOpenSearchExpBuffer(OpenSearchExpBuffer str) {
     str->data = (char *)malloc(INITIAL_EXPBUFFER_SIZE);
     if (str->data == NULL) {
         str->data = oom_buffer_ptr;
@@ -102,8 +102,8 @@ void InitESExpBuffer(ESExpBuffer str) {
     str->len = 0;
 }
 
-void AppendESExpBuffer(ESExpBuffer str, const char *fmt, ...) {
-    if (ESExpBufferBroken(str))
+void AppendOpenSearchExpBuffer(OpenSearchExpBuffer str, const char *fmt, ...) {
+    if (OpenSearchExpBufferBroken(str))
         return;
 
     va_list args;
@@ -112,12 +112,12 @@ void AppendESExpBuffer(ESExpBuffer str, const char *fmt, ...) {
     do {
         errno = save_errno;
         va_start(args, fmt);
-        done = AppendESExpBufferVA(str, fmt, args);
+        done = AppendOpenSearchExpBufferVA(str, fmt, args);
         va_end(args);
     } while (!done);
 }
 
-void TermESExpBuffer(ESExpBuffer str) {
+void TermOpenSearchExpBuffer(OpenSearchExpBuffer str) {
     if (str->data != oom_buffer)
         free(str->data);
     str->data = oom_buffer_ptr;

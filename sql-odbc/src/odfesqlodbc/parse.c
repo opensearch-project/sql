@@ -14,22 +14,20 @@
  *
  */
 
-#include "es_odbc.h"
-
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "catfunc.h"
-#include "es_apifunc.h"
-#include "es_connection.h"
-#include "es_types.h"
-#include "qresult.h"
-#include "statement.h"
-
-#include "es_info.h"
+#include "opensearch_odbc.h"
+#include "opensearch_types.h"
 #include "misc.h"
 #include "multibyte.h"
+#include "opensearch_apifunc.h"
+#include "opensearch_connection.h"
+#include "opensearch_info.h"
+#include "qresult.h"
+#include "statement.h"
 
 Int4 FI_precision(const FIELD_INFO *fi) {
     OID ftype;
@@ -38,10 +36,10 @@ Int4 FI_precision(const FIELD_INFO *fi) {
         return -1;
     ftype = FI_type(fi);
     switch (ftype) {
-        case ES_TYPE_NUMERIC:
+        case OPENSEARCH_TYPE_NUMERIC:
             return fi->column_size;
-        case ES_TYPE_DATETIME:
-        case ES_TYPE_TIMESTAMP_NO_TMZONE:
+        case OPENSEARCH_TYPE_DATETIME:
+        case OPENSEARCH_TYPE_TIMESTAMP_NO_TMZONE:
             return fi->decimal_digits;
     }
     return 0;

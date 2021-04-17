@@ -51,7 +51,7 @@ build
 msbuild .\build\odbc\PACKAGE.vcxproj -p:Configuration=Release
 ```
 
-`Open Distro for Elasticsearch SQL ODBC Driver-<version>-Windows-<Bitness>-bit.msi` will be generated in the build directory.
+`OpenSearch SQL ODBC Driver-<version>-Windows-<Bitness>-bit.msi` will be generated in the build directory.
 
 ### Testing
 See [run_tests.md](./run_tests.md)
@@ -96,7 +96,7 @@ cd cmake-build64/
 cpack .
 ```
 
-`Open Distro for Elasticsearch SQL ODBC Driver-<version>-Darwin.pkg` will be generated in the build directory.
+`OpenSearch SQL ODBC Driver-<version>-Darwin.pkg` will be generated in the build directory.
 
 ### Testing
 See [run_tests.md](./run_tests.md)
@@ -113,9 +113,9 @@ See [run_tests.md](./run_tests.md)
 
 To disable SSL/TLS in the tests, the main CMakeLists.txt file must be edited. This can be found in the project 'src' directory. In the 'General compiler definitions' in the CMakeLists.txt file, USE_SSL is set. Remove this from the add_compile_definitions function to stop SSL/TLS from being used in the tests.
 
-To enable SSL/TLS on Elasticsearch, you must edit the Elasticsearch.yml file, found in the config directory of Elasticsearch. An example Elasticsearch yml file can be found in the dev folder of this project. The certificates specified MUST be in the config directory of the Elasticsearch instance. For more information, please refer to the [Elasticsearch security settings documentation](https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html).
+To enable SSL/TLS on OpenSearch, you must edit the OpenSearch.yml file, found in the config directory of OpenSearch. An example OpenSearch yml file can be found in the dev folder of this project. The certificates specified MUST be in the config directory of the OpenSearch instance. For more information, please refer to the [OpenSearch security settings documentation](https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html).
 
-If you plan to use Kibana, as suggested for this project, you must also edit the Kibana settings. Notice, when specifying a certificate for Kibana, you do not need to place it in the Kibana config directory, but instead must provide the absolute path to it. An example Kibana.yml file can be found in the dev folder of this project. For more information, please refer to the [Kibana settings documentation](https://www.elastic.co/guide/en/kibana/current/settings.html).
+If you plan to use OpenSearch Dashboards, as suggested for this project, you must also edit the OpenSearch Dashboards settings. Notice, when specifying a certificate for OpenSearch Dashboards, you do not need to place it in the OpenSearch Dashboards config directory, but instead must provide the absolute path to it. An example opensearch_dashboards.yml file can be found in the dev folder of this project. For more information, please refer to the [OpenSearch Dashboards settings documentation](https://www.elastic.co/guide/en/kibana/current/settings.html).
 
 ### Setting up a DSN
 

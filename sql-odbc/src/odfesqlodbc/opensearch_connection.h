@@ -14,17 +14,17 @@
  *
  */
 
-#ifndef __ESCONNECTION_H__
-#define __ESCONNECTION_H__
+#ifndef __OPENSEARCHCONNECTION_H__
+#define __OPENSEARCHCONNECTION_H__
 
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
 #include "descriptor.h"
-#include "es_helper.h"
-#include "es_odbc.h"
-#include "es_utility.h"
+#include "opensearch_helper.h"
+#include "opensearch_odbc.h"
+#include "opensearch_utility.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -188,15 +188,15 @@ typedef enum {
  *		3rd parameter: minor version number
  */
 #define SERVER_VERSION_GT(conn, major, minor) \
-    ((conn)->es_version_major > major         \
-     || ((conn)->es_version_major == major    \
-         && (conn)->es_version_minor > minor))
+    ((conn)->opensearch_version_major > major         \
+     || ((conn)->opensearch_version_major == major    \
+         && (conn)->opensearch_version_minor > minor))
 #define SERVER_VERSION_GE(conn, major, minor) \
-    ((conn)->es_version_major > major         \
-     || ((conn)->es_version_major == major    \
-         && (conn)->es_version_minor >= minor))
+    ((conn)->opensearch_version_major > major         \
+     || ((conn)->opensearch_version_major == major    \
+         && (conn)->opensearch_version_minor >= minor))
 #define SERVER_VERSION_EQ(conn, major, minor) \
-    ((conn)->es_version_major == major && (conn)->es_version_minor == minor)
+    ((conn)->opensearch_version_major == major && (conn)->opensearch_version_minor == minor)
 #define STRING_AFTER_DOT(string) (strchr(#string, '.') + 1)
 
 /*
@@ -205,21 +205,21 @@ typedef enum {
  *	Note: Never pass a variable as the second parameter.
  *		  It must be a decimal constant of the form %d.%d .
  */
-#define ES_VERSION_GT(conn, ver) \
+#define OPENSEARCH_VERSION_GT(conn, ver) \
     (SERVER_VERSION_GT(conn, (int)ver, atoi(STRING_AFTER_DOT(ver))))
-#define ES_VERSION_GE(conn, ver) \
+#define OPENSEARCH_VERSION_GE(conn, ver) \
     (SERVER_VERSION_GE(conn, (int)ver, atoi(STRING_AFTER_DOT(ver))))
-#define ES_VERSION_EQ(conn, ver) \
+#define OPENSEARCH_VERSION_EQ(conn, ver) \
     (SERVER_VERSION_EQ(conn, (int)ver, atoi(STRING_AFTER_DOT(ver))))
-#define ES_VERSION_LE(conn, ver) (!ES_VERSION_GT(conn, ver))
-#define ES_VERSION_LT(conn, ver) (!ES_VERSION_GE(conn, ver))
+#define OPENSEARCH_VERSION_LE(conn, ver) (!OPENSEARCH_VERSION_GT(conn, ver))
+#define OPENSEARCH_VERSION_LT(conn, ver) (!OPENSEARCH_VERSION_GE(conn, ver))
 
 /*	This is used to store cached table information in the connection */
 struct col_info {
     Int2 refcnt;
     QResultClass *result;
-    esNAME schema_name;
-    esNAME table_name;
+    opensearchNAME schema_name;
+    opensearchNAME table_name;
     OID table_oid;
     int table_info;
     time_t acc_time;
@@ -271,7 +271,7 @@ struct ConnectionClass_ {
     StatementClass **stmts;
     Int2 num_stmts;
     Int2 ncursors;
-    void *esconn;
+    void *opensearchconn;
     Int4 lobj_type;
     Int2 coli_allocated;
     Int2 ntables;
@@ -283,11 +283,11 @@ struct ConnectionClass_ {
     char transact_status;             /* Is a transaction is currently
                                        * in progress */
     char cluster_name[MAX_INFO_STRING];
-    char es_version[MAX_INFO_STRING]; /* Version of Elasticsearch driver
+    char opensearch_version[MAX_INFO_STRING]; /* Version of OpenSearch driver
                                        * we're connected to -
                                        * DJP 25-1-2001 */
-    Int2 es_version_major;
-    Int2 es_version_minor;
+    Int2 opensearch_version_major;
+    Int2 opensearch_version_minor;
     char ms_jet;
     char unicode;
     char result_uncommitted;
@@ -320,8 +320,8 @@ struct ConnectionClass_ {
     SQLUINTEGER
     default_isolation; /* server's default isolation initially unkown */
     DescriptorClass **descs;
-    esNAME schemaIns;
-    esNAME tableIns;
+    opensearchNAME schemaIns;
+    opensearchNAME tableIns;
     SQLULEN stmt_timeout_in_effect;
     void *cs;
     void *slock;
@@ -405,15 +405,15 @@ char *identifierEscape(const SQLCHAR *src, SQLLEN srclen,
                        const ConnectionClass *conn, char *buf, size_t bufsize,
                        BOOL double_quote);
 int findIdentifier(const UCHAR *str, int ccsc, const UCHAR **next_token);
-int eatTableIdentifiers(const UCHAR *str, int ccsc, esNAME *table,
-                        esNAME *schema);
+int eatTableIdentifiers(const UCHAR *str, int ccsc, opensearchNAME *table,
+                        opensearchNAME *schema);
 
 char CC_connect(ConnectionClass *self);
-int LIBES_connect(ConnectionClass *self);
-void LIBES_disconnect(void *conn);
+int LIBOPENSEARCH_connect(ConnectionClass *self);
+void LIBOPENSEARCH_disconnect(void *conn);
 int CC_send_client_encoding(ConnectionClass *self, const char *encoding);
 void CC_set_locale_encoding(ConnectionClass *self, const char *encoding);
-void CC_initialize_es_version(ConnectionClass *self);
+void CC_initialize_opensearch_version(ConnectionClass *self);
 
 const char *CurrCat(const ConnectionClass *self);
 const char *CurrCatString(const ConnectionClass *self);
@@ -469,4 +469,4 @@ enum { SVPOPT_RDONLY = 1L, SVPOPT_REDUCE_ROUNDTRIP = (1L << 1) };
 #ifdef __cplusplus
 }
 #endif
-#endif /* __ESCONNECTION_H__ */
+#endif /* __OPENSEARCHCONNECTION_H__ */

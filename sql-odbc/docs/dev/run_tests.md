@@ -2,28 +2,28 @@
 
 ## Requirements
 
-* Latest version of [Open Distro for Elasticsearch](https://opendistro.github.io/for-elasticsearch-docs/docs/install/)
+* Latest version of [OpenSearch](https://opendistro.github.io/for-elasticsearch-docs/docs/install/)
 * [Required datasets loaded](#set-up-test-datasets)
 * [DSN configured](#set-up-dsn)
 
 ### Set up test datasets
 
-Loading a dataset requires an [OpenDistro for Elasticsearch](https://opendistro.github.io/for-elasticsearch-docs/docs/install/) service running with [Kibana](https://opendistro.github.io/for-elasticsearch-docs/docs/kibana/). If either of these are missing, please refer to the documentation on how to set them up.
+Loading a dataset requires an [OpenSearch](https://opendistro.github.io/for-elasticsearch-docs/docs/install/) service running with [OpenSearch Dashboards](https://opendistro.github.io/for-elasticsearch-docs/docs/kibana/). If either of these are missing, please refer to the documentation on how to set them up.
 
-Note, if you wish to work with SSL/TLS, you need to configure ODFE and Kibana to support it. See the [build instructions](./BUILD_INSTRUCTIONS.md) for more info.
+Note, if you wish to work with SSL/TLS, you need to configure ODFE and OpenSearch Dashboards to support it. See the [build instructions](./BUILD_INSTRUCTIONS.md) for more info.
 
-First load the sample datasets provided by kibana.
+First load the sample datasets provided by OpenSearch Dashboards.
 
 1. Select home (top left corner)
-2. Select 'Load a data set and a Kibana dashboard'
+2. Select 'Load a data set and a OpenSearch Dashboards dashboard'
 3. Select 'Add data' under 'Sample flight data'
 4. Select 'Add data' under 'Sample eCommerce orders'
 5. Select 'Add data' under 'Sample web logs'
 
-Then load the following custom data sets using the kibana console.
+Then load the following custom data sets using the OpenSearch Dashboards console.
 Select the wrench on the left control panel. Enter the following commands into the console and hit the play button after each one.
 
-* [kibana_sample_data_types](./datasets/kibana_sample_data_types.md)
+* [opensearch_dashboards_sample_data_types](datasets/opensearch_dashboards_sample_data_types.md)
 
 ### Set up DSN
 

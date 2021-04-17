@@ -21,28 +21,28 @@
 
 #include "descriptor.h"
 #include "environ.h"
-#include "es_apifunc.h"
-#include "es_types.h"
 #include "misc.h"
 #include "multibyte.h"
+#include "opensearch_apifunc.h"
+#include "opensearch_types.h"
 #include "qresult.h"
 #include "statement.h"
 
 /*	Associate a user-supplied buffer with a database column. */
-RETCODE SQL_API ESAPI_BindCol(HSTMT hstmt, SQLUSMALLINT icol,
+RETCODE SQL_API OPENSEARCHAPI_BindCol(HSTMT hstmt, SQLUSMALLINT icol,
                               SQLSMALLINT fCType, PTR rgbValue,
                               SQLLEN cbValueMax, SQLLEN *pcbValue) {
     StatementClass *stmt = (StatementClass *)hstmt;
-    CSTR func = "ESAPI_BindCol";
+    CSTR func = "OPENSEARCHAPI_BindCol";
     ARDFields *opts;
     GetDataInfo *gdata_info;
     BindInfoClass *bookmark;
     RETCODE ret = SQL_SUCCESS;
 
-    MYLOG(ES_TRACE, "entering...\n");
+    MYLOG(OPENSEARCH_TRACE, "entering...\n");
 
-    MYLOG(ES_DEBUG, "**** : stmt = %p, icol = %d\n", stmt, icol);
-    MYLOG(ES_DEBUG, "**** : fCType=%d rgb=%p valusMax=" FORMAT_LEN " pcb=%p\n",
+    MYLOG(OPENSEARCH_DEBUG, "**** : stmt = %p, icol = %d\n", stmt, icol);
+    MYLOG(OPENSEARCH_DEBUG, "**** : fCType=%d rgb=%p valusMax=" FORMAT_LEN " pcb=%p\n",
           fCType, rgbValue, cbValueMax, pcbValue);
 
     if (!stmt) {
@@ -86,7 +86,7 @@ RETCODE SQL_API ESAPI_BindCol(HSTMT hstmt, SQLUSMALLINT icol,
                                  "Bind column 0 is not of type SQL_C_BOOKMARK",
                                  func);
                     MYLOG(
-                        ES_ERROR,
+                        OPENSEARCH_ERROR,
                         "Bind column 0 is type %d not of type SQL_C_BOOKMARK\n",
                         fCType);
                     ret = SQL_ERROR;
@@ -161,7 +161,7 @@ RETCODE SQL_API ESAPI_BindCol(HSTMT hstmt, SQLUSMALLINT icol,
         }
         opts->bindings[icol].scale = 0;
 
-        MYLOG(ES_DEBUG, "       bound buffer[%d] = %p\n", icol,
+        MYLOG(OPENSEARCH_DEBUG, "       bound buffer[%d] = %p\n", icol,
               opts->bindings[icol].buffer);
     }
 
@@ -170,13 +170,13 @@ cleanup:
     return ret;
 }
 
-RETCODE SQL_API ESAPI_NumParams(HSTMT hstmt, SQLSMALLINT *pcpar) {
+RETCODE SQL_API OPENSEARCHAPI_NumParams(HSTMT hstmt, SQLSMALLINT *pcpar) {
     StatementClass *stmt = (StatementClass *)hstmt;
     if (pcpar != NULL) {
         *pcpar = 0;
     } else {
         SC_set_error(stmt, STMT_EXEC_ERROR, "Parameter count address is null",
-                     "ESAPI_NumParams");
+                     "OPENSEARCHAPI_NumParams");
         return SQL_ERROR;
     }
     return SQL_SUCCESS;
@@ -205,7 +205,7 @@ static BindInfoClass *create_empty_bindings(int num_columns) {
 void extend_parameter_bindings(APDFields *self, SQLSMALLINT num_params) {
     ParameterInfoClass *new_bindings;
 
-    MYLOG(ES_TRACE,
+    MYLOG(OPENSEARCH_TRACE,
           "entering ... self=%p, parameters_allocated=%d, num_params=%d,%p\n",
           self, self->allocated, num_params, self->parameters);
 
@@ -217,7 +217,7 @@ void extend_parameter_bindings(APDFields *self, SQLSMALLINT num_params) {
         new_bindings = (ParameterInfoClass *)realloc(
             self->parameters, sizeof(ParameterInfoClass) * num_params);
         if (!new_bindings) {
-            MYLOG(ES_DEBUG,
+            MYLOG(OPENSEARCH_DEBUG,
                   "unable to create %d new bindings from %d old bindings\n",
                   num_params, self->allocated);
 
@@ -234,13 +234,13 @@ void extend_parameter_bindings(APDFields *self, SQLSMALLINT num_params) {
         self->allocated = num_params;
     }
 
-    MYLOG(ES_TRACE, "leaving %p\n", self->parameters);
+    MYLOG(OPENSEARCH_TRACE, "leaving %p\n", self->parameters);
 }
 
 void extend_iparameter_bindings(IPDFields *self, SQLSMALLINT num_params) {
     ParameterImplClass *new_bindings;
 
-    MYLOG(ES_TRACE,
+    MYLOG(OPENSEARCH_TRACE,
           "entering ... self=%p, parameters_allocated=%d, num_params=%d\n",
           self, self->allocated, num_params);
 
@@ -252,7 +252,7 @@ void extend_iparameter_bindings(IPDFields *self, SQLSMALLINT num_params) {
         new_bindings = (ParameterImplClass *)realloc(
             self->parameters, sizeof(ParameterImplClass) * num_params);
         if (!new_bindings) {
-            MYLOG(ES_DEBUG,
+            MYLOG(OPENSEARCH_DEBUG,
                   "unable to create %d new bindings from %d old bindings\n",
                   num_params, self->allocated);
 
@@ -269,11 +269,11 @@ void extend_iparameter_bindings(IPDFields *self, SQLSMALLINT num_params) {
         self->allocated = num_params;
     }
 
-    MYLOG(ES_TRACE, "leaving %p\n", self->parameters);
+    MYLOG(OPENSEARCH_TRACE, "leaving %p\n", self->parameters);
 }
 
 void reset_a_parameter_binding(APDFields *self, int ipar) {
-    MYLOG(ES_TRACE, "entering ... self=%p, parameters_allocated=%d, ipar=%d\n",
+    MYLOG(OPENSEARCH_TRACE, "entering ... self=%p, parameters_allocated=%d, ipar=%d\n",
           self, self->allocated, ipar);
 
     if (ipar < 1 || ipar > self->allocated)
@@ -290,7 +290,7 @@ void reset_a_parameter_binding(APDFields *self, int ipar) {
 }
 
 void reset_a_iparameter_binding(IPDFields *self, int ipar) {
-    MYLOG(ES_TRACE, "entering ... self=%p, parameters_allocated=%d, ipar=%d\n",
+    MYLOG(OPENSEARCH_TRACE, "entering ... self=%p, parameters_allocated=%d, ipar=%d\n",
           self, self->allocated, ipar);
 
     if (ipar < 1 || ipar > self->allocated)
@@ -304,7 +304,7 @@ void reset_a_iparameter_binding(IPDFields *self, int ipar) {
     self->parameters[ipar].decimal_digits = 0;
     self->parameters[ipar].precision = 0;
     self->parameters[ipar].scale = 0;
-    PIC_set_estype(self->parameters[ipar], 0);
+    PIC_set_opensearch_type(self->parameters[ipar], 0);
 }
 
 int CountParameters(const StatementClass *self, Int2 *inputCount, Int2 *ioCount,
@@ -346,7 +346,7 @@ int CountParameters(const StatementClass *self, Int2 *inputCount, Int2 *ioCount,
  *	Free parameters and free the memory.
  */
 void APD_free_params(APDFields *apdopts, char option) {
-    MYLOG(ES_TRACE, "entering self=%p\n", apdopts);
+    MYLOG(OPENSEARCH_TRACE, "entering self=%p\n", apdopts);
 
     if (!apdopts->parameters)
         return;
@@ -357,13 +357,13 @@ void APD_free_params(APDFields *apdopts, char option) {
         apdopts->allocated = 0;
     }
 
-    MYLOG(ES_TRACE, "leaving\n");
+    MYLOG(OPENSEARCH_TRACE, "leaving\n");
 }
 
 void PDATA_free_params(PutDataInfo *pdata, char option) {
     int i;
 
-    MYLOG(ES_TRACE, "entering self=%p\n", pdata);
+    MYLOG(OPENSEARCH_TRACE, "entering self=%p\n", pdata);
 
     if (!pdata->pdata)
         return;
@@ -385,14 +385,14 @@ void PDATA_free_params(PutDataInfo *pdata, char option) {
         pdata->allocated = 0;
     }
 
-    MYLOG(ES_TRACE, "leaving\n");
+    MYLOG(OPENSEARCH_TRACE, "leaving\n");
 }
 
 /*
  *	Free parameters and free the memory.
  */
 void IPD_free_params(IPDFields *ipdopts, char option) {
-    MYLOG(ES_TRACE, "entering self=%p\n", ipdopts);
+    MYLOG(OPENSEARCH_TRACE, "entering self=%p\n", ipdopts);
 
     if (!ipdopts->parameters)
         return;
@@ -402,14 +402,14 @@ void IPD_free_params(IPDFields *ipdopts, char option) {
         ipdopts->allocated = 0;
     }
 
-    MYLOG(ES_TRACE, "leaving\n");
+    MYLOG(OPENSEARCH_TRACE, "leaving\n");
 }
 
 void extend_column_bindings(ARDFields *self, SQLSMALLINT num_columns) {
     BindInfoClass *new_bindings;
     SQLSMALLINT i;
 
-    MYLOG(ES_TRACE,
+    MYLOG(OPENSEARCH_TRACE,
           "entering ... self=%p, bindings_allocated=%d, num_columns=%d\n", self,
           self->allocated, num_columns);
 
@@ -420,7 +420,7 @@ void extend_column_bindings(ARDFields *self, SQLSMALLINT num_columns) {
     if (self->allocated < num_columns) {
         new_bindings = create_empty_bindings(num_columns);
         if (!new_bindings) {
-            MYLOG(ES_DEBUG,
+            MYLOG(OPENSEARCH_DEBUG,
                   "unable to create %d new bindings from %d old bindings\n",
                   num_columns, self->allocated);
 
@@ -453,13 +453,13 @@ void extend_column_bindings(ARDFields *self, SQLSMALLINT num_columns) {
     /* SQLExecDirect(...)  # returns 5 cols */
     /* SQLExecDirect(...)  # returns 10 cols  (now OK) */
 
-    MYLOG(ES_TRACE, "leaving %p\n", self->bindings);
+    MYLOG(OPENSEARCH_TRACE, "leaving %p\n", self->bindings);
 }
 
 void reset_a_column_binding(ARDFields *self, int icol) {
     BindInfoClass *bookmark;
 
-    MYLOG(ES_TRACE, "entering ... self=%p, bindings_allocated=%d, icol=%d\n",
+    MYLOG(OPENSEARCH_TRACE, "entering ... self=%p, bindings_allocated=%d, icol=%d\n",
           self, self->allocated, icol);
 
     if (icol > self->allocated)
@@ -485,7 +485,7 @@ void reset_a_column_binding(ARDFields *self, int icol) {
 void ARD_unbind_cols(ARDFields *self, BOOL freeall) {
     Int2 lf;
 
-    MYLOG(ES_ALL, "freeall=%d allocated=%d bindings=%p\n", freeall,
+    MYLOG(OPENSEARCH_ALL, "freeall=%d allocated=%d bindings=%p\n", freeall,
           self->allocated, self->bindings);
     for (lf = 1; lf <= self->allocated; lf++)
         reset_a_column_binding(self, lf);
@@ -499,7 +499,7 @@ void ARD_unbind_cols(ARDFields *self, BOOL freeall) {
 void GDATA_unbind_cols(GetDataInfo *self, BOOL freeall) {
     Int2 lf;
 
-    MYLOG(ES_ALL, "freeall=%d allocated=%d gdata=%p\n", freeall,
+    MYLOG(OPENSEARCH_ALL, "freeall=%d allocated=%d gdata=%p\n", freeall,
           self->allocated, self->gdata);
     if (self->fdata.ttlbuf) {
         free(self->fdata.ttlbuf);
@@ -544,7 +544,7 @@ void extend_getdata_info(GetDataInfo *self, SQLSMALLINT num_columns,
                          BOOL shrink) {
     GetDataClass *new_gdata;
 
-    MYLOG(ES_TRACE,
+    MYLOG(OPENSEARCH_TRACE,
           "entering ... self=%p, gdata_allocated=%d, num_columns=%d\n", self,
           self->allocated, num_columns);
 
@@ -555,7 +555,7 @@ void extend_getdata_info(GetDataInfo *self, SQLSMALLINT num_columns,
     if (self->allocated < num_columns) {
         new_gdata = create_empty_gdata(num_columns);
         if (!new_gdata) {
-            MYLOG(ES_DEBUG, "unable to create %d new gdata from %d old gdata\n",
+            MYLOG(OPENSEARCH_DEBUG, "unable to create %d new gdata from %d old gdata\n",
                   num_columns, self->allocated);
 
             if (self->gdata) {
@@ -592,7 +592,7 @@ void extend_getdata_info(GetDataInfo *self, SQLSMALLINT num_columns,
      * about it by unbinding those columns.
      */
 
-    MYLOG(ES_TRACE, "leaving %p\n", self->gdata);
+    MYLOG(OPENSEARCH_TRACE, "leaving %p\n", self->gdata);
 }
 void reset_a_getdata_info(GetDataInfo *gdata_info, int icol) {
     if (icol < 1 || icol > gdata_info->allocated)
@@ -614,7 +614,7 @@ void extend_putdata_info(PutDataInfo *self, SQLSMALLINT num_params,
                          BOOL shrink) {
     PutDataClass *new_pdata;
 
-    MYLOG(ES_TRACE,
+    MYLOG(OPENSEARCH_TRACE,
           "entering ... self=%p, parameters_allocated=%d, num_params=%d\n",
           self, self->allocated, num_params);
 
@@ -624,13 +624,13 @@ void extend_putdata_info(PutDataInfo *self, SQLSMALLINT num_params,
      */
     if (self->allocated < num_params) {
         if (self->allocated <= 0 && self->pdata) {
-            MYLOG(ES_DEBUG, "??? pdata is not null while allocated == 0\n");
+            MYLOG(OPENSEARCH_DEBUG, "??? pdata is not null while allocated == 0\n");
             self->pdata = NULL;
         }
         new_pdata = (PutDataClass *)realloc(self->pdata,
                                             sizeof(PutDataClass) * num_params);
         if (!new_pdata) {
-            MYLOG(ES_DEBUG, "unable to create %d new pdata from %d old pdata\n",
+            MYLOG(OPENSEARCH_DEBUG, "unable to create %d new pdata from %d old pdata\n",
                   num_params, self->allocated);
 
             self->pdata = NULL;
@@ -654,7 +654,7 @@ void extend_putdata_info(PutDataInfo *self, SQLSMALLINT num_params,
         }
     }
 
-    MYLOG(ES_TRACE, "leaving %p\n", self->pdata);
+    MYLOG(OPENSEARCH_TRACE, "leaving %p\n", self->pdata);
 }
 void reset_a_putdata_info(PutDataInfo *pdata_info, int ipar) {
     if (ipar < 1 || ipar > pdata_info->allocated)

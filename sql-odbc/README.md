@@ -1,6 +1,6 @@
-# Open Distro for Elasticsearch ODBC Driver
+# OpenSearch ODBC Driver
 
-ElasticsearchODBC is a read-only ODBC driver for Windows and Mac for connecting to Open Distro for Elasticsearch SQL support.
+OpenSearchODBC is a read-only ODBC driver for Windows and Mac for connecting to OpenSearch SQL support.
 
 ## Specifications
 
@@ -25,25 +25,25 @@ You can use the installers generated as part of the most recent release.
 
 ### Windows
 
-1. Run the `.msi` installer to install the Open Distro for Elasticsearch SQL ODBC Driver.
+1. Run the `.msi` installer to install the OpenSearch SQL ODBC Driver.
 2. [Test connection](./docs/user/windows_configure_dsn.md) using ODBC Data Source Administrator.
 
 To use the driver with Tableau:
 1. Copy the `.tdc` file from `<driver-install-dir>/resources` to `<windows-user-dir>/Documents/My Tableau Repository/Datasources`.
 
-This will customize the connection from Tableau to Open Distro for Elasticsearch, ensuring that the correct forms of queries are used. 
+This will customize the connection from Tableau to OpenSearch, ensuring that the correct forms of queries are used. 
 
 ### Mac
 
-iODBC Driver Manager should be installed before installing the Open Distro for Elasticsearch SQL ODBC Driver on Mac.
+iODBC Driver Manager should be installed before installing the OpenSearch SQL ODBC Driver on Mac.
 
-1. Run the `.pkg` installer to install the Open Distro for Elasticsearch SQL ODBC Driver.
-2. Configure a Driver and DSN entry for the Open Distro for Elasticsearch SQL ODBC Driver, following the instructions [here](./docs/user/mac_configure_dsn.md).
+1. Run the `.pkg` installer to install the OpenSearch SQL ODBC Driver.
+2. Configure a Driver and DSN entry for the OpenSearch SQL ODBC Driver, following the instructions [here](./docs/user/mac_configure_dsn.md).
 
 To use the driver with Tableau:
 1. Copy the `.tdc` file from `<driver-install-dir>/resources` to `<mac-user-dir>/Documents/My Tableau Repository/Datasources`.
 
-This will customize the connection from Tableau to Open Distro for Elasticsearch, ensuring that the correct forms of queries are used.
+This will customize the connection from Tableau to OpenSearch, ensuring that the correct forms of queries are used.
 
 ## Using the Driver
 
@@ -51,7 +51,7 @@ The driver comes in the form of a library file:
 * Windows: `odfesqlodbc.dll`
 * Mac: `libodfesqlodbc.dylib`
 
-If using with ODBC compatible BI tools, refer to the tool documentation on configuring a new ODBC driver. In most cases, you will need to make the tool aware of the location of the driver library file and then use it to setup Open Distro for Elasticsearch database connections.
+If using with ODBC compatible BI tools, refer to the tool documentation on configuring a new ODBC driver. In most cases, you will need to make the tool aware of the location of the driver library file and then use it to setup OpenSearch database connections.
 
 ### Connection Strings and Configuring the Driver
 
@@ -60,7 +60,7 @@ A list of options available for configuring driver behaviour is available [here]
 To setup a connection, the driver uses an ODBC connection string. Connection strings are semicolon-delimited strings specifying the set of options to use for a connection. Typically, a connection string will either:
 
 1. specify a Data Source Name containing a pre-configured set of options (`DSN=xxx;User=xxx;Password=xxx;`)
-2. or configure options explicitly using the string (`Host=xxx;Port=xxx;LogLevel=ES_DEBUG;...`)
+2. or configure options explicitly using the string (`Host=xxx;Port=xxx;LogLevel=OPENSEARCH_DEBUG;...`)
 
 ## Building from source
 
@@ -82,7 +82,7 @@ From the projects root directory, then build the project using Visual Studio (Wi
 
 ## Documentation
 
-Please refer to the [documentation](https://opendistro.github.io/for-elasticsearch-docs/) for detailed information on installing and configuring Open Distro for Elasticsearch.
+Please refer to the [documentation](https://opendistro.github.io/for-elasticsearch-docs/) for detailed information on installing and configuring OpenSearch.
 
 ## Code of Conduct
 
