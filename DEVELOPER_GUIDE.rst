@@ -1,8 +1,8 @@
 .. highlight:: sh
 
-=================
-Development Guide
-=================
+===============
+Developer Guide
+===============
 
 .. rubric:: Table of contents
 
@@ -132,7 +132,6 @@ The plugin codebase is in standard layout of Gradle project::
    │   ├── attributions.md
    │   ├── category.json
    │   ├── dev
-   │   ├── developing.rst
    │   ├── experiment
    │   └── user
    ├── gradle.properties

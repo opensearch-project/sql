@@ -78,7 +78,7 @@ From the projects root directory, then build the project using Visual Studio (Wi
 
 ### Testing
 
-**NOTE**: Some tests in ITODBCConnection will fail if a test DSN (Data Source Name) is not configured on your system. Refer to "Running Tests" in the [build instructions](./BUILD_INSTRUCTIONS.md) for more information on configuring this.
+**NOTE**: Some tests in ITODBCConnection will fail if a test DSN (Data Source Name) is not configured on your system. Refer to "Running Tests" in the [build instructions](./docs/dev/BUILD_INSTRUCTIONS.md) for more information on configuring this.
 
 ## Documentation
 
@@ -86,7 +86,7 @@ Please refer to the [documentation](https://opendistro.github.io/for-elasticsear
 
 ## Code of Conduct
 
-This project has adopted an [Open Source Code of Conduct](https://opendistro.github.io/for-elasticsearch/codeofconduct.html).
+This project has adopted an [Open Source Code of Conduct](./CODE_OF_CONDUCT.md).
 
 ## Security issue notifications
 

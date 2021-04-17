@@ -67,7 +67,7 @@ No panic! You can roll back to old query engine easily by a plugin setting chang
 ---
 ## 4.How it's Implemented
 
-If you're interested in the new query engine, please find more details in [Develop Guide](../developing.rst), [Architecture](./Architecture.md) and other docs in the dev folder.
+If you're interested in the new query engine, please find more details in [Developer Guide](../../DEVELOPER_GUIDE.rst), [Architecture](./Architecture.md) and other docs in the dev folder.
 
 
 ---
