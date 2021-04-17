@@ -1,5 +1,5 @@
 {
-  // extend Kibana's tsconfig, or use your own settings
+  // extend OpenSearch Dashboard's tsconfig, or use your own settings
   "extends": "../../tsconfig.json",
 
   // tell the TypeScript compiler where to find your source files

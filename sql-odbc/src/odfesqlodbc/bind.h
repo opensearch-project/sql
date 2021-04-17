@@ -18,7 +18,7 @@
 #define __BIND_H__
 
 #include "descriptor.h"
-#include "es_odbc.h"
+#include "opensearch_odbc.h"
 
 // C Interface
 #ifdef __cplusplus
@@ -82,10 +82,10 @@ typedef struct {
  * ParameterImplClass -- stores implementation information about a parameter
  */
 struct ParameterImplClass_ {
-    esNAME paramName; /* this is unavailable even in 8.1 */
+    opensearchNAME paramName; /* this is unavailable even in 8.1 */
     SQLSMALLINT paramType;
     SQLSMALLINT SQLType;
-    OID ESType;
+    OID OpenSearchType;
     SQLULEN column_size;
     SQLSMALLINT decimal_digits;
     SQLSMALLINT precision; /* the precision for numeric or timestamp type */
@@ -114,11 +114,11 @@ typedef struct {
                                                      : sizeof(UInt4))) \
            * index)
 
-/* Macros to handle estype of parameters */
-#define PIC_get_estype(pari) ((pari).ESType)
-#define PIC_set_estype(pari, type) ((pari).ESType = (type))
-#define PIC_dsp_estype(conn, pari) \
-    ((pari).ESType ? (pari).ESType : sqltype_to_estype(conn, (pari).SQLType))
+/* Macros to handle opensearch type of parameters */
+#define PIC_get_opensearch_type(pari) ((pari).OpenSearchType)
+#define PIC_set_opensearch_type(pari, type) ((pari).OpenSearchType = (type))
+#define PIC_dsp_opensearch_type(conn, pari) \
+    ((pari).OpenSearchType ? (pari).OpenSearchType : sqltype_to_opensearchtype(conn, (pari).SQLType))
 
 void extend_column_bindings(ARDFields *opts, SQLSMALLINT num_columns);
 void reset_a_column_binding(ARDFields *opts, int icol);

@@ -19,8 +19,8 @@ include(CPackComponent)
 set(CMAKE_INSTALL_PREFIX ${INSTALL_ROOT})
 
 # General package info
-set(CPACK_PACKAGE_NAME "Open Distro for Elasticsearch SQL ODBC Driver ${BITNESS}-bit")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Open Distro for Elasticsearch SQL ODBC Driver ${BITNESS}-bit")
+set(CPACK_PACKAGE_NAME "OpenSearch SQL ODBC Driver ${BITNESS}-bit")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "OpenSearch SQL ODBC Driver ${BITNESS}-bit")
 set(CPACK_PACKAGE_VENDOR "Amazon")
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "${CPACK_PACKAGE_NAME}")
 set(CPACK_SYSTEM_NAME "${CMAKE_SYSTEM_NAME}")
@@ -79,16 +79,16 @@ endif()
 # Set up components for installer
 cpack_add_component(Docs
 	DISPLAY_NAME "Documentation"
-	DESCRIPTION "Documentation about Open Distro for Elasticsearch SQL ODBC Driver"
+	DESCRIPTION "Documentation about OpenSearch SQL ODBC Driver"
 )
 cpack_add_component(Driver
 	DISPLAY_NAME "Driver"
-	DESCRIPTION "Library files for running the Open Distro for Elasticsearch SQL ODBC Driver"
+	DESCRIPTION "Library files for running the OpenSearch SQL ODBC Driver"
     REQUIRED 
 )
 cpack_add_component(Resources
 	DISPLAY_NAME "Resources"
-	DESCRIPTION "Resources for Open Distro for Elasticsearch SQL ODBC Driver"
+	DESCRIPTION "Resources for OpenSearch SQL ODBC Driver"
 )
 
 # Install driver files

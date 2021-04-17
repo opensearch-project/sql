@@ -23,9 +23,9 @@
 #include <time.h>
 
 #include "dlg_specific.h"
-#include "es_helper.h"
-#include "es_odbc.h"
+#include "opensearch_odbc.h"
 #include "misc.h"
+#include "opensearch_helper.h"
 
 #ifndef WIN32
 #include <errno.h>
@@ -43,16 +43,16 @@
 
 #ifdef WIN32
 #define DIRSEPARATOR "\\"
-#define ES_BINARY O_BINARY
-#define ES_BINARY_R "rb"
-#define ES_BINARY_W "wb"
-#define ES_BINARY_A "ab"
+#define OPENSEARCH_BINARY O_BINARY
+#define OPENSEARCH_BINARY_R "rb"
+#define OPENSEARCH_BINARY_W "wb"
+#define OPENSEARCH_BINARY_A "ab"
 #else
 #define DIRSEPARATOR "/"
-#define ES_BINARY 0
-#define ES_BINARY_R "r"
-#define ES_BINARY_W "w"
-#define ES_BINARY_A "a"
+#define OPENSEARCH_BINARY 0
+#define OPENSEARCH_BINARY_R "r"
+#define OPENSEARCH_BINARY_W "w"
+#define OPENSEARCH_BINARY_A "a"
 #endif /* WIN32 */
 
 static char *logdir = NULL;
@@ -156,7 +156,7 @@ const char *GetExeProgramName() {
 
 static void *qlog_cs, *mylog_cs;
 
-static int mylog_on = ES_WARNING, qlog_on = ES_WARNING;
+static int mylog_on = OPENSEARCH_WARNING, qlog_on = OPENSEARCH_WARNING;
 
 #define INIT_QLOG_CS XPlatformInitializeCriticalSection(&qlog_cs)
 #define ENTER_QLOG_CS XPlatformEnterCriticalSection(qlog_cs)
@@ -231,7 +231,7 @@ void logs_on_off(int cnopen, int mylog_onoff, int qlog_onoff) {
     else if (getGlobalCommlog() > 0)
         qlog_on = getGlobalCommlog();
     LEAVE_QLOG_CS;
-    MYLOG(ES_DEBUG, "mylog_on=%d qlog_on=%d\n", mylog_on, qlog_on);
+    MYLOG(OPENSEARCH_DEBUG, "mylog_on=%d qlog_on=%d\n", mylog_on, qlog_on);
 }
 
 #ifdef WIN32
@@ -255,14 +255,14 @@ static void MLOG_open() {
 
     generate_filename(logdir ? logdir : MYLOGDIR, MYLOGFILE, filebuf,
                       sizeof(filebuf));
-    MLOGFP = fopen(filebuf, ES_BINARY_A);
+    MLOGFP = fopen(filebuf, OPENSEARCH_BINARY_A);
     if (!MLOGFP) {
         int lasterror = GENERAL_ERRNO;
 
         open_error = TRUE;
         SPRINTF_FIXED(errbuf, "%s open error %d\n", filebuf, lasterror);
         generate_homefile(MYLOGFILE, filebuf, sizeof(filebuf));
-        MLOGFP = fopen(filebuf, ES_BINARY_A);
+        MLOGFP = fopen(filebuf, OPENSEARCH_BINARY_A);
     }
     if (MLOGFP) {
         if (open_error)
@@ -370,10 +370,10 @@ static int qlog_misc(unsigned int option, const char *fmt, va_list args) {
     if (!QLOGFP) {
         generate_filename(logdir ? logdir : QLOGDIR, QLOGFILE, filebuf,
                           sizeof(filebuf));
-        QLOGFP = fopen(filebuf, ES_BINARY_A);
+        QLOGFP = fopen(filebuf, OPENSEARCH_BINARY_A);
         if (!QLOGFP) {
             generate_homefile(QLOGFILE, filebuf, sizeof(filebuf));
-            QLOGFP = fopen(filebuf, ES_BINARY_A);
+            QLOGFP = fopen(filebuf, OPENSEARCH_BINARY_A);
         }
         if (!QLOGFP)
             qlog_on = 0;
@@ -488,7 +488,7 @@ void logInstallerError(int ret, const char *dir) {
     msg[0] = '\0';
     ret = SQLInstallerError(1, &err, msg, sizeof(msg), NULL);
     if (msg[0] != '\0')
-        MYLOG(ES_DEBUG, "Dir= %s ErrorMsg = %s\n", dir, msg);
+        MYLOG(OPENSEARCH_DEBUG, "Dir= %s ErrorMsg = %s\n", dir, msg);
 }
 
 int getLogDir(char *dir, int dirmax) {
@@ -530,7 +530,7 @@ void InitializeLogging(void) {
     mylog_initialize();
     qlog_initialize();
     start_logging();
-    MYLOG(ES_DEBUG, "Log Output Dir: %s\n", logdir);
+    MYLOG(OPENSEARCH_DEBUG, "Log Output Dir: %s\n", logdir);
 }
 
 void FinalizeLogging(void) {

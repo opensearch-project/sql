@@ -24,7 +24,7 @@ import {
 
 import { WorkbenchPluginSetup, WorkbenchPluginStart } from './types';
 import defineRoutes from './routes';
-import sqlPlugin from './clusters/sql/sqlPlugin';
+import sqlPlugin from './clusters/sql/sqlPlugin'; 
 
 
 export class WorkbenchPlugin implements Plugin<WorkbenchPluginSetup, WorkbenchPluginStart> {
@@ -37,7 +37,7 @@ export class WorkbenchPlugin implements Plugin<WorkbenchPluginSetup, WorkbenchPl
   public setup(core: CoreSetup) {
     this.logger.debug('opendistroQueryWorkbench: Setup');
     const router = core.http.createRouter();
-    const client: ILegacyClusterClient = core.elasticsearch.legacy.createClient(
+    const client: ILegacyClusterClient = core.opensearch.legacy.createClient(
       'query_workbench',
       {
         plugins: [sqlPlugin]

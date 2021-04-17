@@ -146,7 +146,7 @@ TEST_SQL_GET_INFO_STRING(SQLDriverODBCVer, SQL_DRIVER_ODBC_VER, L"03.51");
 
 std::wstring version =
     std::wstring_convert< std::codecvt_utf8_utf16< wchar_t >, wchar_t >{}
-        .from_bytes(ELASTICSEARCHDRIVERVERSION);
+        .from_bytes(OPENSEARCHDRIVERVERSION);
 TEST_SQL_GET_INFO_STRING(SQLDriverVer, SQL_DRIVER_VER, version);
 
 TEST_SQL_GET_INFO_UINT16(SQLGetDataExtensions, SQL_GETDATA_EXTENSIONS,
@@ -171,7 +171,7 @@ TEST_SQL_GET_INFO_STRING(SQLCatalogTerm, SQL_CATALOG_TERM, L"");
 // DBMS Info //
 ///////////////
 
-TEST_SQL_GET_INFO_STRING(SQLDBMSName, SQL_DBMS_NAME, L"Elasticsearch");
+TEST_SQL_GET_INFO_STRING(SQLDBMSName, SQL_DBMS_NAME, L"OpenSearch");
 TEST_SQL_GET_INFO_VERSION_GE(SQLDBMSVer, SQL_DBMS_VER, L"7.1.1");
 
 ///////////////////

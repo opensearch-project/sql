@@ -14,7 +14,7 @@
  *
  */
 
-#include "es_semaphore.h"
+#include "opensearch_semaphore.h"
 
 #include <string>
 
@@ -39,7 +39,7 @@ HANDLE createSemaphore(unsigned int initial, unsigned int capacity) {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
 #endif  // __APPLE__
-es_semaphore::es_semaphore(unsigned int initial, unsigned int capacity)
+opensearch_semaphore::opensearch_semaphore(unsigned int initial, unsigned int capacity)
 #ifdef __APPLE__
 #pragma clang diagnostic pop
 #endif  // __APPLE__
@@ -55,7 +55,7 @@ es_semaphore::es_semaphore(unsigned int initial, unsigned int capacity)
 #endif
 }
 
-es_semaphore::~es_semaphore() {
+opensearch_semaphore::~opensearch_semaphore() {
 #ifdef WIN32
     CloseHandle(m_semaphore);
 #elif defined(__APPLE__)
@@ -64,7 +64,7 @@ es_semaphore::~es_semaphore() {
 #endif
 }
 
-void es_semaphore::lock() {
+void opensearch_semaphore::lock() {
 #ifdef WIN32
     WaitForSingleObject(m_semaphore, INFINITE);
 #elif defined(__APPLE__)
@@ -74,7 +74,7 @@ void es_semaphore::lock() {
 #endif
 }
 
-void es_semaphore::release() {
+void opensearch_semaphore::release() {
 #ifdef WIN32
     ReleaseSemaphore(m_semaphore, 1, NULL);
 #elif defined(__APPLE__)
@@ -84,7 +84,7 @@ void es_semaphore::release() {
 #endif
 }
 
-bool es_semaphore::try_lock_for(unsigned int timeout_ms) {
+bool opensearch_semaphore::try_lock_for(unsigned int timeout_ms) {
 #ifdef WIN32
     return WaitForSingleObject(m_semaphore, timeout_ms) == WAIT_OBJECT_0;
 #elif defined(__APPLE__)

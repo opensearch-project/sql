@@ -14,12 +14,12 @@
  *
  */
 
-#include "es_parse_result.h"
+#include "opensearch_parse_result.h"
 
 #include <unordered_map>
 
-#include "es_helper.h"
-#include "es_types.h"
+#include "opensearch_types.h"
+#include "opensearch_helper.h"
 #ifdef __APPLE__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
@@ -34,16 +34,19 @@ typedef std::vector< std::pair< std::string, OID > > schema_type;
 typedef rabbit::array json_arr;
 typedef json_arr::iterator::result_type json_arr_it;
 
-bool _CC_from_ESResult(QResultClass *q_res, ConnectionClass *conn,
-                       const char *cursor, ESResult &es_result);
-bool _CC_Metadata_from_ESResult(QResultClass *q_res, ConnectionClass *conn,
-                                const char *cursor, ESResult &es_result);
-bool _CC_No_Metadata_from_ESResult(QResultClass *q_res, ConnectionClass *conn,
-                                   const char *cursor, ESResult &es_result);
-void GetSchemaInfo(schema_type &schema, json_doc &es_result_doc);
+bool _CC_from_OpenSearchResult(QResultClass *q_res, ConnectionClass *conn,
+                       const char *cursor,
+                               OpenSearchResult &opensearch_result);
+bool _CC_Metadata_from_OpenSearchResult(QResultClass *q_res, ConnectionClass *conn,
+                                const char *cursor,
+                                        OpenSearchResult &opensearch_result);
+bool _CC_No_Metadata_from_OpenSearchResult(QResultClass *q_res, ConnectionClass *conn,
+                                   const char *cursor,
+                                           OpenSearchResult &opensearch_result);
+void GetSchemaInfo(schema_type &schema, json_doc &opensearch_result_doc);
 bool AssignColumnHeaders(const schema_type &doc_schema, QResultClass *q_res,
-                         const ESResult &es_result);
-bool AssignTableData(json_doc &es_result_doc, QResultClass *q_res,
+                         const OpenSearchResult &opensearch_result);
+bool AssignTableData(json_doc &opensearch_result_doc, QResultClass *q_res,
                      size_t doc_schema_size, ColumnInfoClass &fields);
 bool AssignRowData(const json_arr_it &row, size_t row_schema_size,
                    QResultClass *q_res, ColumnInfoClass &fields,
@@ -69,33 +72,33 @@ static const std::string JSON_KW_CURSOR = "cursor";
 
 // clang-format on
 const std::unordered_map< std::string, OID > type_to_oid_map = {
-    {ES_TYPE_NAME_BOOLEAN, ES_TYPE_BOOL},
-    {ES_TYPE_NAME_BYTE, ES_TYPE_INT2},
-    {ES_TYPE_NAME_SHORT, ES_TYPE_INT2},
-    {ES_TYPE_NAME_INTEGER, ES_TYPE_INT4},
-    {ES_TYPE_NAME_LONG, ES_TYPE_INT8},
-    {ES_TYPE_NAME_HALF_FLOAT, ES_TYPE_FLOAT4},
-    {ES_TYPE_NAME_FLOAT, ES_TYPE_FLOAT4},
-    {ES_TYPE_NAME_DOUBLE, ES_TYPE_FLOAT8},
-    {ES_TYPE_NAME_SCALED_FLOAT, ES_TYPE_FLOAT8},
-    {ES_TYPE_NAME_KEYWORD, ES_TYPE_VARCHAR},
-    {ES_TYPE_NAME_TEXT, ES_TYPE_VARCHAR},
-    {ES_TYPE_NAME_DATE, ES_TYPE_TIMESTAMP},
-    {ES_TYPE_NAME_OBJECT, ES_TYPE_VARCHAR},
-    {ES_TYPE_NAME_VARCHAR, ES_TYPE_VARCHAR},
-    {ES_TYPE_NAME_DATE, ES_TYPE_DATE}};
+    {OPENSEARCH_TYPE_NAME_BOOLEAN, OPENSEARCH_TYPE_BOOL},
+    {OPENSEARCH_TYPE_NAME_BYTE, OPENSEARCH_TYPE_INT2},
+    {OPENSEARCH_TYPE_NAME_SHORT, OPENSEARCH_TYPE_INT2},
+    {OPENSEARCH_TYPE_NAME_INTEGER, OPENSEARCH_TYPE_INT4},
+    {OPENSEARCH_TYPE_NAME_LONG, OPENSEARCH_TYPE_INT8},
+    {OPENSEARCH_TYPE_NAME_HALF_FLOAT, OPENSEARCH_TYPE_FLOAT4},
+    {OPENSEARCH_TYPE_NAME_FLOAT, OPENSEARCH_TYPE_FLOAT4},
+    {OPENSEARCH_TYPE_NAME_DOUBLE, OPENSEARCH_TYPE_FLOAT8},
+    {OPENSEARCH_TYPE_NAME_SCALED_FLOAT, OPENSEARCH_TYPE_FLOAT8},
+    {OPENSEARCH_TYPE_NAME_KEYWORD, OPENSEARCH_TYPE_VARCHAR},
+    {OPENSEARCH_TYPE_NAME_TEXT, OPENSEARCH_TYPE_VARCHAR},
+    {OPENSEARCH_TYPE_NAME_DATE, OPENSEARCH_TYPE_TIMESTAMP},
+    {OPENSEARCH_TYPE_NAME_OBJECT, OPENSEARCH_TYPE_VARCHAR},
+    {OPENSEARCH_TYPE_NAME_VARCHAR, OPENSEARCH_TYPE_VARCHAR},
+    {OPENSEARCH_TYPE_NAME_DATE, OPENSEARCH_TYPE_DATE}};
 
-#define ES_VARCHAR_SIZE (-2)
+#define OPENSEARCH_VARCHAR_SIZE (-2)
 const std::unordered_map< OID, int16_t > oid_to_size_map = {
-    {ES_TYPE_BOOL, (int16_t)1},
-    {ES_TYPE_INT2, (int16_t)2},
-    {ES_TYPE_INT4, (int16_t)4},
-    {ES_TYPE_INT8, (int16_t)8},
-    {ES_TYPE_FLOAT4, (int16_t)4},
-    {ES_TYPE_FLOAT8, (int16_t)8},
-    {ES_TYPE_VARCHAR, (int16_t)ES_VARCHAR_SIZE},
-    {ES_TYPE_DATE, (int16_t)ES_VARCHAR_SIZE},
-    {ES_TYPE_TIMESTAMP, (int16_t)1}};
+    {OPENSEARCH_TYPE_BOOL, (int16_t)1},
+    {OPENSEARCH_TYPE_INT2, (int16_t)2},
+    {OPENSEARCH_TYPE_INT4, (int16_t)4},
+    {OPENSEARCH_TYPE_INT8, (int16_t)8},
+    {OPENSEARCH_TYPE_FLOAT4, (int16_t)4},
+    {OPENSEARCH_TYPE_FLOAT8, (int16_t)8},
+    {OPENSEARCH_TYPE_VARCHAR, (int16_t)OPENSEARCH_VARCHAR_SIZE},
+    {OPENSEARCH_TYPE_DATE, (int16_t)OPENSEARCH_VARCHAR_SIZE},
+    {OPENSEARCH_TYPE_TIMESTAMP, (int16_t)1}};
 
 // Using global variable here so that the error message can be propagated
 // without going otu of scope
@@ -111,54 +114,60 @@ std::string GetResultParserError() {
     return error_msg;
 }
 
-BOOL CC_from_ESResult(QResultClass *q_res, ConnectionClass *conn,
-                      const char *cursor, ESResult &es_result) {
+BOOL CC_from_OpenSearchResult(QResultClass *q_res, ConnectionClass *conn,
+                      const char *cursor,
+                              OpenSearchResult &opensearch_result) {
     ClearError();
-    return _CC_from_ESResult(q_res, conn, cursor, es_result) ? TRUE : FALSE;
+    return _CC_from_OpenSearchResult(q_res, conn, cursor, opensearch_result) ? TRUE : FALSE;
 }
 
-BOOL CC_Metadata_from_ESResult(QResultClass *q_res, ConnectionClass *conn,
-                               const char *cursor, ESResult &es_result) {
+BOOL CC_Metadata_from_OpenSearchResult(QResultClass *q_res, ConnectionClass *conn,
+                               const char *cursor,
+                                       OpenSearchResult &opensearch_result) {
     ClearError();
-    return _CC_Metadata_from_ESResult(q_res, conn, cursor, es_result) ? TRUE : FALSE;
+    return _CC_Metadata_from_OpenSearchResult(q_res, conn, cursor,
+                                              opensearch_result) ? TRUE : FALSE;
 }
 
-BOOL CC_No_Metadata_from_ESResult(QResultClass *q_res, ConnectionClass *conn,
-                                  const char *cursor, ESResult &es_result) {
+BOOL CC_No_Metadata_from_OpenSearchResult(QResultClass *q_res, ConnectionClass *conn,
+                                  const char *cursor,
+                                          OpenSearchResult &opensearch_result) {
     ClearError();
-    return _CC_No_Metadata_from_ESResult(q_res, conn, cursor, es_result)
+    return _CC_No_Metadata_from_OpenSearchResult(q_res, conn, cursor,
+                                                 opensearch_result)
                ? TRUE
                : FALSE;
 }
 
-BOOL CC_Append_Table_Data(json_doc &es_result_doc, QResultClass *q_res,
+BOOL CC_Append_Table_Data(json_doc &opensearch_result_doc, QResultClass *q_res,
                           size_t doc_schema_size, ColumnInfoClass &fields) {
     ClearError();
-    return AssignTableData(es_result_doc, q_res, doc_schema_size, fields)
+    return AssignTableData(opensearch_result_doc, q_res, doc_schema_size, fields)
                ? TRUE
                : FALSE;
 }
 
-bool _CC_No_Metadata_from_ESResult(QResultClass *q_res, ConnectionClass *conn,
-                                   const char *cursor, ESResult &es_result) {
+bool _CC_No_Metadata_from_OpenSearchResult(QResultClass *q_res, ConnectionClass *conn,
+                                   const char *cursor,
+    OpenSearchResult &opensearch_result) {
     // Note - NULL conn and/or cursor is valid
     if (q_res == NULL)
         return false;
 
     try {
         schema_type doc_schema;
-        GetSchemaInfo(doc_schema, es_result.es_result_doc);
+        GetSchemaInfo(doc_schema, opensearch_result.opensearch_result_doc);
 
         SQLULEN starting_cached_rows = q_res->num_cached_rows;
 
         // Assign table data and column headers
-        if (!AssignTableData(es_result.es_result_doc, q_res, doc_schema.size(),
+        if (!AssignTableData(opensearch_result.opensearch_result_doc, q_res, doc_schema.size(),
                              *(q_res->fields)))
             return false;
 
         // Update fields of QResult to reflect data written
         UpdateResultFields(q_res, conn, starting_cached_rows, cursor,
-                           es_result.command_type);
+                           opensearch_result.command_type);
 
         // Return true (success)
         return true;
@@ -169,15 +178,16 @@ bool _CC_No_Metadata_from_ESResult(QResultClass *q_res, ConnectionClass *conn,
     } catch (const std::exception &e) {
         SetError(e.what());
     } catch (...) {
-        SetError("Unknown exception thrown in _CC_No_Metadata_from_ESResult.");
+        SetError("Unknown exception thrown in _CC_No_Metadata_from_OpenSearchResult.");
     }
 
     // Exception occurred, return false (error)
     return false;
 }
 
-bool _CC_Metadata_from_ESResult(QResultClass *q_res, ConnectionClass *conn,
-                                const char *cursor, ESResult &es_result) {
+bool _CC_Metadata_from_OpenSearchResult(QResultClass *q_res, ConnectionClass *conn,
+                                const char *cursor,
+                                        OpenSearchResult &opensearch_result) {
     // Note - NULL conn and/or cursor is valid
     if (q_res == NULL)
         return false;
@@ -185,14 +195,14 @@ bool _CC_Metadata_from_ESResult(QResultClass *q_res, ConnectionClass *conn,
     QR_set_conn(q_res, conn);
     try {
         schema_type doc_schema;
-        GetSchemaInfo(doc_schema, es_result.es_result_doc);
+        GetSchemaInfo(doc_schema, opensearch_result.opensearch_result_doc);
 
         // Assign table data and column headers
-        if (!AssignColumnHeaders(doc_schema, q_res, es_result))
+        if (!AssignColumnHeaders(doc_schema, q_res, opensearch_result))
             return false;
 
         // Set command type and cursor name
-        QR_set_command(q_res, es_result.command_type.c_str());
+        QR_set_command(q_res, opensearch_result.command_type.c_str());
         QR_set_cursor(q_res, cursor);
         if (cursor == NULL)
             QR_set_reached_eof(q_res);
@@ -206,15 +216,16 @@ bool _CC_Metadata_from_ESResult(QResultClass *q_res, ConnectionClass *conn,
     } catch (const std::exception &e) {
         SetError(e.what());
     } catch (...) {
-        SetError("Unknown exception thrown in _CC_Metadata_from_ESResult.");
+        SetError("Unknown exception thrown in _CC_Metadata_from_OpenSearchResult.");
     }
 
     // Exception occurred, return false (error)
     return false;
 }
 
-bool _CC_from_ESResult(QResultClass *q_res, ConnectionClass *conn,
-                       const char *cursor, ESResult &es_result) {
+bool _CC_from_OpenSearchResult(QResultClass *q_res, ConnectionClass *conn,
+                       const char *cursor,
+                               OpenSearchResult &opensearch_result) {
     // Note - NULL conn and/or cursor is valid
     if (q_res == NULL)
         return false;
@@ -222,18 +233,18 @@ bool _CC_from_ESResult(QResultClass *q_res, ConnectionClass *conn,
     QR_set_conn(q_res, conn);
     try {
         schema_type doc_schema;
-        GetSchemaInfo(doc_schema, es_result.es_result_doc);
+        GetSchemaInfo(doc_schema, opensearch_result.opensearch_result_doc);
         SQLULEN starting_cached_rows = q_res->num_cached_rows;
 
         // Assign table data and column headers
-        if ((!AssignColumnHeaders(doc_schema, q_res, es_result))
-            || (!AssignTableData(es_result.es_result_doc, q_res, doc_schema.size(),
+        if ((!AssignColumnHeaders(doc_schema, q_res, opensearch_result))
+            || (!AssignTableData(opensearch_result.opensearch_result_doc, q_res, doc_schema.size(),
                                  *(q_res->fields))))
             return false;
 
         // Update fields of QResult to reflect data written
         UpdateResultFields(q_res, conn, starting_cached_rows, cursor,
-                           es_result.command_type);
+                           opensearch_result.command_type);
 
         // Return true (success)
         return true;
@@ -244,15 +255,15 @@ bool _CC_from_ESResult(QResultClass *q_res, ConnectionClass *conn,
     } catch (const std::exception &e) {
         SetError(e.what());
     } catch (...) {
-        SetError("Unknown exception thrown in CC_from_ESResult.");
+        SetError("Unknown exception thrown in CC_from_OpenSearchResult.");
     }
 
     // Exception occurred, return false (error)
     return false;
 }
 
-void GetSchemaInfo(schema_type &schema, json_doc &es_result_doc) {
-    json_arr schema_arr = es_result_doc[JSON_KW_SCHEMA];
+void GetSchemaInfo(schema_type &schema, json_doc &opensearch_result_doc) {
+    json_arr schema_arr = opensearch_result_doc[JSON_KW_SCHEMA];
     for (auto it : schema_arr) {
         auto mapped_oid = type_to_oid_map.find(it[JSON_KW_TYPE].as_string());
         OID type_oid = (mapped_oid == type_to_oid_map.end())
@@ -264,13 +275,13 @@ void GetSchemaInfo(schema_type &schema, json_doc &es_result_doc) {
 }
 
 bool AssignColumnHeaders(const schema_type &doc_schema, QResultClass *q_res,
-                         const ESResult &es_result) {
+                         const OpenSearchResult &opensearch_result) {
     // Verify server_info size matches the schema size
-    if (es_result.column_info.size() != doc_schema.size())
+    if (opensearch_result.column_info.size() != doc_schema.size())
         return false;
 
     // Allocte memory for column fields
-    QR_set_num_fields(q_res, (uint16_t)es_result.column_info.size());
+    QR_set_num_fields(q_res, (uint16_t)opensearch_result.column_info.size());
     if (QR_get_fields(q_res)->coli_array == NULL)
         return false;
 
@@ -278,13 +289,14 @@ bool AssignColumnHeaders(const schema_type &doc_schema, QResultClass *q_res,
     for (size_t i = 0; i < doc_schema.size(); i++) {
         auto type_size_ptr = oid_to_size_map.find(doc_schema[i].second);
         int16_t type_size = (type_size_ptr == oid_to_size_map.end())
-                                ? ES_ADT_UNSET
+                                ? OPENSEARCH_ADT_UNSET
                                 : type_size_ptr->second;
         CI_set_field_info(QR_get_fields(q_res), (int)i,
                           doc_schema[i].first.c_str(), doc_schema[i].second,
-                          type_size, es_result.column_info[i].length_of_str,
-                          es_result.column_info[i].relation_id,
-                          es_result.column_info[i].attribute_number);
+                          type_size,
+                          opensearch_result.column_info[i].length_of_str,
+                          opensearch_result.column_info[i].relation_id,
+                          opensearch_result.column_info[i].attribute_number);
         QR_set_rstatus(q_res, PORES_FIELDS_OK);
     }
     q_res->num_fields = CI_get_num_fields(QR_get_fields(q_res));
@@ -294,21 +306,21 @@ bool AssignColumnHeaders(const schema_type &doc_schema, QResultClass *q_res,
 
 // Responsible for looping through rows, allocating tuples and passing rows for
 // assignment
-bool AssignTableData(json_doc &es_result_doc, QResultClass *q_res,
+bool AssignTableData(json_doc &opensearch_result_doc, QResultClass *q_res,
                      size_t doc_schema_size, ColumnInfoClass &fields) {
     // Assign row info
-    json_arr es_result_data = es_result_doc[JSON_KW_DATAROWS];
-    if (es_result_data.size() == 0)
+    json_arr opensearch_result_data = opensearch_result_doc[JSON_KW_DATAROWS];
+    if (opensearch_result_data.size() == 0)
         return true;
 
     // Figure out number of columns are in a row and make schema is not bigger
     // than it
-    size_t row_size = std::distance(es_result_data.begin()->value_begin(),
-                                    es_result_data.begin()->value_end());
+    size_t row_size = std::distance(opensearch_result_data.begin()->value_begin(),
+                      opensearch_result_data.begin()->value_end());
     if (row_size < doc_schema_size) {
         return false;
     }
-    for (auto it : es_result_data) {
+    for (auto it : opensearch_result_data) {
         // Setup memory to receive tuple
         if (!QR_prepare_for_tupledata(q_res))
             return false;

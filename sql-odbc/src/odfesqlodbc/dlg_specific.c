@@ -18,14 +18,14 @@
 
 #include <ctype.h>
 
-#include "es_apifunc.h"
 #include "misc.h"
+#include "opensearch_apifunc.h"
 
 #define NULL_IF_NULL(a) ((a) ? ((const char *)(a)) : "(null)")
 
-static void encode(const esNAME, char *out, int outlen);
-static esNAME decode(const char *in);
-static esNAME decode_or_remove_braces(const char *in);
+static void encode(const opensearchNAME, char *out, int outlen);
+static opensearchNAME decode(const char *in);
+static opensearchNAME decode_or_remove_braces(const char *in);
 
 #define OVR_EXTRA_BITS                                                      \
     (BIT_FORCEABBREVCONNSTR | BIT_FAKE_MSS | BIT_BDE_ENVIRONMENT            \
@@ -57,7 +57,7 @@ void makeConnectString(char *connect_string, const ConnInfo *ci, UWORD len) {
         connect_string, nlen,
         "%s=%s;" INI_SERVER
         "=%s;"
-        "database=elasticsearch;" INI_PORT "=%s;" INI_USERNAME_ABBR
+        "database=OpenSearch;" INI_PORT "=%s;" INI_USERNAME_ABBR
         "=%s;" INI_PASSWORD_ABBR "=%s;" INI_AUTH_MODE "=%s;" INI_REGION
         "=%s;" INI_SSL_USE "=%d;" INI_SSL_HOST_VERIFY "=%d;" INI_LOG_LEVEL
         "=%d;" INI_LOG_OUTPUT "=%s;" INI_TIMEOUT "=%s;" INI_FETCH_SIZE "=%s;",
@@ -118,7 +118,7 @@ BOOL copyConnAttributes(ConnInfo *ci, const char *attribute,
              || (stricmp(attribute, INI_PASSWORD_ABBR) == 0)) {
         ci->password = decode_or_remove_braces(value);
 #ifndef FORCE_PASSWORDE_DISPLAY
-        MYLOG(ES_DEBUG, "key='%s' value='xxxxxxxx'\n", attribute);
+        MYLOG(OPENSEARCH_DEBUG, "key='%s' value='xxxxxxxx'\n", attribute);
         printed = TRUE;
 #endif
     } else if (stricmp(attribute, INI_AUTH_MODE) == 0)
@@ -141,7 +141,7 @@ BOOL copyConnAttributes(ConnInfo *ci, const char *attribute,
         found = FALSE;
 
     if (!printed)
-        MYLOG(ES_DEBUG, "key='%s' value='%s'%s\n", attribute, value,
+        MYLOG(OPENSEARCH_DEBUG, "key='%s' value='%s'%s\n", attribute, value,
               found ? NULL_STRING : " not found");
 
     return found;
@@ -221,7 +221,7 @@ void getDSNinfo(ConnInfo *ci, const char *configDrvrname) {
 
     if (!drivername[0] && DSN[0])
         getDriverNameFromDSN(DSN, (char *)drivername, sizeof(ci->drivername));
-    MYLOG(ES_DEBUG, "drivername=%s\n", drivername);
+    MYLOG(OPENSEARCH_DEBUG, "drivername=%s\n", drivername);
     if (!drivername[0])
         drivername = INVALID_DRIVER;
     getDriversDefaults(drivername, &(ci->drivers));
@@ -335,7 +335,7 @@ void writeDSNinfo(const ConnInfo *ci) {
 
 }
 
-static void encode(const esNAME in, char *out, int outlen) {
+static void encode(const opensearchNAME in, char *out, int outlen) {
     size_t i, ilen = 0;
     int o = 0;
     char inc, *ins;
@@ -383,10 +383,10 @@ static unsigned int conv_from_hex(const char *s) {
     return y;
 }
 
-static esNAME decode(const char *in) {
+static opensearchNAME decode(const char *in) {
     size_t i, ilen = strlen(in), o = 0;
     char inc, *outs;
-    esNAME out;
+    opensearchNAME out;
 
     INIT_NAME(out);
     if (0 == ilen) {
@@ -416,7 +416,7 @@ static esNAME decode(const char *in) {
  *	Remove braces if the input value is enclosed by braces({}).
  *	Othewise decode the input value.
  */
-static esNAME decode_or_remove_braces(const char *in) {
+static opensearchNAME decode_or_remove_braces(const char *in) {
     if (OPENING_BRACKET == in[0]) {
         size_t inlen = strlen(in);
         if (CLOSING_BRACKET == in[inlen - 1]) /* enclosed with braces */
@@ -424,7 +424,7 @@ static esNAME decode_or_remove_braces(const char *in) {
             int i;
             const char *istr, *eptr;
             char *ostr;
-            esNAME out;
+            opensearchNAME out;
 
             INIT_NAME(out);
             if (NULL == (ostr = (char *)malloc(inlen)))
@@ -449,7 +449,7 @@ void CC_conninfo_release(ConnInfo *conninfo) {
 }
 
 void CC_conninfo_init(ConnInfo *conninfo, UInt4 option) {
-    MYLOG(ES_TRACE, "entering opt=%d\n", option);
+    MYLOG(OPENSEARCH_TRACE, "entering opt=%d\n", option);
 
     if (0 != (CLEANUP_FOR_REUSE & option))
         CC_conninfo_release(conninfo);

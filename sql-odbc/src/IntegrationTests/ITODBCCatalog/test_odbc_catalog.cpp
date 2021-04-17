@@ -92,8 +92,8 @@ const std::vector< short > flights_sql_data_type = {
     SQL_WVARCHAR, SQL_BIT,      SQL_REAL,     SQL_WVARCHAR,       SQL_WVARCHAR,
     SQL_WVARCHAR, SQL_WVARCHAR, SQL_WVARCHAR, SQL_WVARCHAR,       SQL_WVARCHAR};
 const std::string flights_catalog_odfe = "odfe-cluster";
-const std::string flights_catalog_elas = "elasticsearch";
-const std::string flights_table_name = "kibana_sample_data_flights";
+const std::string flights_catalog_elas = "opensearch";
+const std::string flights_table_name = "opensearch_dashboards_sample_data_flights";
 const std::string flights_decimal_digits = "10";
 const std::string flights_num_prec_radix = "2";
 
@@ -147,20 +147,20 @@ typedef struct table_data {
 } table_data;
 
 const std::vector< table_data > table_data_filtered{
-    {"", "", "kibana_sample_data_ecommerce", "BASE TABLE", ""},
-    {"", "", "kibana_sample_data_flights", "BASE TABLE", ""},
-    {"", "", "kibana_sample_data_types", "BASE TABLE", ""}};
+    {"", "", "opensearch_dashboards_sample_data_ecommerce", "BASE TABLE", ""},
+    {"", "", "opensearch_dashboards_sample_data_flights", "BASE TABLE", ""},
+    {"", "", "opensearch_dashboards_sample_data_types", "BASE TABLE", ""}};
 const std::vector< table_data > table_data_single{
-    {"", "", "kibana_sample_data_flights", "BASE TABLE", ""}};
+    {"", "", "opensearch_dashboards_sample_data_flights", "BASE TABLE", ""}};
 const std::vector< table_data > table_data_all{
-    {"", "", "kibana_sample_data_ecommerce", "BASE TABLE", ""},
-    {"", "", "kibana_sample_data_flights", "BASE TABLE", ""},
-    {"", "", "kibana_sample_data_types", "BASE TABLE", ""},
+    {"", "", "opensearch_dashboards_sample_data_ecommerce", "BASE TABLE", ""},
+    {"", "", "opensearch_dashboards_sample_data_flights", "BASE TABLE", ""},
+    {"", "", "opensearch_dashboards_sample_data_types", "BASE TABLE", ""},
 };
 const std::vector< table_data > excel_table_data_all{
-    {"", "", "kibana_sample_data_ecommerce", "TABLE", ""},
-    {"", "", "kibana_sample_data_flights", "TABLE", ""},
-    {"", "", "kibana_sample_data_types", "TABLE", ""},
+    {"", "", "opensearch_dashboards_sample_data_ecommerce", "TABLE", ""},
+    {"", "", "opensearch_dashboards_sample_data_flights", "TABLE", ""},
+    {"", "", "opensearch_dashboards_sample_data_types", "TABLE", ""},
 };
 const std::vector< table_data > table_data_types{
     {"", "", "", "BASE TABLE", ""}};
@@ -302,10 +302,10 @@ TEST_F(TestSQLTables, WildSchema) {
 }
 
 // Table tests
-TEST_SQL_TABLES(ValidTable, NULL, NULL, (SQLTCHAR*)L"kibana_sample_data%", NULL,
+TEST_SQL_TABLES(ValidTable, NULL, NULL, (SQLTCHAR*)L"opensearch_dashboards_sample_data%", NULL,
                 table_data_filtered, true, false);
 TEST_SQL_TABLES(SingleTable, NULL, NULL,
-                (SQLTCHAR*)L"kibana_sample_data_flights", NULL,
+                (SQLTCHAR*)L"opensearch_dashboards_sample_data_flights", NULL,
                 table_data_single, false, false);
 TEST_SQL_TABLES(WildTable, NULL, NULL, (SQLTCHAR*)L"%", NULL, table_data_all,
                 true, false);
@@ -328,7 +328,7 @@ TEST_SQL_TABLES(ExcelSQLTables, (SQLTCHAR*)L"%", NULL, NULL,
 TEST_SQL_COLUMNS(Null, NULL, NULL, NULL, NULL, true, false)
 
 // Table tests
-TEST_SQL_COLUMNS(ValidTable, NULL, NULL, (SQLTCHAR*)L"kibana_%", NULL, true,
+TEST_SQL_COLUMNS(ValidTable, NULL, NULL, (SQLTCHAR*)L"opensearch_dashboards_%", NULL, true,
                  false)
 TEST_SQL_COLUMNS(InvalidTable, NULL, NULL, (SQLTCHAR*)L"invalid_table", NULL,
                  true, true)
@@ -340,9 +340,9 @@ TEST_SQL_COLUMNS(InvalidColumn, NULL, NULL, NULL, (SQLTCHAR*)L"invalid_column",
                  true, true)
 
 // Table and column tests
-TEST_SQL_COLUMNS(ValidTable_ValidColumn, NULL, NULL, (SQLTCHAR*)L"kibana_%",
+TEST_SQL_COLUMNS(ValidTable_ValidColumn, NULL, NULL, (SQLTCHAR*)L"opensearch_dashboards_%",
                  NULL, true, false)
-TEST_SQL_COLUMNS(ValidTable_InvalidColumn, NULL, NULL, (SQLTCHAR*)L"kibana_%",
+TEST_SQL_COLUMNS(ValidTable_InvalidColumn, NULL, NULL, (SQLTCHAR*)L"opensearch_dashboards_%",
                  (SQLTCHAR*)L"invalid_column", true, true)
 TEST_SQL_COLUMNS(InvalidTable_ValidColumn, NULL, NULL,
                  (SQLTCHAR*)L"invalid_table", (SQLTCHAR*)L"FlightNum", true,
@@ -354,7 +354,7 @@ TEST_SQL_COLUMNS(InvalidTable_InvalidColumn, NULL, NULL,
 // Data validation
 TEST_F(TestSQLColumns, FlightsValidation) {
     EXPECT_EQ(SQL_SUCCESS, SQLColumns(m_hstmt, NULL, SQL_NTS, NULL, SQL_NTS,
-                                      (SQLTCHAR*)L"kibana_sample_data_flights",
+                                      (SQLTCHAR*)L"opensearch_dashboards_sample_data_flights",
                                       SQL_NTS, NULL, SQL_NTS));
     std::vector< bind_info > binds;
     binds.push_back(bind_info(1, SQL_C_CHAR));
@@ -447,18 +447,18 @@ TEST_SQL_KEYS(ForeignKeys_Catalog, SQLForeignKeys, NULL, SQL_NTS, NULL, SQL_NTS,
 
 // Table specified
 TEST_SQL_KEYS(PrimaryKeys_Table, SQLPrimaryKeys, NULL, SQL_NTS, NULL, SQL_NTS,
-              (SQLTCHAR*)L"kibana_sample_data_flights", SQL_NTS)
+              (SQLTCHAR*)L"opensearch_dashboards_sample_data_flights", SQL_NTS)
 TEST_SQL_KEYS(ForeignKeys_Table, SQLForeignKeys, NULL, SQL_NTS, NULL, SQL_NTS,
               NULL, SQL_NTS, NULL, SQL_NTS, NULL, SQL_NTS,
-              (SQLTCHAR*)L"kibana_sample_data_flights", SQL_NTS)
+              (SQLTCHAR*)L"opensearch_dashboards_sample_data_flights", SQL_NTS)
 
 // Catalog and table specified
 TEST_SQL_KEYS(PrimaryKeys_CatalogTable, SQLPrimaryKeys, NULL, SQL_NTS,
               (SQLTCHAR*)L"odfe-cluster", SQL_NTS,
-              (SQLTCHAR*)L"kibana_sample_data_flights", SQL_NTS)
+              (SQLTCHAR*)L"opensearch_dashboards_sample_data_flights", SQL_NTS)
 TEST_SQL_KEYS(ForeignKeys_CatalogTable, SQLForeignKeys, NULL, SQL_NTS, NULL,
               SQL_NTS, NULL, SQL_NTS, NULL, SQL_NTS, (SQLTCHAR*)L"odfe-cluster",
-              SQL_NTS, (SQLTCHAR*)L"kibana_sample_data_flights", SQL_NTS)
+              SQL_NTS, (SQLTCHAR*)L"opensearch_dashboards_sample_data_flights", SQL_NTS)
 
 // GetTypeInfo expected output struct
 typedef struct sample_data_getTypeInfo_struct {

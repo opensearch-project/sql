@@ -15,11 +15,11 @@
 
 <img src="img/query_wizard_select_tables.png" width="500">
 
-* Specify conditions to apply filter if needed. Ensure selected operations are supported by Elasticsearch. Click on **Next**.
+* Specify conditions to apply filter if needed. Ensure selected operations are supported by OpenSearch. Click on **Next**.
 
 <img src="img/query_wizard_filter_data.png" width="500">
 
-* Specify sorting options if required. Ensure selected operations are supported by the [OpenDistro for Elasticsearch SQL plugin](https://github.com/opendistro-for-elasticsearch/sql). Click on **Next**.
+* Specify sorting options if required. Ensure selected operations are supported by the [OpenSearch SQL plugin](https://github.com/opensearch-project/sql). Click on **Next**.
 
 <img src="img/query_wizard_sort_order.png" width="500">
 

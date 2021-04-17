@@ -14,12 +14,12 @@
  *
  */
 
-#include "es_statement.h"
+#include "opensearch_statement.h"
 
 #include "environ.h"  // Critical section for statment
-#include "es_apifunc.h"
-#include "es_helper.h"
 #include "misc.h"
+#include "opensearch_apifunc.h"
+#include "opensearch_helper.h"
 #include "statement.h"
 
 extern "C" void *common_cs;
@@ -67,8 +67,8 @@ RETCODE ExecuteStatement(StatementClass *stmt, BOOL commit) {
 
     QResultClass *res = SendQueryGetResult(stmt, commit);
     if (!res) {
-        std::string es_conn_err = GetErrorMsg(SC_get_conn(stmt)->esconn);
-        ConnErrorType es_err_type = GetErrorType(SC_get_conn(stmt)->esconn);
+        std::string es_conn_err = GetErrorMsg(SC_get_conn(stmt)->opensearchconn);
+        ConnErrorType es_err_type = GetErrorType(SC_get_conn(stmt)->opensearchconn);
         std::string es_parse_err = GetResultParserError();
         if (!es_conn_err.empty()) {
             if (es_err_type == ConnErrorType::CONN_ERROR_QUERY_SYNTAX) {
@@ -171,19 +171,19 @@ SQLRETURN GetNextResultSet(StatementClass *stmt) {
         return SQL_ERROR;
     }
 
-    ESResult *es_res = ESGetResult(conn->esconn);
+    OpenSearchResult *es_res = OpenSearchGetResult(conn->opensearchconn);
     if (es_res != NULL) {
         // Save server cursor id to fetch more pages later
-        if (es_res->es_result_doc.has("cursor")) {
+        if (es_res->opensearch_result_doc.has("cursor")) {
             QR_set_server_cursor_id(
-                q_res, es_res->es_result_doc["cursor"].as_string().c_str());
+                q_res, es_res->opensearch_result_doc["cursor"].as_string().c_str());
         } else {
             QR_set_server_cursor_id(q_res, NULL);
         }
 
         // Responsible for looping through rows, allocating tuples and
         // appending these rows in q_result
-        CC_Append_Table_Data(es_res->es_result_doc, q_res, total_columns,
+        CC_Append_Table_Data(es_res->opensearch_result_doc, q_res, total_columns,
                              *(q_res->fields));
     }
 
@@ -245,15 +245,16 @@ QResultClass *SendQueryGetResult(StatementClass *stmt, BOOL commit) {
 
     // Send command
     ConnectionClass *conn = SC_get_conn(stmt);
-    if (ESExecDirect(conn->esconn, stmt->statement, conn->connInfo.fetch_size)
+    if (OpenSearchExecDirect(conn->opensearchconn, stmt->statement,
+                             conn->connInfo.fetch_size)
         != 0) {
         QR_Destructor(res);
         return NULL;
     }
     res->rstatus = PORES_COMMAND_OK;
 
-    // Get ESResult
-    ESResult *es_res = ESGetResult(conn->esconn);
+    // Get OpenSearchResult
+    OpenSearchResult *es_res = OpenSearchGetResult(conn->opensearchconn);
     if (es_res == NULL) {
         QR_Destructor(res);
         return NULL;
@@ -261,8 +262,9 @@ QResultClass *SendQueryGetResult(StatementClass *stmt, BOOL commit) {
 
     BOOL success =
         commit
-            ? CC_from_ESResult(res, conn, res->cursor_name, *es_res)
-            : CC_Metadata_from_ESResult(res, conn, res->cursor_name, *es_res);
+            ? CC_from_OpenSearchResult(res, conn, res->cursor_name, *es_res)
+            : CC_Metadata_from_OpenSearchResult(res, conn, res->cursor_name,
+                                                   *es_res);
 
     // Convert result to QResultClass
     if (!success) {
@@ -271,12 +273,12 @@ QResultClass *SendQueryGetResult(StatementClass *stmt, BOOL commit) {
     }
 
     if (commit) {
-        // Deallocate ESResult
-        ESClearResult(es_res);
-        res->es_result = NULL;
+        // Deallocate OpenSearchResult
+        OpenSearchClearResult(es_res);
+        res->opensearch_result = NULL;
     } else {
-        // Set ESResult into connection class so it can be used later
-        res->es_result = es_res;
+        // Set OpenSearchResult into connection class so it can be used later
+        res->opensearch_result = es_res;
     }
     return res;
 }
@@ -286,40 +288,41 @@ RETCODE AssignResult(StatementClass *stmt) {
         return SQL_ERROR;
 
     QResultClass *res = SC_get_Result(stmt);
-    if (!res || !res->es_result) {
+    if (!res || !res->opensearch_result) {
         return SQL_ERROR;
     }
 
     // Commit result to QResultClass
-    ESResult *es_res = static_cast< ESResult * >(res->es_result);
+    OpenSearchResult *es_res = static_cast< OpenSearchResult * >(res->opensearch_result);
     ConnectionClass *conn = SC_get_conn(stmt);
-    if (!CC_No_Metadata_from_ESResult(res, conn, res->cursor_name, *es_res)) {
+    if (!CC_No_Metadata_from_OpenSearchResult(res, conn, res->cursor_name,
+                                              *es_res)) {
         QR_Destructor(res);
         return SQL_ERROR;
     }
     GetNextResultSet(stmt);
 
     // Deallocate and return result
-    ESClearResult(es_res);
-    res->es_result = NULL;
+    OpenSearchClearResult(es_res);
+    res->opensearch_result = NULL;
     return SQL_SUCCESS;
 }
 
-void ClearESResult(void *es_result) {
-    if (es_result != NULL) {
-        ESResult *es_res = static_cast< ESResult * >(es_result);
-        ESClearResult(es_res);
+void ClearOpenSearchResult(void *opensearch_result) {
+    if (opensearch_result != NULL) {
+        OpenSearchResult *es_res = static_cast< OpenSearchResult * >(opensearch_result);
+        OpenSearchClearResult(es_res);
     }
 }
 
-SQLRETURN ESAPI_Cancel(HSTMT hstmt) {
+SQLRETURN OPENSEARCHAPI_Cancel(HSTMT hstmt) {
     // Verify pointer validity and convert to StatementClass
     if (hstmt == NULL)
         return SQL_INVALID_HANDLE;
     StatementClass *stmt = (StatementClass *)hstmt;
 
     // Get execution delegate (if applicable) and initialize return code
-    StatementClass *estmt =
+    StatementClass *opensearchtmt =
         (stmt->execute_delegate == NULL) ? stmt : stmt->execute_delegate;
     SQLRETURN ret = SQL_SUCCESS;
 
@@ -327,15 +330,15 @@ SQLRETURN ESAPI_Cancel(HSTMT hstmt) {
     ENTER_COMMON_CS;
 
     // Waiting for more data from SQLParamData/SQLPutData - cancel statement
-    if (estmt->data_at_exec >= 0) {
+    if (opensearchtmt->data_at_exec >= 0) {
         // Enter statement critical section
         ENTER_STMT_CS(stmt);
 
         // Clear info and cancel need data
         SC_clear_error(stmt);
-        estmt->data_at_exec = -1;
-        estmt->put_data = FALSE;
-        cancelNeedDataState(estmt);
+        opensearchtmt->data_at_exec = -1;
+        opensearchtmt->put_data = FALSE;
+        cancelNeedDataState(opensearchtmt);
 
         // Leave statement critical section
         LEAVE_STMT_CS(stmt);

@@ -14,29 +14,26 @@
  *
  */
 
-#include "es_odbc.h"
-#include "unicode_support.h"
-
 #include <stdio.h>
 #include <string.h>
+
+#include "opensearch_odbc.h"
+#include "unicode_support.h"
 
 #ifndef WIN32
 #include <ctype.h>
 #endif
 
-#include "dlg_specific.h"
-#include "es_types.h"
-#include "tuple.h"
-
 #include "bind.h"
 #include "catfunc.h"
+#include "dlg_specific.h"
 #include "environ.h"
-#include "es_apifunc.h"
-#include "es_connection.h"
-#include "es_info.h"
-#include "es_types.h"
+#include "opensearch_types.h"
 #include "misc.h"
 #include "multibyte.h"
+#include "opensearch_apifunc.h"
+#include "opensearch_connection.h"
+#include "opensearch_info.h"
 #include "qresult.h"
 #include "statement.h"
 #include "tuple.h"
@@ -47,10 +44,10 @@
 #define TRIGGER_DELETE 0x01
 #define TRIGGER_UPDATE 0x02
 
-RETCODE SQL_API ESAPI_GetInfo(HDBC hdbc, SQLUSMALLINT fInfoType,
+RETCODE SQL_API OPENSEARCHAPI_GetInfo(HDBC hdbc, SQLUSMALLINT fInfoType,
                               PTR rgbInfoValue, SQLSMALLINT cbInfoValueMax,
                               SQLSMALLINT *pcbInfoValue) {
-    CSTR func = "ESAPI_GetInfo";
+    CSTR func = "OPENSEARCHAPI_GetInfo";
     ConnectionClass *conn = (ConnectionClass *)hdbc;
     ConnInfo *ci;
     const char *p = NULL;
@@ -59,7 +56,7 @@ RETCODE SQL_API ESAPI_GetInfo(HDBC hdbc, SQLUSMALLINT fInfoType,
     RETCODE ret = SQL_ERROR;
     char odbcver[16];
 
-    MYLOG(ES_TRACE, "entering...fInfoType=%d\n", fInfoType);
+    MYLOG(OPENSEARCH_TRACE, "entering...fInfoType=%d\n", fInfoType);
 
     if (!conn) {
         CC_log_error(func, NULL_STRING, NULL);
@@ -148,7 +145,7 @@ RETCODE SQL_API ESAPI_GetInfo(HDBC hdbc, SQLUSMALLINT fInfoType,
         case SQL_CONVERT_FUNCTIONS: /* ODBC 1.0 */
             len = sizeof(SQLUINTEGER);
             value = SQL_FN_CVT_CAST;
-            MYLOG(ES_DEBUG, "CONVERT_FUNCTIONS=" FORMAT_ULEN "\n", value);
+            MYLOG(OPENSEARCH_DEBUG, "CONVERT_FUNCTIONS=" FORMAT_ULEN "\n", value);
             break;
 
         case SQL_CORRELATION_NAME: /* ODBC 1.0 */
@@ -192,11 +189,11 @@ RETCODE SQL_API ESAPI_GetInfo(HDBC hdbc, SQLUSMALLINT fInfoType,
             break;
 
         case SQL_DBMS_NAME: /* ODBC 1.0 */
-            p = "Elasticsearch";
+            p = "OpenSearch";
             break;
 
         case SQL_DBMS_VER: /* ODBC 1.0 */
-            STRCPY_FIXED(tmp, conn->es_version);
+            STRCPY_FIXED(tmp, conn->opensearch_version);
             p = tmp;
             break;
 
@@ -218,7 +215,7 @@ RETCODE SQL_API ESAPI_GetInfo(HDBC hdbc, SQLUSMALLINT fInfoType,
             break;
 
         case SQL_DRIVER_VER: /* ODBC 1.0 */
-            p = ELASTICSEARCHDRIVERVERSION;
+            p = OPENSEARCHDRIVERVERSION;
             break;
 
         case SQL_EXPRESSIONS_IN_ORDERBY: /* ODBC 1.0 */
@@ -356,7 +353,7 @@ RETCODE SQL_API ESAPI_GetInfo(HDBC hdbc, SQLUSMALLINT fInfoType,
 
         case SQL_MAX_TABLE_NAME_LEN: /* ODBC 1.0 */
             len = 2;
-            if (ES_VERSION_GT(conn, 7.4))
+            if (OPENSEARCH_VERSION_GT(conn, 7.4))
                 value = CC_get_max_idlen(conn);
 #ifdef MAX_TABLE_LEN
             else
@@ -453,7 +450,7 @@ RETCODE SQL_API ESAPI_GetInfo(HDBC hdbc, SQLUSMALLINT fInfoType,
             break;
 
         case SQL_OWNER_USAGE: /* ODBC 2.0 */
-            // Elasticsearch does not support schemas.
+            // OpenSearch does not support schemas.
             // This will disable showing an empty schema box in Tableau.
             len = 4;
             value = 0;
@@ -577,7 +574,7 @@ RETCODE SQL_API ESAPI_GetInfo(HDBC hdbc, SQLUSMALLINT fInfoType,
 
         case SQL_TXN_CAPABLE: /* ODBC 1.0 */
             /*
-             * Elasticsearch does not support transactions.
+             * OpenSearch does not support transactions.
              */
             len = 2;
             value = SQL_TC_NONE;
@@ -861,13 +858,13 @@ RETCODE SQL_API ESAPI_GetInfo(HDBC hdbc, SQLUSMALLINT fInfoType,
         default:
             /* unrecognized key */
             CC_set_error(conn, CONN_NOT_IMPLEMENTED_ERROR,
-                         "Unrecognized key passed to ESAPI_GetInfo.", NULL);
+                         "Unrecognized key passed to OPENSEARCHAPI_GetInfo.", NULL);
             goto cleanup;
     }
 
     ret = SQL_SUCCESS;
 
-    MYLOG(ES_DEBUG, "p='%s', len=" FORMAT_ULEN ", value=" FORMAT_ULEN ", cbMax=%d\n",
+    MYLOG(OPENSEARCH_DEBUG, "p='%s', len=" FORMAT_ULEN ", value=" FORMAT_ULEN ", cbMax=%d\n",
           p ? p : "<NULL>", len, value, cbInfoValueMax);
 
     /*
@@ -918,33 +915,36 @@ cleanup:
 }
 
 /*
- *	macros for estype_xxxx() calls which have ES_ATP_UNSET parameters
+ *	macros for opensearchtype_xxxx() calls which have OPENSEARCH_ATP_UNSET parameters
  */
-#define ESTYPE_COLUMN_SIZE(conn, esType)                              \
-    estype_attr_column_size(conn, esType, ES_ATP_UNSET, ES_ADT_UNSET, \
-                            ES_UNKNOWNS_UNSET)
-#define ESTYPE_TO_CONCISE_TYPE(conn, esType)                              \
-    estype_attr_to_concise_type(conn, esType, ES_ATP_UNSET, ES_ADT_UNSET, \
-                                ES_UNKNOWNS_UNSET)
-#define ESTYPE_TO_SQLDESCTYPE(conn, esType)                              \
-    estype_attr_to_sqldesctype(conn, esType, ES_ATP_UNSET, ES_ADT_UNSET, \
-                               ES_UNKNOWNS_UNSET)
-#define ESTYPE_BUFFER_LENGTH(conn, esType)                              \
-    estype_attr_buffer_length(conn, esType, ES_ATP_UNSET, ES_ADT_UNSET, \
-                              ES_UNKNOWNS_UNSET)
-#define ESTYPE_DECIMAL_DIGITS(conn, esType)                              \
-    estype_attr_decimal_digits(conn, esType, ES_ATP_UNSET, ES_ADT_UNSET, \
-                               ES_UNKNOWNS_UNSET)
-#define ESTYPE_TRANSFER_OCTET_LENGTH(conn, esType)                \
-    estype_attr_transfer_octet_length(conn, esType, ES_ATP_UNSET, \
-                                      ES_UNKNOWNS_UNSET)
-#define ESTYPE_TO_NAME(conn, esType, auto_increment) \
-    estype_attr_to_name(conn, esType, ES_ATP_UNSET, auto_increment)
+#define OPENSEARCHTYPE_COLUMN_SIZE(conn, openSearchType)                              \
+    opensearchtype_attr_column_size(conn, openSearchType, OPENSEARCH_ATP_UNSET, \
+                            OPENSEARCH_ADT_UNSET, OPENSEARCH_UNKNOWNS_UNSET)
+#define OPENSEARCHTYPE_TO_CONCISE_TYPE(conn, openSearchType)                              \
+    opensearchtype_attr_to_concise_type(conn, openSearchType, OPENSEARCH_ATP_UNSET, \
+                                OPENSEARCH_ADT_UNSET,               \
+                                OPENSEARCH_UNKNOWNS_UNSET)
+#define OPENSEARCHTYPE_TO_SQLDESCTYPE(conn, openSearchType)                              \
+    opensearchtype_attr_to_sqldesctype(conn, openSearchType, OPENSEARCH_ATP_UNSET, \
+                               OPENSEARCH_ADT_UNSET,               \
+                               OPENSEARCH_UNKNOWNS_UNSET)
+#define OPENSEARCHTYPE_BUFFER_LENGTH(conn, openSearchType)                              \
+    opensearchtype_attr_buffer_length(conn, openSearchType, OPENSEARCH_ATP_UNSET, \
+                              OPENSEARCH_ADT_UNSET, OPENSEARCH_UNKNOWNS_UNSET)
+#define OPENSEARCHTYPE_DECIMAL_DIGITS(conn, openSearchType)                              \
+    opensearchtype_attr_decimal_digits(conn, openSearchType, OPENSEARCH_ATP_UNSET, \
+                               OPENSEARCH_ADT_UNSET,               \
+                               OPENSEARCH_UNKNOWNS_UNSET)
+#define OPENSEARCHTYPE_TRANSFER_OCTET_LENGTH(conn, openSearchType)                \
+    opensearchtype_attr_transfer_octet_length(conn, openSearchType, OPENSEARCH_ATP_UNSET, \
+                                      OPENSEARCH_UNKNOWNS_UNSET)
+#define OPENSEARCHTYPE_TO_NAME(conn, openSearchType, auto_increment) \
+    opensearchtype_attr_to_name(conn, openSearchType, OPENSEARCH_ATP_UNSET, auto_increment)
 
-RETCODE SQL_API ESAPI_GetFunctions(HDBC hdbc, SQLUSMALLINT fFunction,
+RETCODE SQL_API OPENSEARCHAPI_GetFunctions(HDBC hdbc, SQLUSMALLINT fFunction,
                                    SQLUSMALLINT *pfExists) {
     UNUSED(hdbc);
-    MYLOG(ES_TRACE, "entering...%u\n", fFunction);
+    MYLOG(OPENSEARCH_TRACE, "entering...%u\n", fFunction);
 
     if (fFunction == SQL_API_ALL_FUNCTIONS) {
         memset(pfExists, 0, sizeof(pfExists[0]) * 100);
@@ -1199,7 +1199,7 @@ char *identifierEscape(const SQLCHAR *src, SQLLEN srclen,
         srclen = (SQLLEN)strlen((char *)src);
     if (srclen <= 0)
         return dest;
-    MYLOG(ES_TRACE, "entering in=%s(" FORMAT_LEN ")\n", src, srclen);
+    MYLOG(OPENSEARCH_TRACE, "entering in=%s(" FORMAT_LEN ")\n", src, srclen);
     if (NULL != buf && bufsize > 0)
         dest = buf;
     else {
@@ -1228,7 +1228,7 @@ char *identifierEscape(const SQLCHAR *src, SQLLEN srclen,
     if (double_quote)
         dest[outlen++] = IDENTIFIER_QUOTE;
     dest[outlen] = '\0';
-    MYLOG(ES_TRACE, "leaving output=%s(%d)\n", dest, (int)outlen);
+    MYLOG(OPENSEARCH_TRACE, "leaving output=%s(%d)\n", dest, (int)outlen);
     return dest;
 }
 
@@ -1242,39 +1242,39 @@ char *identifierEscape(const SQLCHAR *src, SQLLEN srclen,
 #define TABLE_IN_RELKIND "('r', 'v', 'm', 'f', 'p')"
 
 /*
- *	macros for estype_attr_xxxx() calls which have
- *		ES_ADT_UNSET or ES_UNKNOWNS_UNSET parameters
+ *	macros for opensearchtype_attr_xxxx() calls which have
+ *		OPENSEARCH_ADT_UNSET or OPENSEARCH_UNKNOWNS_UNSET parameters
  */
-#define ESTYPE_ATTR_COLUMN_SIZE(conn, esType, atttypmod)           \
-    estype_attr_column_size(conn, esType, atttypmod, ES_ADT_UNSET, \
-                            ES_UNKNOWNS_UNSET)
-#define ESTYPE_ATTR_TO_CONCISE_TYPE(conn, esType, atttypmod)           \
-    estype_attr_to_concise_type(conn, esType, atttypmod, ES_ADT_UNSET, \
-                                ES_UNKNOWNS_UNSET)
-#define ESTYPE_ATTR_TO_SQLDESCTYPE(conn, esType, atttypmod)           \
-    estype_attr_to_sqldesctype(conn, esType, atttypmod, ES_ADT_UNSET, \
-                               ES_UNKNOWNS_UNSET)
-#define ESTYPE_ATTR_DISPLAY_SIZE(conn, esType, atttypmod)           \
-    estype_attr_display_size(conn, esType, atttypmod, ES_ADT_UNSET, \
-                             ES_UNKNOWNS_UNSET)
-#define ESTYPE_ATTR_BUFFER_LENGTH(conn, esType, atttypmod)           \
-    estype_attr_buffer_length(conn, esType, atttypmod, ES_ADT_UNSET, \
-                              ES_UNKNOWNS_UNSET)
-#define ESTYPE_ATTR_DECIMAL_DIGITS(conn, esType, atttypmod)           \
-    estype_attr_decimal_digits(conn, esType, atttypmod, ES_ADT_UNSET, \
-                               ES_UNKNOWNS_UNSET)
-#define ESTYPE_ATTR_TRANSFER_OCTET_LENGTH(conn, esType, atttypmod) \
-    estype_attr_transfer_octet_length(conn, esType, atttypmod,     \
-                                      ES_UNKNOWNS_UNSET)
+#define OPENSEARCHTYPE_ATTR_COLUMN_SIZE(conn, openSearchType, atttypmod)           \
+    opensearchtype_attr_column_size(conn, openSearchType, atttypmod, OPENSEARCH_ADT_UNSET, \
+                            OPENSEARCH_UNKNOWNS_UNSET)
+#define OPENSEARCHTYPE_ATTR_TO_CONCISE_TYPE(conn, openSearchType, atttypmod)           \
+    opensearchtype_attr_to_concise_type(conn, openSearchType, atttypmod, OPENSEARCH_ADT_UNSET, \
+                                OPENSEARCH_UNKNOWNS_UNSET)
+#define OPENSEARCHTYPE_ATTR_TO_SQLDESCTYPE(conn, openSearchType, atttypmod)           \
+    opensearchtype_attr_to_sqldesctype(conn, openSearchType, atttypmod, OPENSEARCH_ADT_UNSET, \
+                               OPENSEARCH_UNKNOWNS_UNSET)
+#define OPENSEARCHTYPE_ATTR_DISPLAY_SIZE(conn, openSearchType, atttypmod)           \
+    opensearchtype_attr_display_size(conn, openSearchType, atttypmod, OPENSEARCH_ADT_UNSET, \
+                             OPENSEARCH_UNKNOWNS_UNSET)
+#define OPENSEARCHTYPE_ATTR_BUFFER_LENGTH(conn, openSearchType, atttypmod)           \
+    opensearchtype_attr_buffer_length(conn, openSearchType, atttypmod, OPENSEARCH_ADT_UNSET, \
+                              OPENSEARCH_UNKNOWNS_UNSET)
+#define OPENSEARCHTYPE_ATTR_DECIMAL_DIGITS(conn, openSearchType, atttypmod)           \
+    opensearchtype_attr_decimal_digits(conn, openSearchType, atttypmod, OPENSEARCH_ADT_UNSET, \
+                               OPENSEARCH_UNKNOWNS_UNSET)
+#define OPENSEARCHTYPE_ATTR_TRANSFER_OCTET_LENGTH(conn, openSearchType, atttypmod) \
+    opensearchtype_attr_transfer_octet_length(conn, openSearchType, atttypmod,     \
+                                      OPENSEARCH_UNKNOWNS_UNSET)
 
-RETCODE SQL_API ESAPI_SpecialColumns(
+RETCODE SQL_API OPENSEARCHAPI_SpecialColumns(
     HSTMT hstmt, SQLUSMALLINT fColType, const SQLCHAR *szTableQualifier,
     SQLSMALLINT cbTableQualifier, const SQLCHAR *szTableOwner, /* OA E*/
     SQLSMALLINT cbTableOwner, const SQLCHAR *szTableName,      /* OA(R) E*/
     SQLSMALLINT cbTableName, SQLUSMALLINT fScope, SQLUSMALLINT fNullable) {
     UNUSED(fColType, szTableQualifier, cbTableQualifier, szTableOwner,
            cbTableOwner, szTableName, cbTableName, fScope, fNullable);
-    CSTR func = "ESAPI_SpecialColumns";
+    CSTR func = "OPENSEARCHAPI_SpecialColumns";
 
     // Initialize Statement
     StatementClass *stmt = (StatementClass *)hstmt;
@@ -1287,7 +1287,7 @@ RETCODE SQL_API ESAPI_SpecialColumns(
     if (!res) {
         SC_set_error(
             stmt, STMT_NO_MEMORY_ERROR,
-            "Couldn't allocate memory for ESAPI_SpecialColumns result.", func);
+            "Couldn't allocate memory for OPENSEARCHAPI_SpecialColumns result.", func);
         return SQL_ERROR;
     }
 
@@ -1301,20 +1301,23 @@ RETCODE SQL_API ESAPI_SpecialColumns(
 
     // Setup fields
     QR_set_num_fields(res, NUM_OF_SPECOLS_FIELDS);
-    QR_set_field_info_v(res, SPECOLS_SCOPE, "SCOPE", ES_TYPE_INT2, 2);
+    QR_set_field_info_v(res, SPECOLS_SCOPE, "SCOPE", OPENSEARCH_TYPE_INT2, 2);
     QR_set_field_info_v(res, SPECOLS_COLUMN_NAME, "COLUMN_NAME",
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
-    QR_set_field_info_v(res, SPECOLS_DATA_TYPE, "DATA_TYPE", ES_TYPE_INT2, 2);
-    QR_set_field_info_v(res, SPECOLS_TYPE_NAME, "TYPE_NAME", ES_TYPE_VARCHAR,
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
+    QR_set_field_info_v(res, SPECOLS_DATA_TYPE, "DATA_TYPE",
+                        OPENSEARCH_TYPE_INT2, 2);
+    QR_set_field_info_v(res, SPECOLS_TYPE_NAME, "TYPE_NAME",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, SPECOLS_COLUMN_SIZE, "COLUMN_SIZE", ES_TYPE_INT4,
+    QR_set_field_info_v(res, SPECOLS_COLUMN_SIZE, "COLUMN_SIZE",
+                        OPENSEARCH_TYPE_INT4,
                         4);
     QR_set_field_info_v(res, SPECOLS_BUFFER_LENGTH, "BUFFER_LENGTH",
-                        ES_TYPE_INT4, 4);
+                        OPENSEARCH_TYPE_INT4, 4);
     QR_set_field_info_v(res, SPECOLS_DECIMAL_DIGITS, "DECIMAL_DIGITS",
-                        ES_TYPE_INT2, 2);
+                        OPENSEARCH_TYPE_INT2, 2);
     QR_set_field_info_v(res, SPECOLS_PSEUDO_COLUMN, "PSEUDO_COLUMN",
-                        ES_TYPE_INT2, 2);
+                        OPENSEARCH_TYPE_INT2, 2);
 
     // Set result to okay and adjust fields if keys exist
     QR_set_rstatus(res, PORES_FIELDS_OK);
@@ -1332,14 +1335,14 @@ RETCODE SQL_API ESAPI_SpecialColumns(
 }
 
 #define INDOPTION_DESC 0x0001 /* values are in reverse order */
-RETCODE SQL_API ESAPI_Statistics(
+RETCODE SQL_API OPENSEARCHAPI_Statistics(
     HSTMT hstmt, const SQLCHAR *szTableQualifier,              /* OA X*/
     SQLSMALLINT cbTableQualifier, const SQLCHAR *szTableOwner, /* OA E*/
     SQLSMALLINT cbTableOwner, const SQLCHAR *szTableName,      /* OA(R) E*/
     SQLSMALLINT cbTableName, SQLUSMALLINT fUnique, SQLUSMALLINT fAccuracy) {
     UNUSED(szTableQualifier, cbTableQualifier, szTableOwner, cbTableOwner,
            szTableName, cbTableName, fUnique, fAccuracy);
-    CSTR func = "ESAPI_Statistics";
+    CSTR func = "OPENSEARCHAPI_Statistics";
 
     // Initialize Statement
     StatementClass *stmt = (StatementClass *)hstmt;
@@ -1351,7 +1354,7 @@ RETCODE SQL_API ESAPI_Statistics(
     QResultClass *res = QR_Constructor();
     if (!res) {
         SC_set_error(stmt, STMT_NO_MEMORY_ERROR,
-                     "Couldn't allocate memory for ESAPI_Statistics result.",
+                     "Couldn't allocate memory for OPENSEARCHAPI_Statistics result.",
                      func);
         return SQL_ERROR;
     }
@@ -1367,26 +1370,33 @@ RETCODE SQL_API ESAPI_Statistics(
     // Setup fields
     QR_set_num_fields(res, NUM_OF_STATS_FIELDS);
     QR_set_field_info_v(res, STATS_CATALOG_NAME, "TABLE_QUALIFIER",
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
-    QR_set_field_info_v(res, STATS_SCHEMA_NAME, "TABLE_OWNER", ES_TYPE_VARCHAR,
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
+    QR_set_field_info_v(res, STATS_SCHEMA_NAME, "TABLE_OWNER",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, STATS_TABLE_NAME, "TABLE_NAME", ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, STATS_TABLE_NAME, "TABLE_NAME",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, STATS_NON_UNIQUE, "NON_UNIQUE", ES_TYPE_INT2, 2);
+    QR_set_field_info_v(res, STATS_NON_UNIQUE, "NON_UNIQUE",
+                        OPENSEARCH_TYPE_INT2, 2);
     QR_set_field_info_v(res, STATS_INDEX_QUALIFIER, "INDEX_QUALIFIER",
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
-    QR_set_field_info_v(res, STATS_INDEX_NAME, "INDEX_NAME", ES_TYPE_VARCHAR,
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
+    QR_set_field_info_v(res, STATS_INDEX_NAME, "INDEX_NAME",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, STATS_TYPE, "TYPE", ES_TYPE_INT2, 2);
-    QR_set_field_info_v(res, STATS_SEQ_IN_INDEX, "SEQ_IN_INDEX", ES_TYPE_INT2,
+    QR_set_field_info_v(res, STATS_TYPE, "TYPE", OPENSEARCH_TYPE_INT2, 2);
+    QR_set_field_info_v(res, STATS_SEQ_IN_INDEX, "SEQ_IN_INDEX",
+                        OPENSEARCH_TYPE_INT2,
                         2);
-    QR_set_field_info_v(res, STATS_COLUMN_NAME, "COLUMN_NAME", ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, STATS_COLUMN_NAME, "COLUMN_NAME",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, STATS_COLLATION, "COLLATION", ES_TYPE_CHAR, 1);
-    QR_set_field_info_v(res, STATS_CARDINALITY, "CARDINALITY", ES_TYPE_INT4, 4);
-    QR_set_field_info_v(res, STATS_PAGES, "PAGES", ES_TYPE_INT4, 4);
+    QR_set_field_info_v(res, STATS_COLLATION, "COLLATION", OPENSEARCH_TYPE_CHAR, 1);
+    QR_set_field_info_v(res, STATS_CARDINALITY, "CARDINALITY",
+                        OPENSEARCH_TYPE_INT4, 4);
+    QR_set_field_info_v(res, STATS_PAGES, "PAGES", OPENSEARCH_TYPE_INT4, 4);
     QR_set_field_info_v(res, STATS_FILTER_CONDITION, "FILTER_CONDITION",
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
 
     // Set result to okay and adjust fields if keys exist
     QR_set_rstatus(res, PORES_FIELDS_OK);
@@ -1403,7 +1413,7 @@ RETCODE SQL_API ESAPI_Statistics(
     return SQL_SUCCESS;
 }
 
-RETCODE SQL_API ESAPI_ColumnPrivileges(
+RETCODE SQL_API OPENSEARCHAPI_ColumnPrivileges(
     HSTMT hstmt, const SQLCHAR *szTableQualifier,              /* OA X*/
     SQLSMALLINT cbTableQualifier, const SQLCHAR *szTableOwner, /* OA E*/
     SQLSMALLINT cbTableOwner, const SQLCHAR *szTableName,      /* OA(R) E*/
@@ -1411,7 +1421,7 @@ RETCODE SQL_API ESAPI_ColumnPrivileges(
     SQLSMALLINT cbColumnName, UWORD flag) {
     UNUSED(szTableQualifier, cbTableQualifier, szTableOwner, cbTableOwner,
            szTableName, cbTableName, szColumnName, cbColumnName, flag);
-    CSTR func = "ESAPI_ColumnPrivileges";
+    CSTR func = "OPENSEARCHAPI_ColumnPrivileges";
 
     // Initialize Statement
     StatementClass *stmt = (StatementClass *)hstmt;
@@ -1424,7 +1434,7 @@ RETCODE SQL_API ESAPI_ColumnPrivileges(
     if (!res) {
         SC_set_error(
             stmt, STMT_NO_MEMORY_ERROR,
-            "Couldn't allocate memory for ESAPI_ColumnPrivileges result.",
+            "Couldn't allocate memory for OPENSEARCHAPI_ColumnPrivileges result.",
             func);
         return SQL_ERROR;
     }
@@ -1439,22 +1449,27 @@ RETCODE SQL_API ESAPI_ColumnPrivileges(
 
     // Setup fields
     QR_set_num_fields(res, NUM_OF_COLPRIV_FIELDS);
-    QR_set_field_info_v(res, COLPRIV_TABLE_CAT, "TABLE_CAT", ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, COLPRIV_TABLE_CAT, "TABLE_CAT",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
     QR_set_field_info_v(res, COLPRIV_TABLE_SCHEM, "TABLE_SCHEM",
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
-    QR_set_field_info_v(res, COLPRIV_TABLE_NAME, "TABLE_NAME", ES_TYPE_VARCHAR,
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
+    QR_set_field_info_v(res, COLPRIV_TABLE_NAME, "TABLE_NAME",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
     QR_set_field_info_v(res, COLPRIV_COLUMN_NAME, "COLUMN_NAME",
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
-    QR_set_field_info_v(res, COLPRIV_GRANTOR, "GRANTOR", ES_TYPE_VARCHAR,
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
+    QR_set_field_info_v(res, COLPRIV_GRANTOR, "GRANTOR",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, COLPRIV_GRANTEE, "GRANTEE", ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, COLPRIV_GRANTEE, "GRANTEE",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, COLPRIV_PRIVILEGE, "PRIVILEGE", ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, COLPRIV_PRIVILEGE, "PRIVILEGE",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
     QR_set_field_info_v(res, COLPRIV_IS_GRANTABLE, "IS_GRANTABLE",
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
 
     // Set result to okay and adjust fields if keys exist
     QR_set_rstatus(res, PORES_FIELDS_OK);
@@ -1476,7 +1491,7 @@ RETCODE SQL_API ESAPI_ColumnPrivileges(
  *
  *	Retrieve the primary key columns for the specified table.
  */
-RETCODE SQL_API ESAPI_PrimaryKeys(HSTMT hstmt,
+RETCODE SQL_API OPENSEARCHAPI_PrimaryKeys(HSTMT hstmt,
                                   const SQLCHAR *szTableQualifier, /* OA X*/
                                   SQLSMALLINT cbTableQualifier,
                                   const SQLCHAR *szTableOwner, /* OA E*/
@@ -1485,7 +1500,7 @@ RETCODE SQL_API ESAPI_PrimaryKeys(HSTMT hstmt,
                                   SQLSMALLINT cbTableName, OID reloid) {
     UNUSED(szTableQualifier, cbTableQualifier, szTableOwner, cbTableOwner,
            szTableName, cbTableName, reloid);
-    CSTR func = "ESAPI_PrimaryKeys";
+    CSTR func = "OPENSEARCHAPI_PrimaryKeys";
 
     // Initialize Statement
     StatementClass *stmt = (StatementClass *)hstmt;
@@ -1497,7 +1512,7 @@ RETCODE SQL_API ESAPI_PrimaryKeys(HSTMT hstmt,
     QResultClass *res = QR_Constructor();
     if (res == NULL) {
         SC_set_error(stmt, STMT_NO_MEMORY_ERROR,
-                     "Couldn't allocate memory for ESAPI_PrimaryKeys result.",
+                     "Couldn't allocate memory for OPENSEARCHAPI_PrimaryKeys result.",
                      func);
         return SQL_ERROR;
     }
@@ -1512,16 +1527,20 @@ RETCODE SQL_API ESAPI_PrimaryKeys(HSTMT hstmt,
 
     // Setup fields
     QR_set_num_fields(res, NUM_OF_PKS_FIELDS);
-    QR_set_field_info_v(res, PKS_TABLE_CAT, "TABLE_QUALIFIER", ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, PKS_TABLE_CAT, "TABLE_QUALIFIER",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, PKS_TABLE_SCHEM, "TABLE_OWNER", ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, PKS_TABLE_SCHEM, "TABLE_OWNER",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, PKS_TABLE_NAME, "TABLE_NAME", ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, PKS_TABLE_NAME, "TABLE_NAME",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, PKS_COLUMN_NAME, "COLUMN_NAME", ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, PKS_COLUMN_NAME, "COLUMN_NAME",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, PKS_KEY_SQ, "KEY_SEQ", ES_TYPE_INT2, 2);
-    QR_set_field_info_v(res, PKS_PK_NAME, "PK_NAME", ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, PKS_KEY_SQ, "KEY_SEQ", OPENSEARCH_TYPE_INT2, 2);
+    QR_set_field_info_v(res, PKS_PK_NAME, "PK_NAME", OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
 
     // Set result to okay and adjust fields if keys exist
@@ -1539,7 +1558,7 @@ RETCODE SQL_API ESAPI_PrimaryKeys(HSTMT hstmt,
     return ret;
 }
 
-RETCODE SQL_API ESAPI_ForeignKeys(
+RETCODE SQL_API OPENSEARCHAPI_ForeignKeys(
     HSTMT hstmt, const SQLCHAR *szPkTableQualifier,                /* OA X*/
     SQLSMALLINT cbPkTableQualifier, const SQLCHAR *szPkTableOwner, /* OA E*/
     SQLSMALLINT cbPkTableOwner, const SQLCHAR *szPkTableName,      /* OA(R) E*/
@@ -1551,7 +1570,7 @@ RETCODE SQL_API ESAPI_ForeignKeys(
            cbPkTableOwner, szPkTableName, cbPkTableName, szFkTableQualifier,
            cbFkTableQualifier, szFkTableOwner, cbFkTableOwner, szFkTableName,
            cbFkTableName);
-    CSTR func = "ESAPI_ForeignKeys";
+    CSTR func = "OPENSEARCHAPI_ForeignKeys";
 
     // Initialize Statement
     StatementClass *stmt = (StatementClass *)hstmt;
@@ -1563,7 +1582,7 @@ RETCODE SQL_API ESAPI_ForeignKeys(
     QResultClass *res = QR_Constructor();
     if (!res) {
         SC_set_error(stmt, STMT_NO_MEMORY_ERROR,
-                     "Couldn't allocate memory for ESAPI_ForeignKeys result.",
+                     "Couldn't allocate memory for OPENSEARCHAPI_ForeignKeys result.",
                      func);
         return SQL_ERROR;
     }
@@ -1579,31 +1598,37 @@ RETCODE SQL_API ESAPI_ForeignKeys(
     // Setup fields
     QR_set_num_fields(res, NUM_OF_FKS_FIELDS);
     QR_set_field_info_v(res, FKS_PKTABLE_CAT, "PKTABLE_QUALIFIER",
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
     QR_set_field_info_v(res, FKS_PKTABLE_SCHEM, "PKTABLE_OWNER",
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
-    QR_set_field_info_v(res, FKS_PKTABLE_NAME, "PKTABLE_NAME", ES_TYPE_VARCHAR,
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
+    QR_set_field_info_v(res, FKS_PKTABLE_NAME, "PKTABLE_NAME",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
     QR_set_field_info_v(res, FKS_PKCOLUMN_NAME, "PKCOLUMN_NAME",
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
     QR_set_field_info_v(res, FKS_FKTABLE_CAT, "FKTABLE_QUALIFIER",
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
     QR_set_field_info_v(res, FKS_FKTABLE_SCHEM, "FKTABLE_OWNER",
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
-    QR_set_field_info_v(res, FKS_FKTABLE_NAME, "FKTABLE_NAME", ES_TYPE_VARCHAR,
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
+    QR_set_field_info_v(res, FKS_FKTABLE_NAME, "FKTABLE_NAME",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
     QR_set_field_info_v(res, FKS_FKCOLUMN_NAME, "FKCOLUMN_NAME",
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
-    QR_set_field_info_v(res, FKS_KEY_SEQ, "KEY_SEQ", ES_TYPE_INT2, 2);
-    QR_set_field_info_v(res, FKS_UPDATE_RULE, "UPDATE_RULE", ES_TYPE_INT2, 2);
-    QR_set_field_info_v(res, FKS_DELETE_RULE, "DELETE_RULE", ES_TYPE_INT2, 2);
-    QR_set_field_info_v(res, FKS_FK_NAME, "FK_NAME", ES_TYPE_VARCHAR,
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
+    QR_set_field_info_v(res, FKS_KEY_SEQ, "KEY_SEQ", OPENSEARCH_TYPE_INT2, 2);
+    QR_set_field_info_v(res, FKS_UPDATE_RULE, "UPDATE_RULE",
+                        OPENSEARCH_TYPE_INT2, 2);
+    QR_set_field_info_v(res, FKS_DELETE_RULE, "DELETE_RULE",
+                        OPENSEARCH_TYPE_INT2, 2);
+    QR_set_field_info_v(res, FKS_FK_NAME, "FK_NAME", OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, FKS_PK_NAME, "PK_NAME", ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, FKS_PK_NAME, "PK_NAME", OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, FKS_DEFERRABILITY, "DEFERRABILITY", ES_TYPE_INT2,
+    QR_set_field_info_v(res, FKS_DEFERRABILITY, "DEFERRABILITY",
+                        OPENSEARCH_TYPE_INT2,
                         2);
-    QR_set_field_info_v(res, FKS_TRIGGER_NAME, "TRIGGER_NAME", ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, FKS_TRIGGER_NAME, "TRIGGER_NAME",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
 
     // Set result to okay and adjust fields if keys exist
@@ -1624,7 +1649,7 @@ RETCODE SQL_API ESAPI_ForeignKeys(
 #define PRORET_COUNT
 #define DISPLAY_ARGNAME
 
-RETCODE SQL_API ESAPI_ProcedureColumns(
+RETCODE SQL_API OPENSEARCHAPI_ProcedureColumns(
     HSTMT hstmt, const SQLCHAR *szProcQualifier,             /* OA X*/
     SQLSMALLINT cbProcQualifier, const SQLCHAR *szProcOwner, /* PV E*/
     SQLSMALLINT cbProcOwner, const SQLCHAR *szProcName,      /* PV E*/
@@ -1632,7 +1657,7 @@ RETCODE SQL_API ESAPI_ProcedureColumns(
     SQLSMALLINT cbColumnName, UWORD flag) {
     UNUSED(szProcQualifier, cbProcQualifier, szProcOwner, cbProcOwner,
            szProcName, cbProcName, szColumnName, cbColumnName, flag);
-    CSTR func = "ESAPI_ProcedureColumns";
+    CSTR func = "OPENSEARCHAPI_ProcedureColumns";
 
     // Initialize Statement
     StatementClass *stmt = (StatementClass *)hstmt;
@@ -1645,7 +1670,7 @@ RETCODE SQL_API ESAPI_ProcedureColumns(
     if (res == NULL) {
         SC_set_error(
             stmt, STMT_NO_MEMORY_ERROR,
-            "Couldn't allocate memory for ESAPI_ProcedureColumns result.",
+            "Couldn't allocate memory for OPENSEARCHAPI_ProcedureColumns result.",
             func);
         return SQL_ERROR;
     }
@@ -1661,41 +1686,47 @@ RETCODE SQL_API ESAPI_ProcedureColumns(
     // Setup fields
     QR_set_num_fields(res, NUM_OF_PROCOLS_FIELDS);
     QR_set_field_info_v(res, PROCOLS_PROCEDURE_CAT, "PROCEDURE_CAT",
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
     QR_set_field_info_v(res, PROCOLS_PROCEDURE_SCHEM, "PROCEDUR_SCHEM",
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
     QR_set_field_info_v(res, PROCOLS_PROCEDURE_NAME, "PROCEDURE_NAME",
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
     QR_set_field_info_v(res, PROCOLS_COLUMN_NAME, "COLUMN_NAME",
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
-    QR_set_field_info_v(res, PROCOLS_COLUMN_TYPE, "COLUMN_TYPE", ES_TYPE_INT2,
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
+    QR_set_field_info_v(res, PROCOLS_COLUMN_TYPE, "COLUMN_TYPE",
+                        OPENSEARCH_TYPE_INT2,
                         2);
-    QR_set_field_info_v(res, PROCOLS_DATA_TYPE, "DATA_TYPE", ES_TYPE_INT2, 2);
-    QR_set_field_info_v(res, PROCOLS_TYPE_NAME, "TYPE_NAME", ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, PROCOLS_DATA_TYPE, "DATA_TYPE",
+                        OPENSEARCH_TYPE_INT2, 2);
+    QR_set_field_info_v(res, PROCOLS_TYPE_NAME, "TYPE_NAME",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, PROCOLS_COLUMN_SIZE, "COLUMN_SIZE", ES_TYPE_INT4,
+    QR_set_field_info_v(res, PROCOLS_COLUMN_SIZE, "COLUMN_SIZE",
+                        OPENSEARCH_TYPE_INT4,
                         4);
     QR_set_field_info_v(res, PROCOLS_BUFFER_LENGTH, "BUFFER_LENGTH",
-                        ES_TYPE_INT4, 4);
+                        OPENSEARCH_TYPE_INT4, 4);
     QR_set_field_info_v(res, PROCOLS_DECIMAL_DIGITS, "DECIMAL_DIGITS",
-                        ES_TYPE_INT2, 2);
+                        OPENSEARCH_TYPE_INT2, 2);
     QR_set_field_info_v(res, PROCOLS_NUM_PREC_RADIX, "NUM_PREC_RADIX",
-                        ES_TYPE_INT2, 2);
-    QR_set_field_info_v(res, PROCOLS_NULLABLE, "NULLABLE", ES_TYPE_INT2, 2);
-    QR_set_field_info_v(res, PROCOLS_REMARKS, "REMARKS", ES_TYPE_VARCHAR,
+                        OPENSEARCH_TYPE_INT2, 2);
+    QR_set_field_info_v(res, PROCOLS_NULLABLE, "NULLABLE", OPENSEARCH_TYPE_INT2, 2);
+    QR_set_field_info_v(res, PROCOLS_REMARKS, "REMARKS",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, PROCOLS_COLUMN_DEF, "COLUMN_DEF", ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, PROCOLS_COLUMN_DEF, "COLUMN_DEF",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
     QR_set_field_info_v(res, PROCOLS_SQL_DATA_TYPE, "SQL_DATA_TYPE",
-                        ES_TYPE_INT2, 2);
+                        OPENSEARCH_TYPE_INT2, 2);
     QR_set_field_info_v(res, PROCOLS_SQL_DATETIME_SUB, "SQL_DATETIME_SUB",
-                        ES_TYPE_INT2, 2);
+                        OPENSEARCH_TYPE_INT2, 2);
     QR_set_field_info_v(res, PROCOLS_CHAR_OCTET_LENGTH, "CHAR_OCTET_LENGTH",
-                        ES_TYPE_INT4, 4);
+                        OPENSEARCH_TYPE_INT4, 4);
     QR_set_field_info_v(res, PROCOLS_ORDINAL_POSITION, "ORDINAL_POSITION",
-                        ES_TYPE_INT4, 4);
+                        OPENSEARCH_TYPE_INT4, 4);
     QR_set_field_info_v(res, PROCOLS_IS_NULLABLE, "IS_NULLABLE",
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
 
     // Set result to okay and adjust fields if keys exist
     QR_set_rstatus(res, PORES_FIELDS_OK);
@@ -1712,7 +1743,7 @@ RETCODE SQL_API ESAPI_ProcedureColumns(
     return ret;
 }
 
-RETCODE SQL_API ESAPI_Procedures(HSTMT hstmt,
+RETCODE SQL_API OPENSEARCHAPI_Procedures(HSTMT hstmt,
                                  const SQLCHAR *szProcQualifier, /* OA X*/
                                  SQLSMALLINT cbProcQualifier,
                                  const SQLCHAR *szProcOwner, /* PV E*/
@@ -1721,7 +1752,7 @@ RETCODE SQL_API ESAPI_Procedures(HSTMT hstmt,
                                  SQLSMALLINT cbProcName, UWORD flag) {
     UNUSED(szProcQualifier, cbProcQualifier, szProcOwner, cbProcOwner,
            szProcName, cbProcName, flag);
-    CSTR func = "ESAPI_Procedures";
+    CSTR func = "OPENSEARCHAPI_Procedures";
 
     // Initialize Statement
     StatementClass *stmt = (StatementClass *)hstmt;
@@ -1733,7 +1764,7 @@ RETCODE SQL_API ESAPI_Procedures(HSTMT hstmt,
     QResultClass *res = QR_Constructor();
     if (res == NULL) {
         SC_set_error(stmt, STMT_NO_MEMORY_ERROR,
-                     "Couldn't allocate memory for ESAPI_Procedures result.",
+                     "Couldn't allocate memory for OPENSEARCHAPI_Procedures result.",
                      func);
         return SQL_ERROR;
     }
@@ -1749,21 +1780,23 @@ RETCODE SQL_API ESAPI_Procedures(HSTMT hstmt,
     // Setup fields
     QR_set_num_fields(res, NUM_OF_PRO_FIELDS);
     QR_set_field_info_v(res, PRO_PROCEDURE_CAT, "PRO_PROCEDURE_CAT",
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
     QR_set_field_info_v(res, PRO_PROCEDURE_SCHEM, "PRO_PROCEDURE_SCHEM",
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
     QR_set_field_info_v(res, PRO_PROCEDURE_NAME, "PRO_PROCEDURE_NAME",
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
     QR_set_field_info_v(res, PRO_NUM_INPUT_PARAMS, "PRO_NUM_INPUT_PARAMS",
-                        ES_TYPE_INT4, 4);
+                        OPENSEARCH_TYPE_INT4, 4);
     QR_set_field_info_v(res, PRO_NUM_OUTPUT_PARAMS, "PRO_NUM_OUTPUT_PARAMS",
-                        ES_TYPE_INT4, 4);
-    QR_set_field_info_v(res, PRO_RESULT_SETS, "PRO_RESULT_SETS", ES_TYPE_INT4,
+                        OPENSEARCH_TYPE_INT4, 4);
+    QR_set_field_info_v(res, PRO_RESULT_SETS, "PRO_RESULT_SETS",
+                        OPENSEARCH_TYPE_INT4,
                         4);
-    QR_set_field_info_v(res, PRO_REMARKS, "PRO_REMARKS", ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, PRO_REMARKS, "PRO_REMARKS",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
     QR_set_field_info_v(res, PRO_PROCEDURE_TYPE, "PRO_PROCEDURE_TYPE",
-                        ES_TYPE_INT2, 2);
+                        OPENSEARCH_TYPE_INT2, 2);
 
     // Set result to okay and adjust fields if keys exist
     QR_set_rstatus(res, PORES_FIELDS_OK);
@@ -1783,7 +1816,7 @@ RETCODE SQL_API ESAPI_Procedures(HSTMT hstmt,
 #define ACLMAX 8
 #define ALL_PRIVILIGES "arwdRxt"
 
-RETCODE SQL_API ESAPI_TablePrivileges(HSTMT hstmt,
+RETCODE SQL_API OPENSEARCHAPI_TablePrivileges(HSTMT hstmt,
                                       const SQLCHAR *szTableQualifier, /* OA X*/
                                       SQLSMALLINT cbTableQualifier,
                                       const SQLCHAR *szTableOwner, /* PV E*/
@@ -1792,7 +1825,7 @@ RETCODE SQL_API ESAPI_TablePrivileges(HSTMT hstmt,
                                       SQLSMALLINT cbTableName, UWORD flag) {
     UNUSED(szTableQualifier, cbTableQualifier, szTableOwner, cbTableOwner,
            szTableName, cbTableName, flag);
-    CSTR func = "ESAPI_TablePrivileges";
+    CSTR func = "OPENSEARCHAPI_TablePrivileges";
 
     // Initialize Statement
     StatementClass *stmt = (StatementClass *)hstmt;
@@ -1804,7 +1837,7 @@ RETCODE SQL_API ESAPI_TablePrivileges(HSTMT hstmt,
     QResultClass *res = QR_Constructor();
     if (!res) {
         SC_set_error(stmt, STMT_NO_MEMORY_ERROR,
-                     "Couldn't allocate memory for ESAPI_Statistics result.",
+                     "Couldn't allocate memory for OPENSEARCHAPI_Statistics result.",
                      func);
         return SQL_ERROR;
     }
@@ -1819,20 +1852,25 @@ RETCODE SQL_API ESAPI_TablePrivileges(HSTMT hstmt,
 
     // Setup fields
     QR_set_num_fields(res, NUM_OF_TABPRIV_FIELDS);
-    QR_set_field_info_v(res, TABPRIV_TABLE_CAT, "TABLE_CAT", ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, TABPRIV_TABLE_CAT, "TABLE_CAT",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
     QR_set_field_info_v(res, TABPRIV_TABLE_SCHEM, "TABLE_SCHEM",
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
-    QR_set_field_info_v(res, TABPRIV_TABLE_NAME, "TABLE_NAME", ES_TYPE_VARCHAR,
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
+    QR_set_field_info_v(res, TABPRIV_TABLE_NAME, "TABLE_NAME",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, TABPRIV_GRANTOR, "GRANTOR", ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, TABPRIV_GRANTOR, "GRANTOR",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, TABPRIV_GRANTEE, "GRANTEE", ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, TABPRIV_GRANTEE, "GRANTEE",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
-    QR_set_field_info_v(res, TABPRIV_PRIVILEGE, "PRIVILEGE", ES_TYPE_VARCHAR,
+    QR_set_field_info_v(res, TABPRIV_PRIVILEGE, "PRIVILEGE",
+                        OPENSEARCH_TYPE_VARCHAR,
                         MAX_INFO_STRING);
     QR_set_field_info_v(res, TABPRIV_IS_GRANTABLE, "IS_GRANTABLE",
-                        ES_TYPE_VARCHAR, MAX_INFO_STRING);
+                        OPENSEARCH_TYPE_VARCHAR, MAX_INFO_STRING);
 
     // Set result to okay and adjust fields if keys exist
     QR_set_rstatus(res, PORES_FIELDS_OK);

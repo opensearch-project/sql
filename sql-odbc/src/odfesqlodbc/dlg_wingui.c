@@ -17,7 +17,7 @@
 #ifdef WIN32
 
 #include "dlg_specific.h"
-#include "es_apifunc.h"
+#include "opensearch_apifunc.h"
 #include "loadlib.h"
 #include "misc.h"  // strncpy_null
 #include "win_setup.h"
@@ -89,7 +89,7 @@ void SetAuthenticationVisibility(HWND hdlg, const struct authmode *am) {
 
 void SetDlgStuff(HWND hdlg, const ConnInfo *ci) {
     // Connection
-    SetDlgItemText(hdlg, IDC_DRIVER_VERSION, "V."ELASTICSEARCHDRIVERVERSION);
+    SetDlgItemText(hdlg, IDC_DRIVER_VERSION, "V."OPENSEARCHDRIVERVERSION);
     SetDlgItemText(hdlg, IDC_DSNAME, ci->dsn);
     SetDlgItemText(hdlg, IDC_SERVER, ci->server);
     SetDlgItemText(hdlg, IDC_PORT, ci->port);
@@ -114,7 +114,7 @@ void SetDlgStuff(HWND hdlg, const ConnInfo *ci) {
     SetDlgItemText(hdlg, IDC_REGION, ci->region);
 }
 
-static void GetNameField(HWND hdlg, int item, esNAME *name) {
+static void GetNameField(HWND hdlg, int item, opensearchNAME *name) {
     char medium_buf[MEDIUM_REGISTRY_LEN + 1];
     GetDlgItemText(hdlg, item, medium_buf, sizeof(medium_buf));
     STR_TO_NAME((*name), medium_buf);
@@ -221,31 +221,31 @@ INT_PTR CALLBACK logOptionsProc(HWND hdlg, UINT wMsg, WPARAM wParam,
                     int log = GetCurrentLogLevel(hdlg);
                     switch (log) {
                         case IDS_LOGTYPE_OFF:
-                            ci->drivers.loglevel = (char)ES_OFF;
+                            ci->drivers.loglevel = (char)OPENSEARCH_OFF;
                             break;
                         case IDS_LOGTYPE_FATAL:
-                            ci->drivers.loglevel = (char)ES_FATAL;
+                            ci->drivers.loglevel = (char)OPENSEARCH_FATAL;
                             break;
                         case IDS_LOGTYPE_ERROR:
-                            ci->drivers.loglevel = (char)ES_ERROR;
+                            ci->drivers.loglevel = (char)OPENSEARCH_ERROR;
                             break;
                         case IDS_LOGTYPE_WARNING:
-                            ci->drivers.loglevel = (char)ES_WARNING;
+                            ci->drivers.loglevel = (char)OPENSEARCH_WARNING;
                             break;
                         case IDS_LOGTYPE_INFO:
-                            ci->drivers.loglevel = (char)ES_INFO;
+                            ci->drivers.loglevel = (char)OPENSEARCH_INFO;
                             break;
                         case IDS_LOGTYPE_DEBUG:
-                            ci->drivers.loglevel = (char)ES_DEBUG;
+                            ci->drivers.loglevel = (char)OPENSEARCH_DEBUG;
                             break;
                         case IDS_LOGTYPE_TRACE:
-                            ci->drivers.loglevel = (char)ES_TRACE;
+                            ci->drivers.loglevel = (char)OPENSEARCH_TRACE;
                             break;
                         case IDS_LOGTYPE_ALL:
-                            ci->drivers.loglevel = (char)ES_ALL;
+                            ci->drivers.loglevel = (char)OPENSEARCH_ALL;
                             break;
                         default:
-                            ci->drivers.loglevel = (char)ES_OFF;
+                            ci->drivers.loglevel = (char)OPENSEARCH_OFF;
                             break;
                     }
                     setGlobalCommlog(ci->drivers.loglevel);

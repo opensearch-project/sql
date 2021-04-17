@@ -41,8 +41,8 @@
 #include <sql.h>
 #define _MYLOG_FUNCS_IMPORT_
 #include "mylog.h"
-#define _ESENLIST_FUNCS_IMPLEMENT_
-#include "esenlist.h"
+#define _OPENSEARCH_ENLIST_FUNCS_IMPLEMENT_
+#include "opensearch_enlist.h"
 #include "xalibname.h"
 
 #ifdef WIN32
@@ -66,7 +66,7 @@ BOOL WINAPI DllMain(HANDLE hInst, ULONG ul_reason_for_call, LPVOID lpReserved) {
             s_hModule = (HINSTANCE)hInst; /* Save for dialog boxes */
             break;
         case DLL_PROCESS_DETACH:
-            mylog("DETACHING esenlist\n");
+            mylog("DETACHING opensearch_enlist\n");
             break;
     }
     return TRUE;

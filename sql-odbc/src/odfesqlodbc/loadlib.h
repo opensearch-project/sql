@@ -17,7 +17,7 @@
 #ifndef __LOADLIB_H__
 #define __LOADLIB_H__
 
-#include "es_odbc.h"
+#include "opensearch_odbc.h"
 #ifdef HAVE_LIBLTDL
 #include <ltdl.h>
 #else
@@ -42,7 +42,7 @@ void CALL_ReleaseTransactionObject(void *);
 void CleanupDelayLoadedDLLs(void);
 #ifdef WIN32
 HMODULE MODULE_load_from_elasticodbc_path(const char *module_name);
-void AlreadyLoadedElasticsearchodbc(void);
+void AlreadyLoadedOpenSearchodbc(void);
 #endif /* WIN32 */
 
 #ifdef __cplusplus

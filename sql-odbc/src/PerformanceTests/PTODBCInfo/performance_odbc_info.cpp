@@ -16,7 +16,7 @@
 
 // clang-format off
 #include "pch.h"
-#include "es_communication.h"
+#include "opensearch_communication.h"
 #include "unit_test_helper.h"
 #include "it_odbc_helper.h"
 #include "chrono"
@@ -78,19 +78,19 @@ runtime_options rt_opts = []() {
 
 void GetVersionInfoString(std::string& version_info) {
     // Connect to DB
-    ESCommunication es_comm;
-    es_comm.ConnectionOptions(rt_opts, false, 0, 0);
-    ASSERT_TRUE(es_comm.ConnectDBStart());
+    OpenSearchCommunication opensearch_comm;
+    opensearch_comm.ConnectionOptions(rt_opts, false, 0, 0);
+    ASSERT_TRUE(opensearch_comm.ConnectDBStart());
 
     // Issue request
     std::string endpoint, content_type, query, fetch_size;
     std::shared_ptr< Aws::Http::HttpResponse > response =
-        es_comm.IssueRequest(endpoint, Aws::Http::HttpMethod::HTTP_GET,
+        opensearch_comm.IssueRequest(endpoint, Aws::Http::HttpMethod::HTTP_GET,
                              content_type, query, fetch_size);
 
     // Convert response to string
     ASSERT_TRUE(response != nullptr);
-    es_comm.AwsHttpResponseToString(response, version_info);
+    opensearch_comm.AwsHttpResponseToString(response, version_info);
 }
 
 void ParseVersionInfoString(

@@ -20,9 +20,9 @@
 #include <string.h>
 
 #include "dlg_specific.h"
-#include "es_apifunc.h"
-#include "es_connection.h"
 #include "misc.h"
+#include "opensearch_apifunc.h"
+#include "opensearch_connection.h"
 #include "statement.h"
 #ifdef WIN32
 #include <winsock2.h>
@@ -37,11 +37,11 @@ void *conns_cs = NULL;
 void *common_cs = NULL;
 void *common_lcs = NULL;
 
-RETCODE SQL_API ESAPI_AllocEnv(HENV *phenv) {
-    CSTR func = "ESAPI_AllocEnv";
+RETCODE SQL_API OPENSEARCHAPI_AllocEnv(HENV *phenv) {
+    CSTR func = "OPENSEARCHAPI_AllocEnv";
     SQLRETURN ret = SQL_SUCCESS;
 
-    MYLOG(ES_TRACE, "entering\n");
+    MYLOG(OPENSEARCH_TRACE, "entering\n");
 
     /*
      * For systems on which none of the constructor-making
@@ -57,19 +57,19 @@ RETCODE SQL_API ESAPI_AllocEnv(HENV *phenv) {
         ret = SQL_ERROR;
     }
 
-    MYLOG(ES_TRACE, "leaving phenv=%p\n", *phenv);
+    MYLOG(OPENSEARCH_TRACE, "leaving phenv=%p\n", *phenv);
     return ret;
 }
 
-RETCODE SQL_API ESAPI_FreeEnv(HENV henv) {
-    CSTR func = "ESAPI_FreeEnv";
+RETCODE SQL_API OPENSEARCHAPI_FreeEnv(HENV henv) {
+    CSTR func = "OPENSEARCHAPI_FreeEnv";
     SQLRETURN ret = SQL_SUCCESS;
     EnvironmentClass *env = (EnvironmentClass *)henv;
 
-    MYLOG(ES_TRACE, "entering env=%p\n", env);
+    MYLOG(OPENSEARCH_TRACE, "entering env=%p\n", env);
 
     if (env && EN_Destructor(env)) {
-        MYLOG(ES_DEBUG, "   ok\n");
+        MYLOG(OPENSEARCH_DEBUG, "   ok\n");
         goto cleanup;
     }
 
@@ -81,14 +81,14 @@ cleanup:
 
 #define SIZEOF_SQLSTATE 6
 
-static void es_sqlstate_set(const EnvironmentClass *env, UCHAR *szSqlState,
+static void opensearch_sqlstate_set(const EnvironmentClass *env, UCHAR *szSqlState,
                             const char *ver3str, const char *ver2str) {
     strncpy_null((char *)szSqlState, EN_is_odbc3(env) ? ver3str : ver2str,
                  SIZEOF_SQLSTATE);
 }
 
-ES_ErrorInfo *ER_Constructor(SDWORD errnumber, const char *msg) {
-    ES_ErrorInfo *error;
+OpenSearch_ErrorInfo *ER_Constructor(SDWORD errnumber, const char *msg) {
+    OpenSearch_ErrorInfo *error;
     ssize_t aladd, errsize;
 
     if (DESC_OK == errnumber)
@@ -102,9 +102,9 @@ ES_ErrorInfo *ER_Constructor(SDWORD errnumber, const char *msg) {
         errsize = -1;
         aladd = 0;
     }
-    error = (ES_ErrorInfo *)malloc(sizeof(ES_ErrorInfo) + aladd);
+    error = (OpenSearch_ErrorInfo *)malloc(sizeof(OpenSearch_ErrorInfo) + aladd);
     if (error) {
-        memset(error, 0, sizeof(ES_ErrorInfo));
+        memset(error, 0, sizeof(OpenSearch_ErrorInfo));
         error->status = errnumber;
         error->errorsize = (Int2)errsize;
         if (errsize > 0)
@@ -115,20 +115,20 @@ ES_ErrorInfo *ER_Constructor(SDWORD errnumber, const char *msg) {
     return error;
 }
 
-void ER_Destructor(ES_ErrorInfo *self) {
+void ER_Destructor(OpenSearch_ErrorInfo *self) {
     free(self);
 }
 
-ES_ErrorInfo *ER_Dup(const ES_ErrorInfo *self) {
-    ES_ErrorInfo *new;
+OpenSearch_ErrorInfo *ER_Dup(const OpenSearch_ErrorInfo *self) {
+    OpenSearch_ErrorInfo *new;
     Int4 alsize;
 
     if (!self)
         return NULL;
-    alsize = sizeof(ES_ErrorInfo);
+    alsize = sizeof(OpenSearch_ErrorInfo);
     if (self->errorsize > 0)
         alsize += self->errorsize;
-    new = (ES_ErrorInfo *)malloc(alsize);
+    new = (OpenSearch_ErrorInfo *)malloc(alsize);
     if (new)
         memcpy(new, self, alsize);
 
@@ -137,21 +137,21 @@ ES_ErrorInfo *ER_Dup(const ES_ErrorInfo *self) {
 
 #define DRVMNGRDIV 511
 /*		Returns the next SQL error information. */
-RETCODE SQL_API ER_ReturnError(ES_ErrorInfo *eserror, SQLSMALLINT RecNumber,
+RETCODE SQL_API ER_ReturnError(OpenSearch_ErrorInfo *openSearchError, SQLSMALLINT RecNumber,
                                SQLCHAR *szSqlState, SQLINTEGER *pfNativeError,
                                SQLCHAR *szErrorMsg, SQLSMALLINT cbErrorMsgMax,
                                SQLSMALLINT *pcbErrorMsg, UWORD flag) {
     /* CC: return an error of a hstmt  */
-    ES_ErrorInfo *error;
+    OpenSearch_ErrorInfo *error;
     BOOL partial_ok = ((flag & PODBC_ALLOW_PARTIAL_EXTRACT) != 0);
     const char *msg;
     SWORD msglen, stapos, wrtlen, pcblen;
 
-    if (!eserror)
+    if (!openSearchError)
         return SQL_NO_DATA_FOUND;
-    error = eserror;
+    error = openSearchError;
     msg = error->__error_message;
-    MYLOG(ES_TRACE, "entering status = %d, msg = #%s#\n", error->status, msg);
+    MYLOG(OPENSEARCH_TRACE, "entering status = %d, msg = #%s#\n", error->status, msg);
     msglen = (SQLSMALLINT)strlen(msg);
     /*
      *	Even though an application specifies a larger error message
@@ -203,7 +203,7 @@ RETCODE SQL_API ER_ReturnError(ES_ErrorInfo *eserror, SQLSMALLINT RecNumber,
     if (NULL != szSqlState)
         strncpy_null((char *)szSqlState, error->sqlstate, 6);
 
-    MYLOG(ES_DEBUG, "	     szSqlState = '%s',len=%d, szError='%s'\n",
+    MYLOG(OPENSEARCH_DEBUG, "	     szSqlState = '%s',len=%d, szError='%s'\n",
           szSqlState, pcblen, szErrorMsg);
     if (wrtlen < pcblen)
         return SQL_SUCCESS_WITH_INFO;
@@ -211,7 +211,7 @@ RETCODE SQL_API ER_ReturnError(ES_ErrorInfo *eserror, SQLSMALLINT RecNumber,
         return SQL_SUCCESS;
 }
 
-RETCODE SQL_API ESAPI_ConnectError(HDBC hdbc, SQLSMALLINT RecNumber,
+RETCODE SQL_API OPENSEARCHAPI_ConnectError(HDBC hdbc, SQLSMALLINT RecNumber,
                                    SQLCHAR *szSqlState,
                                    SQLINTEGER *pfNativeError,
                                    SQLCHAR *szErrorMsg,
@@ -225,14 +225,14 @@ RETCODE SQL_API ESAPI_ConnectError(HDBC hdbc, SQLSMALLINT RecNumber,
     BOOL once_again = FALSE;
     ssize_t msglen;
 
-    MYLOG(ES_ERROR, "entering hdbc=%p <%d>\n", hdbc, cbErrorMsgMax);
+    MYLOG(OPENSEARCH_ERROR, "entering hdbc=%p <%d>\n", hdbc, cbErrorMsgMax);
     if (RecNumber != 1 && RecNumber != -1)
         return SQL_NO_DATA_FOUND;
     if (cbErrorMsgMax < 0)
         return SQL_ERROR;
     if (CONN_EXECUTING == conn->status || !CC_get_error(conn, &status, &msg)
         || NULL == msg) {
-        MYLOG(ES_ERROR, "CC_Get_error returned nothing.\n");
+        MYLOG(OPENSEARCH_ERROR, "CC_Get_error returned nothing.\n");
         if (NULL != szSqlState)
             strncpy_null((char *)szSqlState, "00000", SIZEOF_SQLSTATE);
         if (NULL != pcbErrorMsg)
@@ -242,7 +242,7 @@ RETCODE SQL_API ESAPI_ConnectError(HDBC hdbc, SQLSMALLINT RecNumber,
 
         return SQL_NO_DATA_FOUND;
     }
-    MYLOG(ES_ERROR, "CC_get_error: status = %d, msg = #%s#\n", status, msg);
+    MYLOG(OPENSEARCH_ERROR, "CC_get_error: status = %d, msg = #%s#\n", status, msg);
 
     msglen = strlen(msg);
     if (NULL != pcbErrorMsg) {
@@ -263,70 +263,70 @@ RETCODE SQL_API ESAPI_ConnectError(HDBC hdbc, SQLSMALLINT RecNumber,
         else
             switch (status) {
                 case CONN_OPTION_VALUE_CHANGED:
-                    es_sqlstate_set(env, szSqlState, "01S02", "01S02");
+                    opensearch_sqlstate_set(env, szSqlState, "01S02", "01S02");
                     break;
                 case CONN_TRUNCATED:
-                    es_sqlstate_set(env, szSqlState, "01004", "01004");
+                    opensearch_sqlstate_set(env, szSqlState, "01004", "01004");
                     /* data truncated */
                     break;
                 case CONN_INIREAD_ERROR:
-                    es_sqlstate_set(env, szSqlState, "IM002", "IM002");
+                    opensearch_sqlstate_set(env, szSqlState, "IM002", "IM002");
                     /* data source not found */
                     break;
                 case CONNECTION_SERVER_NOT_REACHED:
                 case CONN_OPENDB_ERROR:
-                    es_sqlstate_set(env, szSqlState, "08001", "08001");
+                    opensearch_sqlstate_set(env, szSqlState, "08001", "08001");
                     /* unable to connect to data source */
                     break;
                 case CONN_INVALID_AUTHENTICATION:
                 case CONN_AUTH_TYPE_UNSUPPORTED:
-                    es_sqlstate_set(env, szSqlState, "28000", "28000");
+                    opensearch_sqlstate_set(env, szSqlState, "28000", "28000");
                     break;
                 case CONN_STMT_ALLOC_ERROR:
-                    es_sqlstate_set(env, szSqlState, "HY001", "S1001");
+                    opensearch_sqlstate_set(env, szSqlState, "HY001", "S1001");
                     /* memory allocation failure */
                     break;
                 case CONN_IN_USE:
-                    es_sqlstate_set(env, szSqlState, "HY000", "S1000");
+                    opensearch_sqlstate_set(env, szSqlState, "HY000", "S1000");
                     /* general error */
                     break;
                 case CONN_UNSUPPORTED_OPTION:
-                    es_sqlstate_set(env, szSqlState, "HYC00", "IM001");
+                    opensearch_sqlstate_set(env, szSqlState, "HYC00", "IM001");
                     /* driver does not support this function */
                     break;
                 case CONN_INVALID_ARGUMENT_NO:
-                    es_sqlstate_set(env, szSqlState, "HY009", "S1009");
+                    opensearch_sqlstate_set(env, szSqlState, "HY009", "S1009");
                     /* invalid argument value */
                     break;
                 case CONN_TRANSACT_IN_PROGRES:
-                    es_sqlstate_set(env, szSqlState, "HY011", "S1011");
+                    opensearch_sqlstate_set(env, szSqlState, "HY011", "S1011");
                     break;
                 case CONN_NO_MEMORY_ERROR:
-                    es_sqlstate_set(env, szSqlState, "HY001", "S1001");
+                    opensearch_sqlstate_set(env, szSqlState, "HY001", "S1001");
                     break;
                 case CONN_NOT_IMPLEMENTED_ERROR:
-                    es_sqlstate_set(env, szSqlState, "HYC00", "S1C00");
+                    opensearch_sqlstate_set(env, szSqlState, "HYC00", "S1C00");
                     break;
                 case CONN_ILLEGAL_TRANSACT_STATE:
-                    es_sqlstate_set(env, szSqlState, "25000", "S1010");
+                    opensearch_sqlstate_set(env, szSqlState, "25000", "S1010");
                     break;
                 case CONN_VALUE_OUT_OF_RANGE:
-                    es_sqlstate_set(env, szSqlState, "HY019", "22003");
+                    opensearch_sqlstate_set(env, szSqlState, "HY019", "22003");
                     break;
                 case CONNECTION_COULD_NOT_SEND:
                 case CONNECTION_COULD_NOT_RECEIVE:
                 case CONNECTION_COMMUNICATION_ERROR:
                 case CONNECTION_NO_RESPONSE:
-                    es_sqlstate_set(env, szSqlState, "08S01", "08S01");
+                    opensearch_sqlstate_set(env, szSqlState, "08S01", "08S01");
                     break;
                 default:
-                    es_sqlstate_set(env, szSqlState, "HY000", "S1000");
+                    opensearch_sqlstate_set(env, szSqlState, "HY000", "S1000");
                     /* general error */
                     break;
             }
     }
 
-    MYLOG(ES_DEBUG,
+    MYLOG(OPENSEARCH_DEBUG,
           "	     szSqlState = '%s',len=" FORMAT_SSIZE_T ", szError='%s'\n",
           szSqlState ? (char *)szSqlState : PRINT_NULL, msglen,
           szErrorMsg ? (char *)szErrorMsg : PRINT_NULL);
@@ -337,7 +337,7 @@ RETCODE SQL_API ESAPI_ConnectError(HDBC hdbc, SQLSMALLINT RecNumber,
         return SQL_SUCCESS;
 }
 
-RETCODE SQL_API ESAPI_EnvError(HENV henv, SQLSMALLINT RecNumber,
+RETCODE SQL_API OPENSEARCHAPI_EnvError(HENV henv, SQLSMALLINT RecNumber,
                                SQLCHAR *szSqlState, SQLINTEGER *pfNativeError,
                                SQLCHAR *szErrorMsg, SQLSMALLINT cbErrorMsgMax,
                                SQLSMALLINT *pcbErrorMsg, UWORD flag) {
@@ -346,16 +346,16 @@ RETCODE SQL_API ESAPI_EnvError(HENV henv, SQLSMALLINT RecNumber,
     char *msg = NULL;
     int status;
 
-    MYLOG(ES_ERROR, "entering henv=%p <%d>\n", henv, cbErrorMsgMax);
+    MYLOG(OPENSEARCH_ERROR, "entering henv=%p <%d>\n", henv, cbErrorMsgMax);
     if (RecNumber != 1 && RecNumber != -1)
         return SQL_NO_DATA_FOUND;
     if (cbErrorMsgMax < 0)
         return SQL_ERROR;
     if (!EN_get_error(env, &status, &msg) || NULL == msg) {
-        MYLOG(ES_ERROR, "EN_get_error: msg = #%s#\n", msg);
+        MYLOG(OPENSEARCH_ERROR, "EN_get_error: msg = #%s#\n", msg);
 
         if (NULL != szSqlState)
-            es_sqlstate_set(env, szSqlState, "00000", "00000");
+            opensearch_sqlstate_set(env, szSqlState, "00000", "00000");
         if (NULL != pcbErrorMsg)
             *pcbErrorMsg = 0;
         if ((NULL != szErrorMsg) && (cbErrorMsgMax > 0))
@@ -363,7 +363,7 @@ RETCODE SQL_API ESAPI_EnvError(HENV henv, SQLSMALLINT RecNumber,
 
         return SQL_NO_DATA_FOUND;
     }
-    MYLOG(ES_ERROR, "EN_get_error: status = %d, msg = #%s#\n", status, msg);
+    MYLOG(OPENSEARCH_ERROR, "EN_get_error: status = %d, msg = #%s#\n", status, msg);
 
     if (NULL != pcbErrorMsg)
         *pcbErrorMsg = (SQLSMALLINT)strlen(msg);
@@ -376,10 +376,10 @@ RETCODE SQL_API ESAPI_EnvError(HENV henv, SQLSMALLINT RecNumber,
         switch (status) {
             case ENV_ALLOC_ERROR:
                 /* memory allocation failure */
-                es_sqlstate_set(env, szSqlState, "HY001", "S1001");
+                opensearch_sqlstate_set(env, szSqlState, "HY001", "S1001");
                 break;
             default:
-                es_sqlstate_set(env, szSqlState, "HY000", "S1000");
+                opensearch_sqlstate_set(env, szSqlState, "HY000", "S1000");
                 /* general error */
                 break;
         }
@@ -402,7 +402,7 @@ EnvironmentClass *EN_Constructor(void) {
     wVersionRequested = MAKEWORD(major, minor);
 
     if (WSAStartup(wVersionRequested, &wsaData)) {
-        MYLOG(ES_ERROR, " WSAStartup error\n");
+        MYLOG(OPENSEARCH_ERROR, " WSAStartup error\n");
         return rv;
     }
     /* Verify that this is the minimum version of WinSock */
@@ -410,7 +410,7 @@ EnvironmentClass *EN_Constructor(void) {
         && (LOBYTE(wsaData.wVersion) >= 2 || HIBYTE(wsaData.wVersion) >= 1))
         ;
     else {
-        MYLOG(ES_DEBUG, " WSAStartup version=(%d,%d)\n",
+        MYLOG(OPENSEARCH_DEBUG, " WSAStartup version=(%d,%d)\n",
               LOBYTE(wsaData.wVersion), HIBYTE(wsaData.wVersion));
         goto cleanup;
     }
@@ -418,7 +418,7 @@ EnvironmentClass *EN_Constructor(void) {
 
     rv = (EnvironmentClass *)malloc(sizeof(EnvironmentClass));
     if (NULL == rv) {
-        MYLOG(ES_ERROR, " malloc error\n");
+        MYLOG(OPENSEARCH_ERROR, " malloc error\n");
         goto cleanup;
     }
     rv->errormsg = 0;
@@ -439,7 +439,7 @@ char EN_Destructor(EnvironmentClass *self) {
     int lf, nullcnt;
     char rv = 1;
 
-    MYLOG(ES_TRACE, "entering self=%p\n", self);
+    MYLOG(OPENSEARCH_TRACE, "entering self=%p\n", self);
     if (!self)
         return 0;
 
@@ -462,7 +462,7 @@ char EN_Destructor(EnvironmentClass *self) {
         }
     }
     if (conns && nullcnt >= conns_count) {
-        MYLOG(ES_DEBUG, "clearing conns count=%d\n", conns_count);
+        MYLOG(OPENSEARCH_DEBUG, "clearing conns count=%d\n", conns_count);
         free(conns);
         conns = NULL;
         conns_count = 0;
@@ -474,7 +474,7 @@ char EN_Destructor(EnvironmentClass *self) {
 #ifdef WIN32
     WSACleanup();
 #endif
-    MYLOG(ES_TRACE, "leaving rv=%d\n", rv);
+    MYLOG(OPENSEARCH_TRACE, "leaving rv=%d\n", rv);
 #ifdef _MEMORY_DEBUG_
     debug_memory_check();
 #endif /* _MEMORY_DEBUG_ */
@@ -499,7 +499,7 @@ char EN_add_connection(EnvironmentClass *self, ConnectionClass *conn) {
     ConnectionClass **newa;
     char ret = FALSE;
 
-    MYLOG(ES_TRACE, "entering self = %p, conn = %p\n", self, conn);
+    MYLOG(OPENSEARCH_TRACE, "entering self = %p, conn = %p\n", self, conn);
 
     ENTER_CONNS_CS;
     for (i = 0; i < conns_count; i++) {
@@ -526,7 +526,7 @@ char EN_add_connection(EnvironmentClass *self, ConnectionClass *conn) {
     newa[conns_count] = conn;
     conns = newa;
     ret = TRUE;
-    MYLOG(ES_DEBUG,
+    MYLOG(OPENSEARCH_DEBUG,
           "       added at %d, conn->henv = %p, conns[%d]->henv = %p\n",
           conns_count, conn->henv, conns_count, conns[conns_count]->henv);
     for (i = conns_count + 1; i < alloc; i++)
@@ -554,10 +554,10 @@ char EN_remove_connection(EnvironmentClass *self, ConnectionClass *conn) {
 
 void EN_log_error(const char *func, char *desc, EnvironmentClass *self) {
     if (self)
-        MYLOG(ES_ERROR,
+        MYLOG(OPENSEARCH_ERROR,
               "ENVIRON ERROR: func=%s, desc='%s', errnum=%d, errmsg='%s'\n",
               func, desc, self->errornumber, self->errormsg);
     else
-        MYLOG(ES_ERROR, "INVALID ENVIRON HANDLE ERROR: func=%s, desc='%s'\n",
+        MYLOG(OPENSEARCH_ERROR, "INVALID ENVIRON HANDLE ERROR: func=%s, desc='%s'\n",
               func, desc);
 }

@@ -1,6 +1,6 @@
 ## odfe_sql_odbc
 
-The connector files in `odfe_sql_odbc` can be used to connect to elasticsearch server in Tableau.
+The connector files in `odfe_sql_odbc` can be used to connect to OpenSearch server in Tableau.
 
 * These connector files remove and modify a set of unsupported functions and operations.
 * It includes set of capabilities to customize and tune connector behavior

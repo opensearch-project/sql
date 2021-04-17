@@ -7,7 +7,7 @@
 
 ## Adding a Driver Entry
 
-Note: In order to use the Open Distro for Elasticsearch SQL ODBC driver with the [Tableau Connector](), the **Description of the Driver** field *must* start with `ODFE SQL ODBC`. 
+Note: In order to use the OpenSearch SQL ODBC driver with the [Tableau Connector](), the **Description of the Driver** field *must* start with `ODFE SQL ODBC`. 
 
 1. Go to the **ODBC Drivers** tab.
 2. Click **Add a Driver**.
@@ -31,7 +31,7 @@ This is not required if you are using the Tableau Connector, but will help with 
 	* Choose the Driver you added above.
 	* **Data Source Name (DSN)**: The name of the DSN used to store connection options (ex. `ODFE SQL ODBC DSN`)
 	* **Comment**: Not required
-	* Add key-value pairs by using the **'+'** button. Below is a picture of the recommended set of options for a default local Open Distro for Elasticsearch installation.
+	* Add key-value pairs by using the **'+'** button. Below is a picture of the recommended set of options for a default local OpenSearch installation.
 3. Click **OK** to save the DSN configuration.
 
 <p align="center"> 

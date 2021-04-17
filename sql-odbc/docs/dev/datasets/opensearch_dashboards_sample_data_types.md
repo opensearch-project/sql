@@ -1,9 +1,9 @@
-# kibana_sample_data_types 
+# opensearch_dashboards_sample_data_types 
 
 ## Mapping
 
 ```json
-PUT /kibana_sample_data_types
+PUT /opensearch_dashboards_sample_data_types
 {  
     "mappings": {  
         "properties": {  
@@ -32,7 +32,7 @@ PUT /kibana_sample_data_types
 ## Data
 
 ```json
-POST /kibana_sample_data_types/_doc
+POST /opensearch_dashboards_sample_data_types/_doc
 {
    "type_boolean": true,
    "type_byte" : -120,
@@ -52,7 +52,7 @@ POST /kibana_sample_data_types/_doc
 ```
 
 ```json
-POST /kibana_sample_data_types/_doc  
+POST /opensearch_dashboards_sample_data_types/_doc  
 {
    "type_boolean": false,
    "type_byte" : 100,

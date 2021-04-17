@@ -178,12 +178,12 @@ TEST_F(TestSQLDriverConnect, InvalidDriver) {
 
 TEST_F(TestSQLDriverConnect, InvalidHost) {
     std::wstring invalid_host_conn_string =
-        use_ssl ? L"Driver={Elasticsearch ODBC};"
+        use_ssl ? L"Driver={OpenSearch ODBC};"
                   L"host=https://8.8.8.8;port=9200;"
                   L"user=admin;password=admin;auth=BASIC;useSSL="
                   L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=1;"
-                : L"Driver={Elasticsearch ODBC};"
+                : L"Driver={OpenSearch ODBC};"
                   L"host=8.8.8.8;port=9200;"
                   L"user=admin;password=admin;auth=BASIC;useSSL="
                   L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
@@ -198,12 +198,12 @@ TEST_F(TestSQLDriverConnect, InvalidHost) {
 
 TEST_F(TestSQLDriverConnect, InvalidPort) {
     std::wstring invalid_port_conn_string =
-        use_ssl ? L"Driver={Elasticsearch ODBC};"
+        use_ssl ? L"Driver={OpenSearch ODBC};"
                   L"host=https://localhost;port=5432;"
                   L"user=admin;password=admin;auth=BASIC;useSSL="
                   L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=10;"
-                : L"Driver={Elasticsearch ODBC};"
+                : L"Driver={OpenSearch ODBC};"
                   L"host=localhost;port=5432;"
                   L"user=admin;password=admin;auth=BASIC;useSSL="
                   L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
@@ -221,12 +221,12 @@ TEST_F(TestSQLDriverConnect, InvalidPort) {
 // string attribute)
 TEST_F(TestSQLDriverConnect, UnsupportedKeyword) {
     std::wstring unsupported_keyword_conn_string =
-        use_ssl ? L"Driver={Elasticsearch ODBC};"
+        use_ssl ? L"Driver={OpenSearch ODBC};"
                   L"host=https://localhost;port=5432;"
                   L"user=admin;password=admin;auth=BASIC;useSSL="
                   L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=10;extra=1"
-                : L"Driver={Elasticsearch ODBC};"
+                : L"Driver={OpenSearch ODBC};"
                   L"host=localhost;port=5432;"
                   L"user=admin;password=admin;auth=BASIC;useSSL="
                   L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
@@ -241,12 +241,12 @@ TEST_F(TestSQLDriverConnect, UnsupportedKeyword) {
 
 TEST_F(TestSQLDriverConnect, ConnStringAbbrevsUID) {
     std::wstring abbrev_str =
-        use_ssl ? L"Driver={Elasticsearch ODBC};"
+        use_ssl ? L"Driver={OpenSearch ODBC};"
                   L"host=https://localhost;port=9200;"
                   L"UID=admin;password=admin;auth=BASIC;useSSL="
                   L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=10;"
-                : L"Driver={Elasticsearch ODBC};"
+                : L"Driver={OpenSearch ODBC};"
                   L"host=localhost;port=9200;"
                   L"UID=admin;password=admin;auth=BASIC;useSSL="
                   L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
@@ -261,12 +261,12 @@ TEST_F(TestSQLDriverConnect, ConnStringAbbrevsUID) {
 
 TEST_F(TestSQLDriverConnect, ConnStringAbbrevsPWD) {
     std::wstring abbrev_str =
-        use_ssl ? L"Driver={Elasticsearch ODBC};"
+        use_ssl ? L"Driver={OpenSearch ODBC};"
                   L"host=https://localhost;port=9200;"
                   L"user=admin;PWD=admin;auth=BASIC;useSSL="
                   L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=10;"
-                : L"Driver={Elasticsearch ODBC};"
+                : L"Driver={OpenSearch ODBC};"
                   L"host=localhost;port=9200;"
                   L"user=admin;PWD=admin;auth=BASIC;useSSL="
                   L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
@@ -281,12 +281,12 @@ TEST_F(TestSQLDriverConnect, ConnStringAbbrevsPWD) {
 
 TEST_F(TestSQLDriverConnect, ConnStringAbbrevsUIDPWD) {
     std::wstring abbrev_str =
-        use_ssl ? L"Driver={Elasticsearch ODBC};"
+        use_ssl ? L"Driver={OpenSearch ODBC};"
                   L"host=https://localhost;port=9200;"
                   L"UID=admin;PWD=admin;auth=BASIC;useSSL="
                   L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=10;"
-                : L"Driver={Elasticsearch ODBC};"
+                : L"Driver={OpenSearch ODBC};"
                   L"host=localhost;port=9200;"
                   L"UID=admin;PWD=admin;auth=BASIC;useSSL="
                   L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
@@ -301,12 +301,12 @@ TEST_F(TestSQLDriverConnect, ConnStringAbbrevsUIDPWD) {
 
 TEST_F(TestSQLDriverConnect, ConnStringAbbrevsServer) {
     std::wstring abbrev_str =
-        use_ssl ? L"Driver={Elasticsearch ODBC};"
+        use_ssl ? L"Driver={OpenSearch ODBC};"
                   L"server=https://localhost;port=9200;"
                   L"user=admin;password=admin;auth=BASIC;useSSL="
                   L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=10;"
-                : L"Driver={Elasticsearch ODBC};"
+                : L"Driver={OpenSearch ODBC};"
                   L"server=localhost;port=9200;"
                   L"user=admin;password=admin;auth=BASIC;useSSL="
                   L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
@@ -321,12 +321,12 @@ TEST_F(TestSQLDriverConnect, ConnStringAbbrevsServer) {
 
 TEST_F(TestSQLDriverConnect, ConnStringAbbrevsServerUIDPWD) {
     std::wstring abbrev_str =
-        use_ssl ? L"Driver={Elasticsearch ODBC};"
+        use_ssl ? L"Driver={OpenSearch ODBC};"
                   L"server=https://localhost;port=9200;"
                   L"UID=admin;PWD=admin;auth=BASIC;useSSL="
                   L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=10;"
-                : L"Driver={Elasticsearch ODBC};"
+                : L"Driver={OpenSearch ODBC};"
                   L"server=localhost;port=9200;"
                   L"UID=admin;PWD=admin;auth=BASIC;useSSL="
                   L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
@@ -341,12 +341,12 @@ TEST_F(TestSQLDriverConnect, ConnStringAbbrevsServerUIDPWD) {
 
 TEST_F(TestSQLDriverConnect, Timeout1Second) {
     std::wstring one_second_timeout =
-        use_ssl ? L"Driver={Elasticsearch ODBC};"
+        use_ssl ? L"Driver={OpenSearch ODBC};"
                   L"host=https://8.8.8.8;port=9200;"
                   L"user=admin;password=admin;auth=BASIC;useSSL="
                   L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=1;"
-                : L"Driver={Elasticsearch ODBC};"
+                : L"Driver={OpenSearch ODBC};"
                   L"host=8.8.8.8;port=9200;"
                   L"user=admin;password=admin;auth=BASIC;useSSL="
                   L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
@@ -377,12 +377,12 @@ TEST_F(TestSQLDriverConnect, Timeout1Second) {
 
 TEST_F(TestSQLDriverConnect, Timeout3Second) {
     std::wstring one_second_timeout =
-        use_ssl ? L"Driver={Elasticsearch ODBC};"
+        use_ssl ? L"Driver={OpenSearch ODBC};"
                   L"host=https://8.8.8.8;port=9200;"
                   L"user=admin;password=admin;auth=BASIC;useSSL="
                   L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=3;"
-                : L"Driver={Elasticsearch ODBC};"
+                : L"Driver={OpenSearch ODBC};"
                   L"host=8.8.8.8;port=9200;"
                   L"user=admin;password=admin;auth=BASIC;useSSL="
                   L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
@@ -413,12 +413,12 @@ TEST_F(TestSQLDriverConnect, Timeout3Second) {
 
 TEST_F(TestSQLDriverConnect, Timeout7Second) {
     std::wstring seven_second_timeout =
-        use_ssl ? L"Driver={Elasticsearch ODBC};"
+        use_ssl ? L"Driver={OpenSearch ODBC};"
                   L"host=https://8.8.8.8;port=9200;"
                   L"user=admin;password=admin;auth=BASIC;useSSL="
                   L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=7;"
-                : L"Driver={Elasticsearch ODBC};"
+                : L"Driver={OpenSearch ODBC};"
                   L"host=8.8.8.8;port=9200;"
                   L"user=admin;password=admin;auth=BASIC;useSSL="
                   L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"

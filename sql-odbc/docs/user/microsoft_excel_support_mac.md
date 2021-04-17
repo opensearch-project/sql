@@ -1,10 +1,10 @@
-#  Connecting Open Distro For ElasticSearch to Micosoft Excel on Mac OS
+#  Connecting OpenSearch to Micosoft Excel on Mac OS
 
 ## Prerequisites
 
 * Microsoft Excel 2016 and higher
-* [Open Distro for Elasticsearch](https://opendistro.github.io/for-elasticsearch-docs/docs/install/)
-* [Open Distro for Elasticsearch SQL ODBC driver](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/odbc/)
+* [OpenSearch](https://opendistro.github.io/for-elasticsearch-docs/docs/install/)
+* [OpenSearch SQL ODBC driver](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/odbc/)
 * A preconfigured [User or System DSN](mac_configure_dsn.md)
 
 ## Test Successful Connection
@@ -84,7 +84,7 @@ Alternately, **Data** > **Refresh** option can also be used to refresh the data.
 
 ## Troubleshooting
 
-* If the table has large number of datarows, increase [the keepalive](https://github.com/opendistro-for-elasticsearch/sql/blob/master/docs/dev/Pagination.md#opendistrosqlcursorkeep_alive) value accordlingly. 
+* If the table has large number of datarows, increase [the keepalive](https://github.com/opensearch-project/sql/blob/main/docs/dev/Pagination.md#opendistrosqlcursorkeep_alive) value accordlingly. 
 
 * You might need to remove `;` from SQL statement to load data preview.
 

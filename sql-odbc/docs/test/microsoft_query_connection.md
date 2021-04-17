@@ -20,7 +20,7 @@
 
 <img src="img/microsoft_query_select_colums.png" width="600">
 
-* You can select different options to define query here. Ensure the query is supported by the [OpenDistro for Elasticsearch SQL plugin](https://github.com/opendistro-for-elasticsearch/sql). After defining query, click on **Return Data** to retrieve the result set.
+* You can select different options to define query here. Ensure the query is supported by the [OpenSearch SQL plugin](https://github.com/opensearch-project/sql). After defining query, click on **Return Data** to retrieve the result set.
 * Select worksheet and click on **OK**.
 
 <img src="img/microsoft_query_import_data.png" width="300">

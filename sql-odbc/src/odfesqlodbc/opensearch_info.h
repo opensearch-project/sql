@@ -14,10 +14,10 @@
  *
  */
 
-#ifndef __ES_INFO_H__
-#define __ES_INFO_H__
-#include "es_helper.h"
-#include "es_odbc.h"
+#ifndef __OPENSEARCH_INFO_H__
+#define __OPENSEARCH_INFO_H__
+#include "opensearch_helper.h"
+#include "opensearch_odbc.h"
 #include "unicode_support.h"
 
 #ifndef WIN32
@@ -28,11 +28,11 @@
 #include "catfunc.h"
 #include "dlg_specific.h"
 #include "environ.h"
-#include "es_apifunc.h"
-#include "es_connection.h"
-#include "es_types.h"
 #include "misc.h"
 #include "multibyte.h"
+#include "opensearch_apifunc.h"
+#include "opensearch_connection.h"
+#include "opensearch_types.h"
 #include "qresult.h"
 #include "statement.h"
 #include "tuple.h"
@@ -41,7 +41,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-RETCODE SQL_API ESAPI_Tables(HSTMT hstmt, const SQLCHAR* catalog_name_sql,
+RETCODE SQL_API OPENSEARCHAPI_Tables(HSTMT hstmt, const SQLCHAR* catalog_name_sql,
                              const SQLSMALLINT catalog_name_sz,
                              const SQLCHAR* schema_name_sql,
                              const SQLSMALLINT schema_name_sz,
@@ -50,16 +50,16 @@ RETCODE SQL_API ESAPI_Tables(HSTMT hstmt, const SQLCHAR* catalog_name_sql,
                              const SQLCHAR* table_type_sql,
                              const SQLSMALLINT table_type_sz, const UWORD flag);
 RETCODE SQL_API
-ESAPI_Columns(HSTMT hstmt, const SQLCHAR* catalog_name_sql,
+OPENSEARCHAPI_Columns(HSTMT hstmt, const SQLCHAR* catalog_name_sql,
               const SQLSMALLINT catalog_name_sz, const SQLCHAR* schema_name_sql,
               const SQLSMALLINT schema_name_sz, const SQLCHAR* table_name_sql,
               const SQLSMALLINT table_name_sz, const SQLCHAR* column_name_sql,
               const SQLSMALLINT column_name_sz, const UWORD flag,
               const OID reloid, const Int2 attnum);
 
-RETCODE SQL_API ESAPI_GetTypeInfo(HSTMT hstmt, SQLSMALLINT fSqlType);
+RETCODE SQL_API OPENSEARCHAPI_GetTypeInfo(HSTMT hstmt, SQLSMALLINT fSqlType);
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __ES_INFO_H__ */
+#endif /* __OPENSEARCH_INFO_H__ */

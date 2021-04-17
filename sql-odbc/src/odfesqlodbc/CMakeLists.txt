@@ -22,11 +22,11 @@ set(					SOURCE_FILES
 							environ.c				execute.c				info.c						loadlib.c
 							misc.c					multibyte.c				mylog.c						tuple.c
 							parse.c					results.c				statement.c					odbcapi30.c	
-							qresult.c				odbcapi30w.c			es_api30.c					es_types.c					
-							es_utility.cpp			es_communication.cpp	es_connection.cpp			es_odbc.c
-							es_driver_connect.cpp	es_helper.cpp			es_info.cpp					es_parse_result.cpp
-							es_semaphore.cpp		es_statement.cpp		win_unicode.c				odbcapi.c
-							odbcapiw.c				es_result_queue.cpp
+							qresult.c				odbcapi30w.c opensearch_api30.c opensearch_types.c
+		opensearch_utility.cpp opensearch_communication.cpp opensearch_connection.cpp opensearch_odbc.c
+        opensearch_driver_connect.cpp opensearch_helper.cpp opensearch_info.cpp opensearch_parse_result.cpp
+		opensearch_semaphore.cpp opensearch_statement.cpp win_unicode.c				odbcapi.c
+							odbcapiw.c opensearch_result_queue.cpp
 	)
 if(WIN32)
 set(SOURCE_FILES ${SOURCE_FILES} dlg_wingui.c setup.c)
@@ -35,18 +35,18 @@ endif()
 set(					HEADER_FILES 
 							bind.h					catfunc.h				columninfo.h
 							convert.h				descriptor.h			dlg_specific.h		drvconn.h
-							environ.h				es_apifunc.h			es_communication.h	es_parse_result.h
-							es_connection.h			es_driver_connect.h		es_helper.h			es_info.h			
-							es_statement.h 			es_types.h 				loadlib.h 		
-							misc.h					multibyte.h				mylog.h				es_utility.h
+							environ.h opensearch_apifunc.h opensearch_communication.h opensearch_parse_result.h
+        opensearch_connection.h opensearch_driver_connect.h opensearch_helper.h opensearch_info.h
+        opensearch_statement.h opensearch_types.h loadlib.h
+							misc.h					multibyte.h				mylog.h opensearch_utility.h
 							resource.h				statement.h				tuple.h				unicode_support.h
-							es_apifunc.h			es_odbc.h				es_semaphore.h		qresult.h
-							version.h				win_setup.h				es_result_queue.h
+		opensearch_apifunc.h opensearch_odbc.h opensearch_semaphore.h qresult.h
+							version.h				win_setup.h opensearch_result_queue.h
 	)
 
 # Generate dll (SHARED)
 if(WIN32)
-set(RESOURCE_FILES es_odbc.rc)
+set(RESOURCE_FILES opensearch_odbc.rc)
 add_library(odfesqlodbc SHARED ${SOURCE_FILES} ${HEADER_FILES} ${RESOURCE_FILES} ${AWSSDK_LIB_DIR})
 else()
 add_library(odfesqlodbc SHARED ${SOURCE_FILES} ${HEADER_FILES})

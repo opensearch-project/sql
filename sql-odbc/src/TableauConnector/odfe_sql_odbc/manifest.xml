@@ -1,10 +1,10 @@
 <?xml version='1.0' encoding='utf-8' ?>
 
-<connector-plugin class='odfe_sql_odbc' superclass='odbc' plugin-version='1.13.0.0' name='SQL' version='18.1' min-version-tableau='2020.1'>
+<connector-plugin class='odfe_sql_odbc' superclass='odbc' plugin-version='1.15.0.0' name='SQL' version='18.1' min-version-tableau='2020.1'>
   <vendor-information>
       <company name="Open Distro for ES"/>
-      <support-link url="https://github.com/opendistro-for-elasticsearch/sql"/>
-      <driver-download-link url="https://github.com/opendistro-for-elasticsearch/sql"/>
+      <support-link url="https://github.com/opensearch-project/sql"/>
+      <driver-download-link url="https://github.com/opensearch-project/sql"/>
   </vendor-information>
   <connection-customization class="odfe_sql_odbc" enabled="true" version="10.0">
     <vendor name="Open Distro for ES"/>
@@ -37,7 +37,7 @@
       <customization name="CAP_CONNECT_STORED_PROCEDURE" value="no"/>
       <!-- 
       CAP_SUPPRESS_GET_SERVER_TIME will fix the error while creating extract in tableau.
-      This can be removed when elasticsearch supports query without FROM clause.
+      This can be removed when OpenSearch supports query without FROM clause.
       For smore details: https://community.tableau.com/message/1092123?et=watches.email.thread#1092123
       -->
       <customization name="CAP_SUPPRESS_GET_SERVER_TIME" value="yes"/>
