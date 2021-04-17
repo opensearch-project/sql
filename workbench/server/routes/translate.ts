@@ -13,8 +13,8 @@
  *   permissions and limitations under the License.
  */
 
-import { schema } from '@kbn/config-schema';
-import { IKibanaResponse, IRouter, ResponseError } from '../../../../src/core/server';
+import { schema } from '@osd/config-schema';
+import { IOpenSearchDashboardsResponse, IRouter, ResponseError } from '../../../../src/core/server';
 import TranslateService from '../services/TranslateService';
 
 export default function translate(server: IRouter, service: TranslateService) {
@@ -25,7 +25,7 @@ export default function translate(server: IRouter, service: TranslateService) {
         body: schema.any(),
       },
     },
-    async (context, request, response): Promise<IKibanaResponse<any | ResponseError>> => {
+    async (context, request, response): Promise<IOpenSearchDashboardsResponse<any | ResponseError>> => {
       const retVal = await service.translateSQL(request);
       return response.ok({
         body: retVal,
@@ -40,7 +40,7 @@ export default function translate(server: IRouter, service: TranslateService) {
         body: schema.any(),
       },
     },
-    async (context, request, response): Promise<IKibanaResponse<any | ResponseError>> => {
+    async (context, request, response): Promise<IOpenSearchDashboardsResponse<any | ResponseError>> => {
       const retVal = await service.translatePPL(request);
       return response.ok({
         body: retVal,

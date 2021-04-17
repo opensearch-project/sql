@@ -17,8 +17,8 @@ import sqlPlugin from './sqlPlugin';
 import { CLUSTER, DEFAULT_HEADERS } from '../../services/utils/constants';
 
 export default function createSqlCluster(server) {
-  const { customHeaders, ...rest } = server.config().get('elasticsearch');
-  server.plugins.elasticsearch.createCluster(
+  const { customHeaders, ...rest } = server.config().get('opensearch');
+  server.plugins.opensearch.createCluster(
     CLUSTER.SQL,
     {
       plugins: [ sqlPlugin ],

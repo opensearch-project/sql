@@ -29,7 +29,7 @@ import {
   Tree,
 } from '../../utils/utils';
 import { MESSAGE_TAB_LABEL } from '../../utils/constants';
-import { CoreStart } from 'kibana/public';
+import { CoreStart } from '../../../../../src/core/public';
 
 interface ResponseData {
   ok: boolean;

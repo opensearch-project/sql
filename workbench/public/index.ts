@@ -18,7 +18,7 @@ import './index.scss';
 import { WorkbenchPlugin } from './plugin';
 
 // This exports static code and TypeScript types,
-// as well as, Kibana Platform `plugin()` initializer.
+// as well as, OpenSearch Dashboards Platform `plugin()` initializer.
 export function plugin() {
   return new WorkbenchPlugin();
 }
