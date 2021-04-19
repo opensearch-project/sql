@@ -8,7 +8,6 @@ compatible open source license.
 Modifications Copyright OpenSearch Contributors. See
 GitHub history for details.
 """
-
 """
 Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 
