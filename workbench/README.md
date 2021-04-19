@@ -42,7 +42,7 @@ Ultimately, your directory structure should look like this:
 
 To build the plugin's distributable zip simply run `yarn build`.
 
-Example output: `./build/opendistro-query-workbench-*.zip`
+Example output: `./build/opensearch-query-workbench-*.zip`
 
 
 ## Run
