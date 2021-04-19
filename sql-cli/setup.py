@@ -30,31 +30,31 @@ install_requirements = [
 
 _version_re = re.compile(r"__version__\s+=\s+(.*)")
 
-with open("src/odfe_sql_cli/__init__.py", "rb") as f:
+with open("src/opensearch_sql_cli/__init__.py", "rb") as f:
     version = str(
         ast.literal_eval(_version_re.search(f.read().decode("utf-8")).group(1))
     )
 
-description = "Open Distro for Elasticsearch SQL CLI with auto-completion and syntax highlighting"
+description = "OpenSearch SQL CLI with auto-completion and syntax highlighting"
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(
-    name="odfe-sql-cli",
-    author="Open Distro for Elasticsearch",
-    author_email="odfe-infra@amazon.com",
+    name="opensearch-sql-cli",
+    author="OpenSearch",
+    author_email="opensearch-infra@amazon.com",
     version=version,
     license="Apache 2.0",
     url="https://opendistro.github.io/for-elasticsearch-docs/docs/sql/cli/",
     packages=find_packages('src'),
     package_dir={'': 'src'},
-    package_data={"odfe_sql_cli": ["conf/clirc", "esliterals/esliterals.json"]},
+    package_data={"opensearch_sql_cli": ["conf/clirc", "opensearch_literals/opensearch_literals.json"]},
     description=description,
     long_description=long_description,
     long_description_content_type="text/markdown",
     install_requires=install_requirements,
-    entry_points={"console_scripts": ["odfesql=odfe_sql_cli.main:cli"]},
+    entry_points={"console_scripts": ["opensearchsql=opensearch_sql_cli.main:cli"]},
     classifiers=[
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",

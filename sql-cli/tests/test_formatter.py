@@ -18,17 +18,17 @@ import mock
 import pytest
 from collections import namedtuple
 
-from src.odfe_sql_cli.odfesql_cli import OdfeSqlCli, COLOR_CODE_REGEX
-from src.odfe_sql_cli.formatter import Formatter
-from src.odfe_sql_cli.utils import OutputSettings
+from src.opensearch_sql_cli.opensearchsql_cli import OpenSearchSqlCli, COLOR_CODE_REGEX
+from src.opensearch_sql_cli.formatter import Formatter
+from src.opensearch_sql_cli.utils import OutputSettings
 
 
 class TestFormatter:
     @pytest.fixture
     def pset_pager_mocks(self):
-        cli = OdfeSqlCli()
-        with mock.patch("src.odfe_sql_cli.main.click.echo") as mock_echo, mock.patch(
-            "src.odfe_sql_cli.main.click.echo_via_pager"
+        cli = OpenSearchSqlCli()
+        with mock.patch("src.opensearch_sql_cli.main.click.echo") as mock_echo, mock.patch(
+            "src.opensearch_sql_cli.main.click.echo_via_pager"
         ) as mock_echo_via_pager, mock.patch.object(cli, "prompt_app") as mock_app:
             yield cli, mock_echo, mock_echo_via_pager, mock_app
 
@@ -143,7 +143,7 @@ class TestFormatter:
             "age  | 24",
         ]
 
-        with mock.patch("src.odfe_sql_cli.main.click.secho") as mock_secho, mock.patch("src.odfe_sql_cli.main.click.confirm") as mock_confirm:
+        with mock.patch("src.opensearch_sql_cli.main.click.secho") as mock_secho, mock.patch("src.opensearch_sql_cli.main.click.confirm") as mock_confirm:
             expanded_results = formatter.format_output(data)
 
         mock_secho.assert_called_with(message="Output longer than terminal width", fg="red")

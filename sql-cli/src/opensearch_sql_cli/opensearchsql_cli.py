@@ -30,9 +30,9 @@ from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from pygments.lexers.sql import SqlLexer
 
 from .config import get_config
-from .esconnection import ESConnection
-from .esbuffer import es_is_multiline
-from .esstyle import style_factory, style_factory_output
+from .opensearch_connection import OpenSearchConnection
+from .opensearch_buffer import opensearch_is_multiline
+from .opensearch_style import style_factory, style_factory_output
 from .formatter import Formatter
 from .utils import OutputSettings
 from . import __version__
@@ -44,8 +44,8 @@ COLOR_CODE_REGEX = re.compile(r"\x1b(\[.*?[@-~]|\].*?(\x07|\x1b\\))")
 click.disable_unicode_literals_warning = True
 
 
-class OdfeSqlCli:
-    """OdfeSqlCli instance is used to build and run the ODFE SQL CLI."""
+class OpenSearchSqlCli:
+    """OpenSearchSqlCli instance is used to build and run the OpenSearch SQL CLI."""
 
     def __init__(self, clirc_file=None, always_use_pager=False, use_aws_authentication=False, query_language="sql"):
         # Load conf file
@@ -53,7 +53,7 @@ class OdfeSqlCli:
         literal = self.literal = self._get_literals()
 
         self.prompt_app = None
-        self.es_executor = None
+        self.opensearch_executor = None
         self.query_language = query_language
         self.always_use_pager = always_use_pager
         self.use_aws_authentication = use_aws_authentication
@@ -70,7 +70,7 @@ class OdfeSqlCli:
 
     def build_cli(self):
         # TODO: Optimize index suggestion to serve indices options only at the needed position, such as 'from'
-        indices_list = self.es_executor.indices_list
+        indices_list = self.opensearch_executor.indices_list
         sql_completer = WordCompleter(self.keywords_list + self.functions_list + indices_list, ignore_case=True)
 
         # https://stackoverflow.com/a/13726418 denote multiple unused arguments of callback in Python
@@ -86,7 +86,7 @@ class OdfeSqlCli:
             # history=history,
             style=style_factory(self.syntax_style, self.cli_style),
             prompt_continuation=get_continuation,
-            multiline=es_is_multiline(self),
+            multiline=opensearch_is_multiline(self),
             auto_suggest=AutoSuggestFromHistory(),
             input_processors=[
                 ConditionalProcessor(
@@ -115,25 +115,25 @@ class OdfeSqlCli:
         )
 
         # print Banner
-        banner = pyfiglet.figlet_format("Open Distro", font="slant")
+        banner = pyfiglet.figlet_format("OpenSearch", font="slant")
         print(banner)
 
         # print info on the welcome page
-        print("Server: Open Distro for ES %s" % self.es_executor.es_version)
+        print("Server: OpenSearch %s" % self.opensearch_executor.opensearch_version)
         print("CLI Version: %s" % __version__)
-        print("Endpoint: %s" % self.es_executor.endpoint)
+        print("Endpoint: %s" % self.opensearch_executor.endpoint)
         print("Query Language: %s" % self.query_language)
 
         while True:
             try:
-                text = self.prompt_app.prompt(message="odfesql> ")
+                text = self.prompt_app.prompt(message="opensearchsql> ")
             except KeyboardInterrupt:
                 continue  # Control-C pressed. Try again.
             except EOFError:
                 break  # Control-D pressed.
 
             try:
-                output = self.es_executor.execute_query(text)
+                output = self.opensearch_executor.execute_query(text)
                 if output:
                     formatter = Formatter(settings)
                     formatted_output = formatter.format_output(output)
@@ -167,20 +167,20 @@ class OdfeSqlCli:
             click.echo(text, color=color)
 
     def connect(self, endpoint, http_auth=None):
-        self.es_executor = ESConnection(endpoint, http_auth, self.use_aws_authentication, self.query_language)
-        self.es_executor.set_connection()
+        self.opensearch_executor = OpenSearchConnection(endpoint, http_auth, self.use_aws_authentication, self.query_language)
+        self.opensearch_executor.set_connection()
 
     def _get_literals(self):
-        """Parse "esliterals.json" with literal type of SQL "keywords" and "functions", which
-        are SQL keywords and functions supported by Open Distro SQL Plugin.
+        """Parse "opensearch_literals.json" with literal type of SQL "keywords" and "functions", which
+        are SQL keywords and functions supported by OpenSearch SQL Plugin.
 
-        :return: a dict that is parsed from esliterals.json
+        :return: a dict that is parsed from opensearch_literals.json
         """
-        from .esliterals import __file__ as package_root
+        from .opensearch_literals import __file__ as package_root
 
         package_root = os.path.dirname(package_root)
 
-        literal_file = os.path.join(package_root, "esliterals.json")
+        literal_file = os.path.join(package_root, "opensearch_literals.json")
         with open(literal_file) as f:
             literals = json.load(f)
             return literals

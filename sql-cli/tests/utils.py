@@ -16,30 +16,30 @@ import json
 import pytest
 from elasticsearch import ConnectionError, helpers, ConnectionPool
 
-from src.odfe_sql_cli.esconnection import ESConnection
-from src.odfe_sql_cli.utils import OutputSettings
-from src.odfe_sql_cli.formatter import Formatter
+from src.opensearch_sql_cli.opensearch_connection import OpenSearchConnection
+from src.opensearch_sql_cli.utils import OutputSettings
+from src.opensearch_sql_cli.formatter import Formatter
 
-TEST_INDEX_NAME = "odfesql_cli_test"
+TEST_INDEX_NAME = "opensearchsql_cli_test"
 ENDPOINT = "http://localhost:9200"
 
 
 def create_index(test_executor):
-    es = test_executor.client
-    es.indices.create(index=TEST_INDEX_NAME)
+    opensearch = test_executor.client
+    opensearch.indices.create(index=TEST_INDEX_NAME)
 
 
 def delete_index(test_executor):
-    es = test_executor.client
-    es.indices.delete(index=TEST_INDEX_NAME)
+    opensearch = test_executor.client
+    opensearch.indices.delete(index=TEST_INDEX_NAME)
 
 
-def close_connection(es):
-    ConnectionPool.close(es)
+def close_connection(opensearch):
+    ConnectionPool.close(opensearch)
 
 
 def load_file(test_executor, filename="accounts.json"):
-    es = test_executor.client
+    opensearch = test_executor.client
 
     filepath = "./test_data/" + filename
 
@@ -49,17 +49,17 @@ def load_file(test_executor, filename="accounts.json"):
             for line in f:
                 yield json.loads(line)
 
-    helpers.bulk(es, load_json(), index=TEST_INDEX_NAME)
+    helpers.bulk(opensearch, load_json(), index=TEST_INDEX_NAME)
 
 
 def load_data(test_executor, doc):
-    es = test_executor.client
-    es.index(index=TEST_INDEX_NAME, body=doc)
-    es.indices.refresh(index=TEST_INDEX_NAME)
+    opensearch = test_executor.client
+    opensearch.index(index=TEST_INDEX_NAME, body=doc)
+    opensearch.indices.refresh(index=TEST_INDEX_NAME)
 
 
 def get_connection():
-    test_es_connection = ESConnection(endpoint=ENDPOINT)
+    test_es_connection = OpenSearchConnection(endpoint=ENDPOINT)
     test_es_connection.set_connection()
 
     return test_es_connection
@@ -87,5 +87,5 @@ except ConnectionError:
 
 # use @estest annotation to mark test functions
 estest = pytest.mark.skipif(
-    not CAN_CONNECT_TO_ES, reason="Need a Elasticsearch server running at localhost:9200 accessible"
+    not CAN_CONNECT_TO_ES, reason="Need a OpenSearch server running at localhost:9200 accessible"
 )

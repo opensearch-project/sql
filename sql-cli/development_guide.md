@@ -7,16 +7,16 @@
 - `pip install --editable .` will install all dependencies from `setup.py`.
 
 ### Run CLI
-- Start an Elasticsearch instance from either local, Docker with Open Distro SQL plugin, or AWS Elasticsearch
-- To launch the cli, use 'wake' word `odfesql` followed by endpoint of your running ES instance. If not specifying 
+- Start an OpenSearch instance from either local, Docker with OpenSearch SQL plugin, or AWS Elasticsearch
+- To launch the cli, use 'wake' word `opensearchsql` followed by endpoint of your running OpenSearch instance. If not specifying 
 any endpoint, it uses http://localhost:9200 by default. If not provided with port number, http endpoint uses 9200 and 
 https uses 443 by default.
 
 ### Testing
 - Prerequisites
     - Build the application
-    - Start a local Elasticsearch instance (OSS) with 
-    [Open Distro SQL plugin for Elasticsearch](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/) installed
+    - Start a local OpenSearch instance with 
+    [OpenSearch SQL plugin](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/) installed
     and listening at http://localhost:9200.
 - Pytest
     - `pip install -r requirements-dev.txt` Install test frameworks including Pytest and mock.
@@ -49,7 +49,7 @@ https uses 443 by default.
     2. `python3 -m pip install --user --upgrade twine`
     3. `python3 -m twine upload --repository-url https://test.pypi.org/legacy/ dist/*`
 6. Install your package from TestPyPI and do manual test
-    1. `pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple odfe-sql-cli`
+    1. `pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple opensearch-sql-cli`
 7. Upload to PyPI
     1. Register an account on [PyPI](https://pypi.org/), note that these are two separate servers and the credentials from the test server are not shared with the main server.
     2. Use `twine upload dist/*` to upload your package and enter your credentials for the account you registered on PyPI.You don’t need to specify --repository; the package will upload to https://pypi.org/ by default.

@@ -23,10 +23,10 @@ import unittest
 import click
 
 from functools import partial
-from odfe_sql_cli.esconnection import ESConnection
-from odfe_sql_cli.utils import OutputSettings
-from odfe_sql_cli.formatter import Formatter
-from elasticsearch import Elasticsearch, helpers
+from opensearch_sql_cli.opensearch_connection import OpenSearchConnection
+from opensearch_sql_cli.utils import OutputSettings
+from opensearch_sql_cli.formatter import Formatter
+from elasticsearch import Elasticsearch as OpenSearch, helpers
 
 ENDPOINT = "http://localhost:9200"
 ACCOUNTS = "accounts"
@@ -34,7 +34,7 @@ EMPLOYEES = "employees"
 PEOPLE = "people"
 
 
-class DocTestConnection(ESConnection):
+class DocTestConnection(OpenSearchConnection):
 
     def __init__(self, query_language="sql"):
         super(DocTestConnection, self).__init__(endpoint=ENDPOINT, query_language=query_language)
@@ -61,7 +61,7 @@ def pretty_print(s):
 
 sql_cmd = DocTestConnection(query_language="sql")
 ppl_cmd = DocTestConnection(query_language="ppl")
-test_data_client = Elasticsearch([ENDPOINT], verify_certs=True)
+test_data_client = OpenSearch([ENDPOINT], verify_certs=True)
 
 
 def sql_cli_transform(s):

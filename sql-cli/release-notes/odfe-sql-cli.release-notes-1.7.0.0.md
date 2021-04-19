@@ -1,9 +1,9 @@
 ## 2020-05-04 Version 1.7.0.0
 
-This is the first official release of Open Distro for Elasticsearch SQL CLI
+This is the first official release of OpenSearch SQL CLI
 
-ODFE SQL CLI is a stand alone Python application and can be launched by a wake word `odfesql`. It serves as a support only for 
-[Open Distro SQL plugin for Elasticsearch](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/). User must have ODFE SQL
+OpenSearch SQL CLI is a stand alone Python application and can be launched by a wake word `opensearchsql`. It serves as a support only for 
+[OpenSearch SQL plugin](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/). User must have OpenSearch SQL
 plugin installed to the Elasticsearch instance for connection. Usr can run this CLI from MacOS and Linux, and connect to any valid Elasticsearch 
 endpoint such as AWS Elasticsearch.
 

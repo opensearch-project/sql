@@ -19,19 +19,19 @@ import ssl
 import sys
 import urllib3
 
-from elasticsearch import Elasticsearch, RequestsHttpConnection
+from elasticsearch import Elasticsearch as OpenSearch, RequestsHttpConnection
 from elasticsearch.exceptions import ConnectionError, RequestError
 from elasticsearch.connection import create_ssl_context
 from requests_aws4auth import AWS4Auth
 
 
-class ESConnection:
-    """ESConnection instances are used to set up and maintain client to Elasticsearch cluster,
+class OpenSearchConnection:
+    """OpenSearchConnection instances are used to set up and maintain client to Elasticsearch cluster,
     as well as send user's SQL query to Elasticsearch.
     """
 
     def __init__(self, endpoint=None, http_auth=None, use_aws_authentication=False, query_language="sql"):
-        """Initialize an ESConnection instance.
+        """Initialize an OpenSearchConnection instance.
 
         Set up client and get indices list.
 
@@ -40,7 +40,7 @@ class ESConnection:
         """
         self.client = None
         self.ssl_context = None
-        self.es_version = None
+        self.opensearch_version = None
         self.plugins = None
         self.aws_auth = None
         self.indices_list = []
@@ -65,7 +65,7 @@ class ESConnection:
         else:
             click.secho(message="Can not retrieve your AWS credentials, check your AWS config", fg="red")
 
-        aes_client = Elasticsearch(
+        aes_client = OpenSearch(
             hosts=[self.endpoint],
             http_auth=self.aws_auth,
             use_ssl=True,
@@ -80,7 +80,7 @@ class ESConnection:
         ssl_context.check_hostname = False
         ssl_context.verify_mode = ssl.CERT_NONE
 
-        open_distro_client = Elasticsearch(
+        open_distro_client = OpenSearch(
             [self.endpoint],
             http_auth=self.http_auth,
             verify_certs=False,
@@ -90,8 +90,8 @@ class ESConnection:
 
         return open_distro_client
 
-    def is_sql_plugin_installed(self, es_client):
-        self.plugins = es_client.cat.plugins(params={"s": "component", "v": "true"})
+    def is_sql_plugin_installed(self, opensearch_client):
+        self.plugins = opensearch_client.cat.plugins(params={"s": "component", "v": "true"})
         sql_plugin_name_list = ["opendistro-sql", "opendistro_sql"]
         return any(x in self.plugins for x in sql_plugin_name_list)
 
@@ -100,28 +100,28 @@ class ESConnection:
         logging.captureWarnings(True)
 
         if self.http_auth:
-            es_client = self.get_open_distro_client()
+            opensearch_client = self.get_open_distro_client()
 
         elif self.use_aws_authentication:
-            es_client = self.get_aes_client()
+            opensearch_client = self.get_aes_client()
         else:
-            es_client = Elasticsearch([self.endpoint], verify_certs=True)
+            opensearch_client = OpenSearch([self.endpoint], verify_certs=True)
 
-        # check connection. check Open Distro Elasticsearch SQL plugin availability.
+        # check connection. check OpenSearch SQL plugin availability.
         try:
-            if not self.is_sql_plugin_installed(es_client):
+            if not self.is_sql_plugin_installed(opensearch_client):
                 click.secho(
-                    message="Must have Open Distro SQL plugin installed in your Elasticsearch "
-                    "instance!\nCheck this out: https://github.com/opendistro-for-elasticsearch/sql",
+                    message="Must have OpenSearch SQL plugin installed in your OpenSearch"
+                    "instance!\nCheck this out: https://github.com/opensearch-project/sql",
                     fg="red",
                 )
                 click.echo(self.plugins)
                 sys.exit()
 
             # info() may throw ConnectionError, if connection fails to establish
-            info = es_client.info()
-            self.es_version = info["version"]["number"]
-            self.client = es_client
+            info = opensearch_client.info()
+            self.opensearch_version = info["version"]["number"]
+            self.client = opensearch_client
             self.get_indices()
 
         except ConnectionError as error:
@@ -140,7 +140,7 @@ class ESConnection:
             self.set_connection(is_reconnect=True)
             click.secho(message="Reconnected! Please run query again", fg="green")
         except ConnectionError as reconnection_err:
-            click.secho(message="Connection Failed. Check your ES is running and then come back", fg="red")
+            click.secho(message="Connection Failed. Check your OpenSearch is running and then come back", fg="red")
             click.secho(repr(reconnection_err), err=True, fg="red")
 
     def execute_query(self, query, output_format="jdbc", explain=False, use_console=True):

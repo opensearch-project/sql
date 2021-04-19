@@ -20,22 +20,22 @@
 # lines. End of line (return) is considered as the end of the statement.
 multi_line = True
 
-# If multi_line_mode is set to "odfesql_cli", in multi-line mode, [Enter] will execute
+# If multi_line_mode is set to "opensearchsql_cli", in multi-line mode, [Enter] will execute
 # the current input if the input ends in a semicolon.
 # If multi_line_mode is set to "safe", in multi-line mode, [Enter] will always
 # insert a newline, and [Esc] [Enter] or [Alt]-[Enter] must be used to execute
 # a command.
-multi_line_mode = odfesql_cli
+multi_line_mode = opensearchsql_cli
 
 # log_file location.
-# In Unix/Linux: ~/.conf/odfesql-cli/log
-# In Windows: %USERPROFILE%\AppData\Local\dbcli\odfesql-cli\log
+# In Unix/Linux: ~/.conf/opensearchsql-cli/log
+# In Windows: %USERPROFILE%\AppData\Local\dbcli\opensearchsql-cli\log
 # %USERPROFILE% is typically C:\Users\{username}
 log_file = default
 
 # history_file location.
-# In Unix/Linux: ~/.conf/odfesql-cli/history
-# In Windows: %USERPROFILE%\AppData\Local\dbcli\odfesql-cli\history
+# In Unix/Linux: ~/.conf/opensearchsql-cli/history
+# In Windows: %USERPROFILE%\AppData\Local\dbcli\opensearchsql-cli\history
 # %USERPROFILE% is typically C:\Users\{username}
 history_file = default
 
@@ -55,7 +55,7 @@ table_format = psql
 syntax_style = default
 
 # Set threshold for row limit prompt. Use 0 to disable prompt.
-# maybe not now, since elasticsearch opendisto sql plugin returns 200 rows of data by default if not
+# maybe not now, since OpenSearch sql plugin returns 200 rows of data by default if not
 # using LIMIT.
 row_limit = 1000
 

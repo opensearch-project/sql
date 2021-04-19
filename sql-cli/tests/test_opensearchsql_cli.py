@@ -17,11 +17,11 @@ import pytest
 from prompt_toolkit.shortcuts import PromptSession
 from prompt_toolkit.input.defaults import create_pipe_input
 
-from src.odfe_sql_cli.esbuffer import es_is_multiline
+from src.opensearch_sql_cli.opensearch_buffer import opensearch_is_multiline
 from .utils import estest, load_data, TEST_INDEX_NAME, ENDPOINT
-from src.odfe_sql_cli.odfesql_cli import OdfeSqlCli
-from src.odfe_sql_cli.esconnection import ESConnection
-from src.odfe_sql_cli.esstyle import style_factory
+from src.opensearch_sql_cli.opensearchsql_cli import OpenSearchSqlCli
+from src.opensearch_sql_cli.opensearch_connection import OpenSearchConnection
+from src.opensearch_sql_cli.opensearch_style import style_factory
 
 AUTH = None
 QUERY_WITH_CTRL_D = "select * from %s;\r\x04\r" % TEST_INDEX_NAME
@@ -31,17 +31,17 @@ QUERY_LANGUAGE = "sql"
 
 @pytest.fixture()
 def cli(default_config_location):
-    return OdfeSqlCli(clirc_file=default_config_location, always_use_pager=False)
+    return OpenSearchSqlCli(clirc_file=default_config_location, always_use_pager=False)
 
 
-class TestOdfeSqlCli:
+class TestOpenSearchSqlCli:
     def test_connect(self, cli):
-        with mock.patch.object(ESConnection, "__init__", return_value=None) as mock_ESConnection, mock.patch.object(
-            ESConnection, "set_connection"
+        with mock.patch.object(OpenSearchConnection, "__init__", return_value=None) as mock_OpenSearchConnection, mock.patch.object(
+            OpenSearchConnection, "set_connection"
         ) as mock_set_connectiuon:
             cli.connect(endpoint=ENDPOINT)
 
-            mock_ESConnection.assert_called_with(ENDPOINT, AUTH, USE_AWS_CREDENTIALS, QUERY_LANGUAGE)
+            mock_OpenSearchConnection.assert_called_with(ENDPOINT, AUTH, USE_AWS_CREDENTIALS, QUERY_LANGUAGE)
             mock_set_connectiuon.assert_called()
 
     @estest
@@ -55,14 +55,14 @@ class TestOdfeSqlCli:
             "fetched rows / total rows = 1/1" "\n+-----+\n| \x1b[38;5;47;01ma\x1b[39;00m   |\n|-----|\n| aws |\n+-----+"
         )
 
-        with mock.patch.object(OdfeSqlCli, "echo_via_pager") as mock_pager, mock.patch.object(
+        with mock.patch.object(OpenSearchSqlCli, "echo_via_pager") as mock_pager, mock.patch.object(
             cli, "build_cli"
         ) as mock_prompt:
             inp = create_pipe_input()
             inp.send_text(QUERY_WITH_CTRL_D)
 
             mock_prompt.return_value = PromptSession(
-                input=inp, multiline=es_is_multiline(cli), style=style_factory(cli.syntax_style, cli.cli_style)
+                input=inp, multiline=opensearch_is_multiline(cli), style=style_factory(cli.syntax_style, cli.cli_style)
             )
 
             cli.connect(ENDPOINT)

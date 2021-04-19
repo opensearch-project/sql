@@ -1,17 +1,17 @@
-[![SQL CLI Test and Build](https://github.com/opendistro-for-elasticsearch/sql/workflows/SQL%20CLI%20Test%20and%20Build/badge.svg)](https://github.com/opendistro-for-elasticsearch/sql/actions)
-[![Latest Version](https://img.shields.io/pypi/v/odfe-sql-cli.svg)](https://pypi.python.org/pypi/odfe-sql-cli/)
+[![SQL CLI Test and Build](https://github.com/opensearch-project/sql/workflows/SQL%20CLI%20Test%20and%20Build/badge.svg)](https://github.com/opensearch-project/sql/actions)
+[![Latest Version](https://img.shields.io/pypi/v/opensearch-sql-cli.svg)](https://pypi.python.org/pypi/opensearch-sql-cli/)
 [![Documentation](https://img.shields.io/badge/documentation-blue.svg)](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/cli/)
 [![Chat](https://img.shields.io/badge/chat-on%20forums-blue)](https://discuss.opendistrocommunity.dev/c/sql/)
-![PyPi Downloads](https://img.shields.io/pypi/dm/odfe-sql-cli.svg)
+![PyPi Downloads](https://img.shields.io/pypi/dm/opensearch-sql-cli.svg)
 ![PRs welcome!](https://img.shields.io/badge/PRs-welcome!-success)
 
-# Open Distro for Elasticsearch SQL CLI
+# OpenSearch SQL CLI
 
-The SQL CLI component in Open Distro for Elasticsearch (ODFE) is a stand-alone Python application and can be launched by a 'wake' word `odfesql`. 
+The SQL CLI component in OpenSearch is a stand-alone Python application and can be launched by a 'wake' word `opensearchsql`. 
 
-It only supports [Open Distro for Elasticsearch (ODFE) SQL Plugin](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/)
-You must have the ODFE SQL plugin installed to your Elasticsearch instance to connect. 
-Users can run this CLI from MacOS and Linux, and connect to any valid Elasticsearch end-point such as Amazon Elasticsearch Service (AES).
+It only supports [OpenSearch SQL Plugin](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/)
+You must have the OpenSearch SQL plugin installed to your OpenSearch instance to connect. 
+Users can run this CLI from MacOS and Linux, and connect to any valid OpenSearch end-point such as Amazon Elasticsearch Service (AES).
 
 ![](./screenshots/usage.gif)
 
@@ -27,13 +27,13 @@ Users can run this CLI from MacOS and Linux, and connect to any valid Elasticsea
 * Field names with color
 * Enabled horizontal display (by default) and vertical display when output is too wide for your terminal, for better visualization
 * Pagination for large output
-* Connect to Elasticsearch with/without security enabled on either **Elasticsearch OSS or Amazon Elasticsearch Service domains**.
+* Connect to OpenSearch with/without security enabled on either **OpenSearch or Amazon Elasticsearch Service domains**.
 * Supports loading configuration files
 * Supports all SQL plugin queries
 
 ## Install
 
-Launch your local Elasticsearch instance and make sure you have the Open Distro for Elasticsearch SQL plugin installed.
+Launch your local OpenSearch instance and make sure you have the OpenSearch SQL plugin installed.
 
 To install the SQL CLI:
 
@@ -51,7 +51,7 @@ To install the SQL CLI:
 1. Install the CLI:
 
     ```
-    pip3 install odfe-sql-cli
+    pip3 install opensearch-sql-cli
     ```
 
     The SQL CLI only works with Python 3, since Python 2 is no longer maintained since 01/01/2020. See https://pythonclock.org/
@@ -60,33 +60,32 @@ To install the SQL CLI:
 1. To launch the CLI, run:
 
     ```
-    odfesql https://localhost:9200 --username admin --password admin
+    opensearchsql https://localhost:9200 --username admin --password admin
     ```
-    By default, the `odfesql` command connects to [http://localhost:9200](http://localhost:9200/).
+    By default, the `opensearchsql` command connects to [http://localhost:9200](http://localhost:9200/).
 
 
 
 ## Configure
 
-When you first launch the SQL CLI, a configuration file is automatically created at `~/.config/odfesql-cli/config` (for MacOS and Linux), the configuration is auto-loaded thereafter.
+When you first launch the SQL CLI, a configuration file is automatically created at `~/.config/opensearchsql-cli/config` (for MacOS and Linux), the configuration is auto-loaded thereafter.
 
 You can also configure the following connection properties:
 
 
-* `endpoint`: You do not need to specify an option, anything that follows the launch command `odfesql` is considered as the endpoint. If you do not provide an endpoint, by default, the SQL CLI connects to [http://localhost:9200](http://localhost:9200/).
+* `endpoint`: You do not need to specify an option, anything that follows the launch command `opensearchsql` is considered as the endpoint. If you do not provide an endpoint, by default, the SQL CLI connects to [http://localhost:9200](http://localhost:9200/).
 * `-u/-w`: Supports username and password for HTTP basic authentication, such as:
-    * Elasticsearch OSS with [Open Distro for Elasticsearch Security Plugin](https://opendistro.github.io/for-elasticsearch-docs/docs/install/plugins/) installed
+    * OpenSearch with [OpenSearch Security Plugin](https://opendistro.github.io/for-elasticsearch-docs/docs/install/plugins/) installed
     * Amazon Elasticsearch Service domain with [Fine Grained Access Control](https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/fgac.html) enabled
-    * Elasticsearch with X-pack security enabled
 * `--aws-auth`: Turns on AWS sigV4 authentication to connect to an Amazon Elasticsearch Service endpoint. Use with the AWS CLI (`aws configure`) to retrieve the local AWS configuration to authenticate and connect.
 
-For a list of all available configurations, see [clirc](https://github.com/opendistro-for-elasticsearch/sql/blob/master/sql-cli/src/odfe_sql_cli/conf/clirc).
+For a list of all available configurations, see [clirc](https://github.com/opensearch-project/sql/blob/master/sql-cli/src/opensearch_sql_cli/conf/clirc).
 
 
 
 ## Using the CLI
 
-1. Save the sample [accounts test data](https://github.com/opendistro-for-elasticsearch/sql/blob/master/integ-test/src/test/resources/accounts.json) file.
+1. Save the sample [accounts test data](https://github.com/opensearch-project/sql/blob/master/integ-test/src/test/resources/accounts.json) file.
 2. Index the sample data.
 
     ```
@@ -94,7 +93,7 @@ For a list of all available configurations, see [clirc](https://github.com/opend
     ```
 
 
-1. Run a simple SQL command in ODFE SQL CLI:
+1. Run a simple SQL command in OpenSearch SQL CLI:
 
     ```
     SELECT * FROM accounts;
@@ -102,7 +101,7 @@ For a list of all available configurations, see [clirc](https://github.com/opend
 
     By default, you see a maximum output of 200 rows. To show more results, add a `LIMIT` clause with the desired value.
 
-The CLI supports all types of query that ODFE SQL supports. Refer to [ODFE SQL basic usage documentation.](https://github.com/opendistro-for-elasticsearch/sql#basic-usage)
+The CLI supports all types of query that OpenSearch SQL supports. Refer to [OpenSearch SQL basic usage documentation.](https://github.com/opensearch-project/sql#basic-usage)
 
 
 ## Query options
@@ -124,7 +123,7 @@ Run single query from command line with options
 
 ## Code of Conduct
 
-This project has adopted an [Open Source Code of Conduct](https://opendistro.github.io/for-elasticsearch/codeofconduct.html).
+This project has adopted an [Open Source Code of Conduct](/CODE_OF_CONDUCT.md).
 
 
 
@@ -134,7 +133,7 @@ If you discover a potential security issue in this project we ask that you notif
 
 ## Licensing
 
-See the [LICENSE](https://github.com/opendistro-for-elasticsearch/sql/blob/master/sql-cli/LICENSE.TXT) file for our project's licensing. We will ask you to confirm the licensing of your contribution.
+See the [LICENSE](/LICENSE.TXT) file for our project's licensing. We will ask you to confirm the licensing of your contribution.
 
 
 

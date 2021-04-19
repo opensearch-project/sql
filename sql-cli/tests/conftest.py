@@ -34,7 +34,7 @@ def connection():
 
 @pytest.fixture(scope="function")
 def default_config_location():
-    from src.odfe_sql_cli.conf import __file__ as package_root
+    from src.opensearch_sql_cli.conf import __file__ as package_root
 
     package_root = os.path.dirname(package_root)
     default_config = os.path.join(package_root, "clirc")

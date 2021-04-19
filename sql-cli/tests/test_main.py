@@ -18,8 +18,8 @@ from textwrap import dedent
 from click.testing import CliRunner
 
 from .utils import estest, load_data, TEST_INDEX_NAME
-from src.odfe_sql_cli.main import cli
-from src.odfe_sql_cli.odfesql_cli import OdfeSqlCli
+from src.opensearch_sql_cli.main import cli
+from src.opensearch_sql_cli.opensearchsql_cli import OpenSearchSqlCli
 
 INVALID_ENDPOINT = "http://invalid:9200"
 ENDPOINT = "http://localhost:9200"
@@ -44,7 +44,7 @@ class TestMain:
             +-----+"""
         )
 
-        with mock.patch("src.odfe_sql_cli.main.click.echo") as mock_echo, mock.patch("src.odfe_sql_cli.main.click.secho") as mock_secho:
+        with mock.patch("src.opensearch_sql_cli.main.click.echo") as mock_echo, mock.patch("src.opensearch_sql_cli.main.click.secho") as mock_secho:
             runner = CliRunner()
 
             # test -q -e
@@ -63,8 +63,8 @@ class TestMain:
 
     @estest
     def test_cli(self):
-        with mock.patch.object(OdfeSqlCli, "connect") as mock_connect, mock.patch.object(
-            OdfeSqlCli, "run_cli"
+        with mock.patch.object(OpenSearchSqlCli, "connect") as mock_connect, mock.patch.object(
+            OpenSearchSqlCli, "run_cli"
         ) as mock_run_cli:
             runner = CliRunner()
             result = runner.invoke(cli)

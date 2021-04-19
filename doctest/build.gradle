@@ -51,6 +51,6 @@ testClusters {
     }
 }
 tasks.register("runRestTestCluster", RunTask) {
-    description = 'Runs ODFE SQL plugin in OpenSearch'
+    description = 'Runs OpenSearch SQL plugin'
     useCluster testClusters.docTestCluster;
 }

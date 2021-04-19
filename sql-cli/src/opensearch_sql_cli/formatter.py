@@ -22,7 +22,7 @@ click.disable_unicode_literals_warning = True
 
 
 class Formatter:
-    """Formatter instance is used to format the data retrieved from Elasticsearch."""
+    """Formatter instance is used to format the data retrieved from OpenSearch."""
 
     def __init__(self, settings):
         """A formatter can be customized by passing settings as a parameter."""
@@ -58,7 +58,7 @@ class Formatter:
     def format_output(self, data):
         """Format data.
 
-        :param data: raw data get from ES
+        :param data: raw data get from OpenSearch
         :return: formatted output, it's either table or vertical format
         """
         formatter = TabularOutputFormatter(format_name=self.table_format)
@@ -80,7 +80,7 @@ class Formatter:
         output = formatter.format_output(datarows, fields, **self.output_kwargs)
         output_message = "fetched rows / total rows = %d/%d" % (cur_size, total_hits)
 
-        # Open Distro for ES sql has a restriction of retrieving 200 rows of data by default
+        # OpenSearch sql has a restriction of retrieving 200 rows of data by default
         if total_hits > 200 == cur_size:
             output_message += "\n" + "Attention: Use LIMIT keyword when retrieving more than 200 rows of data"
 
