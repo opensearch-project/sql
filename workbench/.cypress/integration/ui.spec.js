@@ -1,4 +1,15 @@
 /*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
+ */
+
+/*
  *   Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License").
@@ -21,7 +32,7 @@ import { delay, testQueries, verifyDownloadData, files } from "../utils/constant
 
 describe('Test PPL UI', () => {
   beforeEach(() => {
-    cy.visit('app/opendistro-query-workbench');
+    cy.visit('app/opensearch-query-workbench');
     cy.wait(delay);
     cy.get('.euiToggle__input[title=PPL]').click({ force: true });
     cy.wait(delay);
@@ -89,7 +100,7 @@ describe('Test PPL UI', () => {
 
 describe('Test SQL UI', () => {
   beforeEach(() => {
-    cy.visit('app/opendistro-query-workbench');
+    cy.visit('app/opensearch-query-workbench');
     cy.wait(delay);
     cy.get('.euiToggle__input[title=SQL]').click({ force: true });
     cy.wait(delay);
@@ -188,7 +199,7 @@ describe('Test and verify SQL downloads', () => {
 
 describe('Test table display', () => {
   beforeEach(() => {
-    cy.visit('app/opendistro-query-workbench');
+    cy.visit('app/opensearch-query-workbench');
     cy.wait(delay);
     cy.get('.euiToggle__input[title=SQL]').click({ force: true });
     cy.wait(delay);

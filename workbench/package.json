@@ -1,5 +1,5 @@
 {
-  "name": "opendistro-query-workbench",
+  "name": "opensearch-query-workbench",
   "version": "1.15.0.0",
   "description": "Query Workbench",
   "main": "index.js",
