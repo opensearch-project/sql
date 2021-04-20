@@ -1,6 +1,7 @@
 package com.amazon.opendistroforelasticsearch.sql.sql;
 
 import static com.amazon.opendistroforelasticsearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.RestSqlAction.LEGACY_CURSOR_CLOSE_ENDPOINT;
 import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.RestSqlAction.LEGACY_EXPLAIN_API_ENDPOINT;
 import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.RestSqlAction.LEGACY_QUERY_API_ENDPOINT;
 import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.RestSqlSettingsAction.LEGACY_SETTINGS_API_ENDPOINT;
@@ -53,11 +54,15 @@ public class LegacyAPICompatibilityIT extends SQLIntegTestCase {
         new ClusterSetting("transient", "opendistro.sql.cursor.enabled", "true"));
 
     try {
-      String selectQuery = StringUtils.format(
-          "SELECT firstname, state FROM %s WHERE balance > 100 and age < 40", TEST_INDEX_ACCOUNT);
-      JSONObject result = new JSONObject(executeFetchQuery(selectQuery, 50, "jdbc"));
-      JSONObject closeResp = executeCursorCloseQuery(result.getString("cursor"));
-      assertThat(closeResp.getBoolean("succeeded"), equalTo(true));
+      String sql = StringUtils.format(
+          "SELECT firstname FROM %s WHERE balance > 100", TEST_INDEX_ACCOUNT);
+      JSONObject result = new JSONObject(executeFetchQuery(sql, 50, "jdbc"));
+
+      Request request = new Request("POST", LEGACY_CURSOR_CLOSE_ENDPOINT);
+      request.setJsonEntity(makeCursorRequest(result.getString("cursor")));
+      request.setOptions(buildJsonOption());
+      JSONObject response = new JSONObject(executeRequest(request));
+      assertThat(response.getBoolean("succeeded"), equalTo(true));
     } finally {
       updateClusterSettings(
           new ClusterSetting("transient", "opendistro.sql.cursor.enabled", "false"));
@@ -80,12 +85,15 @@ public class LegacyAPICompatibilityIT extends SQLIntegTestCase {
         "}";
     Request request = new Request("PUT", LEGACY_SETTINGS_API_ENDPOINT);
     request.setJsonEntity(requestBody);
-
-    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
-    restOptionsBuilder.addHeader("Content-Type", "application/json");
-    request.setOptions(restOptionsBuilder);
+    request.setOptions(buildJsonOption());
     Response response = client().performRequest(request);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+  }
+
+  private RequestOptions.Builder buildJsonOption() {
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    return restOptionsBuilder;
   }
 
 }
