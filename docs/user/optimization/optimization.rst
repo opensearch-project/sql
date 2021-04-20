@@ -32,7 +32,7 @@ Filter Merge Rule
 The consecutive Filter operator will be merged as one Filter operator::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST localhost:9200/_opendistro/_ppl/_explain \
+    ... -X POST localhost:9200/_opensearch/_ppl/_explain \
     ... -d '{"query" : "source=accounts | where age > 10 | where age < 20 | fields age"}'
     {
       "root": {
@@ -59,7 +59,7 @@ Filter Push Down Under Sort
 The Filter operator should be push down under Sort operator::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST localhost:9200/_opendistro/_ppl/_explain \
+    ... -X POST localhost:9200/_opensearch/_ppl/_explain \
     ... -d '{"query" : "source=accounts | sort age | where age < 20 | fields age"}'
     {
       "root": {

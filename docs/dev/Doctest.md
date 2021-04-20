@@ -175,7 +175,7 @@ fetched rows / total rows = 4/4
 The code example in a doc using `bash` should be like this
 
 ```
-sh$ curl -XPOST "localhost:9200/_opendistro/_ppl/" 
+sh$ curl -XPOST "localhost:9200/_opensearch/_ppl/" 
           -H 'Content-Type: application/json' 
           -d'{  "query": "search source=opensearch_dashboards_sample_data_flights OriginCountry = "IT" 
           DestiContry = "US" | fields FlightNum, DestCountry, OriginCountry "}'

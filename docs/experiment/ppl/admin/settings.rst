@@ -28,7 +28,7 @@ You can disable SQL plugin to reject all coming requests.
 2. This setting is node scope.
 3. This setting can be updated dynamically.
 
-Notes. Calls to _opendistro/_ppl include index names in the request body, so they have the same access policy considerations as the bulk, mget, and msearch operations. if rest.action.multi.allow_explicit_index set to false, PPL plugin will be disabled.
+Notes. Calls to _opensearch/_ppl include index names in the request body, so they have the same access policy considerations as the bulk, mget, and msearch operations. if rest.action.multi.allow_explicit_index set to false, PPL plugin will be disabled.
 
 Example 1
 ---------
@@ -60,7 +60,7 @@ Query result after the setting updated is like:
 PPL query::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST localhost:9200/_opendistro/_ppl \
+    ... -X POST localhost:9200/_opensearch/_ppl \
     {
       "error": {
         "reason": "Invalid Query",
