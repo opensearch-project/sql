@@ -172,14 +172,14 @@ class OpenSearchConnection:
         try:
             if self.query_language == "sql":
                 data = self.client.transport.perform_request(
-                    url="/_opensearch/_sql/_explain" if explain else "/_opensearch/_sql/",
+                    url="/_opendistro/_sql/_explain" if explain else "/_opendistro/_sql/",
                     method="POST",
                     params=None if explain else {"format": output_format},
                     body={"query": final_query},
                 )
             else:
                 data = self.client.transport.perform_request(
-                    url="/_opensearch/_ppl/_explain" if explain else "/_opensearch/_ppl/",
+                    url="/_opendistro/_ppl/_explain" if explain else "/_opendistro/_ppl/",
                     method="POST",
                     params=None if explain else {"format": output_format},
                     body={"query": final_query},
