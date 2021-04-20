@@ -229,7 +229,7 @@ Doctest: explain.rst
 File "/Users/szhongna/Desktop/Projects/sql/doctest/docs/dql/explain.rst", line 6, in explain.rst
 Failed example:
     pretty_print(sh("""curl -sS -H 'Content-Type: application/json' \
-    -X POST localhost:9200/_opendistro/_sql/_explain \
+    -X POST localhost:9200/_opensearch/_sql/_explain \
     -d '{"query" : "SELECT firstname, lastname FROM accounts WHERE age > 20"}'
     """).stdout.decode("utf-8"))
 Expected:

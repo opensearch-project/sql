@@ -33,6 +33,7 @@ import static com.amazon.opendistroforelasticsearch.sql.doctest.core.response.Sq
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.response.SqlResponseFormat.TABLE_RESPONSE;
 import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.RestSqlAction.EXPLAIN_API_ENDPOINT;
 import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.RestSqlSettingsAction.SETTINGS_API_ENDPOINT;
 
 import com.amazon.opendistroforelasticsearch.sql.doctest.core.markup.Document;
 import com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequest;
@@ -209,7 +210,7 @@ public interface DocBuilder {
         StringUtils.format("\"%s\": {\"%s\": \"%s\"}", "transient", name, value);
     return new Requests(
         restClient(),
-        new SqlRequest("PUT", "/_opendistro/_sql/settings", new Body(setting).toString()),
+        new SqlRequest("PUT", SETTINGS_API_ENDPOINT, new Body(setting).toString()),
         null
     );
   }

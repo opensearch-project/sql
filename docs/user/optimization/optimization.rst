@@ -90,7 +90,7 @@ Push Project Into Query DSL
 The Project list will push down to Query DSL to `filter the source <https://www.elastic.co/guide/en/elasticsearch/reference/7.x/search-fields.html#source-filtering>`_::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST localhost:9200/_opendistro/_sql/_explain \
+    ... -X POST localhost:9200/_opensearch/_sql/_explain \
     ... -d '{"query" : "SELECT age FROM accounts"}'
     {
       "root": {
@@ -116,7 +116,7 @@ Filter Merge Into Query DSL
 The Filter operator will merge into OpenSearch Query DSL::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST localhost:9200/_opendistro/_sql/_explain \
+    ... -X POST localhost:9200/_opensearch/_sql/_explain \
     ... -d '{"query" : "SELECT age FROM accounts WHERE age > 30"}'
     {
       "root": {
@@ -142,7 +142,7 @@ Sort Merge Into Query DSL
 The Sort operator will merge into OpenSearch Query DSL::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST localhost:9200/_opendistro/_sql/_explain \
+    ... -X POST localhost:9200/_opensearch/_sql/_explain \
     ... -d '{"query" : "SELECT age FROM accounts ORDER BY age"}'
     {
       "root": {
@@ -165,7 +165,7 @@ The Sort operator will merge into OpenSearch Query DSL::
 Because the OpenSearch Script Based Sorting can't handle NULL/MISSING value, there is one exception is that if the sort list include expression other than field reference, it will not be merged into Query DSL::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST localhost:9200/_opendistro/_sql/_explain \
+    ... -X POST localhost:9200/_opensearch/_sql/_explain \
     ... -d '{"query" : "SELECT age FROM accounts ORDER BY abs(age)"}'
     {
       "root": {
@@ -204,7 +204,7 @@ Limit Merge Into Query DSL
 The Limit operator will merge in OpenSearch Query DSL::
 
         sh$ curl -sS -H 'Content-Type: application/json' \
-        ... -X POST localhost:9200/_opendistro/_sql/_explain \
+        ... -X POST localhost:9200/_opensearch/_sql/_explain \
         ... -d '{"query" : "SELECT age FROM accounts LIMIT 10 OFFSET 5"}'
         {
           "root": {
@@ -227,7 +227,7 @@ The Limit operator will merge in OpenSearch Query DSL::
 If sort that includes expression, which cannot be merged into query DSL, also exists in the query, the Limit operator will not be merged into query DSL as well::
 
         sh$ curl -sS -H 'Content-Type: application/json' \
-        ... -X POST localhost:9200/_opendistro/_sql/_explain \
+        ... -X POST localhost:9200/_opensearch/_sql/_explain \
         ... -d '{"query" : "SELECT age FROM accounts ORDER BY abs(age) LIMIT 10"}'
         {
           "root": {
@@ -275,7 +275,7 @@ Aggregation Merge Into OpenSearch Aggregation
 The Aggregation operator will merge into OpenSearch Aggregation::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST localhost:9200/_opendistro/_sql/_explain \
+    ... -X POST localhost:9200/_opensearch/_sql/_explain \
     ... -d '{"query" : "SELECT gender, avg(age) FROM accounts GROUP BY gender"}'
     {
       "root": {
@@ -301,7 +301,7 @@ Sort Merge Into OpenSearch Aggregation
 The Sort operator will merge into OpenSearch Aggregation.::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST localhost:9200/_opendistro/_sql/_explain \
+    ... -X POST localhost:9200/_opensearch/_sql/_explain \
     ... -d '{"query" : "SELECT gender, avg(age) FROM accounts GROUP BY gender ORDER BY gender DESC NULLS LAST"}'
     {
       "root": {
@@ -324,7 +324,7 @@ The Sort operator will merge into OpenSearch Aggregation.::
 Because the OpenSearch Composite Aggregation order doesn't support separate NULL_FIRST/NULL_LAST option. only the default sort option (ASC NULL_FIRST/DESC NULL_LAST) will be supported for push down to OpenSearch Aggregation, otherwise it will fall back to the default memory based operator::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST localhost:9200/_opendistro/_sql/_explain \
+    ... -X POST localhost:9200/_opensearch/_sql/_explain \
     ... -d '{"query" : "SELECT gender, avg(age) FROM accounts GROUP BY gender ORDER BY gender ASC NULLS LAST"}'
     {
       "root": {
@@ -360,7 +360,7 @@ Because the OpenSearch Composite Aggregation order doesn't support separate NULL
 Because the OpenSearch Composite Aggregation doesn't support order by metrics field, then if the sort list include fields which refer to metrics aggregation, then the sort operator can't be push down to OpenSearch Aggregation::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST localhost:9200/_opendistro/_sql/_explain \
+    ... -X POST localhost:9200/_opensearch/_sql/_explain \
     ... -d '{"query" : "SELECT gender, avg(age) FROM accounts GROUP BY gender ORDER BY avg(age)"}'
     {
       "root": {

@@ -48,12 +48,12 @@ The package uses the [Gradle](https://docs.gradle.org/4.10.2/userguide/userguide
 
 ## Basic Usage
 
-To use the feature, send requests to the `_opendistro/_sql` URI. You can use a request parameter or the request body (recommended).
+To use the feature, send requests to the `_opensearch/_sql` URI. You can use a request parameter or the request body (recommended).
 
 * Simple query
 
 ```
-POST https://<host>:<port>/_opendistro/_sql
+POST https://<host>:<port>/_opensearch/_sql
 {
   "query": "SELECT * FROM my-index LIMIT 50"
 }
@@ -61,7 +61,7 @@ POST https://<host>:<port>/_opendistro/_sql
 
 * Explain SQL to OpenSearch query DSL
 ```
-POST _opendistro/_sql/_explain
+POST _opensearch/_sql/_explain
 {
   "query": "SELECT * FROM my-index LIMIT 50"
 }
@@ -69,7 +69,7 @@ POST _opendistro/_sql/_explain
 
 * For a sample curl command with the OpenSearch Security plugin, try:
 ```
-curl -XPOST https://localhost:9200/_opendistro/_sql -u admin:admin -k -d '{"query": "SELECT * FROM my-index LIMIT 10"}' -H 'Content-Type: application/json'
+curl -XPOST https://localhost:9200/_opensearch/_sql -u admin:admin -k -d '{"query": "SELECT * FROM my-index LIMIT 10"}' -H 'Content-Type: application/json'
 ```
 
 

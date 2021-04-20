@@ -43,8 +43,8 @@
 
 static const std::string ctype = "application/json";
 static const std::string SQL_ENDPOINT_FORMAT_JDBC =
-    "/_opendistro/_sql?format=jdbc";
-static const std::string SQL_ENDPOINT_CLOSE_CURSOR = "/_opendistro/_sql/close";
+    "/_opensearch/_sql?format=jdbc";
+static const std::string SQL_ENDPOINT_CLOSE_CURSOR = "/_opensearch/_sql/close";
 static const std::string PLUGIN_ENDPOINT_FORMAT_JSON =
     "/_cat/plugins?format=json";
 static const std::string OPENDISTRO_SQL_PLUGIN_NAME = "opendistro-sql";

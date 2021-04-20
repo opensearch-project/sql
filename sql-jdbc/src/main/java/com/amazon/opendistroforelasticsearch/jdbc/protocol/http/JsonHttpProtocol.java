@@ -49,7 +49,7 @@ public class JsonHttpProtocol implements Protocol {
 
     // the value is based on the API endpoint the sql plugin sets up,
     // but this could be made configurable if required
-    public static final String DEFAULT_SQL_CONTEXT_PATH = "/_opendistro/_sql";
+    public static final String DEFAULT_SQL_CONTEXT_PATH = "/_opensearch/_sql";
 
     private static final Header acceptJson = new BasicHeader(HttpHeaders.ACCEPT, "application/json");
     private static final Header contentTypeJson = new BasicHeader(HttpHeaders.CONTENT_TYPE, "application/json");

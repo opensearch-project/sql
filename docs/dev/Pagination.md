@@ -101,7 +101,7 @@ Since we are implementing server side cursors, either OpenSearch SQL plugin or O
 
 ```
 # 1.Creates a cursor
-POST _opendistro/_sql?format=jdbc
+POST _opensearch/_sql?format=jdbc
 {
   "query": "SELECT * FROM accounts",
   "fetch_size": 5
@@ -118,7 +118,7 @@ POST _opendistro/_sql?format=jdbc
 }
 
 # 2.Fetch next page by cursor provided in previous response
-POST _opendistro/_sql?format=jdbc
+POST _opensearch/_sql?format=jdbc
 {
   "cursor": "cursorId"
 }
@@ -135,7 +135,7 @@ POST _opendistro/_sql?format=jdbc
 
 
 # 4.Clear the state forcibly earlier than last page be reached
-POST _opendistro/_sql/close
+POST _opensearch/_sql/close
 {
   "cursor": "cursorId"
 }

@@ -754,7 +754,7 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
 
     final String requestBody = super.makeRequest(query);
     final String endpoint = String.format(Locale.ROOT,
-        "/_opendistro/_sql?format=csv&flat=%b&_id=%b&_score=%b&_type=%b",
+        "/_opensearch/_sql?format=csv&flat=%b&_id=%b&_score=%b&_type=%b",
         flat, includeId, includeScore, includeType);
     final Request sqlRequest = new Request("POST", endpoint);
     sqlRequest.setJsonEntity(requestBody);

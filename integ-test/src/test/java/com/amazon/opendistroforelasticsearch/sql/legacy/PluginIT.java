@@ -29,6 +29,7 @@ package com.amazon.opendistroforelasticsearch.sql.legacy;
 
 import static com.amazon.opendistroforelasticsearch.sql.legacy.TestUtils.getResponseBody;
 import static com.amazon.opendistroforelasticsearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.RestSqlSettingsAction.SETTINGS_API_ENDPOINT;
 import static org.hamcrest.Matchers.equalTo;
 
 import java.io.IOException;
@@ -453,7 +454,7 @@ public class PluginIT extends SQLIntegTestCase {
   }
 
   protected static JSONObject updateViaSQLSettingsAPI(String body) throws IOException {
-    Request request = new Request("PUT", "/_opendistro/_sql/settings");
+    Request request = new Request("PUT", SETTINGS_API_ENDPOINT);
     request.setJsonEntity(body);
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");

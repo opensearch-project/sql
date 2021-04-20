@@ -95,7 +95,7 @@ public class SQLQueryRequestTest {
   public void shouldSupportExplain() {
     SQLQueryRequest explainRequest =
         SQLQueryRequestBuilder.request("SELECT 1")
-                              .path("_opendistro/_sql/_explain")
+                              .path("_opensearch/_sql/_explain")
                               .build();
     assertTrue(explainRequest.isExplainRequest());
     assertTrue(explainRequest.isSupported());
