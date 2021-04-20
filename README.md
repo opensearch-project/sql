@@ -48,7 +48,7 @@ The package uses the [Gradle](https://docs.gradle.org/4.10.2/userguide/userguide
 
 ## Basic Usage
 
-To use the feature, send requests to the `_opensearch/_sql` URI. You can use a request parameter or the request body (recommended).
+To use the feature, send requests to the `_opensearch/_sql` URI. You can use a request parameter or the request body (recommended). Note that for backward compatibility, old `_opendistro/_sql` endpoint is still available, though any future API will be only accessible by new OpenSearch endpoint.
 
 * Simple query
 
