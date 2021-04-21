@@ -14,6 +14,16 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 1.14
+
+    # Publish OpenSearch to local Maven repo for now
+    - name: Checkout OpenSearch
+      uses: actions/checkout@v2
+      with:
+        repository: 'opensearch-project/OpenSearch'
+        path: OpenSearch
+    - name: Build OpenSearch
+      working-directory: ./OpenSearch
+      run: ./gradlew publishToMavenLocal
     
     - name: Build with Gradle
       run: ./gradlew build assemble
