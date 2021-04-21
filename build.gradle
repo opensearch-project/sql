@@ -30,6 +30,7 @@ buildscript {
     }
 
     repositories {
+        mavenLocal()
         mavenCentral()
         maven {
             url = 's3://search-vemsarat/'
@@ -56,6 +57,7 @@ plugins {
 
 // Repository on root level is for dependencies that project code depends on. And this block must be placed after plugins{}
 repositories {
+    mavenLocal()
     mavenCentral() // For Elastic Libs that you can use to get started coding until open OpenSearch libs are available
 }
 
@@ -74,6 +76,7 @@ allprojects {
 
 subprojects {
     repositories {
+        mavenLocal()
         mavenCentral()
         maven {
             url = 's3://search-vemsarat/'
