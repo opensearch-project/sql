@@ -10,7 +10,7 @@
 
 ### Specify the JDBC driver
 
-Place the `opendistro-sql-jdbc-x.x.x.x.jar` file in the folder for your operating system. (Create the folder if it doesn't already exist.)
+Place the `opensearch-sql-jdbc-x.x.x.x.jar` file in the folder for your operating system. (Create the folder if it doesn't already exist.)
 
 | Platform | Driver Path |
 |---|---|

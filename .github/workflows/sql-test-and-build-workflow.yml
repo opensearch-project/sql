@@ -30,11 +30,11 @@ jobs:
 
     - name: Create Artifact Path
       run: |
-        mkdir -p opendistro-sql-builds
-        cp -r ./plugin/build/distributions/*.zip opendistro-sql-builds/
+        mkdir -p opensearch-sql-builds
+        cp -r ./plugin/build/distributions/*.zip opensearch-sql-builds/
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v1
       with:
-        name: opendistro-sql
-        path: opendistro-sql-builds
+        name: opensearch-sql
+        path: opensearch-sql-builds

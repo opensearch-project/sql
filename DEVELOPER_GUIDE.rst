@@ -332,9 +332,9 @@ Sometime you want to deploy your changes to local OpenSearch cluster, basically 
 
 To automate this common task, you can prepare an all-in-one command for reuse. Below is a sample command for macOS::
 
- ./gradlew assemble && {echo y | cp -f build/distributions/opendistro_sql-1*0.jar <OpenSearch_home>/plugins/opendistro-sql} && {kill $(ps aux | awk '/[O]pensearch/ {print $2}'); sleep 3; nohup <OpenSearch_home>/bin/opensearch > ~/Temp/opensearch.log 2>&1 &}
+ ./gradlew assemble && {echo y | cp -f build/distributions/opendistro_sql-1*0.jar <OpenSearch_home>/plugins/opensearch-sql} && {kill $(ps aux | awk '/[O]pensearch/ {print $2}'); sleep 3; nohup <OpenSearch_home>/bin/opensearch > ~/Temp/opensearch.log 2>&1 &}
 
-Note that for the first time you need to create ``opendistro-sql`` folder and unzip ``build/distribution/opendistro_sql-xxxx.zip`` to it.
+Note that for the first time you need to create ``opensearch-sql`` folder and unzip ``build/distribution/opendistro_sql-xxxx.zip`` to it.
 
 
 Documentation

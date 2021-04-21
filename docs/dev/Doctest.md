@@ -90,7 +90,7 @@ The reason we are not using OpenSearch test framework, is due to the difficulty 
 
 ### 2.2.2 Gradle
 
-1. Create new module/packdage `doctest` under current `opendistro-sql`, and integrate to gradle management
+1. Create new module/packdage `doctest` under current `opensearch-sql`, and integrate to gradle management
     1. ![doctest-gradle-project-structure](img/doctest-gradle-project-structure.png)
 
 2. Set up gradle build script, which enables doctest by `./gradlew doctest`
