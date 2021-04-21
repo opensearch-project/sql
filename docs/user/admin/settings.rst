@@ -17,7 +17,7 @@ Introduction
 When OpenSearch bootstraps, SQL plugin will register a few settings in OpenSearch cluster settings. Most of the settings are able to change dynamically so you can control the behavior of SQL plugin without need to bounce your cluster.
 
 
-opendistro.sql.enabled
+opensearch.sql.enabled
 ======================
 
 Description
@@ -39,7 +39,7 @@ SQL query::
 
 	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opendistro/_sql/settings -d '{
 	  "transient" : {
-	    "opendistro.sql.enabled" : "false"
+	    "opensearch.sql.enabled" : "false"
 	  }
 	}'
 
@@ -73,13 +73,13 @@ Result set::
 	{
 	  "error" : {
 	    "reason" : "Invalid SQL query",
-	    "details" : "Either opendistro.sql.enabled or rest.action.multi.allow_explicit_index setting is false",
+	    "details" : "Either opensearch.sql.enabled or rest.action.multi.allow_explicit_index setting is false",
 	    "type" : "SQLFeatureDisabledException"
 	  },
 	  "status" : 400
 	}
 
-opendistro.sql.query.slowlog
+opensearch.sql.query.slowlog
 ============================
 
 Description
@@ -101,7 +101,7 @@ SQL query::
 
 	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opendistro/_sql/settings -d '{
 	  "transient" : {
-	    "opendistro.sql.query.slowlog" : "10"
+	    "opensearch.sql.query.slowlog" : "10"
 	  }
 	}'
 
@@ -121,7 +121,7 @@ Result set::
 	  }
 	}
 
-opendistro.sql.query.analysis.enabled
+opensearch.sql.query.analysis.enabled
 =====================================
 
 Description
@@ -143,7 +143,7 @@ SQL query::
 
 	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opendistro/_sql/settings -d '{
 	  "transient" : {
-	    "opendistro.sql.query.analysis.enabled" : "false"
+	    "opensearch.sql.query.analysis.enabled" : "false"
 	  }
 	}'
 
@@ -165,7 +165,7 @@ Result set::
 	  }
 	}
 
-opendistro.sql.query.analysis.semantic.suggestion
+opensearch.sql.query.analysis.semantic.suggestion
 =================================================
 
 Description
@@ -187,7 +187,7 @@ SQL query::
 
 	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opendistro/_sql/settings -d '{
 	  "transient" : {
-	    "opendistro.sql.query.analysis.semantic.suggestion" : "true"
+	    "opensearch.sql.query.analysis.semantic.suggestion" : "true"
 	  }
 	}'
 
@@ -233,7 +233,7 @@ Result set::
 	  "status" : 400
 	}
 
-opendistro.sql.query.analysis.semantic.threshold
+opensearch.sql.query.analysis.semantic.threshold
 ================================================
 
 Description
@@ -255,7 +255,7 @@ SQL query::
 
 	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opendistro/_sql/settings -d '{
 	  "transient" : {
-	    "opendistro.sql.query.analysis.semantic.threshold" : "50"
+	    "opensearch.sql.query.analysis.semantic.threshold" : "50"
 	  }
 	}'
 
@@ -279,7 +279,7 @@ Result set::
 	  }
 	}
 
-opendistro.sql.query.response.format
+opensearch.sql.query.response.format
 ====================================
 
 Description
@@ -301,7 +301,7 @@ SQL query::
 
 	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opendistro/_sql/settings -d '{
 	  "transient" : {
-	    "opendistro.sql.query.response.format" : "json"
+	    "opensearch.sql.query.response.format" : "json"
 	  }
 	}'
 
@@ -384,7 +384,7 @@ Result set::
 	  "timed_out" : false
 	}
 
-opendistro.sql.cursor.enabled
+opensearch.sql.cursor.enabled
 =============================
 
 Description
@@ -406,7 +406,7 @@ SQL query::
 
 	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opendistro/_sql/settings -d '{
 	  "transient" : {
-	    "opendistro.sql.cursor.enabled" : "true"
+	    "opensearch.sql.cursor.enabled" : "true"
 	  }
 	}'
 
@@ -426,7 +426,7 @@ Result set::
 	  }
 	}
 
-opendistro.sql.cursor.fetch_size
+opensearch.sql.cursor.fetch_size
 ================================
 
 Description
@@ -448,7 +448,7 @@ SQL query::
 
 	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opendistro/_sql/settings -d '{
 	  "transient" : {
-	    "opendistro.sql.cursor.fetch_size" : "50"
+	    "opensearch.sql.cursor.fetch_size" : "50"
 	  }
 	}'
 
@@ -468,7 +468,7 @@ Result set::
 	  }
 	}
 
-opendistro.sql.cursor.keep_alive
+opensearch.sql.cursor.keep_alive
 ================================
 
 Description
@@ -490,7 +490,7 @@ SQL query::
 
 	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opendistro/_sql/settings -d '{
 	  "transient" : {
-	    "opendistro.sql.cursor.keep_alive" : "5m"
+	    "opensearch.sql.cursor.keep_alive" : "5m"
 	  }
 	}'
 
@@ -510,7 +510,7 @@ Result set::
 	  }
 	}
 
-opendistro.sql.engine.new.enabled
+opensearch.sql.engine.new.enabled
 =================================
 
 Description
@@ -532,7 +532,7 @@ SQL query::
 
 	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opendistro/_sql/settings -d '{
 	  "transient" : {
-	    "opendistro.sql.engine.new.enabled" : "false"
+	    "opensearch.sql.engine.new.enabled" : "false"
 	  }
 	}'
 

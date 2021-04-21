@@ -69,7 +69,7 @@ Go to the step 2 if not working.
     #Disable query analysis
     curl -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings -d '{
       "persistent" : {
-        "opendistro.sql.query.analysis.enabled" : false
+        "opensearch.sql.query.analysis.enabled" : false
       }
     }'
 

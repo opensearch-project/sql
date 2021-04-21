@@ -57,7 +57,7 @@ import java.util.Set;
 import static org.opensearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
 
 /**
- * Interface to manage opendistro.sql.* cluster settings
+ * Interface to manage opensearch.sql.* cluster settings
  * All non-sql settings are ignored.
  * Any non-transient and non-persistent settings are ignored.
  */
@@ -66,7 +66,7 @@ public class RestSqlSettingsAction extends BaseRestHandler {
 
     private static final String PERSISTENT = "persistent";
     private static final String TRANSIENT = "transient";
-    private static final String SQL_SETTINGS_PREFIX = "opendistro.sql.";
+    private static final String SQL_SETTINGS_PREFIX = "opensearch.sql.";
 
     /**
      * API endpoint path

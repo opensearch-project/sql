@@ -50,13 +50,13 @@ public class PluginIT extends SQLIntegTestCase {
   @Test
   public void sqlEnableSettingsTest() throws IOException {
     loadIndex(Index.ACCOUNT);
-    updateClusterSettings(new ClusterSetting(PERSISTENT, "opendistro.sql.enabled", "true"));
+    updateClusterSettings(new ClusterSetting(PERSISTENT, "opensearch.sql.enabled", "true"));
     String query = String
         .format(Locale.ROOT, "SELECT firstname FROM %s WHERE account_number=1", TEST_INDEX_ACCOUNT);
     JSONObject queryResult = executeQuery(query);
     assertThat(getHits(queryResult).length(), equalTo(1));
 
-    updateClusterSettings(new ClusterSetting(PERSISTENT, "opendistro.sql.enabled", "false"));
+    updateClusterSettings(new ClusterSetting(PERSISTENT, "opensearch.sql.enabled", "false"));
     Response response = null;
     try {
       queryResult = executeQuery(query);
@@ -69,7 +69,7 @@ public class PluginIT extends SQLIntegTestCase {
     JSONObject error = queryResult.getJSONObject("error");
     assertThat(error.getString("reason"), equalTo("Invalid SQL query"));
     assertThat(error.getString("details"), equalTo(
-        "Either opendistro.sql.enabled or rest.action.multi.allow_explicit_index setting is false"));
+        "Either opensearch.sql.enabled or rest.action.multi.allow_explicit_index setting is false"));
     assertThat(error.getString("type"), equalTo("SQLFeatureDisabledException"));
     wipeAllClusterSettings();
   }
@@ -79,7 +79,7 @@ public class PluginIT extends SQLIntegTestCase {
     // (1) compact form
     String settings = "{" +
         "  \"transient\": {" +
-        "    \"opendistro.sql.metrics.rollinginterval\": \"80\"" +
+        "    \"opensearch.sql.metrics.rollinginterval\": \"80\"" +
         "  }" +
         "}";
     JSONObject actual = updateViaSQLSettingsAPI(settings);
@@ -87,7 +87,7 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"acknowledged\" : true," +
         "  \"persistent\" : { }," +
         "  \"transient\" : {" +
-        "    \"opendistro\" : {" +
+        "    \"opensearch\" : {" +
         "      \"sql\" : {" +
         "        \"metrics\" : {" +
         "          \"rollinginterval\" : \"80\"" +
@@ -101,7 +101,7 @@ public class PluginIT extends SQLIntegTestCase {
     // (2) partial expanded form
     settings = "{" +
         "  \"transient\": {" +
-        "    \"opendistro\" : {" +
+        "    \"opensearch\" : {" +
         "      \"sql\" : {" +
         "        \"metrics.rollinginterval\": \"75\"" +
         "      }" +
@@ -113,7 +113,7 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"acknowledged\" : true," +
         "  \"persistent\" : { }," +
         "  \"transient\" : {" +
-        "    \"opendistro\" : {" +
+        "    \"opensearch\" : {" +
         "      \"sql\" : {" +
         "        \"metrics\" : {" +
         "          \"rollinginterval\" : \"75\"" +
@@ -128,7 +128,7 @@ public class PluginIT extends SQLIntegTestCase {
     // (3) full expanded form
     settings = "{" +
         "  \"transient\": {" +
-        "    \"opendistro\" : {" +
+        "    \"opensearch\" : {" +
         "      \"sql\" : {" +
         "        \"metrics\": {" +
         "          \"rollinginterval\": \"65\"" +
@@ -142,7 +142,7 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"acknowledged\" : true," +
         "  \"persistent\" : { }," +
         "  \"transient\" : {" +
-        "    \"opendistro\" : {" +
+        "    \"opensearch\" : {" +
         "      \"sql\" : {" +
         "        \"metrics\" : {" +
         "          \"rollinginterval\" : \"65\"" +
@@ -159,7 +159,7 @@ public class PluginIT extends SQLIntegTestCase {
     // (1) compact form
     String settings = "{" +
         "  \"persistent\": {" +
-        "    \"opendistro.sql.metrics.rollinginterval\": \"80\"" +
+        "    \"opensearch.sql.metrics.rollinginterval\": \"80\"" +
         "  }" +
         "}";
     JSONObject actual = updateViaSQLSettingsAPI(settings);
@@ -167,7 +167,7 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"acknowledged\" : true," +
         "  \"transient\" : { }," +
         "  \"persistent\" : {" +
-        "    \"opendistro\" : {" +
+        "    \"opensearch\" : {" +
         "      \"sql\" : {" +
         "        \"metrics\" : {" +
         "          \"rollinginterval\" : \"80\"" +
@@ -181,7 +181,7 @@ public class PluginIT extends SQLIntegTestCase {
     // (2) partial expanded form
     settings = "{" +
         "  \"persistent\": {" +
-        "    \"opendistro\" : {" +
+        "    \"opensearch\" : {" +
         "      \"sql\" : {" +
         "        \"metrics.rollinginterval\": \"75\"" +
         "      }" +
@@ -193,7 +193,7 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"acknowledged\" : true," +
         "  \"transient\" : { }," +
         "  \"persistent\" : {" +
-        "    \"opendistro\" : {" +
+        "    \"opensearch\" : {" +
         "      \"sql\" : {" +
         "        \"metrics\" : {" +
         "          \"rollinginterval\" : \"75\"" +
@@ -208,7 +208,7 @@ public class PluginIT extends SQLIntegTestCase {
     // (3) full expanded form
     settings = "{" +
         "  \"persistent\": {" +
-        "    \"opendistro\" : {" +
+        "    \"opensearch\" : {" +
         "      \"sql\" : {" +
         "        \"metrics\": {" +
         "          \"rollinginterval\": \"65\"" +
@@ -222,7 +222,7 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"acknowledged\" : true," +
         "  \"transient\" : { }," +
         "  \"persistent\" : {" +
-        "    \"opendistro\" : {" +
+        "    \"opensearch\" : {" +
         "      \"sql\" : {" +
         "        \"metrics\" : {" +
         "          \"rollinginterval\" : \"65\"" +
@@ -242,18 +242,18 @@ public class PluginIT extends SQLIntegTestCase {
   public void sqlCombinedSettingTest() throws IOException {
     String settings = "{" +
         "  \"transient\": {" +
-        "    \"opendistro.sql.metrics.rollingwindow\": \"3700\"," +
-        "    \"opendistro.sql.query.analysis.semantic.suggestion\" : \"false\"" +
+        "    \"opensearch.sql.metrics.rollingwindow\": \"3700\"," +
+        "    \"opensearch.sql.query.analysis.semantic.suggestion\" : \"false\"" +
         "  }," +
         "  \"persistent\": {" +
-        "    \"opendistro.sql.query.analysis.semantic.suggestion\" : \"true\"" +
+        "    \"opensearch.sql.query.analysis.semantic.suggestion\" : \"true\"" +
         "  }" +
         "}";
     JSONObject actual = updateViaSQLSettingsAPI(settings);
     JSONObject expected = new JSONObject("{" +
         "  \"acknowledged\" : true," +
         "  \"persistent\" : {" +
-        "    \"opendistro\" : {" +
+        "    \"opensearch\" : {" +
         "      \"sql\" : {" +
         "        \"query\" : {" +
         "          \"analysis\" : {" +
@@ -266,7 +266,7 @@ public class PluginIT extends SQLIntegTestCase {
         "    }" +
         "  }," +
         "  \"transient\" : {" +
-        "    \"opendistro\" : {" +
+        "    \"opensearch\" : {" +
         "      \"sql\" : {" +
         "        \"metrics\" : {" +
         "          \"rollingwindow\" : \"3700\"" +
@@ -286,21 +286,21 @@ public class PluginIT extends SQLIntegTestCase {
   }
 
   /**
-   * Ignore all non opendistro.sql settings.
-   * Only settings starting with opendistro.sql. are affected
+   * Ignore all non opensearch.sql settings.
+   * Only settings starting with opensearch.sql. are affected
    */
   @Test
   public void ignoreNonSQLSettingsTest() throws IOException {
     String settings = "{" +
         "  \"transient\": {" +
-        "    \"opendistro.sql.metrics.rollingwindow\": \"3700\"," +
-        "    \"opendistro.alerting.metrics.rollingwindow\": \"3700\"," +
+        "    \"opensearch.sql.metrics.rollingwindow\": \"3700\"," +
+        "    \"opensearch.alerting.metrics.rollingwindow\": \"3700\"," +
         "    \"search.max_buckets\": \"10000\"," +
         "    \"search.max_keep_alive\": \"24h\"" +
         "  }," +
         "  \"persistent\": {" +
-        "    \"opendistro.sql.query.analysis.semantic.suggestion\": \"true\"," +
-        "    \"opendistro.alerting.metrics.rollingwindow\": \"3700\"," +
+        "    \"opensearch.sql.query.analysis.semantic.suggestion\": \"true\"," +
+        "    \"opensearch.alerting.metrics.rollingwindow\": \"3700\"," +
         "    \"thread_pool.analyze.queue_size\": \"16\"" +
         "  }" +
         "}";
@@ -308,7 +308,7 @@ public class PluginIT extends SQLIntegTestCase {
     JSONObject expected = new JSONObject("{" +
         "  \"acknowledged\" : true," +
         "  \"persistent\" : {" +
-        "    \"opendistro\" : {" +
+        "    \"opensearch\" : {" +
         "      \"sql\" : {" +
         "        \"query\" : {" +
         "          \"analysis\" : {" +
@@ -321,7 +321,7 @@ public class PluginIT extends SQLIntegTestCase {
         "    }" +
         "  }," +
         "  \"transient\" : {" +
-        "    \"opendistro\" : {" +
+        "    \"opensearch\" : {" +
         "      \"sql\" : {" +
         "        \"metrics\" : {" +
         "          \"rollingwindow\" : \"3700\"" +
@@ -337,10 +337,10 @@ public class PluginIT extends SQLIntegTestCase {
   public void ignoreNonTransientNonPersistentSettingsTest() throws IOException {
     String settings = "{" +
         "  \"transient\": {" +
-        "    \"opendistro.sql.query.response.format\": \"jdbc\"" +
+        "    \"opensearch.sql.query.response.format\": \"jdbc\"" +
         "  }," +
         "  \"persistent\": {" +
-        "    \"opendistro.sql.query.slowlog\": \"2\"" +
+        "    \"opensearch.sql.query.slowlog\": \"2\"" +
         "  }," +
         "  \"hello\": {" +
         "    \"world\" : {" +
@@ -352,7 +352,7 @@ public class PluginIT extends SQLIntegTestCase {
     JSONObject expected = new JSONObject("{" +
         "  \"acknowledged\" : true," +
         "  \"persistent\" : {" +
-        "    \"opendistro\" : {" +
+        "    \"opensearch\" : {" +
         "      \"sql\" : {" +
         "        \"query\" : {" +
         "          \"slowlog\" : \"2\"" +
@@ -361,7 +361,7 @@ public class PluginIT extends SQLIntegTestCase {
         "    }" +
         "  }," +
         "  \"transient\" : {" +
-        "    \"opendistro\" : {" +
+        "    \"opensearch\" : {" +
         "      \"sql\" : {" +
         "        \"query\" : {" +
         "          \"response\" : {" +
@@ -379,10 +379,10 @@ public class PluginIT extends SQLIntegTestCase {
   public void sqlCombinedMixedSettingTest() throws IOException {
     String settings = "{" +
         "  \"transient\": {" +
-        "    \"opendistro.sql.query.response.format\": \"json\"" +
+        "    \"opensearch.sql.query.response.format\": \"json\"" +
         "  }," +
         "  \"persistent\": {" +
-        "    \"opendistro\": {" +
+        "    \"opensearch\": {" +
         "      \"sql\": {" +
         "        \"query\": {" +
         "          \"slowlog\": \"1\"," +
@@ -401,7 +401,7 @@ public class PluginIT extends SQLIntegTestCase {
     JSONObject expected = new JSONObject("{" +
         "  \"acknowledged\" : true," +
         "  \"persistent\" : {" +
-        "    \"opendistro\" : {" +
+        "    \"opensearch\" : {" +
         "      \"sql\" : {" +
         "        \"query\" : {" +
         "          \"slowlog\" : \"1\"," +
@@ -413,7 +413,7 @@ public class PluginIT extends SQLIntegTestCase {
         "    }" +
         "  }," +
         "  \"transient\" : {" +
-        "    \"opendistro\" : {" +
+        "    \"opensearch\" : {" +
         "      \"sql\" : {" +
         "        \"query\" : {" +
         "          \"response\" : {" +
@@ -431,7 +431,7 @@ public class PluginIT extends SQLIntegTestCase {
   public void nonRegisteredSQLSettingsThrowException() throws IOException {
     String settings = "{" +
         "  \"transient\": {" +
-        "    \"opendistro.sql.query.state.city\": \"Seattle\"" +
+        "    \"opensearch.sql.query.state.city\": \"Seattle\"" +
         "  }" +
         "}";
 
@@ -448,7 +448,7 @@ public class PluginIT extends SQLIntegTestCase {
     assertThat(actual.query("/error/type"), equalTo("illegal_argument_exception"));
     assertThat(
         actual.query("/error/reason"),
-        equalTo("transient setting [opendistro.sql.query.state.city], not recognized")
+        equalTo("transient setting [opensearch.sql.query.state.city], not recognized")
     );
   }
 
