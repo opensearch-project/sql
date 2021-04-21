@@ -22,7 +22,7 @@ To use the SQL features present in documentation correctly, you need to enable o
       "acknowledged": true,
       "persistent": {},
       "transient": {
-        "opendistro": {
+        "opensearch": {
           "sql": {
             "engine": {
               "new": {

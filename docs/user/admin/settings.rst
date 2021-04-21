@@ -49,7 +49,7 @@ Result set::
 	  "acknowledged" : true,
 	  "persistent" : { },
 	  "transient" : {
-	    "opendistro" : {
+	    "opensearch" : {
 	      "sql" : {
 	        "enabled" : "false"
 	      }
@@ -111,7 +111,7 @@ Result set::
 	  "acknowledged" : true,
 	  "persistent" : { },
 	  "transient" : {
-	    "opendistro" : {
+	    "opensearch" : {
 	      "sql" : {
 	        "query" : {
 	          "slowlog" : "10"
@@ -153,7 +153,7 @@ Result set::
 	  "acknowledged" : true,
 	  "persistent" : { },
 	  "transient" : {
-	    "opendistro" : {
+	    "opensearch" : {
 	      "sql" : {
 	        "query" : {
 	          "analysis" : {
@@ -197,7 +197,7 @@ Result set::
 	  "acknowledged" : true,
 	  "persistent" : { },
 	  "transient" : {
-	    "opendistro" : {
+	    "opensearch" : {
 	      "sql" : {
 	        "query" : {
 	          "analysis" : {
@@ -265,7 +265,7 @@ Result set::
 	  "acknowledged" : true,
 	  "persistent" : { },
 	  "transient" : {
-	    "opendistro" : {
+	    "opensearch" : {
 	      "sql" : {
 	        "query" : {
 	          "analysis" : {
@@ -311,7 +311,7 @@ Result set::
 	  "acknowledged" : true,
 	  "persistent" : { },
 	  "transient" : {
-	    "opendistro" : {
+	    "opensearch" : {
 	      "sql" : {
 	        "query" : {
 	          "response" : {
@@ -416,7 +416,7 @@ Result set::
 	  "acknowledged" : true,
 	  "persistent" : { },
 	  "transient" : {
-	    "opendistro" : {
+	    "opensearch" : {
 	      "sql" : {
 	        "cursor" : {
 	          "enabled" : "true"
@@ -458,7 +458,7 @@ Result set::
 	  "acknowledged" : true,
 	  "persistent" : { },
 	  "transient" : {
-	    "opendistro" : {
+	    "opensearch" : {
 	      "sql" : {
 	        "cursor" : {
 	          "fetch_size" : "50"
@@ -500,7 +500,7 @@ Result set::
 	  "acknowledged" : true,
 	  "persistent" : { },
 	  "transient" : {
-	    "opendistro" : {
+	    "opensearch" : {
 	      "sql" : {
 	        "cursor" : {
 	          "keep_alive" : "5m"
@@ -542,7 +542,7 @@ Result set::
 	  "acknowledged" : true,
 	  "persistent" : { },
 	  "transient" : {
-	    "opendistro" : {
+	    "opensearch" : {
 	      "sql" : {
 	        "engine" : {
 	          "new" : {
@@ -565,7 +565,7 @@ The new engine fetches a default size of index from OpenSearch set by this setti
 
 	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings -d '{
 	  "transient" : {
-	    "opendistro.query.size_limit" : 500
+	    "opensearch.query.size_limit" : 500
 	  }
 	}'
 
@@ -575,7 +575,7 @@ Result set::
       "acknowledged" : true,
       "persistent" : { },
       "transient" : {
-        "opendistro" : {
+        "opensearch" : {
           "query" : {
             "size_limit" : "500"
           }

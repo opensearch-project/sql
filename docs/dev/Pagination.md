@@ -465,7 +465,7 @@ Response:
   "acknowledged" : true,
   "persistent" : { },
   "transient" : {
-    "opendistro" : {
+    "opensearch" : {
       "sql" : {
         "cursor" : {
           "enabled" : "false"
@@ -505,7 +505,7 @@ Response:
   "acknowledged" : true,
   "transient" : { },
   "persistent" : {
-    "opendistro" : {
+    "opensearch" : {
       "sql" : {
         "cursor" : {
           "fetch_size" : "100"
@@ -544,7 +544,7 @@ Response:
   "acknowledged" : true,
   "persistent" : { },
   "transient" : {
-    "opendistro" : {
+    "opensearch" : {
       "sql" : {
         "cursor" : {
           "keep_alive" : "200s"
