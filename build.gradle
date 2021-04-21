@@ -26,7 +26,7 @@
 
 buildscript {
     ext {
-        es_version = "7.10.3-SNAPSHOT"
+        opensearch_version = "1.0.0-SNAPSHOT"
     }
 
     repositories {
@@ -43,7 +43,7 @@ buildscript {
     }
 
     dependencies {
-        classpath "org.opensearch.gradle:build-tools:${es_version}"
+        classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
     }
 }
 
@@ -62,7 +62,7 @@ repositories {
 }
 
 ext {
-    opendistroVersion = '1.15.0'
+    opendistroVersion = '1.0.0'
     isSnapshot = "true" == System.getProperty("build.snapshot", "true")
 }
 
