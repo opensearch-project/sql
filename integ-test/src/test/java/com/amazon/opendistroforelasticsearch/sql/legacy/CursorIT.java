@@ -31,6 +31,7 @@ import static com.amazon.opendistroforelasticsearch.sql.legacy.TestUtils.getResp
 import static com.amazon.opendistroforelasticsearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static com.amazon.opendistroforelasticsearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_TIME;
 import static com.amazon.opendistroforelasticsearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -487,7 +488,7 @@ public class CursorIT extends SQLIntegTestCase {
 
   public String executeFetchAsStringQuery(String query, String fetchSize, String requestType)
       throws IOException {
-    String endpoint = "/_opendistro/_sql?format=" + requestType;
+    String endpoint = QUERY_API_ENDPOINT + "?format=" + requestType;
     String requestBody = makeRequest(query, fetchSize);
 
     Request sqlRequest = new Request("POST", endpoint);

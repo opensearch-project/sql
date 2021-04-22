@@ -30,7 +30,7 @@ Example 1
 PPL query::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST localhost:9200/_opendistro/_ppl \
+    ... -X POST localhost:9200/_opensearch/_ppl \
     ... -d '{"query" : "source=accounts | fields firstname, lastname"}'
     {
       "schema": [
@@ -81,7 +81,7 @@ Here is an example for normal response. The `schema` includes field name and its
 PPL query::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST localhost:9200/_opendistro/_ppl \
+    ... -X POST localhost:9200/_opensearch/_ppl \
     ... -d '{"query" : "source=accounts | fields firstname, lastname"}'
     {
       "schema": [
@@ -124,7 +124,7 @@ If any error occurred, error message and the cause will be returned instead.
 PPL query::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST localhost:9200/_opendistro/_ppl \
+    ... -X POST localhost:9200/_opensearch/_ppl \
     ... -d '{"query" : "source=unknown | fields firstname, lastname"}'
     {
       "error": {

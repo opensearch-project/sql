@@ -108,7 +108,7 @@ public class PPLPluginIT extends PPLIntegTestCase {
   }
 
   protected Request makePPLRequest(String query) {
-    Request post = new Request("POST", "/_opendistro/_ppl");
+    Request post = new Request("POST", "/_opensearch/_ppl");
     post.setJsonEntity(String.format(Locale.ROOT, "{\n" + "  \"query\": \"%s\"\n" + "}", query));
     return post;
   }

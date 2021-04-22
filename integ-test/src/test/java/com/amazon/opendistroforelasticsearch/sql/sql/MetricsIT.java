@@ -28,6 +28,7 @@
 package com.amazon.opendistroforelasticsearch.sql.sql;
 
 import static com.amazon.opendistroforelasticsearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.RestSqlStatsAction.STATS_API_ENDPOINT;
 
 import com.amazon.opendistroforelasticsearch.sql.legacy.SQLIntegTestCase;
 import com.amazon.opendistroforelasticsearch.sql.legacy.metrics.MetricName;
@@ -61,7 +62,7 @@ public class MetricsIT extends SQLIntegTestCase {
 
   private Request makeStatRequest() {
     return new Request(
-        "GET", "/_opendistro/_sql/stats"
+        "GET", STATS_API_ENDPOINT
     );
   }
 

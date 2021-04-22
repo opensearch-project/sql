@@ -25,7 +25,7 @@ Query:
 
 .. code-block:: JSON
 
-	POST /_opendistro/_sql
+	POST /_opensearch/_sql
 	{
 	  "query" : "SELECT * FROM sample:data"
 	}
@@ -51,7 +51,7 @@ You need to confirm if the syntax is not supported and disable query analysis if
 
 .. code-block:: JSON
 
-    POST /_opendistro/_sql
+    POST /_opensearch/_sql
 	{
 	  "query" : "SELECT * FROM `sample:data`"
 	}
@@ -74,7 +74,7 @@ Go to the step 2 if not working.
     }'
 
     #Verify if the query can pass the verification now
-    curl -H 'Content-Type: application/json' -X POST localhost:9200/_opendistro/_sql -d '{
+    curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql -d '{
       "query" : "SELECT * FROM ..."
     }'
 
