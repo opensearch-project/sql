@@ -51,7 +51,7 @@ public class ExpressionScriptEngine implements ScriptEngine {
   /**
    * Expression script language name.
    */
-  public static final String EXPRESSION_LANG_NAME = "opendistro_expression";
+  public static final String EXPRESSION_LANG_NAME = "opensearch_query_expression";
 
   /**
    * All supported script contexts and function to create factory from expression.
