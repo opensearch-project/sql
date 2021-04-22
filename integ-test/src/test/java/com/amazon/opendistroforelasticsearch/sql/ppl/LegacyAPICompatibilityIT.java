@@ -1,3 +1,13 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
+ */
 package com.amazon.opendistroforelasticsearch.sql.ppl;
 
 import static com.amazon.opendistroforelasticsearch.sql.plugin.rest.RestPPLQueryAction.LEGACY_EXPLAIN_API_ENDPOINT;
