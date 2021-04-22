@@ -58,7 +58,8 @@ public class RestPPLStatsAction extends BaseRestHandler {
   /**
    * API endpoint path.
    */
-  public static final String PPL_STATS_API_ENDPOINT = "/_opendistro/_ppl/stats";
+  public static final String PPL_STATS_API_ENDPOINT = "/_opensearch/_ppl/stats";
+  public static final String PPL_LEGACY_STATS_API_ENDPOINT = "/_opendistro/_ppl/stats";
 
   public RestPPLStatsAction(Settings settings, RestController restController) {
     super();
@@ -73,7 +74,9 @@ public class RestPPLStatsAction extends BaseRestHandler {
   public List<Route> routes() {
     return ImmutableList.of(
         new Route(RestRequest.Method.POST, PPL_STATS_API_ENDPOINT),
-        new Route(RestRequest.Method.GET, PPL_STATS_API_ENDPOINT)
+        new Route(RestRequest.Method.GET, PPL_STATS_API_ENDPOINT),
+        new Route(RestRequest.Method.POST, PPL_LEGACY_STATS_API_ENDPOINT),
+        new Route(RestRequest.Method.GET, PPL_LEGACY_STATS_API_ENDPOINT)
     );
   }
 

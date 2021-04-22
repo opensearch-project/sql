@@ -26,6 +26,7 @@
 
 package com.amazon.opendistroforelasticsearch.sql.doctest.core.test;
 
+import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -52,7 +53,7 @@ public class SqlRequestTest {
   @Test
   public void requestShouldIncludeAllFields() throws IOException {
     String method = "POST";
-    String endpoint = "/_opendistro/_sql";
+    String endpoint = QUERY_API_ENDPOINT;
     String body = "{\"query\":\"SELECT * FROM accounts\"}";
     String key = "format";
     String value = "jdbc";

@@ -86,7 +86,7 @@ class SQLServiceTest {
     }).when(executionEngine).execute(any(), any());
 
     sqlService.execute(
-        new SQLQueryRequest(new JSONObject(), "SELECT 123", "_opendistro/_sql", "jdbc"),
+        new SQLQueryRequest(new JSONObject(), "SELECT 123", "_opensearch/_sql", "jdbc"),
         new ResponseListener<QueryResponse>() {
           @Override
           public void onResponse(QueryResponse response) {
@@ -109,7 +109,7 @@ class SQLServiceTest {
     }).when(executionEngine).execute(any(), any());
 
     sqlService.execute(
-        new SQLQueryRequest(new JSONObject(), "SELECT 123", "_opendistro/_sql", "csv"),
+        new SQLQueryRequest(new JSONObject(), "SELECT 123", "_opensearch/_sql", "csv"),
         new ResponseListener<QueryResponse>() {
           @Override
           public void onResponse(QueryResponse response) {
@@ -170,7 +170,7 @@ class SQLServiceTest {
   @Test
   public void canCaptureErrorDuringExecution() {
     sqlService.execute(
-        new SQLQueryRequest(new JSONObject(), "SELECT", "_opendistro/_sql", ""),
+        new SQLQueryRequest(new JSONObject(), "SELECT", "_opensearch/_sql", ""),
         new ResponseListener<QueryResponse>() {
           @Override
           public void onResponse(QueryResponse response) {

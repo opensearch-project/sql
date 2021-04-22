@@ -36,7 +36,7 @@ Example 1: Show All Indices Information
 
 SQL query::
 
-	POST /_opendistro/_sql
+	POST /_opensearch/_sql
 	{
 	  "query" : "SHOW TABLES LIKE %"
 	}
@@ -59,7 +59,7 @@ Here is an example that searches metadata for index name prefixed by 'acc'. Besi
 
 SQL query::
 
-	POST /_opendistro/_sql
+	POST /_opensearch/_sql
 	{
 	  "query" : "SHOW TABLES LIKE acc%"
 	}
@@ -80,7 +80,7 @@ Example 3: Describe Index Fields Information
 
 SQL query::
 
-	POST /_opendistro/_sql
+	POST /_opensearch/_sql
 	{
 	  "query" : "DESCRIBE TABLES LIKE accounts"
 	}

@@ -118,7 +118,7 @@ public class PPLServiceTest {
       return null;
     }).when(executionEngine).execute(any(), any());
 
-    pplService.execute(new PPLQueryRequest("search source=t a=1", null, "/_opendistro/_ppl", "csv"),
+    pplService.execute(new PPLQueryRequest("search source=t a=1", null, "/_opensearch/_ppl", "csv"),
         new ResponseListener<QueryResponse>() {
           @Override
           public void onResponse(QueryResponse pplQueryResponse) {
