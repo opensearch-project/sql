@@ -51,7 +51,7 @@ public class LegacyAPICompatibilityIT extends SQLIntegTestCase {
   @Test
   public void closeCursor() throws IOException {
     updateClusterSettings(
-        new ClusterSetting("transient", "opendistro.sql.cursor.enabled", "true"));
+        new ClusterSetting("transient", "opensearch.sql.cursor.enabled", "true"));
 
     try {
       String sql = StringUtils.format(
@@ -65,7 +65,7 @@ public class LegacyAPICompatibilityIT extends SQLIntegTestCase {
       assertThat(response.getBoolean("succeeded"), equalTo(true));
     } finally {
       updateClusterSettings(
-          new ClusterSetting("transient", "opendistro.sql.cursor.enabled", "false"));
+          new ClusterSetting("transient", "opensearch.sql.cursor.enabled", "false"));
     }
   }
 
@@ -80,7 +80,7 @@ public class LegacyAPICompatibilityIT extends SQLIntegTestCase {
   public void updateSettings() throws IOException {
     String requestBody = "{" +
         "  \"persistent\": {" +
-        "    \"opendistro.sql.metrics.rollinginterval\": \"80\"" +
+        "    \"opensearch.sql.metrics.rollinginterval\": \"80\"" +
         "  }" +
         "}";
     Request request = new Request("PUT", LEGACY_SETTINGS_API_ENDPOINT);
