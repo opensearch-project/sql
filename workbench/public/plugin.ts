@@ -36,7 +36,7 @@ export class WorkbenchPlugin implements Plugin<WorkbenchPluginSetup, WorkbenchPl
       title: PLUGIN_NAME,
       category: {
         id: 'odfe',
-        label: 'OpenSearch',
+        label: 'OpenSearch Plugins',
         order: 2000,
       },
       order: 1000,
