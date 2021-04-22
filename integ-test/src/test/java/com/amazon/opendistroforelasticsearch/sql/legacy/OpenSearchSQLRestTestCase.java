@@ -52,9 +52,9 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 
 /**
- * ODFE integration test base class to support both security disabled and enabled ODFE cluster.
+ * OpenSearch SQL integration test base class to support both security disabled and enabled OpenSearch cluster.
  */
-public abstract class ODFERestTestCase extends OpenSearchRestTestCase {
+public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
 
   protected boolean isHttps() {
     boolean isHttps = Optional.ofNullable(System.getProperty("https"))
@@ -86,7 +86,7 @@ public abstract class ODFERestTestCase extends OpenSearchRestTestCase {
     return builder.build();
   }
 
-  protected static void wipeAllODFEIndices() throws IOException {
+  protected static void wipeAllOpenSearchIndices() throws IOException {
     // include all the indices, included hidden indices.
     // https://www.elastic.co/guide/en/elasticsearch/reference/current/cat-indices.html#cat-indices-api-query-params
     Response response = client().performRequest(new Request("GET", "/_cat/indices?format=json&expand_wildcards=all"));

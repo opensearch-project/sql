@@ -82,7 +82,7 @@ import org.opensearch.rest.RestStatus;
  * <p>
  * TODO: this base class should extends ODFERestTestCase
  */
-public abstract class RestIntegTestCase extends ODFERestTestCase {
+public abstract class RestIntegTestCase extends OpenSearchSQLRestTestCase {
 
   @Before
   public void setUpIndices() throws Exception {
@@ -144,7 +144,7 @@ public abstract class RestIntegTestCase extends ODFERestTestCase {
    */
   @AfterClass
   public static void cleanUpIndices() throws IOException {
-    wipeAllODFEIndices();
+    wipeAllOpenSearchIndices();
     wipeAllClusterSettings();
   }
 
