@@ -19,7 +19,7 @@ jobs:
         java-version: 1.14
     
     - name: Build with Gradle
-      run: ./gradlew build
+      run: ./gradlew build test shadowJar
     
     - name: Create Artifact Path
       run: |
