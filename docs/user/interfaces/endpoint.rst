@@ -29,7 +29,7 @@ Example
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opendistro/_sql -d '{
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql -d '{
 	  "query" : "SELECT * FROM accounts"
 	}'
 
@@ -46,7 +46,7 @@ Example
 
 Explain query::
 
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opendistro/_sql/_explain -d '{
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql/_explain -d '{
 	  "query" : "SELECT firstname, lastname FROM accounts WHERE age > 20"
 	}'
 
@@ -104,7 +104,7 @@ Example
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opendistro/_sql -d '{
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql -d '{
 	  "fetch_size" : 5,
 	  "query" : "SELECT firstname, lastname FROM accounts WHERE age > 20 ORDER BY state ASC"
 	}'

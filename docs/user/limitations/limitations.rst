@@ -88,7 +88,7 @@ Limitations on Pagination
 Pagination only supports basic queries for now. The pagination query enables you to get back paginated responses.
 Currently, the pagination only supports basic queries. For example, the following query returns the data with cursor id::
 
-    POST _opendistro/_sql/
+    POST _opensearch/_sql/
     {
       "fetch_size" : 5,
       "query" : "SELECT OriginCountry, DestCountry FROM opensearch_dashboards_sample_data_flights ORDER BY OriginCountry ASC"

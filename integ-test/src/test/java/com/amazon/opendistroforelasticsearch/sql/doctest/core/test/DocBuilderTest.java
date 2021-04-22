@@ -128,7 +128,7 @@ public class DocBuilderTest implements DocBuilder {
         paragraph("This is an example for the test").
         codeBlock(
             "SQL query",
-            "POST /_opendistro/_sql\n" +
+            "POST /_opensearch/_sql\n" +
                 "{\n" +
                 "  \"query\" : \"\"\"\n" +
                 "\tSELECT firstname\n" +
@@ -159,7 +159,7 @@ public class DocBuilderTest implements DocBuilder {
         paragraph("This is an example for the test").
         codeBlock(
             "SQL query",
-            "POST /_opendistro/_sql\n" +
+            "POST /_opensearch/_sql\n" +
                 "{\n" +
                 "  \"query\" : \"SELECT firstname FROM accounts\"\n" +
                 "}"

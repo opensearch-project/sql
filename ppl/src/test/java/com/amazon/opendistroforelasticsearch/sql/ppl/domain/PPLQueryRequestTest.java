@@ -48,28 +48,28 @@ public class PPLQueryRequestTest {
   @Test
   public void testExplainRequest() {
     PPLQueryRequest request = new PPLQueryRequest(
-        "source=t a=1", null, "/_opendistro/_ppl/_explain");
+        "source=t a=1", null, "/_opensearch/_ppl/_explain");
     assertTrue(request.isExplainRequest());
   }
 
   @Test
   public void testDefaultFormat() {
     PPLQueryRequest request = new PPLQueryRequest(
-        "source=test", null, "/_opendistro/_ppl");
+        "source=test", null, "/_opensearch/_ppl");
     assertEquals(request.format(), Format.JDBC);
   }
 
   @Test
   public void testJDBCFormat() {
     PPLQueryRequest request = new PPLQueryRequest(
-        "source=test", null, "/_opendistro/_ppl", "jdbc");
+        "source=test", null, "/_opensearch/_ppl", "jdbc");
     assertEquals(request.format(), Format.JDBC);
   }
 
   @Test
   public void testCSVFormat() {
     PPLQueryRequest request = new PPLQueryRequest(
-        "source=test", null, "/_opendistro/_ppl", "csv");
+        "source=test", null, "/_opensearch/_ppl", "csv");
     assertEquals(request.format(), Format.CSV);
   }
 
@@ -77,7 +77,7 @@ public class PPLQueryRequestTest {
   public void testUnsupportedFormat() {
     String format = "notsupport";
     PPLQueryRequest request = new PPLQueryRequest(
-            "source=test", null, "/_opendistro/_ppl", format);
+            "source=test", null, "/_opensearch/_ppl", format);
     exceptionRule.expect(IllegalArgumentException.class);
     exceptionRule.expectMessage("response in " + format + " format is not supported.");
     request.format();

@@ -48,7 +48,7 @@ Example
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X GET localhost:9200/_opendistro/_sql/stats
+	>> curl -H 'Content-Type: application/json' -X GET localhost:9200/_opensearch/_sql/stats
 
 Result set::
 

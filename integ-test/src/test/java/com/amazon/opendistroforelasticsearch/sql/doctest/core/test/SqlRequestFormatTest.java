@@ -29,6 +29,7 @@ package com.amazon.opendistroforelasticsearch.sql.doctest.core.test;
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.CURL_REQUEST;
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.IGNORE_REQUEST;
 import static com.amazon.opendistroforelasticsearch.sql.doctest.core.request.SqlRequestFormat.OPENSEARCH_DASHBOARD_REQUEST;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
 import static org.hamcrest.Matchers.emptyString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -45,7 +46,7 @@ public class SqlRequestFormatTest {
 
   private final SqlRequest sqlRequest = new SqlRequest(
       "POST",
-      "/_opendistro/_sql",
+      QUERY_API_ENDPOINT,
       "{\"query\":\"SELECT * FROM accounts\"}",
       new UrlParam("format", "jdbc")
   );
@@ -58,7 +59,7 @@ public class SqlRequestFormatTest {
   @Test
   public void testCurlFormat() {
     String expected =
-        ">> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opendistro/_sql?format=jdbc -d '{\n" +
+        ">> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql?format=jdbc -d '{\n" +
             "  \"query\" : \"SELECT * FROM accounts\"\n" +
             "}'";
     assertThat(CURL_REQUEST.format(sqlRequest), is(expected));
@@ -67,7 +68,7 @@ public class SqlRequestFormatTest {
   @Test
   public void testOpenSearchDashboardsFormat() {
     String expected =
-        "POST /_opendistro/_sql?format=jdbc\n" +
+        "POST /_opensearch/_sql?format=jdbc\n" +
             "{\n" +
             "  \"query\" : \"SELECT * FROM accounts\"\n" +
             "}";
@@ -78,12 +79,12 @@ public class SqlRequestFormatTest {
   public void multiLineSqlInOpenSearchDashboardRequestShouldBeWellFormatted() {
     SqlRequest multiLineSqlRequest = new SqlRequest(
         "POST",
-        "/_opendistro/_sql",
+        "/_opensearch/_sql",
         "{\"query\":\"SELECT *\\nFROM accounts\\nWHERE age > 30\"}"
     );
 
     String expected =
-        "POST /_opendistro/_sql\n" +
+        "POST /_opensearch/_sql\n" +
             "{\n" +
             "  \"query\" : \"\"\"\n" +
             "\tSELECT *\n" +
