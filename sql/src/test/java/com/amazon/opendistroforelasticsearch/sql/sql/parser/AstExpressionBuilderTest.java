@@ -56,8 +56,8 @@ import com.amazon.opendistroforelasticsearch.sql.ast.expression.DataType;
 import com.amazon.opendistroforelasticsearch.sql.ast.tree.Sort.SortOption;
 import com.amazon.opendistroforelasticsearch.sql.common.antlr.CaseInsensitiveCharStream;
 import com.amazon.opendistroforelasticsearch.sql.common.antlr.SyntaxAnalysisErrorListener;
-import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLLexer;
-import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLParser;
+import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLLexer;
+import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLParser;
 import com.google.common.collect.ImmutableList;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -386,8 +386,8 @@ class AstExpressionBuilderTest {
   }
 
   private Node buildExprAst(String expr) {
-    OpenDistroSQLLexer lexer = new OpenDistroSQLLexer(new CaseInsensitiveCharStream(expr));
-    OpenDistroSQLParser parser = new OpenDistroSQLParser(new CommonTokenStream(lexer));
+    OpenSearchSQLLexer lexer = new OpenSearchSQLLexer(new CaseInsensitiveCharStream(expr));
+    OpenSearchSQLParser parser = new OpenSearchSQLParser(new CommonTokenStream(lexer));
     parser.addErrorListener(new SyntaxAnalysisErrorListener());
     return parser.expression().accept(astExprBuilder);
   }

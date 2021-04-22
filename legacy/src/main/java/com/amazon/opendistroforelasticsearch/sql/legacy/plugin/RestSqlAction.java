@@ -39,7 +39,7 @@ import static org.opensearch.rest.RestStatus.SERVICE_UNAVAILABLE;
 import com.alibaba.druid.sql.parser.ParserException;
 import com.amazon.opendistroforelasticsearch.sql.common.antlr.SyntaxCheckException;
 import com.amazon.opendistroforelasticsearch.sql.exception.SemanticCheckException;
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.OpenDistroSqlAnalyzer;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.OpenSearchLegacySqlAnalyzer;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.SqlAnalysisConfig;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.SqlAnalysisException;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.Type;
@@ -298,7 +298,7 @@ public class RestSqlAction extends BaseRestHandler {
             clusterState.getSettingValue(QUERY_ANALYSIS_SEMANTIC_THRESHOLD)
         );
 
-        OpenDistroSqlAnalyzer analyzer = new OpenDistroSqlAnalyzer(config);
+        OpenSearchLegacySqlAnalyzer analyzer = new OpenSearchLegacySqlAnalyzer(config);
         Optional<Type> outputColumnType = analyzer.analyze(sql, clusterState);
         if (outputColumnType.isPresent()) {
             return new ColumnTypeProvider(outputColumnType.get());

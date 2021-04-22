@@ -30,7 +30,7 @@ package com.amazon.opendistroforelasticsearch.sql.sql.parser;
 import static com.amazon.opendistroforelasticsearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static com.amazon.opendistroforelasticsearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
 import static com.amazon.opendistroforelasticsearch.sql.ast.tree.Sort.SortOrder.DESC;
-import static com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLParser.OrderByClauseContext;
+import static com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLParser.OrderByClauseContext;
 
 import com.amazon.opendistroforelasticsearch.sql.ast.expression.Argument;
 import com.amazon.opendistroforelasticsearch.sql.ast.expression.Field;
@@ -40,7 +40,7 @@ import com.amazon.opendistroforelasticsearch.sql.ast.tree.Sort.NullOrder;
 import com.amazon.opendistroforelasticsearch.sql.ast.tree.Sort.SortOption;
 import com.amazon.opendistroforelasticsearch.sql.ast.tree.Sort.SortOrder;
 import com.amazon.opendistroforelasticsearch.sql.ast.tree.UnresolvedPlan;
-import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLParserBaseVisitor;
+import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
 import com.amazon.opendistroforelasticsearch.sql.sql.parser.context.QuerySpecification;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -53,7 +53,7 @@ import lombok.RequiredArgsConstructor;
  * GROUP BY building process.
  */
 @RequiredArgsConstructor
-public class AstSortBuilder extends OpenDistroSQLParserBaseVisitor<UnresolvedPlan> {
+public class AstSortBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
 
   private final QuerySpecification querySpec;
 

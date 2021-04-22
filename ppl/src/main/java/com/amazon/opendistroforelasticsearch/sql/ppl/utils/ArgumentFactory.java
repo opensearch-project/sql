@@ -26,14 +26,14 @@
 
 package com.amazon.opendistroforelasticsearch.sql.ppl.utils;
 
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.BooleanLiteralContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.DedupCommandContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.FieldsCommandContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.IntegerLiteralContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.RareCommandContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.SortFieldContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.StatsCommandContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.TopCommandContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 
 import com.amazon.opendistroforelasticsearch.sql.ast.expression.Argument;
 import com.amazon.opendistroforelasticsearch.sql.ast.expression.DataType;

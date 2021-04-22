@@ -34,11 +34,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-parser grammar OpenDistroSQLParser;
+parser grammar OpenSearchSQLParser;
 
-import OpenDistroSQLIdentifierParser;
+import OpenSearchSQLIdentifierParser;
 
-options { tokenVocab=OpenDistroSQLLexer; }
+options { tokenVocab=OpenSearchSQLLexer; }
 
 
 // Top Level Description

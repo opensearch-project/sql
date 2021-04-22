@@ -26,13 +26,13 @@
 
 package com.amazon.opendistroforelasticsearch.sql.legacy.antlr.visitor;
 
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser;
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.InnerJoinContext;
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.QuerySpecificationContext;
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.SelectColumnElementContext;
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.SubqueryTableItemContext;
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.TableNamePatternContext;
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParserBaseVisitor;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.InnerJoinContext;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.QuerySpecificationContext;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.SelectColumnElementContext;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.SubqueryTableItemContext;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.TableNamePatternContext;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParserBaseVisitor;
 import com.google.common.base.Strings;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -42,44 +42,44 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.AggregateWindowedFunctionContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.AtomTableItemContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.BinaryComparisonPredicateContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.BooleanLiteralContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.ComparisonOperatorContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.ConstantContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.DecimalLiteralContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.FromClauseContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.FullColumnNameContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.FunctionNameBaseContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.InPredicateContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.IsExpressionContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.MathOperatorContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.MinusSelectContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.OuterJoinContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.PredicateContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.RegexpPredicateContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.RootContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.ScalarFunctionCallContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.SelectElementsContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.SelectExpressionElementContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.SelectFunctionElementContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.SimpleTableNameContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.StringLiteralContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.TableAndTypeNameContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.TableSourceBaseContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.TableSourceItemContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.TableSourcesContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.UdfFunctionCallContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.UidContext;
-import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.UnionSelectContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.AggregateWindowedFunctionContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.AtomTableItemContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.BinaryComparisonPredicateContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.BooleanLiteralContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.ComparisonOperatorContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.ConstantContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.DecimalLiteralContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.FromClauseContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.FullColumnNameContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.FunctionNameBaseContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.InPredicateContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.IsExpressionContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.MathOperatorContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.MinusSelectContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.OuterJoinContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.PredicateContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.RegexpPredicateContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.RootContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.ScalarFunctionCallContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.SelectElementsContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.SelectExpressionElementContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.SelectFunctionElementContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.SimpleTableNameContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.StringLiteralContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.TableAndTypeNameContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.TableSourceBaseContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.TableSourceItemContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.TableSourcesContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.UdfFunctionCallContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.UidContext;
+import static com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.UnionSelectContext;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
 
 /**
  * ANTLR parse tree visitor to drive the analysis process.
  */
-public class AntlrSqlParseTreeVisitor<T extends Reducible> extends OpenDistroSqlParserBaseVisitor<T> {
+public class AntlrSqlParseTreeVisitor<T extends Reducible> extends OpenSearchLegacySqlParserBaseVisitor<T> {
 
     /** Generic visitor to perform the real action on parse tree */
     private final GenericSqlParseTreeVisitor<T> visitor;
@@ -258,7 +258,7 @@ public class AntlrSqlParseTreeVisitor<T extends Reducible> extends OpenDistroSql
     }
 
     @Override
-    public T visitSelectStarElement(OpenDistroSqlParser.SelectStarElementContext ctx) {
+    public T visitSelectStarElement(OpenSearchLegacySqlParser.SelectStarElementContext ctx) {
         return visitor.visitSelectAllColumn();
     }
 
@@ -309,7 +309,7 @@ public class AntlrSqlParseTreeVisitor<T extends Reducible> extends OpenDistroSql
     }
 
     @Override
-    public T visitConvertedDataType(OpenDistroSqlParser.ConvertedDataTypeContext ctx) {
+    public T visitConvertedDataType(OpenSearchLegacySqlParser.ConvertedDataTypeContext ctx) {
         if (ctx.getChild(0) != null && !Strings.isNullOrEmpty(ctx.getChild(0).getText())) {
             return visitor.visitConvertedType(ctx.getChild(0).getText());
         } else {

@@ -47,7 +47,8 @@ public class SyntaxAnalysisTest {
     @Rule
     public ExpectedException exception = ExpectedException.none();
 
-    private OpenDistroSqlAnalyzer analyzer = new OpenDistroSqlAnalyzer(new SqlAnalysisConfig(true, true, 1000));
+    private OpenSearchLegacySqlAnalyzer
+        analyzer = new OpenSearchLegacySqlAnalyzer(new SqlAnalysisConfig(true, true, 1000));
 
     /** In reality exception occurs before reaching new parser for now */
     @Test

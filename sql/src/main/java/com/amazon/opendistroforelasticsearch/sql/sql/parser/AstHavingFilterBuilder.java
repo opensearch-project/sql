@@ -27,7 +27,7 @@
 
 package com.amazon.opendistroforelasticsearch.sql.sql.parser;
 
-import static com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLParser.QualifiedNameContext;
+import static com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLParser.QualifiedNameContext;
 
 import com.amazon.opendistroforelasticsearch.sql.ast.expression.UnresolvedExpression;
 import com.amazon.opendistroforelasticsearch.sql.sql.parser.context.QuerySpecification;

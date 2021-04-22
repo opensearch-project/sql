@@ -26,8 +26,8 @@
 
 package com.amazon.opendistroforelasticsearch.sql.legacy.antlr;
 
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlLexer;
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlLexer;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.scope.SemanticContext;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.Type;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.visitor.OpenSearchMappingLoader;
@@ -38,25 +38,24 @@ import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.syntax.SyntaxAnaly
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.visitor.AntlrSqlParseTreeVisitor;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.visitor.EarlyExitAnalysisException;
 import com.amazon.opendistroforelasticsearch.sql.legacy.esdomain.LocalClusterState;
+import java.util.Optional;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.Optional;
-
 /**
  * Entry point for ANTLR generated parser to perform strict syntax and semantic analysis.
  */
-public class OpenDistroSqlAnalyzer {
+public class OpenSearchLegacySqlAnalyzer {
 
     private static final Logger LOG = LogManager.getLogger();
 
     /** Original sql query */
     private final SqlAnalysisConfig config;
 
-    public OpenDistroSqlAnalyzer(SqlAnalysisConfig config) {
+    public OpenSearchLegacySqlAnalyzer(SqlAnalysisConfig config) {
         this.config = config;
     }
 
@@ -85,7 +84,7 @@ public class OpenDistroSqlAnalyzer {
      * @return      parse tree
      */
     public ParseTree analyzeSyntax(String sql) {
-        OpenDistroSqlParser parser = createParser(createLexer(sql));
+        OpenSearchLegacySqlParser parser = createParser(createLexer(sql));
         parser.addErrorListener(new SyntaxAnalysisErrorListener());
         return parser.root();
     }
@@ -109,13 +108,13 @@ public class OpenDistroSqlAnalyzer {
         return new SemanticAnalyzer(mappingLoader, typeChecker);
     }
 
-    private OpenDistroSqlParser createParser(Lexer lexer) {
-        return new OpenDistroSqlParser(
+    private OpenSearchLegacySqlParser createParser(Lexer lexer) {
+        return new OpenSearchLegacySqlParser(
                    new CommonTokenStream(lexer));
     }
 
-    private OpenDistroSqlLexer createLexer(String sql) {
-         return new OpenDistroSqlLexer(
+    private OpenSearchLegacySqlLexer createLexer(String sql) {
+         return new OpenSearchLegacySqlLexer(
                     new CaseInsensitiveCharStream(sql));
     }
 

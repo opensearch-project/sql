@@ -38,7 +38,7 @@ import com.amazon.opendistroforelasticsearch.sql.ast.tree.Aggregation;
 import com.amazon.opendistroforelasticsearch.sql.ast.tree.UnresolvedPlan;
 import com.amazon.opendistroforelasticsearch.sql.common.utils.StringUtils;
 import com.amazon.opendistroforelasticsearch.sql.exception.SemanticCheckException;
-import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLParserBaseVisitor;
+import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
 import com.amazon.opendistroforelasticsearch.sql.sql.parser.context.QuerySpecification;
 import java.util.ArrayList;
 import java.util.List;
@@ -78,7 +78,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
  * </pre>
  */
 @RequiredArgsConstructor
-public class AstAggregationBuilder extends OpenDistroSQLParserBaseVisitor<UnresolvedPlan> {
+public class AstAggregationBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
 
   /**
    * Query specification that contains info collected beforehand.

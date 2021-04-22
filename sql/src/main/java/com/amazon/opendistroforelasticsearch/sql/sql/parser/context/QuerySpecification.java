@@ -27,13 +27,13 @@
 
 package com.amazon.opendistroforelasticsearch.sql.sql.parser.context;
 
-import static com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLParser.FilteredAggregationFunctionCallContext;
-import static com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLParser.GroupByElementContext;
-import static com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLParser.OrderByElementContext;
-import static com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLParser.SelectClauseContext;
-import static com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLParser.SelectElementContext;
-import static com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLParser.SubqueryAsRelationContext;
-import static com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLParser.WindowFunctionClauseContext;
+import static com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLParser.FilteredAggregationFunctionCallContext;
+import static com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLParser.GroupByElementContext;
+import static com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLParser.OrderByElementContext;
+import static com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLParser.SelectClauseContext;
+import static com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLParser.SelectElementContext;
+import static com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLParser.SubqueryAsRelationContext;
+import static com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLParser.WindowFunctionClauseContext;
 import static com.amazon.opendistroforelasticsearch.sql.sql.parser.ParserUtils.createSortOption;
 import static com.amazon.opendistroforelasticsearch.sql.sql.parser.ParserUtils.getTextInQuery;
 
@@ -45,10 +45,10 @@ import com.amazon.opendistroforelasticsearch.sql.ast.expression.UnresolvedExpres
 import com.amazon.opendistroforelasticsearch.sql.ast.tree.Sort.SortOption;
 import com.amazon.opendistroforelasticsearch.sql.common.utils.StringUtils;
 import com.amazon.opendistroforelasticsearch.sql.exception.SemanticCheckException;
-import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLParser.AggregateFunctionCallContext;
-import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLParser.QuerySpecificationContext;
-import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLParser.SelectSpecContext;
-import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLParserBaseVisitor;
+import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLParser.AggregateFunctionCallContext;
+import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLParser.QuerySpecificationContext;
+import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLParser.SelectSpecContext;
+import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
 import com.amazon.opendistroforelasticsearch.sql.sql.parser.AstExpressionBuilder;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -178,7 +178,7 @@ public class QuerySpecification {
    * Most visit methods only collect info and returns nothing. However, one exception is
    * visitQuerySpec() which needs to change visit ordering to avoid visiting sub-query.
    */
-  private class QuerySpecificationCollector extends OpenDistroSQLParserBaseVisitor<Void> {
+  private class QuerySpecificationCollector extends OpenSearchSQLParserBaseVisitor<Void> {
     private final AstExpressionBuilder expressionBuilder = new AstExpressionBuilder();
 
     private final String queryString;
