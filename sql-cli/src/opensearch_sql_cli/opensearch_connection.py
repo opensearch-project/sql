@@ -102,7 +102,7 @@ class OpenSearchConnection:
 
     def is_sql_plugin_installed(self, opensearch_client):
         self.plugins = opensearch_client.cat.plugins(params={"s": "component", "v": "true"})
-        sql_plugin_name_list = ["opendistro-sql", "opendistro_sql"]
+        sql_plugin_name_list = ["opendistro-sql", "opendistro_sql", "opensearch-sql"]
         return any(x in self.plugins for x in sql_plugin_name_list)
 
     def set_connection(self, is_reconnect=False):

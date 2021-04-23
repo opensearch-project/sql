@@ -10,7 +10,7 @@
 # GitHub history for details.
 
 PKG_INSTALL_DIR=/Applications
-FINAL_INSTALL_DIR=/Library/ODBC/odfe-sql-odbc
+FINAL_INSTALL_DIR=/Library/ODBC/opensearch-sql-odbc
 
 # Remove install directory if it already exists
 if [ -d "${FINAL_INSTALL_DIR}" ]; then
@@ -30,7 +30,7 @@ mv ${PKG_INSTALL_DIR}/resources ${FINAL_INSTALL_DIR}/resources
 
 # Run DSN installer to configurate driver and DSN for system for easy setup.
 # chmod a+x ${FINAL_INSTALL_DIR}/bin/dsn_installer
-# chmod a+x ${FINAL_INSTALL_DIR}/bin/remove-odfe-dsn.sh
+# chmod a+x ${FINAL_INSTALL_DIR}/bin/remove-opensearch-dsn.sh
 # echo "I can write to this file" > /tmp/dsn_installer.log
 # ${FINAL_INSTALL_DIR}/bin/dsn_installer ${FINAL_INSTALL_DIR}/bin/ >> /tmp/dsn_installer.log
 # echo "After DSN Installer finishes" >> /tmp/dsn_installer.log

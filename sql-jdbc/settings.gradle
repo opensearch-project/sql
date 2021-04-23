@@ -25,4 +25,4 @@
  *
  */
 
-rootProject.name = 'opendistro-sql-jdbc'
+rootProject.name = 'opensearch-sql-jdbc'
