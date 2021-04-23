@@ -29,6 +29,7 @@ jobs:
           pip install setuptools wheel
       
       #TODO: will setup CI for IT once we have OpenSearch and sql plugin release. Not it only runs UT
+      # It can also be refactored by launching OpenSearch instance with plugin installed from gradle.
       
       # - name: Set up ES and install SQL plugin
       #   run: |
