@@ -42,6 +42,6 @@ export const DEFAULT_HEADERS = {
 
 export const CLUSTER = {
   ADMIN: 'admin',
-  SQL: 'opendistro_sql',
+  SQL: 'opensearch-sql',
   DATA: 'data',
 };
