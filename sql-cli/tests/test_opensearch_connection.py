@@ -27,7 +27,7 @@ import mock
 from textwrap import dedent
 
 from elasticsearch.exceptions import ConnectionError
-from elasticsearch import Elasticsearch, RequestsHttpConnection
+from elasticsearch import Elasticsearch as OpenSearch, RequestsHttpConnection
 
 from .utils import estest, load_data, run, TEST_INDEX_NAME
 from src.opensearch_sql_cli.opensearch_connection import OpenSearchConnection
@@ -62,9 +62,9 @@ class TestExecutor:
         self.load_data_to_es(connection)
 
         expected = {
-            "reason": "Error occurred in Elasticsearch engine: no such index [non-existed]",
-            "details": "org.elasticsearch.index.IndexNotFoundException: no such index [non-existed]\nFor more "
-            "details, please send request for Json format to see the raw response from elasticsearch "
+            "reason": "Error occurred in OpenSearch engine: no such index [non-existed]",
+            "details": "org.opensearch.index.IndexNotFoundException: no such index [non-existed]\nFor more "
+            "details, please send request for Json format to see the raw response from OpenSearch "
             "engine.",
             "type": "IndexNotFoundException",
         }
@@ -136,7 +136,7 @@ class TestExecutor:
     def test_get_od_client(self):
         od_test_executor = OpenSearchConnection(endpoint=OPEN_DISTRO_ENDPOINT, http_auth=AUTH)
 
-        with mock.patch.object(Elasticsearch, "__init__", return_value=None) as mock_es:
+        with mock.patch.object(OpenSearch, "__init__", return_value=None) as mock_es:
             od_test_executor.get_open_distro_client()
 
             mock_es.assert_called_with(
@@ -147,7 +147,7 @@ class TestExecutor:
     def test_get_aes_client(self):
         aes_test_executor = OpenSearchConnection(endpoint=AES_ENDPOINT, use_aws_authentication=True)
 
-        with mock.patch.object(Elasticsearch, "__init__", return_value=None) as mock_es:
+        with mock.patch.object(OpenSearch, "__init__", return_value=None) as mock_es:
             aes_test_executor.get_aes_client()
 
             mock_es.assert_called_with(
