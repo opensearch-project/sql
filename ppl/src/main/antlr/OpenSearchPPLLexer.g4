@@ -24,7 +24,7 @@
  *   permissions and limitations under the License.
  */
 
-lexer grammar OpenDistroPPLLexer;
+lexer grammar OpenSearchPPLLexer;
 
 channels { WHITESPACE, ERRORCHANNEL }
 

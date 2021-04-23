@@ -439,7 +439,7 @@ When OpenSearch bootstraps, SQL plugin will register a few settings in OpenSearc
 Most of the settings are able to change dynamically so you can control the behavior of SQL plugin without need to bounce your cluster.
 For cursors we will be exposing the following settings:
 
-####  opendistro.sql.cursor.enabled
+####  opensearch.sql.cursor.enabled
 
 You can disable cursor for all SQL queries which support pagination.
 
@@ -453,7 +453,7 @@ Example:
 ```
 >> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings -d '{
   "transient" : {
-    "opendistro.sql.cursor.enabled" : "false"
+    "opensearch.sql.cursor.enabled" : "false"
   }
 }'
 ```
@@ -465,7 +465,7 @@ Response:
   "acknowledged" : true,
   "persistent" : { },
   "transient" : {
-    "opendistro" : {
+    "opensearch" : {
       "sql" : {
         "cursor" : {
           "enabled" : "false"
@@ -477,7 +477,7 @@ Response:
 
 ```
 
-####  opendistro.sql.cursor.fetch_size
+####  opensearch.sql.cursor.fetch_size
 
 This setting controls the default page size for all cursor requests.
 
@@ -493,7 +493,7 @@ Example:
 ```
 >> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings -d '{
   "persistent" : {
-    "opendistro.sql.cursor.fetch_size" : "100"
+    "opensearch.sql.cursor.fetch_size" : "100"
   }
 }'
 ```
@@ -505,7 +505,7 @@ Response:
   "acknowledged" : true,
   "transient" : { },
   "persistent" : {
-    "opendistro" : {
+    "opensearch" : {
       "sql" : {
         "cursor" : {
           "fetch_size" : "100"
@@ -517,7 +517,7 @@ Response:
 
 ```
 
-####  opendistro.sql.cursor.keep_alive
+####  opensearch.sql.cursor.keep_alive
 
 This setting controls the how long the cursor context is open for all cursor requests.
 You can five the time in human readable time format like `5h` (5 hours) or `20s` (20 seconds) etc.
@@ -532,7 +532,7 @@ Example:
 ```
 >> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings -d '{
   "transient" : {
-    "opendistro.sql.cursor.keep_alive" : "200s"
+    "opensearch.sql.cursor.keep_alive" : "200s"
   }
 }'
 ```
@@ -544,7 +544,7 @@ Response:
   "acknowledged" : true,
   "persistent" : { },
   "transient" : {
-    "opendistro" : {
+    "opensearch" : {
       "sql" : {
         "cursor" : {
           "keep_alive" : "200s"

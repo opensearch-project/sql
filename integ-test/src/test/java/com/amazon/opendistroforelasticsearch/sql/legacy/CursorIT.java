@@ -284,12 +284,12 @@ public class CursorIT extends SQLIntegTestCase {
 
   @Test
   public void defaultBehaviorWhenCursorSettingIsDisabled() throws IOException {
-    updateClusterSettings(new ClusterSetting(PERSISTENT, "opendistro.sql.cursor.enabled", "false"));
+    updateClusterSettings(new ClusterSetting(PERSISTENT, "opensearch.sql.cursor.enabled", "false"));
     String query = StringUtils.format("SELECT firstname, email, state FROM %s", TEST_INDEX_ACCOUNT);
     JSONObject response = new JSONObject(executeFetchQuery(query, 100, JDBC));
     assertFalse(response.has(CURSOR));
 
-    updateClusterSettings(new ClusterSetting(PERSISTENT, "opendistro.sql.cursor.enabled", "true"));
+    updateClusterSettings(new ClusterSetting(PERSISTENT, "opensearch.sql.cursor.enabled", "true"));
     query = StringUtils.format("SELECT firstname, email, state FROM %s", TEST_INDEX_ACCOUNT);
     response = new JSONObject(executeFetchQuery(query, 100, JDBC));
     assertTrue(response.has(CURSOR));
@@ -301,25 +301,25 @@ public class CursorIT extends SQLIntegTestCase {
   @Test
   public void testCursorSettings() throws IOException {
     // reverting enableCursorClusterSetting() in init() method before checking defaults
-    updateClusterSettings(new ClusterSetting(PERSISTENT, "opendistro.sql.cursor.enabled", null));
+    updateClusterSettings(new ClusterSetting(PERSISTENT, "opensearch.sql.cursor.enabled", null));
 
     // Assert default cursor settings
     JSONObject clusterSettings = getAllClusterSettings();
-    assertThat(clusterSettings.query("/defaults/opendistro.sql.cursor.enabled"), equalTo("false"));
-    assertThat(clusterSettings.query("/defaults/opendistro.sql.cursor.fetch_size"),
+    assertThat(clusterSettings.query("/defaults/opensearch.sql.cursor.enabled"), equalTo("false"));
+    assertThat(clusterSettings.query("/defaults/opensearch.sql.cursor.fetch_size"),
         equalTo("1000"));
-    assertThat(clusterSettings.query("/defaults/opendistro.sql.cursor.keep_alive"), equalTo("1m"));
+    assertThat(clusterSettings.query("/defaults/opensearch.sql.cursor.keep_alive"), equalTo("1m"));
 
-    updateClusterSettings(new ClusterSetting(PERSISTENT, "opendistro.sql.cursor.enabled", "true"));
-    updateClusterSettings(new ClusterSetting(TRANSIENT, "opendistro.sql.cursor.fetch_size", "400"));
+    updateClusterSettings(new ClusterSetting(PERSISTENT, "opensearch.sql.cursor.enabled", "true"));
+    updateClusterSettings(new ClusterSetting(TRANSIENT, "opensearch.sql.cursor.fetch_size", "400"));
     updateClusterSettings(
-        new ClusterSetting(PERSISTENT, "opendistro.sql.cursor.keep_alive", "200s"));
+        new ClusterSetting(PERSISTENT, "opensearch.sql.cursor.keep_alive", "200s"));
 
     clusterSettings = getAllClusterSettings();
-    assertThat(clusterSettings.query("/persistent/opendistro.sql.cursor.enabled"), equalTo("true"));
-    assertThat(clusterSettings.query("/transient/opendistro.sql.cursor.fetch_size"),
+    assertThat(clusterSettings.query("/persistent/opensearch.sql.cursor.enabled"), equalTo("true"));
+    assertThat(clusterSettings.query("/transient/opensearch.sql.cursor.fetch_size"),
         equalTo("400"));
-    assertThat(clusterSettings.query("/persistent/opendistro.sql.cursor.keep_alive"),
+    assertThat(clusterSettings.query("/persistent/opensearch.sql.cursor.keep_alive"),
         equalTo("200s"));
 
     wipeAllClusterSettings();
@@ -335,7 +335,7 @@ public class CursorIT extends SQLIntegTestCase {
     JSONArray datawRows = response.optJSONArray(DATAROWS);
     assertThat(datawRows.length(), equalTo(1000));
 
-    updateClusterSettings(new ClusterSetting(TRANSIENT, "opendistro.sql.cursor.fetch_size", "786"));
+    updateClusterSettings(new ClusterSetting(TRANSIENT, "opensearch.sql.cursor.fetch_size", "786"));
     response = new JSONObject(executeFetchLessQuery(query, JDBC));
     datawRows = response.optJSONArray(DATAROWS);
     assertThat(datawRows.length(), equalTo(786));
@@ -483,7 +483,7 @@ public class CursorIT extends SQLIntegTestCase {
 
   private void enableCursorClusterSetting() throws IOException {
     updateClusterSettings(
-        new ClusterSetting("persistent", "opendistro.sql.cursor.enabled", "true"));
+        new ClusterSetting("persistent", "opensearch.sql.cursor.enabled", "true"));
   }
 
   public String executeFetchAsStringQuery(String query, String fetchSize, String requestType)

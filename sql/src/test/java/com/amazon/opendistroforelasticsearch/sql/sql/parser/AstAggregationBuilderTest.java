@@ -46,9 +46,9 @@ import com.amazon.opendistroforelasticsearch.sql.ast.tree.UnresolvedPlan;
 import com.amazon.opendistroforelasticsearch.sql.common.antlr.CaseInsensitiveCharStream;
 import com.amazon.opendistroforelasticsearch.sql.common.antlr.SyntaxAnalysisErrorListener;
 import com.amazon.opendistroforelasticsearch.sql.exception.SemanticCheckException;
-import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLLexer;
-import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLParser;
-import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLParser.QuerySpecificationContext;
+import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLLexer;
+import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLParser;
+import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLParser.QuerySpecificationContext;
 import com.amazon.opendistroforelasticsearch.sql.sql.parser.context.QuerySpecification;
 import java.util.Arrays;
 import java.util.List;
@@ -298,8 +298,8 @@ class AstAggregationBuilderTest {
   }
 
   private QuerySpecificationContext parse(String query) {
-    OpenDistroSQLLexer lexer = new OpenDistroSQLLexer(new CaseInsensitiveCharStream(query));
-    OpenDistroSQLParser parser = new OpenDistroSQLParser(new CommonTokenStream(lexer));
+    OpenSearchSQLLexer lexer = new OpenSearchSQLLexer(new CaseInsensitiveCharStream(query));
+    OpenSearchSQLParser parser = new OpenSearchSQLParser(new CommonTokenStream(lexer));
     parser.addErrorListener(new SyntaxAnalysisErrorListener());
     return parser.querySpecification();
   }

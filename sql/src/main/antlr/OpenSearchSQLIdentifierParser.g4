@@ -34,9 +34,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-parser grammar OpenDistroSQLIdentifierParser;
+parser grammar OpenSearchSQLIdentifierParser;
 
-options { tokenVocab=OpenDistroSQLLexer; }
+options { tokenVocab=OpenSearchSQLLexer; }
 
 
 //    Identifiers

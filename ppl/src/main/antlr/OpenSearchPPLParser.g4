@@ -25,8 +25,8 @@
  */
 
 
-parser grammar OpenDistroPPLParser;
-options { tokenVocab=OpenDistroPPLLexer; }
+parser grammar OpenSearchPPLParser;
+options { tokenVocab=OpenSearchPPLLexer; }
 
 root
     : pplStatement? EOF

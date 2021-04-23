@@ -33,8 +33,8 @@ import com.amazon.opendistroforelasticsearch.sql.ast.dsl.AstDSL;
 import com.amazon.opendistroforelasticsearch.sql.ast.expression.UnresolvedExpression;
 import com.amazon.opendistroforelasticsearch.sql.common.antlr.CaseInsensitiveCharStream;
 import com.amazon.opendistroforelasticsearch.sql.common.antlr.SyntaxAnalysisErrorListener;
-import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLLexer;
-import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLParser;
+import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLLexer;
+import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLParser;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -69,21 +69,21 @@ public class AstQualifiedNameBuilderTest {
   }
 
   private AstExpressionBuilderAssertion buildFromIdentifier(String expr) {
-    return new AstExpressionBuilderAssertion(OpenDistroSQLParser::ident, expr);
+    return new AstExpressionBuilderAssertion(OpenSearchSQLParser::ident, expr);
   }
 
   private AstExpressionBuilderAssertion buildFromQualifiers(String expr) {
-    return new AstExpressionBuilderAssertion(OpenDistroSQLParser::qualifiedName, expr);
+    return new AstExpressionBuilderAssertion(OpenSearchSQLParser::qualifiedName, expr);
   }
 
   private AstExpressionBuilderAssertion buildFromTableName(String expr) {
-    return new AstExpressionBuilderAssertion(OpenDistroSQLParser::tableName, expr);
+    return new AstExpressionBuilderAssertion(OpenSearchSQLParser::tableName, expr);
   }
 
   @RequiredArgsConstructor
   private static class AstExpressionBuilderAssertion {
     private final AstExpressionBuilder astExprBuilder = new AstExpressionBuilder();
-    private final Function<OpenDistroSQLParser, RuleNode> build;
+    private final Function<OpenSearchSQLParser, RuleNode> build;
     private final String actual;
 
     public void expectQualifiedName(String... expected) {
@@ -94,9 +94,9 @@ public class AstQualifiedNameBuilderTest {
       return build.apply(createParser(expr)).accept(astExprBuilder);
     }
 
-    private OpenDistroSQLParser createParser(String expr) {
-      OpenDistroSQLLexer lexer = new OpenDistroSQLLexer(new CaseInsensitiveCharStream(expr));
-      OpenDistroSQLParser parser = new OpenDistroSQLParser(new CommonTokenStream(lexer));
+    private OpenSearchSQLParser createParser(String expr) {
+      OpenSearchSQLLexer lexer = new OpenSearchSQLLexer(new CaseInsensitiveCharStream(expr));
+      OpenSearchSQLParser parser = new OpenSearchSQLParser(new CommonTokenStream(lexer));
       parser.addErrorListener(new SyntaxAnalysisErrorListener());
       return parser;
     }

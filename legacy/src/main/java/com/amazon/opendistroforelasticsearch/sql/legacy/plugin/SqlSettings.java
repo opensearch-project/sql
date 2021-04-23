@@ -49,19 +49,19 @@ public class SqlSettings {
      * 1) It's per-index setting.
      * 2) It has separate setting for Query and Fetch phase which are all OpenSearch internal concepts.
      */
-    public static final String SQL_ENABLED = "opendistro.sql.enabled";
-    public static final String SQL_NEW_ENGINE_ENABLED = "opendistro.sql.engine.new.enabled";
-    public static final String QUERY_SLOWLOG = "opendistro.sql.query.slowlog";
-    public static final String QUERY_RESPONSE_FORMAT = "opendistro.sql.query.response.format";
-    public static final String QUERY_ANALYSIS_ENABLED = "opendistro.sql.query.analysis.enabled";
-    public static final String QUERY_ANALYSIS_SEMANTIC_SUGGESTION = "opendistro.sql.query.analysis.semantic.suggestion";
-    public static final String QUERY_ANALYSIS_SEMANTIC_THRESHOLD = "opendistro.sql.query.analysis.semantic.threshold";
-    public static final String METRICS_ROLLING_WINDOW = "opendistro.sql.metrics.rollingwindow";
-    public static final String METRICS_ROLLING_INTERVAL = "opendistro.sql.metrics.rollinginterval";
+    public static final String SQL_ENABLED = "opensearch.sql.enabled";
+    public static final String SQL_NEW_ENGINE_ENABLED = "opensearch.sql.engine.new.enabled";
+    public static final String QUERY_SLOWLOG = "opensearch.sql.query.slowlog";
+    public static final String QUERY_RESPONSE_FORMAT = "opensearch.sql.query.response.format";
+    public static final String QUERY_ANALYSIS_ENABLED = "opensearch.sql.query.analysis.enabled";
+    public static final String QUERY_ANALYSIS_SEMANTIC_SUGGESTION = "opensearch.sql.query.analysis.semantic.suggestion";
+    public static final String QUERY_ANALYSIS_SEMANTIC_THRESHOLD = "opensearch.sql.query.analysis.semantic.threshold";
+    public static final String METRICS_ROLLING_WINDOW = "opensearch.sql.metrics.rollingwindow";
+    public static final String METRICS_ROLLING_INTERVAL = "opensearch.sql.metrics.rollinginterval";
 
-    public static final String CURSOR_ENABLED= "opendistro.sql.cursor.enabled";
-    public static final String CURSOR_FETCH_SIZE = "opendistro.sql.cursor.fetch_size";
-    public static final String CURSOR_KEEPALIVE= "opendistro.sql.cursor.keep_alive";
+    public static final String CURSOR_ENABLED= "opensearch.sql.cursor.enabled";
+    public static final String CURSOR_FETCH_SIZE = "opensearch.sql.cursor.fetch_size";
+    public static final String CURSOR_KEEPALIVE= "opensearch.sql.cursor.keep_alive";
 
     private final Map<String, Setting<?>> settings;
 

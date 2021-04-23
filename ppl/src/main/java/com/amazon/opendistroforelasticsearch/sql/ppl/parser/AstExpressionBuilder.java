@@ -29,31 +29,31 @@ package com.amazon.opendistroforelasticsearch.sql.ppl.parser;
 import static com.amazon.opendistroforelasticsearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static com.amazon.opendistroforelasticsearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
 import static com.amazon.opendistroforelasticsearch.sql.expression.function.BuiltinFunctionName.IS_NULL;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.BinaryArithmeticContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.BooleanFunctionCallContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.BooleanLiteralContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.CompareExprContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.CountAllFunctionCallContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.DecimalLiteralContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.EvalClauseContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.EvalFunctionCallContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.FieldExpressionContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.IdentsAsQualifiedNameContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.IdentsAsWildcardQualifiedNameContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.InExprContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.IntegerLiteralContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.IntervalLiteralContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.LogicalAndContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.LogicalNotContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.LogicalOrContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.LogicalXorContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.ParentheticBinaryArithmeticContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.PercentileAggFunctionContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.SortFieldContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.StatsFunctionCallContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.StringLiteralContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.TableSourceContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.WcFieldExpressionContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BinaryArithmeticContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanFunctionCallContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CompareExprContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CountAllFunctionCallContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalClauseContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalFunctionCallContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldExpressionContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsQualifiedNameContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsWildcardQualifiedNameContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.InExprContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntervalLiteralContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalAndContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalNotContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalOrContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalXorContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ParentheticBinaryArithmeticContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PercentileAggFunctionContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsFunctionCallContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StringLiteralContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WcFieldExpressionContext;
 
 import com.amazon.opendistroforelasticsearch.sql.ast.expression.AggregateFunction;
 import com.amazon.opendistroforelasticsearch.sql.ast.expression.AllFields;
@@ -74,7 +74,7 @@ import com.amazon.opendistroforelasticsearch.sql.ast.expression.QualifiedName;
 import com.amazon.opendistroforelasticsearch.sql.ast.expression.UnresolvedExpression;
 import com.amazon.opendistroforelasticsearch.sql.ast.expression.Xor;
 import com.amazon.opendistroforelasticsearch.sql.common.utils.StringUtils;
-import com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParserBaseVisitor;
+import com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import com.amazon.opendistroforelasticsearch.sql.ppl.utils.ArgumentFactory;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
@@ -88,7 +88,7 @@ import org.antlr.v4.runtime.RuleContext;
 /**
  * Class of building AST Expression nodes.
  */
-public class AstExpressionBuilder extends OpenDistroPPLParserBaseVisitor<UnresolvedExpression> {
+public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedExpression> {
 
   /**
    * The function name mapping between fronted and core engine.

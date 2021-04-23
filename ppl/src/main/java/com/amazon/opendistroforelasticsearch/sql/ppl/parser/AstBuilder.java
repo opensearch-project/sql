@@ -26,21 +26,21 @@
 
 package com.amazon.opendistroforelasticsearch.sql.ppl.parser;
 
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.DedupCommandContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.EvalCommandContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.FieldsCommandContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.FromClauseContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.HeadCommandContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.PplStatementContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.RareCommandContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.RenameCommandContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.SearchFilterFromContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.SearchFromContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.SearchFromFilterContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.SortCommandContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.StatsCommandContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.TopCommandContext;
-import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.WhereCommandContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalCommandContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FromClauseContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.HeadCommandContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PplStatementContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameCommandContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFilterFromContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFromContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFromFilterContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortCommandContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
+import static com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WhereCommandContext;
 
 import com.amazon.opendistroforelasticsearch.sql.ast.expression.Alias;
 import com.amazon.opendistroforelasticsearch.sql.ast.expression.Field;
@@ -60,10 +60,10 @@ import com.amazon.opendistroforelasticsearch.sql.ast.tree.Rename;
 import com.amazon.opendistroforelasticsearch.sql.ast.tree.Sort;
 import com.amazon.opendistroforelasticsearch.sql.ast.tree.UnresolvedPlan;
 import com.amazon.opendistroforelasticsearch.sql.common.utils.StringUtils;
-import com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser;
-import com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.ByClauseContext;
-import com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser.FieldListContext;
-import com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParserBaseVisitor;
+import com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
+import com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ByClauseContext;
+import com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldListContext;
+import com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import com.amazon.opendistroforelasticsearch.sql.ppl.utils.ArgumentFactory;
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
@@ -79,7 +79,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
  * Refines the visit path and build the AST nodes
  */
 @RequiredArgsConstructor
-public class AstBuilder extends OpenDistroPPLParserBaseVisitor<UnresolvedPlan> {
+public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   private final AstExpressionBuilder expressionBuilder;
 
@@ -158,7 +158,7 @@ public class AstBuilder extends OpenDistroPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitStatsCommand(StatsCommandContext ctx) {
     ImmutableList.Builder<UnresolvedExpression> aggListBuilder = new ImmutableList.Builder<>();
-    for (OpenDistroPPLParser.StatsAggTermContext aggCtx : ctx.statsAggTerm()) {
+    for (OpenSearchPPLParser.StatsAggTermContext aggCtx : ctx.statsAggTerm()) {
       UnresolvedExpression aggExpression = visitExpression(aggCtx.statsFunction());
       String name = aggCtx.alias == null ? getTextInQuery(aggCtx) : StringUtils
           .unquoteIdentifier(aggCtx.alias.getText());

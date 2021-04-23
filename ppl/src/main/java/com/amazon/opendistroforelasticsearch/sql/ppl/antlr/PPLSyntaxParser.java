@@ -28,8 +28,8 @@ package com.amazon.opendistroforelasticsearch.sql.ppl.antlr;
 
 import com.amazon.opendistroforelasticsearch.sql.common.antlr.CaseInsensitiveCharStream;
 import com.amazon.opendistroforelasticsearch.sql.common.antlr.SyntaxAnalysisErrorListener;
-import com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLLexer;
-import com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenDistroPPLParser;
+import com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLLexer;
+import com.amazon.opendistroforelasticsearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -42,18 +42,18 @@ public class PPLSyntaxParser {
    * Analyze the query syntax.
    */
   public ParseTree analyzeSyntax(String query) {
-    OpenDistroPPLParser parser = createParser(createLexer(query));
+    OpenSearchPPLParser parser = createParser(createLexer(query));
     parser.addErrorListener(new SyntaxAnalysisErrorListener());
     return parser.root();
   }
 
-  private OpenDistroPPLParser createParser(Lexer lexer) {
-    return new OpenDistroPPLParser(
+  private OpenSearchPPLParser createParser(Lexer lexer) {
+    return new OpenSearchPPLParser(
         new CommonTokenStream(lexer));
   }
 
-  private OpenDistroPPLLexer createLexer(String query) {
-    return new OpenDistroPPLLexer(
+  private OpenSearchPPLLexer createLexer(String query) {
+    return new OpenSearchPPLLexer(
         new CaseInsensitiveCharStream(query));
   }
 }

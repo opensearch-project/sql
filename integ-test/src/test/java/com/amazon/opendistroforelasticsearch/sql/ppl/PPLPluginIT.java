@@ -86,7 +86,7 @@ public class PPLPluginIT extends PPLIntegTestCase {
     verifyDataRows(result, rows("Hattie"));
 
     // disable
-    updateClusterSettings(new ClusterSetting(PERSISTENT, "opendistro.ppl.enabled", "false"));
+    updateClusterSettings(new ClusterSetting(PERSISTENT, "opensearch.ppl.enabled", "false"));
     Response response = null;
     try {
       result = executeQuery(query);
@@ -99,12 +99,12 @@ public class PPLPluginIT extends PPLIntegTestCase {
     JSONObject error = result.getJSONObject("error");
     assertThat(error.getString("reason"), equalTo("Invalid Query"));
     assertThat(error.getString("details"), equalTo(
-        "Either opendistro.ppl.enabled or rest.action.multi.allow_explicit_index setting is "
+        "Either opensearch.ppl.enabled or rest.action.multi.allow_explicit_index setting is "
             + "false"));
     assertThat(error.getString("type"), equalTo("IllegalAccessException"));
 
     // reset the setting
-    updateClusterSettings(new ClusterSetting(PERSISTENT, "opendistro.ppl.enabled", null));
+    updateClusterSettings(new ClusterSetting(PERSISTENT, "opensearch.ppl.enabled", null));
   }
 
   protected Request makePPLRequest(String query) {

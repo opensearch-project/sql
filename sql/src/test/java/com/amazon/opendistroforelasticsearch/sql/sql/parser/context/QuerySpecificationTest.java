@@ -40,9 +40,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.amazon.opendistroforelasticsearch.sql.ast.tree.Sort.SortOption;
 import com.amazon.opendistroforelasticsearch.sql.common.antlr.CaseInsensitiveCharStream;
 import com.amazon.opendistroforelasticsearch.sql.common.antlr.SyntaxAnalysisErrorListener;
-import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLLexer;
-import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLParser;
-import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLParser.QuerySpecificationContext;
+import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLLexer;
+import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLParser;
+import com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLParser.QuerySpecificationContext;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -163,8 +163,8 @@ class QuerySpecificationTest {
   }
 
   private QuerySpecificationContext parse(String query) {
-    OpenDistroSQLLexer lexer = new OpenDistroSQLLexer(new CaseInsensitiveCharStream(query));
-    OpenDistroSQLParser parser = new OpenDistroSQLParser(new CommonTokenStream(lexer));
+    OpenSearchSQLLexer lexer = new OpenSearchSQLLexer(new CaseInsensitiveCharStream(query));
+    OpenSearchSQLParser parser = new OpenSearchSQLParser(new CommonTokenStream(lexer));
     parser.addErrorListener(new SyntaxAnalysisErrorListener());
     return parser.querySpecification();
   }

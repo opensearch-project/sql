@@ -29,8 +29,8 @@ package com.amazon.opendistroforelasticsearch.sql.sql.parser;
 
 import static com.amazon.opendistroforelasticsearch.sql.ast.dsl.AstDSL.aggregate;
 import static com.amazon.opendistroforelasticsearch.sql.ast.dsl.AstDSL.qualifiedName;
-import static com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLParser.IdentContext;
-import static com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLParser.QualifiedNameContext;
+import static com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLParser.IdentContext;
+import static com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLParser.QualifiedNameContext;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
