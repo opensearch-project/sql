@@ -32,9 +32,7 @@ task bootstrap(type: Exec) {
 
 //evaluationDependsOn(':')
 task startES(type: SpawnProcessTask) {
-    def accessKey = System.env.AWS_ACCESS_KEY_ID ?: findProperty('aws_access_key_id')
-    def secretKey = System.env.AWS_SECRET_ACCESS_KEY ?: findProperty('aws_secret_access_key')
-    command "${path}/gradlew -p ${plugin_path} runRestTestCluster -Paws_access_key_id=$accessKey -Paws_secret_access_key=$secretKey"
+    command "${path}/gradlew -p ${plugin_path} runRestTestCluster"
     ready 'started'
 }
 

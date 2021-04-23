@@ -45,7 +45,7 @@ repositories {
 }
 
 opensearchplugin {
-    name 'opendistro-sql'
+    name 'opensearch-sql'
     description 'OpenSearch SQL'
     classname 'com.amazon.opendistroforelasticsearch.sql.plugin.SQLPlugin'
     licenseFile rootProject.file("LICENSE.txt")

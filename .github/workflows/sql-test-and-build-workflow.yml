@@ -14,17 +14,29 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 1.14
+
+    # Publish OpenSearch to local Maven repo for now
+    - name: Checkout OpenSearch
+      uses: actions/checkout@v2
+      with:
+        repository: 'opensearch-project/OpenSearch'
+        path: OpenSearch
+        ref: 1.0.0-alpha1
+
+    - name: Build OpenSearch
+      working-directory: ./OpenSearch
+      run: ./gradlew publishToMavenLocal -Dbuild.version_qualifier=alpha1 -Dbuild.snapshot=false
     
     - name: Build with Gradle
       run: ./gradlew build assemble
 
     - name: Create Artifact Path
       run: |
-        mkdir -p opendistro-sql-builds
-        cp -r ./plugin/build/distributions/*.zip opendistro-sql-builds/
+        mkdir -p opensearch-sql-builds
+        cp -r ./plugin/build/distributions/*.zip opensearch-sql-builds/
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v1
       with:
-        name: opendistro-sql
-        path: opendistro-sql-builds
+        name: opensearch-sql
+        path: opensearch-sql-builds

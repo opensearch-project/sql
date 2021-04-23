@@ -4,7 +4,7 @@ on: [pull_request, push]
 
 env: 
   PLUGIN_NAME: queryWorkbenchDashboards
-  OD_VERSION: 1.15.0.0
+  OD_VERSION: 1.0.0.0
 
 jobs:
 
