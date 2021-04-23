@@ -26,7 +26,7 @@
 
 package com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic;
 
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.OpenDistroSqlAnalyzer;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.OpenSearchLegacySqlAnalyzer;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.SqlAnalysisConfig;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.Type;
 import com.amazon.opendistroforelasticsearch.sql.legacy.esdomain.LocalClusterState;
@@ -60,7 +60,8 @@ public abstract class SemanticAnalyzerTestBase {
     @Rule
     public ExpectedException exception = ExpectedException.none();
 
-    private OpenDistroSqlAnalyzer analyzer = new OpenDistroSqlAnalyzer(new SqlAnalysisConfig(true, true, 1000));
+    private OpenSearchLegacySqlAnalyzer
+        analyzer = new OpenSearchLegacySqlAnalyzer(new SqlAnalysisConfig(true, true, 1000));
 
     @SuppressWarnings("UnstableApiUsage")
     @BeforeClass

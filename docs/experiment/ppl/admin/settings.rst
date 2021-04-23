@@ -16,7 +16,7 @@ Introduction
 
 When OpenSearch bootstraps, PPL plugin will register a few settings in OpenSearch cluster settings. Most of the settings are able to change dynamically so you can control the behavior of PPL plugin without need to bounce your cluster.
 
-opendistro.ppl.enabled
+opensearch.ppl.enabled
 ======================
 
 Description
@@ -39,12 +39,12 @@ PPL query::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
     ... -X PUT localhost:9200/_cluster/settings \
-    ... -d '{"transient" : {"opendistro.ppl.enabled" : "false"}}'
+    ... -d '{"transient" : {"opensearch.ppl.enabled" : "false"}}'
     {
       "acknowledged": true,
       "persistent": {},
       "transient": {
-        "opendistro": {
+        "opensearch": {
           "ppl": {
             "enabled": "false"
           }
@@ -64,7 +64,7 @@ PPL query::
     {
       "error": {
         "reason": "Invalid Query",
-        "details": "Either opendistro.ppl.enabled or rest.action.multi.allow_explicit_index setting is false",
+        "details": "Either opensearch.ppl.enabled or rest.action.multi.allow_explicit_index setting is false",
         "type": "IllegalAccessException"
       },
       "status": 400
@@ -79,14 +79,14 @@ PPL query::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
     ... -X PUT localhost:9200/_cluster/settings \
-    ... -d '{"transient" : {"opendistro.ppl.enabled" : null}}'
+    ... -d '{"transient" : {"opensearch.ppl.enabled" : null}}'
     {
       "acknowledged": true,
       "persistent": {},
       "transient": {}
     }
 
-opendistro.ppl.query.memory_limit
+opensearch.ppl.query.memory_limit
 =================================
 
 Description
@@ -101,11 +101,11 @@ PPL query::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
     ... -X PUT localhost:9200/_cluster/settings \
-    ... -d '{"persistent" : {"opendistro.ppl.query.memory_limit" : "80%"}}'
+    ... -d '{"persistent" : {"opensearch.ppl.query.memory_limit" : "80%"}}'
     {
       "acknowledged": true,
       "persistent": {
-        "opendistro": {
+        "opensearch": {
           "ppl": {
             "query": {
               "memory_limit": "80%"
@@ -133,11 +133,11 @@ Change the size_limit to 1000::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
     ... -X PUT localhost:9200/_cluster/settings \
-    ... -d '{"persistent" : {"opendistro.query.size_limit" : "1000"}}'
+    ... -d '{"persistent" : {"opensearch.query.size_limit" : "1000"}}'
     {
       "acknowledged": true,
       "persistent": {
-        "opendistro": {
+        "opensearch": {
           "query": {
             "size_limit": "1000"
           }
@@ -150,7 +150,7 @@ Rollback to default value::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
     ... -X PUT localhost:9200/_cluster/settings \
-    ... -d '{"persistent" : {"opendistro.query.size_limit" : null}}'
+    ... -d '{"persistent" : {"opensearch.query.size_limit" : null}}'
     {
       "acknowledged": true,
       "persistent": {},

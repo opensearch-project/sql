@@ -17,12 +17,12 @@ To use the SQL features present in documentation correctly, you need to enable o
 
     sh$ curl -sS -H 'Content-Type: application/json' \
     ... -X PUT localhost:9200/_opensearch/_sql/settings \
-    ... -d '{"transient" : {"opendistro.sql.engine.new.enabled" : "true"}}'
+    ... -d '{"transient" : {"opensearch.sql.engine.new.enabled" : "true"}}'
     {
       "acknowledged": true,
       "persistent": {},
       "transient": {
-        "opendistro": {
+        "opensearch": {
           "sql": {
             "engine": {
               "new": {

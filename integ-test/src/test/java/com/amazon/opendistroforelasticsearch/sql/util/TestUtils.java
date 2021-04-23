@@ -868,7 +868,7 @@ public class TestUtils {
    */
   public static void disableNewQueryEngine(RestClient client) throws IOException {
     Request request = new Request("PUT", SETTINGS_API_ENDPOINT);
-    request.setJsonEntity("{\"transient\" : {\"opendistro.sql.engine.new.enabled\" : \"false\"}}");
+    request.setJsonEntity("{\"transient\" : {\"opensearch.sql.engine.new.enabled\" : \"false\"}}");
 
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");

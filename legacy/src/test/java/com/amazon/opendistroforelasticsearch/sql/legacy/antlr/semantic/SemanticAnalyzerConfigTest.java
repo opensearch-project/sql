@@ -26,7 +26,7 @@
 
 package com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic;
 
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.OpenDistroSqlAnalyzer;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.OpenSearchLegacySqlAnalyzer;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.SqlAnalysisConfig;
 import com.amazon.opendistroforelasticsearch.sql.legacy.esdomain.LocalClusterState;
 import org.junit.Rule;
@@ -72,7 +72,7 @@ public class SemanticAnalyzerConfigTest extends SemanticAnalyzerTestBase {
                 not(containsString("Did you mean"))
             )
         );
-        new OpenDistroSqlAnalyzer(new SqlAnalysisConfig(true, false, 1000)).
+        new OpenSearchLegacySqlAnalyzer(new SqlAnalysisConfig(true, false, 1000)).
             analyze(sql, LocalClusterState.state());
     }
 
@@ -84,7 +84,7 @@ public class SemanticAnalyzerConfigTest extends SemanticAnalyzerTestBase {
     }
 
     private void expectValidationPassWithConfig(String sql, SqlAnalysisConfig config) {
-        new OpenDistroSqlAnalyzer(config).analyze(sql, LocalClusterState.state());
+        new OpenSearchLegacySqlAnalyzer(config).analyze(sql, LocalClusterState.state());
     }
 
 }

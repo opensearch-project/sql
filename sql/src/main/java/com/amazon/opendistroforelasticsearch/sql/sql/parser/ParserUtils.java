@@ -31,7 +31,7 @@ package com.amazon.opendistroforelasticsearch.sql.sql.parser;
 import static com.amazon.opendistroforelasticsearch.sql.ast.tree.Sort.NullOrder;
 import static com.amazon.opendistroforelasticsearch.sql.ast.tree.Sort.SortOption;
 import static com.amazon.opendistroforelasticsearch.sql.ast.tree.Sort.SortOrder;
-import static com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenDistroSQLParser.OrderByElementContext;
+import static com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser.OpenSearchSQLParser.OrderByElementContext;
 
 import lombok.experimental.UtilityClass;
 import org.antlr.v4.runtime.ParserRuleContext;

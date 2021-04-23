@@ -85,7 +85,7 @@ import org.opensearch.client.Response;
 /**
  * OpenSearch Rest integration test base for SQL testing
  */
-public abstract class SQLIntegTestCase extends ODFERestTestCase {
+public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
   public static final String PERSISTENT = "persistent";
   public static final String TRANSIENT = "transient";
@@ -154,7 +154,7 @@ public abstract class SQLIntegTestCase extends ODFERestTestCase {
    */
   @AfterClass
   public static void cleanUpIndices() throws IOException {
-    wipeAllODFEIndices();
+    wipeAllOpenSearchIndices();
     wipeAllClusterSettings();
   }
 

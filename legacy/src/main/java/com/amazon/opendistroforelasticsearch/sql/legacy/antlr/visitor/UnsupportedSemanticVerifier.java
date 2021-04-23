@@ -26,16 +26,16 @@
 
 package com.amazon.opendistroforelasticsearch.sql.legacy.antlr.visitor;
 
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser;
 import com.amazon.opendistroforelasticsearch.sql.legacy.exception.SqlFeatureNotImplementedException;
 import com.amazon.opendistroforelasticsearch.sql.legacy.utils.StringUtils;
 import com.google.common.collect.Sets;
 
 import java.util.Set;
 
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.MathOperatorContext;
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.RegexpPredicateContext;
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenDistroSqlParser.ScalarFunctionCallContext;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.MathOperatorContext;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.RegexpPredicateContext;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.ScalarFunctionCallContext;
 
 public class UnsupportedSemanticVerifier {
 
@@ -77,14 +77,14 @@ public class UnsupportedSemanticVerifier {
         String funcName = StringUtils.toLower(ctx.scalarFunctionName().getText());
 
         // type (III)
-        if (ctx.parent.parent instanceof OpenDistroSqlParser.FunctionAsAggregatorFunctionContext
+        if (ctx.parent.parent instanceof OpenSearchLegacySqlParser.FunctionAsAggregatorFunctionContext
                 && !(supportedNestedFunctions.contains(StringUtils.toLower(funcName)))) {
             throw new SqlFeatureNotImplementedException(StringUtils.format(
                     "Aggregation calls with function aggregator like [%s] are not supported yet",
                     ctx.parent.parent.getText()));
 
             // type (I) and (II)
-        } else if (ctx.parent.parent instanceof OpenDistroSqlParser.NestedFunctionArgsContext
+        } else if (ctx.parent.parent instanceof OpenSearchLegacySqlParser.NestedFunctionArgsContext
                 && !(mathConstants.contains(funcName) || supportedNestedFunctions.contains(funcName))) {
             throw new SqlFeatureNotImplementedException(StringUtils.format(
                     "Nested function calls like [%s] are not supported yet", ctx.parent.parent.parent.getText()));

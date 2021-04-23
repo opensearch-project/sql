@@ -26,7 +26,7 @@
 
 package com.amazon.opendistroforelasticsearch.sql.legacy.antlr.visitor;
 
-import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.OpenDistroSqlAnalyzer;
+import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.OpenSearchLegacySqlAnalyzer;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.SqlAnalysisConfig;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.scope.SemanticContext;
 import com.amazon.opendistroforelasticsearch.sql.legacy.antlr.semantic.types.Type;
@@ -129,7 +129,7 @@ public class AntlrSqlParseTreeVisitorTest {
     }
 
     private ParseTree createParseTree(String sql) {
-        return new OpenDistroSqlAnalyzer(new SqlAnalysisConfig(true, true, 1000)).analyzeSyntax(sql);
+        return new OpenSearchLegacySqlAnalyzer(new SqlAnalysisConfig(true, true, 1000)).analyzeSyntax(sql);
     }
 
     private Type visit(String sql) {

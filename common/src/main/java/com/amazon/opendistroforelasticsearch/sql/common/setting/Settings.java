@@ -40,14 +40,14 @@ public abstract class Settings {
     /**
      * PPL Setting.
      */
-    PPL_QUERY_MEMORY_LIMIT("opendistro.ppl.query.memory_limit"),
+    PPL_QUERY_MEMORY_LIMIT("opensearch.ppl.query.memory_limit"),
 
-    PPL_ENABLED("opendistro.ppl.enabled"),
+    PPL_ENABLED("opensearch.ppl.enabled"),
 
     /**
      * Common Setting for SQL and PPL.
      */
-    QUERY_SIZE_LIMIT("opendistro.query.size_limit");
+    QUERY_SIZE_LIMIT("opensearch.query.size_limit");
 
     @Getter
     private final String keyValue;

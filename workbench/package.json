@@ -1,12 +1,12 @@
 {
   "name": "opensearch-query-workbench",
-  "version": "1.15.0.0",
+  "version": "1.0.0.0",
   "description": "Query Workbench",
   "main": "index.js",
   "license": "Apache-2.0",
   "homepage": "https://github.com/opensearch-project/sql/tree/main/workbench",
   "opensearchDashboards": {
-    "version": "7.10.2",
+    "version": "1.0.0",
     "templateVersion": "6.3.3"
   },
   "repository": {

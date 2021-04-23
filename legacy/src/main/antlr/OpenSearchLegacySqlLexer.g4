@@ -34,7 +34,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-lexer grammar OpenDistroSQLLexer;
+lexer grammar OpenSearchLegacySqlLexer;
 
 channels { SQLCOMMENT, ERRORCHANNEL }
 
@@ -57,13 +57,11 @@ ALL:                                'ALL';
 AND:                                'AND';
 AS:                                 'AS';
 ASC:                                'ASC';
-BOOLEAN:                            'BOOLEAN';
 BETWEEN:                            'BETWEEN';
 BY:                                 'BY';
 CASE:                               'CASE';
 CAST:                               'CAST';
 CROSS:                              'CROSS';
-COLUMNS:                            'COLUMNS';
 DATETIME:                           'DATETIME';
 DELETE:                             'DELETE';
 DESC:                               'DESC';
@@ -74,33 +72,26 @@ ELSE:                               'ELSE';
 EXISTS:                             'EXISTS';
 FALSE:                              'FALSE';
 FLOAT:                              'FLOAT';
-FIRST:                              'FIRST';
 FROM:                               'FROM';
 GROUP:                              'GROUP';
 HAVING:                             'HAVING';
 IN:                                 'IN';
 INNER:                              'INNER';
 INT:                                'INT';
-INTEGER:                            'INTEGER';
 IS:                                 'IS';
 JOIN:                               'JOIN';
-LAST:                               'LAST';
 LEFT:                               'LEFT';
 LIKE:                               'LIKE';
 LIMIT:                              'LIMIT';
 LONG:                               'LONG';
 MATCH:                              'MATCH';
 NATURAL:                            'NATURAL';
-MISSING_LITERAL:                    'MISSING';
 NOT:                                'NOT';
 NULL_LITERAL:                       'NULL';
-NULLS:                              'NULLS';
 ON:                                 'ON';
 OR:                                 'OR';
 ORDER:                              'ORDER';
 OUTER:                              'OUTER';
-OVER:                               'OVER';
-PARTITION:                          'PARTITION';
 REGEXP:                             'REGEXP';
 RIGHT:                              'RIGHT';
 SELECT:                             'SELECT';
@@ -132,6 +123,8 @@ SUM:                                'SUM';
 
 SUBSTRING:                          'SUBSTRING';
 TRIM:                               'TRIM';
+YEAR:                               'YEAR';
+STRCMP:                             'STRCMP';
 
 
 // Keywords, but can be ID
@@ -140,29 +133,6 @@ TRIM:                               'TRIM';
 END:                                'END';
 FULL:                               'FULL';
 OFFSET:                             'OFFSET';
-
-// INTERVAL AND UNIT KEYWORDS
-INTERVAL:                           'INTERVAL';
-MICROSECOND:                        'MICROSECOND';
-SECOND:                             'SECOND';
-MINUTE:                             'MINUTE';
-HOUR:                               'HOUR';
-DAY:                                'DAY';
-WEEK:                               'WEEK';
-MONTH:                              'MONTH';
-QUARTER:                            'QUARTER';
-YEAR:                               'YEAR';
-SECOND_MICROSECOND:                 'SECOND_MICROSECOND';
-MINUTE_MICROSECOND:                 'MINUTE_MICROSECOND';
-MINUTE_SECOND:                      'MINUTE_SECOND';
-HOUR_MICROSECOND:                   'HOUR_MICROSECOND';
-HOUR_SECOND:                        'HOUR_SECOND';
-HOUR_MINUTE:                        'HOUR_MINUTE';
-DAY_MICROSECOND:                    'DAY_MICROSECOND';
-DAY_SECOND:                         'DAY_SECOND';
-DAY_MINUTE:                         'DAY_MINUTE';
-DAY_HOUR:                           'DAY_HOUR';
-YEAR_MONTH:                         'YEAR_MONTH';
 
 
 // PRIVILEGES
@@ -181,29 +151,20 @@ ATAN:                               'ATAN';
 ATAN2:                              'ATAN2';
 CBRT:                               'CBRT';
 CEIL:                               'CEIL';
-CEILING:                            'CEILING';
 CONCAT:                             'CONCAT';
 CONCAT_WS:                          'CONCAT_WS';
-CONV:                               'CONV';
 COS:                                'COS';
 COSH:                               'COSH';
 COT:                                'COT';
-CRC32:                              'CRC32';
 CURDATE:                            'CURDATE';
 DATE:                               'DATE';
 DATE_FORMAT:                        'DATE_FORMAT';
-DATE_ADD:                           'DATE_ADD';
-DATE_SUB:                           'DATE_SUB';
 DAYOFMONTH:                         'DAYOFMONTH';
-DAYOFWEEK:                          'DAYOFWEEK';
-DAYOFYEAR:                          'DAYOFYEAR';
-DAYNAME:                            'DAYNAME';
 DEGREES:                            'DEGREES';
 E:                                  'E';
 EXP:                                'EXP';
 EXPM1:                              'EXPM1';
 FLOOR:                              'FLOOR';
-FROM_DAYS:                          'FROM_DAYS';
 IF:                                 'IF';
 IFNULL:                             'IFNULL';
 ISNULL:                             'ISNULL';
@@ -217,10 +178,10 @@ LOWER:                              'LOWER';
 LTRIM:                              'LTRIM';
 MAKETIME:                           'MAKETIME';
 MODULUS:                            'MODULUS';
+MONTH:                              'MONTH';
 MONTHNAME:                          'MONTHNAME';
 MULTIPLY:                           'MULTIPLY';
 NOW:                                'NOW';
-NULLIF:                             'NULLIF';
 PI:                                 'PI';
 POW:                                'POW';
 POWER:                              'POWER';
@@ -235,14 +196,9 @@ SIGNUM:                             'SIGNUM';
 SIN:                                'SIN';
 SINH:                               'SINH';
 SQRT:                               'SQRT';
-SUBDATE:                            'SUBDATE';
 SUBTRACT:                           'SUBTRACT';
 TAN:                                'TAN';
-TIME:                               'TIME';
-TIME_TO_SEC:                        'TIME_TO_SEC';
 TIMESTAMP:                          'TIMESTAMP';
-TRUNCATE:                           'TRUNCATE';
-TO_DAYS:                            'TO_DAYS';
 UPPER:                              'UPPER';
 
 D:                                  'D';
@@ -251,11 +207,6 @@ TS:                                 'TS';
 LEFT_BRACE:                         '{';
 RIGHT_BRACE:                        '}';
 
-
-// Window function names
-DENSE_RANK:                         'DENSE_RANK';
-RANK:                               'RANK';
-ROW_NUMBER:                         'ROW_NUMBER';
 
 // OD SQL special functions
 DATE_HISTOGRAM:                     'DATE_HISTOGRAM';
@@ -301,12 +252,6 @@ WEEK_OF_YEAR:                       'WEEK_OF_YEAR';
 WILDCARDQUERY:                      'WILDCARDQUERY';
 WILDCARD_QUERY:                     'WILDCARD_QUERY';
 
-// TEXT FUNCTIONS
-SUBSTR:                             'SUBSTR';
-STRCMP:                             'STRCMP';
-
-// DATE AND TIME FUNCTIONS
-ADDDATE:                            'ADDDATE';
 
 // Operators
 
@@ -371,22 +316,43 @@ BIT_STRING:                         BIT_STRING_L;
 
 
 
+// Hack for dotID
+// Prevent recognize string:        .123somelatin AS ((.123), FLOAT_LITERAL), ((somelatin), ID)
+//  it must recoginze:              .123somelatin AS ((.), DOT), (123somelatin, ID)
+
+DOT_ID:                             '.' ID_LITERAL;
+
+
+
 // Identifiers
 
 ID:                                 ID_LITERAL;
+// DOUBLE_QUOTE_ID:                 '"' ~'"'+ '"';
+REVERSE_QUOTE_ID:                   '`' ~'`'+ '`';
 DOUBLE_QUOTE_ID:                    DQUOTA_STRING;
 BACKTICK_QUOTE_ID:                  BQUOTA_STRING;
+STRING_USER_NAME:                   (
+                                        SQUOTA_STRING | DQUOTA_STRING
+                                        | BQUOTA_STRING | ID_LITERAL
+                                    ) '@'
+                                    (
+                                        SQUOTA_STRING | DQUOTA_STRING
+                                        | BQUOTA_STRING | ID_LITERAL
+                                    );
 
 
 // Fragments for Literal primitives
+
 fragment EXPONENT_NUM_PART:         'E' [-+]? DEC_DIGIT+;
-fragment ID_LITERAL:                [@*A-Z]+?[*A-Z_\-0-9]*;
+fragment ID_LITERAL:                [A-Z_$0-9@]*?[A-Z_$]+?[A-Z_$\-0-9]*;
 fragment DQUOTA_STRING:             '"' ( '\\'. | '""' | ~('"'| '\\') )* '"';
 fragment SQUOTA_STRING:             '\'' ('\\'. | '\'\'' | ~('\'' | '\\'))* '\'';
 fragment BQUOTA_STRING:             '`' ( '\\'. | '``' | ~('`'|'\\'))* '`';
 fragment HEX_DIGIT:                 [0-9A-F];
 fragment DEC_DIGIT:                 [0-9];
 fragment BIT_STRING_L:              'B' '\'' [01]+ '\'';
+
+
 
 // Last tokens must generate Errors
 

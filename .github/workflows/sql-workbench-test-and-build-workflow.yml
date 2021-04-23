@@ -15,34 +15,41 @@ jobs:
     steps:
       - name: Checkout Plugin
         uses: actions/checkout@v1
+
       - name: Checkout OpenSearch Dashboards
         uses: actions/checkout@v1
         with:
           repository: opensearch-project/Opensearch-Dashboards
-          ref: 1.x
+          ref: main
           path: sql/OpenSearch-Dashboards
+
       - name: Setup Node
         uses: actions/setup-node@v1
         with:
           node-version: '10.23.1'
+
       - name: Move Workbench to Plugins Dir
         run: |
           mv workbench OpenSearch-Dashboards/plugins
+
       - name: OpenSearch Dashboards Plugin Bootstrap
         uses: nick-invision/retry@v1
         with:
           timeout_minutes: 60
           max_attempts: 3
           command: cd OpenSearch-Dashboards/plugins/workbench; yarn osd bootstrap
+
       - name: Test
         run: |
           cd OpenSearch-Dashboards/plugins/workbench
           yarn test:jest
+
       - name: Build Artifact
         run: |
           cd OpenSearch-Dashboards/plugins/workbench
           yarn build
           mv ./build/*.zip ./build/${{ env.PLUGIN_NAME }}-${{ env.OD_VERSION }}.zip
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v1
         with:
