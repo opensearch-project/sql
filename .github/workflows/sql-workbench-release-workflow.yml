@@ -31,8 +31,7 @@ jobs:
         uses: actions/checkout@v1
         with:
           repository: opensearch-project/Opensearch-Dashboards
-          ref: 1.x
-          token: ${{secrets.OD_ACCESS}}
+          ref: main
           path: sql/OpenSearch-Dashboards
 
       - name: Setup Node

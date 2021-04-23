@@ -180,13 +180,13 @@ describe('Test and verify SQL downloads', () => {
         url: url,
         headers: {
           'content-type': 'application/json;charset=UTF-8',
-          'osd-version': '7.10.2',
+          'osd-xsrf': true,
         },
         body: {
           'query': 'select * from accounts where balance > 49500'
         }
       }).then((response) => {
-        if (title === 'Download and verify CSV') {
+        if (title === 'Download and verify CSV' || title === 'Download and verify Text') {
           expect(response.body.data.body).to.have.string(files[file]);
         }
         else {

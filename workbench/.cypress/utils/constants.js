@@ -97,12 +97,12 @@ export const files = {
 803,Marissa,963 Highland Avenue,49567,M,Bloomington,Centregy,MS,25,marissaspears@centregy.com,Spears
 248,West,717 Hendrickson Place,49989,M,Maury,Obliq,WA,36,westengland@obliq.com,England`,
   TextFile:
-    `842|Meagan|F|Craig|49587|Biospan|TX|meaganbuckner@biospan.com|833 Bushwick Court|Buckner|23
-854|Jimenez|F|Moscow|49795|Verton|AL|jimenezbarry@verton.com|603 Cooper Street|Barry|25
-97|Karen|F|Fredericktown|49671|Tsunamia|MO|karentrujillo@tsunamia.com|512 Cumberland Walk|Trujillo|40
-168|Carissa|M|Neibert|49568|Zillacom|IL|carissasimon@zillacom.com|975 Flatbush Avenue|Simon|20
-240|Oconnor|F|Kilbourne|49741|Franscene|NH|oconnorclay@franscene.com|659 Highland Boulevard|Clay|35
-803|Marissa|M|Bloomington|49567|Centregy|MS|marissaspears@centregy.com|963 Highland Avenue|Spears|25
-248|West|M|Maury|49989|Obliq|WA|westengland@obliq.com|717 Hendrickson Place|England|36
-`,
+    `account_number|firstname|address|balance|gender|city|employer|state|age|email|lastname
+842|Meagan|833 Bushwick Court|49587|F|Craig|Biospan|TX|23|meaganbuckner@biospan.com|Buckner
+854|Jimenez|603 Cooper Street|49795|F|Moscow|Verton|AL|25|jimenezbarry@verton.com|Barry
+97|Karen|512 Cumberland Walk|49671|F|Fredericktown|Tsunamia|MO|40|karentrujillo@tsunamia.com|Trujillo
+168|Carissa|975 Flatbush Avenue|49568|M|Neibert|Zillacom|IL|20|carissasimon@zillacom.com|Simon
+240|Oconnor|659 Highland Boulevard|49741|F|Kilbourne|Franscene|NH|35|oconnorclay@franscene.com|Clay
+803|Marissa|963 Highland Avenue|49567|M|Bloomington|Centregy|MS|25|marissaspears@centregy.com|Spears
+248|West|717 Hendrickson Place|49989|M|Maury|Obliq|WA|36|westengland@obliq.com|England`,
 };
