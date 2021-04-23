@@ -13,7 +13,7 @@ Comments
 Overview
 ========
 
-ODFE SQL supports ANSI SQL and MySQL style comments, including single-line comments or block comments across multiple lines. Both can be used on separate line(s) or within a SQL statement if needed.
+OpenSearch SQL supports ANSI SQL and MySQL style comments, including single-line comments or block comments across multiple lines. Both can be used on separate line(s) or within a SQL statement if needed.
 
 
 Single-line Comments

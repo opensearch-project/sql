@@ -9,7 +9,7 @@
 
 <img src="img/data_connection_wizard_dsn.png" width="500">
 
-* Select **ODFE SQL ODBC DSN** and Click on **Next**.
+* Select **OpenSearch SQL ODBC DSN** and Click on **Next**.
 
 <img src="img/data_connection_wizard_select_dsn.png" width="500">
 

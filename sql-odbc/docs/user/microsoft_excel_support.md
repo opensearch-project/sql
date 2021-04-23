@@ -11,7 +11,7 @@
 
 * Open **ODBC Data Source Administrator**.
 * Click on **System DSN**.
-* Select **ODFE SQL ODBC DSN**.
+* Select **OpenSearch SQL ODBC DSN**.
 * Click on **Configure**.
 
 <img src="img/test_dsn_configure.png" width=500>
@@ -30,7 +30,7 @@
 
 <img src="img/excel_select_odbc.png" width="400">
 
-* Select **ODFE SQL ODBC DSN**. Click **OK**.
+* Select **OpenSearch SQL ODBC DSN**. Click **OK**.
 
 <img src="img/excel_select_dsn.png" width="400">
 

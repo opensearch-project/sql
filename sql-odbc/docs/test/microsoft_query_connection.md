@@ -5,7 +5,7 @@
 
 <img src="img/select_microsoft_query.png" width="400">
 
-* Select **Databases** > **ODFE SQL ODBC DSN**. 
+* Select **Databases** > **OpenSearch SQL ODBC DSN**. 
 * Clear the **Use the Query Wizard to create/edit queries** check box, and then click on **OK**.
 
 <img src="img/microsoft_query_disable_use_the_query_wizard_option.png" width="500">

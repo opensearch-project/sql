@@ -1,4 +1,4 @@
-# ODFE SQL ODBC Driver Build Instructions
+# OpenSearch SQL ODBC Driver Build Instructions
 
 ## Windows
 

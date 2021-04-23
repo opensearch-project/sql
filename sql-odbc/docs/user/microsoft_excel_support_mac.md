@@ -14,7 +14,7 @@
 `sudo /Applications/iODBC/iODBC\ Administrator64.app/Contents/MacOS/iODBC\ Administrator64`
 
 * Click on **System DSN**.
-* Select **ODFE SQL ODBC DSN**.
+* Select **OpenSearch SQL ODBC DSN**.
 * Click on **Configure**.
 
 <img src="img/excel_iodbc_dsn.png" width="650">
@@ -37,7 +37,7 @@
 
 <img src="img/excel_select_database.png" width="400">
 
-* Select **ODFE SQL ODBC DSN**. Click **OK**.
+* Select **OpenSearch SQL ODBC DSN**. Click **OK**.
 
 <img src="img/excel_select_dsn_mac.png" width="400">
 

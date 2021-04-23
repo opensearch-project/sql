@@ -21,7 +21,7 @@
   </connection-resolver>
   <driver-resolver>
     <driver-match >
-      <driver-name type='regex'>ODFE SQL ODBC*</driver-name>
+      <driver-name type='regex'>OpenSearch SQL ODBC*</driver-name>
     </driver-match>
   </driver-resolver>
 </tdr>
