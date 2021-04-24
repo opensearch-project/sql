@@ -30,7 +30,7 @@ The example show fetch all the document from accounts index.
 
 PPL query::
 
-    od> source=accounts;
+    os> source=accounts;
     fetched rows / total rows = 4/4
     +------------------+-------------+----------------------+-----------+----------+--------+------------+---------+-------+-----------------------+------------+
     | account_number   | firstname   | address              | balance   | gender   | city   | employer   | state   | age   | email                 | lastname   |
@@ -48,7 +48,7 @@ The example show fetch all the document from accounts index with .
 
 PPL query::
 
-    od> source=accounts account_number=1 or gender="F";
+    os> source=accounts account_number=1 or gender="F";
     fetched rows / total rows = 2/2
     +------------------+-------------+--------------------+-----------+----------+--------+------------+---------+-------+----------------------+------------+
     | account_number   | firstname   | address            | balance   | gender   | city   | employer   | state   | age   | email                | lastname   |

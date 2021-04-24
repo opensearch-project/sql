@@ -29,7 +29,7 @@ The example show rename one field.
 
 PPL query::
 
-    od> source=accounts | rename account_number as an | fields an;
+    os> source=accounts | rename account_number as an | fields an;
     fetched rows / total rows = 4/4
     +------+
     | an   |
@@ -48,7 +48,7 @@ The example show rename multiple fields.
 
 PPL query::
 
-    od> source=accounts | rename account_number as an, employer as emp | fields an, emp;
+    os> source=accounts | rename account_number as an, employer as emp | fields an, emp;
     fetched rows / total rows = 4/4
     +------+---------+
     | an   | emp     |

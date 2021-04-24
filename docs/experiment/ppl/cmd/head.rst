@@ -27,7 +27,7 @@ The example show first 10 results from accounts index.
 
 PPL query::
 
-    od> source=accounts | fields firstname, age | head;
+    os> source=accounts | fields firstname, age | head;
     fetched rows / total rows = 10/10
     +---------------+-----------+
     | firstname     | age       |
@@ -51,7 +51,7 @@ The example show first N results from accounts index.
 
 PPL query::
 
-    od> source=accounts | fields firstname, age | head 3;
+    os> source=accounts | fields firstname, age | head 3;
     fetched rows / total rows = 3/3
     +---------------+-----------+
     | firstname     | age       |

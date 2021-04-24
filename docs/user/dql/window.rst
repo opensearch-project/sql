@@ -46,7 +46,7 @@ COUNT
 
 Here is an example for ``COUNT`` function::
 
-    od> SELECT
+    os> SELECT
     ...   gender, balance,
     ...   COUNT(balance) OVER(
     ...     PARTITION BY gender ORDER BY balance
@@ -67,7 +67,7 @@ MIN
 
 Here is an example for ``MIN`` function::
 
-    od> SELECT
+    os> SELECT
     ...   gender, balance,
     ...   MIN(balance) OVER(
     ...     PARTITION BY gender ORDER BY balance
@@ -88,7 +88,7 @@ MAX
 
 Here is an example for ``MAX`` function::
 
-    od> SELECT
+    os> SELECT
     ...   gender, balance,
     ...   MAX(balance) OVER(
     ...     PARTITION BY gender ORDER BY balance
@@ -109,7 +109,7 @@ AVG
 
 Here is an example for ``AVG`` function::
 
-    od> SELECT
+    os> SELECT
     ...   gender, balance,
     ...   AVG(balance) OVER(
     ...     PARTITION BY gender ORDER BY balance
@@ -130,7 +130,7 @@ SUM
 
 Here is an example for ``SUM`` function::
 
-    od> SELECT
+    os> SELECT
     ...   gender, balance,
     ...   SUM(balance) OVER(
     ...     PARTITION BY gender ORDER BY balance
@@ -162,7 +162,7 @@ ROW_NUMBER
 
 ``ROW_NUMBER`` function assigns a row number to each row. As a special case, the row number is always increased by one regardless of the fields specified in ``ORDER BY`` list. Here is an example for ``ROW_NUMBER`` function::
 
-    od> SELECT gender, balance, ROW_NUMBER() OVER(PARTITION BY gender ORDER BY balance) AS num FROM accounts;
+    os> SELECT gender, balance, ROW_NUMBER() OVER(PARTITION BY gender ORDER BY balance) AS num FROM accounts;
     fetched rows / total rows = 4/4
     +----------+-----------+-------+
     | gender   | balance   | num   |
@@ -175,7 +175,7 @@ ROW_NUMBER
 
 Similarly as regular ``ORDER BY`` clause, you can specify null ordering by ``NULLS FIRST`` or ``NULLS LAST`` which has exactly same behavior::
 
-    od> SELECT
+    os> SELECT
     ...  employer,
     ...  ROW_NUMBER() OVER(
     ...   ORDER BY employer NULLS LAST
@@ -197,7 +197,7 @@ RANK
 
 ``RANK`` function assigns a rank to each row. For rows that have same values for fields specified in ``ORDER BY`` list, same rank is assigned. If this is the case, the next few ranks will be skipped depending on how many ties. Here is an example for ``RANK`` function::
 
-    od> SELECT gender, RANK() OVER(ORDER BY gender DESC) AS rnk FROM accounts;
+    os> SELECT gender, RANK() OVER(ORDER BY gender DESC) AS rnk FROM accounts;
     fetched rows / total rows = 4/4
     +----------+-------+
     | gender   | rnk   |
@@ -214,7 +214,7 @@ DENSE_RANK
 
 Similarly as ``RANK``, ``DENSE_RANK`` function also assigns a rank to each row. The difference is there is no gap between ranks. Here is an example for ``DENSE_RANK`` function::
 
-    od> SELECT gender, DENSE_RANK() OVER(ORDER BY gender DESC) AS rnk FROM accounts;
+    os> SELECT gender, DENSE_RANK() OVER(ORDER BY gender DESC) AS rnk FROM accounts;
     fetched rows / total rows = 4/4
     +----------+-------+
     | gender   | rnk   |

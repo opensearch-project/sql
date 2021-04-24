@@ -38,7 +38,7 @@ Examples
 
 Here are examples for using index pattern directly without quotes::
 
-    od> SELECT * FROM *cc*nt*;
+    os> SELECT * FROM *cc*nt*;
     fetched rows / total rows = 4/4
     +------------------+-------------+----------------------+-----------+----------+--------+------------+---------+-------+-----------------------+------------+
     | account_number   | firstname   | address              | balance   | gender   | city   | employer   | state   | age   | email                 | lastname   |
@@ -74,7 +74,7 @@ Examples
 
 Here are examples for quoting an index name by back ticks::
 
-    od> SELECT * FROM `accounts`;
+    os> SELECT * FROM `accounts`;
     fetched rows / total rows = 4/4
     +------------------+-------------+----------------------+-----------+----------+--------+------------+---------+-------+-----------------------+------------+
     | account_number   | firstname   | address              | balance   | gender   | city   | employer   | state   | age   | email                 | lastname   |
@@ -119,7 +119,7 @@ Examples
 
 The first example is to show a column name qualified by full table name originally in ``FROM`` clause. The qualifier is optional if no ambiguity::
 
-    od> SELECT city, accounts.age, ABS(accounts.balance) FROM accounts WHERE accounts.age < 30;
+    os> SELECT city, accounts.age, ABS(accounts.balance) FROM accounts WHERE accounts.age < 30;
     fetched rows / total rows = 1/1
     +--------+-------+-------------------------+
     | city   | age   | ABS(accounts.balance)   |
@@ -129,7 +129,7 @@ The first example is to show a column name qualified by full table name original
 
 The second example is to show a field name qualified by index alias specified. Similarly, the alias qualifier is optional in this case::
 
-    od> SELECT city, acc.age, ABS(acc.balance) FROM accounts AS acc WHERE acc.age > 30;
+    os> SELECT city, acc.age, ABS(acc.balance) FROM accounts AS acc WHERE acc.age > 30;
     fetched rows / total rows = 3/3
     +--------+-------+--------------------+
     | city   | age   | ABS(acc.balance)   |

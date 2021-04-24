@@ -23,7 +23,7 @@ Return type: INTEGER/LONG/FLOAT/DOUBLE
 
 Example::
 
-    od> source=people | eval `ABS(-1)` = ABS(-1) | fields `ABS(-1)`
+    os> source=people | eval `ABS(-1)` = ABS(-1) | fields `ABS(-1)`
     fetched rows / total rows = 1/1
     +-----------+
     | ABS(-1)   |
@@ -46,7 +46,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> source=people | eval `ACOS(0)` = ACOS(0) | fields `ACOS(0)`
+    os> source=people | eval `ACOS(0)` = ACOS(0) | fields `ACOS(0)`
     fetched rows / total rows = 1/1
     +--------------------+
     | ACOS(0)            |
@@ -69,7 +69,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> source=people | eval `ASIN(0)` = ASIN(0) | fields `ASIN(0)`
+    os> source=people | eval `ASIN(0)` = ASIN(0) | fields `ASIN(0)`
     fetched rows / total rows = 1/1
     +-----------+
     | ASIN(0)   |
@@ -92,7 +92,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> source=people | eval `ATAN(2)` = ATAN(2), `ATAN(2, 3)` = ATAN(2, 3) | fields `ATAN(2)`, `ATAN(2, 3)`
+    os> source=people | eval `ATAN(2)` = ATAN(2), `ATAN(2, 3)` = ATAN(2, 3) | fields `ATAN(2)`, `ATAN(2, 3)`
     fetched rows / total rows = 1/1
     +--------------------+--------------------+
     | ATAN(2)            | ATAN(2, 3)         |
@@ -115,7 +115,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> source=people | eval `ATAN2(2, 3)` = ATAN2(2, 3) | fields `ATAN2(2, 3)`
+    os> source=people | eval `ATAN2(2, 3)` = ATAN2(2, 3) | fields `ATAN2(2, 3)`
     fetched rows / total rows = 1/1
     +--------------------+
     | ATAN2(2, 3)        |
@@ -138,7 +138,7 @@ Return type: INTEGER
 
 Example::
 
-    od> source=people | eval `CEIL(2.75)` = CEIL(2.75) | fields `CEIL(2.75)`
+    os> source=people | eval `CEIL(2.75)` = CEIL(2.75) | fields `CEIL(2.75)`
     fetched rows / total rows = 1/1
     +--------------+
     | CEIL(2.75)   |
@@ -161,7 +161,7 @@ Return type: STRING
 
 Example::
 
-    od> source=people | eval `CONV('12', 10, 16)` = CONV('12', 10, 16), `CONV('2C', 16, 10)` = CONV('2C', 16, 10), `CONV(12, 10, 2)` = CONV(12, 10, 2), `CONV(1111, 2, 10)` = CONV(1111, 2, 10) | fields `CONV('12', 10, 16)`, `CONV('2C', 16, 10)`, `CONV(12, 10, 2)`, `CONV(1111, 2, 10)`
+    os> source=people | eval `CONV('12', 10, 16)` = CONV('12', 10, 16), `CONV('2C', 16, 10)` = CONV('2C', 16, 10), `CONV(12, 10, 2)` = CONV(12, 10, 2), `CONV(1111, 2, 10)` = CONV(1111, 2, 10) | fields `CONV('12', 10, 16)`, `CONV('2C', 16, 10)`, `CONV(12, 10, 2)`, `CONV(1111, 2, 10)`
     fetched rows / total rows = 1/1
     +----------------------+----------------------+-------------------+---------------------+
     | CONV('12', 10, 16)   | CONV('2C', 16, 10)   | CONV(12, 10, 2)   | CONV(1111, 2, 10)   |
@@ -183,7 +183,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> source=people | eval `COS(0)` = COS(0) | fields `COS(0)`
+    os> source=people | eval `COS(0)` = COS(0) | fields `COS(0)`
     fetched rows / total rows = 1/1
     +----------+
     | COS(0)   |
@@ -206,7 +206,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> source=people | eval `COT(1)` = COT(1) | fields `COT(1)`
+    os> source=people | eval `COT(1)` = COT(1) | fields `COT(1)`
     fetched rows / total rows = 1/1
     +--------------------+
     | COT(1)             |
@@ -229,7 +229,7 @@ Return type: LONG
 
 Example::
 
-    od> source=people | eval `CRC32('MySQL')` = CRC32('MySQL') | fields `CRC32('MySQL')`
+    os> source=people | eval `CRC32('MySQL')` = CRC32('MySQL') | fields `CRC32('MySQL')`
     fetched rows / total rows = 1/1
     +------------------+
     | CRC32('MySQL')   |
@@ -252,7 +252,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> source=people | eval `DEGREES(1.57)` = DEGREES(1.57) | fields `DEGREES(1.57)`
+    os> source=people | eval `DEGREES(1.57)` = DEGREES(1.57) | fields `DEGREES(1.57)`
     fetched rows / total rows  = 1/1
     +-------------------+
     | DEGREES(1.57)     |
@@ -272,7 +272,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> source=people | eval `E()` = E() | fields `E()`
+    os> source=people | eval `E()` = E() | fields `E()`
     fetched rows / total rows = 1/1
     +-------------------+
     | E()               |
@@ -295,7 +295,7 @@ Return type: INTEGER
 
 Example::
 
-    od> source=people | eval `EXP(2)` = EXP(2) | fields `EXP(2)`
+    os> source=people | eval `EXP(2)` = EXP(2) | fields `EXP(2)`
     fetched rows / total rows = 1/1
     +------------------+
     | EXP(2)           |
@@ -318,7 +318,7 @@ Return type: INTEGER
 
 Example::
 
-    od> source=people | eval `FLOOR(2.75)` = FLOOR(2.75) | fields `FLOOR(2.75)`
+    os> source=people | eval `FLOOR(2.75)` = FLOOR(2.75) | fields `FLOOR(2.75)`
     fetched rows / total rows = 1/1
     +---------------+
     | FLOOR(2.75)   |
@@ -341,7 +341,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> source=people | eval `LN(2)` = LN(2) | fields `LN(2)`
+    os> source=people | eval `LN(2)` = LN(2) | fields `LN(2)`
     fetched rows / total rows = 1/1
     +--------------------+
     | LN(2)              |
@@ -366,7 +366,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> source=people | eval `LOG(2)` = LOG(2), `LOG(2, 8)` = LOG(2, 8) | fields `LOG(2)`, `LOG(2, 8)`
+    os> source=people | eval `LOG(2)` = LOG(2), `LOG(2, 8)` = LOG(2, 8) | fields `LOG(2)`, `LOG(2, 8)`
     fetched rows / total rows = 1/1
     +--------------------+-------------+
     | LOG(2)             | LOG(2, 8)   |
@@ -391,7 +391,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> source=people | eval `LOG2(8)` = LOG2(8) | fields `LOG2(8)`
+    os> source=people | eval `LOG2(8)` = LOG2(8) | fields `LOG2(8)`
     fetched rows / total rows = 1/1
     +-----------+
     | LOG2(8)   |
@@ -416,7 +416,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> source=people | eval `LOG10(100)` = LOG10(100) | fields `LOG10(100)`
+    os> source=people | eval `LOG10(100)` = LOG10(100) | fields `LOG10(100)`
     fetched rows / total rows = 1/1
     +--------------+
     | LOG10(100)   |
@@ -439,7 +439,7 @@ Return type: Wider type between types of n and m if m is nonzero value. If m equ
 
 Example::
 
-    od> source=people | eval `MOD(3, 2)` = MOD(3, 2), `MOD(3.1, 2)` = MOD(3.1, 2) | fields `MOD(3, 2)`, `MOD(3.1, 2)`
+    os> source=people | eval `MOD(3, 2)` = MOD(3, 2), `MOD(3.1, 2)` = MOD(3.1, 2) | fields `MOD(3, 2)`, `MOD(3.1, 2)`
     fetched rows / total rows = 1/1
     +-------------+---------------+
     | MOD(3, 2)   | MOD(3.1, 2)   |
@@ -460,7 +460,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> source=people | eval `PI()` = PI() | fields `PI()`
+    os> source=people | eval `PI()` = PI() | fields `PI()`
     fetched rows / total rows = 1/1
     +-------------------+
     | PI()              |
@@ -485,7 +485,7 @@ Synonyms: `POWER`_
 
 Example::
 
-    od> source=people | eval `POW(3, 2)` = POW(3, 2), `POW(-3, 2)` = POW(-3, 2), `POW(3, -2)` = POW(3, -2) | fields `POW(3, 2)`, `POW(-3, 2)`, `POW(3, -2)`
+    os> source=people | eval `POW(3, 2)` = POW(3, 2), `POW(-3, 2)` = POW(-3, 2), `POW(3, -2)` = POW(3, -2) | fields `POW(3, 2)`, `POW(-3, 2)`, `POW(3, -2)`
     fetched rows / total rows = 1/1
     +-------------+--------------+--------------------+
     | POW(3, 2)   | POW(-3, 2)   | POW(3, -2)         |
@@ -510,7 +510,7 @@ Synonyms: `POW`_
 
 Example::
 
-    od> source=people | eval `POWER(3, 2)` = POWER(3, 2), `POWER(-3, 2)` = POWER(-3, 2), `POWER(3, -2)` = POWER(3, -2) | fields `POWER(3, 2)`, `POWER(-3, 2)`, `POWER(3, -2)`
+    os> source=people | eval `POWER(3, 2)` = POWER(3, 2), `POWER(-3, 2)` = POWER(-3, 2), `POWER(3, -2)` = POWER(3, -2) | fields `POWER(3, 2)`, `POWER(-3, 2)`, `POWER(3, -2)`
     fetched rows / total rows = 1/1
     +---------------+----------------+--------------------+
     | POWER(3, 2)   | POWER(-3, 2)   | POWER(3, -2)       |
@@ -533,7 +533,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> source=people | eval `RADIANS(90)` = RADIANS(90) | fields `RADIANS(90)`
+    os> source=people | eval `RADIANS(90)` = RADIANS(90) | fields `RADIANS(90)`
     fetched rows / total rows  = 1/1
     +--------------------+
     | RADIANS(90)        |
@@ -556,7 +556,7 @@ Return type: FLOAT
 
 Example::
 
-    od> source=people | eval `RAND(3)` = RAND(3) | fields `RAND(3)`
+    os> source=people | eval `RAND(3)` = RAND(3) | fields `RAND(3)`
     fetched rows / total rows = 1/1
     +------------+
     | RAND(3)    |
@@ -582,7 +582,7 @@ Return type map:
 
 Example::
 
-    od> source=people | eval `ROUND(12.34)` = ROUND(12.34), `ROUND(12.34, 1)` = ROUND(12.34, 1), `ROUND(12.34, -1)` = ROUND(12.34, -1), `ROUND(12, 1)` = ROUND(12, 1) | fields `ROUND(12.34)`, `ROUND(12.34, 1)`, `ROUND(12.34, -1)`, `ROUND(12, 1)`
+    os> source=people | eval `ROUND(12.34)` = ROUND(12.34), `ROUND(12.34, 1)` = ROUND(12.34, 1), `ROUND(12.34, -1)` = ROUND(12.34, -1), `ROUND(12, 1)` = ROUND(12, 1) | fields `ROUND(12.34)`, `ROUND(12.34, 1)`, `ROUND(12.34, -1)`, `ROUND(12, 1)`
     fetched rows / total rows = 1/1
     +----------------+-------------------+--------------------+----------------+
     | ROUND(12.34)   | ROUND(12.34, 1)   | ROUND(12.34, -1)   | ROUND(12, 1)   |
@@ -605,7 +605,7 @@ Return type: INTEGER
 
 Example::
 
-    od> source=people | eval `SIGN(1)` = SIGN(1), `SIGN(0)` = SIGN(0), `SIGN(-1.1)` = SIGN(-1.1) | fields `SIGN(1)`, `SIGN(0)`, `SIGN(-1.1)`
+    os> source=people | eval `SIGN(1)` = SIGN(1), `SIGN(0)` = SIGN(0), `SIGN(-1.1)` = SIGN(-1.1) | fields `SIGN(1)`, `SIGN(0)`, `SIGN(-1.1)`
     fetched rows / total rows = 1/1
     +-----------+-----------+--------------+
     | SIGN(1)   | SIGN(0)   | SIGN(-1.1)   |
@@ -628,7 +628,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> source=people | eval `SIN(0)` = SIN(0) | fields `SIN(0)`
+    os> source=people | eval `SIN(0)` = SIN(0) | fields `SIN(0)`
     fetched rows / total rows = 1/1
     +----------+
     | SIN(0)   |
@@ -654,7 +654,7 @@ Return type map:
 
 Example::
 
-    od> source=people | eval `SQRT(4)` = SQRT(4), `SQRT(4.41)` = SQRT(4.41) | fields `SQRT(4)`, `SQRT(4.41)`
+    os> source=people | eval `SQRT(4)` = SQRT(4), `SQRT(4.41)` = SQRT(4.41) | fields `SQRT(4)`, `SQRT(4.41)`
     fetched rows / total rows = 1/1
     +-----------+--------------+
     | SQRT(4)   | SQRT(4.41)   |

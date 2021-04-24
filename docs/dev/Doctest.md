@@ -152,7 +152,7 @@ To support PPL, we need to add PPL support to SQL-CLI. Since PPL and SQL expose 
 The code example in a doc using `CLI` should be like this
 
 ```
-odfesql> SELECT firstname, lastname FROM accounts;
+opensearchsql> SELECT firstname, lastname FROM accounts;
 fetched rows / total rows = 4/4
 +-------------+------------+
 | firstname   | lastname   |

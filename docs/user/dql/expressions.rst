@@ -34,7 +34,7 @@ Examples
 
 Here is an example for different type of literals::
 
-    od> SELECT 123, 'hello', false, -4.567, DATE '2020-07-07', TIME '01:01:01', TIMESTAMP '2020-07-07 01:01:01';
+    os> SELECT 123, 'hello', false, -4.567, DATE '2020-07-07', TIME '01:01:01', TIMESTAMP '2020-07-07 01:01:01';
     fetched rows / total rows = 1/1
     +-------+-----------+---------+----------+---------------------+-------------------+-----------------------------------+
     | 123   | 'hello'   | false   | -4.567   | DATE '2020-07-07'   | TIME '01:01:01'   | TIMESTAMP '2020-07-07 01:01:01'   |
@@ -84,7 +84,7 @@ Examples
 
 Here is an example for different type of arithmetic expressions::
 
-    od> SELECT 1 + 2, (9 - 1) % 3, 2 * 4 / 3;
+    os> SELECT 1 + 2, (9 - 1) % 3, 2 * 4 / 3;
     fetched rows / total rows = 1/1
     +---------+---------------+-------------+
     | 1 + 2   | (9 - 1) % 3   | 2 * 4 / 3   |
@@ -137,7 +137,7 @@ Basic Comparison Operator
 
 Here is an example for different type of comparison operators::
 
-    od> SELECT 2 > 1, 2 >= 1, 2 < 1, 2 != 1, 2 <= 1, 2 = 1;
+    os> SELECT 2 > 1, 2 >= 1, 2 < 1, 2 != 1, 2 <= 1, 2 = 1;
     fetched rows / total rows = 1/1
     +---------+----------+---------+----------+----------+---------+
     | 2 > 1   | 2 >= 1   | 2 < 1   | 2 != 1   | 2 <= 1   | 2 = 1   |
@@ -150,7 +150,7 @@ LIKE
 
 expr LIKE pattern. The expr is string value, pattern is supports literal text, a percent ( % ) character for a wildcard, and an underscore ( _ ) character for a single character match::
 
-    od> SELECT 'axyzb' LIKE 'a%b', 'acb' LIKE 'a_b', 'axyzb' NOT LIKE 'a%b', 'acb' NOT LIKE 'a_b';
+    os> SELECT 'axyzb' LIKE 'a%b', 'acb' LIKE 'a_b', 'axyzb' NOT LIKE 'a%b', 'acb' NOT LIKE 'a_b';
     fetched rows / total rows = 1/1
     +----------------------+--------------------+--------------------------+------------------------+
     | 'axyzb' LIKE 'a%b'   | 'acb' LIKE 'a_b'   | 'axyzb' NOT LIKE 'a%b'   | 'acb' NOT LIKE 'a_b'   |
@@ -163,7 +163,7 @@ NULL value test
 
 Here is an example for null value test::
 
-    od> SELECT 0 IS NULL, 0 IS NOT NULL, NULL IS NULL, NULL IS NOT NULL;
+    os> SELECT 0 IS NULL, 0 IS NOT NULL, NULL IS NULL, NULL IS NOT NULL;
     fetched rows / total rows = 1/1
     +-------------+-----------------+----------------+--------------------+
     | 0 IS NULL   | 0 IS NOT NULL   | NULL IS NULL   | NULL IS NOT NULL   |
@@ -177,7 +177,7 @@ REGEXP value test
 
 expr REGEXP pattern. The expr is string value, pattern is supports regular expression patterns::
 
-    od> SELECT 'Hello!' REGEXP '.*', 'a' REGEXP 'b';
+    os> SELECT 'Hello!' REGEXP '.*', 'a' REGEXP 'b';
     fetched rows / total rows = 1/1
     +------------------------+------------------+
     | 'Hello!' REGEXP '.*'   | 'a' REGEXP 'b'   |
@@ -210,7 +210,7 @@ Arithmetic function examples
 
 Here is an example for different type of arithmetic expressions::
 
-    od> SELECT abs(-1.234), abs(-1 * abs(-5));
+    os> SELECT abs(-1.234), abs(-1 * abs(-5));
     fetched rows / total rows = 1/1
     +---------------+---------------------+
     | abs(-1.234)   | abs(-1 * abs(-5))   |
@@ -223,7 +223,7 @@ Date function examples
 
 Here is an example for different type of arithmetic expressions::
 
-    od> SELECT dayofmonth(DATE '2020-07-07');
+    os> SELECT dayofmonth(DATE '2020-07-07');
     fetched rows / total rows = 1/1
     +---------------------------------+
     | dayofmonth(DATE '2020-07-07')   |

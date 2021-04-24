@@ -45,7 +45,7 @@ The example show calculate the count of events in the accounts.
 
 PPL query::
 
-    od> source=accounts | stats count();
+    os> source=accounts | stats count();
     fetched rows / total rows = 1/1
     +-----------+
     | count()   |
@@ -61,7 +61,7 @@ The example show calculate the average age of all the accounts.
 
 PPL query::
 
-    od> source=accounts | stats avg(age);
+    os> source=accounts | stats avg(age);
     fetched rows / total rows = 1/1
     +------------+
     | avg(age)   |
@@ -77,7 +77,7 @@ The example show calculate the average age of all the accounts group by gender.
 
 PPL query::
 
-    od> source=accounts | stats avg(age) by gender;
+    os> source=accounts | stats avg(age) by gender;
     fetched rows / total rows = 2/2
     +--------------------+----------+
     | avg(age)           | gender   |
@@ -94,7 +94,7 @@ The example show calculate the average age, sum age and count of events of all t
 
 PPL query::
 
-    od> source=accounts | stats avg(age), sum(age), count() by gender;
+    os> source=accounts | stats avg(age), sum(age), count() by gender;
     fetched rows / total rows = 2/2
     +--------------------+------------+-----------+----------+
     | avg(age)           | sum(age)   | count()   | gender   |
@@ -110,7 +110,7 @@ The example calculates the max age of all the accounts.
 
 PPL query::
 
-    od> source=accounts | stats max(age);
+    os> source=accounts | stats max(age);
     fetched rows / total rows = 1/1
     +------------+
     | max(age)   |
@@ -125,7 +125,7 @@ The example calculates the max and min age values of all the accounts group by g
 
 PPL query::
 
-    od> source=accounts | stats max(age), min(age) by gender;
+    os> source=accounts | stats max(age), min(age) by gender;
     fetched rows / total rows = 2/2
     +------------+------------+----------+
     | max(age)   | min(age)   | gender   |

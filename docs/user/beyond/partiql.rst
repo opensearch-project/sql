@@ -200,7 +200,7 @@ Example 1: Selecting Top Level
 
 Selecting top level for object fields, object fields of array value and nested fields returns original JSON object or array of the field. For example, object field ``city`` is a JSON object, object field (of array value) ``accounts`` and nested field ``projects`` are JSON arrays::
 
-    od> SELECT city, accounts, projects FROM people;
+    os> SELECT city, accounts, projects FROM people;
     fetched rows / total rows = 1/1
     +-----------------------------------------------------+-----------------------+----------------------------------------------------------------------------------------------------------------+
     | city                                                | accounts              | projects                                                                                                       |
@@ -213,7 +213,7 @@ Example 2: Selecting Deeper Levels
 
 Selecting at deeper levels for object fields of regular value returns inner field value. For example, ``city.location`` is an inner object field and ``city.location.altitude`` is a regular double field::
 
-    od> SELECT city.location, city.location.latitude FROM people;
+    os> SELECT city.location, city.location.latitude FROM people;
     fetched rows / total rows = 1/1
     +--------------------+--------------------------+
     | city.location      | city.location.latitude   |

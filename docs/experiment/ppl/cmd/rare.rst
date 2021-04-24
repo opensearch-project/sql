@@ -30,7 +30,7 @@ The example finds least common gender of all the accounts.
 
 PPL query::
 
-    od> source=accounts | rare gender;
+    os> source=accounts | rare gender;
     fetched rows / total rows = 2/2
     +------------+
     | gender     |
@@ -48,7 +48,7 @@ The example finds least common age of all the accounts group by gender.
 
 PPL query::
 
-    od> source=accounts | rare age by gender;
+    os> source=accounts | rare age by gender;
     fetched rows / total rows = 20/20
     +----------+----------+
     | gender   | age      |

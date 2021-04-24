@@ -257,7 +257,7 @@ Result set:
 
 In fact your can use any expression in a ``DISTINCT`` clause as follows::
 
-    od> SELECT DISTINCT SUBSTRING(lastname, 1, 1) FROM accounts;
+    os> SELECT DISTINCT SUBSTRING(lastname, 1, 1) FROM accounts;
     fetched rows / total rows = 3/3
     +-----------------------------+
     | SUBSTRING(lastname, 1, 1)   |
@@ -942,7 +942,7 @@ Result set:
 
 Note that the example above is essentially sorting on a predicate expression. In this case, nulls are put first because it's evaluated to false (0), though all the rest are evaluated to true and still in random order. If you want to specify order for both nulls and non-nulls, ``NULLS FIRST`` or ``NULLS LAST`` in SQL standard can help. Basically, it allows you to specify an independent order for nulls along with ``ASC`` or ``DESC`` keyword::
 
-    od> SELECT employer FROM accounts ORDER BY employer ASC NULLS LAST;
+    os> SELECT employer FROM accounts ORDER BY employer ASC NULLS LAST;
     fetched rows / total rows = 4/4
     +------------+
     | employer   |
@@ -964,7 +964,7 @@ The sorting rule can be summarized as follows:
 
 Here is another example for sort in descending order without ``NULLS`` clause::
 
-    od> SELECT employer FROM accounts ORDER BY employer DESC;
+    os> SELECT employer FROM accounts ORDER BY employer DESC;
     fetched rows / total rows = 4/4
     +------------+
     | employer   |
@@ -981,7 +981,7 @@ Example 3: Ordering by Aggregate Functions
 
 Aggregate functions are allowed to be used in ``ORDER BY`` clause. You can reference it by same function call or its alias or ordinal in select list::
 
-    od> SELECT gender, MAX(age) FROM accounts GROUP BY gender ORDER BY MAX(age) DESC;
+    os> SELECT gender, MAX(age) FROM accounts GROUP BY gender ORDER BY MAX(age) DESC;
     fetched rows / total rows = 2/2
     +----------+------------+
     | gender   | MAX(age)   |
@@ -992,7 +992,7 @@ Aggregate functions are allowed to be used in ``ORDER BY`` clause. You can refer
 
 Even if it's not present in ``SELECT`` clause, it can be also used as follows::
 
-    od> SELECT gender, MIN(age) FROM accounts GROUP BY gender ORDER BY MAX(age) DESC;
+    os> SELECT gender, MIN(age) FROM accounts GROUP BY gender ORDER BY MAX(age) DESC;
     fetched rows / total rows = 2/2
     +----------+------------+
     | gender   | MIN(age)   |

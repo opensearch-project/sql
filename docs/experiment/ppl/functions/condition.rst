@@ -22,7 +22,7 @@ Return type: BOOLEAN
 
 Example::
 
-    od> source=accounts | eval result = isnull(employer) | fields result, employer, firstname
+    os> source=accounts | eval result = isnull(employer) | fields result, employer, firstname
     fetched rows / total rows = 4/4
     +----------+------------+-------------+
     | result   | employer   | firstname   |
@@ -47,7 +47,7 @@ Return type: BOOLEAN
 
 Example::
 
-    od> source=accounts | where not isnotnull(employer) | fields account_number, employer
+    os> source=accounts | where not isnotnull(employer) | fields account_number, employer
     fetched rows / total rows = 1/1
     +------------------+------------+
     | account_number   | employer   |
@@ -62,7 +62,7 @@ EXISTS
 
 Example, the account 13 doesn't have email field::
 
-    od> source=accounts | where isnull(email) | fields account_number, email
+    os> source=accounts | where isnull(email) | fields account_number, email
     fetched rows / total rows = 1/1
     +------------------+---------+
     | account_number   | email   |
@@ -84,7 +84,7 @@ Return type: any
 
 Example::
 
-    od> source=accounts | eval result = ifnull(employer, 'default') | fields result, employer, firstname
+    os> source=accounts | eval result = ifnull(employer, 'default') | fields result, employer, firstname
     fetched rows / total rows = 4/4
     +----------+------------+-------------+
     | result   | employer   | firstname   |
@@ -109,7 +109,7 @@ Return type: any
 
 Example::
 
-    od> source=accounts | eval result = nullif(employer, 'Pyrami') | fields result, employer, firstname
+    os> source=accounts | eval result = nullif(employer, 'Pyrami') | fields result, employer, firstname
     fetched rows / total rows = 4/4
     +----------+------------+-------------+
     | result   | employer   | firstname   |
@@ -135,7 +135,7 @@ Return type: any
 
 Example::
 
-    od> source=accounts | eval result = isnull(employer) | fields result, employer, firstname
+    os> source=accounts | eval result = isnull(employer) | fields result, employer, firstname
     fetched rows / total rows = 4/4
     +----------+------------+-------------+
     | result   | employer   | firstname   |
@@ -160,7 +160,7 @@ Return type: any
 
 Example::
 
-    od> source=accounts | eval result = if(true, firstname, lastname) | fields result, firstname, lastname
+    os> source=accounts | eval result = if(true, firstname, lastname) | fields result, firstname, lastname
     fetched rows / total rows = 4/4
     +----------+-------------+------------+
     | result   | firstname   | lastname   |
@@ -171,7 +171,7 @@ Example::
     | Dale     | Dale        | Adams      |
     +----------+-------------+------------+
 
-    od> source=accounts | eval result = if(false, firstname, lastname) | fields result, firstname, lastname
+    os> source=accounts | eval result = if(false, firstname, lastname) | fields result, firstname, lastname
     fetched rows / total rows = 4/4
     +----------+-------------+------------+
     | result   | firstname   | lastname   |
