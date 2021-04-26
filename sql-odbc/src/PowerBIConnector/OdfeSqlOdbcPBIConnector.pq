@@ -57,7 +57,7 @@ OdfeSqlOdbcPBIConnectorImpl = (Server as text) as table =>
                 ],
 
         ConnectionString = [
-            Driver = "ODFE SQL ODBC Driver",
+            Driver = "OpenSearch SQL ODBC Driver",
             Host = Server
         ],
 
@@ -188,7 +188,7 @@ OdfeSqlOdbcPBIConnector = [
             db = OdfeSqlOdbcPBIConnector.Contents(dsr[address][server])
           in
             db,
-        GetFriendlyName = (dsr) => "ODFE SQL ODBC"
+        GetFriendlyName = (dsr) => "OpenSearch SQL ODBC"
       ]
     ],
 

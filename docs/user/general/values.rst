@@ -11,7 +11,7 @@ Data Types
 
 NULL and MISSING Values
 =======================
-ODFE SQL has two ways to represent missing information. (1) The presence of the field with a NULL for its value. and (2) the absence of the filed.
+OpenSearch SQL has two ways to represent missing information. (1) The presence of the field with a NULL for its value. and (2) the absence of the filed.
 
 Please note, when response is in table format, the MISSING value is translate to NULL value.
 

@@ -13,97 +13,97 @@ Data Types
 Overview
 ========
 
-ODFE SQL Data Types
--------------------
+OpenSearch SQL Data Types
+-------------------------
 
-The ODFE SQL Engine support the following data types.
+The OpenSearch SQL Engine support the following data types.
 
-+---------------+
-| ODFE SQL Type |
-+===============+
-| boolean       |
-+---------------+
-| byte          |
-+---------------+
-| short         |
-+---------------+
-| integer       |
-+---------------+
-| long          |
-+---------------+
-| float         |
-+---------------+
-| double        |
-+---------------+
-| string        |
-+---------------+
-| text          |
-+---------------+
-| timestamp     |
-+---------------+
-| datetime      |
-+---------------+
-| date          |
-+---------------+
-| time          |
-+---------------+
-| interval      |
-+---------------+
-| ip            |
-+---------------+
-| geo_point     |
-+---------------+
-| binary        |
-+---------------+
-| struct        |
-+---------------+
-| array         |
-+---------------+
++---------------------+
+| OpenSearch SQL Type |
++=====================+
+| boolean             |
++---------------------+
+| byte                |
++---------------------+
+| short               |
++---------------------+
+| integer             |
++---------------------+
+| long                |
++---------------------+
+| float               |
++---------------------+
+| double              |
++---------------------+
+| string              |
++---------------------+
+| text                |
++---------------------+
+| timestamp           |
++---------------------+
+| datetime            |
++---------------------+
+| date                |
++---------------------+
+| time                |
++---------------------+
+| interval            |
++---------------------+
+| ip                  |
++---------------------+
+| geo_point           |
++---------------------+
+| binary              |
++---------------------+
+| struct              |
++---------------------+
+| array               |
++---------------------+
 
 Data Types Mapping
 ------------------
 
-The table below list the mapping between OpenSearch Data Type, ODFE SQL Data Type and SQL Type.
+The table below list the mapping between OpenSearch Data Type, OpenSearch SQL Data Type and SQL Type.
 
-+-----------------+---------------+-----------+
-| OpenSearch Type | ODFE SQL Type | SQL Type  |
-+=================+===============+===========+
-| boolean         | boolean       | BOOLEAN   |
-+-----------------+---------------+-----------+
-| byte            | byte          | TINYINT   |
-+-----------------+---------------+-----------+
-| short           | byte          | SMALLINT  |
-+-----------------+---------------+-----------+
-| integer         | integer       | INTEGER   |
-+-----------------+---------------+-----------+
-| long            | long          | BIGINT    |
-+-----------------+---------------+-----------+
-| float           | float         | REAL      |
-+-----------------+---------------+-----------+
-| half_float      | float         | FLOAT     |
-+-----------------+---------------+-----------+
-| scaled_float    | float         | DOUBLE    |
-+-----------------+---------------+-----------+
-| double          | double        | DOUBLE    |
-+-----------------+---------------+-----------+
-| keyword         | string        | VARCHAR   |
-+-----------------+---------------+-----------+
-| text            | text          | VARCHAR   |
-+-----------------+---------------+-----------+
-| date            | timestamp     | TIMESTAMP |
-+-----------------+---------------+-----------+
-| ip              | ip            | VARCHAR   |
-+-----------------+---------------+-----------+
-| date            | timestamp     | TIMESTAMP |
-+-----------------+---------------+-----------+
-| binary          | binary        | VARBINARY |
-+-----------------+---------------+-----------+
-| object          | struct        | STRUCT    |
-+-----------------+---------------+-----------+
-| nested          | array         | STRUCT    |
-+-----------------+---------------+-----------+
++-----------------+---------------------+-----------+
+| OpenSearch Type | OpenSearch SQL Type | SQL Type  |
++=================+=====================+===========+
+| boolean         | boolean             | BOOLEAN   |
++-----------------+---------------------+-----------+
+| byte            | byte                | TINYINT   |
++-----------------+---------------------+-----------+
+| short           | byte                | SMALLINT  |
++-----------------+---------------------+-----------+
+| integer         | integer             | INTEGER   |
++-----------------+---------------------+-----------+
+| long            | long                | BIGINT    |
++-----------------+---------------------+-----------+
+| float           | float               | REAL      |
++-----------------+---------------------+-----------+
+| half_float      | float               | FLOAT     |
++-----------------+---------------------+-----------+
+| scaled_float    | float               | DOUBLE    |
++-----------------+---------------------+-----------+
+| double          | double              | DOUBLE    |
++-----------------+---------------------+-----------+
+| keyword         | string              | VARCHAR   |
++-----------------+---------------------+-----------+
+| text            | text                | VARCHAR   |
++-----------------+---------------------+-----------+
+| date            | timestamp           | TIMESTAMP |
++-----------------+---------------------+-----------+
+| ip              | ip                  | VARCHAR   |
++-----------------+---------------------+-----------+
+| date            | timestamp           | TIMESTAMP |
++-----------------+---------------------+-----------+
+| binary          | binary              | VARBINARY |
++-----------------+---------------------+-----------+
+| object          | struct              | STRUCT    |
++-----------------+---------------------+-----------+
+| nested          | array               | STRUCT    |
++-----------------+---------------------+-----------+
 
-Notes: Not all the ODFE SQL Type has correspond OpenSearch Type. e.g. data and time. To use function which required such data type, user should explicitly convert the data type.
+Notes: Not all the OpenSearch SQL Type has correspond OpenSearch Type. e.g. data and time. To use function which required such data type, user should explicitly convert the data type.
 
 
 Undefined Data Type

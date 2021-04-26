@@ -3,7 +3,7 @@
 ## Prerequisites
 * [Download and install](../../README.md) OpenSearch SQL ODBC Driver.
 * [Install and configure](https://opendistro.github.io/for-elasticsearch-docs/docs/install/) OpenSearch.
-* Open ODBC Data Source Administrator. Click on **System DSN** > **ODFE SQL ODBC DSN** > **Configure**.
+* Open ODBC Data Source Administrator. Click on **System DSN** > **OpenSearch SQL ODBC DSN** > **Configure**.
 * Set all connection options & Click on **Test**. Connection test should return `Connection Successful`.
 
 ## Microsoft Excel Connectivity

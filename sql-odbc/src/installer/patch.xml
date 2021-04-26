@@ -1,7 +1,7 @@
 <CPackWiXPatch>
 	<CPackWiXFragment Id="CM_CP_Driver.bin.odfesqlodbc.dll">
 		<!-- Add driver entry in Software -->
-		<RegistryKey Root="HKLM" Key="SOFTWARE\Amazon\ODFE SQL ODBC Driver\Driver" >
+		<RegistryKey Root="HKLM" Key="SOFTWARE\Amazon\OpenSearch SQL ODBC Driver\Driver" >
 			<RegistryValue Type="string" Name="InstallPath" Value="[INSTALL_ROOT]" />
 			<RegistryValue Type="string" Name="LogLevel" Value="" />
 			<RegistryValue Type="string" Name="LogOutput" Value="" />
@@ -9,23 +9,23 @@
 		
 		<!-- Add driver entry in ODBC Drivers -->
 		<RegistryKey Root="HKLM" Key="SOFTWARE\ODBC\ODBCINST.INI\ODBC Drivers" >
-			<RegistryValue Type="string" Name="ODFE SQL ODBC Driver" Value="Installed" />
+			<RegistryValue Type="string" Name="OpenSearch SQL ODBC Driver" Value="Installed" />
 		</RegistryKey>
 		
 		<!-- Set driver attributes -->
-		<RegistryKey Root="HKLM" Key="SOFTWARE\ODBC\ODBCINST.INI\ODFE SQL ODBC Driver" >
+		<RegistryKey Root="HKLM" Key="SOFTWARE\ODBC\ODBCINST.INI\OpenSearch SQL ODBC Driver" >
 			<RegistryValue Type="string" Name="Driver" Value="[INSTALL_ROOT]bin\odfesqlodbc.dll" />
 			<RegistryValue Type="string" Name="Setup" Value="[INSTALL_ROOT]bin\odfesqlodbc.dll" />
 		</RegistryKey>
 		
 		<!-- Add DSN entry in ODBC Data Sources -->
 		<RegistryKey Root="HKLM" Key="SOFTWARE\ODBC\ODBC.INI\ODBC Data Sources">
-			<RegistryValue Type="string" Name="ODFE SQL ODBC DSN" Value="ODFE SQL ODBC Driver" />
+			<RegistryValue Type="string" Name="OpenSearch SQL ODBC DSN" Value="OpenSearch SQL ODBC Driver" />
 		</RegistryKey>
 		
 		<!-- Set DSN attributes -->
-		<RegistryKey Root="HKLM" Key="SOFTWARE\ODBC\ODBC.INI\ODFE SQL ODBC DSN"  >
-			<RegistryValue Type="string" Name="Driver" Value="ODFE SQL ODBC Driver" />
+		<RegistryKey Root="HKLM" Key="SOFTWARE\ODBC\ODBC.INI\OpenSearch SQL ODBC DSN"  >
+			<RegistryValue Type="string" Name="Driver" Value="OpenSearch SQL ODBC Driver" />
 			<RegistryValue Type="string" Name="Host" Value="localhost" />
 			<RegistryValue Type="string" Name="Port" Value="9200" />
 			<RegistryValue Type="string" Name="HostnameVerification" Value="0" />

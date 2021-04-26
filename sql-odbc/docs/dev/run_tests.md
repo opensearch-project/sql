@@ -1,4 +1,4 @@
-# ODFE SQL ODBC Driver Testing
+# OpenSearch SQL ODBC Driver Testing
 
 ## Requirements
 

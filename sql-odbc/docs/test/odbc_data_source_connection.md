@@ -5,7 +5,7 @@
 
 <img src="img/odbc_data_source.png" width="400">
 
-* Select **ODFE SQL ODBC DSN**. Click **OK**.
+* Select **OpenSearch SQL ODBC DSN**. Click **OK**.
 
 <img src="img/from_odbc_dsn.png" width="600">
 
