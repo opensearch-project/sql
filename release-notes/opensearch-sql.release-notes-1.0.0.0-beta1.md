@@ -2,7 +2,6 @@
 
 ### OpenSearch Migration
 
-* Doctest/SQL-CLI API migration to OpenSearch, renaming and version reset ([#19](https://github.com/opendistro-for-elasticsearch/sql/pull/19))
 * OpenSearch migration for JDBC driver ([#3](https://github.com/opendistro-for-elasticsearch/sql/pull/3))
 * OpenSearch Migration for SQL/PPL ([#2](https://github.com/opendistro-for-elasticsearch/sql/pull/2))
 * OpenSearch migration for ODBC driver ([#7](https://github.com/opendistro-for-elasticsearch/sql/pull/7))
@@ -17,6 +16,7 @@
 * Change workbench version to 1.0.0, change api to _opensearch ([#17](https://github.com/opendistro-for-elasticsearch/sql/pull/17))
 * Migrate SQL/PPL to OpenSearch namespace ([#16](https://github.com/opendistro-for-elasticsearch/sql/pull/16))
 * Rename ODBC driver and DSN name ([#20](https://github.com/opendistro-for-elasticsearch/sql/pull/20))
+* Doctest/SQL-CLI API migration to OpenSearch, renaming and version reset ([#19](https://github.com/opendistro-for-elasticsearch/sql/pull/19))
 
 ### Infrastructure
 
