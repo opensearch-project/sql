@@ -26,7 +26,7 @@
 
 buildscript {
     ext {
-        opensearch_version = "1.0.0-alpha1"
+        opensearch_version = "1.0.0-alpha2"
     }
 
     repositories {
@@ -55,12 +55,12 @@ repositories {
 }
 
 ext {
-    opendistroVersion = '1.0.0'
+    opensearchVersion = '1.0.0'
     isSnapshot = "true" == System.getProperty("build.snapshot", "true")
 }
 
 allprojects {
-    version = "${opendistroVersion}.0"
+    version = "${opensearchVersion}.0-alpha2"
 
     plugins.withId('java') {
         sourceCompatibility = targetCompatibility = "1.8"
