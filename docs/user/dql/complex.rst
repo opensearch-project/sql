@@ -243,7 +243,7 @@ Result set:
 
 Here is another example with aggregation function and GROUP BY in subquery::
 
-    od> SELECT avg_balance FROM (
+    os> SELECT avg_balance FROM (
     ...   SELECT AVG(balance) AS avg_balance FROM accounts GROUP BY gender, age
     ... ) AS a;
     fetched rows / total rows = 4/4
@@ -259,7 +259,7 @@ Here is another example with aggregation function and GROUP BY in subquery::
 
 Query with multiple layers of subquery is supported as well, here follows a example::
 
-    od> SELECT name FROM (
+    os> SELECT name FROM (
     ...   SELECT lastname AS name, age FROM (
     ...     SELECT * FROM accounts WHERE gender = 'M'
     ...   ) AS accounts WHERE age < 35

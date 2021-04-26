@@ -29,7 +29,7 @@ The example show fetch account_number, firstname and lastname fields from search
 
 PPL query::
 
-    od> source=accounts | fields account_number, firstname, lastname;
+    os> source=accounts | fields account_number, firstname, lastname;
     fetched rows / total rows = 4/4
     +------------------+-------------+------------+
     | account_number   | firstname   | lastname   |
@@ -47,7 +47,7 @@ The example show fetch remove account_number field from search results.
 
 PPL query::
 
-    od> source=accounts | fields account_number, firstname, lastname | fields - account_number ;
+    os> source=accounts | fields account_number, firstname, lastname | fields - account_number ;
     fetched rows / total rows = 4/4
     +-------------+------------+
     | firstname   | lastname   |

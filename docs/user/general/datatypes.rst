@@ -113,7 +113,7 @@ The type of a null literal is special and different from any existing one. In th
 
 Here are examples for NULL literal and expressions with NULL literal involved::
 
-    od> SELECT NULL, NULL = NULL, 1 + NULL, LENGTH(NULL);
+    os> SELECT NULL, NULL = NULL, 1 + NULL, LENGTH(NULL);
     fetched rows / total rows = 1/1
     +--------+---------------+------------+----------------+
     | NULL   | NULL = NULL   | 1 + NULL   | LENGTH(NULL)   |
@@ -239,7 +239,7 @@ String Data Types
 
 A string is a sequence of characters enclosed in either single or double quotes. For example, both 'text' and "text" will be treated as string literal. To use quote characters in a string literal, you can include double quotes within single quoted string or single quotes within double quoted string::
 
-    od> SELECT 'hello', "world", '"hello"', "'world'"
+    os> SELECT 'hello', "world", '"hello"', "'world'"
     fetched rows / total rows = 1/1
     +-----------+-----------+-------------+-------------+
     | 'hello'   | "world"   | '"hello"'   | "'world'"   |

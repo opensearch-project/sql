@@ -32,7 +32,7 @@ Identifier
 
 The group by expression could be identifier::
 
-    od> SELECT gender, sum(age) FROM accounts GROUP BY gender;
+    os> SELECT gender, sum(age) FROM accounts GROUP BY gender;
     fetched rows / total rows = 2/2
     +----------+------------+
     | gender   | sum(age)   |
@@ -47,7 +47,7 @@ Ordinal
 
 The group by expression could be ordinal::
 
-    od> SELECT gender, sum(age) FROM accounts GROUP BY 1;
+    os> SELECT gender, sum(age) FROM accounts GROUP BY 1;
     fetched rows / total rows = 2/2
     +----------+------------+
     | gender   | sum(age)   |
@@ -62,7 +62,7 @@ Expression
 
 The group by expression could be expression::
 
-    od> SELECT abs(account_number), sum(age) FROM accounts GROUP BY abs(account_number);
+    os> SELECT abs(account_number), sum(age) FROM accounts GROUP BY abs(account_number);
     fetched rows / total rows = 4/4
     +-----------------------+------------+
     | abs(account_number)   | sum(age)   |
@@ -89,7 +89,7 @@ Aggregation in Select
 
 The aggregation could be used select::
 
-    od> SELECT gender, sum(age) FROM accounts GROUP BY gender;
+    os> SELECT gender, sum(age) FROM accounts GROUP BY gender;
     fetched rows / total rows = 2/2
     +----------+------------+
     | gender   | sum(age)   |
@@ -103,7 +103,7 @@ Expression over Aggregation
 
 The aggregation could be used as arguments of expression::
 
-    od> SELECT gender, sum(age) * 2 as sum2 FROM accounts GROUP BY gender;
+    os> SELECT gender, sum(age) * 2 as sum2 FROM accounts GROUP BY gender;
     fetched rows / total rows = 2/2
     +----------+--------+
     | gender   | sum2   |
@@ -117,7 +117,7 @@ Expression as argument of Aggregation
 
 The aggregation could has expression as arguments::
 
-    od> SELECT gender, sum(age * 2) as sum2 FROM accounts GROUP BY gender;
+    os> SELECT gender, sum(age * 2) as sum2 FROM accounts GROUP BY gender;
     fetched rows / total rows = 2/2
     +----------+--------+
     | gender   | sum2   |
@@ -153,7 +153,7 @@ Aggregate expressions or its alias defined in ``SELECT`` clause can be used in `
 
 Here is an example for typical use of ``HAVING`` clause::
 
-    od> SELECT
+    os> SELECT
     ...  gender, sum(age)
     ... FROM accounts
     ... GROUP BY gender
@@ -167,7 +167,7 @@ Here is an example for typical use of ``HAVING`` clause::
 
 Here is another example for using alias in ``HAVING`` condition. Note that if an identifier is ambiguous, for example present both as a select alias and an index field, preference is alias. This means the identifier will be replaced by expression aliased in ``SELECT`` clause::
 
-    od> SELECT
+    os> SELECT
     ...  gender, sum(age) AS s
     ... FROM accounts
     ... GROUP BY gender
@@ -184,7 +184,7 @@ HAVING without GROUP BY
 
 Additionally, a ``HAVING`` clause can work without ``GROUP BY`` clause. This is useful because aggregation is not allowed to be present in ``WHERE`` clause::
 
-    od> SELECT
+    os> SELECT
     ...  'Total of age > 100'
     ... FROM accounts
     ... HAVING sum(age) > 100;
@@ -209,7 +209,7 @@ FILTER with GROUP BY
 
 The group by aggregation with ``FILTER`` clause can set different conditions for each aggregation bucket. Here is an example to use ``FILTER`` in group by aggregation::
 
-    od> SELECT avg(age) FILTER(WHERE balance > 10000) AS filtered, gender FROM accounts GROUP BY gender
+    os> SELECT avg(age) FILTER(WHERE balance > 10000) AS filtered, gender FROM accounts GROUP BY gender
     fetched rows / total rows = 2/2
     +------------+----------+
     | filtered   | gender   |
@@ -223,7 +223,7 @@ FILTER without GROUP BY
 
 The ``FILTER`` clause can be used in aggregation functions without GROUP BY as well. For example::
 
-    od> SELECT
+    os> SELECT
     ...   count(*) AS unfiltered,
     ...   count(*) FILTER(WHERE age > 34) AS filtered
     ... FROM accounts

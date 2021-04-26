@@ -102,7 +102,7 @@ class OpenSearchConnection:
 
     def is_sql_plugin_installed(self, opensearch_client):
         self.plugins = opensearch_client.cat.plugins(params={"s": "component", "v": "true"})
-        sql_plugin_name_list = ["opendistro-sql", "opendistro_sql", "opensearch-sql"]
+        sql_plugin_name_list = ["opensearch-sql"]
         return any(x in self.plugins for x in sql_plugin_name_list)
 
     def set_connection(self, is_reconnect=False):
@@ -172,14 +172,14 @@ class OpenSearchConnection:
         try:
             if self.query_language == "sql":
                 data = self.client.transport.perform_request(
-                    url="/_opendistro/_sql/_explain" if explain else "/_opendistro/_sql/",
+                    url="/_opensearch/_sql/_explain" if explain else "/_opensearch/_sql/",
                     method="POST",
                     params=None if explain else {"format": output_format},
                     body={"query": final_query},
                 )
             else:
                 data = self.client.transport.perform_request(
-                    url="/_opendistro/_ppl/_explain" if explain else "/_opendistro/_ppl/",
+                    url="/_opensearch/_ppl/_explain" if explain else "/_opensearch/_ppl/",
                     method="POST",
                     params=None if explain else {"format": output_format},
                     body={"query": final_query},

@@ -21,7 +21,7 @@ Single-line Comments
 
 A single-line comment starts with either ``#`` or ``--``. All characters in the sequence to the end of the line are commented::
 
-    od> #comments
+    os> #comments
     ... SELECT
     ... -- comments
     ... 123; -- comments
@@ -40,7 +40,7 @@ Block Comments
 
 A block comment is enclosed within ``/*`` and ``*/`` across one or multiple lines. Nested comments are not supported::
 
-    od> /*
+    os> /*
     ...  comment1
     ...  comment2
     ... */

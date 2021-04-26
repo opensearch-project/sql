@@ -70,7 +70,7 @@ def load_data(test_executor, doc):
 
 def get_connection():
     test_es_connection = OpenSearchConnection(endpoint=ENDPOINT)
-    test_es_connection.set_connection()
+    test_es_connection.set_connection(is_reconnect=True)
 
     return test_es_connection
 

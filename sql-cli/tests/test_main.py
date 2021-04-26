@@ -43,7 +43,21 @@ class TestMain:
         load_data(connection, doc)
 
         err_message = "Can not connect to endpoint %s" % INVALID_ENDPOINT
-        expected_output = {"from": 0, "size": 200}
+        expected_output = {
+            "root": {
+                "name": "ProjectOperator",
+                "description": {"fields": "[a]"},
+                "children": [
+                    {
+                        "name": "OpenSearchIndexScan",
+                        "description": {
+                            "request": 'OpenSearchQueryRequest(indexName=opensearchsql_cli_test, sourceBuilder={"from":0,"size":200,"timeout":"1m","_source":{"includes":["a"],"excludes":[]}}, searchDone=false)'
+                        },
+                        "children": [],
+                    }
+                ],
+            }
+        }
         expected_tabular_output = dedent(
             """\
             fetched rows / total rows = 1/1
@@ -54,7 +68,9 @@ class TestMain:
             +-----+"""
         )
 
-        with mock.patch("src.opensearch_sql_cli.main.click.echo") as mock_echo, mock.patch("src.opensearch_sql_cli.main.click.secho") as mock_secho:
+        with mock.patch("src.opensearch_sql_cli.main.click.echo") as mock_echo, mock.patch(
+            "src.opensearch_sql_cli.main.click.secho"
+        ) as mock_secho:
             runner = CliRunner()
 
             # test -q -e

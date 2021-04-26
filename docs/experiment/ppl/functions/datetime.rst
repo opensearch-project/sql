@@ -30,7 +30,7 @@ Synonyms: `DATE_ADD`_
 
 Example::
 
-    od> source=people | eval `ADDDATE(DATE('2020-08-26'), INTERVAL 1 HOUR)` = ADDDATE(DATE('2020-08-26'), INTERVAL 1 HOUR), `ADDDATE(DATE('2020-08-26'), 1)` = ADDDATE(DATE('2020-08-26'), 1), `ADDDATE(TIMESTAMP('2020-08-26 01:01:01'), 1)` = ADDDATE(TIMESTAMP('2020-08-26 01:01:01'), 1) | fields `ADDDATE(DATE('2020-08-26'), INTERVAL 1 HOUR)`, `ADDDATE(DATE('2020-08-26'), 1)`, `ADDDATE(TIMESTAMP('2020-08-26 01:01:01'), 1)`
+    os> source=people | eval `ADDDATE(DATE('2020-08-26'), INTERVAL 1 HOUR)` = ADDDATE(DATE('2020-08-26'), INTERVAL 1 HOUR), `ADDDATE(DATE('2020-08-26'), 1)` = ADDDATE(DATE('2020-08-26'), 1), `ADDDATE(TIMESTAMP('2020-08-26 01:01:01'), 1)` = ADDDATE(TIMESTAMP('2020-08-26 01:01:01'), 1) | fields `ADDDATE(DATE('2020-08-26'), INTERVAL 1 HOUR)`, `ADDDATE(DATE('2020-08-26'), 1)`, `ADDDATE(TIMESTAMP('2020-08-26 01:01:01'), 1)`
     fetched rows / total rows = 1/1
     +------------------------------------------------+----------------------------------+------------------------------------------------+
     | ADDDATE(DATE('2020-08-26'), INTERVAL 1 HOUR)   | ADDDATE(DATE('2020-08-26'), 1)   | ADDDATE(TIMESTAMP('2020-08-26 01:01:01'), 1)   |
@@ -84,7 +84,7 @@ Synonyms: `ADDDATE`_
 
 Example::
 
-    od> source=people | eval `DATE_ADD(DATE('2020-08-26'), INTERVAL 1 HOUR)` = DATE_ADD(DATE('2020-08-26'), INTERVAL 1 HOUR), `DATE_ADD(DATE('2020-08-26'), 1)` = DATE_ADD(DATE('2020-08-26'), 1), `DATE_ADD(TIMESTAMP('2020-08-26 01:01:01'), 1)` = DATE_ADD(TIMESTAMP('2020-08-26 01:01:01'), 1) | fields `DATE_ADD(DATE('2020-08-26'), INTERVAL 1 HOUR)`, `DATE_ADD(DATE('2020-08-26'), 1)`, `DATE_ADD(TIMESTAMP('2020-08-26 01:01:01'), 1)`
+    os> source=people | eval `DATE_ADD(DATE('2020-08-26'), INTERVAL 1 HOUR)` = DATE_ADD(DATE('2020-08-26'), INTERVAL 1 HOUR), `DATE_ADD(DATE('2020-08-26'), 1)` = DATE_ADD(DATE('2020-08-26'), 1), `DATE_ADD(TIMESTAMP('2020-08-26 01:01:01'), 1)` = DATE_ADD(TIMESTAMP('2020-08-26 01:01:01'), 1) | fields `DATE_ADD(DATE('2020-08-26'), INTERVAL 1 HOUR)`, `DATE_ADD(DATE('2020-08-26'), 1)`, `DATE_ADD(TIMESTAMP('2020-08-26 01:01:01'), 1)`
     fetched rows / total rows = 1/1
     +-------------------------------------------------+-----------------------------------+-------------------------------------------------+
     | DATE_ADD(DATE('2020-08-26'), INTERVAL 1 HOUR)   | DATE_ADD(DATE('2020-08-26'), 1)   | DATE_ADD(TIMESTAMP('2020-08-26 01:01:01'), 1)   |
@@ -211,7 +211,7 @@ Synonyms: `SUBDATE`_
 
 Example::
 
-    od> source=people | eval `DATE_SUB(DATE('2008-01-02'), INTERVAL 31 DAY)` = DATE_SUB(DATE('2008-01-02'), INTERVAL 31 DAY), `DATE_SUB(DATE('2020-08-26'), 1)` = DATE_SUB(DATE('2020-08-26'), 1), `DATE_SUB(TIMESTAMP('2020-08-26 01:01:01'), 1)` = DATE_SUB(TIMESTAMP('2020-08-26 01:01:01'), 1) | fields `DATE_SUB(DATE('2008-01-02'), INTERVAL 31 DAY)`, `DATE_SUB(DATE('2020-08-26'), 1)`, `DATE_SUB(TIMESTAMP('2020-08-26 01:01:01'), 1)`
+    os> source=people | eval `DATE_SUB(DATE('2008-01-02'), INTERVAL 31 DAY)` = DATE_SUB(DATE('2008-01-02'), INTERVAL 31 DAY), `DATE_SUB(DATE('2020-08-26'), 1)` = DATE_SUB(DATE('2020-08-26'), 1), `DATE_SUB(TIMESTAMP('2020-08-26 01:01:01'), 1)` = DATE_SUB(TIMESTAMP('2020-08-26 01:01:01'), 1) | fields `DATE_SUB(DATE('2008-01-02'), INTERVAL 31 DAY)`, `DATE_SUB(DATE('2020-08-26'), 1)`, `DATE_SUB(TIMESTAMP('2020-08-26 01:01:01'), 1)`
     fetched rows / total rows = 1/1
     +-------------------------------------------------+-----------------------------------+-------------------------------------------------+
     | DATE_SUB(DATE('2008-01-02'), INTERVAL 31 DAY)   | DATE_SUB(DATE('2020-08-26'), 1)   | DATE_SUB(TIMESTAMP('2020-08-26 01:01:01'), 1)   |
@@ -236,7 +236,7 @@ Synonyms: DAYOFMONTH
 
 Example::
 
-    od> source=people | eval `DAY(DATE('2020-08-26'))` = DAY(DATE('2020-08-26')) | fields `DAY(DATE('2020-08-26'))`
+    os> source=people | eval `DAY(DATE('2020-08-26'))` = DAY(DATE('2020-08-26')) | fields `DAY(DATE('2020-08-26'))`
     fetched rows / total rows = 1/1
     +---------------------------+
     | DAY(DATE('2020-08-26'))   |
@@ -259,7 +259,7 @@ Return type: STRING
 
 Example::
 
-    od> source=people | eval `DAYNAME(DATE('2020-08-26'))` = DAYNAME(DATE('2020-08-26')) | fields `DAYNAME(DATE('2020-08-26'))`
+    os> source=people | eval `DAYNAME(DATE('2020-08-26'))` = DAYNAME(DATE('2020-08-26')) | fields `DAYNAME(DATE('2020-08-26'))`
     fetched rows / total rows = 1/1
     +-------------------------------+
     | DAYNAME(DATE('2020-08-26'))   |
@@ -284,7 +284,7 @@ Synonyms: DAY
 
 Example::
 
-    od> source=people | eval `DAYOFMONTH(DATE('2020-08-26'))` = DAYOFMONTH(DATE('2020-08-26')) | fields `DAYOFMONTH(DATE('2020-08-26'))`
+    os> source=people | eval `DAYOFMONTH(DATE('2020-08-26'))` = DAYOFMONTH(DATE('2020-08-26')) | fields `DAYOFMONTH(DATE('2020-08-26'))`
     fetched rows / total rows = 1/1
     +----------------------------------+
     | DAYOFMONTH(DATE('2020-08-26'))   |
@@ -307,7 +307,7 @@ Return type: INTEGER
 
 Example::
 
-    od> source=people | eval `DAYOFWEEK(DATE('2020-08-26'))` = DAYOFWEEK(DATE('2020-08-26')) | fields `DAYOFWEEK(DATE('2020-08-26'))`
+    os> source=people | eval `DAYOFWEEK(DATE('2020-08-26'))` = DAYOFWEEK(DATE('2020-08-26')) | fields `DAYOFWEEK(DATE('2020-08-26'))`
     fetched rows / total rows = 1/1
     +---------------------------------+
     | DAYOFWEEK(DATE('2020-08-26'))   |
@@ -331,7 +331,7 @@ Return type: INTEGER
 
 Example::
 
-    od> source=people | eval `DAYOFYEAR(DATE('2020-08-26'))` = DAYOFYEAR(DATE('2020-08-26')) | fields `DAYOFYEAR(DATE('2020-08-26'))`
+    os> source=people | eval `DAYOFYEAR(DATE('2020-08-26'))` = DAYOFYEAR(DATE('2020-08-26')) | fields `DAYOFYEAR(DATE('2020-08-26'))`
     fetched rows / total rows = 1/1
     +---------------------------------+
     | DAYOFYEAR(DATE('2020-08-26'))   |
@@ -354,7 +354,7 @@ Return type: DATE
 
 Example::
 
-    od> source=people | eval `FROM_DAYS(733687)` = FROM_DAYS(733687) | fields `FROM_DAYS(733687)`
+    os> source=people | eval `FROM_DAYS(733687)` = FROM_DAYS(733687) | fields `FROM_DAYS(733687)`
     fetched rows / total rows = 1/1
     +---------------------+
     | FROM_DAYS(733687)   |
@@ -377,7 +377,7 @@ Return type: INTEGER
 
 Example::
 
-    od> source=people | eval `HOUR(TIME('01:02:03'))` = HOUR(TIME('01:02:03')) | fields `HOUR(TIME('01:02:03'))`
+    os> source=people | eval `HOUR(TIME('01:02:03'))` = HOUR(TIME('01:02:03')) | fields `HOUR(TIME('01:02:03'))`
     fetched rows / total rows = 1/1
     +--------------------------+
     | HOUR(TIME('01:02:03'))   |
@@ -411,7 +411,7 @@ Return type: INTEGER
 
 Example::
 
-    od> source=people | eval `MICROSECOND(TIME('01:02:03.123456'))` = MICROSECOND(TIME('01:02:03.123456')) | fields `MICROSECOND(TIME('01:02:03.123456'))`
+    os> source=people | eval `MICROSECOND(TIME('01:02:03.123456'))` = MICROSECOND(TIME('01:02:03.123456')) | fields `MICROSECOND(TIME('01:02:03.123456'))`
     fetched rows / total rows = 1/1
     +----------------------------------------+
     | MICROSECOND(TIME('01:02:03.123456'))   |
@@ -434,7 +434,7 @@ Return type: INTEGER
 
 Example::
 
-    od> source=people | eval `MINUTE(TIME('01:02:03'))` =  MINUTE(TIME('01:02:03')) | fields `MINUTE(TIME('01:02:03'))`
+    os> source=people | eval `MINUTE(TIME('01:02:03'))` =  MINUTE(TIME('01:02:03')) | fields `MINUTE(TIME('01:02:03'))`
     fetched rows / total rows = 1/1
     +----------------------------+
     | MINUTE(TIME('01:02:03'))   |
@@ -457,7 +457,7 @@ Return type: INTEGER
 
 Example::
 
-    od> source=people | eval `MONTH(DATE('2020-08-26'))` =  MONTH(DATE('2020-08-26')) | fields `MONTH(DATE('2020-08-26'))`
+    os> source=people | eval `MONTH(DATE('2020-08-26'))` =  MONTH(DATE('2020-08-26')) | fields `MONTH(DATE('2020-08-26'))`
     fetched rows / total rows = 1/1
     +-----------------------------+
     | MONTH(DATE('2020-08-26'))   |
@@ -480,7 +480,7 @@ Return type: STRING
 
 Example::
 
-    od> source=people | eval `MONTHNAME(DATE('2020-08-26'))` = MONTHNAME(DATE('2020-08-26')) | fields `MONTHNAME(DATE('2020-08-26'))`
+    os> source=people | eval `MONTHNAME(DATE('2020-08-26'))` = MONTHNAME(DATE('2020-08-26')) | fields `MONTHNAME(DATE('2020-08-26'))`
     fetched rows / total rows = 1/1
     +---------------------------------+
     | MONTHNAME(DATE('2020-08-26'))   |
@@ -514,7 +514,7 @@ Return type: INTEGER
 
 Example::
 
-    od> source=people | eval `QUARTER(DATE('2020-08-26'))` = QUARTER(DATE('2020-08-26')) | fields `QUARTER(DATE('2020-08-26'))`
+    os> source=people | eval `QUARTER(DATE('2020-08-26'))` = QUARTER(DATE('2020-08-26')) | fields `QUARTER(DATE('2020-08-26'))`
     fetched rows / total rows = 1/1
     +-------------------------------+
     | QUARTER(DATE('2020-08-26'))   |
@@ -537,7 +537,7 @@ Return type: INTEGER
 
 Example::
 
-    od> source=people | eval `SECOND(TIME('01:02:03'))` = SECOND(TIME('01:02:03')) | fields `SECOND(TIME('01:02:03'))`
+    os> source=people | eval `SECOND(TIME('01:02:03'))` = SECOND(TIME('01:02:03')) | fields `SECOND(TIME('01:02:03'))`
     fetched rows / total rows = 1/1
     +----------------------------+
     | SECOND(TIME('01:02:03'))   |
@@ -568,7 +568,7 @@ Synonyms: `DATE_SUB`_
 
 Example::
 
-    od> source=people | eval `SUBDATE(DATE('2008-01-02'), INTERVAL 31 DAY)` = SUBDATE(DATE('2008-01-02'), INTERVAL 31 DAY), `SUBDATE(DATE('2020-08-26'), 1)` = SUBDATE(DATE('2020-08-26'), 1), `SUBDATE(TIMESTAMP('2020-08-26 01:01:01'), 1)` = SUBDATE(TIMESTAMP('2020-08-26 01:01:01'), 1) | fields `SUBDATE(DATE('2008-01-02'), INTERVAL 31 DAY)`, `SUBDATE(DATE('2020-08-26'), 1)`, `SUBDATE(TIMESTAMP('2020-08-26 01:01:01'), 1)`
+    os> source=people | eval `SUBDATE(DATE('2008-01-02'), INTERVAL 31 DAY)` = SUBDATE(DATE('2008-01-02'), INTERVAL 31 DAY), `SUBDATE(DATE('2020-08-26'), 1)` = SUBDATE(DATE('2020-08-26'), 1), `SUBDATE(TIMESTAMP('2020-08-26 01:01:01'), 1)` = SUBDATE(TIMESTAMP('2020-08-26 01:01:01'), 1) | fields `SUBDATE(DATE('2008-01-02'), INTERVAL 31 DAY)`, `SUBDATE(DATE('2020-08-26'), 1)`, `SUBDATE(TIMESTAMP('2020-08-26 01:01:01'), 1)`
     fetched rows / total rows = 1/1
     +------------------------------------------------+----------------------------------+------------------------------------------------+
     | SUBDATE(DATE('2008-01-02'), INTERVAL 31 DAY)   | SUBDATE(DATE('2020-08-26'), 1)   | SUBDATE(TIMESTAMP('2020-08-26 01:01:01'), 1)   |
@@ -614,7 +614,7 @@ Return type: LONG
 
 Example::
 
-    od> source=people | eval `TIME_TO_SEC(TIME('22:23:00'))` = TIME_TO_SEC(TIME('22:23:00')) | fields `TIME_TO_SEC(TIME('22:23:00'))`
+    os> source=people | eval `TIME_TO_SEC(TIME('22:23:00'))` = TIME_TO_SEC(TIME('22:23:00')) | fields `TIME_TO_SEC(TIME('22:23:00'))`
     fetched rows / total rows = 1/1
     +---------------------------------+
     | TIME_TO_SEC(TIME('22:23:00'))   |
@@ -660,7 +660,7 @@ Return type: LONG
 
 Example::
 
-    od> source=people | eval `TO_DAYS(DATE('2008-10-07'))` = TO_DAYS(DATE('2008-10-07')) | fields `TO_DAYS(DATE('2008-10-07'))`
+    os> source=people | eval `TO_DAYS(DATE('2008-10-07'))` = TO_DAYS(DATE('2008-10-07')) | fields `TO_DAYS(DATE('2008-10-07'))`
     fetched rows / total rows = 1/1
     +-------------------------------+
     | TO_DAYS(DATE('2008-10-07'))   |
@@ -747,7 +747,7 @@ Return type: INTEGER
 
 Example::
 
-    od> source=people | eval `YEAR(DATE('2020-08-26'))` = YEAR(DATE('2020-08-26')) | fields `YEAR(DATE('2020-08-26'))`
+    os> source=people | eval `YEAR(DATE('2020-08-26'))` = YEAR(DATE('2020-08-26')) | fields `YEAR(DATE('2020-08-26'))`
     fetched rows / total rows = 1/1
     +----------------------------+
     | YEAR(DATE('2020-08-26'))   |

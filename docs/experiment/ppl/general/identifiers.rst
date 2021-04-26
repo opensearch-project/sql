@@ -37,7 +37,7 @@ Examples
 
 Here are examples for using index pattern directly without quotes::
 
-    od> source=accounts | fields account_number, firstname, lastname;
+    os> source=accounts | fields account_number, firstname, lastname;
     fetched rows / total rows = 4/4
     +------------------+-------------+------------+
     | account_number   | firstname   | lastname   |
@@ -71,7 +71,7 @@ Examples
 
 Here are examples for quoting an index name by back ticks::
 
-    od> source=`accounts` | fields `account_number`;
+    os> source=`accounts` | fields `account_number`;
     fetched rows / total rows = 4/4
     +------------------+
     | account_number   |

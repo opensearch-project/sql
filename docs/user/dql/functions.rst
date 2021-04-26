@@ -47,7 +47,7 @@ Note1: the conversion follow the JDK specification.
 
 Cast to string example::
 
-    od> SELECT cast(true as string) as cbool, cast(1 as string) as cint, cast(DATE '2012-08-07' as string) as cdate
+    os> SELECT cast(true as string) as cbool, cast(1 as string) as cint, cast(DATE '2012-08-07' as string) as cdate
     fetched rows / total rows = 1/1
     +---------+--------+------------+
     | cbool   | cint   | cdate      |
@@ -57,7 +57,7 @@ Cast to string example::
 
 Cast to number example::
 
-    od> SELECT cast(true as int) as cbool, cast('1' as integer) as cstring
+    os> SELECT cast(true as int) as cbool, cast('1' as integer) as cstring
     fetched rows / total rows = 1/1
     +---------+-----------+
     | cbool   | cstring   |
@@ -67,7 +67,7 @@ Cast to number example::
 
 Cast to date example::
 
-    od> SELECT cast('2012-08-07' as date) as cdate, cast('01:01:01' as time) as ctime, cast('2012-08-07 01:01:01' as timestamp) as ctimestamp
+    os> SELECT cast('2012-08-07' as date) as cdate, cast('01:01:01' as time) as ctime, cast('2012-08-07 01:01:01' as timestamp) as ctimestamp
     fetched rows / total rows = 1/1
     +------------+----------+---------------------+
     | cdate      | ctime    | ctimestamp          |
@@ -77,7 +77,7 @@ Cast to date example::
 
 Cast function can be chained::
 
-    od> SELECT cast(cast(true as string) as boolean) as cbool
+    os> SELECT cast(cast(true as string) as boolean) as cbool
     fetched rows / total rows = 1/1
     +---------+
     | cbool   |
@@ -114,7 +114,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> SELECT ACOS(0)
+    os> SELECT ACOS(0)
     fetched rows / total rows = 1/1
     +--------------------+
     | ACOS(0)            |
@@ -148,7 +148,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> SELECT ASIN(0)
+    os> SELECT ASIN(0)
     fetched rows / total rows = 1/1
     +-----------+
     | ASIN(0)   |
@@ -171,7 +171,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> SELECT ATAN(2), ATAN(2, 3)
+    os> SELECT ATAN(2), ATAN(2, 3)
     fetched rows / total rows = 1/1
     +--------------------+--------------------+
     | ATAN(2)            | ATAN(2, 3)         |
@@ -194,7 +194,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> SELECT ATAN2(2, 3)
+    os> SELECT ATAN2(2, 3)
     fetched rows / total rows = 1/1
     +--------------------+
     | ATAN2(2, 3)        |
@@ -239,7 +239,7 @@ Return type: STRING
 
 Example::
 
-    od> SELECT CONV('12', 10, 16), CONV('2C', 16, 10), CONV(12, 10, 2), CONV(1111, 2, 10)
+    os> SELECT CONV('12', 10, 16), CONV('2C', 16, 10), CONV(12, 10, 2), CONV(1111, 2, 10)
     fetched rows / total rows = 1/1
     +----------------------+----------------------+-------------------+---------------------+
     | CONV('12', 10, 16)   | CONV('2C', 16, 10)   | CONV(12, 10, 2)   | CONV(1111, 2, 10)   |
@@ -261,7 +261,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> SELECT COS(0)
+    os> SELECT COS(0)
     fetched rows / total rows = 1/1
     +----------+
     | COS(0)   |
@@ -295,7 +295,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> SELECT COT(1)
+    os> SELECT COT(1)
     fetched rows / total rows = 1/1
     +--------------------+
     | COT(1)             |
@@ -318,7 +318,7 @@ Return type: LONG
 
 Example::
 
-    od> SELECT CRC32('MySQL')
+    os> SELECT CRC32('MySQL')
     fetched rows / total rows = 1/1
     +------------------+
     | CRC32('MySQL')   |
@@ -341,7 +341,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> SELECT DEGREES(1.57)
+    os> SELECT DEGREES(1.57)
     fetched rows / total rows  = 1/1
     +-------------------+
     | DEGREES(1.57)     |
@@ -373,7 +373,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> SELECT E()
+    os> SELECT E()
     fetched rows / total rows = 1/1
     +-------------------+
     | E()               |
@@ -474,7 +474,7 @@ Return type: Wider type between types of n and m if m is nonzero value. If m equ
 
 Example::
 
-    od> SELECT MOD(3, 2), MOD(3.1, 2)
+    os> SELECT MOD(3, 2), MOD(3.1, 2)
     fetched rows / total rows = 1/1
     +-------------+---------------+
     | MOD(3, 2)   | MOD(3.1, 2)   |
@@ -505,7 +505,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> SELECT PI()
+    os> SELECT PI()
     fetched rows / total rows = 1/1
     +-------------------+
     | PI()              |
@@ -530,7 +530,7 @@ Synonyms: `POWER`_
 
 Example::
 
-    od> SELECT POW(3, 2), POW(-3, 2), POW(3, -2)
+    os> SELECT POW(3, 2), POW(-3, 2), POW(3, -2)
     fetched rows / total rows = 1/1
     +-------------+--------------+--------------------+
     | POW(3, 2)   | POW(-3, 2)   | POW(3, -2)         |
@@ -555,7 +555,7 @@ Synonyms: `POW`_
 
 Example::
 
-    od> SELECT POWER(3, 2), POWER(-3, 2), POWER(3, -2)
+    os> SELECT POWER(3, 2), POWER(-3, 2), POWER(3, -2)
     fetched rows / total rows = 1/1
     +---------------+----------------+--------------------+
     | POWER(3, 2)   | POWER(-3, 2)   | POWER(3, -2)       |
@@ -578,7 +578,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> SELECT RADIANS(90)
+    os> SELECT RADIANS(90)
     fetched rows / total rows  = 1/1
     +--------------------+
     | RADIANS(90)        |
@@ -601,7 +601,7 @@ Return type: FLOAT
 
 Example::
 
-    od> SELECT RAND(3)
+    os> SELECT RAND(3)
     fetched rows / total rows = 1/1
     +------------+
     | RAND(3)    |
@@ -638,7 +638,7 @@ Return type map:
 
 Example::
 
-    od> SELECT ROUND(12.34), ROUND(12.34, 1), ROUND(12.34, -1), ROUND(12, 1)
+    os> SELECT ROUND(12.34), ROUND(12.34, 1), ROUND(12.34, -1), ROUND(12, 1)
     fetched rows / total rows = 1/1
     +----------------+-------------------+--------------------+----------------+
     | ROUND(12.34)   | ROUND(12.34, 1)   | ROUND(12.34, -1)   | ROUND(12, 1)   |
@@ -661,7 +661,7 @@ Return type: INTEGER
 
 Example::
 
-    od> SELECT SIGN(1), SIGN(0), SIGN(-1.1)
+    os> SELECT SIGN(1), SIGN(0), SIGN(-1.1)
     fetched rows / total rows = 1/1
     +-----------+-----------+--------------+
     | SIGN(1)   | SIGN(0)   | SIGN(-1.1)   |
@@ -695,7 +695,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> SELECT SIN(0)
+    os> SELECT SIN(0)
     fetched rows / total rows = 1/1
     +----------+
     | SIN(0)   |
@@ -732,7 +732,7 @@ Return type map:
 
 Example::
 
-    od> SELECT SQRT(4), SQRT(4.41)
+    os> SELECT SQRT(4), SQRT(4.41)
     fetched rows / total rows = 1/1
     +-----------+--------------+
     | SQRT(4)   | SQRT(4.41)   |
@@ -755,7 +755,7 @@ Return type: INTEGER
 
 Example::
 
-    od> SELECT STRCMP('hello', 'world'), STRCMP('hello', 'hello')
+    os> SELECT STRCMP('hello', 'world'), STRCMP('hello', 'hello')
     fetched rows / total rows = 1/1
     +----------------------------+----------------------------+
     | STRCMP('hello', 'world')   | STRCMP('hello', 'hello')   |
@@ -790,7 +790,7 @@ Return type: DOUBLE
 
 Example::
 
-    od> SELECT TAN(0)
+    os> SELECT TAN(0)
     fetched rows / total rows = 1/1
     +----------+
     | TAN(0)   |
@@ -850,7 +850,7 @@ Synonyms: `DATE_ADD`_
 
 Example::
 
-    od> SELECT ADDDATE(DATE('2020-08-26'), INTERVAL 1 HOUR), ADDDATE(DATE('2020-08-26'), 1), ADDDATE(TIMESTAMP('2020-08-26 01:01:01'), 1)
+    os> SELECT ADDDATE(DATE('2020-08-26'), INTERVAL 1 HOUR), ADDDATE(DATE('2020-08-26'), 1), ADDDATE(TIMESTAMP('2020-08-26 01:01:01'), 1)
     fetched rows / total rows = 1/1
     +------------------------------------------------+----------------------------------+------------------------------------------------+
     | ADDDATE(DATE('2020-08-26'), INTERVAL 1 HOUR)   | ADDDATE(DATE('2020-08-26'), 1)   | ADDDATE(TIMESTAMP('2020-08-26 01:01:01'), 1)   |
@@ -915,7 +915,7 @@ Synonyms: `ADDDATE`_
 
 Example::
 
-    od> SELECT DATE_ADD(DATE('2020-08-26'), INTERVAL 1 HOUR), DATE_ADD(DATE('2020-08-26'), 1), DATE_ADD(TIMESTAMP('2020-08-26 01:01:01'), 1)
+    os> SELECT DATE_ADD(DATE('2020-08-26'), INTERVAL 1 HOUR), DATE_ADD(DATE('2020-08-26'), 1), DATE_ADD(TIMESTAMP('2020-08-26 01:01:01'), 1)
     fetched rows / total rows = 1/1
     +-------------------------------------------------+-----------------------------------+-------------------------------------------------+
     | DATE_ADD(DATE('2020-08-26'), INTERVAL 1 HOUR)   | DATE_ADD(DATE('2020-08-26'), 1)   | DATE_ADD(TIMESTAMP('2020-08-26 01:01:01'), 1)   |
@@ -1042,7 +1042,7 @@ Synonyms: `SUBDATE`_
 
 Example::
 
-    od> SELECT DATE_SUB(DATE('2008-01-02'), INTERVAL 31 DAY), DATE_SUB(DATE('2020-08-26'), 1), DATE_SUB(TIMESTAMP('2020-08-26 01:01:01'), 1)
+    os> SELECT DATE_SUB(DATE('2008-01-02'), INTERVAL 31 DAY), DATE_SUB(DATE('2020-08-26'), 1), DATE_SUB(TIMESTAMP('2020-08-26 01:01:01'), 1)
     fetched rows / total rows = 1/1
     +-------------------------------------------------+-----------------------------------+-------------------------------------------------+
     | DATE_SUB(DATE('2008-01-02'), INTERVAL 31 DAY)   | DATE_SUB(DATE('2020-08-26'), 1)   | DATE_SUB(TIMESTAMP('2020-08-26 01:01:01'), 1)   |
@@ -1067,7 +1067,7 @@ Synonyms: DAYOFMONTH
 
 Example::
 
-    od> SELECT DAY(DATE('2020-08-26'))
+    os> SELECT DAY(DATE('2020-08-26'))
     fetched rows / total rows = 1/1
     +---------------------------+
     | DAY(DATE('2020-08-26'))   |
@@ -1090,7 +1090,7 @@ Return type: STRING
 
 Example::
 
-    od> SELECT DAYNAME(DATE('2020-08-26'))
+    os> SELECT DAYNAME(DATE('2020-08-26'))
     fetched rows / total rows = 1/1
     +-------------------------------+
     | DAYNAME(DATE('2020-08-26'))   |
@@ -1115,7 +1115,7 @@ Synonyms: DAY
 
 Example::
 
-    od> SELECT DAYOFMONTH(DATE('2020-08-26'))
+    os> SELECT DAYOFMONTH(DATE('2020-08-26'))
     fetched rows / total rows = 1/1
     +----------------------------------+
     | DAYOFMONTH(DATE('2020-08-26'))   |
@@ -1138,7 +1138,7 @@ Return type: INTEGER
 
 Example::
 
-    od> SELECT DAYOFWEEK(DATE('2020-08-26'))
+    os> SELECT DAYOFWEEK(DATE('2020-08-26'))
     fetched rows / total rows = 1/1
     +---------------------------------+
     | DAYOFWEEK(DATE('2020-08-26'))   |
@@ -1162,7 +1162,7 @@ Return type: INTEGER
 
 Example::
 
-    od> SELECT DAYOFYEAR(DATE('2020-08-26'))
+    os> SELECT DAYOFYEAR(DATE('2020-08-26'))
     fetched rows / total rows = 1/1
     +---------------------------------+
     | DAYOFYEAR(DATE('2020-08-26'))   |
@@ -1185,7 +1185,7 @@ Return type: DATE
 
 Example::
 
-    od> SELECT FROM_DAYS(733687)
+    os> SELECT FROM_DAYS(733687)
     fetched rows / total rows = 1/1
     +---------------------+
     | FROM_DAYS(733687)   |
@@ -1208,7 +1208,7 @@ Return type: INTEGER
 
 Example::
 
-    od> SELECT HOUR((TIME '01:02:03'))
+    os> SELECT HOUR((TIME '01:02:03'))
     fetched rows / total rows = 1/1
     +---------------------------+
     | HOUR((TIME '01:02:03'))   |
@@ -1242,7 +1242,7 @@ Return type: INTEGER
 
 Example::
 
-    od> SELECT MICROSECOND((TIME '01:02:03.123456'))
+    os> SELECT MICROSECOND((TIME '01:02:03.123456'))
     fetched rows / total rows = 1/1
     +-----------------------------------------+
     | MICROSECOND((TIME '01:02:03.123456'))   |
@@ -1265,7 +1265,7 @@ Return type: INTEGER
 
 Example::
 
-    od> SELECT MINUTE((TIME '01:02:03'))
+    os> SELECT MINUTE((TIME '01:02:03'))
     fetched rows / total rows = 1/1
     +-----------------------------+
     | MINUTE((TIME '01:02:03'))   |
@@ -1288,7 +1288,7 @@ Return type: INTEGER
 
 Example::
 
-    od> SELECT MONTH(DATE('2020-08-26'))
+    os> SELECT MONTH(DATE('2020-08-26'))
     fetched rows / total rows = 1/1
     +-----------------------------+
     | MONTH(DATE('2020-08-26'))   |
@@ -1311,7 +1311,7 @@ Return type: STRING
 
 Example::
 
-    od> SELECT MONTHNAME(DATE('2020-08-26'))
+    os> SELECT MONTHNAME(DATE('2020-08-26'))
     fetched rows / total rows = 1/1
     +---------------------------------+
     | MONTHNAME(DATE('2020-08-26'))   |
@@ -1345,7 +1345,7 @@ Return type: INTEGER
 
 Example::
 
-    od> SELECT QUARTER(DATE('2020-08-26'))
+    os> SELECT QUARTER(DATE('2020-08-26'))
     fetched rows / total rows = 1/1
     +-------------------------------+
     | QUARTER(DATE('2020-08-26'))   |
@@ -1368,7 +1368,7 @@ Return type: INTEGER
 
 Example::
 
-    od> SELECT SECOND((TIME '01:02:03'))
+    os> SELECT SECOND((TIME '01:02:03'))
     fetched rows / total rows = 1/1
     +-----------------------------+
     | SECOND((TIME '01:02:03'))   |
@@ -1399,7 +1399,7 @@ Synonyms: `DATE_SUB`_
 
 Example::
 
-    od> SELECT SUBDATE(DATE('2008-01-02'), INTERVAL 31 DAY), SUBDATE(DATE('2020-08-26'), 1), SUBDATE(TIMESTAMP('2020-08-26 01:01:01'), 1)
+    os> SELECT SUBDATE(DATE('2008-01-02'), INTERVAL 31 DAY), SUBDATE(DATE('2020-08-26'), 1), SUBDATE(TIMESTAMP('2020-08-26 01:01:01'), 1)
     fetched rows / total rows = 1/1
     +------------------------------------------------+----------------------------------+------------------------------------------------+
     | SUBDATE(DATE('2008-01-02'), INTERVAL 31 DAY)   | SUBDATE(DATE('2020-08-26'), 1)   | SUBDATE(TIMESTAMP('2020-08-26 01:01:01'), 1)   |
@@ -1445,7 +1445,7 @@ Return type: LONG
 
 Example::
 
-    od> SELECT TIME_TO_SEC(TIME '22:23:00')
+    os> SELECT TIME_TO_SEC(TIME '22:23:00')
     fetched rows / total rows = 1/1
     +--------------------------------+
     | TIME_TO_SEC(TIME '22:23:00')   |
@@ -1491,7 +1491,7 @@ Return type: LONG
 
 Example::
 
-    od> SELECT TO_DAYS(DATE '2008-10-07')
+    os> SELECT TO_DAYS(DATE '2008-10-07')
     fetched rows / total rows = 1/1
     +------------------------------+
     | TO_DAYS(DATE '2008-10-07')   |
@@ -1578,7 +1578,7 @@ Return type: INTEGER
 
 Example::
 
-    od> SELECT YEAR(DATE('2020-08-26'))
+    os> SELECT YEAR(DATE('2020-08-26'))
     fetched rows / total rows = 1/1
     +----------------------------+
     | YEAR(DATE('2020-08-26'))   |
@@ -1615,7 +1615,7 @@ Return type: STRING
 
 Example::
 
-    od> SELECT CONCAT('hello', 'world')
+    os> SELECT CONCAT('hello', 'world')
     fetched rows / total rows = 1/1
     +----------------------------+
     | CONCAT('hello', 'world')   |
@@ -1638,7 +1638,7 @@ Return type: STRING
 
 Example::
 
-    od> SELECT CONCAT_WS(',', 'hello', 'world')
+    os> SELECT CONCAT_WS(',', 'hello', 'world')
     fetched rows / total rows = 1/1
     +------------------------------------+
     | CONCAT_WS(',', 'hello', 'world')   |
@@ -1676,7 +1676,7 @@ Return type: INTEGER
 
 Example::
 
-    od> SELECT LENGTH('helloworld')
+    os> SELECT LENGTH('helloworld')
     fetched rows / total rows = 1/1
     +------------------------+
     | LENGTH('helloworld')   |
@@ -1711,7 +1711,7 @@ Return type: STRING
 
 Example::
 
-    od> SELECT LOWER('helloworld'), LOWER('HELLOWORLD')
+    os> SELECT LOWER('helloworld'), LOWER('HELLOWORLD')
     fetched rows / total rows = 1/1
     +-----------------------+-----------------------+
     | LOWER('helloworld')   | LOWER('HELLOWORLD')   |
@@ -1734,7 +1734,7 @@ Return type: STRING
 
 Example::
 
-    od> SELECT LTRIM('   hello'), LTRIM('hello   ')
+    os> SELECT LTRIM('   hello'), LTRIM('hello   ')
     fetched rows / total rows = 1/1
     +---------------------+---------------------+
     | LTRIM('   hello')   | LTRIM('hello   ')   |
@@ -1768,7 +1768,7 @@ Return type: STRING
 
 Example::
 
-    od> SELECT RIGHT('helloworld', 5), RIGHT('HELLOWORLD', 0)
+    os> SELECT RIGHT('helloworld', 5), RIGHT('HELLOWORLD', 0)
     fetched rows / total rows = 1/1
     +--------------------------+--------------------------+
     | RIGHT('helloworld', 5)   | RIGHT('HELLOWORLD', 0)   |
@@ -1791,7 +1791,7 @@ Return type: STRING
 
 Example::
 
-    od> SELECT RTRIM('   hello'), RTRIM('hello   ')
+    os> SELECT RTRIM('   hello'), RTRIM('hello   ')
     fetched rows / total rows = 1/1
     +---------------------+---------------------+
     | RTRIM('   hello')   | RTRIM('hello   ')   |
@@ -1816,7 +1816,7 @@ Synonyms: SUBSTR
 
 Example::
 
-    od> SELECT SUBSTRING('helloworld', 5), SUBSTRING('helloworld', 5, 3)
+    os> SELECT SUBSTRING('helloworld', 5), SUBSTRING('helloworld', 5, 3)
     fetched rows / total rows = 1/1
     +------------------------------+---------------------------------+
     | SUBSTRING('helloworld', 5)   | SUBSTRING('helloworld', 5, 3)   |
@@ -1837,7 +1837,7 @@ Return type: STRING
 
 Example::
 
-    od> SELECT TRIM('   hello'), TRIM('hello   ')
+    os> SELECT TRIM('   hello'), TRIM('hello   ')
     fetched rows / total rows = 1/1
     +--------------------+--------------------+
     | TRIM('   hello')   | TRIM('hello   ')   |
@@ -1860,7 +1860,7 @@ Return type: STRING
 
 Example::
 
-    od> SELECT UPPER('helloworld'), UPPER('HELLOWORLD')
+    os> SELECT UPPER('helloworld'), UPPER('HELLOWORLD')
     fetched rows / total rows = 1/1
     +-----------------------+-----------------------+
     | UPPER('helloworld')   | UPPER('HELLOWORLD')   |
@@ -1900,7 +1900,7 @@ Return type: Any (NOTE : if two parameters has different type, you will fail sem
 
 Example One::
 
-    od> SELECT IFNULL(123, 321), IFNULL(321, 123)
+    os> SELECT IFNULL(123, 321), IFNULL(321, 123)
     fetched rows / total rows = 1/1
     +--------------------+--------------------+
     | IFNULL(123, 321)   | IFNULL(321, 123)   |
@@ -1910,7 +1910,7 @@ Example One::
 
 Example Two::
 
-    od> SELECT IFNULL(321, 1/0), IFNULL(1/0, 123)
+    os> SELECT IFNULL(321, 1/0), IFNULL(1/0, 123)
     fetched rows / total rows = 1/1
     +--------------------+--------------------+
     | IFNULL(321, 1/0)   | IFNULL(1/0, 123)   |
@@ -1920,7 +1920,7 @@ Example Two::
 
 Example Three::
 
-    od> SELECT IFNULL(1/0, 1/0)
+    os> SELECT IFNULL(1/0, 1/0)
     fetched rows / total rows = 1/1
     +--------------------+
     | IFNULL(1/0, 1/0)   |
@@ -1947,7 +1947,7 @@ Return type: Any (NOTE : if two parametershas different type, you will fail sema
 
 Example::
 
-    od> SELECT NULLIF(123, 123), NULLIF(321, 123), NULLIF(1/0, 321), NULLIF(321, 1/0), NULLIF(1/0, 1/0)
+    os> SELECT NULLIF(123, 123), NULLIF(321, 123), NULLIF(1/0, 321), NULLIF(321, 1/0), NULLIF(1/0, 1/0)
     fetched rows / total rows = 1/1
     +--------------------+--------------------+--------------------+--------------------+--------------------+
     | NULLIF(123, 123)   | NULLIF(321, 123)   | NULLIF(1/0, 321)   | NULLIF(321, 1/0)   | NULLIF(1/0, 1/0)   |
@@ -1974,7 +1974,7 @@ Return type: boolean
 
 Example::
 
-    od> SELECT ISNULL(1/0), ISNULL(123)
+    os> SELECT ISNULL(1/0), ISNULL(123)
     fetched rows / total rows = 1/1
     +---------------+---------------+
     | ISNULL(1/0)   | ISNULL(123)   |
@@ -2000,7 +2000,7 @@ Return type: Any (NOTE : if parameters #2 and #3 has different type, you will fa
 
 Example::
 
-    od> SELECT IF(100 > 200, '100', '200')
+    os> SELECT IF(100 > 200, '100', '200')
     fetched rows / total rows = 1/1
     +-------------------------------+
     | IF(100 > 200, '100', '200')   |
@@ -2008,7 +2008,7 @@ Example::
     | 200                           |
     +-------------------------------+
 
-    od> SELECT IF(200 > 100, '100', '200')
+    os> SELECT IF(200 > 100, '100', '200')
     fetched rows / total rows = 1/1
     +-------------------------------+
     | IF(200 > 100, '100', '200')   |
@@ -2055,7 +2055,7 @@ Examples
 
 Here are examples for simple case syntax::
 
-    od> SELECT
+    os> SELECT
     ...   CASE 1
     ...     WHEN 1 THEN 'One'
     ...   END AS simple_case,
@@ -2076,7 +2076,7 @@ Here are examples for simple case syntax::
 
 Here are examples for searched case syntax::
 
-    od> SELECT
+    os> SELECT
     ...   CASE
     ...     WHEN 1 = 1 THEN 'One'
     ...   END AS single_search,

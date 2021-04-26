@@ -28,7 +28,7 @@ The example show to create new field doubleAge for each document. The new double
 
 PPL query::
 
-    od> source=accounts | eval doubleAge = age * 2 | fields age, doubleAge ;
+    os> source=accounts | eval doubleAge = age * 2 | fields age, doubleAge ;
     fetched rows / total rows = 4/4
     +-------+-------------+
     | age   | doubleAge   |
@@ -47,7 +47,7 @@ The example show to override the exist age field with age plus 1.
 
 PPL query::
 
-    od> source=accounts | eval age = age + 1 | fields age ;
+    os> source=accounts | eval age = age + 1 | fields age ;
     fetched rows / total rows = 4/4
     +-------+
     | age   |
@@ -65,7 +65,7 @@ The example show to create a new field ddAge with field defined in eval command.
 
 PPL query::
 
-    od> source=accounts | eval doubleAge = age * 2, ddAge = doubleAge * 2 | fields age, doubleAge, ddAge ;
+    os> source=accounts | eval doubleAge = age * 2, ddAge = doubleAge * 2 | fields age, doubleAge, ddAge ;
     fetched rows / total rows = 4/4
     +-------+-------------+---------+
     | age   | doubleAge   | ddAge   |

@@ -30,7 +30,7 @@ The example show sort all the document with age field in ascending order.
 
 PPL query::
 
-    od> source=accounts | sort age | fields account_number, age;
+    os> source=accounts | sort age | fields account_number, age;
     fetched rows / total rows = 4/4
     +------------------+-------+
     | account_number   | age   |
@@ -49,7 +49,7 @@ The example show sort all the document with age field in ascending order.
 
 PPL query::
 
-    od> source=accounts | sort age | fields account_number, age;
+    os> source=accounts | sort age | fields account_number, age;
     fetched rows / total rows = 4/4
     +------------------+-------+
     | account_number   | age   |
@@ -68,7 +68,7 @@ The example show sort all the document with age field in descending order.
 
 PPL query::
 
-    od> source=accounts | sort - age | fields account_number, age;
+    os> source=accounts | sort - age | fields account_number, age;
     fetched rows / total rows = 4/4
     +------------------+-------+
     | account_number   | age   |
@@ -86,7 +86,7 @@ The example show sort all the document with gender field in ascending order and 
 
 PPL query::
 
-    od> source=accounts | sort + gender, - age | fields account_number, gender, age;
+    os> source=accounts | sort + gender, - age | fields account_number, gender, age;
     fetched rows / total rows = 4/4
     +------------------+----------+-------+
     | account_number   | gender   | age   |
@@ -104,7 +104,7 @@ The example show sort employer field by default option (ascending order and null
 
 PPL query::
 
-    od> source=accounts | sort employer | fields employer;
+    os> source=accounts | sort employer | fields employer;
     fetched rows / total rows = 4/4
     +------------+
     | employer   |

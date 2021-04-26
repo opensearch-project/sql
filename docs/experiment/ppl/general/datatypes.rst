@@ -383,7 +383,7 @@ The example show fetch city (top level), city.name (second level), city.location
 
 PPL query::
 
-    od> source=people | fields city, city.name, city.location.latitude;
+    os> source=people | fields city, city.name, city.location.latitude;
     fetched rows / total rows = 1/1
     +-----------------------------------------------------+-------------+--------------------------+
     | city                                                | city.name   | city.location.latitude   |
@@ -399,7 +399,7 @@ The example show group by object field inner attribute.
 
 PPL query::
 
-    od> source=people | stats count() by city.name;
+    os> source=people | stats count() by city.name;
     fetched rows / total rows = 1/1
     +-----------+-------------+
     | count()   | city.name   |
@@ -412,7 +412,7 @@ Example 3: Selecting Field of Array Value
 
 Select deeper level for object fields of array value which returns the first element in the array. For example, because inner field ``accounts.id`` has three values instead of a tuple in this document, the first entry is returned.::
 
-    od> source = people | fields accounts, accounts.id;
+    os> source = people | fields accounts, accounts.id;
     fetched rows / total rows = 1/1
     +------------+---------------+
     | accounts   | accounts.id   |

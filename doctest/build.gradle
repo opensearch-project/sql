@@ -56,7 +56,6 @@ clean.dependsOn(cleanBootstrap)
 testClusters {
     docTestCluster {
         plugin ':plugin'
-        testDistribution = 'oss'
     }
 }
 tasks.register("runRestTestCluster", RunTask) {

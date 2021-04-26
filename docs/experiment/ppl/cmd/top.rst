@@ -30,7 +30,7 @@ The example finds most common gender of all the accounts.
 
 PPL query::
 
-    od> source=accounts | top gender;
+    os> source=accounts | top gender;
     fetched rows / total rows = 2/2
     +------------+
     | gender     |
@@ -47,7 +47,7 @@ The example finds most common gender of all the accounts.
 
 PPL query::
 
-    od> source=accounts | top 1 gender;
+    os> source=accounts | top 1 gender;
     fetched rows / total rows = 1/1
     +------------+
     | gender     |
@@ -62,7 +62,7 @@ The example finds most common age of all the accounts group by gender.
 
 PPL query::
 
-    od> source=accounts | top 1 age by gender;
+    os> source=accounts | top 1 age by gender;
     fetched rows / total rows = 2/2
     +----------+----------+
     | gender   | age      |

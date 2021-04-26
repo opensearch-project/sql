@@ -17,7 +17,7 @@ Please note, when response is in table format, the MISSING value is translate to
 
 Here is an example, Nanette doesn't have email field and Dail has employer filed with NULL value::
 
-    od> SELECT firstname, employer, email FROM accounts;
+    os> SELECT firstname, employer, email FROM accounts;
     fetched rows / total rows = 4/4
     +-------------+------------+-----------------------+
     | firstname   | employer   | email                 |
@@ -35,7 +35,7 @@ In general, if any operand evaluates to a MISSING value, the enclosing operator 
 
 Here is an example::
 
-    od> SELECT firstname, employer LIKE 'Quility', email LIKE '%com' FROM accounts;
+    os> SELECT firstname, employer LIKE 'Quility', email LIKE '%com' FROM accounts;
     fetched rows / total rows = 4/4
     +-------------+---------------------------+---------------------+
     | firstname   | employer LIKE 'Quility'   | email LIKE '%com'   |

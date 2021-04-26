@@ -27,7 +27,7 @@ The example show fetch all the document from accounts index with .
 
 PPL query::
 
-    od> source=accounts | where account_number=1 or gender="F" | fields account_number, gender;
+    os> source=accounts | where account_number=1 or gender="F" | fields account_number, gender;
     fetched rows / total rows = 2/2
     +------------------+----------+
     | account_number   | gender   |
