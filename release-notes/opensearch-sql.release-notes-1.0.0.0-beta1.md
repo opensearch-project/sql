@@ -1,4 +1,4 @@
-## 2021-05-04 Version 1.0.0.0-beta1
+## 2021-05-05 Version 1.0.0.0-beta1
 
 Compatible with OpenSearch and OpenSearch Dashboards Version 1.0.0-beta1
 
