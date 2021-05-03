@@ -215,7 +215,6 @@ char *ucs2_to_utf8(const SQLWCHAR *ucs2str, SQLLEN ilen, SQLLEN *olen,
         if (olen)
             *olen = len;
     }
-    MYPRINTF(0, " olen=%d utf8str=%s\n", len, utf8str ? utf8str : "");
     return utf8str;
 }
 
@@ -255,7 +254,6 @@ utf8_to_ucs2_lf(const char *utf8str, SQLLEN ilen, BOOL lfconv,
           bufcount);
     if (!utf8str)
         return 0;
-    MYPRINTF(OPENSEARCH_DEBUG, " string=%s", utf8str);
 
     if (!bufcount)
         ucs2str = NULL;
@@ -455,7 +453,6 @@ static char *ucs4_to_utf8(const UInt4 *ucs4str, SQLLEN ilen, SQLLEN *olen,
         if (olen)
             *olen = len;
     }
-    MYLOG(OPENSEARCH_DEBUG, " olen=%d %s\n", len, utf8str ? utf8str : "");
     return utf8str;
 }
 
@@ -483,7 +480,6 @@ static SQLULEN utf8_to_ucs4_lf(const char *utf8str, SQLLEN ilen, BOOL lfconv,
     MYLOG(OPENSEARCH_DEBUG, " ilen=" FORMAT_LEN " bufcount=" FORMAT_ULEN "\n", ilen, bufcount);
     if (!utf8str)
         return 0;
-    MYLOG(99, " string=%s\n", utf8str);
 
     if (!bufcount)
         ucs4str = NULL;
