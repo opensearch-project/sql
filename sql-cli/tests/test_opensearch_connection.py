@@ -33,7 +33,7 @@ from .utils import estest, load_data, run, TEST_INDEX_NAME
 from src.opensearch_sql_cli.opensearch_connection import OpenSearchConnection
 
 INVALID_ENDPOINT = "http://invalid:9200"
-OPEN_DISTRO_ENDPOINT = "https://opedistro:9200"
+OPENSEARCH_ENDPOINT = "https://opensearch:9200"
 AES_ENDPOINT = "https://fake.es.amazonaws.com"
 AUTH = ("username", "password")
 
@@ -118,10 +118,10 @@ class TestExecutor:
             assert test_executor.set_connection(True)
 
     def test_select_client(self):
-        od_test_executor = OpenSearchConnection(endpoint=OPEN_DISTRO_ENDPOINT, http_auth=AUTH)
+        od_test_executor = OpenSearchConnection(endpoint=OPENSEARCH_ENDPOINT, http_auth=AUTH)
         aes_test_executor = OpenSearchConnection(endpoint=AES_ENDPOINT, use_aws_authentication=True)
 
-        with mock.patch.object(od_test_executor, "get_open_distro_client") as mock_od_client, mock.patch.object(
+        with mock.patch.object(od_test_executor, "get_opensearch_client") as mock_od_client, mock.patch.object(
             OpenSearchConnection, "is_sql_plugin_installed", return_value=True
         ):
             od_test_executor.set_connection()
@@ -134,13 +134,13 @@ class TestExecutor:
             mock_aes_client.assert_called()
 
     def test_get_od_client(self):
-        od_test_executor = OpenSearchConnection(endpoint=OPEN_DISTRO_ENDPOINT, http_auth=AUTH)
+        od_test_executor = OpenSearchConnection(endpoint=OPENSEARCH_ENDPOINT, http_auth=AUTH)
 
         with mock.patch.object(OpenSearch, "__init__", return_value=None) as mock_es:
-            od_test_executor.get_open_distro_client()
+            od_test_executor.get_opensearch_client()
 
             mock_es.assert_called_with(
-                [OPEN_DISTRO_ENDPOINT], http_auth=AUTH, verify_certs=False, ssl_context=od_test_executor.ssl_context,
+                [OPENSEARCH_ENDPOINT], http_auth=AUTH, verify_certs=False, ssl_context=od_test_executor.ssl_context,
                 connection_class=RequestsHttpConnection
             )
 
