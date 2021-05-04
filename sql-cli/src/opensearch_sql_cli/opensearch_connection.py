@@ -36,8 +36,8 @@ from requests_aws4auth import AWS4Auth
 
 
 class OpenSearchConnection:
-    """OpenSearchConnection instances are used to set up and maintain client to Elasticsearch cluster,
-    as well as send user's SQL query to Elasticsearch.
+    """OpenSearchConnection instances are used to set up and maintain client to OpenSearch cluster,
+    as well as send user's SQL query to OpenSearch.
     """
 
     def __init__(self, endpoint=None, http_auth=None, use_aws_authentication=False, query_language="sql"):
@@ -85,12 +85,12 @@ class OpenSearchConnection:
 
         return aes_client
 
-    def get_open_distro_client(self):
+    def get_opensearch_client(self):
         ssl_context = self.ssl_context = create_ssl_context()
         ssl_context.check_hostname = False
         ssl_context.verify_mode = ssl.CERT_NONE
 
-        open_distro_client = OpenSearch(
+        opensearch_client = OpenSearch(
             [self.endpoint],
             http_auth=self.http_auth,
             verify_certs=False,
@@ -98,7 +98,7 @@ class OpenSearchConnection:
             connection_class=RequestsHttpConnection,
         )
 
-        return open_distro_client
+        return opensearch_client
 
     def is_sql_plugin_installed(self, opensearch_client):
         self.plugins = opensearch_client.cat.plugins(params={"s": "component", "v": "true"})
@@ -110,7 +110,7 @@ class OpenSearchConnection:
         logging.captureWarnings(True)
 
         if self.http_auth:
-            opensearch_client = self.get_open_distro_client()
+            opensearch_client = self.get_opensearch_client()
 
         elif self.use_aws_authentication:
             opensearch_client = self.get_aes_client()
