@@ -35,7 +35,7 @@ export class WorkbenchPlugin implements Plugin<WorkbenchPluginSetup, WorkbenchPl
       id: 'opensearch-query-workbench',
       title: PLUGIN_NAME,
       category: {
-        id: 'odfe',
+        id: 'opensearch',
         label: 'OpenSearch Plugins',
         order: 2000,
       },
