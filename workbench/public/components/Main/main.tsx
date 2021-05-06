@@ -276,8 +276,11 @@ export class Main extends React.Component<MainProps, MainState> {
       let err = response.data.resp;
       console.log("Error occurred when processing query response: ", err)
 
-      // Mark fulfilled to true as long as the data is fulfilled
-      if (response.data.body) {
+      // Exclude a special case from the error cases:
+      // When downloading the csv result, it gets the "Unable to parse/serialize body" response
+      // But data is also returned in data body. For this case:
+      // Mark fulfilled to true for this case to write the csv result to downloading file
+      if (response.data.body && err == "Unable to parse/serialize body") {
         return {
           fulfilled: true,
           errorMessage: err,
@@ -287,6 +290,7 @@ export class Main extends React.Component<MainProps, MainState> {
       return {
         fulfilled: false,
         errorMessage: err,
+        data: ''
       };
     }
 
