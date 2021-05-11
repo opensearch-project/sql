@@ -36,9 +36,9 @@ plugins {
 }
 
 generateGrammarSource {
-    arguments += ['-visitor', '-package', 'com.amazon.opendistroforelasticsearch.sql.sql.antlr.parser']
+    arguments += ['-visitor', '-package', 'org.opensearch.sql.sql.antlr.parser']
     source = sourceSets.main.antlr
-    outputDirectory = file("build/generated-src/antlr/main/com/amazon/opendistroforelasticsearch/sql/sql/antlr/parser")
+    outputDirectory = file("build/generated-src/antlr/main/org/opensearch/sql/sql/antlr/parser")
 }
 
 configurations {
