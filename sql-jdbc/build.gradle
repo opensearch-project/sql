@@ -40,7 +40,7 @@ plugins {
     id 'signing'
 }
 
-group 'com.amazon.opendistroforelasticsearch.client'
+group 'org.opensearch.client'
 
 // keep version in sync with version in Driver source
 version '1.0.0.0-beta1'
