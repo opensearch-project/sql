@@ -62,7 +62,7 @@ To setup a connection, the driver requires a JDBC connection URL. The connection
   | logOutput | location where driver logs should be emitted | a valid file path     |    `null` (logs are disabled) |
   | logLevel | severity level for which driver logs should be emitted | in order from highest(least logging) to lowest(most logging): OFF, FATAL, ERROR, WARN, INFO, DEBUG, TRACE, ALL  |    OFF (logs are disabled) |
   | auth     | authentication mechanism to use | `NONE` (no auth), `BASIC` (HTTP Basic), `AWS_SIGV4` (AWS SIGV4) | `basic` if username and/or password is specified, `NONE` otherwise |
-  | awsCredentialsProvider | The AWS credential provider to be used when authentication mechanism is `AWS_SIGV4` (AWS SIGV4). If not set, the driver will use DefaultAWSCredentialsProviderChain to sign the request. Note that the driver renamed the namespaces of its dependencies, so the value has to be an instance of com.amazonaws.opendistro.opensearch.sql.jdbc.shadow.com.amazonaws.auth.AWSCredentialsProvider| Instance of an AWSCredentialProvider | DefaultAWSCredentialsProviderChain |
+  | awsCredentialsProvider | The AWS credential provider to be used when authentication mechanism is `AWS_SIGV4` (AWS SIGV4). If not set, the driver will use DefaultAWSCredentialsProviderChain to sign the request. Note that the driver renamed the namespaces of its dependencies, so the value has to be an instance of com.amazonaws.opensearch.sql.jdbc.shadow.com.amazonaws.auth.AWSCredentialsProvider| Instance of an AWSCredentialProvider | DefaultAWSCredentialsProviderChain |
   | region | if authentication type is `aws_sigv4`, then this is the region value to use when signing requests. Only needed if the driver can not determine the region for the host endpoint. The driver will detect the region if the host endpoint matches a known url pattern. | a valid AWS region value e.g. us-east-1 | `null` (auto-detected if possible from the host endpoint) |
   | requestCompression | whether to indicate acceptance of compressed (gzip) responses when making server requests | `true` or `false` | `false` |
   | useSSL   | whether to establish the connection over SSL/TLS | `true` or `false` | `false` if scheme is `http`, `true` if scheme is `https` |
@@ -77,7 +77,7 @@ To setup a connection, the driver requires a JDBC connection URL. The connection
 
 ### Connecting using the DriverManager interface
 
-The main Driver class is `com.amazon.opendistroforelasticsearch.jdbc.Driver`. If the driver jar is on the application classpath, no other configuration is required.
+The main Driver class is `org.opensearch.jdbc.Driver`. If the driver jar is on the application classpath, no other configuration is required.
 
 Code samples to open a connection for some typical scenarios are given below:
 
@@ -321,7 +321,7 @@ con.close();
 ```
 ### Connecting using the DataSource interface
 
-The driver also provides a javax.sql.DataSource implementation via the `com.amazon.opendistroforelasticsearch.jdbc.OpenSearchDataSource` class that can be used to obtain a connection. Here are some typical code samples:
+The driver also provides a javax.sql.DataSource implementation via the `org.opensearch.jdbc.OpenSearchDataSource` class that can be used to obtain a connection. Here are some typical code samples:
 
 
 * Connect to localhost on port 9200 with no authentication over a plain connection
@@ -331,7 +331,7 @@ import java.sql.Connection;
 import java.sql.Statement;
 import javax.sql.DataSource;
 
-import com.amazon.opendistroforelasticsearch.jdbc.OpenSearchDataSource;
+import org.opensearch.jdbc.OpenSearchDataSource;
 
 .
 .
@@ -356,7 +356,7 @@ import java.sql.Connection;
 import java.sql.Statement;
 import javax.sql.DataSource;
 
-import com.amazon.opendistroforelasticsearch.jdbc.OpenSearchDataSource;
+import org.opensearch.jdbc.OpenSearchDataSource;
 
 .
 .
@@ -381,7 +381,7 @@ import java.sql.Connection;
 import java.sql.Statement;
 import javax.sql.DataSource;
 
-import com.amazon.opendistroforelasticsearch.jdbc.OpenSearchDataSource;
+import org.opensearch.jdbc.OpenSearchDataSource;
 
 .
 .
@@ -407,7 +407,7 @@ import java.sql.Connection;
 import java.sql.Statement;
 import javax.sql.DataSource;
 
-import com.amazon.opendistroforelasticsearch.jdbc.OpenSearchDataSource;
+import org.opensearch.jdbc.OpenSearchDataSource;
 
 .
 .
@@ -432,7 +432,7 @@ import java.sql.Connection;
 import java.sql.Statement;
 import javax.sql.DataSource;
 
-import com.amazon.opendistroforelasticsearch.jdbc.OpenSearchDataSource;
+import org.opensearch.jdbc.OpenSearchDataSource;
 
 .
 .
@@ -458,7 +458,7 @@ import java.sql.Connection;
 import java.sql.Statement;
 import javax.sql.DataSource;
 
-import com.amazon.opendistroforelasticsearch.jdbc.OpenSearchDataSource;
+import org.opensearch.jdbc.OpenSearchDataSource;
 
 .
 .
