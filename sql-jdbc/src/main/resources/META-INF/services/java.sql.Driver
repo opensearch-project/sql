@@ -1,1 +1,1 @@
-com.amazon.opendistroforelasticsearch.jdbc.Driver
+org.opensearch.jdbc.Driver
