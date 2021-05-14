@@ -2,7 +2,7 @@ This project is based on the Apache 2.0-licensed [elasticsearch-sql](https://git
 
 ## What’s OpenSearch SQL?
 
-The Open Distro for Elaticsearch SQL plugin launched early this year which lets you write queries in SQL rather than the OpenSearch query domain-specific language (DSL). While the majority of our codebase is on top of ES-SQL initially, there are a lot of new features and bug fixes introduced in our implementation. And in the following releases this year, we keep improving and refactoring our code as well as maintaining version currency of OpenSearch. Basically OpenSearch SQL is superset of ES-SQL and it’s more reliable and up-to-date.
+The OpenSearch plugin lets you write queries in SQL rather than the OpenSearch query domain-specific language (DSL). While the majority of our codebase is on top of ES-SQL initially, there are a lot of new features and bug fixes introduced in our implementation. And in the following releases this year, we keep improving and refactoring our code as well as maintaining version currency of OpenSearch. Basically OpenSearch SQL is superset of ES-SQL and it’s more reliable and up-to-date.
 
 
 ## The problems we found in NLPchina-ES-SQL.
@@ -23,7 +23,7 @@ Apart from the problems we identified earlier, we made significant improvement i
 1. *Integration Test*: We migrated all integrate tests to standard OpenSearch IT framework which spins up in-memory cluster for testing. Now all test cases treat plugin code as blackbox and verify functionality from externally.
 2. *New JDBC Driver*: We developed our own JDBC driver without any dependency on Elasticsearch proprietary code.
     [sql-jdbc](https://github.com/opensearch-project/sql/tree/master/sql-jdbc)
-3. *Better Hash JOIN*: OpenDistro SQL launched with Block Hash Join implementation with circuit break mechanism to protect your OpenSearch memory. Performance testing showed our implementation is 1.5 ~ 2x better than old hash join in terms of throughput and latency and much lower error rate under heavy pressure.
+3. *Better Hash JOIN*: Block Hash Join implementation with circuit break mechanism protect your OpenSearch memory. Performance testing showed our implementation is 1.5 ~ 2x better than old hash join in terms of throughput and latency and much lower error rate under heavy pressure.
 4. *Query Planner*: Logical and physical planner was added to support JOIN query in efficient and extendible way.
 5. *PartiQL Compatibility*: we are partially compatible with PartiQL specification which allows for query involved in nested JSON documents.
 6. *New ANTLR Parser*: A new ANTLR4 parser was generated from grammar based on what we support along with a new semantic analyzer to perform scope and type checking.

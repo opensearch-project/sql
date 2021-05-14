@@ -1,6 +1,6 @@
 
 ===============================
-OpenDistro PPL Reference Manual
+OpenSearch PPL Reference Manual
 ===============================
 
 Overview
