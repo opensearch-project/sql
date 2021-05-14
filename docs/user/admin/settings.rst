@@ -555,7 +555,7 @@ Result set::
 	}
 
 
-opendistro.query.size_limit
+opensearch.query.size_limit
 ===========================
 
 Description

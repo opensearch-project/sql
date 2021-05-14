@@ -116,8 +116,8 @@ PPL query::
       "transient": {}
     }
 
-opendistro.query.size_limit
-=================================
+opensearch.query.size_limit
+===========================
 
 Description
 -----------
