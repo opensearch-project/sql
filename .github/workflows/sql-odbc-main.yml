@@ -1,4 +1,4 @@
-name: Open Distro for Elasticsearch ODBC Driver
+name: OpenSearch ODBC Driver
 
 on: [push, pull_request]
 

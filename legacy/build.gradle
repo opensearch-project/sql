@@ -35,9 +35,9 @@ plugins {
 }
 
 generateGrammarSource {
-    arguments += ['-visitor', '-package', 'com.amazon.opendistroforelasticsearch.sql.legacy.antlr.parser']
+    arguments += ['-visitor', '-package', 'org.opensearch.sql.legacy.antlr.parser']
     source = sourceSets.main.antlr
-    outputDirectory = file("build/generated-src/antlr/main/com/amazon/opendistroforelasticsearch/sql/legacy/antlr/parser")
+    outputDirectory = file("build/generated-src/antlr/main/org/opensearch/sql/legacy/antlr/parser")
 }
 
 // Remove ANTLR plugin jars as it's specified as 'compile' dependency internally
@@ -72,7 +72,7 @@ compileTestJava {
 // TODO: Need to update integration test to use OpenSearch test framework
 test {
     include '**/*Test.class'
-    exclude 'com/amazon/opendistroforelasticsearch/sql/intgtest/**'
+    exclude 'org/opensearch/sql/intgtest/**'
     // Gradle runs unit test using a working directory other and project root
     // set 'project.projectDir' property to allow unit test classes to access test resources
     // in src/test/resources in current module

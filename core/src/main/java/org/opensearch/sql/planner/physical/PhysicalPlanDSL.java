@@ -1,0 +1,123 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
+ */
+
+/*
+ *   Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License").
+ *   You may not use this file except in compliance with the License.
+ *   A copy of the License is located at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   or in the "license" file accompanying this file. This file is distributed
+ *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ *   express or implied. See the License for the specific language governing
+ *   permissions and limitations under the License.
+ */
+
+package org.opensearch.sql.planner.physical;
+
+import com.google.common.collect.ImmutableSet;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.ast.tree.RareTopN.CommandType;
+import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.LiteralExpression;
+import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.expression.window.WindowDefinition;
+
+/**
+ * Physical Plan DSL.
+ */
+@UtilityClass
+public class PhysicalPlanDSL {
+
+  public static AggregationOperator agg(
+      PhysicalPlan input, List<NamedAggregator> aggregators, List<NamedExpression> groups) {
+    return new AggregationOperator(input, aggregators, groups);
+  }
+
+  public static FilterOperator filter(PhysicalPlan input, Expression condition) {
+    return new FilterOperator(input, condition);
+  }
+
+  public static RenameOperator rename(
+      PhysicalPlan input, Map<ReferenceExpression, ReferenceExpression> renameMap) {
+    return new RenameOperator(input, renameMap);
+  }
+
+  public static ProjectOperator project(PhysicalPlan input, NamedExpression... fields) {
+    return new ProjectOperator(input, Arrays.asList(fields));
+  }
+
+  public static RemoveOperator remove(PhysicalPlan input, ReferenceExpression... fields) {
+    return new RemoveOperator(input, ImmutableSet.copyOf(fields));
+  }
+
+  public static EvalOperator eval(
+      PhysicalPlan input, Pair<ReferenceExpression, Expression>... expressions) {
+    return new EvalOperator(input, Arrays.asList(expressions));
+  }
+
+  public static SortOperator sort(PhysicalPlan input, Pair<SortOption,
+      Expression>... sorts) {
+    return new SortOperator(input, Arrays.asList(sorts));
+  }
+
+  public static DedupeOperator dedupe(PhysicalPlan input, Expression... expressions) {
+    return new DedupeOperator(input, Arrays.asList(expressions));
+  }
+
+  public static DedupeOperator dedupe(
+      PhysicalPlan input,
+      int allowedDuplication,
+      boolean keepEmpty,
+      boolean consecutive,
+      Expression... expressions) {
+    return new DedupeOperator(
+        input, Arrays.asList(expressions), allowedDuplication, keepEmpty, consecutive);
+  }
+
+  public WindowOperator window(PhysicalPlan input,
+                               NamedExpression windowFunction,
+                               WindowDefinition windowDefinition) {
+    return new WindowOperator(input, windowFunction, windowDefinition);
+  }
+
+  public static RareTopNOperator rareTopN(PhysicalPlan input, CommandType commandType,
+      List<Expression> groups, Expression... expressions) {
+    return new RareTopNOperator(input, commandType, Arrays.asList(expressions), groups);
+  }
+
+  public static RareTopNOperator rareTopN(PhysicalPlan input, CommandType commandType,
+      int noOfResults,
+      List<Expression> groups, Expression... expressions) {
+    return new RareTopNOperator(input, commandType, noOfResults, Arrays.asList(expressions),
+        groups);
+  }
+
+  @SafeVarargs
+  public ValuesOperator values(List<LiteralExpression>... values) {
+    return new ValuesOperator(Arrays.asList(values));
+  }
+
+  public static LimitOperator limit(PhysicalPlan input, Integer limit, Integer offset) {
+    return new LimitOperator(input, limit, offset);
+  }
+
+}
