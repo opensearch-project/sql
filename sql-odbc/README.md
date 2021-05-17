@@ -48,7 +48,7 @@ This will customize the connection from Tableau to OpenSearch, ensuring that the
 ## Using the Driver
 
 The driver comes in the form of a library file:
-* Windows: `odfesqlodbc.dll`
+* Windows: `sqlodbc.dll`
 * Mac: `libsqlodbc.dylib`
 
 If using with ODBC compatible BI tools, refer to the tool documentation on configuring a new ODBC driver. In most cases, you will need to make the tool aware of the location of the driver library file and then use it to setup OpenSearch database connections.

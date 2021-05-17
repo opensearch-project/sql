@@ -377,9 +377,9 @@ SQLULEN ucs2strlen(const SQLWCHAR *);
 #endif /* DBMS_NAME */
 #ifdef WIN32
 #ifdef UNICODE_SUPPORT
-#define DRIVER_FILE_NAME "odfesqlodbc.dll"
+#define DRIVER_FILE_NAME "sqlodbc.dll"
 #else
-#define DRIVER_FILE_NAME "odfesqlodbc.dll"
+#define DRIVER_FILE_NAME "sqlodbc.dll"
 #endif /* UNICODE_SUPPORT */
 #else
 #ifdef UNICODE_SUPPORT

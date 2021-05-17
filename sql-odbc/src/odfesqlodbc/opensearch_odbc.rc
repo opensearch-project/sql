@@ -187,7 +187,7 @@ BEGIN
             VALUE "InternalName", "odfesqlodbc"
             VALUE "LegalCopyright", "Copyright"
             VALUE "LegalTrademarks", "ODBC(TM) is a trademark of Microsoft Corporation.  Microsoft? is a registered trademark of Microsoft Corporation. Windows(TM) is a trademark of Microsoft Corporation."
-            VALUE "OriginalFilename", "odfesqlodbc.dll"
+            VALUE "OriginalFilename", "sqlodbc.dll"
             VALUE "ProductName", "OpenSearch"
             VALUE "ProductVersion", OPENSEARCH_ODBC_VERSION
         END
