@@ -80,7 +80,7 @@ jacocoTestCoverageVerification {
         rule {
             element = 'CLASS'
             excludes = [
-                    'com.amazon.opendistroforelasticsearch.sql.opensearch.security.SecurityAccess'
+                    'org.opensearch.sql.opensearch.security.SecurityAccess'
             ]
             limit {
                 counter = 'LINE'

@@ -47,7 +47,7 @@ repositories {
 opensearchplugin {
     name 'opensearch-sql'
     description 'OpenSearch SQL'
-    classname 'com.amazon.opendistroforelasticsearch.sql.plugin.SQLPlugin'
+    classname 'org.opensearch.sql.plugin.SQLPlugin'
     licenseFile rootProject.file("LICENSE.txt")
     noticeFile rootProject.file("NOTICE")
 }
@@ -85,7 +85,7 @@ ext {
 // ANTLR generated parser file is too large to be checked which caused licenseHeaders stuck.
 licenseHeaders {
     enabled = true
-    excludes = ['com/amazon/opendistroforelasticsearch/sql/antlr/parser/**']
+    excludes = ['org/opensearch/sql/antlr/parser/**']
 }
 
 tasks.withType(licenseHeaders.class) {
@@ -142,10 +142,10 @@ afterEvaluate {
         prefix '/usr'
 
         license 'ASL-2.0'
-        maintainer 'OpenDistro for Elasticsearch Team <opendistro@amazon.com>'
+        maintainer 'OpenSearch Team <opensearch@amazon.com>'
         url 'https://opendistro.github.io/for-elasticsearch/downloads.html'
         summary '''
-         SQL plugin for OpenDistro for Elasticsearch.
+         SQL plugin for OpenSearch.
          Reference documentation can be found at https://opendistro.github.io/for-elasticsearch-docs/.
     '''.stripIndent().replace('\n', ' ').trim()
     }
