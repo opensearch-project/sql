@@ -63,13 +63,13 @@
 #ifdef UNICODE_SUPPORT
 CSTR opensearch_enlist = "opensearch_enlist";
 CSTR opensearch_enlistdll = "opensearch_enlist.dll";
-CSTR elasticodbc = "odfesqlodbc35w";
-CSTR elasticodbcdll = "odfesqlodbc35w.dll";
+CSTR elasticodbc = "sqlodbc35w";
+CSTR elasticodbcdll = "sqlodbc35w.dll";
 #else
 CSTR opensearch_enlist = "opensearch_enlista";
 CSTR opensearch_enlistdll = "opensearch_enlista.dll";
-CSTR elasticodbc = "odfesqlodbc30a";
-CSTR elasticodbcdll = "odfesqlodbc30a.dll";
+CSTR elasticodbc = "sqlodbc30a";
+CSTR elasticodbcdll = "sqlodbc30a.dll";
 #endif /* UNICODE_SUPPORT */
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 #define _MSC_DELAY_LOAD_IMPORT

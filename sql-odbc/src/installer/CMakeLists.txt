@@ -101,7 +101,7 @@ cpack_add_component(Resources
 )
 
 # Install driver files
-install(TARGETS odfesqlodbc DESTINATION bin COMPONENT "Driver")
+install(TARGETS sqlodbc DESTINATION bin COMPONENT "Driver")
 # TODO: look into DSN Installer failure
 # if(APPLE)
 #     install(FILES "${PROJECT_ROOT}/bin64/dsn_installer" DESTINATION bin COMPONENT "Driver")

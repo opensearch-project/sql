@@ -3,7 +3,7 @@
     "connections": [
         {
             "details": {
-                "protocol": "odfesqlodbc",
+                "protocol": "sqlodbc",
                 "address": {
                     "server": "localhost:9200"
                 }

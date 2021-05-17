@@ -181,8 +181,8 @@ OdfeSqlOdbcPBIConnector = [
 
     // PBIDS Handler
     DSRHandlers = [
-      #"odfesqlodbc" = [
-        GetDSR = (server, schema, object, optional options) => [ protocol = "odfesqlodbc", address = [ server = server ] ],
+      #"sqlodbc" = [
+        GetDSR = (server, schema, object, optional options) => [ protocol = "sqlodbc", address = [ server = server ] ],
         GetFormula = (dsr, optional options) => () => 
           let
             db = OdfeSqlOdbcPBIConnector.Contents(dsr[address][server])

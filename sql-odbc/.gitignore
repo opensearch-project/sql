@@ -43,7 +43,7 @@ LICENSE.txt
 /installer/
 /IntegrationTests/
 /odfeenlist/
-/odfesqlodbc/
+/sqlodbc/
 /PerformanceTests/
 /UnitTests/
 *.filters

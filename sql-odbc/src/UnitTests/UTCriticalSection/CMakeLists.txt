@@ -36,5 +36,5 @@ include_directories(	${UT_HELPER}
 add_executable(ut_critical_section ${SOURCE_FILES})
 
 # Library dependencies
-target_link_libraries(ut_critical_section odfesqlodbc ut_helper gtest_main)
+target_link_libraries(ut_critical_section sqlodbc ut_helper gtest_main)
 target_compile_definitions(ut_critical_section PUBLIC _UNICODE UNICODE)

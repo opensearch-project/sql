@@ -37,5 +37,5 @@ include_directories(	${UT_HELPER}
 add_executable(ut_conn ${SOURCE_FILES})
 
 # Library dependencies
-target_link_libraries(ut_conn odfesqlodbc ut_helper gtest_main)
+target_link_libraries(ut_conn sqlodbc ut_helper gtest_main)
 target_compile_definitions(ut_conn PUBLIC _UNICODE UNICODE)

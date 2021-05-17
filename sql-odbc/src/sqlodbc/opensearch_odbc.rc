@@ -184,7 +184,7 @@ BEGIN
             VALUE "CompanyName", "Amazon"
             VALUE "FileDescription", "OpenSearch ODBC Driver (English)"
             VALUE "FileVersion", OPENSEARCH_ODBC_VERSION
-            VALUE "InternalName", "odfesqlodbc"
+            VALUE "InternalName", "sqlodbc"
             VALUE "LegalCopyright", "Copyright"
             VALUE "LegalTrademarks", "ODBC(TM) is a trademark of Microsoft Corporation.  Microsoft? is a registered trademark of Microsoft Corporation. Windows(TM) is a trademark of Microsoft Corporation."
             VALUE "OriginalFilename", "sqlodbc.dll"
