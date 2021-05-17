@@ -3,7 +3,7 @@
 ## Overview
 OpenSearch ODBC Driver supports forward-only cursor. This document illustrates how the cursor(pagination) is handled in the driver. 
 
-For information on how the pagination is supported on OpenSearch server, check [Opendistro SQL Cursor (Pagination) Support](https://github.com/opensearch-project/sql/blob/main/docs/dev/Pagination.md).
+For information on how the pagination is supported on OpenSearch server, check [OpenSearch SQL Cursor (Pagination) Support](https://github.com/opensearch-project/sql/blob/main/docs/dev/Pagination.md).
 
 ## Data Flow
 <p align="center"> 
