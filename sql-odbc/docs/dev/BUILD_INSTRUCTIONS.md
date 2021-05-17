@@ -84,7 +84,7 @@ build
   └-- <build files>
 ```
 
-* Driver library: `./build/odbc/lib/libodfesqlodbc.dylib`
+* Driver library: `./build/odbc/lib/libsqlodbc.dylib`
 * Test binaries folder: `./build/odbc/bin/`
 
 ### Packaging

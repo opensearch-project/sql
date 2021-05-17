@@ -40,7 +40,7 @@
 using namespace std::string_literals;
 
 std::wstring driver_name = L"OpenSearch SQL ODBC Driver";
-std::wstring driver_filename = L"libodfesqlodbc.dylib";
+std::wstring driver_filename = L"libsqlodbc.dylib";
 std::wstring dsn_name = L"OpenSearch SQL ODBC DSN";
 std::wstring dsn_ini_filename = L"odfesqlodbc.ini";
 
