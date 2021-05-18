@@ -219,7 +219,7 @@ public class LocalClusterState {
     }
 
     private String[] resolveIndexExpression(ClusterState state, String[] indices) {
-        String[] concreteIndices = resolver.concreteIndexNames(state, IndicesOptions.strictExpandOpen(), indices);
+        String[] concreteIndices = resolver.concreteIndexNames(state, IndicesOptions.strictExpandOpen(), true, indices);
 
         if (LOG.isDebugEnabled()) {
             LOG.debug("Resolved index expression {} to concrete index names {}",
