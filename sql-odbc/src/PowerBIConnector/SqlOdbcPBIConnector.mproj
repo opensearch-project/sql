@@ -18,7 +18,7 @@
     <SuppressCellErrors>False</SuppressCellErrors>
     <MaxRows>1000</MaxRows>
     <ExtensionProject>Yes</ExtensionProject>
-    <Name>OdfeSqlOdbcPBIConnector</Name>
+    <Name>SqlOdbcPBIConnector</Name>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>false</DebugSymbols>
@@ -36,31 +36,31 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="OdfeSqlOdbcPBIConnector.pq">
+    <Compile Include="SqlOdbcPBIConnector.pq">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="OdfeSqlOdbcPBIConnector16.png">
+    <Compile Include="SqlOdbcPBIConnector16.png">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="OdfeSqlOdbcPBIConnector20.png">
+    <Compile Include="SqlOdbcPBIConnector20.png">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="OdfeSqlOdbcPBIConnector24.png">
+    <Compile Include="SqlOdbcPBIConnector24.png">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="OdfeSqlOdbcPBIConnector32.png">
+    <Compile Include="SqlOdbcPBIConnector32.png">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="OdfeSqlOdbcPBIConnector40.png">
+    <Compile Include="SqlOdbcPBIConnector40.png">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="OdfeSqlOdbcPBIConnector48.png">
+    <Compile Include="SqlOdbcPBIConnector48.png">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="OdfeSqlOdbcPBIConnector64.png">
+    <Compile Include="SqlOdbcPBIConnector64.png">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="OdfeSqlOdbcPBIConnector80.png">
+    <Compile Include="SqlOdbcPBIConnector80.png">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="resources.resx">
@@ -72,7 +72,7 @@
     <Compile Include="OdbcConstants.pqm">
       <SubType>Content</SubType>
     </Compile>
-    <Content Include="OdfeSqlOdbcPBIConnector.query.pq">
+    <Content Include="SqlOdbcPBIConnector.query.pq">
       <SubType>Code</SubType>
     </Content>
   </ItemGroup>

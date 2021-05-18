@@ -16,8 +16,8 @@ The driver is compatible with ODBC 3.51.
 
 ## Connectors
 
-* **Power BI Desktop**: [`OdfeSqlOdbcPBIConnector.mez`](./src/PowerBIConnector/bin/Release/OdfeSqlOdbcPBIConnector.mez)
-* **Tableau**: [`odfe_sql_odbc.taco`](./src/TableauConnector/odfe_sql_odbc/odfe_sql_odbc.taco)
+* **Power BI Desktop**: [`SqlOdbcPBIConnector.mez`](./src/PowerBIConnector/bin/Release/SqlOdbcPBIConnector.mez)
+* **Tableau**: [`opensearch_sql_odbc.taco`](./src/TableauConnector/opensearch_sql_odbc/opensearch_sql_odbc.taco)
 
 ## Installing the Driver
 
@@ -48,8 +48,8 @@ This will customize the connection from Tableau to OpenSearch, ensuring that the
 ## Using the Driver
 
 The driver comes in the form of a library file:
-* Windows: `odfesqlodbc.dll`
-* Mac: `libodfesqlodbc.dylib`
+* Windows: `sqlodbc.dll`
+* Mac: `libsqlodbc.dylib`
 
 If using with ODBC compatible BI tools, refer to the tool documentation on configuring a new ODBC driver. In most cases, you will need to make the tool aware of the location of the driver library file and then use it to setup OpenSearch database connections.
 

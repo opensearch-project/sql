@@ -27,7 +27,7 @@
 
 #include "opensearch_communication.h"
 
-// odfesqlodbc needs to be included before mylog, otherwise mylog will generate
+// sqlodbc needs to be included before mylog, otherwise mylog will generate
 // compiler warnings
 // clang-format off
 #include "opensearch_odbc.h"

@@ -12,8 +12,8 @@ Note: In order to use the OpenSearch SQL ODBC driver with the [Tableau Connector
 1. Go to the **ODBC Drivers** tab.
 2. Click **Add a Driver**.
 	* **Description of the Driver**: The driver name used for ODBC connections (ex. `OpenSearch SQL ODBC Driver`)
-	* **Driver File Name**: The path to the driver file (default installed path: `/Library/ODBC/opensearch-sql-odbc/bin/libodfesqlodbc.dylib`)
-	* **Setup File Name**: The path to the driver file (default installed path: `/Library/ODBC/opensearch-sql-odbc/bin/libodfesqlodbc.dylib`)
+	* **Driver File Name**: The path to the driver file (default installed path: `/Library/ODBC/opensearch-sql-odbc/bin/libsqlodbc.dylib`)
+	* **Setup File Name**: The path to the driver file (default installed path: `/Library/ODBC/opensearch-sql-odbc/bin/libsqlodbc.dylib`)
 	* Set as a **User** driver
     * Below is a screenshot of how the final screen should look.
 3. Click **OK** to save the options.
@@ -53,8 +53,8 @@ Try the following:
     <Driver Name> = Installed
       
     [<Driver Name>]
-    Driver = <odbc-root>/lib64/libodfesqlodbc.dylib
-    Setup = <odbc-root>/lib64/libodfesqlodbc.dylib
+    Driver = <odbc-root>/lib64/libsqlodbc.dylib
+    Setup = <odbc-root>/lib64/libsqlodbc.dylib
 	```
    * **odbc.ini** (will be found in **User DSNs**)
 	```ini
@@ -62,7 +62,7 @@ Try the following:
     <DSN Name> = <Driver Name>
     
     [<DSN Name>]
-    Driver = <odbc-root>/lib64/libodfesqlodbc.dylib
+    Driver = <odbc-root>/lib64/libsqlodbc.dylib
     Description =
     Host = localhost
     Port = 9200
