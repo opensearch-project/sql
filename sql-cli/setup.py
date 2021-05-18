@@ -30,7 +30,7 @@ from setuptools import setup, find_packages
 install_requirements = [
     "click == 7.1.1",
     "prompt_toolkit == 2.0.6",
-    "Pygments == 2.6.1",
+    "Pygments >= 2.7.4",
     "cli_helpers[styles] == 1.2.1",
     "elasticsearch == 7.10.1",
     "pyfiglet == 0.8.post1",
