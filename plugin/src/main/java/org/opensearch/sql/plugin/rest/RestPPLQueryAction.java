@@ -32,6 +32,7 @@ import static org.opensearch.rest.RestStatus.OK;
 import static org.opensearch.rest.RestStatus.SERVICE_UNAVAILABLE;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
@@ -114,12 +115,18 @@ public class RestPPLQueryAction extends BaseRestHandler {
 
   @Override
   public List<Route> routes() {
+    return ImmutableList.of();
+  }
+
+  @Override
+  public List<ReplacedRoute> replacedRoutes() {
     return Arrays.asList(
-        new Route(RestRequest.Method.POST, QUERY_API_ENDPOINT),
-        new Route(RestRequest.Method.POST, EXPLAIN_API_ENDPOINT),
-        new Route(RestRequest.Method.POST, LEGACY_QUERY_API_ENDPOINT),
-        new Route(RestRequest.Method.POST, LEGACY_EXPLAIN_API_ENDPOINT)
-    );
+        new ReplacedRoute(
+            RestRequest.Method.POST, QUERY_API_ENDPOINT,
+            RestRequest.Method.POST, LEGACY_QUERY_API_ENDPOINT),
+        new ReplacedRoute(
+            RestRequest.Method.POST, EXPLAIN_API_ENDPOINT,
+            RestRequest.Method.POST, LEGACY_EXPLAIN_API_ENDPOINT));
   }
 
   @Override

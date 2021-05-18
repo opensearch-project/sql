@@ -135,8 +135,7 @@ public class RestSqlAction extends BaseRestHandler {
                 RestRequest.Method.POST, LEGACY_EXPLAIN_API_ENDPOINT),
             new ReplacedRoute(
                 RestRequest.Method.POST, CURSOR_CLOSE_ENDPOINT,
-                RestRequest.Method.POST, LEGACY_CURSOR_CLOSE_ENDPOINT)
-        );
+                RestRequest.Method.POST, LEGACY_CURSOR_CLOSE_ENDPOINT));
     }
 
     @Override

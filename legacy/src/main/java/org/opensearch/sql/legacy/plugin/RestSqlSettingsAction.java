@@ -84,10 +84,15 @@ public class RestSqlSettingsAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
+        return ImmutableList.of();
+    }
+
+    @Override
+    public List<ReplacedRoute> replacedRoutes() {
         return ImmutableList.of(
-                new Route(RestRequest.Method.PUT, SETTINGS_API_ENDPOINT),
-                new Route(RestRequest.Method.PUT, LEGACY_SETTINGS_API_ENDPOINT)
-        );
+            new ReplacedRoute(
+                RestRequest.Method.PUT, SETTINGS_API_ENDPOINT,
+                RestRequest.Method.PUT, LEGACY_SETTINGS_API_ENDPOINT));
     }
 
     /**
