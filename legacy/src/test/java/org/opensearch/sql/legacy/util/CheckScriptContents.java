@@ -28,6 +28,7 @@ package org.opensearch.sql.legacy.util;
 
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doReturn;
@@ -266,10 +267,10 @@ public class CheckScriptContents {
 
     public static IndexNameExpressionResolver mockIndexNameExpressionResolver() {
         IndexNameExpressionResolver mockResolver = mock(IndexNameExpressionResolver.class);
-        when(mockResolver.concreteIndexNames(any(), any(), anyString())).thenAnswer(
+        when(mockResolver.concreteIndexNames(any(), any(), anyBoolean(), anyString())).thenAnswer(
             (Answer<String[]>) invocation -> {
                 // Return index expression directly without resolving
-                Object indexExprs = invocation.getArguments()[2];
+                Object indexExprs = invocation.getArguments()[3];
                 if (indexExprs instanceof String) {
                     return new String[]{ (String) indexExprs };
                 }
