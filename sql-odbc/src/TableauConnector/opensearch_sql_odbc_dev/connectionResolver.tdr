@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8' ?>
-<tdr class='odfe_sql_odbc'>
+<tdr class='opensearch_sql_odbc_dev'>
   <connection-resolver>
     <connection-builder>
       <script file='connectionBuilder.js'/>

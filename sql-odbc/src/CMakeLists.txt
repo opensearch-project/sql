@@ -78,8 +78,8 @@ endif()
 
 # Base directories
 set(PROJECT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/..")
-set(ODFEODBC_SRC "${CMAKE_CURRENT_SOURCE_DIR}/sqlodbc")
-set(ODFEENLIST_SRC "${CMAKE_CURRENT_SOURCE_DIR}/odfeenlist")
+set(OPENSEARCHODBC_SRC "${CMAKE_CURRENT_SOURCE_DIR}/sqlodbc")
+set(OPENSEARCHENLIST_SRC "${CMAKE_CURRENT_SOURCE_DIR}/opensearchenlist")
 set(INTEGRATION_TESTS "${CMAKE_CURRENT_SOURCE_DIR}/IntegrationTests")
 set(UNIT_TESTS "${CMAKE_CURRENT_SOURCE_DIR}/UnitTests")
 set(LIBRARY_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../libraries)
@@ -170,8 +170,8 @@ endif()
 if (APPLE)
 	add_subdirectory(${aws-cpp-sdk-base})
 endif()
-add_subdirectory(${ODFEODBC_SRC})
-add_subdirectory(${ODFEENLIST_SRC})
+add_subdirectory(${OPENSEARCHODBC_SRC})
+add_subdirectory(${OPENSEARCHENLIST_SRC})
 add_subdirectory(${INSTALL_SRC})
 
 # Only build & package DSN installer for Mac platforms

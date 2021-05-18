@@ -27,7 +27,7 @@ project(ut_helper)
 # Source, headers, and include dirs
 set(SOURCE_FILES unit_test_helper.cpp)	
 set(HEADER_FILES unit_test_helper.h)
-include_directories(${ODFEODBC_SRC} ${VLD_SRC})
+include_directories(${OPENSEARCHODBC_SRC} ${VLD_SRC})
 
 # Generate dll (SHARED)
 add_library(ut_helper SHARED ${SOURCE_FILES} ${HEADER_FILES})

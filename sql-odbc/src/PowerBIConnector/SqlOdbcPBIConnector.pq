@@ -1,5 +1,5 @@
 // This file contains Data Connector logic
-section OdfeSqlOdbcPBIConnector;
+section SqlOdbcPBIConnector;
 
 // When set to true, additional trace information will be written out to the User log. 
 // This should be set to false before release. Tracing is done through a call to 
@@ -7,11 +7,11 @@ section OdfeSqlOdbcPBIConnector;
 // no-op and simply returns the original value.
 EnableTraceOutput = true;
 
-[DataSource.Kind="OdfeSqlOdbcPBIConnector", Publish="OdfeSqlOdbcPBIConnector.Publish"]
-shared OdfeSqlOdbcPBIConnector.Contents = Value.ReplaceType(OdfeSqlOdbcPBIConnectorImpl, OdfeSqlOdbcPBIConnectorType); 
+[DataSource.Kind="SqlOdbcPBIConnector", Publish="SqlOdbcPBIConnector.Publish"]
+shared SqlOdbcPBIConnector.Contents = Value.ReplaceType(SqlOdbcPBIConnectorImpl, SqlOdbcPBIConnectorType);
 
 // Wrapper function to provide additional UI customization.
-OdfeSqlOdbcPBIConnectorType = type function (
+SqlOdbcPBIConnectorType = type function (
         Server as (type text meta [
             Documentation.FieldCaption = "Server",
             Documentation.FieldDescription = "The hostname of the OpenSearch server.",
@@ -22,7 +22,7 @@ OdfeSqlOdbcPBIConnectorType = type function (
         Documentation.Name = "OpenSearch"
     ];
 
-OdfeSqlOdbcPBIConnectorImpl = (Server as text) as table =>
+SqlOdbcPBIConnectorImpl = (Server as text) as table =>
     let
         Credential = Extension.CurrentCredential(),
         AuthenticationMode = Credential[AuthenticationKind],
@@ -156,14 +156,14 @@ OnOdbcError = (errorRecord as record) =>
             error errorRecord;
 
 // Data Source Kind description
-OdfeSqlOdbcPBIConnector = [
+SqlOdbcPBIConnector = [
     // Required for use with Power BI Service.
     TestConnection = (dataSourcePath) => 
         let
             json = Json.Document(dataSourcePath),
             Server = json[Server]
         in
-            { "OdfeSqlOdbcPBIConnector.Contents", Server },
+            { "SqlOdbcPBIConnector.Contents", Server },
 
     // Authentication modes
     Authentication = [
@@ -185,7 +185,7 @@ OdfeSqlOdbcPBIConnector = [
         GetDSR = (server, schema, object, optional options) => [ protocol = "sqlodbc", address = [ server = server ] ],
         GetFormula = (dsr, optional options) => () => 
           let
-            db = OdfeSqlOdbcPBIConnector.Contents(dsr[address][server])
+            db = SqlOdbcPBIConnector.Contents(dsr[address][server])
           in
             db,
         GetFriendlyName = (dsr) => "OpenSearch SQL ODBC"
@@ -199,7 +199,7 @@ OdfeSqlOdbcPBIConnector = [
 ];
 
 // Data Source UI publishing description
-OdfeSqlOdbcPBIConnector.Publish = [
+SqlOdbcPBIConnector.Publish = [
     Beta = true,
     Category = "Other",
     ButtonText = { Extension.LoadString("ButtonTitle"), Extension.LoadString("ButtonHelp") },
@@ -208,13 +208,13 @@ OdfeSqlOdbcPBIConnector.Publish = [
     // Disabling direct query due to limited SQL query support
     SupportsDirectQuery = false,
 
-    SourceImage = OdfeSqlOdbcPBIConnector.Icons,
-    SourceTypeImage = OdfeSqlOdbcPBIConnector.Icons
+    SourceImage = SqlOdbcPBIConnector.Icons,
+    SourceTypeImage = SqlOdbcPBIConnector.Icons
 ];
 
-OdfeSqlOdbcPBIConnector.Icons = [
-    Icon16 = { Extension.Contents("OdfeSqlOdbcPBIConnector16.png"), Extension.Contents("OdfeSqlOdbcPBIConnector20.png"), Extension.Contents("OdfeSqlOdbcPBIConnector24.png"), Extension.Contents("OdfeSqlOdbcPBIConnector32.png") },
-    Icon32 = { Extension.Contents("OdfeSqlOdbcPBIConnector32.png"), Extension.Contents("OdfeSqlOdbcPBIConnector40.png"), Extension.Contents("OdfeSqlOdbcPBIConnector48.png"), Extension.Contents("OdfeSqlOdbcPBIConnector64.png") }
+SqlOdbcPBIConnector.Icons = [
+    Icon16 = { Extension.Contents("SqlOdbcPBIConnector16.png"), Extension.Contents("SqlOdbcPBIConnector20.png"), Extension.Contents("SqlOdbcPBIConnector24.png"), Extension.Contents("SqlOdbcPBIConnector32.png") },
+    Icon32 = { Extension.Contents("SqlOdbcPBIConnector32.png"), Extension.Contents("SqlOdbcPBIConnector40.png"), Extension.Contents("SqlOdbcPBIConnector48.png"), Extension.Contents("SqlOdbcPBIConnector64.png") }
 ];
 
 // Load common library functions

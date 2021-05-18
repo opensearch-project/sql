@@ -4,11 +4,11 @@
 * Microsoft Power BI Desktop
 * [OpenSearch](https://opendistro.github.io/for-elasticsearch-docs/docs/install/)
 * [OpenSearch SQL ODBC driver](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/odbc/)
-* [OdfeSqlOdbcPBIConnector.mez](../../src/PowerBIConnector/bin/Release/) 
+* [SqlOdbcPBIConnector.mez](../../src/PowerBIConnector/bin/Release/) 
 * Optional: [sqlodbc_import.pbids](../../src/PowerBIConnector/PBIDSExamples) to help with repeated connections to the same server 
 
 ## Setup
-* Copy `OdfeSqlOdbcPBIConnector.mez` file in the `<User>\Documents\Power BI Desktop\Custom Connectors\` folder. This will let Power BI access custom connector.
+* Copy `SqlOdbcPBIConnector.mez` file in the `<User>\Documents\Power BI Desktop\Custom Connectors\` folder. This will let Power BI access custom connector.
 * Open Power BI Desktop.
 * Change the security settings. Click on **Files** > **Options and settings** > **Options** > **Security** > Select **Allow any extension to load without validation or warning** for Data Extensions. This will allow the custom connector to load data into Power BI.
 
@@ -74,12 +74,12 @@ Example PBIDS file for OpenSearch: (available here: [sqlodbc_import.pbids](../..
 }
 ```
 
-The only part you should change is the `server` attribute, to point to the location of your ODFE server.
-* For AWS connections, this will be the full path of your ODFE instance (ex: `https://aws-odfe-instance.us-west-1.com`).
+The only part you should change is the `server` attribute, to point to the location of your OpenSearch server.
+* For AWS connections, this will be the full path of your OpenSearch instance (ex: `https://aws-opensearch-instance.us-west-1.com`).
 * Otherwise, this will be the `host:port` combination for your instance (ex: `localhost:9200`).
 
 Save this as a `.pbids` file. Double-click on it to open up your connection in Power BI Desktop.
-It will take you straight to the **Navigator** window for selecting the tables from the ODFE server.
+It will take you straight to the **Navigator** window for selecting the tables from the OpenSearch server.
 * If this is the first time you are connecting to this instance, you will be prompted for your credentials.
 
 <img src="img/pbi_auth.png" width="500">

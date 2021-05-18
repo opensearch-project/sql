@@ -105,7 +105,7 @@ install(TARGETS sqlodbc DESTINATION bin COMPONENT "Driver")
 # TODO: look into DSN Installer failure
 # if(APPLE)
 #     install(FILES "${PROJECT_ROOT}/bin64/dsn_installer" DESTINATION bin COMPONENT "Driver")
-#     install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/remove-odfe-dsn.sh" DESTINATION bin COMPONENT "Driver")
+#     install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/remove-opensearch-dsn.sh" DESTINATION bin COMPONENT "Driver")
 # endif()
 
 # Install documentation files
@@ -114,7 +114,7 @@ install(FILES "${PROJECT_ROOT}/LICENSE" DESTINATION doc COMPONENT "Docs")
 install(FILES "${PROJECT_ROOT}/THIRD-PARTY" DESTINATION doc COMPONENT "Docs")
 
 # Install resource files
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/Resources/odfe_sql_odbc.tdc" DESTINATION resources COMPONENT "Resources")
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/Resources/opensearch_sql_odbc.tdc" DESTINATION resources COMPONENT "Resources")
 
 # Install AWS dependencies
 if(WIN32)

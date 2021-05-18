@@ -29,7 +29,7 @@ set(SOURCE_FILES it_odbc_helper.cpp)
 set(HEADER_FILES it_odbc_helper.h)	
 include_directories(	
                         ${UT_HELPER}
-                        ${ODFEODBC_SRC}
+                        ${OPENSEARCHODBC_SRC}
 						${VLD_SRC}  
                     )
 

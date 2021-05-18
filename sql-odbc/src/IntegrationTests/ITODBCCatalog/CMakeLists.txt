@@ -28,7 +28,7 @@ project(itodbc_catalog)
 set(SOURCE_FILES test_odbc_catalog.cpp)
 include_directories(	${UT_HELPER}
 						${IT_HELPER}
-						${ODFEODBC_SRC}
+						${OPENSEARCHODBC_SRC}
 						${VLD_SRC}  )
 
 # Generate executable
