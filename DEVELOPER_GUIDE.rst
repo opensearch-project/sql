@@ -132,7 +132,6 @@ The plugin codebase is in standard layout of Gradle project::
    │   ├── attributions.md
    │   ├── category.json
    │   ├── dev
-   │   ├── experiment
    │   └── user
    ├── gradle.properties
    ├── gradlew
