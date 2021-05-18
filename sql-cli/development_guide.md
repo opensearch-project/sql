@@ -16,7 +16,7 @@ https uses 443 by default.
 - Prerequisites
     - Build the application
     - Start a local OpenSearch instance with 
-    [OpenSearch SQL plugin](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/) installed
+    [OpenSearch SQL plugin](https://docs-beta.opensearch.org/docs/sql/) installed
     and listening at http://localhost:9200.
 - Pytest
     - `pip install -r requirements-dev.txt` Install test frameworks including Pytest and mock.

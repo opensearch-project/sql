@@ -7,7 +7,7 @@ Connect an OpenSearch data source to Tableau Desktop via the Tableau Connector t
 ## Prerequisites
 
 * Download and Install [Tableau Desktop](https://www.tableau.com/products/desktop/download) 2020 and higher
-* Install and Configure [OpenSearch](https://opendistro.github.io/for-elasticsearch-docs/docs/install/)
+* Install and Configure [OpenSearch](https://docs-beta.opensearch.org/docs/install/)
 * Download and Install [OpenSearch SQL ODBC driver](../../README.md)
 * Download Tableau Connector for `SQL by Open Distro for ES` ([opensearch_sql_odbc.taco](../../src/TableauConnector/opensearch_sql_odbc/opensearch_sql_odbc.taco)).
 Click on **Download** option for downloading `opensearch_sql_odbc.taco` file.
