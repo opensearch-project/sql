@@ -22,9 +22,9 @@
 #   permissions and limitations under the License.
 #
 
-project(odfesqlodbc)
+project(sqlodbc)
 
-# Source files for odfesqlodbc
+# Source files for sqlodbc
 set(					SOURCE_FILES 
 							bind.c					columninfo.c			connection.c 				convert.c
 							descriptor.c			dlg_specific.c			drvconn.c					options.c	
@@ -56,15 +56,15 @@ set(					HEADER_FILES
 # Generate dll (SHARED)
 if(WIN32)
 set(RESOURCE_FILES opensearch_odbc.rc)
-add_library(odfesqlodbc SHARED ${SOURCE_FILES} ${HEADER_FILES} ${RESOURCE_FILES} ${AWSSDK_LIB_DIR})
+add_library(sqlodbc SHARED ${SOURCE_FILES} ${HEADER_FILES} ${RESOURCE_FILES} ${AWSSDK_LIB_DIR})
 else()
-add_library(odfesqlodbc SHARED ${SOURCE_FILES} ${HEADER_FILES})
+add_library(sqlodbc SHARED ${SOURCE_FILES} ${HEADER_FILES})
 endif()
 
 include_directories(
 						${LIBRARY_DIRECTORY}/../src
 						${CMAKE_CURRENT_SOURCE_DIR}
-						${ODFEENLIST_SRC} 
+						${OPENSEARCHENLIST_SRC}
 						${RABBIT_SRC}
 						${RAPIDJSON_SRC}
 						${AWSSDK_INCLUDE_DIR}
@@ -73,14 +73,14 @@ include_directories(
 # Platform specific library dependencies
 if(WIN32)
 	# Windows specifiec
-	target_link_libraries(odfesqlodbc wsock32 ws2_32 winmm user32 gdi32 legacy_stdio_definitions aws-cpp-sdk-core kernel32 advapi32 secur32 XOleHlp Wldap32 crypt32 Normaliz odbccp32 odbc32)
-	target_link_libraries(odfesqlodbc debug msvcrtd)
-	target_link_libraries(odfesqlodbc optimized msvcrt)
+	target_link_libraries(sqlodbc wsock32 ws2_32 winmm user32 gdi32 legacy_stdio_definitions aws-cpp-sdk-core kernel32 advapi32 secur32 XOleHlp Wldap32 crypt32 Normaliz odbccp32 odbc32)
+	target_link_libraries(sqlodbc debug msvcrtd)
+	target_link_libraries(sqlodbc optimized msvcrt)
 elseif(APPLE)
 	# Apple specific
-	target_link_libraries(odfesqlodbc iodbc iodbcinst aws-cpp-sdk-core)
+	target_link_libraries(sqlodbc iodbc iodbcinst aws-cpp-sdk-core)
 elseif(UNIX)
 	# Unix specific
 	include_directories(/usr/src/linux-headers-5.0.0-27/include)
-	target_link_libraries(odfesqlodbc aws-cpp-sdk-core odbc odbcinst)
+	target_link_libraries(sqlodbc aws-cpp-sdk-core odbc odbcinst)
 endif()

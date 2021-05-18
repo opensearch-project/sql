@@ -27,7 +27,7 @@
 
 #include "opensearch_communication.h"
 
-// odfesqlodbc needs to be included before mylog, otherwise mylog will generate
+// sqlodbc needs to be included before mylog, otherwise mylog will generate
 // compiler warnings
 // clang-format off
 #include "opensearch_odbc.h"
@@ -47,7 +47,7 @@ static const std::string SQL_ENDPOINT_FORMAT_JDBC =
 static const std::string SQL_ENDPOINT_CLOSE_CURSOR = "/_opensearch/_sql/close";
 static const std::string PLUGIN_ENDPOINT_FORMAT_JSON =
     "/_cat/plugins?format=json";
-static const std::string OPENDISTRO_SQL_PLUGIN_NAME = "opensearch-sql";
+static const std::string OPENSEARCH_SQL_PLUGIN_NAME = "opensearch-sql";
 static const std::string ALLOCATION_TAG = "AWS_SIGV4_AUTH";
 static const std::string SERVICE_NAME = "es";
 static const std::string ESODBC_PROFILE_NAME = "opensearchodbc";
@@ -442,7 +442,7 @@ bool OpenSearchCommunication::IsSQLPluginInstalled(const std::string& plugin_res
         for (auto it : plugin_array) {
             if (it.has("component") && it.has("version")) {
                 std::string plugin_name = it.at("component").as_string();
-                if (!plugin_name.compare(OPENDISTRO_SQL_PLUGIN_NAME)) {
+                if (!plugin_name.compare(OPENSEARCH_SQL_PLUGIN_NAME)) {
                     std::string sql_plugin_version =
                         it.at("version").as_string();
                     LogMsg(OPENSEARCH_INFO, std::string("Found SQL plugin version '"

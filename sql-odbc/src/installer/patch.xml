@@ -1,5 +1,5 @@
 <CPackWiXPatch>
-	<CPackWiXFragment Id="CM_CP_Driver.bin.odfesqlodbc.dll">
+	<CPackWiXFragment Id="CM_CP_Driver.bin.sqlodbc.dll">
 		<!-- Add driver entry in Software -->
 		<RegistryKey Root="HKLM" Key="SOFTWARE\Amazon\OpenSearch SQL ODBC Driver\Driver" >
 			<RegistryValue Type="string" Name="InstallPath" Value="[INSTALL_ROOT]" />
@@ -14,8 +14,8 @@
 		
 		<!-- Set driver attributes -->
 		<RegistryKey Root="HKLM" Key="SOFTWARE\ODBC\ODBCINST.INI\OpenSearch SQL ODBC Driver" >
-			<RegistryValue Type="string" Name="Driver" Value="[INSTALL_ROOT]bin\odfesqlodbc.dll" />
-			<RegistryValue Type="string" Name="Setup" Value="[INSTALL_ROOT]bin\odfesqlodbc.dll" />
+			<RegistryValue Type="string" Name="Driver" Value="[INSTALL_ROOT]bin\sqlodbc.dll" />
+			<RegistryValue Type="string" Name="Setup" Value="[INSTALL_ROOT]bin\sqlodbc.dll" />
 		</RegistryKey>
 		
 		<!-- Add DSN entry in ODBC Data Sources -->
