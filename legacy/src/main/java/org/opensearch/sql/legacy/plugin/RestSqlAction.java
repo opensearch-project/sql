@@ -100,7 +100,7 @@ public class RestSqlAction extends BaseRestHandler {
     /**
      * API endpoint path
      */
-    public static final String QUERY_API_ENDPOINT = "/_opensearch/_sql";
+    public static final String QUERY_API_ENDPOINT = "/_plugins/_sql";
     public static final String EXPLAIN_API_ENDPOINT = QUERY_API_ENDPOINT + "/_explain";
     public static final String CURSOR_CLOSE_ENDPOINT = QUERY_API_ENDPOINT + "/close";
     public static final String LEGACY_QUERY_API_ENDPOINT = "/_opendistro/_sql";

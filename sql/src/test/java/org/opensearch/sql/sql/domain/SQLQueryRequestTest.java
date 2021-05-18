@@ -95,7 +95,7 @@ public class SQLQueryRequestTest {
   public void shouldSupportExplain() {
     SQLQueryRequest explainRequest =
         SQLQueryRequestBuilder.request("SELECT 1")
-                              .path("_opensearch/_sql/_explain")
+                              .path("_plugins/_sql/_explain")
                               .build();
     assertTrue(explainRequest.isExplainRequest());
     assertTrue(explainRequest.isSupported());
@@ -169,7 +169,7 @@ public class SQLQueryRequestTest {
   private static class SQLQueryRequestBuilder {
     private String jsonContent;
     private String query;
-    private String path = "_/opendistro/_sql";
+    private String path = "_plugins/_sql";
     private String format;
     private Map<String, String> params;
 

@@ -78,8 +78,8 @@ import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 public class RestPPLQueryAction extends BaseRestHandler {
-  public static final String QUERY_API_ENDPOINT = "/_opensearch/_ppl";
-  public static final String EXPLAIN_API_ENDPOINT = "/_opensearch/_ppl/_explain";
+  public static final String QUERY_API_ENDPOINT = "/_plugins/_ppl";
+  public static final String EXPLAIN_API_ENDPOINT = "/_plugins/_ppl/_explain";
   public static final String LEGACY_QUERY_API_ENDPOINT = "/_opendistro/_ppl";
   public static final String LEGACY_EXPLAIN_API_ENDPOINT = "/_opendistro/_ppl/_explain";
 

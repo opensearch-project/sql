@@ -58,7 +58,7 @@ public class RestPPLStatsAction extends BaseRestHandler {
   /**
    * API endpoint path.
    */
-  public static final String PPL_STATS_API_ENDPOINT = "/_opensearch/_ppl/stats";
+  public static final String PPL_STATS_API_ENDPOINT = "/_plugins/_ppl/stats";
   public static final String PPL_LEGACY_STATS_API_ENDPOINT = "/_opendistro/_ppl/stats";
 
   public RestPPLStatsAction(Settings settings, RestController restController) {

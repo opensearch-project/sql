@@ -32,7 +32,7 @@ Use `filter` to add more conditions to OpenSearch DSL directly.
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql -d '{
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql -d '{
 	  "query" : "SELECT firstname, lastname, balance FROM accounts",
 	  "filter" : {
 	    "range" : {
@@ -92,7 +92,7 @@ Use `parameters` for actual parameter value in prepared SQL query.
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql -d '{
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql -d '{
 	  "query" : "SELECT * FROM accounts WHERE age = ?",
 	  "parameters" : [
 	    {
@@ -148,7 +148,7 @@ Here is an example for normal response. The `schema` includes field name and its
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql -d '{
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql -d '{
 	  "query" : "SELECT firstname, lastname, age FROM accounts ORDER BY age LIMIT 2"
 	}'
 
@@ -193,7 +193,7 @@ If any error occurred, error message and the cause will be returned instead.
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql?format=jdbc -d '{
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql?format=jdbc -d '{
 	  "query" : "SELECT unknown FROM accounts"
 	}'
 
@@ -221,7 +221,7 @@ Example
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql?format=json -d '{
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql?format=json -d '{
 	  "query" : "SELECT firstname, lastname, age FROM accounts ORDER BY age LIMIT 2"
 	}'
 
@@ -288,7 +288,7 @@ Example
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql?format=csv -d '{
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql?format=csv -d '{
 	  "query" : "SELECT firstname, lastname, age FROM accounts ORDER BY age"
 	}'
 
@@ -314,7 +314,7 @@ For example::
       "=lastname": "@Bond",
       "address": "671 Bristol Street, Dente, TN"
     }'
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql?format=csv -d '{
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql?format=csv -d '{
 	  "query" : "SELECT firstname, lastname, address FROM userdata"
 	}'
 
@@ -326,7 +326,7 @@ Result set::
 
 If you prefer escaping the sanitization and keeping the original csv result, you can add a "sanitize" param and set it to false value to skip sanitizing. For example::
 
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql?format=csv&sanitize=false -d '{
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql?format=csv&sanitize=false -d '{
 	  "query" : "SELECT firstname, lastname, address FROM userdata"
 	}'
 
@@ -350,7 +350,7 @@ Example
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql?format=raw -d '{
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql?format=raw -d '{
 	  "query" : "SELECT firstname, lastname, age FROM accounts ORDER BY age"
 	}'
 
@@ -374,7 +374,7 @@ For example::
       "=lastname": "@Bond",
       "address": "671 Bristol Street|, Dente, TN"
     }'
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql?format=csv -d '{
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql?format=csv -d '{
 	  "query" : "SELECT firstname, lastname, address FROM userdata"
 	}'
 

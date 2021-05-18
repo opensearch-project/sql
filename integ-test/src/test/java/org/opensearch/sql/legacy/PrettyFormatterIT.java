@@ -68,7 +68,7 @@ public class PrettyFormatterIT extends SQLIntegTestCase {
   }
 
   private String executeExplainRequest(String query, String explainParam) throws IOException {
-    String endpoint = "/_opensearch/_sql/_explain?" + explainParam;
+    String endpoint = "/_plugins/_sql/_explain?" + explainParam;
     String request = makeRequest(query);
 
     Request sqlRequest = new Request("POST", endpoint);

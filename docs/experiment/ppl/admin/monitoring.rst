@@ -42,7 +42,7 @@ Example
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X GET localhost:9200/_opensearch/_ppl/stats
+	>> curl -H 'Content-Type: application/json' -X GET localhost:9200/_plugins/_ppl/stats
 
 Result set::
 
