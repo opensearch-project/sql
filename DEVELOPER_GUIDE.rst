@@ -32,7 +32,7 @@ Here are the official instructions on how to set ``JAVA_HOME`` for different pla
 OpenSearch & OpenSearch Dashboards
 ----------------------------------
 
-For convenience, we recommend installing `OpenSearch <https://www.elastic.co/downloads/past-releases#elasticsearch-oss>`_ and `OpenSearch Dashboards <https://www.elastic.co/downloads/past-releases#kibana-oss>`_ on your local machine. You can download the open source ZIP for each and extract them to a folder.
+For convenience, we recommend installing `OpenSearch <https://www.opensearch.org/downloads.html>`_ and `OpenSearch Dashboards <https://www.opensearch.org/downloads.html>`_ on your local machine. You can download the open source ZIP for each and extract them to a folder.
 
 If you just want to have a quick look, you can also get an OpenSearch running with plugin installed by ``./gradlew :plugin:run``.
 
