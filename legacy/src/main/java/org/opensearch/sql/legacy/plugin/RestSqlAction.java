@@ -121,13 +121,21 @@ public class RestSqlAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
+        return ImmutableList.of();
+    }
+
+    @Override
+    public List<ReplacedRoute> replacedRoutes() {
         return ImmutableList.of(
-            new Route(RestRequest.Method.POST, QUERY_API_ENDPOINT),
-            new Route(RestRequest.Method.POST, EXPLAIN_API_ENDPOINT),
-            new Route(RestRequest.Method.POST, CURSOR_CLOSE_ENDPOINT),
-            new Route(RestRequest.Method.POST, LEGACY_QUERY_API_ENDPOINT),
-            new Route(RestRequest.Method.POST, LEGACY_EXPLAIN_API_ENDPOINT),
-            new Route(RestRequest.Method.POST, LEGACY_CURSOR_CLOSE_ENDPOINT)
+            new ReplacedRoute(
+                RestRequest.Method.POST, QUERY_API_ENDPOINT,
+                RestRequest.Method.POST, LEGACY_QUERY_API_ENDPOINT),
+            new ReplacedRoute(
+                RestRequest.Method.POST, EXPLAIN_API_ENDPOINT,
+                RestRequest.Method.POST, LEGACY_EXPLAIN_API_ENDPOINT),
+            new ReplacedRoute(
+                RestRequest.Method.POST, CURSOR_CLOSE_ENDPOINT,
+                RestRequest.Method.POST, LEGACY_CURSOR_CLOSE_ENDPOINT)
         );
     }
 
