@@ -44,10 +44,11 @@
 static const std::string ctype = "application/json";
 static const std::string SQL_ENDPOINT_FORMAT_JDBC =
     "/_opensearch/_sql?format=jdbc";
+static const std::string SQL_ENDPOINT_FORMAT_RAW =
+    "/_opensearch/_sql?format=raw";
 static const std::string SQL_ENDPOINT_CLOSE_CURSOR = "/_opensearch/_sql/close";
 static const std::string PLUGIN_ENDPOINT_FORMAT_JSON =
     "/_cat/plugins?format=json";
-static const std::string OPENDISTRO_SQL_PLUGIN_NAME = "opensearch-sql";
 static const std::string ALLOCATION_TAG = "AWS_SIGV4_AUTH";
 static const std::string SERVICE_NAME = "es";
 static const std::string ESODBC_PROFILE_NAME = "opensearchodbc";
@@ -433,57 +434,21 @@ OpenSearchCommunication::IssueRequest(
     return m_http_client->MakeRequest(request);
 }
 
-bool OpenSearchCommunication::IsSQLPluginInstalled(const std::string& plugin_response) {
-    try {
-        rabbit::document doc;
-        doc.parse(plugin_response);
-
-        rabbit::array plugin_array = doc;
-        for (auto it : plugin_array) {
-            if (it.has("component") && it.has("version")) {
-                std::string plugin_name = it.at("component").as_string();
-                if (!plugin_name.compare(OPENDISTRO_SQL_PLUGIN_NAME)) {
-                    std::string sql_plugin_version =
-                        it.at("version").as_string();
-                    LogMsg(OPENSEARCH_INFO, std::string("Found SQL plugin version '"
-                                                + sql_plugin_version + "'.")
-                                        .c_str());
-                    return true;
-                }
-            } else {
-                m_error_message =
-                    "Could not find all necessary fields in the plugin "
-                    "response object. "
-                    "(\"component\", \"version\")";
-                SetErrorDetails("Connection error", m_error_message,
-                                ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
-                throw std::runtime_error(m_error_message.c_str());
-            }
-        }
-    } catch (const rabbit::type_mismatch& e) {
-        m_error_type = ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE;
-        m_error_message =
-            "Error parsing endpoint response: " + std::string(e.what());
-        SetErrorDetails("Connection error", m_error_message,
-                        ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
-    } catch (const rabbit::parse_error& e) {
-        m_error_message =
-            "Error parsing endpoint response: " + std::string(e.what());
-        SetErrorDetails("Connection error", m_error_message,
-                        ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
-    } catch (const std::exception& e) {
-        m_error_message =
-            "Error parsing endpoint response: " + std::string(e.what());
-        SetErrorDetails("Connection error", m_error_message,
-                        ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
-    } catch (...) {
-        m_error_message =
-            "Unknown exception thrown when parsing plugin endpoint response.";
-        SetErrorDetails("Connection error", m_error_message,
-                        ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
+bool OpenSearchCommunication::IsSQLPluginDisabled(const std::string& plugin_response) {
+    std::shared_ptr< ErrorDetails > error_details =
+        ParseErrorResponse(plugin_response);
+    std::string error_type = error_details->details;
+    if (error_type.compare("SQLFeatureDisabledException")) {
+        return true;
     }
+    return false;
+}
 
-    LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
+bool OpenSearchCommunication::IsSQLPluginAvailable(const std::string& plugin_response) {
+    std::string expected_resp = "1\n1";
+    if (!plugin_response.compare(expected_resp)) {
+        return true;
+    }
     return false;
 }
 
@@ -494,18 +459,23 @@ bool OpenSearchCommunication::EstablishConnection() {
         InitializeConnection();
     }
 
-    // Check whether SQL plugin has been installed on the OpenSearch server.
+    // Check whether SQL plugin has been installed and enabled
+    // on the OpenSearch server.
     // This is required for executing driver queries with the server.
-    LogMsg(OPENSEARCH_ALL, "Checking for SQL plugin");
+    LogMsg(OPENSEARCH_ALL, "Checking for SQL plugin status.");
+    std::string test_query = "SELECT 1";
     std::shared_ptr< Aws::Http::HttpResponse > response =
-        IssueRequest(PLUGIN_ENDPOINT_FORMAT_JSON,
-                     Aws::Http::HttpMethod::HTTP_GET, "", "", "");
+        IssueRequest(SQL_ENDPOINT_FORMAT_RAW, Aws::Http::HttpMethod::HTTP_POST,
+                     ctype, test_query);
+
     if (response == nullptr) {
         m_error_message =
-            "The SQL plugin must be installed in order to use this driver. "
+            "Failed to receive response."
             "Received NULL response.";
-        SetErrorDetails("HTTP client error", m_error_message,
-                        ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
+        SetErrorDetails("Execution error", m_error_message,
+                        ConnErrorType::CONN_ERROR_QUERY_SYNTAX);
+        LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
+        return false;
     } else {
         AwsHttpResponseToString(response, m_response_str);
         if (response->GetResponseCode() != Aws::Http::HttpResponseCode::OK) {
@@ -515,13 +485,21 @@ bool OpenSearchCommunication::EstablishConnection() {
                 SetErrorDetails("HTTP client error", m_error_message,
                                 ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
             }
+            if(IsSQLPluginDisabled(m_response_str)) {
+                m_error_message =
+                    "The SQL plugin is disabled. The SQL plugin must be "
+                    "enabled in order to use this driver. Response body: '"
+                    + m_response_str + "'";
+                SetErrorDetails("Connection error", m_error_message,
+                                ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
+            }
             if (!m_response_str.empty()) {
                 m_error_message += " Response error: '" + m_response_str + "'.";
                 SetErrorDetails("Connection error", m_error_message,
                                 ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
             }
         } else {
-            if (IsSQLPluginInstalled(m_response_str)) {
+            if (IsSQLPluginAvailable(m_response_str)) {
                 return true;
             } else {
                 m_error_message =
