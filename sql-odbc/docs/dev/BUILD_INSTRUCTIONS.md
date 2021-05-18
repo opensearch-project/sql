@@ -40,7 +40,7 @@ build
   └-- install
 ```
 
-* Driver DLL: `.\build\odbc\bin\<Config>\odfesqlodbc.dll`
+* Driver DLL: `.\build\odbc\bin\<Config>\sqlodbc.dll`
 * Test binaries folder: `.\build\odbc\bin\<Config>\`
 
 ### Packaging
@@ -84,7 +84,7 @@ build
   └-- <build files>
 ```
 
-* Driver library: `./build/odbc/lib/libodfesqlodbc.dylib`
+* Driver library: `./build/odbc/lib/libsqlodbc.dylib`
 * Test binaries folder: `./build/odbc/bin/`
 
 ### Packaging

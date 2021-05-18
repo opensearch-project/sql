@@ -1,4 +1,4 @@
-<connection-dialog class='odfe_sql_odbc_dev'>
+<connection-dialog class='opensearch_sql_odbc_dev'>
   <connection-config>  
     <authentication-mode value='ComboBoxIntegrated' />
         <authentication-options>

@@ -1,5 +1,5 @@
 // This file contains queries to test your data connector
-section OdfeSqlOdbcPBIConnector.UnitTests;
+section SqlOdbcPBIConnector.UnitTests;
 
 shared MyExtension.UnitTest =
 [
@@ -12,7 +12,7 @@ shared MyExtension.UnitTest =
         Fact("Connection Test",  
              7,                                    
              let
-                Source = OdfeSqlOdbcPBIConnector.Contents(Host,Port),
+                Source = SqlOdbcPBIConnector.Contents(Host,Port),
                 no_of_columns = Table.ColumnCount(Source)
              in
                 no_of_columns                

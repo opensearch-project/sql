@@ -102,7 +102,7 @@ const std::vector< short > flights_sql_data_type = {
     SQL_WVARCHAR, SQL_WVARCHAR, SQL_WVARCHAR, SQL_TYPE_TIMESTAMP, SQL_WVARCHAR,
     SQL_WVARCHAR, SQL_BIT,      SQL_REAL,     SQL_WVARCHAR,       SQL_WVARCHAR,
     SQL_WVARCHAR, SQL_WVARCHAR, SQL_WVARCHAR, SQL_WVARCHAR,       SQL_WVARCHAR};
-const std::string flights_catalog_odfe = "odfe-cluster";
+const std::string flights_catalog_opensearch = "opensearch-cluster";
 const std::string flights_catalog_elas = "opensearch";
 const std::string flights_table_name = "opensearch_dashboards_sample_data_flights";
 const std::string flights_decimal_digits = "10";
@@ -451,9 +451,9 @@ TEST_SQL_KEYS(ForeignKeys_NULL, SQLForeignKeys, NULL, SQL_NTS, NULL, SQL_NTS,
 
 // Catalog specified
 TEST_SQL_KEYS(PrimaryKeys_Catalog, SQLPrimaryKeys, NULL, SQL_NTS,
-              (SQLTCHAR*)L"odfe-cluster", SQL_NTS, NULL, SQL_NTS)
+              (SQLTCHAR*)L"opensearch-cluster", SQL_NTS, NULL, SQL_NTS)
 TEST_SQL_KEYS(ForeignKeys_Catalog, SQLForeignKeys, NULL, SQL_NTS, NULL, SQL_NTS,
-              NULL, SQL_NTS, NULL, SQL_NTS, (SQLTCHAR*)L"odfe-cluster", SQL_NTS,
+              NULL, SQL_NTS, NULL, SQL_NTS, (SQLTCHAR*)L"opensearch-cluster", SQL_NTS,
               NULL, SQL_NTS)
 
 // Table specified
@@ -465,10 +465,10 @@ TEST_SQL_KEYS(ForeignKeys_Table, SQLForeignKeys, NULL, SQL_NTS, NULL, SQL_NTS,
 
 // Catalog and table specified
 TEST_SQL_KEYS(PrimaryKeys_CatalogTable, SQLPrimaryKeys, NULL, SQL_NTS,
-              (SQLTCHAR*)L"odfe-cluster", SQL_NTS,
+              (SQLTCHAR*)L"opensearch-cluster", SQL_NTS,
               (SQLTCHAR*)L"opensearch_dashboards_sample_data_flights", SQL_NTS)
 TEST_SQL_KEYS(ForeignKeys_CatalogTable, SQLForeignKeys, NULL, SQL_NTS, NULL,
-              SQL_NTS, NULL, SQL_NTS, NULL, SQL_NTS, (SQLTCHAR*)L"odfe-cluster",
+              SQL_NTS, NULL, SQL_NTS, NULL, SQL_NTS, (SQLTCHAR*)L"opensearch-cluster",
               SQL_NTS, (SQLTCHAR*)L"opensearch_dashboards_sample_data_flights", SQL_NTS)
 
 // GetTypeInfo expected output struct

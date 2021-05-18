@@ -28,7 +28,7 @@ project(itodbc_pagination)
 set(SOURCE_FILES test_odbc_pagination.cpp)
 include_directories(	${UT_HELPER} 
 			${IT_HELPER} 
-			${ODFEODBC_SRC} 
+			${OPENSEARCHODBC_SRC}
 			${VLD_SRC}	)
 
 # Generate executable
@@ -36,5 +36,5 @@ add_executable(itodbc_pagination ${SOURCE_FILES})
 
 # Library dependencies
 target_code_coverage(itodbc_pagination PUBLIC AUTO ALL)
-target_link_libraries(itodbc_pagination odfesqlodbc itodbc_helper ut_helper gtest_main)
+target_link_libraries(itodbc_pagination sqlodbc itodbc_helper ut_helper gtest_main)
 target_compile_definitions(itodbc_pagination PUBLIC _UNICODE UNICODE)
