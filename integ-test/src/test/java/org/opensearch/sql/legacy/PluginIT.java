@@ -244,41 +244,17 @@ public class PluginIT extends SQLIntegTestCase {
     String settings = "{" +
         "  \"transient\": {" +
         "    \"opensearch.sql.metrics.rollingwindow\": \"3700\"," +
-        "    \"opensearch.sql.query.analysis.semantic.suggestion\" : \"false\"" +
-        "  }," +
-        "  \"persistent\": {" +
-        "    \"opensearch.sql.query.analysis.semantic.suggestion\" : \"true\"" +
         "  }" +
         "}";
     JSONObject actual = updateViaSQLSettingsAPI(settings);
     JSONObject expected = new JSONObject("{" +
         "  \"acknowledged\" : true," +
-        "  \"persistent\" : {" +
-        "    \"opensearch\" : {" +
-        "      \"sql\" : {" +
-        "        \"query\" : {" +
-        "          \"analysis\" : {" +
-        "            \"semantic\" : {" +
-        "              \"suggestion\" : \"true\"" +
-        "            }" +
-        "          }" +
-        "        }" +
-        "      }" +
-        "    }" +
-        "  }," +
         "  \"transient\" : {" +
         "    \"opensearch\" : {" +
         "      \"sql\" : {" +
         "        \"metrics\" : {" +
         "          \"rollingwindow\" : \"3700\"" +
         "        }," +
-        "        \"query\" : {" +
-        "          \"analysis\" : {" +
-        "            \"semantic\" : {" +
-        "              \"suggestion\" : \"false\"" +
-        "            }" +
-        "          }" +
-        "        }" +
         "      }" +
         "    }" +
         "  }" +
@@ -300,7 +276,6 @@ public class PluginIT extends SQLIntegTestCase {
         "    \"search.max_keep_alive\": \"24h\"" +
         "  }," +
         "  \"persistent\": {" +
-        "    \"opensearch.sql.query.analysis.semantic.suggestion\": \"true\"," +
         "    \"opensearch.alerting.metrics.rollingwindow\": \"3700\"," +
         "    \"thread_pool.analyze.queue_size\": \"16\"" +
         "  }" +
@@ -308,19 +283,6 @@ public class PluginIT extends SQLIntegTestCase {
     JSONObject actual = updateViaSQLSettingsAPI(settings);
     JSONObject expected = new JSONObject("{" +
         "  \"acknowledged\" : true," +
-        "  \"persistent\" : {" +
-        "    \"opensearch\" : {" +
-        "      \"sql\" : {" +
-        "        \"query\" : {" +
-        "          \"analysis\" : {" +
-        "            \"semantic\" : {" +
-        "              \"suggestion\" : \"true\"" +
-        "            }" +
-        "          }" +
-        "        }" +
-        "      }" +
-        "    }" +
-        "  }," +
         "  \"transient\" : {" +
         "    \"opensearch\" : {" +
         "      \"sql\" : {" +

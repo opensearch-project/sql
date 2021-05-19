@@ -78,7 +78,7 @@ public class AggregationIT extends SQLIntegTestCase {
     Assert.assertThat(getIntAggregationValue(result, "COUNT(*)", "value"), equalTo(1000));
   }
 
-  @Test
+  @Ignore("The distinct is not supported in new engine")
   public void countDistinctTest() {
     JSONObject response = executeJdbcRequest(
         String.format("SELECT COUNT(distinct gender) FROM %s", TEST_INDEX_ACCOUNT));
