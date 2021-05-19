@@ -163,7 +163,7 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
 
     verifySchema(response,
         schema("gender", null, "text"),
-        schema("log(MAX(age) + MIN(age))", "logValue", "double"));
+        schema("Log(MAX(age) + MIN(age))", "logValue", "double"));
     verifyDataRows(response,
         rows("m", 4.0943445622221d),
         rows("f", 4.0943445622221d));
