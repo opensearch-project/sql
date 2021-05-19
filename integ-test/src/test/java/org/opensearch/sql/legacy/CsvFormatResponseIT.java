@@ -57,6 +57,7 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
@@ -119,9 +120,9 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
     }
   }
 
+  @Ignore("only work for legacy engine")
   @Test
   public void nestedObjectsAndArraysAreQuoted() throws IOException {
-    Assume.assumeFalse(isNewQueryEngineEabled());
     final String query = String.format(Locale.ROOT, "SELECT * FROM %s WHERE _id = 5",
         TEST_INDEX_NESTED_TYPE);
     final String result = executeQueryWithStringOutput(query);
@@ -135,9 +136,9 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
     Assert.assertThat(result, containsString(expectedMessage));
   }
 
+  @Ignore("only work for legacy engine")
   @Test
   public void arraysAreQuotedInFlatMode() throws IOException {
-    Assume.assumeFalse(isNewQueryEngineEabled());
     setFlatOption(true);
 
     final String query = String.format(Locale.ROOT, "SELECT * FROM %s WHERE _id = 5",
@@ -157,7 +158,6 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
 
   @Test
   public void doubleQuotesAreEscapedWithDoubleQuotes() throws IOException {
-    Assume.assumeFalse(isNewQueryEngineEabled());
     final String query = "SELECT * FROM " + TEST_INDEX_NESTED_WITH_QUOTES;
 
     final CSVResult csvResult = executeCsvRequest(query, false);
@@ -330,9 +330,9 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
         hasRow(null, null, Arrays.asList("F", "fireAndBlood", "Targaryen"), false));
   }
 
+  @Ignore("only work for legacy engine")
   @Test
   public void simpleNumericValueAgg() throws Exception {
-    Assume.assumeFalse(isNewQueryEngineEabled());
     String query = String.format(Locale.ROOT, "select count(*) from %s ", TEST_INDEX_DOG);
     CSVResult csvResult = executeCsvRequest(query, false);
 
@@ -364,9 +364,9 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
 
   }
 
+  @Ignore("only work for legacy engine")
   @Test
   public void twoNumericAggWithAlias() throws Exception {
-    Assume.assumeFalse(isNewQueryEngineEabled());
     String query =
         String.format(Locale.ROOT, "select count(*) as count, avg(age) as myAlias from %s ",
             TEST_INDEX_DOG);
@@ -389,9 +389,9 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
 
   }
 
+  @Ignore("only work for legacy engine")
   @Test
   public void aggAfterTermsGroupBy() throws Exception {
-    Assume.assumeFalse(isNewQueryEngineEabled());
     String query = String.format(Locale.ROOT, "SELECT COUNT(*) FROM %s GROUP BY gender",
         TEST_INDEX_ACCOUNT);
     CSVResult csvResult = executeCsvRequest(query, false);
@@ -522,9 +522,9 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
     Assert.assertEquals("32.0,32.0,34.0,36.0,38.0,40.0,40.0", lines.get(0));
   }
 
+  @Ignore("only work for legacy engine")
   @Test
   public void includeTypeAndNotScore() throws Exception {
-    Assume.assumeFalse(isNewQueryEngineEabled());
     String query =
         String.format(Locale.ROOT, "select age , firstname from %s where age > 31 limit 2",
             TEST_INDEX_ACCOUNT);
@@ -541,7 +541,6 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
 
   @Test
   public void includeScoreAndNotType() throws Exception {
-    Assume.assumeFalse(isNewQueryEngineEabled());
     String query = String.format(Locale.ROOT,
         "select age , firstname from %s where age > 31 order by _score desc limit 2 ",
         TEST_INDEX_ACCOUNT);
@@ -558,7 +557,6 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
 
   @Test
   public void includeScoreAndType() throws Exception {
-    Assume.assumeFalse(isNewQueryEngineEabled());
     String query = String.format(Locale.ROOT,
         "select age , firstname from %s where age > 31 order by _score desc limit 2 ",
         TEST_INDEX_ACCOUNT);
@@ -616,9 +614,9 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
 
   }
 
+  @Ignore("only work for legacy engine")
   @Test
   public void includeIdAndNotTypeOrScore() throws Exception {
-    Assume.assumeFalse(isNewQueryEngineEabled());
     String query = String.format(Locale.ROOT,
         "select age , firstname from %s where lastname = 'Marquez' ", TEST_INDEX_ACCOUNT);
     CSVResult csvResult = executeCsvRequest(query, false, false, false, true);
@@ -631,9 +629,9 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
     Assert.assertTrue(lines.get(0).contains(",437") || lines.get(0).contains("437,"));
   }
 
+  @Ignore("only work for legacy engine")
   @Test
   public void includeIdAndTypeButNoScore() throws Exception {
-    Assume.assumeFalse(isNewQueryEngineEabled());
     String query = String.format(Locale.ROOT,
         "select age , firstname from %s where lastname = 'Marquez' ", TEST_INDEX_ACCOUNT);
     CSVResult csvResult = executeCsvRequest(query, false, false, true, true);
@@ -648,9 +646,9 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
   }
   //endregion Tests migrated from CSVResultsExtractorTests
 
+  @Ignore("only work for legacy engine")
   @Test
   public void sensitiveCharacterSanitizeTest() throws IOException {
-    Assume.assumeFalse(isNewQueryEngineEabled());
     String requestBody =
         "{" +
             "  \"=cmd|' /C notepad'!_xlbgnm.A1\": \"+cmd|' /C notepad'!_xlbgnm.A1\",\n" +
@@ -673,9 +671,9 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
     Assert.assertTrue(lines.get(0).contains("'@cmd|' /C notepad'!_xlbgnm.A1"));
   }
 
+  @Ignore("only work for legacy engine")
   @Test
   public void sensitiveCharacterSanitizeAndQuotedTest() throws IOException {
-    Assume.assumeFalse(isNewQueryEngineEabled());
     String requestBody =
         "{" +
             "  \"=cmd|' /C notepad'!_xlbgnm.A1,,\": \",+cmd|' /C notepad'!_xlbgnm.A1\",\n" +

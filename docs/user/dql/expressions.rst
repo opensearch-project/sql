@@ -14,8 +14,6 @@ Introduction
 
 Expressions, particularly value expressions, are those which return a scalar value. Expressions have different types and forms. For example, there are literal values as atom expression and arithmetic, predicate and function expression built on top of them. And also expressions can be used in different clauses, such as using arithmetic expression in ``SELECT``, ``WHERE`` or ``HAVING`` clause.
 
-Note that before you try out examples using the SQL features in this doc, you need to enable the new query engine by following the steps in ``opensearch.sql.engine.new.enabled`` section in `Plugin Settings <../admin/settings.rst>`_.
-
 Literal Values
 ==============
 

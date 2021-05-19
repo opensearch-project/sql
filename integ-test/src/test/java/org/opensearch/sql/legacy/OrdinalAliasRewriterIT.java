@@ -30,7 +30,7 @@ package org.opensearch.sql.legacy;
 import static org.hamcrest.Matchers.equalTo;
 
 import java.io.IOException;
-import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
@@ -167,10 +167,10 @@ public class OrdinalAliasRewriterIT extends SQLIntegTestCase {
   }
 
   // explain ORDER BY IS NULL/NOT NULL
+  @Ignore("only work for legacy engine")
   @Test
   public void explainSelectFieldiWithBacticksAndTableAliasOrderByOrdinalAndNull()
       throws IOException {
-    Assume.assumeFalse(isNewQueryEngineEabled());
     String expected = explainQuery(StringUtils.format(
         "SELECT `b`.`lastname`, age FROM %s AS b ORDER BY `b`.`lastname` IS NOT NULL DESC, age is NULL LIMIT 3",
         TestsConstants.TEST_INDEX_ACCOUNT));
