@@ -141,7 +141,7 @@ public class TypeInformationIT extends SQLIntegTestCase {
     JSONObject response = executeJdbcRequest("SELECT (balance + 5) AS balance_add_five FROM " +
         TestsConstants.TEST_INDEX_ACCOUNT + " ORDER BY firstname LIMIT 2");
 
-    verifySchema(response, schema("balance_add_five", null, "integer"));
+    verifySchema(response, schema("(balance + 5)", "balance_add_five", "long"));
   }
 
   @Test
