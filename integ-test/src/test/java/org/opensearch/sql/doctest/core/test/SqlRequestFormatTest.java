@@ -59,7 +59,7 @@ public class SqlRequestFormatTest {
   @Test
   public void testCurlFormat() {
     String expected =
-        ">> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql?format=jdbc -d '{\n" +
+        ">> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql?format=jdbc -d '{\n" +
             "  \"query\" : \"SELECT * FROM accounts\"\n" +
             "}'";
     assertThat(CURL_REQUEST.format(sqlRequest), is(expected));
@@ -68,7 +68,7 @@ public class SqlRequestFormatTest {
   @Test
   public void testOpenSearchDashboardsFormat() {
     String expected =
-        "POST /_opensearch/_sql?format=jdbc\n" +
+        "POST /_plugins/_sql?format=jdbc\n" +
             "{\n" +
             "  \"query\" : \"SELECT * FROM accounts\"\n" +
             "}";
@@ -79,12 +79,12 @@ public class SqlRequestFormatTest {
   public void multiLineSqlInOpenSearchDashboardRequestShouldBeWellFormatted() {
     SqlRequest multiLineSqlRequest = new SqlRequest(
         "POST",
-        "/_opensearch/_sql",
+        "/_plugins/_sql",
         "{\"query\":\"SELECT *\\nFROM accounts\\nWHERE age > 30\"}"
     );
 
     String expected =
-        "POST /_opensearch/_sql\n" +
+        "POST /_plugins/_sql\n" +
             "{\n" +
             "  \"query\" : \"\"\"\n" +
             "\tSELECT *\n" +

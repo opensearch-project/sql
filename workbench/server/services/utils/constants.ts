@@ -26,10 +26,10 @@
 
 import { ParsedUrlQuery } from 'querystring';
 
-export const SQL_TRANSLATE_ROUTE = `/_opensearch/_sql/_explain`;
-export const PPL_TRANSLATE_ROUTE = `/_opensearch/_ppl/_explain`;
-export const SQL_QUERY_ROUTE = `/_opensearch/_sql`;
-export const PPL_QUERY_ROUTE = `/_opensearch/_ppl`;
+export const SQL_TRANSLATE_ROUTE = `/_plugins/_sql/_explain`;
+export const PPL_TRANSLATE_ROUTE = `/_plugins/_ppl/_explain`;
+export const SQL_QUERY_ROUTE = `/_plugins/_sql`;
+export const PPL_QUERY_ROUTE = `/_plugins/_ppl`;
 export const FORMAT_CSV = `format=csv`;
 export const FORMAT_JSON = `format=json`;
 export const FORMAT_TEXT = `format=raw`;

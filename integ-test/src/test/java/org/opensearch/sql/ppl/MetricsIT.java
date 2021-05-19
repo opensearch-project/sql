@@ -67,7 +67,7 @@ public class MetricsIT extends PPLIntegTestCase {
 
   private Request makeStatRequest() {
     return new Request(
-        "GET", "/_opensearch/_ppl/stats"
+        "GET", "/_plugins/_ppl/stats"
     );
   }
 
