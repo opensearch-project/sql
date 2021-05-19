@@ -35,12 +35,12 @@ Result:
 .. code-block:: JSON
 
     {
-      "reason": "Invalid SQL query",
-      "details": "Failed to parse query due to offending symbol [:] at: 'SELECT * FROM xxx WHERE xxx:' <--- HERE...
-        More details: Expecting tokens in {<EOF>, 'AND', 'BETWEEN', 'GROUP', 'HAVING', 'IN', 'IS', 'LIKE', 'LIMIT',
-        'NOT', 'OR', 'ORDER', 'REGEXP', '*', '/', '%', '+', '-', 'DIV', 'MOD', '=', '>', '<', '!',
-        '|', '&', '^', '.', DOT_ID}",
-      "type": "SyntaxAnalysisException"
+      "error": {
+        "reason": "Invalid SQL query",
+        "details": "Failed to parse query due to offending symbol [:] at: 'SELECT * FROM sample:' <--- HERE... More details: Expecting tokens in {<EOF>, ';'}",
+        "type": "SyntaxAnalysisException"
+      },
+      "status": 400
     }
 
 **Workaround**
@@ -51,32 +51,14 @@ You need to confirm if the syntax is not supported and disable query analysis if
 
 .. code-block:: JSON
 
-    POST /_opensearch/_sql
+	POST /_opensearch/_sql
 	{
 	  "query" : "SELECT * FROM `sample:data`"
 	}
 
 Go to the step 2 if not working.
 
-2. Identify syntax error in failed query, and correct the syntax if the query does not follow MySQL grammar. Go to step 3 if your query is correct in syntax but it still ends up syntax exception.
-
-#. Disable strict query analysis in new ANTLR parser with the following code block.
-
-#. Verify if the query can pass now. If the query fails as well, please create an issue in our `GitHub Issues <https://github.com/opensearch-project/sql/issues>`_ section to report bugs fixing or request new features.
-
-.. code-block:: JSON
-
-    #Disable query analysis
-    curl -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings -d '{
-      "persistent" : {
-        "opensearch.sql.query.analysis.enabled" : false
-      }
-    }'
-
-    #Verify if the query can pass the verification now
-    curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql -d '{
-      "query" : "SELECT * FROM ..."
-    }'
+2. Identify syntax error in failed query, and correct the syntax if the query does not follow MySQL grammar.
 
 
 Index Mapping Verification Exception

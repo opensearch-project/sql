@@ -39,9 +39,6 @@ import static org.opensearch.sql.doctest.core.response.SqlResponseFormat.PRETTY_
 import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_ENABLED;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_FETCH_SIZE;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_KEEPALIVE;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_ANALYSIS_ENABLED;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_ANALYSIS_SEMANTIC_SUGGESTION;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_ANALYSIS_SEMANTIC_THRESHOLD;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_RESPONSE_FORMAT;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_SLOWLOG;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.SQL_ENABLED;
@@ -84,35 +81,6 @@ public class PluginSettingIT extends DocTest {
         "You can configure the time limit (seconds) for slow query which would be logged as " +
             "'Slow query: elapsed=xxx (ms)' in opensearch.log.",
         10
-    );
-  }
-
-  @Section(3)
-  public void queryAnalysisEnabledSetting() {
-    docSetting(
-        QUERY_ANALYSIS_ENABLED,
-        "You can disable query analyzer to bypass strict syntactic and semantic analysis.",
-        false
-    );
-  }
-
-  @Section(4)
-  public void semanticSuggestionSetting() {
-    docSetting(
-        QUERY_ANALYSIS_SEMANTIC_SUGGESTION,
-        "You can enable query analyzer to suggest correct field names for quick fix.",
-        true,
-        "SELECT first FROM accounts"
-    );
-  }
-
-  @Section(5)
-  public void semanticAnalysisThresholdSetting() {
-    docSetting(
-        QUERY_ANALYSIS_SEMANTIC_THRESHOLD,
-        "Because query analysis needs to build semantic context in memory, index with large number of field " +
-            "would be skipped. You can update it to apply analysis to smaller or larger index as needed.",
-        50
     );
   }
 
