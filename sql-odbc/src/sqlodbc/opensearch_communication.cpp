@@ -442,37 +442,28 @@ bool OpenSearchCommunication::IsSQLPluginDisabled(std::shared_ptr< ErrorDetails 
     return false;
 }
 
-bool OpenSearchCommunication::IsSQLPluginRecognized(std::shared_ptr< ErrorDetails > error_details) {
-    std::string error_type = error_details->source_type;
-    if (error_type == "invalid_index_name_exception") {
-        return false;
-    }
-    return true;
-}
-
 bool OpenSearchCommunication::IsSQLPluginAvailable() {
     LogMsg(OPENSEARCH_ALL, "Checking for SQL plugin status.");
     std::string test_query = "SELECT 1";
-    std::shared_ptr< Aws::Http::HttpResponse > response =
-        IssueRequest(SQL_ENDPOINT_FORMAT_RAW, Aws::Http::HttpMethod::HTTP_POST,
-                     ctype, test_query);
+    try {
+        std::shared_ptr< Aws::Http::HttpResponse > response =
+            IssueRequest(SQL_ENDPOINT_FORMAT_RAW,
+                         Aws::Http::HttpMethod::HTTP_POST, ctype, test_query);
+        if (response == nullptr) {
+            m_error_message =
+                "Failed to receive response."
+                "Received NULL response.";
+            SetErrorDetails("Execution error", m_error_message,
+                            ConnErrorType::CONN_ERROR_QUERY_SYNTAX);
+            LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
+            return false;
+        }
 
-    if (response == nullptr) {
-        m_error_message =
-            "Failed to receive response."
-            "Received NULL response.";
-        SetErrorDetails("Execution error", m_error_message,
-                        ConnErrorType::CONN_ERROR_QUERY_SYNTAX);
-        LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
-        return false;
-    }
-
-    AwsHttpResponseToString(response, m_response_str);
-    std::string expected_resp = "1\n1";
-    if (m_response_str == expected_resp) {
-        return true;
-    } else {
-        if (response->GetResponseCode() != Aws::Http::HttpResponseCode::OK) {
+        AwsHttpResponseToString(response, m_response_str);
+        if (response->GetResponseCode() == Aws::Http::HttpResponseCode::OK) {
+            return true;
+        }
+        else {
             std::unique_ptr< OpenSearchResult > result =
                 std::make_unique< OpenSearchResult >();
             AwsHttpResponseToString(response, result->result_json);
@@ -484,14 +475,6 @@ bool OpenSearchCommunication::IsSQLPluginAvailable() {
                     "The SQL plugin is disabled. The SQL plugin must be "
                     "enabled in order to use this driver. Response body: '"
                     + m_response_str + "'";
-                SetErrorDetails("Connection error", m_error_message,
-                                ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
-            }
-
-            if (!IsSQLPluginRecognized(error_details)) {
-                m_error_message +=
-                    "The SQL plugin is not detected. The SQL plugin must be "
-                    "installed in order to use this driver";
                 SetErrorDetails("Connection error", m_error_message,
                                 ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
             }
@@ -508,11 +491,13 @@ bool OpenSearchCommunication::IsSQLPluginAvailable() {
                 SetErrorDetails("Connection error", m_error_message,
                                 ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
             }
-        } else {
-            m_error_message += "Response error: '" + m_response_str + "'";
-            SetErrorDetails("Connection error", m_response_str,
-                            ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
         }
+    } catch (...) {
+        m_error_message +=
+            "Unexpected exception thrown from the server, "
+            "the SQL plugin is not installed or in unhealthy status.";
+        SetErrorDetails("Server error", m_error_message,
+                        ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
     }
     return false;
 }
