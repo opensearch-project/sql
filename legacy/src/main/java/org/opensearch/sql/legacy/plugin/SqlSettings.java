@@ -57,8 +57,6 @@ public class SqlSettings {
     public static final String METRICS_ROLLING_WINDOW = "opensearch.sql.metrics.rollingwindow";
     public static final String METRICS_ROLLING_INTERVAL = "opensearch.sql.metrics.rollinginterval";
 
-    public static final String CURSOR_ENABLED= "opensearch.sql.cursor.enabled";
-    public static final String CURSOR_FETCH_SIZE = "opensearch.sql.cursor.fetch_size";
     public static final String CURSOR_KEEPALIVE= "opensearch.sql.cursor.keep_alive";
 
     private final Map<String, Setting<?>> settings;
@@ -84,9 +82,6 @@ public class SqlSettings {
                 NodeScope, Dynamic));
 
         // Settings for cursor
-        settings.put(CURSOR_ENABLED, Setting.boolSetting(CURSOR_ENABLED, false, NodeScope, Dynamic));
-        settings.put(CURSOR_FETCH_SIZE, Setting.intSetting(CURSOR_FETCH_SIZE, 1000,
-                1, NodeScope, Dynamic));
         settings.put(CURSOR_KEEPALIVE, Setting.positiveTimeSetting(CURSOR_KEEPALIVE, timeValueMinutes(1),
                 NodeScope, Dynamic));
 

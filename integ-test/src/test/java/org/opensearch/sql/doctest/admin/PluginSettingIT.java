@@ -36,8 +36,6 @@ import static org.opensearch.sql.doctest.core.request.SqlRequestFormat.CURL_REQU
 import static org.opensearch.sql.doctest.core.request.SqlRequestFormat.IGNORE_REQUEST;
 import static org.opensearch.sql.doctest.core.response.SqlResponseFormat.IGNORE_RESPONSE;
 import static org.opensearch.sql.doctest.core.response.SqlResponseFormat.PRETTY_JSON_RESPONSE;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_ENABLED;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_FETCH_SIZE;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_KEEPALIVE;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_ANALYSIS_ENABLED;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_ANALYSIS_SEMANTIC_SUGGESTION;
@@ -126,25 +124,6 @@ public class PluginSettingIT extends DocTest {
             .collect(Collectors.joining(","))),
         Format.JSON.getFormatName(),
         "SELECT firstname, lastname, age FROM accounts ORDER BY age LIMIT 2"
-    );
-  }
-
-  @Section(7)
-  public void cursorEnabledSetting() {
-    docSetting(
-        CURSOR_ENABLED,
-        "User can enable/disable pagination for all queries that are supported.",
-        true
-    );
-  }
-
-  @Section(8)
-  public void cursorDefaultFetchSizeSetting() {
-    docSetting(
-        CURSOR_FETCH_SIZE,
-        "User can set the default fetch_size for all queries that are supported by pagination. " +
-            "Explicit `fetch_size` passed in request will override this value",
-        50
     );
   }
 

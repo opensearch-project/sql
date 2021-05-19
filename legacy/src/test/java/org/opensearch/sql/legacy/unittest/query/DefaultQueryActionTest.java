@@ -34,8 +34,6 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_ENABLED;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_FETCH_SIZE;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_KEEPALIVE;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.METRICS_ROLLING_INTERVAL;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.METRICS_ROLLING_WINDOW;
@@ -156,7 +154,7 @@ public class DefaultQueryActionTest {
         int settingFetchSize = 500;
         TimeValue timeValue = new TimeValue(120000);
         int limit = 2300;
-        mockLocalClusterStateAndInitializeMetrics(true, settingFetchSize, timeValue);
+        mockLocalClusterStateAndInitializeMetrics(timeValue);
 
         doReturn(limit).when(mockSelect).getRowCount();
         doReturn(mockRequestBuilder).when(mockRequestBuilder).setSize(settingFetchSize);
@@ -181,7 +179,7 @@ public class DefaultQueryActionTest {
     }
 
     @Test
-    public void testIfScrollShouldBeOpenWithCursorEnabled() {
+    public void testIfScrollShouldBeOpen() {
         int settingFetchSize = 500;
         TimeValue timeValue = new TimeValue(120000);
         int limit = 2300;
@@ -193,12 +191,7 @@ public class DefaultQueryActionTest {
         queryAction.setSqlRequest(mockSqlRequest);
         queryAction.setFormat(Format.JDBC);
 
-        mockLocalClusterStateAndInitializeMetrics(false, settingFetchSize, timeValue);
-        queryAction.checkAndSetScroll();
-        Mockito.verify(mockRequestBuilder).setSize(limit);
-        Mockito.verify(mockRequestBuilder, never()).setScroll(any(TimeValue.class));
-
-        mockLocalClusterStateAndInitializeMetrics(true, settingFetchSize, timeValue);
+        mockLocalClusterStateAndInitializeMetrics(timeValue);
         queryAction.checkAndSetScroll();
         Mockito.verify(mockRequestBuilder).setSize(settingFetchSize);
         Mockito.verify(mockRequestBuilder).setScroll(timeValue);
@@ -207,10 +200,9 @@ public class DefaultQueryActionTest {
 
     @Test
     public void testIfScrollShouldBeOpenWithDifferentFetchSize() {
-        int fetchSize = 500;
         TimeValue timeValue = new TimeValue(120000);
         int limit = 2300;
-        mockLocalClusterStateAndInitializeMetrics(true, fetchSize, timeValue);
+        mockLocalClusterStateAndInitializeMetrics(timeValue);
 
         doReturn(limit).when(mockSelect).getRowCount();
         SqlRequest mockSqlRequest = mock(SqlRequest.class);
@@ -236,9 +228,8 @@ public class DefaultQueryActionTest {
 
     @Test
     public void testIfScrollShouldBeOpenWithDifferentValidFetchSizeAndLimit() {
-        int fetchSize = 1000;
         TimeValue timeValue = new TimeValue(120000);
-        mockLocalClusterStateAndInitializeMetrics(true, fetchSize, timeValue);
+        mockLocalClusterStateAndInitializeMetrics(timeValue);
 
         int limit = 2300;
         doReturn(limit).when(mockSelect).getRowCount();
@@ -265,11 +256,9 @@ public class DefaultQueryActionTest {
         Mockito.verify(mockRequestBuilder, never()).setScroll(timeValue);
     }
 
-    private void mockLocalClusterStateAndInitializeMetrics(boolean cursorEnabled, Integer fetchSize, TimeValue time) {
+    private void mockLocalClusterStateAndInitializeMetrics(TimeValue time) {
         LocalClusterState mockLocalClusterState = mock(LocalClusterState.class);
         LocalClusterState.state(mockLocalClusterState);
-        doReturn(cursorEnabled).when(mockLocalClusterState).getSettingValue(CURSOR_ENABLED);
-        doReturn(fetchSize).when(mockLocalClusterState).getSettingValue(CURSOR_FETCH_SIZE);
         doReturn(time).when(mockLocalClusterState).getSettingValue(CURSOR_KEEPALIVE);
         doReturn(3600L).when(mockLocalClusterState).getSettingValue(METRICS_ROLLING_WINDOW);
         doReturn(2L).when(mockLocalClusterState).getSettingValue(METRICS_ROLLING_INTERVAL);
