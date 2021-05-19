@@ -1,6 +1,6 @@
 [![SQL CLI Test and Build](https://github.com/opensearch-project/sql/workflows/SQL%20CLI%20Test%20and%20Build/badge.svg)](https://github.com/opensearch-project/sql/actions)
 [![Latest Version](https://img.shields.io/pypi/v/opensearch-sql-cli.svg)](https://pypi.python.org/pypi/opensearch-sql-cli/)
-[![Documentation](https://img.shields.io/badge/documentation-blue.svg)](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/cli/)
+[![Documentation](https://img.shields.io/badge/documentation-blue.svg)](https://docs-beta.opensearch.org/docs/sql/cli/)
 [![Chat](https://img.shields.io/badge/chat-on%20forums-blue)](https://discuss.opendistrocommunity.dev/c/sql/)
 ![PyPi Downloads](https://img.shields.io/pypi/dm/opensearch-sql-cli.svg)
 ![PRs welcome!](https://img.shields.io/badge/PRs-welcome!-success)
@@ -9,7 +9,7 @@
 
 The SQL CLI component in OpenSearch is a stand-alone Python application and can be launched by a 'wake' word `opensearchsql`. 
 
-It only supports [OpenSearch SQL Plugin](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/)
+It only supports [OpenSearch SQL Plugin](https://docs-beta.opensearch.org/docs/sql/)
 You must have the OpenSearch SQL plugin installed to your OpenSearch instance to connect. 
 Users can run this CLI from MacOS and Linux, and connect to any valid OpenSearch end-point such as Amazon Elasticsearch Service (AES).
 
@@ -75,7 +75,7 @@ You can also configure the following connection properties:
 
 * `endpoint`: You do not need to specify an option, anything that follows the launch command `opensearchsql` is considered as the endpoint. If you do not provide an endpoint, by default, the SQL CLI connects to [http://localhost:9200](http://localhost:9200/).
 * `-u/-w`: Supports username and password for HTTP basic authentication, such as:
-    * OpenSearch with [OpenSearch Security Plugin](https://opendistro.github.io/for-elasticsearch-docs/docs/install/plugins/) installed
+    * OpenSearch with [OpenSearch Security Plugin](https://docs-beta.opensearch.org/docs/opensearch/install/plugins/) installed
     * Amazon Elasticsearch Service domain with [Fine Grained Access Control](https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/fgac.html) enabled
 * `--aws-auth`: Turns on AWS sigV4 authentication to connect to an Amazon Elasticsearch Service endpoint. Use with the AWS CLI (`aws configure`) to retrieve the local AWS configuration to authenticate and connect.
 
