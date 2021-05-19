@@ -237,23 +237,23 @@ public class PluginIT extends SQLIntegTestCase {
 
   /**
    * Both transient and persistent settings are applied for same settings.
-   * This is similiar to _cluster/settings behavior
+   * This is similar to _cluster/settings behavior
    */
   @Test
   public void sqlCombinedSettingTest() throws IOException {
     String settings = "{" +
         "  \"transient\": {" +
-        "    \"opendistro.sql.metrics.rollingwindow\": \"3700\"" +
+        "    \"opensearch.sql.metrics.rollingwindow\": \"3700\"" +
         "  }," +
         "  \"persistent\": {" +
-        "    \"opendistro.sql.query.slowlog\" : \"2\"" +
+        "    \"opensearch.sql.query.slowlog\" : \"2\"" +
         "  }" +
         "}";
     JSONObject actual = updateViaSQLSettingsAPI(settings);
     JSONObject expected = new JSONObject("{" +
         "  \"acknowledged\" : true," +
         "  \"persistent\" : {" +
-        "    \"opendistro\" : {" +
+        "    \"opensearch\" : {" +
         "      \"sql\" : {" +
         "        \"query\" : {" +
         "          \"slowlog\" : \"2\"" +
@@ -262,7 +262,7 @@ public class PluginIT extends SQLIntegTestCase {
         "    }" +
         "  }," +
         "  \"transient\" : {" +
-        "    \"opendistro\" : {" +
+        "    \"opensearch\" : {" +
         "      \"sql\" : {" +
         "        \"metrics\" : {" +
         "          \"rollingwindow\" : \"3700\"" +
