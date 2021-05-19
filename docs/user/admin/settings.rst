@@ -510,51 +510,6 @@ Result set::
 	  }
 	}
 
-opensearch.sql.engine.new.enabled
-=================================
-
-Description
------------
-
-We are migrating existing functionalities to a new query engine under development. User can choose to enable the new engine if interested or disable if any issue found.
-
-1. The default value is true.
-2. This setting is node scope.
-3. This setting can be updated dynamically.
-
-
-Example
--------
-
-You can update the setting with a new value like this.
-
-SQL query::
-
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_sql/settings -d '{
-	  "transient" : {
-	    "opensearch.sql.engine.new.enabled" : "false"
-	  }
-	}'
-
-Result set::
-
-	{
-	  "acknowledged" : true,
-	  "persistent" : { },
-	  "transient" : {
-	    "opensearch" : {
-	      "sql" : {
-	        "engine" : {
-	          "new" : {
-	            "enabled" : "false"
-	          }
-	        }
-	      }
-	    }
-	  }
-	}
-
-
 opensearch.query.size_limit
 ===========================
 
