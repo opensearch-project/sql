@@ -157,11 +157,11 @@ public class TypeInformationIT extends SQLIntegTestCase {
    */
   @Test
   public void testDayOfWeekWithKeywordReturnsText() {
-    JSONObject response = executeJdbcRequest("SELECT DAY_OF_WEEK(insert_time) FROM "
+    JSONObject response = executeJdbcRequest("SELECT DAYOFWEEK(insert_time) FROM "
         + TestsConstants.TEST_INDEX_ONLINE + " LIMIT 2");
 
     verifySchema(response,
-        schema("DAY_OF_WEEK(insert_time)", null, "integer"));
+        schema("DAYOFWEEK(insert_time)", null, "integer"));
   }
 
   @Test
