@@ -168,7 +168,6 @@ public class OrdinalAliasRewriterIT extends SQLIntegTestCase {
 
   // explain ORDER BY IS NULL/NOT NULL
   @Ignore("only work for legacy engine")
-  @Test
   public void explainSelectFieldiWithBacticksAndTableAliasOrderByOrdinalAndNull()
       throws IOException {
     String expected = explainQuery(StringUtils.format(

@@ -284,7 +284,6 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
   }
 
   @Ignore("only work for legacy engine")
-  @Test
   public void testSizeAndTotal() throws IOException {
     JSONObject response = executeQuery(
         String.format(Locale.ROOT, "SELECT * " +
@@ -348,7 +347,6 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
   }
 
   @Ignore("only work for legacy engine")
-  @Test
   public void aggregationFunctionInSelectWithAlias() throws IOException {
     JSONObject response = executeQuery(
         String.format(Locale.ROOT, "SELECT COUNT(*) AS total FROM %s GROUP BY age",

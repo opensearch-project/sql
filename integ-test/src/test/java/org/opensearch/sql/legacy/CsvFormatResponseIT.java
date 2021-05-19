@@ -121,7 +121,6 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
   }
 
   @Ignore("only work for legacy engine")
-  @Test
   public void nestedObjectsAndArraysAreQuoted() throws IOException {
     final String query = String.format(Locale.ROOT, "SELECT * FROM %s WHERE _id = 5",
         TEST_INDEX_NESTED_TYPE);
@@ -137,7 +136,6 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
   }
 
   @Ignore("only work for legacy engine")
-  @Test
   public void arraysAreQuotedInFlatMode() throws IOException {
     setFlatOption(true);
 
@@ -190,7 +188,6 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
   }
 
   @Ignore("Getting parser error")
-  @Test
   public void fieldOrderWithScriptFields() throws IOException {
 
     final String[] expectedFields = {"email", "script1", "script2", "gender", "address"};
@@ -331,7 +328,6 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
   }
 
   @Ignore("only work for legacy engine")
-  @Test
   public void simpleNumericValueAgg() throws Exception {
     String query = String.format(Locale.ROOT, "select count(*) from %s ", TEST_INDEX_DOG);
     CSVResult csvResult = executeCsvRequest(query, false);
@@ -365,7 +361,6 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
   }
 
   @Ignore("only work for legacy engine")
-  @Test
   public void twoNumericAggWithAlias() throws Exception {
     String query =
         String.format(Locale.ROOT, "select count(*) as count, avg(age) as myAlias from %s ",
@@ -390,7 +385,6 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
   }
 
   @Ignore("only work for legacy engine")
-  @Test
   public void aggAfterTermsGroupBy() throws Exception {
     String query = String.format(Locale.ROOT, "SELECT COUNT(*) FROM %s GROUP BY gender",
         TEST_INDEX_ACCOUNT);
@@ -523,7 +517,6 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
   }
 
   @Ignore("only work for legacy engine")
-  @Test
   public void includeTypeAndNotScore() throws Exception {
     String query =
         String.format(Locale.ROOT, "select age , firstname from %s where age > 31 limit 2",
@@ -615,7 +608,6 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
   }
 
   @Ignore("only work for legacy engine")
-  @Test
   public void includeIdAndNotTypeOrScore() throws Exception {
     String query = String.format(Locale.ROOT,
         "select age , firstname from %s where lastname = 'Marquez' ", TEST_INDEX_ACCOUNT);
@@ -630,7 +622,6 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
   }
 
   @Ignore("only work for legacy engine")
-  @Test
   public void includeIdAndTypeButNoScore() throws Exception {
     String query = String.format(Locale.ROOT,
         "select age , firstname from %s where lastname = 'Marquez' ", TEST_INDEX_ACCOUNT);
@@ -647,7 +638,6 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
   //endregion Tests migrated from CSVResultsExtractorTests
 
   @Ignore("only work for legacy engine")
-  @Test
   public void sensitiveCharacterSanitizeTest() throws IOException {
     String requestBody =
         "{" +
@@ -672,7 +662,6 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
   }
 
   @Ignore("only work for legacy engine")
-  @Test
   public void sensitiveCharacterSanitizeAndQuotedTest() throws IOException {
     String requestBody =
         "{" +
