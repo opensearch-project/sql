@@ -70,7 +70,7 @@ public class RestSqlSettingsAction extends BaseRestHandler {
     /**
      * API endpoint path
      */
-    public static final String SETTINGS_API_ENDPOINT = "/_opensearch/_sql/settings";
+    public static final String SETTINGS_API_ENDPOINT = "/_plugins/_sql/settings";
     public static final String LEGACY_SETTINGS_API_ENDPOINT = "/_opendistro/_sql/settings";
 
     public RestSqlSettingsAction(Settings settings, RestController restController) {
@@ -84,10 +84,15 @@ public class RestSqlSettingsAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
+        return ImmutableList.of();
+    }
+
+    @Override
+    public List<ReplacedRoute> replacedRoutes() {
         return ImmutableList.of(
-                new Route(RestRequest.Method.PUT, SETTINGS_API_ENDPOINT),
-                new Route(RestRequest.Method.PUT, LEGACY_SETTINGS_API_ENDPOINT)
-        );
+            new ReplacedRoute(
+                RestRequest.Method.PUT, SETTINGS_API_ENDPOINT,
+                RestRequest.Method.PUT, LEGACY_SETTINGS_API_ENDPOINT));
     }
 
     /**
