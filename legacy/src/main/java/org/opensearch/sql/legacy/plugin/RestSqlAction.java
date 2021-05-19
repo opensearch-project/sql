@@ -34,7 +34,6 @@ import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_ANALYSIS_ENABLE
 import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_ANALYSIS_SEMANTIC_SUGGESTION;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_ANALYSIS_SEMANTIC_THRESHOLD;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.SQL_ENABLED;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.SQL_NEW_ENGINE_ENABLED;
 
 import com.alibaba.druid.sql.parser.ParserException;
 import com.google.common.collect.ImmutableList;
@@ -165,7 +164,7 @@ public class RestSqlAction extends BaseRestHandler {
 
             Format format = SqlRequestParam.getFormat(request.params());
 
-            if (isNewEngineEnabled() && isCursorDisabled()) {
+            if (isCursorDisabled()) {
                 // Route request to new query engine if it's supported already
                 SQLQueryRequest newSqlRequest = new SQLQueryRequest(sqlRequest.getJsonContent(),
                     sqlRequest.getSql(), request.path(), request.params());
@@ -279,10 +278,6 @@ public class RestSqlAction extends BaseRestHandler {
     private boolean isSQLFeatureEnabled() {
         boolean isSqlEnabled = LocalClusterState.state().getSettingValue(SQL_ENABLED);
         return allowExplicitIndex && isSqlEnabled;
-    }
-
-    private boolean isNewEngineEnabled() {
-        return LocalClusterState.state().getSettingValue(SQL_NEW_ENGINE_ENABLED);
     }
 
     private boolean isCursorDisabled() {

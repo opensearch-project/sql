@@ -98,7 +98,6 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
       initClient();
     }
 
-    configureNewQueryEngine();
     resetQuerySizeLimit();
     init();
   }
@@ -156,17 +155,6 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   public static void cleanUpIndices() throws IOException {
     wipeAllOpenSearchIndices();
     wipeAllClusterSettings();
-  }
-
-  private void configureNewQueryEngine() throws IOException {
-    boolean isEnabled = isNewQueryEngineEabled();
-    if (!isEnabled) {
-      org.opensearch.sql.util.TestUtils.disableNewQueryEngine(client());
-    }
-  }
-
-  protected boolean isNewQueryEngineEabled() {
-    return Boolean.parseBoolean(System.getProperty("enableNewEngine", "true"));
   }
 
   protected void setQuerySizeLimit(Integer limit) throws IOException {

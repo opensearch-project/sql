@@ -56,7 +56,6 @@ import java.util.stream.IntStream;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -482,8 +481,6 @@ public class AggregationIT extends SQLIntegTestCase {
 
   @Test
   public void orderByAliasAscTest() {
-    Assume.assumeTrue(isNewQueryEngineEabled());
-
     JSONObject response = executeJdbcRequest(String.format("SELECT COUNT(*) as count FROM %s " +
         "GROUP BY gender ORDER BY count", TEST_INDEX_ACCOUNT));
 
@@ -506,8 +503,6 @@ public class AggregationIT extends SQLIntegTestCase {
 
   @Test
   public void orderByAliasDescTest() throws IOException {
-    Assume.assumeTrue(isNewQueryEngineEabled());
-
     JSONObject response = executeJdbcRequest(String.format("SELECT COUNT(*) as count FROM %s " +
         "GROUP BY gender ORDER BY count DESC", TEST_INDEX_ACCOUNT));
 
@@ -519,8 +514,6 @@ public class AggregationIT extends SQLIntegTestCase {
 
   @Test
   public void orderByGroupFieldWithAlias() throws IOException {
-    Assume.assumeTrue(isNewQueryEngineEabled());
-
     // ORDER BY field name
     JSONObject response = executeJdbcRequest(String.format("SELECT gender as g, COUNT(*) as count "
         + "FROM %s GROUP BY gender ORDER BY gender", TEST_INDEX_ACCOUNT));
