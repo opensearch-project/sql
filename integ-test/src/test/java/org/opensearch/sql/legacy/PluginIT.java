@@ -243,20 +243,30 @@ public class PluginIT extends SQLIntegTestCase {
   public void sqlCombinedSettingTest() throws IOException {
     String settings = "{" +
         "  \"transient\": {" +
-        "    \"opensearch.sql.metrics.rollingwindow\": \"3700\"" +
+        "    \"opendistro.sql.metrics.rollingwindow\": \"3700\"" +
+        "  }," +
+        "  \"persistent\": {" +
+        "    \"opendistro.sql.query.slowlog\" : \"2\"" +
         "  }" +
         "}";
     JSONObject actual = updateViaSQLSettingsAPI(settings);
     JSONObject expected = new JSONObject("{" +
         "  \"acknowledged\" : true," +
-        "  \"persistent\": {" +
-        "  }" +
+        "  \"persistent\" : {" +
+        "    \"opendistro\" : {" +
+        "      \"sql\" : {" +
+        "        \"query\" : {" +
+        "          \"slowlog\" : \"2\"" +
+        "        }" +
+        "      }" +
+        "    }" +
+        "  }," +
         "  \"transient\" : {" +
-        "    \"opensearch\" : {" +
+        "    \"opendistro\" : {" +
         "      \"sql\" : {" +
         "        \"metrics\" : {" +
         "          \"rollingwindow\" : \"3700\"" +
-        "        }," +
+        "        }" +
         "      }" +
         "    }" +
         "  }" +
