@@ -434,34 +434,23 @@ OpenSearchCommunication::IssueRequest(
     return m_http_client->MakeRequest(request);
 }
 
-bool OpenSearchCommunication::IsSQLPluginDisabled(const std::string& plugin_response) {
-    std::shared_ptr< ErrorDetails > error_details =
-        ParseErrorResponse(plugin_response);
-    std::string error_type = error_details->details;
-    if (error_type.compare("SQLFeatureDisabledException")) {
+bool OpenSearchCommunication::IsSQLPluginDisabled(std::shared_ptr< ErrorDetails > error_details) {
+    std::string error_type = error_details->source_type;
+    if (error_type =="SQLFeatureDisabledException") {
         return true;
     }
     return false;
 }
 
-bool OpenSearchCommunication::IsSQLPluginAvailable(const std::string& plugin_response) {
-    std::string expected_resp = "1\n1";
-    if (!plugin_response.compare(expected_resp)) {
-        return true;
+bool OpenSearchCommunication::IsSQLPluginRecognized(std::shared_ptr< ErrorDetails > error_details) {
+    std::string error_type = error_details->source_type;
+    if (error_type == "invalid_index_name_exception") {
+        return false;
     }
-    return false;
+    return true;
 }
 
-bool OpenSearchCommunication::EstablishConnection() {
-    // Generate HttpClient Connection class if it does not exist
-    LogMsg(OPENSEARCH_ALL, "Attempting to establish DB connection.");
-    if (!m_http_client) {
-        InitializeConnection();
-    }
-
-    // Check whether SQL plugin has been installed and enabled
-    // on the OpenSearch server.
-    // This is required for executing driver queries with the server.
+bool OpenSearchCommunication::IsSQLPluginAvailable() {
     LogMsg(OPENSEARCH_ALL, "Checking for SQL plugin status.");
     std::string test_query = "SELECT 1";
     std::shared_ptr< Aws::Http::HttpResponse > response =
@@ -476,41 +465,72 @@ bool OpenSearchCommunication::EstablishConnection() {
                         ConnErrorType::CONN_ERROR_QUERY_SYNTAX);
         LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
         return false;
+    }
+
+    AwsHttpResponseToString(response, m_response_str);
+    std::string expected_resp = "1\n1";
+    if (m_response_str == expected_resp) {
+        return true;
     } else {
-        AwsHttpResponseToString(response, m_response_str);
         if (response->GetResponseCode() != Aws::Http::HttpResponseCode::OK) {
-            if (response->HasClientError()) {
-                m_error_message += " Client error: '"
-                                   + response->GetClientErrorMessage() + "'.";
-                SetErrorDetails("HTTP client error", m_error_message,
-                                ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
-            }
-            if(IsSQLPluginDisabled(m_response_str)) {
-                m_error_message =
+            std::unique_ptr< OpenSearchResult > result =
+                std::make_unique< OpenSearchResult >();
+            AwsHttpResponseToString(response, result->result_json);
+            std::shared_ptr< ErrorDetails > error_details =
+                ParseErrorResponse(*result);
+
+            if(IsSQLPluginDisabled(error_details)) {
+                m_error_message +=
                     "The SQL plugin is disabled. The SQL plugin must be "
                     "enabled in order to use this driver. Response body: '"
                     + m_response_str + "'";
                 SetErrorDetails("Connection error", m_error_message,
                                 ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
             }
+
+            if (!IsSQLPluginRecognized(error_details)) {
+                m_error_message +=
+                    "The SQL plugin is not detected. The SQL plugin must be "
+                    "installed in order to use this driver";
+                SetErrorDetails("Connection error", m_error_message,
+                                ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
+            }
+
+            if (response->HasClientError()) {
+                m_error_message += " Client error: '"
+                                   + response->GetClientErrorMessage() + "'.";
+                SetErrorDetails("HTTP client error", m_error_message,
+                                ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
+            }
+
             if (!m_response_str.empty()) {
                 m_error_message += " Response error: '" + m_response_str + "'.";
                 SetErrorDetails("Connection error", m_error_message,
                                 ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
             }
         } else {
-            if (IsSQLPluginAvailable(m_response_str)) {
-                return true;
-            } else {
-                m_error_message =
-                    "The SQL plugin must be installed in order to use this "
-                    "driver. Response body: '"
-                    + m_response_str + "'";
-                SetErrorDetails("Connection error", m_error_message,
-                                ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
-            }
+            m_error_message += "Response error: '" + m_response_str + "'";
+            SetErrorDetails("Connection error", m_response_str,
+                            ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
         }
     }
+    return false;
+}
+
+bool OpenSearchCommunication::EstablishConnection() {
+    // Generate HttpClient Connection class if it does not exist
+    LogMsg(OPENSEARCH_ALL, "Attempting to establish DB connection.");
+    if (!m_http_client) {
+        InitializeConnection();
+    }
+
+    // Check whether SQL plugin has been installed and enabled in the
+    // OpenSearch server since the SQL plugin is a prerequisite to
+    // use this driver.
+    if(IsSQLPluginAvailable()) {
+        return true;
+    }
+
     LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
     return false;
 }
