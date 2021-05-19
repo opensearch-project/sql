@@ -249,6 +249,8 @@ public class PluginIT extends SQLIntegTestCase {
     JSONObject actual = updateViaSQLSettingsAPI(settings);
     JSONObject expected = new JSONObject("{" +
         "  \"acknowledged\" : true," +
+        "  \"persistent\": {" +
+        "  }" +
         "  \"transient\" : {" +
         "    \"opensearch\" : {" +
         "      \"sql\" : {" +
@@ -276,7 +278,7 @@ public class PluginIT extends SQLIntegTestCase {
         "    \"search.max_keep_alive\": \"24h\"" +
         "  }," +
         "  \"persistent\": {" +
-        "    \"opendistro.sql.query.slowlog\": \"2\"," +
+        "    \"opensearch.sql.query.slowlog\": \"2\"," +
         "    \"opensearch.alerting.metrics.rollingwindow\": \"3700\"," +
         "    \"thread_pool.analyze.queue_size\": \"16\"" +
         "  }" +
