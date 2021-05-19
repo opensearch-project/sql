@@ -327,20 +327,19 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
         hasRow(null, null, Arrays.asList("F", "fireAndBlood", "Targaryen"), false));
   }
 
-  @Ignore("only work for legacy engine")
+  @Test
   public void simpleNumericValueAgg() throws Exception {
     String query = String.format(Locale.ROOT, "select count(*) from %s ", TEST_INDEX_DOG);
     CSVResult csvResult = executeCsvRequest(query, false);
 
     List<String> headers = csvResult.getHeaders();
     Assert.assertEquals(1, headers.size());
-    Assert.assertEquals("COUNT(*)", headers.get(0));
+    Assert.assertEquals("count(*)", headers.get(0));
 
 
     List<String> lines = csvResult.getLines();
     Assert.assertEquals(1, lines.size());
-    Assert.assertEquals("2.0", lines.get(0));
-
+    Assert.assertEquals("2", lines.get(0));
   }
 
   @Test
@@ -376,15 +375,10 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
 
     List<String> lines = csvResult.getLines();
     Assert.assertEquals(1, lines.size());
-    if (headers.get(0).equals("count")) {
-      Assert.assertEquals("2.0,3.0", lines.get(0));
-    } else {
-      Assert.assertEquals("3.0,2.0", lines.get(0));
-    }
-
+    Assert.assertEquals("2,3.0", lines.get(0));
   }
 
-  @Ignore("only work for legacy engine")
+  @Test
   public void aggAfterTermsGroupBy() throws Exception {
     String query = String.format(Locale.ROOT, "SELECT COUNT(*) FROM %s GROUP BY gender",
         TEST_INDEX_ACCOUNT);
@@ -395,7 +389,7 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
 
     List<String> lines = csvResult.getLines();
     Assert.assertEquals(2, lines.size());
-    assertThat(lines, containsInAnyOrder(equalTo("507.0"), equalTo("493.0")));
+    assertThat(lines, containsInAnyOrder(equalTo("507"), equalTo("493")));
   }
 
   @Test

@@ -55,13 +55,13 @@ public class TypeInformationIT extends SQLIntegTestCase {
     verifySchema(response, schema("ABS(age)", null, "long"));
   }
 
-  @Ignore("only work for legacy engine")
+  @Test
   public void testCeilWithLongFieldReturnsLong() {
     JSONObject response =
         executeJdbcRequest("SELECT CEIL(balance) FROM " + TestsConstants.TEST_INDEX_ACCOUNT +
             " ORDER BY balance LIMIT 5");
 
-    verifySchema(response, schema("CEIL(balance)", null, "long"));
+    verifySchema(response, schema("CEIL(balance)", null, "integer"));
   }
 
   /*
@@ -78,20 +78,20 @@ public class TypeInformationIT extends SQLIntegTestCase {
   /*
   stringOperators
    */
-  @Ignore("only work for legacy engine")
+  @Test
   public void testUpperWithStringFieldReturnsString() {
     JSONObject response = executeJdbcRequest("SELECT UPPER(firstname) AS firstname_alias FROM " +
         TestsConstants.TEST_INDEX_ACCOUNT + " ORDER BY firstname_alias LIMIT 2");
 
-    verifySchema(response, schema("firstname_alias", null, "text"));
+    verifySchema(response, schema("UPPER(firstname)", "firstname_alias", "keyword"));
   }
 
-  @Ignore("only work for legacy engine")
+  @Test
   public void testLowerWithTextFieldReturnsText() {
     JSONObject response = executeJdbcRequest("SELECT LOWER(firstname) FROM " +
         TestsConstants.TEST_INDEX_ACCOUNT + " ORDER BY firstname LIMIT 2");
 
-    verifySchema(response, schema("LOWER(firstname)", null, "text"));
+    verifySchema(response, schema("LOWER(firstname)", null, "keyword"));
   }
 
   /*
@@ -136,7 +136,7 @@ public class TypeInformationIT extends SQLIntegTestCase {
   /*
   binaryOperators
    */
-  @Ignore("only work for legacy engine")
+  @Test
   public void testAddWithIntReturnsInt() {
     JSONObject response = executeJdbcRequest("SELECT (balance + 5) AS balance_add_five FROM " +
         TestsConstants.TEST_INDEX_ACCOUNT + " ORDER BY firstname LIMIT 2");
@@ -144,12 +144,12 @@ public class TypeInformationIT extends SQLIntegTestCase {
     verifySchema(response, schema("balance_add_five", null, "integer"));
   }
 
-  @Ignore("only work for legacy engine")
+  @Test
   public void testSubtractLongWithLongReturnsLong() {
     JSONObject response = executeJdbcRequest("SELECT (balance - balance) FROM " +
         TestsConstants.TEST_INDEX_ACCOUNT + " ORDER BY firstname LIMIT 2");
 
-    verifySchema(response, schema("subtract(balance, balance)", null, "long"));
+    verifySchema(response, schema("(balance - balance)", null, "long"));
   }
 
   /*
