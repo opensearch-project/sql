@@ -231,7 +231,8 @@ OpenSearchCommunication::OpenSearchCommunication()
       m_is_retrieving(false),
       m_error_message(""),
       m_result_queue(2),
-      m_client_encoding(m_supported_client_encodings[0])
+      m_client_encoding(m_supported_client_encodings[0]),
+      m_error_message_to_user("")
 #ifdef __APPLE__
 #pragma clang diagnostic pop
 #endif  // __APPLE__
@@ -292,7 +293,9 @@ bool OpenSearchCommunication::ConnectDBStart() {
 
     m_status = ConnStatusType::CONNECTION_NEEDED;
     if (!EstablishConnection()) {
-        m_error_message = "Failed to establish connection to DB.";
+        m_error_message = m_error_message_to_user.empty()
+                              ? "Failed to establish connection to DB."
+                              : m_error_message_to_user;
         SetErrorDetails("Connection error", m_error_message,
                         ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
         LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
@@ -471,6 +474,9 @@ bool OpenSearchCommunication::CheckSQLPluginAvailability() {
                 ParseErrorResponse(*result);
 
             if(!IsSQLPluginEnabled(error_details)) {
+                m_error_message_to_user =
+                    "SQL plugin is disabled, please enable the plugin "
+                    "to use this driver.";
                 m_error_message +=
                     "The SQL plugin is disabled. The SQL plugin must be "
                     "enabled in order to use this driver. Response body: '"
@@ -493,6 +499,9 @@ bool OpenSearchCommunication::CheckSQLPluginAvailability() {
             }
         }
     } catch (...) {
+        m_error_message_to_user =
+            "SQL plugin is not available, please install the SQL plugin "
+            "to use this driver.";
         m_error_message +=
             "Unexpected exception thrown from the server, "
             "the SQL plugin is not installed or in unhealthy status.";
