@@ -326,7 +326,7 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
   }
 
   private void queryShouldPassAnalysis(String query) {
-    String endpoint = "/_opensearch/_sql?";
+    String endpoint = "/_plugins/_sql?";
     String requestBody = makeRequest(query);
     Request sqlRequest = new Request("POST", endpoint);
     sqlRequest.setJsonEntity(requestBody);

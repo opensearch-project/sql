@@ -231,8 +231,6 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void castIntFieldToFloatWithoutAliasJdbcFormatTest() {
-    Assume.assumeTrue(isNewQueryEngineEabled());
-
     JSONObject response = executeJdbcRequest(
         "SELECT CAST(balance AS FLOAT) AS cast_balance FROM " + TestsConstants.TEST_INDEX_ACCOUNT +
             " ORDER BY balance DESC LIMIT 1");
@@ -246,8 +244,6 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void castIntFieldToFloatWithAliasJdbcFormatTest() {
-    Assume.assumeTrue(isNewQueryEngineEabled());
-
     JSONObject response = executeJdbcRequest(
         "SELECT CAST(balance AS FLOAT) AS jdbc_float_alias " +
             "FROM " + TestsConstants.TEST_INDEX_ACCOUNT + " ORDER BY jdbc_float_alias LIMIT 1");
@@ -389,8 +385,6 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void castBoolFieldToNumericValueInSelectClause() {
-    Assume.assumeTrue(isNewQueryEngineEabled());
-
     JSONObject response =
         executeJdbcRequest(
             "SELECT "
@@ -418,8 +412,6 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void castBoolFieldToNumericValueWithGroupByAlias() {
-    Assume.assumeTrue(isNewQueryEngineEabled());
-
     JSONObject response =
         executeJdbcRequest(
             "SELECT "
@@ -725,7 +717,6 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void ifFuncShouldPassJDBC() {
-    Assume.assumeTrue(isNewQueryEngineEabled());
     JSONObject response = executeJdbcRequest(
         "SELECT IF(age > 30, 'True', 'False') AS Ages FROM " + TEST_INDEX_ACCOUNT
             + " WHERE age IS NOT NULL GROUP BY Ages");
@@ -764,7 +755,6 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void ifnullShouldPassJDBC() throws IOException {
-    Assume.assumeTrue(isNewQueryEngineEabled());
     JSONObject response = executeJdbcRequest(
         "SELECT IFNULL(lastname, 'unknown') AS name FROM " + TEST_INDEX_ACCOUNT
             + " GROUP BY name");
@@ -795,7 +785,6 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void isnullShouldPassJDBC() {
-    Assume.assumeTrue(isNewQueryEngineEabled());
     JSONObject response =
         executeJdbcRequest(
             "SELECT ISNULL(lastname) AS name FROM " + TEST_INDEX_ACCOUNT);

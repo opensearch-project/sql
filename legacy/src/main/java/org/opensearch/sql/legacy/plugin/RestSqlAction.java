@@ -34,7 +34,6 @@ import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_ANALYSIS_ENABLE
 import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_ANALYSIS_SEMANTIC_SUGGESTION;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_ANALYSIS_SEMANTIC_THRESHOLD;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.SQL_ENABLED;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.SQL_NEW_ENGINE_ENABLED;
 
 import com.alibaba.druid.sql.parser.ParserException;
 import com.google.common.collect.ImmutableList;
@@ -100,7 +99,7 @@ public class RestSqlAction extends BaseRestHandler {
     /**
      * API endpoint path
      */
-    public static final String QUERY_API_ENDPOINT = "/_opensearch/_sql";
+    public static final String QUERY_API_ENDPOINT = "/_plugins/_sql";
     public static final String EXPLAIN_API_ENDPOINT = QUERY_API_ENDPOINT + "/_explain";
     public static final String CURSOR_CLOSE_ENDPOINT = QUERY_API_ENDPOINT + "/close";
     public static final String LEGACY_QUERY_API_ENDPOINT = "/_opendistro/_sql";
@@ -121,14 +120,21 @@ public class RestSqlAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
+        return ImmutableList.of();
+    }
+
+    @Override
+    public List<ReplacedRoute> replacedRoutes() {
         return ImmutableList.of(
-            new Route(RestRequest.Method.POST, QUERY_API_ENDPOINT),
-            new Route(RestRequest.Method.POST, EXPLAIN_API_ENDPOINT),
-            new Route(RestRequest.Method.POST, CURSOR_CLOSE_ENDPOINT),
-            new Route(RestRequest.Method.POST, LEGACY_QUERY_API_ENDPOINT),
-            new Route(RestRequest.Method.POST, LEGACY_EXPLAIN_API_ENDPOINT),
-            new Route(RestRequest.Method.POST, LEGACY_CURSOR_CLOSE_ENDPOINT)
-        );
+            new ReplacedRoute(
+                RestRequest.Method.POST, QUERY_API_ENDPOINT,
+                RestRequest.Method.POST, LEGACY_QUERY_API_ENDPOINT),
+            new ReplacedRoute(
+                RestRequest.Method.POST, EXPLAIN_API_ENDPOINT,
+                RestRequest.Method.POST, LEGACY_EXPLAIN_API_ENDPOINT),
+            new ReplacedRoute(
+                RestRequest.Method.POST, CURSOR_CLOSE_ENDPOINT,
+                RestRequest.Method.POST, LEGACY_CURSOR_CLOSE_ENDPOINT));
     }
 
     @Override
@@ -165,7 +171,7 @@ public class RestSqlAction extends BaseRestHandler {
 
             Format format = SqlRequestParam.getFormat(request.params());
 
-            if (isNewEngineEnabled() && isCursorDisabled()) {
+            if (isCursorDisabled()) {
                 // Route request to new query engine if it's supported already
                 SQLQueryRequest newSqlRequest = new SQLQueryRequest(sqlRequest.getJsonContent(),
                     sqlRequest.getSql(), request.path(), request.params());
@@ -279,10 +285,6 @@ public class RestSqlAction extends BaseRestHandler {
     private boolean isSQLFeatureEnabled() {
         boolean isSqlEnabled = LocalClusterState.state().getSettingValue(SQL_ENABLED);
         return allowExplicitIndex && isSqlEnabled;
-    }
-
-    private boolean isNewEngineEnabled() {
-        return LocalClusterState.state().getSettingValue(SQL_NEW_ENGINE_ENABLED);
     }
 
     private boolean isCursorDisabled() {

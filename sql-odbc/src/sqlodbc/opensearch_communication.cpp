@@ -43,10 +43,10 @@
 
 static const std::string ctype = "application/json";
 static const std::string SQL_ENDPOINT_FORMAT_JDBC =
-    "/_opensearch/_sql?format=jdbc";
+    "/_plugins/_sql?format=jdbc";
 static const std::string SQL_ENDPOINT_FORMAT_RAW =
-    "/_opensearch/_sql?format=raw";
-static const std::string SQL_ENDPOINT_CLOSE_CURSOR = "/_opensearch/_sql/close";
+    "/_plugins/_sql?format=raw";
+static const std::string SQL_ENDPOINT_CLOSE_CURSOR = "/_plugins/_sql/close";
 static const std::string PLUGIN_ENDPOINT_FORMAT_JSON =
     "/_cat/plugins?format=json";
 static const std::string ALLOCATION_TAG = "AWS_SIGV4_AUTH";

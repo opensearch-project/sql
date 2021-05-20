@@ -37,7 +37,7 @@ You can update the setting with a new value like this.
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opensearch/_sql/settings -d '{
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_sql/settings -d '{
 	  "transient" : {
 	    "opensearch.sql.enabled" : "false"
 	  }
@@ -64,7 +64,7 @@ Query result after the setting updated is like:
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql -d '{
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql -d '{
 	  "query" : "SELECT * FROM accounts"
 	}'
 
@@ -99,7 +99,7 @@ You can update the setting with a new value like this.
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opensearch/_sql/settings -d '{
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_sql/settings -d '{
 	  "transient" : {
 	    "opensearch.sql.query.slowlog" : "10"
 	  }
@@ -141,7 +141,7 @@ You can update the setting with a new value like this.
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opensearch/_sql/settings -d '{
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_sql/settings -d '{
 	  "transient" : {
 	    "opensearch.sql.query.analysis.enabled" : "false"
 	  }
@@ -185,7 +185,7 @@ You can update the setting with a new value like this.
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opensearch/_sql/settings -d '{
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_sql/settings -d '{
 	  "transient" : {
 	    "opensearch.sql.query.analysis.semantic.suggestion" : "true"
 	  }
@@ -218,7 +218,7 @@ Query result after the setting updated is like:
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql -d '{
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql -d '{
 	  "query" : "SELECT first FROM accounts"
 	}'
 
@@ -253,7 +253,7 @@ You can update the setting with a new value like this.
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opensearch/_sql/settings -d '{
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_sql/settings -d '{
 	  "transient" : {
 	    "opensearch.sql.query.analysis.semantic.threshold" : "50"
 	  }
@@ -299,7 +299,7 @@ You can update the setting with a new value like this.
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opensearch/_sql/settings -d '{
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_sql/settings -d '{
 	  "transient" : {
 	    "opensearch.sql.query.response.format" : "json"
 	  }
@@ -330,7 +330,7 @@ Query result after the setting updated is like:
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql -d '{
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql -d '{
 	  "query" : "SELECT firstname, lastname, age FROM accounts ORDER BY age LIMIT 2"
 	}'
 
@@ -404,7 +404,7 @@ You can update the setting with a new value like this.
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opensearch/_sql/settings -d '{
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_sql/settings -d '{
 	  "transient" : {
 	    "opensearch.sql.cursor.enabled" : "true"
 	  }
@@ -446,7 +446,7 @@ You can update the setting with a new value like this.
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opensearch/_sql/settings -d '{
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_sql/settings -d '{
 	  "transient" : {
 	    "opensearch.sql.cursor.fetch_size" : "50"
 	  }
@@ -488,7 +488,7 @@ You can update the setting with a new value like this.
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opensearch/_sql/settings -d '{
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_sql/settings -d '{
 	  "transient" : {
 	    "opensearch.sql.cursor.keep_alive" : "5m"
 	  }
@@ -509,51 +509,6 @@ Result set::
 	    }
 	  }
 	}
-
-opensearch.sql.engine.new.enabled
-=================================
-
-Description
------------
-
-We are migrating existing functionalities to a new query engine under development. User can choose to enable the new engine if interested or disable if any issue found.
-
-1. The default value is true.
-2. This setting is node scope.
-3. This setting can be updated dynamically.
-
-
-Example
--------
-
-You can update the setting with a new value like this.
-
-SQL query::
-
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opensearch/_sql/settings -d '{
-	  "transient" : {
-	    "opensearch.sql.engine.new.enabled" : "false"
-	  }
-	}'
-
-Result set::
-
-	{
-	  "acknowledged" : true,
-	  "persistent" : { },
-	  "transient" : {
-	    "opensearch" : {
-	      "sql" : {
-	        "engine" : {
-	          "new" : {
-	            "enabled" : "false"
-	          }
-	        }
-	      }
-	    }
-	  }
-	}
-
 
 opensearch.query.size_limit
 ===========================

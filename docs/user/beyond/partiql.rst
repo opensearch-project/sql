@@ -239,7 +239,7 @@ In the following example, it finds nested document (project) with field value (n
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : """
 		SELECT e.name AS employeeName,
@@ -332,7 +332,7 @@ Alternatively, a nested collection can be unnested in subquery to check if it sa
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : """
 		SELECT e.name AS employeeName

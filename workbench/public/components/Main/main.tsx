@@ -623,7 +623,7 @@ export class Main extends React.Component<MainProps, MainState> {
           updateSQLQueries={this.updateSQLQueries}
         />
       );
-      link = 'https://opendistro.github.io/for-elasticsearch-docs/docs/sql/';
+      link = 'https://docs-beta.opensearch.org/docs/sql/';
       linkTitle = 'SQL documentation';
     } else {
       page = (
@@ -636,7 +636,7 @@ export class Main extends React.Component<MainProps, MainState> {
           updatePPLQueries={this.updatePPLQueries}
         />
       );
-      link = 'https://opendistro.github.io/for-elasticsearch-docs/docs/ppl/';
+      link = 'https://docs-beta.opensearch.org/docs/ppl/';
       linkTitle = 'PPL documentation';
     }
 

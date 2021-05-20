@@ -108,7 +108,6 @@ public class ObjectFieldSelectIT extends SQLIntegTestCase {
 
   @Test
   public void testSelectObjectFieldOfArrayValuesItself() {
-    Assume.assumeTrue(isNewQueryEngineEabled());
     JSONObject response = new JSONObject(query("SELECT accounts FROM %s"));
 
     // Only the first element of the list of is returned.
@@ -117,7 +116,6 @@ public class ObjectFieldSelectIT extends SQLIntegTestCase {
 
   @Test
   public void testSelectObjectFieldOfArrayValuesInnerFields() {
-    Assume.assumeTrue(isNewQueryEngineEabled());
     JSONObject response = new JSONObject(query("SELECT accounts.id FROM %s"));
 
     // Only the first element of the list of is returned.

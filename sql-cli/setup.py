@@ -56,7 +56,7 @@ setup(
     author_email="opensearch-infra@amazon.com",
     version=version,
     license="Apache 2.0",
-    url="https://opendistro.github.io/for-elasticsearch-docs/docs/sql/cli/",
+    url="https://docs-beta.opensearch.org/docs/sql/cli/",
     packages=find_packages('src'),
     package_dir={'': 'src'},
     package_data={"opensearch_sql_cli": ["conf/clirc", "opensearch_literals/opensearch_literals.json"]},

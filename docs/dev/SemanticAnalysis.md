@@ -23,7 +23,7 @@ Firstly, you could go through the following examples of semantic check with our 
 ### 2.1 Field Name Typo
 
 ```
-POST _opensearch/_sql
+POST _plugins/_sql
 {
   "query": "SELECT balace FROM accounts"
 }
@@ -41,7 +41,7 @@ POST _opensearch/_sql
 ### 2.2 Function Call on Incompatible Field Type
 
 ```
-POST _opensearch/_sql
+POST _plugins/_sql
 {
   "query": "SELECT * FROM accounts WHERE SUBSTRING(balance, 0, 1) = 'test'"
 }
@@ -59,7 +59,7 @@ POST _opensearch/_sql
 ### 2.3 An index Join Non-nested Field
 
 ```
-POST _opensearch/_sql
+POST _plugins/_sql
 {
   "query": "SELECT * FROM accounts a, a.firstname"
 }
@@ -77,7 +77,7 @@ POST _opensearch/_sql
 ### 2.4 Wrong Reference in Subquery
 
 ```
-POST _opensearch/_sql
+POST _plugins/_sql
 {
   "query": "SELECT * FROM accounts a WHERE EXISTS (SELECT * FROM accounts b WHERE b.address LIKE 'Seattle') AND b.age > 10"
 }
@@ -95,7 +95,7 @@ POST _opensearch/_sql
 ### 2.5 Operator Use on Incompatible Field Type
 
 ```
-POST _opensearch/_sql
+POST _plugins/_sql
 {
   "query": "SELECT * FROM accounts WHERE lastname IS FALSE"
 }
@@ -113,7 +113,7 @@ POST _opensearch/_sql
 ### 2.6 Subquery Return Incompatible Type
 
 ```
-POST _opensearch/_sql
+POST _plugins/_sql
 {
   "query": "SELECT * FROM accounts WHERE lastname IN (SELECT age FROM accounts)"
 }
@@ -131,7 +131,7 @@ POST _opensearch/_sql
 ### 2.7 Multi-query On Incompatible Type
 
 ```
-POST _opensearch/_sql
+POST _plugins/_sql
 {
   "query": "SELECT balance FROM accounts UNION ALL SELECT city FROM accounts"
 }
