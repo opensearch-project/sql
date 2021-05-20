@@ -28,6 +28,7 @@
 package org.opensearch.sql.legacy;
 
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.opensearch.sql.legacy.plugin.SqlSettings.SQL_DELETE_ENABLED;
 
 import java.io.IOException;
 import org.json.JSONObject;
@@ -40,6 +41,7 @@ public class DeleteIT extends SQLIntegTestCase {
   protected void init() throws Exception {
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.PHRASE);
+    updateClusterSettings(new ClusterSetting(PERSISTENT, SQL_DELETE_ENABLED, "true"));
   }
 
   @Test

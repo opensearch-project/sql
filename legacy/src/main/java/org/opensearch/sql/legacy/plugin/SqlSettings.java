@@ -52,6 +52,7 @@ public class SqlSettings {
     public static final String QUERY_SLOWLOG = "opensearch.sql.query.slowlog";
     public static final String METRICS_ROLLING_WINDOW = "opensearch.sql.metrics.rollingwindow";
     public static final String METRICS_ROLLING_INTERVAL = "opensearch.sql.metrics.rollinginterval";
+    public static final String SQL_DELETE_ENABLED = "opensearch.sql.delete.enabled";
 
     public static final String CURSOR_ENABLED= "opensearch.sql.cursor.enabled";
     public static final String CURSOR_FETCH_SIZE = "opensearch.sql.cursor.fetch_size";
@@ -65,6 +66,8 @@ public class SqlSettings {
         Map<String, Setting<?>> settings = new HashMap<>();
         settings.put(SQL_ENABLED, Setting.boolSetting(SQL_ENABLED, true, NodeScope, Dynamic));
         settings.put(QUERY_SLOWLOG, Setting.intSetting(QUERY_SLOWLOG, 2, NodeScope, Dynamic));
+        settings.put(SQL_DELETE_ENABLED, Setting.boolSetting(SQL_DELETE_ENABLED, false, NodeScope,
+            Dynamic));
 
         settings.put(METRICS_ROLLING_WINDOW, Setting.longSetting(METRICS_ROLLING_WINDOW, 3600L, 2L,
                 NodeScope, Dynamic));

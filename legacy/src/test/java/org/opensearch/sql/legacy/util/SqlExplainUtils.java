@@ -30,6 +30,7 @@ import com.alibaba.druid.sql.parser.ParserException;
 import java.sql.SQLFeatureNotSupportedException;
 import org.mockito.Mockito;
 import org.opensearch.client.Client;
+import org.opensearch.sql.legacy.exception.SQLFeatureDisabledException;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.query.OpenSearchActionFactory;
 import org.opensearch.sql.legacy.query.QueryAction;
@@ -46,7 +47,7 @@ public class SqlExplainUtils {
             QueryAction queryAction = OpenSearchActionFactory.create(mockClient, query);
 
             return queryAction.explain().explain();
-        } catch (SqlParseException | SQLFeatureNotSupportedException e) {
+        } catch (SqlParseException | SQLFeatureNotSupportedException | SQLFeatureDisabledException e) {
             throw new ParserException("Illegal sql expr in: " + query);
         }
     }

@@ -214,7 +214,7 @@ public class RestSqlAction extends BaseRestHandler {
     }
 
     private static QueryAction explainRequest(final NodeClient client, final SqlRequest sqlRequest, Format format)
-            throws SQLFeatureNotSupportedException, SqlParseException {
+        throws SQLFeatureNotSupportedException, SqlParseException, SQLFeatureDisabledException {
 
         ColumnTypeProvider typeProvider = performAnalysis(sqlRequest.getSql());
 

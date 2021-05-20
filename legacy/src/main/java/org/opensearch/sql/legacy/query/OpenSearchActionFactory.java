@@ -27,6 +27,7 @@
 package org.opensearch.sql.legacy.query;
 
 import static org.opensearch.sql.legacy.domain.IndexStatement.StatementType;
+import static org.opensearch.sql.legacy.plugin.SqlSettings.SQL_DELETE_ENABLED;
 import static org.opensearch.sql.legacy.utils.Util.toSqlExpr;
 
 import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
@@ -56,6 +57,7 @@ import org.opensearch.sql.legacy.domain.JoinSelect;
 import org.opensearch.sql.legacy.domain.QueryActionRequest;
 import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
+import org.opensearch.sql.legacy.exception.SQLFeatureDisabledException;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.ElasticResultHandler;
 import org.opensearch.sql.legacy.executor.Format;
@@ -79,11 +81,12 @@ import org.opensearch.sql.legacy.rewriter.nestedfield.NestedFieldRewriter;
 import org.opensearch.sql.legacy.rewriter.ordinal.OrdinalRewriterRule;
 import org.opensearch.sql.legacy.rewriter.parent.SQLExprParentSetterRule;
 import org.opensearch.sql.legacy.rewriter.subquery.SubQueryRewriteRule;
+import org.opensearch.sql.legacy.utils.StringUtils;
 
 public class OpenSearchActionFactory {
 
     public static QueryAction create(Client client, String sql)
-            throws SqlParseException, SQLFeatureNotSupportedException {
+        throws SqlParseException, SQLFeatureNotSupportedException, SQLFeatureDisabledException {
         return create(client, new QueryActionRequest(sql, new ColumnTypeProvider(), Format.JSON));
     }
 
@@ -95,7 +98,7 @@ public class OpenSearchActionFactory {
      * @return Query object.
      */
     public static QueryAction create(Client client, QueryActionRequest request)
-            throws SqlParseException, SQLFeatureNotSupportedException {
+        throws SqlParseException, SQLFeatureNotSupportedException, SQLFeatureDisabledException {
         String sql = request.getSql();
         // Remove line breaker anywhere and semicolon at the end
         sql = sql.replaceAll("\\R", " ").trim();
@@ -138,10 +141,17 @@ public class OpenSearchActionFactory {
                     return handleSelect(client, select);
                 }
             case "DELETE":
-                SQLStatementParser parser = createSqlStatementParser(sql);
-                SQLDeleteStatement deleteStatement = parser.parseDeleteStatement();
-                Delete delete = new SqlParser().parseDelete(deleteStatement);
-                return new DeleteQueryAction(client, delete);
+                if (isSQLDeleteEnabled()) {
+                    SQLStatementParser parser = createSqlStatementParser(sql);
+                    SQLDeleteStatement deleteStatement = parser.parseDeleteStatement();
+                    Delete delete = new SqlParser().parseDelete(deleteStatement);
+                    return new DeleteQueryAction(client, delete);
+                } else {
+                    throw new SQLFeatureDisabledException(
+                        StringUtils.format("DELETE clause is disabled by default and will be "
+                                + "deprecated. Using the %s setting to enable it",
+                            SQL_DELETE_ENABLED));
+                }
             case "SHOW":
                 IndexStatement showStatement = new IndexStatement(StatementType.SHOW, sql);
                 return new ShowQueryAction(client, showStatement);
@@ -152,6 +162,10 @@ public class OpenSearchActionFactory {
                 throw new SQLFeatureNotSupportedException(
                         String.format("Query must start with SELECT, DELETE, SHOW or DESCRIBE: %s", sql));
         }
+    }
+
+    private static boolean isSQLDeleteEnabled() {
+        return LocalClusterState.state().getSettingValue(SQL_DELETE_ENABLED);
     }
 
     private static String getFirstWord(String sql) {
