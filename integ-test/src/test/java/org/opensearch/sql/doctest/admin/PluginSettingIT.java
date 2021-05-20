@@ -37,20 +37,16 @@ import static org.opensearch.sql.doctest.core.request.SqlRequestFormat.IGNORE_RE
 import static org.opensearch.sql.doctest.core.response.SqlResponseFormat.IGNORE_RESPONSE;
 import static org.opensearch.sql.doctest.core.response.SqlResponseFormat.PRETTY_JSON_RESPONSE;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_KEEPALIVE;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_RESPONSE_FORMAT;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_SLOWLOG;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.SQL_ENABLED;
 
-import java.util.Arrays;
 import java.util.EnumSet;
-import java.util.stream.Collectors;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.sql.doctest.core.DocTest;
 import org.opensearch.sql.doctest.core.annotation.DocTestConfig;
 import org.opensearch.sql.doctest.core.annotation.Section;
 import org.opensearch.sql.doctest.core.builder.Example;
 import org.opensearch.sql.doctest.core.builder.ListItems;
-import org.opensearch.sql.legacy.executor.Format;
 import org.opensearch.sql.legacy.plugin.SqlSettings;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
@@ -79,19 +75,6 @@ public class PluginSettingIT extends DocTest {
         "You can configure the time limit (seconds) for slow query which would be logged as " +
             "'Slow query: elapsed=xxx (ms)' in opensearch.log.",
         10
-    );
-  }
-
-  @Section(6)
-  public void responseFormatSetting() {
-    docSetting(
-        QUERY_RESPONSE_FORMAT,
-        String.format("User can set default response format of the query. " +
-            "The supported format includes: %s.", Arrays.stream(Format.values())
-            .map(Format::getFormatName)
-            .collect(Collectors.joining(","))),
-        Format.JSON.getFormatName(),
-        "SELECT firstname, lastname, age FROM accounts ORDER BY age LIMIT 2"
     );
   }
 

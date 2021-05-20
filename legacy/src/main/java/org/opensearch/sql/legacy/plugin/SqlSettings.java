@@ -50,11 +50,12 @@ public class SqlSettings {
      */
     public static final String SQL_ENABLED = "opensearch.sql.enabled";
     public static final String QUERY_SLOWLOG = "opensearch.sql.query.slowlog";
-    public static final String QUERY_RESPONSE_FORMAT = "opensearch.sql.query.response.format";
     public static final String METRICS_ROLLING_WINDOW = "opensearch.sql.metrics.rollingwindow";
     public static final String METRICS_ROLLING_INTERVAL = "opensearch.sql.metrics.rollinginterval";
 
     public static final String CURSOR_KEEPALIVE= "opensearch.sql.cursor.keep_alive";
+
+    public static final String DEFAULT_RESPONSE_FORMAT = Format.JDBC.getFormatName();
 
     private final Map<String, Setting<?>> settings;
 
@@ -62,8 +63,6 @@ public class SqlSettings {
         Map<String, Setting<?>> settings = new HashMap<>();
         settings.put(SQL_ENABLED, Setting.boolSetting(SQL_ENABLED, true, NodeScope, Dynamic));
         settings.put(QUERY_SLOWLOG, Setting.intSetting(QUERY_SLOWLOG, 2, NodeScope, Dynamic));
-        settings.put(QUERY_RESPONSE_FORMAT, Setting.simpleString(QUERY_RESPONSE_FORMAT, Format.JDBC.getFormatName(),
-                                                                 NodeScope, Dynamic));
 
         settings.put(METRICS_ROLLING_WINDOW, Setting.longSetting(METRICS_ROLLING_WINDOW, 3600L, 2L,
                 NodeScope, Dynamic));
