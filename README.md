@@ -187,7 +187,7 @@ curl -XPOST https://localhost:9200/_plugins/_sql -u admin:admin -k -d '{"query":
 
 Please check out JDBC driver repository for more details.
 
-## Beyond sql features
+## Beyond SQL features
 
 *  OpenSearch TopHits
 *  OpenSearch MISSING

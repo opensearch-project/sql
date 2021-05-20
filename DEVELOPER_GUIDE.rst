@@ -59,8 +59,8 @@ If there is update in master or you want to keep the forked repository long livi
 
 After getting the source code as well as OpenSearch and OpenSearch Dashboards, your workspace layout may look like this::
 
-   $ mkdir opendistro
-   $ cd opendistro
+   $ mkdir opensearch
+   $ cd opensearch
    $ ls -la                                                                     
    total 32
    drwxr-xr-x  7 user group^users 4096 Nov 21 12:59 .
@@ -136,7 +136,6 @@ The plugin codebase is in standard layout of Gradle project::
    ├── gradle.properties
    ├── gradlew
    ├── gradlew.bat
-   ├── opendistro-elasticsearch-sql.release-notes
    ├── settings.gradle
    ├── common
    ├── core
@@ -331,9 +330,9 @@ Sometime you want to deploy your changes to local OpenSearch cluster, basically 
 
 To automate this common task, you can prepare an all-in-one command for reuse. Below is a sample command for macOS::
 
- ./gradlew assemble && {echo y | cp -f build/distributions/opendistro_sql-1*0.jar <OpenSearch_home>/plugins/opensearch-sql} && {kill $(ps aux | awk '/[O]pensearch/ {print $2}'); sleep 3; nohup <OpenSearch_home>/bin/opensearch > ~/Temp/opensearch.log 2>&1 &}
+ ./gradlew assemble && {echo y | cp -f build/distributions/opensearch-sql-1*0.jar <OpenSearch_home>/plugins/opensearch-sql} && {kill $(ps aux | awk '/[O]pensearch/ {print $2}'); sleep 3; nohup <OpenSearch_home>/bin/opensearch > ~/Temp/opensearch.log 2>&1 &}
 
-Note that for the first time you need to create ``opensearch-sql`` folder and unzip ``build/distribution/opendistro_sql-xxxx.zip`` to it.
+Note that for the first time you need to create ``opensearch-sql`` folder and unzip ``build/distribution/opensearch-sql-xxxx.zip`` to it.
 
 
 Documentation
