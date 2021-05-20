@@ -442,7 +442,7 @@ bool OpenSearchCommunication::IsSQLPluginDisabled(std::shared_ptr< ErrorDetails 
     return false;
 }
 
-bool OpenSearchCommunication::IsSQLPluginAvailable() {
+bool OpenSearchCommunication::CheckSQLPluginAvailability() {
     LogMsg(OPENSEARCH_ALL, "Checking for SQL plugin status.");
     std::string test_query = "SELECT 1";
     try {
@@ -512,7 +512,7 @@ bool OpenSearchCommunication::EstablishConnection() {
     // Check whether SQL plugin has been installed and enabled in the
     // OpenSearch server since the SQL plugin is a prerequisite to
     // use this driver.
-    if(IsSQLPluginAvailable()) {
+    if(CheckSQLPluginAvailability()) {
         return true;
     }
 
