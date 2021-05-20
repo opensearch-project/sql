@@ -368,8 +368,7 @@ public class PluginIT extends SQLIntegTestCase {
         "    \"opensearch\": {" +
         "      \"sql\": {" +
         "        \"query\": {" +
-        "          \"slowlog\": \"1\"," +
-        "          \"response.format\": \"jdbc\"" +
+        "          \"slowlog\": \"1\"" +
         "        }" +
         "      }" +
         "    }" +
@@ -387,10 +386,7 @@ public class PluginIT extends SQLIntegTestCase {
         "    \"opensearch\" : {" +
         "      \"sql\" : {" +
         "        \"query\" : {" +
-        "          \"slowlog\" : \"1\"," +
-        "          \"response\" : {" +
-        "            \"format\" : \"jdbc\"" +
-        "          }" +
+        "          \"slowlog\" : \"1\"" +
         "        }" +
         "      }" +
         "    }" +
