@@ -110,7 +110,7 @@ Notes: Not all the PPL Type has correspond OpenSearch Type. e.g. data and time. 
 Numeric Data Types
 ==================
 
-TODO
+Numeric values ranged from -2147483648 to +2147483647 are recognized as integer with type name ``INTEGER``. For others outside the range, ``LONG`` integer will be the data type after parsed.
 
 
 Date and Time Data Types
