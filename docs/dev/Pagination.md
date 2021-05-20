@@ -425,8 +425,8 @@ Right now there is inconsistency in results for `csv` and `jdbc` format. This is
 
 - By default all requests will be a cursor request - meaning the response will contain `cursor` key to fetch next page of result. This is true for all queries which cursor is supported.
 - Cursor is supported only via `POST` HTTP request.
-- If `fetch_size` is omitted from request, it will default to **1000**, unless overridden by cluster settings (See below).
-- A `fetch_size` value of **0**, will imply no cursor and query will fallback to non-cursor behavior. This will allow to use/not-use cursor on a per query basis.
+- If `fetch_size` is omitted from request, the query will fallback to non-cursor behavior.
+- A `fetch_size` value of **0**, will imply no cursor and query will fallback to non-cursor behavior too. This will allow to use/not-use cursor on a per query basis.
 - If SQL query limit is less than `fetch_size`, no cursor context will be open and all results will be fetched in first page.
 - Negative or non-numeric values of `fetch_size` will throw `400` exception.
 - If `cursor` is given as JSON field in request, other fields like `fetch_size` , `query`, `filter`, `parameters` will be ignored. 
@@ -438,84 +438,6 @@ Right now there is inconsistency in results for `csv` and `jdbc` format. This is
 When OpenSearch bootstraps, SQL plugin will register a few settings in OpenSearch cluster settings.
 Most of the settings are able to change dynamically so you can control the behavior of SQL plugin without need to bounce your cluster.
 For cursors we will be exposing the following settings:
-
-####  opensearch.sql.cursor.enabled
-
-You can disable cursor for all SQL queries which support pagination.
-
-- The default value is **true**.
-- This setting is node scope.
-- This setting can be updated dynamically.
-- This can be `persistent` and `transient`.
-
-Example:
-
-```
->> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings -d '{
-  "transient" : {
-    "opensearch.sql.cursor.enabled" : "false"
-  }
-}'
-```
-
-Response:
-
-```
-{
-  "acknowledged" : true,
-  "persistent" : { },
-  "transient" : {
-    "opensearch" : {
-      "sql" : {
-        "cursor" : {
-          "enabled" : "false"
-        }
-      }
-    }
-  }
-}
-
-```
-
-####  opensearch.sql.cursor.fetch_size
-
-This setting controls the default page size for all cursor requests.
-
-- The default value is **1000**.
-- The minimum value is **1**.
-- The effective max value is controlled by `index.max_result_window` setting. Increase the fetch_size above this will give a 500 error from OpenSearch.
-- This setting is node scope.
-- This setting can be updated dynamically.
-- This can be `persistent` and `transient`.
-
-Example:
-
-```
->> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings -d '{
-  "persistent" : {
-    "opensearch.sql.cursor.fetch_size" : "100"
-  }
-}'
-```
-
-Response:
-
-```
-{
-  "acknowledged" : true,
-  "transient" : { },
-  "persistent" : {
-    "opensearch" : {
-      "sql" : {
-        "cursor" : {
-          "fetch_size" : "100"
-        }
-      }
-    }
-  }
-}
-
-```
 
 ####  opensearch.sql.cursor.keep_alive
 

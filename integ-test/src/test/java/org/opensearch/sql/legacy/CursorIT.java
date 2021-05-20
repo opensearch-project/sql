@@ -41,6 +41,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
@@ -58,7 +59,6 @@ public class CursorIT extends SQLIntegTestCase {
   @Override
   protected void init() throws Exception {
     loadIndex(Index.ACCOUNT);
-    enableCursorClusterSetting();
   }
 
   /**
@@ -132,7 +132,7 @@ public class CursorIT extends SQLIntegTestCase {
     String selectQuery = StringUtils.format("SELECT firstname, state FROM %s", TEST_INDEX_ACCOUNT);
     JSONObject response = new JSONObject(executeFetchQuery(selectQuery, 0, JDBC));
     assertFalse(response.has(CURSOR));
-    assertThat(response.getJSONArray(DATAROWS).length(), equalTo(200));
+    assertThat(response.getJSONArray(DATAROWS).length(), equalTo(1000)); // Default limit is 1000 in new engine
   }
 
   /**
@@ -282,6 +282,7 @@ public class CursorIT extends SQLIntegTestCase {
   }
 
 
+  @Ignore("Breaking change for OpenSearch: deprecate and enable cursor always")
   @Test
   public void defaultBehaviorWhenCursorSettingIsDisabled() throws IOException {
     updateClusterSettings(new ClusterSetting(PERSISTENT, "opensearch.sql.cursor.enabled", "false"));
@@ -300,25 +301,14 @@ public class CursorIT extends SQLIntegTestCase {
 
   @Test
   public void testCursorSettings() throws IOException {
-    // reverting enableCursorClusterSetting() in init() method before checking defaults
-    updateClusterSettings(new ClusterSetting(PERSISTENT, "opensearch.sql.cursor.enabled", null));
-
     // Assert default cursor settings
     JSONObject clusterSettings = getAllClusterSettings();
-    assertThat(clusterSettings.query("/defaults/opensearch.sql.cursor.enabled"), equalTo("false"));
-    assertThat(clusterSettings.query("/defaults/opensearch.sql.cursor.fetch_size"),
-        equalTo("1000"));
     assertThat(clusterSettings.query("/defaults/opensearch.sql.cursor.keep_alive"), equalTo("1m"));
 
-    updateClusterSettings(new ClusterSetting(PERSISTENT, "opensearch.sql.cursor.enabled", "true"));
-    updateClusterSettings(new ClusterSetting(TRANSIENT, "opensearch.sql.cursor.fetch_size", "400"));
     updateClusterSettings(
         new ClusterSetting(PERSISTENT, "opensearch.sql.cursor.keep_alive", "200s"));
 
     clusterSettings = getAllClusterSettings();
-    assertThat(clusterSettings.query("/persistent/opensearch.sql.cursor.enabled"), equalTo("true"));
-    assertThat(clusterSettings.query("/transient/opensearch.sql.cursor.fetch_size"),
-        equalTo("400"));
     assertThat(clusterSettings.query("/persistent/opensearch.sql.cursor.keep_alive"),
         equalTo("200s"));
 
@@ -326,6 +316,7 @@ public class CursorIT extends SQLIntegTestCase {
   }
 
 
+  @Ignore("Breaking change for OpenSearch: no pagination if fetch_size field absent in request")
   @Test
   public void testDefaultFetchSizeFromClusterSettings() throws IOException {
     // the default fetch size is 1000
@@ -479,11 +470,6 @@ public class CursorIT extends SQLIntegTestCase {
 
   public void verifyDataRows(JSONArray dataRowsOne, JSONArray dataRowsTwo) {
     assertTrue(dataRowsOne.similar(dataRowsTwo));
-  }
-
-  private void enableCursorClusterSetting() throws IOException {
-    updateClusterSettings(
-        new ClusterSetting("persistent", "opensearch.sql.cursor.enabled", "true"));
   }
 
   public String executeFetchAsStringQuery(String query, String fetchSize, String requestType)

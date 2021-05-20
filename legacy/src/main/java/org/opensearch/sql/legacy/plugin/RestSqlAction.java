@@ -29,7 +29,6 @@ package org.opensearch.sql.legacy.plugin;
 import static org.opensearch.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.rest.RestStatus.OK;
 import static org.opensearch.rest.RestStatus.SERVICE_UNAVAILABLE;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_ENABLED;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.SQL_ENABLED;
 
 import com.alibaba.druid.sql.parser.ParserException;
@@ -168,18 +167,16 @@ public class RestSqlAction extends BaseRestHandler {
 
             Format format = SqlRequestParam.getFormat(request.params());
 
-            if (isCursorDisabled()) {
-                // Route request to new query engine if it's supported already
-                SQLQueryRequest newSqlRequest = new SQLQueryRequest(sqlRequest.getJsonContent(),
-                    sqlRequest.getSql(), request.path(), request.params());
-                RestChannelConsumer result = newSqlQueryHandler.prepareRequest(newSqlRequest, client);
-                if (result != RestSQLQueryAction.NOT_SUPPORTED_YET) {
-                    LOG.info("[{}] Request is handled by new SQL query engine", LogUtils.getRequestId());
-                    return result;
-                }
-                LOG.debug("[{}] Request {} is not supported and falling back to old SQL engine",
-                    LogUtils.getRequestId(), newSqlRequest);
+            // Route request to new query engine if it's supported already
+            SQLQueryRequest newSqlRequest = new SQLQueryRequest(sqlRequest.getJsonContent(),
+                sqlRequest.getSql(), request.path(), request.params());
+            RestChannelConsumer result = newSqlQueryHandler.prepareRequest(newSqlRequest, client);
+            if (result != RestSQLQueryAction.NOT_SUPPORTED_YET) {
+                LOG.info("[{}] Request is handled by new SQL query engine", LogUtils.getRequestId());
+                return result;
             }
+            LOG.debug("[{}] Request {} is not supported and falling back to old SQL engine",
+                LogUtils.getRequestId(), newSqlRequest);
 
             final QueryAction queryAction = explainRequest(client, sqlRequest, format);
             return channel -> executeSqlRequest(request, queryAction, client, channel);
@@ -282,11 +279,6 @@ public class RestSqlAction extends BaseRestHandler {
     private boolean isSQLFeatureEnabled() {
         boolean isSqlEnabled = LocalClusterState.state().getSettingValue(SQL_ENABLED);
         return allowExplicitIndex && isSqlEnabled;
-    }
-
-    private boolean isCursorDisabled() {
-        Boolean isEnabled = LocalClusterState.state().getSettingValue(CURSOR_ENABLED);
-        return Boolean.FALSE.equals(isEnabled);
     }
 
     private static ColumnTypeProvider performAnalysis(String sql) {
