@@ -295,27 +295,21 @@ You can update the setting with a new value like this.
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_sql/settings -d '{
-	  "transient" : {
-	    "opensearch.sql.delete.enabled" : "false"
-	  }
-	}'
-
-Result set::
-
-	{
-	  "acknowledged" : true,
-	  "persistent" : { },
-	  "transient" : {
-	    "opensearch" : {
-	      "sql" : {
-	        "delete": {
-	          "enabled" : "false"
-	        }
-	      }
-	    }
-	  }
-	}
+    sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_sql/settings \
+    ... -d '{"transient":{"opensearch.sql.delete.enabled":"false"}}'
+    {
+      "acknowledged": true,
+      "persistent": {},
+      "transient": {
+        "opensearch": {
+          "sql": {
+            "delete": {
+              "enabled": "false"
+            }
+          }
+        }
+      }
+    }
 
 Example 2
 ---------
@@ -324,17 +318,13 @@ Query result after the setting updated is like:
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql -d '{
-	  "query" : "DELETE * FROM accounts"
-	}'
-
-Result set::
-
-	{
-	  "error" : {
-	    "reason" : "Invalid SQL query",
-	    "details" : "DELETE clause is disabled by default and will be deprecated. Using the opensearch.sql.delete.enabled setting to enable it",
-	    "type" : "SQLFeatureDisabledException"
-	  },
-	  "status" : 400
-	}
+    sh$ curl -sS -H 'Content-Type: application/json' -X POST localhost:9200/_opendistro/_sql \
+    ... -d '{"query" : "DELETE * FROM accounts"}'
+    {
+      "error": {
+        "reason": "Invalid SQL query",
+        "details": "DELETE clause is disabled by default and will be deprecated. Using the opensearch.sql.delete.enabled setting to enable it",
+        "type": "SQLFeatureDisabledException"
+      },
+      "status": 400
+    }
