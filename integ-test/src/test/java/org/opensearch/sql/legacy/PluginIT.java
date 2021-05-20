@@ -85,14 +85,17 @@ public class PluginIT extends SQLIntegTestCase {
     final ResponseException exception =
         expectThrows(ResponseException.class, () -> executeQuery(deleteQuery));
     JSONObject actual = new JSONObject(TestUtils.getResponseBody(exception.getResponse()));
-    JSONObject expected = new JSONObject("{\n"
-        + "  \"error\": {\n"
-        + "    \"reason\": \"Invalid SQL query\",\n"
-        + "    \"details\": \"DELETE clause is disabled by default and will be deprecated. Using the opendistro.sql.delete.enabled setting to enable it\",\n"
-        + "    \"type\": \"SQLFeatureDisabledException\"\n"
-        + "  },\n"
-        + "  \"status\": 400\n"
-        + "}");
+    JSONObject expected =
+        new JSONObject(
+            "{\n"
+                + "  \"error\": {\n"
+                + "    \"reason\": \"Invalid SQL query\",\n"
+                + "    \"details\": \"DELETE clause is disabled by default and will be deprecated. Using "
+                + "the opensearch.sql.delete.enabled setting to enable it\",\n"
+                + "    \"type\": \"SQLFeatureDisabledException\"\n"
+                + "  },\n"
+                + "  \"status\": 400\n"
+                + "}");
     assertTrue(actual.toString(), actual.similar(expected));
 
     wipeAllClusterSettings();
