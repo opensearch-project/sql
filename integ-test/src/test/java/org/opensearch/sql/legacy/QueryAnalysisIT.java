@@ -32,9 +32,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.rest.RestStatus.OK;
 import static org.opensearch.rest.RestStatus.SERVICE_UNAVAILABLE;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_ANALYSIS_ENABLED;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_ANALYSIS_SEMANTIC_SUGGESTION;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_ANALYSIS_SEMANTIC_THRESHOLD;
 
 import java.io.IOException;
 import org.junit.Assert;
@@ -46,7 +43,6 @@ import org.opensearch.rest.RestStatus;
 import org.opensearch.sql.legacy.antlr.semantic.SemanticAnalysisException;
 import org.opensearch.sql.legacy.antlr.syntax.SyntaxAnalysisException;
 import org.opensearch.sql.legacy.exception.SqlFeatureNotImplementedException;
-import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
 /**
@@ -70,57 +66,6 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
         "SELECT * FROM opensearch-sql_test_index_bank WHERE age <=> 1"
     );
   }
-
-  @Test
-  public void unsupportedOperatorShouldSkipAnalysisAndThrowOtherExceptionIfAnalyzerDisabled() {
-    runWithClusterSetting(
-        new ClusterSetting("transient", QUERY_ANALYSIS_ENABLED, "false"),
-        () -> queryShouldThrowException(
-            "SELECT * FROM opensearch-sql_test_index_bank WHERE age <=> 1",
-            SqlParseException.class
-        )
-    );
-  }
-
-  @Test
-  public void suggestionForWrongFieldNameShouldBeProvidedIfSuggestionEnabled() {
-    runWithClusterSetting(
-        new ClusterSetting("transient", QUERY_ANALYSIS_SEMANTIC_SUGGESTION, "true"),
-        () -> queryShouldThrowSemanticException(
-            "SELECT * FROM opensearch-sql_test_index_bank b WHERE a.balance = 1000",
-            "Field [a.balance] cannot be found or used here.",
-            "Did you mean [b.balance]?"
-        )
-    );
-  }
-
-  @Test
-  public void wrongFieldNameShouldPassIfIndexMappingIsVeryLarge() {
-    runWithClusterSetting(
-        new ClusterSetting("transient", QUERY_ANALYSIS_SEMANTIC_THRESHOLD, "5"),
-        () -> queryShouldPassAnalysis(
-            "SELECT * FROM opensearch-sql_test_index_bank WHERE age123 = 1")
-    );
-  }
-
-    /*
-    @Test
-    public void useNewAddedFieldShouldPass() throws Exception {
-        // 1.Make sure new add fields not there originally
-        String query = "SELECT salary FROM opensearch-sql_test_index_bank WHERE education = 'PhD'";
-        queryShouldThrowSemanticException(query, "Field [education] cannot be found or used here.");
-
-        // 2.Index an document with fields not present in mapping previously
-        String docWithNewFields = "{\"account_number\":12345,\"education\":\"PhD\",\"salary\": \"10000\"}";
-        IndexResponse resp = client().index(new IndexRequest().index("opensearch-sql_test_index_bank").
-                                                               source(docWithNewFields, JSON)).get();
-
-        Assert.assertEquals(RestStatus.CREATED, resp.status());
-
-        // 3.Same query should pass
-        executeQuery(query);
-    }
-    */
 
   @Test
   public void nonExistingFieldNameShouldThrowSemanticException() {

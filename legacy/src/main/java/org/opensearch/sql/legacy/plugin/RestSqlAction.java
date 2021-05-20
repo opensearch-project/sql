@@ -29,9 +29,6 @@ package org.opensearch.sql.legacy.plugin;
 import static org.opensearch.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.rest.RestStatus.OK;
 import static org.opensearch.rest.RestStatus.SERVICE_UNAVAILABLE;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_ANALYSIS_ENABLED;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_ANALYSIS_SEMANTIC_SUGGESTION;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_ANALYSIS_SEMANTIC_THRESHOLD;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.SQL_ENABLED;
 
 import com.alibaba.druid.sql.parser.ParserException;
@@ -286,11 +283,7 @@ public class RestSqlAction extends BaseRestHandler {
 
     private static ColumnTypeProvider performAnalysis(String sql) {
         LocalClusterState clusterState = LocalClusterState.state();
-        SqlAnalysisConfig config = new SqlAnalysisConfig(
-            clusterState.getSettingValue(QUERY_ANALYSIS_ENABLED),
-            clusterState.getSettingValue(QUERY_ANALYSIS_SEMANTIC_SUGGESTION),
-            clusterState.getSettingValue(QUERY_ANALYSIS_SEMANTIC_THRESHOLD)
-        );
+        SqlAnalysisConfig config = new SqlAnalysisConfig(false, false, 200);
 
         OpenSearchLegacySqlAnalyzer analyzer = new OpenSearchLegacySqlAnalyzer(config);
         Optional<Type> outputColumnType = analyzer.analyze(sql, clusterState);
