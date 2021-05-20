@@ -73,7 +73,8 @@ public class Condition extends Where {
         CHILDREN_COMPLEX,
         SCRIPT,
         NIN_TERMS,
-        NTERM;
+        NTERM,
+        NREGEXP;
 
         public static Map<String, OPERATOR> methodNameToOpear;
 
@@ -146,6 +147,7 @@ public class Condition extends Where {
             negatives.put(IN, NIN);
             negatives.put(BETWEEN, NBETWEEN);
             negatives.put(NESTED_COMPLEX, NOT_EXISTS_NESTED_COMPLEX);
+            negatives.put(REGEXP, NREGEXP);
         }
 
         static {
