@@ -29,12 +29,7 @@ package org.opensearch.sql.legacy.plugin;
 import static org.opensearch.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.rest.RestStatus.OK;
 import static org.opensearch.rest.RestStatus.SERVICE_UNAVAILABLE;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_ENABLED;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_ANALYSIS_ENABLED;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_ANALYSIS_SEMANTIC_SUGGESTION;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_ANALYSIS_SEMANTIC_THRESHOLD;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.SQL_ENABLED;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.SQL_NEW_ENGINE_ENABLED;
 
 import com.alibaba.druid.sql.parser.ParserException;
 import com.google.common.collect.ImmutableList;
@@ -100,7 +95,7 @@ public class RestSqlAction extends BaseRestHandler {
     /**
      * API endpoint path
      */
-    public static final String QUERY_API_ENDPOINT = "/_opensearch/_sql";
+    public static final String QUERY_API_ENDPOINT = "/_plugins/_sql";
     public static final String EXPLAIN_API_ENDPOINT = QUERY_API_ENDPOINT + "/_explain";
     public static final String CURSOR_CLOSE_ENDPOINT = QUERY_API_ENDPOINT + "/close";
     public static final String LEGACY_QUERY_API_ENDPOINT = "/_opendistro/_sql";
@@ -121,14 +116,21 @@ public class RestSqlAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
+        return ImmutableList.of();
+    }
+
+    @Override
+    public List<ReplacedRoute> replacedRoutes() {
         return ImmutableList.of(
-            new Route(RestRequest.Method.POST, QUERY_API_ENDPOINT),
-            new Route(RestRequest.Method.POST, EXPLAIN_API_ENDPOINT),
-            new Route(RestRequest.Method.POST, CURSOR_CLOSE_ENDPOINT),
-            new Route(RestRequest.Method.POST, LEGACY_QUERY_API_ENDPOINT),
-            new Route(RestRequest.Method.POST, LEGACY_EXPLAIN_API_ENDPOINT),
-            new Route(RestRequest.Method.POST, LEGACY_CURSOR_CLOSE_ENDPOINT)
-        );
+            new ReplacedRoute(
+                RestRequest.Method.POST, QUERY_API_ENDPOINT,
+                RestRequest.Method.POST, LEGACY_QUERY_API_ENDPOINT),
+            new ReplacedRoute(
+                RestRequest.Method.POST, EXPLAIN_API_ENDPOINT,
+                RestRequest.Method.POST, LEGACY_EXPLAIN_API_ENDPOINT),
+            new ReplacedRoute(
+                RestRequest.Method.POST, CURSOR_CLOSE_ENDPOINT,
+                RestRequest.Method.POST, LEGACY_CURSOR_CLOSE_ENDPOINT));
     }
 
     @Override
@@ -165,18 +167,16 @@ public class RestSqlAction extends BaseRestHandler {
 
             Format format = SqlRequestParam.getFormat(request.params());
 
-            if (isNewEngineEnabled() && isCursorDisabled()) {
-                // Route request to new query engine if it's supported already
-                SQLQueryRequest newSqlRequest = new SQLQueryRequest(sqlRequest.getJsonContent(),
-                    sqlRequest.getSql(), request.path(), request.params());
-                RestChannelConsumer result = newSqlQueryHandler.prepareRequest(newSqlRequest, client);
-                if (result != RestSQLQueryAction.NOT_SUPPORTED_YET) {
-                    LOG.info("[{}] Request is handled by new SQL query engine", LogUtils.getRequestId());
-                    return result;
-                }
-                LOG.debug("[{}] Request {} is not supported and falling back to old SQL engine",
-                    LogUtils.getRequestId(), newSqlRequest);
+            // Route request to new query engine if it's supported already
+            SQLQueryRequest newSqlRequest = new SQLQueryRequest(sqlRequest.getJsonContent(),
+                sqlRequest.getSql(), request.path(), request.params());
+            RestChannelConsumer result = newSqlQueryHandler.prepareRequest(newSqlRequest, client);
+            if (result != RestSQLQueryAction.NOT_SUPPORTED_YET) {
+                LOG.info("[{}] Request is handled by new SQL query engine", LogUtils.getRequestId());
+                return result;
             }
+            LOG.debug("[{}] Request {} is not supported and falling back to old SQL engine",
+                LogUtils.getRequestId(), newSqlRequest);
 
             final QueryAction queryAction = explainRequest(client, sqlRequest, format);
             return channel -> executeSqlRequest(request, queryAction, client, channel);
@@ -281,22 +281,9 @@ public class RestSqlAction extends BaseRestHandler {
         return allowExplicitIndex && isSqlEnabled;
     }
 
-    private boolean isNewEngineEnabled() {
-        return LocalClusterState.state().getSettingValue(SQL_NEW_ENGINE_ENABLED);
-    }
-
-    private boolean isCursorDisabled() {
-        Boolean isEnabled = LocalClusterState.state().getSettingValue(CURSOR_ENABLED);
-        return Boolean.FALSE.equals(isEnabled);
-    }
-
     private static ColumnTypeProvider performAnalysis(String sql) {
         LocalClusterState clusterState = LocalClusterState.state();
-        SqlAnalysisConfig config = new SqlAnalysisConfig(
-            clusterState.getSettingValue(QUERY_ANALYSIS_ENABLED),
-            clusterState.getSettingValue(QUERY_ANALYSIS_SEMANTIC_SUGGESTION),
-            clusterState.getSettingValue(QUERY_ANALYSIS_SEMANTIC_THRESHOLD)
-        );
+        SqlAnalysisConfig config = new SqlAnalysisConfig(false, false, 200);
 
         OpenSearchLegacySqlAnalyzer analyzer = new OpenSearchLegacySqlAnalyzer(config);
         Optional<Type> outputColumnType = analyzer.analyze(sql, clusterState);

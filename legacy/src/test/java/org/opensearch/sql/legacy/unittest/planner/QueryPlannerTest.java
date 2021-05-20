@@ -46,6 +46,8 @@ import org.apache.lucene.search.TotalHits.Relation;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -68,6 +70,7 @@ import org.opensearch.sql.legacy.parser.SqlParser;
 import org.opensearch.sql.legacy.plugin.SqlSettings;
 import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
+import org.opensearch.sql.legacy.query.join.BackOffRetryStrategy;
 import org.opensearch.sql.legacy.query.join.OpenSearchJoinQueryActionFactory;
 import org.opensearch.sql.legacy.query.planner.HashJoinQueryPlanRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.core.QueryPlanner;
@@ -166,19 +169,24 @@ public abstract class QueryPlannerTest {
         doAnswer(mockHits1).when(response1).getHits();
         doAnswer(mockHits2).when(response2).getHits();
 
-        ClearScrollRequestBuilder mockReqBuilder = mock(ClearScrollRequestBuilder.class);
-        when(client.prepareClearScroll()).thenReturn(mockReqBuilder);
-        when(mockReqBuilder.addScrollId(any())).thenReturn(mockReqBuilder);
-        when(mockReqBuilder.get()).thenAnswer(new Answer<ClearScrollResponse>() {
-            @Override
-            public ClearScrollResponse answer(InvocationOnMock invocation) throws Throwable {
-                mockHits2.reset();
-                return new ClearScrollResponse(true, 0);
-            }
-        });
+        try (MockedStatic<BackOffRetryStrategy> backOffRetryStrategyMocked =
+            Mockito.mockStatic(BackOffRetryStrategy.class)) {
+            backOffRetryStrategyMocked.when(BackOffRetryStrategy::isHealthy).thenReturn(true);
 
-        List<SearchHit> hits = plan(sql).execute();
-        return new SearchHits(hits.toArray(new SearchHit[0]), new TotalHits(hits.size(), Relation.EQUAL_TO), 0);
+            ClearScrollRequestBuilder mockReqBuilder = mock(ClearScrollRequestBuilder.class);
+            when(client.prepareClearScroll()).thenReturn(mockReqBuilder);
+            when(mockReqBuilder.addScrollId(any())).thenReturn(mockReqBuilder);
+            when(mockReqBuilder.get()).thenAnswer(new Answer<ClearScrollResponse>() {
+                @Override
+                public ClearScrollResponse answer(InvocationOnMock invocation) throws Throwable {
+                    mockHits2.reset();
+                    return new ClearScrollResponse(true, 0);
+                }
+            });
+
+            List<SearchHit> hits = plan(sql).execute();
+            return new SearchHits(hits.toArray(new SearchHit[0]), new TotalHits(hits.size(), Relation.EQUAL_TO), 0);
+        }
     }
 
     protected QueryPlanner plan(String sql) {

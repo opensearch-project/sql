@@ -98,7 +98,6 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
       initClient();
     }
 
-    configureNewQueryEngine();
     resetQuerySizeLimit();
     init();
   }
@@ -156,17 +155,6 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   public static void cleanUpIndices() throws IOException {
     wipeAllOpenSearchIndices();
     wipeAllClusterSettings();
-  }
-
-  private void configureNewQueryEngine() throws IOException {
-    boolean isEnabled = isNewQueryEngineEabled();
-    if (!isEnabled) {
-      org.opensearch.sql.util.TestUtils.disableNewQueryEngine(client());
-    }
-  }
-
-  protected boolean isNewQueryEngineEabled() {
-    return Boolean.parseBoolean(System.getProperty("enableNewEngine", "true"));
   }
 
   protected void setQuerySizeLimit(Integer limit) throws IOException {
@@ -234,7 +222,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
   protected String executeQuery(String query, String requestType) {
     try {
-      String endpoint = "/_opensearch/_sql?format=" + requestType;
+      String endpoint = "/_plugins/_sql?format=" + requestType;
       String requestBody = makeRequest(query);
 
       Request sqlRequest = new Request("POST", endpoint);
@@ -252,7 +240,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
   protected String executeFetchQuery(String query, int fetchSize, String requestType)
       throws IOException {
-    String endpoint = "/_opensearch/_sql?format=" + requestType;
+    String endpoint = "/_plugins/_sql?format=" + requestType;
     String requestBody = makeRequest(query, fetchSize);
 
     Request sqlRequest = new Request("POST", endpoint);
@@ -265,7 +253,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
   protected String executeFetchLessQuery(String query, String requestType) throws IOException {
 
-    String endpoint = "/_opensearch/_sql?format=" + requestType;
+    String endpoint = "/_plugins/_sql?format=" + requestType;
     String requestBody = makeFetchLessRequest(query);
 
     Request sqlRequest = new Request("POST", endpoint);

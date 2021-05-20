@@ -46,7 +46,6 @@ import java.util.Set;
 import java.util.stream.Stream;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.client.Request;
@@ -284,9 +283,8 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
     assertContainsData(getDataRows(response), fields);
   }
 
-  @Test
+  @Ignore("only work for legacy engine")
   public void testSizeAndTotal() throws IOException {
-    Assume.assumeFalse(isNewQueryEngineEabled());
     JSONObject response = executeQuery(
         String.format(Locale.ROOT, "SELECT * " +
                 "FROM %s " +
@@ -348,10 +346,8 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
     }
   }
 
-  @Test
+  @Ignore("only work for legacy engine")
   public void aggregationFunctionInSelectWithAlias() throws IOException {
-    Assume.assumeFalse(isNewQueryEngineEabled());
-
     JSONObject response = executeQuery(
         String.format(Locale.ROOT, "SELECT COUNT(*) AS total FROM %s GROUP BY age",
             TestsConstants.TEST_INDEX_ACCOUNT));

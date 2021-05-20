@@ -37,6 +37,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.doubleLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.intervalLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.longLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.not;
 import static org.opensearch.sql.ast.dsl.AstDSL.nullLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.or;
@@ -84,6 +85,30 @@ class AstExpressionBuilderTest {
     assertEquals(
         intLiteral(123),
         buildExprAst("123")
+    );
+    assertEquals(
+        intLiteral(Integer.MAX_VALUE),
+        buildExprAst(String.valueOf(Integer.MAX_VALUE))
+    );
+    assertEquals(
+        intLiteral(Integer.MIN_VALUE),
+        buildExprAst(String.valueOf(Integer.MIN_VALUE))
+    );
+  }
+
+  @Test
+  public void canBuildLongLiteral() {
+    assertEquals(
+        longLiteral(1234567890123L),
+        buildExprAst("1234567890123")
+    );
+    assertEquals(
+        longLiteral(Integer.MAX_VALUE + 1L),
+        buildExprAst(String.valueOf(Integer.MAX_VALUE + 1L))
+    );
+    assertEquals(
+        longLiteral(Integer.MIN_VALUE - 1L),
+        buildExprAst(String.valueOf(Integer.MIN_VALUE - 1L))
     );
   }
 

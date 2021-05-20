@@ -60,23 +60,15 @@ public class LegacyAPICompatibilityIT extends SQLIntegTestCase {
 
   @Test
   public void closeCursor() throws IOException {
-    updateClusterSettings(
-        new ClusterSetting("transient", "opensearch.sql.cursor.enabled", "true"));
+    String sql = StringUtils.format(
+        "SELECT firstname FROM %s WHERE balance > 100", TEST_INDEX_ACCOUNT);
+    JSONObject result = new JSONObject(executeFetchQuery(sql, 50, "jdbc"));
 
-    try {
-      String sql = StringUtils.format(
-          "SELECT firstname FROM %s WHERE balance > 100", TEST_INDEX_ACCOUNT);
-      JSONObject result = new JSONObject(executeFetchQuery(sql, 50, "jdbc"));
-
-      Request request = new Request("POST", LEGACY_CURSOR_CLOSE_ENDPOINT);
-      request.setJsonEntity(makeCursorRequest(result.getString("cursor")));
-      request.setOptions(buildJsonOption());
-      JSONObject response = new JSONObject(executeRequest(request));
-      assertThat(response.getBoolean("succeeded"), equalTo(true));
-    } finally {
-      updateClusterSettings(
-          new ClusterSetting("transient", "opensearch.sql.cursor.enabled", "false"));
-    }
+    Request request = new Request("POST", LEGACY_CURSOR_CLOSE_ENDPOINT);
+    request.setJsonEntity(makeCursorRequest(result.getString("cursor")));
+    request.setOptions(buildJsonOption());
+    JSONObject response = new JSONObject(executeRequest(request));
+    assertThat(response.getBoolean("succeeded"), equalTo(true));
   }
 
   @Test

@@ -237,17 +237,16 @@ public class PluginIT extends SQLIntegTestCase {
 
   /**
    * Both transient and persistent settings are applied for same settings.
-   * This is similiar to _cluster/settings behavior
+   * This is similar to _cluster/settings behavior
    */
   @Test
   public void sqlCombinedSettingTest() throws IOException {
     String settings = "{" +
         "  \"transient\": {" +
-        "    \"opensearch.sql.metrics.rollingwindow\": \"3700\"," +
-        "    \"opensearch.sql.query.analysis.semantic.suggestion\" : \"false\"" +
+        "    \"opensearch.sql.metrics.rollingwindow\": \"3700\"" +
         "  }," +
         "  \"persistent\": {" +
-        "    \"opensearch.sql.query.analysis.semantic.suggestion\" : \"true\"" +
+        "    \"opensearch.sql.query.slowlog\" : \"2\"" +
         "  }" +
         "}";
     JSONObject actual = updateViaSQLSettingsAPI(settings);
@@ -257,11 +256,7 @@ public class PluginIT extends SQLIntegTestCase {
         "    \"opensearch\" : {" +
         "      \"sql\" : {" +
         "        \"query\" : {" +
-        "          \"analysis\" : {" +
-        "            \"semantic\" : {" +
-        "              \"suggestion\" : \"true\"" +
-        "            }" +
-        "          }" +
+        "          \"slowlog\" : \"2\"" +
         "        }" +
         "      }" +
         "    }" +
@@ -271,13 +266,6 @@ public class PluginIT extends SQLIntegTestCase {
         "      \"sql\" : {" +
         "        \"metrics\" : {" +
         "          \"rollingwindow\" : \"3700\"" +
-        "        }," +
-        "        \"query\" : {" +
-        "          \"analysis\" : {" +
-        "            \"semantic\" : {" +
-        "              \"suggestion\" : \"false\"" +
-        "            }" +
-        "          }" +
         "        }" +
         "      }" +
         "    }" +
@@ -300,7 +288,7 @@ public class PluginIT extends SQLIntegTestCase {
         "    \"search.max_keep_alive\": \"24h\"" +
         "  }," +
         "  \"persistent\": {" +
-        "    \"opensearch.sql.query.analysis.semantic.suggestion\": \"true\"," +
+        "    \"opensearch.sql.query.slowlog\": \"2\"," +
         "    \"opensearch.alerting.metrics.rollingwindow\": \"3700\"," +
         "    \"thread_pool.analyze.queue_size\": \"16\"" +
         "  }" +
@@ -312,11 +300,7 @@ public class PluginIT extends SQLIntegTestCase {
         "    \"opensearch\" : {" +
         "      \"sql\" : {" +
         "        \"query\" : {" +
-        "          \"analysis\" : {" +
-        "            \"semantic\" : {" +
-        "              \"suggestion\" : \"true\"" +
-        "            }" +
-        "          }" +
+        "          \"slowlog\" : \"2\"" +
         "        }" +
         "      }" +
         "    }" +
@@ -338,7 +322,7 @@ public class PluginIT extends SQLIntegTestCase {
   public void ignoreNonTransientNonPersistentSettingsTest() throws IOException {
     String settings = "{" +
         "  \"transient\": {" +
-        "    \"opensearch.sql.query.response.format\": \"jdbc\"" +
+        "    \"opensearch.sql.metrics.rollingwindow\": \"3700\"" +
         "  }," +
         "  \"persistent\": {" +
         "    \"opensearch.sql.query.slowlog\": \"2\"" +
@@ -364,10 +348,8 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"transient\" : {" +
         "    \"opensearch\" : {" +
         "      \"sql\" : {" +
-        "        \"query\" : {" +
-        "          \"response\" : {" +
-        "            \"format\" : \"jdbc\"" +
-        "          }" +
+        "        \"metrics\" : {" +
+        "          \"rollingwindow\" : \"3700\"" +
         "        }" +
         "      }" +
         "    }" +
@@ -380,14 +362,13 @@ public class PluginIT extends SQLIntegTestCase {
   public void sqlCombinedMixedSettingTest() throws IOException {
     String settings = "{" +
         "  \"transient\": {" +
-        "    \"opensearch.sql.query.response.format\": \"json\"" +
+        "    \"opensearch.sql.metrics.rollingwindow\": \"3700\"" +
         "  }," +
         "  \"persistent\": {" +
         "    \"opensearch\": {" +
         "      \"sql\": {" +
         "        \"query\": {" +
-        "          \"slowlog\": \"1\"," +
-        "          \"response.format\": \"jdbc\"" +
+        "          \"slowlog\": \"1\"" +
         "        }" +
         "      }" +
         "    }" +
@@ -405,10 +386,7 @@ public class PluginIT extends SQLIntegTestCase {
         "    \"opensearch\" : {" +
         "      \"sql\" : {" +
         "        \"query\" : {" +
-        "          \"slowlog\" : \"1\"," +
-        "          \"response\" : {" +
-        "            \"format\" : \"jdbc\"" +
-        "          }" +
+        "          \"slowlog\" : \"1\"" +
         "        }" +
         "      }" +
         "    }" +
@@ -416,10 +394,8 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"transient\" : {" +
         "    \"opensearch\" : {" +
         "      \"sql\" : {" +
-        "        \"query\" : {" +
-        "          \"response\" : {" +
-        "            \"format\" : \"json\"" +
-        "          }" +
+        "        \"metrics\" : {" +
+        "          \"rollingwindow\" : \"3700\"" +
         "        }" +
         "      }" +
         "    }" +

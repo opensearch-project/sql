@@ -29,7 +29,7 @@ Example
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql -d '{
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql -d '{
 	  "query" : "SELECT * FROM accounts"
 	}'
 
@@ -46,7 +46,7 @@ Example
 
 Explain query::
 
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql/_explain -d '{
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql/_explain -d '{
 	  "query" : "SELECT firstname, lastname FROM accounts WHERE age > 20"
 	}'
 
@@ -97,14 +97,14 @@ Cursor
 Description
 -----------
 
-To get paginated response for a query, user needs to provide `fetch_size` parameter as part of normal query. The value of `fetch_size` should be greater than `0`. In absence of `fetch_size`, default value of 1000 is used. A value of `0` will fallback to non-paginated response. This feature is only available over `jdbc` format for now.
+To get paginated response for a query, user needs to provide `fetch_size` parameter as part of normal query. The value of `fetch_size` should be greater than `0`. In absence of `fetch_size` or a value of `0`, it will fallback to non-paginated response. This feature is only available over `jdbc` format for now.
 
 Example
 -------
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql -d '{
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql -d '{
 	  "fetch_size" : 5,
 	  "query" : "SELECT firstname, lastname FROM accounts WHERE age > 20 ORDER BY state ASC"
 	}'

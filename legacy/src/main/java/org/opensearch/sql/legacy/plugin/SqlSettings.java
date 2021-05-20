@@ -49,36 +49,20 @@ public class SqlSettings {
      * 2) It has separate setting for Query and Fetch phase which are all OpenSearch internal concepts.
      */
     public static final String SQL_ENABLED = "opensearch.sql.enabled";
-    public static final String SQL_NEW_ENGINE_ENABLED = "opensearch.sql.engine.new.enabled";
     public static final String QUERY_SLOWLOG = "opensearch.sql.query.slowlog";
-    public static final String QUERY_RESPONSE_FORMAT = "opensearch.sql.query.response.format";
-    public static final String QUERY_ANALYSIS_ENABLED = "opensearch.sql.query.analysis.enabled";
-    public static final String QUERY_ANALYSIS_SEMANTIC_SUGGESTION = "opensearch.sql.query.analysis.semantic.suggestion";
-    public static final String QUERY_ANALYSIS_SEMANTIC_THRESHOLD = "opensearch.sql.query.analysis.semantic.threshold";
     public static final String METRICS_ROLLING_WINDOW = "opensearch.sql.metrics.rollingwindow";
     public static final String METRICS_ROLLING_INTERVAL = "opensearch.sql.metrics.rollinginterval";
 
-    public static final String CURSOR_ENABLED= "opensearch.sql.cursor.enabled";
-    public static final String CURSOR_FETCH_SIZE = "opensearch.sql.cursor.fetch_size";
     public static final String CURSOR_KEEPALIVE= "opensearch.sql.cursor.keep_alive";
+
+    public static final String DEFAULT_RESPONSE_FORMAT = Format.JDBC.getFormatName();
 
     private final Map<String, Setting<?>> settings;
 
     public SqlSettings() {
         Map<String, Setting<?>> settings = new HashMap<>();
         settings.put(SQL_ENABLED, Setting.boolSetting(SQL_ENABLED, true, NodeScope, Dynamic));
-        settings.put(SQL_NEW_ENGINE_ENABLED, Setting.boolSetting(SQL_NEW_ENGINE_ENABLED, true, NodeScope, Dynamic));
         settings.put(QUERY_SLOWLOG, Setting.intSetting(QUERY_SLOWLOG, 2, NodeScope, Dynamic));
-        settings.put(QUERY_RESPONSE_FORMAT, Setting.simpleString(QUERY_RESPONSE_FORMAT, Format.JDBC.getFormatName(),
-                                                                 NodeScope, Dynamic));
-
-        // Settings for new ANTLR query analyzer
-        settings.put(QUERY_ANALYSIS_ENABLED, Setting.boolSetting(
-                     QUERY_ANALYSIS_ENABLED, true, NodeScope, Dynamic));
-        settings.put(QUERY_ANALYSIS_SEMANTIC_SUGGESTION, Setting.boolSetting(
-                     QUERY_ANALYSIS_SEMANTIC_SUGGESTION, false, NodeScope, Dynamic));
-        settings.put(QUERY_ANALYSIS_SEMANTIC_THRESHOLD, Setting.intSetting(
-                     QUERY_ANALYSIS_SEMANTIC_THRESHOLD, 200, NodeScope, Dynamic));
 
         settings.put(METRICS_ROLLING_WINDOW, Setting.longSetting(METRICS_ROLLING_WINDOW, 3600L, 2L,
                 NodeScope, Dynamic));
@@ -86,9 +70,6 @@ public class SqlSettings {
                 NodeScope, Dynamic));
 
         // Settings for cursor
-        settings.put(CURSOR_ENABLED, Setting.boolSetting(CURSOR_ENABLED, false, NodeScope, Dynamic));
-        settings.put(CURSOR_FETCH_SIZE, Setting.intSetting(CURSOR_FETCH_SIZE, 1000,
-                1, NodeScope, Dynamic));
         settings.put(CURSOR_KEEPALIVE, Setting.positiveTimeSetting(CURSOR_KEEPALIVE, timeValueMinutes(1),
                 NodeScope, Dynamic));
 

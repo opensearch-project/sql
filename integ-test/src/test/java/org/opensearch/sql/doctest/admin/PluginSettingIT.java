@@ -36,27 +36,17 @@ import static org.opensearch.sql.doctest.core.request.SqlRequestFormat.CURL_REQU
 import static org.opensearch.sql.doctest.core.request.SqlRequestFormat.IGNORE_REQUEST;
 import static org.opensearch.sql.doctest.core.response.SqlResponseFormat.IGNORE_RESPONSE;
 import static org.opensearch.sql.doctest.core.response.SqlResponseFormat.PRETTY_JSON_RESPONSE;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_ENABLED;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_FETCH_SIZE;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_KEEPALIVE;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_ANALYSIS_ENABLED;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_ANALYSIS_SEMANTIC_SUGGESTION;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_ANALYSIS_SEMANTIC_THRESHOLD;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_RESPONSE_FORMAT;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_SLOWLOG;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.SQL_ENABLED;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.SQL_NEW_ENGINE_ENABLED;
 
-import java.util.Arrays;
 import java.util.EnumSet;
-import java.util.stream.Collectors;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.sql.doctest.core.DocTest;
 import org.opensearch.sql.doctest.core.annotation.DocTestConfig;
 import org.opensearch.sql.doctest.core.annotation.Section;
 import org.opensearch.sql.doctest.core.builder.Example;
 import org.opensearch.sql.doctest.core.builder.ListItems;
-import org.opensearch.sql.legacy.executor.Format;
 import org.opensearch.sql.legacy.plugin.SqlSettings;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
@@ -88,67 +78,6 @@ public class PluginSettingIT extends DocTest {
     );
   }
 
-  @Section(3)
-  public void queryAnalysisEnabledSetting() {
-    docSetting(
-        QUERY_ANALYSIS_ENABLED,
-        "You can disable query analyzer to bypass strict syntactic and semantic analysis.",
-        false
-    );
-  }
-
-  @Section(4)
-  public void semanticSuggestionSetting() {
-    docSetting(
-        QUERY_ANALYSIS_SEMANTIC_SUGGESTION,
-        "You can enable query analyzer to suggest correct field names for quick fix.",
-        true,
-        "SELECT first FROM accounts"
-    );
-  }
-
-  @Section(5)
-  public void semanticAnalysisThresholdSetting() {
-    docSetting(
-        QUERY_ANALYSIS_SEMANTIC_THRESHOLD,
-        "Because query analysis needs to build semantic context in memory, index with large number of field " +
-            "would be skipped. You can update it to apply analysis to smaller or larger index as needed.",
-        50
-    );
-  }
-
-  @Section(6)
-  public void responseFormatSetting() {
-    docSetting(
-        QUERY_RESPONSE_FORMAT,
-        String.format("User can set default response format of the query. " +
-            "The supported format includes: %s.", Arrays.stream(Format.values())
-            .map(Format::getFormatName)
-            .collect(Collectors.joining(","))),
-        Format.JSON.getFormatName(),
-        "SELECT firstname, lastname, age FROM accounts ORDER BY age LIMIT 2"
-    );
-  }
-
-  @Section(7)
-  public void cursorEnabledSetting() {
-    docSetting(
-        CURSOR_ENABLED,
-        "User can enable/disable pagination for all queries that are supported.",
-        true
-    );
-  }
-
-  @Section(8)
-  public void cursorDefaultFetchSizeSetting() {
-    docSetting(
-        CURSOR_FETCH_SIZE,
-        "User can set the default fetch_size for all queries that are supported by pagination. " +
-            "Explicit `fetch_size` passed in request will override this value",
-        50
-    );
-  }
-
   @Section(9)
   public void cursorDefaultContextKeepAliveSetting() {
     docSetting(
@@ -156,16 +85,6 @@ public class PluginSettingIT extends DocTest {
         "User can set this value to indicate how long the cursor context should be kept open. " +
             "Cursor contexts are resource heavy, and a lower value should be used if possible.",
         "5m"
-    );
-  }
-
-  @Section(10)
-  public void sqlNewQueryEngineSetting() {
-    docSetting(
-        SQL_NEW_ENGINE_ENABLED,
-        "We are migrating existing functionalities to a new query engine under development. " +
-            "User can choose to enable the new engine if interested or disable if any issue found.",
-        true
     );
   }
 

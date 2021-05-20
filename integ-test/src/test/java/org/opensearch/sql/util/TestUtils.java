@@ -862,21 +862,4 @@ public class TestUtils {
 
     return result;
   }
-
-  /**
-   * Disable new query engine which is enabled by default.
-   */
-  public static void disableNewQueryEngine(RestClient client) throws IOException {
-    Request request = new Request("PUT", SETTINGS_API_ENDPOINT);
-    request.setJsonEntity("{\"transient\" : {\"opensearch.sql.engine.new.enabled\" : \"false\"}}");
-
-    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
-    restOptionsBuilder.addHeader("Content-Type", "application/json");
-    request.setOptions(restOptionsBuilder);
-
-    Response response = client.performRequest(request);
-    Assert.assertEquals(RestStatus.OK,
-        RestStatus.fromCode(response.getStatusLine().getStatusCode()));
-  }
-
 }

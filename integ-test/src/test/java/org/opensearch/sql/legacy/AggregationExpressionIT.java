@@ -59,11 +59,11 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
   @Test
   public void noGroupKeyMaxAddMinShouldPass() {
     JSONObject response = executeJdbcRequest(String.format(
-        "SELECT MAX(age) + MIN(age) as add " +
+        "SELECT MAX(age) + MIN(age) as addValue " +
             "FROM %s",
         Index.ACCOUNT.getName()));
 
-    verifySchema(response, schema("add", "add", "long"));
+    verifySchema(response, schema("MAX(age) + MIN(age)", "addValue", "long"));
     verifyDataRows(response, rows(60));
   }
 
@@ -94,7 +94,6 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
 
   @Test
   public void hasGroupKeyAvgOnIntegerShouldPass() {
-    Assume.assumeTrue(isNewQueryEngineEabled());
     JSONObject response = executeJdbcRequest(String.format(
         "SELECT gender, AVG(age) as avg " +
             "FROM %s " +
@@ -112,14 +111,14 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
   @Test
   public void hasGroupKeyMaxAddMinShouldPass() {
     JSONObject response = executeJdbcRequest(String.format(
-        "SELECT gender, MAX(age) + MIN(age) as add " +
+        "SELECT gender, MAX(age) + MIN(age) as addValue " +
             "FROM %s " +
             "GROUP BY gender",
         Index.ACCOUNT.getName()));
 
     verifySchema(response,
         schema("gender", null, "text"),
-        schema("add", "add", "long"));
+        schema("MAX(age) + MIN(age)", "addValue", "long"));
     verifyDataRows(response,
         rows("m", 60),
         rows("f", 60));
@@ -157,14 +156,14 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
   @Test
   public void hasGroupKeyLogMaxAddMinShouldPass() {
     JSONObject response = executeJdbcRequest(String.format(
-        "SELECT gender, Log(MAX(age) + MIN(age)) as log " +
+        "SELECT gender, Log(MAX(age) + MIN(age)) as logValue " +
             "FROM %s " +
             "GROUP BY gender",
         Index.ACCOUNT.getName()));
 
     verifySchema(response,
         schema("gender", null, "text"),
-        schema("log", "log", "double"));
+        schema("Log(MAX(age) + MIN(age))", "logValue", "double"));
     verifyDataRows(response,
         rows("m", 4.0943445622221d),
         rows("f", 4.0943445622221d));
@@ -193,8 +192,6 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
 
   @Test
   public void logWithAddLiteralOnGroupKeyShouldPass() {
-    Assume.assumeTrue(isNewQueryEngineEabled());
-
     JSONObject response = executeJdbcRequest(String.format(
         "SELECT gender, Log(age+10) as logAge, max(balance) as max " +
             "FROM %s " +
@@ -272,8 +269,6 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
 
   @Test
   public void aggregateCastStatementShouldNotReturnZero() {
-    Assume.assumeTrue(isNewQueryEngineEabled());
-
     JSONObject response = executeJdbcRequest(String.format(
         "SELECT SUM(CAST(male AS INT)) AS male_sum FROM %s",
         Index.BANK.getName()));

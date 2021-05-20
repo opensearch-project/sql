@@ -231,8 +231,6 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void castIntFieldToFloatWithoutAliasJdbcFormatTest() {
-    Assume.assumeTrue(isNewQueryEngineEabled());
-
     JSONObject response = executeJdbcRequest(
         "SELECT CAST(balance AS FLOAT) AS cast_balance FROM " + TestsConstants.TEST_INDEX_ACCOUNT +
             " ORDER BY balance DESC LIMIT 1");
@@ -246,8 +244,6 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void castIntFieldToFloatWithAliasJdbcFormatTest() {
-    Assume.assumeTrue(isNewQueryEngineEabled());
-
     JSONObject response = executeJdbcRequest(
         "SELECT CAST(balance AS FLOAT) AS jdbc_float_alias " +
             "FROM " + TestsConstants.TEST_INDEX_ACCOUNT + " ORDER BY jdbc_float_alias LIMIT 1");
@@ -288,34 +284,37 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
   public void castIntFieldToFloatWithoutAliasJdbcFormatGroupByTest() {
     JSONObject response = executeJdbcRequest(
         "SELECT CAST(balance AS FLOAT) FROM " +
-            TestsConstants.TEST_INDEX_ACCOUNT + " GROUP BY balance DESC LIMIT 5");
+            TestsConstants.TEST_INDEX_ACCOUNT + " GROUP BY balance ORDER BY balance DESC LIMIT 5");
 
     verifySchema(response,
         schema("CAST(balance AS FLOAT)", null, "float"));
 
     verifyDataRows(response,
-        rows(22026),
-        rows(23285),
-        rows(36038),
-        rows(39063),
-        rows(45493));
+        rows(49989.0),
+        rows(49795.0),
+        rows(49741.0),
+        rows(49671.0),
+        rows(49587.0));
   }
 
   @Test
   public void castIntFieldToFloatWithAliasJdbcFormatGroupByTest() {
     JSONObject response = executeJdbcRequest(
-        "SELECT CAST(balance AS FLOAT) AS jdbc_float_alias " +
-            "FROM " + TestsConstants.TEST_INDEX_ACCOUNT + " GROUP BY jdbc_float_alias ASC LIMIT 5");
+        "SELECT CAST(balance AS FLOAT) AS jdbc_float_alias "
+            + " FROM " + TestsConstants.TEST_INDEX_ACCOUNT
+            + " GROUP BY jdbc_float_alias "
+            + " ORDER BY jdbc_float_alias ASC "
+            + " LIMIT 5");
 
     verifySchema(response,
-        schema("jdbc_float_alias", "jdbc_float_alias", "float"));
+        schema("CAST(balance AS FLOAT)", "jdbc_float_alias", "float"));
 
     verifyDataRows(response,
-        rows("22026.0"),
-        rows("23285.0"),
-        rows("36038.0"),
-        rows("39063.0"),
-        rows("45493.0"));
+        rows(1011.0),
+        rows(10116.0),
+        rows(10138.0),
+        rows(10147.0),
+        rows(10178.0));
   }
 
   @Test
@@ -389,8 +388,6 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void castBoolFieldToNumericValueInSelectClause() {
-    Assume.assumeTrue(isNewQueryEngineEabled());
-
     JSONObject response =
         executeJdbcRequest(
             "SELECT "
@@ -418,8 +415,6 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void castBoolFieldToNumericValueWithGroupByAlias() {
-    Assume.assumeTrue(isNewQueryEngineEabled());
-
     JSONObject response =
         executeJdbcRequest(
             "SELECT "
@@ -639,7 +634,8 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
     );
   }
 
-  @Test
+  @Ignore("The LOCATE function is not implemented in new SQL engine. https://github"
+      + ".com/opensearch-project/sql/issues/74")
   public void operatorLocate() throws IOException {
     String query = "SELECT LOCATE('a', lastname, 0) FROM " + TEST_INDEX_ACCOUNT
         +
@@ -674,7 +670,8 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
     );
   }
 
-  @Test
+  @Ignore("The ASCII function is not implemented in new SQL engine. https://github"
+      + ".com/opensearch-project/sql/issues/73")
   public void ascii() throws IOException {
     assertThat(
         executeQuery("SELECT ASCII(lastname) FROM " + TEST_INDEX_ACCOUNT
@@ -725,7 +722,6 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void ifFuncShouldPassJDBC() {
-    Assume.assumeTrue(isNewQueryEngineEabled());
     JSONObject response = executeJdbcRequest(
         "SELECT IF(age > 30, 'True', 'False') AS Ages FROM " + TEST_INDEX_ACCOUNT
             + " WHERE age IS NOT NULL GROUP BY Ages");
@@ -764,7 +760,6 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void ifnullShouldPassJDBC() throws IOException {
-    Assume.assumeTrue(isNewQueryEngineEabled());
     JSONObject response = executeJdbcRequest(
         "SELECT IFNULL(lastname, 'unknown') AS name FROM " + TEST_INDEX_ACCOUNT
             + " GROUP BY name");
@@ -795,7 +790,6 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void isnullShouldPassJDBC() {
-    Assume.assumeTrue(isNewQueryEngineEabled());
     JSONObject response =
         executeJdbcRequest(
             "SELECT ISNULL(lastname) AS name FROM " + TEST_INDEX_ACCOUNT);
