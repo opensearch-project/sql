@@ -434,12 +434,12 @@ OpenSearchCommunication::IssueRequest(
     return m_http_client->MakeRequest(request);
 }
 
-bool OpenSearchCommunication::IsSQLPluginDisabled(std::shared_ptr< ErrorDetails > error_details) {
+bool OpenSearchCommunication::IsSQLPluginEnabled(std::shared_ptr< ErrorDetails > error_details) {
     std::string error_type = error_details->source_type;
     if (error_type =="SQLFeatureDisabledException") {
-        return true;
+        return false;
     }
-    return false;
+    return true;
 }
 
 bool OpenSearchCommunication::CheckSQLPluginAvailability() {
@@ -470,7 +470,7 @@ bool OpenSearchCommunication::CheckSQLPluginAvailability() {
             std::shared_ptr< ErrorDetails > error_details =
                 ParseErrorResponse(*result);
 
-            if(IsSQLPluginDisabled(error_details)) {
+            if(!IsSQLPluginEnabled(error_details)) {
                 m_error_message +=
                     "The SQL plugin is disabled. The SQL plugin must be "
                     "enabled in order to use this driver. Response body: '"

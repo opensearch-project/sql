@@ -75,7 +75,7 @@ class OpenSearchCommunication {
     OpenSearchResult* PopResult();
     std::string GetClientEncoding();
     bool SetClientEncoding(std::string& encoding);
-    static bool IsSQLPluginDisabled(std::shared_ptr< ErrorDetails > error_details);
+    static bool IsSQLPluginEnabled(std::shared_ptr< ErrorDetails > error_details);
     bool CheckSQLPluginAvailability();
     std::string GetServerVersion();
     std::string GetClusterName();
