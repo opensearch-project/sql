@@ -156,6 +156,10 @@ public class AstDSL {
     return literal(value, DataType.INTEGER);
   }
 
+  public static Literal longLiteral(Long value) {
+    return literal(value, DataType.LONG);
+  }
+
   public static Literal dateLiteral(String value) {
     return literal(value, DataType.DATE);
   }
