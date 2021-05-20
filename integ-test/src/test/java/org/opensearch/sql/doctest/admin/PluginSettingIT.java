@@ -39,7 +39,6 @@ import static org.opensearch.sql.doctest.core.response.SqlResponseFormat.PRETTY_
 import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_ENABLED;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_FETCH_SIZE;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_KEEPALIVE;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_RESPONSE_FORMAT;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_SLOWLOG;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.SQL_ENABLED;
 
@@ -81,19 +80,6 @@ public class PluginSettingIT extends DocTest {
         "You can configure the time limit (seconds) for slow query which would be logged as " +
             "'Slow query: elapsed=xxx (ms)' in opensearch.log.",
         10
-    );
-  }
-
-  @Section(6)
-  public void responseFormatSetting() {
-    docSetting(
-        QUERY_RESPONSE_FORMAT,
-        String.format("User can set default response format of the query. " +
-            "The supported format includes: %s.", Arrays.stream(Format.values())
-            .map(Format::getFormatName)
-            .collect(Collectors.joining(","))),
-        Format.JSON.getFormatName(),
-        "SELECT firstname, lastname, age FROM accounts ORDER BY age LIMIT 2"
     );
   }
 

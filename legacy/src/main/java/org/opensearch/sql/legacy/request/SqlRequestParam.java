@@ -26,11 +26,10 @@
 
 package org.opensearch.sql.legacy.request;
 
-import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_RESPONSE_FORMAT;
+import static org.opensearch.sql.legacy.plugin.SqlSettings.DEFAULT_RESPONSE_FORMAT;
 
 import java.util.Map;
 import java.util.Optional;
-import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.executor.Format;
 
 /**
@@ -58,13 +57,10 @@ public class SqlRequestParam {
      * @return The response Format.
      */
     public static Format getFormat(Map<String, String> requestParams) {
-        String formatName;
-        if (requestParams.containsKey(QUERY_PARAMS_FORMAT)) {
-            formatName = requestParams.get(QUERY_PARAMS_FORMAT).toLowerCase();
-        } else {
-            LocalClusterState clusterState = LocalClusterState.state();
-            formatName = clusterState.getSettingValue(QUERY_RESPONSE_FORMAT);
-        }
+        String formatName =
+            requestParams.containsKey(QUERY_PARAMS_FORMAT)
+                ? requestParams.get(QUERY_PARAMS_FORMAT).toLowerCase()
+                : DEFAULT_RESPONSE_FORMAT;
         Optional<Format> optionalFormat = Format.of(formatName);
         if (optionalFormat.isPresent()) {
             return optionalFormat.get();
