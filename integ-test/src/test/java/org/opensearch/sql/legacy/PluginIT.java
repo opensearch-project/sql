@@ -322,7 +322,7 @@ public class PluginIT extends SQLIntegTestCase {
   public void ignoreNonTransientNonPersistentSettingsTest() throws IOException {
     String settings = "{" +
         "  \"transient\": {" +
-        "    \"opensearch.sql.query.response.format\": \"jdbc\"" +
+        "    \"opensearch.sql.metrics.rollingwindow\": \"3700\"" +
         "  }," +
         "  \"persistent\": {" +
         "    \"opensearch.sql.query.slowlog\": \"2\"" +
@@ -348,10 +348,8 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"transient\" : {" +
         "    \"opensearch\" : {" +
         "      \"sql\" : {" +
-        "        \"query\" : {" +
-        "          \"response\" : {" +
-        "            \"format\" : \"jdbc\"" +
-        "          }" +
+        "        \"metrics\" : {" +
+        "          \"rollingwindow\" : \"3700\"" +
         "        }" +
         "      }" +
         "    }" +
@@ -364,7 +362,7 @@ public class PluginIT extends SQLIntegTestCase {
   public void sqlCombinedMixedSettingTest() throws IOException {
     String settings = "{" +
         "  \"transient\": {" +
-        "    \"opensearch.sql.query.response.format\": \"json\"" +
+        "    \"opensearch.sql.metrics.rollingwindow\": \"3700\"" +
         "  }," +
         "  \"persistent\": {" +
         "    \"opensearch\": {" +
@@ -400,10 +398,8 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"transient\" : {" +
         "    \"opensearch\" : {" +
         "      \"sql\" : {" +
-        "        \"query\" : {" +
-        "          \"response\" : {" +
-        "            \"format\" : \"json\"" +
-        "          }" +
+        "        \"metrics\" : {" +
+        "          \"rollingwindow\" : \"3700\"" +
         "        }" +
         "      }" +
         "    }" +
