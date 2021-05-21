@@ -82,6 +82,12 @@ public class OpenSearchSettings extends Settings {
       Setting.Property.NodeScope,
       Setting.Property.Dynamic);
 
+  private static final Setting<?> SQL_DELETE_ENABLED_SETTING = Setting.boolSetting(
+      Key.SQL_DELETE_ENABLED.getKeyValue(),
+      false,
+      Setting.Property.NodeScope,
+      Setting.Property.Dynamic);
+
   private static final Setting<?> PPL_ENABLED_SETTING = Setting.boolSetting(
       Key.PPL_ENABLED.getKeyValue(),
       LegacyOpenDistroSettings.PPL_ENABLED_SETTING,
@@ -130,6 +136,8 @@ public class OpenSearchSettings extends Settings {
         SQL_SLOWLOG_SETTING, new Updater(Key.SQL_SLOWLOG));
     register(settingBuilder, clusterSettings, Key.SQL_CURSOR_KEEP_ALIVE,
         SQL_CURSOR_KEEP_ALIVE_SETTING, new Updater(Key.SQL_CURSOR_KEEP_ALIVE));
+    register(settingBuilder, clusterSettings, Key.SQL_DELETE_ENABLED,
+        SQL_DELETE_ENABLED_SETTING, new Updater(Key.SQL_DELETE_ENABLED));
     register(settingBuilder, clusterSettings, Key.PPL_ENABLED,
         PPL_ENABLED_SETTING, new Updater(Key.PPL_ENABLED));
     register(settingBuilder, clusterSettings, Key.QUERY_MEMORY_LIMIT,
@@ -162,7 +170,7 @@ public class OpenSearchSettings extends Settings {
   }
 
   /**
-   * Add the inner class only for UT coverage purpuse.
+   * Add the inner class only for UT coverage purpose.
    * Lambda could be much elegant solution. But which is hard to test.
    */
   @VisibleForTesting

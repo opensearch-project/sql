@@ -53,6 +53,7 @@ import org.opensearch.sql.legacy.utils.StringUtils;
 /**
  * Doc test for plugin settings.
  */
+@Deprecated
 @DocTestConfig(template = "admin/settings.rst", testData = {"accounts.json"})
 public class PluginSettingIT extends DocTest {
 
