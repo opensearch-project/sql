@@ -47,7 +47,7 @@ import org.opensearch.sql.common.setting.LegacySettings;
 import org.opensearch.sql.common.setting.Settings;
 
 @ExtendWith(MockitoExtension.class)
-class OpenSearchSettingsTest extends OpenSearchTestCase {
+class OpenSearchSettingsTest {
 
   @Mock
   private ClusterSettings clusterSettings;
@@ -141,16 +141,5 @@ class OpenSearchSettingsTest extends OpenSearchTestCase {
     assertEquals(OpenSearchSettings.QUERY_SIZE_LIMIT_SETTING.get(settings), 100);
     assertEquals(OpenSearchSettings.METRICS_ROLLING_WINDOW_SETTING.get(settings), 2000L);
     assertEquals(OpenSearchSettings.METRICS_ROLLING_INTERVAL_SETTING.get(settings), 100L);
-
-    assertSettingDeprecationsAndWarnings(
-        LegacyOpenDistroSettings.SQL_ENABLED_SETTING,
-        LegacyOpenDistroSettings.SQL_QUERY_SLOWLOG_SETTING,
-        LegacyOpenDistroSettings.SQL_CURSOR_KEEPALIVE_SETTING,
-        LegacyOpenDistroSettings.PPL_ENABLED_SETTING,
-        LegacyOpenDistroSettings.PPL_QUERY_MEMORY_LIMIT_SETTING,
-        LegacyOpenDistroSettings.QUERY_SIZE_LIMIT_SETTING,
-        LegacyOpenDistroSettings.METRICS_ROLLING_WINDOW_SETTING,
-        LegacyOpenDistroSettings.METRICS_ROLLING_INTERVAL_SETTING
-    );
   }
 }
