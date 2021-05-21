@@ -318,7 +318,7 @@ Query result after the setting updated is like:
 
 SQL query::
 
-    sh$ curl -sS -H 'Content-Type: application/json' -X POST localhost:9200/_opendistro/_sql \
+    sh$ curl -sS -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql \
     ... -d '{"query" : "DELETE * FROM accounts"}'
     {
       "error": {
