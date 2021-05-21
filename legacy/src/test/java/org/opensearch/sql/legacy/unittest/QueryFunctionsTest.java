@@ -48,6 +48,7 @@ import org.opensearch.common.Strings;
 import org.opensearch.index.query.AbstractQueryBuilder;
 import org.opensearch.index.query.MultiMatchQueryBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder.ScriptField;
+import org.opensearch.sql.legacy.exception.SQLFeatureDisabledException;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.query.OpenSearchActionFactory;
 import org.opensearch.sql.legacy.util.CheckScriptContents;
@@ -283,27 +284,32 @@ public class QueryFunctionsTest {
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
-    public void emptyQueryShouldThrowSQLFeatureNotSupportedException() throws SQLFeatureNotSupportedException, SqlParseException {
+    public void emptyQueryShouldThrowSQLFeatureNotSupportedException()
+        throws SQLFeatureNotSupportedException, SqlParseException, SQLFeatureDisabledException {
         OpenSearchActionFactory.create(Mockito.mock(Client.class), "");
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
-    public void emptyNewLineQueryShouldThrowSQLFeatureNotSupportedException() throws SQLFeatureNotSupportedException, SqlParseException {
+    public void emptyNewLineQueryShouldThrowSQLFeatureNotSupportedException()
+        throws SQLFeatureNotSupportedException, SqlParseException, SQLFeatureDisabledException {
         OpenSearchActionFactory.create(Mockito.mock(Client.class), "\n");
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
-    public void emptyNewLineQueryShouldThrowSQLFeatureNotSupportedException2() throws SQLFeatureNotSupportedException, SqlParseException {
+    public void emptyNewLineQueryShouldThrowSQLFeatureNotSupportedException2()
+        throws SQLFeatureNotSupportedException, SqlParseException, SQLFeatureDisabledException {
         OpenSearchActionFactory.create(Mockito.mock(Client.class), "\r\n");
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
-    public void queryWithoutSpaceShouldSQLFeatureNotSupportedException() throws SQLFeatureNotSupportedException, SqlParseException {
+    public void queryWithoutSpaceShouldSQLFeatureNotSupportedException()
+        throws SQLFeatureNotSupportedException, SqlParseException, SQLFeatureDisabledException {
         OpenSearchActionFactory.create(Mockito.mock(Client.class), "SELE");
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
-    public void spacesOnlyQueryShouldThrowSQLFeatureNotSupportedException() throws SQLFeatureNotSupportedException, SqlParseException {
+    public void spacesOnlyQueryShouldThrowSQLFeatureNotSupportedException()
+        throws SQLFeatureNotSupportedException, SqlParseException, SQLFeatureDisabledException {
         OpenSearchActionFactory.create(Mockito.mock(Client.class), "      ");
     }
 

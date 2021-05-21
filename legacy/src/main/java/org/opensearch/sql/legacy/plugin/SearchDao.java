@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.Set;
 import org.opensearch.client.Client;
 import org.opensearch.sql.legacy.domain.QueryActionRequest;
+import org.opensearch.sql.legacy.exception.SQLFeatureDisabledException;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.query.OpenSearchActionFactory;
 import org.opensearch.sql.legacy.query.QueryAction;
@@ -67,7 +68,7 @@ public class SearchDao {
      * @throws SqlParseException
      */
     public QueryAction explain(QueryActionRequest queryActionRequest)
-            throws SqlParseException, SQLFeatureNotSupportedException {
+        throws SqlParseException, SQLFeatureNotSupportedException, SQLFeatureDisabledException {
         return OpenSearchActionFactory.create(client, queryActionRequest);
     }
 }

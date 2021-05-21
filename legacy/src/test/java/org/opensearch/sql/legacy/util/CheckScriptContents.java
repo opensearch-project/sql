@@ -68,6 +68,7 @@ import org.opensearch.sql.legacy.domain.Condition;
 import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.domain.Where;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
+import org.opensearch.sql.legacy.exception.SQLFeatureDisabledException;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.parser.ElasticSqlExprParser;
 import org.opensearch.sql.legacy.parser.ScriptFilter;
@@ -97,7 +98,7 @@ public class CheckScriptContents {
 
             return scriptFields.get(0);
 
-        } catch (SQLFeatureNotSupportedException | SqlParseException e) {
+        } catch (SQLFeatureNotSupportedException | SqlParseException | SQLFeatureDisabledException e) {
             throw new ParserException("Unable to parse query: " + query, e);
         }
     }
