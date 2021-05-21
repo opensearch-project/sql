@@ -3,8 +3,8 @@
 ## Prerequisites
 
 * Microsoft Excel 2016 and higher
-* [OpenSearch](https://opendistro.github.io/for-elasticsearch-docs/docs/install/)
-* [OpenSearch SQL ODBC driver](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/odbc/)
+* [OpenSearch](https://docs-beta.opensearch.org/docs/install/)
+* [OpenSearch SQL ODBC driver](https://docs-beta.opensearch.org/docs/sql/odbc/)
 * A preconfigured [User or System DSN](mac_configure_dsn.md)
 
 ## Test Successful Connection

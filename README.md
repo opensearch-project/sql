@@ -1,7 +1,7 @@
 
 [![Test and Build Workflow](https://github.com/opendistro-for-elasticsearch/sql/workflows/Java%20CI/badge.svg)](https://github.com/opendistro-for-elasticsearch/sql/actions)
 [![codecov](https://codecov.io/gh/opendistro-for-elasticsearch/sql/branch/develop/graph/badge.svg)](https://codecov.io/gh/opendistro-for-elasticsearch/sql)
-[![Documentation](https://img.shields.io/badge/api-reference-blue.svg)](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/endpoints/)
+[![Documentation](https://img.shields.io/badge/api-reference-blue.svg)](https://docs-beta.opensearch.org/docs/sql/endpoints/)
 [![Chat](https://img.shields.io/badge/chat-on%20forums-blue)](https://discuss.opendistrocommunity.dev/c/sql/)
 ![PRs welcome!](https://img.shields.io/badge/PRs-welcome!-success)
 
@@ -23,7 +23,7 @@ The following projects have been merged into this repository as separate folders
 
 ## Documentation
 
-Please refer to the [SQL Language Reference Manual](./docs/user/index.rst), [Piped Processing Language (PPL) Reference Manual](./docs/experiment/ppl/index.rst) and [Technical Documentation](https://opendistro.github.io/for-elasticsearch-docs) for detailed information on installing and configuring plugin. Looking to contribute? Read the instructions on [Developer Guide](./DEVELOPER_GUIDE.rst) and then submit a patch!
+Please refer to the [SQL Language Reference Manual](./docs/user/index.rst), [Piped Processing Language (PPL) Reference Manual](./docs/user/ppl/index.rst) and [Technical Documentation](https://docs-beta.opensearch.org/) for detailed information on installing and configuring plugin. Looking to contribute? Read the instructions on [Developer Guide](./DEVELOPER_GUIDE.rst) and then submit a patch!
 
 ## SQL Engine V2
 
@@ -187,7 +187,7 @@ curl -XPOST https://localhost:9200/_plugins/_sql -u admin:admin -k -d '{"query":
 
 Please check out JDBC driver repository for more details.
 
-## Beyond sql features
+## Beyond SQL features
 
 *  OpenSearch TopHits
 *  OpenSearch MISSING

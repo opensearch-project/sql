@@ -134,12 +134,12 @@ publishing {
             pom {
               name = "OpenSearch SQL JDBC Driver"
               packaging = "jar"
-              url = "https://github.com/opendistro-for-elasticsearch/sql-jdbc"
+              url = "https://github.com/opensearch-project/sql"
               description = "OpenSearch SQL JDBC driver"
               scm {
-                connection = "scm:git@github.com:opendistro-for-elasticsearch/sql-jdbc.git"
-                developerConnection = "scm:git@github.com:opendistro-for-elasticsearch/sql-jdbc.git"
-                url = "git@github.com:opendistro-for-elasticsearch/sql-jdbc.git"
+                connection = "scm:git@github.com:opensearch-project/sql.git"
+                developerConnection = "scm:git@github.com:opensearch-project/sql.git"
+                url = "git@github.com:opensearch-project/sql.git"
               }
               licenses {
                 license {
