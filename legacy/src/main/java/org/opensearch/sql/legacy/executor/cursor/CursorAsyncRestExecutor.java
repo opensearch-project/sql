@@ -38,6 +38,7 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestStatus;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
@@ -120,7 +121,7 @@ public class CursorAsyncRestExecutor {
             executor.execute(client, params, channel);
         } finally {
             Duration elapsed = Duration.ofNanos(System.nanoTime() - startTime);
-            int slowLogThreshold = LocalClusterState.state().getSettingValue(QUERY_SLOWLOG);
+            int slowLogThreshold = LocalClusterState.state().getSettingValue(Settings.Key.SQL_SLOWLOG);
             if (elapsed.getSeconds() >= slowLogThreshold) {
                 LOG.warn("[{}] Slow query: elapsed={} (ms)", LogUtils.getRequestId(), elapsed.toMillis());
             }

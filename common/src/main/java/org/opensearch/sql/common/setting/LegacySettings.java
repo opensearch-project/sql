@@ -28,63 +28,38 @@
 
 package org.opensearch.sql.common.setting;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Setting.
+ * Legacy Open Distro Settings.
  */
-public abstract class Settings {
+public abstract class LegacySettings {
   @RequiredArgsConstructor
   public enum Key {
 
     /**
-     * SQL Settings.
+     * Legacy SQL Settings.
      */
-    SQL_ENABLED("plugins.sql.enabled"),
-    SQL_SLOWLOG("plugins.sql.slowlog"),
+    SQL_ENABLED("opendistro.sql.enabled"),
+    SQL_QUERY_SLOWLOG("opendistro.sql.query.slowlog"),
+    METRICS_ROLLING_WINDOW("opendistro.sql.metrics.rollingwindow"),
+    METRICS_ROLLING_INTERVAL("opendistro.sql.metrics.rollinginterval"),
 
     /**
-     * PPL Settings.
+     * Legacy PPL Settings.
      */
-    PPL_ENABLED("plugins.ppl.enabled"),
+    PPL_ENABLED("opendistro.ppl.enabled"),
+    PPL_QUERY_MEMORY_LIMIT("opendistro.ppl.query.memory_limit"),
 
     /**
-     * Common Settings for SQL and PPL.
+     * Legacy Common Settings.
      */
-    QUERY_MEMORY_LIMIT("plugins.query.memory_limit"),
-    QUERY_SIZE_LIMIT("plugins.query.size_limit"),
-    METRICS_ROLLING_WINDOW("plugins.query.metrics.rolling_window"),
-    METRICS_ROLLING_INTERVAL("plugins.query.metrics.rolling_interval");
+    QUERY_SIZE_LIMIT("opendistro.query.size_limit");
 
     @Getter
     private final String keyValue;
-
-    private static final Map<String, Key> ALL_KEYS;
-
-    static {
-      ImmutableMap.Builder<String, Key> builder = new ImmutableMap.Builder<>();
-      for (Key key : Key.values()) {
-        builder.put(key.getKeyValue(), key);
-      }
-      ALL_KEYS = builder.build();
-    }
-
-    public static Optional<Key> of(String keyValue) {
-      String key = Strings.isNullOrEmpty(keyValue) ? "" : keyValue.toLowerCase();
-      return Optional.ofNullable(ALL_KEYS.getOrDefault(key, null));
-    }
   }
 
-  /**
-   * Get Setting Value.
-   */
   public abstract <T> T getSettingValue(Key key);
-
-  public abstract List<?> getSettings();
 }

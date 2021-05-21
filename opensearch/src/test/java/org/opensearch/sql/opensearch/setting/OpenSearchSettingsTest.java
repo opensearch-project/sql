@@ -51,7 +51,7 @@ class OpenSearchSettingsTest {
   @Test
   void getSettingValue() {
     OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
-    ByteSizeValue sizeValue = settings.getSettingValue(Settings.Key.PPL_QUERY_MEMORY_LIMIT);
+    ByteSizeValue sizeValue = settings.getSettingValue(Settings.Key.QUERY_MEMORY_LIMIT);
 
     assertNotNull(sizeValue);
   }
@@ -66,12 +66,12 @@ class OpenSearchSettingsTest {
   @Test
   void update() {
     OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
-    ByteSizeValue oldValue = settings.getSettingValue(Settings.Key.PPL_QUERY_MEMORY_LIMIT);
+    ByteSizeValue oldValue = settings.getSettingValue(Settings.Key.QUERY_MEMORY_LIMIT);
     OpenSearchSettings.Updater updater =
-        settings.new Updater(Settings.Key.PPL_QUERY_MEMORY_LIMIT);
+        settings.new Updater(Settings.Key.QUERY_MEMORY_LIMIT);
     updater.accept(new ByteSizeValue(0L));
 
-    ByteSizeValue newValue = settings.getSettingValue(Settings.Key.PPL_QUERY_MEMORY_LIMIT);
+    ByteSizeValue newValue = settings.getSettingValue(Settings.Key.QUERY_MEMORY_LIMIT);
 
     assertNotEquals(newValue.getBytes(), oldValue.getBytes());
   }

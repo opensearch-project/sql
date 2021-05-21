@@ -63,6 +63,7 @@ import org.opensearch.sql.legacy.plugin.RestSqlAction;
 import org.opensearch.sql.legacy.plugin.RestSqlSettingsAction;
 import org.opensearch.sql.legacy.plugin.RestSqlStatsAction;
 import org.opensearch.sql.legacy.plugin.SqlSettings;
+import org.opensearch.sql.opensearch.setting.LegacyOpenDistroSettings;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.script.ExpressionScriptEngine;
 import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
@@ -133,7 +134,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
     this.pluginSettings = new OpenSearchSettings(clusterService.getClusterSettings());
 
     LocalClusterState.state().setClusterService(clusterService);
-    LocalClusterState.state().setSqlSettings(sqlSettings);
+    LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
 
     return super
         .createComponents(client, clusterService, threadPool, resourceWatcherService, scriptService,
@@ -156,10 +157,16 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
 
   @Override
   public List<Setting<?>> getSettings() {
-    ImmutableList<Setting<?>> settings =
-        new ImmutableList.Builder<Setting<?>>().addAll(sqlSettings.getSettings())
-            .addAll(OpenSearchSettings.pluginSettings()).build();
-    return settings;
+    return new ImmutableList.Builder<Setting<?>>()
+        .add(LegacyOpenDistroSettings.SQL_ENABLED_SETTING)
+        .add(LegacyOpenDistroSettings.SQL_QUERY_SLOWLOG_SETTING)
+        .add(LegacyOpenDistroSettings.METRICS_ROLLING_WINDOW_SETTING)
+        .add(LegacyOpenDistroSettings.METRICS_ROLLING_INTERVAL_SETTING)
+        .add(LegacyOpenDistroSettings.PPL_ENABLED_SETTING)
+        .add(LegacyOpenDistroSettings.PPL_QUERY_MEMORY_LIMIT_SETTING)
+        .add(LegacyOpenDistroSettings.QUERY_SIZE_LIMIT_SETTING)
+        .addAll(OpenSearchSettings.pluginSettings())
+        .build();
   }
 
   @Override
