@@ -43,6 +43,7 @@ public abstract class LegacySettings {
      */
     SQL_ENABLED("opendistro.sql.enabled"),
     SQL_QUERY_SLOWLOG("opendistro.sql.query.slowlog"),
+    SQL_CURSOR_KEEPALIVE("opendistro.sql.cursor.keep_alive"),
     METRICS_ROLLING_WINDOW("opendistro.sql.metrics.rollingwindow"),
     METRICS_ROLLING_INTERVAL("opendistro.sql.metrics.rollinginterval"),
 

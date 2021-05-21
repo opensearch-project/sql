@@ -1,7 +1,11 @@
 package org.opensearch.sql.opensearch.setting;
 
+import static org.opensearch.common.unit.TimeValue.timeValueMinutes;
+
+
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.unit.ByteSizeValue;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.common.setting.LegacySettings;
 
 public class LegacyOpenDistroSettings {
@@ -16,6 +20,13 @@ public class LegacyOpenDistroSettings {
   public static final Setting<Integer> SQL_QUERY_SLOWLOG_SETTING = Setting.intSetting(
       LegacySettings.Key.SQL_QUERY_SLOWLOG.getKeyValue(),
       2,
+      Setting.Property.NodeScope,
+      Setting.Property.Dynamic,
+      Setting.Property.Deprecated);
+
+  public static final Setting<TimeValue> SQL_CURSOR_KEEPALIVE_SETTING = Setting.positiveTimeSetting(
+      LegacySettings.Key.SQL_CURSOR_KEEPALIVE.getKeyValue(),
+      timeValueMinutes(1),
       Setting.Property.NodeScope,
       Setting.Property.Dynamic,
       Setting.Property.Deprecated);

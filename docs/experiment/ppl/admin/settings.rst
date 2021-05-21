@@ -16,7 +16,7 @@ Introduction
 
 When OpenSearch bootstraps, PPL plugin will register a few settings in OpenSearch cluster settings. Most of the settings are able to change dynamically so you can control the behavior of PPL plugin without need to bounce your cluster.
 
-opensearch.ppl.enabled
+plugins.ppl.enabled
 ======================
 
 Description
@@ -39,12 +39,12 @@ PPL query::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
     ... -X PUT localhost:9200/_cluster/settings \
-    ... -d '{"transient" : {"opensearch.ppl.enabled" : "false"}}'
+    ... -d '{"transient" : {"plugins.ppl.enabled" : "false"}}'
     {
       "acknowledged": true,
       "persistent": {},
       "transient": {
-        "opensearch": {
+        "plugins": {
           "ppl": {
             "enabled": "false"
           }
@@ -64,7 +64,7 @@ PPL query::
     {
       "error": {
         "reason": "Invalid Query",
-        "details": "Either opensearch.ppl.enabled or rest.action.multi.allow_explicit_index setting is false",
+        "details": "Either plugins.ppl.enabled or rest.action.multi.allow_explicit_index setting is false",
         "type": "IllegalAccessException"
       },
       "status": 400
@@ -79,20 +79,20 @@ PPL query::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
     ... -X PUT localhost:9200/_cluster/settings \
-    ... -d '{"transient" : {"opensearch.ppl.enabled" : null}}'
+    ... -d '{"transient" : {"plugins.ppl.enabled" : null}}'
     {
       "acknowledged": true,
       "persistent": {},
       "transient": {}
     }
 
-opensearch.ppl.query.memory_limit
+plugins.query.memory_limit
 =================================
 
 Description
 -----------
 
-You can set heap memory usage limit for PPL query. When query running, it will detected whether the heap memory usage under the limit, if not, it will terminated the current query. The default value is: 85%
+You can set heap memory usage limit for the query engine. When query running, it will detected whether the heap memory usage under the limit, if not, it will terminated the current query. The default value is: 85%
 
 Example
 -------
@@ -101,22 +101,20 @@ PPL query::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
     ... -X PUT localhost:9200/_cluster/settings \
-    ... -d '{"persistent" : {"opensearch.ppl.query.memory_limit" : "80%"}}'
+    ... -d '{"persistent" : {"plugins.query.memory_limit" : "80%"}}'
     {
       "acknowledged": true,
       "persistent": {
-        "opensearch": {
-          "ppl": {
-            "query": {
-              "memory_limit": "80%"
-            }
+        "plugins": {
+          "query": {
+            "memory_limit": "80%"
           }
         }
       },
       "transient": {}
     }
 
-opensearch.query.size_limit
+plugins.query.size_limit
 ===========================
 
 Description
@@ -133,11 +131,11 @@ Change the size_limit to 1000::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
     ... -X PUT localhost:9200/_cluster/settings \
-    ... -d '{"persistent" : {"opensearch.query.size_limit" : "1000"}}'
+    ... -d '{"persistent" : {"plugins.query.size_limit" : "1000"}}'
     {
       "acknowledged": true,
       "persistent": {
-        "opensearch": {
+        "plugins": {
           "query": {
             "size_limit": "1000"
           }
@@ -150,7 +148,7 @@ Rollback to default value::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
     ... -X PUT localhost:9200/_cluster/settings \
-    ... -d '{"persistent" : {"opensearch.query.size_limit" : null}}'
+    ... -d '{"persistent" : {"plugins.query.size_limit" : null}}'
     {
       "acknowledged": true,
       "persistent": {},

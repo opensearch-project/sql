@@ -39,7 +39,7 @@ SQL query::
 
 	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_sql/settings -d '{
 	  "transient" : {
-	    "opensearch.sql.enabled" : "false"
+	    "plugins.sql.enabled" : "false"
 	  }
 	}'
 
@@ -49,7 +49,7 @@ Result set::
 	  "acknowledged" : true,
 	  "persistent" : { },
 	  "transient" : {
-	    "opensearch" : {
+	    "plugins" : {
 	      "sql" : {
 	        "enabled" : "false"
 	      }
@@ -73,7 +73,7 @@ Result set::
 	{
 	  "error" : {
 	    "reason" : "Invalid SQL query",
-	    "details" : "Either opensearch.sql.enabled or rest.action.multi.allow_explicit_index setting is false",
+	    "details" : "Either plugins.sql.enabled or rest.action.multi.allow_explicit_index setting is false",
 	    "type" : "SQLFeatureDisabledException"
 	  },
 	  "status" : 400
@@ -101,7 +101,7 @@ SQL query::
 
 	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_sql/settings -d '{
 	  "transient" : {
-	    "opensearch.sql.query.slowlog" : "10"
+	    "plugins.query.slowlog" : "10"
 	  }
 	}'
 
@@ -111,17 +111,15 @@ Result set::
 	  "acknowledged" : true,
 	  "persistent" : { },
 	  "transient" : {
-	    "opensearch" : {
-	      "sql" : {
-	        "query" : {
-	          "slowlog" : "10"
-	        }
+	    "plugins" : {
+	      "query" : {
+	        "slowlog" : "10"
 	      }
 	    }
 	  }
 	}
 
-opensearch.sql.cursor.keep_alive
+plugins.sql.cursor.keep_alive
 ================================
 
 Description
@@ -143,7 +141,7 @@ SQL query::
 
 	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_sql/settings -d '{
 	  "transient" : {
-	    "opensearch.sql.cursor.keep_alive" : "5m"
+	    "plugins.sql.cursor.keep_alive" : "5m"
 	  }
 	}'
 
@@ -153,7 +151,7 @@ Result set::
 	  "acknowledged" : true,
 	  "persistent" : { },
 	  "transient" : {
-	    "opensearch" : {
+	    "plugins" : {
 	      "sql" : {
 	        "cursor" : {
 	          "keep_alive" : "5m"
@@ -163,7 +161,7 @@ Result set::
 	  }
 	}
 
-opensearch.query.size_limit
+plugins.query.size_limit
 ===========================
 
 Description
@@ -173,7 +171,7 @@ The new engine fetches a default size of index from OpenSearch set by this setti
 
 	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings -d '{
 	  "transient" : {
-	    "opensearch.query.size_limit" : 500
+	    "plugins.query.size_limit" : 500
 	  }
 	}'
 
@@ -183,7 +181,7 @@ Result set::
       "acknowledged" : true,
       "persistent" : { },
       "transient" : {
-        "opensearch" : {
+        "plugins" : {
           "query" : {
             "size_limit" : "500"
           }
