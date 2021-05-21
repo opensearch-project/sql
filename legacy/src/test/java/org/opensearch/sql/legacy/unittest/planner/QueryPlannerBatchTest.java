@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import org.hamcrest.Matcher;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -48,6 +49,7 @@ import org.opensearch.search.SearchHits;
  */
 @SuppressWarnings("unchecked")
 @RunWith(Parameterized.class)
+@Ignore
 public class QueryPlannerBatchTest extends QueryPlannerTest {
 
     private static final String TEST_SQL1 =

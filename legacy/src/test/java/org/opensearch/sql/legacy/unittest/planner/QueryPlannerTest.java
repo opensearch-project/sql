@@ -67,7 +67,6 @@ import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.parser.ElasticSqlExprParser;
 import org.opensearch.sql.legacy.parser.SqlParser;
-import org.opensearch.sql.legacy.plugin.SqlSettings;
 import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.BackOffRetryStrategy;
@@ -75,6 +74,7 @@ import org.opensearch.sql.legacy.query.join.OpenSearchJoinQueryActionFactory;
 import org.opensearch.sql.legacy.query.planner.HashJoinQueryPlanRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.core.QueryPlanner;
 import org.opensearch.sql.legacy.request.SqlRequest;
+import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 
 /**
  * Test base class for all query planner tests.
@@ -92,6 +92,9 @@ public abstract class QueryPlannerTest {
     @Mock
     private SearchResponse response2;
     private static final String SCROLL_ID2 = "2";
+
+    @Mock
+    private OpenSearchSettings settings;
 
     /*
     @BeforeClass
@@ -118,13 +121,12 @@ public abstract class QueryPlannerTest {
 
     @Before
     public void init() {
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
 
-        SqlSettings settings = spy(new SqlSettings());
         // Force return empty list to avoid ClusterSettings be invoked which is a final class and hard to mock.
         // In this case, default value in Setting will be returned all the time.
         doReturn(emptyList()).when(settings).getSettings();
-        LocalClusterState.state().setSqlSettings(settings);
+        LocalClusterState.state().setPluginSettings(settings);
 
         ActionFuture mockFuture = mock(ActionFuture.class);
         when(client.execute(any(), any())).thenReturn(mockFuture);

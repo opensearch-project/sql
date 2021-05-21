@@ -44,15 +44,18 @@ import java.io.IOException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.opensearch.cluster.ClusterChangedEvent;
 import org.opensearch.cluster.ClusterStateListener;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.esdomain.mapping.FieldMappings;
 import org.opensearch.sql.legacy.esdomain.mapping.IndexMappings;
 import org.opensearch.sql.legacy.esdomain.mapping.TypeMappings;
 import org.opensearch.sql.legacy.plugin.SqlSettings;
 import org.opensearch.sql.legacy.util.TestsConstants;
+import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 
 /**
  * Local cluster state testing without covering OpenSearch logic, ex. resolve index pattern.
@@ -129,6 +132,8 @@ public class LocalClusterStateTest {
         "  }\n" +
         "}";
 
+//    @Mock OpenSearchSettings settings;
+
     @Before
     public void init() {
         LocalClusterState.state(null);
@@ -200,11 +205,11 @@ public class LocalClusterStateTest {
     @Test
     public void getDefaultValueForQuerySlowLog() {
         // Force return empty list to avoid ClusterSettings be invoked which is a final class and hard to mock.
-        SqlSettings settings = spy(new SqlSettings());
-        doReturn(emptyList()).when(settings).getSettings();
-        LocalClusterState.state().setSqlSettings(settings);
+        OpenSearchSettings settings = mock(OpenSearchSettings.class);
+        doReturn(emptyList()).when(settings.getSettings());
+        LocalClusterState.state().setPluginSettings(settings);
 
-        Assert.assertEquals(2, (int) LocalClusterState.state().getSettingValue(QUERY_SLOWLOG));
+        Assert.assertEquals(2, (int) LocalClusterState.state().getSettingValue(Settings.Key.SQL_SLOWLOG));
     }
 
 }

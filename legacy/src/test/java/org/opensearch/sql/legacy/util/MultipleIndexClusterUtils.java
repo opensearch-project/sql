@@ -32,7 +32,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.legacy.util.CheckScriptContents.createParser;
 import static org.opensearch.sql.legacy.util.CheckScriptContents.mockIndexNameExpressionResolver;
-import static org.opensearch.sql.legacy.util.CheckScriptContents.mockSqlSettings;
+import static org.opensearch.sql.legacy.util.CheckScriptContents.mockPluginSettings;
 
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
@@ -172,7 +172,7 @@ public class MultipleIndexClusterUtils {
     public static void mockLocalClusterState(Map<String, ImmutableOpenMap<String, ImmutableOpenMap<String, MappingMetadata>>> indexMapping) {
         LocalClusterState.state().setClusterService(mockClusterService(indexMapping));
         LocalClusterState.state().setResolver(mockIndexNameExpressionResolver());
-        LocalClusterState.state().setSqlSettings(mockSqlSettings());
+        LocalClusterState.state().setPluginSettings(mockPluginSettings());
     }
 
 

@@ -45,6 +45,7 @@ import org.opensearch.sql.legacy.plugin.SqlSettings;
 import org.opensearch.sql.legacy.request.PreparedStatementRequest;
 import org.opensearch.sql.legacy.request.SqlRequest;
 import org.opensearch.sql.legacy.request.SqlRequestFactory;
+import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SqlRequestFactoryTest {
@@ -52,13 +53,15 @@ public class SqlRequestFactoryTest {
     @Mock
     private RestRequest restRequest;
 
+    @Mock
+    private OpenSearchSettings settings;
+
     @Before
     public void setup() {
-        SqlSettings settings = spy(new SqlSettings());
         // Force return empty list to avoid ClusterSettings be invoked which is a final class and hard to mock.
         // In this case, default value in Setting will be returned all the time.
         doReturn(emptyList()).when(settings).getSettings();
-        LocalClusterState.state().setSqlSettings(settings);
+        LocalClusterState.state().setPluginSettings(settings);
     }
 
     @Ignore("RestRequest is a final method, and Mockito 1.x cannot mock it." +

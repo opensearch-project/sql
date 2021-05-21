@@ -30,6 +30,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -52,6 +53,7 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.client.Client;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.legacy.domain.ColumnTypeProvider;
 import org.opensearch.sql.legacy.domain.QueryActionRequest;
@@ -318,7 +320,7 @@ public class JSONRequestTest {
             Mockito.mockStatic(LocalClusterState.class)) {
             LocalClusterState state = mock(LocalClusterState.class);
             localClusterStateMockedStatic.when(LocalClusterState::state).thenReturn(state);
-            when(state.getSettingValue(anyString())).thenReturn(true);
+            when(state.getSettingValue(any(Settings.Key.class))).thenReturn(true);
 
             String result = explain(String.format("{\"query\":\"" +
                 "DELETE " +
@@ -339,7 +341,7 @@ public class JSONRequestTest {
                  Mockito.mockStatic(LocalClusterState.class)) {
             LocalClusterState state = mock(LocalClusterState.class);
             localClusterStateMockedStatic.when(LocalClusterState::state).thenReturn(state);
-            when(state.getSettingValue(anyString())).thenReturn(false);
+            when(state.getSettingValue(any(Settings.Key.class))).thenReturn(false);
 
             JSONObject jsonRequest = new JSONObject(StringUtils.format("{\"query\":\"" +
                 "DELETE " +
