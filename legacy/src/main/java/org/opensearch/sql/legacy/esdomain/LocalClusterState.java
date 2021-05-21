@@ -180,6 +180,7 @@ public class LocalClusterState {
      * @param keyValue setting key registered during plugin launch.
      * @return setting value or default
      */
+    @Deprecated
     @SuppressWarnings("unchecked")
     public <T> T getSettingValue(String keyValue) {
         Objects.requireNonNull(pluginSettings, "SQL plugin setting is null");
@@ -188,6 +189,11 @@ public class LocalClusterState {
         return (T) latestSettings.getOrDefault(keyValue, pluginSettings.getSettingValue(key.get()));
     }
 
+    /**
+     * Get plugin setting value by key. Return default value if not configured explicitly.
+     * @param key setting key registered during plugin bootstrap.
+     * @return setting value or default.
+     */
     @SuppressWarnings("unchecked")
     public <T> T getSettingValue(Settings.Key key) {
         Objects.requireNonNull(pluginSettings, "SQL plugin setting is null");

@@ -68,6 +68,7 @@ import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.script.ExpressionScriptEngine;
 import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
 import org.opensearch.sql.plugin.rest.RestPPLQueryAction;
+import org.opensearch.sql.plugin.rest.RestQuerySettingsAction;
 import org.opensearch.sql.plugin.rest.RestPPLStatsAction;
 import org.opensearch.threadpool.ExecutorBuilder;
 import org.opensearch.threadpool.FixedExecutorBuilder;
@@ -113,8 +114,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         new RestPPLQueryAction(restController, clusterService, pluginSettings, settings),
         new RestSqlAction(settings, clusterService, pluginSettings),
         new RestSqlStatsAction(settings, restController),
-        new RestSqlSettingsAction(settings, restController),
-        new RestPPLStatsAction(settings, restController)
+        new RestPPLStatsAction(settings, restController),
+        new RestQuerySettingsAction(settings, restController)
     );
   }
 

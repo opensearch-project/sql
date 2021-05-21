@@ -36,22 +36,17 @@ import static org.opensearch.sql.doctest.core.request.SqlRequestFormat.CURL_REQU
 import static org.opensearch.sql.doctest.core.request.SqlRequestFormat.IGNORE_REQUEST;
 import static org.opensearch.sql.doctest.core.response.SqlResponseFormat.IGNORE_RESPONSE;
 import static org.opensearch.sql.doctest.core.response.SqlResponseFormat.PRETTY_JSON_RESPONSE;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_ENABLED;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_FETCH_SIZE;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_KEEPALIVE;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_SLOWLOG;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.SQL_ENABLED;
 
-import java.util.Arrays;
 import java.util.EnumSet;
-import java.util.stream.Collectors;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.sql.doctest.core.DocTest;
 import org.opensearch.sql.doctest.core.annotation.DocTestConfig;
 import org.opensearch.sql.doctest.core.annotation.Section;
 import org.opensearch.sql.doctest.core.builder.Example;
 import org.opensearch.sql.doctest.core.builder.ListItems;
-import org.opensearch.sql.legacy.executor.Format;
 import org.opensearch.sql.legacy.plugin.SqlSettings;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
@@ -80,25 +75,6 @@ public class PluginSettingIT extends DocTest {
         "You can configure the time limit (seconds) for slow query which would be logged as " +
             "'Slow query: elapsed=xxx (ms)' in opensearch.log.",
         10
-    );
-  }
-
-  @Section(7)
-  public void cursorEnabledSetting() {
-    docSetting(
-        CURSOR_ENABLED,
-        "User can enable/disable pagination for all queries that are supported.",
-        true
-    );
-  }
-
-  @Section(8)
-  public void cursorDefaultFetchSizeSetting() {
-    docSetting(
-        CURSOR_FETCH_SIZE,
-        "User can set the default fetch_size for all queries that are supported by pagination. " +
-            "Explicit `fetch_size` passed in request will override this value",
-        50
     );
   }
 

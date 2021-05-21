@@ -26,8 +26,6 @@
 
 package org.opensearch.sql.legacy.request;
 
-import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_FETCH_SIZE;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -35,7 +33,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 
 public class SqlRequestFactory {
 
@@ -102,7 +99,7 @@ public class SqlRequestFactory {
         } catch (JSONException e) {
             throw new IllegalArgumentException("Failed to parse field [" + SQL_FETCH_FIELD_NAME +"]", e);
         }
-        return fetchSize.orElse(LocalClusterState.state().getSettingValue(CURSOR_FETCH_SIZE));
+        return fetchSize.orElse(0);
     }
 
     private static List<PreparedStatementRequest.PreparedStatementParameter> parseParameters(

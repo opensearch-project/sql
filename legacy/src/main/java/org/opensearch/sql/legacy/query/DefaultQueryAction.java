@@ -26,7 +26,6 @@
 
 package org.opensearch.sql.legacy.query;
 
-import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_ENABLED;
 import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_KEEPALIVE;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
@@ -118,10 +117,9 @@ public class DefaultQueryAction extends QueryAction {
 
         Integer fetchSize = sqlRequest.fetchSize();
         TimeValue timeValue = clusterState.getSettingValue(CURSOR_KEEPALIVE);
-        Boolean cursorEnabled = clusterState.getSettingValue(CURSOR_ENABLED);
         Integer rowCount = select.getRowCount();
 
-        if (checkIfScrollNeeded(cursorEnabled, fetchSize, rowCount)) {
+        if (checkIfScrollNeeded(fetchSize, rowCount)) {
             Metrics.getInstance().getNumericalMetric(MetricName.DEFAULT_CURSOR_REQUEST_COUNT_TOTAL).increment();
             Metrics.getInstance().getNumericalMetric(MetricName.DEFAULT_CURSOR_REQUEST_TOTAL).increment();
             request.setSize(fetchSize).setScroll(timeValue);
@@ -132,9 +130,8 @@ public class DefaultQueryAction extends QueryAction {
     }
 
 
-    private boolean checkIfScrollNeeded(boolean cursorEnabled, Integer fetchSize, Integer rowCount) {
-        return cursorEnabled
-                && (format !=null && format.equals(Format.JDBC))
+    private boolean checkIfScrollNeeded(Integer fetchSize, Integer rowCount) {
+        return (format != null && format.equals(Format.JDBC))
                 && fetchSize > 0
                 && (rowCount == null || (rowCount > fetchSize));
     }

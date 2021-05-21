@@ -181,15 +181,10 @@ public class OpenSearchSettings extends Settings {
         .build();
   }
 
+  /**
+   * Used by local cluster to get settings from a setting instance
+   */
   public List<Setting<?>> getSettings() {
-    return new ImmutableList.Builder<Setting<?>>()
-        .add(SQL_ENABLED_SETTING)
-        .add(SQL_SLOWLOG_SETTING)
-        .add(PPL_ENABLED_SETTING)
-        .add(QUERY_MEMORY_LIMIT_SETTING)
-        .add(QUERY_SIZE_LIMIT_SETTING)
-        .add(METRICS_ROLLING_WINDOW_SETTING)
-        .add(METRICS_ROLLING_INTERVAL_SETTING)
-        .build();
+    return pluginSettings();
   }
 }
