@@ -28,9 +28,11 @@
 
 package org.opensearch.sql.opensearch.setting;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.opensearch.common.unit.TimeValue.timeValueMinutes;
 
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -40,10 +42,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.unit.ByteSizeValue;
+import org.opensearch.monitor.jvm.JvmInfo;
+import org.opensearch.sql.common.setting.LegacySettings;
 import org.opensearch.sql.common.setting.Settings;
 
 @ExtendWith(MockitoExtension.class)
-class OpenSearchSettingsTest {
+class OpenSearchSettingsTest extends OpenSearchTestCase {
 
   @Mock
   private ClusterSettings clusterSettings;
@@ -74,5 +78,79 @@ class OpenSearchSettingsTest {
     ByteSizeValue newValue = settings.getSettingValue(Settings.Key.QUERY_MEMORY_LIMIT);
 
     assertNotEquals(newValue.getBytes(), oldValue.getBytes());
+  }
+
+  @Test
+  void settingsFallback() {
+    OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
+    assertEquals(
+        settings.getSettingValue(Settings.Key.SQL_ENABLED),
+        LegacyOpenDistroSettings.SQL_ENABLED_SETTING.get(
+            org.opensearch.common.settings.Settings.EMPTY));
+    assertEquals(
+        settings.getSettingValue(Settings.Key.SQL_SLOWLOG),
+        LegacyOpenDistroSettings.SQL_QUERY_SLOWLOG_SETTING.get(
+            org.opensearch.common.settings.Settings.EMPTY));
+    assertEquals(
+        settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE),
+        LegacyOpenDistroSettings.SQL_CURSOR_KEEPALIVE_SETTING.get(
+            org.opensearch.common.settings.Settings.EMPTY));
+    assertEquals(
+        settings.getSettingValue(Settings.Key.PPL_ENABLED),
+        LegacyOpenDistroSettings.PPL_ENABLED_SETTING.get(
+            org.opensearch.common.settings.Settings.EMPTY));
+    assertEquals(
+        settings.getSettingValue(Settings.Key.QUERY_MEMORY_LIMIT),
+        LegacyOpenDistroSettings.PPL_QUERY_MEMORY_LIMIT_SETTING.get(
+            org.opensearch.common.settings.Settings.EMPTY));
+    assertEquals(
+        settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT),
+        LegacyOpenDistroSettings.QUERY_SIZE_LIMIT_SETTING.get(
+            org.opensearch.common.settings.Settings.EMPTY));
+    assertEquals(
+        settings.getSettingValue(Settings.Key.METRICS_ROLLING_WINDOW),
+        LegacyOpenDistroSettings.METRICS_ROLLING_WINDOW_SETTING.get(
+            org.opensearch.common.settings.Settings.EMPTY));
+    assertEquals(
+        settings.getSettingValue(Settings.Key.METRICS_ROLLING_INTERVAL),
+        LegacyOpenDistroSettings.METRICS_ROLLING_INTERVAL_SETTING.get(
+            org.opensearch.common.settings.Settings.EMPTY));
+  }
+
+  @Test
+  public void updateLegacySettingsFallback() {
+    org.opensearch.common.settings.Settings settings =
+        org.opensearch.common.settings.Settings.builder()
+            .put(LegacySettings.Key.SQL_ENABLED.getKeyValue(), false)
+            .put(LegacySettings.Key.SQL_QUERY_SLOWLOG.getKeyValue(), 10)
+            .put(LegacySettings.Key.SQL_CURSOR_KEEPALIVE.getKeyValue(), timeValueMinutes(1))
+            .put(LegacySettings.Key.PPL_ENABLED.getKeyValue(), true)
+            .put(LegacySettings.Key.PPL_QUERY_MEMORY_LIMIT.getKeyValue(), "20%")
+            .put(LegacySettings.Key.QUERY_SIZE_LIMIT.getKeyValue(), 100)
+            .put(LegacySettings.Key.METRICS_ROLLING_WINDOW.getKeyValue(), 2000L)
+            .put(LegacySettings.Key.METRICS_ROLLING_INTERVAL.getKeyValue(), 100L)
+            .build();
+
+    assertEquals(OpenSearchSettings.SQL_ENABLED_SETTING.get(settings), false);
+    assertEquals(OpenSearchSettings.SQL_SLOWLOG_SETTING.get(settings), 10);
+    assertEquals(OpenSearchSettings.SQL_CURSOR_KEEP_ALIVE_SETTING.get(settings),
+        timeValueMinutes(1));
+    assertEquals(OpenSearchSettings.PPL_ENABLED_SETTING.get(settings), true);
+    assertEquals(OpenSearchSettings.QUERY_MEMORY_LIMIT_SETTING.get(settings),
+        new ByteSizeValue((int) (JvmInfo.jvmInfo().getMem().getHeapMax().getBytes() * 0.2)));
+    assertEquals(OpenSearchSettings.QUERY_SIZE_LIMIT_SETTING.get(settings), 100);
+    assertEquals(OpenSearchSettings.METRICS_ROLLING_WINDOW_SETTING.get(settings), 2000L);
+    assertEquals(OpenSearchSettings.METRICS_ROLLING_INTERVAL_SETTING.get(settings), 100L);
+
+    assertSettingDeprecationsAndWarnings(
+        LegacyOpenDistroSettings.SQL_ENABLED_SETTING,
+        LegacyOpenDistroSettings.SQL_QUERY_SLOWLOG_SETTING,
+        LegacyOpenDistroSettings.SQL_CURSOR_KEEPALIVE_SETTING,
+        LegacyOpenDistroSettings.PPL_ENABLED_SETTING,
+        LegacyOpenDistroSettings.PPL_QUERY_MEMORY_LIMIT_SETTING,
+        LegacyOpenDistroSettings.QUERY_SIZE_LIMIT_SETTING,
+        LegacyOpenDistroSettings.METRICS_ROLLING_WINDOW_SETTING,
+        LegacyOpenDistroSettings.METRICS_ROLLING_INTERVAL_SETTING
+    );
   }
 }

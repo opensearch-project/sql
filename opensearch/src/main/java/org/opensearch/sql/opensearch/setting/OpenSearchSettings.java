@@ -62,39 +62,37 @@ public class OpenSearchSettings extends Settings {
   @VisibleForTesting
   private final Map<Settings.Key, Object> latestSettings = new ConcurrentHashMap<>();
 
-  private static final Setting<?> SQL_ENABLED_SETTING = Setting.boolSetting(
+  public static final Setting<?> SQL_ENABLED_SETTING = Setting.boolSetting(
       Key.SQL_ENABLED.getKeyValue(),
       LegacyOpenDistroSettings.SQL_ENABLED_SETTING,
       Setting.Property.NodeScope,
       Setting.Property.Dynamic);
 
-  private static final Setting<?> SQL_SLOWLOG_SETTING = Setting.intSetting(
+  public static final Setting<?> SQL_SLOWLOG_SETTING = Setting.intSetting(
       Key.SQL_SLOWLOG.getKeyValue(),
       LegacyOpenDistroSettings.SQL_QUERY_SLOWLOG_SETTING,
-      -2147483648,
       Setting.Property.NodeScope,
       Setting.Property.Dynamic);
 
-  private static final Setting<?> SQL_CURSOR_KEEP_ALIVE_SETTING = Setting.positiveTimeSetting(
+  public static final Setting<?> SQL_CURSOR_KEEP_ALIVE_SETTING = Setting.positiveTimeSetting(
       Key.SQL_CURSOR_KEEP_ALIVE.getKeyValue(),
       LegacyOpenDistroSettings.SQL_CURSOR_KEEPALIVE_SETTING,
-      timeValueMinutes(1),
       Setting.Property.NodeScope,
       Setting.Property.Dynamic);
 
-  private static final Setting<?> SQL_DELETE_ENABLED_SETTING = Setting.boolSetting(
+  public static final Setting<?> SQL_DELETE_ENABLED_SETTING = Setting.boolSetting(
       Key.SQL_DELETE_ENABLED.getKeyValue(),
       false,
       Setting.Property.NodeScope,
       Setting.Property.Dynamic);
 
-  private static final Setting<?> PPL_ENABLED_SETTING = Setting.boolSetting(
+  public static final Setting<?> PPL_ENABLED_SETTING = Setting.boolSetting(
       Key.PPL_ENABLED.getKeyValue(),
       LegacyOpenDistroSettings.PPL_ENABLED_SETTING,
       Setting.Property.NodeScope,
       Setting.Property.Dynamic);
 
-  private static final Setting<?> QUERY_MEMORY_LIMIT_SETTING = new Setting<>(
+  public static final Setting<?> QUERY_MEMORY_LIMIT_SETTING = new Setting<>(
       Key.QUERY_MEMORY_LIMIT.getKeyValue(),
       LegacyOpenDistroSettings.PPL_QUERY_MEMORY_LIMIT_SETTING,
       (s) -> MemorySizeValue.parseBytesSizeValueOrHeapRatio(
@@ -102,24 +100,22 @@ public class OpenSearchSettings extends Settings {
       Setting.Property.NodeScope,
       Setting.Property.Dynamic);
 
-  private static final Setting<?> QUERY_SIZE_LIMIT_SETTING = Setting.intSetting(
+  public static final Setting<?> QUERY_SIZE_LIMIT_SETTING = Setting.intSetting(
       Key.QUERY_SIZE_LIMIT.getKeyValue(),
       LegacyOpenDistroSettings.QUERY_SIZE_LIMIT_SETTING,
-      -2147483648,
       Setting.Property.NodeScope,
       Setting.Property.Dynamic);
 
-  private static final Setting<?> METRICS_ROLLING_WINDOW_SETTING = Setting.longSetting(
+  public static final Setting<?> METRICS_ROLLING_WINDOW_SETTING = Setting.longSetting(
       Key.METRICS_ROLLING_WINDOW.getKeyValue(),
-      3600L,
-      2L,
+      LegacyOpenDistroSettings.METRICS_ROLLING_WINDOW_SETTING,
       Setting.Property.NodeScope,
-      Setting.Property.Dynamic);
+      Setting.Property.Dynamic
+  );
 
-  private static final Setting<?> METRICS_ROLLING_INTERVAL_SETTING = Setting.longSetting(
+  public static final Setting<?> METRICS_ROLLING_INTERVAL_SETTING = Setting.longSetting(
       Key.METRICS_ROLLING_INTERVAL.getKeyValue(),
-      60L,
-      1L,
+      LegacyOpenDistroSettings.METRICS_ROLLING_INTERVAL_SETTING,
       Setting.Property.NodeScope,
       Setting.Property.Dynamic);
 

@@ -41,6 +41,7 @@ import org.opensearch.sql.legacy.executor.Format;
 /**
  * SQL plugin settings
  */
+@Deprecated
 public class SqlSettings {
 
     /**
