@@ -3,7 +3,8 @@
     "user/ppl/interfaces/endpoint.rst",
     "user/ppl/interfaces/protocol.rst",
     "user/ppl/admin/settings.rst",
-    "user/optimization/optimization.rst"
+    "user/optimization/optimization.rst",
+    "user/admin/settings.rst"
   ],
   "ppl_cli": [
     "user/ppl/cmd/dedup.rst",

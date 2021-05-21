@@ -37,6 +37,7 @@ import java.sql.SQLFeatureNotSupportedException;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.opensearch.client.Client;
+import org.opensearch.sql.legacy.exception.SQLFeatureDisabledException;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.query.OpenSearchActionFactory;
 import org.opensearch.sql.legacy.query.QueryAction;
@@ -48,12 +49,15 @@ import org.opensearch.sql.legacy.utils.StringUtils;
 public class WhereWithBoolConditionTest {
 
     @Test
-    public void whereWithBoolCompilationTest() throws SQLFeatureNotSupportedException, SqlParseException {
+    public void whereWithBoolCompilationTest()
+        throws SQLFeatureNotSupportedException, SqlParseException, SQLFeatureDisabledException {
        query(StringUtils.format("SELECT * FROM %s WHERE male = false", TestsConstants.TEST_INDEX_BANK));
     }
 
     @Test
-    public void selectAllTest() throws SQLFeatureNotSupportedException, SqlParseException, IOException {
+    public void selectAllTest()
+        throws SQLFeatureNotSupportedException, SqlParseException, IOException,
+        SQLFeatureDisabledException {
         String expectedOutput = Files.toString(
                 new File(getResourcePath() + "src/test/resources/expectedOutput/select_where_true.json"), StandardCharsets.UTF_8)
                 .replaceAll("\r", "");
@@ -70,11 +74,13 @@ public class WhereWithBoolConditionTest {
         );
     }
 
-    private String query(String query) throws SQLFeatureNotSupportedException, SqlParseException {
+    private String query(String query)
+        throws SQLFeatureNotSupportedException, SqlParseException, SQLFeatureDisabledException {
         return explain(query);
     }
 
-    private String explain(String sql) throws SQLFeatureNotSupportedException, SqlParseException {
+    private String explain(String sql)
+        throws SQLFeatureNotSupportedException, SqlParseException, SQLFeatureDisabledException {
         Client mockClient = Mockito.mock(Client.class);
         CheckScriptContents.stubMockClient(mockClient);
         QueryAction queryAction = OpenSearchActionFactory.create(mockClient, sql);
