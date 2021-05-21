@@ -504,7 +504,7 @@ The driver is built as a shadow jar so that its dependencies are bundled within 
 
 ## Documentation
 
-Please refer to the [documentation](https://opendistro.github.io/for-elasticsearch-docs/) for detailed information on installing and configuring opendistro-elasticsearch-security plugin.
+Please refer to the [documentation](https://docs-beta.opensearch.org/) for detailed information on installing and configuring opendistro-elasticsearch-security plugin.
 
 ## Code of Conduct
 
