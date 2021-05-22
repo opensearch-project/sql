@@ -107,7 +107,7 @@ public class PluginIT extends SQLIntegTestCase {
     // (1) compact form
     String settings = "{" +
         "  \"transient\": {" +
-        "    \"plugins.sql.metrics.rolling_interval\": \"80\"" +
+        "    \"plugins.query.metrics.rolling_interval\": \"80\"" +
         "  }" +
         "}";
     JSONObject actual = updateViaSQLSettingsAPI(settings);
@@ -116,7 +116,7 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"persistent\" : { }," +
         "  \"transient\" : {" +
         "    \"plugins\" : {" +
-        "      \"sql\" : {" +
+        "      \"query\" : {" +
         "        \"metrics\" : {" +
         "          \"rolling_interval\" : \"80\"" +
         "        }" +
@@ -130,7 +130,7 @@ public class PluginIT extends SQLIntegTestCase {
     settings = "{" +
         "  \"transient\": {" +
         "    \"plugins\" : {" +
-        "      \"sql\" : {" +
+        "      \"query\" : {" +
         "        \"metrics.rolling_interval\": \"75\"" +
         "      }" +
         "    }" +
@@ -142,7 +142,7 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"persistent\" : { }," +
         "  \"transient\" : {" +
         "    \"plugins\" : {" +
-        "      \"sql\" : {" +
+        "      \"query\" : {" +
         "        \"metrics\" : {" +
         "          \"rolling_interval\" : \"75\"" +
         "        }" +
@@ -157,7 +157,7 @@ public class PluginIT extends SQLIntegTestCase {
     settings = "{" +
         "  \"transient\": {" +
         "    \"plugins\" : {" +
-        "      \"sql\" : {" +
+        "      \"query\" : {" +
         "        \"metrics\": {" +
         "          \"rolling_interval\": \"65\"" +
         "        }" +
@@ -171,7 +171,7 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"persistent\" : { }," +
         "  \"transient\" : {" +
         "    \"plugins\" : {" +
-        "      \"sql\" : {" +
+        "      \"query\" : {" +
         "        \"metrics\" : {" +
         "          \"rolling_interval\" : \"65\"" +
         "        }" +
@@ -187,7 +187,7 @@ public class PluginIT extends SQLIntegTestCase {
     // (1) compact form
     String settings = "{" +
         "  \"persistent\": {" +
-        "    \"plugins.sql.metrics.rolling_interval\": \"80\"" +
+        "    \"plugins.query.metrics.rolling_interval\": \"80\"" +
         "  }" +
         "}";
     JSONObject actual = updateViaSQLSettingsAPI(settings);
@@ -196,7 +196,7 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"transient\" : { }," +
         "  \"persistent\" : {" +
         "    \"plugins\" : {" +
-        "      \"sql\" : {" +
+        "      \"query\" : {" +
         "        \"metrics\" : {" +
         "          \"rolling_interval\" : \"80\"" +
         "        }" +
@@ -210,7 +210,7 @@ public class PluginIT extends SQLIntegTestCase {
     settings = "{" +
         "  \"persistent\": {" +
         "    \"plugins\" : {" +
-        "      \"sql\" : {" +
+        "      \"query\" : {" +
         "        \"metrics.rolling_interval\": \"75\"" +
         "      }" +
         "    }" +
@@ -222,7 +222,7 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"transient\" : { }," +
         "  \"persistent\" : {" +
         "    \"plugins\" : {" +
-        "      \"sql\" : {" +
+        "      \"query\" : {" +
         "        \"metrics\" : {" +
         "          \"rolling_interval\" : \"75\"" +
         "        }" +
@@ -237,7 +237,7 @@ public class PluginIT extends SQLIntegTestCase {
     settings = "{" +
         "  \"persistent\": {" +
         "    \"plugins\" : {" +
-        "      \"sql\" : {" +
+        "      \"query\" : {" +
         "        \"metrics\": {" +
         "          \"rolling_interval\": \"65\"" +
         "        }" +
@@ -251,7 +251,7 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"transient\" : { }," +
         "  \"persistent\" : {" +
         "    \"plugins\" : {" +
-        "      \"sql\" : {" +
+        "      \"query\" : {" +
         "        \"metrics\" : {" +
         "          \"rolling_interval\" : \"65\"" +
         "        }" +
@@ -270,7 +270,7 @@ public class PluginIT extends SQLIntegTestCase {
   public void sqlCombinedSettingTest() throws IOException {
     String settings = "{" +
         "  \"transient\": {" +
-        "    \"plugins.sql.metrics.rolling_window\": \"3700\"" +
+        "    \"plugins.query.metrics.rolling_window\": \"3700\"" +
         "  }," +
         "  \"persistent\": {" +
         "    \"plugins.sql.query.slowlog\" : \"2\"" +
@@ -282,15 +282,13 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"persistent\" : {" +
         "    \"plugins\" : {" +
         "      \"sql\" : {" +
-        "        \"query\" : {" +
-        "          \"slowlog\" : \"2\"" +
-        "        }" +
+        "        \"slowlog\" : \"2\"" +
         "      }" +
         "    }" +
         "  }," +
         "  \"transient\" : {" +
         "    \"plugins\" : {" +
-        "      \"sql\" : {" +
+        "      \"query\" : {" +
         "        \"metrics\" : {" +
         "          \"rolling_window\" : \"3700\"" +
         "        }" +
@@ -309,13 +307,13 @@ public class PluginIT extends SQLIntegTestCase {
   public void ignoreNonSQLSettingsTest() throws IOException {
     String settings = "{" +
         "  \"transient\": {" +
-        "    \"plugins.sql.metrics.rolling_window\": \"3700\"," +
+        "    \"plugins.query.metrics.rolling_window\": \"3700\"," +
         "    \"plugins.alerting.metrics.rolling_window\": \"3700\"," +
         "    \"search.max_buckets\": \"10000\"," +
         "    \"search.max_keep_alive\": \"24h\"" +
         "  }," +
         "  \"persistent\": {" +
-        "    \"plugins.sql.query.slowlog\": \"2\"," +
+        "    \"plugins.query.query.slowlog\": \"2\"," +
         "    \"plugins.alerting.metrics.rolling_window\": \"3700\"," +
         "    \"thread_pool.analyze.queue_size\": \"16\"" +
         "  }" +
@@ -326,15 +324,13 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"persistent\" : {" +
         "    \"plugins\" : {" +
         "      \"sql\" : {" +
-        "        \"query\" : {" +
-        "          \"slowlog\" : \"2\"" +
-        "        }" +
+        "        \"slowlog\" : \"2\"" +
         "      }" +
         "    }" +
         "  }," +
         "  \"transient\" : {" +
         "    \"plugins\" : {" +
-        "      \"sql\" : {" +
+        "      \"query\" : {" +
         "        \"metrics\" : {" +
         "          \"rolling_window\" : \"3700\"" +
         "        }" +
@@ -349,10 +345,10 @@ public class PluginIT extends SQLIntegTestCase {
   public void ignoreNonTransientNonPersistentSettingsTest() throws IOException {
     String settings = "{" +
         "  \"transient\": {" +
-        "    \"plugins.sql.metrics.rolling_window\": \"3700\"" +
+        "    \"plugins.query.metrics.rolling_window\": \"3700\"" +
         "  }," +
         "  \"persistent\": {" +
-        "    \"plugins.sql.query.slowlog\": \"2\"" +
+        "    \"plugins.sql.slowlog\": \"2\"" +
         "  }," +
         "  \"hello\": {" +
         "    \"world\" : {" +
@@ -366,15 +362,13 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"persistent\" : {" +
         "    \"plugins\" : {" +
         "      \"sql\" : {" +
-        "        \"query\" : {" +
-        "          \"slowlog\" : \"2\"" +
-        "        }" +
+        "        \"slowlog\" : \"2\"" +
         "      }" +
         "    }" +
         "  }," +
         "  \"transient\" : {" +
         "    \"plugins\" : {" +
-        "      \"sql\" : {" +
+        "      \"query\" : {" +
         "        \"metrics\" : {" +
         "          \"rolling_window\" : \"3700\"" +
         "        }" +
@@ -389,14 +383,12 @@ public class PluginIT extends SQLIntegTestCase {
   public void sqlCombinedMixedSettingTest() throws IOException {
     String settings = "{" +
         "  \"transient\": {" +
-        "    \"plugins.sql.metrics.rolling_window\": \"3700\"" +
+        "    \"plugins.query.metrics.rolling_window\": \"3700\"" +
         "  }," +
         "  \"persistent\": {" +
         "    \"plugins\": {" +
         "      \"sql\": {" +
-        "        \"query\": {" +
-        "          \"slowlog\": \"1\"" +
-        "        }" +
+        "        \"slowlog\": \"1\"" +
         "      }" +
         "    }" +
         "  }," +
@@ -412,15 +404,13 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"persistent\" : {" +
         "    \"plugins\" : {" +
         "      \"sql\" : {" +
-        "        \"query\" : {" +
-        "          \"slowlog\" : \"1\"" +
-        "        }" +
+        "        \"slowlog\" : \"1\"" +
         "      }" +
         "    }" +
         "  }," +
         "  \"transient\" : {" +
         "    \"plugins\" : {" +
-        "      \"sql\" : {" +
+        "      \"query\" : {" +
         "        \"metrics\" : {" +
         "          \"rolling_window\" : \"3700\"" +
         "        }" +

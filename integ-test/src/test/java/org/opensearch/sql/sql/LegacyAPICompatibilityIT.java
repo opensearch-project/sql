@@ -82,7 +82,7 @@ public class LegacyAPICompatibilityIT extends SQLIntegTestCase {
   public void updateSettings() throws IOException {
     String requestBody = "{" +
         "  \"persistent\": {" +
-        "    \"opensearch.sql.metrics.rollinginterval\": \"80\"" +
+        "    \"plugins.query.metrics.rolling_interval\": \"80\"" +
         "  }" +
         "}";
     Request request = new Request("PUT", LEGACY_SETTINGS_API_ENDPOINT);
