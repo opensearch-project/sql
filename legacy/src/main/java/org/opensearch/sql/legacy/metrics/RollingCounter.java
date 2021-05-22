@@ -31,7 +31,6 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.LongAdder;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
-import org.opensearch.sql.legacy.plugin.SqlSettings;
 
 /**
  * Rolling counter. The count is refreshed every interval. In every interval the count is cumulative.

@@ -26,8 +26,6 @@
 
 package org.opensearch.sql.legacy.query;
 
-import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_KEEPALIVE;
-
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;

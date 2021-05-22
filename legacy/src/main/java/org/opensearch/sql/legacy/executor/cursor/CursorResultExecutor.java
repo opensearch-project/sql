@@ -27,7 +27,6 @@
 package org.opensearch.sql.legacy.executor.cursor;
 
 import static org.opensearch.rest.RestStatus.OK;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_KEEPALIVE;
 
 import java.util.Arrays;
 import java.util.Map;

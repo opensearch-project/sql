@@ -39,6 +39,7 @@ import com.alibaba.druid.sql.ast.expr.SQLQueryExpr;
 import com.alibaba.druid.sql.parser.ParserException;
 import com.alibaba.druid.sql.parser.SQLExprParser;
 import com.alibaba.druid.sql.parser.Token;
+import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.lucene.search.TotalHits;
@@ -58,6 +59,8 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequestBuilder;
 import org.opensearch.client.Client;
 import org.opensearch.common.bytes.BytesArray;
+import org.opensearch.common.settings.ClusterSettings;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
@@ -94,7 +97,7 @@ public abstract class QueryPlannerTest {
     private static final String SCROLL_ID2 = "2";
 
     @Mock
-    private OpenSearchSettings settings;
+    private ClusterSettings clusterSettings;
 
     /*
     @BeforeClass
@@ -121,8 +124,9 @@ public abstract class QueryPlannerTest {
 
     @Before
     public void init() {
-        MockitoAnnotations.openMocks(this);
+        MockitoAnnotations.initMocks(this);
 
+        OpenSearchSettings settings = spy(new OpenSearchSettings(clusterSettings));
         // Force return empty list to avoid ClusterSettings be invoked which is a final class and hard to mock.
         // In this case, default value in Setting will be returned all the time.
         doReturn(emptyList()).when(settings).getSettings();

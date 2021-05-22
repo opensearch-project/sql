@@ -27,7 +27,6 @@
 package org.opensearch.sql.legacy.query;
 
 import static org.opensearch.sql.legacy.domain.IndexStatement.StatementType;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.SQL_DELETE_ENABLED;
 import static org.opensearch.sql.legacy.utils.Util.toSqlExpr;
 
 import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;

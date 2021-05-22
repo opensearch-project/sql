@@ -35,7 +35,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
@@ -51,7 +50,6 @@ import org.opensearch.common.settings.Setting;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.esdomain.mapping.IndexMappings;
-import org.opensearch.sql.legacy.plugin.SqlSettings;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 
 /**
@@ -82,11 +80,6 @@ public class LocalClusterState {
      * Current cluster state on local node
      */
     private ClusterService clusterService;
-
-    /**
-     * Sql specific settings in OpenSearch cluster settings
-     */
-    private SqlSettings sqlSettings;
 
     private OpenSearchSettings pluginSettings;
 
@@ -151,40 +144,12 @@ public class LocalClusterState {
 
     }
 
-    @Deprecated
-    public void setSqlSettings(SqlSettings sqlSettings) {
-        this.sqlSettings = sqlSettings;
-        for (Setting<?> setting : sqlSettings.getSettings()) {
-            clusterService.getClusterSettings().addSettingsUpdateConsumer(
-                    setting,
-                    newVal -> {
-                        if (LOG.isDebugEnabled()) {
-                            LOG.debug("The value of setting [{}] changed to [{}]", setting.getKey(), newVal);
-                        }
-                        latestSettings.put(setting.getKey(), newVal);
-                    });
-        }
-    }
-
     public void setResolver(IndexNameExpressionResolver resolver) {
         this.resolver = resolver;
     }
 
     private LocalClusterState() {
         cache = CacheBuilder.newBuilder().maximumSize(100).build();
-    }
-
-    /**
-     * Get setting value by key. Return default value if not configured explicitly.
-     *
-     * @param key setting key registered during plugin launch.
-     * @return setting value or default
-     */
-    @Deprecated
-    @SuppressWarnings("unchecked")
-    public <T> T getSettingValue(String key) {
-        Objects.requireNonNull(sqlSettings, "SQL setting is null");
-        return (T) latestSettings.getOrDefault(key, sqlSettings.getSetting(key).getDefault(EMPTY));
     }
 
     /**
@@ -195,7 +160,8 @@ public class LocalClusterState {
     @SuppressWarnings("unchecked")
     public <T> T getSettingValue(Settings.Key key) {
         Objects.requireNonNull(pluginSettings, "SQL plugin setting is null");
-        return (T) latestSettings.getOrDefault(key.getKeyValue(), pluginSettings.getSettingValue(key));
+        return (T) latestSettings.getOrDefault(key.getKeyValue(),
+            pluginSettings.getSettingValue(key));
     }
 
     /**

@@ -68,6 +68,11 @@ class OpenSearchSettingsTest {
   }
 
   @Test
+  void test() {
+
+  }
+
+  @Test
   void update() {
     OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
     ByteSizeValue oldValue = settings.getSettingValue(Settings.Key.QUERY_MEMORY_LIMIT);

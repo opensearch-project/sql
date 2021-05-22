@@ -41,7 +41,6 @@ import org.mockito.runners.MockitoJUnitRunner;
 import org.opensearch.common.bytes.BytesArray;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
-import org.opensearch.sql.legacy.plugin.SqlSettings;
 import org.opensearch.sql.legacy.request.PreparedStatementRequest;
 import org.opensearch.sql.legacy.request.SqlRequest;
 import org.opensearch.sql.legacy.request.SqlRequestFactory;

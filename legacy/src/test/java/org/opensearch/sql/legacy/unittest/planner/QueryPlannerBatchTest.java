@@ -49,7 +49,6 @@ import org.opensearch.search.SearchHits;
  */
 @SuppressWarnings("unchecked")
 @RunWith(Parameterized.class)
-@Ignore
 public class QueryPlannerBatchTest extends QueryPlannerTest {
 
     private static final String TEST_SQL1 =

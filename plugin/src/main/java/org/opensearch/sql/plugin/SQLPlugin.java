@@ -60,9 +60,7 @@ import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.executor.AsyncRestExecutor;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.plugin.RestSqlAction;
-import org.opensearch.sql.legacy.plugin.RestSqlSettingsAction;
 import org.opensearch.sql.legacy.plugin.RestSqlStatsAction;
-import org.opensearch.sql.legacy.plugin.SqlSettings;
 import org.opensearch.sql.opensearch.setting.LegacyOpenDistroSettings;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.script.ExpressionScriptEngine;
@@ -76,11 +74,6 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
 public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
-
-  /**
-   * Sql plugin specific settings in OpenSearch cluster settings.
-   */
-  private final SqlSettings sqlSettings = new SqlSettings();
 
   private ClusterService clusterService;
 

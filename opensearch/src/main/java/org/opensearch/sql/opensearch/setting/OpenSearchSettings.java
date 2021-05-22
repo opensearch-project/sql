@@ -71,12 +71,14 @@ public class OpenSearchSettings extends Settings {
   public static final Setting<?> SQL_SLOWLOG_SETTING = Setting.intSetting(
       Key.SQL_SLOWLOG.getKeyValue(),
       LegacyOpenDistroSettings.SQL_QUERY_SLOWLOG_SETTING,
+      0,
       Setting.Property.NodeScope,
       Setting.Property.Dynamic);
 
   public static final Setting<?> SQL_CURSOR_KEEP_ALIVE_SETTING = Setting.positiveTimeSetting(
       Key.SQL_CURSOR_KEEP_ALIVE.getKeyValue(),
       LegacyOpenDistroSettings.SQL_CURSOR_KEEPALIVE_SETTING,
+      timeValueMinutes(1),
       Setting.Property.NodeScope,
       Setting.Property.Dynamic);
 
@@ -103,19 +105,23 @@ public class OpenSearchSettings extends Settings {
   public static final Setting<?> QUERY_SIZE_LIMIT_SETTING = Setting.intSetting(
       Key.QUERY_SIZE_LIMIT.getKeyValue(),
       LegacyOpenDistroSettings.QUERY_SIZE_LIMIT_SETTING,
+      0,
       Setting.Property.NodeScope,
       Setting.Property.Dynamic);
 
-  public static final Setting<?> METRICS_ROLLING_WINDOW_SETTING = Setting.longSetting(
+  public static final Setting<?> METRICS_ROLLING_WINDOW_SETTING = new Setting<>(
       Key.METRICS_ROLLING_WINDOW.getKeyValue(),
       LegacyOpenDistroSettings.METRICS_ROLLING_WINDOW_SETTING,
+      (s) -> Setting.parseLong(
+          s, 2L, Key.METRICS_ROLLING_WINDOW.getKeyValue()),
       Setting.Property.NodeScope,
-      Setting.Property.Dynamic
-  );
+      Setting.Property.Dynamic);
 
-  public static final Setting<?> METRICS_ROLLING_INTERVAL_SETTING = Setting.longSetting(
+  public static final Setting<?> METRICS_ROLLING_INTERVAL_SETTING = new Setting<>(
       Key.METRICS_ROLLING_INTERVAL.getKeyValue(),
       LegacyOpenDistroSettings.METRICS_ROLLING_INTERVAL_SETTING,
+      (s) -> Setting.parseLong(
+          s, 1L, Key.METRICS_ROLLING_INTERVAL.getKeyValue()),
       Setting.Property.NodeScope,
       Setting.Property.Dynamic);
 
@@ -189,6 +195,7 @@ public class OpenSearchSettings extends Settings {
         .add(SQL_ENABLED_SETTING)
         .add(SQL_SLOWLOG_SETTING)
         .add(SQL_CURSOR_KEEP_ALIVE_SETTING)
+        .add(SQL_DELETE_ENABLED_SETTING)
         .add(PPL_ENABLED_SETTING)
         .add(QUERY_MEMORY_LIMIT_SETTING)
         .add(QUERY_SIZE_LIMIT_SETTING)

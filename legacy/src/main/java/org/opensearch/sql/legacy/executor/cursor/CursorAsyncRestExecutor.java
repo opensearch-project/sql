@@ -26,8 +26,6 @@
 
 package org.opensearch.sql.legacy.executor.cursor;
 
-import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_SLOWLOG;
-
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;

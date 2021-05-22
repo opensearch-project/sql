@@ -34,9 +34,6 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_KEEPALIVE;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.METRICS_ROLLING_INTERVAL;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.METRICS_ROLLING_WINDOW;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -51,6 +48,7 @@ import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.client.Client;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.script.Script;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.domain.KVValue;
 import org.opensearch.sql.legacy.domain.MethodField;
@@ -259,9 +257,12 @@ public class DefaultQueryActionTest {
     private void mockLocalClusterStateAndInitializeMetrics(TimeValue time) {
         LocalClusterState mockLocalClusterState = mock(LocalClusterState.class);
         LocalClusterState.state(mockLocalClusterState);
-        doReturn(time).when(mockLocalClusterState).getSettingValue(CURSOR_KEEPALIVE);
-        doReturn(3600L).when(mockLocalClusterState).getSettingValue(METRICS_ROLLING_WINDOW);
-        doReturn(2L).when(mockLocalClusterState).getSettingValue(METRICS_ROLLING_INTERVAL);
+        doReturn(time).when(mockLocalClusterState).getSettingValue(
+            Settings.Key.SQL_CURSOR_KEEP_ALIVE);
+        doReturn(3600L).when(mockLocalClusterState).getSettingValue(
+            Settings.Key.METRICS_ROLLING_WINDOW);
+        doReturn(2L).when(mockLocalClusterState).getSettingValue(
+            Settings.Key.METRICS_ROLLING_INTERVAL);
 
         Metrics.getInstance().registerDefaultMetrics();
 

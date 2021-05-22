@@ -26,8 +26,6 @@
 
 package org.opensearch.sql.plugin.request;
 
-import static org.opensearch.sql.legacy.plugin.SqlSettings.DEFAULT_RESPONSE_FORMAT;
-
 import java.util.Map;
 import java.util.Optional;
 import org.json.JSONException;
@@ -44,6 +42,7 @@ public class PPLQueryRequestFactory {
   private static final String PPL_FIELD_NAME = "query";
   private static final String QUERY_PARAMS_FORMAT = "format";
   private static final String QUERY_PARAMS_SANITIZE = "sanitize";
+  private static final String DEFAULT_RESPONSE_FORMAT = "jdbc";
 
   /**
    * Build {@link PPLQueryRequest} from {@link RestRequest}.

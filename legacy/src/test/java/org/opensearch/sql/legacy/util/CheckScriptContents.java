@@ -73,7 +73,6 @@ import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.parser.ElasticSqlExprParser;
 import org.opensearch.sql.legacy.parser.ScriptFilter;
 import org.opensearch.sql.legacy.parser.SqlParser;
-import org.opensearch.sql.legacy.plugin.SqlSettings;
 import org.opensearch.sql.legacy.query.OpenSearchActionFactory;
 import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
