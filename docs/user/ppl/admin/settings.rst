@@ -38,7 +38,7 @@ You can update the setting with a new value like this.
 PPL query::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X PUT localhost:9200/_cluster/settings \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
     ... -d '{"transient" : {"plugins.ppl.enabled" : "false"}}'
     {
       "acknowledged": true,
@@ -51,6 +51,8 @@ PPL query::
         }
       }
     }
+
+Note: the legacy settings of ``opendistro.ppl.enabled`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
 
 Example 2
 ---------
@@ -78,7 +80,7 @@ You can reset the setting to default value like this.
 PPL query::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X PUT localhost:9200/_cluster/settings \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
     ... -d '{"transient" : {"plugins.ppl.enabled" : null}}'
     {
       "acknowledged": true,
@@ -100,7 +102,7 @@ Example
 PPL query::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X PUT localhost:9200/_cluster/settings \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
     ... -d '{"persistent" : {"plugins.query.memory_limit" : "80%"}}'
     {
       "acknowledged": true,
@@ -113,6 +115,8 @@ PPL query::
       },
       "transient": {}
     }
+
+Note: the legacy settings of ``opendistro.ppl.query.memory_limit`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
 
 plugins.query.size_limit
 ===========================
@@ -130,7 +134,7 @@ Example
 Change the size_limit to 1000::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X PUT localhost:9200/_cluster/settings \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
     ... -d '{"persistent" : {"plugins.query.size_limit" : "1000"}}'
     {
       "acknowledged": true,
@@ -147,10 +151,13 @@ Change the size_limit to 1000::
 Rollback to default value::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X PUT localhost:9200/_cluster/settings \
+    ... -X PUT localhost:9200/_plugins/_query/settings \
     ... -d '{"persistent" : {"plugins.query.size_limit" : null}}'
     {
       "acknowledged": true,
       "persistent": {},
       "transient": {}
     }
+
+Note: the legacy settings of ``opendistro.query.size_limit`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
+
