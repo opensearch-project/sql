@@ -51,7 +51,6 @@ public class RestQuerySettingsAction extends BaseRestHandler {
 
   @Override
   public List<Route> routes() {
-//    return ImmutableList.of(new Route(RestRequest.Method.PUT, SETTINGS_API_ENDPOINT));
     return ImmutableList.of();
   }
 

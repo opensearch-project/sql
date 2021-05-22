@@ -30,7 +30,6 @@ package org.opensearch.sql.legacy;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
-import static org.opensearch.sql.legacy.plugin.RestSqlSettingsAction.SETTINGS_API_ENDPOINT;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -42,6 +41,7 @@ import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.utils.StringUtils;
+import org.opensearch.sql.plugin.rest.RestQuerySettingsAction;
 
 public class PluginIT extends SQLIntegTestCase {
 
@@ -447,7 +447,7 @@ public class PluginIT extends SQLIntegTestCase {
   }
 
   protected static JSONObject updateViaSQLSettingsAPI(String body) throws IOException {
-    Request request = new Request("PUT", SETTINGS_API_ENDPOINT);
+    Request request = new Request("PUT", RestQuerySettingsAction.SETTINGS_API_ENDPOINT);
     request.setJsonEntity(body);
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");
