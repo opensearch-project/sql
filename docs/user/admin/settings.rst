@@ -81,7 +81,7 @@ Result set::
 	  "status" : 400
 	}
 
-plugins.sql.query.slowlog
+plugins.sql.slowlog
 ============================
 
 Description
@@ -122,6 +122,7 @@ Result set::
 	}
 
 Note: the legacy settings of ``opendistro.sql.slowlog`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
+
 plugins.sql.cursor.keep_alive
 ================================
 
