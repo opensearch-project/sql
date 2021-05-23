@@ -13,11 +13,13 @@ package org.opensearch.sql.opensearch.setting;
 
 import static org.opensearch.common.unit.TimeValue.timeValueMinutes;
 
+import lombok.experimental.UtilityClass;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.unit.ByteSizeValue;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.common.setting.LegacySettings;
 
+@UtilityClass
 public class LegacyOpenDistroSettings {
 
   public static final Setting<Boolean> SQL_ENABLED_SETTING = Setting.boolSetting(
@@ -78,4 +80,5 @@ public class LegacyOpenDistroSettings {
       Setting.Property.NodeScope,
       Setting.Property.Dynamic,
       Setting.Property.Deprecated);
+
 }

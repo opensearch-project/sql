@@ -68,8 +68,9 @@ class OpenSearchSettingsTest {
   }
 
   @Test
-  void test() {
-
+  void getSettings() {
+    OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
+    assertFalse(settings.getSettings().isEmpty());
   }
 
   @Test
