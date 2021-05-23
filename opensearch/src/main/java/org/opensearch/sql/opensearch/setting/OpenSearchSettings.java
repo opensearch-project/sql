@@ -204,7 +204,7 @@ public class OpenSearchSettings extends Settings {
   }
 
   /**
-   * Used by local cluster to get settings from a setting instance
+   * Used by local cluster to get settings from a setting instance.
    */
   public List<Setting<?>> getSettings() {
     return pluginSettings();
