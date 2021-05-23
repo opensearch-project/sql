@@ -273,7 +273,7 @@ public class PluginIT extends SQLIntegTestCase {
         "    \"plugins.query.metrics.rolling_window\": \"3700\"" +
         "  }," +
         "  \"persistent\": {" +
-        "    \"plugins.sql.query.slowlog\" : \"2\"" +
+        "    \"plugins.sql.slowlog\" : \"2\"" +
         "  }" +
         "}";
     JSONObject actual = updateViaSQLSettingsAPI(settings);
@@ -313,7 +313,7 @@ public class PluginIT extends SQLIntegTestCase {
         "    \"search.max_keep_alive\": \"24h\"" +
         "  }," +
         "  \"persistent\": {" +
-        "    \"plugins.query.query.slowlog\": \"2\"," +
+        "    \"plugins.query.slowlog\": \"2\"," +
         "    \"plugins.alerting.metrics.rolling_window\": \"3700\"," +
         "    \"thread_pool.analyze.queue_size\": \"16\"" +
         "  }" +
