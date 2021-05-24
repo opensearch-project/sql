@@ -42,6 +42,8 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.FunctionResolver;
+import org.opensearch.sql.expression.function.SerializableBiFunction;
+import org.opensearch.sql.expression.function.SerializableTriFunction;
 
 
 /**
@@ -71,6 +73,10 @@ public class TextFunction {
     repository.register(length());
     repository.register(strcmp());
     repository.register(right());
+    repository.register(left());
+    repository.register(ascii());
+    repository.register(locate());
+    repository.register(replace());
   }
 
   /**
@@ -215,6 +221,60 @@ public class TextFunction {
             impl(nullMissingHandling(TextFunction::exprRight), STRING, STRING, INTEGER));
   }
 
+  /**
+   * Returns the leftmost len characters from the string str, or NULL if any argument is NULL.
+   * Supports following signature:
+   * (STRING, INTEGER) -> STRING
+   */
+  private FunctionResolver left() {
+    return define(BuiltinFunctionName.LEFT.getName(),
+        impl(nullMissingHandling(TextFunction::exprLeft), STRING, STRING, INTEGER));
+  }
+
+  /**
+   * Returns the numeric value of the leftmost character of the string str.
+   * Returns 0 if str is the empty string. Returns NULL if str is NULL.
+   * ASCII() works for 8-bit characters.
+   * Supports following signature:
+   * STRING -> INTEGER
+   */
+  private FunctionResolver ascii() {
+    return define(BuiltinFunctionName.ASCII.getName(),
+        impl(nullMissingHandling(TextFunction::exprAscii), INTEGER, STRING));
+  }
+
+  /**
+   * LOCATE(substr, str) returns the position of the first occurrence of substring substr
+   * in string str. LOCATE(substr, str, pos) returns the position of the first occurrence
+   * of substring substr in string str, starting at position pos.
+   * Returns 0 if substr is not in str.
+   * Returns NULL if any argument is NULL.
+   * Supports following signature:
+   * (STRING, STRING) -> INTEGER
+   * (STRING, STRING, INTEGER) -> INTEGER
+   */
+  private FunctionResolver locate() {
+    return define(BuiltinFunctionName.LOCATE.getName(),
+        impl(nullMissingHandling(
+            (SerializableBiFunction<ExprValue, ExprValue, ExprValue>)
+                TextFunction::exprLocate), INTEGER, STRING, STRING),
+        impl(nullMissingHandling(
+            (SerializableTriFunction<ExprValue, ExprValue, ExprValue, ExprValue>)
+                TextFunction::exprLocate), INTEGER, STRING, STRING, INTEGER));
+  }
+
+  /**
+   * REPLACE(str, from_str, to_str) returns the string str with all occurrences of
+   * the string from_str replaced by the string to_str.
+   * REPLACE() performs a case-sensitive match when searching for from_str.
+   * Supports following signature:
+   * (STRING, STRING, STRING) -> STRING
+   */
+  private FunctionResolver replace() {
+    return define(BuiltinFunctionName.REPLACE.getName(),
+        impl(nullMissingHandling(TextFunction::exprReplace), STRING, STRING, STRING, STRING));
+  }
+
   private static ExprValue exprSubstrStart(ExprValue exprValue, ExprValue start) {
     int startIdx = start.integerValue();
     if (startIdx == 0) {
@@ -250,6 +310,27 @@ public class TextFunction {
   private static ExprValue exprRight(ExprValue str, ExprValue len) {
     return new ExprStringValue(str.stringValue().substring(
             str.stringValue().length() - len.integerValue()));
+  }
+
+  private static ExprValue exprLeft(ExprValue expr, ExprValue length) {
+    return new ExprStringValue(expr.stringValue().substring(0, length.integerValue()));
+  }
+
+  private static ExprValue exprAscii(ExprValue expr) {
+    return new ExprIntegerValue((int) expr.stringValue().charAt(0));
+  }
+
+  private static ExprValue exprLocate(ExprValue subStr, ExprValue str) {
+    return new ExprIntegerValue(str.stringValue().indexOf(subStr.stringValue()) + 1);
+  }
+
+  private static ExprValue exprLocate(ExprValue subStr, ExprValue str, ExprValue pos) {
+    return new ExprIntegerValue(
+        str.stringValue().indexOf(subStr.stringValue(), pos.integerValue() - 1) + 1);
+  }
+
+  private static ExprValue exprReplace(ExprValue str, ExprValue from, ExprValue to) {
+    return new ExprStringValue(str.stringValue().replaceAll(from.stringValue(), to.stringValue()));
   }
 }
 

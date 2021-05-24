@@ -268,7 +268,7 @@ conditionFunctionBase
 
 textFunctionBase
     : SUBSTR | SUBSTRING | TRIM | LTRIM | RTRIM | LOWER | UPPER | CONCAT | CONCAT_WS | LENGTH | STRCMP
-    | RIGHT
+    | RIGHT | LEFT | ASCII | LOCATE | REPLACE
     ;
 
 /** operators */

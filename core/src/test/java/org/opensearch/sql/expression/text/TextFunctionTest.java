@@ -322,6 +322,74 @@ public class TextFunctionTest extends ExpressionTestBase {
     assertEquals(nullValue(), eval(dsl.right(DSL.literal(new ExprStringValue("value")), nullRef)));
   }
 
+  @Test
+  void left() {
+    FunctionExpression expression = dsl.left(
+        DSL.literal(new ExprStringValue("helloworld")),
+        DSL.literal(new ExprIntegerValue(5)));
+    assertEquals(STRING, expression.type());
+    assertEquals("hello", eval(expression).stringValue());
+
+    when(nullRef.type()).thenReturn(STRING);
+    when(missingRef.type()).thenReturn(INTEGER);
+    assertEquals(missingValue(), eval(dsl.left(nullRef, missingRef)));
+    assertEquals(nullValue(), eval(dsl.left(nullRef, DSL.literal(new ExprIntegerValue(1)))));
+
+    when(nullRef.type()).thenReturn(INTEGER);
+    assertEquals(nullValue(), eval(dsl.left(DSL.literal(new ExprStringValue("value")), nullRef)));
+  }
+
+  @Test
+  void ascii() {
+    FunctionExpression expression = dsl.ascii(DSL.literal(new ExprStringValue("hello")));
+    assertEquals(INTEGER, expression.type());
+    assertEquals(104, eval(expression).integerValue());
+
+    when(nullRef.type()).thenReturn(STRING);
+    assertEquals(nullValue(), eval(dsl.ascii(nullRef)));
+    when(missingRef.type()).thenReturn(STRING);
+    assertEquals(missingValue(), eval(dsl.ascii(missingRef)));
+  }
+
+  @Test
+  void locate() {
+    FunctionExpression expression = dsl.locate(
+        DSL.literal("world"),
+        DSL.literal("helloworld"));
+    assertEquals(INTEGER, expression.type());
+    assertEquals(6, eval(expression).integerValue());
+
+    expression = dsl.locate(
+        DSL.literal("world"),
+        DSL.literal("helloworldworld"),
+        DSL.literal(7));
+    assertEquals(INTEGER, expression.type());
+    assertEquals(11, eval(expression).integerValue());
+
+    when(nullRef.type()).thenReturn(STRING);
+    assertEquals(nullValue(), eval(dsl.locate(nullRef, DSL.literal("hello"))));
+    assertEquals(nullValue(), eval(dsl.locate(nullRef, DSL.literal("hello"), DSL.literal(1))));
+    when(missingRef.type()).thenReturn(STRING);
+    assertEquals(missingValue(), eval(dsl.locate(missingRef, DSL.literal("hello"))));
+    assertEquals(missingValue(), eval(
+        dsl.locate(missingRef, DSL.literal("hello"), DSL.literal(1))));
+  }
+
+  @Test
+  void replace() {
+    FunctionExpression expression = dsl.replace(
+        DSL.literal("helloworld"),
+        DSL.literal("world"),
+        DSL.literal("opensearch"));
+    assertEquals(STRING, expression.type());
+    assertEquals("helloopensearch", eval(expression).stringValue());
+
+    when(nullRef.type()).thenReturn(STRING);
+    assertEquals(nullValue(), eval(dsl.replace(nullRef, DSL.literal("a"), DSL.literal("b"))));
+    when(missingRef.type()).thenReturn(STRING);
+    assertEquals(missingValue(), eval(dsl.replace(missingRef, DSL.literal("a"), DSL.literal("b"))));
+  }
+
   void testConcatString(List<String> strings) {
     String expected = null;
     if (strings.stream().noneMatch(Objects::isNull)) {

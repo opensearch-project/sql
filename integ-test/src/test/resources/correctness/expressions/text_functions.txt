@@ -1,1 +1,8 @@
 RIGHT('Hello World', 5) as column
+LEFT('Hello World', 5) as column
+ASCII('hello') as column
+LOCATE('world', 'helloworld') as column
+LOCATE('world', 'hello') as column
+LOCATE('world', 'helloworld', 7) as column
+REPLACE('helloworld', 'world', 'opensearch') as column
+REPLACE('hello', 'world', 'opensearch') as column

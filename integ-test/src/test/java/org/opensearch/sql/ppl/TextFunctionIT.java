@@ -36,7 +36,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
-public class TextCommandIT extends PPLIntegTestCase {
+public class TextFunctionIT extends PPLIntegTestCase {
   @Override
   public void init() throws IOException {
     loadIndex(Index.BANK);
@@ -137,5 +137,26 @@ public class TextCommandIT extends PPLIntegTestCase {
   @Test
   public void testStrcmp() throws IOException {
     verifyQuery("strcmp", "", ", 'world'", -1, 0, -1);
+  }
+
+  @Test
+  public void testLeft() throws IOException {
+    verifyQuery("left", "", ", 3", "hel", "wor", "hel");
+  }
+
+  @Test
+  public void testAscii() throws IOException {
+    verifyQuery("ascii", "", "", 104, 119, 104);
+  }
+
+  @Test
+  public void testLocate() throws IOException {
+    verifyQuery("locate", "'world', ", "", 0, 1, 6);
+    verifyQuery("locate", "'world', ", ", 2", 0, 0, 6);
+  }
+
+  @Test
+  public void testReplace() throws IOException {
+    verifyQuery("replace", "", ", 'world', ' opensearch'", "hello", " opensearch", "hello opensearch");
   }
 }
