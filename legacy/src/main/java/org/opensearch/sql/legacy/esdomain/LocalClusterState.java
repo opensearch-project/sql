@@ -48,8 +48,9 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.index.IndexNotFoundException;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.esdomain.mapping.IndexMappings;
-import org.opensearch.sql.legacy.plugin.SqlSettings;
+import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 
 /**
  * Local cluster state information which may be stale but help avoid blocking operation in NIO thread.
@@ -80,10 +81,7 @@ public class LocalClusterState {
      */
     private ClusterService clusterService;
 
-    /**
-     * Sql specific settings in OpenSearch cluster settings
-     */
-    private SqlSettings sqlSettings;
+    private OpenSearchSettings pluginSettings;
 
     /**
      * Index name expression resolver to get concrete index name
@@ -130,18 +128,20 @@ public class LocalClusterState {
         });
     }
 
-    public void setSqlSettings(SqlSettings sqlSettings) {
-        this.sqlSettings = sqlSettings;
-        for (Setting<?> setting : sqlSettings.getSettings()) {
+    public void setPluginSettings(OpenSearchSettings settings) {
+        this.pluginSettings = settings;
+        for (Setting<?> setting: settings.getSettings()) {
             clusterService.getClusterSettings().addSettingsUpdateConsumer(
-                    setting,
-                    newVal -> {
-                        if (LOG.isDebugEnabled()) {
-                            LOG.debug("The value of setting [{}] changed to [{}]", setting.getKey(), newVal);
-                        }
-                        latestSettings.put(setting.getKey(), newVal);
-                    });
+                setting,
+                newVal -> {
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("The value of setting [{}] changed to [{}]", setting.getKey(), newVal);
+                    }
+                    latestSettings.put(setting.getKey(), newVal);
+                }
+            );
         }
+
     }
 
     public void setResolver(IndexNameExpressionResolver resolver) {
@@ -153,15 +153,15 @@ public class LocalClusterState {
     }
 
     /**
-     * Get setting value by key. Return default value if not configured explicitly.
-     *
-     * @param key setting key registered during plugin launch.
-     * @return setting value or default
+     * Get plugin setting value by key. Return default value if not configured explicitly.
+     * @param key setting key registered during plugin bootstrap.
+     * @return setting value or default.
      */
     @SuppressWarnings("unchecked")
-    public <T> T getSettingValue(String key) {
-        Objects.requireNonNull(sqlSettings, "SQL setting is null");
-        return (T) latestSettings.getOrDefault(key, sqlSettings.getSetting(key).getDefault(EMPTY));
+    public <T> T getSettingValue(Settings.Key key) {
+        Objects.requireNonNull(pluginSettings, "SQL plugin setting is null");
+        return (T) latestSettings.getOrDefault(key.getKeyValue(),
+            pluginSettings.getSettingValue(key));
     }
 
     /**

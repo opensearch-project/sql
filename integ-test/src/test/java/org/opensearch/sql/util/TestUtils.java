@@ -27,7 +27,6 @@
 package org.opensearch.sql.util;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static org.opensearch.sql.legacy.plugin.RestSqlSettingsAction.SETTINGS_API_ENDPOINT;
 
 import java.io.BufferedReader;
 import java.io.File;

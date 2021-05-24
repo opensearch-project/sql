@@ -29,6 +29,7 @@
 package org.opensearch.sql.opensearch.setting;
 
 import static org.opensearch.common.settings.Settings.EMPTY;
+import static org.opensearch.common.unit.TimeValue.timeValueMinutes;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
@@ -41,6 +42,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Setting;
+import org.opensearch.common.unit.MemorySizeValue;
+import org.opensearch.sql.common.setting.LegacySettings;
 import org.opensearch.sql.common.setting.Settings;
 
 /**
@@ -58,21 +61,66 @@ public class OpenSearchSettings extends Settings {
   @VisibleForTesting
   private final Map<Settings.Key, Object> latestSettings = new ConcurrentHashMap<>();
 
-  private static final Setting<?> PPL_QUERY_MEMORY_LIMIT_SETTINGS = Setting.memorySizeSetting(
-      Key.PPL_QUERY_MEMORY_LIMIT.getKeyValue(),
-      "85%",
+  public static final Setting<?> SQL_ENABLED_SETTING = Setting.boolSetting(
+      Key.SQL_ENABLED.getKeyValue(),
+      LegacyOpenDistroSettings.SQL_ENABLED_SETTING,
       Setting.Property.NodeScope,
       Setting.Property.Dynamic);
 
-  private static final Setting<?> QUERY_SIZE_LIMIT_SETTINGS = Setting.intSetting(
-      Key.QUERY_SIZE_LIMIT.getKeyValue(),
-      200,
+  public static final Setting<?> SQL_SLOWLOG_SETTING = Setting.intSetting(
+      Key.SQL_SLOWLOG.getKeyValue(),
+      LegacyOpenDistroSettings.SQL_QUERY_SLOWLOG_SETTING,
+      0,
       Setting.Property.NodeScope,
       Setting.Property.Dynamic);
 
-  private static final Setting<?> PPL_ENABLED_SETTINGS = Setting.boolSetting(
+  public static final Setting<?> SQL_CURSOR_KEEP_ALIVE_SETTING = Setting.positiveTimeSetting(
+      Key.SQL_CURSOR_KEEP_ALIVE.getKeyValue(),
+      LegacyOpenDistroSettings.SQL_CURSOR_KEEPALIVE_SETTING,
+      timeValueMinutes(1),
+      Setting.Property.NodeScope,
+      Setting.Property.Dynamic);
+
+  public static final Setting<?> SQL_DELETE_ENABLED_SETTING = Setting.boolSetting(
+      Key.SQL_DELETE_ENABLED.getKeyValue(),
+      false,
+      Setting.Property.NodeScope,
+      Setting.Property.Dynamic);
+
+  public static final Setting<?> PPL_ENABLED_SETTING = Setting.boolSetting(
       Key.PPL_ENABLED.getKeyValue(),
-      true,
+      LegacyOpenDistroSettings.PPL_ENABLED_SETTING,
+      Setting.Property.NodeScope,
+      Setting.Property.Dynamic);
+
+  public static final Setting<?> QUERY_MEMORY_LIMIT_SETTING = new Setting<>(
+      Key.QUERY_MEMORY_LIMIT.getKeyValue(),
+      LegacyOpenDistroSettings.PPL_QUERY_MEMORY_LIMIT_SETTING,
+      (s) -> MemorySizeValue.parseBytesSizeValueOrHeapRatio(
+          s, LegacySettings.Key.PPL_QUERY_MEMORY_LIMIT.getKeyValue()),
+      Setting.Property.NodeScope,
+      Setting.Property.Dynamic);
+
+  public static final Setting<?> QUERY_SIZE_LIMIT_SETTING = Setting.intSetting(
+      Key.QUERY_SIZE_LIMIT.getKeyValue(),
+      LegacyOpenDistroSettings.QUERY_SIZE_LIMIT_SETTING,
+      0,
+      Setting.Property.NodeScope,
+      Setting.Property.Dynamic);
+
+  public static final Setting<?> METRICS_ROLLING_WINDOW_SETTING = new Setting<>(
+      Key.METRICS_ROLLING_WINDOW.getKeyValue(),
+      LegacyOpenDistroSettings.METRICS_ROLLING_WINDOW_SETTING,
+      (s) -> Setting.parseLong(
+          s, 2L, Key.METRICS_ROLLING_WINDOW.getKeyValue()),
+      Setting.Property.NodeScope,
+      Setting.Property.Dynamic);
+
+  public static final Setting<?> METRICS_ROLLING_INTERVAL_SETTING = new Setting<>(
+      Key.METRICS_ROLLING_INTERVAL.getKeyValue(),
+      LegacyOpenDistroSettings.METRICS_ROLLING_INTERVAL_SETTING,
+      (s) -> Setting.parseLong(
+          s, 1L, Key.METRICS_ROLLING_INTERVAL.getKeyValue()),
       Setting.Property.NodeScope,
       Setting.Property.Dynamic);
 
@@ -80,14 +128,27 @@ public class OpenSearchSettings extends Settings {
    * Construct ElasticsearchSetting.
    * The ElasticsearchSetting must be singleton.
    */
+  @SuppressWarnings("unchecked")
   public OpenSearchSettings(ClusterSettings clusterSettings) {
     ImmutableMap.Builder<Key, Setting<?>> settingBuilder = new ImmutableMap.Builder<>();
-    register(settingBuilder, clusterSettings, Key.PPL_QUERY_MEMORY_LIMIT,
-        PPL_QUERY_MEMORY_LIMIT_SETTINGS, new Updater(Key.PPL_QUERY_MEMORY_LIMIT));
+    register(settingBuilder, clusterSettings, Key.SQL_ENABLED,
+        SQL_ENABLED_SETTING, new Updater(Key.SQL_ENABLED));
+    register(settingBuilder, clusterSettings, Key.SQL_SLOWLOG,
+        SQL_SLOWLOG_SETTING, new Updater(Key.SQL_SLOWLOG));
+    register(settingBuilder, clusterSettings, Key.SQL_CURSOR_KEEP_ALIVE,
+        SQL_CURSOR_KEEP_ALIVE_SETTING, new Updater(Key.SQL_CURSOR_KEEP_ALIVE));
+    register(settingBuilder, clusterSettings, Key.SQL_DELETE_ENABLED,
+        SQL_DELETE_ENABLED_SETTING, new Updater(Key.SQL_DELETE_ENABLED));
     register(settingBuilder, clusterSettings, Key.PPL_ENABLED,
-        PPL_ENABLED_SETTINGS, new Updater(Key.PPL_ENABLED));
+        PPL_ENABLED_SETTING, new Updater(Key.PPL_ENABLED));
+    register(settingBuilder, clusterSettings, Key.QUERY_MEMORY_LIMIT,
+        QUERY_MEMORY_LIMIT_SETTING, new Updater(Key.QUERY_MEMORY_LIMIT));
     register(settingBuilder, clusterSettings, Key.QUERY_SIZE_LIMIT,
-        QUERY_SIZE_LIMIT_SETTINGS, new Updater(Key.QUERY_SIZE_LIMIT));
+        QUERY_SIZE_LIMIT_SETTING, new Updater(Key.QUERY_SIZE_LIMIT));
+    register(settingBuilder, clusterSettings, Key.METRICS_ROLLING_WINDOW,
+        METRICS_ROLLING_WINDOW_SETTING, new Updater(Key.METRICS_ROLLING_WINDOW));
+    register(settingBuilder, clusterSettings, Key.METRICS_ROLLING_INTERVAL,
+        METRICS_ROLLING_INTERVAL_SETTING, new Updater(Key.METRICS_ROLLING_INTERVAL));
     defaultSettings = settingBuilder.build();
   }
 
@@ -110,7 +171,7 @@ public class OpenSearchSettings extends Settings {
   }
 
   /**
-   * Add the inner class only for UT coverage purpuse.
+   * Add the inner class only for UT coverage purpose.
    * Lambda could be much elegant solution. But which is hard to test.
    */
   @VisibleForTesting
@@ -130,9 +191,22 @@ public class OpenSearchSettings extends Settings {
    */
   public static List<Setting<?>> pluginSettings() {
     return new ImmutableList.Builder<Setting<?>>()
-        .add(PPL_QUERY_MEMORY_LIMIT_SETTINGS)
-        .add(PPL_ENABLED_SETTINGS)
-        .add(QUERY_SIZE_LIMIT_SETTINGS)
+        .add(SQL_ENABLED_SETTING)
+        .add(SQL_SLOWLOG_SETTING)
+        .add(SQL_CURSOR_KEEP_ALIVE_SETTING)
+        .add(SQL_DELETE_ENABLED_SETTING)
+        .add(PPL_ENABLED_SETTING)
+        .add(QUERY_MEMORY_LIMIT_SETTING)
+        .add(QUERY_SIZE_LIMIT_SETTING)
+        .add(METRICS_ROLLING_WINDOW_SETTING)
+        .add(METRICS_ROLLING_INTERVAL_SETTING)
         .build();
+  }
+
+  /**
+   * Used by local cluster to get settings from a setting instance.
+   */
+  public List<Setting<?>> getSettings() {
+    return pluginSettings();
   }
 }

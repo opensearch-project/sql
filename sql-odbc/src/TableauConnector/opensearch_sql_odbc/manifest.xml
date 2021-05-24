@@ -2,12 +2,12 @@
 
 <connector-plugin class='opensearch_sql_odbc' superclass='odbc' plugin-version='1.0.0.0' name='SQL' version='18.1' min-version-tableau='2020.1'>
   <vendor-information>
-      <company name="Open Distro for ES"/>
+      <company name="OpenSearch for ES"/>
       <support-link url="https://github.com/opensearch-project/sql"/>
       <driver-download-link url="https://github.com/opensearch-project/sql"/>
   </vendor-information>
   <connection-customization class="opensearch_sql_odbc" enabled="true" version="10.0">
-    <vendor name="Open Distro for ES"/>
+    <vendor name="OpenSearch for ES"/>
     <driver name="SQL"/>
     <customizations>
       <customization name="CAP_CREATE_TEMP_TABLES" value="no"/>

@@ -150,7 +150,7 @@ public class RestPPLQueryAction extends BaseRestHandler {
 
     if (!pplEnabled.get()) {
       return channel -> reportError(channel, new IllegalAccessException(
-          "Either opensearch.ppl.enabled or rest.action.multi.allow_explicit_index setting is false"
+          "Either plugins.ppl.enabled or rest.action.multi.allow_explicit_index setting is false"
       ), BAD_REQUEST);
     }
 

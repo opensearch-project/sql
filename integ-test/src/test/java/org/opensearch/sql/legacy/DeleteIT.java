@@ -32,6 +32,7 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
 public class DeleteIT extends SQLIntegTestCase {
@@ -40,6 +41,8 @@ public class DeleteIT extends SQLIntegTestCase {
   protected void init() throws Exception {
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.PHRASE);
+    updateClusterSettings(new ClusterSetting(PERSISTENT,
+        Settings.Key.SQL_DELETE_ENABLED.getKeyValue(), "true"));
   }
 
   @Test

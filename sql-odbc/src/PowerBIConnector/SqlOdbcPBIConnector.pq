@@ -203,7 +203,7 @@ SqlOdbcPBIConnector.Publish = [
     Beta = true,
     Category = "Other",
     ButtonText = { Extension.LoadString("ButtonTitle"), Extension.LoadString("ButtonHelp") },
-    LearnMoreUrl = "https://opendistro.github.io/for-elasticsearch/",
+    LearnMoreUrl = "https://www.opensearch.org/",
     
     // Disabling direct query due to limited SQL query support
     SupportsDirectQuery = false,

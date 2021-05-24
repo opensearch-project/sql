@@ -439,7 +439,7 @@ When OpenSearch bootstraps, SQL plugin will register a few settings in OpenSearc
 Most of the settings are able to change dynamically so you can control the behavior of SQL plugin without need to bounce your cluster.
 For cursors we will be exposing the following settings:
 
-####  opensearch.sql.cursor.keep_alive
+####  plugins.sql.cursor.keep_alive
 
 This setting controls the how long the cursor context is open for all cursor requests.
 You can five the time in human readable time format like `5h` (5 hours) or `20s` (20 seconds) etc.
@@ -454,7 +454,7 @@ Example:
 ```
 >> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings -d '{
   "transient" : {
-    "opensearch.sql.cursor.keep_alive" : "200s"
+    "plugins.sql.cursor.keep_alive" : "200s"
   }
 }'
 ```
@@ -466,7 +466,7 @@ Response:
   "acknowledged" : true,
   "persistent" : { },
   "transient" : {
-    "opensearch" : {
+    "plugins" : {
       "sql" : {
         "cursor" : {
           "keep_alive" : "200s"

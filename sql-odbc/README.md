@@ -82,7 +82,7 @@ From the projects root directory, then build the project using Visual Studio (Wi
 
 ## Documentation
 
-Please refer to the [documentation](https://opendistro.github.io/for-elasticsearch-docs/) for detailed information on installing and configuring OpenSearch.
+Please refer to the [documentation](https://docs-beta.opensearch.org/) for detailed information on installing and configuring OpenSearch.
 
 ## Code of Conduct
 

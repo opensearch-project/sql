@@ -26,8 +26,6 @@
 
 package org.opensearch.sql.legacy.query;
 
-import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_KEEPALIVE;
-
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
@@ -55,6 +53,7 @@ import org.opensearch.search.sort.ScoreSortBuilder;
 import org.opensearch.search.sort.ScriptSortBuilder.ScriptSortType;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.domain.KVValue;
 import org.opensearch.sql.legacy.domain.MethodField;
@@ -116,7 +115,7 @@ public class DefaultQueryAction extends QueryAction {
         LocalClusterState clusterState = LocalClusterState.state();
 
         Integer fetchSize = sqlRequest.fetchSize();
-        TimeValue timeValue = clusterState.getSettingValue(CURSOR_KEEPALIVE);
+        TimeValue timeValue = clusterState.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
         Integer rowCount = select.getRowCount();
 
         if (checkIfScrollNeeded(fetchSize, rowCount)) {

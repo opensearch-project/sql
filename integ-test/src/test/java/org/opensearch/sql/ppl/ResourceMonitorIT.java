@@ -35,6 +35,7 @@ import org.hamcrest.Matchers;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.client.ResponseException;
+import org.opensearch.sql.common.setting.Settings;
 
 public class ResourceMonitorIT extends PPLIntegTestCase {
 
@@ -45,9 +46,9 @@ public class ResourceMonitorIT extends PPLIntegTestCase {
 
   @Test
   public void queryExceedResourceLimitShouldFail() throws IOException {
-    // update opensearch.ppl.query.memory_limit to 1%
+    // update plugins.ppl.query.memory_limit to 1%
     updateClusterSettings(
-        new ClusterSetting("persistent", "opensearch.ppl.query.memory_limit", "1%"));
+        new ClusterSetting("persistent", Settings.Key.QUERY_MEMORY_LIMIT.getKeyValue(), "1%"));
     String query = String.format("search source=%s age=20", TEST_INDEX_DOG);
 
     ResponseException exception =
@@ -56,9 +57,9 @@ public class ResourceMonitorIT extends PPLIntegTestCase {
     assertThat(exception.getMessage(), Matchers.containsString("resource is not enough to run the"
         + " query, quit."));
 
-    // update opensearch.ppl.query.memory_limit to default value 85%
+    // update plugins.ppl.query.memory_limit to default value 85%
     updateClusterSettings(
-        new ClusterSetting("persistent", "opensearch.ppl.query.memory_limit", "85%"));
+        new ClusterSetting("persistent", Settings.Key.QUERY_MEMORY_LIMIT.getKeyValue(), "85%"));
     JSONObject result = executeQuery(String.format("search source=%s", TEST_INDEX_DOG));
     verifyColumn(result, columnName("dog_name"), columnName("holdersName"), columnName("age"));
   }

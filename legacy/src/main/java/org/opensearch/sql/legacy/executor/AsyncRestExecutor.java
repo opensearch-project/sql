@@ -26,8 +26,6 @@
 
 package org.opensearch.sql.legacy.executor;
 
-import static org.opensearch.sql.legacy.plugin.SqlSettings.QUERY_SLOWLOG;
-
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
@@ -40,6 +38,7 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestStatus;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.metrics.MetricName;
@@ -171,7 +170,7 @@ public class AsyncRestExecutor implements RestExecutor {
             executor.execute(client, params, action, channel);
         } finally {
             Duration elapsed = Duration.ofNanos(System.nanoTime() - startTime);
-            int slowLogThreshold = LocalClusterState.state().getSettingValue(QUERY_SLOWLOG);
+            int slowLogThreshold = LocalClusterState.state().getSettingValue(Settings.Key.SQL_SLOWLOG);
             if (elapsed.getSeconds() >= slowLogThreshold) {
                 LOG.warn("[{}] Slow query: elapsed={} (ms)", LogUtils.getRequestId(), elapsed.toMillis());
             }

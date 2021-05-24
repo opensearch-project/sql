@@ -33,7 +33,8 @@ import static org.opensearch.sql.doctest.core.response.SqlResponseFormat.PRETTY_
 import static org.opensearch.sql.doctest.core.response.SqlResponseFormat.TABLE_RESPONSE;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.EXPLAIN_API_ENDPOINT;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
-import static org.opensearch.sql.legacy.plugin.RestSqlSettingsAction.SETTINGS_API_ENDPOINT;
+import static org.opensearch.sql.plugin.rest.RestQuerySettingsAction.LEGACY_SQL_SETTINGS_API_ENDPOINT;
+
 
 import com.google.common.base.Strings;
 import java.util.Arrays;
@@ -210,7 +211,7 @@ public interface DocBuilder {
         StringUtils.format("\"%s\": {\"%s\": \"%s\"}", "transient", name, value);
     return new Requests(
         restClient(),
-        new SqlRequest("PUT", SETTINGS_API_ENDPOINT, new Body(setting).toString()),
+        new SqlRequest("PUT", LEGACY_SQL_SETTINGS_API_ENDPOINT, new Body(setting).toString()),
         null
     );
   }

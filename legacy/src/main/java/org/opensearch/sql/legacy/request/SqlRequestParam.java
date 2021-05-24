@@ -26,8 +26,6 @@
 
 package org.opensearch.sql.legacy.request;
 
-import static org.opensearch.sql.legacy.plugin.SqlSettings.DEFAULT_RESPONSE_FORMAT;
-
 import java.util.Map;
 import java.util.Optional;
 import org.opensearch.sql.legacy.executor.Format;
@@ -39,6 +37,8 @@ public class SqlRequestParam {
     public static final String QUERY_PARAMS_FORMAT = "format";
     public static final String QUERY_PARAMS_PRETTY = "pretty";
     public static final String QUERY_PARAMS_ESCAPE = "escape";
+
+    private static final String DEFAULT_RESPONSE_FORMAT = "jdbc";
 
     /**
      * Parse the pretty params to decide whether the response should be pretty formatted.

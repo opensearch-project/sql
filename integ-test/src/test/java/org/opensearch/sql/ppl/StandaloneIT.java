@@ -32,6 +32,7 @@ import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
@@ -145,6 +146,11 @@ public class StandaloneIT extends PPLIntegTestCase {
       @Override
       public <T> T getSettingValue(Key key) {
         return (T) defaultSettings.get(key);
+      }
+
+      @Override
+      public List<?> getSettings() {
+        return (List<?>) defaultSettings;
       }
     };
   }

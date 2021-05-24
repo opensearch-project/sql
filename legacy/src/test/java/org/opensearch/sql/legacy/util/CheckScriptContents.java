@@ -68,14 +68,15 @@ import org.opensearch.sql.legacy.domain.Condition;
 import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.domain.Where;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
+import org.opensearch.sql.legacy.exception.SQLFeatureDisabledException;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.parser.ElasticSqlExprParser;
 import org.opensearch.sql.legacy.parser.ScriptFilter;
 import org.opensearch.sql.legacy.parser.SqlParser;
-import org.opensearch.sql.legacy.plugin.SqlSettings;
 import org.opensearch.sql.legacy.query.OpenSearchActionFactory;
 import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
+import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 
 public class CheckScriptContents {
 
@@ -97,7 +98,7 @@ public class CheckScriptContents {
 
             return scriptFields.get(0);
 
-        } catch (SQLFeatureNotSupportedException | SqlParseException e) {
+        } catch (SQLFeatureNotSupportedException | SqlParseException | SQLFeatureDisabledException e) {
             throw new ParserException("Unable to parse query: " + query, e);
         }
     }
@@ -244,7 +245,7 @@ public class CheckScriptContents {
     public static void mockLocalClusterState(String mappings) {
         LocalClusterState.state().setClusterService(mockClusterService(mappings));
         LocalClusterState.state().setResolver(mockIndexNameExpressionResolver());
-        LocalClusterState.state().setSqlSettings(mockSqlSettings());
+        LocalClusterState.state().setPluginSettings(mockPluginSettings());
     }
 
     public static ClusterService mockClusterService(String mappings) {
@@ -280,8 +281,8 @@ public class CheckScriptContents {
         return mockResolver;
     }
 
-    public static SqlSettings mockSqlSettings() {
-        SqlSettings settings = spy(new SqlSettings());
+    public static OpenSearchSettings mockPluginSettings() {
+        OpenSearchSettings settings = mock(OpenSearchSettings.class);
 
         // Force return empty list to avoid ClusterSettings be invoked which is a final class and hard to mock.
         // In this case, default value in Setting will be returned all the time.

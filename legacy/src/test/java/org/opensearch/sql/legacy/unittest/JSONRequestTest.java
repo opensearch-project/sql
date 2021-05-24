@@ -29,7 +29,10 @@ package org.opensearch.sql.legacy.unittest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.alibaba.druid.sql.parser.ParserException;
@@ -41,14 +44,21 @@ import java.sql.SQLFeatureNotSupportedException;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.client.Client;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.legacy.domain.ColumnTypeProvider;
 import org.opensearch.sql.legacy.domain.QueryActionRequest;
+import org.opensearch.sql.legacy.esdomain.LocalClusterState;
+import org.opensearch.sql.legacy.exception.SQLFeatureDisabledException;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.Format;
 import org.opensearch.sql.legacy.executor.format.Schema;
@@ -306,15 +316,39 @@ public class JSONRequestTest {
 
     @Test
     public void deleteSanity() throws IOException {
-        String result = explain(String.format("{\"query\":\"" +
+        try (MockedStatic<LocalClusterState> localClusterStateMockedStatic =
+            Mockito.mockStatic(LocalClusterState.class)) {
+            LocalClusterState state = mock(LocalClusterState.class);
+            localClusterStateMockedStatic.when(LocalClusterState::state).thenReturn(state);
+            when(state.getSettingValue(any(Settings.Key.class))).thenReturn(true);
+
+            String result = explain(String.format("{\"query\":\"" +
                 "DELETE " +
                 "FROM %s " +
                 "WHERE firstname LIKE 'A%%' AND age > 20\"}", TestsConstants.TEST_INDEX_ACCOUNT));
-        String expectedOutput = Files.toString(
+            String expectedOutput = Files.toString(
                 new File(getResourcePath() + "src/test/resources/expectedOutput/delete_explain.json"), StandardCharsets.UTF_8)
                 .replaceAll("\r", "");
+            assertThat(removeSpaces(result), equalTo(removeSpaces(expectedOutput)));
+        }
+    }
 
-        assertThat(removeSpaces(result), equalTo(removeSpaces(expectedOutput)));
+    @Test(expected = SQLFeatureDisabledException.class)
+    public void deleteShouldThrowExceptionWhenDisabled()
+        throws SQLFeatureDisabledException, SQLFeatureNotSupportedException,
+        SqlParseException {
+        try (MockedStatic<LocalClusterState> localClusterStateMockedStatic =
+                 Mockito.mockStatic(LocalClusterState.class)) {
+            LocalClusterState state = mock(LocalClusterState.class);
+            localClusterStateMockedStatic.when(LocalClusterState::state).thenReturn(state);
+            when(state.getSettingValue(any(Settings.Key.class))).thenReturn(false);
+
+            JSONObject jsonRequest = new JSONObject(StringUtils.format("{\"query\":\"" +
+                "DELETE " +
+                "FROM %s " +
+                "WHERE firstname LIKE 'A%%' AND age > 20\"}", TestsConstants.TEST_INDEX_ACCOUNT));
+            translate(jsonRequest.getString("query"), jsonRequest);
+        }
     }
 
     @Test
@@ -366,13 +400,14 @@ public class JSONRequestTest {
             String sql = jsonRequest.getString("query");
 
             return translate(sql, jsonRequest);
-        } catch (SqlParseException | SQLFeatureNotSupportedException e) {
+        } catch (SqlParseException | SQLFeatureNotSupportedException | SQLFeatureDisabledException e) {
             throw new ParserException("Illegal sql expr in request: " + request);
         }
     }
 
-    private String translate(String sql, JSONObject jsonRequest) throws SQLFeatureNotSupportedException, SqlParseException {
-        Client mockClient = Mockito.mock(Client.class);
+    private String translate(String sql, JSONObject jsonRequest)
+        throws SQLFeatureNotSupportedException, SqlParseException, SQLFeatureDisabledException {
+        Client mockClient = mock(Client.class);
         CheckScriptContents.stubMockClient(mockClient);
         QueryAction queryAction =
                 OpenSearchActionFactory

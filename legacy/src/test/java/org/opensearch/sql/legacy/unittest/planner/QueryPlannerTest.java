@@ -39,6 +39,7 @@ import com.alibaba.druid.sql.ast.expr.SQLQueryExpr;
 import com.alibaba.druid.sql.parser.ParserException;
 import com.alibaba.druid.sql.parser.SQLExprParser;
 import com.alibaba.druid.sql.parser.Token;
+import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.lucene.search.TotalHits;
@@ -58,6 +59,8 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequestBuilder;
 import org.opensearch.client.Client;
 import org.opensearch.common.bytes.BytesArray;
+import org.opensearch.common.settings.ClusterSettings;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
@@ -67,7 +70,6 @@ import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.parser.ElasticSqlExprParser;
 import org.opensearch.sql.legacy.parser.SqlParser;
-import org.opensearch.sql.legacy.plugin.SqlSettings;
 import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.BackOffRetryStrategy;
@@ -75,6 +77,7 @@ import org.opensearch.sql.legacy.query.join.OpenSearchJoinQueryActionFactory;
 import org.opensearch.sql.legacy.query.planner.HashJoinQueryPlanRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.core.QueryPlanner;
 import org.opensearch.sql.legacy.request.SqlRequest;
+import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 
 /**
  * Test base class for all query planner tests.
@@ -92,6 +95,9 @@ public abstract class QueryPlannerTest {
     @Mock
     private SearchResponse response2;
     private static final String SCROLL_ID2 = "2";
+
+    @Mock
+    private ClusterSettings clusterSettings;
 
     /*
     @BeforeClass
@@ -120,11 +126,11 @@ public abstract class QueryPlannerTest {
     public void init() {
         MockitoAnnotations.initMocks(this);
 
-        SqlSettings settings = spy(new SqlSettings());
+        OpenSearchSettings settings = spy(new OpenSearchSettings(clusterSettings));
         // Force return empty list to avoid ClusterSettings be invoked which is a final class and hard to mock.
         // In this case, default value in Setting will be returned all the time.
         doReturn(emptyList()).when(settings).getSettings();
-        LocalClusterState.state().setSqlSettings(settings);
+        LocalClusterState.state().setPluginSettings(settings);
 
         ActionFuture mockFuture = mock(ActionFuture.class);
         when(client.execute(any(), any())).thenReturn(mockFuture);

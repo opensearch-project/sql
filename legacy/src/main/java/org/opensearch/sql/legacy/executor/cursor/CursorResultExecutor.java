@@ -27,7 +27,6 @@
 package org.opensearch.sql.legacy.executor.cursor;
 
 import static org.opensearch.rest.RestStatus.OK;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.CURSOR_KEEPALIVE;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -43,6 +42,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.cursor.CursorType;
 import org.opensearch.sql.legacy.cursor.DefaultCursor;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
@@ -111,7 +111,7 @@ public class CursorResultExecutor implements CursorRestExecutor {
     private String handleDefaultCursorRequest(Client client, DefaultCursor cursor) {
         String previousScrollId = cursor.getScrollId();
         LocalClusterState clusterState = LocalClusterState.state();
-        TimeValue scrollTimeout = clusterState.getSettingValue(CURSOR_KEEPALIVE);
+        TimeValue scrollTimeout = clusterState.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
         SearchResponse scrollResponse = client.prepareSearchScroll(previousScrollId).setScroll(scrollTimeout).get();
         SearchHits searchHits = scrollResponse.getHits();
         SearchHit[] searchHitArray = searchHits.getHits();
