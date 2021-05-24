@@ -146,6 +146,7 @@ public enum BuiltinFunctionName {
   LEFT(FunctionName.of("left")),
   ASCII(FunctionName.of("ascii")),
   LOCATE(FunctionName.of("locate")),
+  REPLACE(FunctionName.of("replace")),
 
   /**
    * NULL Test.

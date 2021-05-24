@@ -371,7 +371,23 @@ public class TextFunctionTest extends ExpressionTestBase {
     assertEquals(nullValue(), eval(dsl.locate(nullRef, DSL.literal("hello"), DSL.literal(1))));
     when(missingRef.type()).thenReturn(STRING);
     assertEquals(missingValue(), eval(dsl.locate(missingRef, DSL.literal("hello"))));
-    assertEquals(missingValue(), eval(dsl.locate(missingRef, DSL.literal("hello"), DSL.literal(1))));
+    assertEquals(missingValue(), eval(
+        dsl.locate(missingRef, DSL.literal("hello"), DSL.literal(1))));
+  }
+
+  @Test
+  void replace() {
+    FunctionExpression expression = dsl.replace(
+        DSL.literal("helloworld"),
+        DSL.literal("world"),
+        DSL.literal("opensearch"));
+    assertEquals(STRING, expression.type());
+    assertEquals("helloopensearch", eval(expression).stringValue());
+
+    when(nullRef.type()).thenReturn(STRING);
+    assertEquals(nullValue(), eval(dsl.replace(nullRef, DSL.literal("a"), DSL.literal("b"))));
+    when(missingRef.type()).thenReturn(STRING);
+    assertEquals(missingValue(), eval(dsl.replace(missingRef, DSL.literal("a"), DSL.literal("b"))));
   }
 
   void testConcatString(List<String> strings) {

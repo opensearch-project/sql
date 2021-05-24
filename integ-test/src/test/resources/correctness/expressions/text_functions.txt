@@ -3,3 +3,4 @@ LEFT('Hello World', 5) as column
 ASCII('hello')
 LOCATE('world', 'helloworld')
 LOCATE('world', 'helloworld', 7)
+REPLACE('hello', 'world', 'opensearch')

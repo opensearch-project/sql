@@ -76,6 +76,7 @@ public class TextFunction {
     repository.register(left());
     repository.register(ascii());
     repository.register(locate());
+    repository.register(replace());
   }
 
   /**
@@ -248,7 +249,7 @@ public class TextFunction {
    * of substring substr in string str, starting at position pos.
    * Returns 0 if substr is not in str.
    * Returns NULL if any argument is NULL.
-   * Supoorts following signature:
+   * Supports following signature:
    * (STRING, STRING) -> INTEGER
    * (STRING, STRING, INTEGER) -> INTEGER
    */
@@ -260,6 +261,18 @@ public class TextFunction {
         impl(nullMissingHandling(
             (SerializableTriFunction<ExprValue, ExprValue, ExprValue, ExprValue>)
                 TextFunction::exprLocate), INTEGER, STRING, STRING, INTEGER));
+  }
+
+  /**
+   * REPLACE(str, from_str, to_str) returns the string str with all occurrences of
+   * the string from_str replaced by the string to_str.
+   * REPLACE() performs a case-sensitive match when searching for from_str.
+   * Supports following signature:
+   * (STRING, STRING, STRING) -> STRING
+   */
+  private FunctionResolver replace() {
+    return define(BuiltinFunctionName.REPLACE.getName(),
+        impl(nullMissingHandling(TextFunction::exprReplace), STRING, STRING, STRING, STRING));
   }
 
   private static ExprValue exprSubstrStart(ExprValue exprValue, ExprValue start) {
@@ -314,6 +327,10 @@ public class TextFunction {
   private static ExprValue exprLocate(ExprValue subStr, ExprValue str, ExprValue pos) {
     return new ExprIntegerValue(
         str.stringValue().indexOf(subStr.stringValue(), pos.integerValue() - 1) + 1);
+  }
+
+  private static ExprValue exprReplace(ExprValue str, ExprValue from, ExprValue to) {
+    return new ExprStringValue(str.stringValue().replaceAll(from.stringValue(), to.stringValue()));
   }
 }
 

@@ -436,6 +436,10 @@ public class DSL {
     return function(BuiltinFunctionName.LOCATE, expressions);
   }
 
+  public FunctionExpression replace(Expression... expressions) {
+    return function(BuiltinFunctionName.REPLACE, expressions);
+  }
+
   public FunctionExpression and(Expression... expressions) {
     return function(BuiltinFunctionName.AND, expressions);
   }

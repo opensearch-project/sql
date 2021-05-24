@@ -1784,9 +1784,21 @@ REPLACE
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: REPLACE(str, from_str, to_str) returns the string str with all occurrences of the string from_str replaced by the string to_str. REPLACE() performs a case-sensitive match when searching for from_str.
 
-1. REPLACE(STRING T, STRING, STRING) -> T
+Argument type: STRING, STRING, STRING
+
+Return type: STRING
+
+Example::
+
+    os> SELECT REPLACE('Hello World!', 'World', 'OpenSearch')
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------+
+    | LENGTH('Hello World!', 'World', 'OpenSearch')   |
+    |-------------------------------------------------|
+    | Hello OpenSearch!                               |
+    +-------------------------------------------------+
 
 
 RIGHT
