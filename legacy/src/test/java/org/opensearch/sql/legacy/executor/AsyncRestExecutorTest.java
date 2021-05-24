@@ -45,11 +45,12 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.client.Client;
+import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
-import org.opensearch.sql.legacy.plugin.SqlSettings;
 import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.request.SqlRequest;
+import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.threadpool.ThreadPool;
 
 /**
@@ -74,14 +75,17 @@ public class AsyncRestExecutorTest {
     @Mock
     private RestChannel channel;
 
+    @Mock
+    private ClusterSettings clusterSettings;
+
     @Before
     public void setUp() {
         when(client.threadPool()).thenReturn(mock(ThreadPool.class));
         when(action.getSqlRequest()).thenReturn(SqlRequest.NULL);
 
-        SqlSettings settings = spy(new SqlSettings());
+        OpenSearchSettings settings = spy(new OpenSearchSettings(clusterSettings));
         doReturn(emptyList()).when(settings).getSettings();
-        LocalClusterState.state().setSqlSettings(settings);
+        LocalClusterState.state().setPluginSettings(settings);
     }
 
     @Test

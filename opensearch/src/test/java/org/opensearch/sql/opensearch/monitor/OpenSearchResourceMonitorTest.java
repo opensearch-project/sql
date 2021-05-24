@@ -52,7 +52,7 @@ class OpenSearchResourceMonitorTest {
 
   @BeforeEach
   public void setup() {
-    when(settings.getSettingValue(Settings.Key.PPL_QUERY_MEMORY_LIMIT))
+    when(settings.getSettingValue(Settings.Key.QUERY_MEMORY_LIMIT))
         .thenReturn(new ByteSizeValue(10L));
   }
 

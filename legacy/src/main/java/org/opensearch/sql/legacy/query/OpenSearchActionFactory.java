@@ -27,7 +27,6 @@
 package org.opensearch.sql.legacy.query;
 
 import static org.opensearch.sql.legacy.domain.IndexStatement.StatementType;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.SQL_DELETE_ENABLED;
 import static org.opensearch.sql.legacy.utils.Util.toSqlExpr;
 
 import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
@@ -50,6 +49,7 @@ import java.util.List;
 import org.opensearch.client.Client;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.domain.ColumnTypeProvider;
 import org.opensearch.sql.legacy.domain.Delete;
 import org.opensearch.sql.legacy.domain.IndexStatement;
@@ -150,7 +150,7 @@ public class OpenSearchActionFactory {
                     throw new SQLFeatureDisabledException(
                         StringUtils.format("DELETE clause is disabled by default and will be "
                                 + "deprecated. Using the %s setting to enable it",
-                            SQL_DELETE_ENABLED));
+                            Settings.Key.SQL_DELETE_ENABLED.getKeyValue()));
                 }
             case "SHOW":
                 IndexStatement showStatement = new IndexStatement(StatementType.SHOW, sql);
@@ -165,7 +165,7 @@ public class OpenSearchActionFactory {
     }
 
     private static boolean isSQLDeleteEnabled() {
-        return LocalClusterState.state().getSettingValue(SQL_DELETE_ENABLED);
+        return LocalClusterState.state().getSettingValue(Settings.Key.SQL_DELETE_ENABLED);
     }
 
     private static String getFirstWord(String sql) {

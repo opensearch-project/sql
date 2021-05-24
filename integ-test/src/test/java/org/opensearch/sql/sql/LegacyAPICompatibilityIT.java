@@ -15,8 +15,9 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.LEGACY_CURSOR_CLOSE_ENDPOINT;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.LEGACY_EXPLAIN_API_ENDPOINT;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.LEGACY_QUERY_API_ENDPOINT;
-import static org.opensearch.sql.legacy.plugin.RestSqlSettingsAction.LEGACY_SETTINGS_API_ENDPOINT;
 import static org.opensearch.sql.legacy.plugin.RestSqlStatsAction.LEGACY_STATS_API_ENDPOINT;
+import static org.opensearch.sql.plugin.rest.RestQuerySettingsAction.LEGACY_SQL_SETTINGS_API_ENDPOINT;
+
 
 import java.io.IOException;
 import org.json.JSONObject;
@@ -82,10 +83,10 @@ public class LegacyAPICompatibilityIT extends SQLIntegTestCase {
   public void updateSettings() throws IOException {
     String requestBody = "{" +
         "  \"persistent\": {" +
-        "    \"opensearch.sql.metrics.rollinginterval\": \"80\"" +
+        "    \"plugins.query.metrics.rolling_interval\": \"80\"" +
         "  }" +
         "}";
-    Request request = new Request("PUT", LEGACY_SETTINGS_API_ENDPOINT);
+    Request request = new Request("PUT", LEGACY_SQL_SETTINGS_API_ENDPOINT);
     request.setJsonEntity(requestBody);
     request.setOptions(buildJsonOption());
     Response response = client().performRequest(request);

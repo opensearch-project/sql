@@ -46,6 +46,7 @@ import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
 public class CursorIT extends SQLIntegTestCase {
@@ -303,13 +304,13 @@ public class CursorIT extends SQLIntegTestCase {
   public void testCursorSettings() throws IOException {
     // Assert default cursor settings
     JSONObject clusterSettings = getAllClusterSettings();
-    assertThat(clusterSettings.query("/defaults/opensearch.sql.cursor.keep_alive"), equalTo("1m"));
+    assertThat(clusterSettings.query("/defaults/plugins.sql.cursor.keep_alive"), equalTo("1m"));
 
     updateClusterSettings(
-        new ClusterSetting(PERSISTENT, "opensearch.sql.cursor.keep_alive", "200s"));
+        new ClusterSetting(PERSISTENT, Settings.Key.SQL_CURSOR_KEEP_ALIVE.getKeyValue(), "200s"));
 
     clusterSettings = getAllClusterSettings();
-    assertThat(clusterSettings.query("/persistent/opensearch.sql.cursor.keep_alive"),
+    assertThat(clusterSettings.query("/persistent/plugins.sql.cursor.keep_alive"),
         equalTo("200s"));
 
     wipeAllClusterSettings();

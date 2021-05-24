@@ -26,37 +26,22 @@
 
 package org.opensearch.sql.legacy.unittest;
 
-import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
 import static org.opensearch.sql.legacy.request.SqlRequestParam.QUERY_PARAMS_FORMAT;
 import static org.opensearch.sql.legacy.request.SqlRequestParam.QUERY_PARAMS_PRETTY;
 
 import com.google.common.collect.ImmutableMap;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.executor.Format;
-import org.opensearch.sql.legacy.plugin.SqlSettings;
 import org.opensearch.sql.legacy.request.SqlRequestParam;
 
 public class SqlRequestParamTest {
     @Rule
     public ExpectedException exceptionRule = ExpectedException.none();
-
-    @Before
-    public void setup() {
-        SqlSettings settings = spy(new SqlSettings());
-        // Force return empty list to avoid ClusterSettings be invoked which is a final class and hard to mock.
-        // In this case, default value in Setting will be returned all the time.
-        doReturn(emptyList()).when(settings).getSettings();
-        LocalClusterState.state().setSqlSettings(settings);
-    }
 
     @Test
     public void shouldReturnTrueIfPrettyParamsIsTrue() {

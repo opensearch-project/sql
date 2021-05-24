@@ -29,7 +29,6 @@ package org.opensearch.sql.legacy.plugin;
 import static org.opensearch.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.rest.RestStatus.OK;
 import static org.opensearch.rest.RestStatus.SERVICE_UNAVAILABLE;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.SQL_ENABLED;
 
 import com.alibaba.druid.sql.parser.ParserException;
 import com.google.common.collect.ImmutableList;
@@ -148,7 +147,7 @@ public class RestSqlAction extends BaseRestHandler {
         try {
             if (!isSQLFeatureEnabled()) {
                 throw new SQLFeatureDisabledException(
-                        "Either opensearch.sql.enabled or rest.action.multi.allow_explicit_index setting is false"
+                        "Either plugins.sql.enabled or rest.action.multi.allow_explicit_index setting is false"
                 );
             }
 
@@ -277,7 +276,8 @@ public class RestSqlAction extends BaseRestHandler {
     }
 
     private boolean isSQLFeatureEnabled() {
-        boolean isSqlEnabled = LocalClusterState.state().getSettingValue(SQL_ENABLED);
+        boolean isSqlEnabled = LocalClusterState.state().getSettingValue(
+            org.opensearch.sql.common.setting.Settings.Key.SQL_ENABLED);
         return allowExplicitIndex && isSqlEnabled;
     }
 

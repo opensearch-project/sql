@@ -73,7 +73,7 @@ public class OpenSearchResourceMonitor extends ResourceMonitor {
   @Override
   public boolean isHealthy() {
     try {
-      ByteSizeValue limit = settings.getSettingValue(Settings.Key.PPL_QUERY_MEMORY_LIMIT);
+      ByteSizeValue limit = settings.getSettingValue(Settings.Key.QUERY_MEMORY_LIMIT);
       Supplier<Boolean> booleanSupplier =
           Retry.decorateSupplier(retry,
               () -> memoryMonitor

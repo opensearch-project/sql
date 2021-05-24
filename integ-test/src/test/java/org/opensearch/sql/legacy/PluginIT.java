@@ -30,8 +30,6 @@ package org.opensearch.sql.legacy;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
-import static org.opensearch.sql.legacy.plugin.RestSqlSettingsAction.SETTINGS_API_ENDPOINT;
-import static org.opensearch.sql.legacy.plugin.SqlSettings.SQL_DELETE_ENABLED;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -41,7 +39,9 @@ import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.utils.StringUtils;
+import org.opensearch.sql.plugin.rest.RestQuerySettingsAction;
 
 public class PluginIT extends SQLIntegTestCase {
 
@@ -53,13 +53,13 @@ public class PluginIT extends SQLIntegTestCase {
   @Test
   public void sqlEnableSettingsTest() throws IOException {
     loadIndex(Index.ACCOUNT);
-    updateClusterSettings(new ClusterSetting(PERSISTENT, "opensearch.sql.enabled", "true"));
+    updateClusterSettings(new ClusterSetting(PERSISTENT, "plugins.sql.enabled", "true"));
     String query = String
         .format(Locale.ROOT, "SELECT firstname FROM %s WHERE account_number=1", TEST_INDEX_ACCOUNT);
     JSONObject queryResult = executeQuery(query);
     assertThat(getHits(queryResult).length(), equalTo(1));
 
-    updateClusterSettings(new ClusterSetting(PERSISTENT, "opensearch.sql.enabled", "false"));
+    updateClusterSettings(new ClusterSetting(PERSISTENT, "plugins.sql.enabled", "false"));
     Response response = null;
     try {
       queryResult = executeQuery(query);
@@ -72,14 +72,15 @@ public class PluginIT extends SQLIntegTestCase {
     JSONObject error = queryResult.getJSONObject("error");
     assertThat(error.getString("reason"), equalTo("Invalid SQL query"));
     assertThat(error.getString("details"), equalTo(
-        "Either opensearch.sql.enabled or rest.action.multi.allow_explicit_index setting is false"));
+        "Either plugins.sql.enabled or rest.action.multi.allow_explicit_index setting is false"));
     assertThat(error.getString("type"), equalTo("SQLFeatureDisabledException"));
     wipeAllClusterSettings();
   }
 
   @Test
   public void sqlDeleteSettingsTest() throws IOException {
-    updateClusterSettings(new ClusterSetting(PERSISTENT, SQL_DELETE_ENABLED, "false"));
+    updateClusterSettings(new ClusterSetting(PERSISTENT,
+        Settings.Key.SQL_DELETE_ENABLED.getKeyValue(), "false"));
 
     String deleteQuery = StringUtils.format("DELETE FROM %s", TestsConstants.TEST_INDEX_ACCOUNT);
     final ResponseException exception =
@@ -91,7 +92,7 @@ public class PluginIT extends SQLIntegTestCase {
                 + "  \"error\": {\n"
                 + "    \"reason\": \"Invalid SQL query\",\n"
                 + "    \"details\": \"DELETE clause is disabled by default and will be deprecated. Using "
-                + "the opensearch.sql.delete.enabled setting to enable it\",\n"
+                + "the plugins.sql.delete.enabled setting to enable it\",\n"
                 + "    \"type\": \"SQLFeatureDisabledException\"\n"
                 + "  },\n"
                 + "  \"status\": 400\n"
@@ -106,7 +107,7 @@ public class PluginIT extends SQLIntegTestCase {
     // (1) compact form
     String settings = "{" +
         "  \"transient\": {" +
-        "    \"opensearch.sql.metrics.rollinginterval\": \"80\"" +
+        "    \"plugins.query.metrics.rolling_interval\": \"80\"" +
         "  }" +
         "}";
     JSONObject actual = updateViaSQLSettingsAPI(settings);
@@ -114,10 +115,10 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"acknowledged\" : true," +
         "  \"persistent\" : { }," +
         "  \"transient\" : {" +
-        "    \"opensearch\" : {" +
-        "      \"sql\" : {" +
+        "    \"plugins\" : {" +
+        "      \"query\" : {" +
         "        \"metrics\" : {" +
-        "          \"rollinginterval\" : \"80\"" +
+        "          \"rolling_interval\" : \"80\"" +
         "        }" +
         "      }" +
         "    }" +
@@ -128,9 +129,9 @@ public class PluginIT extends SQLIntegTestCase {
     // (2) partial expanded form
     settings = "{" +
         "  \"transient\": {" +
-        "    \"opensearch\" : {" +
-        "      \"sql\" : {" +
-        "        \"metrics.rollinginterval\": \"75\"" +
+        "    \"plugins\" : {" +
+        "      \"query\" : {" +
+        "        \"metrics.rolling_interval\": \"75\"" +
         "      }" +
         "    }" +
         "  }" +
@@ -140,10 +141,10 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"acknowledged\" : true," +
         "  \"persistent\" : { }," +
         "  \"transient\" : {" +
-        "    \"opensearch\" : {" +
-        "      \"sql\" : {" +
+        "    \"plugins\" : {" +
+        "      \"query\" : {" +
         "        \"metrics\" : {" +
-        "          \"rollinginterval\" : \"75\"" +
+        "          \"rolling_interval\" : \"75\"" +
         "        }" +
         "      }" +
         "    }" +
@@ -155,10 +156,10 @@ public class PluginIT extends SQLIntegTestCase {
     // (3) full expanded form
     settings = "{" +
         "  \"transient\": {" +
-        "    \"opensearch\" : {" +
-        "      \"sql\" : {" +
+        "    \"plugins\" : {" +
+        "      \"query\" : {" +
         "        \"metrics\": {" +
-        "          \"rollinginterval\": \"65\"" +
+        "          \"rolling_interval\": \"65\"" +
         "        }" +
         "      }" +
         "    }" +
@@ -169,10 +170,10 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"acknowledged\" : true," +
         "  \"persistent\" : { }," +
         "  \"transient\" : {" +
-        "    \"opensearch\" : {" +
-        "      \"sql\" : {" +
+        "    \"plugins\" : {" +
+        "      \"query\" : {" +
         "        \"metrics\" : {" +
-        "          \"rollinginterval\" : \"65\"" +
+        "          \"rolling_interval\" : \"65\"" +
         "        }" +
         "      }" +
         "    }" +
@@ -186,7 +187,7 @@ public class PluginIT extends SQLIntegTestCase {
     // (1) compact form
     String settings = "{" +
         "  \"persistent\": {" +
-        "    \"opensearch.sql.metrics.rollinginterval\": \"80\"" +
+        "    \"plugins.query.metrics.rolling_interval\": \"80\"" +
         "  }" +
         "}";
     JSONObject actual = updateViaSQLSettingsAPI(settings);
@@ -194,10 +195,10 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"acknowledged\" : true," +
         "  \"transient\" : { }," +
         "  \"persistent\" : {" +
-        "    \"opensearch\" : {" +
-        "      \"sql\" : {" +
+        "    \"plugins\" : {" +
+        "      \"query\" : {" +
         "        \"metrics\" : {" +
-        "          \"rollinginterval\" : \"80\"" +
+        "          \"rolling_interval\" : \"80\"" +
         "        }" +
         "      }" +
         "    }" +
@@ -208,9 +209,9 @@ public class PluginIT extends SQLIntegTestCase {
     // (2) partial expanded form
     settings = "{" +
         "  \"persistent\": {" +
-        "    \"opensearch\" : {" +
-        "      \"sql\" : {" +
-        "        \"metrics.rollinginterval\": \"75\"" +
+        "    \"plugins\" : {" +
+        "      \"query\" : {" +
+        "        \"metrics.rolling_interval\": \"75\"" +
         "      }" +
         "    }" +
         "  }" +
@@ -220,10 +221,10 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"acknowledged\" : true," +
         "  \"transient\" : { }," +
         "  \"persistent\" : {" +
-        "    \"opensearch\" : {" +
-        "      \"sql\" : {" +
+        "    \"plugins\" : {" +
+        "      \"query\" : {" +
         "        \"metrics\" : {" +
-        "          \"rollinginterval\" : \"75\"" +
+        "          \"rolling_interval\" : \"75\"" +
         "        }" +
         "      }" +
         "    }" +
@@ -235,10 +236,10 @@ public class PluginIT extends SQLIntegTestCase {
     // (3) full expanded form
     settings = "{" +
         "  \"persistent\": {" +
-        "    \"opensearch\" : {" +
-        "      \"sql\" : {" +
+        "    \"plugins\" : {" +
+        "      \"query\" : {" +
         "        \"metrics\": {" +
-        "          \"rollinginterval\": \"65\"" +
+        "          \"rolling_interval\": \"65\"" +
         "        }" +
         "      }" +
         "    }" +
@@ -249,10 +250,10 @@ public class PluginIT extends SQLIntegTestCase {
         "  \"acknowledged\" : true," +
         "  \"transient\" : { }," +
         "  \"persistent\" : {" +
-        "    \"opensearch\" : {" +
-        "      \"sql\" : {" +
+        "    \"plugins\" : {" +
+        "      \"query\" : {" +
         "        \"metrics\" : {" +
-        "          \"rollinginterval\" : \"65\"" +
+        "          \"rolling_interval\" : \"65\"" +
         "        }" +
         "      }" +
         "    }" +
@@ -269,29 +270,27 @@ public class PluginIT extends SQLIntegTestCase {
   public void sqlCombinedSettingTest() throws IOException {
     String settings = "{" +
         "  \"transient\": {" +
-        "    \"opensearch.sql.metrics.rollingwindow\": \"3700\"" +
+        "    \"plugins.query.metrics.rolling_window\": \"3700\"" +
         "  }," +
         "  \"persistent\": {" +
-        "    \"opensearch.sql.query.slowlog\" : \"2\"" +
+        "    \"plugins.sql.slowlog\" : \"2\"" +
         "  }" +
         "}";
     JSONObject actual = updateViaSQLSettingsAPI(settings);
     JSONObject expected = new JSONObject("{" +
         "  \"acknowledged\" : true," +
         "  \"persistent\" : {" +
-        "    \"opensearch\" : {" +
+        "    \"plugins\" : {" +
         "      \"sql\" : {" +
-        "        \"query\" : {" +
-        "          \"slowlog\" : \"2\"" +
-        "        }" +
+        "        \"slowlog\" : \"2\"" +
         "      }" +
         "    }" +
         "  }," +
         "  \"transient\" : {" +
-        "    \"opensearch\" : {" +
-        "      \"sql\" : {" +
+        "    \"plugins\" : {" +
+        "      \"query\" : {" +
         "        \"metrics\" : {" +
-        "          \"rollingwindow\" : \"3700\"" +
+        "          \"rolling_window\" : \"3700\"" +
         "        }" +
         "      }" +
         "    }" +
@@ -301,21 +300,21 @@ public class PluginIT extends SQLIntegTestCase {
   }
 
   /**
-   * Ignore all non opensearch.sql settings.
-   * Only settings starting with opensearch.sql. are affected
+   * Ignore all non plugins.sql settings.
+   * Only settings starting with plugins.sql. are affected
    */
   @Test
   public void ignoreNonSQLSettingsTest() throws IOException {
     String settings = "{" +
         "  \"transient\": {" +
-        "    \"opensearch.sql.metrics.rollingwindow\": \"3700\"," +
-        "    \"opensearch.alerting.metrics.rollingwindow\": \"3700\"," +
+        "    \"plugins.query.metrics.rolling_window\": \"3700\"," +
+        "    \"plugins.alerting.metrics.rolling_window\": \"3700\"," +
         "    \"search.max_buckets\": \"10000\"," +
         "    \"search.max_keep_alive\": \"24h\"" +
         "  }," +
         "  \"persistent\": {" +
-        "    \"opensearch.sql.query.slowlog\": \"2\"," +
-        "    \"opensearch.alerting.metrics.rollingwindow\": \"3700\"," +
+        "    \"plugins.sql.slowlog\": \"2\"," +
+        "    \"plugins.alerting.metrics.rolling_window\": \"3700\"," +
         "    \"thread_pool.analyze.queue_size\": \"16\"" +
         "  }" +
         "}";
@@ -323,19 +322,17 @@ public class PluginIT extends SQLIntegTestCase {
     JSONObject expected = new JSONObject("{" +
         "  \"acknowledged\" : true," +
         "  \"persistent\" : {" +
-        "    \"opensearch\" : {" +
+        "    \"plugins\" : {" +
         "      \"sql\" : {" +
-        "        \"query\" : {" +
-        "          \"slowlog\" : \"2\"" +
-        "        }" +
+        "        \"slowlog\" : \"2\"" +
         "      }" +
         "    }" +
         "  }," +
         "  \"transient\" : {" +
-        "    \"opensearch\" : {" +
-        "      \"sql\" : {" +
+        "    \"plugins\" : {" +
+        "      \"query\" : {" +
         "        \"metrics\" : {" +
-        "          \"rollingwindow\" : \"3700\"" +
+        "          \"rolling_window\" : \"3700\"" +
         "        }" +
         "      }" +
         "    }" +
@@ -348,10 +345,10 @@ public class PluginIT extends SQLIntegTestCase {
   public void ignoreNonTransientNonPersistentSettingsTest() throws IOException {
     String settings = "{" +
         "  \"transient\": {" +
-        "    \"opensearch.sql.metrics.rollingwindow\": \"3700\"" +
+        "    \"plugins.query.metrics.rolling_window\": \"3700\"" +
         "  }," +
         "  \"persistent\": {" +
-        "    \"opensearch.sql.query.slowlog\": \"2\"" +
+        "    \"plugins.sql.slowlog\": \"2\"" +
         "  }," +
         "  \"hello\": {" +
         "    \"world\" : {" +
@@ -363,19 +360,17 @@ public class PluginIT extends SQLIntegTestCase {
     JSONObject expected = new JSONObject("{" +
         "  \"acknowledged\" : true," +
         "  \"persistent\" : {" +
-        "    \"opensearch\" : {" +
+        "    \"plugins\" : {" +
         "      \"sql\" : {" +
-        "        \"query\" : {" +
-        "          \"slowlog\" : \"2\"" +
-        "        }" +
+        "        \"slowlog\" : \"2\"" +
         "      }" +
         "    }" +
         "  }," +
         "  \"transient\" : {" +
-        "    \"opensearch\" : {" +
-        "      \"sql\" : {" +
+        "    \"plugins\" : {" +
+        "      \"query\" : {" +
         "        \"metrics\" : {" +
-        "          \"rollingwindow\" : \"3700\"" +
+        "          \"rolling_window\" : \"3700\"" +
         "        }" +
         "      }" +
         "    }" +
@@ -388,14 +383,12 @@ public class PluginIT extends SQLIntegTestCase {
   public void sqlCombinedMixedSettingTest() throws IOException {
     String settings = "{" +
         "  \"transient\": {" +
-        "    \"opensearch.sql.metrics.rollingwindow\": \"3700\"" +
+        "    \"plugins.query.metrics.rolling_window\": \"3700\"" +
         "  }," +
         "  \"persistent\": {" +
-        "    \"opensearch\": {" +
+        "    \"plugins\": {" +
         "      \"sql\": {" +
-        "        \"query\": {" +
-        "          \"slowlog\": \"1\"" +
-        "        }" +
+        "        \"slowlog\": \"1\"" +
         "      }" +
         "    }" +
         "  }," +
@@ -409,19 +402,17 @@ public class PluginIT extends SQLIntegTestCase {
     JSONObject expected = new JSONObject("{" +
         "  \"acknowledged\" : true," +
         "  \"persistent\" : {" +
-        "    \"opensearch\" : {" +
+        "    \"plugins\" : {" +
         "      \"sql\" : {" +
-        "        \"query\" : {" +
-        "          \"slowlog\" : \"1\"" +
-        "        }" +
+        "        \"slowlog\" : \"1\"" +
         "      }" +
         "    }" +
         "  }," +
         "  \"transient\" : {" +
-        "    \"opensearch\" : {" +
-        "      \"sql\" : {" +
+        "    \"plugins\" : {" +
+        "      \"query\" : {" +
         "        \"metrics\" : {" +
-        "          \"rollingwindow\" : \"3700\"" +
+        "          \"rolling_window\" : \"3700\"" +
         "        }" +
         "      }" +
         "    }" +
@@ -434,7 +425,7 @@ public class PluginIT extends SQLIntegTestCase {
   public void nonRegisteredSQLSettingsThrowException() throws IOException {
     String settings = "{" +
         "  \"transient\": {" +
-        "    \"opensearch.sql.query.state.city\": \"Seattle\"" +
+        "    \"plugins.sql.query.state.city\": \"Seattle\"" +
         "  }" +
         "}";
 
@@ -451,12 +442,12 @@ public class PluginIT extends SQLIntegTestCase {
     assertThat(actual.query("/error/type"), equalTo("illegal_argument_exception"));
     assertThat(
         actual.query("/error/reason"),
-        equalTo("transient setting [opensearch.sql.query.state.city], not recognized")
+        equalTo("transient setting [plugins.sql.query.state.city], not recognized")
     );
   }
 
   protected static JSONObject updateViaSQLSettingsAPI(String body) throws IOException {
-    Request request = new Request("PUT", SETTINGS_API_ENDPOINT);
+    Request request = new Request("PUT", RestQuerySettingsAction.SETTINGS_API_ENDPOINT);
     request.setJsonEntity(body);
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");

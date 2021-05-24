@@ -29,8 +29,8 @@ package org.opensearch.sql.legacy.metrics;
 import java.time.Clock;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.LongAdder;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
-import org.opensearch.sql.legacy.plugin.SqlSettings;
 
 /**
  * Rolling counter. The count is refreshed every interval. In every interval the count is cumulative.
@@ -45,8 +45,11 @@ public class RollingCounter implements Counter<Long> {
     private final LongAdder count;
 
     public RollingCounter() {
-        this(LocalClusterState.state().getSettingValue(SqlSettings.METRICS_ROLLING_WINDOW),
-                LocalClusterState.state().getSettingValue(SqlSettings.METRICS_ROLLING_INTERVAL));
+        this(
+            LocalClusterState.state().getSettingValue(
+                Settings.Key.METRICS_ROLLING_WINDOW),
+            LocalClusterState.state().getSettingValue(
+                Settings.Key.METRICS_ROLLING_INTERVAL));
     }
 
     public RollingCounter(long window, long interval, Clock clock) {
