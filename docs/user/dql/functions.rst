@@ -1672,11 +1672,11 @@ Example::
 
     os> SELECT LEFT('helloworld', 5), LEFT('HELLOWORLD', 0)
     fetched rows / total rows = 1/1
-    +--------------------------+--------------------------+
-    | LEFT('helloworld', 5)   | LEFT('HELLOWORLD', 0)     |
-    |--------------------------+--------------------------|
-    | hello                    |                          |
-    +--------------------------+--------------------------+
+    +-------------------------+-------------------------+
+    | LEFT('helloworld', 5)   | LEFT('HELLOWORLD', 0)   |
+    |-------------------------+-------------------------|
+    | hello                   |                         |
+    +-------------------------+-------------------------+
 
 
 LENGTH
@@ -1712,10 +1712,24 @@ LOCATE
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: The first syntax LOCATE(substr, str) returns the position of the first occurrence of substring substr in string str. The second syntax LOCATE(substr, str, pos) returns the position of the first occurrence of substring substr in string str, starting at position pos. Returns 0 if substr is not in str. Returns NULL if any argument is NULL.
 
-1. LOCATE(STRING, STRING, INTEGER) -> INTEGER
-2. LOCATE(STRING, STRING) -> INTEGER
+Argument type: STRING, STRING, INTEGER
+
+Return type map:
+
+(STRING, STRING) -> INTEGER
+(STRING, STRING, INTEGER) -> INTEGER
+
+Example::
+
+    os> SELECT LOCATE('helloworld')
+    fetched rows / total rows = 1/1
+    +---------------------------------+------------------------------------+
+    | LOCATE('world', 'helloworld')   | LOCATE('world', 'helloworld', 7)   |
+    |---------------------------------+------------------------------------|
+    | 6                               | 11                                 |
+    +---------------------------------+------------------------------------+
 
 
 LOWER
@@ -2114,3 +2128,4 @@ Here are examples for searched case syntax::
     |-----------------+------------------+-----------|
     | One             | Hello            | null      |
     +-----------------+------------------+-----------+
+

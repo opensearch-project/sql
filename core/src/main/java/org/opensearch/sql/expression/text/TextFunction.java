@@ -42,6 +42,8 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.FunctionResolver;
+import org.opensearch.sql.expression.function.SerializableBiFunction;
+import org.opensearch.sql.expression.function.SerializableTriFunction;
 
 
 /**
@@ -73,6 +75,7 @@ public class TextFunction {
     repository.register(right());
     repository.register(left());
     repository.register(ascii());
+    repository.register(locate());
   }
 
   /**
@@ -239,6 +242,26 @@ public class TextFunction {
         impl(nullMissingHandling(TextFunction::exprAscii), INTEGER, STRING));
   }
 
+  /**
+   * LOCATE(substr, str) returns the position of the first occurrence of substring substr
+   * in string str. LOCATE(substr, str, pos) returns the position of the first occurrence
+   * of substring substr in string str, starting at position pos.
+   * Returns 0 if substr is not in str.
+   * Returns NULL if any argument is NULL.
+   * Supoorts following signature:
+   * (STRING, STRING) -> INTEGER
+   * (STRING, STRING, INTEGER) -> INTEGER
+   */
+  private FunctionResolver locate() {
+    return define(BuiltinFunctionName.LOCATE.getName(),
+        impl(nullMissingHandling(
+            (SerializableBiFunction<ExprValue, ExprValue, ExprValue>)
+                TextFunction::exprLocate), INTEGER, STRING, STRING),
+        impl(nullMissingHandling(
+            (SerializableTriFunction<ExprValue, ExprValue, ExprValue, ExprValue>)
+                TextFunction::exprLocate), INTEGER, STRING, STRING, INTEGER));
+  }
+
   private static ExprValue exprSubstrStart(ExprValue exprValue, ExprValue start) {
     int startIdx = start.integerValue();
     if (startIdx == 0) {
@@ -282,6 +305,15 @@ public class TextFunction {
 
   private static ExprValue exprAscii(ExprValue expr) {
     return new ExprIntegerValue((int) expr.stringValue().charAt(0));
+  }
+
+  private static ExprValue exprLocate(ExprValue subStr, ExprValue str) {
+    return new ExprIntegerValue(str.stringValue().indexOf(subStr.stringValue()) + 1);
+  }
+
+  private static ExprValue exprLocate(ExprValue subStr, ExprValue str, ExprValue pos) {
+    return new ExprIntegerValue(
+        str.stringValue().indexOf(subStr.stringValue(), pos.integerValue() - 1) + 1);
   }
 }
 

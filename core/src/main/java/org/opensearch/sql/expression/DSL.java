@@ -432,6 +432,10 @@ public class DSL {
     return function(BuiltinFunctionName.ASCII, expressions);
   }
 
+  public FunctionExpression locate(Expression... expressions) {
+    return function(BuiltinFunctionName.LOCATE, expressions);
+  }
+
   public FunctionExpression and(Expression... expressions) {
     return function(BuiltinFunctionName.AND, expressions);
   }
