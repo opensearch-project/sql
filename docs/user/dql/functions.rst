@@ -1723,7 +1723,7 @@ Return type map:
 
 Example::
 
-    os> SELECT LOCATE('helloworld')
+    os> SELECT LOCATE('world', 'helloworld'), LOCATE('world', 'helloworld', 7)
     fetched rows / total rows = 1/1
     +---------------------------------+------------------------------------+
     | LOCATE('world', 'helloworld')   | LOCATE('world', 'helloworld', 7)   |
