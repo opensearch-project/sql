@@ -144,6 +144,7 @@ public enum BuiltinFunctionName {
   STRCMP(FunctionName.of("strcmp")),
   RIGHT(FunctionName.of("right")),
   LEFT(FunctionName.of("left")),
+  ASCII(FunctionName.of("ascii")),
 
   /**
    * NULL Test.

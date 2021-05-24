@@ -428,6 +428,10 @@ public class DSL {
     return function(BuiltinFunctionName.LEFT, expressions);
   }
 
+  public FunctionExpression ascii(Expression... expressions) {
+    return function(BuiltinFunctionName.ASCII, expressions);
+  }
+
   public FunctionExpression and(Expression... expressions) {
     return function(BuiltinFunctionName.AND, expressions);
   }

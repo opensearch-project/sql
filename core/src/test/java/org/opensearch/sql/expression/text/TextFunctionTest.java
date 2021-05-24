@@ -339,6 +339,18 @@ public class TextFunctionTest extends ExpressionTestBase {
     assertEquals(nullValue(), eval(dsl.left(DSL.literal(new ExprStringValue("value")), nullRef)));
   }
 
+  @Test
+  void ascii() {
+    FunctionExpression expression = dsl.ascii(DSL.literal(new ExprStringValue("hello")));
+    assertEquals(INTEGER, expression.type());
+    assertEquals(104, eval(expression).integerValue());
+
+    when(nullRef.type()).thenReturn(STRING);
+    assertEquals(nullValue(), eval(dsl.ascii(nullRef)));
+    when(missingRef.type()).thenReturn(STRING);
+    assertEquals(missingValue(), eval(dsl.ascii(missingRef)));
+  }
+
   void testConcatString(List<String> strings) {
     String expected = null;
     if (strings.stream().noneMatch(Objects::isNull)) {

@@ -1,2 +1,3 @@
 RIGHT('Hello World', 5) as column
 LEFT('Hello World', 5) as column
+ASCII('hello')

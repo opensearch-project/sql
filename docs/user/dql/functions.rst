@@ -1596,9 +1596,21 @@ ASCII
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: ASCII(expr) returns the numeric value of the leftmost character of the string str. Returns 0 if str is the empty string. Returns NULL if str is NULL. ASCII() works for 8-bit characters.
 
-1. ASCII(STRING T) -> INTEGER
+Argument type: STRING
+
+Return type: INTEGER
+
+Example::
+
+    os> SELECT ASCII('hello')
+    fetched rows / total rows = 1/1
+    +------------------+
+    | ASCII('hello')   |
+    |------------------|
+    | 104              |
+    +------------------+
 
 
 CONCAT
@@ -1661,7 +1673,7 @@ Example::
     os> SELECT LEFT('helloworld', 5), LEFT('HELLOWORLD', 0)
     fetched rows / total rows = 1/1
     +--------------------------+--------------------------+
-    | LEFT('helloworld', 5)   | LEFT('HELLOWORLD', 0)   |
+    | LEFT('helloworld', 5)   | LEFT('HELLOWORLD', 0)     |
     |--------------------------+--------------------------|
     | hello                    |                          |
     +--------------------------+--------------------------+

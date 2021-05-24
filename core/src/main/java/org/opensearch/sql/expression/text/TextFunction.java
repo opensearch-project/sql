@@ -72,6 +72,7 @@ public class TextFunction {
     repository.register(strcmp());
     repository.register(right());
     repository.register(left());
+    repository.register(ascii());
   }
 
   /**
@@ -226,6 +227,18 @@ public class TextFunction {
         impl(nullMissingHandling(TextFunction::exprLeft), STRING, STRING, INTEGER));
   }
 
+  /**
+   * Returns the numeric value of the leftmost character of the string str.
+   * Returns 0 if str is the empty string. Returns NULL if str is NULL.
+   * ASCII() works for 8-bit characters.
+   * Supports following signature:
+   * STRING -> INTEGER
+   */
+  private FunctionResolver ascii() {
+    return define(BuiltinFunctionName.ASCII.getName(),
+        impl(nullMissingHandling(TextFunction::exprAscii), INTEGER, STRING));
+  }
+
   private static ExprValue exprSubstrStart(ExprValue exprValue, ExprValue start) {
     int startIdx = start.integerValue();
     if (startIdx == 0) {
@@ -265,6 +278,10 @@ public class TextFunction {
 
   private static ExprValue exprLeft(ExprValue expr, ExprValue length) {
     return new ExprStringValue(expr.stringValue().substring(0, length.integerValue()));
+  }
+
+  private static ExprValue exprAscii(ExprValue expr) {
+    return new ExprIntegerValue((int) expr.stringValue().charAt(0));
   }
 }
 
