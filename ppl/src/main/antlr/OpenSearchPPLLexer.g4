@@ -238,6 +238,10 @@ CONCAT_WS:                          'CONCAT_WS';
 LENGTH:                             'LENGTH';
 STRCMP:                             'STRCMP';
 RIGHT:                              'RIGHT';
+LEFT:                               'LEFT';
+ASCII:                              'ASCII';
+LOCATE:                             'LOCATE';
+REPLACE:                            'REPLACE';
 
 // BOOL FUNCTIONS
 LIKE:                               'LIKE';
