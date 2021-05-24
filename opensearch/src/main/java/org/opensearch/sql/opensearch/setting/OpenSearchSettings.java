@@ -29,7 +29,6 @@
 package org.opensearch.sql.opensearch.setting;
 
 import static org.opensearch.common.settings.Settings.EMPTY;
-import static org.opensearch.common.unit.TimeValue.timeValueMinutes;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
@@ -77,7 +76,6 @@ public class OpenSearchSettings extends Settings {
   public static final Setting<?> SQL_CURSOR_KEEP_ALIVE_SETTING = Setting.positiveTimeSetting(
       Key.SQL_CURSOR_KEEP_ALIVE.getKeyValue(),
       LegacyOpenDistroSettings.SQL_CURSOR_KEEPALIVE_SETTING,
-      timeValueMinutes(1),
       Setting.Property.NodeScope,
       Setting.Property.Dynamic);
 
@@ -108,19 +106,17 @@ public class OpenSearchSettings extends Settings {
       Setting.Property.NodeScope,
       Setting.Property.Dynamic);
 
-  public static final Setting<?> METRICS_ROLLING_WINDOW_SETTING = new Setting<>(
+  public static final Setting<?> METRICS_ROLLING_WINDOW_SETTING = Setting.longSetting(
       Key.METRICS_ROLLING_WINDOW.getKeyValue(),
       LegacyOpenDistroSettings.METRICS_ROLLING_WINDOW_SETTING,
-      (s) -> Setting.parseLong(
-          s, 2L, Key.METRICS_ROLLING_WINDOW.getKeyValue()),
+      2L,
       Setting.Property.NodeScope,
       Setting.Property.Dynamic);
 
-  public static final Setting<?> METRICS_ROLLING_INTERVAL_SETTING = new Setting<>(
+  public static final Setting<?> METRICS_ROLLING_INTERVAL_SETTING = Setting.longSetting(
       Key.METRICS_ROLLING_INTERVAL.getKeyValue(),
       LegacyOpenDistroSettings.METRICS_ROLLING_INTERVAL_SETTING,
-      (s) -> Setting.parseLong(
-          s, 1L, Key.METRICS_ROLLING_INTERVAL.getKeyValue()),
+      1L,
       Setting.Property.NodeScope,
       Setting.Property.Dynamic);
 
