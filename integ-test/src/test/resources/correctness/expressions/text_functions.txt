@@ -2,5 +2,7 @@ RIGHT('Hello World', 5) as column
 LEFT('Hello World', 5) as column
 ASCII('hello')
 LOCATE('world', 'helloworld')
+LOCATE('world', 'hello')
 LOCATE('world', 'helloworld', 7)
+REPLACE('helloworld', 'world', 'opensearch')
 REPLACE('hello', 'world', 'opensearch')
