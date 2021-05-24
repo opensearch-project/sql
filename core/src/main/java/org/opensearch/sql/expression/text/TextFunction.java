@@ -71,6 +71,7 @@ public class TextFunction {
     repository.register(length());
     repository.register(strcmp());
     repository.register(right());
+    repository.register(left());
   }
 
   /**
@@ -215,6 +216,16 @@ public class TextFunction {
             impl(nullMissingHandling(TextFunction::exprRight), STRING, STRING, INTEGER));
   }
 
+  /**
+   * Returns the leftmost len characters from the string str, or NULL if any argument is NULL.
+   * Supports following signature:
+   * (STRING, INTEGER) -> STRING
+   */
+  private FunctionResolver left() {
+    return define(BuiltinFunctionName.LEFT.getName(),
+        impl(nullMissingHandling(TextFunction::exprLeft), STRING, STRING, INTEGER));
+  }
+
   private static ExprValue exprSubstrStart(ExprValue exprValue, ExprValue start) {
     int startIdx = start.integerValue();
     if (startIdx == 0) {
@@ -250,6 +261,10 @@ public class TextFunction {
   private static ExprValue exprRight(ExprValue str, ExprValue len) {
     return new ExprStringValue(str.stringValue().substring(
             str.stringValue().length() - len.integerValue()));
+  }
+
+  private static ExprValue exprLeft(ExprValue expr, ExprValue length) {
+    return new ExprStringValue(expr.stringValue().substring(0, length.integerValue()));
   }
 }
 

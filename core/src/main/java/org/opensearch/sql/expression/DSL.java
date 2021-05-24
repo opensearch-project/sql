@@ -424,6 +424,10 @@ public class DSL {
     return function(BuiltinFunctionName.RIGHT, expressions);
   }
 
+  public FunctionExpression left(Expression... expressions) {
+    return function(BuiltinFunctionName.LEFT, expressions);
+  }
+
   public FunctionExpression and(Expression... expressions) {
     return function(BuiltinFunctionName.AND, expressions);
   }

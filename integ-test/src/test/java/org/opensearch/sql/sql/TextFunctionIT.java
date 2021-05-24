@@ -140,6 +140,11 @@ public class TextFunctionIT extends SQLIntegTestCase {
     verifyQuery("right('variable', 4)", "keyword", "able");
   }
 
+  @Test
+  public void testLeft() throws IOException {
+    verifyQuery("left('variable', 3)", "keyword", "var");
+  }
+
   protected JSONObject executeQuery(String query) throws IOException {
     Request request = new Request("POST", QUERY_API_ENDPOINT);
     request.setJsonEntity(String.format(Locale.ROOT, "{\n" + "  \"query\": \"%s\"\n" + "}", query));

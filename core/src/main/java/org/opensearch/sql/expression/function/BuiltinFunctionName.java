@@ -143,6 +143,7 @@ public enum BuiltinFunctionName {
   LENGTH(FunctionName.of("length")),
   STRCMP(FunctionName.of("strcmp")),
   RIGHT(FunctionName.of("right")),
+  LEFT(FunctionName.of("left")),
 
   /**
    * NULL Test.

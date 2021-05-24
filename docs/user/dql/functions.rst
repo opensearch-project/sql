@@ -1650,12 +1650,21 @@ Example::
 LEFT
 ----
 
-Description
->>>>>>>>>>>
+Usage: left(str, len) returns the leftmost len characters from the string str, or NULL if any argument is NULL.
 
-Specifications:
+Argument type: STRING, INTEGER
 
-1. LEFT(STRING T, INTEGER) -> T
+Return type: STRING
+
+Example::
+
+    os> SELECT LEFT('helloworld', 5), LEFT('HELLOWORLD', 0)
+    fetched rows / total rows = 1/1
+    +--------------------------+--------------------------+
+    | LEFT('helloworld', 5)   | LEFT('HELLOWORLD', 0)   |
+    |--------------------------+--------------------------|
+    | hello                    |                          |
+    +--------------------------+--------------------------+
 
 
 LENGTH

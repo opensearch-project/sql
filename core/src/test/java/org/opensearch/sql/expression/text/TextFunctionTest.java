@@ -322,6 +322,23 @@ public class TextFunctionTest extends ExpressionTestBase {
     assertEquals(nullValue(), eval(dsl.right(DSL.literal(new ExprStringValue("value")), nullRef)));
   }
 
+  @Test
+  void left() {
+    FunctionExpression expression = dsl.left(
+        DSL.literal(new ExprStringValue("helloworld")),
+        DSL.literal(new ExprIntegerValue(5)));
+    assertEquals(STRING, expression.type());
+    assertEquals("hello", eval(expression).stringValue());
+
+    when(nullRef.type()).thenReturn(STRING);
+    when(missingRef.type()).thenReturn(INTEGER);
+    assertEquals(missingValue(), eval(dsl.left(nullRef, missingRef)));
+    assertEquals(nullValue(), eval(dsl.left(nullRef, DSL.literal(new ExprIntegerValue(1)))));
+
+    when(nullRef.type()).thenReturn(INTEGER);
+    assertEquals(nullValue(), eval(dsl.left(DSL.literal(new ExprStringValue("value")), nullRef)));
+  }
+
   void testConcatString(List<String> strings) {
     String expected = null;
     if (strings.stream().noneMatch(Objects::isNull)) {
