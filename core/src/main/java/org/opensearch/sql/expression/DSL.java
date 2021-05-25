@@ -364,6 +364,10 @@ public class DSL {
     return function(BuiltinFunctionName.YEAR, expressions);
   }
 
+  public FunctionExpression curdate() {
+    return function(BuiltinFunctionName.CURDATE);
+  }
+
   public FunctionExpression divide(Expression... expressions) {
     return function(BuiltinFunctionName.DIVIDE, expressions);
   }

@@ -87,6 +87,7 @@ public enum BuiltinFunctionName {
   TO_DAYS(FunctionName.of("to_days")),
   WEEK(FunctionName.of("week")),
   YEAR(FunctionName.of("year")),
+  CURDATE(FunctionName.of("curdate")),
 
   /**
    * Text Functions.

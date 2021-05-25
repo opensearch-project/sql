@@ -46,6 +46,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
 import com.google.common.collect.ImmutableList;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
@@ -1003,6 +1004,13 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     assertEquals(missingValue(), eval(dsl.date_format(missingRef, DSL.literal(""))));
     assertEquals(nullValue(), eval(dsl.date_format(DSL.literal(""), nullRef)));
     assertEquals(missingValue(), eval(dsl.date_format(DSL.literal(""), missingRef)));
+  }
+
+  @Test
+  public void curdate() {
+    FunctionExpression expr = dsl.curdate();
+    assertEquals(DATE, expr.type());
+    assertEquals(LocalDate.now(), eval(expr).dateValue());
   }
 
   void testDateFormat(DateFormatTester dft) {

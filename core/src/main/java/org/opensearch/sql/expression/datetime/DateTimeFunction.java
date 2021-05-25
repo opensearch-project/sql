@@ -100,6 +100,7 @@ public class DateTimeFunction {
     repository.register(to_days());
     repository.register(week());
     repository.register(year());
+    repository.register(curdate());
   }
 
   /**
@@ -434,6 +435,16 @@ public class DateTimeFunction {
   }
 
   /**
+   * Returns the current date as a value in 'YYYY-MM-DD' format.
+   * Supported signature:
+   * () -> DATE
+   */
+  private FunctionResolver curdate() {
+    return define(BuiltinFunctionName.CURDATE.getName(),
+        impl(DateTimeFunction::exprCurdate, DATE));
+  }
+
+  /**
    * ADDDATE function implementation for ExprValue.
    *
    * @param date ExprValue of String/Date/Datetime/Timestamp type.
@@ -699,6 +710,10 @@ public class DateTimeFunction {
    */
   private ExprValue exprYear(ExprValue date) {
     return new ExprIntegerValue(date.dateValue().getYear());
+  }
+
+  private ExprValue exprCurdate() {
+    return new ExprDateValue(LocalDate.now());
   }
 
 }
