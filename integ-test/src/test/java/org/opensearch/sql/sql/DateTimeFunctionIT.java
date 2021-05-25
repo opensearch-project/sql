@@ -35,6 +35,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.TestUtils.getResponseBody;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;

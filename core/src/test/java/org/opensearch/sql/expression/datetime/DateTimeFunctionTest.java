@@ -30,6 +30,8 @@ package org.opensearch.sql.expression.datetime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.longValue;
@@ -44,9 +46,12 @@ import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+import static org.opensearch.sql.data.type.ExprCoreType.UNDEFINED;
+
 
 import com.google.common.collect.ImmutableList;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -1012,6 +1017,9 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     FunctionExpression expr = dsl.curdate();
     assertEquals(DATE, expr.type());
     assertEquals(LocalDate.now(), eval(expr).dateValue());
+
+    lenient().when(nullRef.type()).thenReturn(UNDEFINED);
+    lenient().when(missingRef.type()).thenReturn(UNDEFINED);
   }
 
   @Test
@@ -1019,6 +1027,17 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     FunctionExpression expr = dsl.maketime(DSL.literal(12), DSL.literal(15), DSL.literal(30));
     assertEquals(TIME, expr.type());
     assertEquals(LocalTime.of(12, 15, 30), eval(expr).timeValue());
+  }
+
+  @Test
+  public void now() {
+    FunctionExpression expr = dsl.now();
+    LocalDateTime now = LocalDateTime.now();
+    assertEquals(DATETIME, expr.type());
+    assertTrue(now.equals(eval(expr).datetimeValue()) || now.isAfter(eval(expr).datetimeValue()));
+
+    lenient().when(nullRef.type()).thenReturn(UNDEFINED);
+    lenient().when(missingRef.type()).thenReturn(UNDEFINED);
   }
 
   void testDateFormat(DateFormatTester dft) {

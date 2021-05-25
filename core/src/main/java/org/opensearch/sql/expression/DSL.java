@@ -372,6 +372,10 @@ public class DSL {
     return function(BuiltinFunctionName.MAKETIME, expressions);
   }
 
+  public FunctionExpression now() {
+    return function(BuiltinFunctionName.NOW);
+  }
+
   public FunctionExpression divide(Expression... expressions) {
     return function(BuiltinFunctionName.DIVIDE, expressions);
   }

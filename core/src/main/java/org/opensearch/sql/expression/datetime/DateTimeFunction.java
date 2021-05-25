@@ -41,6 +41,7 @@ import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.TextStyle;
 import java.util.Locale;
@@ -103,6 +104,7 @@ public class DateTimeFunction {
     repository.register(year());
     repository.register(curdate());
     repository.register(maketime());
+    repository.register(now());
   }
 
   /**
@@ -446,9 +448,25 @@ public class DateTimeFunction {
         impl(DateTimeFunction::exprCurdate, DATE));
   }
 
+  /**
+   * Returns a time value calculated from the hour, minute, and second arguments.
+   * Supported signature:
+   * (INTEGER, INTEGER, INTEGER) -> TIME
+   */
   private FunctionResolver maketime() {
     return define(BuiltinFunctionName.MAKETIME.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprMaketime), TIME, INTEGER, INTEGER, INTEGER));
+  }
+
+  /**
+   * Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss'.
+   * The value is expressed in the session time zone.
+   * Supported signature:
+   * () -> DATETIME
+   */
+  private FunctionResolver now() {
+    return define(BuiltinFunctionName.NOW.getName(),
+        impl(DateTimeFunction::exprNow, DATETIME));
   }
 
   /**
@@ -726,6 +744,10 @@ public class DateTimeFunction {
   private ExprValue exprMaketime(ExprValue hour, ExprValue minute, ExprValue second) {
     return new ExprTimeValue(
         LocalTime.of(hour.integerValue(), minute.integerValue(), second.integerValue()));
+  }
+
+  private ExprValue exprNow() {
+    return new ExprDatetimeValue(LocalDateTime.now());
   }
 
 }

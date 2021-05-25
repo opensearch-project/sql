@@ -89,6 +89,7 @@ public enum BuiltinFunctionName {
   YEAR(FunctionName.of("year")),
   CURDATE(FunctionName.of("curdate")),
   MAKETIME(FunctionName.of("maketime")),
+  NOW(FunctionName.of("now")),
 
   /**
    * Text Functions.
