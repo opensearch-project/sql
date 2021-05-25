@@ -257,7 +257,7 @@ trigonometricFunctionName
 dateAndTimeFunctionBase
     : ADDDATE | DATE | DATE_ADD | DATE_SUB | DAY | DAYNAME | DAYOFMONTH | DAYOFWEEK | DAYOFYEAR | FROM_DAYS
     | HOUR | MICROSECOND | MINUTE | MONTH | MONTHNAME | QUARTER | SECOND | SUBDATE | TIME | TIME_TO_SEC
-    | TIMESTAMP | TO_DAYS | YEAR | WEEK | DATE_FORMAT | CURDATE
+    | TIMESTAMP | TO_DAYS | YEAR | WEEK | DATE_FORMAT | CURDATE | MAKETIME
     ;
 
 /** condition function return boolean value */

@@ -224,6 +224,7 @@ TIMESTAMP:                          'TIMESTAMP';
 DATE_FORMAT:                        'DATE_FORMAT';
 TO_DAYS:                            'TO_DAYS';
 CURDATE:                            'CURDATE';
+MAKETIME:                           'MAKETIME';
 
 // TEXT FUNCTIONS
 SUBSTR:                             'SUBSTR';

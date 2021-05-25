@@ -41,6 +41,7 @@ import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.format.TextStyle;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
@@ -101,6 +102,7 @@ public class DateTimeFunction {
     repository.register(week());
     repository.register(year());
     repository.register(curdate());
+    repository.register(maketime());
   }
 
   /**
@@ -444,6 +446,11 @@ public class DateTimeFunction {
         impl(DateTimeFunction::exprCurdate, DATE));
   }
 
+  private FunctionResolver maketime() {
+    return define(BuiltinFunctionName.MAKETIME.getName(),
+        impl(nullMissingHandling(DateTimeFunction::exprMaketime), TIME, INTEGER, INTEGER, INTEGER));
+  }
+
   /**
    * ADDDATE function implementation for ExprValue.
    *
@@ -714,6 +721,11 @@ public class DateTimeFunction {
 
   private ExprValue exprCurdate() {
     return new ExprDateValue(LocalDate.now());
+  }
+
+  private ExprValue exprMaketime(ExprValue hour, ExprValue minute, ExprValue second) {
+    return new ExprTimeValue(
+        LocalTime.of(hour.integerValue(), minute.integerValue(), second.integerValue()));
   }
 
 }

@@ -47,6 +47,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
 import com.google.common.collect.ImmutableList;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
@@ -1011,6 +1012,13 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     FunctionExpression expr = dsl.curdate();
     assertEquals(DATE, expr.type());
     assertEquals(LocalDate.now(), eval(expr).dateValue());
+  }
+
+  @Test
+  public void maketime() {
+    FunctionExpression expr = dsl.maketime(DSL.literal(12), DSL.literal(15), DSL.literal(30));
+    assertEquals(TIME, expr.type());
+    assertEquals(LocalTime.of(12, 15, 30), eval(expr).timeValue());
   }
 
   void testDateFormat(DateFormatTester dft) {

@@ -368,6 +368,10 @@ public class DSL {
     return function(BuiltinFunctionName.CURDATE);
   }
 
+  public FunctionExpression maketime(Expression... expressions) {
+    return function(BuiltinFunctionName.MAKETIME, expressions);
+  }
+
   public FunctionExpression divide(Expression... expressions) {
     return function(BuiltinFunctionName.DIVIDE, expressions);
   }

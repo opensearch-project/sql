@@ -88,6 +88,7 @@ public enum BuiltinFunctionName {
   WEEK(FunctionName.of("week")),
   YEAR(FunctionName.of("year")),
   CURDATE(FunctionName.of("curdate")),
+  MAKETIME(FunctionName.of("maketime")),
 
   /**
    * Text Functions.
