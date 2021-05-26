@@ -8,6 +8,7 @@
  * Modifications Copyright OpenSearch Contributors. See
  * GitHub history for details.
  */
+
 package org.opensearch.sql.sql;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -17,7 +18,7 @@ import static org.opensearch.sql.legacy.plugin.RestSqlAction.LEGACY_EXPLAIN_API_
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.LEGACY_QUERY_API_ENDPOINT;
 import static org.opensearch.sql.legacy.plugin.RestSqlStatsAction.LEGACY_STATS_API_ENDPOINT;
 import static org.opensearch.sql.plugin.rest.RestQuerySettingsAction.LEGACY_SQL_SETTINGS_API_ENDPOINT;
-
+import static org.opensearch.sql.plugin.rest.RestQuerySettingsAction.SETTINGS_API_ENDPOINT;
 
 import java.io.IOException;
 import org.json.JSONObject;
@@ -80,17 +81,54 @@ public class LegacyAPICompatibilityIT extends SQLIntegTestCase {
   }
 
   @Test
-  public void updateSettings() throws IOException {
-    String requestBody = "{" +
-        "  \"persistent\": {" +
-        "    \"plugins.query.metrics.rolling_interval\": \"80\"" +
-        "  }" +
-        "}";
-    Request request = new Request("PUT", LEGACY_SQL_SETTINGS_API_ENDPOINT);
+  public void legacySettingsLegacyEndpoint() throws IOException {
+    String requestBody = "{"
+        + "  \"persistent\": {"
+        + "    \"opendistro.sql.query.slowlog\": \"10\""
+        + "  }"
+        + "}";
+    Response response = updateSetting(LEGACY_SQL_SETTINGS_API_ENDPOINT, requestBody);
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+  }
+
+  @Test
+  public void legacySettingNewEndpoint() throws IOException {
+    String requestBody = "{"
+        + "  \"persistent\": {"
+        + "    \"opendistro.query.size_limit\": \"100\""
+        + "  }"
+        + "}";
+    Response response = updateSetting(SETTINGS_API_ENDPOINT, requestBody);
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+  }
+
+  @Test
+  public void newSettingsLegacyEndpoint() throws IOException {
+    String requestBody = "{"
+        + "  \"persistent\": {"
+        + "    \"plugins.sql.slowlog\": \"10\""
+        + "  }"
+        + "}";
+    Response response = updateSetting(LEGACY_SQL_SETTINGS_API_ENDPOINT, requestBody);
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+  }
+
+  @Test
+  public void newSettingNewEndpoint() throws IOException {
+    String requestBody = "{"
+        + "  \"persistent\": {"
+        + "    \"plugins.query.metrics.rolling_interval\": \"80\""
+        + "  }"
+        + "}";
+    Response response = updateSetting(SETTINGS_API_ENDPOINT, requestBody);
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+  }
+
+  private Response updateSetting(String endpoint, String requestBody) throws IOException {
+    Request request = new Request("PUT", endpoint);
     request.setJsonEntity(requestBody);
     request.setOptions(buildJsonOption());
-    Response response = client().performRequest(request);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    return client().performRequest(request);
   }
 
   private RequestOptions.Builder buildJsonOption() {

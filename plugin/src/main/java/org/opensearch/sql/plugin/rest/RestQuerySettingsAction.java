@@ -44,8 +44,12 @@ public class RestQuerySettingsAction extends BaseRestHandler {
   private static final String SQL_SETTINGS_PREFIX = "plugins.sql.";
   private static final String PPL_SETTINGS_PREFIX = "plugins.ppl.";
   private static final String COMMON_SETTINGS_PREFIX = "plugins.query.";
+  private static final String LEGACY_SQL_SETTINGS_PREFIX = "opendistro.sql.";
+  private static final String LEGACY_PPL_SETTINGS_PREFIX = "opendistro.ppl.";
+  private static final String LEGACY_COMMON_SETTINGS_PREFIX = "opendistro.query.";
   private static final List<String> SETTINGS_PREFIX = ImmutableList.of(
-      SQL_SETTINGS_PREFIX, PPL_SETTINGS_PREFIX, COMMON_SETTINGS_PREFIX);
+      SQL_SETTINGS_PREFIX, PPL_SETTINGS_PREFIX, COMMON_SETTINGS_PREFIX,
+      LEGACY_SQL_SETTINGS_PREFIX, LEGACY_PPL_SETTINGS_PREFIX, LEGACY_COMMON_SETTINGS_PREFIX);
 
   public static final String SETTINGS_API_ENDPOINT = "/_plugins/_query/settings";
   public static final String LEGACY_SQL_SETTINGS_API_ENDPOINT = "/_opendistro/_sql/settings";
@@ -114,7 +118,7 @@ public class RestQuerySettingsAction extends BaseRestHandler {
       Settings.Builder settingsBuilder = Settings.builder()
           .loadFromSource(Strings.toString(builder), builder.contentType());
       settingsBuilder.keys().removeIf(key -> {
-        for (String prefix: SETTINGS_PREFIX) {
+        for (String prefix : SETTINGS_PREFIX) {
           if (key.startsWith(prefix)) {
             return false;
           }
