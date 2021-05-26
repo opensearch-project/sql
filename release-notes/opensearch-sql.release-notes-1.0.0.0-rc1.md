@@ -30,6 +30,7 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 1.0.0-rc1
 * Update PowerBI custom connector .mez file for ODBC driver ([#90](https://github.com/opensearch-project/sql/pull/90))
 * Rename remaining beta1 references in sql-cli/workbench ([#91](https://github.com/opensearch-project/sql/pull/91))
 * Build SQL/PPL against OpenSearch 1.0 branch ([#94](https://github.com/opensearch-project/sql/pull/94))
+* Bug Fix: Enable legacy settings in new setting action ([#97](https://github.com/opensearch-project/sql/pull/97))
 
 ### Enhancements
 
