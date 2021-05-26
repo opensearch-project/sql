@@ -84,7 +84,7 @@ public class LegacyAPICompatibilityIT extends SQLIntegTestCase {
   public void legacySettingsLegacyEndpoint() throws IOException {
     String requestBody = "{"
         + "  \"persistent\": {"
-        + "    \"opendistro.sql.slow_log\": \"10\""
+        + "    \"opendistro.sql.query.slowlog\": \"10\""
         + "  }"
         + "}";
     Response response = updateSetting(LEGACY_SQL_SETTINGS_API_ENDPOINT, requestBody);
@@ -106,7 +106,7 @@ public class LegacyAPICompatibilityIT extends SQLIntegTestCase {
   public void newSettingsLegacyEndpoint() throws IOException {
     String requestBody = "{"
         + "  \"persistent\": {"
-        + "    \"plugins.sql.slow_log\": \"10\""
+        + "    \"plugins.sql.slowlog\": \"10\""
         + "  }"
         + "}";
     Response response = updateSetting(LEGACY_SQL_SETTINGS_API_ENDPOINT, requestBody);
