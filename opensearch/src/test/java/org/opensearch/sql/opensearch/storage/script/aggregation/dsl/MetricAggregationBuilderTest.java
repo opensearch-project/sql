@@ -211,7 +211,7 @@ class MetricAggregationBuilderTest {
   private String buildQuery(List<NamedAggregator> namedAggregatorList) {
     ObjectMapper objectMapper = new ObjectMapper();
     return objectMapper.readTree(
-        aggregationBuilder.build(namedAggregatorList).toString())
+        aggregationBuilder.build(namedAggregatorList).getLeft().toString())
         .toPrettyString();
   }
 }

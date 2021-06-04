@@ -63,7 +63,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.Setter;
 import org.opensearch.common.time.DateFormatters;
 import org.opensearch.sql.data.model.ExprBooleanValue;
@@ -86,17 +86,21 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.utils.Content;
 import org.opensearch.sql.opensearch.data.utils.ObjectContent;
 import org.opensearch.sql.opensearch.data.utils.OpenSearchJsonContent;
+import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 
 /**
  * Construct ExprValue from OpenSearch response.
  */
-@AllArgsConstructor
 public class OpenSearchExprValueFactory {
   /**
    * The Mapping of Field and ExprType.
    */
   @Setter
   private Map<String, ExprType> typeMapping;
+
+  @Getter
+  @Setter
+  private OpenSearchAggregationResponseParser parser;
 
   private static final DateTimeFormatter DATE_TIME_FORMATTER =
       new DateTimeFormatterBuilder()
@@ -130,6 +134,14 @@ public class OpenSearchExprValueFactory {
               c.geoValue().getRight()))
           .put(OPENSEARCH_BINARY, c -> new OpenSearchExprBinaryValue(c.stringValue()))
           .build();
+
+  /**
+   * Constructor of OpenSearchExprValueFactory.
+   */
+  public OpenSearchExprValueFactory(
+      Map<String, ExprType> typeMapping) {
+    this.typeMapping = typeMapping;
+  }
 
   /**
    * The struct construction has the following assumption. 1. The field has OpenSearch Object
