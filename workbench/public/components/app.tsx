@@ -40,18 +40,28 @@ interface WorkbenchAppDeps {
   notifications: CoreStart['notifications'];
   http: CoreStart['http'];
   navigation: NavigationPublicPluginStart;
+  chrome: CoreStart['chrome'];
 }
 
 const onChange = () => {};
 
-export const WorkbenchApp = ({ basename, notifications, http, navigation }: WorkbenchAppDeps) => {
+export const WorkbenchApp = ({ basename, notifications, http, navigation, chrome }: WorkbenchAppDeps) => {
   return (
     <Router basename={'/' + basename}>
       <I18nProvider>
         <div>
           <EuiPage>
             <EuiPageBody>
-              <Route path="/" render={(props) => <Main httpClient={http} {...props} />} />
+              <Route 
+                path="/" 
+                render={(props) => 
+                  <Main 
+                    httpClient={http} 
+                    {...props} 
+                    setBreadcrumbs={chrome.setBreadcrumbs} 
+                  />
+                } 
+              />
             </EuiPageBody>
           </EuiPage>
         </div>

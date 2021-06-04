@@ -24,7 +24,7 @@ Example 1: Table Subquery
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : """
 		SELECT a1.firstname, a1.lastname, a1.balance
@@ -174,7 +174,7 @@ Example 2: Subquery in FROM Clause
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : """
 		SELECT a.f, a.l, a.a
@@ -301,7 +301,7 @@ Inner join is very commonly used that creates a new result set by combining colu
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : """
 		SELECT
@@ -399,7 +399,7 @@ Cross join or Cartesian join combines each document from the first index with ea
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : """
 		SELECT
@@ -448,7 +448,7 @@ Outer join is used to retain documents from one or both indices although it does
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : """
 		SELECT

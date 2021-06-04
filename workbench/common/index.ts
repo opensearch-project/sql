@@ -24,5 +24,5 @@
  *   permissions and limitations under the License.
  */
 
-export const PLUGIN_ID = 'opendistroQueryWorkbench';
+export const PLUGIN_ID = 'queryWorkbenchDashboards';
 export const PLUGIN_NAME = 'Query Workbench';

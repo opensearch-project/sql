@@ -36,11 +36,13 @@ import {
 } from "../../../test/mocks/mockData";
 import Main from "./main";
 
+const setBreadcrumbsMock = jest.fn();
+
 describe("<Main /> spec", () => {
 
   it("renders the component", () => {
     render(
-      <Main httpClient={httpClientMock} />
+      <Main httpClient={httpClientMock} setBreadcrumbs={setBreadcrumbsMock} />
     );
     expect(document.body.children[0]).toMatchSnapshot();
   });
@@ -50,7 +52,7 @@ describe("<Main /> spec", () => {
     client.post = jest.fn().mockResolvedValue(mockQueryResultJDBCResponse);
 
     const { getByText } = render(
-      <Main httpClient={client} />
+      <Main httpClient={client} setBreadcrumbs={setBreadcrumbsMock} />
     );
     const onRunButton = getByText('Run');
     const asyncTest = () => {
@@ -65,7 +67,7 @@ describe("<Main /> spec", () => {
     client.post = jest.fn().mockResolvedValue(mockResultWithNull);
 
     const { getByText } = render(
-      <Main httpClient={client} />
+      <Main httpClient={client} setBreadcrumbs={setBreadcrumbsMock} />
     );
     const onRunButton = getByText('Run');
     const asyncTest = () => {
@@ -80,7 +82,7 @@ describe("<Main /> spec", () => {
     client.post = jest.fn().mockRejectedValue('err');
 
     const { getByText } = render(
-      <Main httpClient={client} />
+      <Main httpClient={client} setBreadcrumbs={setBreadcrumbsMock} />
     );
     const onRunButton = getByText('Run');
     const asyncTest = () => {
@@ -95,7 +97,7 @@ describe("<Main /> spec", () => {
     client.post = jest.fn().mockResolvedValue(mockNotOkQueryResultResponse);
 
     const { getByText } = render(
-      <Main httpClient={client} />
+      <Main httpClient={client} setBreadcrumbs={setBreadcrumbsMock} />
     );
     const onRunButton = getByText('Run');
     const asyncTest = () => {
@@ -109,7 +111,7 @@ describe("<Main /> spec", () => {
     const client = httpClientMock;
     client.post = jest.fn().mockResolvedValue(mockQueryTranslationResponse);
     const { getByText } = render(
-      <Main httpClient={client} />
+      <Main httpClient={client} setBreadcrumbs={setBreadcrumbsMock} />
     );
     const onTranslateButton = getByText('Explain');
     const asyncTest = () => {
@@ -122,7 +124,7 @@ describe("<Main /> spec", () => {
   it("click clear button", async () => {
     const client = httpClientMock;
     const { getByText } = render(
-      <Main httpClient={client} />
+      <Main httpClient={client} setBreadcrumbs={setBreadcrumbsMock} />
     );
     const onClearButton = getByText('Clear');
     const asyncTest = () => {

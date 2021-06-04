@@ -97,39 +97,8 @@ testClusters.all {
     plugin ":plugin"
 }
 
-// Run only legacy SQL ITs with new SQL engine disabled
-integTest {
-    dependsOn (':plugin:bundlePlugin',':integ-test:integTestWithNewEngine')
-
-    systemProperty 'tests.security.manager', 'false'
-    systemProperty('project.root', project.projectDir.absolutePath)
-
-    systemProperty "https", System.getProperty("https")
-    systemProperty "user", System.getProperty("user")
-    systemProperty "password", System.getProperty("password")
-
-    // Enable new SQL engine
-    systemProperty 'enableNewEngine', 'false'
-
-    // Set default query size limit
-    systemProperty 'defaultQuerySizeLimit', '10000'
-
-    // Tell the test JVM if the cluster JVM is running under a debugger so that tests can use longer timeouts for
-    // requests. The 'doFirst' delays reading the debug setting on the cluster till execution time.
-    doFirst { systemProperty 'cluster.debug', getDebug()}
-
-    if (System.getProperty("test.debug") != null) {
-        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
-    }
-
-    exclude 'com/amazon/opendistroforelasticsearch/sql/ppl/**/*IT.class'
-    exclude 'com/amazon/opendistroforelasticsearch/sql/sql/**/*IT.class'
-    exclude 'com/amazon/opendistroforelasticsearch/sql/doctest/**/*IT.class'
-    exclude 'com/amazon/opendistroforelasticsearch/sql/correctness/**'
-}
-
 // Run PPL ITs and new, legacy and comparison SQL ITs with new SQL engine enabled
-task integTestWithNewEngine(type: RestIntegTestTask) {
+integTest {
     dependsOn ':plugin:bundlePlugin'
 
     systemProperty 'tests.security.manager', 'false'
@@ -150,23 +119,21 @@ task integTestWithNewEngine(type: RestIntegTestTask) {
         jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
     }
 
-    exclude 'com/amazon/opendistroforelasticsearch/sql/doctest/**/*IT.class'
-    exclude 'com/amazon/opendistroforelasticsearch/sql/correctness/**'
+    exclude 'org/opensearch/sql/doctest/**/*IT.class'
+    exclude 'org/opensearch/sql/correctness/**'
 
     // Explain IT is dependent on internal implementation of old engine so it's not necessary
     // to run these with new engine and not necessary to make this consistent with old engine.
-    exclude 'com/amazon/opendistroforelasticsearch/sql/legacy/ExplainIT.class'
-    exclude 'com/amazon/opendistroforelasticsearch/sql/legacy/PrettyFormatterIT.class'
-    exclude 'com/amazon/opendistroforelasticsearch/sql/legacy/TermQueryExplainIT.class'
+    exclude 'org/opensearch/sql/legacy/ExplainIT.class'
+    exclude 'org/opensearch/sql/legacy/PrettyFormatterIT.class'
+    exclude 'org/opensearch/sql/legacy/TermQueryExplainIT.class'
 
     // Skip old semantic analyzer IT because analyzer in new engine has different behavior
-    exclude 'com/amazon/opendistroforelasticsearch/sql/legacy/QueryAnalysisIT.class'
+    exclude 'org/opensearch/sql/legacy/QueryAnalysisIT.class'
 
     // Skip this IT because all assertions are against explain output
-    exclude 'com/amazon/opendistroforelasticsearch/sql/legacy/OrderIT.class'
+    exclude 'org/opensearch/sql/legacy/OrderIT.class'
 }
-
-
 
 
 task docTest(type: RestIntegTestTask) {
@@ -183,11 +150,11 @@ task docTest(type: RestIntegTestTask) {
         jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
     }
 
-    include 'com/amazon/opendistroforelasticsearch/sql/doctest/**/*IT.class'
-    exclude 'com/amazon/opendistroforelasticsearch/sql/correctness/**/*IT.class'
-    exclude 'com/amazon/opendistroforelasticsearch/sql/ppl/**/*IT.class'
-    exclude 'com/amazon/opendistroforelasticsearch/sql/sql/**/*IT.class'
-    exclude 'com/amazon/opendistroforelasticsearch/sql/legacy/**/*IT.class'
+    include 'org/opensearch/sql/doctest/**/*IT.class'
+    exclude 'org/opensearch/sql/correctness/**/*IT.class'
+    exclude 'org/opensearch/sql/ppl/**/*IT.class'
+    exclude 'org/opensearch/sql/sql/**/*IT.class'
+    exclude 'org/opensearch/sql/legacy/**/*IT.class'
 }
 
 task comparisonTest(type: RestIntegTestTask) {
@@ -204,10 +171,10 @@ task comparisonTest(type: RestIntegTestTask) {
         jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
     }
 
-    include 'com/amazon/opendistroforelasticsearch/sql/correctness/**/*IT.class'
-    exclude 'com/amazon/opendistroforelasticsearch/sql/doctest/**/*IT.class'
-    exclude 'com/amazon/opendistroforelasticsearch/sql/ppl/**/*IT.class'
-    exclude 'com/amazon/opendistroforelasticsearch/sql/legacy/**/*IT.class'
+    include 'org/opensearch/sql/correctness/**/*IT.class'
+    exclude 'org/opensearch/sql/doctest/**/*IT.class'
+    exclude 'org/opensearch/sql/ppl/**/*IT.class'
+    exclude 'org/opensearch/sql/legacy/**/*IT.class'
 
     // Enable logging output to console
     testLogging.showStandardStreams true

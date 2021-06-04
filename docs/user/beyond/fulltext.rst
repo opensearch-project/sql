@@ -29,7 +29,7 @@ Both functions can accept field name as first argument and a text as second argu
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : """
 		SELECT account_number, address
@@ -99,7 +99,7 @@ Both functions can also accept single argument and be used in the following mann
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : """
 		SELECT account_number, address
@@ -177,7 +177,7 @@ Each preceding function accepts ``query`` for a text and ``fields`` for field na
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : """
 		SELECT firstname, lastname
@@ -257,7 +257,7 @@ Example
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : """
 		SELECT account_number, address
@@ -340,7 +340,7 @@ Example
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : """
 		SELECT account_number, address
@@ -413,7 +413,7 @@ The first argument is a match query expression and the second argument is for an
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : """
 		SELECT account_number, address, _score

@@ -149,9 +149,9 @@ int Ver1GEVer2(std::wstring ver_1_str, std::wstring ver_2_str) {
 /////////////////
 
 #if defined(WIN32)
-TEST_SQL_GET_INFO_STRING(SQLDriverName, SQL_DRIVER_NAME, L"odfesqlodbc.dll");
+TEST_SQL_GET_INFO_STRING(SQLDriverName, SQL_DRIVER_NAME, L"sqlodbc.dll");
 #elif defined(__APPLE__)
-TEST_SQL_GET_INFO_STRING(SQLDriverName, SQL_DRIVER_NAME, L"libodfesqlodbc.dylib");
+TEST_SQL_GET_INFO_STRING(SQLDriverName, SQL_DRIVER_NAME, L"libsqlodbc.dylib");
 #endif
 TEST_SQL_GET_INFO_STRING(SQLDriverODBCVer, SQL_DRIVER_ODBC_VER, L"03.51");
 

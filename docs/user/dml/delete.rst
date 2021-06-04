@@ -32,7 +32,7 @@ The ``datarows`` field in this case shows rows impacted, in other words how many
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : """
 		DELETE FROM accounts

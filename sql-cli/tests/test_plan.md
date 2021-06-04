@@ -22,7 +22,7 @@
 
 * [ ] Test connection to a local OpenSearch instance
     * [ ] OpenSearch, no authentication
-    * [ ] OpenSearch, install [OpenSearch Security plugin](https://opendistro.github.io/for-elasticsearch-docs/docs/install/plugins/) to enable authentication and SSL
+    * [ ] OpenSearch, install [OpenSearch Security plugin](https://docs-beta.opensearch.org/docs/opensearch/install/plugins/) to enable authentication and SSL
     * Run command like `opensearchsql <endpoint> -u <username> -w <password>` to connect to instance with authentication.
 * [ ] Test connection to [Amazon Elasticsearch domain](https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-gsg.html) with
 [Fine Grained Access Control](https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/fgac.html) enabled. 
