@@ -42,8 +42,6 @@ import org.apache.lucene.search.TotalHits;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.search.SearchHit;
@@ -53,6 +51,7 @@ import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
+import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 
 @ExtendWith(MockitoExtension.class)
 class OpenSearchResponseTest {
@@ -71,6 +70,9 @@ class OpenSearchResponseTest {
 
   @Mock
   private Aggregations aggregations;
+
+  @Mock
+  private OpenSearchAggregationResponseParser parser;
 
   private ExprTupleValue exprTupleValue1 = ExprTupleValue.fromExprValueMap(ImmutableMap.of("id1",
       new ExprIntegerValue(1)));
@@ -147,26 +149,24 @@ class OpenSearchResponseTest {
 
   @Test
   void aggregation_iterator() {
-    try (
-        MockedStatic<OpenSearchAggregationResponseParser> mockedStatic = Mockito
-            .mockStatic(OpenSearchAggregationResponseParser.class)) {
-      when(OpenSearchAggregationResponseParser.parse(any()))
-          .thenReturn(Arrays.asList(ImmutableMap.of("id1", 1), ImmutableMap.of("id2", 2)));
-      when(searchResponse.getAggregations()).thenReturn(aggregations);
-      when(factory.construct(anyString(), any())).thenReturn(new ExprIntegerValue(1))
-          .thenReturn(new ExprIntegerValue(2));
+    when(parser.parse(any()))
+        .thenReturn(Arrays.asList(ImmutableMap.of("id1", 1), ImmutableMap.of("id2", 2)));
+    when(searchResponse.getAggregations()).thenReturn(aggregations);
+    when(factory.getParser()).thenReturn(parser);
+    when(factory.construct(anyString(), any()))
+        .thenReturn(new ExprIntegerValue(1))
+        .thenReturn(new ExprIntegerValue(2));
 
-      int i = 0;
-      for (ExprValue hit : new OpenSearchResponse(searchResponse, factory)) {
-        if (i == 0) {
-          assertEquals(exprTupleValue1, hit);
-        } else if (i == 1) {
-          assertEquals(exprTupleValue2, hit);
-        } else {
-          fail("More search hits returned than expected");
-        }
-        i++;
+    int i = 0;
+    for (ExprValue hit : new OpenSearchResponse(searchResponse, factory)) {
+      if (i == 0) {
+        assertEquals(exprTupleValue1, hit);
+      } else if (i == 1) {
+        assertEquals(exprTupleValue2, hit);
+      } else {
+        fail("More search hits returned than expected");
       }
+      i++;
     }
   }
 }
