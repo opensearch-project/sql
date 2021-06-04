@@ -30,7 +30,7 @@ from setuptools import setup, find_packages
 install_requirements = [
     "click == 7.1.1",
     "prompt_toolkit == 2.0.6",
-    "Pygments == 2.6.1",
+    "Pygments >= 2.7.4",
     "cli_helpers[styles] == 1.2.1",
     "elasticsearch == 7.10.1",
     "pyfiglet == 0.8.post1",
@@ -56,7 +56,7 @@ setup(
     author_email="opensearch-infra@amazon.com",
     version=version,
     license="Apache 2.0",
-    url="https://opendistro.github.io/for-elasticsearch-docs/docs/sql/cli/",
+    url="https://docs-beta.opensearch.org/docs/sql/cli/",
     packages=find_packages('src'),
     package_dir={'': 'src'},
     package_data={"opensearch_sql_cli": ["conf/clirc", "opensearch_literals/opensearch_literals.json"]},

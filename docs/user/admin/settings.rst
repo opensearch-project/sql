@@ -14,10 +14,10 @@ Plugin Settings
 Introduction
 ============
 
-When OpenSearch bootstraps, SQL plugin will register a few settings in OpenSearch cluster settings. Most of the settings are able to change dynamically so you can control the behavior of SQL plugin without need to bounce your cluster.
+When OpenSearch bootstraps, SQL plugin will register a few settings in OpenSearch cluster settings. Most of the settings are able to change dynamically so you can control the behavior of SQL plugin without need to bounce your cluster. You can update the settings by sending requests to either ``_cluster/settings`` or ``_plugins/_query/settings`` endpoint, though the examples are sending to the latter.
 
 
-opensearch.sql.enabled
+plugins.sql.enabled
 ======================
 
 Description
@@ -37,9 +37,9 @@ You can update the setting with a new value like this.
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opensearch/_sql/settings -d '{
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
 	  "transient" : {
-	    "opensearch.sql.enabled" : "false"
+	    "plugins.sql.enabled" : "false"
 	  }
 	}'
 
@@ -49,13 +49,15 @@ Result set::
 	  "acknowledged" : true,
 	  "persistent" : { },
 	  "transient" : {
-	    "opensearch" : {
+	    "plugins" : {
 	      "sql" : {
 	        "enabled" : "false"
 	      }
 	    }
 	  }
 	}
+
+Note: the legacy settings of ``opendistro.sql.enabled`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
 
 Example 2
 ---------
@@ -64,7 +66,7 @@ Query result after the setting updated is like:
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql -d '{
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql -d '{
 	  "query" : "SELECT * FROM accounts"
 	}'
 
@@ -73,13 +75,13 @@ Result set::
 	{
 	  "error" : {
 	    "reason" : "Invalid SQL query",
-	    "details" : "Either opensearch.sql.enabled or rest.action.multi.allow_explicit_index setting is false",
+	    "details" : "Either plugins.sql.enabled or rest.action.multi.allow_explicit_index setting is false",
 	    "type" : "SQLFeatureDisabledException"
 	  },
 	  "status" : 400
 	}
 
-opensearch.sql.query.slowlog
+plugins.sql.slowlog
 ============================
 
 Description
@@ -99,9 +101,9 @@ You can update the setting with a new value like this.
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opensearch/_sql/settings -d '{
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
 	  "transient" : {
-	    "opensearch.sql.query.slowlog" : "10"
+	    "plugins.query.slowlog" : "10"
 	  }
 	}'
 
@@ -111,364 +113,17 @@ Result set::
 	  "acknowledged" : true,
 	  "persistent" : { },
 	  "transient" : {
-	    "opensearch" : {
-	      "sql" : {
-	        "query" : {
-	          "slowlog" : "10"
-	        }
+	    "plugins" : {
+	      "query" : {
+	        "slowlog" : "10"
 	      }
 	    }
 	  }
 	}
 
-opensearch.sql.query.analysis.enabled
-=====================================
+Note: the legacy settings of ``opendistro.sql.slowlog`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
 
-Description
------------
-
-You can disable query analyzer to bypass strict syntactic and semantic analysis.
-
-1. The default value is true.
-2. This setting is node scope.
-3. This setting can be updated dynamically.
-
-
-Example
--------
-
-You can update the setting with a new value like this.
-
-SQL query::
-
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opensearch/_sql/settings -d '{
-	  "transient" : {
-	    "opensearch.sql.query.analysis.enabled" : "false"
-	  }
-	}'
-
-Result set::
-
-	{
-	  "acknowledged" : true,
-	  "persistent" : { },
-	  "transient" : {
-	    "opensearch" : {
-	      "sql" : {
-	        "query" : {
-	          "analysis" : {
-	            "enabled" : "false"
-	          }
-	        }
-	      }
-	    }
-	  }
-	}
-
-opensearch.sql.query.analysis.semantic.suggestion
-=================================================
-
-Description
------------
-
-You can enable query analyzer to suggest correct field names for quick fix.
-
-1. The default value is false.
-2. This setting is node scope.
-3. This setting can be updated dynamically.
-
-
-Example 1
----------
-
-You can update the setting with a new value like this.
-
-SQL query::
-
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opensearch/_sql/settings -d '{
-	  "transient" : {
-	    "opensearch.sql.query.analysis.semantic.suggestion" : "true"
-	  }
-	}'
-
-Result set::
-
-	{
-	  "acknowledged" : true,
-	  "persistent" : { },
-	  "transient" : {
-	    "opensearch" : {
-	      "sql" : {
-	        "query" : {
-	          "analysis" : {
-	            "semantic" : {
-	              "suggestion" : "true"
-	            }
-	          }
-	        }
-	      }
-	    }
-	  }
-	}
-
-Example 2
----------
-
-Query result after the setting updated is like:
-
-SQL query::
-
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql -d '{
-	  "query" : "SELECT first FROM accounts"
-	}'
-
-Result set::
-
-	{
-	  "error" : {
-	    "reason" : "Invalid SQL query",
-	    "details" : "Field [first] cannot be found or used here. Did you mean [firstname]?",
-	    "type" : "SemanticAnalysisException"
-	  },
-	  "status" : 400
-	}
-
-opensearch.sql.query.analysis.semantic.threshold
-================================================
-
-Description
------------
-
-Because query analysis needs to build semantic context in memory, index with large number of field would be skipped. You can update it to apply analysis to smaller or larger index as needed.
-
-1. The default value is 200.
-2. This setting is node scope.
-3. This setting can be updated dynamically.
-
-
-Example
--------
-
-You can update the setting with a new value like this.
-
-SQL query::
-
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opensearch/_sql/settings -d '{
-	  "transient" : {
-	    "opensearch.sql.query.analysis.semantic.threshold" : "50"
-	  }
-	}'
-
-Result set::
-
-	{
-	  "acknowledged" : true,
-	  "persistent" : { },
-	  "transient" : {
-	    "opensearch" : {
-	      "sql" : {
-	        "query" : {
-	          "analysis" : {
-	            "semantic" : {
-	              "threshold" : "50"
-	            }
-	          }
-	        }
-	      }
-	    }
-	  }
-	}
-
-opensearch.sql.query.response.format
-====================================
-
-Description
------------
-
-User can set default response format of the query. The supported format includes: jdbc,json,csv,raw,table.
-
-1. The default value is jdbc.
-2. This setting is node scope.
-3. This setting can be updated dynamically.
-
-
-Example 1
----------
-
-You can update the setting with a new value like this.
-
-SQL query::
-
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opensearch/_sql/settings -d '{
-	  "transient" : {
-	    "opensearch.sql.query.response.format" : "json"
-	  }
-	}'
-
-Result set::
-
-	{
-	  "acknowledged" : true,
-	  "persistent" : { },
-	  "transient" : {
-	    "opensearch" : {
-	      "sql" : {
-	        "query" : {
-	          "response" : {
-	            "format" : "json"
-	          }
-	        }
-	      }
-	    }
-	  }
-	}
-
-Example 2
----------
-
-Query result after the setting updated is like:
-
-SQL query::
-
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_opensearch/_sql -d '{
-	  "query" : "SELECT firstname, lastname, age FROM accounts ORDER BY age LIMIT 2"
-	}'
-
-Result set::
-
-	{
-	  "_shards" : {
-	    "total" : 5,
-	    "failed" : 0,
-	    "successful" : 5,
-	    "skipped" : 0
-	  },
-	  "hits" : {
-	    "hits" : [
-	      {
-	        "_index" : "accounts",
-	        "_type" : "_doc",
-	        "_source" : {
-	          "firstname" : "Nanette",
-	          "age" : 28,
-	          "lastname" : "Bates"
-	        },
-	        "_id" : "13",
-	        "sort" : [
-	          28
-	        ],
-	        "_score" : null
-	      },
-	      {
-	        "_index" : "accounts",
-	        "_type" : "_doc",
-	        "_source" : {
-	          "firstname" : "Amber",
-	          "age" : 32,
-	          "lastname" : "Duke"
-	        },
-	        "_id" : "1",
-	        "sort" : [
-	          32
-	        ],
-	        "_score" : null
-	      }
-	    ],
-	    "total" : {
-	      "value" : 4,
-	      "relation" : "eq"
-	    },
-	    "max_score" : null
-	  },
-	  "took" : 100,
-	  "timed_out" : false
-	}
-
-opensearch.sql.cursor.enabled
-=============================
-
-Description
------------
-
-User can enable/disable pagination for all queries that are supported.
-
-1. The default value is false.
-2. This setting is node scope.
-3. This setting can be updated dynamically.
-
-
-Example
--------
-
-You can update the setting with a new value like this.
-
-SQL query::
-
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opensearch/_sql/settings -d '{
-	  "transient" : {
-	    "opensearch.sql.cursor.enabled" : "true"
-	  }
-	}'
-
-Result set::
-
-	{
-	  "acknowledged" : true,
-	  "persistent" : { },
-	  "transient" : {
-	    "opensearch" : {
-	      "sql" : {
-	        "cursor" : {
-	          "enabled" : "true"
-	        }
-	      }
-	    }
-	  }
-	}
-
-opensearch.sql.cursor.fetch_size
-================================
-
-Description
------------
-
-User can set the default fetch_size for all queries that are supported by pagination. Explicit `fetch_size` passed in request will override this value
-
-1. The default value is 1000.
-2. This setting is node scope.
-3. This setting can be updated dynamically.
-
-
-Example
--------
-
-You can update the setting with a new value like this.
-
-SQL query::
-
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opensearch/_sql/settings -d '{
-	  "transient" : {
-	    "opensearch.sql.cursor.fetch_size" : "50"
-	  }
-	}'
-
-Result set::
-
-	{
-	  "acknowledged" : true,
-	  "persistent" : { },
-	  "transient" : {
-	    "opensearch" : {
-	      "sql" : {
-	        "cursor" : {
-	          "fetch_size" : "50"
-	        }
-	      }
-	    }
-	  }
-	}
-
-opensearch.sql.cursor.keep_alive
+plugins.sql.cursor.keep_alive
 ================================
 
 Description
@@ -488,9 +143,9 @@ You can update the setting with a new value like this.
 
 SQL query::
 
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opensearch/_sql/settings -d '{
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
 	  "transient" : {
-	    "opensearch.sql.cursor.keep_alive" : "5m"
+	    "plugins.sql.cursor.keep_alive" : "5m"
 	  }
 	}'
 
@@ -500,7 +155,7 @@ Result set::
 	  "acknowledged" : true,
 	  "persistent" : { },
 	  "transient" : {
-	    "opensearch" : {
+	    "plugins" : {
 	      "sql" : {
 	        "cursor" : {
 	          "keep_alive" : "5m"
@@ -510,52 +165,9 @@ Result set::
 	  }
 	}
 
-opensearch.sql.engine.new.enabled
-=================================
+Note: the legacy settings of ``opendistro.sql.cursor.keep_alive`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
 
-Description
------------
-
-We are migrating existing functionalities to a new query engine under development. User can choose to enable the new engine if interested or disable if any issue found.
-
-1. The default value is true.
-2. This setting is node scope.
-3. This setting can be updated dynamically.
-
-
-Example
--------
-
-You can update the setting with a new value like this.
-
-SQL query::
-
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_opensearch/_sql/settings -d '{
-	  "transient" : {
-	    "opensearch.sql.engine.new.enabled" : "false"
-	  }
-	}'
-
-Result set::
-
-	{
-	  "acknowledged" : true,
-	  "persistent" : { },
-	  "transient" : {
-	    "opensearch" : {
-	      "sql" : {
-	        "engine" : {
-	          "new" : {
-	            "enabled" : "false"
-	          }
-	        }
-	      }
-	    }
-	  }
-	}
-
-
-opendistro.query.size_limit
+plugins.query.size_limit
 ===========================
 
 Description
@@ -563,9 +175,9 @@ Description
 
 The new engine fetches a default size of index from OpenSearch set by this setting, the default value is 200. You can change the value to any value not greater than the max result window value in index level (10000 by default), here is an example::
 
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings -d '{
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
 	  "transient" : {
-	    "opensearch.query.size_limit" : 500
+	    "plugins.query.size_limit" : 500
 	  }
 	}'
 
@@ -575,11 +187,98 @@ Result set::
       "acknowledged" : true,
       "persistent" : { },
       "transient" : {
-        "opensearch" : {
+        "plugins" : {
           "query" : {
             "size_limit" : "500"
           }
         }
       }
+    }
+
+Note: the legacy settings of ``opendistro.query.size_limit`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
+
+plugins.query.memory_limit
+==========================
+
+Description
+-----------
+
+You can set heap memory usage limit for the query engine. When query running, it will detected whether the heap memory usage under the limit, if not, it will terminated the current query. The default value is: 85%. Here is an example::
+
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	  "transient" : {
+	    "plugins.query.memory_limit" : "80%"
+	  }
+	}'
+
+Result set::
+
+    {
+      "acknowledged": true,
+      "persistent": {
+        "plugins": {
+          "query": {
+            "memory_limit": "80%"
+          }
+        }
+      },
+      "transient": {}
+    }
+
+Note: the legacy settings of ``opendistro.ppl.query.memory_limit`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
+
+
+plugins.sql.delete.enabled
+======================
+
+Description
+-----------
+
+By default, DELETE clause disabled. You can enable DELETE clause by this setting.
+
+1. The default value is false.
+2. This setting is node scope.
+3. This setting can be updated dynamically.
+
+
+Example 1
+---------
+
+You can update the setting with a new value like this.
+
+SQL query::
+
+    sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"transient":{"plugins.sql.delete.enabled":"false"}}'
+    {
+      "acknowledged": true,
+      "persistent": {},
+      "transient": {
+        "plugins": {
+          "sql": {
+            "delete": {
+              "enabled": "false"
+            }
+          }
+        }
+      }
+    }
+
+Example 2
+---------
+
+Query result after the setting updated is like:
+
+SQL query::
+
+    sh$ curl -sS -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql \
+    ... -d '{"query" : "DELETE * FROM accounts"}'
+    {
+      "error": {
+        "reason": "Invalid SQL query",
+        "details": "DELETE clause is disabled by default and will be deprecated. Using the plugins.sql.delete.enabled setting to enable it",
+        "type": "SQLFeatureDisabledException"
+      },
+      "status": 400
     }
 

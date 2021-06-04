@@ -88,7 +88,7 @@ You can use ``*`` to fetch all fields in the index which is very convenient when
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : "SELECT * FROM accounts"
 	}
@@ -122,7 +122,7 @@ More often you would give specific field name(s) in ``SELECT`` clause to avoid l
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : "SELECT firstname, lastname FROM accounts"
 	}
@@ -163,7 +163,7 @@ Alias is often used to make your query more readable by giving your field a shor
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : "SELECT account_number AS num FROM accounts"
 	}
@@ -203,7 +203,7 @@ By default, ``SELECT ALL`` takes effect to return all rows. ``DISTINCT`` is usef
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : "SELECT DISTINCT age FROM accounts"
 	}
@@ -291,7 +291,7 @@ Similarly you can give index in ``FROM`` clause an alias and use it across claus
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : "SELECT acc.account_number FROM accounts acc"
 	}
@@ -303,7 +303,7 @@ Alternatively you can query from multiple indices of similar names by index patt
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : "SELECT account_number FROM account*"
 	}
@@ -315,7 +315,7 @@ You can also specify type name explicitly though this has been deprecated in lat
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : "SELECT account_number FROM accounts/account"
 	}
@@ -339,7 +339,7 @@ Basic comparison operators, such as ``=``, ``<>``, ``>``, ``>=``, ``<``, ``<=``,
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : """
 		SELECT account_number
@@ -403,7 +403,7 @@ Note that for now we don't differentiate missing field and field set to ``NULL``
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : """
 		SELECT account_number, employer
@@ -480,7 +480,7 @@ Example 1: Grouping by Fields
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : """
 		SELECT age
@@ -544,7 +544,7 @@ Field alias is accessible in ``GROUP BY`` clause.
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : """
 		SELECT account_number AS num
@@ -608,7 +608,7 @@ Alternatively field ordinal in ``SELECT`` clause can be used too. However this i
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : """
 		SELECT age
@@ -672,7 +672,7 @@ Scalar function can be used in ``GROUP BY`` clause and it's required to be prese
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : """
 		SELECT ABS(age) AS a
@@ -754,7 +754,7 @@ Example
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : """
 		SELECT age, MAX(balance)
@@ -849,7 +849,7 @@ Besides regular field names, ordinal, alias or scalar function can also be used 
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : "SELECT account_number FROM accounts ORDER BY account_number DESC"
 	}
@@ -896,7 +896,7 @@ Additionally you can specify if documents with missing field be put first or las
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : """
 		SELECT employer
@@ -1016,7 +1016,7 @@ Given a positive number, ``LIMIT`` uses it as page size to fetch result of that 
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : """
 		SELECT account_number
@@ -1061,7 +1061,7 @@ Offset position can be given as first argument to indicate where to start fetchi
 
 SQL query::
 
-	POST /_opensearch/_sql
+	POST /_plugins/_sql
 	{
 	  "query" : """
 		SELECT account_number
@@ -1113,6 +1113,6 @@ Offset position can be given following the OFFSET keyword as well, here is an ex
 
 Limitation
 ----------
-Generally, sort plan is pushed down into the OpenSearch DSL in plan optimization, but note that if a query has complex sorting, like sort expression, which would not be pushed down during optimization (see `Optimizations <../optimization/optimization.rst>`_ for details), but computed in local memory. However, the engine fetches the index of a default size that is set in plugin setting (See `Settings <../admin/settings.rst>` opendistro.query.size_limit for details). Therefore, the result might not be absolutely correct if the index size is larger than the default size of index scan. For example, the engine has a index scan size of 200 and the index size is 500. Then a query with limit 300 can only fetch 200 rows of the index, compute and return the sorted result with 200 rows, while the rest 300 rows of the index are ignored and would not be fetched into the engine. To get an absolutely correct result, it is suggested to set the query size limit to a larger value before run the query.
+Generally, sort plan is pushed down into the OpenSearch DSL in plan optimization, but note that if a query has complex sorting, like sort expression, which would not be pushed down during optimization (see `Optimizations <../optimization/optimization.rst>`_ for details), but computed in local memory. However, the engine fetches the index of a default size that is set in plugin setting (See `Settings <../admin/settings.rst>` plugins.query.size_limit for details). Therefore, the result might not be absolutely correct if the index size is larger than the default size of index scan. For example, the engine has a index scan size of 200 and the index size is 500. Then a query with limit 300 can only fetch 200 rows of the index, compute and return the sorted result with 200 rows, while the rest 300 rows of the index are ignored and would not be fetched into the engine. To get an absolutely correct result, it is suggested to set the query size limit to a larger value before run the query.
 
 

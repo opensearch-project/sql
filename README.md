@@ -1,7 +1,7 @@
 
 [![Test and Build Workflow](https://github.com/opendistro-for-elasticsearch/sql/workflows/Java%20CI/badge.svg)](https://github.com/opendistro-for-elasticsearch/sql/actions)
 [![codecov](https://codecov.io/gh/opendistro-for-elasticsearch/sql/branch/develop/graph/badge.svg)](https://codecov.io/gh/opendistro-for-elasticsearch/sql)
-[![Documentation](https://img.shields.io/badge/api-reference-blue.svg)](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/endpoints/)
+[![Documentation](https://img.shields.io/badge/api-reference-blue.svg)](https://docs-beta.opensearch.org/docs/sql/endpoints/)
 [![Chat](https://img.shields.io/badge/chat-on%20forums-blue)](https://discuss.opendistrocommunity.dev/c/sql/)
 ![PRs welcome!](https://img.shields.io/badge/PRs-welcome!-success)
 
@@ -23,7 +23,7 @@ The following projects have been merged into this repository as separate folders
 
 ## Documentation
 
-Please refer to the [SQL Language Reference Manual](./docs/user/index.rst), [Piped Processing Language (PPL) Reference Manual](./docs/experiment/ppl/index.rst) and [Technical Documentation](https://opendistro.github.io/for-elasticsearch-docs) for detailed information on installing and configuring plugin. Looking to contribute? Read the instructions on [Developer Guide](./DEVELOPER_GUIDE.rst) and then submit a patch!
+Please refer to the [SQL Language Reference Manual](./docs/user/index.rst), [Piped Processing Language (PPL) Reference Manual](./docs/user/ppl/index.rst) and [Technical Documentation](https://docs-beta.opensearch.org/) for detailed information on installing and configuring plugin. Looking to contribute? Read the instructions on [Developer Guide](./DEVELOPER_GUIDE.rst) and then submit a patch!
 
 ## SQL Engine V2
 
@@ -48,12 +48,12 @@ The package uses the [Gradle](https://docs.gradle.org/4.10.2/userguide/userguide
 
 ## Basic Usage
 
-To use the feature, send requests to the `_opensearch/_sql` URI. You can use a request parameter or the request body (recommended). Note that for backward compatibility, old `_opendistro/_sql` endpoint is still available, though any future API will be only accessible by new OpenSearch endpoint.
+To use the feature, send requests to the `_plugins/_sql` URI. You can use a request parameter or the request body (recommended). Note that for backward compatibility, old `_opendistro/_sql` endpoint is still available, though any future API will be only accessible by new OpenSearch endpoint.
 
 * Simple query
 
 ```
-POST https://<host>:<port>/_opensearch/_sql
+POST https://<host>:<port>/_plugins/_sql
 {
   "query": "SELECT * FROM my-index LIMIT 50"
 }
@@ -61,7 +61,7 @@ POST https://<host>:<port>/_opensearch/_sql
 
 * Explain SQL to OpenSearch query DSL
 ```
-POST _opensearch/_sql/_explain
+POST _plugins/_sql/_explain
 {
   "query": "SELECT * FROM my-index LIMIT 50"
 }
@@ -69,7 +69,7 @@ POST _opensearch/_sql/_explain
 
 * For a sample curl command with the OpenSearch Security plugin, try:
 ```
-curl -XPOST https://localhost:9200/_opensearch/_sql -u admin:admin -k -d '{"query": "SELECT * FROM my-index LIMIT 10"}' -H 'Content-Type: application/json'
+curl -XPOST https://localhost:9200/_plugins/_sql -u admin:admin -k -d '{"query": "SELECT * FROM my-index LIMIT 10"}' -H 'Content-Type: application/json'
 ```
 
 
@@ -187,7 +187,7 @@ curl -XPOST https://localhost:9200/_opensearch/_sql -u admin:admin -k -d '{"quer
 
 Please check out JDBC driver repository for more details.
 
-## Beyond sql features
+## Beyond SQL features
 
 *  OpenSearch TopHits
 *  OpenSearch MISSING

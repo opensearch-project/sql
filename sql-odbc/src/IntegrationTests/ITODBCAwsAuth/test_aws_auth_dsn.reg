@@ -4,8 +4,8 @@ Windows Registry Editor Version 5.00
 "OpenSearchODBC"="Installed"
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\ODBC\ODBCINST.INI\OpenSearchODBC]
-"Driver"="<project-root>\\bin64\\Release\\odfesqlodbc.dll"
-"Setup"="<project-root>\\bin64\\Release\\odfesqlodbc.dll"
+"Driver"="<project-root>\\bin64\\Release\\sqlodbc.dll"
+"Setup"="<project-root>\\bin64\\Release\\sqlodbc.dll"
 
 [HKEY_LOCAL_MACHINE\SOFTWARE\ODBC\ODBC.INI\ODBC Data Sources]
 "test_aws_auth_dsn"="OpenSearchODBC"

@@ -1,5 +1,5 @@
 name: Release SQL Artifacts
-# This workflow is triggered on creating tags to master or an opendistro release branch
+# This workflow is triggered on creating tags to master or an opensearch release branch
 on:
   push:
     tags:

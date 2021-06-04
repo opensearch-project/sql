@@ -3,8 +3,8 @@
 ## Prerequisites
 
 * Microsoft Excel 2016 and higher
-* [OpenSearch](https://opendistro.github.io/for-elasticsearch-docs/docs/install/)
-* [OpenSearch SQL ODBC driver](https://opendistro.github.io/for-elasticsearch-docs/docs/sql/odbc/)
+* [OpenSearch](https://docs-beta.opensearch.org/docs/install/)
+* [OpenSearch SQL ODBC driver](https://docs-beta.opensearch.org/docs/sql/odbc/)
 * A preconfigured [User or System DSN](mac_configure_dsn.md)
 
 ## Test Successful Connection
@@ -50,7 +50,7 @@
 <img src="img/excel_table_list.png" width="500">
 
 * Edit SQL statement if required and click on **Run**. Data preview will be loaded.
-> **NOTE**: Excel for Mac currently will not show an error if you provide an incorrect query ([Github issue here](https://github.com/opendistro-for-elasticsearch/sql/issues/601)). If no data appears, check your ODFE server logs to see if the query failed.
+> **NOTE**: Excel for Mac currently will not show an error if you provide an incorrect query ([Github issue here](https://github.com/opendistro-for-elasticsearch/sql/issues/601)). If no data appears, check your OpenSearch server logs to see if the query failed.
 
 <img src="img/excel_data_preview_mac.png">
 

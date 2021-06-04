@@ -40,10 +40,10 @@ plugins {
     id 'signing'
 }
 
-group 'com.amazon.opendistroforelasticsearch.client'
+group 'org.opensearch.client'
 
 // keep version in sync with version in Driver source
-version '1.0.0.0-beta1'
+version '1.0.0.0-rc1'
 
 boolean snapshot = "true".equals(System.getProperty("build.snapshot", "false"));
 if (snapshot) {
@@ -82,7 +82,7 @@ tasks.withType(JavaCompile) {
 }
 
 static def getShadowPath(String path) {
-    return 'com.amazonaws.opendistro.opensearch.sql.jdbc.shadow.' + path
+    return 'com.amazonaws.opensearch.sql.jdbc.shadow.' + path
 }
 
 shadowJar {
@@ -101,7 +101,7 @@ shadowJar {
     exclude 'META-INF/DEPENDENCIES'
 
     relocate('com.amazonaws', getShadowPath('com.amazonaws')) {
-        exclude 'com.amazonaws.opendistro.*/**'
+        exclude 'com.amazonaws.opensearch.*/**'
     }
 
     relocate 'org.apache', getShadowPath('org.apache')
@@ -132,14 +132,14 @@ publishing {
             artifact javadocJar
 
             pom {
-              name = "Open Distro For Elasticsearch SQL JDBC Driver"
+              name = "OpenSearch SQL JDBC Driver"
               packaging = "jar"
-              url = "https://github.com/opendistro-for-elasticsearch/sql-jdbc"
-              description = "Open Distro For Elasticsearch SQL JDBC driver"
+              url = "https://github.com/opensearch-project/sql"
+              description = "OpenSearch SQL JDBC driver"
               scm {
-                connection = "scm:git@github.com:opendistro-for-elasticsearch/sql-jdbc.git"
-                developerConnection = "scm:git@github.com:opendistro-for-elasticsearch/sql-jdbc.git"
-                url = "git@github.com:opendistro-for-elasticsearch/sql-jdbc.git"
+                connection = "scm:git@github.com:opensearch-project/sql.git"
+                developerConnection = "scm:git@github.com:opensearch-project/sql.git"
+                url = "git@github.com:opensearch-project/sql.git"
               }
               licenses {
                 license {

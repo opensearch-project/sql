@@ -1596,9 +1596,21 @@ ASCII
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: ASCII(expr) returns the numeric value of the leftmost character of the string str. Returns 0 if str is the empty string. Returns NULL if str is NULL. ASCII() works for 8-bit characters.
 
-1. ASCII(STRING T) -> INTEGER
+Argument type: STRING
+
+Return type: INTEGER
+
+Example::
+
+    os> SELECT ASCII('hello')
+    fetched rows / total rows = 1/1
+    +------------------+
+    | ASCII('hello')   |
+    |------------------|
+    | 104              |
+    +------------------+
 
 
 CONCAT
@@ -1650,12 +1662,21 @@ Example::
 LEFT
 ----
 
-Description
->>>>>>>>>>>
+Usage: left(str, len) returns the leftmost len characters from the string str, or NULL if any argument is NULL.
 
-Specifications:
+Argument type: STRING, INTEGER
 
-1. LEFT(STRING T, INTEGER) -> T
+Return type: STRING
+
+Example::
+
+    os> SELECT LEFT('helloworld', 5), LEFT('HELLOWORLD', 0)
+    fetched rows / total rows = 1/1
+    +-------------------------+-------------------------+
+    | LEFT('helloworld', 5)   | LEFT('HELLOWORLD', 0)   |
+    |-------------------------+-------------------------|
+    | hello                   |                         |
+    +-------------------------+-------------------------+
 
 
 LENGTH
@@ -1691,10 +1712,24 @@ LOCATE
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: The first syntax LOCATE(substr, str) returns the position of the first occurrence of substring substr in string str. The second syntax LOCATE(substr, str, pos) returns the position of the first occurrence of substring substr in string str, starting at position pos. Returns 0 if substr is not in str. Returns NULL if any argument is NULL.
 
-1. LOCATE(STRING, STRING, INTEGER) -> INTEGER
-2. LOCATE(STRING, STRING) -> INTEGER
+Argument type: STRING, STRING, INTEGER
+
+Return type map:
+
+(STRING, STRING) -> INTEGER
+(STRING, STRING, INTEGER) -> INTEGER
+
+Example::
+
+    os> SELECT LOCATE('world', 'helloworld'), LOCATE('world', 'helloworldworld', 7)
+    fetched rows / total rows = 1/1
+    +---------------------------------+-----------------------------------------+
+    | LOCATE('world', 'helloworld')   | LOCATE('world', 'helloworldworld', 7)   |
+    |---------------------------------+-----------------------------------------|
+    | 6                               | 11                                      |
+    +---------------------------------+-----------------------------------------+
 
 
 LOWER
@@ -1749,9 +1784,21 @@ REPLACE
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: REPLACE(str, from_str, to_str) returns the string str with all occurrences of the string from_str replaced by the string to_str. REPLACE() performs a case-sensitive match when searching for from_str.
 
-1. REPLACE(STRING T, STRING, STRING) -> T
+Argument type: STRING, STRING, STRING
+
+Return type: STRING
+
+Example::
+
+    os> SELECT REPLACE('Hello World!', 'World', 'OpenSearch')
+    fetched rows / total rows = 1/1
+    +--------------------------------------------------+
+    | REPLACE('Hello World!', 'World', 'OpenSearch')   |
+    |--------------------------------------------------|
+    | Hello OpenSearch!                                |
+    +--------------------------------------------------+
 
 
 RIGHT
@@ -2093,3 +2140,4 @@ Here are examples for searched case syntax::
     |-----------------+------------------+-----------|
     | One             | Hello            | null      |
     +-----------------+------------------+-----------+
+

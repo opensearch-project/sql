@@ -41,12 +41,12 @@ GitHub provides additional document on [forking a repository](https://help.githu
 
 
 ## Finding contributions to work on
-Looking at the existing issues is a great way to find something to contribute on. As our projects, by default, use the default GitHub issue labels (enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at any issue tagged ["good first issue"](https://github.com/opendistro-for-elasticsearch/sql/issues?q=is%3Aopen+label%3A%22help+wanted%22+label%3A%22good+first+issue%22+label%3AWorkbench) is a great place to start.
+Looking at the existing issues is a great way to find something to contribute on. As our projects, by default, use the default GitHub issue labels (enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at any issue tagged ["good first issue"](https://github.com/opensearch-project/sql/issues?q=is%3Aopen+is%3Aissue+label%3Aworkbench+label%3A%22good+first+issue%22) is a great place to start.
 
 
 ## Code of Conduct
 
-This project has adopted an [Open Source Code of Conduct](https://opendistro.github.io/for-elasticsearch/codeofconduct.html).
+This project has adopted an [Open Source Code of Conduct](https://github.com/opensearch-project/project-website/blob/main/CONTRIBUTING.md#code-of-conduct).
 
 
 ## Security issue notifications
