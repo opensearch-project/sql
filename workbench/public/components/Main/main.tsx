@@ -40,7 +40,7 @@ import {
   Tree,
 } from '../../utils/utils';
 import { MESSAGE_TAB_LABEL } from '../../utils/constants';
-import { CoreStart } from '../../../../../src/core/public';
+import { ChromeBreadcrumb, CoreStart } from '../../../../../src/core/public';
 
 interface ResponseData {
   ok: boolean;
@@ -88,6 +88,7 @@ export type DataRow = {
 
 interface MainProps {
   httpClient: CoreStart['http'];
+  setBreadcrumbs: (newBreadcrumbs: ChromeBreadcrumb[]) => void;
 }
 
 interface MainState {
@@ -217,7 +218,6 @@ export class Main extends React.Component<MainProps, MainState> {
     super(props);
 
     this.onChange = this.onChange.bind(this);
-
     this.state = {
       language: 'SQL',
       sqlQueriesString: 'SHOW tables LIKE %;',
@@ -241,6 +241,17 @@ export class Main extends React.Component<MainProps, MainState> {
     this.updateSQLQueries = _.debounce(this.updateSQLQueries, 250).bind(this);
     this.updatePPLQueries = _.debounce(this.updatePPLQueries, 250).bind(this);
     this.setIsResultFullScreen = this.setIsResultFullScreen.bind(this);
+  }
+
+  componentDidMount() {
+    this.props.setBreadcrumbs(
+      [
+        {
+          text: 'Query Workbench',
+          href: '#',
+        },
+      ]
+    );
   }
 
   processTranslateResponse(response: IHttpResponse<ResponseData>): ResponseDetail<TranslateResult> {
