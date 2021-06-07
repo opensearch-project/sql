@@ -68,6 +68,8 @@ public class AggregatorFunction {
     repository.register(count());
     repository.register(min());
     repository.register(max());
+    repository.register(varSamp());
+    repository.register(varPop());
   }
 
   private static FunctionResolver avg() {
@@ -156,6 +158,28 @@ public class AggregatorFunction {
                 arguments -> new MaxAggregator(arguments, TIME))
             .put(new FunctionSignature(functionName, Collections.singletonList(TIMESTAMP)),
                 arguments -> new MaxAggregator(arguments, TIMESTAMP))
+            .build()
+    );
+  }
+
+  private static FunctionResolver varSamp() {
+    FunctionName functionName = BuiltinFunctionName.VARSAMP.getName();
+    return new FunctionResolver(
+        functionName,
+        new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
+            .put(new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
+                arguments -> new VarianceAggregator(true, arguments, DOUBLE))
+            .build()
+    );
+  }
+
+  private static FunctionResolver varPop() {
+    FunctionName functionName = BuiltinFunctionName.VARPOP.getName();
+    return new FunctionResolver(
+        functionName,
+        new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
+            .put(new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
+                arguments -> new VarianceAggregator(false, arguments, DOUBLE))
             .build()
     );
   }

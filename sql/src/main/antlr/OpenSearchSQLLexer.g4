@@ -126,6 +126,9 @@ COUNT:                              'COUNT';
 MAX:                                'MAX';
 MIN:                                'MIN';
 SUM:                                'SUM';
+VAR_POP:                            'VAR_POP';
+VAR_SAMP:                           'VAR_SAMP';
+VARIANCE:                           'VARIANCE';
 
 
 // Common function Keywords
