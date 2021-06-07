@@ -6,9 +6,6 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 1.0.0-rc1
 
 * Support querying a data stream ([#56](https://github.com/opensearch-project/sql/pull/56))
 
-### Bug Fixes
-* Fix Breadcrumb display in Query Workbench ([#105](https://github.com/opensearch-project/sql/pull/105))
-
 ### OpenSearch Migration
 
 * Remove debug logging in ODBC driver ([#27](https://github.com/opensearch-project/sql/pull/27))
