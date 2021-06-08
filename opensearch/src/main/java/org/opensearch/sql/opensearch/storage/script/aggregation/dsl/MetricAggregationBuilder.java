@@ -37,6 +37,7 @@ import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.AggregatorFactories;
 import org.opensearch.search.aggregations.bucket.filter.FilterAggregationBuilder;
+import org.opensearch.search.aggregations.metrics.ExtendedStats;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
@@ -46,6 +47,7 @@ import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.opensearch.response.agg.FilterParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
+import org.opensearch.sql.opensearch.response.agg.StatsParser;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
@@ -124,6 +126,34 @@ public class MetricAggregationBuilder
             condition,
             name,
             new SingleValueParser(name));
+      case "var_samp":
+        return make(
+            AggregationBuilders.extendedStats(name),
+            expression,
+            condition,
+            name,
+            new StatsParser(ExtendedStats::getVarianceSampling,name));
+      case "var_pop":
+        return make(
+            AggregationBuilders.extendedStats(name),
+            expression,
+            condition,
+            name,
+            new StatsParser(ExtendedStats::getVariancePopulation,name));
+      case "stddev_samp":
+        return make(
+            AggregationBuilders.extendedStats(name),
+            expression,
+            condition,
+            name,
+            new StatsParser(ExtendedStats::getStdDeviationSampling,name));
+      case "stddev_pop":
+        return make(
+            AggregationBuilders.extendedStats(name),
+            expression,
+            condition,
+            name,
+            new StatsParser(ExtendedStats::getStdDeviationPopulation,name));
       default:
         throw new IllegalStateException(
             String.format("unsupported aggregator %s", node.getFunctionName().getFunctionName()));
