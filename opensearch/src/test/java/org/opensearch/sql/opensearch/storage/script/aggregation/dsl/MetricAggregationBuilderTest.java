@@ -35,6 +35,8 @@ import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.expression.DSL.ref;
+import static org.opensearch.sql.expression.aggregation.StdDevAggregator.stddevPopulation;
+import static org.opensearch.sql.expression.aggregation.StdDevAggregator.stddevSample;
 import static org.opensearch.sql.expression.aggregation.VarianceAggregator.variancePopulation;
 import static org.opensearch.sql.expression.aggregation.VarianceAggregator.varianceSample;
 
@@ -220,6 +222,40 @@ class MetricAggregationBuilderTest {
             Arrays.asList(
                 named("var_samp(age)",
                     varianceSample(Arrays.asList(ref("age", INTEGER)), INTEGER)))));
+  }
+
+  @Test
+  void should_build_stddevPop_aggregation() {
+    assertEquals(
+        "{\n"
+            + "  \"stddev_pop(age)\" : {\n"
+            + "    \"extended_stats\" : {\n"
+            + "      \"field\" : \"age\",\n"
+            + "      \"sigma\" : 2.0\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            Arrays.asList(
+                named("stddev_pop(age)",
+                    stddevPopulation(Arrays.asList(ref("age", INTEGER)), INTEGER)))));
+  }
+
+  @Test
+  void should_build_stddevSamp_aggregation() {
+    assertEquals(
+        "{\n"
+            + "  \"stddev_samp(age)\" : {\n"
+            + "    \"extended_stats\" : {\n"
+            + "      \"field\" : \"age\",\n"
+            + "      \"sigma\" : 2.0\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            Arrays.asList(
+                named("stddev_samp(age)",
+                    stddevSample(Arrays.asList(ref("age", INTEGER)), INTEGER)))));
   }
 
   @Test
