@@ -50,7 +50,7 @@ Description
 
 Usage: Returns a count of the number of expr in the rows retrieved by a SELECT statement.
 
-Example:
+Example::
 
     os> source=accounts | stats count();
     fetched rows / total rows = 1/1
@@ -60,7 +60,6 @@ Example:
     | 4         |
     +-----------+
 
-
 SUM
 ---
 
@@ -69,7 +68,7 @@ Description
 
 Usage: SUM(expr). Returns the sum of expr.
 
-Example:
+Example::
 
     os> source=accounts | stats sum(age) by gender;
     fetched rows / total rows = 2/2
@@ -80,7 +79,6 @@ Example:
     | 101        | M        |
     +------------+----------+
 
-
 AVG
 ---
 
@@ -89,7 +87,7 @@ Description
 
 Usage: AVG(expr). Returns the average value of expr.
 
-Example:
+Example::
 
     os> source=accounts | stats avg(age) by gender;
     fetched rows / total rows = 2/2
@@ -100,7 +98,6 @@ Example:
     | 33.666666666666664 | M        |
     +--------------------+----------+
 
-
 MAX
 ---
 
@@ -109,7 +106,7 @@ Description
 
 Usage: MAX(expr). Returns the maximum value of expr.
 
-Example:
+Example::
 
     os> source=accounts | stats max(age);
     fetched rows / total rows = 1/1
@@ -119,7 +116,6 @@ Example:
     | 36         |
     +------------+
 
-
 MIN
 ---
 
@@ -128,7 +124,7 @@ Description
 
 Usage: MIN(expr). Returns the minimum value of expr.
 
-Example:
+Example::
 
     os> source=accounts | stats min(age);
     fetched rows / total rows = 1/1
@@ -138,16 +134,15 @@ Example:
     | 28         |
     +------------+
 
-
 VAR
--------
+---
 
 Description
 >>>>>>>>>>>
 
 Usage: VAR(expr). Returns the sample variance of expr.
 
-Example:
+Example::
 
     os> source=accounts | stats var(age);
     fetched rows / total rows = 1/1
@@ -157,16 +152,15 @@ Example:
     | 10.916666666666666 |
     +--------------------+
 
-
 VARP
---------
+----
 
 Description
 >>>>>>>>>>>
 
 Usage: VARP(expr). Returns the population standard variance of expr.
 
-Example:
+Example::
 
     os> source=accounts | stats varp(age);
     fetched rows / total rows = 1/1
@@ -175,7 +169,6 @@ Example:
     |-------------|
     | 8.1875      |
     +-------------+
-
 
 Example 1: Calculate the count of events
 ========================================

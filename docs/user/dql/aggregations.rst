@@ -146,7 +146,7 @@ Description
 
 Usage: Returns a count of the number of expr in the rows retrieved by a SELECT statement.
 
-Example:
+Example::
 
     os> SELECT gender, count(*) as countV FROM accounts GROUP BY gender;
     fetched rows / total rows = 2/2
@@ -157,7 +157,6 @@ Example:
     | M        | 3        |
     +----------+----------+
 
-
 SUM
 ---
 
@@ -166,7 +165,7 @@ Description
 
 Usage: SUM(expr). Returns the sum of expr.
 
-Example:
+Example::
 
     os> SELECT gender, sum(age) as sumV FROM accounts GROUP BY gender;
     fetched rows / total rows = 2/2
@@ -177,7 +176,6 @@ Example:
     | M        | 101    |
     +----------+--------+
 
-
 AVG
 ---
 
@@ -186,7 +184,7 @@ Description
 
 Usage: AVG(expr). Returns the average value of expr.
 
-Example:
+Example::
 
     os> SELECT gender, avg(age) as avgV FROM accounts GROUP BY gender;
     fetched rows / total rows = 2/2
@@ -197,7 +195,6 @@ Example:
     | M        | 33.666666666666664 |
     +----------+--------------------+
 
-
 MAX
 ---
 
@@ -206,7 +203,7 @@ Description
 
 Usage: MAX(expr). Returns the maximum value of expr.
 
-Example:
+Example::
 
     os> SELECT max(age) as maxV FROM accounts;
     fetched rows / total rows = 1/1
@@ -216,7 +213,6 @@ Example:
     | 36     |
     +--------+
 
-
 MIN
 ---
 
@@ -225,7 +221,7 @@ Description
 
 Usage: MIN(expr). Returns the minimum value of expr.
 
-Example:
+Example::
 
     os> SELECT min(age) as minV FROM accounts;
     fetched rows / total rows = 1/1
@@ -235,7 +231,6 @@ Example:
     | 28     |
     +--------+
 
-
 VAR_POP
 -------
 
@@ -244,7 +239,7 @@ Description
 
 Usage: VAR_POP(expr). Returns the population standard variance of expr.
 
-Example:
+Example::
 
     os> SELECT var_pop(age) as varV FROM accounts;
     fetched rows / total rows = 1/1
@@ -254,7 +249,6 @@ Example:
     | 8.1875 |
     +--------+
 
-
 VAR_SAMP
 --------
 
@@ -263,7 +257,7 @@ Description
 
 Usage: VAR_SAMP(expr). Returns the sample variance of expr.
 
-Example:
+Example::
 
     os> SELECT var_samp(age) as varV FROM accounts;
     fetched rows / total rows = 1/1
@@ -273,7 +267,6 @@ Example:
     | 10.916666666666666 |
     +--------------------+
 
-
 VARIANCE
 --------
 
@@ -282,7 +275,7 @@ Description
 
 Usage: VARIANCE(expr). Returns the population standard variance of expr. VARIANCE() is a synonym for the standard SQL function VAR_POP()
 
-Example:
+Example::
 
     os> SELECT variance(age) as varV FROM accounts;
     fetched rows / total rows = 1/1
@@ -291,7 +284,6 @@ Example:
     |--------|
     | 8.1875 |
     +--------+
-
 
 HAVING Clause
 =============
