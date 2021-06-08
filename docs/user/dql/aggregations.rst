@@ -273,7 +273,7 @@ VARIANCE
 Description
 >>>>>>>>>>>
 
-Usage: VARIANCE(expr). Returns the population standard variance of expr. VARIANCE() is a synonym for the standard SQL function VAR_POP()
+Usage: VARIANCE(expr). Returns the population standard variance of expr. VARIANCE() is a synonym VAR_POP() function.
 
 Example::
 
