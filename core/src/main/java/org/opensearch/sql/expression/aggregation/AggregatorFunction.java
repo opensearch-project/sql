@@ -170,7 +170,7 @@ public class AggregatorFunction {
         functionName,
         new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
             .put(new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
-                arguments -> variancePopulation(arguments, DOUBLE))
+                arguments -> varianceSample(arguments, DOUBLE))
             .build()
     );
   }
@@ -181,7 +181,7 @@ public class AggregatorFunction {
         functionName,
         new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
             .put(new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
-                arguments -> varianceSample(arguments, DOUBLE))
+                arguments -> variancePopulation(arguments, DOUBLE))
             .build()
     );
   }
