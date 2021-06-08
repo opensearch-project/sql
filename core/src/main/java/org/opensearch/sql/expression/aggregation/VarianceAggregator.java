@@ -34,6 +34,22 @@ public class VarianceAggregator extends Aggregator<VarianceAggregator.VarianceSt
   private final boolean isSampleVariance;
 
   /**
+   * Build Population Variance {@link VarianceAggregator}.
+   */
+  public static Aggregator variancePopulation(List<Expression> arguments,
+                                                      ExprCoreType returnType) {
+    return new VarianceAggregator(false, arguments, returnType);
+  }
+
+  /**
+   * Build Sample Variance {@link VarianceAggregator}.
+   */
+  public static Aggregator varianceSample(List<Expression> arguments,
+                                                      ExprCoreType returnType) {
+    return new VarianceAggregator(true, arguments, returnType);
+  }
+
+  /**
    * VarianceAggregator constructor.
    *
    * @param isSampleVariance true for sample variance aggregator, false for population variance

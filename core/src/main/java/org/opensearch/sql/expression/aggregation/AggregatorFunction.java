@@ -35,6 +35,8 @@ import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+import static org.opensearch.sql.expression.aggregation.VarianceAggregator.variancePopulation;
+import static org.opensearch.sql.expression.aggregation.VarianceAggregator.varianceSample;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
@@ -168,7 +170,7 @@ public class AggregatorFunction {
         functionName,
         new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
             .put(new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
-                arguments -> new VarianceAggregator(true, arguments, DOUBLE))
+                arguments -> variancePopulation(arguments, DOUBLE))
             .build()
     );
   }
@@ -179,7 +181,7 @@ public class AggregatorFunction {
         functionName,
         new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
             .put(new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
-                arguments -> new VarianceAggregator(false, arguments, DOUBLE))
+                arguments -> varianceSample(arguments, DOUBLE))
             .build()
     );
   }
