@@ -345,7 +345,7 @@ filterClause
     ;
 
 aggregationFunctionName
-    : AVG | COUNT | SUM | MIN | MAX | VAR_POP | VAR_SAMP | VARIANCE
+    : AVG | COUNT | SUM | MIN | MAX | VAR_POP | VAR_SAMP | VARIANCE | STD | STDDEV | STDDEV_POP | STDDEV_SAMP
     ;
 
 mathematicalFunctionName

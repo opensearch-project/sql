@@ -35,6 +35,8 @@ import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+import static org.opensearch.sql.expression.aggregation.StdDevAggregator.stddevPopulation;
+import static org.opensearch.sql.expression.aggregation.StdDevAggregator.stddevSample;
 import static org.opensearch.sql.expression.aggregation.VarianceAggregator.variancePopulation;
 import static org.opensearch.sql.expression.aggregation.VarianceAggregator.varianceSample;
 
@@ -72,6 +74,8 @@ public class AggregatorFunction {
     repository.register(max());
     repository.register(varSamp());
     repository.register(varPop());
+    repository.register(stddevSamp());
+    repository.register(stddevPop());
   }
 
   private static FunctionResolver avg() {
@@ -182,6 +186,28 @@ public class AggregatorFunction {
         new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
             .put(new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
                 arguments -> variancePopulation(arguments, DOUBLE))
+            .build()
+    );
+  }
+
+  private static FunctionResolver stddevSamp() {
+    FunctionName functionName = BuiltinFunctionName.STDDEV_SAMP.getName();
+    return new FunctionResolver(
+        functionName,
+        new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
+            .put(new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
+                arguments -> stddevSample(arguments, DOUBLE))
+            .build()
+    );
+  }
+
+  private static FunctionResolver stddevPop() {
+    FunctionName functionName = BuiltinFunctionName.STDDEV_POP.getName();
+    return new FunctionResolver(
+        functionName,
+        new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
+            .put(new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
+                arguments -> stddevPopulation(arguments, DOUBLE))
             .build()
     );
   }

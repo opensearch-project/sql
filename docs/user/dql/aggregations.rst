@@ -285,6 +285,78 @@ Example::
     | 8.1875 |
     +--------+
 
+STDDEV_POP
+----------
+
+Description
+>>>>>>>>>>>
+
+Usage: STDDEV_POP(expr). Returns the population standard deviation of expr.
+
+Example::
+
+    os> SELECT stddev_pop(age) as stddevV FROM accounts;
+    fetched rows / total rows = 1/1
+    +--------------------+
+    | stddevV            |
+    |--------------------|
+    | 2.8613807855648994 |
+    +--------------------+
+
+STDDEV_SAMP
+-----------
+
+Description
+>>>>>>>>>>>
+
+Usage: STDDEV_SAMP(expr). Returns the sample standard deviation of expr.
+
+Example::
+
+    os> SELECT stddev_samp(age) as stddevV FROM accounts;
+    fetched rows / total rows = 1/1
+    +-------------------+
+    | stddevV           |
+    |-------------------|
+    | 3.304037933599835 |
+    +-------------------+
+
+STD
+---
+
+Description
+>>>>>>>>>>>
+
+Usage: STD(expr). Returns the population standard deviation of expr. STD() is a synonym STDDEV_POP() function.
+
+Example::
+
+    os> SELECT stddev_pop(age) as stddevV FROM accounts;
+    fetched rows / total rows = 1/1
+    +--------------------+
+    | stddevV            |
+    |--------------------|
+    | 2.8613807855648994 |
+    +--------------------+
+
+STDDEV
+------
+
+Description
+>>>>>>>>>>>
+
+Usage: STDDEV(expr). Returns the population standard deviation of expr. STDDEV() is a synonym STDDEV_POP() function.
+
+Example::
+
+    os> SELECT stddev(age) as stddevV FROM accounts;
+    fetched rows / total rows = 1/1
+    +--------------------+
+    | stddevV            |
+    |--------------------|
+    | 2.8613807855648994 |
+    +--------------------+
+
 HAVING Clause
 =============
 

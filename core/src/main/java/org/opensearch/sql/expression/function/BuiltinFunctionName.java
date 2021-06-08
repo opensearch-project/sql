@@ -131,6 +131,10 @@ public enum BuiltinFunctionName {
   VARSAMP(FunctionName.of("var_samp")),
   // population standard variance
   VARPOP(FunctionName.of("var_pop")),
+  // sample standard deviation.
+  STDDEV_SAMP(FunctionName.of("stddev_samp")),
+  // population standard deviation.
+  STDDEV_POP(FunctionName.of("stddev_pop")),
 
   /**
    * Text Functions.
@@ -204,8 +208,10 @@ public enum BuiltinFunctionName {
           .put("var_pop", BuiltinFunctionName.VARPOP)
           .put("var_samp", BuiltinFunctionName.VARSAMP)
           .put("variance", BuiltinFunctionName.VARPOP)
-          .put("var", BuiltinFunctionName.VARSAMP)
-          .put("varp", BuiltinFunctionName.VARPOP)
+          .put("std", BuiltinFunctionName.STDDEV_POP)
+          .put("stddev", BuiltinFunctionName.STDDEV_POP)
+          .put("stddev_pop", BuiltinFunctionName.STDDEV_POP)
+          .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
           .build();
 
   public static Optional<BuiltinFunctionName> of(String str) {

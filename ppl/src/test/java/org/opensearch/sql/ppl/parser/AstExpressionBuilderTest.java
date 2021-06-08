@@ -337,13 +337,13 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
 
   @Test
   public void testVarAggregationShouldPass() {
-    assertEqual("source=t | stats var(a) by b",
+    assertEqual("source=t | stats var_samp(a) by b",
         agg(
             relation("t"),
             exprList(
                 alias(
-                    "var(a)",
-                    aggregate("var", field("a"))
+                    "var_samp(a)",
+                    aggregate("var_samp", field("a"))
                 )
             ),
             emptyList(),
@@ -358,13 +358,55 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
 
   @Test
   public void testVarpAggregationShouldPass() {
-    assertEqual("source=t | stats varp(a) by b",
+    assertEqual("source=t | stats var_pop(a) by b",
         agg(
             relation("t"),
             exprList(
                 alias(
-                    "varp(a)",
-                    aggregate("varp", field("a"))
+                    "var_pop(a)",
+                    aggregate("var_pop", field("a"))
+                )
+            ),
+            emptyList(),
+            exprList(
+                alias(
+                    "b",
+                    field("b")
+                )),
+            defaultStatsArgs()
+        ));
+  }
+
+  @Test
+  public void testStdDevAggregationShouldPass() {
+    assertEqual("source=t | stats stddev_samp(a) by b",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "stddev_samp(a)",
+                    aggregate("stddev_samp", field("a"))
+                )
+            ),
+            emptyList(),
+            exprList(
+                alias(
+                    "b",
+                    field("b")
+                )),
+            defaultStatsArgs()
+        ));
+  }
+
+  @Test
+  public void testStdDevPAggregationShouldPass() {
+    assertEqual("source=t | stats stddev_pop(a) by b",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "stddev_pop(a)",
+                    aggregate("stddev_pop", field("a"))
                 )
             ),
             emptyList(),

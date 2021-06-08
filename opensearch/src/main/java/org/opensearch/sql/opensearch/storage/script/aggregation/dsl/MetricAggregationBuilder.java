@@ -140,6 +140,20 @@ public class MetricAggregationBuilder
             condition,
             name,
             new StatsParser(ExtendedStats::getVariancePopulation,name));
+      case "stddev_samp":
+        return make(
+            AggregationBuilders.extendedStats(name),
+            expression,
+            condition,
+            name,
+            new StatsParser(ExtendedStats::getStdDeviationSampling,name));
+      case "stddev_pop":
+        return make(
+            AggregationBuilders.extendedStats(name),
+            expression,
+            condition,
+            name,
+            new StatsParser(ExtendedStats::getStdDeviationPopulation,name));
       default:
         throw new IllegalStateException(
             String.format("unsupported aggregator %s", node.getFunctionName().getFunctionName()));

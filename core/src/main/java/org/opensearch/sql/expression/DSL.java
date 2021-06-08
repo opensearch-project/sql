@@ -508,6 +508,14 @@ public class DSL {
     return aggregate(BuiltinFunctionName.VARPOP, expressions);
   }
 
+  public Aggregator stddevSamp(Expression... expressions) {
+    return aggregate(BuiltinFunctionName.STDDEV_SAMP, expressions);
+  }
+
+  public Aggregator stddevPop(Expression... expressions) {
+    return aggregate(BuiltinFunctionName.STDDEV_POP, expressions);
+  }
+
   public RankingWindowFunction rowNumber() {
     return (RankingWindowFunction) repository.compile(
         BuiltinFunctionName.ROW_NUMBER.getName(), Collections.emptyList());

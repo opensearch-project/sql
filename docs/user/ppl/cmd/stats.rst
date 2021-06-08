@@ -134,41 +134,77 @@ Example::
     | 28         |
     +------------+
 
-VAR
----
+VAR_SAMP
+--------
 
 Description
 >>>>>>>>>>>
 
-Usage: VAR(expr). Returns the sample variance of expr.
+Usage: VAR_SAMP(expr). Returns the sample variance of expr.
 
 Example::
 
-    os> source=accounts | stats var(age);
+    os> source=accounts | stats var_samp(age);
     fetched rows / total rows = 1/1
     +--------------------+
-    | var(age)           |
+    | var_samp(age)      |
     |--------------------|
     | 10.916666666666666 |
     +--------------------+
 
-VARP
-----
+VAR_POP
+-------
 
 Description
 >>>>>>>>>>>
 
-Usage: VARP(expr). Returns the population standard variance of expr.
+Usage: VAR_POP(expr). Returns the population standard variance of expr.
 
 Example::
 
-    os> source=accounts | stats varp(age);
+    os> source=accounts | stats var_pop(age);
     fetched rows / total rows = 1/1
-    +-------------+
-    | varp(age)   |
-    |-------------|
-    | 8.1875      |
-    +-------------+
+    +----------------+
+    | var_pop(age)   |
+    |----------------|
+    | 8.1875         |
+    +----------------+
+
+STDDEV_SAMP
+-----------
+
+Description
+>>>>>>>>>>>
+
+Usage: STDDEV_SAMP(expr). Return the sample standard deviation of expr.
+
+Example::
+
+    os> source=accounts | stats stddev_samp(age);
+    fetched rows / total rows = 1/1
+    +--------------------+
+    | stddev_samp(age)   |
+    |--------------------|
+    | 3.304037933599835  |
+    +--------------------+
+
+STDDEV_POP
+----------
+
+Description
+>>>>>>>>>>>
+
+Usage: STDDEV_POP(expr). Return the population standard deviation of expr.
+
+Example::
+
+    os> source=accounts | stats stddev_pop(age);
+    fetched rows / total rows = 1/1
+    +--------------------+
+    | stddev_pop(age)    |
+    |--------------------|
+    | 2.8613807855648994 |
+    +--------------------+
 
 Example 1: Calculate the count of events
 ========================================

@@ -129,6 +129,10 @@ SUM:                                'SUM';
 VAR_POP:                            'VAR_POP';
 VAR_SAMP:                           'VAR_SAMP';
 VARIANCE:                           'VARIANCE';
+STD:                                'STD';
+STDDEV:                             'STDDEV';
+STDDEV_POP:                         'STDDEV_POP';
+STDDEV_SAMP:                        'STDDEV_SAMP';
 
 
 // Common function Keywords
