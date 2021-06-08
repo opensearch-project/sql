@@ -336,6 +336,48 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testVarAggregationShouldPass() {
+    assertEqual("source=t | stats var(a) by b",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "var(a)",
+                    aggregate("var", field("a"))
+                )
+            ),
+            emptyList(),
+            exprList(
+                alias(
+                    "b",
+                    field("b")
+                )),
+            defaultStatsArgs()
+        ));
+  }
+
+  @Test
+  public void testVarpAggregationShouldPass() {
+    assertEqual("source=t | stats varp(a) by b",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "varp(a)",
+                    aggregate("varp", field("a"))
+                )
+            ),
+            emptyList(),
+            exprList(
+                alias(
+                    "b",
+                    field("b")
+                )),
+            defaultStatsArgs()
+        ));
+  }
+
+  @Test
   public void testPercentileAggFuncExpr() {
     assertEqual("source=t | stats percentile<1>(a)",
         agg(

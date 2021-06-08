@@ -204,6 +204,8 @@ public enum BuiltinFunctionName {
           .put("var_pop", BuiltinFunctionName.VARPOP)
           .put("var_samp", BuiltinFunctionName.VARSAMP)
           .put("variance", BuiltinFunctionName.VARPOP)
+          .put("var", BuiltinFunctionName.VARSAMP)
+          .put("varp", BuiltinFunctionName.VARPOP)
           .build();
 
   public static Optional<BuiltinFunctionName> of(String str) {
