@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
+import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
@@ -55,6 +56,7 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
+import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.storage.TableScanOperator;
 
 /**
@@ -138,12 +140,14 @@ public class OpenSearchIndexScan extends TableScanOperator {
 
   /**
    * Push down aggregation to DSL request.
-   * @param aggregationBuilderList aggregation query.
+   * @param aggregationBuilder pair of aggregation query and aggregation parser.
    */
-  public void pushDownAggregation(List<AggregationBuilder> aggregationBuilderList) {
+  public void pushDownAggregation(
+      Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder) {
     SearchSourceBuilder source = request.getSourceBuilder();
-    aggregationBuilderList.forEach(aggregationBuilder -> source.aggregation(aggregationBuilder));
+    aggregationBuilder.getLeft().forEach(builder -> source.aggregation(builder));
     source.size(0);
+    request.getExprValueFactory().setParser(aggregationBuilder.getRight());
   }
 
   /**
