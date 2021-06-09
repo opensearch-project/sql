@@ -170,10 +170,6 @@ public class MetricAggregationBuilder
   /**
    * Make {@link CardinalityAggregationBuilder} for distinct count aggregations.
    */
-  private AggregationBuilder make(CardinalityAggregationBuilder builder, Expression expression) {
-    return cardinalityHelper.build(expression, builder::field, builder::script);
-  }
-
   private Pair<AggregationBuilder, MetricParser> make(CardinalityAggregationBuilder builder,
                                                       Expression expression,
                                                       MetricParser parser) {
