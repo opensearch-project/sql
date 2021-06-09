@@ -96,27 +96,26 @@ public class BuiltinFunctionRepository {
         ExprType sourceType = sourceTypes.get(i);
         ExprType targetType = targetTypes.get(i);
 
-        if (isCastNotNeeded(sourceType, targetType)) {
-          argsCasted.add(arg);
-        } else {
+        if (isCastRequired(sourceType, targetType)) {
           argsCasted.add(cast(arg, targetType));
+        } else {
+          argsCasted.add(arg);
         }
       }
       return funcBuilder.apply(argsCasted);
     };
   }
 
-  /**
-   * 1) Source and target type are the same.
-   * 2) Casting from number to another number is built-in supported in JDK ???
-   */
-  private boolean isCastNotNeeded(ExprType sourceType, ExprType targetType) {
+  private boolean isCastRequired(ExprType sourceType, ExprType targetType) {
     if (sourceType.equals(targetType)) {
-      return true;
+      return false;
     }
 
-    return ExprCoreType.numberTypes().contains(sourceType)
-        && ExprCoreType.numberTypes().contains(targetType);
+    if (ExprCoreType.numberTypes().contains(sourceType)
+        && ExprCoreType.numberTypes().contains(targetType)) {
+      return false;
+    }
+    return true;
   }
 
   private Expression cast(Expression arg, ExprType targetType) {
