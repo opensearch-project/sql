@@ -17,3 +17,7 @@ cast('01:01:01' as time) as castTime
 cast('true' as boolean) as castBool
 cast(1 as boolean) as castBool
 cast(cast(1 as string) as int) castCombine
+false = 'false'
+false = 'true'
+'TRUE' = true
+'false' = true
