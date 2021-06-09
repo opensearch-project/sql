@@ -80,10 +80,5 @@ public class MinAggregator extends Aggregator<MinAggregator.MinState> {
     public ExprValue result() {
       return minResult;
     }
-
-    @Override
-    public Set<ExprValue> distinctSet() {
-      return Set.of();
-    }
   }
 }

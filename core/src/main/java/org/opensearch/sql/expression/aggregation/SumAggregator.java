@@ -117,10 +117,5 @@ public class SumAggregator extends Aggregator<SumState> {
     public ExprValue result() {
       return isEmptyCollection ? ExprNullValue.of() : sumResult;
     }
-
-    @Override
-    public Set<ExprValue> distinctSet() {
-      return Set.of();
-    }
   }
 }

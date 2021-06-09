@@ -37,6 +37,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.compare;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultFieldsArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultSortFieldArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultStatsArgs;
+import static org.opensearch.sql.ast.dsl.AstDSL.distinctAggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.doubleLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.equalTo;
 import static org.opensearch.sql.ast.dsl.AstDSL.eval;
@@ -372,6 +373,35 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                     "b",
                     field("b")
                 )),
+            defaultStatsArgs()
+        ));
+  }
+
+  @Test
+  public void testDistinctCount() {
+    assertEqual("source=t | stats distinct_count(a)",
+        agg(
+            relation("t"),
+            exprList(
+                alias("distinct_count(a)",
+                    distinctAggregate("count", field("a")))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+
+    assertEqual("source=t | stats dc() by b",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "dc()",
+                    distinctAggregate("count", AllFields.of())
+                )
+            ),
+            emptyList(),
+            exprList(
+                alias("b", field("b"))
+            ),
             defaultStatsArgs()
         ));
   }

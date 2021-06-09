@@ -129,7 +129,7 @@ public abstract class Aggregator<S extends AggregationState>
   }
 
   private Boolean duplicated(ExprValue value, S state) {
-    for (ExprValue exprValue : state.distinctSet()) {
+    for (ExprValue exprValue : state.distinctValues()) {
       if (exprValue.compareTo(value) == 0) {
         return true;
       }

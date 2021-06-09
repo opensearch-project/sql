@@ -49,6 +49,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.aggregation.AvgAggregator;
 import org.opensearch.sql.expression.aggregation.CountAggregator;
 import org.opensearch.sql.expression.aggregation.MaxAggregator;
@@ -200,6 +201,14 @@ class MetricAggregationBuilderTest {
         buildQuery(
             Collections.singletonList(named("count(distinct name)", new CountAggregator(
                 Collections.singletonList(ref("name", STRING)), STRING).distinct(true)))));
+  }
+
+  @Test
+  void should_throw_exception_for_unsupported_distinct_aggregator() {
+    assertThrows(ExpressionEvaluationException.class,
+        () -> buildQuery(Collections.singletonList(named("avg(distinct age)", new AvgAggregator(
+            Collections.singletonList(ref("name", STRING)), STRING).distinct(true)))),
+        "unsupported distinct aggregator avg");
   }
 
   @Test

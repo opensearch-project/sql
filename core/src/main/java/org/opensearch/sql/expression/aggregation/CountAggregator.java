@@ -28,7 +28,6 @@ package org.opensearch.sql.expression.aggregation;
 
 import static org.opensearch.sql.utils.ExpressionUtils.format;
 
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -84,7 +83,7 @@ public class CountAggregator extends Aggregator<CountState> {
     }
 
     @Override
-    public Set<ExprValue> distinctSet() {
+    public Set<ExprValue> distinctValues() {
       return set;
     }
   }

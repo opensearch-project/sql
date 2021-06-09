@@ -38,6 +38,7 @@ import org.opensearch.search.aggregations.bucket.filter.FilterAggregationBuilder
 import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.CardinalityAggregationBuilder;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.LiteralExpression;
@@ -92,7 +93,7 @@ public class MetricAggregationBuilder
         case "count":
           return make(AggregationBuilders.cardinality(name), expression);
         default:
-          throw new IllegalStateException(String.format(
+          throw new ExpressionEvaluationException(String.format(
               "unsupported distinct aggregator %s", node.getFunctionName().getFunctionName()));
       }
     }

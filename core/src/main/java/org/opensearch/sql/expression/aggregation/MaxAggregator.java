@@ -30,7 +30,6 @@ import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
 import static org.opensearch.sql.utils.ExpressionUtils.format;
 
 import java.util.List;
-import java.util.Set;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.Expression;
@@ -74,11 +73,6 @@ public class MaxAggregator extends Aggregator<MaxAggregator.MaxState> {
     @Override
     public ExprValue result() {
       return maxResult;
-    }
-
-    @Override
-    public Set<ExprValue> distinctSet() {
-      return Set.of();
     }
   }
 }

@@ -39,5 +39,7 @@ public interface AggregationState {
    */
   ExprValue result();
 
-  Set<ExprValue> distinctSet();
+  default Set<ExprValue> distinctValues() {
+    return Set.of();
+  }
 }
