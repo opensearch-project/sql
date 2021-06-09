@@ -46,8 +46,8 @@ public abstract class LuceneQuery {
   /**
    * Check if function expression supported by current Lucene query.
    * Default behavior is that report supported if:
-   *  1. Left is a reference or a cast function
-   *  2. Right side is a literal
+   *  1. First argument (left operand) is a reference or a reference in cast function
+   *  2. Second argument (right operand) is a literal
    * For cast function case, it's assumed that all lucene queries subclassed can support
    * type conversion itself by OpenSearch DSL underlying.
    *
@@ -56,9 +56,8 @@ public abstract class LuceneQuery {
    */
   public boolean canSupport(FunctionExpression func) {
     return (func.getArguments().size() == 2)
-        && ((func.getArguments().get(0) instanceof ReferenceExpression)
-          || isFirstArgCastFunction(func))
-        && (func.getArguments().get(1) instanceof LiteralExpression);
+        && (isFirstReference(func) || isFirstReferenceInCastFunction(func))
+        && isSecondLiteral(func);
   }
 
   /**
@@ -69,7 +68,7 @@ public abstract class LuceneQuery {
    */
   public QueryBuilder build(FunctionExpression func) {
     ReferenceExpression ref;
-    if (isFirstArgCastFunction(func)) {
+    if (isFirstReferenceInCastFunction(func)) {
       ref = (ReferenceExpression) extractArgInCastFunction(func);
     } else {
       ref = (ReferenceExpression) func.getArguments().get(0);
@@ -108,10 +107,20 @@ public abstract class LuceneQuery {
     return fieldName;
   }
 
-  private boolean isFirstArgCastFunction(FunctionExpression expr) {
-    Expression firstArg = expr.getArguments().get(0);
-    return (firstArg instanceof FunctionExpression)
-        && (isCastFunction(((FunctionExpression) firstArg).getFunctionName()));
+  private boolean isFirstReference(FunctionExpression expr) {
+    return expr.getArguments().get(0) instanceof ReferenceExpression;
+  }
+
+  private boolean isFirstReferenceInCastFunction(FunctionExpression expr) {
+    if (expr.getArguments().get(0) instanceof FunctionExpression) {
+      FunctionExpression firstArg = (FunctionExpression) expr.getArguments().get(0);
+      return isCastFunction(firstArg.getFunctionName()) && isFirstReference(firstArg);
+    }
+    return false;
+  }
+
+  private boolean isSecondLiteral(FunctionExpression func) {
+    return func.getArguments().get(1) instanceof LiteralExpression;
   }
 
   private Expression extractArgInCastFunction(FunctionExpression expr) {
