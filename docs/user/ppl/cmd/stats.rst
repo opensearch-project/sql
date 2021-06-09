@@ -134,3 +134,18 @@ PPL query::
     | 36         | 32         | M        |
     +------------+------------+----------+
 
+Example 7: Calculate the distinct count of a field
+==================================================
+
+To get the count of distinct values of a field, you can use ``DISTINCT_COUNT`` (or ``DC``) function instead of ``COUNT``. The example calculates both the count and the distinct count of gender field of all the accounts.
+
+PPL query::
+
+    os> source=accounts | stats count(gender), distinct_count(gender);
+    fetched rows / total rows = 1/1
+    +-----------------+--------------------------+
+    | count(gender)   | distinct_count(gender)   |
+    |-----------------+--------------------------|
+    | 4               | 2                        |
+    +-----------------+--------------------------+
+

@@ -37,7 +37,6 @@ import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.AggregatorFactories;
 import org.opensearch.search.aggregations.bucket.filter.FilterAggregationBuilder;
-import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.CardinalityAggregationBuilder;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -58,15 +57,16 @@ import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 public class MetricAggregationBuilder
     extends ExpressionNodeVisitor<Pair<AggregationBuilder, MetricParser>, Object> {
 
-  private final AggregationBuilderHelper<ValuesSourceAggregationBuilder<?>> helper;
-  private final AggregationBuilderHelper<CardinalityAggregationBuilder> cardinalityHelper;
-  private final AggregationBuilderHelper<TermsAggregationBuilder> termsHelper;
+  private final AggregationBuilderHelper<ValuesSourceAggregationBuilder<?>> valuesSourceAggHelper;
+  private final AggregationBuilderHelper<CardinalityAggregationBuilder> cardinalityAggHelper;
   private final FilterQueryBuilder filterBuilder;
 
+  /**
+   * Constructor.
+   */
   public MetricAggregationBuilder(ExpressionSerializer serializer) {
-    this.helper = new AggregationBuilderHelper<>(serializer);
-    this.cardinalityHelper = new AggregationBuilderHelper<>(serializer);
-    this.termsHelper = new AggregationBuilderHelper<>(serializer);
+    this.valuesSourceAggHelper = new AggregationBuilderHelper<>(serializer);
+    this.cardinalityAggHelper = new AggregationBuilderHelper<>(serializer);
     this.filterBuilder = new FilterQueryBuilder(serializer);
   }
 
@@ -158,7 +158,7 @@ public class MetricAggregationBuilder
       String name,
       MetricParser parser) {
     ValuesSourceAggregationBuilder aggregationBuilder =
-        helper.build(expression, builder::field, builder::script);
+        valuesSourceAggHelper.build(expression, builder::field, builder::script);
     if (condition != null) {
       return Pair.of(
           makeFilterAggregation(aggregationBuilder, condition, name),
@@ -173,7 +173,7 @@ public class MetricAggregationBuilder
   private Pair<AggregationBuilder, MetricParser> make(CardinalityAggregationBuilder builder,
                                                       Expression expression,
                                                       MetricParser parser) {
-    return Pair.of(cardinalityHelper.build(expression, builder::field, builder::script), parser);
+    return Pair.of(cardinalityAggHelper.build(expression, builder::field, builder::script), parser);
   }
 
   /**
