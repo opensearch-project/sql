@@ -28,12 +28,13 @@
 
 package org.opensearch.sql.data.type;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -63,15 +64,14 @@ public enum ExprCoreType implements ExprType {
   DOUBLE(FLOAT),
 
   /**
-   * Boolean.
-   */
-  BOOLEAN(UNDEFINED),
-
-  /**
    * String.
    */
   STRING(UNDEFINED),
 
+  /**
+   * Boolean.
+   */
+  BOOLEAN(STRING),
 
   /**
    * Date.
@@ -108,6 +108,16 @@ public enum ExprCoreType implements ExprType {
           .put(STRING, "keyword")
           .build();
 
+  private static final Set<ExprType> NUMBER_TYPES =
+      new ImmutableSet.Builder<ExprType>()
+          .add(BYTE)
+          .add(SHORT)
+          .add(INTEGER)
+          .add(LONG)
+          .add(FLOAT)
+          .add(DOUBLE)
+          .build();
+
   ExprCoreType(ExprCoreType... compatibleTypes) {
     for (ExprCoreType subType : compatibleTypes) {
       subType.parents.add(this);
@@ -139,7 +149,7 @@ public enum ExprCoreType implements ExprType {
                  .collect(Collectors.toList());
   }
 
-  public static List<ExprType> numberTypes() {
-    return ImmutableList.of(INTEGER, LONG, FLOAT, DOUBLE);
+  public static Set<ExprType> numberTypes() {
+    return NUMBER_TYPES;
   }
 }

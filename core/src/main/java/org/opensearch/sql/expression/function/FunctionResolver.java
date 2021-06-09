@@ -20,6 +20,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Singular;
+import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 
 /**
@@ -41,8 +42,10 @@ public class FunctionResolver {
    * If the {@link FunctionBuilder} exactly match the input {@link FunctionSignature}, return it.
    * If applying the widening rule, found the most match one, return it.
    * If nothing found, throw {@link ExpressionEvaluationException}
+   *
+   * @return function signature and its builder
    */
-  public FunctionBuilder resolve(FunctionSignature unresolvedSignature) {
+  public Pair<FunctionSignature, FunctionBuilder> resolve(FunctionSignature unresolvedSignature) {
     PriorityQueue<Map.Entry<Integer, FunctionSignature>> functionMatchQueue = new PriorityQueue<>(
         Map.Entry.comparingByKey());
 
@@ -59,7 +62,8 @@ public class FunctionResolver {
               unresolvedSignature.formatTypes()
           ));
     } else {
-      return functionBundle.get(bestMatchEntry.getValue());
+      FunctionSignature resolvedSignature = bestMatchEntry.getValue();
+      return Pair.of(resolvedSignature, functionBundle.get(resolvedSignature));
     }
   }
 
