@@ -28,12 +28,14 @@ package org.opensearch.sql.expression.function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.UNDEFINED;
 import static org.opensearch.sql.data.type.WideningTypeRule.IMPOSSIBLE_WIDENING;
 import static org.opensearch.sql.data.type.WideningTypeRule.TYPE_EQUAL;
@@ -70,6 +72,7 @@ class WideningTypeRuleTest {
           .put(LONG, FLOAT, 1)
           .put(LONG, DOUBLE, 2)
           .put(FLOAT, DOUBLE, 1)
+          .put(STRING, BOOLEAN, 1)
           .put(UNDEFINED, BYTE, 1)
           .put(UNDEFINED, SHORT, 2)
           .put(UNDEFINED, INTEGER, 3)
