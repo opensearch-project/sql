@@ -49,10 +49,19 @@ class LuceneQueryTest {
   }
 
   @Test
-  void should_support_first_argument_is_cast_function() {
+  void should_support_first_argument_is_reference_in_cast_function() {
     DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
     assertTrue(new LuceneQuery(){}.canSupport(dsl.equal(
         dsl.castString(DSL.ref("address", OPENSEARCH_TEXT_KEYWORD)),
+        DSL.literal("Seattle"))));
+  }
+
+  @Test
+  void should_not_support_first_argument_is_non_reference_in_cast_function() {
+    DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
+    assertFalse(new LuceneQuery(){}.canSupport(dsl.equal(
+        dsl.castString(
+            dsl.ltrim(DSL.ref("address", OPENSEARCH_TEXT_KEYWORD))),
         DSL.literal("Seattle"))));
   }
 
