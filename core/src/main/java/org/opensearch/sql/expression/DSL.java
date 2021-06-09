@@ -492,12 +492,24 @@ public class DSL {
     return aggregate(BuiltinFunctionName.AVG, expressions);
   }
 
+  public Aggregator distinctAvg(Expression... expressions) {
+    return avg(expressions).distinct(true);
+  }
+
   public Aggregator sum(Expression... expressions) {
     return aggregate(BuiltinFunctionName.SUM, expressions);
   }
 
+  public Aggregator distinctSum(Expression... expressions) {
+    return sum(expressions).distinct(true);
+  }
+
   public Aggregator count(Expression... expressions) {
     return aggregate(BuiltinFunctionName.COUNT, expressions);
+  }
+
+  public Aggregator distinctCount(Expression... expressions) {
+    return count(expressions).distinct(true);
   }
 
   public RankingWindowFunction rowNumber() {
@@ -519,8 +531,16 @@ public class DSL {
     return aggregate(BuiltinFunctionName.MIN, expressions);
   }
 
+  public Aggregator distinctMin(Expression... expressions) {
+    return min(expressions).distinct(true);
+  }
+
   public Aggregator max(Expression... expressions) {
     return aggregate(BuiltinFunctionName.MAX, expressions);
+  }
+
+  public Aggregator distinctMax(Expression... expressions) {
+    return max(expressions).distinct(true);
   }
 
   private FunctionExpression function(BuiltinFunctionName functionName, Expression... expressions) {

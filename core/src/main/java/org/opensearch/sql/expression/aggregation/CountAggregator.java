@@ -28,8 +28,11 @@ package org.opensearch.sql.expression.aggregation;
 
 import static org.opensearch.sql.utils.ExpressionUtils.format;
 
+
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -50,7 +53,7 @@ public class CountAggregator extends Aggregator<CountState> {
 
   @Override
   protected CountState iterate(ExprValue value, CountState state) {
-    state.count++;
+    state.count(value);
     return state;
   }
 
@@ -64,14 +67,25 @@ public class CountAggregator extends Aggregator<CountState> {
    */
   protected static class CountState implements AggregationState {
     private int count;
+    private final Set<ExprValue> set = new HashSet<>();
 
     CountState() {
       this.count = 0;
     }
 
+    public void count(ExprValue value) {
+      set.add(value);
+      count++;
+    }
+
     @Override
     public ExprValue result() {
       return ExprValueUtils.integerValue(count);
+    }
+
+    @Override
+    public Set<ExprValue> distinctSet() {
+      return set;
     }
   }
 }

@@ -116,6 +116,13 @@ public class AggregationTest extends ExpressionTestBase {
                   "timestamp_value",
                   "2040-01-01 07:00:00")));
 
+  protected static List<ExprValue> tuples_with_duplicates =
+      Arrays.asList(
+          ExprValueUtils.tupleValue(ImmutableMap.of("integer_value", 1)),
+          ExprValueUtils.tupleValue(ImmutableMap.of("integer_value", 1)),
+          ExprValueUtils.tupleValue(ImmutableMap.of("integer_value", 2)),
+          ExprValueUtils.tupleValue(ImmutableMap.of("integer_value", 3)));
+
   protected static List<ExprValue> tuples_with_null_and_missing =
       Arrays.asList(
           ExprValueUtils.tupleValue(

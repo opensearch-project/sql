@@ -130,6 +130,13 @@ class CountAggregatorTest extends AggregationTest {
   }
 
   @Test
+  public void distinct_count() {
+    ExprValue result = aggregation(dsl.distinctCount(DSL.ref("integer_value", INTEGER)),
+        tuples_with_duplicates);
+    assertEquals(3, result.value());
+  }
+
+  @Test
   public void count_with_missing() {
     ExprValue result = aggregation(dsl.count(DSL.ref("integer_value", INTEGER)),
         tuples_with_null_and_missing);

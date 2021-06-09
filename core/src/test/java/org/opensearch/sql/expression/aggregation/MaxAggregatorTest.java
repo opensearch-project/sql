@@ -117,6 +117,13 @@ public class MaxAggregatorTest extends AggregationTest {
   }
 
   @Test
+  public void distinct_max() {
+    assertThrows(ExpressionEvaluationException.class,
+        () -> dsl.distinctMax(DSL.ref("integer_value", INTEGER)).valueOf(valueEnv()),
+        "unsupported distinct aggregator max");
+  }
+
+  @Test
   public void test_max_null() {
     ExprValue result =
         aggregation(dsl.max(DSL.ref("double_value", DOUBLE)), tuples_with_null_and_missing);

@@ -214,6 +214,10 @@ public class AstDSL {
     return new AggregateFunction(func, field, condition);
   }
 
+  public static UnresolvedExpression distinctAggregate(String func, UnresolvedExpression field) {
+    return new AggregateFunction(func, field, true);
+  }
+
   public static Function function(String funcName, UnresolvedExpression... funcArgs) {
     return new Function(funcName, Arrays.asList(funcArgs));
   }

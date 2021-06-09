@@ -36,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
+import static org.opensearch.sql.ast.dsl.AstDSL.distinctAggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
@@ -165,6 +166,19 @@ class AstAggregationBuilderTest {
             hasGroupByItems(),
             hasAggregators(
                 alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
+  }
+
+  @Test
+  void can_build_distinct_aggregator() {
+    assertThat(
+        buildAggregation("SELECT COUNT(DISTINCT name), AVG(DISTINCT balance) FROM test"),
+        allOf(
+            hasGroupByItems(),
+            hasAggregators(
+                alias("COUNT(DISTINCT name)", distinctAggregate("COUNT", qualifiedName(
+                    "name"))),
+                alias("AVG(DISTINCT balance)", distinctAggregate("AVG", qualifiedName(
+                    "balance"))))));
   }
 
   @Test

@@ -32,12 +32,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.expression.DSL.ref;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
@@ -183,6 +185,21 @@ class MetricAggregationBuilderTest {
             Arrays.asList(
                 named("max(age)",
                     new MaxAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER)))));
+  }
+
+  @Test
+  void should_build_cardinality_aggregation() {
+    assertEquals(
+        "{\n"
+            + "  \"count(distinct name)\" : {\n"
+            + "    \"cardinality\" : {\n"
+            + "      \"field\" : \"name\"\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            Collections.singletonList(named("count(distinct name)", new CountAggregator(
+                Collections.singletonList(ref("name", STRING)), STRING).distinct(true)))));
   }
 
   @Test

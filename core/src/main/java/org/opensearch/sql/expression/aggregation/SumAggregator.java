@@ -38,6 +38,7 @@ import static org.opensearch.sql.utils.ExpressionUtils.format;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -115,6 +116,11 @@ public class SumAggregator extends Aggregator<SumState> {
     @Override
     public ExprValue result() {
       return isEmptyCollection ? ExprNullValue.of() : sumResult;
+    }
+
+    @Override
+    public Set<ExprValue> distinctSet() {
+      return Set.of();
     }
   }
 }

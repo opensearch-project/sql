@@ -6,3 +6,4 @@ SELECT MAX(AvgTicketPrice) FROM opensearch_dashboards_sample_data_flights
 SELECT MAX(timestamp) FROM opensearch_dashboards_sample_data_flights
 SELECT MIN(AvgTicketPrice) FROM opensearch_dashboards_sample_data_flights
 SELECT MIN(timestamp) FROM opensearch_dashboards_sample_data_flights
+SELECT COUNT(DISTINCT Origin), COUNT(DISTINCT Dest) FROM opensearch_dashboards_sample_data_flights

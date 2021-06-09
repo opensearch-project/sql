@@ -292,6 +292,14 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
     );
   }
 
+  @Test
+  public void distinct_aggregation() {
+    assertAnalyzeEqual(
+        dsl.distinctCount(DSL.ref("integer_value", INTEGER)),
+        AstDSL.distinctAggregate("count", qualifiedName("integer_value"))
+    );
+  }
+
   protected Expression analyze(UnresolvedExpression unresolvedExpression) {
     return expressionAnalyzer.analyze(unresolvedExpression, analysisContext);
   }

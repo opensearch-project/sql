@@ -213,6 +213,15 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   }
 
   @Override
+  public UnresolvedExpression visitDistinctAggregateFunctionCall(
+      OpenSearchSQLParser.DistinctAggregateFunctionCallContext ctx) {
+    return new AggregateFunction(
+        ctx.functionName.getText(),
+        visitFunctionArg(ctx.functionArg()),
+        true);
+  }
+
+  @Override
   public UnresolvedExpression visitCountStarFunctionCall(CountStarFunctionCallContext ctx) {
     return new AggregateFunction("COUNT", AllFields.of());
   }

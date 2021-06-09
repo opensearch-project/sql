@@ -101,6 +101,13 @@ class SumAggregatorTest extends AggregationTest {
   }
 
   @Test
+  public void distinct_sum() {
+    assertThrows(ExpressionEvaluationException.class,
+        () -> dsl.distinctSum(DSL.ref("integer_value", INTEGER)).valueOf(valueEnv()),
+        "unsupported distinct aggregator sum");
+  }
+
+  @Test
   public void sum_with_missing() {
     ExprValue result =
         aggregation(dsl.sum(DSL.ref("integer_value", INTEGER)), tuples_with_null_and_missing);

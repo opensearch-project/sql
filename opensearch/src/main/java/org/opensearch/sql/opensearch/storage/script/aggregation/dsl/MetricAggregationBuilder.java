@@ -35,6 +35,8 @@ import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.AggregatorFactories;
 import org.opensearch.search.aggregations.bucket.filter.FilterAggregationBuilder;
+import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
+import org.opensearch.search.aggregations.metrics.CardinalityAggregationBuilder;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
@@ -51,11 +53,15 @@ public class MetricAggregationBuilder
     extends ExpressionNodeVisitor<AggregationBuilder, Object> {
 
   private final AggregationBuilderHelper<ValuesSourceAggregationBuilder<?>> helper;
+  private final AggregationBuilderHelper<CardinalityAggregationBuilder> cardinalityHelper;
+  private final AggregationBuilderHelper<TermsAggregationBuilder> termsHelper;
   private final FilterQueryBuilder filterBuilder;
 
   public MetricAggregationBuilder(
       ExpressionSerializer serializer) {
     this.helper = new AggregationBuilderHelper<>(serializer);
+    this.cardinalityHelper = new AggregationBuilderHelper<>(serializer);
+    this.termsHelper = new AggregationBuilderHelper<>(serializer);
     this.filterBuilder = new FilterQueryBuilder(serializer);
   }
 
@@ -78,7 +84,18 @@ public class MetricAggregationBuilder
                                                  Object context) {
     Expression expression = node.getArguments().get(0);
     Expression condition = node.getDelegated().condition();
+    Boolean distinct = node.getDelegated().distinct();
     String name = node.getName();
+
+    if (distinct) {
+      switch (node.getFunctionName().getFunctionName()) {
+        case "count":
+          return make(AggregationBuilders.cardinality(name), expression);
+        default:
+          throw new IllegalStateException(String.format(
+              "unsupported distinct aggregator %s", node.getFunctionName().getFunctionName()));
+      }
+    }
 
     switch (node.getFunctionName().getFunctionName()) {
       case "avg":
@@ -106,6 +123,13 @@ public class MetricAggregationBuilder
       return makeFilterAggregation(aggregationBuilder, condition, name);
     }
     return aggregationBuilder;
+  }
+
+  /**
+   * Make {@link CardinalityAggregationBuilder} for distinct count aggregations.
+   */
+  private AggregationBuilder make(CardinalityAggregationBuilder builder, Expression expression) {
+    return cardinalityHelper.build(expression, builder::field, builder::script);
   }
 
   /**
