@@ -27,11 +27,13 @@
 
 package org.opensearch.sql.opensearch.storage.script.filter.lucene;
 
+import static org.opensearch.sql.ast.expression.Cast.isCastFunction;
 import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
 
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
@@ -44,15 +46,18 @@ public abstract class LuceneQuery {
   /**
    * Check if function expression supported by current Lucene query.
    * Default behavior is that report supported if:
-   *  1. Left is a reference
+   *  1. Left is a reference or a cast function
    *  2. Right side is a literal
+   * For cast function case, it's assumed that all lucene queries subclassed can support
+   * type conversion itself by OpenSearch DSL underlying.
    *
    * @param func    function
    * @return        return true if supported, otherwise false.
    */
   public boolean canSupport(FunctionExpression func) {
     return (func.getArguments().size() == 2)
-        && (func.getArguments().get(0) instanceof ReferenceExpression)
+        && ((func.getArguments().get(0) instanceof ReferenceExpression)
+          || isFirstArgCastFunction(func))
         && (func.getArguments().get(1) instanceof LiteralExpression);
   }
 
@@ -63,7 +68,13 @@ public abstract class LuceneQuery {
    * @return      query
    */
   public QueryBuilder build(FunctionExpression func) {
-    ReferenceExpression ref = (ReferenceExpression) func.getArguments().get(0);
+    ReferenceExpression ref;
+    if (isFirstArgCastFunction(func)) {
+      ref = (ReferenceExpression) extractArgInCastFunction(func);
+    } else {
+      ref = (ReferenceExpression) func.getArguments().get(0);
+    }
+
     LiteralExpression literal = (LiteralExpression) func.getArguments().get(1);
     return doBuild(ref.getAttr(), ref.type(), literal.valueOf(null));
   }
@@ -95,6 +106,16 @@ public abstract class LuceneQuery {
       return fieldName + ".keyword";
     }
     return fieldName;
+  }
+
+  private boolean isFirstArgCastFunction(FunctionExpression expr) {
+    Expression firstArg = expr.getArguments().get(0);
+    return (firstArg instanceof FunctionExpression)
+        && (isCastFunction(((FunctionExpression) firstArg).getFunctionName()));
+  }
+
+  private Expression extractArgInCastFunction(FunctionExpression expr) {
+    return ((FunctionExpression) expr.getArguments().get(0)).getArguments().get(0);
   }
 
 }
