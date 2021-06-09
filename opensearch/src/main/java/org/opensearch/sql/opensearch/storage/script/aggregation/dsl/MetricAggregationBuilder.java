@@ -99,7 +99,10 @@ public class MetricAggregationBuilder
     if (distinct) {
       switch (node.getFunctionName().getFunctionName()) {
         case "count":
-          return make(AggregationBuilders.cardinality(name), expression);
+          return make(
+              AggregationBuilders.cardinality(name),
+              expression,
+              new SingleValueParser(name));
         default:
           throw new ExpressionEvaluationException(String.format(
               "unsupported distinct aggregator %s", node.getFunctionName().getFunctionName()));
@@ -169,6 +172,12 @@ public class MetricAggregationBuilder
    */
   private AggregationBuilder make(CardinalityAggregationBuilder builder, Expression expression) {
     return cardinalityHelper.build(expression, builder::field, builder::script);
+  }
+
+  private Pair<AggregationBuilder, MetricParser> make(CardinalityAggregationBuilder builder,
+                                                      Expression expression,
+                                                      MetricParser parser) {
+    return Pair.of(cardinalityHelper.build(expression, builder::field, builder::script), parser);
   }
 
   /**
