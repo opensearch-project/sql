@@ -42,6 +42,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
+import org.opensearch.search.aggregations.AggregatorFactories;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.data.type.ExprType;
@@ -50,6 +51,10 @@ import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
+import org.opensearch.sql.opensearch.response.agg.MetricParser;
+import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
+import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.BucketAggregationBuilder;
 import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.MetricAggregationBuilder;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
@@ -82,25 +87,35 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
     this.metricBuilder = new MetricAggregationBuilder(serializer);
   }
 
-  /**
-   * Build AggregationBuilder.
-   */
-  public List<AggregationBuilder> buildAggregationBuilder(
-      List<NamedAggregator> namedAggregatorList,
-      List<NamedExpression> groupByList,
-      List<Pair<Sort.SortOption, Expression>> sortList) {
+  /** Build AggregationBuilder. */
+  public Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser>
+      buildAggregationBuilder(
+          List<NamedAggregator> namedAggregatorList,
+          List<NamedExpression> groupByList,
+          List<Pair<Sort.SortOption, Expression>> sortList) {
+
+    final Pair<AggregatorFactories.Builder, List<MetricParser>> metrics =
+        metricBuilder.build(namedAggregatorList);
+
     if (groupByList.isEmpty()) {
       // no bucket
-      return ImmutableList
-          .copyOf(metricBuilder.build(namedAggregatorList).getAggregatorFactories());
+      return Pair.of(
+          ImmutableList.copyOf(metrics.getLeft().getAggregatorFactories()),
+          new NoBucketAggregationParser(metrics.getRight()));
     } else {
-      final GroupSortOrder groupSortOrder = new GroupSortOrder(sortList);
-      return Collections.singletonList(AggregationBuilders.composite("composite_buckets",
-          bucketBuilder
-              .build(groupByList.stream().sorted(groupSortOrder).map(expr -> Pair.of(expr,
-                  groupSortOrder.apply(expr))).collect(Collectors.toList())))
-          .subAggregations(metricBuilder.build(namedAggregatorList))
-          .size(AGGREGATION_BUCKET_SIZE));
+      GroupSortOrder groupSortOrder = new GroupSortOrder(sortList);
+      return Pair.of(
+          Collections.singletonList(
+              AggregationBuilders.composite(
+                      "composite_buckets",
+                      bucketBuilder.build(
+                          groupByList.stream()
+                              .sorted(groupSortOrder)
+                              .map(expr -> Pair.of(expr, groupSortOrder.apply(expr)))
+                              .collect(Collectors.toList())))
+                  .subAggregations(metrics.getLeft())
+                  .size(AGGREGATION_BUCKET_SIZE)),
+          new CompositeAggregationParser(metrics.getRight()));
     }
   }
 

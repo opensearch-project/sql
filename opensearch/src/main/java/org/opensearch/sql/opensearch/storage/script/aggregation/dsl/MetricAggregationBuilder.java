@@ -30,7 +30,9 @@ package org.opensearch.sql.opensearch.storage.script.aggregation.dsl;
 
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 
+import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.AggregatorFactories;
@@ -44,22 +46,24 @@ import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.opensearch.response.agg.FilterParser;
+import org.opensearch.sql.opensearch.response.agg.MetricParser;
+import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
 /**
- * Build the Metric Aggregation from {@link NamedAggregator}.
+ * Build the Metric Aggregation and List of {@link MetricParser} from {@link NamedAggregator}.
  */
 public class MetricAggregationBuilder
-    extends ExpressionNodeVisitor<AggregationBuilder, Object> {
+    extends ExpressionNodeVisitor<Pair<AggregationBuilder, MetricParser>, Object> {
 
   private final AggregationBuilderHelper<ValuesSourceAggregationBuilder<?>> helper;
   private final AggregationBuilderHelper<CardinalityAggregationBuilder> cardinalityHelper;
   private final AggregationBuilderHelper<TermsAggregationBuilder> termsHelper;
   private final FilterQueryBuilder filterBuilder;
 
-  public MetricAggregationBuilder(
-      ExpressionSerializer serializer) {
+  public MetricAggregationBuilder(ExpressionSerializer serializer) {
     this.helper = new AggregationBuilderHelper<>(serializer);
     this.cardinalityHelper = new AggregationBuilderHelper<>(serializer);
     this.termsHelper = new AggregationBuilderHelper<>(serializer);
@@ -72,17 +76,21 @@ public class MetricAggregationBuilder
    * @param aggregatorList aggregator list
    * @return AggregatorFactories.Builder
    */
-  public AggregatorFactories.Builder build(List<NamedAggregator> aggregatorList) {
+  public Pair<AggregatorFactories.Builder, List<MetricParser>> build(
+      List<NamedAggregator> aggregatorList) {
     AggregatorFactories.Builder builder = new AggregatorFactories.Builder();
+    List<MetricParser> metricParserList = new ArrayList<>();
     for (NamedAggregator aggregator : aggregatorList) {
-      builder.addAggregator(aggregator.accept(this, null));
+      Pair<AggregationBuilder, MetricParser> pair = aggregator.accept(this, null);
+      builder.addAggregator(pair.getLeft());
+      metricParserList.add(pair.getRight());
     }
-    return builder;
+    return Pair.of(builder, metricParserList);
   }
 
   @Override
-  public AggregationBuilder visitNamedAggregator(NamedAggregator node,
-                                                 Object context) {
+  public Pair<AggregationBuilder, MetricParser> visitNamedAggregator(
+      NamedAggregator node, Object context) {
     Expression expression = node.getArguments().get(0);
     Expression condition = node.getDelegated().condition();
     Boolean distinct = node.getDelegated().distinct();
@@ -100,30 +108,60 @@ public class MetricAggregationBuilder
 
     switch (node.getFunctionName().getFunctionName()) {
       case "avg":
-        return make(AggregationBuilders.avg(name), expression, condition, name);
+        return make(
+            AggregationBuilders.avg(name),
+            expression,
+            condition,
+            name,
+            new SingleValueParser(name));
       case "sum":
-        return make(AggregationBuilders.sum(name), expression, condition, name);
+        return make(
+            AggregationBuilders.sum(name),
+            expression,
+            condition,
+            name,
+            new SingleValueParser(name));
       case "count":
         return make(
-            AggregationBuilders.count(name), replaceStarOrLiteral(expression), condition, name);
+            AggregationBuilders.count(name),
+            replaceStarOrLiteral(expression),
+            condition,
+            name,
+            new SingleValueParser(name));
       case "min":
-        return make(AggregationBuilders.min(name), expression, condition, name);
+        return make(
+            AggregationBuilders.min(name),
+            expression,
+            condition,
+            name,
+            new SingleValueParser(name));
       case "max":
-        return make(AggregationBuilders.max(name), expression, condition, name);
+        return make(
+            AggregationBuilders.max(name),
+            expression,
+            condition,
+            name,
+            new SingleValueParser(name));
       default:
         throw new IllegalStateException(
             String.format("unsupported aggregator %s", node.getFunctionName().getFunctionName()));
     }
   }
 
-  private AggregationBuilder make(ValuesSourceAggregationBuilder<?> builder,
-                                  Expression expression, Expression condition, String name) {
+  private Pair<AggregationBuilder, MetricParser> make(
+      ValuesSourceAggregationBuilder<?> builder,
+      Expression expression,
+      Expression condition,
+      String name,
+      MetricParser parser) {
     ValuesSourceAggregationBuilder aggregationBuilder =
         helper.build(expression, builder::field, builder::script);
     if (condition != null) {
-      return makeFilterAggregation(aggregationBuilder, condition, name);
+      return Pair.of(
+          makeFilterAggregation(aggregationBuilder, condition, name),
+          FilterParser.builder().name(name).metricsParser(parser).build());
     }
-    return aggregationBuilder;
+    return Pair.of(aggregationBuilder, parser);
   }
 
   /**
@@ -134,11 +172,11 @@ public class MetricAggregationBuilder
   }
 
   /**
-   * Replace star or literal with OpenSearch metadata field "_index". Because:
-   * 1) Analyzer already converts * to string literal, literal check here can handle
-   *    both COUNT(*) and COUNT(1).
-   * 2) Value count aggregation on _index counts all docs (after filter), therefore
-   *    it has same semantics as COUNT(*) or COUNT(1).
+   * Replace star or literal with OpenSearch metadata field "_index". Because: 1) Analyzer already
+   * converts * to string literal, literal check here can handle both COUNT(*) and COUNT(1). 2)
+   * Value count aggregation on _index counts all docs (after filter), therefore it has same
+   * semantics as COUNT(*) or COUNT(1).
+   *
    * @param countArg count function argument
    * @return Reference to _index if literal, otherwise return original argument expression
    */
@@ -151,16 +189,15 @@ public class MetricAggregationBuilder
 
   /**
    * Make builder to build FilterAggregation for aggregations with filter in the bucket.
+   *
    * @param subAggBuilder AggregationBuilder instance which the filter is applied to.
    * @param condition Condition expression in the filter.
    * @param name Name of the FilterAggregation instance to build.
    * @return {@link FilterAggregationBuilder}.
    */
-  private FilterAggregationBuilder makeFilterAggregation(AggregationBuilder subAggBuilder,
-                                                         Expression condition, String name) {
-    return AggregationBuilders
-        .filter(name, filterBuilder.build(condition))
+  private FilterAggregationBuilder makeFilterAggregation(
+      AggregationBuilder subAggBuilder, Expression condition, String name) {
+    return AggregationBuilders.filter(name, filterBuilder.build(condition))
         .subAggregation(subAggBuilder);
   }
-
 }

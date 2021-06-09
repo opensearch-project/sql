@@ -55,9 +55,11 @@ import org.opensearch.search.aggregations.bucket.terms.ParsedLongTerms;
 import org.opensearch.search.aggregations.bucket.terms.ParsedStringTerms;
 import org.opensearch.search.aggregations.bucket.terms.StringTerms;
 import org.opensearch.search.aggregations.metrics.AvgAggregationBuilder;
+import org.opensearch.search.aggregations.metrics.ExtendedStatsAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.MaxAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.MinAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.ParsedAvg;
+import org.opensearch.search.aggregations.metrics.ParsedExtendedStats;
 import org.opensearch.search.aggregations.metrics.ParsedMax;
 import org.opensearch.search.aggregations.metrics.ParsedMin;
 import org.opensearch.search.aggregations.metrics.ParsedSum;
@@ -74,6 +76,8 @@ public class AggregationResponseUtils {
           .put(MaxAggregationBuilder.NAME, (p, c) -> ParsedMax.fromXContent(p, (String) c))
           .put(SumAggregationBuilder.NAME, (p, c) -> ParsedSum.fromXContent(p, (String) c))
           .put(AvgAggregationBuilder.NAME, (p, c) -> ParsedAvg.fromXContent(p, (String) c))
+          .put(ExtendedStatsAggregationBuilder.NAME,
+              (p, c) -> ParsedExtendedStats.fromXContent(p, (String) c))
           .put(StringTerms.NAME, (p, c) -> ParsedStringTerms.fromXContent(p, (String) c))
           .put(LongTerms.NAME, (p, c) -> ParsedLongTerms.fromXContent(p, (String) c))
           .put(DoubleTerms.NAME, (p, c) -> ParsedDoubleTerms.fromXContent(p, (String) c))
