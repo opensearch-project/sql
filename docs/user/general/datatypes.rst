@@ -115,18 +115,18 @@ The general rules and design tenets for data type conversion include:
 2. Explicit conversion defines the complete set of conversion allowed. If no explicit conversion defined, implicit conversion should be impossible too.
 3. On the other hand, if implicit conversion can occur between 2 types, then explicit conversion should be allowed too.
 4. Conversion within a data type family is considered as conversion between different data representation and should be supported as much as possible.
-5. Conversion across 2 data type families is considered as data reinterpretation and should be enabled with strong motivation.
+5. Conversion across two data type families is considered as data reinterpretation and should be enabled with strong motivation.
 
 Type Conversion Matrix
 ----------------------
 
-The following matrix illustrates the conversions allowed by our query engine for all the built-in data types as well as types provided by OpenSearch storage engine:
+The following matrix illustrates the conversions allowed by our query engine for all the built-in data types as well as types provided by OpenSearch storage engine.
 
 +--------------+------------------------------------------------+---------+------------------------------+-----------------------------------------------+--------------------------+---------------------+
 |  Data Types  |               Numeric Type Family              | BOOLEAN |      String Type Family      |              Datetime Type Family             |  OpenSearch Type Family  | Complex Type Family |
-|              +======+=======+=========+======+=======+========+=========+==============+======+========+===========+======+======+==========+==========+===========+=====+========+===========+=========+
+|              +------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
 |              | BYTE | SHORT | INTEGER | LONG | FLOAT | DOUBLE | BOOLEAN | TEXT_KEYWORD | TEXT | STRING | TIMESTAMP | DATE | TIME | DATETIME | INTERVAL | GEO_POINT |  IP | BINARY |   STRUCT  |  ARRAY  |
-+--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
++==============+======+=======+=========+======+=======+========+=========+==============+======+========+===========+======+======+==========+==========+===========+=====+========+===========+=========+
 |   UNDEFINED  |  IE  |   IE  |    IE   |  IE  |   IE  |   IE   |    IE   |      IE      |  IE  |   IE   |     IE    |  IE  |  IE  |    IE    |    IE    |     IE    |  IE |   IE   |     IE    |    IE   |
 +--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
 |     BYTE     |  N/A |   IE  |    IE   |  IE  |   IE  |   IE   |    X    |       X      |   X  |    E   |     X     |   X  |   X  |     X    |     X    |     X     |  X  |    X   |     X     |    X    |
