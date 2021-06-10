@@ -111,7 +111,7 @@ A data type can be converted to another, implicitly or explicitly or impossibly,
 
 The general rules and design tenets for data type conversion include:
 
-1. Implicit conversion is defined by type precedence which is represented by the type hierarchy tree. See `Data Type Conversion in SQL/PPL <>`_ for more details.
+1. Implicit conversion is defined by type precedence which is represented by the type hierarchy tree. See `Data Type Conversion in SQL/PPL </docs/dev/TypeConversion.md>`_ for more details.
 2. Explicit conversion defines the complete set of conversion allowed. If no explicit conversion defined, implicit conversion should be impossible too.
 3. On the other hand, if implicit conversion can occur between 2 types, then explicit conversion should be allowed too.
 4. Conversion within a data type family is considered as conversion between different data representation and should be supported as much as possible.
@@ -172,7 +172,7 @@ The following matrix illustrates the conversions allowed by our query engine for
 
 Note that:
 
-1. ``I`` means if implicit conversion will occur. ``E`` stands for explicit conversion. ``X`` for impossible to convert. Empty means not clear and need more test.
+1. ``I`` means if implicit conversion will occur automatically. ``E`` stands for explicit conversion by ``CAST`` function. ``X`` for impossible to convert. Empty means not clear and need more test.
 2. There is no ``UNDEFINED`` column because it's only for ``NULL`` literal at runtime and should not be present in function signature definition.
 3. OpenSearch and complex types are not supported by ``CAST`` function, so it's impossible to convert a type to it for now.
 
