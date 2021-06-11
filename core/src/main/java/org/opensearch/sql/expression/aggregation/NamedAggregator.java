@@ -54,6 +54,8 @@ public class NamedAggregator extends Aggregator<AggregationState> {
 
   /**
    * NamedAggregator.
+   * The aggregator properties {@link #condition} is inherited by named aggregator
+   * to avoid errors introduced by the property inconsistency.
    *
    * @param name name
    * @param delegated delegated
@@ -64,6 +66,7 @@ public class NamedAggregator extends Aggregator<AggregationState> {
     super(delegated.getFunctionName(), delegated.getArguments(), delegated.returnType);
     this.name = name;
     this.delegated = delegated;
+    this.condition = delegated.condition != null ? delegated.condition : null;
   }
 
   @Override
