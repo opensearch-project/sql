@@ -38,6 +38,174 @@ stats <aggregation>... [by-clause]...
 * aggregation: mandatory. A aggregation function. The argument of aggregation must be field.
 * by-clause: optional. The one or more fields to group the results by. **Default**: If no <by-clause> is specified, the stats command returns only one row, which is the aggregation over the entire result set.
 
+
+Aggregation Functions
+=====================
+
+COUNT
+-----
+
+Description
+>>>>>>>>>>>
+
+Usage: Returns a count of the number of expr in the rows retrieved by a SELECT statement.
+
+Example::
+
+    os> source=accounts | stats count();
+    fetched rows / total rows = 1/1
+    +-----------+
+    | count()   |
+    |-----------|
+    | 4         |
+    +-----------+
+
+SUM
+---
+
+Description
+>>>>>>>>>>>
+
+Usage: SUM(expr). Returns the sum of expr.
+
+Example::
+
+    os> source=accounts | stats sum(age) by gender;
+    fetched rows / total rows = 2/2
+    +------------+----------+
+    | sum(age)   | gender   |
+    |------------+----------|
+    | 28         | F        |
+    | 101        | M        |
+    +------------+----------+
+
+AVG
+---
+
+Description
+>>>>>>>>>>>
+
+Usage: AVG(expr). Returns the average value of expr.
+
+Example::
+
+    os> source=accounts | stats avg(age) by gender;
+    fetched rows / total rows = 2/2
+    +--------------------+----------+
+    | avg(age)           | gender   |
+    |--------------------+----------|
+    | 28.0               | F        |
+    | 33.666666666666664 | M        |
+    +--------------------+----------+
+
+MAX
+---
+
+Description
+>>>>>>>>>>>
+
+Usage: MAX(expr). Returns the maximum value of expr.
+
+Example::
+
+    os> source=accounts | stats max(age);
+    fetched rows / total rows = 1/1
+    +------------+
+    | max(age)   |
+    |------------|
+    | 36         |
+    +------------+
+
+MIN
+---
+
+Description
+>>>>>>>>>>>
+
+Usage: MIN(expr). Returns the minimum value of expr.
+
+Example::
+
+    os> source=accounts | stats min(age);
+    fetched rows / total rows = 1/1
+    +------------+
+    | min(age)   |
+    |------------|
+    | 28         |
+    +------------+
+
+VAR_SAMP
+--------
+
+Description
+>>>>>>>>>>>
+
+Usage: VAR_SAMP(expr). Returns the sample variance of expr.
+
+Example::
+
+    os> source=accounts | stats var_samp(age);
+    fetched rows / total rows = 1/1
+    +--------------------+
+    | var_samp(age)      |
+    |--------------------|
+    | 10.916666666666666 |
+    +--------------------+
+
+VAR_POP
+-------
+
+Description
+>>>>>>>>>>>
+
+Usage: VAR_POP(expr). Returns the population standard variance of expr.
+
+Example::
+
+    os> source=accounts | stats var_pop(age);
+    fetched rows / total rows = 1/1
+    +----------------+
+    | var_pop(age)   |
+    |----------------|
+    | 8.1875         |
+    +----------------+
+
+STDDEV_SAMP
+-----------
+
+Description
+>>>>>>>>>>>
+
+Usage: STDDEV_SAMP(expr). Return the sample standard deviation of expr.
+
+Example::
+
+    os> source=accounts | stats stddev_samp(age);
+    fetched rows / total rows = 1/1
+    +--------------------+
+    | stddev_samp(age)   |
+    |--------------------|
+    | 3.304037933599835  |
+    +--------------------+
+
+STDDEV_POP
+----------
+
+Description
+>>>>>>>>>>>
+
+Usage: STDDEV_POP(expr). Return the population standard deviation of expr.
+
+Example::
+
+    os> source=accounts | stats stddev_pop(age);
+    fetched rows / total rows = 1/1
+    +--------------------+
+    | stddev_pop(age)    |
+    |--------------------|
+    | 2.8613807855648994 |
+    +--------------------+
+
 Example 1: Calculate the count of events
 ========================================
 

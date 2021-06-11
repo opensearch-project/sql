@@ -28,7 +28,6 @@
 package org.opensearch.sql.sql.parser;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.and;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
@@ -58,7 +57,6 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.dsl.AstDSL;
-import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.common.antlr.CaseInsensitiveCharStream;
@@ -410,6 +408,27 @@ class AstExpressionBuilderTest {
             function(">", qualifiedName("age"), intLiteral(20))),
         buildExprAst("avg(age) filter(where age > 20)")
     );
+  }
+
+  @Test
+  public void canBuildVarSamp() {
+    assertEquals(
+        aggregate("var_samp", qualifiedName("age")),
+        buildExprAst("var_samp(age)"));
+  }
+
+  @Test
+  public void canBuildVarPop() {
+    assertEquals(
+        aggregate("var_pop", qualifiedName("age")),
+        buildExprAst("var_pop(age)"));
+  }
+
+  @Test
+  public void canBuildVariance() {
+    assertEquals(
+        aggregate("variance", qualifiedName("age")),
+        buildExprAst("variance(age)"));
   }
 
   @Test

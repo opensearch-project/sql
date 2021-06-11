@@ -66,8 +66,8 @@ public class NamedAggregator extends Aggregator<AggregationState> {
     super(delegated.getFunctionName(), delegated.getArguments(), delegated.returnType);
     this.name = name;
     this.delegated = delegated;
+    this.condition = delegated.condition;
     this.distinct = delegated.distinct;
-    this.condition = delegated.condition != null ? delegated.condition : null;
   }
 
   @Override

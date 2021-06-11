@@ -293,6 +293,14 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
+  public void variance_mapto_varPop() {
+    assertAnalyzeEqual(
+        dsl.varPop(DSL.ref("integer_value", INTEGER)),
+        AstDSL.aggregate("variance", qualifiedName("integer_value"))
+    );
+  }
+
+  @Test
   public void distinct_count() {
     assertAnalyzeEqual(
         dsl.distinctCount(DSL.ref("integer_value", INTEGER)),

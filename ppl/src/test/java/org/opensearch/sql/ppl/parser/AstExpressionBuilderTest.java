@@ -337,6 +337,90 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testVarAggregationShouldPass() {
+    assertEqual("source=t | stats var_samp(a) by b",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "var_samp(a)",
+                    aggregate("var_samp", field("a"))
+                )
+            ),
+            emptyList(),
+            exprList(
+                alias(
+                    "b",
+                    field("b")
+                )),
+            defaultStatsArgs()
+        ));
+  }
+
+  @Test
+  public void testVarpAggregationShouldPass() {
+    assertEqual("source=t | stats var_pop(a) by b",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "var_pop(a)",
+                    aggregate("var_pop", field("a"))
+                )
+            ),
+            emptyList(),
+            exprList(
+                alias(
+                    "b",
+                    field("b")
+                )),
+            defaultStatsArgs()
+        ));
+  }
+
+  @Test
+  public void testStdDevAggregationShouldPass() {
+    assertEqual("source=t | stats stddev_samp(a) by b",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "stddev_samp(a)",
+                    aggregate("stddev_samp", field("a"))
+                )
+            ),
+            emptyList(),
+            exprList(
+                alias(
+                    "b",
+                    field("b")
+                )),
+            defaultStatsArgs()
+        ));
+  }
+
+  @Test
+  public void testStdDevPAggregationShouldPass() {
+    assertEqual("source=t | stats stddev_pop(a) by b",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "stddev_pop(a)",
+                    aggregate("stddev_pop", field("a"))
+                )
+            ),
+            emptyList(),
+            exprList(
+                alias(
+                    "b",
+                    field("b")
+                )),
+            defaultStatsArgs()
+        ));
+  }
+
+  @Test
   public void testPercentileAggFuncExpr() {
     assertEqual("source=t | stats percentile<1>(a)",
         agg(

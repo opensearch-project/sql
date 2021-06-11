@@ -19,7 +19,7 @@ import lombok.experimental.UtilityClass;
 public class Utils {
   /**
    * Utils to handle Nan Value.
-   * @return null if is Nan value.
+   * @return null if is Nan.
    */
   public static Object handleNanValue(double value) {
     return Double.isNaN(value) ? null : value;
