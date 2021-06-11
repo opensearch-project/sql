@@ -206,8 +206,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitDistinctCountFunctionCall(DistinctCountFunctionCallContext ctx) {
-    return new AggregateFunction("count",
-        ctx.valueExpression() != null ? visit(ctx.valueExpression()) : AllFields.of(), true);
+    return new AggregateFunction("count", visit(ctx.valueExpression()), true);
   }
 
   @Override

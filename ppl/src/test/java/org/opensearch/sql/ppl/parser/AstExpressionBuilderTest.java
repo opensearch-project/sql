@@ -388,22 +388,6 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             emptyList(),
             emptyList(),
             defaultStatsArgs()));
-
-    assertEqual("source=t | stats dc() by b",
-        agg(
-            relation("t"),
-            exprList(
-                alias(
-                    "dc()",
-                    distinctAggregate("count", AllFields.of())
-                )
-            ),
-            emptyList(),
-            exprList(
-                alias("b", field("b"))
-            ),
-            defaultStatsArgs()
-        ));
   }
 
   @Test

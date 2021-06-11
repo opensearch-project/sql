@@ -40,7 +40,6 @@ import org.opensearch.search.aggregations.AggregatorFactories;
 import org.opensearch.search.aggregations.bucket.filter.FilterAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.CardinalityAggregationBuilder;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
-import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.LiteralExpression;
@@ -102,6 +101,8 @@ public class MetricAggregationBuilder
         return make(
             AggregationBuilders.cardinality(name),
             expression,
+            condition,
+            name,
             new SingleValueParser(name));
       } else {
         throw new IllegalStateException(String.format(
@@ -172,8 +173,17 @@ public class MetricAggregationBuilder
    */
   private Pair<AggregationBuilder, MetricParser> make(CardinalityAggregationBuilder builder,
                                                       Expression expression,
+                                                      Expression condition,
+                                                      String name,
                                                       MetricParser parser) {
-    return Pair.of(cardinalityAggHelper.build(expression, builder::field, builder::script), parser);
+    CardinalityAggregationBuilder aggregationBuilder =
+        cardinalityAggHelper.build(expression, builder::field, builder::script);
+    if (condition != null) {
+      return Pair.of(
+          makeFilterAggregation(aggregationBuilder, condition, name),
+          FilterParser.builder().name(name).metricsParser(parser).build());
+    }
+    return Pair.of(aggregationBuilder, parser);
   }
 
   /**
