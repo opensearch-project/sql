@@ -32,6 +32,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
@@ -97,15 +98,14 @@ public class MetricAggregationBuilder
     String name = node.getName();
 
     if (distinct) {
-      switch (node.getFunctionName().getFunctionName()) {
-        case "count":
-          return make(
-              AggregationBuilders.cardinality(name),
-              expression,
-              new SingleValueParser(name));
-        default:
-          throw new ExpressionEvaluationException(String.format(
-              "unsupported distinct aggregator %s", node.getFunctionName().getFunctionName()));
+      if ("count".equals(node.getFunctionName().getFunctionName().toLowerCase(Locale.ROOT))) {
+        return make(
+            AggregationBuilders.cardinality(name),
+            expression,
+            new SingleValueParser(name));
+      } else {
+        throw new IllegalStateException(String.format(
+            "unsupported distinct aggregator %s", node.getFunctionName().getFunctionName()));
       }
     }
 

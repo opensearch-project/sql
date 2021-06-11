@@ -68,7 +68,7 @@ public class AggregateFunction extends UnresolvedExpression {
    * Constructor.
    * @param funcName function name.
    * @param field {@link UnresolvedExpression}.
-   * @param distinct field is distinct.
+   * @param distinct whether distinct field is specified or not.
    */
   public AggregateFunction(String funcName, UnresolvedExpression field, Boolean distinct) {
     this.funcName = funcName;
