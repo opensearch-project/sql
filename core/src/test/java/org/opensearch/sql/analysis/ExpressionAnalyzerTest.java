@@ -292,6 +292,14 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
     );
   }
 
+  @Test
+  public void variance_mapto_varPop() {
+    assertAnalyzeEqual(
+        dsl.varPop(DSL.ref("integer_value", INTEGER)),
+        AstDSL.aggregate("variance", qualifiedName("integer_value"))
+    );
+  }
+
   protected Expression analyze(UnresolvedExpression unresolvedExpression) {
     return expressionAnalyzer.analyze(unresolvedExpression, analysisContext);
   }
