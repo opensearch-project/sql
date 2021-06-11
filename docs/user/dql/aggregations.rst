@@ -135,10 +135,10 @@ Besides regular identifiers, ``COUNT`` aggregate function also accepts arguments
 2. ``COUNT(*)`` will count the number of all its input rows.
 3. ``COUNT(1)`` is same as ``COUNT(*)`` because any non-null literal will count.
 
-DISTINCT Aggregation
---------------------
+DISTINCT COUNT Aggregation
+--------------------------
 
-To get the aggregation of distinct values of a field, you can add a keyword ``DISTINCT`` before the field in the aggregation function. Currently the distinct aggregation is only supported in ``COUNT`` aggregation. Example::
+To get the count of distinct values of a field, you can add a keyword ``DISTINCT`` before the field in the count aggregation. Example::
 
     os> SELECT COUNT(DISTINCT gender), COUNT(gender) FROM accounts;
     fetched rows / total rows = 1/1
@@ -246,4 +246,17 @@ The ``FILTER`` clause can be used in aggregation functions without GROUP BY as w
     |--------------+------------|
     | 4            | 1          |
     +--------------+------------+
+
+Distinct count aggregate with FILTER
+------------------------------------
+
+The ``FILTER`` clause is also used in distinct count to do the filtering before count the distinct values of specific field. For example::
+
+    os> SELECT COUNT(DISTINCT firstname) FILTER(WHERE age > 30) AS distinct_count FROM accounts
+    fetched rows / total rows = 1/1
+    +------------------+
+    | distinct_count   |
+    |------------------|
+    | 3                |
+    +------------------+
 

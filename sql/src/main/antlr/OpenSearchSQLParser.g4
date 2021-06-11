@@ -339,8 +339,7 @@ aggregateFunction
     : functionName=aggregationFunctionName LR_BRACKET functionArg RR_BRACKET
                                                                     #regularAggregateFunctionCall
     | COUNT LR_BRACKET STAR RR_BRACKET                              #countStarFunctionCall
-    | COUNT LR_BRACKET DISTINCT (functionArg | STAR) RR_BRACKET
-                                                                    #distinctCountFunctionCall
+    | COUNT LR_BRACKET DISTINCT functionArg RR_BRACKET              #distinctCountFunctionCall
     ;
 
 filterClause

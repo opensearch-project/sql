@@ -117,13 +117,6 @@ public class MinAggregatorTest extends AggregationTest {
   }
 
   @Test
-  public void distinct_min() {
-    assertThrows(ExpressionEvaluationException.class,
-        () -> dsl.distinctMin(DSL.ref("integer_value", INTEGER)).valueOf(valueEnv()),
-        "unsupported distinct aggregator min");
-  }
-
-  @Test
   public void test_min_null() {
     ExprValue result =
         aggregation(dsl.min(DSL.ref("double_value", DOUBLE)), tuples_with_null_and_missing);

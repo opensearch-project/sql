@@ -62,13 +62,6 @@ class AvgAggregatorTest extends AggregationTest {
   }
 
   @Test
-  public void distinct_avg() {
-    assertThrows(ExpressionEvaluationException.class,
-        () -> dsl.distinctAvg(DSL.ref("integer_value", INTEGER)).valueOf(valueEnv()),
-        "unsupported distinct aggregator avg");
-  }
-
-  @Test
   public void avg_with_missing() {
     ExprValue result =
         aggregation(dsl.avg(DSL.ref("integer_value", INTEGER)), tuples_with_null_and_missing);

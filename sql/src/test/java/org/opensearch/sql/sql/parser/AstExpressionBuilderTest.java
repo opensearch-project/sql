@@ -28,6 +28,7 @@
 package org.opensearch.sql.sql.parser;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.and;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
@@ -416,11 +417,6 @@ class AstExpressionBuilderTest {
     assertEquals(
         AstDSL.distinctAggregate("count", qualifiedName("name")),
         buildExprAst("count(distinct name)")
-    );
-
-    assertEquals(
-        AstDSL.distinctAggregate("count", AllFields.of()),
-        buildExprAst("count(distinct *)")
     );
   }
 
