@@ -338,9 +338,9 @@ caseFuncAlternative
 aggregateFunction
     : functionName=aggregationFunctionName LR_BRACKET functionArg RR_BRACKET
                                                                     #regularAggregateFunctionCall
-    | functionName=aggregationFunctionName LR_BRACKET DISTINCT functionArg RR_BRACKET
-                                                                    #distinctAggregateFunctionCall
     | COUNT LR_BRACKET STAR RR_BRACKET                              #countStarFunctionCall
+    | COUNT LR_BRACKET DISTINCT (functionArg | STAR) RR_BRACKET
+                                                                    #distinctCountFunctionCall
     ;
 
 filterClause

@@ -118,10 +118,10 @@ public class AggregationTest extends ExpressionTestBase {
 
   protected static List<ExprValue> tuples_with_duplicates =
       Arrays.asList(
-          ExprValueUtils.tupleValue(ImmutableMap.of("integer_value", 1)),
-          ExprValueUtils.tupleValue(ImmutableMap.of("integer_value", 1)),
-          ExprValueUtils.tupleValue(ImmutableMap.of("integer_value", 2)),
-          ExprValueUtils.tupleValue(ImmutableMap.of("integer_value", 3)));
+          ExprValueUtils.tupleValue(ImmutableMap.of("integer_value", 1, "double_value", 4d)),
+          ExprValueUtils.tupleValue(ImmutableMap.of("integer_value", 1, "double_value", 3d)),
+          ExprValueUtils.tupleValue(ImmutableMap.of("integer_value", 2, "double_value", 2d)),
+          ExprValueUtils.tupleValue(ImmutableMap.of("integer_value", 3, "double_value", 1d)));
 
   protected static List<ExprValue> tuples_with_null_and_missing =
       Arrays.asList(

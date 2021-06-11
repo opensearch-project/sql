@@ -69,8 +69,6 @@ public abstract class Aggregator<S extends AggregationState>
   @Accessors(fluent = true)
   protected Boolean distinct = false;
 
-
-
   /**
    * Create an {@link AggregationState} which will be used for aggregation.
    */
@@ -95,8 +93,7 @@ public abstract class Aggregator<S extends AggregationState>
    */
   public S iterate(BindingTuple tuple, S state) {
     ExprValue value = getArguments().get(0).valueOf(tuple);
-    if (value.isNull() || value.isMissing() || !conditionValue(tuple)
-        || (distinct && duplicated(value, state))) {
+    if (value.isNull() || value.isMissing() || !conditionValue(tuple)) {
       return state;
     }
     return iterate(value, state);
@@ -126,15 +123,6 @@ public abstract class Aggregator<S extends AggregationState>
       return true;
     }
     return ExprValueUtils.getBooleanValue(condition.valueOf(tuple));
-  }
-
-  private Boolean duplicated(ExprValue value, S state) {
-    for (ExprValue exprValue : state.distinctValues()) {
-      if (exprValue.compareTo(value) == 0) {
-        return true;
-      }
-    }
-    return false;
   }
 
 }

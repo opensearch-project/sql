@@ -26,7 +26,6 @@
 
 package org.opensearch.sql.expression.aggregation;
 
-import java.util.Set;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.storage.bindingtuple.BindingTuple;
 
@@ -38,8 +37,4 @@ public interface AggregationState {
    * Get {@link ExprValue} result.
    */
   ExprValue result();
-
-  default Set<ExprValue> distinctValues() {
-    return Set.of();
-  }
 }

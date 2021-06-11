@@ -157,6 +157,14 @@ public class ExprValueUtils {
     }
   }
 
+  public static Byte getByteValue(ExprValue exprValue) {
+    return exprValue.byteValue();
+  }
+
+  public static Short getShortValue(ExprValue exprValue) {
+    return exprValue.shortValue();
+  }
+
   public static Integer getIntegerValue(ExprValue exprValue) {
     return exprValue.integerValue();
   }

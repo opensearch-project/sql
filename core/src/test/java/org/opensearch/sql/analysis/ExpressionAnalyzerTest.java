@@ -293,10 +293,20 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void distinct_aggregation() {
+  public void distinct_count() {
     assertAnalyzeEqual(
         dsl.distinctCount(DSL.ref("integer_value", INTEGER)),
         AstDSL.distinctAggregate("count", qualifiedName("integer_value"))
+    );
+  }
+
+  @Test
+  public void filtered_distinct_count() {
+    assertAnalyzeEqual(
+        dsl.distinctCount(DSL.ref("integer_value", INTEGER))
+            .condition(dsl.greater(DSL.ref("integer_value", INTEGER), DSL.literal(1))),
+        AstDSL.filteredDistinctCount("count", qualifiedName("integer_value"), function(
+            ">", qualifiedName("integer_value"), intLiteral(1)))
     );
   }
 

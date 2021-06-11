@@ -57,6 +57,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.dsl.AstDSL;
+import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.common.antlr.CaseInsensitiveCharStream;
@@ -407,6 +408,28 @@ class AstExpressionBuilderTest {
         AstDSL.filteredAggregate("avg", qualifiedName("age"),
             function(">", qualifiedName("age"), intLiteral(20))),
         buildExprAst("avg(age) filter(where age > 20)")
+    );
+  }
+
+  @Test
+  public void distinctCount() {
+    assertEquals(
+        AstDSL.distinctAggregate("count", qualifiedName("name")),
+        buildExprAst("count(distinct name)")
+    );
+
+    assertEquals(
+        AstDSL.distinctAggregate("count", AllFields.of()),
+        buildExprAst("count(distinct *)")
+    );
+  }
+
+  @Test
+  public void filteredDistinctCount() {
+    assertEquals(
+        AstDSL.filteredDistinctCount("count", qualifiedName("name"), function(
+            ">", qualifiedName("age"), intLiteral(30))),
+        buildExprAst("count(distinct name) filter(where age > 30)")
     );
   }
 

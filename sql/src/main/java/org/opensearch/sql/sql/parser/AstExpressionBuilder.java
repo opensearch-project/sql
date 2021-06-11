@@ -43,6 +43,7 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ConvertedD
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CountStarFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DataTypeFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DateLiteralContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DistinctCountFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.IsNullPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.LikePredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.MathExpressionAtomContext;
@@ -171,7 +172,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   public UnresolvedExpression visitFilteredAggregationFunctionCall(
       OpenSearchSQLParser.FilteredAggregationFunctionCallContext ctx) {
     AggregateFunction agg = (AggregateFunction) visit(ctx.aggregateFunction());
-    return new AggregateFunction(agg.getFuncName(), agg.getField(), visit(ctx.filterClause()));
+    return agg.condition(visit(ctx.filterClause()));
   }
 
   @Override
@@ -213,11 +214,10 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   }
 
   @Override
-  public UnresolvedExpression visitDistinctAggregateFunctionCall(
-      OpenSearchSQLParser.DistinctAggregateFunctionCallContext ctx) {
+  public UnresolvedExpression visitDistinctCountFunctionCall(DistinctCountFunctionCallContext ctx) {
     return new AggregateFunction(
-        ctx.functionName.getText(),
-        visitFunctionArg(ctx.functionArg()),
+        ctx.COUNT().getText(),
+        ctx.functionArg() != null ? visitFunctionArg(ctx.functionArg()) : AllFields.of(),
         true);
   }
 

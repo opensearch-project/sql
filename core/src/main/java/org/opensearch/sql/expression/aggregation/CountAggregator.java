@@ -26,6 +26,16 @@
 
 package org.opensearch.sql.expression.aggregation;
 
+import static org.opensearch.sql.data.model.ExprValueUtils.getBooleanValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.getByteValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.getCollectionValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.getDoubleValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.getFloatValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.getIntegerValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.getLongValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.getShortValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.getStringValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.getTupleValue;
 import static org.opensearch.sql.utils.ExpressionUtils.format;
 
 import java.util.HashSet;
@@ -52,7 +62,7 @@ public class CountAggregator extends Aggregator<CountState> {
 
   @Override
   protected CountState iterate(ExprValue value, CountState state) {
-    state.count(value);
+    state.count(value, distinct);
     return state;
   }
 
@@ -66,25 +76,35 @@ public class CountAggregator extends Aggregator<CountState> {
    */
   protected static class CountState implements AggregationState {
     private int count;
-    private final Set<ExprValue> set = new HashSet<>();
+    private final Set<ExprValue> distinctValues = new HashSet<>();
 
     CountState() {
       this.count = 0;
     }
 
-    public void count(ExprValue value) {
-      set.add(value);
-      count++;
+    public void count(ExprValue value, Boolean distinct) {
+      if (distinct) {
+        if (!duplicated(value)) {
+          distinctValues.add(value);
+          count++;
+        }
+      } else {
+        count++;
+      }
+    }
+
+    private boolean duplicated(ExprValue value) {
+      for (ExprValue exprValue : distinctValues) {
+        if (value.compareTo(exprValue) == 0) {
+          return true;
+        }
+      }
+      return false;
     }
 
     @Override
     public ExprValue result() {
       return ExprValueUtils.integerValue(count);
-    }
-
-    @Override
-    public Set<ExprValue> distinctValues() {
-      return set;
     }
   }
 }

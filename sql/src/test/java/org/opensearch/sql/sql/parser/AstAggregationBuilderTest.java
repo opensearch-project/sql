@@ -51,6 +51,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -171,14 +172,19 @@ class AstAggregationBuilderTest {
   @Test
   void can_build_distinct_aggregator() {
     assertThat(
-        buildAggregation("SELECT COUNT(DISTINCT name), AVG(DISTINCT balance) FROM test"),
+        buildAggregation("SELECT COUNT(DISTINCT name) FROM test group by age"),
+        allOf(
+            hasGroupByItems(alias("age", qualifiedName("age"))),
+            hasAggregators(
+                alias("COUNT(DISTINCT name)", distinctAggregate("COUNT", qualifiedName(
+                    "name"))))));
+
+    assertThat(
+        buildAggregation("SELECT COUNT(DISTINCT *) FROM test"),
         allOf(
             hasGroupByItems(),
             hasAggregators(
-                alias("COUNT(DISTINCT name)", distinctAggregate("COUNT", qualifiedName(
-                    "name"))),
-                alias("AVG(DISTINCT balance)", distinctAggregate("AVG", qualifiedName(
-                    "balance"))))));
+                alias("COUNT(DISTINCT *)", distinctAggregate("COUNT", AllFields.of())))));
   }
 
   @Test
