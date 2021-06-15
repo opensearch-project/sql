@@ -11,5 +11,4 @@ SELECT VAR_SAMP(AvgTicketPrice) FROM opensearch_dashboards_sample_data_flights
 SELECT STDDEV_POP(AvgTicketPrice) FROM opensearch_dashboards_sample_data_flights
 SELECT STDDEV_SAMP(AvgTicketPrice) FROM opensearch_dashboards_sample_data_flights
 SELECT COUNT(DISTINCT Origin), COUNT(DISTINCT Dest) FROM opensearch_dashboards_sample_data_flights
-SELECT COUNT(DISTINCT Origin) FILTER(WHERE AvgTicketPrice < 1000) as distinct_count FROM opensearch_dashboards_sample_data_flights
 SELECT COUNT(DISTINCT Origin) FROM (SELECT * FROM opensearch_dashboards_sample_data_flights) AS flights
