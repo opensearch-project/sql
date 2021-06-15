@@ -5,6 +5,7 @@ SELECT DistanceMiles, ROW_NUMBER() OVER (ORDER BY DistanceMiles DESC) AS num FRO
 SELECT DistanceMiles, RANK() OVER (ORDER BY DistanceMiles DESC) AS rnk FROM opensearch_dashboards_sample_data_flights
 SELECT DistanceMiles, DENSE_RANK() OVER (ORDER BY DistanceMiles DESC) AS rnk FROM opensearch_dashboards_sample_data_flights
 SELECT DistanceMiles, COUNT(DistanceMiles) OVER () AS num FROM opensearch_dashboards_sample_data_flights
+SELECT DistanceMiles, COUNT(DISTINCT DistanceMiles) OVER () AS num FROM opensearch_dashboards_sample_data_flights
 SELECT DistanceMiles, SUM(DistanceMiles) OVER () AS num FROM opensearch_dashboards_sample_data_flights
 SELECT DistanceMiles, AVG(DistanceMiles) OVER () AS num FROM opensearch_dashboards_sample_data_flights
 SELECT DistanceMiles, MAX(DistanceMiles) OVER () AS num FROM opensearch_dashboards_sample_data_flights
@@ -24,6 +25,7 @@ SELECT FlightDelayMin, AvgTicketPrice, VAR_SAMP(AvgTicketPrice) OVER (ORDER BY F
 SELECT user, RANK() OVER (ORDER BY user) AS rnk FROM opensearch_dashboards_sample_data_ecommerce
 SELECT user, DENSE_RANK() OVER (ORDER BY user) AS rnk FROM opensearch_dashboards_sample_data_ecommerce
 SELECT user, COUNT(day_of_week_i) OVER (ORDER BY user) AS cnt FROM opensearch_dashboards_sample_data_ecommerce
+SELECT user, COUNT(DISTINCT day_of_week_i) OVER (ORDER BY user) AS cnt FROM opensearch_dashboards_sample_data_ecommerce
 SELECT user, SUM(day_of_week_i) OVER (ORDER BY user) AS num FROM opensearch_dashboards_sample_data_ecommerce
 SELECT user, AVG(day_of_week_i) OVER (ORDER BY user) AS num FROM opensearch_dashboards_sample_data_ecommerce
 SELECT user, MAX(day_of_week_i) OVER (ORDER BY user) AS num FROM opensearch_dashboards_sample_data_ecommerce
@@ -33,6 +35,7 @@ SELECT user, VAR_POP(day_of_week_i) OVER (ORDER BY user) AS num FROM opensearch_
 SELECT user, RANK() OVER (ORDER BY user DESC) AS rnk FROM opensearch_dashboards_sample_data_ecommerce
 SELECT user, DENSE_RANK() OVER (ORDER BY user DESC) AS rnk FROM opensearch_dashboards_sample_data_ecommerce
 SELECT user, COUNT(day_of_week_i) OVER (PARTITION BY user ORDER BY order_id) AS cnt FROM opensearch_dashboards_sample_data_ecommerce
+SELECT user, COUNT(DISTINCT day_of_week_i) OVER (PARTITION BY user ORDER BY order_id) AS cnt FROM opensearch_dashboards_sample_data_ecommerce
 SELECT user, SUM(day_of_week_i) OVER (PARTITION BY user ORDER BY order_id) AS num FROM opensearch_dashboards_sample_data_ecommerce
 SELECT user, AVG(day_of_week_i) OVER (PARTITION BY user ORDER BY order_id) AS num FROM opensearch_dashboards_sample_data_ecommerce
 SELECT user, MAX(day_of_week_i) OVER (PARTITION BY user ORDER BY order_id) AS num FROM opensearch_dashboards_sample_data_ecommerce
