@@ -177,7 +177,8 @@ public enum BuiltinFunctionName {
   CAST_TO_BOOLEAN(FunctionName.of("cast_to_boolean")),
   CAST_TO_DATE(FunctionName.of("cast_to_date")),
   CAST_TO_TIME(FunctionName.of("cast_to_time")),
-  CAST_TO_TIMESTAMP(FunctionName.of("cast_to_timestamp"));
+  CAST_TO_TIMESTAMP(FunctionName.of("cast_to_timestamp")),
+  CAST_TO_DATETIME(FunctionName.of("cast_to_datetime"));
 
   private final FunctionName name;
 

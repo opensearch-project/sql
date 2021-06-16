@@ -31,6 +31,7 @@ package org.opensearch.sql.ast.expression;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_BOOLEAN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_BYTE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_DATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_DATETIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_DOUBLE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_FLOAT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_INT;
@@ -77,6 +78,7 @@ public class Cast extends UnresolvedExpression {
           .put("date", CAST_TO_DATE.getName())
           .put("time", CAST_TO_TIME.getName())
           .put("timestamp", CAST_TO_TIMESTAMP.getName())
+          .put("datetime", CAST_TO_DATETIME.getName())
           .build();
 
   /**

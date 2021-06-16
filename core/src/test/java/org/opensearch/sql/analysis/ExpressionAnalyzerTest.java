@@ -160,7 +160,7 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
     );
 
     assertThrows(IllegalStateException.class, () -> analyze(AstDSL.cast(AstDSL.unresolvedAttr(
-        "boolean_value"), AstDSL.stringLiteral("DATETIME"))));
+        "boolean_value"), AstDSL.stringLiteral("INTERVAL"))));
   }
 
   @Test
