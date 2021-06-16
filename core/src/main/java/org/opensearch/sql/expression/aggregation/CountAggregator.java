@@ -26,16 +26,6 @@
 
 package org.opensearch.sql.expression.aggregation;
 
-import static org.opensearch.sql.data.model.ExprValueUtils.getBooleanValue;
-import static org.opensearch.sql.data.model.ExprValueUtils.getByteValue;
-import static org.opensearch.sql.data.model.ExprValueUtils.getCollectionValue;
-import static org.opensearch.sql.data.model.ExprValueUtils.getDoubleValue;
-import static org.opensearch.sql.data.model.ExprValueUtils.getFloatValue;
-import static org.opensearch.sql.data.model.ExprValueUtils.getIntegerValue;
-import static org.opensearch.sql.data.model.ExprValueUtils.getLongValue;
-import static org.opensearch.sql.data.model.ExprValueUtils.getShortValue;
-import static org.opensearch.sql.data.model.ExprValueUtils.getStringValue;
-import static org.opensearch.sql.data.model.ExprValueUtils.getTupleValue;
 import static org.opensearch.sql.utils.ExpressionUtils.format;
 
 import java.util.HashSet;

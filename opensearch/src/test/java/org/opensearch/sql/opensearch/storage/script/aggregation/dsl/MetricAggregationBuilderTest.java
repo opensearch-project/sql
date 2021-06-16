@@ -53,18 +53,21 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.aggregation.AvgAggregator;
 import org.opensearch.sql.expression.aggregation.CountAggregator;
 import org.opensearch.sql.expression.aggregation.MaxAggregator;
 import org.opensearch.sql.expression.aggregation.MinAggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.aggregation.SumAggregator;
+import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
 class MetricAggregationBuilderTest {
+  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
 
   @Mock
   private ExpressionSerializer serializer;
@@ -271,7 +274,39 @@ class MetricAggregationBuilderTest {
             + "}",
         buildQuery(
             Collections.singletonList(named("count(distinct name)", new CountAggregator(
-                Collections.singletonList(ref("name", STRING)), STRING).distinct(true)))));
+                Collections.singletonList(ref("name", STRING)), INTEGER).distinct(true)))));
+  }
+
+  @Test
+  void should_build_filtered_cardinality_aggregation() {
+    assertEquals(
+        "{\n"
+            + "  \"count(distinct name) filter(where age > 30)\" : {\n"
+            + "    \"filter\" : {\n"
+            + "      \"range\" : {\n"
+            + "        \"age\" : {\n"
+            + "          \"from\" : 30,\n"
+            + "          \"to\" : null,\n"
+            + "          \"include_lower\" : false,\n"
+            + "          \"include_upper\" : true,\n"
+            + "          \"boost\" : 1.0\n"
+            + "        }\n"
+            + "      }\n"
+            + "    },\n"
+            + "    \"aggregations\" : {\n"
+            + "      \"count(distinct name) filter(where age > 30)\" : {\n"
+            + "        \"cardinality\" : {\n"
+            + "          \"field\" : \"name\"\n"
+            + "        }\n"
+            + "      }\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
+        buildQuery(Collections.singletonList(named(
+            "count(distinct name) filter(where age > 30)",
+            new CountAggregator(Collections.singletonList(ref("name", STRING)), INTEGER)
+                .condition(dsl.greater(ref("age", INTEGER), literal(30)))
+                .distinct(true)))));
   }
 
   @Test
