@@ -54,11 +54,10 @@ public class BuiltinFunctionRepository {
 
   /**
    * Resolve the {@link FunctionBuilder} in Builtin Function Repository.
-   * Wrap arguments by cast function as needed. Return original function builder
-   * if it's already a cast function or all arguments have expected types.
    *
    * @param functionSignature {@link FunctionSignature}
-   * @return {@link FunctionBuilder}
+   * @return Original function builder if it's a cast function or all arguments have expected types.
+   *         Otherwise wrap its arguments by cast function as needed.
    */
   public FunctionBuilder resolve(FunctionSignature functionSignature) {
     FunctionName functionName = functionSignature.getFunctionName();
@@ -80,11 +79,10 @@ public class BuiltinFunctionRepository {
   }
 
   /**
-   * Wrap resolved function builder's arguments by cast function which is to cast expression value
-   * to value of target type at runtime.
-   * For example, suppose unresolved signature is equal(BOOL,STRING), and resolved function builder
-   * is F with signature equal(BOOL,BOOL). In this case, wrap F and return
-   * equal(BOOL, cast_to_bool(STRING)).
+   * Wrap resolved function builder's arguments by cast function to cast input expression value
+   * to value of target type at runtime. For example, suppose unresolved signature is
+   * equal(BOOL,STRING) and its resolved function builder is F with signature equal(BOOL,BOOL).
+   * In this case, wrap F and return equal(BOOL, cast_to_bool(STRING)).
    */
   private FunctionBuilder castArguments(List<ExprType> sourceTypes,
                                         List<ExprType> targetTypes,
@@ -107,6 +105,7 @@ public class BuiltinFunctionRepository {
   }
 
   private boolean isCastRequired(ExprType sourceType, ExprType targetType) {
+    // TODO: Remove this special case after fixing all failed UTs
     if (ExprCoreType.numberTypes().contains(sourceType)
         && ExprCoreType.numberTypes().contains(targetType)) {
       return false;

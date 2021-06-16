@@ -76,6 +76,13 @@ class ExprTypeTest {
   }
 
   @Test
+  public void shouldCast() {
+    assertTrue(UNDEFINED.shouldCast(STRING));
+    assertTrue(STRING.shouldCast(BOOLEAN));
+    assertFalse(STRING.shouldCast(STRING));
+  }
+
+  @Test
   public void getParent() {
     assertThat(((ExprType) () -> "test").getParent(), Matchers.contains(UNKNOWN));
   }
