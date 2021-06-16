@@ -21,7 +21,6 @@ false = 'False' as implicitCast
 false = 'true' as implicitCast
 'TRUE' = true as implicitCast
 'false' = true as implicitCast
-TIMESTAMP('2021-06-17 00:00:00') = '2021-06-17 00:00:00' as implicitCast
-DATETIME('2021-06-17 00:00:00') = '2021-06-17 00:00:00' as implicitCast
-'2021-06-18' < DATE('2021-06-17') as implicitCast
-'10:20:00' <= TIME('11:00:00') as implicitCast
+CAST('2021-06-17 00:00:00' AS TIMESTAMP) = '2021-06-17 00:00:00' as implicitCast
+'2021-06-18' < CAST('2021-06-17' AS DATE) as implicitCast
+'10:20:00' <= CAST('11:00:00' AS TIME) as implicitCast
