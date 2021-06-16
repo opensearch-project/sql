@@ -58,4 +58,10 @@ class OpenSearchDataTypeTest {
     assertEquals("text", OPENSEARCH_TEXT.legacyTypeName());
     assertEquals("text", OPENSEARCH_TEXT_KEYWORD.legacyTypeName());
   }
+
+  @Test
+  public void testShouldCast() {
+    assertFalse(OPENSEARCH_TEXT.shouldCast(STRING));
+    assertFalse(OPENSEARCH_TEXT_KEYWORD.shouldCast(STRING));
+  }
 }

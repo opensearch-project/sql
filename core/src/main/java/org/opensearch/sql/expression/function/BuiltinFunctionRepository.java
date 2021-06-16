@@ -107,15 +107,11 @@ public class BuiltinFunctionRepository {
   }
 
   private boolean isCastRequired(ExprType sourceType, ExprType targetType) {
-    if (sourceType.equals(targetType)) {
-      return false;
-    }
-
     if (ExprCoreType.numberTypes().contains(sourceType)
         && ExprCoreType.numberTypes().contains(targetType)) {
       return false;
     }
-    return true;
+    return sourceType.shouldCast(targetType);
   }
 
   private Expression cast(Expression arg, ExprType targetType) {

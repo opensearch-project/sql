@@ -59,6 +59,16 @@ public interface ExprType {
   }
 
   /**
+   * Should cast this type to other type or not. By default, cast is always required
+   * if the given type is different from this type.
+   * @param other other data type
+   * @return      true if cast is required, otherwise false
+   */
+  default boolean shouldCast(ExprType other) {
+    return !this.equals(other);
+  }
+
+  /**
    * Get the parent type.
    */
   default List<ExprType> getParent() {
