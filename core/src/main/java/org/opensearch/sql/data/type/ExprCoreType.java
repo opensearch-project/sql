@@ -77,10 +77,10 @@ public enum ExprCoreType implements ExprType {
    * Date.
    * Todo. compatible relationship.
    */
-  TIMESTAMP(UNDEFINED),
-  DATE(UNDEFINED),
-  TIME(UNDEFINED),
-  DATETIME(UNDEFINED),
+  TIMESTAMP(STRING),
+  DATE(STRING),
+  TIME(STRING),
+  DATETIME(STRING),
   INTERVAL(UNDEFINED),
 
   /**
