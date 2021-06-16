@@ -29,9 +29,7 @@ package org.opensearch.sql.opensearch.storage.script.filter.lucene;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
-import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
 
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -46,23 +44,6 @@ class LuceneQueryTest {
   void should_not_support_single_argument_by_default() {
     DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
     assertFalse(new LuceneQuery(){}.canSupport(dsl.abs(DSL.ref("age", INTEGER))));
-  }
-
-  @Test
-  void should_support_first_argument_is_reference_in_cast_function() {
-    DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
-    assertTrue(new LuceneQuery(){}.canSupport(dsl.equal(
-        dsl.castString(DSL.ref("address", OPENSEARCH_TEXT_KEYWORD)),
-        DSL.literal("Seattle"))));
-  }
-
-  @Test
-  void should_not_support_first_argument_is_non_reference_in_cast_function() {
-    DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
-    assertFalse(new LuceneQuery(){}.canSupport(dsl.equal(
-        dsl.castString(
-            dsl.ltrim(DSL.ref("address", OPENSEARCH_TEXT_KEYWORD))),
-        DSL.literal("Seattle"))));
   }
 
   @Test
