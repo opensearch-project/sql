@@ -178,13 +178,6 @@ class AstAggregationBuilderTest {
             hasAggregators(
                 alias("COUNT(DISTINCT name)", distinctAggregate("COUNT", qualifiedName(
                     "name"))))));
-
-    assertThat(
-        buildAggregation("SELECT COUNT(DISTINCT *) FROM test"),
-        allOf(
-            hasGroupByItems(),
-            hasAggregators(
-                alias("COUNT(DISTINCT *)", distinctAggregate("COUNT", AllFields.of())))));
   }
 
   @Test
