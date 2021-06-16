@@ -45,8 +45,8 @@ import org.opensearch.sql.data.type.ExprType;
 @RequiredArgsConstructor
 public enum OpenSearchDataType implements ExprType {
   /**
-   * OpenSearch Text. Rather than cast text type to others, leave it alone and let OpenSearch
-   * handle it in DSL. For example. cast_to_string(OPENSEARCH_TEXT) will be avoided.
+   * OpenSearch Text. Rather than cast text to other types (STRING), leave it alone to prevent
+   * cast_to_string(OPENSEARCH_TEXT).
    * Ref: https://www.elastic.co/guide/en/elasticsearch/reference/current/text.html
    */
   OPENSEARCH_TEXT(Collections.singletonList(STRING), "string") {
