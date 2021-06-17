@@ -74,22 +74,13 @@ public class CountAggregator extends Aggregator<CountState> {
 
     public void count(ExprValue value, Boolean distinct) {
       if (distinct) {
-        if (!duplicated(value)) {
+        if (!distinctValues.contains(value)) {
           distinctValues.add(value);
           count++;
         }
       } else {
         count++;
       }
-    }
-
-    private boolean duplicated(ExprValue value) {
-      for (ExprValue exprValue : distinctValues) {
-        if (value.compareTo(exprValue) == 0) {
-          return true;
-        }
-      }
-      return false;
     }
 
     @Override
