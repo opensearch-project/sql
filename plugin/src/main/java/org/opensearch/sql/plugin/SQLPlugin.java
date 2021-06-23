@@ -159,6 +159,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         .add(LegacyOpenDistroSettings.PPL_ENABLED_SETTING)
         .add(LegacyOpenDistroSettings.PPL_QUERY_MEMORY_LIMIT_SETTING)
         .add(LegacyOpenDistroSettings.QUERY_SIZE_LIMIT_SETTING)
+        .add(LegacyOpenDistroSettings.CURSOR_ENABLED)
+        .add(LegacyOpenDistroSettings.CURSOR_FETCH_SIZE)
         .addAll(OpenSearchSettings.pluginSettings())
         .build();
   }

@@ -56,7 +56,13 @@ public abstract class LegacySettings {
     /**
      * Legacy Common Settings.
      */
-    QUERY_SIZE_LIMIT("opendistro.query.size_limit");
+    QUERY_SIZE_LIMIT("opendistro.query.size_limit"),
+
+    /**
+     * Deprecated Settings.
+     */
+    CURSOR_ENABLED("opendistro.sql.cursor.enabled"),
+    CURSOR_FETCH_SIZE("opendistro.sql.cursor.fetch_size");
 
     @Getter
     private final String keyValue;

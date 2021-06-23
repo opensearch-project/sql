@@ -80,5 +80,25 @@ public class LegacyOpenDistroSettings {
       Setting.Property.NodeScope,
       Setting.Property.Dynamic,
       Setting.Property.Deprecated);
-
+  /**
+   * Deprecated.
+   * From OpenSearch 1.0, the cursor is always enabled and the setting will be removed then.
+   */
+  public static final Setting<Boolean> CURSOR_ENABLED = Setting.boolSetting(
+      LegacySettings.Key.CURSOR_ENABLED.getKeyValue(),
+      true,
+      Setting.Property.NodeScope,
+      Setting.Property.Dynamic,
+      Setting.Property.Deprecated);
+  /**
+   * Deprecated.
+   * From OpenSearch 1.0, only the fetch_size in the context take effect and the setting will
+   * be removed then.
+   */
+  public static final Setting<Integer> CURSOR_FETCH_SIZE = Setting.intSetting(
+      LegacySettings.Key.CURSOR_FETCH_SIZE.getKeyValue(),
+      1000,
+      Setting.Property.NodeScope,
+      Setting.Property.Dynamic,
+      Setting.Property.Deprecated);
 }
