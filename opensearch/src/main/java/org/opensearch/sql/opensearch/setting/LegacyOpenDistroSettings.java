@@ -13,6 +13,8 @@ package org.opensearch.sql.opensearch.setting;
 
 import static org.opensearch.common.unit.TimeValue.timeValueMinutes;
 
+import com.google.common.collect.ImmutableList;
+import java.util.List;
 import lombok.experimental.UtilityClass;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.unit.ByteSizeValue;
@@ -84,7 +86,7 @@ public class LegacyOpenDistroSettings {
    * Deprecated.
    * From OpenSearch 1.0, the cursor is always enabled and the setting will be removed then.
    */
-  public static final Setting<Boolean> CURSOR_ENABLED = Setting.boolSetting(
+  public static final Setting<Boolean> CURSOR_ENABLED_SETTING = Setting.boolSetting(
       LegacySettings.Key.CURSOR_ENABLED.getKeyValue(),
       true,
       Setting.Property.NodeScope,
@@ -95,10 +97,28 @@ public class LegacyOpenDistroSettings {
    * From OpenSearch 1.0, only the fetch_size in the context take effect and the setting will
    * be removed then.
    */
-  public static final Setting<Integer> CURSOR_FETCH_SIZE = Setting.intSetting(
+  public static final Setting<Integer> CURSOR_FETCH_SIZE_SETTING = Setting.intSetting(
       LegacySettings.Key.CURSOR_FETCH_SIZE.getKeyValue(),
       1000,
       Setting.Property.NodeScope,
       Setting.Property.Dynamic,
       Setting.Property.Deprecated);
+
+  /**
+   * Used by Plugin to init Setting.
+   */
+  public static List<Setting<?>> legacySettings() {
+    return new ImmutableList.Builder<Setting<?>>()
+        .add(SQL_ENABLED_SETTING)
+        .add(SQL_QUERY_SLOWLOG_SETTING)
+        .add(SQL_CURSOR_KEEPALIVE_SETTING)
+        .add(METRICS_ROLLING_WINDOW_SETTING)
+        .add(METRICS_ROLLING_INTERVAL_SETTING)
+        .add(PPL_ENABLED_SETTING)
+        .add(PPL_QUERY_MEMORY_LIMIT_SETTING)
+        .add(QUERY_SIZE_LIMIT_SETTING)
+        .add(CURSOR_ENABLED_SETTING)
+        .add(CURSOR_FETCH_SIZE_SETTING)
+        .build();
+  }
 }

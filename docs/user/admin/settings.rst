@@ -16,6 +16,16 @@ Introduction
 
 When OpenSearch bootstraps, SQL plugin will register a few settings in OpenSearch cluster settings. Most of the settings are able to change dynamically so you can control the behavior of SQL plugin without need to bounce your cluster. You can update the settings by sending requests to either ``_cluster/settings`` or ``_plugins/_query/settings`` endpoint, though the examples are sending to the latter.
 
+Breaking Change
+===============
+
+opendistro.sql.cursor.enabled
+-----------------------------
+The opendistro.sql.cursor.enabled is deprecated and will be removed then. From OpenSearch 1.0, the cursor feature is enabled by default.
+
+opendistro.sql.cursor.fetch_size
+--------------------------------
+The opendistro.sql.cursor.fetch_size is deprecated and will be removed then. From OpenSearch 1.0, the fetch_size in query body will decide whether create the cursor context. No cursor will be created if the fetch_size = 0.
 
 plugins.sql.enabled
 ======================
