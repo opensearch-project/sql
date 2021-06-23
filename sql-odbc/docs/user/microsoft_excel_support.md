@@ -3,8 +3,8 @@
 ## Prerequisites
 
 * Microsoft Excel 2016 and higher
-* [OpenSearch](https://docs-beta.opensearch.org/docs/install/)
-* [OpenSearch SQL ODBC driver](https://docs-beta.opensearch.org/docs/sql/odbc/)
+* [OpenSearch](https://docs-beta.opensearch.org/opensearch/install/index/)
+* [OpenSearch SQL ODBC driver](https://docs-beta.opensearch.org/search-plugins/sql/odbc/)
 * A preconfigured [User or System DSN](../../README.md)
 
 ## Test Successful Connection
