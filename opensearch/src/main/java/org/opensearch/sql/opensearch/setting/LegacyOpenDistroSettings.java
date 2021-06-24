@@ -82,27 +82,88 @@ public class LegacyOpenDistroSettings {
       Setting.Property.NodeScope,
       Setting.Property.Dynamic,
       Setting.Property.Deprecated);
+
   /**
-   * Deprecated.
-   * From OpenSearch 1.0, the cursor is always enabled and the setting will be removed then.
+   * Deprecated and will be removed then.
+   * From OpenSearch 1.0, the new engine is always enabled.
    */
-  public static final Setting<Boolean> CURSOR_ENABLED_SETTING = Setting.boolSetting(
-      LegacySettings.Key.CURSOR_ENABLED.getKeyValue(),
+  public static final Setting<Boolean> SQL_NEW_ENGINE_ENABLED_SETTING = Setting.boolSetting(
+      LegacySettings.Key.SQL_NEW_ENGINE_ENABLED.getKeyValue(),
       true,
       Setting.Property.NodeScope,
       Setting.Property.Dynamic,
       Setting.Property.Deprecated);
+
   /**
-   * Deprecated.
-   * From OpenSearch 1.0, only the fetch_size in the context take effect and the setting will
-   * be removed then.
+   * Deprecated and will be removed then.
+   * From OpenSearch 1.0, the query analysis in legacy engine is disabled.
    */
-  public static final Setting<Integer> CURSOR_FETCH_SIZE_SETTING = Setting.intSetting(
-      LegacySettings.Key.CURSOR_FETCH_SIZE.getKeyValue(),
-      1000,
+  public static final Setting<Boolean> QUERY_ANALYSIS_ENABLED_SETTING = Setting.boolSetting(
+      LegacySettings.Key.QUERY_ANALYSIS_ENABLED.getKeyValue(),
+      false,
       Setting.Property.NodeScope,
       Setting.Property.Dynamic,
       Setting.Property.Deprecated);
+
+  /**
+   * Deprecated and will be removed then.
+   * From OpenSearch 1.0, the query analysis suggestion in legacy engine is disabled.
+   */
+  public static final Setting<Boolean> QUERY_ANALYSIS_SEMANTIC_SUGGESTION_SETTING =
+      Setting.boolSetting(
+      LegacySettings.Key.QUERY_ANALYSIS_SEMANTIC_SUGGESTION.getKeyValue(),
+      false,
+      Setting.Property.NodeScope,
+      Setting.Property.Dynamic,
+      Setting.Property.Deprecated);
+
+  /**
+   * Deprecated and will be removed then.
+   * From OpenSearch 1.0, the query analysis threshold in legacy engine is disabled.
+   */
+  public static final Setting<Integer> QUERY_ANALYSIS_SEMANTIC_THRESHOLD_SETTING =
+      Setting.intSetting(
+          LegacySettings.Key.QUERY_ANALYSIS_SEMANTIC_THRESHOLD.getKeyValue(),
+          200,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic,
+          Setting.Property.Deprecated);
+
+  /**
+   * Deprecated and will be removed then.
+   * From OpenSearch 1.0, the query response format is default to JDBC format.
+   */
+  public static final Setting<String> QUERY_RESPONSE_FORMAT_SETTING =
+      Setting.simpleString(
+          LegacySettings.Key.QUERY_RESPONSE_FORMAT.getKeyValue(),
+          "jdbc",
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic,
+          Setting.Property.Deprecated);
+
+  /**
+   * Deprecated and will be removed then.
+   * From OpenSearch 1.0, the cursor feature is enabled by default.
+   */
+  public static final Setting<Boolean> SQL_CURSOR_ENABLED_SETTING =
+      Setting.boolSetting(
+          LegacySettings.Key.SQL_CURSOR_ENABLED.getKeyValue(),
+          true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic,
+          Setting.Property.Deprecated);
+  /**
+   * Deprecated and will be removed then.
+   * From OpenSearch 1.0, the fetch_size in query body will decide whether create the cursor
+   * context. No cursor will be created if the fetch_size = 0.
+   */
+  public static final Setting<Integer> SQL_CURSOR_FETCH_SIZE_SETTING =
+      Setting.intSetting(
+          LegacySettings.Key.SQL_CURSOR_FETCH_SIZE.getKeyValue(),
+          1000,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic,
+          Setting.Property.Deprecated);
 
   /**
    * Used by Plugin to init Setting.
@@ -117,8 +178,13 @@ public class LegacyOpenDistroSettings {
         .add(PPL_ENABLED_SETTING)
         .add(PPL_QUERY_MEMORY_LIMIT_SETTING)
         .add(QUERY_SIZE_LIMIT_SETTING)
-        .add(CURSOR_ENABLED_SETTING)
-        .add(CURSOR_FETCH_SIZE_SETTING)
+        .add(SQL_NEW_ENGINE_ENABLED_SETTING)
+        .add(QUERY_ANALYSIS_ENABLED_SETTING)
+        .add(QUERY_ANALYSIS_SEMANTIC_SUGGESTION_SETTING)
+        .add(QUERY_ANALYSIS_SEMANTIC_THRESHOLD_SETTING)
+        .add(QUERY_RESPONSE_FORMAT_SETTING)
+        .add(SQL_CURSOR_ENABLED_SETTING)
+        .add(SQL_CURSOR_FETCH_SIZE_SETTING)
         .build();
   }
 }
