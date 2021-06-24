@@ -56,7 +56,18 @@ public abstract class LegacySettings {
     /**
      * Legacy Common Settings.
      */
-    QUERY_SIZE_LIMIT("opendistro.query.size_limit");
+    QUERY_SIZE_LIMIT("opendistro.query.size_limit"),
+
+    /**
+     * Deprecated Settings.
+     */
+    SQL_NEW_ENGINE_ENABLED("opendistro.sql.engine.new.enabled"),
+    QUERY_ANALYSIS_ENABLED("opendistro.sql.query.analysis.enabled"),
+    QUERY_ANALYSIS_SEMANTIC_SUGGESTION("opendistro.sql.query.analysis.semantic.suggestion"),
+    QUERY_ANALYSIS_SEMANTIC_THRESHOLD("opendistro.sql.query.analysis.semantic.threshold"),
+    QUERY_RESPONSE_FORMAT("opendistro.sql.query.response.format"),
+    SQL_CURSOR_ENABLED("opendistro.sql.cursor.enabled"),
+    SQL_CURSOR_FETCH_SIZE("opendistro.sql.cursor.fetch_size");
 
     @Getter
     private final String keyValue;
