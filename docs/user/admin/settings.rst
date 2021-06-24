@@ -16,6 +16,35 @@ Introduction
 
 When OpenSearch bootstraps, SQL plugin will register a few settings in OpenSearch cluster settings. Most of the settings are able to change dynamically so you can control the behavior of SQL plugin without need to bounce your cluster. You can update the settings by sending requests to either ``_cluster/settings`` or ``_plugins/_query/settings`` endpoint, though the examples are sending to the latter.
 
+Breaking Change
+===============
+opendistro.sql.engine.new.enabled
+---------------------------------
+The opendistro.sql.engine.new.enabled setting is deprecated and will be removed then. From OpenSearch 1.0, the new engine is always enabled.
+
+opendistro.sql.query.analysis.enabled
+-------------------------------------
+The opendistro.sql.query.analysis.enabled setting is deprecated and will be removed then. From OpenSearch 1.0, the query analysis in legacy engine is disabled.
+
+opendistro.sql.query.analysis.semantic.suggestion
+-------------------------------------------------
+The opendistro.sql.query.analysis.semantic.suggestion setting is deprecated and will be removed then. From OpenSearch 1.0, the query analysis suggestion in legacy engine is disabled.
+
+opendistro.sql.query.analysis.semantic.threshold
+------------------------------------------------
+The opendistro.sql.query.analysis.semantic.threshold setting is deprecated and will be removed then. From OpenSearch 1.0, the query analysis threshold in legacy engine is disabled.
+
+opendistro.sql.query.response.format
+------------------------------------
+The opendistro.sql.query.response.format setting is deprecated and will be removed then. From OpenSearch 1.0, the query response format is default to JDBC format. `You can change the format by using query parameters<../interfaces/protocol.rst>`_.
+
+opendistro.sql.cursor.enabled
+-----------------------------
+The opendistro.sql.cursor.enabled setting is deprecated and will be removed then. From OpenSearch 1.0, the cursor feature is enabled by default.
+
+opendistro.sql.cursor.fetch_size
+--------------------------------
+The opendistro.sql.cursor.fetch_size setting is deprecated and will be removed then. From OpenSearch 1.0, the fetch_size in query body will decide whether create the cursor context. No cursor will be created if the fetch_size = 0.
 
 plugins.sql.enabled
 ======================
