@@ -6,7 +6,7 @@
   - Buy [Extended Validation (EV) Code Signing Certificate](https://docs.microsoft.com/en-us/windows-hardware/drivers/dashboard/get-a-code-signing-certificate#step-2-buy-a-new-code-signing-certificate)
   - Create a [self-signed certificate](https://docs.microsoft.com/en-us/windows/msix/package/create-certificate-package-signing#create-a-self-signed-certificate) (For testing purpose only).
 - Install the certificate that you want to sign the file with.
-  - [Import-Certificate](https://docs.microsoft.com/en-us/powershell/module/pkiclient/import-certificate?view=win10-ps) can be used for this purpose
+
  
 ```
 // Import certificate as Trusted Publisher
