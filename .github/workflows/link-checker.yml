@@ -16,7 +16,7 @@ jobs:
         id: lychee
         uses: lycheeverse/lychee-action@master
         with:
-          args: --accept=200,403,429  "**/*.html" "**/*.md" "**/*.txt" --exclude "^((?!localhost).)*$" "https://community.tableau.com/docs/DOC-17978" "*-family.zzz"
+          args: --accept=200,403,429  "**/*.html" "**/*.md" "**/*.txt" --exclude "http://localhost*" "https://localhost" "https://odfe-node1:9200/" "https://community.tableau.com/docs/DOC-17978" "*-family.zzz" "https://docs.microsoft.com/en-us/powershell/module/pkiclient/import-certificate?view=win10-ps" "https://pypi.python.org/pypi/opensearch-sql-cli/"
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       - name: Fail if there were link errors
