@@ -634,7 +634,7 @@ export class Main extends React.Component<MainProps, MainState> {
           updateSQLQueries={this.updateSQLQueries}
         />
       );
-      link = 'https://docs-beta.opensearch.org/docs/sql/';
+      link = 'https://docs-beta.opensearch.org/search-plugins/sql/index/';
       linkTitle = 'SQL documentation';
     } else {
       page = (
@@ -647,7 +647,7 @@ export class Main extends React.Component<MainProps, MainState> {
           updatePPLQueries={this.updatePPLQueries}
         />
       );
-      link = 'https://docs-beta.opensearch.org/docs/ppl/';
+      link = 'https://docs-beta.opensearch.org/search-plugins/ppl/index/';
       linkTitle = 'PPL documentation';
     }
 

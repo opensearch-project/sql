@@ -3,7 +3,7 @@
 ## Download and Installation
 
 * Download and install [Tableau Desktop](https://www.tableau.com/en-ca/products/desktop/download).
-* Install and configure [OpenSearch](https://docs-beta.opensearch.org/docs/install/).
+* Install and configure [OpenSearch](https://docs-beta.opensearch.org/opensearch/install/index/).
 * Download the [OpenSearch JDBC Driver](https://github.com/opensearch-project/sql/blob/master/sql-jdbc/README.md#download-and-installation).
 
 ## Setup
