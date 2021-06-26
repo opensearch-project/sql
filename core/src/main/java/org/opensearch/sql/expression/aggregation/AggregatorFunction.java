@@ -35,6 +35,10 @@ import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+import static org.opensearch.sql.expression.aggregation.StdDevAggregator.stddevPopulation;
+import static org.opensearch.sql.expression.aggregation.StdDevAggregator.stddevSample;
+import static org.opensearch.sql.expression.aggregation.VarianceAggregator.variancePopulation;
+import static org.opensearch.sql.expression.aggregation.VarianceAggregator.varianceSample;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
@@ -68,6 +72,10 @@ public class AggregatorFunction {
     repository.register(count());
     repository.register(min());
     repository.register(max());
+    repository.register(varSamp());
+    repository.register(varPop());
+    repository.register(stddevSamp());
+    repository.register(stddevPop());
   }
 
   private static FunctionResolver avg() {
@@ -156,6 +164,50 @@ public class AggregatorFunction {
                 arguments -> new MaxAggregator(arguments, TIME))
             .put(new FunctionSignature(functionName, Collections.singletonList(TIMESTAMP)),
                 arguments -> new MaxAggregator(arguments, TIMESTAMP))
+            .build()
+    );
+  }
+
+  private static FunctionResolver varSamp() {
+    FunctionName functionName = BuiltinFunctionName.VARSAMP.getName();
+    return new FunctionResolver(
+        functionName,
+        new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
+            .put(new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
+                arguments -> varianceSample(arguments, DOUBLE))
+            .build()
+    );
+  }
+
+  private static FunctionResolver varPop() {
+    FunctionName functionName = BuiltinFunctionName.VARPOP.getName();
+    return new FunctionResolver(
+        functionName,
+        new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
+            .put(new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
+                arguments -> variancePopulation(arguments, DOUBLE))
+            .build()
+    );
+  }
+
+  private static FunctionResolver stddevSamp() {
+    FunctionName functionName = BuiltinFunctionName.STDDEV_SAMP.getName();
+    return new FunctionResolver(
+        functionName,
+        new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
+            .put(new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
+                arguments -> stddevSample(arguments, DOUBLE))
+            .build()
+    );
+  }
+
+  private static FunctionResolver stddevPop() {
+    FunctionName functionName = BuiltinFunctionName.STDDEV_POP.getName();
+    return new FunctionResolver(
+        functionName,
+        new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
+            .put(new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
+                arguments -> stddevPopulation(arguments, DOUBLE))
             .build()
     );
   }

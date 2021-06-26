@@ -410,6 +410,27 @@ class AstExpressionBuilderTest {
     );
   }
 
+  @Test
+  public void canBuildVarSamp() {
+    assertEquals(
+        aggregate("var_samp", qualifiedName("age")),
+        buildExprAst("var_samp(age)"));
+  }
+
+  @Test
+  public void canBuildVarPop() {
+    assertEquals(
+        aggregate("var_pop", qualifiedName("age")),
+        buildExprAst("var_pop(age)"));
+  }
+
+  @Test
+  public void canBuildVariance() {
+    assertEquals(
+        aggregate("variance", qualifiedName("age")),
+        buildExprAst("variance(age)"));
+  }
+
   private Node buildExprAst(String expr) {
     OpenSearchSQLLexer lexer = new OpenSearchSQLLexer(new CaseInsensitiveCharStream(expr));
     OpenSearchSQLParser parser = new OpenSearchSQLParser(new CommonTokenStream(lexer));

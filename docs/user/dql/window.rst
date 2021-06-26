@@ -20,7 +20,7 @@ A window function consists of 2 pieces: a function and a window definition. A wi
 
 There are three categories of common window functions:
 
-1. **Aggregate Functions**: COUNT(), MIN(), MAX(), AVG() and SUM().
+1. **Aggregate Functions**: COUNT(), MIN(), MAX(), AVG(), SUM(), STDDEV_POP, STDDEV_SAMP, VAR_POP and VAR_SAMP.
 2. **Ranking Functions**: ROW_NUMBER(), RANK(), DENSE_RANK(), PERCENT_RANK() and NTILE().
 3. **Analytic Functions**: CUME_DIST(), LAG() and LEAD().
 
@@ -145,6 +145,90 @@ Here is an example for ``SUM`` function::
     | M        | 5686      | 9866  |
     | M        | 39225     | 49091 |
     +----------+-----------+-------+
+
+STDDEV_POP
+----------
+
+Here is an example for ``STDDEV_POP`` function::
+
+    os> SELECT
+    ...   gender, balance,
+    ...   STDDEV_POP(balance) OVER(
+    ...     PARTITION BY gender ORDER BY balance
+    ... ) AS val
+    ... FROM accounts;
+    fetched rows / total rows = 4/4
+    +----------+-----------+--------------------+
+    | gender   | balance   | val                |
+    |----------+-----------+--------------------|
+    | F        | 32838     | 0.0                |
+    | M        | 4180      | 0.0                |
+    | M        | 5686      | 753.0              |
+    | M        | 39225     | 16177.091422406222 |
+    +----------+-----------+--------------------+
+
+STDDEV_SAMP
+-----------
+
+Here is an example for ``STDDEV_SAMP`` function::
+
+    os> SELECT
+    ...   gender, balance,
+    ...   STDDEV_SAMP(balance) OVER(
+    ...     PARTITION BY gender ORDER BY balance
+    ... ) AS val
+    ... FROM accounts;
+    fetched rows / total rows = 4/4
+    +----------+-----------+--------------------+
+    | gender   | balance   | val                |
+    |----------+-----------+--------------------|
+    | F        | 32838     | 0.0                |
+    | M        | 4180      | 0.0                |
+    | M        | 5686      | 1064.9028124669405 |
+    | M        | 39225     | 19812.809753624886 |
+    +----------+-----------+--------------------+
+
+VAR_POP
+-------
+
+Here is an example for ``SUM`` function::
+
+    os> SELECT
+    ...   gender, balance,
+    ...   VAR_POP(balance) OVER(
+    ...     PARTITION BY gender ORDER BY balance
+    ... ) AS val
+    ... FROM accounts;
+    fetched rows / total rows = 4/4
+    +----------+-----------+--------------------+
+    | gender   | balance   | val                |
+    |----------+-----------+--------------------|
+    | F        | 32838     | 0.0                |
+    | M        | 4180      | 0.0                |
+    | M        | 5686      | 567009.0           |
+    | M        | 39225     | 261698286.88888893 |
+    +----------+-----------+--------------------+
+
+VAR_SAMP
+--------
+
+Here is an example for ``SUM`` function::
+
+    os> SELECT
+    ...   gender, balance,
+    ...   VAR_SAMP(balance) OVER(
+    ...     PARTITION BY gender ORDER BY balance
+    ... ) AS val
+    ... FROM accounts;
+    fetched rows / total rows = 4/4
+    +----------+-----------+-------------------+
+    | gender   | balance   | val               |
+    |----------+-----------+-------------------|
+    | F        | 32838     | 0.0               |
+    | M        | 4180      | 0.0               |
+    | M        | 5686      | 1134018.0         |
+    | M        | 39225     | 392547430.3333334 |
+    +----------+-----------+-------------------+
 
 
 Ranking Functions

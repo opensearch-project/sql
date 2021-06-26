@@ -33,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.opensearch.common.unit.TimeValue.timeValueMinutes;
+import static org.opensearch.sql.opensearch.setting.LegacyOpenDistroSettings.legacySettings;
 
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -147,5 +148,11 @@ class OpenSearchSettingsTest {
     assertEquals(OpenSearchSettings.QUERY_SIZE_LIMIT_SETTING.get(settings), 100);
     assertEquals(OpenSearchSettings.METRICS_ROLLING_WINDOW_SETTING.get(settings), 2000L);
     assertEquals(OpenSearchSettings.METRICS_ROLLING_INTERVAL_SETTING.get(settings), 100L);
+  }
+
+
+  @Test
+  void legacySettingsShouldBeDeprecatedBeforeRemove() {
+    assertEquals(15, legacySettings().size());
   }
 }

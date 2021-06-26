@@ -29,6 +29,7 @@
     "react-double-scrollbar": "^0.0.15"
   },
   "devDependencies": {
+    "@testing-library/user-event": "^13.1.9",
     "@types/hapi-latest": "npm:@types/hapi@18.0.3",
     "@types/react-router-dom": "^5.1.5",
     "cypress": "^5.0.0",
