@@ -60,7 +60,7 @@ ext {
 }
 
 allprojects {
-    version = "${opensearchVersion}.0-rc1"
+    version = "${opensearchVersion}.0"
 
     plugins.withId('java') {
         sourceCompatibility = targetCompatibility = "1.8"
