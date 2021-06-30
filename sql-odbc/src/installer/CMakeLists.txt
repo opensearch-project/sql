@@ -62,6 +62,9 @@ if(WIN32)
 else()
     set(CPACK_GENERATOR "ZIP")
 
+    # Ignore source code folders by tricky regex way
+    set(CPACK_SOURCE_IGNORE_FILES "include")
+
     # This script will be run once the Driver component has finished installing.
     set(CPACK_POSTFLIGHT_DRIVER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/postinstall")
 
