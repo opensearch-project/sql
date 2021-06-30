@@ -160,4 +160,9 @@ class SQLSyntaxParserTest {
         "SELECT name, age FROM test ORDER BY name ASC NULLS FIRST, age DESC NULLS LAST"));
   }
 
+  @Test
+  public void canNotParseShowStatementWithoutFilterClause() {
+    assertThrows(SyntaxCheckException.class, () -> parser.parse("SHOW TABLES"));
+  }
+
 }
