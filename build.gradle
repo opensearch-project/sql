@@ -26,7 +26,7 @@
 
 buildscript {
     ext {
-        opensearch_version = "1.0.0"
+        opensearch_version = "1.0.0-rc1"
     }
 
     repositories {
