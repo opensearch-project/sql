@@ -63,26 +63,13 @@ else()
     set(CPACK_GENERATOR "ZIP")
 
     # This script will be run once the Driver component has finished installing.
-    #set(CPACK_POSTFLIGHT_DRIVER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/postinstall")
-
-    # The productbuild generator copies files from this directory
-    #set(CPACK_PRODUCTBUILD_RESOURCES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Resources")
-
-    # Background setup to Distribution XML
-    #set(CPACK_PRODUCTBUILD_BACKGROUND "background.bmp")
-    #set(CPACK_PRODUCTBUILD_BACKGROUND_ALIGNMENT "bottomleft")
-    #set(CPACK_PRODUCTBUILD_BACKGROUND_SCALING "none")
-
-    # Background setup for the Dark Aqua theme to Distribution XML
-    #set(CPACK_PRODUCTBUILD_BACKGROUND_DARKAQUA "background_darkaqua.bmp")
-    #set(CPACK_PRODUCTBUILD_BACKGROUND_DARKAQUA_ALIGNMENT "bottomleft")
-    #set(CPACK_PRODUCTBUILD_BACKGROUND_DARKAQUA_SCALING "none")
+    set(CPACK_POSTFLIGHT_DRIVER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/postinstall")
 
     # CPack doesn't allow extensionless licenses, need to make a copy with an extension, .txt is appropriate
-    #configure_file("${PROJECT_ROOT}/LICENSE" "${PROJECT_ROOT}/LICENSE.txt" COPYONLY)
-    #set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_ROOT}/LICENSE.txt")
-    #set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/Resources/README.txt")
-    #set(CPACK_RESOURCE_FILE_WELCOME "${CMAKE_CURRENT_SOURCE_DIR}/Resources/Welcome.txt")
+    configure_file("${PROJECT_ROOT}/LICENSE" "${PROJECT_ROOT}/LICENSE.txt" COPYONLY)
+    set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_ROOT}/LICENSE.txt")
+    set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/Resources/README.txt")
+    set(CPACK_RESOURCE_FILE_WELCOME "${CMAKE_CURRENT_SOURCE_DIR}/Resources/Welcome.txt")
 endif()
 
 # Set up components for installer
