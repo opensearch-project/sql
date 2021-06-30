@@ -93,7 +93,7 @@ compileTestJava {
 }
 
 testClusters.all {
-    testDistribution = 'archive'
+    testDistribution = 'integ_test'
     plugin ":plugin"
 }
 
