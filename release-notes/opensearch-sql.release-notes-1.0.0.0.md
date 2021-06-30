@@ -1,4 +1,4 @@
-## 2021-06-01 Version 1.0.0.0
+## 2021-07-12 Version 1.0.0.0
 
 Compatible with OpenSearch and OpenSearch Dashboards Version 1.0.0
 
