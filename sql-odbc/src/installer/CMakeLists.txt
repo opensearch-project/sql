@@ -64,8 +64,8 @@ else()
 
     # Ignore source code folders by tricky regex way
     set(CPACK_SOURCE_IGNORE_FILES
-        "/include/"
-        "/lib/"
+        "${PROJECT_SOURCE_DIR}/include"
+        "${PROJECT_SOURCE_DIR}/lib"
     )
 
     # This script will be run once the Driver component has finished installing.
