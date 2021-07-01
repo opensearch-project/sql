@@ -168,7 +168,7 @@ endif()
 
 # Projects to build
 if (APPLE)
-	add_subdirectory(${aws-cpp-sdk-base})
+	add_subdirectory(${aws-cpp-sdk-base} EXCLUDE_FROM_ALL)
 endif()
 add_subdirectory(${OPENSEARCHODBC_SRC})
 add_subdirectory(${OPENSEARCHENLIST_SRC})

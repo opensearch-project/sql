@@ -62,15 +62,6 @@ if(WIN32)
 else()
     set(CPACK_GENERATOR "ZIP")
 
-    # Ignore source code folders by tricky regex way
-    set(CPACK_SOURCE_IGNORE_FILES
-        "${PROJECT_SOURCE_DIR}/include"
-        "${PROJECT_SOURCE_DIR}/lib"
-    )
-
-    # This script will be run once the Driver component has finished installing.
-    set(CPACK_POSTFLIGHT_DRIVER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/postinstall")
-
     # CPack doesn't allow extensionless licenses, need to make a copy with an extension, .txt is appropriate
     configure_file("${PROJECT_ROOT}/LICENSE" "${PROJECT_ROOT}/LICENSE.txt" COPYONLY)
     set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_ROOT}/LICENSE.txt")
