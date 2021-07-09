@@ -72,7 +72,7 @@ adminStatement
     ;
 
 showStatement
-    : SHOW TABLES tableFilter?
+    : SHOW TABLES tableFilter
     ;
 
 describeStatement
@@ -345,7 +345,7 @@ filterClause
     ;
 
 aggregationFunctionName
-    : AVG | COUNT | SUM | MIN | MAX
+    : AVG | COUNT | SUM | MIN | MAX | VAR_POP | VAR_SAMP | VARIANCE | STD | STDDEV | STDDEV_POP | STDDEV_SAMP
     ;
 
 mathematicalFunctionName

@@ -139,7 +139,7 @@ statsFunction
     ;
 
 statsFunctionName
-    : AVG | COUNT | SUM | MIN | MAX
+    : AVG | COUNT | SUM | MIN | MAX | VAR_SAMP | VAR_POP | STDDEV_SAMP | STDDEV_POP
     ;
 
 percentileAggFunction

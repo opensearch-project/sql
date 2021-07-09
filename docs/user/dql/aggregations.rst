@@ -135,6 +135,228 @@ Besides regular identifiers, ``COUNT`` aggregate function also accepts arguments
 2. ``COUNT(*)`` will count the number of all its input rows.
 3. ``COUNT(1)`` is same as ``COUNT(*)`` because any non-null literal will count.
 
+Aggregation Functions
+=====================
+
+COUNT
+-----
+
+Description
+>>>>>>>>>>>
+
+Usage: Returns a count of the number of expr in the rows retrieved by a SELECT statement.
+
+Example::
+
+    os> SELECT gender, count(*) as countV FROM accounts GROUP BY gender;
+    fetched rows / total rows = 2/2
+    +----------+----------+
+    | gender   | countV   |
+    |----------+----------|
+    | F        | 1        |
+    | M        | 3        |
+    +----------+----------+
+
+SUM
+---
+
+Description
+>>>>>>>>>>>
+
+Usage: SUM(expr). Returns the sum of expr.
+
+Example::
+
+    os> SELECT gender, sum(age) as sumV FROM accounts GROUP BY gender;
+    fetched rows / total rows = 2/2
+    +----------+--------+
+    | gender   | sumV   |
+    |----------+--------|
+    | F        | 28     |
+    | M        | 101    |
+    +----------+--------+
+
+AVG
+---
+
+Description
+>>>>>>>>>>>
+
+Usage: AVG(expr). Returns the average value of expr.
+
+Example::
+
+    os> SELECT gender, avg(age) as avgV FROM accounts GROUP BY gender;
+    fetched rows / total rows = 2/2
+    +----------+--------------------+
+    | gender   | avgV               |
+    |----------+--------------------|
+    | F        | 28.0               |
+    | M        | 33.666666666666664 |
+    +----------+--------------------+
+
+MAX
+---
+
+Description
+>>>>>>>>>>>
+
+Usage: MAX(expr). Returns the maximum value of expr.
+
+Example::
+
+    os> SELECT max(age) as maxV FROM accounts;
+    fetched rows / total rows = 1/1
+    +--------+
+    | maxV   |
+    |--------|
+    | 36     |
+    +--------+
+
+MIN
+---
+
+Description
+>>>>>>>>>>>
+
+Usage: MIN(expr). Returns the minimum value of expr.
+
+Example::
+
+    os> SELECT min(age) as minV FROM accounts;
+    fetched rows / total rows = 1/1
+    +--------+
+    | minV   |
+    |--------|
+    | 28     |
+    +--------+
+
+VAR_POP
+-------
+
+Description
+>>>>>>>>>>>
+
+Usage: VAR_POP(expr). Returns the population standard variance of expr.
+
+Example::
+
+    os> SELECT var_pop(age) as varV FROM accounts;
+    fetched rows / total rows = 1/1
+    +--------+
+    | varV   |
+    |--------|
+    | 8.1875 |
+    +--------+
+
+VAR_SAMP
+--------
+
+Description
+>>>>>>>>>>>
+
+Usage: VAR_SAMP(expr). Returns the sample variance of expr.
+
+Example::
+
+    os> SELECT var_samp(age) as varV FROM accounts;
+    fetched rows / total rows = 1/1
+    +--------------------+
+    | varV               |
+    |--------------------|
+    | 10.916666666666666 |
+    +--------------------+
+
+VARIANCE
+--------
+
+Description
+>>>>>>>>>>>
+
+Usage: VARIANCE(expr). Returns the population standard variance of expr. VARIANCE() is a synonym VAR_POP() function.
+
+Example::
+
+    os> SELECT variance(age) as varV FROM accounts;
+    fetched rows / total rows = 1/1
+    +--------+
+    | varV   |
+    |--------|
+    | 8.1875 |
+    +--------+
+
+STDDEV_POP
+----------
+
+Description
+>>>>>>>>>>>
+
+Usage: STDDEV_POP(expr). Returns the population standard deviation of expr.
+
+Example::
+
+    os> SELECT stddev_pop(age) as stddevV FROM accounts;
+    fetched rows / total rows = 1/1
+    +--------------------+
+    | stddevV            |
+    |--------------------|
+    | 2.8613807855648994 |
+    +--------------------+
+
+STDDEV_SAMP
+-----------
+
+Description
+>>>>>>>>>>>
+
+Usage: STDDEV_SAMP(expr). Returns the sample standard deviation of expr.
+
+Example::
+
+    os> SELECT stddev_samp(age) as stddevV FROM accounts;
+    fetched rows / total rows = 1/1
+    +-------------------+
+    | stddevV           |
+    |-------------------|
+    | 3.304037933599835 |
+    +-------------------+
+
+STD
+---
+
+Description
+>>>>>>>>>>>
+
+Usage: STD(expr). Returns the population standard deviation of expr. STD() is a synonym STDDEV_POP() function.
+
+Example::
+
+    os> SELECT stddev_pop(age) as stddevV FROM accounts;
+    fetched rows / total rows = 1/1
+    +--------------------+
+    | stddevV            |
+    |--------------------|
+    | 2.8613807855648994 |
+    +--------------------+
+
+STDDEV
+------
+
+Description
+>>>>>>>>>>>
+
+Usage: STDDEV(expr). Returns the population standard deviation of expr. STDDEV() is a synonym STDDEV_POP() function.
+
+Example::
+
+    os> SELECT stddev(age) as stddevV FROM accounts;
+    fetched rows / total rows = 1/1
+    +--------------------+
+    | stddevV            |
+    |--------------------|
+    | 2.8613807855648994 |
+    +--------------------+
+
 HAVING Clause
 =============
 
