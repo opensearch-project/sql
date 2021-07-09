@@ -16,11 +16,12 @@ function usage() {
     echo -e "-p BIND_PORT\t, defaults to 9200 or 5601 depends on OpenSearch or Dashboards, can be changed to any port for the cluster location."
     echo -e "-s SECURITY_ENABLED\t(true | false), defaults to true. Specify the OpenSearch/Dashboards have security enabled or not."
     echo -e "-c CREDENTIAL\t(usename:password), no defaults, effective when SECURITY_ENABLED=true."
+    echo -e "-d DIRECTORY\tSome Repo has more than 1 directory / component, use this to give that directory for separate tests."
     echo -e "-h\tPrint this message."
     echo "--------------------------------------------------------------------------"
 }
 
-while getopts ":hb:p:s:c:" arg; do
+while getopts ":hb:p:s:c:d:" arg; do
     case $arg in
         h)
             usage
@@ -37,6 +38,9 @@ while getopts ":hb:p:s:c:" arg; do
             ;;
         c)
             CREDENTIAL=$OPTARG
+            ;;
+        d)
+            DIRECTORY=$OPTARG
             ;;
         :)
             echo "-${OPTARG} requires an argument"
@@ -73,5 +77,23 @@ then
   PASSWORD=`echo $CREDENTIAL | awk -F ':' '{print $2}'`
 fi
 
-./gradlew integTest -Dtests.rest.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.clustername="opensearch-integrationtest" -Dhttps=$SECURITY_ENABLED -Duser=$USERNAME -Dpassword=$PASSWORD --console=plain
+if [ -z "$DIRECTORY" ]
+then
+    DIRECTORY="root"
+fi
 
+
+if [ "$DIRECTORY" = "workbench" ]
+then
+    mv -v workbench ../
+    cd ../
+    rm -rf sql
+    cd workbench
+    yarn osd bootstrap
+    curl -s https://raw.githubusercontent.com/opensearch-project/sql/main/integ-test/src/test/resources/accounts.json | curl -s -H 'Content-Type: application/x-ndjson' -XPOST 'localhost:9200/accounts/_bulk?pretty' --data-binary @- > /dev/null 2>&1
+    curl -s https://raw.githubusercontent.com/opensearch-project/sql/main/integ-test/src/test/resources/employee_nested.json | curl -s -H 'Content-Type: application/x-ndjson' -XPOST 'localhost:9200/employee_nested/_bulk?pretty' --data-binary @- > /dev/null 2>&1
+    npx cypress run
+else
+    ./gradlew integTest -Dtests.rest.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.clustername="opensearch-integrationtest" -Dhttps=$SECURITY_ENABLED -Duser=$USERNAME -Dpassword=$PASSWORD --console=plain
+
+fi
