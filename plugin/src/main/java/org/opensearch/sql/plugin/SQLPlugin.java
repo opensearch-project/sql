@@ -152,13 +152,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
   @Override
   public List<Setting<?>> getSettings() {
     return new ImmutableList.Builder<Setting<?>>()
-        .add(LegacyOpenDistroSettings.SQL_ENABLED_SETTING)
-        .add(LegacyOpenDistroSettings.SQL_QUERY_SLOWLOG_SETTING)
-        .add(LegacyOpenDistroSettings.METRICS_ROLLING_WINDOW_SETTING)
-        .add(LegacyOpenDistroSettings.METRICS_ROLLING_INTERVAL_SETTING)
-        .add(LegacyOpenDistroSettings.PPL_ENABLED_SETTING)
-        .add(LegacyOpenDistroSettings.PPL_QUERY_MEMORY_LIMIT_SETTING)
-        .add(LegacyOpenDistroSettings.QUERY_SIZE_LIMIT_SETTING)
+        .addAll(LegacyOpenDistroSettings.legacySettings())
         .addAll(OpenSearchSettings.pluginSettings())
         .build();
   }

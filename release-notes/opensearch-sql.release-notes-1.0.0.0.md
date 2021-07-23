@@ -1,10 +1,15 @@
-## 2021-06-01 Version 1.0.0.0-rc1
+## 2021-07-12 Version 1.0.0.0
 
-Compatible with OpenSearch and OpenSearch Dashboards Version 1.0.0-rc1
+Compatible with OpenSearch and OpenSearch Dashboards Version 1.0.0
 
 ### Enhancements
 
 * Support querying a data stream ([#56](https://github.com/opensearch-project/sql/pull/56))
+
+### Bug Fixes
+
+* Bug Fix: Enable legacy settings in new setting action ([#97](https://github.com/opensearch-project/sql/pull/97))
+* Fix NPE for SHOW statement without filter ([#150](https://github.com/opensearch-project/sql/pull/150))
 
 ### OpenSearch Migration
 
@@ -34,11 +39,16 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 1.0.0-rc1
 * Update PowerBI custom connector .mez file for ODBC driver ([#90](https://github.com/opensearch-project/sql/pull/90))
 * Rename remaining beta1 references in sql-cli/workbench ([#91](https://github.com/opensearch-project/sql/pull/91))
 * Build SQL/PPL against OpenSearch 1.0 branch ([#94](https://github.com/opensearch-project/sql/pull/94))
-* Bug Fix: Enable legacy settings in new setting action ([#97](https://github.com/opensearch-project/sql/pull/97))
 * Bump OpenSearch Dashboards version to 1.0 in Workbench ([#98](https://github.com/opensearch-project/sql/pull/98))
+* Add Integtest.sh for OpenSearch integtest setups ([#128](https://github.com/opensearch-project/sql/pull/128))
+* Merge develop into main  ([#142](https://github.com/opensearch-project/sql/pull/142))
+* Build against OpenSearch 1.0.0 and bump artifact version to 1.0.0.0 ([#146](https://github.com/opensearch-project/sql/pull/146))
 
 ### Documentation
 
 * Migrate SQL/PPL, JDBC, ODBC docs to OpenSearch ([#68](https://github.com/opensearch-project/sql/pull/68))
+* Level up README markdown ([#148](https://github.com/opensearch-project/sql/pull/148))
 
+### Infrastructure
 
+* Bump glob-parent from 5.1.1 to 5.1.2 in /workbench ([#125](https://github.com/opensearch-project/sql/pull/125))

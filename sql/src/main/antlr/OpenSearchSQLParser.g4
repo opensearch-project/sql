@@ -72,7 +72,7 @@ adminStatement
     ;
 
 showStatement
-    : SHOW TABLES tableFilter?
+    : SHOW TABLES tableFilter
     ;
 
 describeStatement
