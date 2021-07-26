@@ -181,6 +181,9 @@ class CountAggregatorTest extends AggregationTest {
   public void test_to_string() {
     Aggregator countAggregator = dsl.count(DSL.ref("integer_value", INTEGER));
     assertEquals("count(integer_value)", countAggregator.toString());
+
+    countAggregator = dsl.distinctCount(DSL.ref("integer_value", INTEGER));
+    assertEquals("count(distinct integer_value)", countAggregator.toString());
   }
 
   @Test
