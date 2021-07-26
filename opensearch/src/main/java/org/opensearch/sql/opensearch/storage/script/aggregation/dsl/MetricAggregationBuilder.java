@@ -59,16 +59,14 @@ import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 public class MetricAggregationBuilder
     extends ExpressionNodeVisitor<Pair<AggregationBuilder, MetricParser>, Object> {
 
-  private final AggregationBuilderHelper<ValuesSourceAggregationBuilder<?>> valuesSourceAggHelper;
-  private final AggregationBuilderHelper<CardinalityAggregationBuilder> cardinalityAggHelper;
+  private final AggregationBuilderHelper helper;
   private final FilterQueryBuilder filterBuilder;
 
   /**
    * Constructor.
    */
   public MetricAggregationBuilder(ExpressionSerializer serializer) {
-    this.valuesSourceAggHelper = new AggregationBuilderHelper<>(serializer);
-    this.cardinalityAggHelper = new AggregationBuilderHelper<>(serializer);
+    this.helper = new AggregationBuilderHelper(serializer);
     this.filterBuilder = new FilterQueryBuilder(serializer);
   }
 
@@ -97,22 +95,24 @@ public class MetricAggregationBuilder
     Expression condition = node.getDelegated().condition();
     Boolean distinct = node.getDelegated().distinct();
     String name = node.getName();
+    String functionName = node.getFunctionName().getFunctionName().toLowerCase(Locale.ROOT);
 
     if (distinct) {
-      if ("count".equals(node.getFunctionName().getFunctionName().toLowerCase(Locale.ROOT))) {
-        return make(
-            AggregationBuilders.cardinality(name),
-            expression,
-            condition,
-            name,
-            new SingleValueParser(name));
-      } else {
-        throw new IllegalStateException(String.format(
-            "unsupported distinct aggregator %s", node.getFunctionName().getFunctionName()));
+      switch (functionName) {
+        case "count":
+          return make(
+              AggregationBuilders.cardinality(name),
+              expression,
+              condition,
+              name,
+              new SingleValueParser(name));
+        default:
+          throw new IllegalStateException(String.format(
+              "unsupported distinct aggregator %s", node.getFunctionName().getFunctionName()));
       }
     }
 
-    switch (node.getFunctionName().getFunctionName()) {
+    switch (functionName) {
       case "avg":
         return make(
             AggregationBuilders.avg(name),
@@ -189,7 +189,7 @@ public class MetricAggregationBuilder
       String name,
       MetricParser parser) {
     ValuesSourceAggregationBuilder aggregationBuilder =
-        valuesSourceAggHelper.build(expression, builder::field, builder::script);
+        helper.build(expression, builder::field, builder::script);
     if (condition != null) {
       return Pair.of(
           makeFilterAggregation(aggregationBuilder, condition, name),
@@ -207,7 +207,7 @@ public class MetricAggregationBuilder
                                                       String name,
                                                       MetricParser parser) {
     CardinalityAggregationBuilder aggregationBuilder =
-        cardinalityAggHelper.build(expression, builder::field, builder::script);
+        helper.build(expression, builder::field, builder::script);
     if (condition != null) {
       return Pair.of(
           makeFilterAggregation(aggregationBuilder, condition, name),
