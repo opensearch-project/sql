@@ -145,6 +145,20 @@ class CountAggregatorTest extends AggregationTest {
   }
 
   @Test
+  public void distinct_count_map() {
+    ExprValue result = aggregation(dsl.distinctCount(DSL.ref("struct_value", STRUCT)),
+        tuples_with_duplicates);
+    assertEquals(3, result.value());
+  }
+
+  @Test
+  public void distinct_count_array() {
+    ExprValue result = aggregation(dsl.distinctCount(DSL.ref("array_value", ARRAY)),
+        tuples_with_duplicates);
+    assertEquals(3, result.value());
+  }
+
+  @Test
   public void count_with_missing() {
     ExprValue result = aggregation(dsl.count(DSL.ref("integer_value", INTEGER)),
         tuples_with_null_and_missing);

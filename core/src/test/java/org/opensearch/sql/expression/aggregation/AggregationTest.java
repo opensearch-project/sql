@@ -118,10 +118,26 @@ public class AggregationTest extends ExpressionTestBase {
 
   protected static List<ExprValue> tuples_with_duplicates =
       Arrays.asList(
-          ExprValueUtils.tupleValue(ImmutableMap.of("integer_value", 1, "double_value", 4d)),
-          ExprValueUtils.tupleValue(ImmutableMap.of("integer_value", 1, "double_value", 3d)),
-          ExprValueUtils.tupleValue(ImmutableMap.of("integer_value", 2, "double_value", 2d)),
-          ExprValueUtils.tupleValue(ImmutableMap.of("integer_value", 3, "double_value", 1d)));
+          ExprValueUtils.tupleValue(ImmutableMap.of(
+              "integer_value", 1,
+              "double_value", 4d,
+              "struct_value", ImmutableMap.of("str", 1),
+              "array_value", ImmutableList.of(1))),
+          ExprValueUtils.tupleValue(ImmutableMap.of(
+              "integer_value", 1,
+              "double_value", 3d,
+              "struct_value", ImmutableMap.of("str", 1),
+              "array_value", ImmutableList.of(1))),
+          ExprValueUtils.tupleValue(ImmutableMap.of(
+              "integer_value", 2,
+              "double_value", 2d,
+              "struct_value", ImmutableMap.of("str", 2),
+              "array_value", ImmutableList.of(2))),
+          ExprValueUtils.tupleValue(ImmutableMap.of(
+              "integer_value", 3,
+              "double_value", 1d,
+              "struct_value", ImmutableMap.of("str1", 1),
+              "array_value", ImmutableList.of(1, 2))));
 
   protected static List<ExprValue> tuples_with_null_and_missing =
       Arrays.asList(
