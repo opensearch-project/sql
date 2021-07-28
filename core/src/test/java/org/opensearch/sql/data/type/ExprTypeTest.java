@@ -33,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
+import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -58,6 +59,11 @@ class ExprTypeTest {
     assertTrue(FLOAT.isCompatible(LONG));
     assertTrue(FLOAT.isCompatible(INTEGER));
     assertTrue(FLOAT.isCompatible(SHORT));
+    assertTrue(BOOLEAN.isCompatible(STRING));
+  }
+
+  @Test
+  public void isNotCompatible() {
     assertFalse(INTEGER.isCompatible(DOUBLE));
     assertFalse(STRING.isCompatible(DOUBLE));
     assertFalse(INTEGER.isCompatible(UNKNOWN));
@@ -67,6 +73,13 @@ class ExprTypeTest {
   public void isCompatibleWithUndefined() {
     ExprCoreType.coreTypes().forEach(type -> assertTrue(type.isCompatible(UNDEFINED)));
     ExprCoreType.coreTypes().forEach(type -> assertFalse(UNDEFINED.isCompatible(type)));
+  }
+
+  @Test
+  public void shouldCast() {
+    assertTrue(UNDEFINED.shouldCast(STRING));
+    assertTrue(STRING.shouldCast(BOOLEAN));
+    assertFalse(STRING.shouldCast(STRING));
   }
 
   @Test

@@ -48,11 +48,13 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprBooleanValue;
+import org.opensearch.sql.data.model.ExprByteValue;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprFloatValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprLongValue;
+import org.opensearch.sql.data.model.ExprShortValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
@@ -68,6 +70,8 @@ public class TypeCastOperator {
    */
   public static void register(BuiltinFunctionRepository repository) {
     repository.register(castToString());
+    repository.register(castToByte());
+    repository.register(castToShort());
     repository.register(castToInt());
     repository.register(castToLong());
     repository.register(castToFloat());
@@ -89,6 +93,28 @@ public class TypeCastOperator {
                     STRING, type)),
             Stream.of(impl(nullMissingHandling((v) -> v), STRING, STRING)))
             .collect(Collectors.toList())
+    );
+  }
+
+  private static FunctionResolver castToByte() {
+    return FunctionDSL.define(BuiltinFunctionName.CAST_TO_BYTE.getName(),
+        impl(nullMissingHandling(
+            (v) -> new ExprByteValue(Short.valueOf(v.stringValue()))), BYTE, STRING),
+        impl(nullMissingHandling(
+            (v) -> new ExprByteValue(v.shortValue())), BYTE, DOUBLE),
+        impl(nullMissingHandling(
+            (v) -> new ExprByteValue(v.booleanValue() ? 1 : 0)), BYTE, BOOLEAN)
+    );
+  }
+
+  private static FunctionResolver castToShort() {
+    return FunctionDSL.define(BuiltinFunctionName.CAST_TO_SHORT.getName(),
+        impl(nullMissingHandling(
+            (v) -> new ExprShortValue(Short.valueOf(v.stringValue()))), SHORT, STRING),
+        impl(nullMissingHandling(
+            (v) -> new ExprShortValue(v.shortValue())), SHORT, DOUBLE),
+        impl(nullMissingHandling(
+            (v) -> new ExprShortValue(v.booleanValue() ? 1 : 0)), SHORT, BOOLEAN)
     );
   }
 
