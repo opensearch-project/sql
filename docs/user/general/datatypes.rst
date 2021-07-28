@@ -352,7 +352,7 @@ Boolean Data Types
 A boolean can be represented by constant value ``TRUE`` or ``FALSE``. Besides, certain string representation is also accepted by function with boolean input. For example, string 'true', 'TRUE', 'false', 'FALSE' are all valid representation and can be converted to boolean implicitly or explicitly::
 
     os> SELECT
-    ...  true, FALSE
+    ...  true, FALSE,
     ...  CAST('TRUE' AS boolean), CAST('false' AS boolean);
     fetched rows / total rows = 1/1
     +-----------+-----------------+
