@@ -355,13 +355,8 @@ A boolean can be represented by constant value ``TRUE`` or ``FALSE``. Besides, c
     ...  true, FALSE,
     ...  CAST('TRUE' AS boolean), CAST('false' AS boolean);
     fetched rows / total rows = 1/1
-    +-----------+-----------------+
-    | 1 = 1.0   | 'True' = true   |
-    |-----------+-----------------|
-    | True      | True            |
-    +-----------+-----------------+
-
-
-
-
-
+    +--------+---------+---------------------------+----------------------------+
+    | true   | FALSE   | CAST('TRUE' AS boolean)   | CAST('false' AS boolean)   |
+    |--------+---------+---------------------------+----------------------------|
+    | True   | False   | True                      | False                      |
+    +--------+---------+---------------------------+----------------------------+
