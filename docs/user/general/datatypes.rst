@@ -332,6 +332,17 @@ Conversion from TIMESTAMP
 
 - Conversion from timestamp is much more straightforward. To convert it to date is to extract the date value, and conversion to time is to extract the time value. Conversion to datetime, it will extracts the datetime value and leave the timezone information over. For example, the result to convert datetime '2020-08-17 14:09:00' UTC to date is date '2020-08-17', to time is '14:09:00' and to datetime is datetime '2020-08-17 14:09:00'.
 
+Conversion from string to date and time types
+---------------------------------------------
+
+A string can also represent and be converted to date and time types (except to interval type). As long as the string value is of valid format required by the target date and time types, the conversion can happen implicitly or explicitly as follows::
+
+    os> SELECT
+    ...  CAST('2021-06-17 00:00:00' AS TIMESTAMP) = '2021-06-17 00:00:00' as string_to_timestamp
+    ...  '2021-06-18' < CAST('2021-06-17' AS DATE) as string_to_date
+    ...  '10:20:00' <= CAST('11:00:00' AS TIME) as string_to_time;
+    fetched rows / total rows = 1/1
+
 
 String Data Types
 =================

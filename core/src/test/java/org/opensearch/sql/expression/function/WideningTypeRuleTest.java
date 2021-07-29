@@ -81,11 +81,6 @@ class WideningTypeRuleTest {
           .put(STRING, DATE, 1)
           .put(STRING, TIME, 1)
           .put(STRING, DATETIME, 1)
-          /*.put(TIMESTAMP, DATE, 1)
-          .put(TIMESTAMP, TIME, 1)
-          .put(TIMESTAMP, DATETIME, 2)
-          .put(DATE, DATETIME, 1)
-          .put(TIME, DATETIME, 1)*/
           .put(UNDEFINED, BYTE, 1)
           .put(UNDEFINED, SHORT, 2)
           .put(UNDEFINED, INTEGER, 3)
