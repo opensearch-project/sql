@@ -500,6 +500,10 @@ public class DSL {
     return aggregate(BuiltinFunctionName.COUNT, expressions);
   }
 
+  public Aggregator distinctCount(Expression... expressions) {
+    return count(expressions).distinct(true);
+  }
+
   public Aggregator varSamp(Expression... expressions) {
     return aggregate(BuiltinFunctionName.VARSAMP, expressions);
   }
