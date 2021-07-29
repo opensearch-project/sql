@@ -342,7 +342,11 @@ A string can also represent and be converted to date and time types (except to i
     ...  '2021-06-18' < CAST('2021-06-17' AS DATE) as string_to_date,
     ...  '10:20:00' <= CAST('11:00:00' AS TIME) as string_to_time;
     fetched rows / total rows = 1/1
-
+    +-----------------------+------------------+------------------+
+    | string_to_timestamp   | string_to_date   | string_to_time   |
+    |-----------------------+------------------+------------------|
+    | True                  | False            | True             |
+    +-----------------------+------------------+------------------+
 
 String Data Types
 =================
