@@ -161,8 +161,9 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
       Expression arg = node.getField().accept(this, context);
       Aggregator aggregator = (Aggregator) repository.compile(
               builtinFunctionName.get().getName(), Collections.singletonList(arg));
-      if (node.getCondition() != null) {
-        aggregator.condition(analyze(node.getCondition(), context));
+      aggregator.distinct(node.getDistinct());
+      if (node.condition() != null) {
+        aggregator.condition(analyze(node.condition(), context));
       }
       return aggregator;
     } else {
