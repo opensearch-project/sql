@@ -338,15 +338,15 @@ Conversion from string to date and time types
 A string can also represent and be converted to date and time types (except to interval type). As long as the string value is of valid format required by the target date and time types, the conversion can happen implicitly or explicitly as follows::
 
     os> SELECT
-    ...  CAST('2021-06-17 00:00:00' AS TIMESTAMP) = '2021-06-17 00:00:00' as string_to_timestamp,
-    ...  '2021-06-18' < CAST('2021-06-17' AS DATE) as string_to_date,
-    ...  '10:20:00' <= CAST('11:00:00' AS TIME) as string_to_time;
+    ...  TIMESTAMP('2021-06-17 00:00:00') = '2021-06-17 00:00:00',
+    ...  '2021-06-18' < DATE('2021-06-17'),
+    ...  '10:20:00' <= TIME('11:00:00');
     fetched rows / total rows = 1/1
-    +-----------------------+------------------+------------------+
-    | string_to_timestamp   | string_to_date   | string_to_time   |
-    |-----------------------+------------------+------------------|
-    | True                  | False            | True             |
-    +-----------------------+------------------+------------------+
+    +------------------------------------------------------------+-------------------------------------+----------------------------------+
+    | TIMESTAMP('2021-06-17 00:00:00') = '2021-06-17 00:00:00'   | '2021-06-18' < DATE('2021-06-17')   | '10:20:00' <= TIME('11:00:00')   |
+    |------------------------------------------------------------+-------------------------------------+----------------------------------|
+    | True                                                       | False                               | True                             |
+    +------------------------------------------------------------+-------------------------------------+----------------------------------+
 
 String Data Types
 =================
