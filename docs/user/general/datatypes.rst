@@ -147,7 +147,7 @@ The following matrix illustrates the conversions allowed by our query engine for
 +--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
 |     TEXT     |      |       |         |      |       |        |         |              |  N/A |   IE   |           |      |      |     X    |     X    |     X     |  X  |    X   |     X     |    X    |
 +--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|    STRING    |   E  |   E   |    E    |   E  |   E   |    E   |    IE   |       X      |   X  |   N/A  |     E     |   E  |   E  |     X    |     X    |     X     |  X  |    X   |     X     |    X    |
+|    STRING    |   E  |   E   |    E    |   E  |   E   |    E   |    IE   |       X      |   X  |   N/A  |     IE    |   IE |   IE |     IE   |     X    |     X     |  X  |    X   |     X     |    X    |
 +--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
 |   TIMESTAMP  |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |    E   |    N/A    |      |      |     X    |     X    |     X     |  X  |    X   |     X     |    X    |
 +--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
@@ -183,13 +183,14 @@ Here are a few examples for implicit type conversion::
 
     os> SELECT
     ...  1 = 1.0,
-    ...  'True' = true;
+    ...  'True' = true,
+    ...  DATE('2021-06-10') < '2021-06-11';
     fetched rows / total rows = 1/1
-    +-----------+-----------------+
-    | 1 = 1.0   | 'True' = true   |
-    |-----------+-----------------|
-    | True      | True            |
-    +-----------+-----------------+
+    +-----------+-----------------+-------------------------------------+
+    | 1 = 1.0   | 'True' = true   | DATE('2021-06-10') < '2021-06-11'   |
+    |-----------+-----------------+-------------------------------------|
+    | True      | True            | True                                |
+    +-----------+-----------------+-------------------------------------+
 
 Here are a few examples for explicit type conversion::
 
@@ -331,6 +332,21 @@ Conversion from TIMESTAMP
 
 - Conversion from timestamp is much more straightforward. To convert it to date is to extract the date value, and conversion to time is to extract the time value. Conversion to datetime, it will extracts the datetime value and leave the timezone information over. For example, the result to convert datetime '2020-08-17 14:09:00' UTC to date is date '2020-08-17', to time is '14:09:00' and to datetime is datetime '2020-08-17 14:09:00'.
 
+Conversion from string to date and time types
+---------------------------------------------
+
+A string can also represent and be converted to date and time types (except to interval type). As long as the string value is of valid format required by the target date and time types, the conversion can happen implicitly or explicitly as follows::
+
+    os> SELECT
+    ...  TIMESTAMP('2021-06-17 00:00:00') = '2021-06-17 00:00:00',
+    ...  '2021-06-18' < DATE('2021-06-17'),
+    ...  '10:20:00' <= TIME('11:00:00');
+    fetched rows / total rows = 1/1
+    +------------------------------------------------------------+-------------------------------------+----------------------------------+
+    | TIMESTAMP('2021-06-17 00:00:00') = '2021-06-17 00:00:00'   | '2021-06-18' < DATE('2021-06-17')   | '10:20:00' <= TIME('11:00:00')   |
+    |------------------------------------------------------------+-------------------------------------+----------------------------------|
+    | True                                                       | False                               | True                             |
+    +------------------------------------------------------------+-------------------------------------+----------------------------------+
 
 String Data Types
 =================

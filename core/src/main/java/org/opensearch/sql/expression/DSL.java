@@ -645,4 +645,9 @@ public class DSL {
     return (FunctionExpression) repository
         .compile(BuiltinFunctionName.CAST_TO_TIMESTAMP.getName(), Arrays.asList(value));
   }
+
+  public FunctionExpression castDatetime(Expression value) {
+    return (FunctionExpression) repository
+        .compile(BuiltinFunctionName.CAST_TO_DATETIME.getName(), Arrays.asList(value));
+  }
 }

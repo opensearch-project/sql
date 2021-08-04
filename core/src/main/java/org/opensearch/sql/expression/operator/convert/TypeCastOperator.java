@@ -50,6 +50,7 @@ import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.model.ExprByteValue;
 import org.opensearch.sql.data.model.ExprDateValue;
+import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprFloatValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
@@ -80,6 +81,7 @@ public class TypeCastOperator {
     repository.register(castToDate());
     repository.register(castToTime());
     repository.register(castToTimestamp());
+    repository.register(castToDatetime());
   }
 
 
@@ -203,6 +205,17 @@ public class TypeCastOperator {
         impl(nullMissingHandling(
             (v) -> new ExprTimestampValue(v.timestampValue())), TIMESTAMP, DATETIME),
         impl(nullMissingHandling((v) -> v), TIMESTAMP, TIMESTAMP)
+    );
+  }
+
+  private static FunctionResolver castToDatetime() {
+    return FunctionDSL.define(BuiltinFunctionName.CAST_TO_DATETIME.getName(),
+        impl(nullMissingHandling(
+            (v) -> new ExprDatetimeValue(v.stringValue())), DATETIME, STRING),
+        impl(nullMissingHandling(
+            (v) -> new ExprDatetimeValue(v.datetimeValue())), DATETIME, TIMESTAMP),
+        impl(nullMissingHandling(
+            (v) -> new ExprDatetimeValue(v.datetimeValue())), DATETIME, DATE)
     );
   }
 }
