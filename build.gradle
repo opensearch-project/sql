@@ -26,7 +26,7 @@
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "1.0.0")
+        opensearch_version = System.getProperty("opensearch.version", "1.1.0-SNAPSHOT")
     }
 
     repositories {
@@ -55,13 +55,11 @@ repositories {
 }
 
 ext {
-    opensearchVersion = System.getProperty("opensearch.version", "1.0.0")
     isSnapshot = "true" == System.getProperty("build.snapshot", "true")
 }
 
 allprojects {
-    version = "${opensearchVersion}" - "-SNAPSHOT" + ".0"
-
+    version = opensearch_version - "-SNAPSHOT" + ".0"
     if (isSnapshot) {
         version += "-SNAPSHOT"
     }
