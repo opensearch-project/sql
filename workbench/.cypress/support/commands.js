@@ -49,3 +49,44 @@
 //
 // -- This will overwrite an existing command --
 // Cypress.Commands.overwrite("visit", (originalFn, url, options) => { ... })
+
+import { ADMIN_AUTH } from '../utils/constants';
+
+Cypress.Commands.overwrite('visit', (originalFn, url, options) => {
+  // Add the basic auth header when security enabled in the OpenSearch cluster
+  // https://github.com/cypress-io/cypress/issues/1288
+  if (Cypress.env('security_enabled')) {
+    if (options) {
+      options.auth = ADMIN_AUTH;
+    } else {
+      options = { auth: ADMIN_AUTH };
+    }
+    // Add query parameters - select the default OpenSearch Dashboards tenant
+    options.qs = { security_tenant: 'private' };
+    return originalFn(url, options);
+  } else {
+    return originalFn(url, options);
+  }
+});
+
+// Be able to add default options to cy.request(), https://github.com/cypress-io/cypress/issues/726
+Cypress.Commands.overwrite('request', (originalFn, ...args) => {
+  let defaults = {};
+  // Add the basic authentication header when security enabled in the OpenSearch cluster
+  if (Cypress.env('security_enabled')) {
+    defaults.auth = ADMIN_AUTH;
+  }
+
+  let options = {};
+  if (typeof args[0] === 'object' && args[0] !== null) {
+    options = Object.assign({}, args[0]);
+  } else if (args.length === 1) {
+    [options.url] = args;
+  } else if (args.length === 2) {
+    [options.method, options.url] = args;
+  } else if (args.length === 3) {
+    [options.method, options.url, options.body] = args;
+  }
+
+  return originalFn(Object.assign({}, defaults, options));
+});
