@@ -50,7 +50,7 @@
 // -- This will overwrite an existing command --
 // Cypress.Commands.overwrite("visit", (originalFn, url, options) => { ... })
 
-import { ADMIN_AUTH } from '../utils/constants';
+const { ADMIN_AUTH } = require('./constants');
 
 Cypress.Commands.overwrite('visit', (originalFn, url, options) => {
   // Add the basic auth header when security enabled in the OpenSearch cluster
