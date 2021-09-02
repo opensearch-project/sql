@@ -72,7 +72,7 @@ adminStatement
     ;
 
 showStatement
-    : SHOW TABLES tableFilter?
+    : SHOW TABLES tableFilter
     ;
 
 describeStatement
@@ -336,8 +336,10 @@ caseFuncAlternative
     ;
 
 aggregateFunction
-    : functionName=aggregationFunctionName LR_BRACKET functionArg RR_BRACKET #regularAggregateFunctionCall
-    | COUNT LR_BRACKET STAR RR_BRACKET                                       #countStarFunctionCall
+    : functionName=aggregationFunctionName LR_BRACKET functionArg RR_BRACKET
+                                                                    #regularAggregateFunctionCall
+    | COUNT LR_BRACKET STAR RR_BRACKET                              #countStarFunctionCall
+    | COUNT LR_BRACKET DISTINCT functionArg RR_BRACKET              #distinctCountFunctionCall
     ;
 
 filterClause
@@ -345,7 +347,7 @@ filterClause
     ;
 
 aggregationFunctionName
-    : AVG | COUNT | SUM | MIN | MAX
+    : AVG | COUNT | SUM | MIN | MAX | VAR_POP | VAR_SAMP | VARIANCE | STD | STDDEV | STDDEV_POP | STDDEV_SAMP
     ;
 
 mathematicalFunctionName

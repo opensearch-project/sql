@@ -410,6 +410,44 @@ class AstExpressionBuilderTest {
     );
   }
 
+  @Test
+  public void canBuildVarSamp() {
+    assertEquals(
+        aggregate("var_samp", qualifiedName("age")),
+        buildExprAst("var_samp(age)"));
+  }
+
+  @Test
+  public void canBuildVarPop() {
+    assertEquals(
+        aggregate("var_pop", qualifiedName("age")),
+        buildExprAst("var_pop(age)"));
+  }
+
+  @Test
+  public void canBuildVariance() {
+    assertEquals(
+        aggregate("variance", qualifiedName("age")),
+        buildExprAst("variance(age)"));
+  }
+
+  @Test
+  public void distinctCount() {
+    assertEquals(
+        AstDSL.distinctAggregate("count", qualifiedName("name")),
+        buildExprAst("count(distinct name)")
+    );
+  }
+
+  @Test
+  public void filteredDistinctCount() {
+    assertEquals(
+        AstDSL.filteredDistinctCount("count", qualifiedName("name"), function(
+            ">", qualifiedName("age"), intLiteral(30))),
+        buildExprAst("count(distinct name) filter(where age > 30)")
+    );
+  }
+
   private Node buildExprAst(String expr) {
     OpenSearchSQLLexer lexer = new OpenSearchSQLLexer(new CaseInsensitiveCharStream(expr));
     OpenSearchSQLParser parser = new OpenSearchSQLParser(new CommonTokenStream(lexer));

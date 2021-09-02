@@ -36,6 +36,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
+import static org.opensearch.sql.ast.dsl.AstDSL.filteredAggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
@@ -621,6 +622,45 @@ class AnalyzerTest extends AnalyzerTestBase {
                 1, 1
             ),
             AstDSL.alias("integer_value", qualifiedName("integer_value"))
+        )
+    );
+  }
+
+  /**
+   * SELECT COUNT(NAME) FILTER(WHERE age > 1) FROM test.
+   * This test is to verify that the aggregator properties are taken
+   * when wrapping it to {@link org.opensearch.sql.expression.aggregation.NamedAggregator}
+   */
+  @Test
+  public void named_aggregator_with_condition() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.aggregation(
+                LogicalPlanDSL.relation("schema"),
+                ImmutableList.of(
+                    DSL.named("count(string_value) filter(where integer_value > 1)",
+                        dsl.count(DSL.ref("string_value", STRING)).condition(dsl.greater(DSL.ref(
+                            "integer_value", INTEGER), DSL.literal(1))))
+                ),
+                emptyList()
+            ),
+            DSL.named("count(string_value) filter(where integer_value > 1)", DSL.ref(
+                "count(string_value) filter(where integer_value > 1)", INTEGER))
+        ),
+        AstDSL.project(
+            AstDSL.agg(
+                AstDSL.relation("schema"),
+                ImmutableList.of(
+                    alias("count(string_value) filter(where integer_value > 1)", filteredAggregate(
+                        "count", qualifiedName("string_value"), function(
+                            ">", qualifiedName("integer_value"), intLiteral(1))))),
+                emptyList(),
+                emptyList(),
+                emptyList()
+            ),
+            AstDSL.alias("count(string_value) filter(where integer_value > 1)", filteredAggregate(
+                "count", qualifiedName("string_value"), function(
+                    ">", qualifiedName("integer_value"), intLiteral(1))))
         )
     );
   }

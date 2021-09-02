@@ -103,7 +103,7 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
    */
   public Iterator<ExprValue> iterator() {
     if (isAggregationResponse()) {
-      return OpenSearchAggregationResponseParser.parse(aggregations).stream().map(entry -> {
+      return exprValueFactory.getParser().parse(aggregations).stream().map(entry -> {
         ImmutableMap.Builder<String, ExprValue> builder = new ImmutableMap.Builder<>();
         for (Map.Entry<String, Object> value : entry.entrySet()) {
           builder.put(value.getKey(), exprValueFactory.construct(value.getKey(), value.getValue()));

@@ -2,7 +2,7 @@
 
 ## Prerequisites
 * [Download and install](../../README.md) OpenSearch SQL ODBC Driver.
-* [Install and configure](https://docs-beta.opensearch.org/docs/install/) OpenSearch.
+* [Install and configure](https://docs-beta.opensearch.org/opensearch/install/index/) OpenSearch.
 * Open ODBC Data Source Administrator. Click on **System DSN** > **OpenSearch SQL ODBC DSN** > **Configure**.
 * Set all connection options & Click on **Test**. Connection test should return `Connection Successful`.
 

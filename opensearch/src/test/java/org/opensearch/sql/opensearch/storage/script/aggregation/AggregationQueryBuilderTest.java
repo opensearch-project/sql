@@ -423,13 +423,18 @@ class AggregationQueryBuilderTest {
   }
 
   @SneakyThrows
-  private String buildQuery(List<NamedAggregator> namedAggregatorList,
-                            List<NamedExpression> groupByList,
-                            List<Pair<Sort.SortOption, Expression>> sortList) {
+  private String buildQuery(
+      List<NamedAggregator> namedAggregatorList,
+      List<NamedExpression> groupByList,
+      List<Pair<Sort.SortOption, Expression>> sortList) {
     ObjectMapper objectMapper = new ObjectMapper();
-    return objectMapper.readTree(
-        queryBuilder.buildAggregationBuilder(namedAggregatorList, groupByList, sortList).get(0)
-            .toString())
+    return objectMapper
+        .readTree(
+            queryBuilder
+                .buildAggregationBuilder(namedAggregatorList, groupByList, sortList)
+                .getLeft()
+                .get(0)
+                .toString())
         .toPrettyString();
   }
 

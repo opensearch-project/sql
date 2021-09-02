@@ -37,6 +37,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.compare;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultFieldsArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultSortFieldArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultStatsArgs;
+import static org.opensearch.sql.ast.dsl.AstDSL.distinctAggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.doubleLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.equalTo;
 import static org.opensearch.sql.ast.dsl.AstDSL.eval;
@@ -336,6 +337,90 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testVarAggregationShouldPass() {
+    assertEqual("source=t | stats var_samp(a) by b",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "var_samp(a)",
+                    aggregate("var_samp", field("a"))
+                )
+            ),
+            emptyList(),
+            exprList(
+                alias(
+                    "b",
+                    field("b")
+                )),
+            defaultStatsArgs()
+        ));
+  }
+
+  @Test
+  public void testVarpAggregationShouldPass() {
+    assertEqual("source=t | stats var_pop(a) by b",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "var_pop(a)",
+                    aggregate("var_pop", field("a"))
+                )
+            ),
+            emptyList(),
+            exprList(
+                alias(
+                    "b",
+                    field("b")
+                )),
+            defaultStatsArgs()
+        ));
+  }
+
+  @Test
+  public void testStdDevAggregationShouldPass() {
+    assertEqual("source=t | stats stddev_samp(a) by b",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "stddev_samp(a)",
+                    aggregate("stddev_samp", field("a"))
+                )
+            ),
+            emptyList(),
+            exprList(
+                alias(
+                    "b",
+                    field("b")
+                )),
+            defaultStatsArgs()
+        ));
+  }
+
+  @Test
+  public void testStdDevPAggregationShouldPass() {
+    assertEqual("source=t | stats stddev_pop(a) by b",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "stddev_pop(a)",
+                    aggregate("stddev_pop", field("a"))
+                )
+            ),
+            emptyList(),
+            exprList(
+                alias(
+                    "b",
+                    field("b")
+                )),
+            defaultStatsArgs()
+        ));
+  }
+
+  @Test
   public void testPercentileAggFuncExpr() {
     assertEqual("source=t | stats percentile<1>(a)",
         agg(
@@ -374,6 +459,19 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                 )),
             defaultStatsArgs()
         ));
+  }
+
+  @Test
+  public void testDistinctCount() {
+    assertEqual("source=t | stats distinct_count(a)",
+        agg(
+            relation("t"),
+            exprList(
+                alias("distinct_count(a)",
+                    distinctAggregate("count", field("a")))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
   }
 
   @Test

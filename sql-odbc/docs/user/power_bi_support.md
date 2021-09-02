@@ -2,8 +2,8 @@
 
 ## Prerequisites
 * Microsoft Power BI Desktop
-* [OpenSearch](https://docs-beta.opensearch.org/docs/install/)
-* [OpenSearch SQL ODBC driver](https://docs-beta.opensearch.org/docs/sql/odbc/)
+* [OpenSearch](https://docs-beta.opensearch.org/opensearch/install/index/)
+* [OpenSearch SQL ODBC driver](https://docs-beta.opensearch.org/search-plugins/sql/odbc/)
 * [SqlOdbcPBIConnector.mez](../../src/PowerBIConnector/bin/Release/) 
 * Optional: [sqlodbc_import.pbids](../../src/PowerBIConnector/PBIDSExamples) to help with repeated connections to the same server 
 
@@ -86,7 +86,7 @@ It will take you straight to the **Navigator** window for selecting the tables f
 
 ## Troubleshooting 
 
-* If you get an following error, please install [OpenSearch SQL ODBC Driver](https://docs-beta.opensearch.org/docs/sql/odbc/).
+* If you get an following error, please install [OpenSearch SQL ODBC Driver](https://docs-beta.opensearch.org/search-plugins/sql/odbc/).
 
 <img src="img/pbi_error_driver_not_installed.png" width="350">
 

@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.sql.common.setting.Settings;
@@ -43,6 +44,7 @@ import org.opensearch.sql.opensearch.planner.logical.OpenSearchLogicalIndexAgg;
 import org.opensearch.sql.opensearch.planner.logical.OpenSearchLogicalIndexScan;
 import org.opensearch.sql.opensearch.planner.logical.OpenSearchLogicalPlanOptimizerFactory;
 import org.opensearch.sql.opensearch.request.system.OpenSearchDescribeIndexRequest;
+import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.script.aggregation.AggregationQueryBuilder;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
 import org.opensearch.sql.opensearch.storage.script.sort.SortQueryBuilder;
@@ -163,7 +165,7 @@ public class OpenSearchIndex implements Table {
       }
       AggregationQueryBuilder builder =
           new AggregationQueryBuilder(new DefaultExpressionSerializer());
-      List<AggregationBuilder> aggregationBuilder =
+      Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
           builder.buildAggregationBuilder(node.getAggregatorList(),
               node.getGroupByList(), node.getSortList());
       context.pushDownAggregation(aggregationBuilder);

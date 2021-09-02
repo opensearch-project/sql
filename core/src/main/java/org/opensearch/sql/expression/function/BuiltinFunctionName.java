@@ -12,6 +12,7 @@
 package org.opensearch.sql.expression.function;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import lombok.Getter;
@@ -126,6 +127,14 @@ public enum BuiltinFunctionName {
   COUNT(FunctionName.of("count")),
   MIN(FunctionName.of("min")),
   MAX(FunctionName.of("max")),
+  // sample variance
+  VARSAMP(FunctionName.of("var_samp")),
+  // population standard variance
+  VARPOP(FunctionName.of("var_pop")),
+  // sample standard deviation.
+  STDDEV_SAMP(FunctionName.of("stddev_samp")),
+  // population standard deviation.
+  STDDEV_POP(FunctionName.of("stddev_pop")),
 
   /**
    * Text Functions.
@@ -168,6 +177,8 @@ public enum BuiltinFunctionName {
    * Data Type Convert Function.
    */
   CAST_TO_STRING(FunctionName.of("cast_to_string")),
+  CAST_TO_BYTE(FunctionName.of("cast_to_byte")),
+  CAST_TO_SHORT(FunctionName.of("cast_to_short")),
   CAST_TO_INT(FunctionName.of("cast_to_int")),
   CAST_TO_LONG(FunctionName.of("cast_to_long")),
   CAST_TO_FLOAT(FunctionName.of("cast_to_float")),
@@ -175,7 +186,8 @@ public enum BuiltinFunctionName {
   CAST_TO_BOOLEAN(FunctionName.of("cast_to_boolean")),
   CAST_TO_DATE(FunctionName.of("cast_to_date")),
   CAST_TO_TIME(FunctionName.of("cast_to_time")),
-  CAST_TO_TIMESTAMP(FunctionName.of("cast_to_timestamp"));
+  CAST_TO_TIMESTAMP(FunctionName.of("cast_to_timestamp")),
+  CAST_TO_DATETIME(FunctionName.of("cast_to_datetime"));
 
   private final FunctionName name;
 
@@ -189,7 +201,28 @@ public enum BuiltinFunctionName {
     ALL_NATIVE_FUNCTIONS = builder.build();
   }
 
+  private static final Map<String, BuiltinFunctionName> AGGREGATION_FUNC_MAPPING =
+      new ImmutableMap.Builder<String, BuiltinFunctionName>()
+          .put("max", BuiltinFunctionName.MAX)
+          .put("min", BuiltinFunctionName.MIN)
+          .put("avg", BuiltinFunctionName.AVG)
+          .put("count", BuiltinFunctionName.COUNT)
+          .put("sum", BuiltinFunctionName.SUM)
+          .put("var_pop", BuiltinFunctionName.VARPOP)
+          .put("var_samp", BuiltinFunctionName.VARSAMP)
+          .put("variance", BuiltinFunctionName.VARPOP)
+          .put("std", BuiltinFunctionName.STDDEV_POP)
+          .put("stddev", BuiltinFunctionName.STDDEV_POP)
+          .put("stddev_pop", BuiltinFunctionName.STDDEV_POP)
+          .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
+          .build();
+
   public static Optional<BuiltinFunctionName> of(String str) {
     return Optional.ofNullable(ALL_NATIVE_FUNCTIONS.getOrDefault(FunctionName.of(str), null));
+  }
+
+  public static Optional<BuiltinFunctionName> ofAggregation(String functionName) {
+    return Optional.ofNullable(
+        AGGREGATION_FUNC_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), null));
   }
 }
