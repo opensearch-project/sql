@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8' ?>
 
-<connector-plugin class='opensearch_sql_odbc_dev' superclass='odbc' plugin-version='1.0.0.0' name='OpenSearch SQL ODBC DEV' version='18.1' min-version-tableau='2020.1'>
+<connector-plugin class='opensearch_sql_odbc_dev' superclass='odbc' plugin-version='1.1.0.0' name='OpenSearch SQL ODBC DEV' version='18.1' min-version-tableau='2020.1'>
   <vendor-information>
       <company name="OpenSearch"/>
       <support-link url="https://github.com/opensearch-project/sql"/>
