@@ -387,6 +387,10 @@ relevanceFunctionName
     : MATCH
     ;
 
+legacyRelevanceFunctionName
+    : QUERY | MATCH_QUERY | MATCHQUERY
+    ;
+
 functionArgs
     : functionArg (COMMA functionArg)*
     ;
