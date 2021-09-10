@@ -315,6 +315,20 @@ STRCMP:                             'STRCMP';
 // DATE AND TIME FUNCTIONS
 ADDDATE:                            'ADDDATE';
 
+// RELEVANCE FUNCTIONS AND PARAMETERS
+ANALYZER:                           'ANALYZER';
+FUZZINESS:                          'FUZZINESS';
+AUTO_GENERATE_SYNONYMS_PHRASE_QUERY:'AUTO_GENERATE_SYNONYMS_PHRASE_QUERY';
+MAX_EXPANSIONS:                     'MAX_EXPANSIONS';
+PREFIX_LENGTH:                      'PREFIX_LENGTH';
+FUZZY_TRANSPOSITIONS:               'FUZZY_TRANSPOSITIONS';
+FUZZY_REWRITE:                      'FUZZY_REWRITE';
+LENIENT:                            'LENIENT';
+OPERATOR:                           'OPERATOR';
+MINIMUM_SHOULD_MATCH:               'MINIMUM_SHOULD_MATCH';
+ZERO_TERMS_QUERY:                   'ZERO_TERMS_QUERY';
+BOOST:                              'BOOST';
+
 // Operators
 
 // Operators. Arithmetics

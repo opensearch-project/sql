@@ -106,4 +106,8 @@ public abstract class ExpressionNodeVisitor<T, C> {
     return visitFunction(node, context);
   }
 
+  public T visitNamedArgument(NamedArgumentExpression node, C context) {
+    return node.getValue().accept(this, context);
+  }
+
 }

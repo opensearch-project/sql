@@ -53,6 +53,7 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.OverClause
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.QualifiedNameContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.RegexpPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.RegularAggregateFunctionCallContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.RelevanceFunctionContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ScalarFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ScalarWindowFunctionContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ShowDescribePatternContext;
@@ -66,6 +67,8 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.TimestampL
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.WindowFunctionClauseContext;
 import static org.opensearch.sql.sql.parser.ParserUtils.createSortOption;
 
+
+import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -79,12 +82,15 @@ import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
+import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Interval;
 import org.opensearch.sql.ast.expression.IntervalUnit;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.WindowFunction;
@@ -363,6 +369,13 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
     return AstDSL.stringLiteral(ctx.getText());
   }
 
+  @Override
+  public UnresolvedExpression visitRelevanceFunction(RelevanceFunctionContext ctx) {
+    return new Function(
+        ctx.relevanceFunctionName().getText().toLowerCase(),
+        relevanceArguments(ctx));
+  }
+
   private Function visitFunction(String functionName, FunctionArgsContext args) {
     if (args == null) {
       return new Function(functionName, Collections.emptyList());
@@ -383,6 +396,20 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
                    .map(StringUtils::unquoteIdentifier)
                    .collect(Collectors.toList())
     );
+  }
+
+  private List<UnresolvedExpression> relevanceArguments(RelevanceFunctionContext ctx) {
+    // all the arguments are defaulted to string values
+    // to skip environment resolving and function signature resolving
+    ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
+    builder.add(new UnresolvedArgument("field",
+        new Literal(StringUtils.unquoteText(ctx.field.getText()), DataType.STRING)));
+    builder.add(new UnresolvedArgument("query",
+        new Literal(StringUtils.unquoteText(ctx.query.getText()), DataType.STRING)));
+    ctx.relevanceArg().forEach(v -> builder.add(new UnresolvedArgument(
+        v.relevanceArgName().getText().toLowerCase(), new Literal(StringUtils.unquoteText(
+            v.relevanceArgValue().getText()), DataType.STRING))));
+    return builder.build();
   }
 
 }

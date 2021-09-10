@@ -276,6 +276,70 @@ class FilterQueryBuilderTest {
                 ref("name", OPENSEARCH_TEXT_KEYWORD), literal("John%"))));
   }
 
+  @Test
+  void should_build_match_query_with_default_parameters() {
+    assertJsonEquals(
+        "{\n"
+            + "  \"match\" : {\n"
+            + "    \"message\" : {\n"
+            + "      \"query\" : \"search query\",\n"
+            + "      \"operator\" : \"OR\",\n"
+            + "      \"prefix_length\" : 0,\n"
+            + "      \"max_expansions\" : 50,\n"
+            + "      \"fuzzy_transpositions\" : true,\n"
+            + "      \"lenient\" : false,\n"
+            + "      \"zero_terms_query\" : \"NONE\",\n"
+            + "      \"auto_generate_synonyms_phrase_query\" : true,\n"
+            + "      \"boost\" : 1.0\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            dsl.match(
+                dsl.namedArgument("field", literal("message")),
+                dsl.namedArgument("query", literal("search query")))));
+  }
+
+  @Test
+  void should_build_match_query_with_custom_parameters() {
+    assertJsonEquals(
+        "{\n"
+            + "  \"match\" : {\n"
+            + "    \"message\" : {\n"
+            + "      \"query\" : \"search query\",\n"
+            + "      \"operator\" : \"AND\",\n"
+            + "      \"analyzer\" : \"keyword\","
+            + "      \"fuzziness\" : \"AUTO\","
+            + "      \"prefix_length\" : 0,\n"
+            + "      \"max_expansions\" : 50,\n"
+            + "      \"minimum_should_match\" : \"3\","
+            + "      \"fuzzy_rewrite\" : \"top_terms_N\","
+            + "      \"fuzzy_transpositions\" : false,\n"
+            + "      \"lenient\" : false,\n"
+            + "      \"zero_terms_query\" : \"ALL\",\n"
+            + "      \"auto_generate_synonyms_phrase_query\" : true,\n"
+            + "      \"boost\" : 2.0\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            dsl.match(
+                dsl.namedArgument("field", literal("message")),
+                dsl.namedArgument("query", literal("search query")),
+                dsl.namedArgument("operator", literal("AND")),
+                dsl.namedArgument("analyzer", literal("keyword")),
+                dsl.namedArgument("auto_generate_synonyms_phrase_query", literal("true")),
+                dsl.namedArgument("fuzziness", literal("AUTO")),
+                dsl.namedArgument("max_expansions", literal("50")),
+                dsl.namedArgument("prefix_length", literal("0")),
+                dsl.namedArgument("fuzzy_transpositions", literal("false")),
+                dsl.namedArgument("fuzzy_rewrite", literal("top_terms_N")),
+                dsl.namedArgument("lenient", literal("false")),
+                dsl.namedArgument("minimum_should_match", literal("3")),
+                dsl.namedArgument("zero_terms_query", literal("ALL")),
+                dsl.namedArgument("boost", literal("2.0")))));
+  }
+
   private static void assertJsonEquals(String expected, String actual) {
     assertTrue(new JSONObject(expected).similar(new JSONObject(actual)),
         StringUtils.format("Expected: %s, actual: %s", expected, actual));

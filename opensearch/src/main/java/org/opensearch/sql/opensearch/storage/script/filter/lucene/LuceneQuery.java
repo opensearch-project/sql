@@ -32,8 +32,10 @@ import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEA
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.LiteralExpression;
+import org.opensearch.sql.expression.NamedArgumentExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 
 /**
@@ -51,9 +53,14 @@ public abstract class LuceneQuery {
    * @return        return true if supported, otherwise false.
    */
   public boolean canSupport(FunctionExpression func) {
+    boolean multiParameterQuery = true;
+    for (Expression expr : func.getArguments()) {
+      multiParameterQuery = multiParameterQuery && expr instanceof NamedArgumentExpression;
+    }
     return (func.getArguments().size() == 2)
         && (func.getArguments().get(0) instanceof ReferenceExpression)
-        && (func.getArguments().get(1) instanceof LiteralExpression);
+        && (func.getArguments().get(1) instanceof LiteralExpression)
+        || multiParameterQuery;
   }
 
   /**
