@@ -27,6 +27,7 @@
 
 package org.opensearch.sql.opensearch.storage.script.filter;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -47,6 +48,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
@@ -338,6 +340,16 @@ class FilterQueryBuilderTest {
                 dsl.namedArgument("minimum_should_match", literal("3")),
                 dsl.namedArgument("zero_terms_query", literal("ALL")),
                 dsl.namedArgument("boost", literal("2.0")))));
+  }
+
+  @Test
+  void match_invalid_parameter() {
+    FunctionExpression expr = dsl.match(
+        dsl.namedArgument("field", literal("message")),
+        dsl.namedArgument("query", literal("search query")),
+        dsl.namedArgument("invalid_parameter", literal("invalid_value")));
+    assertThrows(SemanticCheckException.class, () -> buildQuery(expr),
+        "Parameter invalid_parameter is invalid for match function.");
   }
 
   private static void assertJsonEquals(String expected, String actual) {

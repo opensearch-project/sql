@@ -80,7 +80,7 @@ public class MatchQuery extends LuceneQuery {
       NamedArgumentExpression arg = (NamedArgumentExpression) iterator.next();
       if (!argAction.containsKey(arg.getArgName())) {
         throw new SemanticCheckException(String
-            .format("Parameter %s is not supported in match function.", arg.getArgName()));
+            .format("Parameter %s is invalid for match function.", arg.getArgName()));
       }
       ((BiFunction<MatchQueryBuilder, ExprValue, MatchQueryBuilder>) argAction
           .get(arg.getArgName()))
