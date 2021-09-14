@@ -18,7 +18,7 @@ To use the SQL Workbench, you will need the [Open Distro SQL plugin](https://git
 - Updated configureation for v7.3 compatibility ([#7](https://github.com/opendistro-for-elasticsearch/sql-workbench/pull/7))
 - Opendistro-1.3 compatible with ES and Kibana 7.3 ([#8](https://github.com/opendistro-for-elasticsearch/sql-workbench/pull/8))
 - Changed kibana version to v7.3.2 ([#9](https://github.com/opendistro-for-elasticsearch/sql-workbench/pull/9))
-- Support v7.1.1 Compatibility ([#13](v13))
+- Support v7.1.1 Compatibility ([#13](https://github.com/opendistro-for-elasticsearch/sql-workbench/pull/13))
 - Bump pr-branch to v1.3 ([#21](https://github.com/opendistro-for-elasticsearch/sql-workbench/pull/21))
 - Support v7.4 compatibility for kibana and sql-plugin ([#23](https://github.com/opendistro-for-elasticsearch/sql-workbench/pull/23))
 - Improve the performance by ridding of sending redundant requests ([#24](https://github.com/opendistro-for-elasticsearch/sql-workbench/pull/24))
