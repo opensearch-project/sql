@@ -26,20 +26,7 @@
 
 package org.opensearch.sql.plugin.rest;
 
-import static org.opensearch.rest.RestStatus.BAD_REQUEST;
-import static org.opensearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
-import static org.opensearch.rest.RestStatus.OK;
-import static org.opensearch.rest.RestStatus.SERVICE_UNAVAILABLE;
-import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
-
 import com.google.common.collect.ImmutableList;
-import java.io.IOException;
-import java.security.PrivilegedExceptionAction;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Supplier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
@@ -77,6 +64,20 @@ import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
+import java.io.IOException;
+import java.security.PrivilegedExceptionAction;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Supplier;
+
+import static org.opensearch.rest.RestStatus.BAD_REQUEST;
+import static org.opensearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
+import static org.opensearch.rest.RestStatus.OK;
+import static org.opensearch.rest.RestStatus.SERVICE_UNAVAILABLE;
+import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
+
 public class RestPPLQueryAction extends BaseRestHandler {
   public static final String QUERY_API_ENDPOINT = "/_plugins/_ppl";
   public static final String EXPLAIN_API_ENDPOINT = "/_plugins/_ppl/_explain";
@@ -96,8 +97,6 @@ public class RestPPLQueryAction extends BaseRestHandler {
   private final Settings pluginSettings;
 
   private final Supplier<Boolean> pplEnabled;
-
-  private PPLQueryRequest pplRequest;
 
   /**
    * Constructor of RestPPLQueryAction.
@@ -155,12 +154,12 @@ public class RestPPLQueryAction extends BaseRestHandler {
     }
 
     PPLService pplService = createPPLService(nodeClient);
-    pplRequest = PPLQueryRequestFactory.getPPLRequest(request);
+    PPLQueryRequest pplRequest = PPLQueryRequestFactory.getPPLRequest(request);
 
     if (pplRequest.isExplainRequest()) {
       return channel -> pplService.explain(pplRequest, createExplainResponseListener(channel));
     }
-    return channel -> pplService.execute(pplRequest, createListener(channel));
+    return channel -> pplService.execute(pplRequest, createListener(channel, pplRequest));
   }
 
   /**
@@ -215,7 +214,7 @@ public class RestPPLQueryAction extends BaseRestHandler {
     };
   }
 
-  private ResponseListener<QueryResponse> createListener(RestChannel channel) {
+  private ResponseListener<QueryResponse> createListener(RestChannel channel, PPLQueryRequest pplRequest) {
     Format format = pplRequest.format();
     ResponseFormatter<QueryResult> formatter;
     if (format.equals(Format.CSV)) {
