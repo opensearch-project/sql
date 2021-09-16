@@ -53,14 +53,25 @@ public abstract class LuceneQuery {
    * @return        return true if supported, otherwise false.
    */
   public boolean canSupport(FunctionExpression func) {
-    boolean multiParameterQuery = true;
-    for (Expression expr : func.getArguments()) {
-      multiParameterQuery = multiParameterQuery && expr instanceof NamedArgumentExpression;
-    }
     return (func.getArguments().size() == 2)
         && (func.getArguments().get(0) instanceof ReferenceExpression)
         && (func.getArguments().get(1) instanceof LiteralExpression)
-        || multiParameterQuery;
+        || isMultiParameterQuery(func);
+  }
+
+  /**
+   * Check if the function expression has multiple named argument expressions as the parameters.
+   *
+   * @param func      function
+   * @return          return true if the expression is a multi-parameter function.
+   */
+  private boolean isMultiParameterQuery(FunctionExpression func) {
+    for (Expression expr : func.getArguments()) {
+      if (!(expr instanceof NamedArgumentExpression)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
