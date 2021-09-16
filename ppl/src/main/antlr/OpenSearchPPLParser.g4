@@ -187,9 +187,9 @@ booleanExpression
     ;
 
 relevanceExpression
-    : relevanceFunctionName LR_BRACKET
+    : relevanceFunctionName LT_PRTHS
         field=relevanceArgValue COMMA query=relevanceArgValue
-        (COMMA relevanceArg)* RR_BRACKET
+        (COMMA relevanceArg)* RT_PRTHS
     ;
 
 /** tables */
