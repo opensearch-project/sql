@@ -2178,14 +2178,14 @@ Example with only ``field`` and ``query`` expressions, and all other parameters 
     | lastname   | address            |
     |------------+--------------------|
     | Bond       | 671 Bristol Street |
-    |------------+--------------------|
     | Bates      | 789 Madison Street |
     +------------+--------------------+
 
 
+
 Another example to show how to set custom values for the optional parameters::
 
-    os> SELECT lastname FROM accounts WHERE match(firstname, 'Hattie', analyzer='keyword', boost=2.0);
+    os> SELECT lastname FROM accounts WHERE match(firstname, 'Hattie', operator='AND', boost=2.0);
     fetched rows / total rows = 1/1
     +------------+
     | lastname   |
