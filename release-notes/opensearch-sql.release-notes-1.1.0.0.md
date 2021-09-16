@@ -22,3 +22,4 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 1.1.0
 * Use externally-defined OpenSearch version when specified. ([#179](https://github.com/opensearch-project/sql/pull/179))
 * Use OpenSearch 1.1 and build snapshot by default in CI. ([#181](https://github.com/opensearch-project/sql/pull/181))
 * Workbench: remove curl commands in integtest.sh ([#200](https://github.com/opensearch-project/sql/pull/200))
+* Bump opensearch ref to 1.1 in CI ([#205](https://github.com/opensearch-project/dashboards-reports/pull/205))
