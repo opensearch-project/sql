@@ -64,6 +64,10 @@ public abstract class Aggregator<S extends AggregationState>
   @Getter
   @Accessors(fluent = true)
   protected Expression condition;
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
+  protected Boolean distinct = false;
 
   /**
    * Create an {@link AggregationState} which will be used for aggregation.

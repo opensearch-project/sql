@@ -26,9 +26,32 @@
 
 /// <reference types="cypress" />
 
-import { edit } from "brace";
-import { delay, testQueries, verifyDownloadData, files } from "../utils/constants";
+import { edit } from 'brace';
+import { delay, files, testDataSet, testQueries, verifyDownloadData } from '../utils/constants';
 
+describe('Dump test data', () => {
+  it('Indexes test data for SQL and PPL', () => {
+    const dumpDataSet = (url, index) =>
+      cy.request(url).then((response) => {
+        cy.request({
+          method: 'POST',
+          form: true,
+          url: 'api/console/proxy',
+          headers: {
+            'content-type': 'application/json;charset=UTF-8',
+            'osd-xsrf': true,
+          },
+          qs: {
+            path: `${index}/_bulk`,
+            method: 'POST',
+          },
+          body: response.body,
+        });
+      });
+
+    testDataSet.forEach(({url, index}) => dumpDataSet(url, index));
+  });
+});
 
 describe('Test PPL UI', () => {
   beforeEach(() => {
@@ -183,13 +206,12 @@ describe('Test and verify SQL downloads', () => {
           'osd-xsrf': true,
         },
         body: {
-          'query': 'select * from accounts where balance > 49500'
-        }
+          query: 'select * from accounts where balance > 49500',
+        },
       }).then((response) => {
         if (title === 'Download and verify CSV' || title === 'Download and verify Text') {
           expect(response.body.data.body).to.have.string(files[file]);
-        }
-        else {
+        } else {
           expect(response.body.data.resp).to.have.string(files[file]);
         }
       });

@@ -96,8 +96,8 @@ public class ExprValueUtilsTest {
       Lists.newArrayList(Iterables.concat(numberValues, nonNumberValues));
 
   private static List<Function<ExprValue, Object>> numberValueExtractor = Arrays.asList(
-      ExprValue::byteValue,
-      ExprValue::shortValue,
+      ExprValueUtils::getByteValue,
+      ExprValueUtils::getShortValue,
       ExprValueUtils::getIntegerValue,
       ExprValueUtils::getLongValue,
       ExprValueUtils::getFloatValue,

@@ -3,7 +3,7 @@ name: Release Drafter
 on:
   push:
     branches:
-      - develop
+      - main
 
 jobs:
   update_release_draft:
@@ -16,6 +16,6 @@ jobs:
         with:
           config-name: draft-release-notes-config.yml
           tag: (None)
-          version: 1.0.0.0-rc1
+          version: 1.1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

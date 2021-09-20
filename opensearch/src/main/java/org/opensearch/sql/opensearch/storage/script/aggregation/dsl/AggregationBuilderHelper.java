@@ -43,11 +43,9 @@ import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
 /**
  * Abstract Aggregation Builder.
- *
- * @param <T> type of the actual AggregationBuilder to be built.
  */
 @RequiredArgsConstructor
-public class AggregationBuilderHelper<T> {
+public class AggregationBuilderHelper {
 
   private final ExpressionSerializer serializer;
 
@@ -57,7 +55,7 @@ public class AggregationBuilderHelper<T> {
    * @param expression Expression
    * @return AggregationBuilder
    */
-  public T build(Expression expression, Function<String, T> fieldBuilder,
+  public <T> T build(Expression expression, Function<String, T> fieldBuilder,
                  Function<Script, T> scriptBuilder) {
     if (expression instanceof ReferenceExpression) {
       String fieldName = ((ReferenceExpression) expression).getAttr();

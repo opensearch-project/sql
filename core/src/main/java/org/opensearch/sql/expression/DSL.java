@@ -500,6 +500,10 @@ public class DSL {
     return aggregate(BuiltinFunctionName.COUNT, expressions);
   }
 
+  public Aggregator distinctCount(Expression... expressions) {
+    return count(expressions).distinct(true);
+  }
+
   public Aggregator varSamp(Expression... expressions) {
     return aggregate(BuiltinFunctionName.VARSAMP, expressions);
   }
@@ -592,6 +596,16 @@ public class DSL {
         .compile(BuiltinFunctionName.CAST_TO_STRING.getName(), Arrays.asList(value));
   }
 
+  public FunctionExpression castByte(Expression value) {
+    return (FunctionExpression) repository
+        .compile(BuiltinFunctionName.CAST_TO_BYTE.getName(), Arrays.asList(value));
+  }
+
+  public FunctionExpression castShort(Expression value) {
+    return (FunctionExpression) repository
+        .compile(BuiltinFunctionName.CAST_TO_SHORT.getName(), Arrays.asList(value));
+  }
+
   public FunctionExpression castInt(Expression value) {
     return (FunctionExpression) repository
         .compile(BuiltinFunctionName.CAST_TO_INT.getName(), Arrays.asList(value));
@@ -630,5 +644,10 @@ public class DSL {
   public FunctionExpression castTimestamp(Expression value) {
     return (FunctionExpression) repository
         .compile(BuiltinFunctionName.CAST_TO_TIMESTAMP.getName(), Arrays.asList(value));
+  }
+
+  public FunctionExpression castDatetime(Expression value) {
+    return (FunctionExpression) repository
+        .compile(BuiltinFunctionName.CAST_TO_DATETIME.getName(), Arrays.asList(value));
   }
 }

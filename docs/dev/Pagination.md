@@ -149,7 +149,7 @@ POST _plugins/_sql/close
 
 ### 3.3 Support in JDBC
 
-To use the pagination functionality programmatically using the[JDBC 4.1 specification](https://download.oracle.com/otn-pub/jcp/jdbc-4_1-mrel-spec/jdbc4.1-fr-spec.pdf?AuthParam=1574798710_305327d63d91e91e19dd80953454597a), page size is being used as performance hint given by `Statement.setFetchSize()` and “applied to each result set produced by the statement”. We need to re-implement `Statement.executequery()` and `ResultSet.next()` to take advantage of cursor.
+To use the pagination functionality programmatically using the[JDBC 4.1 specification](https://download.oracle.com/otn-pub/jcp/jdbc-4_1-mrel-spec/jdbc4.1-fr-spec.pdf), page size is being used as performance hint given by `Statement.setFetchSize()` and “applied to each result set produced by the statement”. We need to re-implement `Statement.executequery()` and `ResultSet.next()` to take advantage of cursor.
 
 We will not support backward scroll on result set. The `Statement` must be created with a `ResultSet` type of `ResultSet.TYPE_FORWARD_ONLY`. Attempt to scroll backwards or otherwise jump around in the `ResultSet` should throw an exception.
 

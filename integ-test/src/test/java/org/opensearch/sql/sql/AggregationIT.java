@@ -30,7 +30,15 @@ public class AggregationIT extends SQLIntegTestCase {
   }
 
   @Test
-  void filteredAggregateWithSubquery() throws IOException {
+  void filteredAggregatePushedDown() throws IOException {
+    JSONObject response = executeQuery(
+        "SELECT COUNT(*) FILTER(WHERE age > 35) FROM " + TEST_INDEX_BANK);
+    verifySchema(response, schema("COUNT(*)", null, "integer"));
+    verifyDataRows(response, rows(3));
+  }
+
+  @Test
+  void filteredAggregateNotPushedDown() throws IOException {
     JSONObject response = executeQuery(
         "SELECT COUNT(*) FILTER(WHERE age > 35) FROM (SELECT * FROM " + TEST_INDEX_BANK
             + ") AS a");
