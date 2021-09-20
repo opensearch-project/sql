@@ -42,6 +42,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
   public void init() throws IOException {
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
+    loadIndex(Index.BANK);
   }
 
   @Test
