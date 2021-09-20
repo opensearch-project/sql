@@ -67,7 +67,6 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.TimestampL
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.WindowFunctionClauseContext;
 import static org.opensearch.sql.sql.parser.ParserUtils.createSortOption;
 
-
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.Collections;
