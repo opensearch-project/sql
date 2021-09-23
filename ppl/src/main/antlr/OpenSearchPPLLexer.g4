@@ -255,6 +255,16 @@ IFNULL:                             'IFNULL';
 NULLIF:                             'NULLIF';
 IF:                                 'IF';
 
+// SPAN KEYWORDS
+SPAN:                               'SPAN';
+MS:                                 'MS';
+S:                                  'S';
+M:                                  'M';
+H:                                  'H';
+W:                                  'W';
+Q:                                  'Q';
+Y:                                  'Y';
+
 
 // LITERALS AND VALUES
 //STRING_LITERAL:                     DQUOTA_STRING | SQUOTA_STRING | BQUOTA_STRING;

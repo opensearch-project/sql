@@ -51,6 +51,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalXor
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ParentheticBinaryArithmeticContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PercentileAggFunctionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SpanClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StringLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceContext;
@@ -80,6 +81,8 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.Span;
+import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -292,6 +295,12 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitBooleanLiteral(BooleanLiteralContext ctx) {
     return new Literal(Boolean.valueOf(ctx.getText()), DataType.BOOLEAN);
+  }
+
+  @Override
+  public UnresolvedExpression visitSpanClause(SpanClauseContext ctx) {
+    String unit = ctx.unit != null ? ctx.unit.getText() : "";
+    return new Span(visit(ctx.fieldExpression()), visit(ctx.value), SpanUnit.of(unit));
   }
 
   private QualifiedName visitIdentifiers(List<? extends ParserRuleContext> ctx) {
