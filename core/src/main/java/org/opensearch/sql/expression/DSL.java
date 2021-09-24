@@ -29,6 +29,7 @@ package org.opensearch.sql.expression;
 import java.util.Arrays;
 import java.util.Collections;
 import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.data.model.ExprShortValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -39,6 +40,7 @@ import org.opensearch.sql.expression.conditional.cases.CaseClause;
 import org.opensearch.sql.expression.conditional.cases.WhenClause;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.expression.window.ranking.RankingWindowFunction;
 
 @RequiredArgsConstructor
@@ -126,6 +128,10 @@ public class DSL {
 
   public static NamedAggregator named(String name, Aggregator aggregator) {
     return new NamedAggregator(name, aggregator);
+  }
+
+  public static SpanExpression span(Expression field, Expression value, String unit) {
+    return new SpanExpression(field, value, SpanUnit.of(unit));
   }
 
   public FunctionExpression abs(Expression... expressions) {

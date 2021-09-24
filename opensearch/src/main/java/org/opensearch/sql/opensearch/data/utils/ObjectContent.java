@@ -69,7 +69,7 @@ public class ObjectContent implements Content {
 
   @Override
   public Float floatValue() {
-    return parseNumberValue(value, v -> Double.valueOf(v).floatValue(), Number::floatValue);
+    return parseNumberValue(value, Float::valueOf, Number::floatValue);
   }
 
   @Override

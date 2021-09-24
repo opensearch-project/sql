@@ -166,15 +166,15 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       aggListBuilder.add(alias);
     }
 
-    List<UnresolvedExpression> groupList = ctx.byClause() == null ? Collections.emptyList() :
-        ctx.byClause() == null ? Collections.emptyList() : ctx.byClause().fieldList() != null
-            ? ctx.byClause()
-            .fieldList()
-            .fieldExpression()
-            .stream()
-            .map(groupCtx -> new Alias(getTextInQuery(groupCtx), visitExpression(groupCtx)))
-            .collect(Collectors.toList())
-            : Collections.singletonList(visitExpression(ctx.byClause().spanClause()));
+    List<UnresolvedExpression> groupList = ctx.byClause() == null ? Collections.emptyList()
+        : ctx.byClause().fieldList() != null
+        ? ctx.byClause()
+        .fieldList()
+        .fieldExpression()
+        .stream()
+        .map(groupCtx -> new Alias(getTextInQuery(groupCtx), visitExpression(groupCtx)))
+        .collect(Collectors.toList())
+        : Collections.singletonList(visitExpression(ctx.byClause().spanClause()));
 
     Aggregation aggregation = new Aggregation(
         aggListBuilder.build(),

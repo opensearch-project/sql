@@ -19,8 +19,7 @@ import java.util.List;
 import java.util.Map;
 import org.opensearch.search.aggregations.Aggregation;
 import org.opensearch.search.aggregations.Aggregations;
-import org.opensearch.search.aggregations.bucket.histogram.InternalDateHistogram;
-import org.opensearch.search.aggregations.bucket.histogram.InternalHistogram;
+import org.opensearch.search.aggregations.bucket.histogram.Histogram;
 
 public class SpanAggregationParser implements OpenSearchAggregationResponseParser {
   private final MetricParserHelper metricsParser;
@@ -32,33 +31,11 @@ public class SpanAggregationParser implements OpenSearchAggregationResponseParse
   @Override
   public List<Map<String, Object>> parse(Aggregations aggregations) {
     ImmutableList.Builder<Map<String, Object>> list = ImmutableList.builder();
-    aggregations.asList().forEach(aggregation -> list.addAll(parseInternal(aggregation)));
+    aggregations.asList().forEach(aggregation -> list.addAll(parseHistogram((Histogram) aggregation)));
     return list.build();
   }
 
-  private List<Map<String, Object>> parseInternal(Aggregation aggregation) {
-    if (aggregation instanceof InternalHistogram) {
-      return parseInternalHistogram((InternalHistogram) aggregation);
-    } else {
-      return parseInternalDateHistogram((InternalDateHistogram) aggregation);
-    }
-  }
-
-  private List<Map<String, Object>> parseInternalDateHistogram(
-      InternalDateHistogram histogram) {
-    ImmutableList.Builder<Map<String, Object>> mapList = ImmutableList.builder();
-    histogram.getBuckets().forEach(bucket -> {
-      Map<String, Object> map = new HashMap<>();
-      map.put(histogram.getName(), bucket.getKey().toString());
-      Aggregation aggregation = bucket.getAggregations().asList().get(0);
-      Map<String, Object> metricsAggMap = metricsParser.parse(bucket.getAggregations());
-      map.put(aggregation.getName(), metricsAggMap.get(aggregation.getName()));
-      mapList.add(map);
-    });
-    return mapList.build();
-  }
-
-  private List<Map<String, Object>> parseInternalHistogram(InternalHistogram histogram) {
+  private List<Map<String, Object>> parseHistogram(Histogram histogram) {
     ImmutableList.Builder<Map<String, Object>> mapList = ImmutableList.builder();
     histogram.getBuckets().forEach(bucket -> {
       Map<String, Object> map = new HashMap<>();

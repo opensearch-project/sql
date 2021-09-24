@@ -39,6 +39,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.expression.DSL.ref;
+import static org.opensearch.sql.expression.DSL.span;
 import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
 import static org.opensearch.sql.opensearch.utils.Utils.agg;
 import static org.opensearch.sql.opensearch.utils.Utils.avg;
@@ -67,6 +68,7 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.aggregation.AvgAggregator;
+import org.opensearch.sql.expression.aggregation.CountAggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
@@ -414,6 +416,35 @@ class AggregationQueryBuilderTest {
         containsInAnyOrder(
             map("avg(balance)", INTEGER)
         ));
+  }
+
+  @Test
+  void should_build_histogram() {
+    assertEquals(
+        "{\n"
+            + "  \"SpanExpression(field=age, value=10, unit=NONE)\" : {\n"
+            + "    \"histogram\" : {\n"
+            + "      \"field\" : \"age\",\n"
+            + "      \"interval\" : 10.0,\n"
+            + "      \"offset\" : 0.0,\n"
+            + "      \"order\" : {\n"
+            + "        \"_key\" : \"asc\"\n"
+            + "      },\n"
+            + "      \"keyed\" : false,\n"
+            + "      \"min_doc_count\" : 0\n"
+            + "    },\n"
+            + "    \"aggregations\" : {\n"
+            + "      \"count(a)\" : {\n"
+            + "        \"value_count\" : {\n"
+            + "          \"field\" : \"a\"\n"
+            + "        }\n"
+            + "      }\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
+        buildQuery(Arrays.asList(named("count(a)", new CountAggregator(Arrays.asList(ref(
+            "a", INTEGER)), INTEGER))),
+            Arrays.asList(named(span(ref("age", INTEGER), literal(10), "")))));
   }
 
   @SneakyThrows

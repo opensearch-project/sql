@@ -358,4 +358,5 @@ keywordsCanBeId
     | statsFunctionName
     | TIMESTAMP | DATE | TIME
     | FIRST | LAST
+    | timespanUnit
     ;
