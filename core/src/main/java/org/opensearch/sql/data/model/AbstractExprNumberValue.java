@@ -74,11 +74,6 @@ public abstract class AbstractExprNumberValue extends AbstractExprValue {
   }
 
   @Override
-  public String stringValue() {
-    return value.toString();
-  }
-
-  @Override
   public int hashCode() {
     return Objects.hashCode(value);
   }

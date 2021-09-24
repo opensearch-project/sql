@@ -43,29 +43,33 @@ public class ObjectContent implements Content {
 
   private final Object value;
 
+  /**
+   * The parse method parses the value as double value,
+   * since the key values histogram buckets are defaulted to double.
+   */
   @Override
   public Integer intValue() {
-    return parseNumberValue(value, Integer::valueOf, Number::intValue);
+    return parseNumberValue(value, v -> Double.valueOf(v).intValue(), Number::intValue);
   }
 
   @Override
   public Long longValue() {
-    return parseNumberValue(value, Long::valueOf, Number::longValue);
+    return parseNumberValue(value, v -> Double.valueOf(v).longValue(), Number::longValue);
   }
 
   @Override
   public Short shortValue() {
-    return parseNumberValue(value, Short::valueOf, Number::shortValue);
+    return parseNumberValue(value, v -> Double.valueOf(v).shortValue(), Number::shortValue);
   }
 
   @Override
   public Byte byteValue() {
-    return parseNumberValue(value, Byte::valueOf, Number::byteValue);
+    return parseNumberValue(value, v -> Double.valueOf(v).byteValue(), Number::byteValue);
   }
 
   @Override
   public Float floatValue() {
-    return parseNumberValue(value, Float::valueOf, Number::floatValue);
+    return parseNumberValue(value, v -> Double.valueOf(v).floatValue(), Number::floatValue);
   }
 
   @Override

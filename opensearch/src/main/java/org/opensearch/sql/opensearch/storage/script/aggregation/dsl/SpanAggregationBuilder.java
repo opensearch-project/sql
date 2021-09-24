@@ -34,25 +34,25 @@ public class SpanAggregationBuilder {
   public AggregationBuilder build(NamedExpression namedExpression) {
     SpanExpression spanExpr = (SpanExpression) namedExpression.getDelegated();
     return makeBuilder(namedExpression.getNameOrAlias(), spanExpr.getField()
-        .toString(), spanExpr.getValue().valueOf(null).stringValue(), spanExpr.getUnit());
+        .toString(), spanExpr.getValue().valueOf(null).doubleValue(), spanExpr.getUnit());
   }
 
   private AggregationBuilder makeBuilder(
-      String name, String field, String value, SpanUnit unit) {
+      String name, String field, Double value, SpanUnit unit) {
     switch (unit) {
       case NONE:
         return new HistogramAggregationBuilder(name)
             .field(field)
-            .interval(Double.parseDouble(value));
+            .interval(value);
       case UNKNOWN:
         throw new IllegalStateException("Invalid span unit");
       default:
-        return makeDateHistogramBuilder(name, field, value, unit);
+        return makeDateHistogramBuilder(name, field, value.intValue(), unit);
     }
   }
 
   private DateHistogramAggregationBuilder makeDateHistogramBuilder(
-      String name, String field, String value, SpanUnit unit) {
+      String name, String field, Integer value, SpanUnit unit) {
     String spanValue = value + unit.getName();
     switch (unit) {
       case MICROSECOND:

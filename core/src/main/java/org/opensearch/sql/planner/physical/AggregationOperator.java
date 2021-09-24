@@ -117,7 +117,7 @@ public class AggregationOperator extends PhysicalPlan {
   @RequiredArgsConstructor
   public class Group {
 
-    private final Map<GroupKey, List<Map.Entry<NamedAggregator, AggregationState>>> groupListMap =
+    protected final Map<GroupKey, List<Map.Entry<NamedAggregator, AggregationState>>> groupListMap =
         new HashMap<>();
 
     /**

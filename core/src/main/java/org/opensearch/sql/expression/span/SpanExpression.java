@@ -35,9 +35,22 @@ public class SpanExpression implements Expression {
     return value.valueOf(valueEnv);
   }
 
+  /**
+   * Return type follows the following table.
+   *  FIELD         VALUE     RETURN_TYPE
+   *  int/long      integer   int/long (field type)
+   *  int/long      double    double
+   *  float/double  integer   float/double (field type)
+   *  float/double  double    float/double (field type)
+   *  other         any       field type
+   */
   @Override
   public ExprType type() {
-    return field.type();
+    if (value.type().isCompatible(field.type())) {
+      return value.type();
+    } else {
+      return field.type();
+    }
   }
 
   @Override
