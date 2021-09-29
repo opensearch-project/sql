@@ -46,7 +46,9 @@ public class SpanExpression implements Expression {
    */
   @Override
   public ExprType type() {
-    if (value.type().isCompatible(field.type())) {
+    if (field.type().isCompatible(value.type())) {
+      return field.type();
+    } else if (value.type().isCompatible(field.type())) {
       return value.type();
     } else {
       return field.type();

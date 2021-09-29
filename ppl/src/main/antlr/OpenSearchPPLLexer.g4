@@ -85,6 +85,7 @@ REGEXP:                             'REGEXP';
 DATETIME:                           'DATETIME';
 INTERVAL:                           'INTERVAL';
 MICROSECOND:                        'MICROSECOND';
+MILLISECOND:                        'MILLISECOND';
 SECOND:                             'SECOND';
 MINUTE:                             'MINUTE';
 HOUR:                               'HOUR';

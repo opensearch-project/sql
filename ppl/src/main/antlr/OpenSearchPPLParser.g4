@@ -323,7 +323,7 @@ intervalUnit
 
 timespanUnit
     : MS | S | M | H | D | W | Q | Y
-    | MICROSECOND | SECOND | MINUTE | HOUR | DAY | WEEK | MONTH | QUARTER | YEAR
+    | MILLISECOND | SECOND | MINUTE | HOUR | DAY | WEEK | MONTH | QUARTER | YEAR
     ;
 
 

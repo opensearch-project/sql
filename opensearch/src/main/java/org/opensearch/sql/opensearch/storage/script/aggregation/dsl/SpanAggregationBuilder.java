@@ -55,7 +55,7 @@ public class SpanAggregationBuilder {
       String name, String field, Integer value, SpanUnit unit) {
     String spanValue = value + unit.getName();
     switch (unit) {
-      case MICROSECOND:
+      case MILLISECOND:
       case MS:
       case SECOND:
       case S:
