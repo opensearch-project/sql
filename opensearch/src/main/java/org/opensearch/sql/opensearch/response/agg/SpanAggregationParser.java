@@ -31,7 +31,8 @@ public class SpanAggregationParser implements OpenSearchAggregationResponseParse
   @Override
   public List<Map<String, Object>> parse(Aggregations aggregations) {
     ImmutableList.Builder<Map<String, Object>> list = ImmutableList.builder();
-    aggregations.asList().forEach(aggregation -> list.addAll(parseHistogram((Histogram) aggregation)));
+    aggregations.asList().forEach(aggregation -> list
+        .addAll(parseHistogram((Histogram) aggregation)));
     return list.build();
   }
 

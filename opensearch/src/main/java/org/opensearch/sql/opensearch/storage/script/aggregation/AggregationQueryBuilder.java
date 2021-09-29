@@ -84,8 +84,14 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
    */
   private final MetricAggregationBuilder metricBuilder;
 
+  /**
+   * Span Aggregation Builder.
+   */
   private final SpanAggregationBuilder spanAggregationBuilder;
 
+  /**
+   * Aggregation Query Builder Constructor.
+   */
   public AggregationQueryBuilder(
       ExpressionSerializer serializer) {
     this.bucketBuilder = new BucketAggregationBuilder(serializer);
