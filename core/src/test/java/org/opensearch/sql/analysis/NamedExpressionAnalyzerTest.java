@@ -34,8 +34,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
-import org.opensearch.sql.ast.expression.Span;
-import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.springframework.context.annotation.Configuration;
@@ -55,16 +53,5 @@ class NamedExpressionAnalyzerTest extends AnalyzerTestBase {
 
     NamedExpression analyze = analyzer.analyze(alias, analysisContext);
     assertEquals("integer_value", analyze.getNameOrAlias());
-  }
-
-  @Test
-  void visit_span() {
-    NamedExpressionAnalyzer analyzer =
-        new NamedExpressionAnalyzer(expressionAnalyzer);
-
-    Span span = AstDSL.span(AstDSL.qualifiedName("integer_value"), AstDSL.intLiteral(
-        1), SpanUnit.NONE);
-    NamedExpression named = analyzer.analyze(span, analysisContext);
-    assertEquals(span.toString(), named.getNameOrAlias());
   }
 }

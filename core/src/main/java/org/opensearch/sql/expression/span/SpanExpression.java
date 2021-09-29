@@ -12,6 +12,7 @@
 
 package org.opensearch.sql.expression.span;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
@@ -25,6 +26,7 @@ import org.opensearch.sql.expression.env.Environment;
 @RequiredArgsConstructor
 @Getter
 @ToString
+@EqualsAndHashCode
 public class SpanExpression implements Expression {
   private final Expression field;
   private final Expression value;

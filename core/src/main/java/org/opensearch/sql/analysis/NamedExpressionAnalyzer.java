@@ -63,15 +63,6 @@ public class NamedExpressionAnalyzer extends
         node.getAlias());
   }
 
-  @Override
-  public NamedExpression visitSpan(Span node, AnalysisContext context) {
-    SpanExpression spanExpression = new SpanExpression(
-        node.getField().accept(expressionAnalyzer, context),
-        node.getValue().accept(expressionAnalyzer, context),
-        node.getUnit());
-    return DSL.named(node.toString(), spanExpression, null);
-  }
-
   private String unqualifiedNameIfFieldOnly(Alias node, AnalysisContext context) {
     UnresolvedExpression selectItem = node.getDelegated();
     if (selectItem instanceof QualifiedName) {

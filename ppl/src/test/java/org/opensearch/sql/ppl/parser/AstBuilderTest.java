@@ -298,7 +298,7 @@ public class AstBuilderTest {
             ),
             emptyList(),
             exprList(
-                span(field("timestamp"), intLiteral(1), SpanUnit.H)
+                alias("span(timestamp,1h)", span(field("timestamp"), intLiteral(1), SpanUnit.H))
             ),
             defaultStatsArgs()
         ));
@@ -311,7 +311,37 @@ public class AstBuilderTest {
             ),
             emptyList(),
             exprList(
-                span(field("age"), intLiteral(10), SpanUnit.NONE)
+                alias("span(age,10)", span(field("age"), intLiteral(10), SpanUnit.NONE))
+            ),
+            defaultStatsArgs()
+        ));
+  }
+
+  @Test
+  public void testStatsSpanWithAlias() {
+    assertEqual("source=t | stats avg(price) by span(timestamp, 1h) as time_span",
+        agg(
+            relation("t"),
+            exprList(
+                alias("avg(price)", aggregate("avg", field("price")))
+            ),
+            emptyList(),
+            exprList(
+                alias("span(timestamp,1h)", span(
+                    field("timestamp"), intLiteral(1), SpanUnit.H), "time_span")
+            ),
+            defaultStatsArgs()
+        ));
+
+    assertEqual("source=t | stats count(a) by span(age, 10) as numeric_span",
+        agg(
+            relation("t"),
+            exprList(
+                alias("count(a)", aggregate("count", field("a")))
+            ),
+            emptyList(),
+            exprList(alias("span(age,10)", span(
+                field("age"), intLiteral(10), SpanUnit.NONE), "numeric_span")
             ),
             defaultStatsArgs()
         ));

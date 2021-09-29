@@ -46,12 +46,14 @@ import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.window.aggregation.AggregateWindowFunction;
 import org.springframework.context.annotation.Configuration;
@@ -315,6 +317,14 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
             .condition(dsl.greater(DSL.ref("integer_value", INTEGER), DSL.literal(1))),
         AstDSL.filteredDistinctCount("count", qualifiedName("integer_value"), function(
             ">", qualifiedName("integer_value"), intLiteral(1)))
+    );
+  }
+
+  @Test
+  void visit_span() {
+    assertAnalyzeEqual(
+        DSL.span(DSL.ref("integer_value", INTEGER), DSL.literal(1), ""),
+        AstDSL.span(qualifiedName("integer_value"), intLiteral(1), SpanUnit.NONE)
     );
   }
 
