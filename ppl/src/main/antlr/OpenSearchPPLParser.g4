@@ -361,5 +361,5 @@ keywordsCanBeId
     | statsFunctionName
     | TIMESTAMP | DATE | TIME
     | FIRST | LAST
-    | timespanUnit
+    | timespanUnit | SPAN
     ;
