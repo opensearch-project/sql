@@ -208,7 +208,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
         TEST_INDEX_BANK));
     verifySchema(response, schema("count()", null, "integer"), schema(
         "span(birthdate,1y)", null, "timestamp"));
-    verifyDataRows(response, rows(2, "2017-01-01 00:00:00", 5, "2018-01-01 00:00:00"));
+    verifyDataRows(response, rows(2, "2017-01-01 00:00:00"), rows(5, "2018-01-01 00:00:00"));
   }
 
   @Test
