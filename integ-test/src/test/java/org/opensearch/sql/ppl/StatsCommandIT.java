@@ -214,7 +214,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
   @Test
   public void testStatsAliasedSpan() throws IOException {
     JSONObject response = executeQuery(String.format(
-        "source=%s | stats count() by span(age,10) age_bucket",
+        "source=%s | stats count() by span(age,10) as age_bucket",
         TEST_INDEX_BANK));
     verifySchema(response, schema("count()", null, "integer"), schema("age_bucket", null, "integer"));
     verifyDataRows(response, rows(1, 20), rows(6, 30));
