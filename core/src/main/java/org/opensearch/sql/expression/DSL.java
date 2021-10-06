@@ -26,6 +26,7 @@
 
 package org.opensearch.sql.expression;
 
+import com.sun.tools.javac.util.List;
 import java.util.Arrays;
 import java.util.Collections;
 import lombok.RequiredArgsConstructor;
@@ -126,6 +127,10 @@ public class DSL {
 
   public static NamedAggregator named(String name, Aggregator aggregator) {
     return new NamedAggregator(name, aggregator);
+  }
+
+  public NamedArgumentExpression namedArgument(String argName, Expression value) {
+    return new NamedArgumentExpression(argName, value);
   }
 
   public FunctionExpression abs(Expression... expressions) {
@@ -649,5 +654,10 @@ public class DSL {
   public FunctionExpression castDatetime(Expression value) {
     return (FunctionExpression) repository
         .compile(BuiltinFunctionName.CAST_TO_DATETIME.getName(), Arrays.asList(value));
+  }
+
+  public FunctionExpression match(Expression... args) {
+    return (FunctionExpression) repository
+        .compile(BuiltinFunctionName.MATCH.getName(), Arrays.asList(args.clone()));
   }
 }
