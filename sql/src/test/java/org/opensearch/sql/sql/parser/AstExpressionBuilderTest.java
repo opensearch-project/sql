@@ -45,6 +45,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.timeLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.timestampLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.when;
 import static org.opensearch.sql.ast.dsl.AstDSL.window;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
@@ -429,6 +430,39 @@ class AstExpressionBuilderTest {
     assertEquals(
         aggregate("variance", qualifiedName("age")),
         buildExprAst("variance(age)"));
+  }
+
+  @Test
+  public void distinctCount() {
+    assertEquals(
+        AstDSL.distinctAggregate("count", qualifiedName("name")),
+        buildExprAst("count(distinct name)")
+    );
+  }
+
+  @Test
+  public void filteredDistinctCount() {
+    assertEquals(
+        AstDSL.filteredDistinctCount("count", qualifiedName("name"), function(
+            ">", qualifiedName("age"), intLiteral(30))),
+        buildExprAst("count(distinct name) filter(where age > 30)")
+    );
+  }
+
+  @Test
+  public void relevanceMatch() {
+    assertEquals(AstDSL.function("match",
+        unresolvedArg("field", stringLiteral("message")),
+        unresolvedArg("query", stringLiteral("search query"))),
+        buildExprAst("match(message, 'search query')")
+    );
+
+    assertEquals(AstDSL.function("match",
+        unresolvedArg("field", stringLiteral("message")),
+        unresolvedArg("query", stringLiteral("search query")),
+        unresolvedArg("analyzer", stringLiteral("keyword")),
+        unresolvedArg("operator", stringLiteral("AND"))),
+        buildExprAst("match(message, 'search query', analyzer='keyword', operator='AND')"));
   }
 
   private Node buildExprAst(String expr) {

@@ -32,6 +32,8 @@
 // clang-format off
 #include "opensearch_odbc.h"
 #include "mylog.h"
+#include <atomic>
+#include <mutex>
 #include <aws/core/utils/StringUtils.h>
 #include <aws/core/client/RetryStrategy.h>
 #include <aws/core/client/AWSClient.h>
@@ -120,6 +122,40 @@ static const std::string ERROR_RESPONSE_SCHEMA = R"EOF(
     ]
 }
 )EOF";
+
+namespace {
+    /**
+     * A helper class to initialize/shutdown AWS API once per DLL load/unload.
+     */
+    class AwsSdkHelper {
+      public:
+        AwsSdkHelper() :
+          m_reference_count(0) {
+        }
+
+        AwsSdkHelper& operator++() {
+          if (1 == ++m_reference_count) {
+            std::scoped_lock lock(m_mutex);
+            Aws::InitAPI(m_sdk_options);
+          }
+          return *this;
+        }
+
+        AwsSdkHelper& operator--() {
+          if (0 == --m_reference_count) {
+            std::scoped_lock lock(m_mutex);
+            Aws::ShutdownAPI(m_sdk_options);
+          }
+          return *this;
+        }
+
+        Aws::SDKOptions m_sdk_options;
+        std::atomic<int> m_reference_count;
+        std::mutex m_mutex;
+    };
+
+    AwsSdkHelper AWS_SDK_HELPER;
+}
 
 void OpenSearchCommunication::AwsHttpResponseToString(
     std::shared_ptr< Aws::Http::HttpResponse > response, std::string& output) {
@@ -237,13 +273,11 @@ OpenSearchCommunication::OpenSearchCommunication()
 #pragma clang diagnostic pop
 #endif  // __APPLE__
 {
-    LogMsg(OPENSEARCH_ALL, "Initializing Aws API.");
-    Aws::InitAPI(m_options);
+    ++AWS_SDK_HELPER;
 }
 
 OpenSearchCommunication::~OpenSearchCommunication() {
-    LogMsg(OPENSEARCH_ALL, "Shutting down Aws API.");
-    Aws::ShutdownAPI(m_options);
+    --AWS_SDK_HELPER;
 }
 
 std::string OpenSearchCommunication::GetErrorMessage() {

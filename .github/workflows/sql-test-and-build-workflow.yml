@@ -21,14 +21,14 @@ jobs:
       with:
         repository: 'opensearch-project/OpenSearch'
         path: OpenSearch
-        ref: '1.0'
+        ref: '1.1'
 
     - name: Build OpenSearch
       working-directory: ./OpenSearch
-      run: ./gradlew publishToMavenLocal -Dbuild.snapshot=false
+      run: ./gradlew publishToMavenLocal
     
     - name: Build with Gradle
-      run: ./gradlew build assemble
+      run: ./gradlew build assemble -Dopensearch.version=1.1.0-SNAPSHOT
 
     - name: Create Artifact Path
       run: |

@@ -51,6 +51,7 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedAttribute;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.When;
@@ -62,6 +63,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.NamedArgumentExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.AggregationState;
 import org.opensearch.sql.expression.aggregation.Aggregator;
@@ -161,8 +163,9 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
       Expression arg = node.getField().accept(this, context);
       Aggregator aggregator = (Aggregator) repository.compile(
               builtinFunctionName.get().getName(), Collections.singletonList(arg));
-      if (node.getCondition() != null) {
-        aggregator.condition(analyze(node.getCondition(), context));
+      aggregator.distinct(node.getDistinct());
+      if (node.condition() != null) {
+        aggregator.condition(analyze(node.condition(), context));
       }
       return aggregator;
     } else {
@@ -255,6 +258,11 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
   public Expression visitQualifiedName(QualifiedName node, AnalysisContext context) {
     QualifierAnalyzer qualifierAnalyzer = new QualifierAnalyzer(context);
     return visitIdentifier(qualifierAnalyzer.unqualified(node), context);
+  }
+
+  @Override
+  public Expression visitUnresolvedArgument(UnresolvedArgument node, AnalysisContext context) {
+    return new NamedArgumentExpression(node.getArgName(), node.getValue().accept(this, context));
   }
 
   private Expression visitIdentifier(String ident, AnalysisContext context) {

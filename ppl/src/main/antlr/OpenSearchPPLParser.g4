@@ -135,6 +135,7 @@ statsAggTerm
 statsFunction
     : statsFunctionName LT_PRTHS valueExpression RT_PRTHS           #statsFunctionCall
     | COUNT LT_PRTHS RT_PRTHS                                       #countAllFunctionCall
+    | (DISTINCT_COUNT | DC) LT_PRTHS valueExpression RT_PRTHS       #distinctCountFunctionCall
     | percentileAggFunction                                         #percentileAggFunctionCall
     ;
 
@@ -160,6 +161,7 @@ logicalExpression
     | left=logicalExpression (AND)? right=logicalExpression         #logicalAnd
     | left=logicalExpression XOR right=logicalExpression            #logicalXor
     | booleanExpression                                             #booleanExpr
+    | relevanceExpression                                           #relevanceExpr
     ;
 
 comparisonExpression
@@ -182,6 +184,12 @@ primaryExpression
 
 booleanExpression
     : booleanFunctionCall
+    ;
+
+relevanceExpression
+    : relevanceFunctionName LT_PRTHS
+        field=relevanceArgValue COMMA query=relevanceArgValue
+        (COMMA relevanceArg)* RT_PRTHS
     ;
 
 /** tables */
@@ -244,6 +252,21 @@ functionArg
     : valueExpression
     ;
 
+relevanceArg
+    : relevanceArgName EQUAL relevanceArgValue
+    ;
+
+relevanceArgName
+    : ANALYZER | FUZZINESS | AUTO_GENERATE_SYNONYMS_PHRASE_QUERY | MAX_EXPANSIONS | PREFIX_LENGTH
+    | FUZZY_TRANSPOSITIONS | FUZZY_REWRITE | LENIENT | OPERATOR | MINIMUM_SHOULD_MATCH | ZERO_TERMS_QUERY
+    | BOOST
+    ;
+
+relevanceArgValue
+    : qualifiedName
+    | literalValue
+    ;
+
 mathematicalFunctionBase
     : ABS | CEIL | CEILING | CONV | CRC32 | E | EXP | FLOOR | LN | LOG | LOG10 | LOG2 | MOD | PI |POW | POWER
     | RAND | ROUND | SIGN | SQRT | TRUNCATE
@@ -278,6 +301,10 @@ comparisonOperator
 
 binaryOperator
     : PLUS | MINUS | STAR | DIVIDE | MODULE
+    ;
+
+relevanceFunctionName
+    : MATCH
     ;
 
 /** literals and values*/

@@ -4,8 +4,8 @@ on: [pull_request, push]
 
 env: 
   PLUGIN_NAME: query-workbench-dashboards
-  OPENSEARCH_VERSION: '1.0'
-  OPENSEARCH_PLUGIN_VERSION: 1.0.0.0
+  OPENSEARCH_VERSION: '1.x'
+  OPENSEARCH_PLUGIN_VERSION: 1.1.0.0
 
 jobs:
 

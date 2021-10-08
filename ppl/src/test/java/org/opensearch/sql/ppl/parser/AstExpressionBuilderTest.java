@@ -30,6 +30,7 @@ import static java.util.Collections.emptyList;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
+import static org.opensearch.sql.ast.dsl.AstDSL.allFields;
 import static org.opensearch.sql.ast.dsl.AstDSL.and;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
@@ -37,6 +38,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.compare;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultFieldsArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultSortFieldArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultStatsArgs;
+import static org.opensearch.sql.ast.dsl.AstDSL.distinctAggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.doubleLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.equalTo;
 import static org.opensearch.sql.ast.dsl.AstDSL.eval;
@@ -57,6 +59,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.ast.dsl.AstDSL.sort;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.xor;
 
 import org.junit.Ignore;
@@ -461,6 +464,19 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testDistinctCount() {
+    assertEqual("source=t | stats distinct_count(a)",
+        agg(
+            relation("t"),
+            exprList(
+                alias("distinct_count(a)",
+                    distinctAggregate("count", field("a")))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+  }
+
+  @Test
   public void testEvalFuncCallExpr() {
     assertEqual("source=t | eval f=abs(a)",
         eval(
@@ -628,6 +644,22 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             relation("test"),
             defaultFieldsArgs(),
             field("timestamp")
+        )
+    );
+  }
+
+  @Test
+  public void canBuildRelevanceFunctionWithArguments() {
+    assertEqual(
+        "source=test | where match(message, 'test query', analyzer='keyword')",
+        filter(
+            relation("test"),
+            function(
+                "match",
+                unresolvedArg("field", stringLiteral("message")),
+                unresolvedArg("query", stringLiteral("test query")),
+                unresolvedArg("analyzer", stringLiteral("keyword"))
+            )
         )
     );
   }
