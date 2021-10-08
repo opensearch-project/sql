@@ -64,6 +64,7 @@ class ExpressionNodeVisitorTest {
         INTEGER)).accept(visitor, null));
     assertNull(new CaseClause(ImmutableList.of(), null).accept(visitor, null));
     assertNull(new WhenClause(literal("test"), literal(10)).accept(visitor, null));
+    assertNull(dsl.namedArgument("field", literal("message")).accept(visitor, null));
     assertNull(DSL.span(ref("age", INTEGER), literal(1), "").accept(visitor, null));
   }
 
