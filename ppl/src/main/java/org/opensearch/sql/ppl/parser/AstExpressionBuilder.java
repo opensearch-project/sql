@@ -50,12 +50,14 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalOrC
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalXorContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ParentheticBinaryArithmeticContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PercentileAggFunctionContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RelevanceExpressionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StringLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WcFieldExpressionContext;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.Collections;
@@ -80,6 +82,7 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -246,6 +249,13 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   @Override
+  public UnresolvedExpression visitRelevanceExpression(RelevanceExpressionContext ctx) {
+    return new Function(
+        ctx.relevanceFunctionName().getText().toLowerCase(),
+        relevanceArguments(ctx));
+  }
+
+  @Override
   public UnresolvedExpression visitTableSource(TableSourceContext ctx) {
     return visitIdentifiers(Arrays.asList(ctx));
   }
@@ -301,6 +311,20 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
             .map(StringUtils::unquoteIdentifier)
             .collect(Collectors.toList())
     );
+  }
+
+  private List<UnresolvedExpression> relevanceArguments(RelevanceExpressionContext ctx) {
+    // all the arguments are defaulted to string values
+    // to skip environment resolving and function signature resolving
+    ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
+    builder.add(new UnresolvedArgument("field",
+        new Literal(StringUtils.unquoteText(ctx.field.getText()), DataType.STRING)));
+    builder.add(new UnresolvedArgument("query",
+        new Literal(StringUtils.unquoteText(ctx.query.getText()), DataType.STRING)));
+    ctx.relevanceArg().forEach(v -> builder.add(new UnresolvedArgument(
+        v.relevanceArgName().getText().toLowerCase(), new Literal(StringUtils.unquoteText(
+        v.relevanceArgValue().getText()), DataType.STRING))));
+    return builder.build();
   }
 
 }
