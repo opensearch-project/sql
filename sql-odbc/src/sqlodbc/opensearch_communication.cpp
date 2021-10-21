@@ -545,6 +545,7 @@ bool OpenSearchCommunication::EstablishConnection() {
         InitializeConnection();
     }
 
+    // check if the endpoint is initialized
     if (sql_endpoint.empty()) {
         SetSqlEndpoint();
     }
@@ -942,6 +943,24 @@ std::string OpenSearchCommunication::GetServerDistribution() {
             if (doc.has("version") && doc["version"].has("distribution")) {
                 return doc["version"]["distribution"].as_string();
             }
+        } catch (const rabbit::type_mismatch& e) {
+            m_error_message = "Error parsing main endpoint response: "
+                              + std::string(e.what());
+            SetErrorDetails("Connection error", m_error_message,
+                            ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
+            LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
+        } catch (const rabbit::parse_error& e) {
+            m_error_message = "Error parsing main endpoint response: "
+                              + std::string(e.what());
+            SetErrorDetails("Connection error", m_error_message,
+                            ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
+            LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
+        } catch (const std::exception& e) {
+            m_error_message = "Error parsing main endpoint response: "
+                              + std::string(e.what());
+            SetErrorDetails("Connection error", m_error_message,
+                            ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
+            LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
         } catch (...) {
             LogMsg(OPENSEARCH_ERROR,
                    "Unknown exception thrown when parsing main endpoint "
