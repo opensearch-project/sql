@@ -78,6 +78,7 @@ class OpenSearchCommunication {
     static bool IsSQLPluginEnabled(std::shared_ptr< ErrorDetails > error_details);
     bool CheckSQLPluginAvailability();
     std::string GetServerVersion();
+    std::string GetServerDistribution();
     std::string GetClusterName();
     std::shared_ptr< Aws::Http::HttpResponse > IssueRequest(
         const std::string& endpoint, const Aws::Http::HttpMethod request_type,
@@ -90,6 +91,10 @@ class OpenSearchCommunication {
     void StopResultRetrieval();
     std::vector< std::string > GetColumnsWithSelectQuery(
         const std::string table_name);
+    void SetSqlEndpoint();
+
+    // the endpoint is set according to distribution (ES/OpenSearch)
+    std::string sql_endpoint;
 
    private:
     void InitializeConnection();
