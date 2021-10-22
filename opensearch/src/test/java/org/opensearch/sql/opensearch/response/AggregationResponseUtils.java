@@ -47,7 +47,9 @@ import org.opensearch.search.aggregations.bucket.composite.ParsedComposite;
 import org.opensearch.search.aggregations.bucket.filter.FilterAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.filter.ParsedFilter;
 import org.opensearch.search.aggregations.bucket.histogram.DateHistogramAggregationBuilder;
+import org.opensearch.search.aggregations.bucket.histogram.HistogramAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.histogram.ParsedDateHistogram;
+import org.opensearch.search.aggregations.bucket.histogram.ParsedHistogram;
 import org.opensearch.search.aggregations.bucket.terms.DoubleTerms;
 import org.opensearch.search.aggregations.bucket.terms.LongTerms;
 import org.opensearch.search.aggregations.bucket.terms.ParsedDoubleTerms;
@@ -87,6 +89,8 @@ public class AggregationResponseUtils {
               (p, c) -> ParsedPercentilesBucket.fromXContent(p, (String) c))
           .put(DateHistogramAggregationBuilder.NAME,
               (p, c) -> ParsedDateHistogram.fromXContent(p, (String) c))
+          .put(HistogramAggregationBuilder.NAME,
+              (p, c) -> ParsedHistogram.fromXContent(p, (String) c))
           .put(CompositeAggregationBuilder.NAME,
               (p, c) -> ParsedComposite.fromXContent(p, (String) c))
           .put(FilterAggregationBuilder.NAME,

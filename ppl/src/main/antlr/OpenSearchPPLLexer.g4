@@ -85,6 +85,7 @@ REGEXP:                             'REGEXP';
 DATETIME:                           'DATETIME';
 INTERVAL:                           'INTERVAL';
 MICROSECOND:                        'MICROSECOND';
+MILLISECOND:                        'MILLISECOND';
 SECOND:                             'SECOND';
 MINUTE:                             'MINUTE';
 HOUR:                               'HOUR';
@@ -269,6 +270,16 @@ OPERATOR:                           'OPERATOR';
 MINIMUM_SHOULD_MATCH:               'MINIMUM_SHOULD_MATCH';
 ZERO_TERMS_QUERY:                   'ZERO_TERMS_QUERY';
 BOOST:                              'BOOST';
+
+// SPAN KEYWORDS
+SPAN:                               'SPAN';
+MS:                                 'MS';
+S:                                  'S';
+M:                                  'M';
+H:                                  'H';
+W:                                  'W';
+Q:                                  'Q';
+Y:                                  'Y';
 
 
 // LITERALS AND VALUES

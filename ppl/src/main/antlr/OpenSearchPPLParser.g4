@@ -66,7 +66,7 @@ statsCommand
     (ALLNUM EQUAL allnum=booleanLiteral)?
     (DELIM EQUAL delim=stringLiteral)?
     statsAggTerm (COMMA statsAggTerm)*
-    (byClause)?
+    (byClause | bySpanClause)?
     (DEDUP_SPLITVALUES EQUAL dedupsplit=booleanLiteral)?
     ;
 
@@ -116,6 +116,14 @@ renameClasue
 
 byClause
     : BY fieldList
+    ;
+
+bySpanClause
+    : BY spanClause (AS alias=qualifiedName)?
+    ;
+
+spanClause
+    : SPAN LT_PRTHS fieldExpression COMMA value=literalValue (unit=timespanUnit)? RT_PRTHS
     ;
 
 sortbyClause
@@ -342,6 +350,11 @@ intervalUnit
     | DAY_SECOND | DAY_MINUTE | DAY_HOUR | YEAR_MONTH
     ;
 
+timespanUnit
+    : MS | S | M | H | D | W | Q | Y
+    | MILLISECOND | SECOND | MINUTE | HOUR | DAY | WEEK | MONTH | QUARTER | YEAR
+    ;
+
 
 valueList
     : LT_PRTHS literalValue (COMMA literalValue)* RT_PRTHS
@@ -374,4 +387,5 @@ keywordsCanBeId
     | statsFunctionName
     | TIMESTAMP | DATE | TIME
     | FIRST | LAST
+    | timespanUnit | SPAN
     ;

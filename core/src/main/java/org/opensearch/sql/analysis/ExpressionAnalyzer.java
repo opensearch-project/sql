@@ -51,6 +51,7 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedAttribute;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
@@ -64,6 +65,7 @@ import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
+import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.AggregationState;
 import org.opensearch.sql.expression.aggregation.Aggregator;
@@ -72,6 +74,7 @@ import org.opensearch.sql.expression.conditional.cases.WhenClause;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.expression.window.aggregation.AggregateWindowFunction;
 
 /**
@@ -258,6 +261,14 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
   public Expression visitQualifiedName(QualifiedName node, AnalysisContext context) {
     QualifierAnalyzer qualifierAnalyzer = new QualifierAnalyzer(context);
     return visitIdentifier(qualifierAnalyzer.unqualified(node), context);
+  }
+
+  @Override
+  public Expression visitSpan(Span node, AnalysisContext context) {
+    return new SpanExpression(
+        node.getField().accept(this, context),
+        node.getValue().accept(this, context),
+        node.getUnit());
   }
 
   @Override

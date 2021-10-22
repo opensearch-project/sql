@@ -206,6 +206,39 @@ Example::
     | 2.8613807855648994 |
     +--------------------+
 
+
+By Clause
+=========
+
+The by clause could be the fields and expressions like scalar functions and aggregation functions. Besides, the span clause can also be used in the by clause to split specific field into buckets in the same interval, the stats then does the aggregation by these span buckets.
+
+The span syntax is ``span(field_expr, interval_expr)``, the unit of the interval expression is the natural unit by default. If the field is a date and time type field, and the interval is in date/time units, you will need to specify the unit in the interval expression. For example, to split the field ``age`` into buckets by 10 years, it looks like ``span(age, 10)``. And here is another example of time span, the span to split a ``timestamp`` field into hourly intervals, it looks like ``span(timestamp, 1h)``.
+
+Available time unit:
+
++----------------------------+
+| Span Interval Units        |
++============================+
+| millisecond (ms)           |
++----------------------------+
+| second (s)                 |
++----------------------------+
+| minute (m, case sensitive) |
++----------------------------+
+| hour (h)                   |
++----------------------------+
+| day (d)                    |
++----------------------------+
+| week (w)                   |
++----------------------------+
+| month (M, case sensitive)  |
++----------------------------+
+| quarter (q)                |
++----------------------------+
+| year (y)                   |
++----------------------------+
+
+
 Example 1: Calculate the count of events
 ========================================
 
@@ -316,4 +349,20 @@ PPL query::
     |-----------------+--------------------------|
     | 4               | 2                        |
     +-----------------+--------------------------+
+
+Example 8: Calculate the count by a span
+========================================
+
+The example gets the count of age by the interval of 10 years.
+
+PPL query::
+
+    os> source=accounts | stats count(age) by span(age, 10) as age_span
+    fetched rows / total rows = 2/2
+    +--------------+------------+
+    | count(age)   | age_span   |
+    |--------------+------------|
+    | 1            | 20         |
+    | 3            | 30         |
+    +--------------+------------+
 

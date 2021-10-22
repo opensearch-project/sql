@@ -86,7 +86,8 @@ public class ExprValueUtils {
    */
   public static ExprValue tupleValue(Map<String, Object> map) {
     LinkedHashMap<String, ExprValue> valueMap = new LinkedHashMap<>();
-    map.forEach((k, v) -> valueMap.put(k, fromObjectValue(v)));
+    map.forEach((k, v) -> valueMap
+        .put(k, v instanceof ExprValue ? (ExprValue) v : fromObjectValue(v)));
     return new ExprTupleValue(valueMap);
   }
 

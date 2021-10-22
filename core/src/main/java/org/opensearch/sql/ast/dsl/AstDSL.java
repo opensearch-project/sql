@@ -50,6 +50,8 @@ import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.Span;
+import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedAttribute;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
@@ -379,6 +381,10 @@ public class AstDSL {
 
   public static List<Argument> defaultSortFieldArgs() {
     return exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()));
+  }
+
+  public static Span span(UnresolvedExpression field, UnresolvedExpression value, SpanUnit unit) {
+    return new Span(field, value, unit);
   }
 
   public static Sort sort(UnresolvedPlan input, Field... sorts) {
