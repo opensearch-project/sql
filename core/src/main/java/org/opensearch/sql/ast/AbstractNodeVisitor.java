@@ -46,6 +46,7 @@ import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedAttribute;
 import org.opensearch.sql.ast.expression.When;
@@ -247,6 +248,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitLimit(Limit node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitSpan(Span node, C context) {
     return visitChildren(node, context);
   }
 }

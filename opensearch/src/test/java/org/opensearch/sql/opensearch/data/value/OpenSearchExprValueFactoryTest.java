@@ -125,18 +125,21 @@ class OpenSearchExprValueFactoryTest {
   public void constructByte() {
     assertEquals(byteValue((byte) 1), tupleValue("{\"byteV\":1}").get("byteV"));
     assertEquals(byteValue((byte) 1), constructFromObject("byteV", 1));
+    assertEquals(byteValue((byte) 1), constructFromObject("byteV", "1.0"));
   }
 
   @Test
   public void constructShort() {
     assertEquals(shortValue((short) 1), tupleValue("{\"shortV\":1}").get("shortV"));
     assertEquals(shortValue((short) 1), constructFromObject("shortV", 1));
+    assertEquals(shortValue((short) 1), constructFromObject("shortV", "1.0"));
   }
 
   @Test
   public void constructInteger() {
     assertEquals(integerValue(1), tupleValue("{\"intV\":1}").get("intV"));
     assertEquals(integerValue(1), constructFromObject("intV", 1));
+    assertEquals(integerValue(1), constructFromObject("intV", "1.0"));
   }
 
   @Test
@@ -148,6 +151,7 @@ class OpenSearchExprValueFactoryTest {
   public void constructLong() {
     assertEquals(longValue(1L), tupleValue("{\"longV\":1}").get("longV"));
     assertEquals(longValue(1L), constructFromObject("longV", 1L));
+    assertEquals(longValue(1L), constructFromObject("longV", "1.0"));
   }
 
   @Test

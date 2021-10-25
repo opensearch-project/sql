@@ -85,6 +85,7 @@ REGEXP:                             'REGEXP';
 DATETIME:                           'DATETIME';
 INTERVAL:                           'INTERVAL';
 MICROSECOND:                        'MICROSECOND';
+MILLISECOND:                        'MILLISECOND';
 SECOND:                             'SECOND';
 MINUTE:                             'MINUTE';
 HOUR:                               'HOUR';
@@ -254,6 +255,31 @@ ISNOTNULL:                          'ISNOTNULL';
 IFNULL:                             'IFNULL';
 NULLIF:                             'NULLIF';
 IF:                                 'IF';
+
+// RELEVANCE FUNCTIONS AND PARAMETERS
+MATCH:                              'MATCH';
+ANALYZER:                           'ANALYZER';
+FUZZINESS:                          'FUZZINESS';
+AUTO_GENERATE_SYNONYMS_PHRASE_QUERY:'AUTO_GENERATE_SYNONYMS_PHRASE_QUERY';
+MAX_EXPANSIONS:                     'MAX_EXPANSIONS';
+PREFIX_LENGTH:                      'PREFIX_LENGTH';
+FUZZY_TRANSPOSITIONS:               'FUZZY_TRANSPOSITIONS';
+FUZZY_REWRITE:                      'FUZZY_REWRITE';
+LENIENT:                            'LENIENT';
+OPERATOR:                           'OPERATOR';
+MINIMUM_SHOULD_MATCH:               'MINIMUM_SHOULD_MATCH';
+ZERO_TERMS_QUERY:                   'ZERO_TERMS_QUERY';
+BOOST:                              'BOOST';
+
+// SPAN KEYWORDS
+SPAN:                               'SPAN';
+MS:                                 'MS';
+S:                                  'S';
+M:                                  'M';
+H:                                  'H';
+W:                                  'W';
+Q:                                  'Q';
+Y:                                  'Y';
 
 
 // LITERALS AND VALUES

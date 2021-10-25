@@ -55,6 +55,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.rareTopN;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.ast.dsl.AstDSL.rename;
 import static org.opensearch.sql.ast.dsl.AstDSL.sort;
+import static org.opensearch.sql.ast.dsl.AstDSL.span;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 
 import org.junit.Ignore;
@@ -62,6 +63,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.opensearch.sql.ast.Node;
+import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 
@@ -282,6 +284,65 @@ public class AstBuilderTest {
             ),
             emptyList(),
             emptyList(),
+            defaultStatsArgs()
+        ));
+  }
+
+  @Test
+  public void testStatsCommandWithSpan() {
+    assertEqual("source=t | stats avg(price) by span(timestamp, 1h)",
+        agg(
+            relation("t"),
+            exprList(
+                alias("avg(price)", aggregate("avg", field("price")))
+            ),
+            emptyList(),
+            exprList(
+                alias("span(timestamp,1h)", span(field("timestamp"), intLiteral(1), SpanUnit.H))
+            ),
+            defaultStatsArgs()
+        ));
+
+    assertEqual("source=t | stats count(a) by span(age, 10)",
+        agg(
+            relation("t"),
+            exprList(
+                alias("count(a)", aggregate("count", field("a")))
+            ),
+            emptyList(),
+            exprList(
+                alias("span(age,10)", span(field("age"), intLiteral(10), SpanUnit.NONE))
+            ),
+            defaultStatsArgs()
+        ));
+  }
+
+  @Test
+  public void testStatsSpanWithAlias() {
+    assertEqual("source=t | stats avg(price) by span(timestamp, 1h) as time_span",
+        agg(
+            relation("t"),
+            exprList(
+                alias("avg(price)", aggregate("avg", field("price")))
+            ),
+            emptyList(),
+            exprList(
+                alias("span(timestamp,1h)", span(
+                    field("timestamp"), intLiteral(1), SpanUnit.H), "time_span")
+            ),
+            defaultStatsArgs()
+        ));
+
+    assertEqual("source=t | stats count(a) by span(age, 10) as numeric_span",
+        agg(
+            relation("t"),
+            exprList(
+                alias("count(a)", aggregate("count", field("a")))
+            ),
+            emptyList(),
+            exprList(alias("span(age,10)", span(
+                field("age"), intLiteral(10), SpanUnit.NONE), "numeric_span")
+            ),
             defaultStatsArgs()
         ));
   }

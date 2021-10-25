@@ -28,10 +28,12 @@
 package org.opensearch.sql.expression;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.expression.span.SpanExpression;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class NamedExpressionTest extends ExpressionTestBase {
@@ -60,6 +62,13 @@ class NamedExpressionTest extends ExpressionTestBase {
 
     NamedExpression namedExpression = DSL.named(expression);
     assertEquals("ten", namedExpression.getNameOrAlias());
+  }
+
+  @Test
+  void name_a_span_expression() {
+    SpanExpression span = DSL.span(DSL.ref("integer_value", INTEGER), DSL.literal(1), "");
+    NamedExpression named = DSL.named(span);
+    assertEquals(span, named.getDelegated());
   }
 
 }

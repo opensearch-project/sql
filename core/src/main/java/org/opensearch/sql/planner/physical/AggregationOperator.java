@@ -26,28 +26,20 @@
 
 package org.opensearch.sql.planner.physical;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
-import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.ToString;
-import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedExpression;
-import org.opensearch.sql.expression.aggregation.AggregationState;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.expression.span.SpanExpression;
+import org.opensearch.sql.planner.physical.bucket.Group;
+import org.opensearch.sql.planner.physical.bucket.SpanBucket;
 import org.opensearch.sql.storage.bindingtuple.BindingTuple;
 
 /**
@@ -80,7 +72,8 @@ public class AggregationOperator extends PhysicalPlan {
     this.input = input;
     this.aggregatorList = aggregatorList;
     this.groupByExprList = groupByExprList;
-    this.group = new Group();
+    this.group = groupBySpan(groupByExprList) ? new SpanBucket(aggregatorList, groupByExprList)
+        : new Group(aggregatorList, groupByExprList);
   }
 
   @Override
@@ -113,79 +106,9 @@ public class AggregationOperator extends PhysicalPlan {
     iterator = group.result().iterator();
   }
 
-  @VisibleForTesting
-  @RequiredArgsConstructor
-  public class Group {
-
-    private final Map<GroupKey, List<Map.Entry<NamedAggregator, AggregationState>>> groupListMap =
-        new HashMap<>();
-
-    /**
-     * Push the BindingTuple to Group. Two functions will be applied to each BindingTuple to
-     * generate the {@link GroupKey} and {@link AggregationState}
-     * Key = GroupKey(bindingTuple), State = Aggregator(bindingTuple)
-     */
-    public void push(ExprValue inputValue) {
-      GroupKey groupKey = new GroupKey(inputValue);
-      groupListMap.computeIfAbsent(groupKey, k ->
-          aggregatorList.stream()
-              .map(aggregator -> new AbstractMap.SimpleEntry<>(aggregator,
-                  aggregator.create()))
-              .collect(Collectors.toList())
-      );
-      groupListMap.computeIfPresent(groupKey, (key, aggregatorList) -> {
-        aggregatorList
-            .forEach(entry -> entry.getKey().iterate(inputValue.bindingTuples(), entry.getValue()));
-        return aggregatorList;
-      });
-    }
-
-    /**
-     * Get the list of {@link BindingTuple} for each group.
-     */
-    public List<ExprValue> result() {
-      ImmutableList.Builder<ExprValue> resultBuilder = new ImmutableList.Builder<>();
-      for (Map.Entry<GroupKey, List<Map.Entry<NamedAggregator, AggregationState>>>
-          entry : groupListMap.entrySet()) {
-        LinkedHashMap<String, ExprValue> map = new LinkedHashMap<>();
-        map.putAll(entry.getKey().groupKeyMap());
-        for (Map.Entry<NamedAggregator, AggregationState> stateEntry : entry.getValue()) {
-          map.put(stateEntry.getKey().getName(), stateEntry.getValue().result());
-        }
-        resultBuilder.add(ExprTupleValue.fromExprValueMap(map));
-      }
-      return resultBuilder.build();
-    }
+  private boolean groupBySpan(List<NamedExpression> namedExpressionList) {
+    return namedExpressionList.size() == 1
+        && namedExpressionList.get(0).getDelegated() instanceof SpanExpression;
   }
 
-  /**
-   * Group Key.
-   */
-  @EqualsAndHashCode
-  @VisibleForTesting
-  public class GroupKey {
-
-    private final List<ExprValue> groupByValueList;
-
-    /**
-     * GroupKey constructor.
-     */
-    public GroupKey(ExprValue value) {
-      this.groupByValueList = new ArrayList<>();
-      for (Expression groupExpr : groupByExprList) {
-        this.groupByValueList.add(groupExpr.valueOf(value.bindingTuples()));
-      }
-    }
-
-    /**
-     * Return the Map of group field and group field value.
-     */
-    public LinkedHashMap<String, ExprValue> groupKeyMap() {
-      LinkedHashMap<String, ExprValue> map = new LinkedHashMap<>();
-      for (int i = 0; i < groupByExprList.size(); i++) {
-        map.put(groupByExprList.get(i).getNameOrAlias(), groupByValueList.get(i));
-      }
-      return map;
-    }
-  }
 }

@@ -44,13 +44,6 @@
 // clang-format on
 
 static const std::string ctype = "application/json";
-static const std::string SQL_ENDPOINT_FORMAT_JDBC =
-    "/_plugins/_sql?format=jdbc";
-static const std::string SQL_ENDPOINT_FORMAT_RAW =
-    "/_plugins/_sql?format=raw";
-static const std::string SQL_ENDPOINT_CLOSE_CURSOR = "/_plugins/_sql/close";
-static const std::string PLUGIN_ENDPOINT_FORMAT_JSON =
-    "/_cat/plugins?format=json";
 static const std::string ALLOCATION_TAG = "AWS_SIGV4_AUTH";
 static const std::string SERVICE_NAME = "es";
 static const std::string ESODBC_PROFILE_NAME = "opensearchodbc";
@@ -481,10 +474,10 @@ bool OpenSearchCommunication::IsSQLPluginEnabled(std::shared_ptr< ErrorDetails >
 
 bool OpenSearchCommunication::CheckSQLPluginAvailability() {
     LogMsg(OPENSEARCH_ALL, "Checking for SQL plugin status.");
-    std::string test_query = "SELECT 1";
+    std::string test_query = "SHOW TABLES LIKE %";
     try {
         std::shared_ptr< Aws::Http::HttpResponse > response =
-            IssueRequest(SQL_ENDPOINT_FORMAT_RAW,
+            IssueRequest(sql_endpoint,
                          Aws::Http::HttpMethod::HTTP_POST, ctype, test_query);
         if (response == nullptr) {
             m_error_message =
@@ -552,6 +545,11 @@ bool OpenSearchCommunication::EstablishConnection() {
         InitializeConnection();
     }
 
+    // check if the endpoint is initialized
+    if (sql_endpoint.empty()) {
+        SetSqlEndpoint();
+    }
+
     // Check whether SQL plugin has been installed and enabled in the
     // OpenSearch server since the SQL plugin is a prerequisite to
     // use this driver.
@@ -580,7 +578,7 @@ std::vector< std::string > OpenSearchCommunication::GetColumnsWithSelectQuery(
 
     // Issue request
     std::shared_ptr< Aws::Http::HttpResponse > response =
-        IssueRequest(SQL_ENDPOINT_FORMAT_JDBC, Aws::Http::HttpMethod::HTTP_POST,
+        IssueRequest(sql_endpoint, Aws::Http::HttpMethod::HTTP_POST,
                      ctype, query);
 
     // Validate response
@@ -654,7 +652,7 @@ int OpenSearchCommunication::ExecDirect(const char* query, const char* fetch_siz
 
     // Issue request
     std::shared_ptr< Aws::Http::HttpResponse > response =
-        IssueRequest(SQL_ENDPOINT_FORMAT_JDBC, Aws::Http::HttpMethod::HTTP_POST,
+        IssueRequest(sql_endpoint, Aws::Http::HttpMethod::HTTP_POST,
                      ctype, statement, fetch_size);
 
     // Validate response
@@ -733,7 +731,7 @@ void OpenSearchCommunication::SendCursorQueries(std::string cursor) {
     try {
         while (!cursor.empty() && m_is_retrieving) {
             std::shared_ptr< Aws::Http::HttpResponse > response = IssueRequest(
-                SQL_ENDPOINT_FORMAT_JDBC, Aws::Http::HttpMethod::HTTP_POST,
+                sql_endpoint, Aws::Http::HttpMethod::HTTP_POST,
                 ctype, "", "", cursor);
             if (response == nullptr) {
                 m_error_message =
@@ -782,7 +780,7 @@ void OpenSearchCommunication::SendCursorQueries(std::string cursor) {
 
 void OpenSearchCommunication::SendCloseCursorRequest(const std::string& cursor) {
     std::shared_ptr< Aws::Http::HttpResponse > response =
-        IssueRequest(SQL_ENDPOINT_CLOSE_CURSOR,
+        IssueRequest(sql_endpoint + "/close",
                      Aws::Http::HttpMethod::HTTP_POST, ctype, "", "", cursor);
     if (response == nullptr) {
         m_error_message =
@@ -919,6 +917,60 @@ std::string OpenSearchCommunication::GetServerVersion() {
     return "";
 }
 
+std::string OpenSearchCommunication::GetServerDistribution() {
+    if (!m_http_client) {
+        InitializeConnection();
+    }
+
+    std::shared_ptr< Aws::Http::HttpResponse > response =
+        IssueRequest("", Aws::Http::HttpMethod::HTTP_GET, "", "", "");
+    if (response == nullptr) {
+        m_error_message =
+            "Failed to receive response from server version query. "
+            "Received NULL response.";
+        SetErrorDetails("Connection error", m_error_message,
+                        ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
+        LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
+        return "";
+    }
+
+    // Parse server version distribution
+    if (response->GetResponseCode() == Aws::Http::HttpResponseCode::OK) {
+        try {
+            AwsHttpResponseToString(response, m_response_str);
+            rabbit::document doc;
+            doc.parse(m_response_str);
+            if (doc.has("version") && doc["version"].has("distribution")) {
+                return doc["version"]["distribution"].as_string();
+            }
+        } catch (const rabbit::type_mismatch& e) {
+            m_error_message = "Error parsing main endpoint response: "
+                              + std::string(e.what());
+            SetErrorDetails("Connection error", m_error_message,
+                            ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
+            LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
+        } catch (const rabbit::parse_error& e) {
+            m_error_message = "Error parsing main endpoint response: "
+                              + std::string(e.what());
+            SetErrorDetails("Connection error", m_error_message,
+                            ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
+            LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
+        } catch (const std::exception& e) {
+            m_error_message = "Error parsing main endpoint response: "
+                              + std::string(e.what());
+            SetErrorDetails("Connection error", m_error_message,
+                            ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
+            LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
+        } catch (...) {
+            LogMsg(OPENSEARCH_ERROR,
+                   "Unknown exception thrown when parsing main endpoint "
+                   "response.");
+        }
+    }
+    LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
+    return "";
+}
+
 std::string OpenSearchCommunication::GetClusterName() {
     if (!m_http_client) {
         InitializeConnection();
@@ -973,4 +1025,13 @@ std::string OpenSearchCommunication::GetClusterName() {
     }
     LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
     return "";
+}
+
+void OpenSearchCommunication::SetSqlEndpoint() {
+    std::string distribution = GetServerDistribution();
+    if (distribution.compare("opensearch") == 0) {
+        sql_endpoint = "/_plugins/_sql";
+    } else {
+        sql_endpoint = "/_opendistro/_sql";
+    }
 }

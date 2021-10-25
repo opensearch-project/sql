@@ -187,7 +187,19 @@ public enum BuiltinFunctionName {
   CAST_TO_DATE(FunctionName.of("cast_to_date")),
   CAST_TO_TIME(FunctionName.of("cast_to_time")),
   CAST_TO_TIMESTAMP(FunctionName.of("cast_to_timestamp")),
-  CAST_TO_DATETIME(FunctionName.of("cast_to_datetime"));
+  CAST_TO_DATETIME(FunctionName.of("cast_to_datetime")),
+
+  /**
+   * Relevance Function.
+   */
+  MATCH(FunctionName.of("match")),
+
+  /**
+   * Legacy Relevance Function.
+   */
+  QUERY(FunctionName.of("query")),
+  MATCH_QUERY(FunctionName.of("match_query")),
+  MATCHQUERY(FunctionName.of("matchquery"));
 
   private final FunctionName name;
 

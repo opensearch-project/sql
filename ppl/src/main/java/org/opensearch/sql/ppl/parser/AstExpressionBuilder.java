@@ -32,6 +32,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NULL
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BinaryArithmeticContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BySpanClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CompareExprContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CountAllFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
@@ -50,12 +51,15 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalOrC
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalXorContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ParentheticBinaryArithmeticContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PercentileAggFunctionContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RelevanceExpressionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SpanClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StringLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WcFieldExpressionContext;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.Collections;
@@ -64,7 +68,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
+import org.antlr.v4.runtime.Token;
 import org.opensearch.sql.ast.expression.AggregateFunction;
+import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
@@ -80,9 +86,13 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.Span;
+import org.opensearch.sql.ast.expression.SpanUnit;
+import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
 
@@ -246,6 +256,13 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   @Override
+  public UnresolvedExpression visitRelevanceExpression(RelevanceExpressionContext ctx) {
+    return new Function(
+        ctx.relevanceFunctionName().getText().toLowerCase(),
+        relevanceArguments(ctx));
+  }
+
+  @Override
   public UnresolvedExpression visitTableSource(TableSourceContext ctx) {
     return visitIdentifiers(Arrays.asList(ctx));
   }
@@ -294,6 +311,19 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return new Literal(Boolean.valueOf(ctx.getText()), DataType.BOOLEAN);
   }
 
+  @Override
+  public UnresolvedExpression visitBySpanClause(BySpanClauseContext ctx) {
+    String name = ctx.spanClause().getText();
+    return ctx.alias != null ? new Alias(name, visit(ctx.spanClause()), StringUtils
+        .unquoteIdentifier(ctx.alias.getText())) : new Alias(name, visit(ctx.spanClause()));
+  }
+
+  @Override
+  public UnresolvedExpression visitSpanClause(SpanClauseContext ctx) {
+    String unit = ctx.unit != null ? ctx.unit.getText() : "";
+    return new Span(visit(ctx.fieldExpression()), visit(ctx.value), SpanUnit.of(unit));
+  }
+
   private QualifiedName visitIdentifiers(List<? extends ParserRuleContext> ctx) {
     return new QualifiedName(
         ctx.stream()
@@ -301,6 +331,20 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
             .map(StringUtils::unquoteIdentifier)
             .collect(Collectors.toList())
     );
+  }
+
+  private List<UnresolvedExpression> relevanceArguments(RelevanceExpressionContext ctx) {
+    // all the arguments are defaulted to string values
+    // to skip environment resolving and function signature resolving
+    ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
+    builder.add(new UnresolvedArgument("field",
+        new Literal(StringUtils.unquoteText(ctx.field.getText()), DataType.STRING)));
+    builder.add(new UnresolvedArgument("query",
+        new Literal(StringUtils.unquoteText(ctx.query.getText()), DataType.STRING)));
+    ctx.relevanceArg().forEach(v -> builder.add(new UnresolvedArgument(
+        v.relevanceArgName().getText().toLowerCase(), new Literal(StringUtils.unquoteText(
+        v.relevanceArgValue().getText()), DataType.STRING))));
+    return builder.build();
   }
 
 }
