@@ -75,6 +75,7 @@ import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.RawResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
+import org.opensearch.sql.protocol.response.format.VisualizationResponseFormatter;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 public class RestPPLQueryAction extends BaseRestHandler {
@@ -221,6 +222,8 @@ public class RestPPLQueryAction extends BaseRestHandler {
       formatter = new CsvResponseFormatter(pplRequest.sanitize());
     } else if (format.equals(Format.RAW)) {
       formatter = new RawResponseFormatter();
+    } else if (format.equals(Format.VIZ)) {
+      formatter = new VisualizationResponseFormatter(pplRequest.style());
     } else {
       formatter = new SimpleJsonResponseFormatter(PRETTY);
     }
