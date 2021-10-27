@@ -112,7 +112,7 @@ public class VisualizationResponseFormatterTest {
   }
 
   @Test
-  void ServerError() {
+  void serverError() {
     assertJsonEquals(
         "{\"error\":"
             + "{\""
