@@ -61,7 +61,7 @@ ext {
 }
 
 allprojects {
-    version = opensearch_version - "-SNAPSHOT" + ".0"
+    version = opensearch_version - "-SNAPSHOT" + ".1"
     if (isSnapshot) {
         version += "-SNAPSHOT"
     }
