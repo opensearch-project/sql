@@ -28,6 +28,38 @@ import org.opensearch.sql.opensearch.response.error.ErrorMessage;
 import org.opensearch.sql.opensearch.response.error.ErrorMessageFactory;
 import org.opensearch.sql.protocol.response.QueryResult;
 
+/**
+ * Visualization response formats the data in columns. For example:
+ *
+ * <pre>
+ *  {
+ *    "data": {
+ *      "name": [
+ *        "John",
+ *        "Amber"
+ *      ],
+ *      "age": [
+ *        26,
+ *        28
+ *      ]
+ *    },
+ *    "metadata": {
+ *      "fields": [
+ *        {
+ *          "name": "name",
+ *          "type": "string"
+ *        },
+ *        {
+ *          "name": "age",
+ *          "type": "integer"
+ *        }
+ *      ]
+ *    },
+ *    "size": 2,
+ *    "status": 200
+ *  }
+ * </pre>
+ */
 public class VisualizationResponseFormatter extends JsonResponseFormatter<QueryResult> {
   public VisualizationResponseFormatter(Style style) {
     super(style);
@@ -35,12 +67,12 @@ public class VisualizationResponseFormatter extends JsonResponseFormatter<QueryR
 
   @Override
   protected Object buildJsonObject(QueryResult response) {
-    return jsonify(VisualizationResponse.builder()
+    return VisualizationResponse.builder()
         .data(fetchData(response))
         .metadata(constructMetadata(response))
         .size(response.size())
         .status(200)
-        .build());
+        .build();
   }
 
   @Override
