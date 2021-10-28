@@ -8,7 +8,6 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 1.1.0
 * Support ODBC compatibility with ODFE SQL ([#238](https://github.com/opensearch-project/sql/pull/238))
 * Support span aggregation in query engine ([#220](https://github.com/opensearch-project/sql/pull/220))
 
-
 ### Bug Fixes
 * Fix PPL request concurrency handling issue ([#207](https://github.com/opensearch-project/sql/pull/207))
 * Changed the ODBC mac installer build platform to MacOS 10.15 from latest ([#230](https://github.com/opensearch-project/sql/pull/230))
