@@ -37,7 +37,8 @@ import lombok.RequiredArgsConstructor;
 public enum Format {
   JDBC("jdbc"),
   CSV("csv"),
-  RAW("raw");
+  RAW("raw"),
+  VIZ("viz");
 
   @Getter
   private final String formatName;

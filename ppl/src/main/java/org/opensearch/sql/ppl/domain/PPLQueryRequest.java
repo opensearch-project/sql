@@ -34,6 +34,7 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.json.JSONObject;
 import org.opensearch.sql.protocol.response.format.Format;
+import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 
 @RequiredArgsConstructor
 public class PPLQueryRequest {
@@ -48,6 +49,11 @@ public class PPLQueryRequest {
   @Getter
   @Accessors(fluent = true)
   private boolean sanitize = true;
+
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
+  private JsonResponseFormatter.Style style = JsonResponseFormatter.Style.COMPACT;
 
   /**
    * Constructor of PPLQueryRequest.
