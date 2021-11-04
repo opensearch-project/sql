@@ -65,7 +65,6 @@ public class ComparisonTestTest {
 
   @Before
   public void setUp() {
-    when(openSearchConnection.getDatabaseName()).thenReturn("OpenSearch");
     when(otherDbConnection.getDatabaseName()).thenReturn("Other");
     correctnessTest = new ComparisonTest(
         openSearchConnection, new DBConnection[] {otherDbConnection}
@@ -119,7 +118,6 @@ public class ComparisonTestTest {
     DBResult anotherDbResult = new DBResult("Another DB", asList(new Type("firstname", "text")),
         asList(new Row(asList("John"))));
     when(openSearchConnection.select(anyString())).thenReturn(openSearchResult);
-    when(otherDbConnection.select(anyString())).thenReturn(otherDbResult);
     when(anotherDbConnection.select(anyString())).thenReturn(anotherDbResult);
 
     TestReport expected = new TestReport();
@@ -191,8 +189,6 @@ public class ComparisonTestTest {
     when(openSearchConnection.select(anyString())).thenReturn(
         new DBResult("OpenSearch", asList(new Type("firstname", "text")), asList(new Row(asList("John"))))
     );
-    when(otherDbConnection.select(anyString()))
-        .thenThrow(new RuntimeException("Unsupported feature"));
     when(anotherDbConnection.select(anyString())).thenReturn(
         new DBResult("Another DB", asList(new Type("firstname", "text")),
             asList(new Row(asList("John"))))

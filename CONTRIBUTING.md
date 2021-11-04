@@ -39,7 +39,7 @@ If you would like to contribute to the documentation, please do so in the [docum
 
 As with other types of contributions, the first step is to [**open an issue on GitHub**](https://github.com/opensearch-project/sql/issues/new/choose). Opening an issue before you make changes makes sure that someone else isn't already working on that particular problem. It also lets us all work together to find the right approach before you spend a bunch of time on a PR. So again, when in doubt, open an issue.
 
-Once you've opened an issue, check out our [Developer Guide](./DEVELOPER_GUIDE.md) for instructions on how to get started.
+Once you've opened an issue, check out our [Developer Guide](./DEVELOPER_GUIDE.rst) for instructions on how to get started.
 
 ## Developer Certificate of Origin
 
