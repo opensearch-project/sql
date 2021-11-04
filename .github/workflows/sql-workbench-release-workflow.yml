@@ -7,7 +7,7 @@ on:
 
 env: 
   PLUGIN_NAME: query-workbench-dashboards
-  OPENSEARCH_VERSION: '1.x'
+  OPENSEARCH_VERSION: '1.2'
   OPENSEARCH_PLUGIN_VERSION: 1.2.0.0
 
 jobs:
