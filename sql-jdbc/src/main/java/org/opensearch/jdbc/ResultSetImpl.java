@@ -595,8 +595,11 @@ public class ResultSetImpl implements ResultSet, JdbcWrapper, LoggingSource {
     }
 
     protected <T> T getObjectX(int columnIndex, Class<T> javaClass, Map<String, Object> conversionParams) throws SQLException {
-        Object value = getColumn(columnIndex);
-        TypeConverter tc = TypeConverters.getInstance(getColumnMetaData(columnIndex).getOpenSearchType().getJdbcType());
+        final Object value = getColumn(columnIndex);
+        final TypeConverter tc = TypeConverters.getInstance(getColumnMetaData(columnIndex).getOpenSearchType().getJdbcType());
+        if (null == tc) {
+            throw new SQLException("Conversion from " + getColumnMetaData(columnIndex).getOpenSearchType() + " not supported.");
+        }
         return tc.convert(value, javaClass, conversionParams);
     }
 
