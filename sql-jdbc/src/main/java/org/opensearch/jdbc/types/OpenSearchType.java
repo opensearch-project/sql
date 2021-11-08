@@ -85,6 +85,7 @@ public enum OpenSearchType {
     OBJECT(JDBCType.STRUCT, null, 0, 0, false),
     DATE(JDBCType.DATE, Date.class, 24, 24, false),
     TIME(JDBCType.TIME, Time.class, 24, 24, false),
+    DATETIME(JDBCType.TIMESTAMP, Timestamp.class, 24, 24, false),
     TIMESTAMP(JDBCType.TIMESTAMP, Timestamp.class, 24, 24, false),
     BINARY(JDBCType.VARBINARY, String.class, Integer.MAX_VALUE, 0, false),
     NULL(JDBCType.NULL, null, 0, 0, false),
