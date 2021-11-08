@@ -139,5 +139,5 @@ See the [LICENSE](./LICENSE.TXT) file for our project's licensing. We will ask y
 
 ## Copyright
 
-Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+Copyright OpenSearch Contributors. See [NOTICE](./NOTICE) for details.
 
