@@ -100,7 +100,7 @@ public abstract class LuceneQuery {
     if (func.getArguments().get(1) instanceof FunctionExpression) {
       FunctionExpression expr = (FunctionExpression) func.getArguments().get(1);
       return castMap.containsKey(expr.getFunctionName())
-          && func.getArguments().get(0) instanceof LiteralExpression;
+          && expr.getArguments().get(0) instanceof LiteralExpression;
     }
     return false;
   }
