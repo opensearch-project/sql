@@ -656,7 +656,43 @@ class FilterQueryBuilderTest {
             + "    }\n"
             + "  }\n"
             + "}",
-        buildQuery(dsl.greater(ref("timestamp_value", TIMESTAMP), literal("2021-11-08 17:00:00"))));
+        buildQuery(dsl.greater(ref("timestamp_value", TIMESTAMP), dsl.castTimestamp(literal("2021-11-08 17:00:00")))));
+  }
+
+  @Test
+  void non_literal_in_cast_should_build_script() {
+    mockToStringSerializer();
+    assertJsonEquals(
+        "{\n"
+            + "  \"script\" : {\n"
+            + "    \"script\" : {\n"
+            + "      \"source\" : \"=(string_value, cast_to_string(+(1, 0)))\",\n"
+            + "      \"lang\" : \"opensearch_query_expression\"\n"
+            + "    },\n"
+            + "    \"boost\" : 1.0\n"
+            + "  }\n"
+            + "}",
+        buildQuery(dsl.equal(ref("string_value", STRING), dsl.castString(dsl
+            .add(literal(1), literal(0)))))
+    );
+  }
+
+  @Test
+  void non_cast_nested_function_should_build_script() {
+    mockToStringSerializer();
+    assertJsonEquals(
+        "{\n"
+            + "  \"script\" : {\n"
+            + "    \"script\" : {\n"
+            + "      \"source\" : \"=(integer_value, abs(+(1, 0)))\",\n"
+            + "      \"lang\" : \"opensearch_query_expression\"\n"
+            + "    },\n"
+            + "    \"boost\" : 1.0\n"
+            + "  }\n"
+            + "}",
+        buildQuery(dsl.equal(ref("integer_value", INTEGER), dsl.abs(dsl
+            .add(literal(1), literal(0)))))
+    );
   }
 
   private static void assertJsonEquals(String expected, String actual) {
