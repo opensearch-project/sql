@@ -101,9 +101,9 @@ public class TypeCastOperator {
   private static FunctionResolver castToByte() {
     return FunctionDSL.define(BuiltinFunctionName.CAST_TO_BYTE.getName(),
         impl(nullMissingHandling(
-            (v) -> new ExprByteValue(Short.valueOf(v.stringValue()))), BYTE, STRING),
+            (v) -> new ExprByteValue(Byte.valueOf(v.stringValue()))), BYTE, STRING),
         impl(nullMissingHandling(
-            (v) -> new ExprByteValue(v.shortValue())), BYTE, DOUBLE),
+            (v) -> new ExprByteValue(v.byteValue())), BYTE, DOUBLE),
         impl(nullMissingHandling(
             (v) -> new ExprByteValue(v.booleanValue() ? 1 : 0)), BYTE, BOOLEAN)
     );

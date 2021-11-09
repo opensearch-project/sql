@@ -56,7 +56,7 @@ public class ExprTimestampValue extends AbstractExprValue {
   /**
    * todo. only support timestamp in format yyyy-MM-dd HH:mm:ss.
    */
-  private static final DateTimeFormatter FORMATTER_WITNOUT_NANO = DateTimeFormatter
+  private static final DateTimeFormatter FORMATTER_WITHOUT_NANO = DateTimeFormatter
       .ofPattern("yyyy-MM-dd HH:mm:ss");
   private final Instant timestamp;
 
@@ -92,7 +92,7 @@ public class ExprTimestampValue extends AbstractExprValue {
 
   @Override
   public String value() {
-    return timestamp.getNano() == 0 ? FORMATTER_WITNOUT_NANO.withZone(ZONE)
+    return timestamp.getNano() == 0 ? FORMATTER_WITHOUT_NANO.withZone(ZONE)
         .format(timestamp.truncatedTo(ChronoUnit.SECONDS))
         : FORMATTER_VARIABLE_MICROS.withZone(ZONE).format(timestamp);
   }

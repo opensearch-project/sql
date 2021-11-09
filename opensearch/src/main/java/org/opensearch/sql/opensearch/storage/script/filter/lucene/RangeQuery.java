@@ -32,6 +32,7 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 
 /**
@@ -51,7 +52,7 @@ public class RangeQuery extends LuceneQuery {
 
   @Override
   protected QueryBuilder doBuild(String fieldName, ExprType fieldType, ExprValue literal) {
-    Object value = literal.value();
+    Object value = value(literal);
 
     RangeQueryBuilder query = QueryBuilders.rangeQuery(fieldName);
     switch (comparison) {
@@ -65,6 +66,14 @@ public class RangeQuery extends LuceneQuery {
         return query.gte(value);
       default:
         throw new IllegalStateException("Comparison is supported by range query: " + comparison);
+    }
+  }
+
+  private Object value(ExprValue literal) {
+    if (literal.type().equals(ExprCoreType.TIMESTAMP)) {
+      return literal.timestampValue().toEpochMilli();
+    } else {
+      return literal.value();
     }
   }
 
