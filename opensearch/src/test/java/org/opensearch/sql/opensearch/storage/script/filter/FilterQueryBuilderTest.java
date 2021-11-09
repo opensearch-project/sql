@@ -656,7 +656,8 @@ class FilterQueryBuilderTest {
             + "    }\n"
             + "  }\n"
             + "}",
-        buildQuery(dsl.greater(ref("timestamp_value", TIMESTAMP), dsl.castTimestamp(literal("2021-11-08 17:00:00")))));
+        buildQuery(dsl.greater(ref("timestamp_value", TIMESTAMP), dsl
+            .castTimestamp(literal("2021-11-08 17:00:00")))));
   }
 
   @Test
