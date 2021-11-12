@@ -56,3 +56,7 @@ Another example to show how to set custom values for the optional parameters::
     | Bond       |
     +------------+
 
+Limitations
+>>>>>>>>>>>
+
+The relevance functions are available to execute only in OpenSearch DSL but not in memory as of now, so the relevance search might fail for queries that are too complex to translate into DSL if the relevance function is following after a complex PPL query. To make your queries always work-able, it is recommended to place the relevance commands as close to the search command as possible, to ensure the relevance functions are eligible to push down. For example, a complex query like ``search source = people | rename firstname as name | dedup account_number | fields name, account_number, balance, employer | where match(employer, 'Open Search') | stats count() by city`` could fail because it is difficult to translate to DSL, but it would be better if we rewrite it to an equivalent query as ``search source = people | where match(employer, 'Open Search') | rename firstname as name | dedup account_number | fields name, account_number, balance, employer | stats count() by city`` by moving the ``where`` command with relevance function to the second command right after the search command, and the relevance would be optimized and executed smoothly in OpenSearch DSL. See `Optimization <../../optimization/optimization.rst>`_ to get more details about the query engine optimization.
