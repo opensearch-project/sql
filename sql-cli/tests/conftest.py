@@ -3,6 +3,10 @@ Copyright OpenSearch Contributors
 SPDX-License-Identifier: Apache-2.0
 """
 
+"""
+We can define the fixture functions in this file to make them
+accessible across multiple test modules.
+"""
 import os
 import pytest
 
