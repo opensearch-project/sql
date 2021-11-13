@@ -291,6 +291,18 @@ public class TextFunctionTest extends ExpressionTestBase {
     assertEquals(STRING, expression.type());
     assertEquals("rbar", eval(expression).stringValue());
 
+    expression = dsl.right(DSL.literal("foo"), DSL.literal(10));
+    assertEquals(STRING, expression.type());
+    assertEquals("foo", eval(expression).value());
+
+    expression = dsl.right(DSL.literal("foo"), DSL.literal(0));
+    assertEquals(STRING, expression.type());
+    assertEquals("", eval(expression).value());
+
+    expression = dsl.right(DSL.literal(""), DSL.literal(10));
+    assertEquals(STRING, expression.type());
+    assertEquals("", eval(expression).value());
+
     when(nullRef.type()).thenReturn(STRING);
     when(missingRef.type()).thenReturn(INTEGER);
     assertEquals(missingValue(), eval(dsl.right(nullRef, missingRef)));
@@ -307,6 +319,18 @@ public class TextFunctionTest extends ExpressionTestBase {
         DSL.literal(new ExprIntegerValue(5)));
     assertEquals(STRING, expression.type());
     assertEquals("hello", eval(expression).stringValue());
+
+    expression = dsl.left(DSL.literal("hello"), DSL.literal(10));
+    assertEquals(STRING, expression.type());
+    assertEquals("hello", eval(expression).value());
+
+    expression = dsl.left(DSL.literal("hello"), DSL.literal(0));
+    assertEquals(STRING, expression.type());
+    assertEquals("", eval(expression).value());
+
+    expression = dsl.left(DSL.literal(""), DSL.literal(10));
+    assertEquals(STRING, expression.type());
+    assertEquals("", eval(expression).value());
 
     when(nullRef.type()).thenReturn(STRING);
     when(missingRef.type()).thenReturn(INTEGER);
