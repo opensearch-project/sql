@@ -154,6 +154,9 @@ class OpenSearchExprValueFactoryTest {
   public void constructBoolean() {
     assertEquals(booleanValue(true), tupleValue("{\"boolV\":true}").get("boolV"));
     assertEquals(booleanValue(true), constructFromObject("boolV", true));
+    assertEquals(booleanValue(true), constructFromObject("boolV", "true"));
+    assertEquals(booleanValue(true), constructFromObject("boolV", 1));
+    assertEquals(booleanValue(false), constructFromObject("boolV", 0));
   }
 
   @Test

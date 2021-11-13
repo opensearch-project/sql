@@ -63,7 +63,13 @@ public class ObjectContent implements Content {
 
   @Override
   public Boolean booleanValue() {
-    return (Boolean) value;
+    if (value instanceof String) {
+      return Boolean.valueOf((String) value);
+    } else if (value instanceof Number) {
+      return ((Number) value).intValue() != 0;
+    } else {
+      return (Boolean) value;
+    }
   }
 
   @Override
