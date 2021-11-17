@@ -7,7 +7,7 @@
 
 # OpenSearch SQL CLI
 
-The SQL CLI component in OpenSearch is a stand-alone Python application and can be launched by a 'wake' word `opensearchsql`. 
+The SQL CLI component in OpenSearch is a stand-alone Python application and can be launched by a 'wake' word `odfesql`. 
 
 It only supports [OpenSearch SQL Plugin](https://docs-beta.opensearch.org/search-plugins/sql/index/)
 You must have the OpenSearch SQL plugin installed to your OpenSearch instance to connect. 
@@ -51,7 +51,7 @@ To install the SQL CLI:
 1. Install the CLI:
 
     ```
-    pip3 install opensearch-sql-cli
+    pip3 install odfe-sql-cli
     ```
 
     The SQL CLI only works with Python 3, since Python 2 is no longer maintained since 01/01/2020. See https://pythonclock.org/
@@ -60,20 +60,20 @@ To install the SQL CLI:
 1. To launch the CLI, run:
 
     ```
-    opensearchsql https://localhost:9200 --username admin --password admin
+    odfesql https://localhost:9200 --username admin --password admin
     ```
-    By default, the `opensearchsql` command connects to [http://localhost:9200](http://localhost:9200/).
+    By default, the `odfesql` command connects to [http://localhost:9200](http://localhost:9200/).
 
 
 
 ## Configure
 
-When you first launch the SQL CLI, a configuration file is automatically created at `~/.config/opensearchsql-cli/config` (for MacOS and Linux), the configuration is auto-loaded thereafter.
+When you first launch the SQL CLI, a configuration file is automatically created at `~/.config/odfesql-cli/config` (for MacOS and Linux), the configuration is auto-loaded thereafter.
 
 You can also configure the following connection properties:
 
 
-* `endpoint`: You do not need to specify an option, anything that follows the launch command `opensearchsql` is considered as the endpoint. If you do not provide an endpoint, by default, the SQL CLI connects to [http://localhost:9200](http://localhost:9200/).
+* `endpoint`: You do not need to specify an option, anything that follows the launch command `odfesql` is considered as the endpoint. If you do not provide an endpoint, by default, the SQL CLI connects to [http://localhost:9200](http://localhost:9200/).
 * `-u/-w`: Supports username and password for HTTP basic authentication, such as:
     * OpenSearch with [OpenSearch Security Plugin](https://docs-beta.opensearch.org/security-plugin/index/) installed
     * Amazon Elasticsearch Service domain with [Fine Grained Access Control](https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/fgac.html) enabled
