@@ -1,0 +1,44 @@
+<connection-fields>
+    <field name="authentication" label="Authentication" category="authentication" value-type="selection" default-value="auth-user-pass">
+        <selection-group>
+            <option value="auth-none" label="No authentication"/>
+            <option value="auth-user-pass" label="Username and Password"/>
+            <option value="auth-integrated" label="AWS_SIGV4"/>
+        </selection-group>
+    </field>
+    <field name="server" label="Server" value-type="string" category="endpoint" default-value="localhost">
+    </field>
+    <field name="port" label="Port" value-type="string" category="endpoint" default-value="9200">
+    </field>
+    <field name="username" label="Username" category="authentication" value-type="string">
+        <conditions>
+            <condition field="authentication" value="auth-user-pass"/>
+        </conditions>
+    </field>
+    <field name="password" label="Password" category="authentication" value-type="string" secure="true">
+        <conditions>
+            <condition field="authentication" value="auth-user-pass"/>
+        </conditions>
+    </field>
+    <field name="v-region" label="Region" category="authentication" value-type="string" optional="true">
+        <conditions>
+            <condition field="authentication" value="auth-integrated"/>
+        </conditions>
+    </field>
+    <field name="sslmode" label="Use SSL" value-type="boolean" category="general" default-value="require">
+        <boolean-options>
+            <false-value value=""/>
+            <true-value value="require"/>
+        </boolean-options>
+    </field>
+    <field name="v-trustSelfSigned" label="Trust Self-Signed Certificate" value-type="boolean" category="general" default-value="false">
+        <conditions>
+            <condition field="authentication" value="auth-user-pass"/>
+            <condition field="authentication" value="auth-none"/>
+        </conditions>
+        <boolean-options>
+            <false-value value="false"/>
+            <true-value value="true"/>
+        </boolean-options>
+    </field>
+</connection-fields>
