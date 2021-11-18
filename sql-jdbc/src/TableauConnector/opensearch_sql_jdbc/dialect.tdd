@@ -33,6 +33,12 @@
             <argument type='datetime' />
         </function>
 
+        <function group='logical' name='IFNULL' return-type='datetime'>
+            <formula>CASE WHEN ISNULL(%1) THEN CAST(DATE_FORMAT(%2, &apos;%Y-%m-%d 00:00:00&apos;) AS TIMESTAMP) ELSE %1 END</formula>
+            <argument type='datetime' />
+            <argument type='date' />
+        </function>
+
         <function group='operator' name='!=' return-type='bool'>
             <formula>(%1 AND NOT %2 OR NOT %1 AND %2)</formula>
             <argument type='bool' />
