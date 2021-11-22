@@ -286,12 +286,18 @@ public class TextFunction {
   }
 
   private static ExprValue exprRight(ExprValue str, ExprValue len) {
-    return new ExprStringValue(str.stringValue().substring(
-            str.stringValue().length() - len.integerValue()));
+    if (len.integerValue() <= 0) {
+      return new ExprStringValue("");
+    }
+    String stringValue = str.stringValue();
+    int left = Math.max(stringValue.length() - len.integerValue(), 0);
+    return new ExprStringValue(str.stringValue().substring(left));
   }
 
   private static ExprValue exprLeft(ExprValue expr, ExprValue length) {
-    return new ExprStringValue(expr.stringValue().substring(0, length.integerValue()));
+    String stringValue = expr.stringValue();
+    int right = length.integerValue();
+    return new ExprStringValue(stringValue.substring(0, Math.min(right, stringValue.length())));
   }
 
   private static ExprValue exprAscii(ExprValue expr) {
