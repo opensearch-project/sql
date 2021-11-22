@@ -32,6 +32,30 @@
             <formula>TO_DAYS(%1) - 693961.0</formula>
             <argument type='datetime' />
         </function>
+        <function group='cast' name='STR' return-type='str'>
+            <formula>CAST(%1 as string)</formula>
+            <argument type='real' />
+        </function>
+        <function group='cast' name='STR' return-type='str'>
+            <formula>CAST(%1 as string)</formula>
+            <argument type='int' />
+        </function>
+        <function group='cast' name='STR' return-type='str'>
+            <formula>CAST(%1 as string)</formula>
+            <argument type='date' />
+        </function>
+        <function group='cast' name='STR' return-type='str'>
+            <formula>CAST(%1 as string)</formula>
+            <argument type='bool' />
+        </function>
+        <function group='cast' name='INT' return-type='int'>
+            <formula>CAST(%1 as int)</formula>
+            <argument type='real' />
+        </function>
+        <function group='cast' name='INT' return-type='int'>
+            <formula>CAST(%1 as int)</formula>
+            <argument type='bool' />
+        </function>
 
         <function group='operator' name='!=' return-type='bool'>
             <formula>(%1 AND NOT %2 OR NOT %1 AND %2)</formula>
