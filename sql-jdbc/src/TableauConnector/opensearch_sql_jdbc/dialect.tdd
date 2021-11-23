@@ -228,7 +228,17 @@
             <formula>FLOOR(%1)</formula>
             <argument type='real' />
         </function>
-    
+        <function group='numeric' name='HEXBINX' return-type='real'>
+            <formula>(((CASE WHEN (ABS((%2) - (CAST( ( (%2) / SQRT(3.0) ) AS INT ) * SQRT(3.0)))) + (SQRT(3.0) * ((ABS((%1) - (CAST( ( (%1) / 3.0 ) AS INT ) * 3.0))) - 1.0)) &gt; 0.0 THEN 1.5 ELSE 0.0 END) - (CASE WHEN ((%1) - (CAST( ( (%1) / 3.0 ) AS INT ) * 3.0) &lt; 0.0) AND ((CASE WHEN (ABS((%2) - (CAST( ( (%2) / SQRT(3.0) ) AS INT ) * SQRT(3.0)))) + (SQRT(3.0) * ((ABS((%1) - (CAST( ( (%1) / 3.0 ) AS INT ) * 3.0))) - 1.0)) &gt; 0.0 THEN 1.5 ELSE 0.0 END) &gt; 0.0) THEN 3.0 ELSE 0.0 END)) + (CAST( ( (%1) / 3.0 ) AS INT ) * 3.0))</formula>
+            <argument type='real' />
+            <argument type='real' />
+        </function>
+        <function group='numeric' name='HEXBINY' return-type='real'>
+            <formula>ROUND( (((CASE WHEN (ABS((%2) - (ROUND( ( (%2) / SQRT(3.0) ), 0 ) * SQRT(3.0)))) + (SQRT(3.0) * ((ABS((%1) - (ROUND( ( (%1) / 3.0 ), 0 ) * 3.0))) - 1.0)) &gt; 0.0 THEN SQRT(3.0) / 2.0 ELSE 0.0 END) - (CASE WHEN ((%2) - (ROUND( ( (%2) / SQRT(3.0) ), 0 ) * SQRT(3.0)) &lt; 0.0) AND ((CASE WHEN (ABS((%2) - (ROUND( ( (%2) / SQRT(3.0) ), 0 ) * SQRT(3.0)))) + (SQRT(3.0) * ((ABS((%1) - (ROUND( ( (%1) / 3.0 ), 0 ) * 3.0))) - 1.0)) &gt; 0.0 THEN SQRT(3.0) / 2.0 ELSE 0.0 END) &gt; 0.0) THEN SQRT(3.0) ELSE 0.0 END)) + (ROUND( ( (%2) / SQRT(3.0) ), 0 ) * SQRT(3.0))), 3)</formula>
+            <argument type='real' />
+            <argument type='real' />
+        </function>
+
         <function group='date' name='DAYOFYEAR' return-type='int'>
             <formula>DAY_OF_YEAR(%1)</formula>
             <argument type='date' />
