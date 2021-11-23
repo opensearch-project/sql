@@ -80,6 +80,7 @@ public class TimestampType implements TypeHelper<Timestamp> {
             }
 
             final Timestamp ts;
+            // 11 to check if the value is in yyyy-MM-dd format
             if (value.length() < 11) {
                 ts = Timestamp.valueOf(LocalDate.parse(value).atStartOfDay());
             } else {
