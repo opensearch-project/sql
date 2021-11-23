@@ -242,35 +242,35 @@
             <argument type='date' />
         </function>
 
-        <function group='string' name='MID' return-type='int'>
+        <function group='string' name='MID' return-type='str'>
             <formula>SUBSTR(%1,%2)</formula>
             <argument type='str' />
             <argument type='int' />
         </function>
-        <function group='string' name='MID' return-type='int'>
+        <function group='string' name='MID' return-type='str'>
             <formula>SUBSTR(%1,CAST(%2 as int))</formula>
             <argument type='str' />
             <argument type='real' />
         </function>
-        <function group='string' name='MID' return-type='int'>
+        <function group='string' name='MID' return-type='str'>
             <formula>SUBSTR(%1,%2,%3)</formula>
             <argument type='str' />
             <argument type='int' />
             <argument type='int' />
         </function>
-        <function group='string' name='MID' return-type='int'>
+        <function group='string' name='MID' return-type='str'>
             <formula>SUBSTR(%1,CAST(%2 as int),%3)</formula>
             <argument type='str' />
             <argument type='real' />
             <argument type='int' />
         </function>
-        <function group='string' name='MID' return-type='int'>
+        <function group='string' name='MID' return-type='str'>
             <formula>SUBSTR(%1,%2,CAST(%3 as int))</formula>
             <argument type='str' />
             <argument type='int' />
             <argument type='real' />
         </function>
-        <function group='string' name='MID' return-type='int'>
+        <function group='string' name='MID' return-type='str'>
             <formula>SUBSTR(%1,CAST(%2 as int),CAST(%3 as int))</formula>
             <argument type='str' />
             <argument type='real' />
