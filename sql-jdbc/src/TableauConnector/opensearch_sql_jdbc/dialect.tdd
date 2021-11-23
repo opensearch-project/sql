@@ -57,6 +57,12 @@
             <argument type='bool' />
         </function>
 
+        <function group='logical' name='IFNULL' return-type='datetime'>
+            <formula>CASE WHEN ISNULL(%1) THEN SUBDATE(TIMESTAMP(%2), INTERVAL HOUR(TIMESTAMP(%2)) HOUR) ELSE %1 END</formula>
+            <argument type='datetime' />
+            <argument type='date' />
+        </function>
+
         <function group='operator' name='!=' return-type='bool'>
             <formula>(%1 AND NOT %2 OR NOT %1 AND %2)</formula>
             <argument type='bool' />
@@ -174,6 +180,14 @@
             <argument type='datetime' />
             <argument type='datetime' />
         </function>
+        <function group='numeric' name='MAX' return-type='str'>
+            <formula>CASE WHEN ISNULL(%1) THEN NULL
+                WHEN ISNULL(%2) THEN NULL
+	            WHEN %1 &gt; %2 THEN %1
+                ELSE %2 END</formula>
+            <argument type='str' />
+            <argument type='str' />
+        </function>
         <function group='numeric' name='MIN' return-type='int'>
             <formula>CASE WHEN ISNULL(%1) THEN NULL
                 WHEN ISNULL(%2) THEN NULL
@@ -197,6 +211,14 @@
                 ELSE %2 END</formula>
             <argument type='datetime' />
             <argument type='datetime' />
+        </function>
+        <function group='numeric' name='MIN' return-type='str'>
+            <formula>CASE WHEN ISNULL(%1) THEN NULL
+                WHEN ISNULL(%2) THEN NULL
+	            WHEN %1 &lt; %2 THEN %1
+                ELSE %2 END</formula>
+            <argument type='str' />
+            <argument type='str' />
         </function>
         <function group='numeric' name='CEILING' return-type='int'>
             <formula>CEIL(%1)</formula>
@@ -358,24 +380,8 @@
             <argument type='datetime' />
         </remove-function>
 
-        <remove-function name='MAX'>
-            <argument type='str' />
-        </remove-function>
-        <remove-function name='MAX'>
-            <argument type='str' />
-            <argument type='str' />
-        </remove-function>
-
         <remove-function name='SPACE'>
             <argument type='int' />
-        </remove-function>
-
-        <remove-function name='MIN'>
-            <argument type='str' />
-        </remove-function>
-        <remove-function name='MIN'>
-            <argument type='str' />
-            <argument type='str' />
         </remove-function>
    </function-map>
 </dialect>
