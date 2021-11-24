@@ -6,7 +6,7 @@
       <support-link url="https://github.com/opensearch-project/sql"/>
   </vendor-information>
   <connection-customization class="opensearch_jdbc" enabled="true" version="10.0">
-    <vendor name="OpenSearch JDBC"/>
+    <vendor name="OpenSearch Project"/>
     <driver name="SQL"/>
     <customizations>
       <customization name="CAP_CREATE_TEMP_TABLES" value="no"/>
