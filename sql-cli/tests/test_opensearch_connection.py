@@ -7,8 +7,8 @@ import pytest
 import mock
 from textwrap import dedent
 
-from elasticsearch.exceptions import ConnectionError
-from elasticsearch import Elasticsearch as OpenSearch, RequestsHttpConnection
+from opensearchpy.exceptions import ConnectionError
+from opensearchpy import OpenSearch, RequestsHttpConnection
 
 from .utils import estest, load_data, run, TEST_INDEX_NAME
 from src.opensearch_sql_cli.opensearch_connection import OpenSearchConnection

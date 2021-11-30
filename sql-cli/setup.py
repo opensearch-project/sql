@@ -13,7 +13,7 @@ install_requirements = [
     "prompt_toolkit == 2.0.6",
     "Pygments >= 2.7.4",
     "cli_helpers[styles] == 1.2.1",
-    "elasticsearch == 7.10.1",
+    "opensearch-py == 1.0.0",
     "pyfiglet == 0.8.post1",
     "boto3 == 1.16.29",
     "requests-aws4auth == 0.9",
