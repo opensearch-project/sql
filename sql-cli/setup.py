@@ -22,9 +22,7 @@ install_requirements = [
 _version_re = re.compile(r"__version__\s+=\s+(.*)")
 
 with open("src/opensearch_sql_cli/__init__.py", "rb") as f:
-    version = str(
-        ast.literal_eval(_version_re.search(f.read().decode("utf-8")).group(1))
-    )
+    version = str(ast.literal_eval(_version_re.search(f.read().decode("utf-8")).group(1)))
 
 description = "OpenSearch SQL CLI with auto-completion and syntax highlighting"
 
@@ -38,8 +36,8 @@ setup(
     version=version,
     license="Apache 2.0",
     url="https://docs-beta.opensearch.org/search-plugins/sql/cli/",
-    packages=find_packages('src'),
-    package_dir={'': 'src'},
+    packages=find_packages("src"),
+    package_dir={"": "src"},
     package_data={"opensearch_sql_cli": ["conf/clirc", "opensearch_literals/opensearch_literals.json"]},
     description=description,
     long_description=long_description,
@@ -64,5 +62,5 @@ setup(
         "Topic :: Software Development",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-    python_requires='>=3.0'
+    python_requires=">=3.0",
 )

@@ -58,9 +58,7 @@ class OpenSearchConnection:
         region = session.region_name
 
         if credentials is not None:
-            self.aws_auth = AWS4Auth(
-                credentials.access_key, credentials.secret_key, region, service
-            )
+            self.aws_auth = AWS4Auth(credentials.access_key, credentials.secret_key, region, service)
         else:
             click.secho(
                 message="Can not retrieve your AWS credentials, check your AWS config",
@@ -93,9 +91,7 @@ class OpenSearchConnection:
         return opensearch_client
 
     def is_sql_plugin_installed(self, opensearch_client):
-        self.plugins = opensearch_client.cat.plugins(
-            params={"s": "component", "v": "true"}
-        )
+        self.plugins = opensearch_client.cat.plugins(params={"s": "component", "v": "true"})
         sql_plugin_name_list = ["opensearch-sql"]
         return any(x in self.plugins for x in sql_plugin_name_list)
 
@@ -133,9 +129,7 @@ class OpenSearchConnection:
                 # re-throw error
                 raise error
             else:
-                click.secho(
-                    message="Can not connect to endpoint %s" % self.endpoint, fg="red"
-                )
+                click.secho(message="Can not connect to endpoint %s" % self.endpoint, fg="red")
                 click.echo(repr(error))
                 sys.exit(0)
 
@@ -152,9 +146,7 @@ class OpenSearchConnection:
             )
             click.secho(repr(reconnection_err), err=True, fg="red")
 
-    def execute_query(
-        self, query, output_format="jdbc", explain=False, use_console=True
-    ):
+    def execute_query(self, query, output_format="jdbc", explain=False, use_console=True):
         """
         Handle user input, send SQL query and get response.
 

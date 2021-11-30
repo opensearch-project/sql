@@ -59,7 +59,9 @@ class TestExecutor:
         test_executor = OpenSearchConnection(endpoint=INVALID_ENDPOINT)
         err_message = "Can not connect to endpoint %s" % INVALID_ENDPOINT
 
-        with mock.patch("sys.exit") as mock_sys_exit, mock.patch("src.opensearch_sql_cli.opensearch_connection.click.secho") as mock_secho:
+        with mock.patch("sys.exit") as mock_sys_exit, mock.patch(
+            "src.opensearch_sql_cli.opensearch_connection.click.secho"
+        ) as mock_secho:
             test_executor.set_connection()
 
         mock_sys_exit.assert_called()
@@ -121,8 +123,11 @@ class TestExecutor:
             od_test_executor.get_opensearch_client()
 
             mock_es.assert_called_with(
-                [OPENSEARCH_ENDPOINT], http_auth=AUTH, verify_certs=False, ssl_context=od_test_executor.ssl_context,
-                connection_class=RequestsHttpConnection
+                [OPENSEARCH_ENDPOINT],
+                http_auth=AUTH,
+                verify_certs=False,
+                ssl_context=od_test_executor.ssl_context,
+                connection_class=RequestsHttpConnection,
             )
 
     def test_get_aes_client(self):
