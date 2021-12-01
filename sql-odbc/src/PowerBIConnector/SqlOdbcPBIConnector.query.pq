@@ -4,7 +4,7 @@ section SqlOdbcPBIConnector.UnitTests;
 shared MyExtension.UnitTest =
 [
     // Common variables for all tests
-    Host = "localhost:9200"
+    Host = "localhost:9200",
 
     facts =
     {        
