@@ -4,18 +4,27 @@ section SqlOdbcPBIConnector.UnitTests;
 shared MyExtension.UnitTest =
 [
     // Common variables for all tests
-    Host = "localhost",
-    Port = 9200,
+    Host = "localhost:9200",
 
     facts =
     {        
         Fact("Connection Test",  
              7,                                    
              let
-                Source = SqlOdbcPBIConnector.Contents(Host,Port),
+                Source = SqlOdbcPBIConnector.Contents(Host),
                 no_of_columns = Table.ColumnCount(Source)
              in
                 no_of_columns                
+        ),
+        Fact("calcs_data:bool0",
+            #table(type table [bool0 = logical],
+                { {null}, {false}, {true} }),
+            let
+                Source = SqlOdbcPBIConnector.Contents("localhost:9200"),
+                calcs_null_null = Source{[Item="calcs",Schema=null,Catalog=null]}[Data],
+                grouped = Table.Group(calcs_null_null, {"bool0"}, {})
+            in
+                grouped
         )
     },
 
@@ -33,11 +42,13 @@ Fact = (_subject as text, _expected, _actual) as record =>
     resultOp = if result = "Success ✓" then " = " else " <> ",
     addendumEvalAttempt = if attempt[HasError] then @ValueToText(attempt[Error]) else "",
     addendumEvalExpected = try @ValueToText(safeExpected) otherwise "...",
-    addendumEvalActual = try @ValueToText (safeActual) otherwise "...",
+    addendumEvalActual = try @ValueToText(safeActual) otherwise "...",
+    ShortenedAddendumEvalExpected = if Text.Length(addendumEvalExpected) > 20 then Text.Range(addendumEvalExpected, 0, 20) & "..." else addendumEvalExpected,
+    ShortenedAddendumEvalActual = if Text.Length(addendumEvalActual) > 20 then Text.Range(addendumEvalActual, 0, 20) & "..." else addendumEvalActual,
     fact =
-    [   Result = result &" "& addendumEvalAttempt,
+    [   Result = result & " " & addendumEvalAttempt,
         Notes =_subject,
-        Details = " ("& addendumEvalExpected & resultOp & addendumEvalActual &")"
+        Details = ShortenedAddendumEvalExpected & resultOp & ShortenedAddendumEvalActual
     ]
 ][fact];
 
