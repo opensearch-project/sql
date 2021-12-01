@@ -106,8 +106,8 @@ SqlOdbcPBIConnectorImpl = (Server as text) as table =>
             SupportsOdbcTimestampLiterals = true
         ]),
 
-        OdbcDatasource = Odbc.DataSource(ConnectionString & CredentialConnectionString & EncryptedConnectionString, [
-            // Do not view the tables grouped by their schema names.
+        OdbcOptions = [
+             // Do not view the tables grouped by their schema names.
             HierarchicalNavigation = false,
             // Prevents execution of native SQL statements. Extensions should set this to true.
             HideNativeQuery = true,
@@ -129,7 +129,11 @@ SqlOdbcPBIConnectorImpl = (Server as text) as table =>
 
             // Connection string properties used for encrypted connections.
             CredentialConnectionString = EncryptedConnectionString
-        ])
+        ],
+
+        FullConnectionString = Diagnostics.LogValue("Connection String", ConnectionString & CredentialConnectionString & EncryptedConnectionString),
+
+        OdbcDatasource = Odbc.DataSource(FullConnectionString, OdbcOptions)
     in
         OdbcDatasource;
 
@@ -206,7 +210,7 @@ SqlOdbcPBIConnector.Publish = [
     LearnMoreUrl = "https://www.opensearch.org/",
     
     // Disabling direct query due to limited SQL query support
-    SupportsDirectQuery = false,
+    SupportsDirectQuery = true,
 
     SourceImage = SqlOdbcPBIConnector.Icons,
     SourceTypeImage = SqlOdbcPBIConnector.Icons
