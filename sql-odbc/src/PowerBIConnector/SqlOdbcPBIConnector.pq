@@ -206,7 +206,7 @@ SqlOdbcPBIConnector.Publish = [
     LearnMoreUrl = "https://www.opensearch.org/",
     
     // Disabling direct query due to limited SQL query support
-    SupportsDirectQuery = false,
+    SupportsDirectQuery = true,
 
     SourceImage = SqlOdbcPBIConnector.Icons,
     SourceTypeImage = SqlOdbcPBIConnector.Icons
