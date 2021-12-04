@@ -37,7 +37,7 @@ Fact = (_subject as text, _expected, _actual) as record =>
     fact =
     [   Result = result &" "& addendumEvalAttempt,
         Notes =_subject,
-        Details = Details = " ("& addendumEvalExpected & resultOp & addendumEvalActual &")"
+        Details = " ("& addendumEvalExpected & resultOp & addendumEvalActual &")"
     ]
 ][fact];
 
