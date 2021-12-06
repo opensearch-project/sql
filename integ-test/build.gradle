@@ -94,10 +94,10 @@ testClusters.all {
     plugin ":plugin"
 }
 
-println project(":").getTasks();
-println 'debug'
-Zip bundle = (Zip) project(":plugin").getTasks().getByName("bundlePlugin");
-integTest.getClusters().forEach { c -> c.plugin(project.getObjects().fileProperty().value(bundle.getArchiveFile())) }
+//println project(":plugin").getTasks().getAsMap();
+//println 'debug'
+//Zip bundle = (Zip) project(":plugin").getTasks().getByName("bundlePlugin");
+//integTest.getClusters().forEach { c -> c.plugin(project.getObjects().fileProperty().value(bundle.getArchiveFile())) }
 
 // Run PPL ITs and new, legacy and comparison SQL ITs with new SQL engine enabled
 integTest {
@@ -210,65 +210,74 @@ String bwcVersion = "1.13.2.0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
 
-2.times {i ->
-    testClusters {
-        "${baseName}$i" {
-            testDistribution = "ARCHIVE"
-            versions = ["7.10.2", "1.0.0"]
-            numberOfNodes = 3
-            plugin(provider(new Callable<RegularFile>() {
-                @Override
-                RegularFile call() throws Exception {
-                    return new RegularFile() {
-                        @Override
-                        File getAsFile() {
-                            return fileTree(bwcFilePath + bwcVersion).getSingleFile()
-                        }
+testClusters {
+    "${baseName}" {
+        testDistribution = "ARCHIVE"
+        versions = ["7.10.2", "1.0.0"]
+        numberOfNodes = 3
+        plugin(provider(new Callable<RegularFile>() {
+            @Override
+            RegularFile call() throws Exception {
+                return new RegularFile() {
+                    @Override
+                    File getAsFile() {
+                        return fileTree(bwcFilePath + bwcVersion).getSingleFile()
                     }
                 }
-            }))
-            setting 'path.repo', "${buildDir}/cluster/shared/repo/${baseName}"
-            setting 'http.content_type.required', 'true'
-        }
+            }
+        }))
+        setting 'path.repo', "${buildDir}/cluster/shared/repo/${baseName}"
+        setting 'http.content_type.required', 'true'
     }
 }
 
-List<Provider<RegularFile>> plugins = []
+//List<Provider<RegularFile>> plugins = []
+List<Provider<RegularFile>> plugins = [
+        provider(new Callable<RegularFile>(){
+            @Override
+            RegularFile call() throws Exception {
+                return new RegularFile() {
+                    @Override
+                    File getAsFile() {
+                        return fileTree(bwcFilePath + project.version).getSingleFile()
+                    }
+                }
+            }
+        })
+]
 
-// Ensure the artifact for the current project version is available to be used for the bwc tests
-task prepareBwcTests {
-    dependsOn ':plugin:bundlePlugin'
-    doLast {
-        plugins = [
-                project.getObjects().fileProperty().value(bundle.getArchiveFile())
-        ]
-    }
-}
+//// Ensure the artifact for the current project version is available to be used for the bwc tests
+//task prepareBwcTests {
+//    dependsOn ':plugin:bundlePlugin'
+//    doLast {
+//        plugins = [
+//                project.getObjects().fileProperty().value(bundle.getArchiveFile())
+//        ]
+//    }
+//}
 
 // Creates 2 test clusters with 3 nodes of the old version.
-2.times { i ->
-    task "${baseName}#oldVersionClusterTask$i"(type: StandaloneRestIntegTestTask) {
-        dependsOn 'prepareBwcTests'
-        useCluster testClusters."${baseName}$i"
-        filter {
-            includeTestsMatching "org.opensearch.sql.bwc.*IT"
-        }
-        systemProperty 'tests.rest.bwcsuite', 'old_cluster'
-        systemProperty 'tests.rest.bwcsuite_round', 'old'
-        systemProperty 'tests.plugin_bwc_version', bwcVersion
-        nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}$i".allHttpSocketURI.join(",")}")
-        nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}$i".getName()}")
+task "${baseName}#oldVersionClusterTask"(type: StandaloneRestIntegTestTask) {
+//    dependsOn 'prepareBwcTests'
+    useCluster testClusters."${baseName}"
+    filter {
+        includeTestsMatching "org.opensearch.sql.bwc.*IT"
     }
+    systemProperty 'tests.rest.bwcsuite', 'old_cluster'
+    systemProperty 'tests.rest.bwcsuite_round', 'old'
+    systemProperty 'tests.plugin_bwc_version', bwcVersion
+    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}$i".allHttpSocketURI.join(",")}")
+    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}$i".getName()}")
 }
 
 // Upgrades one node of the old cluster to new OpenSearch version with upgraded plugin version
 // This results in a mixed cluster with 2 nodes on the old version and 1 upgraded node.
 // This is also used as a one third upgraded cluster for a rolling upgrade.
 task "${baseName}#mixedClusterTask"(type: StandaloneRestIntegTestTask) {
-    useCluster testClusters."${baseName}0"
-    dependsOn "${baseName}#oldVersionClusterTask0"
+    useCluster testClusters."${baseName}"
+    dependsOn "${baseName}#oldVersionClusterTask"
     doFirst {
-        testClusters."${baseName}0".upgradeNodeAndPluginToNextVersion(plugins)
+        testClusters."${baseName}".upgradeNodeAndPluginToNextVersion(plugins)
     }
     filter {
         includeTestsMatching "org.opensearch.sql.bwc.*IT"
@@ -276,8 +285,8 @@ task "${baseName}#mixedClusterTask"(type: StandaloneRestIntegTestTask) {
     systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
     systemProperty 'tests.rest.bwcsuite_round', 'first'
     systemProperty 'tests.plugin_bwc_version', bwcVersion
-    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}0".allHttpSocketURI.join(",")}")
-    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}0".getName()}")
+    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}".allHttpSocketURI.join(",")}")
+    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}".getName()}")
 }
 
 // Upgrades the second node to new OpenSearch version with upgraded plugin version after the first node is upgraded.
@@ -285,9 +294,9 @@ task "${baseName}#mixedClusterTask"(type: StandaloneRestIntegTestTask) {
 // This is used for rolling upgrade.
 task "${baseName}#twoThirdsUpgradedClusterTask"(type: StandaloneRestIntegTestTask) {
     dependsOn "${baseName}#mixedClusterTask"
-    useCluster testClusters."${baseName}0"
+    useCluster testClusters."${baseName}"
     doFirst {
-        testClusters."${baseName}0".upgradeNodeAndPluginToNextVersion(plugins)
+        testClusters."${baseName}".upgradeNodeAndPluginToNextVersion(plugins)
     }
     filter {
         includeTestsMatching "org.opensearch.sql.bwc.*IT"
@@ -295,8 +304,8 @@ task "${baseName}#twoThirdsUpgradedClusterTask"(type: StandaloneRestIntegTestTas
     systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
     systemProperty 'tests.rest.bwcsuite_round', 'second'
     systemProperty 'tests.plugin_bwc_version', bwcVersion
-    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}0".allHttpSocketURI.join(",")}")
-    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}0".getName()}")
+    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}".allHttpSocketURI.join(",")}")
+    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}".getName()}")
 }
 
 // Upgrades the third node to new OpenSearch version with upgraded plugin version after the second node is upgraded.
@@ -304,9 +313,9 @@ task "${baseName}#twoThirdsUpgradedClusterTask"(type: StandaloneRestIntegTestTas
 // This is used for rolling upgrade.
 task "${baseName}#rollingUpgradeClusterTask"(type: StandaloneRestIntegTestTask) {
     dependsOn "${baseName}#twoThirdsUpgradedClusterTask"
-    useCluster testClusters."${baseName}0"
+    useCluster testClusters."${baseName}"
     doFirst {
-        testClusters."${baseName}0".upgradeNodeAndPluginToNextVersion(plugins)
+        testClusters."${baseName}".upgradeNodeAndPluginToNextVersion(plugins)
     }
     filter {
         includeTestsMatching "org.opensearch.sql.bwc.*IT"
@@ -315,25 +324,25 @@ task "${baseName}#rollingUpgradeClusterTask"(type: StandaloneRestIntegTestTask) 
     systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
     systemProperty 'tests.rest.bwcsuite_round', 'third'
     systemProperty 'tests.plugin_bwc_version', bwcVersion
-    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}0".allHttpSocketURI.join(",")}")
-    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}0".getName()}")
+    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}".allHttpSocketURI.join(",")}")
+    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}".getName()}")
 }
 
 // Upgrades all the nodes of the old cluster to new OpenSearch version with upgraded plugin version
 // at the same time resulting in a fully upgraded cluster.
 task "${baseName}#fullRestartClusterTask"(type: StandaloneRestIntegTestTask) {
-    dependsOn "${baseName}#oldVersionClusterTask1"
-    useCluster testClusters."${baseName}1"
+    dependsOn "${baseName}#oldVersionClusterTask"
+    useCluster testClusters."${baseName}"
     doFirst {
-        testClusters."${baseName}1".upgradeAllNodesAndPluginsToNextVersion(plugins)
+        testClusters."${baseName}".upgradeAllNodesAndPluginsToNextVersion(plugins)
     }
     filter {
         includeTestsMatching "org.opensearch.sql.bwc.*IT"
     }
     systemProperty 'tests.rest.bwcsuite', 'upgraded_cluster'
     systemProperty 'tests.plugin_bwc_version', bwcVersion
-    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}1".allHttpSocketURI.join(",")}")
-    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}1".getName()}")
+    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}".allHttpSocketURI.join(",")}")
+    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}".getName()}")
 }
 
 // A bwc test suite which runs all the bwc tasks combined.
