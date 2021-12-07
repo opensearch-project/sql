@@ -106,20 +106,10 @@ The following projects have been merged into this repository as separate folders
 [sql-codecov-badge]: https://codecov.io/gh/opensearch-project/sql/branch/main/graphs/badge.svg?flag=sql-engine
 [workbench-codecov-badge]: https://codecov.io/gh/opensearch-project/sql/branch/main/graphs/badge.svg?flag=query-workbench
 [sql-codecov-link]: https://codecov.io/gh/opensearch-project/sql
-
-
-[opensearch-build-badge]: https://github.com/opensearch-project/sql/actions/workflows/opensearch-observability-test-and-build-workflow.yml/badge.svg
-[opensearch-build-link]: https://github.com/opensearch-project/sql/actions/workflows/opensearch-observability-test-and-build-workflow.yml
-[dashboard-codecov-badge]: https://codecov.io/gh/opensearch-project/sql/branch/main/graphs/badge.svg?flag=dashboards-observability
-[opensearch-codecov-badge]: https://codecov.io/gh/opensearch-project/sql/branch/main/graphs/badge.svg?flag=opensearch-observability
-[codecov-link]: https://codecov.io/gh/opensearch-project/sql
-
-[opensearch-it-badge]: https://img.shields.io/badge/OpenSearch%20Plugin%20IT%20tests-in%20progress-yellow
+[opensearch-it-badge]: https://img.shields.io/badge/SQL%20IT%20tests-in%20progress-yellow
 [opensearch-it-link]: https://github.com/opensearch-project/opensearch-build/issues/1124
-[opensearch-it-code-badge]: https://img.shields.io/badge/OpenSearch%20IT%20code-blue
-[opensearch-it-code-link]: https://github.com/opensearch-project/sql/blob/main/opensearch-observability/src/test/kotlin/org/opensearch/observability/ObservabilityPluginIT.kt
-
-
+[opensearch-it-code-badge]: https://img.shields.io/badge/SQL%20IT%20code-blue
+[opensearch-it-code-link]: https://github.com/opensearch-project/sql/tree/main/integ-test
 
 ## Highlights
 
