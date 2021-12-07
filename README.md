@@ -51,7 +51,7 @@ The following projects have been merged into this repository as separate folders
 | ----- | ----------------------------------------------- |
 | Build | [![JDBC CI][jdbc-build-badge]][jdbc-build-link] |
 
-### SQL WorkBench
+### Query WorkBench
 
 |                          |                                                                                                                    |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------ |
