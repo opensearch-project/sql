@@ -1,9 +1,3 @@
-[![Test and Build Workflow](https://github.com/opendistro-for-elasticsearch/sql/workflows/Java%20CI/badge.svg)](https://github.com/opendistro-for-elasticsearch/sql/actions)
-[![codecov](https://codecov.io/gh/opendistro-for-elasticsearch/sql/branch/develop/graph/badge.svg)](https://codecov.io/gh/opendistro-for-elasticsearch/sql)
-[![Documentation](https://img.shields.io/badge/api-reference-blue.svg)](https://docs-beta.opensearch.org/search-plugins/sql/endpoints/)
-[![Chat](https://img.shields.io/badge/chat-on%20forums-blue)](https://discuss.opendistrocommunity.dev/c/sql/)
-![PRs welcome!](https://img.shields.io/badge/PRs-welcome!-success)
-
 <img src="https://opensearch.org/assets/brand/SVG/Logo/opensearch_logo_default.svg" height="64px"/>
 
 - [OpenSearch SQL](#opensearch-sql)
@@ -62,7 +56,7 @@ The following projects have been merged into this repository as separate folders
 |                          |                                                                                                                    |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------ |
 | Test and build           | [![Observability Dashboards CI][workbench-build-badge]][workbench-build-link]                                      |
-| Code coverage            | [![codecov][dashboard-codecov-badge]][codecov-link]                                                                |
+| Code coverage            | [![codecov][workbench-codecov-badge]][sql-codecov-link]                                                                |
 | Distribution build tests | [![cypress tests][cypress-test-badge]][cypress-test-link] [![cypress code][cypress-code-badge]][cypress-code-link] |
 
 ### Repository Checks
@@ -109,7 +103,8 @@ The following projects have been merged into this repository as separate folders
 [cypress-test-link]: https://github.com/opensearch-project/opensearch-build/issues/1124
 [cypress-code-badge]: https://img.shields.io/badge/Cypress%20code-blue
 [cypress-code-link]: https://github.com/opensearch-project/sql/tree/main/workbench/.cypress/integration
-[sql-codecov-badge]: https://codecov.io/gh/opensearch-project/sql/branch/main/graphs/badge.svg
+[sql-codecov-badge]: https://codecov.io/gh/opensearch-project/sql/branch/main/graphs/badge.svg?flag=sql-engine
+[workbench-codecov-badge]: https://codecov.io/gh/opensearch-project/sql/branch/main/graphs/badge.svg?flag=query-workbench
 [sql-codecov-link]: https://codecov.io/gh/opensearch-project/sql
 
 
