@@ -24,7 +24,7 @@ The following projects have been merged into this repository as separate folders
 
 ## Code Summary
 
-### SQL
+### SQL Engine
 
 |                              |                                                                                                                                              |
 | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
