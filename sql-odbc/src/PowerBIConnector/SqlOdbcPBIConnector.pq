@@ -69,21 +69,12 @@ SqlOdbcPBIConnectorImpl = (Server as text) as table =>
         SQLGetTypeInfo = (types) => 
             if (EnableTraceOutput <> true) then types else
             let
-                // SELECT CAST(1 AS KEYWORD) does not work for OpenSearch
-                // SELECT CAST(1 AS STRING) works for OpenSearch
-                FixTypeName = (typeName) =>
-                    if typeName = "keyword" then "string"
-                    else typeName,
-
                 // Outputting the entire table might be too large, and result in the value being truncated.
                 // We can output a row at a time instead with Table.TransformRows()
                 rows = Table.TransformRows(types, each Diagnostics.LogValue("SQLGetTypeInfo " & _[TYPE_NAME], _)),
-                toTable = Table.FromRecords(rows),
-
-                // Override the type name of columns
-                modifiedColumns = Table.TransformColumns(toTable, {{"TYPE_NAME", FixTypeName}})
+                toTable = Table.FromRecords(rows)
             in
-                Value.ReplaceType(modifiedColumns, Value.Type(types)),
+                Value.ReplaceType(toTable, Value.Type(types)),
 
         // SQLColumns is a function handler that receives the results of an ODBC call to SQLColumns().
         SQLColumns = (catalogName, schemaName, tableName, columnName, source) =>
@@ -215,7 +206,7 @@ SqlOdbcPBIConnector.Publish = [
     LearnMoreUrl = "https://www.opensearch.org/",
     
     // Disabling direct query due to limited SQL query support
-    SupportsDirectQuery = true,
+    SupportsDirectQuery = false,
 
     SourceImage = SqlOdbcPBIConnector.Icons,
     SourceTypeImage = SqlOdbcPBIConnector.Icons
