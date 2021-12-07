@@ -91,6 +91,9 @@ compileTestJava {
 
 testClusters.all {
     testDistribution = 'archive'
+}
+
+testClusters.integTest {
     plugin ":plugin"
 }
 
