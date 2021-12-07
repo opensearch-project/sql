@@ -4,15 +4,14 @@ section SqlOdbcPBIConnector.UnitTests;
 shared MyExtension.UnitTest =
 [
     // Common variables for all tests
-    Host = "localhost",
-    Port = 9200,
+    Host = "localhost:9200",
 
     facts =
     {        
         Fact("Connection Test",  
              7,                                    
              let
-                Source = SqlOdbcPBIConnector.Contents(Host,Port),
+                Source = SqlOdbcPBIConnector.Contents(Host),
                 no_of_columns = Table.ColumnCount(Source)
              in
                 no_of_columns                
