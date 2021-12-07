@@ -20,7 +20,7 @@ shared MyExtension.UnitTest =
             #table(type table [bool0 = logical],
                 { {null}, {false}, {true} }),
             let
-                Source = SqlOdbcPBIConnector.Contents("localhost:9200"),
+                Source = SqlOdbcPBIConnector.Contents(Host),
                 calcs_null_null = Source{[Item="calcs",Schema=null,Catalog=null]}[Data],
                 grouped = Table.Group(calcs_null_null, {"bool0"}, {})
             in
