@@ -48,7 +48,7 @@ jobs:
       - name: Upload coverage
         uses: codecov/codecov-action@v1
         with:
-          flags: sql-workbench
+          flags: query-workbench
           directory: ./OpenSearch-Dashboards/plugins/workbench
           token: ${{ secrets.CODECOV_TOKEN }}
 
