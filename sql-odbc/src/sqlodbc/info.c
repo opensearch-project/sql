@@ -127,37 +127,37 @@ RETCODE SQL_API OPENSEARCHAPI_GetInfo(HDBC hdbc, SQLUSMALLINT fInfoType,
 
         case SQL_CONVERT_INTEGER: /* ODBC 1.0 */
             len = sizeof(SQLUINTEGER);
-            value = SQL_CVT_BIT | SQL_CVT_WVARCHAR | SQL_CVT_DOUBLE | SQL_CVT_BIGINT | SQL_CVT_REAL;
+            value = SQL_CVT_INTEGER | SQL_CVT_BIT | SQL_CVT_WVARCHAR | SQL_CVT_DOUBLE | SQL_CVT_BIGINT | SQL_CVT_REAL;
             break;
 
         case SQL_CONVERT_BIT: /* ODBC 1.0 */
             len = sizeof(SQLUINTEGER);
-            value = SQL_CVT_INTEGER | SQL_CVT_WVARCHAR | SQL_CVT_DOUBLE | SQL_CVT_BIGINT | SQL_CVT_REAL;
+            value = SQL_CVT_BIT | SQL_CVT_INTEGER | SQL_CVT_WVARCHAR | SQL_CVT_DOUBLE | SQL_CVT_BIGINT | SQL_CVT_REAL;
             break;
 
         case SQL_CONVERT_WVARCHAR: /* ODBC 1.0 */
             len = sizeof(SQLUINTEGER);
-            value = SQL_CVT_INTEGER | SQL_CVT_DOUBLE | SQL_CVT_BIGINT | SQL_CVT_REAL;
+            value = SQL_CVT_WVARCHAR | SQL_CVT_INTEGER | SQL_CVT_DOUBLE | SQL_CVT_BIGINT | SQL_CVT_REAL;
             break;
 
         case SQL_CONVERT_DOUBLE: /* ODBC 1.0 */
             len = sizeof(SQLUINTEGER);
-            value = SQL_CVT_INTEGER | SQL_CVT_BIT | SQL_CVT_WVARCHAR | SQL_CVT_BIGINT | SQL_CVT_REAL;
+            value = SQL_CVT_DOUBLE | SQL_CVT_INTEGER | SQL_CVT_BIT | SQL_CVT_WVARCHAR | SQL_CVT_BIGINT | SQL_CVT_REAL;
             break;
 
         case SQL_CONVERT_BIGINT: /* ODBC 1.0 */
             len = sizeof(SQLUINTEGER);
-            value = SQL_CVT_INTEGER | SQL_CVT_BIT | SQL_CVT_WVARCHAR | SQL_CVT_DOUBLE | SQL_CVT_REAL;
+            value = SQL_CVT_BIGINT | SQL_CVT_INTEGER | SQL_CVT_BIT | SQL_CVT_WVARCHAR | SQL_CVT_DOUBLE | SQL_CVT_REAL;
             break;
 
         case SQL_CONVERT_REAL: /* ODBC 1.0 */
             len = sizeof(SQLUINTEGER);
-            value = SQL_CVT_INTEGER | SQL_CVT_BIT | SQL_CVT_WVARCHAR | SQL_CVT_DOUBLE | SQL_CVT_BIGINT;
+            value = SQL_CVT_REAL | SQL_CVT_INTEGER | SQL_CVT_BIT | SQL_CVT_WVARCHAR | SQL_CVT_DOUBLE | SQL_CVT_BIGINT;
             break;
 
         case SQL_CONVERT_TIMESTAMP: /* ODBC 1.0 */
             len = sizeof(SQLUINTEGER);
-            value = SQL_CVT_WVARCHAR;
+            value = SQL_CVT_TIMESTAMP | SQL_CVT_WVARCHAR;
             break;
 
         case SQL_CONVERT_FUNCTIONS: /* ODBC 1.0 */
