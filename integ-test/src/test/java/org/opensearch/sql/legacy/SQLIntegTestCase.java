@@ -71,13 +71,19 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   public static final Integer DEFAULT_QUERY_SIZE_LIMIT =
       Integer.parseInt(System.getProperty("defaultQuerySizeLimit", "200"));
 
+  public boolean shouldResetQuerySizeLimit() {
+    return true;
+  }
+
   @Before
   public void setUpIndices() throws Exception {
     if (client() == null) {
       initClient();
     }
 
-    resetQuerySizeLimit();
+    if (shouldResetQuerySizeLimit()) {
+      resetQuerySizeLimit();
+    }
     init();
   }
 
@@ -132,8 +138,10 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
    */
   @AfterClass
   public static void cleanUpIndices() throws IOException {
-    wipeAllOpenSearchIndices();
-    wipeAllClusterSettings();
+    if (System.getProperty("tests.rest.bwcsuite") == null) {
+      wipeAllOpenSearchIndices();
+      wipeAllClusterSettings();
+    }
   }
 
   protected void setQuerySizeLimit(Integer limit) throws IOException {
