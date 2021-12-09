@@ -1,8 +1,3 @@
-/*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
- */
-
 #ifndef OPENSEARCH_SEMAPHORE
 #define OPENSEARCH_SEMAPHORE
 

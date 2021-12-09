@@ -1,9 +1,3 @@
-/*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
- */
-
-
 #ifdef WIN32
 #include "opensearch_enlist.h"
 #include "opensearch_odbc.h"

@@ -1,9 +1,3 @@
-/*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
- */
-
-
 #include "drvconn.h"
 
 #include <stdio.h>

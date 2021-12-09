@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Copyright OpenSearch Contributors
-# SPDX-License-Identifier: Apache-2.0
-
 PROJECT_DIR=$(pwd)
 TEST_RUNNER_DIR=${PROJECT_DIR}/src/TestRunner
 WORKING_DIR=${PROJECT_DIR}/bin64

@@ -1,9 +1,3 @@
-/*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
- */
-
-
 #include "opensearch_communication.h"
 
 // sqlodbc needs to be included before mylog, otherwise mylog will generate
