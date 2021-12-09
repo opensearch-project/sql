@@ -150,6 +150,30 @@
             <argument type='datetime' />
             <argument type='datetime' />
         </function>
+        <function group='numeric' name='MIN' return-type='int'>
+            <formula>CASE WHEN ISNULL(%1) THEN NULL
+                WHEN ISNULL(%2) THEN NULL
+	            WHEN %1 &lt; %2 THEN %1
+                ELSE %2 END</formula>
+            <argument type='int' />
+            <argument type='int' />
+        </function>
+        <function group='numeric' name='MIN' return-type='real'>
+            <formula>CASE WHEN ISNULL(%1) THEN NULL
+                WHEN ISNULL(%2) THEN NULL
+	            WHEN %1 &lt; %2 THEN %1
+                ELSE %2 END</formula>
+            <argument type='real' />
+            <argument type='real' />
+        </function>
+        <function group='numeric' name='MIN' return-type='datetime'>
+            <formula>CASE WHEN ISNULL(%1) THEN NULL
+                WHEN ISNULL(%2) THEN NULL
+	            WHEN %1 &lt; %2 THEN %1
+                ELSE %2 END</formula>
+            <argument type='datetime' />
+            <argument type='datetime' />
+        </function>
 
         <function group='date' name='DAYOFYEAR' return-type='int'>
             <formula>DAY_OF_YEAR(%1)</formula>

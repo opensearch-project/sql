@@ -84,7 +84,7 @@ public class TimestampType implements TypeHelper<Timestamp> {
                 Timestamp ts = Timestamp.valueOf(value);
                 return localDateTimeToTimestamp(ts.toLocalDateTime(), calendar);
             }
-            
+
         } catch (IllegalArgumentException iae) {
             throw stringConversionException(value, iae);
         }
