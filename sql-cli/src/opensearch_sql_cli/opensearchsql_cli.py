@@ -159,7 +159,9 @@ class OpenSearchSqlCli:
             click.echo(text, color=color)
 
     def connect(self, endpoint, http_auth=None):
-        self.opensearch_executor = OpenSearchConnection(endpoint, http_auth, self.use_aws_authentication, self.query_language)
+        self.opensearch_executor = OpenSearchConnection(
+            endpoint, http_auth, self.use_aws_authentication, self.query_language
+        )
         self.opensearch_executor.set_connection()
 
     def _get_literals(self):

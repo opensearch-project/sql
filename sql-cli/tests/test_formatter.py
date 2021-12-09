@@ -135,7 +135,9 @@ class TestFormatter:
             "age  | 24",
         ]
 
-        with mock.patch("src.opensearch_sql_cli.main.click.secho") as mock_secho, mock.patch("src.opensearch_sql_cli.main.click.confirm") as mock_confirm:
+        with mock.patch("src.opensearch_sql_cli.main.click.secho") as mock_secho, mock.patch(
+            "src.opensearch_sql_cli.main.click.confirm"
+        ) as mock_confirm:
             expanded_results = formatter.format_output(data)
 
         mock_secho.assert_called_with(message="Output longer than terminal width", fg="red")
