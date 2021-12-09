@@ -32,36 +32,6 @@
             <formula>TO_DAYS(%1) - 693961.0</formula>
             <argument type='datetime' />
         </function>
-        <function group='cast' name='STR' return-type='str'>
-            <formula>CAST(%1 as string)</formula>
-            <argument type='real' />
-        </function>
-        <function group='cast' name='STR' return-type='str'>
-            <formula>CAST(%1 as string)</formula>
-            <argument type='int' />
-        </function>
-        <function group='cast' name='STR' return-type='str'>
-            <formula>CAST(%1 as string)</formula>
-            <argument type='date' />
-        </function>
-        <function group='cast' name='STR' return-type='str'>
-            <formula>CAST(%1 as string)</formula>
-            <argument type='bool' />
-        </function>
-        <function group='cast' name='INT' return-type='int'>
-            <formula>CAST(%1 as int)</formula>
-            <argument type='real' />
-        </function>
-        <function group='cast' name='INT' return-type='int'>
-            <formula>CAST(%1 as int)</formula>
-            <argument type='bool' />
-        </function>
-
-        <function group='logical' name='IFNULL' return-type='datetime'>
-            <formula>CASE WHEN ISNULL(%1) THEN SUBDATE(TIMESTAMP(%2), INTERVAL HOUR(TIMESTAMP(%2)) HOUR) ELSE %1 END</formula>
-            <argument type='datetime' />
-            <argument type='date' />
-        </function>
 
         <function group='operator' name='!=' return-type='bool'>
             <formula>(%1 AND NOT %2 OR NOT %1 AND %2)</formula>
@@ -180,64 +150,6 @@
             <argument type='datetime' />
             <argument type='datetime' />
         </function>
-        <function group='numeric' name='MAX' return-type='str'>
-            <formula>CASE WHEN ISNULL(%1) THEN NULL
-                WHEN ISNULL(%2) THEN NULL
-	            WHEN %1 &gt; %2 THEN %1
-                ELSE %2 END</formula>
-            <argument type='str' />
-            <argument type='str' />
-        </function>
-        <function group='numeric' name='MIN' return-type='int'>
-            <formula>CASE WHEN ISNULL(%1) THEN NULL
-                WHEN ISNULL(%2) THEN NULL
-	            WHEN %1 &lt; %2 THEN %1
-                ELSE %2 END</formula>
-            <argument type='int' />
-            <argument type='int' />
-        </function>
-        <function group='numeric' name='MIN' return-type='real'>
-            <formula>CASE WHEN ISNULL(%1) THEN NULL
-                WHEN ISNULL(%2) THEN NULL
-	            WHEN %1 &lt; %2 THEN %1
-                ELSE %2 END</formula>
-            <argument type='real' />
-            <argument type='real' />
-        </function>
-        <function group='numeric' name='MIN' return-type='datetime'>
-            <formula>CASE WHEN ISNULL(%1) THEN NULL
-                WHEN ISNULL(%2) THEN NULL
-	            WHEN %1 &lt; %2 THEN %1
-                ELSE %2 END</formula>
-            <argument type='datetime' />
-            <argument type='datetime' />
-        </function>
-        <function group='numeric' name='MIN' return-type='str'>
-            <formula>CASE WHEN ISNULL(%1) THEN NULL
-                WHEN ISNULL(%2) THEN NULL
-	            WHEN %1 &lt; %2 THEN %1
-                ELSE %2 END</formula>
-            <argument type='str' />
-            <argument type='str' />
-        </function>
-        <function group='numeric' name='CEILING' return-type='int'>
-            <formula>CEIL(%1)</formula>
-            <argument type='real' />
-        </function>
-        <function group='numeric' name='FLOOR' return-type='int'>
-            <formula>FLOOR(%1)</formula>
-            <argument type='real' />
-        </function>
-        <function group='numeric' name='HEXBINX' return-type='real'>
-            <formula>(((CASE WHEN (ABS((%2) - (CAST( ( (%2) / SQRT(3.0) ) AS INT ) * SQRT(3.0)))) + (SQRT(3.0) * ((ABS((%1) - (CAST( ( (%1) / 3.0 ) AS INT ) * 3.0))) - 1.0)) &gt; 0.0 THEN 1.5 ELSE 0.0 END) - (CASE WHEN ((%1) - (CAST( ( (%1) / 3.0 ) AS INT ) * 3.0) &lt; 0.0) AND ((CASE WHEN (ABS((%2) - (CAST( ( (%2) / SQRT(3.0) ) AS INT ) * SQRT(3.0)))) + (SQRT(3.0) * ((ABS((%1) - (CAST( ( (%1) / 3.0 ) AS INT ) * 3.0))) - 1.0)) &gt; 0.0 THEN 1.5 ELSE 0.0 END) &gt; 0.0) THEN 3.0 ELSE 0.0 END)) + (CAST( ( (%1) / 3.0 ) AS INT ) * 3.0))</formula>
-            <argument type='real' />
-            <argument type='real' />
-        </function>
-        <function group='numeric' name='HEXBINY' return-type='real'>
-            <formula>ROUND( (((CASE WHEN (ABS((%2) - (ROUND( ( (%2) / SQRT(3.0) ), 0 ) * SQRT(3.0)))) + (SQRT(3.0) * ((ABS((%1) - (ROUND( ( (%1) / 3.0 ), 0 ) * 3.0))) - 1.0)) &gt; 0.0 THEN SQRT(3.0) / 2.0 ELSE 0.0 END) - (CASE WHEN ((%2) - (ROUND( ( (%2) / SQRT(3.0) ), 0 ) * SQRT(3.0)) &lt; 0.0) AND ((CASE WHEN (ABS((%2) - (ROUND( ( (%2) / SQRT(3.0) ), 0 ) * SQRT(3.0)))) + (SQRT(3.0) * ((ABS((%1) - (ROUND( ( (%1) / 3.0 ), 0 ) * 3.0))) - 1.0)) &gt; 0.0 THEN SQRT(3.0) / 2.0 ELSE 0.0 END) &gt; 0.0) THEN SQRT(3.0) ELSE 0.0 END)) + (ROUND( ( (%2) / SQRT(3.0) ), 0 ) * SQRT(3.0))), 3)</formula>
-            <argument type='real' />
-            <argument type='real' />
-        </function>
 
         <function group='date' name='DAYOFYEAR' return-type='int'>
             <formula>DAY_OF_YEAR(%1)</formula>
@@ -252,35 +164,35 @@
             <argument type='date' />
         </function>
 
-        <function group='string' name='MID' return-type='str'>
+        <function group='string' name='MID' return-type='int'>
             <formula>SUBSTR(%1,%2)</formula>
             <argument type='str' />
             <argument type='int' />
         </function>
-        <function group='string' name='MID' return-type='str'>
+        <function group='string' name='MID' return-type='int'>
             <formula>SUBSTR(%1,CAST(%2 as int))</formula>
             <argument type='str' />
             <argument type='real' />
         </function>
-        <function group='string' name='MID' return-type='str'>
+        <function group='string' name='MID' return-type='int'>
             <formula>SUBSTR(%1,%2,%3)</formula>
             <argument type='str' />
             <argument type='int' />
             <argument type='int' />
         </function>
-        <function group='string' name='MID' return-type='str'>
+        <function group='string' name='MID' return-type='int'>
             <formula>SUBSTR(%1,CAST(%2 as int),%3)</formula>
             <argument type='str' />
             <argument type='real' />
             <argument type='int' />
         </function>
-        <function group='string' name='MID' return-type='str'>
+        <function group='string' name='MID' return-type='int'>
             <formula>SUBSTR(%1,%2,CAST(%3 as int))</formula>
             <argument type='str' />
             <argument type='int' />
             <argument type='real' />
         </function>
-        <function group='string' name='MID' return-type='str'>
+        <function group='string' name='MID' return-type='int'>
             <formula>SUBSTR(%1,CAST(%2 as int),CAST(%3 as int))</formula>
             <argument type='str' />
             <argument type='real' />
@@ -390,8 +302,24 @@
             <argument type='datetime' />
         </remove-function>
 
+        <remove-function name='MAX'>
+            <argument type='str' />
+        </remove-function>
+        <remove-function name='MAX'>
+            <argument type='str' />
+            <argument type='str' />
+        </remove-function>
+
         <remove-function name='SPACE'>
             <argument type='int' />
+        </remove-function>
+
+        <remove-function name='MIN'>
+            <argument type='str' />
+        </remove-function>
+        <remove-function name='MIN'>
+            <argument type='str' />
+            <argument type='str' />
         </remove-function>
    </function-map>
 </dialect>
