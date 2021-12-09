@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 import json
 import pytest
-from elasticsearch import ConnectionError, helpers, ConnectionPool
+from opensearchpy import ConnectionError, helpers, ConnectionPool
 
 from src.opensearch_sql_cli.opensearch_connection import OpenSearchConnection
 from src.opensearch_sql_cli.utils import OutputSettings

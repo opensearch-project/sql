@@ -2,6 +2,9 @@ name: SQL Java CI
 
 on: [push, pull_request]
 
+env:
+  OPENSEARCH_VERSION: '1.2.0-SNAPSHOT'
+
 jobs:
   build:
 
@@ -16,7 +19,7 @@ jobs:
         java-version: 1.14
     
     - name: Build with Gradle
-      run: ./gradlew build assemble -Dopensearch.version=1.2.0-SNAPSHOT
+      run: ./gradlew build assemble -Dopensearch.version=${{ env.OPENSEARCH_VERSION }}
 
     - name: Create Artifact Path
       run: |
@@ -27,6 +30,7 @@ jobs:
     - name: Upload SQL Coverage Report
       uses: codecov/codecov-action@v1
       with:
+        flags: sql-engine
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Upload Artifacts

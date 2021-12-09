@@ -43,7 +43,14 @@ jobs:
       - name: Test
         run: |
           cd OpenSearch-Dashboards/plugins/workbench
-          yarn test:jest
+          yarn test:jest --coverage
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v1
+        with:
+          flags: query-workbench
+          directory: ./OpenSearch-Dashboards/plugins/workbench
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Build Artifact
         run: |
