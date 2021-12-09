@@ -1,6 +1,3 @@
-# Copyright OpenSearch Contributors
-# SPDX-License-Identifier: Apache-2.0
-
 # Build AWS SDK
 $CURRENT_DIR = Get-Location
 $WORKING_DIR = $args[0]

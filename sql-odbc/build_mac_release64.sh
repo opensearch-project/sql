@@ -1,6 +1,3 @@
-# Copyright OpenSearch Contributors
-# SPDX-License-Identifier: Apache-2.0
-
 # Build AWS SDK
 # $BITNESS=64
 

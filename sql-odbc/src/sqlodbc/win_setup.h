@@ -1,9 +1,3 @@
-/*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
- */
-
-
 #ifndef _WIN_SETUP_H__
 #define _WIN_SETUP_H__
 

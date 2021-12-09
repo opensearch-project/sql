@@ -1,6 +1,3 @@
-# Copyright OpenSearch Contributors
-# SPDX-License-Identifier: Apache-2.0
-
 #
 # Copyright (C) 2018-2020 by George Cave - gcave@stablecoder.ca
 #

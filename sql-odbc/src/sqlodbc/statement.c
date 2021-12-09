@@ -1,9 +1,3 @@
-/*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
- */
-
-
 // clang-format off
 #include "statement.h"
 #include "misc.h" // strncpy_null
