@@ -98,4 +98,4 @@ See the [LICENSE](./LICENSE.txt) file for the project's licensing. We will ask y
 
 ## Copyright
 
-See [NOTICE](./NOTICE) for copyright details.
+Copyright OpenSearch Contributors. See [NOTICE](./NOTICE) for details.
