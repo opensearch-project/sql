@@ -33,6 +33,7 @@ extern "C" {
 #define OPENSEARCH_TYPE_NAME_TEXT "text"
 #define OPENSEARCH_TYPE_NAME_NESTED "nested"
 #define OPENSEARCH_TYPE_NAME_DATE "date"
+#define OPENSEARCH_TYPE_NAME_TIMESTAMP "timestamp"
 #define OPENSEARCH_TYPE_NAME_OBJECT "object"
 #define OPENSEARCH_TYPE_NAME_VARCHAR "varchar"
 #define OPENSEARCH_TYPE_NAME_UNSUPPORTED "unsupported"
