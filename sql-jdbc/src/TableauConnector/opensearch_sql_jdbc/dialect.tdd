@@ -174,7 +174,7 @@
             <argument type='datetime' />
             <argument type='datetime' />
         </function>
-
+    
         <function group='date' name='DAYOFYEAR' return-type='int'>
             <formula>DAY_OF_YEAR(%1)</formula>
             <argument type='date' />
