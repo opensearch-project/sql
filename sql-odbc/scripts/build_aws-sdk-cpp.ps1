@@ -1,6 +1,3 @@
-# Copyright OpenSearch Contributors
-# SPDX-License-Identifier: Apache-2.0
-
 $CONFIGURATION = $args[0]
 $WIN_ARCH = $args[1]
 $SRC_DIR = $args[2]

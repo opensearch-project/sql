@@ -1,6 +1,3 @@
-# Copyright OpenSearch Contributors
-# SPDX-License-Identifier: Apache-2.0
-
 project(unit_tests)
 
 set(HELPER_UTEST "${CMAKE_CURRENT_SOURCE_DIR}/UTHelper")
