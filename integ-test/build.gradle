@@ -196,8 +196,6 @@ def opensearch_tmp_dir = rootProject.file('build/private/es_tmp').absoluteFile
 opensearch_tmp_dir.mkdirs()
 
 task integTestRemote(type: RestIntegTestTask) {
-    // dependsOn ':plugin:bundlePlugin'
-
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
     systemProperty 'tests.security.manager', 'false'
