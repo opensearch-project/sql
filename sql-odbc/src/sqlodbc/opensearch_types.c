@@ -372,7 +372,7 @@ opensearchtype_attr_to_sqldesctype(const ConnectionClass *conn, OID type, int ty
         case SQL_TYPE_DATE:
         case SQL_TYPE_TIME:
         case SQL_TYPE_TIMESTAMP:
-            return SQL_TYPE_TIMESTAMP;
+            return SQL_DATETIME;
     }
     return rettype;
 }
