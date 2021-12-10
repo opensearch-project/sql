@@ -21,6 +21,9 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew build assemble -Dopensearch.version=${{ env.OPENSEARCH_VERSION }}
 
+    - name: Run backward compatibility tests
+      run: ./bwctest.sh
+
     - name: Create Artifact Path
       run: |
         mkdir -p opensearch-sql-builds
