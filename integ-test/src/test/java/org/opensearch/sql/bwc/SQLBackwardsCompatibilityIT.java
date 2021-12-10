@@ -7,7 +7,6 @@
 package org.opensearch.sql.bwc;
 
 
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.opensearch.client.Request;
