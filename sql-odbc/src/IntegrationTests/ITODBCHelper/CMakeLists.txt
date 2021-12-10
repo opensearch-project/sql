@@ -1,6 +1,3 @@
-# Copyright OpenSearch Contributors
-# SPDX-License-Identifier: Apache-2.0
-
 project(itodbc_helper)
 
 # Source, headers, and include dirs
@@ -17,4 +14,4 @@ add_library(itodbc_helper SHARED ${SOURCE_FILES} ${HEADER_FILES})
 
 # Library dependencies
 target_link_libraries(itodbc_helper sqlodbc ut_helper gtest_main)
-target_compile_definitions(itodbc_helper PUBLIC _UNICODE UNICODE)	
+target_compile_definitions(itodbc_helper PUBLIC _UNICODE UNICODE)

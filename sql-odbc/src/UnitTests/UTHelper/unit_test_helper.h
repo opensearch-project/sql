@@ -1,9 +1,3 @@
-/*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
- */
-
-
 #ifndef UNIT_TEST_HELPER
 #define UNIT_TEST_HELPER
 

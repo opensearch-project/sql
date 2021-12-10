@@ -1,9 +1,3 @@
-/*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
- */
-
-
 #ifdef _HANDLE_ENLIST_IN_DTC_
 
 #undef _MEMORY_DEBUG_

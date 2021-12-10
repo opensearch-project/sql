@@ -1,9 +1,3 @@
-/*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
- */
-
-
 #ifndef OPENSEARCH_UTILITY_H
 #define OPENSEARCH_UTILITY_H
 

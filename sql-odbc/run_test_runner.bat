@@ -1,6 +1,3 @@
-:: Copyright OpenSearch Contributors
-:: SPDX-License-Identifier: Apache-2.0
-
 set PROJECT_DIR=%CD%
 set TEST_RUNNER_DIR=%PROJECT_DIR%\src\TestRunner
 set WORKING_DIR=%PROJECT_DIR%\build\Debug64\odbc\bin\Debug
