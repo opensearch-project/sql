@@ -8,6 +8,7 @@ package org.opensearch.sql.legacy.unittest;
 
 import static org.junit.Assert.assertTrue;
 
+import org.json.JSONObject;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opensearch.search.builder.SearchSourceBuilder.ScriptField;
@@ -208,5 +209,52 @@ public class StringOperatorsTest {
                         "doc['lastname'].value.substring(start)"
                 )
         );
+    }
+
+    @Test
+    public void test() {
+        JSONObject object = new JSONObject("{\n"
+                + "  \"mappings\": {\n"
+                + "    \"properties\": {\n"
+                + "      \"startTime\": {\n"
+                + "        \"type\": \"date\"\n"
+                + "      },\n"
+                + "      \"endTime\": {\n"
+                + "        \"type\": \"date\"\n"
+                + "      },\n"
+                + "      \"tag1\": {\n"
+                + "        \"type\": \"keyword\"\n"
+                + "      },\n"
+                + "      \"tag2\": {\n"
+                + "        \"type\": \"keyword\"\n"
+                + "      },\n"
+                + "      \"meta\": {\n"
+                + "        \"properties\": {\n"
+                + "          \"type\": {\n"
+                + "            \"type\": \"keyword\",\n"
+                + "            \"doc_values\": false\n"
+                + "          },\n"
+                + "          \"bucket\": {\n"
+                + "            \"type\": \"keyword\",\n"
+                + "            \"doc_values\": false\n"
+                + "          },\n"
+                + "          \"object\": {\n"
+                + "            \"type\": \"keyword\",\n"
+                + "            \"doc_values\": false\n"
+                + "          },\n"
+                + "          \"pos\": {\n"
+                + "            \"type\": \"integer\",\n"
+                + "            \"doc_values\": false\n"
+                + "          },\n"
+                + "          \"length\": {\n"
+                + "            \"type\": \"integer\",\n"
+                + "            \"doc_values\": false\n"
+                + "          }\n"
+                + "        }\n"
+                + "      }\n"
+                + "    }\n"
+                + "  }\n"
+                + "}");
+        System.out.println(object.query("/mappings/properties/startTime/type"));
     }
 }

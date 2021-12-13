@@ -40,6 +40,7 @@ import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
@@ -258,8 +259,9 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
 
   private Expression visitIdentifier(String ident, AnalysisContext context) {
     TypeEnvironment typeEnv = context.peek();
-    ReferenceExpression ref = DSL.ref(ident,
-        typeEnv.resolve(new Symbol(Namespace.FIELD_NAME, ident)));
+//    ReferenceExpression ref = DSL.ref(ident,
+//        typeEnv.resolve(new Symbol(Namespace.FIELD_NAME, ident)));
+    ReferenceExpression ref = DSL.ref(ident, ExprCoreType.STRING);
 
     // Fall back to old engine too if type is not supported semantically
     if (isTypeNotSupported(ref.type())) {

@@ -33,6 +33,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.Aggregation;
@@ -43,6 +44,7 @@ import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
+import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
@@ -88,12 +90,12 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitSearchFromFilter(SearchFromFilterContext ctx) {
-    return new Filter(visitExpression(ctx.logicalExpression())).attach(visit(ctx.fromClause()));
+    return new Filter(internalVisitExpression(ctx.logicalExpression())).attach(visit(ctx.fromClause()));
   }
 
   @Override
   public UnresolvedPlan visitSearchFilterFrom(SearchFilterFromContext ctx) {
-    return new Filter(visitExpression(ctx.logicalExpression())).attach(visit(ctx.fromClause()));
+    return new Filter(internalVisitExpression(ctx.logicalExpression())).attach(visit(ctx.fromClause()));
   }
 
   /**
@@ -101,7 +103,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    */
   @Override
   public UnresolvedPlan visitWhereCommand(WhereCommandContext ctx) {
-    return new Filter(visitExpression(ctx.logicalExpression()));
+    return new Filter(internalVisitExpression(ctx.logicalExpression()));
   }
 
   /**
@@ -113,7 +115,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         ctx.fieldList()
             .fieldExpression()
             .stream()
-            .map(this::visitExpression)
+            .map(this::internalVisitExpression)
             .collect(Collectors.toList()),
         ArgumentFactory.getArgumentList(ctx)
     );
@@ -127,7 +129,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return new Rename(
         ctx.renameClasue()
             .stream()
-            .map(ct -> new Map(visitExpression(ct.orignalField), visitExpression(ct.renamedField)))
+            .map(ct -> new Map(internalVisitExpression(ct.orignalField), internalVisitExpression(ct.renamedField)))
             .collect(Collectors.toList())
     );
   }
@@ -139,7 +141,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitStatsCommand(StatsCommandContext ctx) {
     ImmutableList.Builder<UnresolvedExpression> aggListBuilder = new ImmutableList.Builder<>();
     for (OpenSearchPPLParser.StatsAggTermContext aggCtx : ctx.statsAggTerm()) {
-      UnresolvedExpression aggExpression = visitExpression(aggCtx.statsFunction());
+      UnresolvedExpression aggExpression = internalVisitExpression(aggCtx.statsFunction());
       String name = aggCtx.alias == null ? getTextInQuery(aggCtx) : StringUtils
           .unquoteIdentifier(aggCtx.alias.getText());
       Alias alias = new Alias(name, aggExpression);
@@ -151,10 +153,10 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         .fieldList()
         .fieldExpression()
         .stream()
-        .map(groupCtx -> new Alias(getTextInQuery(groupCtx), visitExpression(groupCtx))).collect(
+        .map(groupCtx -> new Alias(getTextInQuery(groupCtx), internalVisitExpression(groupCtx))).collect(
         Collectors.toList())
         : ctx.bySpanClause() != null
-        ? Collections.singletonList(visitExpression(ctx.bySpanClause()))
+        ? Collections.singletonList(internalVisitExpression(ctx.bySpanClause()))
         : Collections.emptyList();
 
     Aggregation aggregation = new Aggregation(
@@ -195,7 +197,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         ctx.sortbyClause()
             .sortField()
             .stream()
-            .map(sort -> (Field) visitExpression(sort))
+            .map(sort -> (Field) internalVisitExpression(sort))
             .collect(Collectors.toList())
     );
   }
@@ -208,20 +210,20 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return new Eval(
         ctx.evalClause()
             .stream()
-            .map(ct -> (Let) visitExpression(ct))
+            .map(ct -> (Let) internalVisitExpression(ct))
             .collect(Collectors.toList())
     );
   }
 
   private List<UnresolvedExpression> getGroupByList(ByClauseContext ctx) {
-    return ctx.fieldList().fieldExpression().stream().map(this::visitExpression)
+    return ctx.fieldList().fieldExpression().stream().map(this::internalVisitExpression)
         .collect(Collectors.toList());
   }
 
   private List<Field> getFieldList(FieldListContext ctx) {
     return ctx.fieldExpression()
         .stream()
-        .map(field -> (Field) visitExpression(field))
+        .map(field -> (Field) internalVisitExpression(field))
         .collect(Collectors.toList());
   }
 
@@ -238,6 +240,14 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         getFieldList(ctx.fieldList()),
         groupList
     );
+  }
+
+  @Override
+  public UnresolvedPlan visitRegexCommand(OpenSearchPPLParser.RegexCommandContext ctx) {
+    UnresolvedExpression expression = internalVisitExpression(ctx.expression());
+    Literal pattern = (Literal) internalVisitExpression(ctx.pattern());
+
+    return new Regex(expression, pattern);
   }
 
   /**
@@ -260,13 +270,13 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    */
   @Override
   public UnresolvedPlan visitFromClause(FromClauseContext ctx) {
-    return new Relation(visitExpression(ctx.tableSource()));
+    return new Relation(internalVisitExpression(ctx.tableSource()));
   }
 
   /**
    * Navigate to & build AST expression.
    */
-  private UnresolvedExpression visitExpression(ParseTree tree) {
+  private UnresolvedExpression internalVisitExpression(ParseTree tree) {
     return expressionBuilder.visit(tree);
   }
 

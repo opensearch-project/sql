@@ -47,6 +47,7 @@ import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
+import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
@@ -391,5 +392,10 @@ public class AstDSL {
 
   public static Limit limit(UnresolvedPlan input, Integer limit, Integer offset) {
     return new Limit(limit, offset).attach(input);
+  }
+
+  public static Regex regex(UnresolvedPlan input, UnresolvedExpression expression,
+                            Literal pattern) {
+    return new Regex(expression, pattern, input);
   }
 }
