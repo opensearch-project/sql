@@ -8,6 +8,7 @@ package org.opensearch.jdbc.types;
 
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Calendar;
 import java.util.Map;
@@ -78,13 +79,18 @@ public class TimestampType implements TypeHelper<Timestamp> {
                 }
             }
 
-            if (calendar == null) {
-                return Timestamp.valueOf(value);
+            final Timestamp ts;
+            // 11 to check if the value is in yyyy-MM-dd format
+            if (value.length() < 11) {
+                ts = Timestamp.valueOf(LocalDate.parse(value).atStartOfDay());
             } else {
-                Timestamp ts = Timestamp.valueOf(value);
-                return localDateTimeToTimestamp(ts.toLocalDateTime(), calendar);
+                ts = Timestamp.valueOf(value);
             }
 
+            if (calendar == null) {
+                return ts;
+            }
+            return localDateTimeToTimestamp(ts.toLocalDateTime(), calendar);
         } catch (IllegalArgumentException iae) {
             throw stringConversionException(value, iae);
         }

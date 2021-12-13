@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Copyright OpenSearch Contributors
-# SPDX-License-Identifier: Apache-2.0
-
 RESULTS_FILE=cppcheck-results.log
 
 # --force: force checks all define combinations (default max is 12)

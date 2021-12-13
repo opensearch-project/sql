@@ -1,9 +1,3 @@
-/*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
- */
-
-
 /*	TryEnterCriticalSection needs the following #define */
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0400

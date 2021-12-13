@@ -60,7 +60,7 @@ dependencies {
     testCompile group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
     testCompile group: 'org.opensearch.client', name: 'opensearch-rest-client', version: "${opensearch_version}"
     testCompile group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
-    testCompile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.11.1'
+    testCompile group: 'org.apache.logging.log4j', name: 'log4j-core', version:'2.15.0'
     testCompile project(':plugin')
     testCompile project(':legacy')
     testImplementation('org.junit.jupiter:junit-jupiter-api:5.6.2')
@@ -208,7 +208,6 @@ String bwcVersion = "1.13.2.0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
 
-
 2.times { i ->
     testClusters {
         "${baseName}$i" {
@@ -343,4 +342,37 @@ task bwcTestSuite(type: StandaloneRestIntegTestTask) {
     dependsOn tasks.named("${baseName}#mixedClusterTask")
     dependsOn tasks.named("${baseName}#rollingUpgradeClusterTask")
     dependsOn tasks.named("${baseName}#fullRestartClusterTask")
+}
+
+def opensearch_tmp_dir = rootProject.file('build/private/es_tmp').absoluteFile
+opensearch_tmp_dir.mkdirs()
+
+task integTestRemote(type: RestIntegTestTask) {
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    systemProperty 'tests.security.manager', 'false'
+    systemProperty('project.root', project.projectDir.absolutePath)
+    systemProperty 'java.io.tmpdir', opensearch_tmp_dir.absolutePath
+
+    systemProperty "https", System.getProperty("https")
+    systemProperty "user", System.getProperty("user")
+    systemProperty "password", System.getProperty("password")
+
+    // Set default query size limit
+    systemProperty 'defaultQuerySizeLimit', '10000'
+
+    if (System.getProperty("tests.rest.bwcsuite") == null) {
+        filter {
+            excludeTestsMatching "org.opensearch.sql.bwc.*IT"
+        }
+    }
+
+    // Exclude the same tests that are excluded for integTest
+    exclude 'org/opensearch/sql/doctest/**/*IT.class'
+    exclude 'org/opensearch/sql/correctness/**'
+    exclude 'org/opensearch/sql/legacy/ExplainIT.class'
+    exclude 'org/opensearch/sql/legacy/PrettyFormatterIT.class'
+    exclude 'org/opensearch/sql/legacy/TermQueryExplainIT.class'
+    exclude 'org/opensearch/sql/legacy/QueryAnalysisIT.class'
+    exclude 'org/opensearch/sql/legacy/OrderIT.class'
 }

@@ -1,6 +1,3 @@
-# Copyright OpenSearch Contributors
-# SPDX-License-Identifier: Apache-2.0
-
 project(dsn_installer)
 
 set(SOURCE_FILES dsn_installer.cpp)
