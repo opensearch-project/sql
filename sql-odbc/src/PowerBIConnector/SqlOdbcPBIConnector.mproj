@@ -98,6 +98,8 @@
             archiveOut.CreateEntryFromFile(fullPath, filename, CompressionLevel.Optimal);
         }
     }
+
+    File.Copy(OutputFile, Path.Combine(Environment.GetEnvironmentVariable("USERPROFILE"), @"Documents\Power BI Desktop\Custom Connectors", Path.GetFileName(OutputFile)), true);
 ]]></Code>
     </Task>
   </UsingTask>
