@@ -1,6 +1,3 @@
-:: Copyright OpenSearch Contributors
-:: SPDX-License-Identifier: Apache-2.0
-
 :: --force: force checks all define combinations (default max is 12)
 :: --suppress=objectIndex: seemingly false-positive (TODO: investigate this further) 
 :: -iaws-sdk-cpp: avoid checking AWS C++ SDK source files in our repo

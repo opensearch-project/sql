@@ -1,9 +1,3 @@
-/*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
- */
-
-
 #ifndef __DLG_SPECIFIC_H__
 #define __DLG_SPECIFIC_H__
 

@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Copyright OpenSearch Contributors
-# SPDX-License-Identifier: Apache-2.0
-
 PKG_INSTALL_DIR=/Applications
 FINAL_INSTALL_DIR=/Library/ODBC/opensearch-sql-odbc
 

@@ -1,6 +1,3 @@
-# Copyright OpenSearch Contributors
-# SPDX-License-Identifier: Apache-2.0
-
 project(integration_tests)
 
 set(HELPER_ITEST "${CMAKE_CURRENT_SOURCE_DIR}/ITODBCHelper")
