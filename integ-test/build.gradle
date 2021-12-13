@@ -191,3 +191,36 @@ task compileJdbc(type:Exec) {
         commandLine './gradlew', 'shadowJar'
     }
 }
+
+def opensearch_tmp_dir = rootProject.file('build/private/es_tmp').absoluteFile
+opensearch_tmp_dir.mkdirs()
+
+task integTestRemote(type: RestIntegTestTask) {
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    systemProperty 'tests.security.manager', 'false'
+    systemProperty('project.root', project.projectDir.absolutePath)
+    systemProperty 'java.io.tmpdir', opensearch_tmp_dir.absolutePath
+
+    systemProperty "https", System.getProperty("https")
+    systemProperty "user", System.getProperty("user")
+    systemProperty "password", System.getProperty("password")
+
+    // Set default query size limit
+    systemProperty 'defaultQuerySizeLimit', '10000'
+
+    if (System.getProperty("tests.rest.bwcsuite") == null) {
+        filter {
+            excludeTestsMatching "org.opensearch.sql.bwc.*IT"
+        }
+    }
+
+    // Exclude the same tests that are excluded for integTest
+    exclude 'org/opensearch/sql/doctest/**/*IT.class'
+    exclude 'org/opensearch/sql/correctness/**'
+    exclude 'org/opensearch/sql/legacy/ExplainIT.class'
+    exclude 'org/opensearch/sql/legacy/PrettyFormatterIT.class'
+    exclude 'org/opensearch/sql/legacy/TermQueryExplainIT.class'
+    exclude 'org/opensearch/sql/legacy/QueryAnalysisIT.class'
+    exclude 'org/opensearch/sql/legacy/OrderIT.class'
+}
