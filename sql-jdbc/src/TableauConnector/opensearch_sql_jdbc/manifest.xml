@@ -2,11 +2,11 @@
 
 <connector-plugin class='opensearch_jdbc' superclass='jdbc' plugin-version='1.1.0.0' name='OpenSearch' version='18.1' min-version-tableau='2021.1'>
   <vendor-information>
-      <company name="OpenSearch for ES"/>
+      <company name="OpenSearch Project"/>
       <support-link url="https://github.com/opensearch-project/sql"/>
   </vendor-information>
   <connection-customization class="opensearch_jdbc" enabled="true" version="10.0">
-    <vendor name="OpenSearch JDBC"/>
+    <vendor name="OpenSearch Project"/>
     <driver name="SQL"/>
     <customizations>
       <customization name="CAP_CREATE_TEMP_TABLES" value="no"/>
