@@ -310,7 +310,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   /**
-   * Build {@link LogicalRegex}
+   * Build {@link LogicalRegex}.
    */
   @Override
   public LogicalPlan visitRegex(Regex node, AnalysisContext context) {
