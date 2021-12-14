@@ -1,9 +1,3 @@
-/*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
- */
-
-
 #ifndef __OPENSEARCH_DRIVER_CONNECT_H__
 #define __OPENSEARCH_DRIVER_CONNECT_H__
 #include "opensearch_connection.h"

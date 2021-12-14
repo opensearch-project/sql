@@ -15,7 +15,7 @@ export const getQueries = (queriesString: string): string[] => {
 
   return queriesString
     .split(';')
-    .map((query: string) => query.trim())
+    .map((query: string) => query.trim().replace(/[\r\n]+/g, ' '))
     .filter((query: string) => query != '');
 };
 
