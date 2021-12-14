@@ -27,7 +27,9 @@ def cli(default_config_location):
 
 class TestOpenSearchSqlCli:
     def test_connect(self, cli):
-        with mock.patch.object(OpenSearchConnection, "__init__", return_value=None) as mock_OpenSearchConnection, mock.patch.object(
+        with mock.patch.object(
+            OpenSearchConnection, "__init__", return_value=None
+        ) as mock_OpenSearchConnection, mock.patch.object(
             OpenSearchConnection, "set_connection"
         ) as mock_set_connectiuon:
             cli.connect(endpoint=ENDPOINT)

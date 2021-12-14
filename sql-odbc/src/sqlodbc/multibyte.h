@@ -1,9 +1,3 @@
-/*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
- */
-
-
 #ifndef __MULTIBUYTE_H__
 #define __MULTIBUYTE_H__
 

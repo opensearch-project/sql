@@ -6,6 +6,31 @@
 
 package org.opensearch.sql.legacy;
 
+import com.google.common.base.Strings;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.Before;
+import org.opensearch.client.Request;
+import org.opensearch.client.RequestOptions;
+import org.opensearch.client.Response;
+import org.opensearch.sql.common.setting.Settings;
+
+import javax.management.MBeanServerInvocationHandler;
+import javax.management.ObjectName;
+import javax.management.remote.JMXConnector;
+import javax.management.remote.JMXConnectorFactory;
+import javax.management.remote.JMXServiceURL;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Locale;
+
 import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
 import static org.opensearch.sql.legacy.TestUtils.getAccountIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getBankIndexMapping;
@@ -37,30 +62,6 @@ import static org.opensearch.sql.legacy.plugin.RestSqlAction.CURSOR_CLOSE_ENDPOI
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.EXPLAIN_API_ENDPOINT;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
 
-import com.google.common.base.Strings;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Locale;
-import javax.management.MBeanServerInvocationHandler;
-import javax.management.ObjectName;
-import javax.management.remote.JMXConnector;
-import javax.management.remote.JMXConnectorFactory;
-import javax.management.remote.JMXServiceURL;
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.opensearch.client.Request;
-import org.opensearch.client.RequestOptions;
-import org.opensearch.client.Response;
-import org.opensearch.sql.common.setting.Settings;
-
 /**
  * OpenSearch Rest integration test base for SQL testing
  */
@@ -71,13 +72,19 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   public static final Integer DEFAULT_QUERY_SIZE_LIMIT =
       Integer.parseInt(System.getProperty("defaultQuerySizeLimit", "200"));
 
+  public boolean shouldResetQuerySizeLimit() {
+    return true;
+  }
+
   @Before
   public void setUpIndices() throws Exception {
     if (client() == null) {
       initClient();
     }
 
-    resetQuerySizeLimit();
+    if (shouldResetQuerySizeLimit()) {
+      resetQuerySizeLimit();
+    }
     init();
   }
 
@@ -132,8 +139,10 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
    */
   @AfterClass
   public static void cleanUpIndices() throws IOException {
-    wipeAllOpenSearchIndices();
-    wipeAllClusterSettings();
+    if (System.getProperty("tests.rest.bwcsuite") == null) {
+      wipeAllOpenSearchIndices();
+      wipeAllClusterSettings();
+    }
   }
 
   protected void setQuerySizeLimit(Integer limit) throws IOException {
