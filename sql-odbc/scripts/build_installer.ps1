@@ -1,6 +1,3 @@
-# Copyright OpenSearch Contributors
-# SPDX-License-Identifier: Apache-2.0
-
 $CONFIGURATION = $args[0]
 $WIN_ARCH = $args[1]
 $SRC_DIR = $args[2]
@@ -17,4 +14,4 @@ cmake -S $SRC_DIR `
     -D BUILD_WITH_TESTS=OFF
 
 # # Build Project
-msbuild $BUILD_DIR\PACKAGE.vcxproj -m -p:Configuration=Release 
+msbuild $BUILD_DIR\PACKAGE.vcxproj -m -p:Configuration=Release

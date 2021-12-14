@@ -8,6 +8,7 @@ import itertools
 
 from cli_helpers.tabular_output import TabularOutputFormatter
 from cli_helpers.tabular_output.preprocessors import format_numbers
+from opensearchpy.exceptions import OpenSearchException
 
 click.disable_unicode_literals_warning = True
 
@@ -55,10 +56,16 @@ class Formatter:
         formatter = TabularOutputFormatter(format_name=self.table_format)
 
         # parse response data
-        datarows = data["datarows"]
-        schema = data["schema"]
-        total_hits = data["total"]
-        cur_size = data["size"]
+        try:
+            datarows = data["datarows"]
+            schema = data["schema"]
+            total_hits = data["total"]
+            cur_size = data["size"]
+        except KeyError:
+            # tmp fix: in case some errors in query engine returns 200 in http response, leading to a parsing error
+            # TODO: remove this after #311 in sql repo is fixed
+            raise OpenSearchException(data)
+
         # unused data for now,
         fields = []
         types = []

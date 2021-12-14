@@ -1,9 +1,3 @@
-/*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
- */
-
-
 // clang-format off
 #include "chrono"
 #include <opensearch_odbc.h>
