@@ -63,7 +63,7 @@ dependencies {
     testCompile group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
     testCompile group: 'org.opensearch.client', name: 'opensearch-rest-client', version: "${opensearch_version}"
     testCompile group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
-    testCompile group: 'org.apache.logging.log4j', name: 'log4j-core', version:'2.15.0'
+    testCompile group: 'org.apache.logging.log4j', name: 'log4j-core', version:'2.16.0'
     testCompile project(':plugin')
     testCompile project(':legacy')
     testImplementation('org.junit.jupiter:junit-jupiter-api:5.6.2')
