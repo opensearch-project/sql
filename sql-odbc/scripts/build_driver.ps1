@@ -1,6 +1,3 @@
-# Copyright OpenSearch Contributors
-# SPDX-License-Identifier: Apache-2.0
-
 $CONFIGURATION = $args[0]
 $WIN_ARCH = $args[1]
 $SRC_DIR = $args[2]
@@ -15,4 +12,4 @@ cmake -S $SRC_DIR `
     -D BUILD_WITH_TESTS=ON
 
 # # Build Project
-cmake --build $BUILD_DIR --config $CONFIGURATION --parallel 4 
+cmake --build $BUILD_DIR --config $CONFIGURATION --parallel 4

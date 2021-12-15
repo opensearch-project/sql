@@ -16,7 +16,7 @@ from functools import partial
 from opensearch_sql_cli.opensearch_connection import OpenSearchConnection
 from opensearch_sql_cli.utils import OutputSettings
 from opensearch_sql_cli.formatter import Formatter
-from elasticsearch import Elasticsearch as OpenSearch, helpers
+from opensearchpy import OpenSearch, helpers
 
 ENDPOINT = "http://localhost:9200"
 ACCOUNTS = "accounts"

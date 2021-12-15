@@ -1,8 +1,3 @@
-/*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
- */
-
 #include "opensearch_info.h"
 
 #include <stdio.h>
@@ -72,7 +67,7 @@ const std::unordered_map< int, std::vector< int > > sql_opensearch_type_map = {
     {SQL_WVARCHAR,
      {OPENSEARCH_TYPE_KEYWORD, OPENSEARCH_TYPE_TEXT, OPENSEARCH_TYPE_NESTED,
       OPENSEARCH_TYPE_OBJECT}},
-    {SQL_TYPE_TIMESTAMP, {OPENSEARCH_TYPE_DATETIME}}};
+    {SQL_TYPE_TIMESTAMP, {OPENSEARCH_TYPE_DATETIME, OPENSEARCH_TYPE_TIMESTAMP}}};
 
 const std::unordered_map< std::string, int > data_name_data_type_map = {
     {OPENSEARCH_TYPE_NAME_BOOLEAN, SQL_BIT},
@@ -87,6 +82,7 @@ const std::unordered_map< std::string, int > data_name_data_type_map = {
     {OPENSEARCH_TYPE_NAME_KEYWORD, SQL_WVARCHAR},
     {OPENSEARCH_TYPE_NAME_TEXT, SQL_WVARCHAR},
     {OPENSEARCH_TYPE_NAME_DATE, SQL_TYPE_TIMESTAMP},
+    {OPENSEARCH_TYPE_NAME_TIMESTAMP, SQL_TYPE_TIMESTAMP},
     {OPENSEARCH_TYPE_NAME_OBJECT, SQL_WVARCHAR},
     {OPENSEARCH_TYPE_NAME_NESTED, SQL_WVARCHAR}};
 

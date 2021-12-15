@@ -1,9 +1,3 @@
-/*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
- */
-
-
 // clang-format off
 #define NOMINMAX 1
 #include "pch.h"
@@ -502,6 +496,8 @@ const std::vector< sample_data_getTypeInfo_struct > sample_data_all_types_info{
     {"float", SQL_REAL, 7, "", "", "", 2, 0, 3, 0, 0, 0, "", 0, 0, SQL_REAL, 0,
      10, 0},
     {"date", SQL_TYPE_TIMESTAMP, 24, "", "", "", 2, 0, 3, 1, 0, 0, "", 0, 0,
+     SQL_TYPE_TIMESTAMP, 0, 10, 0},
+    {"timestamp", SQL_TYPE_TIMESTAMP, 24, "", "", "", 2, 0, 3, 1, 0, 0, "", 0, 0,
      SQL_TYPE_TIMESTAMP, 0, 10, 0}};
 
 const std::vector< sample_data_getTypeInfo_struct >

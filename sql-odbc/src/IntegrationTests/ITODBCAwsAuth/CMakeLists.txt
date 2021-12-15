@@ -1,6 +1,3 @@
-# Copyright OpenSearch Contributors
-# SPDX-License-Identifier: Apache-2.0
-
 project(itodbc_aws_auth)
 
 # Source, headers, and include dirs
