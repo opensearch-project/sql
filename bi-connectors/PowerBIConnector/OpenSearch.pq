@@ -1,11 +1,12 @@
 // This file contains Data Connector logic
+[Version = "1.0.0"]
 section OpenSearch;
 
 // When set to true, additional trace information will be written out to the User log. 
 // This should be set to false before release. Tracing is done through a call to 
 // Diagnostics.LogValue(). When EnableTraceOutput is set to false, the call becomes a 
 // no-op and simply returns the original value.
-EnableTraceOutput = true;
+EnableTraceOutput = false;
 
 [DataSource.Kind="OpenSearch", Publish="OpenSearch.Publish"]
 shared OpenSearch.Contents = Value.ReplaceType(OpenSearchImpl, OpenSearchType);
