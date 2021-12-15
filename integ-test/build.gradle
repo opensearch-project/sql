@@ -212,7 +212,7 @@ String bwcFilePath = "src/test/resources/bwc/"
     testClusters {
         "${baseName}$i" {
             testDistribution = "ARCHIVE"
-            versions = ["7.10.2", "1.2.1-SNAPSHOT"]
+            versions = ["7.10.2", "1.2.2-SNAPSHOT"]
             numberOfNodes = 3
             plugin(provider(new Callable<RegularFile>() {
                 @Override
