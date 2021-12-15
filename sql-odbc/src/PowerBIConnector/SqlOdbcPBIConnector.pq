@@ -15,14 +15,24 @@ SqlOdbcPBIConnectorType = type function (
         Server as (type text meta [
             Documentation.FieldCaption = "Server",
             Documentation.FieldDescription = "The hostname of the OpenSearch server.",
-            Documentation.SampleValues = { "localhost:9200" }
+            Documentation.SampleValues = { "localhost" }
+        ]),
+        Port as (type number meta [
+            Documentation.FieldCaption = "Port",
+            Documentation.FieldDescription = "Port which OpenSearch server listens to.",
+            Documentation.SampleValues = { 9200 }
+        ]),
+        UseSSL as (type logical meta [
+            Documentation.FieldCaption = "Use SSL",
+            Documentation.FieldDescription = "Use SSL",
+            Documentation.AllowedValues = { true, false }
         ])
     )
     as table meta [
         Documentation.Name = "OpenSearch"
     ];
 
-SqlOdbcPBIConnectorImpl = (Server as text) as table =>
+SqlOdbcPBIConnectorImpl = (Server as text, Port as number, UseSSL as logical) as table =>
     let
         Credential = Extension.CurrentCredential(),
         AuthenticationMode = Credential[AuthenticationKind],
@@ -56,9 +66,29 @@ SqlOdbcPBIConnectorImpl = (Server as text) as table =>
                     UseSSL = 0
                 ],
 
+        // Substract the server from the user input in case if it entered like 'http://localhost' or 'https://srv.com:100500' or 'localhost:0'
+        ServerWithoutPrefix =
+            if Text.StartsWith(Server, "http://") then
+                Text.RemoveRange(Server, 0, 7)
+            else if Text.StartsWith(Server, "https://") then
+                Text.RemoveRange(Server, 0, 8)
+            else
+                Server,
+        ServerWithouPrefixAndPort =
+            if List.Count(Text.Split(ServerWithoutPrefix, ":")) > 1 then
+                Text.Split(ServerWithoutPrefix, ":"){0}
+            else
+                ServerWithoutPrefix,
+        // And build the proper string on our own
+        FinalServerString =
+            if UseSSL then
+                "https://" & ServerWithouPrefixAndPort & ":" & Text.From(Port)
+            else
+                "http://" & ServerWithouPrefixAndPort & ":" & Text.From(Port),
+
         ConnectionString = [
             Driver = "OpenSearch SQL ODBC Driver",
-            Host = Server
+            Host = FinalServerString
         ],
 
         SQLGetInfo = Diagnostics.LogValue("SQLGetInfo_Options", [
@@ -165,9 +195,11 @@ SqlOdbcPBIConnector = [
     TestConnection = (dataSourcePath) => 
         let
             json = Json.Document(dataSourcePath),
-            Server = json[Server]
+            Server = json[Server],
+            Port = json[Port],
+            UseSSL = json[UseSSL]
         in
-            { "SqlOdbcPBIConnector.Contents", Server },
+            { "SqlOdbcPBIConnector.Contents", Server, Port, UseSSL },
 
     // Authentication modes
     Authentication = [
@@ -186,10 +218,10 @@ SqlOdbcPBIConnector = [
     // PBIDS Handler
     DSRHandlers = [
       #"sqlodbc" = [
-        GetDSR = (server, schema, object, optional options) => [ protocol = "sqlodbc", address = [ server = server ] ],
-        GetFormula = (dsr, optional options) => () => 
+        GetDSR = (server, schema, object, optional options) => [ protocol = "sqlodbc", address = [ server = server, port = schema, useSSL = object ] ],
+        GetFormula = (dsr, optional options) => () =>
           let
-            db = SqlOdbcPBIConnector.Contents(dsr[address][server])
+            db = SqlOdbcPBIConnector.Contents(dsr[address][server], dsr[address][port], dsr[address][useSSL])
           in
             db,
         GetFriendlyName = (dsr) => "OpenSearch SQL ODBC"
