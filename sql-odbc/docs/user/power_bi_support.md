@@ -1,4 +1,4 @@
-#  Connecting OpenSearch to Microsoft Power BI Desktop
+﻿#  Connecting OpenSearch to Microsoft Power BI Desktop
 
 ## Prerequisites
 * Microsoft Power BI Desktop
@@ -34,7 +34,7 @@
 
 <img src="img/pbi_third_party_warning.png" width="500">
 
-* Enter server value. Click on **OK**.
+* Enter server address, port and select SSL mode. Click on **OK**.
 
 <img src="img/pbi_connection_string_options.png" width="500">
 
