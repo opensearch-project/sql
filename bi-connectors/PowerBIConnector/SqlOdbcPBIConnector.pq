@@ -229,7 +229,7 @@ Extension.LoadFunction = (name as text) =>
     in
         Expression.Evaluate(asText, #shared);
 
-// Diagnostics module contains multiple functions. .
+// Diagnostics module contains multiple functions.
 Diagnostics = Extension.LoadFunction("Diagnostics.pqm");
 Diagnostics.LogValue = if (EnableTraceOutput) then Diagnostics[LogValue] else (prefix, value) => value;
 
