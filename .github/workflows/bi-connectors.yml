@@ -22,6 +22,7 @@ jobs:
     - name: Prepare Power BI ODBC connector
       run: |
         cp SqlOdbcPBIConnector.pq SqlOdbcPBIConnector.m
+      working-directory: bi-connectors/PowerBIConnector
     - name: Pack Power BI ODBC connector
       run: |
         zip OpenSearch-project.mez *.png *.m *.resx *.pqm
