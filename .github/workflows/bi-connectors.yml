@@ -16,26 +16,33 @@ jobs:
     - uses: actions/checkout@v1
     - name: Pack Tableau ODBC connector
       run: |
-        zip -r opensearch_sql_odbc.taco bi-connectors/TableauConnector/opensearch_sql_odbc -x *.taco
+        zip -r opensearch_sql_odbc.taco . -x *.taco
+      working-directory: bi-connectors/TableauConnector/opensearch_sql_odbc
+    - name: Prepare Power BI ODBC connector
+      run: |
+        cp SqlOdbcPBIConnector.pq SqlOdbcPBIConnector.m
     - name: Pack Power BI ODBC connector
       run: |
-        zip OpenSearch-project.mez bi-connectors/PowerBIConnector
+        zip OpenSearch-project.mez *.png *.m *.resx *.pqm
+      working-directory: bi-connectors/PowerBIConnector
     - name: Prepare the second Power BI ODBC connector
       run: |
-        sed -i 's/<value>OpenSearch<\/value>/<value>Amazon OpenSearch Service<\/value>/g' bi-connectors/PowerBIConnector/resources.resx
-        sed -i 's/Documentation.Name = "OpenSearch"/Documentation.Name = "Amazon OpenSearch Service"/g' bi-connectors/PowerBIConnector/SqlOdbcPBIConnector.pq
+        sed -i 's/<value>OpenSearch<\/value>/<value>Amazon OpenSearch Service<\/value>/g' resources.resx
+        sed -i 's/Documentation.Name = "OpenSearch"/Documentation.Name = "Amazon OpenSearch Service"/g' SqlOdbcPBIConnector.m
+      working-directory: bi-connectors/PowerBIConnector
     - name: Pack Power BI ODBC connector for 'Amazon OpenSearch Service'
       run: |
-        zip Amazon-OpenSearch-Service.mez bi-connectors/PowerBIConnector
+        zip Amazon-OpenSearch-Service.mez *.png *.m *.resx *.pqm
+      working-directory: bi-connectors/PowerBIConnector
     - name: Upload Tableau ODBC connector
       if: success()
       uses: actions/upload-artifact@v2
       with:
         name: TableauConnector
-        path: opensearch_sql_odbc.taco
+        path: bi-connectors/TableauConnector/opensearch_sql_odbc/opensearch_sql_odbc.taco
     - name: Upload Power BI ODBC connectors
       if: success()
       uses: actions/upload-artifact@v2
       with:
         name: PBIConnectors
-        path: '*.mez'
+        path: 'bi-connectors/PowerBIConnector/*.mez'
