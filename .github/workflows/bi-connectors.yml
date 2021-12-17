@@ -14,9 +14,9 @@ jobs:
 #        working-directory: sql-odbc
     steps:
     - uses: actions/checkout@v1
-    - name: Pack Tableau JDBC connector
+    - name: Pack Tableau ODBC connector
       run: |
-        zip -r opensearch_sql_jdbc.taco bi-connectors/TableauConnector/opensearch_sql_jdbc -x *.taco
+        zip -r opensearch_sql_odbc.taco bi-connectors/TableauConnector/opensearch_sql_odbc -x *.taco
     - name: Pack Power BI ODBC connector
       run: |
         zip OpenSearch-project.mez bi-connectors/PowerBIConnector
@@ -27,12 +27,12 @@ jobs:
     - name: Pack Power BI ODBC connector for 'Amazon OpenSearch Service'
       run: |
         zip Amazon-OpenSearch-Service.mez bi-connectors/PowerBIConnector
-    - name: Upload Tableau JDBC connector
+    - name: Upload Tableau ODBC connector
       if: success()
       uses: actions/upload-artifact@v2
       with:
         name: TableauConnector
-        path: opensearch_sql_jdbc.taco
+        path: opensearch_sql_odbc.taco
     - name: Upload Power BI ODBC connectors
       if: success()
       uses: actions/upload-artifact@v2
