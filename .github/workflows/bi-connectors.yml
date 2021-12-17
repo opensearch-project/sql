@@ -22,7 +22,7 @@ jobs:
       working-directory: bi-connectors/PowerBIConnector
     - name: Pack Power BI ODBC connector
       run: |
-        zip OpenSearch-project.mez *.png *.m *.resx *.pqm
+        zip OpenSearchProject.mez *.png *.m *.resx *.pqm
       working-directory: bi-connectors/PowerBIConnector
     - name: Prepare the second Power BI ODBC connector
       run: |
@@ -32,7 +32,7 @@ jobs:
       working-directory: bi-connectors/PowerBIConnector
     - name: Pack Power BI ODBC connector for 'Amazon OpenSearch Service'
       run: |
-        zip Amazon-OpenSearch-Service.mez *.png *.m *.resx *.pqm
+        zip AmazonOpenSearchService.mez *.png *.m *.resx *.pqm
       working-directory: bi-connectors/PowerBIConnector
     - name: Upload Tableau ODBC connector
       if: success()
