@@ -159,7 +159,7 @@ OnOdbcError = (errorRecord as record) =>
         else 
             error errorRecord;
 
-// Data Source Kind description
+// Data Source Kind description.
 SqlOdbcPBIConnector = [
     // Required for use with Power BI Service.
     TestConnection = (dataSourcePath) => 
@@ -169,7 +169,7 @@ SqlOdbcPBIConnector = [
         in
             { "SqlOdbcPBIConnector.Contents", Server },
 
-    // Authentication modes
+    // Authentication modes.
     Authentication = [
         Implicit = [
             Label = "NONE"
@@ -183,7 +183,7 @@ SqlOdbcPBIConnector = [
         ]
     ],
 
-    // PBIDS Handler
+    // PBIDS Handler.
     DSRHandlers = [
       #"sqlodbc" = [
         GetDSR = (server, schema, object, optional options) => [ protocol = "sqlodbc", address = [ server = server ] ],
@@ -196,13 +196,13 @@ SqlOdbcPBIConnector = [
       ]
     ],
 
-    // Enable Encryption
+    // Enable Encryption.
     SupportsEncryption = true,
 
     Label = Extension.LoadString("DataSourceLabel")
 ];
 
-// Data Source UI publishing description
+// Data Source UI publishing description.
 SqlOdbcPBIConnector.Publish = [
     Beta = true,
     Category = "Other",
@@ -221,7 +221,7 @@ SqlOdbcPBIConnector.Icons = [
     Icon32 = { Extension.Contents("SqlOdbcPBIConnector32.png"), Extension.Contents("SqlOdbcPBIConnector40.png"), Extension.Contents("SqlOdbcPBIConnector48.png"), Extension.Contents("SqlOdbcPBIConnector64.png") }
 ];
 
-// Load common library functions
+// Load common library functions.
 Extension.LoadFunction = (name as text) =>
     let
         binary = Extension.Contents(name),
