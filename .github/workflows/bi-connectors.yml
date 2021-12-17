@@ -1,0 +1,41 @@
+name: Build connectors for BI tools
+
+on:
+  push:
+    paths:
+      - 'bi-connectors/PowerBIConnector/**'
+      - 'bi-connectors/TableauConnector/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+#    defaults:
+#      run:
+#        working-directory: sql-odbc
+    steps:
+    - uses: actions/checkout@v1
+    - name: Pack Tableau JDBC connector
+      run: |
+        zip -r opensearch_sql_jdbc.taco bi-connectors/TableauConnector/opensearch_sql_jdbc -x *.taco
+    - name: Pack Power BI ODBC connector
+      run: |
+        zip OpenSearch-project.mez bi-connectors/PowerBIConnector
+    - name: Prepare the second Power BI ODBC connector
+      run: |
+        sed -i 's/<value>OpenSearch<\/value>/<value>Amazon OpenSearch Service<\/value>/g' bi-connectors/PowerBIConnector/resources.resx
+        sed -i 's/Documentation.Name = "OpenSearch"/Documentation.Name = "Amazon OpenSearch Service"/g' bi-connectors/PowerBIConnector/SqlOdbcPBIConnector.pq
+    - name: Pack Power BI ODBC connector for 'Amazon OpenSearch Service'
+      run: |
+        zip Amazon-OpenSearch-Service.mez bi-connectors/PowerBIConnector
+    - name: Upload Tableau JDBC connector
+      if: success()
+      uses: actions/upload-artifact@v2
+      with:
+        name: TableauConnector
+        path: opensearch_sql_jdbc.taco
+    - name: Upload Power BI ODBC connectors
+      if: success()
+      uses: actions/upload-artifact@v2
+      with:
+        name: PBIConnectors
+        path: *.mez
