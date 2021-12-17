@@ -5,6 +5,7 @@ on:
     paths:
       - 'bi-connectors/PowerBIConnector/**'
       - 'bi-connectors/TableauConnector/**'
+      - '.github/workflows/bi-connectors.yml'
 
 jobs:
   build:
