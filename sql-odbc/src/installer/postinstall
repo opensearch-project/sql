@@ -1,14 +1,5 @@
 #!/bin/bash
 
-# SPDX-License-Identifier: Apache-2.0
-#
-# The OpenSearch Contributors require contributions made to
-# this file be licensed under the Apache-2.0 license or a
-# compatible open source license.
-#
-# Modifications Copyright OpenSearch Contributors. See
-# GitHub history for details.
-
 PKG_INSTALL_DIR=/Applications
 FINAL_INSTALL_DIR=/Library/ODBC/opensearch-sql-odbc
 

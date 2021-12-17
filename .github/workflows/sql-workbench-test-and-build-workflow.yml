@@ -4,8 +4,8 @@ on: [pull_request, push]
 
 env: 
   PLUGIN_NAME: query-workbench-dashboards
-  OPENSEARCH_VERSION: '1.x'
-  OPENSEARCH_PLUGIN_VERSION: 1.1.0.0
+  OPENSEARCH_VERSION: '1.2'
+  OPENSEARCH_PLUGIN_VERSION: 1.2.0.0
 
 jobs:
 
@@ -43,7 +43,14 @@ jobs:
       - name: Test
         run: |
           cd OpenSearch-Dashboards/plugins/workbench
-          yarn test:jest
+          yarn test:jest --coverage
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v1
+        with:
+          flags: query-workbench
+          directory: ./OpenSearch-Dashboards/plugins/workbench
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Build Artifact
         run: |

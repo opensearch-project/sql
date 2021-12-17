@@ -1,30 +1,3 @@
-/*
- * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
- */
-
-/*
- * Copyright <2019> Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License").
- * You may not use this file except in compliance with the License.
- * A copy of the License is located at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * or in the "license" file accompanying this file. This file is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- * express or implied. See the License for the specific language governing
- * permissions and limitations under the License.
- *
- */
-
 // clang-format off
 #include "pch.h"
 #include "unit_test_helper.h"
@@ -229,20 +202,20 @@ TEST_SQL_GET_INFO_STRING(SQLCatalogName, SQL_CATALOG_NAME, L"N");
 // Conversion //
 ////////////////
 
-TEST_SQL_GET_INFO_UINT_MASK(SQLConvertInteger, SQL_CONVERT_INTEGER, 0);
+TEST_SQL_GET_INFO_UINT_MASK(SQLConvertInteger, SQL_CONVERT_INTEGER, SQL_CVT_INTEGER | SQL_CVT_REAL | SQL_CVT_DOUBLE | SQL_CVT_BIT | SQL_CVT_BIGINT | SQL_CVT_WVARCHAR);
 TEST_SQL_GET_INFO_UINT_MASK(SQLConvertSmallint, SQL_CONVERT_SMALLINT, 0);
 TEST_SQL_GET_INFO_UINT_MASK(SQLConvertTinyint, SQL_CONVERT_TINYINT, 0);
-TEST_SQL_GET_INFO_UINT_MASK(SQLConvertBit, SQL_CONVERT_BIT, 0);
+TEST_SQL_GET_INFO_UINT_MASK(SQLConvertBit, SQL_CONVERT_BIT, SQL_CVT_INTEGER | SQL_CVT_REAL | SQL_CVT_DOUBLE | SQL_CVT_BIT | SQL_CVT_BIGINT | SQL_CVT_WVARCHAR);
 TEST_SQL_GET_INFO_UINT_MASK(SQLConvertVarchar, SQL_CONVERT_VARCHAR, 0);
-TEST_SQL_GET_INFO_UINT_MASK(SQLConvertBigint, SQL_CONVERT_BIGINT, 0);
+TEST_SQL_GET_INFO_UINT_MASK(SQLConvertBigint, SQL_CONVERT_BIGINT, SQL_CVT_INTEGER | SQL_CVT_REAL | SQL_CVT_DOUBLE | SQL_CVT_BIT | SQL_CVT_BIGINT | SQL_CVT_WVARCHAR);
 TEST_SQL_GET_INFO_UINT_MASK(SQLConvertDecimal, SQL_CONVERT_DECIMAL, 0);
-TEST_SQL_GET_INFO_UINT_MASK(SQLConvertDouble, SQL_CONVERT_DOUBLE, 0);
+TEST_SQL_GET_INFO_UINT_MASK(SQLConvertDouble, SQL_CONVERT_DOUBLE, SQL_CVT_INTEGER | SQL_CVT_REAL | SQL_CVT_DOUBLE | SQL_CVT_BIT | SQL_CVT_BIGINT | SQL_CVT_WVARCHAR);
 TEST_SQL_GET_INFO_UINT_MASK(SQLConvertFloat, SQL_CONVERT_FLOAT, 0);
 TEST_SQL_GET_INFO_UINT_MASK(SQLConvertNumeric, SQL_CONVERT_NUMERIC, 0);
-TEST_SQL_GET_INFO_UINT_MASK(SQLConvertReal, SQL_CONVERT_REAL, 0);
+TEST_SQL_GET_INFO_UINT_MASK(SQLConvertReal, SQL_CONVERT_REAL, SQL_CVT_INTEGER | SQL_CVT_REAL | SQL_CVT_DOUBLE | SQL_CVT_BIT | SQL_CVT_BIGINT | SQL_CVT_WVARCHAR);
 TEST_SQL_GET_INFO_UINT_MASK(SQLConvertDate, SQL_CONVERT_DATE, 0);
 TEST_SQL_GET_INFO_UINT_MASK(SQLConvertTime, SQL_CONVERT_TIME, 0);
-TEST_SQL_GET_INFO_UINT_MASK(SQLConvertTimestamp, SQL_CONVERT_TIMESTAMP, 0);
+TEST_SQL_GET_INFO_UINT_MASK(SQLConvertTimestamp, SQL_CONVERT_TIMESTAMP, SQL_CVT_TIMESTAMP | SQL_CVT_WVARCHAR);
 TEST_SQL_GET_INFO_UINT_MASK(SQLConvertBinary, SQL_CONVERT_BINARY, 0);
 TEST_SQL_GET_INFO_UINT_MASK(SQLConvertLongvarbinary, SQL_CONVERT_LONGVARBINARY,
                             0);
@@ -252,7 +225,7 @@ TEST_SQL_GET_INFO_UINT_MASK(SQLConvertLongVarchar, SQL_CONVERT_LONGVARCHAR, 0);
 TEST_SQL_GET_INFO_UINT_MASK(SQLConvertWChar, SQL_CONVERT_WCHAR, 0);
 TEST_SQL_GET_INFO_UINT_MASK(SQLConvertWLongVarchar, SQL_CONVERT_WLONGVARCHAR,
                             0);
-TEST_SQL_GET_INFO_UINT_MASK(SQLConvertWVarchar, SQL_CONVERT_WVARCHAR, 0);
+TEST_SQL_GET_INFO_UINT_MASK(SQLConvertWVarchar, SQL_CONVERT_WVARCHAR, SQL_CVT_INTEGER | SQL_CVT_REAL | SQL_CVT_DOUBLE | SQL_CVT_BIGINT | SQL_CVT_WVARCHAR);
 TEST_SQL_GET_INFO_UINT_MASK(SQLConvertGuid, SQL_CONVERT_GUID, 0);
 
 //////////////////////

@@ -68,6 +68,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `Condition Functions <functions/condition.rst>`_
 
+  - `Relevance Functions <functions/relevance.rst>`_
+
 * **Optimization**
 
   - `Optimization <../../user/optimization/optimization.rst>`_

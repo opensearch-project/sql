@@ -1,0 +1,53 @@
+<?xml version='1.0' encoding='utf-8' ?>
+
+<connector-plugin class='opensearch_jdbc' superclass='jdbc' plugin-version='1.1.0.0' name='OpenSearch' version='18.1' min-version-tableau='2021.1'>
+  <vendor-information>
+      <company name="OpenSearch Project"/>
+      <support-link url="https://github.com/opensearch-project/sql"/>
+  </vendor-information>
+  <connection-customization class="opensearch_jdbc" enabled="true" version="10.0">
+    <vendor name="OpenSearch Project"/>
+    <driver name="SQL"/>
+    <customizations>
+      <customization name="CAP_CREATE_TEMP_TABLES" value="no"/>
+      <customization name="CAP_SUPPRESS_DISCOVERY_QUERIES" value="yes" />
+      <customization name="CAP_SELECT_INTO" value="no"/>
+      <customization name="CAP_SELECT_TOP_INTO" value="no"/>
+      <customization name="CAP_QUERY_BOOLEXPR_TO_INTEXPR" value="yes"/>
+      <customization name="CAP_QUERY_GROUP_BY_ALIAS" value="yes"/>
+      <customization name="CAP_QUERY_GROUP_BY_BOOL" value="yes"/>
+      <customization name="CAP_QUERY_GROUP_BY_DEGREE" value="no"/>
+      <customization name="CAP_QUERY_SORT_BY" value="yes"/>
+      <customization name="CAP_QUERY_SUBQUERIES" value="yes"/>
+      <customization name="CAP_QUERY_TOP_N" value="no"/>
+      <customization name="CAP_QUERY_SUPPORT_EMPTY_GROUPBY" value="no"/>
+      <customization name="CAP_QUERY_WHERE_FALSE_METADATA" value="yes"/>
+      <customization name="CAP_QUERY_SUBQUERIES_WITH_TOP" value="yes"/>
+      <customization name="CAP_SUPPORTS_SPLIT_FROM_LEFT" value="yes"/>
+      <customization name="CAP_SUPPORTS_SPLIT_FROM_RIGHT" value="yes"/>
+      <customization name="CAP_QUERY_ALLOW_PARTIAL_AGGREGATION" value="no"/>
+      <customization name="CAP_QUERY_TIME_REQUIRES_CAST" value="yes"/>
+      <customization name="CAP_JDBC_METADATA_USE_RESULTSET_FOR_TABLE" value="yes"/>
+      <customization name="CAP_JDBC_METADATA_GET_INDEX_INFO" value="no"/>
+      <customization name="CAP_JDBC_METADATA_IGNORE_NULLABILITY" value="yes"/>
+      <customization name="CAP_JDBC_METADATA_READ_FOREIGNKEYS" value="no"/>
+      <customization name="CAP_JDBC_METADATA_READ_PRIMARYKEYS" value="no"/>
+      <customization name="CAP_JDBC_SUPPRESS_ENUMERATE_DATABASES" value="yes"/>
+      <customization name="CAP_JDBC_SUPPRESS_ENUMERATE_SCHEMAS" value="yes"/>
+      <!-- OpenSearch SQL can't proceed queries longer than ~1.5k. This setting could help to avoid this limitation. It limits the max length of the string, not of the query. -->
+      <customization name="CAP_JDBC_MAX_STRING_LENGTH_MEDIUM" value="yes"/>
+      <customization name="CAP_CONNECT_STORED_PROCEDURE" value="no"/>
+      <customization name="CAP_SUPPORTS_UNION" value="no"/>
+      <!-- 
+      CAP_SUPPRESS_GET_SERVER_TIME will fix the error while creating extract in tableau.
+      This can be removed when OpenSearch supports query without FROM clause.
+      For smore details: https://community.tableau.com/message/1092123?et=watches.email.thread#1092123
+      -->
+      <customization name="CAP_SUPPRESS_GET_SERVER_TIME" value="yes"/>
+    </customizations>
+  </connection-customization>
+  <connection-fields file="connection-fields.xml" />
+  <connection-metadata file='connection-metadata.xml'/>
+  <connection-resolver file="connectionResolver.tdr"/>
+  <dialect file='dialect.tdd'/>
+</connector-plugin>

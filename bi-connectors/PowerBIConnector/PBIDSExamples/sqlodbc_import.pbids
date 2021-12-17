@@ -1,0 +1,14 @@
+{
+    "version": "0.1",
+    "connections": [
+        {
+            "details": {
+                "protocol": "sqlodbc",
+                "address": {
+                    "server": "localhost:9200"
+                }
+            },
+            "mode": "Import"
+        }
+    ]
+}

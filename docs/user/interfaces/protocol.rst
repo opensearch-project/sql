@@ -382,3 +382,146 @@ Result set::
 
     '+firstname|'=lastname|address
     'Hattie|@Bond|"671 Bristol Street|, Dente, TN"
+
+
+Visualization Format
+====================
+
+To support the Observability visualizations we also provide a new protocol that formats the data in columns for PPL. You can specify the format as "viz" to apply this format to your response, the response is formatted as compact json by default, for example::
+
+    >> curl -H 'Content-Type: application/json -X POST localhost:9200/_plugins/_ppl?format=viz' -d '{
+      "query": "source=accounts"
+    }'
+
+Result set::
+
+    {"data":{"account_number":[1,6,13,18],"firstname":["Amber","Hattie","Nanette","Dale"],"address":["880 Holmes Lane","671 Bristol Street","789 Madison Street","467 Hutchinson Court"],"balance":[39225,5686,32838,4180],"gender":["M","M","F","M"],"city":["Brogan","Dante","Nogal","Orick"],"employer":["Pyrami","Netagy","Quility",null],"state":["IL","TN","VA","MD"],"age":[32,36,28,33],"email":["amberduke@pyrami.com","hattiebond@netagy.com","nanettebates@quility.com","daleadams@boink.com"],"lastname":["Duke","Bond","Bates","Adams"]},"fields":[{"name":"account_number","type":"long"},{"name":"firstname","type":"text"},{"name":"address","type":"text"},{"name":"balance","type":"long"},{"name":"gender","type":"text"},{"name":"city","type":"text"},{"name":"employer","type":"text"},{"name":"state","type":"text"},{"name":"age","type":"long"},{"name":"email","type":"text"},{"name":"lastname","type":"text"}],"size":4,"status":200}
+
+
+You can also shape the format to pretty json by adding additional param ``pretty`` set it to true ``pretty=true``, for example::
+
+    >> curl -H 'Content-Type: application/json -X POST localhost:9200/_plugins/_ppl?format=viz&pretty' -d '{
+      "query": "source=accounts"
+    }'
+
+Result set::
+
+    {
+      "data": {
+        "account_number": [
+          1,
+          6,
+          13,
+          18
+        ],
+        "firstname": [
+          "Amber",
+          "Hattie",
+          "Nanette",
+          "Dale"
+        ],
+        "address": [
+          "880 Holmes Lane",
+          "671 Bristol Street",
+          "789 Madison Street",
+          "467 Hutchinson Court"
+        ],
+        "balance": [
+          39225,
+          5686,
+          32838,
+          4180
+        ],
+        "gender": [
+          "M",
+          "M",
+          "F",
+          "M"
+        ],
+        "city": [
+          "Brogan",
+          "Dante",
+          "Nogal",
+          "Orick"
+        ],
+        "employer": [
+          "Pyrami",
+          "Netagy",
+          "Quility",
+          null
+        ],
+        "state": [
+          "IL",
+          "TN",
+          "VA",
+          "MD"
+        ],
+        "age": [
+          32,
+          36,
+          28,
+          33
+        ],
+        "email": [
+          "amberduke@pyrami.com",
+          "hattiebond@netagy.com",
+          "nanettebates@quility.com",
+          "daleadams@boink.com"
+        ],
+        "lastname": [
+          "Duke",
+          "Bond",
+          "Bates",
+          "Adams"
+        ]
+      },
+      "fields": [
+        {
+          "name": "account_number",
+          "type": "long"
+        },
+        {
+          "name": "firstname",
+          "type": "text"
+        },
+        {
+          "name": "address",
+          "type": "text"
+        },
+        {
+          "name": "balance",
+          "type": "long"
+        },
+        {
+          "name": "gender",
+          "type": "text"
+        },
+        {
+          "name": "city",
+          "type": "text"
+        },
+        {
+          "name": "employer",
+          "type": "text"
+        },
+        {
+          "name": "state",
+          "type": "text"
+        },
+        {
+          "name": "age",
+          "type": "long"
+        },
+        {
+          "name": "email",
+          "type": "text"
+        },
+        {
+          "name": "lastname",
+          "type": "text"
+        }
+      ],
+      "size": 4,
+      "status": 200
+    }
+
