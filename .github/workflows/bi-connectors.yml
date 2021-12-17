@@ -34,8 +34,8 @@ jobs:
     - name: Prepare the second Power BI ODBC connector
       id: prep-powerbi-odbc-amz-os-svc
       run: |
-        sed -i 's/<value>OpenSearch<\/value>/<value>Amazon OpenSearch Service<\/value>/g' resources.resx
-        sed -i 's/Documentation.Name = "OpenSearch"/Documentation.Name = "Amazon OpenSearch Service"/g' SqlOdbcPBIConnector.m
+        sed -i 's/<value>OpenSearch Project<\/value>/<value>Amazon OpenSearch Service<\/value>/g' resources.resx
+        sed -i 's/Documentation.Name = "OpenSearch Project"/Documentation.Name = "Amazon OpenSearch Service"/g' SqlOdbcPBIConnector.m
         sed -i 's/SqlOdbcPBIConnector\([^1-9]\)/AmazonOpenSearchConnector\1/g' SqlOdbcPBIConnector.m
       working-directory: bi-connectors/PowerBIConnector
     - name: Pack Power BI ODBC connector for 'Amazon OpenSearch Service'

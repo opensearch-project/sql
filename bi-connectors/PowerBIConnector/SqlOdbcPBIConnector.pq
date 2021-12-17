@@ -19,7 +19,7 @@ SqlOdbcPBIConnectorType = type function (
         ])
     )
     as table meta [
-        Documentation.Name = "OpenSearch"
+        Documentation.Name = "OpenSearch Project"
     ];
 
 SqlOdbcPBIConnectorImpl = (Server as text) as table =>
