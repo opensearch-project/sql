@@ -19,7 +19,7 @@ SqlOdbcPBIConnectorType = type function (
         ]),
         Port as (type number meta [
             Documentation.FieldCaption = "Port",
-            Documentation.FieldDescription = "Port which OpenSearch server listens to.",
+            Documentation.FieldDescription = "Port which OpenSearch server listens on.",
             Documentation.SampleValues = { 9200 }
         ]),
         UseSSL as (type logical meta [
