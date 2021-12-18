@@ -67,24 +67,11 @@ SqlOdbcPBIConnectorImpl = (Server as text, Port as number, UseSSL as logical) as
                 ],
 
         // Substract the server from the user input in case if it entered like 'http://localhost' or 'https://srv.com:100500' or 'localhost:0'
-        ServerWithoutPrefix =
-            if Text.StartsWith(Server, "http://") then
-                Text.RemoveRange(Server, 0, 7)
-            else if Text.StartsWith(Server, "https://") then
-                Text.RemoveRange(Server, 0, 8)
-            else
-                Server,
-        ServerWithouPrefixAndPort =
-            if List.Count(Text.Split(ServerWithoutPrefix, ":")) > 1 then
-                Text.Split(ServerWithoutPrefix, ":"){0}
-            else
-                ServerWithoutPrefix,
         // And build the proper string on our own
-        FinalServerString =
-            if UseSSL then
-                "https://" & ServerWithouPrefixAndPort & ":" & Text.From(Port)
-            else
-                "http://" & ServerWithouPrefixAndPort & ":" & Text.From(Port),
+        FinalServerString = if UseSSL then
+                "https://" & Uri.Parts(Server)[Host] & ":" & Text.From(Port)
+              else
+                "http://" & Uri.Parts(Server)[Host] & ":" & Text.From(Port),
 
         ConnectionString = [
             Driver = "OpenSearch SQL ODBC Driver",
