@@ -1,17 +1,18 @@
 // This file contains Data Connector logic
-section SqlOdbcPBIConnector;
+[Version = "1.0.0"]
+section OpenSearch;
 
 // When set to true, additional trace information will be written out to the User log. 
 // This should be set to false before release. Tracing is done through a call to 
 // Diagnostics.LogValue(). When EnableTraceOutput is set to false, the call becomes a 
 // no-op and simply returns the original value.
-EnableTraceOutput = true;
+EnableTraceOutput = false;
 
-[DataSource.Kind="SqlOdbcPBIConnector", Publish="SqlOdbcPBIConnector.Publish"]
-shared SqlOdbcPBIConnector.Contents = Value.ReplaceType(SqlOdbcPBIConnectorImpl, SqlOdbcPBIConnectorType);
+[DataSource.Kind="OpenSearch", Publish="OpenSearch.Publish"]
+shared OpenSearch.Contents = Value.ReplaceType(OpenSearchImpl, OpenSearchType);
 
 // Wrapper function to provide additional UI customization.
-SqlOdbcPBIConnectorType = type function (
+OpenSearchType = type function (
         Server as (type text meta [
             Documentation.FieldCaption = "Server",
             Documentation.FieldDescription = "The hostname of the OpenSearch server.",
@@ -32,7 +33,7 @@ SqlOdbcPBIConnectorType = type function (
         Documentation.Name = "OpenSearch"
     ];
 
-SqlOdbcPBIConnectorImpl = (Server as text, Port as number, UseSSL as logical) as table =>
+OpenSearchImpl = (Server as text, Port as number, UseSSL as logical) as table =>
     let
         Credential = Extension.CurrentCredential(),
         AuthenticationMode = Credential[AuthenticationKind],
@@ -177,7 +178,7 @@ OnOdbcError = (errorRecord as record) =>
             error errorRecord;
 
 // Data Source Kind description
-SqlOdbcPBIConnector = [
+OpenSearch = [
     // Required for use with Power BI Service.
     TestConnection = (dataSourcePath) => 
         let
@@ -186,7 +187,7 @@ SqlOdbcPBIConnector = [
             Port = json[Port],
             UseSSL = json[UseSSL]
         in
-            { "SqlOdbcPBIConnector.Contents", Server, Port, UseSSL },
+            { "OpenSearch.Contents", Server, Port, UseSSL },
 
     // Authentication modes
     Authentication = [
@@ -204,11 +205,11 @@ SqlOdbcPBIConnector = [
 
     // PBIDS Handler
     DSRHandlers = [
-      #"sqlodbc" = [
-        GetDSR = (server, schema, object, optional options) => [ protocol = "sqlodbc", address = [ server = server, port = schema, useSSL = object ] ],
+      #"opensearch-sql" = [
+        GetDSR = (server, schema, object, optional options) => [ protocol = "opensearch-sql", address = [ server = server, port = schema, useSSL = object ] ],
         GetFormula = (dsr, optional options) => () =>
           let
-            db = SqlOdbcPBIConnector.Contents(dsr[address][server], dsr[address][port], dsr[address][useSSL])
+            db = OpenSearch.Contents(dsr[address][server], dsr[address][port], dsr[address][useSSL])
           in
             db,
         GetFriendlyName = (dsr) => "OpenSearch SQL ODBC"
@@ -222,7 +223,7 @@ SqlOdbcPBIConnector = [
 ];
 
 // Data Source UI publishing description
-SqlOdbcPBIConnector.Publish = [
+OpenSearch.Publish = [
     Beta = true,
     Category = "Other",
     ButtonText = { Extension.LoadString("ButtonTitle"), Extension.LoadString("ButtonHelp") },
@@ -231,13 +232,13 @@ SqlOdbcPBIConnector.Publish = [
     // Disabling direct query due to limited SQL query support
     SupportsDirectQuery = true,
 
-    SourceImage = SqlOdbcPBIConnector.Icons,
-    SourceTypeImage = SqlOdbcPBIConnector.Icons
+    SourceImage = OpenSearch.Icons,
+    SourceTypeImage = OpenSearch.Icons
 ];
 
-SqlOdbcPBIConnector.Icons = [
-    Icon16 = { Extension.Contents("SqlOdbcPBIConnector16.png"), Extension.Contents("SqlOdbcPBIConnector20.png"), Extension.Contents("SqlOdbcPBIConnector24.png"), Extension.Contents("SqlOdbcPBIConnector32.png") },
-    Icon32 = { Extension.Contents("SqlOdbcPBIConnector32.png"), Extension.Contents("SqlOdbcPBIConnector40.png"), Extension.Contents("SqlOdbcPBIConnector48.png"), Extension.Contents("SqlOdbcPBIConnector64.png") }
+OpenSearch.Icons = [
+    Icon16 = { Extension.Contents("OpenSearch16.png"), Extension.Contents("OpenSearch20.png"), Extension.Contents("OpenSearch24.png"), Extension.Contents("OpenSearch32.png") },
+    Icon32 = { Extension.Contents("OpenSearch32.png"), Extension.Contents("OpenSearch40.png"), Extension.Contents("OpenSearch48.png"), Extension.Contents("OpenSearch64.png") }
 ];
 
 // Load common library functions
