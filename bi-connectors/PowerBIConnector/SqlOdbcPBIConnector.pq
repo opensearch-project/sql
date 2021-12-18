@@ -66,7 +66,7 @@ SqlOdbcPBIConnectorImpl = (Server as text, Port as number, UseSSL as logical) as
                     UseSSL = 0
                 ],
 
-        // Substract the server from the user input in case if it entered like 'http://localhost' or 'https://srv.com:100500' or 'localhost:0'
+        // Subtract the server from the user input in case it's entered like 'http://localhost' or 'https://srv.com:100500' or 'localhost:0'
         ServerWithoutPrefix =
             if Text.StartsWith(Server, "http://") then
                 Text.RemoveRange(Server, 0, 7)
