@@ -18,7 +18,7 @@
     <SuppressCellErrors>False</SuppressCellErrors>
     <MaxRows>1000</MaxRows>
     <ExtensionProject>Yes</ExtensionProject>
-    <Name>SqlOdbcPBIConnector</Name>
+    <Name>OpenSearch</Name>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>false</DebugSymbols>
@@ -36,31 +36,31 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="SqlOdbcPBIConnector.pq">
+    <Compile Include="OpenSearch.pq">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="SqlOdbcPBIConnector16.png">
+    <Compile Include="OpenSearch16.png">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="SqlOdbcPBIConnector20.png">
+    <Compile Include="OpenSearch20.png">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="SqlOdbcPBIConnector24.png">
+    <Compile Include="OpenSearch24.png">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="SqlOdbcPBIConnector32.png">
+    <Compile Include="OpenSearch32.png">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="SqlOdbcPBIConnector40.png">
+    <Compile Include="OpenSearch40.png">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="SqlOdbcPBIConnector48.png">
+    <Compile Include="OpenSearch48.png">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="SqlOdbcPBIConnector64.png">
+    <Compile Include="OpenSearch64.png">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="SqlOdbcPBIConnector80.png">
+    <Compile Include="OpenSearch80.png">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="resources.resx">
@@ -72,7 +72,7 @@
     <Compile Include="OdbcConstants.pqm">
       <SubType>Content</SubType>
     </Compile>
-    <Content Include="SqlOdbcPBIConnector.query.pq">
+    <Content Include="OpenSearch.query.pq">
       <SubType>Code</SubType>
     </Content>
   </ItemGroup>
