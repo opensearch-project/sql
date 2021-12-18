@@ -19,7 +19,7 @@ SqlOdbcPBIConnectorType = type function (
         ]),
         Port as (type number meta [
             Documentation.FieldCaption = "Port",
-            Documentation.FieldDescription = "Port which OpenSearch server listens to.",
+            Documentation.FieldDescription = "Port which OpenSearch server listens on.",
             Documentation.SampleValues = { 9200 }
         ]),
         UseSSL as (type logical meta [
@@ -66,11 +66,11 @@ SqlOdbcPBIConnectorImpl = (Server as text, Port as number, UseSSL as logical) as
                     UseSSL = 0
                 ],
 
-        // Substract the server from the user input in case if it entered like 'http://localhost' or 'https://srv.com:100500' or 'localhost:0'
+        // Subtract the server from the user input in case it's entered like 'http://localhost' or 'https://srv.com:100500' or 'localhost:0'
         // And build the proper string on our own
         FinalServerString = if UseSSL then
                 "https://" & Uri.Parts(Server)[Host] & ":" & Text.From(Port)
-              else
+            else
                 "http://" & Uri.Parts(Server)[Host] & ":" & Text.From(Port),
 
         ConnectionString = [
