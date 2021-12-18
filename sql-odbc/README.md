@@ -16,7 +16,7 @@ The driver is compatible with ODBC 3.51.
 
 ## Connectors
 
-* **Power BI Desktop**: [`SqlOdbcPBIConnector.mez`](./src/PowerBIConnector/bin/Release/SqlOdbcPBIConnector.mez)
+* **Power BI Desktop**: [`OpenSearch.mez`](./src/PowerBIConnector/bin/Release/OpenSearch.mez)
 * **Tableau**: [`opensearch_sql_odbc.taco`](./src/TableauConnector/opensearch_sql_odbc/opensearch_sql_odbc.taco)
 
 ## Installing the Driver
