@@ -4,11 +4,11 @@
 * Microsoft Power BI Desktop
 * [OpenSearch](https://docs-beta.opensearch.org/opensearch/install/index/)
 * [OpenSearch SQL ODBC driver](https://docs-beta.opensearch.org/search-plugins/sql/odbc/)
-* [SqlOdbcPBIConnector.mez](../../src/PowerBIConnector/bin/Release/) 
+* [OpenSearch.mez](../../src/PowerBIConnector/bin/Release/)
 * Optional: [sqlodbc_import.pbids](../../src/PowerBIConnector/PBIDSExamples) to help with repeated connections to the same server 
 
 ## Setup
-* Copy `SqlOdbcPBIConnector.mez` file in the `<User>\Documents\Power BI Desktop\Custom Connectors\` folder. This will let Power BI access custom connector.
+* Copy `OpenSearch.mez` file in the `<User>\Documents\Power BI Desktop\Custom Connectors\` folder. This will let Power BI access custom connector.
 * Open Power BI Desktop.
 * Change the security settings. Click on **Files** > **Options and settings** > **Options** > **Security** > Select **Allow any extension to load without validation or warning** for Data Extensions. This will allow the custom connector to load data into Power BI.
 
