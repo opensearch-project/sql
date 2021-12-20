@@ -1,4 +1,4 @@
-#  Connecting OpenSearch to Microsoft Power BI Desktop
+﻿#  Connecting OpenSearch to Microsoft Power BI Desktop
 
 ## Prerequisites
 * Microsoft Power BI Desktop
