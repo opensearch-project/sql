@@ -12,11 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-#    - name: Pack Tableau ODBC connector
-#      id: pack-tableau-odbc
-#      run: |
-#        zip -r opensearch_sql_odbc.taco . -x *.taco
-#      working-directory: bi-connectors/TableauConnector/opensearch_sql_odbc
     - name: Pack Tableau JDBC connector
       id: pack-tableau-jdbc
       run: |
@@ -43,12 +38,6 @@ jobs:
       run: |
         zip AmazonOpenSearchService.mez *.png *.m *.resx *.pqm
       working-directory: bi-connectors/PowerBIConnector
-#    - name: Upload Tableau ODBC connector
-#      if: steps.pack-tableau-odbc.outcome == 'success'
-#      uses: actions/upload-artifact@v2
-#      with:
-#        name: TableauConnectors
-#        path: bi-connectors/TableauConnector/opensearch_sql_odbc/opensearch_sql_odbc.taco
     - name: Upload Tableau JDBC connector
       if: steps.pack-tableau-jdbc.outcome == 'success'
       uses: actions/upload-artifact@v2
