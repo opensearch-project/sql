@@ -1,5 +1,5 @@
 ### Version 1.2.3.0 Release Notes
-Compatible with OpenSearch and OpenSearch Dashboards Version 1.2.3
+Compatible with OpenSearch Version 1.2.3 and OpenSearch Dashboards Version 1.2.x
 
 ### Bug fixes
 
