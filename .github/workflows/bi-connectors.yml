@@ -31,7 +31,7 @@ jobs:
       run: |
         zip OpenSearchProject.mez *.png *.m *.resx *.pqm
       working-directory: bi-connectors/PowerBIConnector
-    - name: Prepare the second Power BI ODBC connector
+    - name: Prepare Power BI ODBC connector for 'Amazon OpenSearch Service'
       id: prep-powerbi-odbc-amz-os-svc
       run: |
         sed -i 's/<value>OpenSearch Project<\/value>/<value>Amazon OpenSearch Service<\/value>/g' resources.resx
