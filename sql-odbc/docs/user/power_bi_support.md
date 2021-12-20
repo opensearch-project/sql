@@ -42,7 +42,6 @@
 
 <img src="img/pbi_auth.png" width="500">
 
-
 * Select required table. Data preview will be loaded.
 
 <img src="img/pbi_data_preview.png">
