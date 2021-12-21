@@ -121,9 +121,9 @@
     <value>Connect to OpenSearch</value>
   </data>
   <data name="ButtonTitle" xml:space="preserve">
-    <value>OpenSearch Project</value>
+    <value>OpenSearch</value>
   </data>
   <data name="DataSourceLabel" xml:space="preserve">
-    <value>OpenSearch Project</value>
+    <value>OpenSearch</value>
   </data>
 </root>
