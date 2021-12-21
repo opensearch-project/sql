@@ -1,4 +1,4 @@
-#  Connecting OpenSearch to Microsoft Power BI Desktop
+﻿#  Connecting OpenSearch to Microsoft Power BI Desktop
 
 ## Prerequisites
 * Microsoft Power BI Desktop
@@ -26,15 +26,15 @@
 
 <img src="img/pbi_disable_parallel_loading_tables.png"  width="500">
 
-* Click on **Home** > **Get Data** > **More** > **Other**. Select **OpenSearch (Beta)**. Click on **Connect**.
+* Click on **Home** > **Get Data** > **More** > **Other**. Select **OpenSearch Project**. Click on **Connect**.
 
 <img src="img/pbi_select_connector.png" width="500">
 
-* You will get a warning for using third-party service. Click on **Continue**.
+* You will get a warning for using a third-party service. Click on **Continue**.
 
 <img src="img/pbi_third_party_warning.png" width="500">
 
-* Enter server value. Click on **OK**.
+* Enter host and port values and select your preferred SSL option. Click on **OK**.
 
 <img src="img/pbi_connection_string_options.png" width="500">
 

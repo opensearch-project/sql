@@ -16,14 +16,24 @@ OpenSearchType = type function (
         Server as (type text meta [
             Documentation.FieldCaption = "Server",
             Documentation.FieldDescription = "The hostname of the OpenSearch server.",
-            Documentation.SampleValues = { "localhost:9200" }
+            Documentation.SampleValues = { "localhost" }
+        ]),
+        Port as (type number meta [
+            Documentation.FieldCaption = "Port",
+            Documentation.FieldDescription = "Port which OpenSearch server listens on.",
+            Documentation.SampleValues = { 9200 }
+        ]),
+        UseSSL as (type logical meta [
+            Documentation.FieldCaption = "Use SSL",
+            Documentation.FieldDescription = "Use SSL",
+            Documentation.AllowedValues = { true, false }
         ])
     )
     as table meta [
-        Documentation.Name = "OpenSearch Project"
+        Documentation.Name = "OpenSearch"
     ];
 
-OpenSearchImpl = (Server as text) as table =>
+OpenSearchImpl = (Server as text, Port as number, UseSSL as logical) as table =>
     let
         Credential = Extension.CurrentCredential(),
         AuthenticationMode = Credential[AuthenticationKind],
@@ -57,9 +67,16 @@ OpenSearchImpl = (Server as text) as table =>
                     UseSSL = 0
                 ],
 
+        // Subtract the server from the user input in case it's entered like 'http://localhost' or 'https://srv.com:100500' or 'localhost:0'
+        // And build the proper string on our own
+        FinalServerString = if UseSSL then
+                "https://" & Uri.Parts(Server)[Host] & ":" & Text.From(Port)
+            else
+                "http://" & Uri.Parts(Server)[Host] & ":" & Text.From(Port),
+
         ConnectionString = [
             Driver = "OpenSearch SQL ODBC Driver",
-            Host = Server
+            Host = FinalServerString
         ],
 
         SQLGetInfo = Diagnostics.LogValue("SQLGetInfo_Options", [
@@ -166,11 +183,13 @@ OpenSearch = [
     TestConnection = (dataSourcePath) => 
         let
             json = Json.Document(dataSourcePath),
-            Server = json[Server]
+            Server = json[Server],
+            Port = json[Port],
+            UseSSL = json[UseSSL]
         in
-            { "OpenSearch.Contents", Server },
+            { "OpenSearch.Contents", Server, Port, UseSSL },
 
-    // Authentication modes.
+    // Authentication modes
     Authentication = [
         Implicit = [
             Label = "NONE"
@@ -184,20 +203,20 @@ OpenSearch = [
         ]
     ],
 
-    // PBIDS Handler.
+    // PBIDS Handler
     DSRHandlers = [
       #"opensearch-sql" = [
-        GetDSR = (server, schema, object, optional options) => [ protocol = "opensearch-sql", address = [ server = server ] ],
-        GetFormula = (dsr, optional options) => () => 
+        GetDSR = (server, schema, object, optional options) => [ protocol = "opensearch-sql", address = [ server = server, port = schema, useSSL = object ] ],
+        GetFormula = (dsr, optional options) => () =>
           let
-            db = OpenSearch.Contents(dsr[address][server])
+            db = OpenSearch.Contents(dsr[address][server], dsr[address][port], dsr[address][useSSL])
           in
             db,
         GetFriendlyName = (dsr) => "OpenSearch SQL ODBC"
       ]
     ],
 
-    // Enable Encryption.
+    // Enable Encryption
     SupportsEncryption = true,
 
     Label = Extension.LoadString("DataSourceLabel")
@@ -222,7 +241,7 @@ OpenSearch.Icons = [
     Icon32 = { Extension.Contents("OpenSearch32.png"), Extension.Contents("OpenSearch40.png"), Extension.Contents("OpenSearch48.png"), Extension.Contents("OpenSearch64.png") }
 ];
 
-// Load common library functions.
+// Load common library functions
 Extension.LoadFunction = (name as text) =>
     let
         binary = Extension.Contents(name),
@@ -230,7 +249,7 @@ Extension.LoadFunction = (name as text) =>
     in
         Expression.Evaluate(asText, #shared);
 
-// Diagnostics module contains multiple functions.
+// Diagnostics module contains multiple functions. .
 Diagnostics = Extension.LoadFunction("Diagnostics.pqm");
 Diagnostics.LogValue = if (EnableTraceOutput) then Diagnostics[LogValue] else (prefix, value) => value;
 
