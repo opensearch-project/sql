@@ -30,7 +30,7 @@ OpenSearchType = type function (
         ])
     )
     as table meta [
-        Documentation.Name = "OpenSearch"
+        Documentation.Name = "OpenSearch Project"
     ];
 
 OpenSearchImpl = (Server as text, Port as number, UseSSL as logical) as table =>
@@ -189,7 +189,7 @@ OpenSearch = [
         in
             { "OpenSearch.Contents", Server, Port, UseSSL },
 
-    // Authentication modes
+    // Authentication modes.
     Authentication = [
         Implicit = [
             Label = "NONE"
@@ -203,7 +203,7 @@ OpenSearch = [
         ]
     ],
 
-    // PBIDS Handler
+    // PBIDS Handler.
     DSRHandlers = [
       #"opensearch-sql" = [
         GetDSR = (server, schema, object, optional options) => [ protocol = "opensearch-sql", address = [ server = server, port = schema, useSSL = object ] ],
@@ -216,7 +216,7 @@ OpenSearch = [
       ]
     ],
 
-    // Enable Encryption
+    // Enable Encryption.
     SupportsEncryption = true,
 
     Label = Extension.LoadString("DataSourceLabel")
@@ -241,7 +241,7 @@ OpenSearch.Icons = [
     Icon32 = { Extension.Contents("OpenSearch32.png"), Extension.Contents("OpenSearch40.png"), Extension.Contents("OpenSearch48.png"), Extension.Contents("OpenSearch64.png") }
 ];
 
-// Load common library functions
+// Load common library functions.
 Extension.LoadFunction = (name as text) =>
     let
         binary = Extension.Contents(name),
@@ -249,7 +249,7 @@ Extension.LoadFunction = (name as text) =>
     in
         Expression.Evaluate(asText, #shared);
 
-// Diagnostics module contains multiple functions. .
+// Diagnostics module contains multiple functions.
 Diagnostics = Extension.LoadFunction("Diagnostics.pqm");
 Diagnostics.LogValue = if (EnableTraceOutput) then Diagnostics[LogValue] else (prefix, value) => value;
 

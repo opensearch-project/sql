@@ -1,0 +1,52 @@
+name: Build connectors for BI tools
+
+on:
+  push:
+    paths:
+      - 'bi-connectors/PowerBIConnector/**'
+      - 'bi-connectors/TableauConnector/**'
+      - '.github/workflows/bi-connectors.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Pack Tableau JDBC connector
+      id: pack-tableau-jdbc
+      run: |
+        zip -r opensearch_sql_jdbc.taco . -x *.taco
+      working-directory: bi-connectors/TableauConnector/opensearch_sql_jdbc
+    - name: Prepare Power BI ODBC connector
+      run: |
+        cp OpenSearch.pq OpenSearch.m
+      working-directory: bi-connectors/PowerBIConnector
+    - name: Pack Power BI ODBC connector
+      id: pack-powerbi-odbc-os-proj
+      run: |
+        zip OpenSearchProject.mez *.png *.m *.resx *.pqm
+      working-directory: bi-connectors/PowerBIConnector
+    - name: Prepare Power BI ODBC connector for 'Amazon OpenSearch Service'
+      id: prep-powerbi-odbc-amz-os-svc
+      run: |
+        sed -i 's/<value>OpenSearch Project<\/value>/<value>Amazon OpenSearch Service<\/value>/g' resources.resx
+        sed -i 's/Documentation.Name = "OpenSearch Project"/Documentation.Name = "Amazon OpenSearch Service"/g' OpenSearch.m
+        sed -i 's/OpenSearch\([^1-9]\)/AmazonOpenSearchConnector\1/g' OpenSearch.m
+      working-directory: bi-connectors/PowerBIConnector
+    - name: Pack Power BI ODBC connector for 'Amazon OpenSearch Service'
+      id: pack-powerbi-odbc-amz-os-svc
+      run: |
+        zip AmazonOpenSearchService.mez *.png *.m *.resx *.pqm
+      working-directory: bi-connectors/PowerBIConnector
+    - name: Upload Tableau JDBC connector
+      if: steps.pack-tableau-jdbc.outcome == 'success'
+      uses: actions/upload-artifact@v2
+      with:
+        name: TableauConnectors
+        path: bi-connectors/TableauConnector/opensearch_sql_jdbc/opensearch_sql_jdbc.taco
+    - name: Upload Power BI ODBC connectors
+      if: steps.pack-powerbi-odbc-os-proj.outcome == 'success' || (steps.prep-powerbi-odbc-amz-os-svc.outcome == 'success' && steps.pack-powerbi-odbc-amz-os-svc.outcome == 'success')
+      uses: actions/upload-artifact@v2
+      with:
+        name: PBIConnectors
+        path: 'bi-connectors/PowerBIConnector/*.mez'
