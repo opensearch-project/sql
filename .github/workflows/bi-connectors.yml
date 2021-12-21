@@ -19,7 +19,7 @@ jobs:
       working-directory: bi-connectors/TableauConnector/opensearch_sql_jdbc
     - name: Prepare Power BI ODBC connector
       run: |
-        cp SqlOdbcPBIConnector.pq SqlOdbcPBIConnector.m
+        cp OpenSearch.pq OpenSearch.m
       working-directory: bi-connectors/PowerBIConnector
     - name: Pack Power BI ODBC connector
       id: pack-powerbi-odbc-os-proj
@@ -30,8 +30,8 @@ jobs:
       id: prep-powerbi-odbc-amz-os-svc
       run: |
         sed -i 's/<value>OpenSearch Project<\/value>/<value>Amazon OpenSearch Service<\/value>/g' resources.resx
-        sed -i 's/Documentation.Name = "OpenSearch Project"/Documentation.Name = "Amazon OpenSearch Service"/g' SqlOdbcPBIConnector.m
-        sed -i 's/SqlOdbcPBIConnector\([^1-9]\)/AmazonOpenSearchConnector\1/g' SqlOdbcPBIConnector.m
+        sed -i 's/Documentation.Name = "OpenSearch Project"/Documentation.Name = "Amazon OpenSearch Service"/g' OpenSearch.m
+        sed -i 's/OpenSearch\([^1-9]\)/AmazonOpenSearchConnector\1/g' OpenSearch.m
       working-directory: bi-connectors/PowerBIConnector
     - name: Pack Power BI ODBC connector for 'Amazon OpenSearch Service'
       id: pack-powerbi-odbc-amz-os-svc
