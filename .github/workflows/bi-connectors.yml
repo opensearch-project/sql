@@ -31,7 +31,15 @@ jobs:
       run: |
         sed -i 's/<value>OpenSearch Project<\/value>/<value>Amazon OpenSearch Service<\/value>/g' resources.resx
         sed -i 's/Documentation.Name = "OpenSearch Project"/Documentation.Name = "Amazon OpenSearch Service"/g' OpenSearch.m
-        sed -i 's/OpenSearch\([^1-9]\)/AmazonOpenSearchConnector\1/g' OpenSearch.m
+        sed -i 's/section OpenSearch;/section AmazonOpenSearchConnector;/' OpenSearch.m
+        sed -i 's/\[DataSource.Kind="OpenSearch", Publish="OpenSearch.Publish"\]/[DataSource.Kind="AmazonOpenSearchConnector", Publish="AmazonOpenSearchConnector.Publish"]/g' OpenSearch.m
+        sed -i 's/OpenSearch.Contents/AmazonOpenSearchConnector.Contents/g' OpenSearch.m
+        sed -i 's/OpenSearch.Publish/AmazonOpenSearchConnector.Publish/g' OpenSearch.m
+        sed -i 's/OpenSearch.Icons/AmazonOpenSearchConnector.Icons/g' OpenSearch.m
+        sed -i 's/OpenSearchImpl/AmazonOpenSearchConnectorImpl/g' OpenSearch.m
+        sed -i 's/OpenSearchType/AmazonOpenSearchConnectorType/g' OpenSearch.m
+        sed -i 's/OpenSearch = \[/AmazonOpenSearchConnector = [/' OpenSearch.m
+        sed -i 's/"opensearch-sql"/"Amazon-OpenSearch-Service"/g' OpenSearch.m
       working-directory: bi-connectors/PowerBIConnector
     - name: Pack Power BI ODBC connector for 'Amazon OpenSearch Service'
       id: pack-powerbi-odbc-amz-os-svc
