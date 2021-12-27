@@ -5,7 +5,7 @@ The OpenSearch Dashboards Query Workbench enables you to query your OpenSearch d
 
 ## Documentation
 
-Please see our technical [documentation](https://docs-beta.opensearch.org/search-plugins/sql/workbench/) to learn more about its features.
+Please see our technical [documentation](https://opensearch.org/docs/latest/search-plugins/sql/workbench/) to learn more about its features.
 
 
 ## Contributing
@@ -16,7 +16,7 @@ See [developer guide](DEVELOPER_GUIDE.md) and [how to contribute to this project
 
 If you find a bug, or have a feature request, please don't hesitate to open an issue in this repository.
 
-For more information, see [project website](https://opensearch.org/) and [documentation](https://docs-beta.opensearch.org/). If you need help and are unsure where to open an issue, try [forums](https://discuss.opendistrocommunity.dev/).
+For more information, see [project website](https://opensearch.org/) and [documentation](https://opensearch.org/docs/latest/). If you need help and are unsure where to open an issue, try [forums](https://discuss.opendistrocommunity.dev/).
 
 ## Code of Conduct
 
