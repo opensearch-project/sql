@@ -70,7 +70,7 @@ There are known limitations and issues that are tracked by OpenSearch including 
 
 | Issue | Description |
 | ---- | ----------- |
-| Visualizations without numerical columns do not work | Visualizations will work if there is a numerical column included due to a known limitation in OpenSearch regarding subqueries. However, visualizations with columns only of type string works as well. |
+| Visualizations without numerical columns | Visualizations will only work if there is a numerical column included due to a known limitation in OpenSearch regarding subqueries. An exception to this would be visualizations with columns only of type string works as well. Can be tracked with this [bug](https://github.com/opensearch-project/sql/issues/347) |
 | Visualizations with First or Last options selected do not work | <img src="img/pbi_issue_first_last.png" width="200"> |
 | Visualizations with Minimum, Maximum, Standard deviation, Variance, or Median options selected do not work | <img src="img/pbi_issue_aggregation.png" width="200"> |
 | Basic filtering limitations | Selecting more than one value does not work when using basic filtering. Due to the issue in the first row of this table, selecting one value for basic filtering when there is no numerical column does not work. |
