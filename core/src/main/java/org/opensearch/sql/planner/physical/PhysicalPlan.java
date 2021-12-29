@@ -41,8 +41,8 @@ public abstract class PhysicalPlan implements PlanNode<PhysicalPlan>,
    * schema.
    */
   public ExecutionEngine.Schema schema() {
-    // throw new IllegalStateException(String.format("[BUG] schema can been only applied to "
-    //       + "ProjectOperator, instead of %s", toString()));
-    return new ExecutionEngine.Schema(ImmutableList.of());
+     throw new IllegalStateException(String.format("[BUG] schema can been only applied to "
+           + "ProjectOperator, instead of %s", toString()));
+//    return new ExecutionEngine.Schema(ImmutableList.of());
   }
 }

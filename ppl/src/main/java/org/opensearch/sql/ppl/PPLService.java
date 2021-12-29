@@ -87,9 +87,9 @@ public class PPLService {
     LOG.info("[{}] Incoming request {}", LogUtils.getRequestId(), anonymizer.anonymizeData(ast));
 
     // 2.Analyze abstract syntax to generate logical plan
-//    LogicalPlan logicalPlan = analyzer.analyze(UnresolvedPlanHelper.addSelectAll(ast),
-//        new AnalysisContext());
-    LogicalPlan logicalPlan = analyzer.analyze(ast, new AnalysisContext());
+    LogicalPlan logicalPlan = analyzer.analyze(UnresolvedPlanHelper.addSelectAll(ast),
+        new AnalysisContext());
+//    LogicalPlan logicalPlan = analyzer.analyze(ast, new AnalysisContext());
 
     // 3.Generate optimal physical plan from logical plan
     return new Planner(storageEngine, LogicalPlanOptimizer.create(new DSL(repository)))
