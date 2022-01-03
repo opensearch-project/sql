@@ -112,7 +112,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     table.getFieldTypes().forEach((k, v) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));
 
     // Todo. PoC
-    curEnv.define(new Symbol(Namespace.FIELD_NAME, "raw"), ExprCoreType.STRING);
+    // curEnv.define(new Symbol(Namespace.FIELD_NAME, "raw"), ExprCoreType.STRING);
 
     // Put index name or its alias in index namespace on type environment so qualifier
     // can be removed when analyzing qualified name. The value (expr type) here doesn't matter.
@@ -318,7 +318,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     Expression expression = expressionAnalyzer.analyze(node.getExpression(), context);
     String pattern = (String) node.getPattern().getValue();
 
-    return new LogicalRegex(child, expression, pattern);
+    LogicalRegex logicalRegex = new LogicalRegex(child, expression, pattern);
+    TypeEnvironment curEnv = context.peek();
+    logicalRegex.getGroups().forEach(group -> curEnv.define(new Symbol(Namespace.FIELD_NAME, group),
+            ExprCoreType.STRING));
+    return logicalRegex;
   }
 
   /**
