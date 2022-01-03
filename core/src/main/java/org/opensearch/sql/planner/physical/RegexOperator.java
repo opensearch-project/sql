@@ -78,6 +78,7 @@ public class RegexOperator extends PhysicalPlan {
   @Override
   public ExprValue next() {
     ExprValue inputValue = input.next();
+    System.out.println("[" + getClass().getSimpleName() + " " + (inputValue).getClass().getSimpleName() + "] ❗inputValue: " + inputValue);
 
     ExprValue value = inputValue.bindingTuples().resolve(expression);
     final String s = value.stringValue();

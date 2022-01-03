@@ -45,6 +45,7 @@ public class FilterOperator extends PhysicalPlan {
   public boolean hasNext() {
     while (input.hasNext()) {
       ExprValue inputValue = input.next();
+      System.out.println("[" + getClass().getSimpleName() + " " + (inputValue).getClass().getSimpleName() + "] ❗inputValue: " + inputValue);
       ExprValue exprValue = conditions.valueOf(inputValue.bindingTuples());
       if (!(exprValue.isNull() || exprValue.isMissing()) && (exprValue.booleanValue())) {
         next = inputValue;

@@ -321,7 +321,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     LogicalRegex logicalRegex = new LogicalRegex(child, expression, pattern);
     TypeEnvironment curEnv = context.peek();
     logicalRegex.getGroups().forEach(group -> curEnv.define(new Symbol(Namespace.FIELD_NAME, group),
-            ExprCoreType.STRING));
+            ExprCoreType.INTEGER));
     return logicalRegex;
   }
 
