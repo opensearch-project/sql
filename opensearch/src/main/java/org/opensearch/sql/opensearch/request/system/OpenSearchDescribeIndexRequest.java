@@ -61,6 +61,7 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
           .put("nested", ExprCoreType.ARRAY)
           .put("object", ExprCoreType.STRUCT)
           .put("date", ExprCoreType.TIMESTAMP)
+          .put("date_nanos", ExprCoreType.TIMESTAMP)
           .put("ip", OpenSearchDataType.OPENSEARCH_IP)
           .put("geo_point", OpenSearchDataType.OPENSEARCH_GEO_POINT)
           .put("binary", OpenSearchDataType.OPENSEARCH_BINARY)
