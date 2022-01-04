@@ -34,6 +34,7 @@ public class ExprStringValue extends AbstractExprValue {
 
   @Override
   public String stringValue() {
+    System.out.println("[" + getClass().getSimpleName() + " " + (value).getClass().getSimpleName() + "] ❗value: " + value);
     return value;
   }
 

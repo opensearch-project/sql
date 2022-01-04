@@ -1,20 +1,26 @@
 package org.opensearch.sql.planner.physical;
 
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.operator.convert.TypeCastOperator;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static org.opensearch.sql.planner.logical.LogicalRegex.regexTypeToExprType;
 
 /**
  * RegexOperator.
@@ -45,20 +51,26 @@ public class RegexOperator extends PhysicalPlan {
   private final Pattern pattern;
 
   @Getter
-  private final List<String> groups;
+  private final Map<String, String> groups;
+
+  private static final BuiltinFunctionRepository REPOSITORY;
+
+  static {
+    REPOSITORY = new BuiltinFunctionRepository(new HashMap<>());
+    TypeCastOperator.register(REPOSITORY);
+  }
 
   /**
    * RegexOperator.
    */
   public RegexOperator(PhysicalPlan input,
-                       Expression expression, String pattern, List<String> groups) {
+                       Expression expression, String pattern, Map<String, String> groups) {
     this.input = input;
     this.expression = expression;
     this.rawPattern = pattern;
     this.pattern = Pattern.compile(rawPattern);
     this.groups = groups;
   }
-
 
   @Override
   public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
@@ -78,17 +90,19 @@ public class RegexOperator extends PhysicalPlan {
   @Override
   public ExprValue next() {
     ExprValue inputValue = input.next();
-    System.out.println("[" + getClass().getSimpleName() + " " + (inputValue).getClass().getSimpleName() + "] ❗inputValue: " + inputValue);
 
     ExprValue value = inputValue.bindingTuples().resolve(expression);
-    final String s = value.stringValue();
+    final String rawString = value.stringValue();
 
-    Matcher matcher = pattern.matcher(s);
+    Matcher matcher = pattern.matcher(rawString);
     Map<String, ExprValue> exprValueMap = new LinkedHashMap<>();
     if (matcher.matches()) {
-      groups.forEach(group -> exprValueMap.put(group, new ExprStringValue(matcher.group(group))));
+      groups.forEach((group, type) -> {
+        Expression expression = REPOSITORY.cast(DSL.literal(matcher.group(group + type)), regexTypeToExprType(type));
+        exprValueMap.put(group, expression.valueOf(null));
+      });
     } else {
-      log.warn("failed to extract pattern {} from input {}", rawPattern, s);
+      log.warn("failed to extract pattern {} from input {}", rawPattern, rawString);
     }
     return ExprTupleValue.fromExprValueMap(exprValueMap);
   }

@@ -48,7 +48,6 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.data.model.ExprMissingValue;
-import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
@@ -71,6 +70,7 @@ import org.opensearch.sql.planner.logical.LogicalRemove;
 import org.opensearch.sql.planner.logical.LogicalRename;
 import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.planner.logical.LogicalValues;
+import org.opensearch.sql.planner.physical.RegexOperator;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
 
@@ -320,8 +320,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
     LogicalRegex logicalRegex = new LogicalRegex(child, expression, pattern);
     TypeEnvironment curEnv = context.peek();
-    logicalRegex.getGroups().forEach(group -> curEnv.define(new Symbol(Namespace.FIELD_NAME, group),
-            ExprCoreType.INTEGER));
+    logicalRegex.getGroups().forEach((group, type) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, group),
+            LogicalRegex.regexTypeToExprType(type)));
     return logicalRegex;
   }
 

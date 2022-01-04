@@ -107,7 +107,7 @@ public class BuiltinFunctionRepository {
     return sourceType.shouldCast(targetType);
   }
 
-  private Expression cast(Expression arg, ExprType targetType) {
+  public Expression cast(Expression arg, ExprType targetType) {
     FunctionName castFunctionName = getCastFunctionName(targetType);
     if (castFunctionName == null) {
       throw new ExpressionEvaluationException(StringUtils.format(
