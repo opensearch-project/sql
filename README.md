@@ -74,6 +74,8 @@ The following projects have been merged into this repository as separate folders
 | [![features open][feature-badge]][feature-link]                |
 | [![enhancements open][enhancement-badge]][enhancement-link]    |
 | [![bugs open][bug-badge]][bug-link]                            |
+| [![untriaged open][untriaged-badge]][untriaged-link]           |
+| [![nolabel open][nolabel-badge]][nolabel-link]                 |
 
 [dco-badge]: https://github.com/opensearch-project/sql/actions/workflows/dco.yml/badge.svg
 [dco-badge-link]: https://github.com/opensearch-project/sql/actions/workflows/dco.yml
@@ -97,6 +99,10 @@ The following projects have been merged into this repository as separate folders
 [bug-link]: https://github.com/opensearch-project/sql/issues?q=is%3Aopen+is%3Aissue+label%3Abug+
 [enhancement-badge]: https://img.shields.io/github/issues/opensearch-project/sql/enhancement.svg
 [enhancement-link]: https://github.com/opensearch-project/sql/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement+
+[untriaged-badge]: https://img.shields.io/github/issues/opensearch-project/sql/untriaged.svg
+[untriaged-link]: https://github.com/opensearch-project/sql/issues?q=is%3Aopen+is%3Aissue+label%3Auntriaged+
+[nolabel-badge]: https://img.shields.io/github/issues-search/opensearch-project/sql?color=yellow&label=no%20label%20issues&query=is%3Aopen%20is%3Aissue%20no%3Alabel
+[nolabel-link]: https://github.com/opensearch-project/sql/issues?q=is%3Aopen+is%3Aissue+no%3Alabel+
 [workbench-build-badge]: https://github.com/opensearch-project/sql/actions/workflows/sql-workbench-test-and-build-workflow.yml/badge.svg
 [workbench-build-link]: https://github.com/opensearch-project/sql/actions/workflows/sql-workbench-test-and-build-workflow.yml
 [cypress-test-badge]: https://img.shields.io/badge/Cypress%20tests-in%20progress-yellow
