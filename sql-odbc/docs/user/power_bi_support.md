@@ -1,14 +1,14 @@
-#  Connecting OpenSearch to Microsoft Power BI Desktop
+﻿#  Connecting OpenSearch to Microsoft Power BI Desktop
 
 ## Prerequisites
 * Microsoft Power BI Desktop
 * [OpenSearch](https://docs-beta.opensearch.org/opensearch/install/index/)
 * [OpenSearch SQL ODBC driver](https://docs-beta.opensearch.org/search-plugins/sql/odbc/)
-* [SqlOdbcPBIConnector.mez](../../src/PowerBIConnector/bin/Release/) 
+* [OpenSearch.mez](../../src/PowerBIConnector/bin/Release/)
 * Optional: [sqlodbc_import.pbids](../../src/PowerBIConnector/PBIDSExamples) to help with repeated connections to the same server 
 
 ## Setup
-* Copy `SqlOdbcPBIConnector.mez` file in the `<User>\Documents\Power BI Desktop\Custom Connectors\` folder. This will let Power BI access custom connector.
+* Copy `OpenSearch.mez` file in the `<User>\Documents\Power BI Desktop\Custom Connectors\` folder. This will let Power BI access custom connector.
 * Open Power BI Desktop.
 * Change the security settings. Click on **Files** > **Options and settings** > **Options** > **Security** > Select **Allow any extension to load without validation or warning** for Data Extensions. This will allow the custom connector to load data into Power BI.
 
@@ -26,15 +26,15 @@
 
 <img src="img/pbi_disable_parallel_loading_tables.png"  width="500">
 
-* Click on **Home** > **Get Data** > **More** > **Other**. Select **OpenSearch (Beta)**. Click on **Connect**.
+* Click on **Home** > **Get Data** > **More** > **Other**. Select **OpenSearch Project**. Click on **Connect**.
 
 <img src="img/pbi_select_connector.png" width="500">
 
-* You will get a warning for using third-party service. Click on **Continue**.
+* You will get a warning for using a third-party service. Click on **Continue**.
 
 <img src="img/pbi_third_party_warning.png" width="500">
 
-* Enter server value. Click on **OK**.
+* Enter host and port values and select your preferred SSL option. Click on **OK**.
 
 <img src="img/pbi_connection_string_options.png" width="500">
 

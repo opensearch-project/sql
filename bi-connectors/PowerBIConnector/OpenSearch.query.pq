@@ -1,17 +1,19 @@
 // This file contains queries to test your data connector
-section SqlOdbcPBIConnector.UnitTests;
+section OpenSearch.UnitTests;
 
 shared MyExtension.UnitTest =
 [
     // Common variables for all tests
-    Host = "localhost:9200",
+    Host = "localhost",
+    Port = 9200,
+    UseSSL = false,
 
     facts =
     {        
         Fact("Connection Test",  
              7,                                    
              let
-                Source = SqlOdbcPBIConnector.Contents(Host),
+                Source = OpenSearch.Contents(Host, Port, UseSSL),
                 no_of_columns = Table.ColumnCount(Source)
              in
                 no_of_columns                
@@ -20,7 +22,7 @@ shared MyExtension.UnitTest =
             #table(type table [bool0 = logical],
                 { {null}, {false}, {true} }),
             let
-                Source = SqlOdbcPBIConnector.Contents(Host),
+                Source = OpenSearch.Contents(Host, Port, UseSSL),
                 calcs_null_null = Source{[Item="calcs",Schema=null,Catalog=null]}[Data],
                 grouped = Table.Group(calcs_null_null, {"bool0"}, {})
             in
