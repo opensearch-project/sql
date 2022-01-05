@@ -107,6 +107,13 @@ public class BuiltinFunctionRepository {
     return sourceType.shouldCast(targetType);
   }
 
+  /**
+   * Cast Expression to target ExprType.
+   *
+   * @param arg expression
+   * @param targetType target ExprType
+   * @return Expression
+   */
   public Expression cast(Expression arg, ExprType targetType) {
     FunctionName castFunctionName = getCastFunctionName(targetType);
     if (castFunctionName == null) {

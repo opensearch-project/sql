@@ -1,19 +1,5 @@
 package org.opensearch.sql.planner.logical;
 
-import com.google.common.collect.ImmutableMap;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.ToString;
-import org.opensearch.sql.data.type.ExprType;
-import org.opensearch.sql.expression.Expression;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
@@ -26,6 +12,19 @@ import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+
+import com.google.common.collect.ImmutableMap;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.Expression;
 
 /**
  * Logical Regex Command.
@@ -78,6 +77,8 @@ public class LogicalRegex extends LogicalPlan {
   }
 
   /**
+   * Converts raw string to ExprType.
+   *
    * @param type string from regex group name
    * @return ExprType
    */

@@ -1,5 +1,14 @@
 package org.opensearch.sql.planner.physical;
 
+import static org.opensearch.sql.planner.logical.LogicalRegex.regexTypeToExprType;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -11,16 +20,6 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.operator.convert.TypeCastOperator;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static org.opensearch.sql.planner.logical.LogicalRegex.regexTypeToExprType;
 
 /**
  * RegexOperator.
@@ -98,7 +97,8 @@ public class RegexOperator extends PhysicalPlan {
     Map<String, ExprValue> exprValueMap = new LinkedHashMap<>();
     if (matcher.matches()) {
       groups.forEach((group, type) -> {
-        Expression expression = REPOSITORY.cast(DSL.literal(matcher.group(group + type)), regexTypeToExprType(type));
+        Expression expression = REPOSITORY.cast(
+                DSL.literal(matcher.group(group + type)), regexTypeToExprType(type));
         exprValueMap.put(group, expression.valueOf(null));
       });
     } else {
