@@ -13,8 +13,8 @@
 
 ## Prerequisites
 * Microsoft Power BI Desktop
-* [OpenSearch](https://docs-beta.opensearch.org/opensearch/install/index/)
-* [OpenSearch SQL ODBC driver](https://docs-beta.opensearch.org/search-plugins/sql/odbc/)
+* [OpenSearch](https://opensearch.org/docs/latest/opensearch/install/index/)
+* [OpenSearch SQL ODBC driver](https://opensearch.org/docs/latest/search-plugins/sql/odbc/)
 
 ## Capabilities supported
 * Import
