@@ -13,7 +13,7 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 /**
- * AST node represent Regex operation.
+ * AST node represent Parse operation.
  */
 @Getter
 @Setter
@@ -21,7 +21,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
 @AllArgsConstructor
-public class Regex extends UnresolvedPlan {
+public class Parse extends UnresolvedPlan {
   /**
    * Field.
    */
@@ -38,7 +38,7 @@ public class Regex extends UnresolvedPlan {
   private UnresolvedPlan child;
 
   @Override
-  public Regex attach(UnresolvedPlan child) {
+  public Parse attach(UnresolvedPlan child) {
     this.child = child;
     return this;
   }
@@ -50,6 +50,6 @@ public class Regex extends UnresolvedPlan {
 
   @Override
   public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {
-    return nodeVisitor.visitRegex(this, context);
+    return nodeVisitor.visitParse(this, context);
   }
 }

@@ -11,11 +11,11 @@ import org.opensearch.sql.planner.logical.LogicalDedupe;
 import org.opensearch.sql.planner.logical.LogicalEval;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalLimit;
+import org.opensearch.sql.planner.logical.LogicalParse;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
 import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalRareTopN;
-import org.opensearch.sql.planner.logical.LogicalRegex;
 import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.logical.LogicalRemove;
 import org.opensearch.sql.planner.logical.LogicalRename;
@@ -27,10 +27,10 @@ import org.opensearch.sql.planner.physical.DedupeOperator;
 import org.opensearch.sql.planner.physical.EvalOperator;
 import org.opensearch.sql.planner.physical.FilterOperator;
 import org.opensearch.sql.planner.physical.LimitOperator;
+import org.opensearch.sql.planner.physical.ParseOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.ProjectOperator;
 import org.opensearch.sql.planner.physical.RareTopNOperator;
-import org.opensearch.sql.planner.physical.RegexOperator;
 import org.opensearch.sql.planner.physical.RemoveOperator;
 import org.opensearch.sql.planner.physical.RenameOperator;
 import org.opensearch.sql.planner.physical.SortOperator;
@@ -125,8 +125,8 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
   }
 
   @Override
-  public PhysicalPlan visitRegex(LogicalRegex node, C context) {
-    return new RegexOperator(visitChild(node, context), node.getExpression(), node.getPattern(),
+  public PhysicalPlan visitParse(LogicalParse node, C context) {
+    return new ParseOperator(visitChild(node, context), node.getExpression(), node.getPattern(),
             node.getGroups());
   }
 

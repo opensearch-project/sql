@@ -13,10 +13,10 @@ import org.opensearch.sql.planner.physical.DedupeOperator;
 import org.opensearch.sql.planner.physical.EvalOperator;
 import org.opensearch.sql.planner.physical.FilterOperator;
 import org.opensearch.sql.planner.physical.LimitOperator;
+import org.opensearch.sql.planner.physical.ParseOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.ProjectOperator;
 import org.opensearch.sql.planner.physical.RareTopNOperator;
-import org.opensearch.sql.planner.physical.RegexOperator;
 import org.opensearch.sql.planner.physical.RemoveOperator;
 import org.opensearch.sql.planner.physical.RenameOperator;
 import org.opensearch.sql.planner.physical.SortOperator;
@@ -127,9 +127,9 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
   }
 
   @Override
-  public PhysicalPlan visitRegex(RegexOperator node, Object context) {
-    return new RegexOperator(visitInput(node.getInput(), context), node.getExpression(),
-            node.getRawPattern(), node.getGroups());
+  public PhysicalPlan visitParse(ParseOperator node, Object context) {
+    return new ParseOperator(visitInput(node.getInput(), context), node.getExpression(),
+        node.getRawPattern(), node.getGroups());
   }
 
   PhysicalPlan visitInput(PhysicalPlan node, Object context) {

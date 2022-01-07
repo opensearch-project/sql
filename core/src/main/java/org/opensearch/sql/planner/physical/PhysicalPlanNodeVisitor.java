@@ -72,7 +72,7 @@ public abstract class PhysicalPlanNodeVisitor<R, C> {
     return visitNode(node, context);
   }
 
-  public R visitRegex(RegexOperator node, C context) {
+  public R visitParse(ParseOperator node, C context) {
     return visitNode(node, context);
   }
 }

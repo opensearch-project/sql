@@ -6,7 +6,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 
-public class RegexOperatorTest {
+public class ParseOperatorTest {
   private static final String regex =
           "\\b(?<city>[A-Za-z\\s]+),\\s(?<state>[A-Z]{2,2}):\\s(?<areaCode>[0-9]{3,3})\\b";
   private static final Pattern pattern = Pattern.compile(regex);

@@ -44,10 +44,10 @@ import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Limit;
+import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
-import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
@@ -394,8 +394,8 @@ public class AstDSL {
     return new Limit(limit, offset).attach(input);
   }
 
-  public static Regex regex(UnresolvedPlan input, UnresolvedExpression expression,
+  public static Parse parse(UnresolvedPlan input, UnresolvedExpression expression,
                             Literal pattern) {
-    return new Regex(expression, pattern, input);
+    return new Parse(expression, pattern, input);
   }
 }

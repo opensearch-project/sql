@@ -37,9 +37,9 @@ import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Limit;
+import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
-import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
@@ -61,10 +61,10 @@ import org.opensearch.sql.planner.logical.LogicalDedupe;
 import org.opensearch.sql.planner.logical.LogicalEval;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalLimit;
+import org.opensearch.sql.planner.logical.LogicalParse;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalRareTopN;
-import org.opensearch.sql.planner.logical.LogicalRegex;
 import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.logical.LogicalRemove;
 import org.opensearch.sql.planner.logical.LogicalRename;
@@ -309,19 +309,19 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   /**
-   * Build {@link LogicalRegex}.
+   * Build {@link LogicalParse}.
    */
   @Override
-  public LogicalPlan visitRegex(Regex node, AnalysisContext context) {
+  public LogicalPlan visitParse(Parse node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
     Expression expression = expressionAnalyzer.analyze(node.getExpression(), context);
     String pattern = (String) node.getPattern().getValue();
 
-    LogicalRegex logicalRegex = new LogicalRegex(child, expression, pattern);
+    LogicalParse logicalParse = new LogicalParse(child, expression, pattern);
     TypeEnvironment curEnv = context.peek();
-    logicalRegex.getGroups().forEach((group, type) -> curEnv.define(
-            new Symbol(Namespace.FIELD_NAME, group), LogicalRegex.typeStrToExprType(type)));
-    return logicalRegex;
+    logicalParse.getGroups().forEach((group, type) -> curEnv.define(
+        new Symbol(Namespace.FIELD_NAME, group), LogicalParse.typeStrToExprType(type)));
+    return logicalParse;
   }
 
   /**

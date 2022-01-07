@@ -21,7 +21,7 @@ pplStatement
 commands
     : whereCommand | fieldsCommand | renameCommand | statsCommand | dedupCommand | sortCommand | evalCommand | headCommand
     | topCommand | rareCommand
-    | regexCommand;
+    | parseCommand;
 
 searchCommand
     : (SEARCH)? fromClause                                          #searchFrom
@@ -85,8 +85,8 @@ rareCommand
     (byClause)?
     ;
 
-regexCommand
-    : REGEX expression pattern
+parseCommand
+    : PARSE expression pattern
     ;
 
 /** clauses */

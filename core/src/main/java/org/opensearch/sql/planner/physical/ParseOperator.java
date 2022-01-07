@@ -1,8 +1,9 @@
 package org.opensearch.sql.planner.physical;
 
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
-import static org.opensearch.sql.planner.logical.LogicalRegex.typeStrToExprType;
+import static org.opensearch.sql.planner.logical.LogicalParse.typeStrToExprType;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -11,8 +12,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import com.google.common.collect.ImmutableMap;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -27,12 +26,12 @@ import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.operator.convert.TypeCastOperator;
 
 /**
- * RegexOperator.
+ * ParseOperator.
  */
 @ToString
 @EqualsAndHashCode(callSuper = false)
-public class RegexOperator extends PhysicalPlan {
-  private static final Logger log = LogManager.getLogger(RegexOperator.class);
+public class ParseOperator extends PhysicalPlan {
+  private static final Logger log = LogManager.getLogger(ParseOperator.class);
   /**
    * Input Plan.
    */
@@ -65,9 +64,9 @@ public class RegexOperator extends PhysicalPlan {
   }
 
   /**
-   * RegexOperator.
+   * ParseOperator.
    */
-  public RegexOperator(PhysicalPlan input,
+  public ParseOperator(PhysicalPlan input,
                        Expression expression, String pattern, Map<String, String> groups) {
     this.input = input;
     this.expression = expression;
@@ -78,7 +77,7 @@ public class RegexOperator extends PhysicalPlan {
 
   @Override
   public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
-    return visitor.visitRegex(this, context);
+    return visitor.visitParse(this, context);
   }
 
   @Override

@@ -22,7 +22,7 @@ EVAL:                               'EVAL';
 HEAD:                               'HEAD';
 TOP:                                'TOP';
 RARE:                               'RARE';
-REGEX:                              'REGEX';
+PARSE:                              'PARSE';
 
 // COMMAND ASSIST KEYWORDS
 AS:                                 'AS';

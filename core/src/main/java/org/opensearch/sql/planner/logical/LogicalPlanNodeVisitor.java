@@ -70,7 +70,7 @@ public abstract class LogicalPlanNodeVisitor<R, C> {
     return visitNode(plan, context);
   }
 
-  public R visitRegex(LogicalRegex plan, C context) {
+  public R visitParse(LogicalParse plan, C context) {
     return visitNode(plan, context);
   }
 }

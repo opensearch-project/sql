@@ -109,7 +109,6 @@ public class BuiltinFunctionRepository {
 
   /**
    * Cast Expression to target ExprType.
-   *
    * @param arg expression
    * @param targetType target ExprType
    * @return Expression

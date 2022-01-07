@@ -27,11 +27,11 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.Expression;
 
 /**
- * Logical Regex Command.
+ * Logical Parse Command.
  */
 @ToString
 @EqualsAndHashCode(callSuper = true)
-public class LogicalRegex extends LogicalPlan {
+public class LogicalParse extends LogicalPlan {
 
   @Getter
   private final Expression expression;
@@ -67,9 +67,9 @@ public class LogicalRegex extends LogicalPlan {
   }
 
   /**
-   * Constructor of LogicalEval.
+   * Constructor of LogicalParse.
    */
-  public LogicalRegex(LogicalPlan child, Expression expression, String pattern) {
+  public LogicalParse(LogicalPlan child, Expression expression, String pattern) {
     super(Collections.singletonList(child));
     this.expression = expression;
     this.pattern = pattern;
@@ -78,7 +78,6 @@ public class LogicalRegex extends LogicalPlan {
 
   /**
    * Converts raw string to ExprType.
-   *
    * @param type string from regex group name
    * @return ExprType
    */
@@ -88,12 +87,12 @@ public class LogicalRegex extends LogicalPlan {
 
   @Override
   public <R, C> R accept(LogicalPlanNodeVisitor<R, C> visitor, C context) {
-    return visitor.visitRegex(this, context);
+    return visitor.visitParse(this, context);
   }
 
-  private static Map<String, String> getNamedGroupCandidates(String regex) {
+  private static Map<String, String> getNamedGroupCandidates(String pattern) {
     Map<String, String> namedGroups = new HashMap<>();
-    Matcher m = GROUP_PATTERN.matcher(regex);
+    Matcher m = GROUP_PATTERN.matcher(pattern);
     while (m.find()) {
       namedGroups.put(m.group(1), m.group(2));
     }
