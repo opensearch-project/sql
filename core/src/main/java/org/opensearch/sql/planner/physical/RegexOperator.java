@@ -1,14 +1,18 @@
 package org.opensearch.sql.planner.physical;
 
-import static org.opensearch.sql.planner.logical.LogicalRegex.regexTypeToExprType;
+import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
+import static org.opensearch.sql.planner.logical.LogicalRegex.typeStrToExprType;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.google.common.collect.ImmutableMap;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -16,6 +20,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
@@ -89,21 +94,39 @@ public class RegexOperator extends PhysicalPlan {
   @Override
   public ExprValue next() {
     ExprValue inputValue = input.next();
+    if (STRUCT != inputValue.type()) {
+      return inputValue;
+    }
 
     ExprValue value = inputValue.bindingTuples().resolve(expression);
-    final String rawString = value.stringValue();
+    Map<String, ExprValue> exprValueMap = parse(value.stringValue());
 
+    ImmutableMap.Builder<String, ExprValue> resultBuilder = new ImmutableMap.Builder<>();
+    Map<String, ExprValue> tupleValue = ExprValueUtils.getTupleValue(inputValue);
+    for (Entry<String, ExprValue> valueEntry : tupleValue.entrySet()) {
+      if (exprValueMap.containsKey(valueEntry.getKey())) {
+        resultBuilder.put(valueEntry.getKey(), exprValueMap.get(valueEntry.getKey()));
+        exprValueMap.remove(valueEntry.getKey());
+      } else {
+        resultBuilder.put(valueEntry);
+      }
+    }
+    resultBuilder.putAll(exprValueMap);
+    return ExprTupleValue.fromExprValueMap(resultBuilder.build());
+  }
+
+  private Map<String, ExprValue> parse(String rawString) {
     Matcher matcher = pattern.matcher(rawString);
     Map<String, ExprValue> exprValueMap = new LinkedHashMap<>();
     if (matcher.matches()) {
-      groups.forEach((group, type) -> {
+      groups.forEach((field, type) -> {
         Expression expression = REPOSITORY.cast(
-                DSL.literal(matcher.group(group + type)), regexTypeToExprType(type));
-        exprValueMap.put(group, expression.valueOf(null));
+                DSL.literal(matcher.group(field + type)), typeStrToExprType(type));
+        exprValueMap.put(field, expression.valueOf(null));
       });
     } else {
       log.warn("failed to extract pattern {} from input {}", rawPattern, rawString);
     }
-    return ExprTupleValue.fromExprValueMap(exprValueMap);
+    return exprValueMap;
   }
 }

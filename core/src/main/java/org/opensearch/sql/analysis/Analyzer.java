@@ -70,7 +70,6 @@ import org.opensearch.sql.planner.logical.LogicalRemove;
 import org.opensearch.sql.planner.logical.LogicalRename;
 import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.planner.logical.LogicalValues;
-import org.opensearch.sql.planner.physical.RegexOperator;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
 
@@ -321,7 +320,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     LogicalRegex logicalRegex = new LogicalRegex(child, expression, pattern);
     TypeEnvironment curEnv = context.peek();
     logicalRegex.getGroups().forEach((group, type) -> curEnv.define(
-            new Symbol(Namespace.FIELD_NAME, group), LogicalRegex.regexTypeToExprType(type)));
+            new Symbol(Namespace.FIELD_NAME, group), LogicalRegex.typeStrToExprType(type)));
     return logicalRegex;
   }
 

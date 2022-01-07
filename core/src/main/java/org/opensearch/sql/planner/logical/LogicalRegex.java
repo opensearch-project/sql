@@ -82,7 +82,7 @@ public class LogicalRegex extends LogicalPlan {
    * @param type string from regex group name
    * @return ExprType
    */
-  public static ExprType regexTypeToExprType(String type) {
+  public static ExprType typeStrToExprType(String type) {
     return TYPE_MAP.get(type);
   }
 
