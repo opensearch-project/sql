@@ -199,27 +199,27 @@ public class RestPPLQueryAction extends BaseRestHandler {
   private ResponseListener<QueryResponse> createListener(RestChannel channel,
                                                          PPLQueryRequest pplRequest) {
 
-//    Format format = pplRequest.format();
-//    ResponseFormatter<QueryResult> formatter;
-//    if (format.equals(Format.CSV)) {
-//      formatter = new CsvResponseFormatter(pplRequest.sanitize());
-//    } else if (format.equals(Format.RAW)) {
-//      formatter = new RawResponseFormatter();
-//    } else if (format.equals(Format.VIZ)) {
-//      formatter = new VisualizationResponseFormatter(pplRequest.style());
-//    } else {
-//      formatter = new SimpleJsonResponseFormatter(PRETTY);
-//    }
+    Format format = pplRequest.format();
+    ResponseFormatter<QueryResult> formatter;
+    if (format.equals(Format.CSV)) {
+      formatter = new CsvResponseFormatter(pplRequest.sanitize());
+    } else if (format.equals(Format.RAW)) {
+      formatter = new RawResponseFormatter();
+    } else if (format.equals(Format.VIZ)) {
+      formatter = new VisualizationResponseFormatter(pplRequest.style());
+    } else {
+      formatter = new SimpleJsonResponseFormatter(PRETTY);
+    }
 
-    ResponseFormatter<PlanQueryResult> formatter = new PlanJsonResponseFormatter(PRETTY);
+//    ResponseFormatter<PlanQueryResult> formatter = new PlanJsonResponseFormatter(PRETTY);
 
     return new ResponseListener<QueryResponse>() {
       @Override
       public void onResponse(QueryResponse response) {
-//        sendResponse(channel, OK, formatter.format(new QueryResult(response.getSchema(),
-//            response.getResults())));
-        sendResponse(channel, OK, formatter.format(new PlanQueryResult(response.getSchema(),
+        sendResponse(channel, OK, formatter.format(new QueryResult(response.getSchema(),
             response.getResults())));
+//        sendResponse(channel, OK, formatter.format(new PlanQueryResult(response.getSchema(),
+//            response.getResults())));
       }
 
       @Override
