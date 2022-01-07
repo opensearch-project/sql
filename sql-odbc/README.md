@@ -35,7 +35,7 @@ This will customize the connection from Tableau to OpenSearch, ensuring that the
 
 ### Mac
 
-iODBC Driver Manager should be installed before installing the OpenSearch SQL ODBC Driver on Mac.
+[iODBC Driver Manager](http://www.iodbc.org/dataspace/doc/iodbc/wiki/iodbcWiki/WelcomeVisitors) should be installed before installing the OpenSearch SQL ODBC Driver on Mac.
 
 1. Run the `.pkg` installer to install the OpenSearch SQL ODBC Driver.
 2. Configure a Driver and DSN entry for the OpenSearch SQL ODBC Driver, following the instructions [here](./docs/user/mac_configure_dsn.md).
