@@ -64,3 +64,16 @@
 2. Check if auth credentials are correct.
 3. Check if server is running.
 
+## Limitations and Known issues
+
+There are known limitations and issues that are tracked by OpenSearch including the items listed below.
+
+| Issue | Description |
+| ---- | ----------- |
+| [Visualizations without numerical columns](https://github.com/opensearch-project/sql/issues/347) | Visualizations is only supported if there is a numerical column included due to a known limitation in OpenSearch regarding subqueries. An exception to this would be visualizations with columns only of type string is supported as well. |
+| [Visualizations with First or Last options selected are not yet supported](https://github.com/opensearch-project/sql/issues/279) | First and Last options generate an sql query that uses MAX and MIN for strings which is not yet supported in OpenSearch |
+| [Visualizations with aggregate functions selected are not yet supported](https://github.com/opensearch-project/sql/issues/363) | Specifically Minimum, Maximum, Standard deviation, Variance, or Median options are not yet supported. |
+| [Basic filtering limitations](https://github.com/opensearch-project/sql/issues/347) | Selecting more than one value is not yet supported when using basic filtering. Due to the issue in the first row of this table, selecting one value for basic filtering when there is no numerical column is not yet supported. |
+| [Top N filtering limitations](https://opensearch.org/docs/latest/search-plugins/sql/limitation/) | OpenSearch has limitations on subquery which does not yet support the Top N filtering functionality. |
+| [Advanced filtering limitations](https://github.com/opensearch-project/sql/issues/308) | `does not contain` and `does not start with` filters for string columns are not yet supported. All advanced filtering for numerical columns are not yet supported except for `is` and `is blank`. All advanced filtering for date and time columns are not yet supported except for `is blank` and `is not blank`. |
+| [Relative Date filtering limitations](https://github.com/opensearch-project/sql/issues/364) | Due to a known timestamp issue in OpenSearch, all relative date filtering is not yet supported. |
