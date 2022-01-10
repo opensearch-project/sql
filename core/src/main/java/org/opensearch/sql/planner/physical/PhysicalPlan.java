@@ -6,7 +6,6 @@
 
 package org.opensearch.sql.planner.physical;
 
-import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -37,11 +36,8 @@ public abstract class PhysicalPlan implements PlanNode<PhysicalPlan>,
     getChild().forEach(PhysicalPlan::close);
   }
 
-  /**
-   * schema.
-   */
   public ExecutionEngine.Schema schema() {
     throw new IllegalStateException(String.format("[BUG] schema can been only applied to "
-            + "ProjectOperator, instead of %s", toString()));
+        + "ProjectOperator, instead of %s", toString()));
   }
 }

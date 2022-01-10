@@ -45,10 +45,7 @@ public class TypeEnvironment implements Environment<Symbol, ExprType> {
    */
   @Override
   public ExprType resolve(Symbol symbol) {
-    System.out.println("[" + getClass().getSimpleName() + " " + (symbol).getClass().getSimpleName() + "] ❗symbol: " + symbol);
     for (TypeEnvironment cur = this; cur != null; cur = cur.parent) {
-      System.out.println("[" + getClass().getSimpleName() + " " + (cur).getClass().getSimpleName() + "] ❗cur: " + cur);
-      System.out.println("[" + getClass().getSimpleName() + " " + (cur.symbolTable.lookupAllFields(Namespace.FIELD_NAME)).getClass().getSimpleName() + "] ❗cur.symbolTable.lookupAllFields(Namespace.FIELD_NAME): " + cur.symbolTable.lookupAllFields(Namespace.FIELD_NAME));
       Optional<ExprType> typeOptional = cur.symbolTable.lookup(symbol);
       if (typeOptional.isPresent()) {
         return typeOptional.get();

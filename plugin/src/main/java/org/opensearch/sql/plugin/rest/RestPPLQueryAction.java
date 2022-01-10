@@ -48,12 +48,10 @@ import org.opensearch.sql.plugin.request.PPLQueryRequestFactory;
 import org.opensearch.sql.ppl.PPLService;
 import org.opensearch.sql.ppl.config.PPLServiceConfig;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
-import org.opensearch.sql.protocol.response.PlanQueryResult;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.CsvResponseFormatter;
 import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
-import org.opensearch.sql.protocol.response.format.PlanJsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.RawResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
@@ -198,7 +196,6 @@ public class RestPPLQueryAction extends BaseRestHandler {
 
   private ResponseListener<QueryResponse> createListener(RestChannel channel,
                                                          PPLQueryRequest pplRequest) {
-
     Format format = pplRequest.format();
     ResponseFormatter<QueryResult> formatter;
     if (format.equals(Format.CSV)) {
@@ -210,16 +207,11 @@ public class RestPPLQueryAction extends BaseRestHandler {
     } else {
       formatter = new SimpleJsonResponseFormatter(PRETTY);
     }
-
-//    ResponseFormatter<PlanQueryResult> formatter = new PlanJsonResponseFormatter(PRETTY);
-
     return new ResponseListener<QueryResponse>() {
       @Override
       public void onResponse(QueryResponse response) {
         sendResponse(channel, OK, formatter.format(new QueryResult(response.getSchema(),
             response.getResults())));
-//        sendResponse(channel, OK, formatter.format(new PlanQueryResult(response.getSchema(),
-//            response.getResults())));
       }
 
       @Override
