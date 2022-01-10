@@ -24,15 +24,15 @@ import org.opensearch.sql.exception.SemanticCheckException;
 public class ExprTimeValue extends AbstractExprValue {
   private final LocalTime time;
 
-  private static final DateTimeFormatter FORMATTER_VARIABLE_MICROS;
+  private static final DateTimeFormatter FORMATTER_VARIABLE_NANOS;
   private static final int MIN_FRACTION_SECONDS = 0;
-  private static final int MAX_FRACTION_SECONDS = 6;
+  private static final int MAX_FRACTION_SECONDS = 9;
 
   static {
-    FORMATTER_VARIABLE_MICROS = new DateTimeFormatterBuilder()
+    FORMATTER_VARIABLE_NANOS = new DateTimeFormatterBuilder()
             .appendPattern("HH:mm:ss")
             .appendFraction(
-                    ChronoField.MICRO_OF_SECOND,
+                    ChronoField.NANO_OF_SECOND,
                     MIN_FRACTION_SECONDS,
                     MAX_FRACTION_SECONDS,
                     true)
@@ -44,10 +44,10 @@ public class ExprTimeValue extends AbstractExprValue {
    */
   public ExprTimeValue(String time) {
     try {
-      this.time = LocalTime.parse(time, FORMATTER_VARIABLE_MICROS);
+      this.time = LocalTime.parse(time, FORMATTER_VARIABLE_NANOS);
     } catch (DateTimeParseException e) {
       throw new SemanticCheckException(String.format("time:%s in unsupported format, please use "
-          + "HH:mm:ss[.SSSSSS]", time));
+          + "HH:mm:ss[.SSSSSSSSS]", time));
     }
   }
 

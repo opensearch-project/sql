@@ -44,6 +44,8 @@ The OpenSearch SQL Engine support the following data types.
 +---------------------+
 | date                |
 +---------------------+
+| date_nanos          |
++---------------------+
 | time                |
 +---------------------+
 | interval            |
@@ -91,9 +93,9 @@ The table below list the mapping between OpenSearch Data Type, OpenSearch SQL Da
 +-----------------+---------------------+-----------+
 | date            | timestamp           | TIMESTAMP |
 +-----------------+---------------------+-----------+
-| ip              | ip                  | VARCHAR   |
+| date_nanos      | timestamp           | TIMESTAMP |
 +-----------------+---------------------+-----------+
-| date            | timestamp           | TIMESTAMP |
+| ip              | ip                  | VARCHAR   |
 +-----------------+---------------------+-----------+
 | binary          | binary              | VARBINARY |
 +-----------------+---------------------+-----------+
@@ -250,11 +252,11 @@ Time
 
 Time represents the time on the clock or watch with no regard for which timezone it might be related with. Time type data does not have date information.
 
-+------+-----------------------+----------------------------------------+
-| Type | Syntax                | Range                                  |
-+======+=======================+========================================+
-| Time | 'hh:mm:ss[.fraction]' | '00:00:00.000000' to '23:59:59.999999' |
-+------+-----------------------+----------------------------------------+
++------+-----------------------+----------------------------------------------+
+| Type | Syntax                | Range                                        |
++======+=======================+==============================================+
+| Time | 'hh:mm:ss[.fraction]' | '00:00:00.000000000' to '23:59:59.999999999' |
++------+-----------------------+----------------------------------------------+
 
 
 Datetime
@@ -262,11 +264,11 @@ Datetime
 
 Datetime type is the combination of date and time. The conversion rule of date or time to datetime is described in `Conversion between date and time types`_. Datetime type does not contain timezone information. For an absolute time point that contains both date time and timezone information, see `Timestamp`_.
 
-+----------+----------------------------------+--------------------------------------------------------------+
-| Type     | Syntax                           | Range                                                        |
-+==========+==================================+==============================================================+
-| Datetime | 'yyyy-MM-dd hh:mm:ss[.fraction]' | '0001-01-01 00:00:00.000000' to '9999-12-31 23:59:59.999999' |
-+----------+----------------------------------+--------------------------------------------------------------+
++----------+----------------------------------+--------------------------------------------------------------------+
+| Type     | Syntax                           | Range                                                              |
++==========+==================================+====================================================================+
+| Datetime | 'yyyy-MM-dd hh:mm:ss[.fraction]' | '0001-01-01 00:00:00.000000000' to '9999-12-31 23:59:59.999999999' |
++----------+----------------------------------+--------------------------------------------------------------------+
 
 
 
@@ -275,11 +277,11 @@ Timestamp
 
 A timestamp instance is an absolute instant independent of timezone or convention. For example, for a given point of time, if we set the timestamp of this time point into another timezone, the value should also be different accordingly. Besides, the storage of timestamp type is also different from the other types. The timestamp is converted from the current timezone to UTC for storage, and is converted back to the set timezone from UTC when retrieving.
 
-+-----------+----------------------------------+------------------------------------------------------------------+
-| Type      | Syntax                           | Range                                                            |
-+===========+==================================+==================================================================+
-| Timestamp | 'yyyy-MM-dd hh:mm:ss[.fraction]' | '0001-01-01 00:00:01.000000' UTC to '9999-12-31 23:59:59.999999' |
-+-----------+----------------------------------+------------------------------------------------------------------+
++-----------+----------------------------------+------------------------------------------------------------------------+
+| Type      | Syntax                           | Range                                                                  |
++===========+==================================+========================================================================+
+| Timestamp | 'yyyy-MM-dd hh:mm:ss[.fraction]' | '0001-01-01 00:00:01.000000000' UTC to '9999-12-31 23:59:59.999999999' |
++-----------+----------------------------------+------------------------------------------------------------------------+
 
 
 Interval
