@@ -90,12 +90,14 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitSearchFromFilter(SearchFromFilterContext ctx) {
-    return new Filter(internalVisitExpression(ctx.logicalExpression())).attach(visit(ctx.fromClause()));
+    return new Filter(internalVisitExpression(ctx.logicalExpression())).attach(
+        visit(ctx.fromClause()));
   }
 
   @Override
   public UnresolvedPlan visitSearchFilterFrom(SearchFilterFromContext ctx) {
-    return new Filter(internalVisitExpression(ctx.logicalExpression())).attach(visit(ctx.fromClause()));
+    return new Filter(internalVisitExpression(ctx.logicalExpression())).attach(
+        visit(ctx.fromClause()));
   }
 
   /**
@@ -129,7 +131,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return new Rename(
         ctx.renameClasue()
             .stream()
-            .map(ct -> new Map(internalVisitExpression(ct.orignalField), internalVisitExpression(ct.renamedField)))
+            .map(ct -> new Map(internalVisitExpression(ct.orignalField),
+                internalVisitExpression(ct.renamedField)))
             .collect(Collectors.toList())
     );
   }
@@ -153,8 +156,9 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         .fieldList()
         .fieldExpression()
         .stream()
-        .map(groupCtx -> new Alias(getTextInQuery(groupCtx), internalVisitExpression(groupCtx))).collect(
-        Collectors.toList())
+        .map(groupCtx -> new Alias(getTextInQuery(groupCtx), internalVisitExpression(groupCtx)))
+        .collect(
+            Collectors.toList())
         : ctx.bySpanClause() != null
         ? Collections.singletonList(internalVisitExpression(ctx.bySpanClause()))
         : Collections.emptyList();
