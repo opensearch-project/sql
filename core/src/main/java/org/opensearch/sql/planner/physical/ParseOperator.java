@@ -20,6 +20,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
@@ -119,9 +120,14 @@ public class ParseOperator extends PhysicalPlan {
     Map<String, ExprValue> exprValueMap = new LinkedHashMap<>();
     if (matcher.matches()) {
       groups.forEach((field, type) -> {
-        Expression expression = REPOSITORY.cast(
-                DSL.literal(matcher.group(field + type)), typeStrToExprType(type));
-        exprValueMap.put(field, expression.valueOf(null));
+        String rawMatch = matcher.group(field + type);
+        try {
+          Expression expression = REPOSITORY.cast(DSL.literal(rawMatch), typeStrToExprType(type));
+          exprValueMap.put(field, expression.valueOf(null));
+        } catch (SemanticCheckException | NumberFormatException e) {
+          throw new SemanticCheckException(
+              String.format("failed to cast \"%s\" to type [%s]", rawMatch, type));
+        }
       });
     } else {
       log.warn("failed to extract pattern {} from input {}", rawPattern, rawString);
