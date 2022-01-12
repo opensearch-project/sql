@@ -227,6 +227,7 @@ POW:                                'POW';
 POWER:                              'POWER';
 RADIANS:                            'RADIANS';
 RAND:                               'RAND';
+REGEX:                              'REGEX';
 REPLACE:                            'REPLACE';
 RINT:                               'RINT';
 ROUND:                              'ROUND';
