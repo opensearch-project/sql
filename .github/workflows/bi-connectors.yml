@@ -30,15 +30,15 @@ jobs:
       id: prep-powerbi-odbc-amz-os-svc
       run: |
         sed -i 's/<value>OpenSearch Project<\/value>/<value>Amazon OpenSearch Service<\/value>/g' resources.resx
-        sed -i 's/Documentation.Name = "OpenSearchProject-ODBC"/Documentation.Name = "AmazonOpenSearchService-ODBC"/g' AmazonOpenSearchService-ODBC.m
+        sed -i 's/Documentation.Name = "OpenSearch Project"/Documentation.Name = "Amazon OpenSearch Service"/g' AmazonOpenSearchService-ODBC.m
         sed -i 's/section #"OpenSearchProject-ODBC";/section #"AmazonOpenSearchService-ODBC";/' AmazonOpenSearchService-ODBC.m
         sed -i 's/\[DataSource.Kind="OpenSearchProject-ODBC", Publish="OpenSearchProject-ODBC.Publish"\]/[DataSource.Kind="AmazonOpenSearchService-ODBC", Publish="AmazonOpenSearchService-ODBC.Publish"]/g' AmazonOpenSearchService-ODBC.m
         sed -i 's/OpenSearchProject-ODBC.Contents/AmazonOpenSearchService-ODBC.Contents/g' AmazonOpenSearchService-ODBC.m
-        sed -i 's/OpenSearch.Publish/AmazonOpenSearchService-ODBC.Publish/g' AmazonOpenSearchService-ODBC.m
+        sed -i 's/OpenSearchProject-ODBC.Publish/AmazonOpenSearchService-ODBC.Publish/g' AmazonOpenSearchService-ODBC.m
         sed -i 's/OpenSearch.Icons/AmazonOpenSearchService-ODBC.Icons/g' AmazonOpenSearchService-ODBC.m
-        sed -i 's/OpenSearchImpl/AmazonOpenSearchServiceImpl/g' AmazonOpenSearchService-ODBC.m
-        sed -i 's/OpenSearchType/AmazonOpenSearchServiceType/g' AmazonOpenSearchService-ODBC.m
-        sed -i 's/OpenSearch = \[/AmazonOpenSearchService-ODBC = [/' AmazonOpenSearchService-ODBC.m
+        sed -i 's/OpenSearchProject-ODBCImpl/AmazonOpenSearchService-ODBCImpl/g' AmazonOpenSearchService-ODBC.m
+        sed -i 's/OpenSearchProject-ODBCType/AmazonOpenSearchService-ODBCType/g' AmazonOpenSearchService-ODBC.m
+        sed -i 's/#"OpenSearchProject-ODBC" = \[/#"AmazonOpenSearchService-ODBC" = [/' AmazonOpenSearchService-ODBC.m
        sed -i 's/"opensearchproject-odbc"/"amazonopensearchservice-odbc"/g' AmazonOpenSearchService-ODBC.m
       working-directory: bi-connectors/PowerBIConnector
     - name: Pack Power BI ODBC connector for 'Amazon OpenSearch Service'

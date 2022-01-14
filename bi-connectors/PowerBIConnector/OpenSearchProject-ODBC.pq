@@ -30,7 +30,7 @@ OpenSearchType = type function (
         ])
     )
     as table meta [
-        Documentation.Name = "OpenSearchProject-ODBC"
+        Documentation.Name = "OpenSearch Project"
     ];
 
 OpenSearchImpl = (Server as text, Port as number, UseSSL as logical) as table =>
@@ -227,9 +227,8 @@ OnOdbcError = (errorRecord as record) =>
     Beta = true,
     Category = "Other",
     ButtonText = { Extension.LoadString("ButtonTitle"), Extension.LoadString("ButtonHelp") },
-    LearnMoreUrl = "https://opensearch.org/docs/latest",
+    LearnMoreUrl = "https://github.com/opensearch-project/sql/blob/main/bi-connectors/PowerBIConnector/docs/OpenSearchProject.md",
     
-    // Disabling direct query due to limited SQL query support
     SupportsDirectQuery = true,
 
     SourceImage = OpenSearch.Icons,
