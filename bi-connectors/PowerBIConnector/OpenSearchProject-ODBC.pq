@@ -9,10 +9,10 @@ section #"OpenSearchProject-ODBC";
 EnableTraceOutput = false;
 
 [DataSource.Kind="OpenSearchProject-ODBC", Publish="OpenSearchProject-ODBC.Publish"]
-shared #"OpenSearchProject-ODBC.Contents" = Value.ReplaceType(OpenSearchImpl, OpenSearchType);
+shared #"OpenSearchProject-ODBC.Contents" = Value.ReplaceType(#"OpenSearchProject-ODBCImpl", #"OpenSearchProject-ODBCType");
 
 // Wrapper function to provide additional UI customization.
-OpenSearchType = type function (
+#"OpenSearchProject-ODBCType" = type function (
         Server as (type text meta [
             Documentation.FieldCaption = "Server",
             Documentation.FieldDescription = "The hostname of the OpenSearch server.",
@@ -33,7 +33,7 @@ OpenSearchType = type function (
         Documentation.Name = "OpenSearch Project"
     ];
 
-OpenSearchImpl = (Server as text, Port as number, UseSSL as logical) as table =>
+#"OpenSearchProject-ODBCImpl" = (Server as text, Port as number, UseSSL as logical) as table =>
     let
         Credential = Extension.CurrentCredential(),
         AuthenticationMode = Credential[AuthenticationKind],
