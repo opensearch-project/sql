@@ -11,7 +11,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Pack Tableau JDBC connector
       id: pack-tableau-jdbc
       run: |
@@ -39,7 +39,7 @@ jobs:
         sed -i 's/OpenSearchImpl/AmazonOpenSearchServiceImpl/g' AmazonOpenSearchService-ODBC.m
         sed -i 's/OpenSearchType/AmazonOpenSearchServiceType/g' AmazonOpenSearchService-ODBC.m
         sed -i 's/OpenSearch = \[/AmazonOpenSearchService-ODBC = [/' AmazonOpenSearchService-ODBC.m
-       sed -i 's/"opensearchproject-odbc"/"amazonopensearchservice-odbc"/g' AmazonOpenSearchService-ODBC.m
+        sed -i 's/"opensearchproject-odbc"/"amazonopensearchservice-odbc"/g' AmazonOpenSearchService-ODBC.m
       working-directory: bi-connectors/PowerBIConnector
     - name: Pack Power BI ODBC connector for 'Amazon OpenSearch Service'
       id: pack-powerbi-odbc-amz-os-svc
