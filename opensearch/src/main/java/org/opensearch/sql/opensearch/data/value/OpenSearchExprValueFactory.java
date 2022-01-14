@@ -178,8 +178,10 @@ public class OpenSearchExprValueFactory {
   }
 
   /**
-   * Only default strict_date_optional_time||epoch_millis is supported.
+   * Only default strict_date_optional_time||epoch_millis is supported,
+   * strict_date_optional_time_nanos||epoch_millis if field is date_nanos.
    * https://www.elastic.co/guide/en/elasticsearch/reference/current/date.html
+   * https://www.elastic.co/guide/en/elasticsearch/reference/current/date_nanos.html
    * The customized date_format is not supported.
    */
   private ExprValue constructTimestamp(String value) {

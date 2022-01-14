@@ -6,7 +6,9 @@
 
 buildscript {
     repositories {
-        jcenter()
+        mavenLocal()
+        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+        mavenCentral()
     }
 }
 
@@ -37,7 +39,9 @@ sourceCompatibility = 8
 targetCompatibility = 8
 
 repositories {
-    jcenter()
+    mavenLocal()
+    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+    mavenCentral()
 }
 
 dependencies {
