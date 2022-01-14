@@ -17,35 +17,35 @@ jobs:
       run: |
         zip -r opensearch_sql_jdbc.taco . -x *.taco
       working-directory: bi-connectors/TableauConnector/opensearch_sql_jdbc
-    - name: Prepare Power BI ODBC connector
+    - name: Prepare Power BI ODBC connector for 'OpenSearch Project'
       run: |
-        cp OpenSearchProject-ODBC.pq OpenSearchProject-ODBC.m
+        cp OpenSearchProject.pq OpenSearchProject.m
       working-directory: bi-connectors/PowerBIConnector
     - name: Pack Power BI ODBC connector
       id: pack-powerbi-odbc-os-proj
       run: |
-        zip OpenSearchProject-ODBC.mez *.png *.m *.resx *.pqm
+        zip OpenSearchProject.mez *.png *.m *.resx *.pqm
       working-directory: bi-connectors/PowerBIConnector
     - name: Prepare Power BI ODBC connector for 'Amazon OpenSearch Service'
       id: prep-powerbi-odbc-amz-os-svc
       run: |
-        mv OpenSearchProject-ODBC.m AmazonOpenSearchService-ODBC.m
+        mv OpenSearchProject.m AmazonOpenSearchService.m
         sed -i 's/<value>OpenSearch Project<\/value>/<value>Amazon OpenSearch Service<\/value>/g' resources.resx
-        sed -i 's/Documentation.Name = "OpenSearch Project"/Documentation.Name = "Amazon OpenSearch Service"/g' AmazonOpenSearchService-ODBC.m
-        sed -i 's/section #"OpenSearchProject-ODBC";/section #"AmazonOpenSearchService-ODBC";/' AmazonOpenSearchService-ODBC.m
-        sed -i 's/\[DataSource.Kind="OpenSearchProject-ODBC", Publish="OpenSearchProject-ODBC.Publish"\]/[DataSource.Kind="AmazonOpenSearchService-ODBC", Publish="AmazonOpenSearchService-ODBC.Publish"]/g' AmazonOpenSearchService-ODBC.m
-        sed -i 's/OpenSearchProject-ODBC.Contents/AmazonOpenSearchService-ODBC.Contents/g' AmazonOpenSearchService-ODBC.m
-        sed -i 's/OpenSearchProject-ODBC.Publish/AmazonOpenSearchService-ODBC.Publish/g' AmazonOpenSearchService-ODBC.m
-        sed -i 's/OpenSearchProject-ODBCImpl/AmazonOpenSearchService-ODBCImpl/g' AmazonOpenSearchService-ODBC.m
-        sed -i 's/OpenSearchProject-ODBCType/AmazonOpenSearchService-ODBCType/g' AmazonOpenSearchService-ODBC.m
-        sed -i 's/#"OpenSearchProject-ODBC" = \[/#"AmazonOpenSearchService-ODBC" = [/' AmazonOpenSearchService-ODBC.m
-        sed -i 's/"opensearchproject-odbc"/"amazonopensearchservice-odbc"/g' AmazonOpenSearchService-ODBC.m
-        sed -i 's/(dsr) => "OpenSearch Project SQL ODBC"/(dsr) => "Amazon OpenSearch Service SQL ODBC"/g' AmazonOpenSearchService-ODBC.m
+        sed -i 's/Documentation.Name = "OpenSearch Project"/Documentation.Name = "Amazon OpenSearch Service"/g' AmazonOpenSearchService.m
+        sed -i 's/section OpenSearchProject;/section AmazonOpenSearchService;/' AmazonOpenSearchService.m
+        sed -i 's/\[DataSource.Kind="OpenSearchProject", Publish="OpenSearchProject.Publish"\]/[DataSource.Kind="AmazonOpenSearchService", Publish="AmazonOpenSearchService.Publish"]/g' AmazonOpenSearchService.m
+        sed -i 's/OpenSearchProject.Contents/AmazonOpenSearchService.Contents/g' AmazonOpenSearchService.m
+        sed -i 's/OpenSearchProject.Publish/AmazonOpenSearchService.Publish/g' AmazonOpenSearchService.m
+        sed -i 's/OpenSearchProjectImpl/AmazonOpenSearchServiceImpl/g' AmazonOpenSearchService.m
+        sed -i 's/OpenSearchProjectType/AmazonOpenSearchServiceType/g' AmazonOpenSearchService.m
+        sed -i 's/OpenSearchProject = \[/AmazonOpenSearchService = [/' AmazonOpenSearchService.m
+        sed -i 's/"opensearchproject-odbc"/"amazonopensearchservice-odbc"/g' AmazonOpenSearchService.m
+        sed -i 's/(dsr) => "OpenSearch Project"/(dsr) => "Amazon OpenSearch Service"/g' AmazonOpenSearchService.m
       working-directory: bi-connectors/PowerBIConnector
     - name: Pack Power BI ODBC connector for 'Amazon OpenSearch Service'
       id: pack-powerbi-odbc-amz-os-svc
       run: |
-        zip AmazonOpenSearchService-ODBC.mez *.png *.m *.resx *.pqm
+        zip AmazonOpenSearchService.mez *.png *.m *.resx *.pqm
       working-directory: bi-connectors/PowerBIConnector
     - name: Upload Tableau JDBC connector
       if: steps.pack-tableau-jdbc.outcome == 'success'

@@ -1,6 +1,6 @@
 // This file contains Data Connector logic
 [Version = "1.0.0"]
-section #"OpenSearchProject-ODBC";
+section OpenSearchProject;
 
 // When set to true, additional trace information will be written out to the User log. 
 // This should be set to false before release. Tracing is done through a call to 
@@ -8,11 +8,11 @@ section #"OpenSearchProject-ODBC";
 // no-op and simply returns the original value.
 EnableTraceOutput = false;
 
-[DataSource.Kind="OpenSearchProject-ODBC", Publish="OpenSearchProject-ODBC.Publish"]
-shared #"OpenSearchProject-ODBC.Contents" = Value.ReplaceType(#"OpenSearchProject-ODBCImpl", #"OpenSearchProject-ODBCType");
+[DataSource.Kind="OpenSearchProject", Publish="OpenSearchProject.Publish"]
+shared OpenSearchProject.Contents = Value.ReplaceType(OpenSearchProjectImpl, OpenSearchProjectType);
 
 // Wrapper function to provide additional UI customization.
-#"OpenSearchProject-ODBCType" = type function (
+OpenSearchProjectType = type function (
         Server as (type text meta [
             Documentation.FieldCaption = "Server",
             Documentation.FieldDescription = "The hostname of the OpenSearch server.",
@@ -33,7 +33,7 @@ shared #"OpenSearchProject-ODBC.Contents" = Value.ReplaceType(#"OpenSearchProjec
         Documentation.Name = "OpenSearch Project"
     ];
 
-#"OpenSearchProject-ODBCImpl" = (Server as text, Port as number, UseSSL as logical) as table =>
+OpenSearchProjectImpl = (Server as text, Port as number, UseSSL as logical) as table =>
     let
         Credential = Extension.CurrentCredential(),
         AuthenticationMode = Credential[AuthenticationKind],
@@ -149,7 +149,7 @@ shared #"OpenSearchProject-ODBC.Contents" = Value.ReplaceType(#"OpenSearchProjec
             CredentialConnectionString = EncryptedConnectionString
         ],
 
-        FullConnectionString = ConnectionString & CredentialConnectionString & EncryptedConnectionString,
+        FullConnectionString = (ConnectionString & CredentialConnectionString & EncryptedConnectionString),
 
         OdbcDatasource = Odbc.DataSource(FullConnectionString, OdbcOptions)
     in
@@ -178,7 +178,7 @@ OnOdbcError = (errorRecord as record) =>
             error errorRecord;
 
 // Data Source Kind description
-#"OpenSearchProject-ODBC" = [
+OpenSearchProject = [
     // Required for use with Power BI Service.
     TestConnection = (dataSourcePath) => 
         let
@@ -187,7 +187,7 @@ OnOdbcError = (errorRecord as record) =>
             Port = json[Port],
             UseSSL = json[UseSSL]
         in
-            { "OpenSearchProject-ODBC.Contents", Server, Port, UseSSL },
+            { "OpenSearchProject.Contents", Server, Port, UseSSL },
 
     // Authentication modes
     Authentication = [
@@ -209,10 +209,10 @@ OnOdbcError = (errorRecord as record) =>
         GetDSR = (server, schema, object, optional options) => [ protocol = "opensearchproject-odbc", address = [ server = server, port = schema, useSSL = object ] ],
         GetFormula = (dsr, optional options) => () =>
           let
-            db = #"OpenSearchProject-ODBC.Contents"(dsr[address][server], dsr[address][port], dsr[address][useSSL])
+            db = OpenSearchProject.Contents(dsr[address][server], dsr[address][port], dsr[address][useSSL])
           in
             db,
-        GetFriendlyName = (dsr) => "OpenSearch Project SQL ODBC"
+        GetFriendlyName = (dsr) => "OpenSearch Project"
       ]
     ],
 
@@ -223,7 +223,7 @@ OnOdbcError = (errorRecord as record) =>
 ];
 
 // Data Source UI publishing description
-#"OpenSearchProject-ODBC.Publish" = [
+OpenSearchProject.Publish = [
     Beta = true,
     Category = "Other",
     ButtonText = { Extension.LoadString("ButtonTitle"), Extension.LoadString("ButtonHelp") },
