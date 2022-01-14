@@ -205,7 +205,7 @@ OpenSearchProject = [
 
     // PBIDS Handler
     DSRHandlers = [
-      #"opensearchproject-odbc" = [
+      opensearchproject = [
         GetDSR = (server, schema, object, optional options) => [ protocol = "opensearchproject-odbc", address = [ server = server, port = schema, useSSL = object ] ],
         GetFormula = (dsr, optional options) => () =>
           let
