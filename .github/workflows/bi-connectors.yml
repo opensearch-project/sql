@@ -32,7 +32,7 @@ jobs:
         mv OpenSearchProject-ODBC.m AmazonOpenSearchService-ODBC.m
         sed -i 's/<value>OpenSearch Project<\/value>/<value>Amazon OpenSearch Service<\/value>/g' resources.resx
         sed -i 's/Documentation.Name = "OpenSearch Project"/Documentation.Name = "Amazon OpenSearch Service"/g' AmazonOpenSearchService-ODBC.m
-        sed -i 's/section #"OpenSearchProject-ODBC";/section #"AmazonOpenSearchService-ODBC";/' OpenSearchProject-ODBC.m > AmazonOpenSearchService-ODBC.m
+        sed -i 's/section #"OpenSearchProject-ODBC";/section #"AmazonOpenSearchService-ODBC";/' AmazonOpenSearchService-ODBC.m
         sed -i 's/\[DataSource.Kind="OpenSearchProject-ODBC", Publish="OpenSearchProject-ODBC.Publish"\]/[DataSource.Kind="AmazonOpenSearchService-ODBC", Publish="AmazonOpenSearchService-ODBC.Publish"]/g' AmazonOpenSearchService-ODBC.m
         sed -i 's/OpenSearchProject-ODBC.Contents/AmazonOpenSearchService-ODBC.Contents/g' AmazonOpenSearchService-ODBC.m
         sed -i 's/OpenSearchProject-ODBC.Publish/AmazonOpenSearchService-ODBC.Publish/g' AmazonOpenSearchService-ODBC.m
