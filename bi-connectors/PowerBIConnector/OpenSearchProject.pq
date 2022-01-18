@@ -1,6 +1,6 @@
 // This file contains Data Connector logic
 [Version = "1.0.0"]
-section OpenSearch;
+section OpenSearchProject;
 
 // When set to true, additional trace information will be written out to the User log. 
 // This should be set to false before release. Tracing is done through a call to 
@@ -8,11 +8,11 @@ section OpenSearch;
 // no-op and simply returns the original value.
 EnableTraceOutput = false;
 
-[DataSource.Kind="OpenSearch", Publish="OpenSearch.Publish"]
-shared OpenSearch.Contents = Value.ReplaceType(OpenSearchImpl, OpenSearchType);
+[DataSource.Kind="OpenSearchProject", Publish="OpenSearchProject.Publish"]
+shared OpenSearchProject.Contents = Value.ReplaceType(OpenSearchProjectImpl, OpenSearchProjectType);
 
 // Wrapper function to provide additional UI customization.
-OpenSearchType = type function (
+OpenSearchProjectType = type function (
         Server as (type text meta [
             Documentation.FieldCaption = "Server",
             Documentation.FieldDescription = "The hostname of the OpenSearch server.",
@@ -30,10 +30,10 @@ OpenSearchType = type function (
         ])
     )
     as table meta [
-        Documentation.Name = "OpenSearch"
+        Documentation.Name = "OpenSearch Project"
     ];
 
-OpenSearchImpl = (Server as text, Port as number, UseSSL as logical) as table =>
+OpenSearchProjectImpl = (Server as text, Port as number, UseSSL as logical) as table =>
     let
         Credential = Extension.CurrentCredential(),
         AuthenticationMode = Credential[AuthenticationKind],
@@ -149,7 +149,7 @@ OpenSearchImpl = (Server as text, Port as number, UseSSL as logical) as table =>
             CredentialConnectionString = EncryptedConnectionString
         ],
 
-        FullConnectionString = Diagnostics.LogValue("Connection String", ConnectionString & CredentialConnectionString & EncryptedConnectionString),
+        FullConnectionString = (ConnectionString & CredentialConnectionString & EncryptedConnectionString),
 
         OdbcDatasource = Odbc.DataSource(FullConnectionString, OdbcOptions)
     in
@@ -171,14 +171,14 @@ OnOdbcError = (errorRecord as record) =>
             OdbcErrorCode = 202
     in
         if IsDriverNotInstalled then
-            error Error.Record("", "The OpenSearch SQL ODBC driver is not installed. Please install the driver")
+            error Error.Record("DataSource.Error", "The OpenSearch SQL ODBC driver is not installed. Please install the driver")
         else if IsHostUnreachable then 
-            error Error.Record("", "Couldn't reach server. Please double-check the server and auth. [" & ConnectionServer & "]")
+            error Error.Record("DataSource.Error", "Couldn't reach server. Please double-check the server and auth. [" & ConnectionServer & "]")
         else 
             error errorRecord;
 
 // Data Source Kind description
-OpenSearch = [
+OpenSearchProject = [
     // Required for use with Power BI Service.
     TestConnection = (dataSourcePath) => 
         let
@@ -187,7 +187,7 @@ OpenSearch = [
             Port = json[Port],
             UseSSL = json[UseSSL]
         in
-            { "OpenSearch.Contents", Server, Port, UseSSL },
+            { "OpenSearchProject.Contents", Server, Port, UseSSL },
 
     // Authentication modes
     Authentication = [
@@ -205,14 +205,14 @@ OpenSearch = [
 
     // PBIDS Handler
     DSRHandlers = [
-      #"opensearch-sql" = [
-        GetDSR = (server, schema, object, optional options) => [ protocol = "opensearch-sql", address = [ server = server, port = schema, useSSL = object ] ],
+      opensearchproject = [
+        GetDSR = (server, schema, object, optional options) => [ protocol = "opensearchproject-odbc", address = [ server = server, port = schema, useSSL = object ] ],
         GetFormula = (dsr, optional options) => () =>
           let
-            db = OpenSearch.Contents(dsr[address][server], dsr[address][port], dsr[address][useSSL])
+            db = OpenSearchProject.Contents(dsr[address][server], dsr[address][port], dsr[address][useSSL])
           in
             db,
-        GetFriendlyName = (dsr) => "OpenSearch SQL ODBC"
+        GetFriendlyName = (dsr) => "OpenSearch Project"
       ]
     ],
 
@@ -223,13 +223,12 @@ OpenSearch = [
 ];
 
 // Data Source UI publishing description
-OpenSearch.Publish = [
+OpenSearchProject.Publish = [
     Beta = true,
     Category = "Other",
     ButtonText = { Extension.LoadString("ButtonTitle"), Extension.LoadString("ButtonHelp") },
-    LearnMoreUrl = "https://www.opensearch.org/",
+    LearnMoreUrl = "https://github.com/opensearch-project/sql/blob/main/bi-connectors/PowerBIConnector/docs/OpenSearchProject.md",
     
-    // Disabling direct query due to limited SQL query support
     SupportsDirectQuery = true,
 
     SourceImage = OpenSearch.Icons,

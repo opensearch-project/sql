@@ -36,7 +36,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="OpenSearch.pq">
+    <Compile Include="OpenSearchProject.pq">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="OpenSearch16.png">
@@ -72,7 +72,7 @@
     <Compile Include="OdbcConstants.pqm">
       <SubType>Content</SubType>
     </Compile>
-    <Content Include="OpenSearch.query.pq">
+    <Content Include="OpenSearchProject.query.pq">
       <SubType>Code</SubType>
     </Content>
   </ItemGroup>

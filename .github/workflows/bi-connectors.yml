@@ -11,15 +11,15 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Pack Tableau JDBC connector
       id: pack-tableau-jdbc
       run: |
         zip -r opensearch_sql_jdbc.taco . -x *.taco
       working-directory: bi-connectors/TableauConnector/opensearch_sql_jdbc
-    - name: Prepare Power BI ODBC connector
+    - name: Prepare Power BI ODBC connector for 'OpenSearch Project'
       run: |
-        cp OpenSearch.pq OpenSearch.m
+        cp OpenSearchProject.pq OpenSearchProject.m
       working-directory: bi-connectors/PowerBIConnector
     - name: Pack Power BI ODBC connector
       id: pack-powerbi-odbc-os-proj
@@ -29,17 +29,11 @@ jobs:
     - name: Prepare Power BI ODBC connector for 'Amazon OpenSearch Service'
       id: prep-powerbi-odbc-amz-os-svc
       run: |
+        mv OpenSearchProject.m AmazonOpenSearchService.m
         sed -i 's/<value>OpenSearch Project<\/value>/<value>Amazon OpenSearch Service<\/value>/g' resources.resx
-        sed -i 's/Documentation.Name = "OpenSearch Project"/Documentation.Name = "Amazon OpenSearch Service"/g' OpenSearch.m
-        sed -i 's/section OpenSearch;/section AmazonOpenSearchConnector;/' OpenSearch.m
-        sed -i 's/\[DataSource.Kind="OpenSearch", Publish="OpenSearch.Publish"\]/[DataSource.Kind="AmazonOpenSearchConnector", Publish="AmazonOpenSearchConnector.Publish"]/g' OpenSearch.m
-        sed -i 's/OpenSearch.Contents/AmazonOpenSearchConnector.Contents/g' OpenSearch.m
-        sed -i 's/OpenSearch.Publish/AmazonOpenSearchConnector.Publish/g' OpenSearch.m
-        sed -i 's/OpenSearch.Icons/AmazonOpenSearchConnector.Icons/g' OpenSearch.m
-        sed -i 's/OpenSearchImpl/AmazonOpenSearchConnectorImpl/g' OpenSearch.m
-        sed -i 's/OpenSearchType/AmazonOpenSearchConnectorType/g' OpenSearch.m
-        sed -i 's/OpenSearch = \[/AmazonOpenSearchConnector = [/' OpenSearch.m
-#        sed -i 's/"opensearch-sql"/"Amazon-OpenSearch-Service"/g' OpenSearch.m
+        sed -i 's/OpenSearch Project/Amazon OpenSearch Service/g' AmazonOpenSearchService.m
+        sed -i 's/OpenSearchProject/AmazonOpenSearchService/g' AmazonOpenSearchService.m
+        sed -i 's/opensearchproject/amazonopensearchservice/g' AmazonOpenSearchService.m
       working-directory: bi-connectors/PowerBIConnector
     - name: Pack Power BI ODBC connector for 'Amazon OpenSearch Service'
       id: pack-powerbi-odbc-amz-os-svc
