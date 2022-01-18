@@ -11,7 +11,7 @@ from setuptools import setup, find_packages
 install_requirements = [
     "click == 7.1.1",
     "prompt_toolkit == 2.0.6",
-    "Pygments >= 2.7.4",
+    "Pygments == 2.11.1",
     "cli_helpers[styles] == 1.2.1",
     "opensearch-py == 1.0.0",
     "pyfiglet == 0.8.post1",

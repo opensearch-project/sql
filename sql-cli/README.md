@@ -11,7 +11,7 @@ The SQL CLI component in OpenSearch is a stand-alone Python application and can 
 
 It only supports [OpenSearch SQL Plugin](https://docs-beta.opensearch.org/search-plugins/sql/index/)
 You must have the OpenSearch SQL plugin installed to your OpenSearch instance to connect. 
-Users can run this CLI from MacOS and Linux, and connect to any valid OpenSearch end-point such as Amazon Elasticsearch Service (AES).
+Users can run this CLI from Unix/Linux like OS or Windows, and connect to any valid OpenSearch end-point such as Amazon Elasticsearch Service (AES).
 
 ![](./screenshots/usage.gif)
 
@@ -30,6 +30,15 @@ Users can run this CLI from MacOS and Linux, and connect to any valid OpenSearch
 * Connect to OpenSearch with/without security enabled on either **OpenSearch or Amazon Elasticsearch Service domains**.
 * Supports loading configuration files
 * Supports all SQL plugin queries
+
+## Version
+Unlike plugins which use 4-digit version number. SQl-CLI uses `x.x.x` as version number same as other python packages in OpenSearch family. As a client for OpenSearch SQL, it has independent release. 
+SQL-CLI should be compatible to all OpenSearch SQL versions. However since the codebase is in a monorepo, 
+so we'll cut and name sql-cli release branch and tags differently. E.g.
+```
+release branch: sql-cli-1.0
+release tag: sql-cli-v1.0.0 
+```
 
 ## Install
 
@@ -126,7 +135,6 @@ Run single query from command line with options
 This project has adopted an [Open Source Code of Conduct](./CODE_OF_CONDUCT.md).
 
 
-
 ## Security issue notifications
 
 If you discover a potential security issue in this project we ask that you notify AWS/Amazon Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public GitHub issue for security bugs you report.
@@ -134,8 +142,6 @@ If you discover a potential security issue in this project we ask that you notif
 ## Licensing
 
 See the [LICENSE](./LICENSE.TXT) file for our project's licensing. We will ask you to confirm the licensing of your contribution.
-
-
 
 ## Copyright
 
