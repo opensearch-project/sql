@@ -11,7 +11,7 @@ The SQL CLI component in OpenSearch is a stand-alone Python application and can 
 
 It only supports [OpenSearch SQL Plugin](https://docs-beta.opensearch.org/search-plugins/sql/index/)
 You must have the OpenSearch SQL plugin installed to your OpenSearch instance to connect. 
-Users can run this CLI from MacOS and Linux, and connect to any valid OpenSearch end-point such as Amazon Elasticsearch Service (AES).
+Users can run this CLI from Unix like OS or Windows, and connect to any valid OpenSearch end-point such as Amazon OpenSearch Service.
 
 ![](./screenshots/usage.gif)
 
@@ -27,9 +27,18 @@ Users can run this CLI from MacOS and Linux, and connect to any valid OpenSearch
 * Field names with color
 * Enabled horizontal display (by default) and vertical display when output is too wide for your terminal, for better visualization
 * Pagination for large output
-* Connect to OpenSearch with/without security enabled on either **OpenSearch or Amazon Elasticsearch Service domains**.
+* Connect to OpenSearch with/without security enabled on either **OpenSearch or Amazon OpenSearch Service domains**.
 * Supports loading configuration files
 * Supports all SQL plugin queries
+
+## Version
+Unlike plugins which use 4-digit version number. SQl-CLI uses `x.x.x` as version number same as other python packages in OpenSearch family. As a client for OpenSearch SQL, it has independent release. 
+SQL-CLI should be compatible to all OpenSearch SQL versions. However since the codebase is in a monorepo, 
+so we'll cut and name sql-cli release branch and tags differently. E.g.
+```
+release branch: sql-cli-1.0
+release tag: sql-cli-v1.0.0 
+```
 
 ## Install
 
@@ -76,7 +85,7 @@ You can also configure the following connection properties:
 * `endpoint`: You do not need to specify an option, anything that follows the launch command `opensearchsql` is considered as the endpoint. If you do not provide an endpoint, by default, the SQL CLI connects to [http://localhost:9200](http://localhost:9200/).
 * `-u/-w`: Supports username and password for HTTP basic authentication, such as:
     * OpenSearch with [OpenSearch Security Plugin](https://docs-beta.opensearch.org/security-plugin/index/) installed
-    * Amazon Elasticsearch Service domain with [Fine Grained Access Control](https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/fgac.html) enabled
+    * Amazon OpenSearch Service domain with [Fine Grained Access Control](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/fgac.html) enabled
 * `--aws-auth`: Turns on AWS sigV4 authentication to connect to an Amazon Elasticsearch Service endpoint. Use with the AWS CLI (`aws configure`) to retrieve the local AWS configuration to authenticate and connect.
 
 For a list of all available configurations, see [clirc](https://github.com/opensearch-project/sql/blob/master/sql-cli/src/opensearch_sql_cli/conf/clirc).
@@ -126,7 +135,6 @@ Run single query from command line with options
 This project has adopted an [Open Source Code of Conduct](./CODE_OF_CONDUCT.md).
 
 
-
 ## Security issue notifications
 
 If you discover a potential security issue in this project we ask that you notify AWS/Amazon Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public GitHub issue for security bugs you report.
@@ -134,8 +142,6 @@ If you discover a potential security issue in this project we ask that you notif
 ## Licensing
 
 See the [LICENSE](./LICENSE.TXT) file for our project's licensing. We will ask you to confirm the licensing of your contribution.
-
-
 
 ## Copyright
 
