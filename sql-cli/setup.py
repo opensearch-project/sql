@@ -30,7 +30,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(
-    name="opensearch-sql-cli",
+    name="opensearch-sqlcli",
     author="OpenSearch",
     author_email="opensearch-infra@amazon.com",
     version=version,
