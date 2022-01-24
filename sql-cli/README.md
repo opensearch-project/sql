@@ -1,8 +1,8 @@
 [![SQL CLI Test and Build](https://github.com/opensearch-project/sql/workflows/SQL%20CLI%20Test%20and%20Build/badge.svg)](https://github.com/opensearch-project/sql/actions)
-[![Latest Version](https://img.shields.io/pypi/v/opensearch-sql-cli.svg)](https://pypi.python.org/pypi/opensearch-sql-cli/)
+[![Latest Version](https://img.shields.io/pypi/v/opensearch-sqlcli.svg)](https://pypi.python.org/pypi/opensearch-sqlcli/)
 [![Documentation](https://img.shields.io/badge/documentation-blue.svg)](https://docs-beta.opensearch.org/docs/sql/cli/)
 [![Chat](https://img.shields.io/badge/chat-on%20forums-blue)](https://discuss.opendistrocommunity.dev/c/sql/)
-![PyPi Downloads](https://img.shields.io/pypi/dm/opensearch-sql-cli.svg)
+![PyPi Downloads](https://img.shields.io/pypi/dm/opensearch-sqlcli.svg)
 ![PRs welcome!](https://img.shields.io/badge/PRs-welcome!-success)
 
 # OpenSearch SQL CLI
@@ -60,7 +60,7 @@ To install the SQL CLI:
 1. Install the CLI:
 
     ```
-    pip3 install opensearch-sql-cli
+    pip3 install opensearch-sqlcli
     ```
 
     The SQL CLI only works with Python 3, since Python 2 is no longer maintained since 01/01/2020. See https://pythonclock.org/

@@ -53,11 +53,11 @@ jobs:
 
       - name: Create Artifact Path
         run: |
-          mkdir -p opensearch-sql-cli-builds
-          cp -r ./dist/*.tar.gz ./dist/*.whl opensearch-sql-cli-builds/
+          mkdir -p opensearch-sqlcli-builds
+          cp -r ./dist/*.tar.gz ./dist/*.whl opensearch-sqlcli-builds/
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
-          name: opensearch-sql-cli
-          path: sql-cli/opensearch-sql-cli-builds
+          name: opensearch-sqlcli
+          path: sql-cli/opensearch-sqlcli-builds
