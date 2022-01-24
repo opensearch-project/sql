@@ -49,7 +49,7 @@ https uses 443 by default.
     2. `python3 -m pip install --user --upgrade twine`
     3. `python3 -m twine upload --repository-url https://test.pypi.org/legacy/ dist/*`
 6. Install your package from TestPyPI and do manual test
-    1. `pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple opensearch-sql-cli`
+    1. `pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple opensearch-sqlcli`
 7. Upload to PyPI
     1. Register an account on [PyPI](https://pypi.org/), note that these are two separate servers and the credentials from the test server are not shared with the main server.
     2. Use `twine upload dist/*` to upload your package and enter your credentials for the account you registered on PyPI.You don’t need to specify --repository; the package will upload to https://pypi.org/ by default.
