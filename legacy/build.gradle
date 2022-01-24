@@ -88,8 +88,7 @@ dependencies {
             because 'https://www.whitesourcesoftware.com/vulnerability-database/WS-2019-0379'
         }
     }
-    // https://github.com/google/guava/wiki/CVE-2018-10237
-    implementation group: 'com.google.guava', name: 'guava', version: '29.0-jre'
+    implementation group: 'com.google.guava', name: 'guava', version: '31.0.1-jre'
     compile group: 'org.json', name: 'json', version:'20180813'
     compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.10'
     compile group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
