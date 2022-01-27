@@ -13,9 +13,6 @@ import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 import static org.opensearch.sql.planner.logical.LogicalParse.typeStrToExprType;
 
-import io.krakens.grok.api.Grok;
-import io.krakens.grok.api.GrokCompiler;
-import io.krakens.grok.api.Match;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -334,38 +331,27 @@ public class TextFunction {
   static int n = 1;
 
   private static ExprValue exprRegex(ExprValue str, ExprValue pattern, ExprValue group) {
-    System.out.println(" ❗n: " + n++);
-    String rawText = str.stringValue();
     String rawPattern = pattern.stringValue();
     String targetGroup = group.stringValue();
+    Map<String, String> groups = new HashMap<>();
+    Matcher m = Pattern.compile("\\(\\?<([a-zA-Z][a-zA-Z0-9]*?)>").matcher(rawPattern);
+    while (m.find()) {
+      groups.put(m.group(1), "");
+    }
+//    System.out.println(" ❗groups: " + groups);
 
-//    Map<String, String> groups = new HashMap<>();
-//    Matcher m = Pattern.compile("\\(\\?<([a-zA-Z][a-zA-Z0-9]*?)>").matcher(rawPattern);
-//    while (m.find()) {
-//      groups.put(m.group(1), "");
-//    }
-//
-//    Matcher matcher = Pattern.compile(rawPattern).matcher(str.stringValue());
-//    Map<String, ExprValue> exprValueMap = new LinkedHashMap<>();
-//    if (matcher.matches()) {
-//      groups.forEach((field, rawType) -> {
-//        String rawMatch = matcher.group(field);
-//        exprValueMap.put(field, new ExprStringValue(rawMatch));
-//      });
-//    }
-//    return exprValueMap.get(targetGroup);
-
-    GrokCompiler grokCompiler = GrokCompiler.newInstance();
-    grokCompiler.registerDefaultPatterns();
-
-    /* Grok pattern to compile, here httpd logs */
-    final Grok grok = grokCompiler.compile(rawPattern);
-    Match gm = grok.match(rawText);
-
-    /* Get the map with matches */
-    final Map<String, Object> capture = gm.capture();
-    System.out.println(" ❗capture: " + capture);
-    return new ExprStringValue(capture.get(targetGroup).toString());
+    Matcher matcher = Pattern.compile(rawPattern).matcher(str.stringValue());
+    Map<String, ExprValue> exprValueMap = new LinkedHashMap<>();
+    if (matcher.matches()) {
+      groups.forEach((field, rawType) -> {
+        String rawMatch = matcher.group(field);
+//        System.out.println(" ❗field: " + field);
+//        System.out.println(" ❗rawMatch: " + rawMatch);
+        exprValueMap.put(field, new ExprStringValue(rawMatch));
+      });
+    }
+    System.out.println(" ❗n: " + n++);
+    return exprValueMap.get(targetGroup);
   }
 
   private static ExprValue exprReplace(ExprValue str, ExprValue from, ExprValue to) {
