@@ -226,7 +226,6 @@ LEFT:                               'LEFT';
 ASCII:                              'ASCII';
 LOCATE:                             'LOCATE';
 REPLACE:                            'REPLACE';
-REGEX:                              'REGEX';
 
 // BOOL FUNCTIONS
 LIKE:                               'LIKE';

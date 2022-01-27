@@ -150,7 +150,6 @@ public enum BuiltinFunctionName {
   ASCII(FunctionName.of("ascii")),
   LOCATE(FunctionName.of("locate")),
   REPLACE(FunctionName.of("replace")),
-  REGEX(FunctionName.of("regex")),
 
   /**
    * NULL Test.
