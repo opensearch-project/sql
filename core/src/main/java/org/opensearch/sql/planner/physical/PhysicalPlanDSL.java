@@ -100,4 +100,9 @@ public class PhysicalPlanDSL {
     return new LimitOperator(input, limit, offset);
   }
 
+  public static ParseOperator parse(PhysicalPlan input, Expression expression, String pattern,
+                                    Map<String, String> groups) {
+    return new ParseOperator(input, expression, pattern, groups);
+  }
+
 }

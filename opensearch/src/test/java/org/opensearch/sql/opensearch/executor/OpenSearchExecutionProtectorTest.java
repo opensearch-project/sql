@@ -104,6 +104,9 @@ class OpenSearchExecutionProtectorTest {
     Integer size = 200;
     Integer limit = 10;
     Integer offset = 10;
+    ReferenceExpression parseField = ref("name", STRING);
+    String parsePattern = "(?<firstName>\\w+) (?<lastName>\\w+)";
+    Map<String, String> parseGroups = ImmutableMap.of("firstName", "", "lastName", "");
 
     assertEquals(
         PhysicalPlanDSL.project(
@@ -117,10 +120,14 @@ class OpenSearchExecutionProtectorTest {
                                         PhysicalPlanDSL.rename(
                                             PhysicalPlanDSL.agg(
                                                 filter(
-                                                    resourceMonitor(
-                                                        new OpenSearchIndexScan(
-                                                            client, settings, indexName,
-                                                            exprValueFactory)),
+                                                    PhysicalPlanDSL.parse(
+                                                        resourceMonitor(
+                                                            new OpenSearchIndexScan(
+                                                                client, settings, indexName,
+                                                                exprValueFactory)),
+                                                        parseField,
+                                                        parsePattern,
+                                                        parseGroups),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),
@@ -146,9 +153,13 @@ class OpenSearchExecutionProtectorTest {
                                         PhysicalPlanDSL.rename(
                                             PhysicalPlanDSL.agg(
                                                 filter(
-                                                    new OpenSearchIndexScan(
-                                                        client, settings, indexName,
-                                                        exprValueFactory),
+                                                    PhysicalPlanDSL.parse(
+                                                        new OpenSearchIndexScan(
+                                                            client, settings, indexName,
+                                                            exprValueFactory),
+                                                        parseField,
+                                                        parsePattern,
+                                                        parseGroups),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),

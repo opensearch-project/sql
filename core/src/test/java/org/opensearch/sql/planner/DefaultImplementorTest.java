@@ -18,6 +18,7 @@ import static org.opensearch.sql.planner.logical.LogicalPlanDSL.aggregation;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.eval;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.filter;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.limit;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.parse;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.project;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.rareTopN;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.remove;
@@ -90,6 +91,9 @@ class DefaultImplementorTest {
         ImmutablePair.of(Sort.SortOption.DEFAULT_ASC, ref("name1", STRING));
     Integer limit = 1;
     Integer offset = 1;
+    ReferenceExpression parseField = ref("name", STRING);
+    String parsePattern = "(?<firstName>\\w+) (?<lastName>\\w+)";
+    Map<String, String> parseGroups = ImmutableMap.of("firstName", "", "lastName", "");
 
     LogicalPlan plan =
         project(
@@ -101,7 +105,11 @@ class DefaultImplementorTest {
                                 remove(
                                     rename(
                                         aggregation(
-                                            filter(values(emptyList()), filterExpr),
+                                            filter(
+                                                parse(values(emptyList()),
+                                                    parseField,
+                                                    parsePattern),
+                                                filterExpr),
                                             aggregators,
                                             groupByExprs),
                                         mappings),
@@ -129,7 +137,11 @@ class DefaultImplementorTest {
                                     PhysicalPlanDSL.rename(
                                         PhysicalPlanDSL.agg(
                                             PhysicalPlanDSL.filter(
-                                                PhysicalPlanDSL.values(emptyList()),
+                                                PhysicalPlanDSL.parse(
+                                                    PhysicalPlanDSL.values(emptyList()),
+                                                    parseField,
+                                                    parsePattern,
+                                                    parseGroups),
                                                 filterExpr),
                                             aggregators,
                                             groupByExprs),

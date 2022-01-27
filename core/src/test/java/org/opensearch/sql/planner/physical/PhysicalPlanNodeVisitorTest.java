@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.named;
 
 import com.google.common.base.Strings;
@@ -47,9 +48,11 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
                         PhysicalPlanDSL.rareTopN(
                             PhysicalPlanDSL.filter(
                                 PhysicalPlanDSL.limit(
-                                    new TestScan(),
-                                    1, 1
-                                ),
+                                    PhysicalPlanDSL.parse(
+                                        new TestScan(),
+                                        DSL.ref("ip", STRING), "(?<ip>.*)",
+                                        ImmutableMap.of("ip", "")),
+                                    1, 1),
                                 dsl.equal(DSL.ref("response", INTEGER), DSL.literal(10))),
                             CommandType.TOP,
                             ImmutableList.of(),
@@ -69,7 +72,8 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
             + "\t\t\tAggregation->\n"
             + "\t\t\t\tRareTopN->\n"
             + "\t\t\t\t\tFilter->\n"
-            + "\t\t\t\t\t\tLimit->",
+            + "\t\t\t\t\t\tLimit->\n"
+            + "\t\t\t\t\t\t\tParse->",
         printer.print(plan));
   }
 
@@ -132,6 +136,11 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
     PhysicalPlan limit = PhysicalPlanDSL.limit(plan, 1, 1);
     assertNull(limit.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
     }, null));
+
+    PhysicalPlan parse = PhysicalPlanDSL.parse(plan, DSL.ref("ip", STRING), "(?<ip>.*)",
+        ImmutableMap.of("ip", ""));
+    assertNull(parse.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
+    }, null));
   }
 
   public static class PhysicalPlanPrinter extends PhysicalPlanNodeVisitor<String, Integer> {
@@ -173,6 +182,11 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
     @Override
     public String visitLimit(LimitOperator node, Integer tabs) {
       return name(node, "Limit->", tabs);
+    }
+
+    @Override
+    public String visitParse(ParseOperator node, Integer tabs) {
+      return name(node, "Parse->", tabs);
     }
 
     private String name(PhysicalPlan node, String current, int tabs) {

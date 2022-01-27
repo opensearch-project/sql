@@ -46,11 +46,11 @@ public class LogicalParseTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.parse(
             LogicalPlanDSL.relation("schema"),
-            dsl.equal(DSL.ref("string_value", STRING), DSL.literal("raw")), "pattern"),
+            dsl.equal(DSL.ref("string_value", STRING), DSL.literal("raw")), "(?<pattern>.*)"),
         AstDSL.parse(
             AstDSL.relation("schema"),
             AstDSL.equalTo(AstDSL.field("string_value"), AstDSL.stringLiteral("raw")),
-            AstDSL.stringLiteral("pattern")));
+            AstDSL.stringLiteral("(?<pattern>.*)")));
   }
 
   @Test

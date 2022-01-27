@@ -20,6 +20,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
@@ -29,32 +30,17 @@ import org.opensearch.sql.expression.operator.convert.TypeCastOperator;
 /**
  * ParseOperator.
  */
+@Getter
 @ToString
 @EqualsAndHashCode(callSuper = false)
 public class ParseOperator extends PhysicalPlan {
   private static final Logger log = LogManager.getLogger(ParseOperator.class);
-  /**
-   * Input Plan.
-   */
-  @Getter
   private final PhysicalPlan input;
-  /**
-   * Expression.
-   */
-  @Getter
   private final Expression expression;
-  /**
-   * Raw Pattern.
-   */
-  @Getter
   private final String rawPattern;
-  /**
-   * Pattern.
-   */
-  @Getter
+  @EqualsAndHashCode.Exclude
   private final Pattern pattern;
-
-  @Getter
+  @EqualsAndHashCode.Exclude
   private final Map<String, String> groups;
 
   private static final BuiltinFunctionRepository REPOSITORY;
@@ -99,7 +85,17 @@ public class ParseOperator extends PhysicalPlan {
     }
 
     ExprValue value = inputValue.bindingTuples().resolve(expression);
-    Map<String, ExprValue> exprValueMap = parse(value.stringValue());
+    if (value.isNull() || value.isMissing()) {
+      return inputValue;
+    }
+
+    Map<String, ExprValue> exprValueMap;
+    try {
+      exprValueMap = parse(value.stringValue());
+    } catch (ExpressionEvaluationException e) {
+      throw new SemanticCheckException(
+          String.format("failed to parse field \"%s\" with type [%s]", expression, value.type()));
+    }
 
     ImmutableMap.Builder<String, ExprValue> resultBuilder = new ImmutableMap.Builder<>();
     Map<String, ExprValue> tupleValue = ExprValueUtils.getTupleValue(inputValue);
