@@ -40,6 +40,7 @@ import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -51,6 +52,7 @@ import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ByClauseContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldListContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.KmeansCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
 
@@ -279,6 +281,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       return nextResult;
     }
     return aggregate;
+  }
+
+  @Override
+  public UnresolvedPlan visitKmeansCommand(KmeansCommandContext ctx) {
+    return new Kmeans(ArgumentFactory.getArgumentList(ctx));
   }
 
   /**

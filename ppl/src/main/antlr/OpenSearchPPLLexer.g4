@@ -22,6 +22,7 @@ EVAL:                               'EVAL';
 HEAD:                               'HEAD';
 TOP:                                'TOP';
 RARE:                               'RARE';
+KMEANS:                             'KMEANS';
 
 // COMMAND ASSIST KEYWORDS
 AS:                                 'AS';

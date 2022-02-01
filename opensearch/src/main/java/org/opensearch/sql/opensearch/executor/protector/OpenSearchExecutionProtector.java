@@ -13,6 +13,7 @@ import org.opensearch.sql.planner.physical.DedupeOperator;
 import org.opensearch.sql.planner.physical.EvalOperator;
 import org.opensearch.sql.planner.physical.FilterOperator;
 import org.opensearch.sql.planner.physical.LimitOperator;
+import org.opensearch.sql.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.ProjectOperator;
 import org.opensearch.sql.planner.physical.RareTopNOperator;
@@ -123,6 +124,15 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
         visitInput(node.getInput(), context),
         node.getLimit(),
         node.getOffset());
+  }
+
+  @Override
+  public PhysicalPlan visitMLCommons(PhysicalPlan node, Object context) {
+    MLCommonsOperator mlCommonsOperator = (MLCommonsOperator) node;
+    return new MLCommonsOperator(visitInput(mlCommonsOperator.getInput(), context),
+            mlCommonsOperator.getAlgorithm(),
+            mlCommonsOperator.getArguments(),
+            mlCommonsOperator.getMachineLearningClient());
   }
 
   PhysicalPlan visitInput(PhysicalPlan node, Object context) {

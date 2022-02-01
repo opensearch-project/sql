@@ -44,6 +44,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.SpanUnit;
+import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 
@@ -531,6 +532,12 @@ public class AstBuilderTest {
             field("a"),
             field("b")
         ));
+  }
+
+  @Test
+  public void testKmeansCommand() {
+    assertEqual("source=t | kmeans 3",
+            new Kmeans(relation("t"),exprList(argument("k", intLiteral(3)))));
   }
 
   protected void assertEqual(String query, Node expectedPlan) {

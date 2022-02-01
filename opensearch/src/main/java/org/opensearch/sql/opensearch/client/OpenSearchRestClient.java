@@ -26,6 +26,7 @@ import org.opensearch.client.indices.GetMappingsRequest;
 import org.opensearch.client.indices.GetMappingsResponse;
 import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.ml.client.MachineLearningClient;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
@@ -134,5 +135,10 @@ public class OpenSearchRestClient implements OpenSearchClient {
   @Override
   public void schedule(Runnable task) {
     task.run();
+  }
+
+  @Override
+  public MachineLearningClient mlCommonsClient() {
+    throw new UnsupportedOperationException("Unsupported method.");
   }
 }

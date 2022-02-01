@@ -23,6 +23,7 @@ import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.KmeansCommandContext;
 
 
 /**
@@ -133,6 +134,17 @@ public class ArgumentFactory {
   public static List<Argument> getArgumentList(RareCommandContext ctx) {
     return Collections
         .singletonList(new Argument("noOfResults", new Literal(10, DataType.INTEGER)));
+  }
+
+  /**
+   * Get list of {@link Argument}.
+   *
+   * @param ctx KmeansCommandContext instance
+   * @return the list of arguments fetched from the kmeans command
+   */
+  public static List<Argument> getArgumentList(KmeansCommandContext ctx) {
+    return Collections
+            .singletonList(new Argument("k", getArgumentValue(ctx.k)));
   }
 
   private static Literal getArgumentValue(ParserRuleContext ctx) {

@@ -36,6 +36,7 @@ import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
@@ -47,6 +48,7 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.data.model.ExprMissingValue;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
@@ -60,6 +62,7 @@ import org.opensearch.sql.planner.logical.LogicalDedupe;
 import org.opensearch.sql.planner.logical.LogicalEval;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalLimit;
+import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalRareTopN;
@@ -364,6 +367,20 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
           .collect(Collectors.toList()));
     }
     return new LogicalValues(valueExprs);
+  }
+
+  /**
+   * Build {@link LogicalMLCommons} for Kmeans command.
+   */
+  @Override
+  public LogicalPlan visitKmeans(Kmeans node, AnalysisContext context) {
+    LogicalPlan child = node.getChild().get(0).accept(this, context);
+    List<Argument> options = node.getOptions();
+
+    TypeEnvironment currentEnv = context.peek();
+    currentEnv.define(new Symbol(Namespace.FIELD_NAME, "ClusterID"), ExprCoreType.INTEGER);
+
+    return new LogicalMLCommons(child, "kmeans", options);
   }
 
   /**
