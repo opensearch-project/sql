@@ -347,10 +347,10 @@ class OpenSearchExprValueFactoryTest {
   }
 
   @Test
-  public void noTypeFoundForMappingThrowException() {
-    IllegalStateException exception =
-        assertThrows(IllegalStateException.class, () -> tupleValue("{\"not_exist\":1}"));
-    assertEquals("No type found for field: not_exist.", exception.getMessage());
+  public void noTypeFoundForMapping() {
+    assertEquals(nullValue(), tupleValue("{\"not_exist\":[]}").get("not_exist"));
+    // Only for test coverage, It is impossible in OpenSearch.
+    assertEquals(nullValue(), tupleValue("{\"not_exist\":1}").get("not_exist"));
   }
 
   @Test
