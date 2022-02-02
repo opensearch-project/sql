@@ -86,8 +86,8 @@ rareCommand
 
 /** clauses */
 fromClause
-    : SOURCE EQUAL tableSource
-    | INDEX EQUAL tableSource
+    : SOURCE EQUAL tableSource (COMMA tableSource)*
+    | INDEX EQUAL tableSource (COMMA tableSource)*
     ;
 
 renameClasue

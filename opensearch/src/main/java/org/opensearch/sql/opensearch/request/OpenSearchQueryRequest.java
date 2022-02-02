@@ -38,9 +38,9 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   public static final TimeValue DEFAULT_QUERY_TIMEOUT = TimeValue.timeValueMinutes(1L);
 
   /**
-   * Index name.
+   * {@link OpenSearchRequest.IndexName}.
    */
-  private final String indexName;
+  private final IndexName indexName;
 
   /**
    * Search request source builder.
@@ -65,6 +65,14 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
    */
   public OpenSearchQueryRequest(String indexName, int size,
                                 OpenSearchExprValueFactory factory) {
+    this(new IndexName(indexName), size, factory);
+  }
+
+  /**
+   * Constructor of ElasticsearchQueryRequest.
+   */
+  public OpenSearchQueryRequest(IndexName indexName, int size,
+      OpenSearchExprValueFactory factory) {
     this.indexName = indexName;
     this.sourceBuilder = new SearchSourceBuilder();
     sourceBuilder.from(0);
@@ -97,7 +105,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   @VisibleForTesting
   protected SearchRequest searchRequest() {
     return new SearchRequest()
-        .indices(indexName)
+        .indices(indexName.getIndexNames())
         .source(sourceBuilder);
   }
 }

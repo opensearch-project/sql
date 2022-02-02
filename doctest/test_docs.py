@@ -22,6 +22,7 @@ ENDPOINT = "http://localhost:9200"
 ACCOUNTS = "accounts"
 EMPLOYEES = "employees"
 PEOPLE = "people"
+ACCOUNT2 = "account2"
 
 
 class DocTestConnection(OpenSearchConnection):
@@ -84,6 +85,7 @@ def set_up_test_indices(test):
     set_up(test)
     load_file("accounts.json", index_name=ACCOUNTS)
     load_file("people.json", index_name=PEOPLE)
+    load_file("account2.json", index_name=ACCOUNT2)
 
 
 def load_file(filename, index_name):
@@ -112,7 +114,7 @@ def set_up(test):
 
 def tear_down(test):
     # drop leftover tables after each test
-    test_data_client.indices.delete(index=[ACCOUNTS, EMPLOYEES, PEOPLE], ignore_unavailable=True)
+    test_data_client.indices.delete(index=[ACCOUNTS, EMPLOYEES, PEOPLE, ACCOUNT2], ignore_unavailable=True)
 
 
 docsuite = partial(doctest.DocFileSuite,
