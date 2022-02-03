@@ -1,3 +1,9 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+
 package org.opensearch.sql.planner.physical;
 
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
