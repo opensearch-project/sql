@@ -30,9 +30,9 @@ plugins {
 
 dependencies {
     compile group: 'com.google.guava', name: 'guava', version: '31.0.1-jre'
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.10.5' 
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.12.6' 
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.12.6'
-    compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: '2.11.4'
+    compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: '2.12.6'
     implementation 'com.google.code.gson:gson:2.8.9'
     compile project(':core')
     compile project(':opensearch')
