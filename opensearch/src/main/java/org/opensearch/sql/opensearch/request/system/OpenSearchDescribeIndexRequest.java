@@ -17,7 +17,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -25,11 +24,11 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
+import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 
 /**
  * Describe index meta data request.
  */
-@RequiredArgsConstructor
 public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
 
   private static final String DEFAULT_TABLE_CAT = "opensearch";
@@ -73,9 +72,19 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
   private final OpenSearchClient client;
 
   /**
-   * OpenSearch index name.
+   * {@link OpenSearchRequest.IndexName}.
    */
-  private final String indexName;
+  private final OpenSearchRequest.IndexName indexName;
+
+  public OpenSearchDescribeIndexRequest(OpenSearchClient client, String indexName) {
+    this(client, new OpenSearchRequest.IndexName(indexName));
+  }
+
+  public OpenSearchDescribeIndexRequest(OpenSearchClient client,
+      OpenSearchRequest.IndexName indexName) {
+    this.client = client;
+    this.indexName = indexName;
+  }
 
   /**
    * search all the index in the data store.
@@ -102,7 +111,7 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
    */
   public Map<String, ExprType> getFieldTypes() {
     Map<String, ExprType> fieldTypes = new HashMap<>();
-    Map<String, IndexMapping> indexMappings = client.getIndexMappings(indexName);
+    Map<String, IndexMapping> indexMappings = client.getIndexMappings(indexName.getIndexNames());
     for (IndexMapping indexMapping : indexMappings.values()) {
       fieldTypes
           .putAll(indexMapping.getAllFieldTypes(this::transformESTypeToExprType).entrySet().stream()
@@ -119,7 +128,7 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
   private ExprTupleValue row(String fieldName, String fieldType, int position, String clusterName) {
     LinkedHashMap<String, ExprValue> valueMap = new LinkedHashMap<>();
     valueMap.put("TABLE_CAT", stringValue(clusterName));
-    valueMap.put("TABLE_NAME", stringValue(indexName));
+    valueMap.put("TABLE_NAME", stringValue(indexName.toString()));
     valueMap.put("COLUMN_NAME", stringValue(fieldName));
     // todo
     valueMap.put("TYPE_NAME", stringValue(fieldType));

@@ -22,6 +22,7 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.planner.logical.OpenSearchLogicalIndexAgg;
 import org.opensearch.sql.opensearch.planner.logical.OpenSearchLogicalIndexScan;
 import org.opensearch.sql.opensearch.planner.logical.OpenSearchLogicalPlanOptimizerFactory;
+import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.system.OpenSearchDescribeIndexRequest;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.script.aggregation.AggregationQueryBuilder;
@@ -35,7 +36,6 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.Table;
 
 /** OpenSearch table (index) implementation. */
-@RequiredArgsConstructor
 public class OpenSearchIndex implements Table {
 
   /** OpenSearch client connection. */
@@ -43,13 +43,24 @@ public class OpenSearchIndex implements Table {
 
   private final Settings settings;
 
-  /** Current OpenSearch index name. */
-  private final String indexName;
+  /**
+   * {@link OpenSearchRequest.IndexName}.
+   */
+  private final OpenSearchRequest.IndexName indexName;
 
   /**
    * The cached mapping of field and type in index.
    */
   private Map<String, ExprType> cachedFieldTypes = null;
+
+  /**
+   * Constructor.
+   */
+  public OpenSearchIndex(OpenSearchClient client, Settings settings, String indexName) {
+    this.client = client;
+    this.settings = settings;
+    this.indexName = new OpenSearchRequest.IndexName(indexName);
+  }
 
   /*
    * TODO: Assume indexName doesn't have wildcard.

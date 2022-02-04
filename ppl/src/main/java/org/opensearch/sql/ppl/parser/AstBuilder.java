@@ -260,7 +260,9 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    */
   @Override
   public UnresolvedPlan visitFromClause(FromClauseContext ctx) {
-    return new Relation(visitExpression(ctx.tableSource()));
+    return new Relation(ctx.tableSource()
+        .stream().map(this::visitExpression)
+        .collect(Collectors.toList()));
   }
 
   /**
