@@ -11,11 +11,20 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.function.FunctionDSL.define;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
+import static org.opensearch.sql.planner.logical.LogicalParse.typeStrToExprType;
 
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionName;
@@ -54,6 +63,7 @@ public class TextFunction {
     repository.register(left());
     repository.register(ascii());
     repository.register(locate());
+    repository.register(regex());
     repository.register(replace());
   }
 
@@ -253,6 +263,11 @@ public class TextFunction {
         impl(nullMissingHandling(TextFunction::exprReplace), STRING, STRING, STRING, STRING));
   }
 
+  private FunctionResolver regex() {
+    return define(BuiltinFunctionName.REGEX.getName(),
+        impl(nullMissingHandling(TextFunction::exprRegex), STRING, STRING, STRING, STRING));
+  }
+
   private static ExprValue exprSubstrStart(ExprValue exprValue, ExprValue start) {
     int startIdx = start.integerValue();
     if (startIdx == 0) {
@@ -311,6 +326,32 @@ public class TextFunction {
   private static ExprValue exprLocate(ExprValue subStr, ExprValue str, ExprValue pos) {
     return new ExprIntegerValue(
         str.stringValue().indexOf(subStr.stringValue(), pos.integerValue() - 1) + 1);
+  }
+
+  static int n = 1;
+
+  private static ExprValue exprRegex(ExprValue str, ExprValue pattern, ExprValue group) {
+    String rawPattern = pattern.stringValue();
+    String targetGroup = group.stringValue();
+    Map<String, String> groups = new HashMap<>();
+    Matcher m = Pattern.compile("\\(\\?<([a-zA-Z][a-zA-Z0-9]*?)>").matcher(rawPattern);
+    while (m.find()) {
+      groups.put(m.group(1), "");
+    }
+//    System.out.println(" ❗groups: " + groups);
+
+    Matcher matcher = Pattern.compile(rawPattern).matcher(str.stringValue());
+    Map<String, ExprValue> exprValueMap = new LinkedHashMap<>();
+    if (matcher.matches()) {
+      groups.forEach((field, rawType) -> {
+        String rawMatch = matcher.group(field);
+//        System.out.println(" ❗field: " + field);
+//        System.out.println(" ❗rawMatch: " + rawMatch);
+        exprValueMap.put(field, new ExprStringValue(rawMatch));
+      });
+    }
+    System.out.println(" ❗n: " + n++);
+    return exprValueMap.get(targetGroup);
   }
 
   private static ExprValue exprReplace(ExprValue str, ExprValue from, ExprValue to) {
