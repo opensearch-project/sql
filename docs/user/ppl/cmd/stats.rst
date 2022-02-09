@@ -32,7 +32,7 @@ The following table catalogs the aggregation functions and also indicates how th
 
 Syntax
 ============
-stats <aggregation>... [by-clause]...
+stats <aggregation>... [by-clause]
 
 
 * aggregation: mandatory. A aggregation function. The argument of aggregation must be field.
