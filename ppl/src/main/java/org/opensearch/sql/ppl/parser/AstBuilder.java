@@ -25,6 +25,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WhereComma
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -146,21 +147,27 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       aggListBuilder.add(alias);
     }
 
-    List<UnresolvedExpression> groupList = ctx.byClause() != null
-        ? ctx.byClause()
-        .fieldList()
-        .fieldExpression()
-        .stream()
-        .map(groupCtx -> new Alias(getTextInQuery(groupCtx), visitExpression(groupCtx))).collect(
-        Collectors.toList())
-        : ctx.bySpanClause() != null
-        ? Collections.singletonList(visitExpression(ctx.bySpanClause()))
-        : Collections.emptyList();
+    List<UnresolvedExpression> groupList =
+        Optional.ofNullable(ctx.statsByClause())
+            .map(OpenSearchPPLParser.StatsByClauseContext::fieldList)
+            .map(expr -> expr.fieldExpression().stream()
+                        .map(groupCtx ->
+                            (UnresolvedExpression) new Alias(getTextInQuery(groupCtx),
+                                visitExpression(groupCtx)))
+                        .collect(Collectors.toList()))
+            .orElse(Collections.emptyList());
+
+    UnresolvedExpression span =
+        Optional.ofNullable(ctx.statsByClause())
+            .map(OpenSearchPPLParser.StatsByClauseContext::bySpanClause)
+            .map(this::visitExpression)
+            .orElse(null);
 
     Aggregation aggregation = new Aggregation(
         aggListBuilder.build(),
         Collections.emptyList(),
         groupList,
+        span,
         ArgumentFactory.getArgumentList(ctx)
     );
     return aggregation;

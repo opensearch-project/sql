@@ -18,8 +18,7 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.span.SpanExpression;
-import org.opensearch.sql.planner.physical.bucket.Group;
-import org.opensearch.sql.planner.physical.bucket.SpanBucket;
+import org.opensearch.sql.planner.physical.collector.Collector;
 import org.opensearch.sql.storage.bindingtuple.BindingTuple;
 
 /**
@@ -35,8 +34,13 @@ public class AggregationOperator extends PhysicalPlan {
   private final List<NamedAggregator> aggregatorList;
   @Getter
   private final List<NamedExpression> groupByExprList;
+  @Getter
+  private final NamedExpression span;
+  /**
+   * {@link BindingTuple} Collector.
+   */
   @EqualsAndHashCode.Exclude
-  private final Group group;
+  private final Collector collector;
   @EqualsAndHashCode.Exclude
   private Iterator<ExprValue> iterator;
 
@@ -51,9 +55,14 @@ public class AggregationOperator extends PhysicalPlan {
                              List<NamedExpression> groupByExprList) {
     this.input = input;
     this.aggregatorList = aggregatorList;
-    this.groupByExprList = groupByExprList;
-    this.group = groupBySpan(groupByExprList) ? new SpanBucket(aggregatorList, groupByExprList)
-        : new Group(aggregatorList, groupByExprList);
+    if (hasSpan(groupByExprList)) {
+      this.span = groupByExprList.get(0);
+      this.groupByExprList = groupByExprList.subList(1, groupByExprList.size());
+    } else {
+      this.span = null;
+      this.groupByExprList = groupByExprList;
+    }
+    this.collector = Collector.Builder.build(this.span, this.groupByExprList, this.aggregatorList);
   }
 
   @Override
@@ -81,14 +90,13 @@ public class AggregationOperator extends PhysicalPlan {
   public void open() {
     super.open();
     while (input.hasNext()) {
-      group.push(input.next());
+      collector.collect(input.next().bindingTuples());
     }
-    iterator = group.result().iterator();
+    iterator = collector.results().iterator();
   }
 
-  private boolean groupBySpan(List<NamedExpression> namedExpressionList) {
-    return namedExpressionList.size() == 1
+  private boolean hasSpan(List<NamedExpression> namedExpressionList) {
+    return !namedExpressionList.isEmpty()
         && namedExpressionList.get(0).getDelegated() instanceof SpanExpression;
   }
-
 }

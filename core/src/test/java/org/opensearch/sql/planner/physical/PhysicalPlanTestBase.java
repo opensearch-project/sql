@@ -157,6 +157,44 @@ public class PhysicalPlanTestBase {
           "double", 5D)))
       .build();
 
+  protected static final List<ExprValue> compoundInputs = new ImmutableList.Builder<ExprValue>()
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "day", new ExprDateValue("2021-01-03"),
+          "region", "iad",
+          "host", "h1",
+          "errors", 2)))
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "day", new ExprDateValue("2021-01-03"),
+          "region", "iad",
+          "host", "h2",
+          "errors", 3)))
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "day", new ExprDateValue("2021-01-04"),
+          "region", "iad",
+          "host", "h1",
+          "errors", 1)))
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "day", new ExprDateValue("2021-01-04"),
+          "region", "iad",
+          "host", "h2",
+          "errors", 10)))
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "day", new ExprDateValue("2021-01-06"),
+          "region", "iad",
+          "host", "h1",
+          "errors", 1)))
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "day", new ExprDateValue("2021-01-07"),
+          "region", "iad",
+          "host", "h1",
+          "errors", 6)))
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "day", new ExprDateValue("2021-01-07"),
+          "region", "iad",
+          "host", "h2",
+          "errors", 8)))
+      .build();
+
   @Bean
   protected Environment<Expression, ExprCoreType> typeEnv() {
     return var -> {
@@ -180,6 +218,10 @@ public class PhysicalPlanTestBase {
     return builder.build();
   }
 
+  protected static PhysicalPlan testScan(List<ExprValue> inputs) {
+    return new TestScan(inputs);
+  }
+
   protected static class TestScan extends PhysicalPlan {
     private final Iterator<ExprValue> iterator;
 
@@ -187,116 +229,8 @@ public class PhysicalPlanTestBase {
       iterator = inputs.iterator();
     }
 
-    @Override
-    public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
-      return null;
-    }
-
-    @Override
-    public List<PhysicalPlan> getChild() {
-      return ImmutableList.of();
-    }
-
-    @Override
-    public boolean hasNext() {
-      return iterator.hasNext();
-    }
-
-    @Override
-    public ExprValue next() {
-      return iterator.next();
-    }
-  }
-
-  protected static class CountTestScan extends PhysicalPlan {
-    private final Iterator<ExprValue> iterator;
-
-    public CountTestScan() {
-      iterator = countTestInputs.iterator();
-    }
-
-    @Override
-    public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
-      return null;
-    }
-
-    @Override
-    public List<PhysicalPlan> getChild() {
-      return ImmutableList.of();
-    }
-
-    @Override
-    public boolean hasNext() {
-      return iterator.hasNext();
-    }
-
-    @Override
-    public ExprValue next() {
-      return iterator.next();
-    }
-  }
-
-  protected static class DateTimeTestScan extends PhysicalPlan {
-    private final Iterator<ExprValue> iterator;
-
-    public DateTimeTestScan() {
-      iterator = datetimeInputs.iterator();
-    }
-
-    @Override
-    public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
-      return null;
-    }
-
-    @Override
-    public List<PhysicalPlan> getChild() {
-      return ImmutableList.of();
-    }
-
-    @Override
-    public boolean hasNext() {
-      return iterator.hasNext();
-    }
-
-    @Override
-    public ExprValue next() {
-      return iterator.next();
-    }
-  }
-
-  protected static class DateTestScan extends PhysicalPlan {
-    private final Iterator<ExprValue> iterator;
-
-    public DateTestScan() {
-      iterator = dateInputs.iterator();
-    }
-
-    @Override
-    public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
-      return null;
-    }
-
-    @Override
-    public List<PhysicalPlan> getChild() {
-      return ImmutableList.of();
-    }
-
-    @Override
-    public boolean hasNext() {
-      return iterator.hasNext();
-    }
-
-    @Override
-    public ExprValue next() {
-      return iterator.next();
-    }
-  }
-
-  protected static class NumericTestScan extends PhysicalPlan {
-    private final Iterator<ExprValue> iterator;
-
-    public NumericTestScan() {
-      iterator = numericInputs.iterator();
+    public TestScan(List<ExprValue> inputs) {
+      iterator = inputs.iterator();
     }
 
     @Override
