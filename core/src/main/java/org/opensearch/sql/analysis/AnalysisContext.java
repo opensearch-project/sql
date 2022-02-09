@@ -7,6 +7,7 @@
 package org.opensearch.sql.analysis;
 
 import java.util.Objects;
+import org.opensearch.sql.planner.logical.LogicalParse;
 
 /**
  * The context used for Analyzer.
@@ -16,6 +17,8 @@ public class AnalysisContext {
    * Environment stack for symbol scope management.
    */
   private TypeEnvironment environment;
+
+  public LogicalParse parse;
 
   public AnalysisContext() {
     this.environment = new TypeEnvironment(null);

@@ -45,7 +45,7 @@ import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
-import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.ParseExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.AggregationState;
 import org.opensearch.sql.expression.aggregation.Aggregator;
@@ -56,6 +56,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.expression.window.aggregation.AggregateWindowFunction;
+import org.opensearch.sql.planner.logical.LogicalParse;
 
 /**
  * Analyze the {@link UnresolvedExpression} in the {@link AnalysisContext} to construct the {@link
@@ -258,15 +259,22 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
 
   private Expression visitIdentifier(String ident, AnalysisContext context) {
     TypeEnvironment typeEnv = context.peek();
-    ReferenceExpression ref = DSL.ref(ident,
-        typeEnv.resolve(new Symbol(Namespace.FIELD_NAME, ident)));
-
-    // Fall back to old engine too if type is not supported semantically
-    if (isTypeNotSupported(ref.type())) {
-      throw new SyntaxCheckException(String.format(
-          "Identifier [%s] of type [%s] is not supported yet", ident, ref.type()));
+    try {
+      ReferenceExpression ref =
+          DSL.ref(ident, typeEnv.resolve(new Symbol(Namespace.FIELD_NAME, ident)));
+      // Fall back to old engine too if type is not supported semantically
+      if (isTypeNotSupported(ref.type())) {
+        throw new SyntaxCheckException(String.format(
+            "Identifier [%s] of type [%s] is not supported yet", ident, ref.type()));
+      }
+      return ref;
+    } catch (SemanticCheckException e) {
+      typeEnv.resolve(new Symbol(Namespace.FIELD_NAME, ident + "PARSE"));
+      LogicalParse logicalParse = context.parse;
+      ParseExpression parseExpression =
+          new ParseExpression(logicalParse.getExpression(), logicalParse.getPattern(), ident);
+      return parseExpression;
     }
-    return ref;
   }
 
   // Array type is not supporte yet.

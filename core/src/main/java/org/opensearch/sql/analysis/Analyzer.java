@@ -48,6 +48,7 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.data.model.ExprMissingValue;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
@@ -317,8 +318,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     LogicalParse logicalParse = new LogicalParse(child, expression, pattern);
     TypeEnvironment curEnv = context.peek();
     logicalParse.getGroups().forEach((group, type) -> curEnv.define(
-        new Symbol(Namespace.FIELD_NAME, group), LogicalParse.typeStrToExprType(type)));
-    return logicalParse;
+        new Symbol(Namespace.FIELD_NAME, group + "PARSE"), ExprCoreType.STRING));
+    context.parse = logicalParse;
+    return child;
   }
 
   /**
