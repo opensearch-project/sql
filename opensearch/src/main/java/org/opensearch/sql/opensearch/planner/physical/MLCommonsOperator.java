@@ -1,4 +1,9 @@
-package org.opensearch.sql.planner.physical;
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.planner.physical;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
@@ -25,10 +30,15 @@ import org.opensearch.ml.common.parameter.MLInput;
 import org.opensearch.ml.common.parameter.MLPredictionOutput;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.data.model.ExprDoubleValue;
+import org.opensearch.sql.data.model.ExprFloatValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
+import org.opensearch.sql.data.model.ExprLongValue;
+import org.opensearch.sql.data.model.ExprShortValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
 
 /**
  * ml-commons Physical operator to call machine learning interface to get results for
@@ -70,7 +80,7 @@ public class MLCommonsOperator extends PhysicalPlan {
     iterator = new Iterator<ExprValue>() {
       @Override
       public boolean hasNext() {
-          return inputRowIter.hasNext();
+        return inputRowIter.hasNext();
       }
 
       @Override
@@ -109,8 +119,12 @@ public class MLCommonsOperator extends PhysicalPlan {
   protected MLAlgoParams convertArgumentToMLParameter(Argument argument, String algorithm) {
     switch (FunctionName.valueOf(algorithm.toUpperCase())) {
       case KMEANS:
-        return KMeansParams.builder().centroids((Integer) argument.getValue().getValue()).build();
-
+        if (argument.getValue().getValue() instanceof Number) {
+          return KMeansParams.builder().centroids((Integer) argument.getValue().getValue()).build();
+        } else {
+          throw new IllegalArgumentException("unsupported Kmeans argument type:"
+                  + argument.getValue().getType());
+        }
       default:
         throw new IllegalArgumentException("unsupported argument type:"
                 + argument.getValue().getType());
@@ -132,6 +146,15 @@ public class MLCommonsOperator extends PhysicalPlan {
         case STRING:
           resultBuilder.put(resultKeyName, new ExprStringValue(columnValue.stringValue()));
           break;
+        case SHORT:
+          resultBuilder.put(resultKeyName, new ExprShortValue(columnValue.shortValue()));
+          break;
+        case LONG:
+          resultBuilder.put(resultKeyName, new ExprLongValue(columnValue.longValue()));
+          break;
+        case FLOAT:
+          resultBuilder.put(resultKeyName, new ExprFloatValue(columnValue.floatValue()));
+          break;
         default:
           break;
       }
@@ -143,9 +166,8 @@ public class MLCommonsOperator extends PhysicalPlan {
     List<Map<String, Object>> inputData = new LinkedList<>();
     while (input.hasNext()) {
       Map<String, Object> items = new HashMap<>();
-      input.next().tupleValue().forEach((key, value) -> {
-        items.put(key, value.value());
-      });
+      input.next().tupleValue().forEach((key, value) ->
+              items.put(key, value.value()));
       inputData.add(items);
     }
 

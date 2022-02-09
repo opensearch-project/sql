@@ -8,12 +8,12 @@ package org.opensearch.sql.opensearch.executor.protector;
 
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.monitor.ResourceMonitor;
+import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.planner.physical.AggregationOperator;
 import org.opensearch.sql.planner.physical.DedupeOperator;
 import org.opensearch.sql.planner.physical.EvalOperator;
 import org.opensearch.sql.planner.physical.FilterOperator;
 import org.opensearch.sql.planner.physical.LimitOperator;
-import org.opensearch.sql.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.ProjectOperator;
 import org.opensearch.sql.planner.physical.RareTopNOperator;

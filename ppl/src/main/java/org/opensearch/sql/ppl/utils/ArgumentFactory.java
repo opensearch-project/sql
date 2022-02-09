@@ -143,6 +143,7 @@ public class ArgumentFactory {
    * @return the list of arguments fetched from the kmeans command
    */
   public static List<Argument> getArgumentList(KmeansCommandContext ctx) {
+    // TODO: add iterations and distanceType parameters for Kemans
     return Collections
             .singletonList(new Argument("k", getArgumentValue(ctx.k)));
   }

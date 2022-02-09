@@ -1,4 +1,9 @@
-package org.opensearch.sql.planner.physical;
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.planner.physical;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -31,6 +36,8 @@ import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -47,9 +54,12 @@ public class MLCommonsOperatorTest {
   void setUp() {
     mlCommonsOperator = new MLCommonsOperator(input, "kmeans",
             AstDSL.exprList(AstDSL.argument("k1", AstDSL.intLiteral(3)),
-            AstDSL.argument("k2", AstDSL.stringLiteral("v1")),
-            AstDSL.argument("k3", AstDSL.booleanLiteral(true)),
-            AstDSL.argument("k4", AstDSL.doubleLiteral(2.0D))),
+                    AstDSL.argument("k2", AstDSL.stringLiteral("v1")),
+                    AstDSL.argument("k3", AstDSL.booleanLiteral(true)),
+                    AstDSL.argument("k4", AstDSL.doubleLiteral(2.0D)),
+                    AstDSL.argument("k5", AstDSL.shortLiteral((short)2)),
+                    AstDSL.argument("k6", AstDSL.longLiteral(2L)),
+                    AstDSL.argument("k7", AstDSL.floatLiteral(2F))),
             machineLearningClient);
     when(input.hasNext()).thenReturn(true).thenReturn(false);
     ImmutableMap.Builder<String, ExprValue> resultBuilder = new ImmutableMap.Builder<>();
@@ -59,10 +69,13 @@ public class MLCommonsOperatorTest {
     DataFrame dataFrame = DataFrameBuilder
             .load(Collections.singletonList(
                     ImmutableMap.<String, Object>builder().put("result-k1", 2D)
-                    .put("result-k2", 1)
-                    .put("result-k3", "v3")
-                    .put("result-k4", true)
-                    .build())
+                            .put("result-k2", 1)
+                            .put("result-k3", "v3")
+                            .put("result-k4", true)
+                            .put("result-k5", (short)2)
+                            .put("result-k6", 2L)
+                            .put("result-k7", 2F)
+                            .build())
             );
 
     MLPredictionOutput mlPredictionOutput = MLPredictionOutput.builder()
@@ -92,10 +105,17 @@ public class MLCommonsOperatorTest {
   }
 
   @Test
-  public void testConvertArgumentToMLParameter_UnSupportedType() {
+  public void testConvertArgumentToMLParameter_UnsupportedType() {
     Argument argument = AstDSL.argument("k2", AstDSL.dateLiteral("2020-10-31"));
     assertThrows(IllegalArgumentException.class, () -> mlCommonsOperator
             .convertArgumentToMLParameter(argument, "LINEAR_REGRESSION"));
+  }
+
+  @Test
+  public void testConvertArgumentToMLParameter_KMeansUnsupportedType() {
+    Argument argument = AstDSL.argument("k2", AstDSL.dateLiteral("string value"));
+    assertThrows(IllegalArgumentException.class, () -> mlCommonsOperator
+            .convertArgumentToMLParameter(argument, "KMEANS"));
   }
 
 }
