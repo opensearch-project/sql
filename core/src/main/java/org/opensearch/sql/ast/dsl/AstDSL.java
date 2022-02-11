@@ -269,6 +269,11 @@ public class AstDSL {
     return new In(field, Arrays.asList(valueList));
   }
 
+  public static UnresolvedExpression in(
+      UnresolvedExpression field, List<UnresolvedExpression> valueList) {
+    return new In(field, valueList);
+  }
+
   public static UnresolvedExpression compare(
       String operator, UnresolvedExpression left, UnresolvedExpression right) {
     return new Compare(operator, left, right);

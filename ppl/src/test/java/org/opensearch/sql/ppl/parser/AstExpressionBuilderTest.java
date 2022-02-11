@@ -10,7 +10,6 @@ import static java.util.Collections.emptyList;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
-import static org.opensearch.sql.ast.dsl.AstDSL.allFields;
 import static org.opensearch.sql.ast.dsl.AstDSL.and;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
