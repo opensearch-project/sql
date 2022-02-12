@@ -24,7 +24,7 @@ plugins {
 group 'org.opensearch.client'
 
 // keep version in sync with version in Driver source
-version '1.2.0.0'
+version '1.3.0.0'
 
 boolean snapshot = "true".equals(System.getProperty("build.snapshot", "false"));
 if (snapshot) {
