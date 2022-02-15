@@ -259,8 +259,8 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
   }
 
   private Expression visitIdentifier(String ident, AnalysisContext context) {
-    if (context.parseExpressionMap.containsKey(ident)) {
-      return context.parseExpressionMap.get(ident);
+    if (context.isParseExpression(ident)) {
+      return context.getParseExpression(ident);
     }
     TypeEnvironment typeEnv = context.peek();
     ReferenceExpression ref = DSL.ref(ident,

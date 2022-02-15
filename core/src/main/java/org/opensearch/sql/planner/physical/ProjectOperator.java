@@ -11,8 +11,6 @@ import com.google.common.collect.ImmutableMap.Builder;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -20,13 +18,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ParseExpression;
+import org.opensearch.sql.utils.ParseUtils;
 
 /**
  * Project the fields specified in {@link ProjectOperator#projectList} from input.
@@ -64,8 +62,7 @@ public class ProjectOperator extends PhysicalPlan {
     ImmutableMap.Builder<String, ExprValue> mapBuilder = new Builder<>();
     Set<String> parsedFields =
         parseExpressionList.stream().map(parseExpression -> parseExpression.getIdentifier())
-            .collect(
-                Collectors.toSet());
+            .collect(Collectors.toSet());
     for (NamedExpression expr : projectList) {
       ExprValue exprValue = expr.valueOf(inputValue.bindingTuples());
       if (!parsedFields.contains(expr.getNameOrAlias())) {
@@ -74,20 +71,13 @@ public class ProjectOperator extends PhysicalPlan {
     }
     for (ParseExpression expr : parseExpressionList) {
       ExprValue value = inputValue.bindingTuples().resolve(expr.getExpression());
-      Pattern pattern = expr.getPattern();
-      String identifier = expr.getIdentifier();
       try {
-        String rawString = value.stringValue();
-        Matcher matcher = pattern.matcher(rawString);
-        if (matcher.matches()) {
-          mapBuilder.put(identifier, new ExprStringValue(matcher.group(identifier)));
-        } else {
-          log.warn("failed to extract pattern {} from input {}", pattern.pattern(), rawString);
-          mapBuilder.put(identifier, new ExprStringValue(""));
-        }
+        ExprValue parsedValue =
+            ParseUtils.getParsedValue(value, expr.getPattern(), expr.getIdentifier());
+        mapBuilder.put(expr.getIdentifier(), parsedValue);
       } catch (ExpressionEvaluationException e) {
-        if (inputValue.tupleValue().containsKey(identifier)) {
-          mapBuilder.put(identifier, inputValue.tupleValue().get(identifier));
+        if (inputValue.tupleValue().containsKey(expr.getIdentifier())) {
+          mapBuilder.put(expr.getIdentifier(), inputValue.tupleValue().get(expr.getIdentifier()));
         }
       }
     }

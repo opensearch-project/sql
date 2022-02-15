@@ -25,7 +25,7 @@ public class AnalysisContext {
    */
   private TypeEnvironment environment;
 
-  public Map<String, ParseExpression> parseExpressionMap;
+  private Map<String, ParseExpression> parseExpressionMap;
 
   public LogicalParse parse;
 
@@ -73,6 +73,10 @@ public class AnalysisContext {
 
   public ParseExpression getParseExpression(String identifier) {
     return parseExpressionMap.get(identifier);
+  }
+
+  public boolean isParseExpression(String identifier) {
+    return parseExpressionMap.containsKey(identifier);
   }
 
   public List<ParseExpression> getParseExpressionList() {

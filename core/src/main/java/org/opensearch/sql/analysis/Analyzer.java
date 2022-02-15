@@ -74,6 +74,7 @@ import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.planner.logical.LogicalValues;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
+import org.opensearch.sql.utils.ParseUtils;
 
 /**
  * Analyze the {@link UnresolvedPlan} in the {@link AnalysisContext} to construct the {@link
@@ -318,12 +319,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     String pattern = (String) node.getPattern().getValue();
 
     TypeEnvironment curEnv = context.peek();
-    LogicalParse logicalParse = new LogicalParse(child, expression, pattern);
-    logicalParse.getGroups().forEach((group, type) -> {
-      context.addParseExpression(
-          group, new ParseExpression(expression, pattern, group));
+    ParseUtils.getNamedGroupCandidates(pattern).forEach(group -> {
       curEnv.define(
           new Symbol(Namespace.FIELD_NAME, group), ExprCoreType.STRING);
+      context.addParseExpression(
+          group, new ParseExpression(expression, pattern, group));
     });
     return child;
   }
