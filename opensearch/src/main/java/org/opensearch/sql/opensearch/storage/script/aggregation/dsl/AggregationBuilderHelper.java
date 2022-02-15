@@ -39,11 +39,7 @@ public class AggregationBuilderHelper {
     if (expression instanceof ReferenceExpression) {
       String fieldName = ((ReferenceExpression) expression).getAttr();
       return fieldBuilder.apply(ScriptUtils.convertTextToKeyword(fieldName, expression.type()));
-    } else if (expression instanceof ParseExpression) {
-      return scriptBuilder.apply(new Script(
-          DEFAULT_SCRIPT_TYPE, EXPRESSION_LANG_NAME, serializer.serialize(expression),
-          emptyMap()));
-    } else if (expression instanceof FunctionExpression) {
+    } else if (expression instanceof FunctionExpression || expression instanceof ParseExpression) {
       return scriptBuilder.apply(new Script(
           DEFAULT_SCRIPT_TYPE, EXPRESSION_LANG_NAME, serializer.serialize(expression),
           emptyMap()));

@@ -40,6 +40,7 @@ import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
@@ -258,19 +259,19 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
   }
 
   private Expression visitIdentifier(String ident, AnalysisContext context) {
-    TypeEnvironment typeEnv = context.peek();
-    try {
-      ReferenceExpression ref =
-          DSL.ref(ident, typeEnv.resolve(new Symbol(Namespace.FIELD_NAME, ident)));
-      // Fall back to old engine too if type is not supported semantically
-      if (isTypeNotSupported(ref.type())) {
-        throw new SyntaxCheckException(String.format(
-            "Identifier [%s] of type [%s] is not supported yet", ident, ref.type()));
-      }
-      return ref;
-    } catch (SemanticCheckException e) {
-      return context.getParseExpression(ident);
+    if (context.parseExpressionMap.containsKey(ident)) {
+      return context.parseExpressionMap.get(ident);
     }
+    TypeEnvironment typeEnv = context.peek();
+    ReferenceExpression ref = DSL.ref(ident,
+        typeEnv.resolve(new Symbol(Namespace.FIELD_NAME, ident)));
+
+    // Fall back to old engine too if type is not supported semantically
+    if (isTypeNotSupported(ref.type())) {
+      throw new SyntaxCheckException(String.format(
+          "Identifier [%s] of type [%s] is not supported yet", ident, ref.type()));
+    }
+    return ref;
   }
 
   // Array type is not supporte yet.
