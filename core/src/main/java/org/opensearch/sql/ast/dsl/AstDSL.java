@@ -92,7 +92,17 @@ public class AstDSL {
       List<UnresolvedExpression> sortList,
       List<UnresolvedExpression> groupList,
       List<Argument> argList) {
-    return new Aggregation(aggList, sortList, groupList, argList).attach(input);
+    return new Aggregation(aggList, sortList, groupList, null, argList).attach(input);
+  }
+
+  public static UnresolvedPlan agg(
+      UnresolvedPlan input,
+      List<UnresolvedExpression> aggList,
+      List<UnresolvedExpression> sortList,
+      List<UnresolvedExpression> groupList,
+      UnresolvedExpression span,
+      List<Argument> argList) {
+    return new Aggregation(aggList, sortList, groupList, span, argList).attach(input);
   }
 
   public static UnresolvedPlan rename(UnresolvedPlan input, Map... maps) {

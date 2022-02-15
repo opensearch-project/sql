@@ -28,16 +28,17 @@ public class Aggregation extends UnresolvedPlan {
   private List<UnresolvedExpression> aggExprList;
   private List<UnresolvedExpression> sortExprList;
   private List<UnresolvedExpression> groupExprList;
+  private UnresolvedExpression span;
   private List<Argument> argExprList;
   private UnresolvedPlan child;
 
   /**
-   * Aggregation Constructor without argument.
+   * Aggregation Constructor without span and argument.
    */
   public Aggregation(List<UnresolvedExpression> aggExprList,
                      List<UnresolvedExpression> sortExprList,
                      List<UnresolvedExpression> groupExprList) {
-    this(aggExprList, sortExprList, groupExprList, Collections.emptyList());
+    this(aggExprList, sortExprList, groupExprList, null, Collections.emptyList());
   }
 
   /**
@@ -46,10 +47,12 @@ public class Aggregation extends UnresolvedPlan {
   public Aggregation(List<UnresolvedExpression> aggExprList,
                      List<UnresolvedExpression> sortExprList,
                      List<UnresolvedExpression> groupExprList,
+                     UnresolvedExpression span,
                      List<Argument> argExprList) {
     this.aggExprList = aggExprList;
     this.sortExprList = sortExprList;
     this.groupExprList = groupExprList;
+    this.span = span;
     this.argExprList = argExprList;
   }
 

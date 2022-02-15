@@ -185,14 +185,19 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       aggregatorBuilder
           .add(new NamedAggregator(aggExpr.getNameOrAlias(), (Aggregator) aggExpr.getDelegated()));
     }
-    ImmutableList<NamedAggregator> aggregators = aggregatorBuilder.build();
 
     ImmutableList.Builder<NamedExpression> groupbyBuilder = new ImmutableList.Builder<>();
+    // Span should be first expression if exist.
+    if (node.getSpan() != null) {
+      groupbyBuilder.add(namedExpressionAnalyzer.analyze(node.getSpan(), context));
+    }
+
     for (UnresolvedExpression expr : node.getGroupExprList()) {
       groupbyBuilder.add(namedExpressionAnalyzer.analyze(expr, context));
     }
     ImmutableList<NamedExpression> groupBys = groupbyBuilder.build();
 
+    ImmutableList<NamedAggregator> aggregators = aggregatorBuilder.build();
     // new context
     context.push();
     TypeEnvironment newEnv = context.peek();

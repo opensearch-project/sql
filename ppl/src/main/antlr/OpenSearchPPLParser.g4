@@ -46,7 +46,7 @@ statsCommand
     (ALLNUM EQUAL allnum=booleanLiteral)?
     (DELIM EQUAL delim=stringLiteral)?
     statsAggTerm (COMMA statsAggTerm)*
-    (byClause | bySpanClause)?
+    (statsByClause)?
     (DEDUP_SPLITVALUES EQUAL dedupsplit=booleanLiteral)?
     ;
 
@@ -98,8 +98,14 @@ byClause
     : BY fieldList
     ;
 
+statsByClause
+    : BY fieldList
+    | BY bySpanClause
+    | BY fieldList bySpanClause
+    ;
+
 bySpanClause
-    : BY spanClause (AS alias=qualifiedName)?
+    : spanClause (AS alias=qualifiedName)?
     ;
 
 spanClause
