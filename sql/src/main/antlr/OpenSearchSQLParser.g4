@@ -249,7 +249,7 @@ intervalUnit
     | DAY_SECOND | DAY_MINUTE | DAY_HOUR | YEAR_MONTH
     ;
 
-//    Expressions, predicates
+// predicates
 
 // Simplified approach for expression
 expression
@@ -265,7 +265,11 @@ predicate
     | predicate IS nullNotnull                                      #isNullPredicate
     | left=predicate NOT? LIKE right=predicate                      #likePredicate
     | left=predicate REGEXP right=predicate                         #regexpPredicate
-    | predicate NOT? IN predicateList                               #inList
+    | predicate NOT? IN '(' expressions ')'                         #inPredicate
+    ;
+
+expressions
+    : expression (',' expression)*
     ;
 
 expressionAtom
@@ -287,10 +291,6 @@ comparisonOperator
 
 nullNotnull
     : NOT? NULL_LITERAL
-    ;
-
-predicateList
-    : '(' predicate (COMMA predicate)* ')'
     ;
 
 functionCall

@@ -238,10 +238,14 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   }
 
   @Override
-  public UnresolvedExpression visitInList(OpenSearchSQLParser.InListContext ctx) {
+  public UnresolvedExpression visitInPredicate(OpenSearchSQLParser.InPredicateContext ctx) {
     UnresolvedExpression field = visit(ctx.predicate());
-    List<UnresolvedExpression> inLists =
-        ctx.predicateList().predicate().stream().map(this::visit).collect(Collectors.toList());
+    List<UnresolvedExpression> inLists = ctx
+        .expressions()
+        .expression()
+        .stream()
+        .map(this::visit)
+        .collect(Collectors.toList());
     UnresolvedExpression in = AstDSL.in(field, inLists);
     return ctx.NOT() != null ? AstDSL.not(in) : in;
   }
