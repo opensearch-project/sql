@@ -47,7 +47,7 @@ public class ParseExpression implements Expression {
   @Override
   public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
     ExprValue value = valueEnv.resolve(expression);
-    if (value == null || value.isNull() || value.isMissing()) {
+    if (value.isNull() || value.isMissing()) {
       return ExprValueUtils.nullValue();
     }
 

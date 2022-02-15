@@ -12,6 +12,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.ParseExpression;
 
 /**
  * Project field specified by the {@link LogicalProject#projectList}.
@@ -22,15 +23,18 @@ public class LogicalProject extends LogicalPlan {
 
   @Getter
   private final List<NamedExpression> projectList;
+  @Getter
+  private final List<ParseExpression> parseExpressionList;
 
   /**
    * Constructor of LogicalProject.
    */
   public LogicalProject(
       LogicalPlan child,
-      List<NamedExpression> projectList) {
+      List<NamedExpression> projectList, List<ParseExpression> parseExpressionList) {
     super(Collections.singletonList(child));
     this.projectList = projectList;
+    this.parseExpressionList = parseExpressionList;
   }
 
   @Override

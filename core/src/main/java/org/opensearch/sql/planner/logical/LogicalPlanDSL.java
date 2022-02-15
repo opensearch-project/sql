@@ -8,6 +8,7 @@ package org.opensearch.sql.planner.logical;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import lombok.experimental.UtilityClass;
@@ -46,7 +47,8 @@ public class LogicalPlanDSL {
   }
 
   public static LogicalPlan project(LogicalPlan input, NamedExpression... fields) {
-    return new LogicalProject(input, Arrays.asList(fields));
+    // TODO fix parseExpressionList
+    return new LogicalProject(input, Arrays.asList(fields), Collections.emptyList());
   }
 
   public LogicalPlan window(LogicalPlan input,

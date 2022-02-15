@@ -48,12 +48,12 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.data.model.ExprMissingValue;
-import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.ParseExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
@@ -284,7 +284,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     TypeEnvironment newEnv = context.peek();
     namedExpressions.forEach(expr -> newEnv.define(new Symbol(Namespace.FIELD_NAME,
         expr.getNameOrAlias()), expr.type()));
-    return new LogicalProject(child, namedExpressions);
+    List<ParseExpression> parseExpressions = context.getParseExpressionList();
+    return new LogicalProject(child, namedExpressions, parseExpressions);
   }
 
   /**
@@ -316,10 +317,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     String pattern = (String) node.getPattern().getValue();
 
     LogicalParse logicalParse = new LogicalParse(child, expression, pattern);
-    TypeEnvironment curEnv = context.peek();
-    logicalParse.getGroups().forEach((group, type) -> curEnv.define(
-        new Symbol(Namespace.FIELD_NAME, group + "PARSE"), ExprCoreType.STRING));
-    context.parse = logicalParse;
+    logicalParse.getGroups().forEach((group, type) -> context.addParseExpression(
+        group, new ParseExpression(expression, pattern, group)));
     return child;
   }
 

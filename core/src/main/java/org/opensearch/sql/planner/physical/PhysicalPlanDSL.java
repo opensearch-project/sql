@@ -8,6 +8,7 @@ package org.opensearch.sql.planner.physical;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import lombok.experimental.UtilityClass;
@@ -42,7 +43,8 @@ public class PhysicalPlanDSL {
   }
 
   public static ProjectOperator project(PhysicalPlan input, NamedExpression... fields) {
-    return new ProjectOperator(input, Arrays.asList(fields));
+    // TODO fix this
+    return new ProjectOperator(input, Arrays.asList(fields), Collections.emptyList());
   }
 
   public static RemoveOperator remove(PhysicalPlan input, ReferenceExpression... fields) {

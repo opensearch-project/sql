@@ -72,7 +72,8 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
 
   @Override
   public PhysicalPlan visitProject(LogicalProject node, C context) {
-    return new ProjectOperator(visitChild(node, context), node.getProjectList());
+    return new ProjectOperator(visitChild(node, context), node.getProjectList(),
+        node.getParseExpressionList());
   }
 
   @Override

@@ -269,11 +269,7 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
       }
       return ref;
     } catch (SemanticCheckException e) {
-      typeEnv.resolve(new Symbol(Namespace.FIELD_NAME, ident + "PARSE"));
-      LogicalParse logicalParse = context.parse;
-      ParseExpression parseExpression =
-          new ParseExpression(logicalParse.getExpression(), logicalParse.getPattern(), ident);
-      return parseExpression;
+      return context.getParseExpression(ident);
     }
   }
 

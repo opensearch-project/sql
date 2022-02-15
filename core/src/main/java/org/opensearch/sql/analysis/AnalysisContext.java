@@ -6,7 +6,14 @@
 
 package org.opensearch.sql.analysis;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import org.opensearch.sql.analysis.symbol.Symbol;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.expression.ParseExpression;
 import org.opensearch.sql.planner.logical.LogicalParse;
 
 /**
@@ -18,10 +25,13 @@ public class AnalysisContext {
    */
   private TypeEnvironment environment;
 
+  private Map<String, ParseExpression> parseExpressionMap;
+
   public LogicalParse parse;
 
   public AnalysisContext() {
     this.environment = new TypeEnvironment(null);
+    this.parseExpressionMap = new HashMap<>();
   }
 
   public AnalysisContext(TypeEnvironment environment) {
@@ -55,5 +65,17 @@ public class AnalysisContext {
     TypeEnvironment curEnv = environment;
     environment = curEnv.getParent();
     return curEnv;
+  }
+
+  public void addParseExpression(String symbol, ParseExpression expression) {
+    parseExpressionMap.put(symbol, expression);
+  }
+
+  public ParseExpression getParseExpression(String symbol) {
+    return parseExpressionMap.get(symbol);
+  }
+
+  public List<ParseExpression> getParseExpressionList() {
+    return new ArrayList<>(parseExpressionMap.values());
   }
 }

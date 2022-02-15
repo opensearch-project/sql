@@ -60,7 +60,8 @@ public class PushProjectAndRelation implements Rule<LogicalProject> {
             .relationName(relation.getRelationName())
             .projectList(findReferenceExpressions(project.getProjectList()))
             .build(),
-        project.getProjectList()
+        project.getProjectList(),
+        project.getParseExpressionList()
     );
   }
 }
