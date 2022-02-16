@@ -21,7 +21,8 @@
     "user/ppl/functions/datetime.rst",
     "user/ppl/functions/string.rst",
     "user/ppl/functions/condition.rst",
-    "user/ppl/functions/relevance.rst"
+    "user/ppl/functions/relevance.rst",
+    "user/ppl/functions/expressions.rst"
   ],
   "sql_cli": [
     "user/dql/expressions.rst",
