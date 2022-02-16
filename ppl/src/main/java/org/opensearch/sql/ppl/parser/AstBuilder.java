@@ -157,8 +157,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         .fieldExpression()
         .stream()
         .map(groupCtx -> new Alias(getTextInQuery(groupCtx), internalVisitExpression(groupCtx)))
-        .collect(
-            Collectors.toList())
+        .collect(Collectors.toList())
         : ctx.bySpanClause() != null
         ? Collections.singletonList(internalVisitExpression(ctx.bySpanClause()))
         : Collections.emptyList();

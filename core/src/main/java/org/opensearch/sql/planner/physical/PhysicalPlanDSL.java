@@ -43,7 +43,7 @@ public class PhysicalPlanDSL {
   }
 
   public static ProjectOperator project(PhysicalPlan input, NamedExpression... fields) {
-    // TODO fix this
+    // TODO(josh) fix this
     return new ProjectOperator(input, Arrays.asList(fields), Collections.emptyList());
   }
 

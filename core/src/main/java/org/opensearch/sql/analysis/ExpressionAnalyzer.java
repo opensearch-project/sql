@@ -45,6 +45,7 @@ import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
+import org.opensearch.sql.expression.ParseExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.AggregationState;
 import org.opensearch.sql.expression.aggregation.Aggregator;
@@ -256,9 +257,13 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
   }
 
   private Expression visitIdentifier(String ident, AnalysisContext context) {
-    if (context.isParseExpression(ident)) {
-      return context.getParseExpression(ident);
+    // TODO(josh) need to determine priority if ident exists in both SymbolTable and as ParseExpression
+    // this will always use ParseExpression over SymbolTable, (e.g. parse | eval | where won't work)
+    ParseExpression parseExpression = context.getParseExpression(ident);
+    if (parseExpression != null) {
+      return parseExpression;
     }
+
     TypeEnvironment typeEnv = context.peek();
     ReferenceExpression ref = DSL.ref(ident,
         typeEnv.resolve(new Symbol(Namespace.FIELD_NAME, ident)));

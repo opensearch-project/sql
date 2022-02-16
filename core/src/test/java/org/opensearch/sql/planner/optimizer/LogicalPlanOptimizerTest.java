@@ -12,7 +12,6 @@ import static org.opensearch.sql.data.model.ExprValueUtils.longValue;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.filter;
-import static org.opensearch.sql.planner.logical.LogicalPlanDSL.parse;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.relation;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.sort;
 

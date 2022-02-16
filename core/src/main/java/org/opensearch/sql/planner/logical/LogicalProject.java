@@ -31,7 +31,8 @@ public class LogicalProject extends LogicalPlan {
    */
   public LogicalProject(
       LogicalPlan child,
-      List<NamedExpression> projectList, List<ParseExpression> parseExpressionList) {
+      List<NamedExpression> projectList,
+      List<ParseExpression> parseExpressionList) {
     super(Collections.singletonList(child));
     this.projectList = projectList;
     this.parseExpressionList = parseExpressionList;

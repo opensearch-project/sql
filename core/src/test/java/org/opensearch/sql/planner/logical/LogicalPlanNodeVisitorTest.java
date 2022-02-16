@@ -108,10 +108,6 @@ class LogicalPlanNodeVisitorTest {
         relation, CommandType.TOP, ImmutableList.of(expression), expression);
     assertNull(rareTopN.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
     }, null));
-
-    LogicalPlan parse = LogicalPlanDSL.parse(relation, expression, "regex");
-    assertNull(parse.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
-    }, null));
   }
 
   private static class NodesCount extends LogicalPlanNodeVisitor<Integer, Object> {

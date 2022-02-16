@@ -235,7 +235,6 @@ LEFT:                               'LEFT';
 ASCII:                              'ASCII';
 LOCATE:                             'LOCATE';
 REPLACE:                            'REPLACE';
-REGEX:                              'REGEX';
 CAST:                               'CAST';
 
 // BOOL FUNCTIONS

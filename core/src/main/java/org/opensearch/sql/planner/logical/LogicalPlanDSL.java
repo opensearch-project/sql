@@ -47,7 +47,7 @@ public class LogicalPlanDSL {
   }
 
   public static LogicalPlan project(LogicalPlan input, NamedExpression... fields) {
-    // TODO fix parseExpressionList
+    // TODO(josh) fix parseExpressionList
     return new LogicalProject(input, Arrays.asList(fields), Collections.emptyList());
   }
 

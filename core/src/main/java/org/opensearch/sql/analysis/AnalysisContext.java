@@ -7,7 +7,7 @@
 package org.opensearch.sql.analysis;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -21,12 +21,11 @@ public class AnalysisContext {
    * Environment stack for symbol scope management.
    */
   private TypeEnvironment environment;
-
   private Map<String, ParseExpression> parseExpressionMap;
 
   public AnalysisContext() {
     this.environment = new TypeEnvironment(null);
-    this.parseExpressionMap = new HashMap<>();
+    this.parseExpressionMap = new LinkedHashMap<>();
   }
 
   public AnalysisContext(TypeEnvironment environment) {
@@ -68,10 +67,6 @@ public class AnalysisContext {
 
   public ParseExpression getParseExpression(String identifier) {
     return parseExpressionMap.get(identifier);
-  }
-
-  public boolean isParseExpression(String identifier) {
-    return parseExpressionMap.containsKey(identifier);
   }
 
   public List<ParseExpression> getParseExpressionList() {

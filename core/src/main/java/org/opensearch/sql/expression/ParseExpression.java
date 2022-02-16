@@ -21,29 +21,30 @@ import org.opensearch.sql.utils.ParseUtils;
 /**
  * Named argument expression that represents function argument with name.
  */
-@Getter
 @EqualsAndHashCode
 @ToString
 public class ParseExpression implements Expression {
   private static final Logger log = LogManager.getLogger(ParseExpression.class);
 
+  @Getter
   private final Expression expression;
+  @Getter
   private final String identifier;
+  private final String rawPattern;
+  @Getter
   @EqualsAndHashCode.Exclude
   private final Pattern pattern;
 
   public ParseExpression(Expression expression, String rawPattern, String identifier) {
     this.expression = expression;
     this.identifier = identifier;
+    this.rawPattern = rawPattern;
     this.pattern = Pattern.compile(rawPattern);
   }
 
   @Override
   public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
     ExprValue value = valueEnv.resolve(expression);
-    if (value.isNull() || value.isMissing()) {
-      return ExprValueUtils.nullValue();
-    }
     return ParseUtils.getParsedValue(value, pattern, identifier);
   }
 

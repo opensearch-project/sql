@@ -12,9 +12,6 @@ import static org.opensearch.sql.expression.function.FunctionDSL.define;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprStringValue;
@@ -266,7 +263,7 @@ public class TextFunction {
   }
 
   private static ExprValue exprSubstrStartLength(
-      ExprValue exprValue, ExprValue start, ExprValue length) {
+          ExprValue exprValue, ExprValue start, ExprValue length) {
     int startIdx = start.integerValue();
     int len = length.integerValue();
     if ((startIdx == 0) || (len == 0)) {

@@ -20,8 +20,7 @@ pplStatement
 /** commands */
 commands
     : whereCommand | fieldsCommand | renameCommand | statsCommand | dedupCommand | sortCommand | evalCommand | headCommand
-    | topCommand | rareCommand
-    | parseCommand;
+    | topCommand | rareCommand | parseCommand;
 
 searchCommand
     : (SEARCH)? fromClause                                          #searchFrom

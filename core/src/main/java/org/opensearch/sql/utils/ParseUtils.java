@@ -30,6 +30,10 @@ public class ParseUtils {
   private static final Pattern GROUP_PATTERN = Pattern.compile("\\(\\?<([a-zA-Z][a-zA-Z0-9]*)>");
 
   public static ExprValue getParsedValue(ExprValue value, Pattern pattern, String identifier) {
+    if (value.isNull() || value.isMissing()) {
+      return ExprValueUtils.nullValue();
+    }
+
     String rawString = value.stringValue();
     Matcher matcher = pattern.matcher(rawString);
     if (matcher.matches()) {
