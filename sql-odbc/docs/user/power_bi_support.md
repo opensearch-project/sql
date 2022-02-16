@@ -4,8 +4,8 @@
 * Microsoft Power BI Desktop
 * [OpenSearch](https://docs-beta.opensearch.org/opensearch/install/index/)
 * [OpenSearch SQL ODBC driver](https://docs-beta.opensearch.org/search-plugins/sql/odbc/)
-* [OpenSearch.mez](../../src/PowerBIConnector/bin/Release/)
-* Optional: [sqlodbc_import.pbids](../../src/PowerBIConnector/PBIDSExamples) to help with repeated connections to the same server 
+* [OpenSearch.mez](../../../bi-connectors/PowerBIConnector/bin/Release)
+* Optional: [sqlodbc_import.pbids](../../../bi-connectors/PowerBIConnector/PBIDSExamples) to help with repeated connections to the same server 
 
 ## Setup
 * Copy `OpenSearch.mez` file in the `<User>\Documents\Power BI Desktop\Custom Connectors\` folder. This will let Power BI access custom connector.
@@ -56,7 +56,7 @@
 
 More info: https://docs.microsoft.com/en-us/power-bi/connect-data/desktop-data-sources#using-pbids-files-to-get-data
 
-Example PBIDS file for OpenSearch: (available here: [sqlodbc_import.pbids](../../src/PowerBIConnector/PBIDSExamples/sqlodbc_import.pbids))
+Example PBIDS file for OpenSearch: (available here: [sqlodbc_import.pbids](../../../bi-connectors/PowerBIConnector/PBIDSExamples/sqlodbc_import.pbids))
 ```json
 {
     "version": "0.1",
