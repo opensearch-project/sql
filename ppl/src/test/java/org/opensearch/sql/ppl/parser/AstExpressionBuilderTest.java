@@ -13,6 +13,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.and;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.cast;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultFieldsArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultSortFieldArgs;
@@ -463,6 +464,18 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             let(
                 field("f"),
                 function("abs", field("a"))
+            )
+        ));
+  }
+
+  @Test
+  public void testDataTypeFuncCall() {
+    assertEqual("source=t | eval f=cast(1 as string)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                cast(intLiteral(1), stringLiteral("string"))
             )
         ));
   }

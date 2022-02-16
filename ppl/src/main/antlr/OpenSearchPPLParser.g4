@@ -172,6 +172,7 @@ valueExpression
 
 primaryExpression
     : evalFunctionCall
+    | dataTypeFunctionCall
     | fieldExpression
     | literalValue
     ;
@@ -226,9 +227,27 @@ evalFunctionCall
     : evalFunctionName LT_PRTHS functionArgs RT_PRTHS
     ;
 
+/** cast function */
+dataTypeFunctionCall
+    : CAST LT_PRTHS expression AS convertedDataType RT_PRTHS
+    ;
+
 /** boolean functions */
 booleanFunctionCall
     : conditionFunctionBase LT_PRTHS functionArgs RT_PRTHS
+    ;
+
+convertedDataType
+    : typeName=DATE
+    | typeName=TIME
+    | typeName=TIMESTAMP
+    | typeName=INT
+    | typeName=INTEGER
+    | typeName=DOUBLE
+    | typeName=LONG
+    | typeName=FLOAT
+    | typeName=STRING
+    | typeName=BOOLEAN
     ;
 
 evalFunctionName
