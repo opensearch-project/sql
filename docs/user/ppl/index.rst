@@ -72,6 +72,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `Relevance Functions <functions/relevance.rst>`_
 
+  - `Type Conversion Functions <functions/conversion.rst>`_
+
 * **Optimization**
 
   - `Optimization <../../user/optimization/optimization.rst>`_
