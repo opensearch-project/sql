@@ -7,7 +7,9 @@
 package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +25,18 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
 public class Relation extends UnresolvedPlan {
-  private final UnresolvedExpression tableName;
+  private static final String COMMA = ",";
+
+  private final List<UnresolvedExpression> tableName;
+
+  public Relation(UnresolvedExpression tableName) {
+    this(tableName, null);
+  }
+
+  public Relation(UnresolvedExpression tableName, String alias) {
+    this.tableName = Arrays.asList(tableName);
+    this.alias = alias;
+  }
 
   /**
    * Optional alias name for the relation.
@@ -36,7 +49,9 @@ public class Relation extends UnresolvedPlan {
    * @return    table name
    */
   public String getTableName() {
-    return tableName.toString();
+    return tableName.stream()
+        .map(UnresolvedExpression::toString)
+        .collect(Collectors.joining(COMMA));
   }
 
   /**

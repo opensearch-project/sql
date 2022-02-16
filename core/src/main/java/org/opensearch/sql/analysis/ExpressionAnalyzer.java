@@ -26,6 +26,7 @@ import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
@@ -175,6 +176,24 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
       return new AggregateWindowFunction((Aggregator<AggregationState>) expr);
     }
     return expr;
+  }
+
+  @Override
+  public Expression visitIn(In node, AnalysisContext context) {
+    return visitIn(node.getField(), node.getValueList(), context);
+  }
+
+  private Expression visitIn(
+      UnresolvedExpression field, List<UnresolvedExpression> valueList, AnalysisContext context) {
+    if (valueList.size() == 1) {
+      return visitCompare(new Compare("=", field, valueList.get(0)), context);
+    } else if (valueList.size() > 1) {
+      return dsl.or(
+          visitCompare(new Compare("=", field, valueList.get(0)), context),
+          visitIn(field, valueList.subList(1, valueList.size()), context));
+    } else {
+      throw new SemanticCheckException("Values in In clause should not be empty");
+    }
   }
 
   @Override

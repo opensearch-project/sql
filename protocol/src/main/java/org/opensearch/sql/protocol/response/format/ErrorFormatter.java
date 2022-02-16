@@ -17,11 +17,13 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class ErrorFormatter {
 
-  private static final Gson PRETTY_PRINT_GSON =
-      AccessController.doPrivileged(
-          (PrivilegedAction<Gson>) () -> new GsonBuilder().setPrettyPrinting().create());
+  private static final Gson PRETTY_PRINT_GSON = AccessController.doPrivileged(
+          (PrivilegedAction<Gson>) () -> new GsonBuilder()
+              .setPrettyPrinting()
+              .disableHtmlEscaping()
+              .create());
   private static final Gson GSON = AccessController.doPrivileged(
-      (PrivilegedAction<Gson>) () -> new GsonBuilder().create());
+      (PrivilegedAction<Gson>) () -> new GsonBuilder().disableHtmlEscaping().create());
 
   /**
    * Util method to format {@link Throwable} response to JSON string in compact printing.

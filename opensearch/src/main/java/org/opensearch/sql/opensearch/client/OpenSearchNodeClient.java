@@ -77,10 +77,10 @@ public class OpenSearchNodeClient implements OpenSearchClient {
    *     thrown if no index matched.
    */
   @Override
-  public Map<String, IndexMapping> getIndexMappings(String indexExpression) {
+  public Map<String, IndexMapping> getIndexMappings(String... indexExpression) {
     try {
       ClusterState state = clusterService.state();
-      String[] concreteIndices = resolveIndexExpression(state, new String[] {indexExpression});
+      String[] concreteIndices = resolveIndexExpression(state, indexExpression);
 
       return populateIndexMappings(
           state.metadata().findMappings(concreteIndices, ALL_TYPES, ALL_FIELDS));

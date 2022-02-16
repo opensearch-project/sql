@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.planner.physical.bucket;
+package org.opensearch.sql.planner.physical.collector;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -36,7 +36,6 @@ public class RoundingTest {
     assertNull(rounding.round(ExprValueUtils.integerValue(1)));
     assertNull(rounding.locate(ExprValueUtils.integerValue(1)));
     assertEquals(0, rounding.createBuckets().length);
-    assertEquals(0, rounding.fillBuckets(new ExprValue[0], ImmutableMap.of(), "span").length);
   }
 
   @Test

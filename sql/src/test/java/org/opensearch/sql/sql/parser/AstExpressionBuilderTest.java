@@ -444,6 +444,23 @@ class AstExpressionBuilderTest {
         buildExprAst("match(message, 'search query', analyzer='keyword', operator='AND')"));
   }
 
+  @Test
+  public void canBuildInClause() {
+    assertEquals(
+        AstDSL.in(qualifiedName("age"), AstDSL.intLiteral(20), AstDSL.intLiteral(30)),
+        buildExprAst("age in (20, 30)"));
+
+    assertEquals(
+        AstDSL.not(AstDSL.in(qualifiedName("age"), AstDSL.intLiteral(20), AstDSL.intLiteral(30))),
+        buildExprAst("age not in (20, 30)"));
+
+    assertEquals(
+        AstDSL.in(qualifiedName("age"),
+            AstDSL.function("abs", AstDSL.intLiteral(20)),
+            AstDSL.function("abs", AstDSL.intLiteral(30))),
+        buildExprAst("age in (abs(20), abs(30))"));
+  }
+
   private Node buildExprAst(String expr) {
     OpenSearchSQLLexer lexer = new OpenSearchSQLLexer(new CaseInsensitiveCharStream(expr));
     OpenSearchSQLParser parser = new OpenSearchSQLParser(new CommonTokenStream(lexer));

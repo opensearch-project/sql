@@ -46,7 +46,7 @@ statsCommand
     (ALLNUM EQUAL allnum=booleanLiteral)?
     (DELIM EQUAL delim=stringLiteral)?
     statsAggTerm (COMMA statsAggTerm)*
-    (byClause | bySpanClause)?
+    (statsByClause)?
     (DEDUP_SPLITVALUES EQUAL dedupsplit=booleanLiteral)?
     ;
 
@@ -90,8 +90,8 @@ parseCommand
 
 /** clauses */
 fromClause
-    : SOURCE EQUAL tableSource
-    | INDEX EQUAL tableSource
+    : SOURCE EQUAL tableSource (COMMA tableSource)*
+    | INDEX EQUAL tableSource (COMMA tableSource)*
     ;
 
 renameClasue
@@ -102,8 +102,14 @@ byClause
     : BY fieldList
     ;
 
+statsByClause
+    : BY fieldList
+    | BY bySpanClause
+    | BY fieldList bySpanClause
+    ;
+
 bySpanClause
-    : BY spanClause (AS alias=qualifiedName)?
+    : spanClause (AS alias=qualifiedName)?
     ;
 
 spanClause

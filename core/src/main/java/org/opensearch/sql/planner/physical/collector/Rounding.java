@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.planner.physical.bucket;
+package org.opensearch.sql.planner.physical.collector;
 
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
@@ -20,7 +20,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoField;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -29,7 +28,6 @@ import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
-import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprType;
@@ -81,9 +79,6 @@ public abstract class Rounding<T> {
 
   public abstract ExprValue[] createBuckets();
 
-  public abstract ExprValue[] fillBuckets(ExprValue[] buckets, Map<String, ExprValue> map,
-                                          String key);
-
 
   static class TimestampRounding extends Rounding<Instant> {
     private final ExprValue interval;
@@ -116,28 +111,6 @@ public abstract class Rounding<T> {
         int size = monthDiff / ((int) dateTimeUnit.ratio * interval.integerValue()) + 1;
         return new ExprValue[size];
       }
-    }
-
-    @Override
-    public ExprValue[] fillBuckets(ExprValue[] buckets,
-                                   Map<String, ExprValue> map,
-                                   String key) {
-      for (int id = 0; id < buckets.length; id++) {
-        ExprValue tuple = buckets[id];
-        if (tuple == null) {
-          long placeHolder;
-          if (dateTimeUnit.isMillisBased) {
-            placeHolder = minRounded.toEpochMilli() + dateTimeUnit.ratio * interval
-                .integerValue() * id;
-          } else {
-            placeHolder = minRounded.atZone(ZoneId.of("UTC")).plusMonths(dateTimeUnit
-                .ratio * interval.integerValue()).toInstant().toEpochMilli();
-          }
-          map.replace(key, new ExprTimestampValue(Instant.ofEpochMilli(placeHolder)));
-          buckets[id] = ExprTupleValue.fromExprValueMap(map);
-        }
-      }
-      return buckets;
     }
 
     @Override
@@ -199,29 +172,6 @@ public abstract class Rounding<T> {
         int size = monthDiff / ((int) dateTimeUnit.ratio * interval.integerValue()) + 1;
         return new ExprValue[size];
       }
-    }
-
-    @Override
-    public ExprValue[] fillBuckets(ExprValue[] buckets,
-                                   Map<String, ExprValue> map,
-                                   String key) {
-      for (int id = 0; id < buckets.length; id++) {
-        ExprValue tuple = buckets[id];
-        if (tuple == null) {
-          long placeHolder;
-          if (dateTimeUnit.isMillisBased) {
-            placeHolder = minRounded.atZone(ZoneId.of("UTC")).toInstant()
-                .toEpochMilli() + dateTimeUnit.ratio * interval.integerValue() * id;
-          } else {
-            placeHolder = minRounded.atZone(ZoneId.of("UTC")).plusMonths(dateTimeUnit
-                .ratio * interval.integerValue() * id).toInstant().toEpochMilli();
-          }
-          map.replace(key, new ExprDatetimeValue(Instant.ofEpochMilli(placeHolder)
-              .atZone(ZoneId.of("UTC")).toLocalDateTime()));
-          buckets[id] = ExprTupleValue.fromExprValueMap(map);
-        }
-      }
-      return buckets;
     }
 
     @Override
@@ -287,30 +237,6 @@ public abstract class Rounding<T> {
     }
 
     @Override
-    public ExprValue[] fillBuckets(ExprValue[] buckets,
-                                   Map<String, ExprValue> map,
-                                   String key) {
-      for (int id = 0; id < buckets.length; id++) {
-        ExprValue tuple = buckets[id];
-        if (tuple == null) {
-          long placeHolder;
-          if (dateTimeUnit.isMillisBased) {
-            placeHolder = minRounded.atStartOfDay().atZone(ZoneId.of("UTC")).toInstant()
-                .toEpochMilli() + dateTimeUnit.ratio * interval.integerValue() * id;
-          } else {
-            placeHolder = minRounded.atStartOfDay().atZone(ZoneId.of("UTC"))
-                .plusMonths(dateTimeUnit.ratio * interval.integerValue()).toInstant()
-                .toEpochMilli();
-          }
-          map.replace(key, new ExprDateValue(Instant.ofEpochMilli(placeHolder)
-              .atZone(ZoneId.of("UTC")).toLocalDate()));
-          buckets[id] = ExprTupleValue.fromExprValueMap(map);
-        }
-      }
-      return buckets;
-    }
-
-    @Override
     public Integer locate(ExprValue value) {
       if (dateTimeUnit.isMillisBased) {
         long intervalInEpochMillis = dateTimeUnit.ratio;
@@ -370,24 +296,6 @@ public abstract class Rounding<T> {
     }
 
     @Override
-    public ExprValue[] fillBuckets(ExprValue[] buckets,
-                                   Map<String, ExprValue> map,
-                                   String key) {
-      for (int id = 0; id < buckets.length; id++) {
-        ExprValue tuple = buckets[id];
-        if (tuple == null) {
-          long placeHolder  = minRounded.atDate(LocalDate.of(1970, 1, 1))
-              .atZone(ZoneId.of("UTC"))
-              .toInstant().toEpochMilli() + dateTimeUnit.ratio * interval.integerValue() * id;
-          map.replace(key, new ExprTimeValue(Instant.ofEpochMilli(placeHolder)
-              .atZone(ZoneId.of("UTC")).toLocalTime()));
-          buckets[id] = ExprTupleValue.fromExprValueMap(map);
-        }
-      }
-      return buckets;
-    }
-
-    @Override
     public Integer locate(ExprValue value) {
       long intervalInEpochMillis = dateTimeUnit.ratio;
       return Long.valueOf((value.timeValue().atDate(LocalDate.of(1970, 1, 1))
@@ -434,20 +342,6 @@ public abstract class Rounding<T> {
       return new ExprValue[size];
     }
 
-    @Override
-    public ExprValue[] fillBuckets(ExprValue[] buckets,
-                                   Map<String, ExprValue> map,
-                                   String key) {
-      for (int id = 0; id < buckets.length; id++) {
-        ExprValue tuple = buckets[id];
-        if (tuple == null) {
-          map.replace(key, ExprValueUtils.longValue(minRounded + longInterval * id));
-          buckets[id] = ExprTupleValue.fromExprValueMap(map);
-        }
-      }
-      return buckets;
-    }
-
     private void updateRounded(Long value) {
       if (maxRounded == null || value > maxRounded) {
         maxRounded = value;
@@ -485,19 +379,6 @@ public abstract class Rounding<T> {
       return new ExprValue[size];
     }
 
-    @Override
-    public ExprValue[] fillBuckets(ExprValue[] buckets, Map<String, ExprValue> map,
-                                   String key) {
-      for (int id = 0; id < buckets.length; id++) {
-        ExprValue tuple = buckets[id];
-        if (tuple == null) {
-          map.replace(key, ExprValueUtils.doubleValue(minRounded + doubleInterval * id));
-          buckets[id] = ExprTupleValue.fromExprValueMap(map);
-        }
-      }
-      return buckets;
-    }
-
     private void updateRounded(Double value) {
       if (maxRounded == null || value > maxRounded) {
         maxRounded = value;
@@ -523,12 +404,6 @@ public abstract class Rounding<T> {
 
     @Override
     public ExprValue[] createBuckets() {
-      return new ExprValue[0];
-    }
-
-    @Override
-    public ExprValue[] fillBuckets(ExprValue[] buckets, Map<String, ExprValue> map,
-                                   String key) {
       return new ExprValue[0];
     }
   }
