@@ -57,7 +57,6 @@ public class TextFunction {
     repository.register(left());
     repository.register(ascii());
     repository.register(locate());
-    repository.register(regex());
     repository.register(replace());
   }
 
@@ -257,11 +256,6 @@ public class TextFunction {
         impl(nullMissingHandling(TextFunction::exprReplace), STRING, STRING, STRING, STRING));
   }
 
-  private FunctionResolver regex() {
-    return define(BuiltinFunctionName.REGEX.getName(),
-        impl(nullMissingHandling(TextFunction::exprRegex), STRING, STRING, STRING, STRING));
-  }
-
   private static ExprValue exprSubstrStart(ExprValue exprValue, ExprValue start) {
     int startIdx = start.integerValue();
     if (startIdx == 0) {
@@ -320,32 +314,6 @@ public class TextFunction {
   private static ExprValue exprLocate(ExprValue subStr, ExprValue str, ExprValue pos) {
     return new ExprIntegerValue(
         str.stringValue().indexOf(subStr.stringValue(), pos.integerValue() - 1) + 1);
-  }
-
-  static int n = 1;
-
-  private static ExprValue exprRegex(ExprValue str, ExprValue pattern, ExprValue group) {
-    String rawPattern = pattern.stringValue();
-    String targetGroup = group.stringValue();
-    Map<String, String> groups = new HashMap<>();
-    Matcher m = Pattern.compile("\\(\\?<([a-zA-Z][a-zA-Z0-9]*?)>").matcher(rawPattern);
-    while (m.find()) {
-      groups.put(m.group(1), "");
-    }
-//    System.out.println(" ❗groups: " + groups);
-
-    Matcher matcher = Pattern.compile(rawPattern).matcher(str.stringValue());
-    Map<String, ExprValue> exprValueMap = new LinkedHashMap<>();
-    if (matcher.matches()) {
-      groups.forEach((field, rawType) -> {
-        String rawMatch = matcher.group(field);
-//        System.out.println(" ❗field: " + field);
-//        System.out.println(" ❗rawMatch: " + rawMatch);
-        exprValueMap.put(field, new ExprStringValue(rawMatch));
-      });
-    }
-    System.out.println(" ❗n: " + n++);
-    return exprValueMap.get(targetGroup);
   }
 
   private static ExprValue exprReplace(ExprValue str, ExprValue from, ExprValue to) {

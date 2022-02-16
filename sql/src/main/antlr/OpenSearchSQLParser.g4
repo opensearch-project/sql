@@ -370,7 +370,7 @@ dateTimeFunctionName
 textFunctionName
     : SUBSTR | SUBSTRING | TRIM | LTRIM | RTRIM | LOWER | UPPER
     | CONCAT | CONCAT_WS | SUBSTR | LENGTH | STRCMP | RIGHT | LEFT
-    | ASCII | LOCATE | REPLACE | REGEX
+    | ASCII | LOCATE | REPLACE
     ;
 
 flowControlFunctionName
