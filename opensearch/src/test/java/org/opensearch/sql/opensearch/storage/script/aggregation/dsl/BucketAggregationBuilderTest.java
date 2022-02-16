@@ -16,7 +16,7 @@ import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEA
 import java.util.Arrays;
 import java.util.List;
 import lombok.SneakyThrows;
-import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -29,6 +29,7 @@ import org.opensearch.common.xcontent.XContentBuilder;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
+import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
@@ -54,6 +55,7 @@ class BucketAggregationBuilderTest {
             + "  \"terms\" : {\n"
             + "    \"field\" : \"age\",\n"
             + "    \"missing_bucket\" : true,\n"
+            + "    \"missing_order\" : \"first\",\n"
             + "    \"order\" : \"asc\"\n"
             + "  }\n"
             + "}",
@@ -69,6 +71,7 @@ class BucketAggregationBuilderTest {
             + "  \"terms\" : {\n"
             + "    \"field\" : \"name.keyword\",\n"
             + "    \"missing_bucket\" : true,\n"
+            + "    \"missing_order\" : \"first\",\n"
             + "    \"order\" : \"asc\"\n"
             + "  }\n"
             + "}",
@@ -78,7 +81,8 @@ class BucketAggregationBuilderTest {
   }
 
   @SneakyThrows
-  private String buildQuery(List<Pair<NamedExpression, SortOrder>> groupByExpressions) {
+  private String buildQuery(
+      List<Triple<NamedExpression, SortOrder, MissingOrder>> groupByExpressions) {
     XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON).prettyPrint();
     builder.startObject();
     CompositeValuesSourceBuilder<?> sourceBuilder =
@@ -88,7 +92,7 @@ class BucketAggregationBuilderTest {
     return BytesReference.bytes(builder).utf8ToString();
   }
 
-  private Pair<NamedExpression, SortOrder> asc(NamedExpression expression) {
-    return Pair.of(expression, SortOrder.ASC);
+  private Triple<NamedExpression, SortOrder, MissingOrder> asc(NamedExpression expression) {
+    return Triple.of(expression, SortOrder.ASC, MissingOrder.FIRST);
   }
 }

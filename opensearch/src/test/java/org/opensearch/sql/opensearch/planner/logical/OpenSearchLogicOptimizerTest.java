@@ -305,29 +305,28 @@ class OpenSearchLogicOptimizerTest {
   }
 
   /**
-   * Can't Optimize the following query.
    * SELECT avg(intV) FROM schema GROUP BY stringV ORDER BY stringV ASC NULL_LAST.
    */
   @Test
-  void sort_with_customized_option_should_not_merge_with_indexAgg() {
+  void sort_with_customized_option_should_merge_with_indexAgg() {
     assertEquals(
-        sort(
-            indexScanAgg("schema",
-                ImmutableList.of(DSL.named("AVG(intV)", dsl.avg(DSL.ref("intV", INTEGER)))),
-                ImmutableList.of(DSL.named("stringV", DSL.ref("stringV", STRING)))),
-            Pair.of(new Sort.SortOption(Sort.SortOrder.ASC, Sort.NullOrder.NULL_LAST),
-                DSL.ref("stringV", STRING))
-        ),
+        indexScanAgg(
+            "schema",
+            ImmutableList.of(DSL.named("AVG(intV)", dsl.avg(DSL.ref("intV", INTEGER)))),
+            ImmutableList.of(DSL.named("stringV", DSL.ref("stringV", STRING))),
+            ImmutableList.of(
+                Pair.of(
+                    new Sort.SortOption(Sort.SortOrder.ASC, Sort.NullOrder.NULL_LAST),
+                    DSL.ref("stringV", STRING)))),
         optimize(
             sort(
-                indexScanAgg("schema",
+                indexScanAgg(
+                    "schema",
                     ImmutableList.of(DSL.named("AVG(intV)", dsl.avg(DSL.ref("intV", INTEGER)))),
                     ImmutableList.of(DSL.named("stringV", DSL.ref("stringV", STRING)))),
-                Pair.of(new Sort.SortOption(Sort.SortOrder.ASC, Sort.NullOrder.NULL_LAST),
-                    DSL.ref("stringV", STRING))
-            )
-        )
-    );
+                Pair.of(
+                    new Sort.SortOption(Sort.SortOrder.ASC, Sort.NullOrder.NULL_LAST),
+                    DSL.ref("stringV", STRING)))));
   }
 
   @Test
