@@ -16,7 +16,6 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.optimizer.rule.MergeFilterAndFilter;
 import org.opensearch.sql.planner.optimizer.rule.PushFilterUnderSort;
-import org.opensearch.sql.planner.optimizer.rule.PushParseUnderFilter;
 
 /**
  * {@link LogicalPlan} Optimizer.
@@ -42,8 +41,7 @@ public class LogicalPlanOptimizer {
   public static LogicalPlanOptimizer create(DSL dsl) {
     return new LogicalPlanOptimizer(Arrays.asList(
         new MergeFilterAndFilter(dsl),
-        new PushFilterUnderSort(),
-        new PushParseUnderFilter()));
+        new PushFilterUnderSort()));
   }
 
   /**

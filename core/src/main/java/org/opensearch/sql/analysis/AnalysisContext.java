@@ -11,10 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import org.opensearch.sql.analysis.symbol.Symbol;
-import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.ParseExpression;
-import org.opensearch.sql.planner.logical.LogicalParse;
 
 /**
  * The context used for Analyzer.
@@ -26,8 +23,6 @@ public class AnalysisContext {
   private TypeEnvironment environment;
 
   private Map<String, ParseExpression> parseExpressionMap;
-
-  public LogicalParse parse;
 
   public AnalysisContext() {
     this.environment = new TypeEnvironment(null);

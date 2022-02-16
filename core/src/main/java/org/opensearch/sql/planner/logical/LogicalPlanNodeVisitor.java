@@ -69,8 +69,4 @@ public abstract class LogicalPlanNodeVisitor<R, C> {
   public R visitLimit(LogicalLimit plan, C context) {
     return visitNode(plan, context);
   }
-
-  public R visitParse(LogicalParse plan, C context) {
-    return visitNode(plan, context);
-  }
 }

@@ -11,23 +11,15 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.function.FunctionDSL.define;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
-import static org.opensearch.sql.planner.logical.LogicalParse.typeStrToExprType;
 
 import io.krakens.grok.api.Grok;
 import io.krakens.grok.api.GrokCompiler;
 import io.krakens.grok.api.Match;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.exception.SemanticCheckException;
-import org.opensearch.sql.expression.DSL;
-import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionName;
@@ -281,7 +273,7 @@ public class TextFunction {
   }
 
   private static ExprValue exprSubstrStartLength(
-          ExprValue exprValue, ExprValue start, ExprValue length) {
+      ExprValue exprValue, ExprValue start, ExprValue length) {
     int startIdx = start.integerValue();
     int len = length.integerValue();
     if ((startIdx == 0) || (len == 0)) {

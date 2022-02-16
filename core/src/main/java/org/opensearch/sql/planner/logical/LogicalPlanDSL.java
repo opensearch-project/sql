@@ -103,8 +103,4 @@ public class LogicalPlanDSL {
     return new LogicalLimit(input, limit, offset);
   }
 
-  public static LogicalPlan parse(LogicalPlan input, Expression expression, String pattern) {
-    return new LogicalParse(input, expression, pattern);
-  }
-
 }
