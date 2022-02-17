@@ -7,12 +7,9 @@
 package org.opensearch.sql.utils;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,7 +26,7 @@ public class ParseUtils {
   private static final Logger log = LogManager.getLogger(ParseUtils.class);
   private static final Pattern GROUP_PATTERN = Pattern.compile("\\(\\?<([a-zA-Z][a-zA-Z0-9]*)>");
 
-  public static ExprValue getParsedValue(ExprValue value, Pattern pattern, String identifier) {
+  public static ExprValue parseValue(ExprValue value, Pattern pattern, String identifier) {
     if (value.isNull() || value.isMissing()) {
       return ExprValueUtils.nullValue();
     }

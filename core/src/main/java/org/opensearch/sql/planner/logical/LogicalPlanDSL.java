@@ -9,6 +9,7 @@ package org.opensearch.sql.planner.logical;
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.experimental.UtilityClass;
@@ -48,7 +49,7 @@ public class LogicalPlanDSL {
 
   public static LogicalPlan project(LogicalPlan input, NamedExpression... fields) {
     // TODO(josh) fix parseExpressionList
-    return new LogicalProject(input, Arrays.asList(fields), Collections.emptyList());
+    return new LogicalProject(input, Arrays.asList(fields), new HashMap<>());
   }
 
   public LogicalPlan window(LogicalPlan input,

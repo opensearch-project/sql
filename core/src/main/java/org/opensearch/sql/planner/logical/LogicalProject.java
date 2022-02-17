@@ -8,6 +8,7 @@ package org.opensearch.sql.planner.logical;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -24,7 +25,7 @@ public class LogicalProject extends LogicalPlan {
   @Getter
   private final List<NamedExpression> projectList;
   @Getter
-  private final List<ParseExpression> parseExpressionList;
+  private final Map<String, ParseExpression> parseExpressionMap;
 
   /**
    * Constructor of LogicalProject.
@@ -32,10 +33,10 @@ public class LogicalProject extends LogicalPlan {
   public LogicalProject(
       LogicalPlan child,
       List<NamedExpression> projectList,
-      List<ParseExpression> parseExpressionList) {
+      Map<String, ParseExpression> parseExpressionMap) {
     super(Collections.singletonList(child));
     this.projectList = projectList;
-    this.parseExpressionList = parseExpressionList;
+    this.parseExpressionMap = parseExpressionMap;
   }
 
   @Override

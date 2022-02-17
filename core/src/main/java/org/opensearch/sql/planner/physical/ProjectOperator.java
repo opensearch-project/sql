@@ -10,6 +10,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
@@ -18,8 +19,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ParseExpression;
@@ -38,7 +41,7 @@ public class ProjectOperator extends PhysicalPlan {
   @Getter
   private final List<NamedExpression> projectList;
   @Getter
-  private final List<ParseExpression> parseExpressionList;
+  private final Map<String, ParseExpression> parseExpressionMap;
 
   @Override
   public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
@@ -59,27 +62,25 @@ public class ProjectOperator extends PhysicalPlan {
   public ExprValue next() {
     ExprValue inputValue = input.next();
     ImmutableMap.Builder<String, ExprValue> mapBuilder = new Builder<>();
-    Set<String> parsedFields = parseExpressionList.stream()
-        .map(ParseExpression::getIdentifier).collect(Collectors.toSet());
     for (NamedExpression expr : projectList) {
       ExprValue exprValue = expr.valueOf(inputValue.bindingTuples());
-      if (!parsedFields.contains(expr.getNameOrAlias())) {
+      if (!parseExpressionMap.containsKey(expr.getNameOrAlias())) {
         mapBuilder.put(expr.getNameOrAlias(), exprValue);
       }
     }
-    // TODO(josh) either eval cannot rewrite parsed fields or parse cannot rewrite existing fields
-    // and rewriting raw fields after parse will break parse
-    for (ParseExpression expr : parseExpressionList) {
+    // ParseExpression will always override NamedExpression when identifier conflicts
+    for (ParseExpression expr : parseExpressionMap.values()) {
       ExprValue value = inputValue.bindingTuples().resolve(expr.getExpression());
       if (value.isMissing()) {
         // value will be missing after stats command, read from inputValue if it exists
-        ExprValue exprValue = inputValue.tupleValue().get(expr.getIdentifier());
+        // otherwise do nothing since it should not appear as a field
+        ExprValue exprValue = ExprValueUtils.getTupleValue(inputValue).get(expr.getIdentifier());
         if (exprValue != null) {
           mapBuilder.put(expr.getIdentifier(), exprValue);
         }
       } else {
         ExprValue parsedValue =
-            ParseUtils.getParsedValue(value, expr.getPattern(), expr.getIdentifier());
+            ParseUtils.parseValue(value, expr.getPattern(), expr.getIdentifier());
         mapBuilder.put(expr.getIdentifier(), parsedValue);
       }
     }

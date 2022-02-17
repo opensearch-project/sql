@@ -9,6 +9,7 @@ package org.opensearch.sql.planner.physical;
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.experimental.UtilityClass;
@@ -44,7 +45,7 @@ public class PhysicalPlanDSL {
 
   public static ProjectOperator project(PhysicalPlan input, NamedExpression... fields) {
     // TODO(josh) fix this
-    return new ProjectOperator(input, Arrays.asList(fields), Collections.emptyList());
+    return new ProjectOperator(input, Arrays.asList(fields), new HashMap<>());
   }
 
   public static RemoveOperator remove(PhysicalPlan input, ReferenceExpression... fields) {

@@ -276,9 +276,8 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
   }
 
   private Expression visitIdentifier(String ident, AnalysisContext context) {
-    // TODO(josh) need to determine priority if ident exists in both SymbolTable and as ParseExpression
-    // this will always use ParseExpression over SymbolTable, (e.g. parse | eval | where won't work)
-    ParseExpression parseExpression = context.getParseExpression(ident);
+    // ParseExpression will always override ReferenceExpression when ident conflicts
+    ParseExpression parseExpression = context.getParseExpressionMap().get(ident);
     if (parseExpression != null) {
       return parseExpression;
     }

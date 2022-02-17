@@ -70,7 +70,8 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
 
   @Override
   public PhysicalPlan visitProject(ProjectOperator node, Object context) {
-    return new ProjectOperator(visitInput(node.getInput(), context), node.getProjectList(), node.getParseExpressionList());
+    return new ProjectOperator(visitInput(node.getInput(), context), node.getProjectList(),
+        node.getParseExpressionMap());
   }
 
   @Override

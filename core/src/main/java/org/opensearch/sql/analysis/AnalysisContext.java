@@ -6,11 +6,10 @@
 
 package org.opensearch.sql.analysis;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import lombok.Getter;
 import org.opensearch.sql.expression.ParseExpression;
 
 /**
@@ -21,15 +20,16 @@ public class AnalysisContext {
    * Environment stack for symbol scope management.
    */
   private TypeEnvironment environment;
+  @Getter
   private Map<String, ParseExpression> parseExpressionMap;
 
   public AnalysisContext() {
-    this.environment = new TypeEnvironment(null);
-    this.parseExpressionMap = new LinkedHashMap<>();
+    this(new TypeEnvironment(null));
   }
 
   public AnalysisContext(TypeEnvironment environment) {
     this.environment = environment;
+    this.parseExpressionMap = new LinkedHashMap<>();
   }
 
   /**
@@ -59,17 +59,5 @@ public class AnalysisContext {
     TypeEnvironment curEnv = environment;
     environment = curEnv.getParent();
     return curEnv;
-  }
-
-  public void addParseExpression(String identifier, ParseExpression expression) {
-    parseExpressionMap.put(identifier, expression);
-  }
-
-  public ParseExpression getParseExpression(String identifier) {
-    return parseExpressionMap.get(identifier);
-  }
-
-  public List<ParseExpression> getParseExpressionList() {
-    return new ArrayList<>(parseExpressionMap.values());
   }
 }

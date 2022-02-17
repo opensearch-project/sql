@@ -12,7 +12,6 @@ import lombok.ToString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.env.Environment;
@@ -28,24 +27,23 @@ public class ParseExpression implements Expression {
 
   @Getter
   private final Expression expression;
+  private final String rawPattern;
   @Getter
   private final String identifier;
-  private final String rawPattern;
   @Getter
   @EqualsAndHashCode.Exclude
   private final Pattern pattern;
 
   public ParseExpression(Expression expression, String rawPattern, String identifier) {
     this.expression = expression;
-    this.identifier = identifier;
     this.rawPattern = rawPattern;
+    this.identifier = identifier;
     this.pattern = Pattern.compile(rawPattern);
   }
 
   @Override
   public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-    ExprValue value = valueEnv.resolve(expression);
-    return ParseUtils.getParsedValue(value, pattern, identifier);
+    return ParseUtils.parseValue(valueEnv.resolve(expression), pattern, identifier);
   }
 
   @Override
