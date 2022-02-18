@@ -101,7 +101,7 @@ byClause
 statsByClause
     : BY fieldList
     | BY bySpanClause
-    | BY fieldList bySpanClause
+    | BY bySpanClause COMMA fieldList
     ;
 
 bySpanClause

@@ -39,7 +39,7 @@ stats <aggregation>... [by-clause]
 
 * by-clause: optional.
 
- * Syntax: by [field]... [span-expression].
+ * Syntax: by [span-expression,] [field,]...
  * Description: The by clause could be the fields and expressions like scalar functions and aggregation functions. Besides, the span clause can be used to split specific field into buckets in the same interval, the stats then does the aggregation by these span buckets.
  * Default: If no <by-clause> is specified, the stats command returns only one row, which is the aggregation over the entire result set.
 
@@ -372,7 +372,7 @@ The example gets the count of age by the interval of 10 years and group by gende
 
 PPL query::
 
-    os> source=accounts | stats count() as cnt by gender span(age, 5) as age_span
+    os> source=accounts | stats count() as cnt by span(age, 5) as age_span, gender
     fetched rows / total rows = 3/3
     +-------+------------+----------+
     | cnt   | age_span   | gender   |

@@ -294,7 +294,7 @@ public class AstBuilderTest {
             defaultStatsArgs()
         ));
 
-    assertEqual("source=t | stats avg(price) by b span(timestamp, 1h)",
+    assertEqual("source=t | stats avg(price) by span(timestamp, 1h), b",
         agg(
             relation("t"),
             exprList(
@@ -306,7 +306,7 @@ public class AstBuilderTest {
             defaultStatsArgs()
         ));
 
-    assertEqual("source=t | stats avg(price) by f1, f2 span(timestamp, 1h)",
+    assertEqual("source=t | stats avg(price) by span(timestamp, 1h), f1, f2",
         agg(
             relation("t"),
             exprList(
