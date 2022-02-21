@@ -6,7 +6,7 @@
 
 package org.opensearch.sql.utils;
 
-import java.util.ArrayList;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -55,11 +55,11 @@ public class ParseUtils {
    * @return list of named capture groups in regex pattern
    */
   public static List<String> getNamedGroupCandidates(String pattern) {
-    List<String> namedGroups = new ArrayList<>();
+    ImmutableList.Builder<String> namedGroups = ImmutableList.builder();
     Matcher m = GROUP_PATTERN.matcher(pattern);
     while (m.find()) {
       namedGroups.add(m.group(1));
     }
-    return namedGroups;
+    return namedGroups.build();
   }
 }
