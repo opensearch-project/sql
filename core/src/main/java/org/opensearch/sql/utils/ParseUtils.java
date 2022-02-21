@@ -26,6 +26,14 @@ public class ParseUtils {
   private static final Logger log = LogManager.getLogger(ParseUtils.class);
   private static final Pattern GROUP_PATTERN = Pattern.compile("\\(\\?<([a-zA-Z][a-zA-Z0-9]*)>");
 
+  /**
+   * Get matched group value.
+   *
+   * @param value      text field
+   * @param pattern    regex pattern
+   * @param identifier named capture group
+   * @return matched group value, empty string if pattern does not match
+   */
   public static ExprValue parseValue(ExprValue value, Pattern pattern, String identifier) {
     if (value.isNull() || value.isMissing()) {
       return ExprValueUtils.nullValue();
@@ -40,6 +48,12 @@ public class ParseUtils {
     return new ExprStringValue("");
   }
 
+  /**
+   * Get capture groups from regex pattern.
+   *
+   * @param pattern regex pattern
+   * @return list of named capture groups in regex pattern
+   */
   public static List<String> getNamedGroupCandidates(String pattern) {
     List<String> namedGroups = new ArrayList<>();
     Matcher m = GROUP_PATTERN.matcher(pattern);

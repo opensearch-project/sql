@@ -34,6 +34,13 @@ public class ParseExpression implements Expression {
   @EqualsAndHashCode.Exclude
   private final Pattern pattern;
 
+  /**
+   * ParseExpression.
+   *
+   * @param expression text field
+   * @param rawPattern regex
+   * @param identifier regex group to extract
+   */
   public ParseExpression(Expression expression, String rawPattern, String identifier) {
     this.expression = expression;
     this.rawPattern = rawPattern;
