@@ -115,6 +115,10 @@ public class DSL {
     return new NamedArgumentExpression(argName, value);
   }
 
+  public static ParseExpression parsed(Expression expression, String pattern, String identifier) {
+    return new ParseExpression(expression, pattern, identifier);
+  }
+
   public static SpanExpression span(Expression field, Expression value, String unit) {
     return new SpanExpression(field, value, SpanUnit.of(unit));
   }
@@ -254,7 +258,7 @@ public class DSL {
   public FunctionExpression multiply(Expression... expressions) {
     return function(BuiltinFunctionName.MULTIPLY, expressions);
   }
-  
+
   public FunctionExpression adddate(Expression... expressions) {
     return function(BuiltinFunctionName.ADDDATE, expressions);
   }
@@ -366,7 +370,7 @@ public class DSL {
   public FunctionExpression substr(Expression... expressions) {
     return function(BuiltinFunctionName.SUBSTR, expressions);
   }
-  
+
   public FunctionExpression substring(Expression... expressions) {
     return function(BuiltinFunctionName.SUBSTR, expressions);
   }

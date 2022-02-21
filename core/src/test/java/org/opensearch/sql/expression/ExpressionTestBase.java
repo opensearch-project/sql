@@ -12,8 +12,8 @@ import static org.opensearch.sql.config.TestConfig.DOUBLE_TYPE_MISSING_VALUE_FIE
 import static org.opensearch.sql.config.TestConfig.DOUBLE_TYPE_NULL_VALUE_FIELD;
 import static org.opensearch.sql.config.TestConfig.INT_TYPE_MISSING_VALUE_FIELD;
 import static org.opensearch.sql.config.TestConfig.INT_TYPE_NULL_VALUE_FIELD;
-import static org.opensearch.sql.config.TestConfig.STRING_TYPE_MISSING_VALUE_FILED;
-import static org.opensearch.sql.config.TestConfig.STRING_TYPE_NULL_VALUE_FILED;
+import static org.opensearch.sql.config.TestConfig.STRING_TYPE_MISSING_VALUE_FIELD;
+import static org.opensearch.sql.config.TestConfig.STRING_TYPE_NULL_VALUE_FIELD;
 import static org.opensearch.sql.data.model.ExprValueUtils.booleanValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.collectionValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.doubleValue;
@@ -77,12 +77,12 @@ public class ExpressionTestBase {
           case BOOL_TYPE_NULL_VALUE_FIELD:
           case INT_TYPE_NULL_VALUE_FIELD:
           case DOUBLE_TYPE_NULL_VALUE_FIELD:
-          case STRING_TYPE_NULL_VALUE_FILED:
+          case STRING_TYPE_NULL_VALUE_FIELD:
             return nullValue();
           case INT_TYPE_MISSING_VALUE_FIELD:
           case BOOL_TYPE_MISSING_VALUE_FIELD:
           case DOUBLE_TYPE_MISSING_VALUE_FIELD:
-          case STRING_TYPE_MISSING_VALUE_FILED:
+          case STRING_TYPE_MISSING_VALUE_FIELD:
             return missingValue();
           default:
             throw new IllegalArgumentException("undefined reference");

@@ -9,22 +9,20 @@ import java.util.regex.Pattern;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.utils.ParseUtils;
 
 /**
- * Named argument expression that represents function argument with name.
+ * ParseExpression with regex and named capture group.
  */
 @EqualsAndHashCode
 @ToString
 public class ParseExpression implements Expression {
-  private static final Logger log = LogManager.getLogger(ParseExpression.class);
-
   @Getter
   private final Expression expression;
   private final String rawPattern;
@@ -39,7 +37,7 @@ public class ParseExpression implements Expression {
    *
    * @param expression text field
    * @param rawPattern regex
-   * @param identifier regex group to extract
+   * @param identifier named capture group to extract
    */
   public ParseExpression(Expression expression, String rawPattern, String identifier) {
     this.expression = expression;
@@ -50,7 +48,13 @@ public class ParseExpression implements Expression {
 
   @Override
   public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-    return ParseUtils.parseValue(valueEnv.resolve(expression), pattern, identifier);
+    ExprValue value = valueEnv.resolve(expression);
+    try {
+      return ParseUtils.parseValue(value, pattern, identifier);
+    } catch (ExpressionEvaluationException e) {
+      throw new SemanticCheckException(
+          String.format("failed to parse field \"%s\" with type [%s]", expression, value.type()));
+    }
   }
 
   @Override

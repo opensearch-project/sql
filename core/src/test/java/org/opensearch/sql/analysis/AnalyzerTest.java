@@ -669,4 +669,9 @@ class AnalyzerTest extends AnalyzerTestBase {
             alias("span", span(field("long_value"), intLiteral(10), SpanUnit.NONE)),
             emptyList()));
   }
+
+  @Test
+  public void parse_pattern() {
+
+  }
 }

@@ -16,6 +16,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.ParseExpression;
 
 /**
@@ -27,14 +28,15 @@ public class ParseUtils {
   private static final Pattern GROUP_PATTERN = Pattern.compile("\\(\\?<([a-zA-Z][a-zA-Z0-9]*)>");
 
   /**
-   * Get matched group value.
+   * Get matched group value, throws ExpressionEvaluationException if value type is not string.
    *
    * @param value      text field
    * @param pattern    regex pattern
    * @param identifier named capture group
    * @return matched group value, empty string if pattern does not match
    */
-  public static ExprValue parseValue(ExprValue value, Pattern pattern, String identifier) {
+  public static ExprValue parseValue(ExprValue value, Pattern pattern, String identifier)
+      throws ExpressionEvaluationException {
     if (value.isNull() || value.isMissing()) {
       return ExprValueUtils.nullValue();
     }

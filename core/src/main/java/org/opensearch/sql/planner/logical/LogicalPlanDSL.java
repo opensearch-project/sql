@@ -6,10 +6,9 @@
 
 package org.opensearch.sql.planner.logical;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.experimental.UtilityClass;
@@ -19,6 +18,7 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.ParseExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
@@ -48,8 +48,12 @@ public class LogicalPlanDSL {
   }
 
   public static LogicalPlan project(LogicalPlan input, NamedExpression... fields) {
-    // TODO(josh) fix parseExpressionList
-    return new LogicalProject(input, Arrays.asList(fields), new HashMap<>());
+    return new LogicalProject(input, Arrays.asList(fields), ImmutableMap.of());
+  }
+
+  public static LogicalPlan project(LogicalPlan input, List<NamedExpression> fields,
+                                    Map<String, ParseExpression> parseExpressionMap) {
+    return new LogicalProject(input, fields, parseExpressionMap);
   }
 
   public LogicalPlan window(LogicalPlan input,
@@ -84,14 +88,14 @@ public class LogicalPlanDSL {
     return new LogicalDedupe(
         input, Arrays.asList(fields), allowedDuplication, keepEmpty, consecutive);
   }
-  
+
   public static LogicalPlan rareTopN(LogicalPlan input, CommandType commandType,
-      List<Expression> groupByList, Expression... fields) {
+                                     List<Expression> groupByList, Expression... fields) {
     return rareTopN(input, commandType, 10, groupByList, fields);
   }
 
   public static LogicalPlan rareTopN(LogicalPlan input, CommandType commandType, int noOfResults,
-      List<Expression> groupByList, Expression... fields) {
+                                     List<Expression> groupByList, Expression... fields) {
     return new LogicalRareTopN(input, commandType, noOfResults, Arrays.asList(fields), groupByList);
   }
 
