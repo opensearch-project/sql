@@ -284,7 +284,7 @@ class OpenSearchNodeClientTest {
   @Test
   void ml() {
     OpenSearchNodeClient client = new OpenSearchNodeClient(mock(ClusterService.class), nodeClient);
-    assertNotNull(client.mlCommonsClient());
+    assertNotNull(client.getNodeClient());
   }
 
   private OpenSearchNodeClient mockClient(String indexName, String mappings) {

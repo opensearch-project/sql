@@ -21,12 +21,17 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.runner.RunWith;
 import org.mockito.Answers;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.opensearch.ml.client.MachineLearningClient;
+import org.opensearch.client.node.NodeClient;
+import org.opensearch.ml.client.MachineLearningNodeClient;
 import org.opensearch.ml.common.dataframe.DataFrame;
 import org.opensearch.ml.common.dataframe.DataFrameBuilder;
 import org.opensearch.ml.common.parameter.MLInput;
@@ -36,19 +41,24 @@ import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.opensearch.client.MLClient;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
+@RunWith(MockitoJUnitRunner.Silent.class)
 public class MLCommonsOperatorTest {
   @Mock
   private PhysicalPlan input;
 
   @Mock(answer =  Answers.RETURNS_DEEP_STUBS)
-  private MachineLearningClient machineLearningClient;
+  private NodeClient nodeClient;
 
   private MLCommonsOperator mlCommonsOperator;
+
+  @Mock(answer =  Answers.RETURNS_DEEP_STUBS)
+  private MachineLearningNodeClient machineLearningNodeClient;
 
   @BeforeEach
   void setUp() {
@@ -60,7 +70,7 @@ public class MLCommonsOperatorTest {
                     AstDSL.argument("k5", AstDSL.shortLiteral((short)2)),
                     AstDSL.argument("k6", AstDSL.longLiteral(2L)),
                     AstDSL.argument("k7", AstDSL.floatLiteral(2F))),
-            machineLearningClient);
+            nodeClient);
     when(input.hasNext()).thenReturn(true).thenReturn(false);
     ImmutableMap.Builder<String, ExprValue> resultBuilder = new ImmutableMap.Builder<>();
     resultBuilder.put("k1", new ExprIntegerValue(2));
@@ -77,16 +87,20 @@ public class MLCommonsOperatorTest {
                             .put("result-k7", 2F)
                             .build())
             );
-
     MLPredictionOutput mlPredictionOutput = MLPredictionOutput.builder()
             .taskId("test_task_id")
             .status("test_status")
             .predictionResult(dataFrame)
             .build();
 
-    when(machineLearningClient.trainAndPredict(any(MLInput.class)).actionGet(anyLong(),
-            eq(TimeUnit.SECONDS))).thenReturn(mlPredictionOutput);
-
+    try (MockedStatic<MLClient> mlClientMockedStatic = Mockito.mockStatic(MLClient.class)) {
+      mlClientMockedStatic.when(() -> MLClient.getMLClient(any(NodeClient.class)))
+              .thenReturn(machineLearningNodeClient);
+      when(machineLearningNodeClient.trainAndPredict(any(MLInput.class))
+              .actionGet(anyLong(),
+                      eq(TimeUnit.SECONDS)))
+              .thenReturn(mlPredictionOutput);
+    }
   }
 
   @Test

@@ -129,10 +129,12 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
   @Override
   public PhysicalPlan visitMLCommons(PhysicalPlan node, Object context) {
     MLCommonsOperator mlCommonsOperator = (MLCommonsOperator) node;
-    return new MLCommonsOperator(visitInput(mlCommonsOperator.getInput(), context),
-            mlCommonsOperator.getAlgorithm(),
-            mlCommonsOperator.getArguments(),
-            mlCommonsOperator.getMachineLearningClient());
+    return doProtect(
+            new MLCommonsOperator(visitInput(mlCommonsOperator.getInput(), context),
+                    mlCommonsOperator.getAlgorithm(),
+                    mlCommonsOperator.getArguments(),
+                    mlCommonsOperator.getNodeClient())
+    );
   }
 
   PhysicalPlan visitInput(PhysicalPlan node, Object context) {
@@ -143,7 +145,7 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
     }
   }
 
-  private PhysicalPlan doProtect(PhysicalPlan node) {
+  protected PhysicalPlan doProtect(PhysicalPlan node) {
     if (isProtected(node)) {
       return node;
     }

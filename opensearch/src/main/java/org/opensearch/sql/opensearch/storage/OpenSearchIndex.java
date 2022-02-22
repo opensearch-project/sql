@@ -166,7 +166,7 @@ public class OpenSearchIndex implements Table {
     @Override
     public PhysicalPlan visitMLCommons(LogicalMLCommons node, OpenSearchIndexScan context) {
       return new MLCommonsOperator(visitChild(node, context), node.getAlgorithm(),
-              node.getArguments(), client.mlCommonsClient());
+              node.getArguments(), client.getNodeClient());
     }
   }
 }

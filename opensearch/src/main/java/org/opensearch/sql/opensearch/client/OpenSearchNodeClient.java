@@ -30,8 +30,6 @@ import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.collect.ImmutableOpenMap;
 import org.opensearch.common.unit.TimeValue;
-import org.opensearch.ml.client.MachineLearningClient;
-import org.opensearch.ml.client.MachineLearningNodeClient;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
@@ -150,8 +148,8 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   }
 
   @Override
-  public MachineLearningClient mlCommonsClient() {
-    return new MachineLearningNodeClient(client);
+  public NodeClient getNodeClient() {
+    return client;
   }
 
   private String[] resolveIndexExpression(ClusterState state, String[] indices) {

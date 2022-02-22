@@ -8,7 +8,7 @@ package org.opensearch.sql.opensearch.client;
 
 import java.util.List;
 import java.util.Map;
-import org.opensearch.ml.client.MachineLearningClient;
+import org.opensearch.client.node.NodeClient;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
@@ -66,9 +66,5 @@ public interface OpenSearchClient {
    */
   void schedule(Runnable task);
 
-  /**
-   * Get ml-commons client.
-   * @return ml-commons client
-   */
-  MachineLearningClient mlCommonsClient();
+  NodeClient getNodeClient();
 }

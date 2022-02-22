@@ -269,7 +269,7 @@ class OpenSearchRestClientTest {
 
   @Test
   void mlWithException() {
-    assertThrows(UnsupportedOperationException.class, () -> client.mlCommonsClient());
+    assertThrows(UnsupportedOperationException.class, () -> client.getNodeClient());
   }
 
   private Map<String, MappingMetadata> mockFieldMappings(String indexName, String mappings)
