@@ -7,8 +7,13 @@
 package org.opensearch.sql.ppl.utils;
 
 import static org.junit.Assert.assertEquals;
+import static org.opensearch.sql.ast.dsl.AstDSL.field;
+import static org.opensearch.sql.ast.dsl.AstDSL.projectWithArg;
+import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 
+import java.util.Collections;
 import org.junit.Test;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.parser.AstBuilder;
 import org.opensearch.sql.ppl.parser.AstExpressionBuilder;
@@ -146,9 +151,20 @@ public class PPLQueryDataAnonymizerTest {
     );
   }
 
+  @Test
+  public void anonymizeFieldsNoArg() {
+    assertEquals("source=t | fields + f",
+        anonymize(projectWithArg(relation("t"), Collections.emptyList(), field("f")))
+    );
+  }
+
   private String anonymize(String query) {
     AstBuilder astBuilder = new AstBuilder(new AstExpressionBuilder(), query);
-    final PPLQueryDataAnonymizer anonymizer = new PPLQueryDataAnonymizer();
-    return anonymizer.anonymizeData(astBuilder.visit(parser.analyzeSyntax(query)));
+    return anonymize(astBuilder.visit(parser.analyzeSyntax(query)));
+  }
+
+  private String anonymize(UnresolvedPlan plan) {
+    final PPLQueryDataAnonymizer anonymize = new PPLQueryDataAnonymizer();
+    return anonymize.anonymizeData(plan);
   }
 }

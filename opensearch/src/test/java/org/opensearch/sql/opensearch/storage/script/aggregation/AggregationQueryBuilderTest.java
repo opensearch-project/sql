@@ -9,11 +9,14 @@ package org.opensearch.sql.opensearch.storage.script.aggregation;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.expression.DSL.ref;
@@ -400,16 +403,19 @@ class AggregationQueryBuilderTest {
   void should_build_histogram() {
     assertEquals(
         "{\n"
-            + "  \"SpanExpression(field=age, value=10, unit=NONE)\" : {\n"
-            + "    \"histogram\" : {\n"
-            + "      \"field\" : \"age\",\n"
-            + "      \"interval\" : 10.0,\n"
-            + "      \"offset\" : 0.0,\n"
-            + "      \"order\" : {\n"
-            + "        \"_key\" : \"asc\"\n"
-            + "      },\n"
-            + "      \"keyed\" : false,\n"
-            + "      \"min_doc_count\" : 0\n"
+            + "  \"composite_buckets\" : {\n"
+            + "    \"composite\" : {\n"
+            + "      \"size\" : 1000,\n"
+            + "      \"sources\" : [ {\n"
+            + "        \"SpanExpression(field=age, value=10, unit=NONE)\" : {\n"
+            + "          \"histogram\" : {\n"
+            + "            \"field\" : \"age\",\n"
+            + "            \"missing_bucket\" : true,\n"
+            + "            \"order\" : \"asc\",\n"
+            + "            \"interval\" : 10.0\n"
+            + "          }\n"
+            + "        }\n"
+            + "      } ]\n"
             + "    },\n"
             + "    \"aggregations\" : {\n"
             + "      \"count(a)\" : {\n"
@@ -420,9 +426,156 @@ class AggregationQueryBuilderTest {
             + "    }\n"
             + "  }\n"
             + "}",
-        buildQuery(Arrays.asList(named("count(a)", new CountAggregator(Arrays.asList(ref(
-            "a", INTEGER)), INTEGER))),
+        buildQuery(
+            Arrays.asList(
+                named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER))),
             Arrays.asList(named(span(ref("age", INTEGER), literal(10), "")))));
+  }
+
+  @Test
+  void should_build_histogram_two_metrics() {
+    assertEquals(
+        "{\n"
+            + "  \"composite_buckets\" : {\n"
+            + "    \"composite\" : {\n"
+            + "      \"size\" : 1000,\n"
+            + "      \"sources\" : [ {\n"
+            + "        \"SpanExpression(field=age, value=10, unit=NONE)\" : {\n"
+            + "          \"histogram\" : {\n"
+            + "            \"field\" : \"age\",\n"
+            + "            \"missing_bucket\" : true,\n"
+            + "            \"order\" : \"asc\",\n"
+            + "            \"interval\" : 10.0\n"
+            + "          }\n"
+            + "        }\n"
+            + "      } ]\n"
+            + "    },\n"
+            + "    \"aggregations\" : {\n"
+            + "      \"count(a)\" : {\n"
+            + "        \"value_count\" : {\n"
+            + "          \"field\" : \"a\"\n"
+            + "        }\n"
+            + "      },\n"
+            + "      \"avg(b)\" : {\n"
+            + "        \"avg\" : {\n"
+            + "          \"field\" : \"b\"\n"
+            + "        }\n"
+            + "      }\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            Arrays.asList(
+                named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER)),
+                named("avg(b)", new AvgAggregator(Arrays.asList(ref("b", INTEGER)), INTEGER))),
+            Arrays.asList(named(span(ref("age", INTEGER), literal(10), "")))));
+  }
+
+  @Test
+  void fixed_interval_time_span() {
+    assertEquals(
+        "{\n"
+            + "  \"composite_buckets\" : {\n"
+            + "    \"composite\" : {\n"
+            + "      \"size\" : 1000,\n"
+            + "      \"sources\" : [ {\n"
+            + "        \"SpanExpression(field=timestamp, value=1, unit=H)\" : {\n"
+            + "          \"date_histogram\" : {\n"
+            + "            \"field\" : \"timestamp\",\n"
+            + "            \"missing_bucket\" : true,\n"
+            + "            \"order\" : \"asc\",\n"
+            + "            \"fixed_interval\" : \"1h\"\n"
+            + "          }\n"
+            + "        }\n"
+            + "      } ]\n"
+            + "    },\n"
+            + "    \"aggregations\" : {\n"
+            + "      \"count(a)\" : {\n"
+            + "        \"value_count\" : {\n"
+            + "          \"field\" : \"a\"\n"
+            + "        }\n"
+            + "      }\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            Arrays.asList(
+                named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER))),
+            Arrays.asList(named(span(ref("timestamp", TIMESTAMP), literal(1), "h")))));
+  }
+
+  @Test
+  void calendar_interval_time_span() {
+    assertEquals(
+        "{\n"
+            + "  \"composite_buckets\" : {\n"
+            + "    \"composite\" : {\n"
+            + "      \"size\" : 1000,\n"
+            + "      \"sources\" : [ {\n"
+            + "        \"SpanExpression(field=date, value=1, unit=W)\" : {\n"
+            + "          \"date_histogram\" : {\n"
+            + "            \"field\" : \"date\",\n"
+            + "            \"missing_bucket\" : true,\n"
+            + "            \"order\" : \"asc\",\n"
+            + "            \"calendar_interval\" : \"1w\"\n"
+            + "          }\n"
+            + "        }\n"
+            + "      } ]\n"
+            + "    },\n"
+            + "    \"aggregations\" : {\n"
+            + "      \"count(a)\" : {\n"
+            + "        \"value_count\" : {\n"
+            + "          \"field\" : \"a\"\n"
+            + "        }\n"
+            + "      }\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            Arrays.asList(
+                named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER))),
+            Arrays.asList(named(span(ref("date", DATE), literal(1), "w")))));
+  }
+
+  @Test
+  void general_span() {
+    assertEquals(
+        "{\n"
+            + "  \"composite_buckets\" : {\n"
+            + "    \"composite\" : {\n"
+            + "      \"size\" : 1000,\n"
+            + "      \"sources\" : [ {\n"
+            + "        \"SpanExpression(field=age, value=1, unit=NONE)\" : {\n"
+            + "          \"histogram\" : {\n"
+            + "            \"field\" : \"age\",\n"
+            + "            \"missing_bucket\" : true,\n"
+            + "            \"order\" : \"asc\",\n"
+            + "            \"interval\" : 1.0\n"
+            + "          }\n"
+            + "        }\n"
+            + "      } ]\n"
+            + "    },\n"
+            + "    \"aggregations\" : {\n"
+            + "      \"count(a)\" : {\n"
+            + "        \"value_count\" : {\n"
+            + "          \"field\" : \"a\"\n"
+            + "        }\n"
+            + "      }\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            Arrays.asList(
+                named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER))),
+            Arrays.asList(named(span(ref("age", INTEGER), literal(1), "")))));
+  }
+
+  @Test
+  void invalid_unit() {
+    assertThrows(IllegalStateException.class, () -> buildQuery(
+        Arrays.asList(
+            named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER))),
+        Arrays.asList(named(span(ref("age", INTEGER), literal(1), "invalid_unit")))));
   }
 
   @SneakyThrows

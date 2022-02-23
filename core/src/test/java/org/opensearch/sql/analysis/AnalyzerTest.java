@@ -21,6 +21,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
+import static org.opensearch.sql.ast.dsl.AstDSL.span;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder;
 import static org.opensearch.sql.ast.tree.Sort.SortOption;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
@@ -41,6 +42,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
@@ -643,5 +645,28 @@ class AnalyzerTest extends AnalyzerTestBase {
                     ">", qualifiedName("integer_value"), intLiteral(1))))
         )
     );
+  }
+
+  /**
+   * stats avg(integer_value) by string_value span(long_value, 10).
+   */
+  @Test
+  public void ppl_stats_by_fieldAndSpan() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.aggregation(
+            LogicalPlanDSL.relation("schema"),
+            ImmutableList.of(
+                DSL.named("AVG(integer_value)", dsl.avg(DSL.ref("integer_value", INTEGER)))),
+            ImmutableList.of(
+                DSL.named("span", DSL.span(DSL.ref("long_value", LONG), DSL.literal(10), "")),
+                DSL.named("string_value", DSL.ref("string_value", STRING)))),
+        AstDSL.agg(
+            AstDSL.relation("schema"),
+            ImmutableList.of(
+                alias("AVG(integer_value)", aggregate("AVG", qualifiedName("integer_value")))),
+            emptyList(),
+            ImmutableList.of(alias("string_value", qualifiedName("string_value"))),
+            alias("span", span(field("long_value"), intLiteral(10), SpanUnit.NONE)),
+            emptyList()));
   }
 }

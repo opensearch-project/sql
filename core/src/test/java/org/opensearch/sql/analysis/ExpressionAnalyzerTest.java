@@ -18,9 +18,9 @@ import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
-import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 
+import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensearch.sql.analysis.symbol.Namespace;
@@ -28,7 +28,6 @@ import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
-import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
@@ -36,7 +35,6 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
-import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.window.aggregation.AggregateWindowFunction;
 import org.springframework.context.annotation.Configuration;
@@ -317,6 +315,21 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
         DSL.span(DSL.ref("integer_value", INTEGER), DSL.literal(1), ""),
         AstDSL.span(qualifiedName("integer_value"), intLiteral(1), SpanUnit.NONE)
     );
+  }
+
+  @Test
+  void visit_in() {
+    assertAnalyzeEqual(
+        dsl.or(
+            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(1)),
+            dsl.or(
+                dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(2)),
+                dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(3)))),
+        AstDSL.in(field("integer_value"), intLiteral(1), intLiteral(2), intLiteral(3)));
+
+    assertThrows(
+        SemanticCheckException.class,
+        () -> analyze(AstDSL.in(field("integer_value"), Collections.emptyList())));
   }
 
   protected Expression analyze(UnresolvedExpression unresolvedExpression) {

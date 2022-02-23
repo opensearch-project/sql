@@ -88,8 +88,7 @@ dependencies {
             because 'https://www.whitesourcesoftware.com/vulnerability-database/WS-2019-0379'
         }
     }
-    // https://github.com/google/guava/wiki/CVE-2018-10237
-    implementation group: 'com.google.guava', name: 'guava', version: '29.0-jre'
+    implementation group: 'com.google.guava', name: 'guava', version: '31.0.1-jre'
     compile group: 'org.json', name: 'json', version:'20180813'
     compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.10'
     compile group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
@@ -104,7 +103,7 @@ dependencies {
 
     testCompile group: 'org.hamcrest', name: 'hamcrest-core', version:'2.2'
     testCompile group: 'org.mockito', name: 'mockito-inline', version:'3.5.0'
-    testCompile group: 'junit', name: 'junit', version: '4.12'
+    testCompile group: 'junit', name: 'junit', version: '4.13.2'
     testCompile group: "org.opensearch.client", name: 'transport', version: "${opensearch_version}"
 
 }
