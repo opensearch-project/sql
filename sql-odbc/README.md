@@ -16,7 +16,7 @@ The driver is compatible with ODBC 3.51.
 
 ## Connectors
 
-* **Power BI Desktop**: [`SqlOdbcPBIConnector.mez`](./src/PowerBIConnector/bin/Release/SqlOdbcPBIConnector.mez)
+* **Power BI Desktop**: [`OpenSearch.mez`](./src/PowerBIConnector/bin/Release/OpenSearch.mez)
 * **Tableau**: [`opensearch_sql_odbc.taco`](./src/TableauConnector/opensearch_sql_odbc/opensearch_sql_odbc.taco)
 
 ## Installing the Driver
@@ -35,7 +35,7 @@ This will customize the connection from Tableau to OpenSearch, ensuring that the
 
 ### Mac
 
-iODBC Driver Manager should be installed before installing the OpenSearch SQL ODBC Driver on Mac.
+[iODBC Driver Manager](http://www.iodbc.org/dataspace/doc/iodbc/wiki/iodbcWiki/WelcomeVisitors) should be installed before installing the OpenSearch SQL ODBC Driver on Mac.
 
 1. Run the `.pkg` installer to install the OpenSearch SQL ODBC Driver.
 2. Configure a Driver and DSN entry for the OpenSearch SQL ODBC Driver, following the instructions [here](./docs/user/mac_configure_dsn.md).
@@ -94,7 +94,7 @@ If you discover a potential security issue in this project we ask that you notif
 
 ## Licensing
 
-See the [LICENSE](./LICENSE) file for our project's licensing. We will ask you to confirm the licensing of your contribution.
+See the [LICENSE](./LICENSE.txt) file for our project's licensing. We will ask you to confirm the licensing of your contribution.
 
 ## Copyright
 

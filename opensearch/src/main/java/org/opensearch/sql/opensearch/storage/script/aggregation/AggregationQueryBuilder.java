@@ -29,15 +29,12 @@ import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
-import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
-import org.opensearch.sql.opensearch.response.agg.SpanAggregationParser;
 import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.BucketAggregationBuilder;
 import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.MetricAggregationBuilder;
-import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.SpanAggregationBuilder;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
 /**
@@ -63,18 +60,12 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
   private final MetricAggregationBuilder metricBuilder;
 
   /**
-   * Span Aggregation Builder.
-   */
-  private final SpanAggregationBuilder spanAggregationBuilder;
-
-  /**
    * Aggregation Query Builder Constructor.
    */
   public AggregationQueryBuilder(
       ExpressionSerializer serializer) {
     this.bucketBuilder = new BucketAggregationBuilder(serializer);
     this.metricBuilder = new MetricAggregationBuilder(serializer);
-    this.spanAggregationBuilder = new SpanAggregationBuilder();
   }
 
   /** Build AggregationBuilder. */
@@ -92,14 +83,6 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
       return Pair.of(
           ImmutableList.copyOf(metrics.getLeft().getAggregatorFactories()),
           new NoBucketAggregationParser(metrics.getRight()));
-    } else if (groupByList.size() == 1 && groupByList.get(0)
-        .getDelegated() instanceof SpanExpression) {
-      // span aggregation
-      return Pair.of(
-          Collections.singletonList(spanAggregationBuilder.build(groupByList.get(0))
-              .subAggregations(metrics.getLeft())),
-          new SpanAggregationParser(metrics.getRight().get(0))
-      );
     } else {
       GroupSortOrder groupSortOrder = new GroupSortOrder(sortList);
       return Pair.of(

@@ -58,14 +58,23 @@ public class OpenSearchIndexScan extends TableScanOperator {
   private Iterator<ExprValue> iterator;
 
   /**
-   * Todo.
+   * Constructor.
    */
   public OpenSearchIndexScan(OpenSearchClient client,
                              Settings settings, String indexName,
                              OpenSearchExprValueFactory exprValueFactory) {
+    this(client, settings, new OpenSearchRequest.IndexName(indexName), exprValueFactory);
+  }
+
+  /**
+   * Constructor.
+   */
+  public OpenSearchIndexScan(OpenSearchClient client,
+      Settings settings, OpenSearchRequest.IndexName indexName,
+      OpenSearchExprValueFactory exprValueFactory) {
     this.client = client;
     this.request = new OpenSearchQueryRequest(indexName,
-            settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT), exprValueFactory);
+        settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT), exprValueFactory);
   }
 
   @Override

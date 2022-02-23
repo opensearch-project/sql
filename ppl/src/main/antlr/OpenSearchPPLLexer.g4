@@ -91,6 +91,15 @@ DATAMODEL:                          'DATAMODEL';
 LOOKUP:                             'LOOKUP';
 SAVEDSEARCH:                        'SAVEDSEARCH';
 
+// CONVERTED DATA TYPES
+INT:                                'INT';
+INTEGER:                            'INTEGER';
+DOUBLE:                             'DOUBLE';
+LONG:                               'LONG';
+FLOAT:                              'FLOAT';
+STRING:                             'STRING';
+BOOLEAN:                            'BOOLEAN';
+
 // SPECIAL CHARACTERS AND OPERATORS
 PIPE:                               '|';
 COMMA:                              ',';
@@ -225,6 +234,7 @@ LEFT:                               'LEFT';
 ASCII:                              'ASCII';
 LOCATE:                             'LOCATE';
 REPLACE:                            'REPLACE';
+CAST:                               'CAST';
 
 // BOOL FUNCTIONS
 LIKE:                               'LIKE';

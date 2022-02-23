@@ -38,15 +38,15 @@ public class ExprTimestampValue extends AbstractExprValue {
       .ofPattern("yyyy-MM-dd HH:mm:ss");
   private final Instant timestamp;
 
-  private static final DateTimeFormatter FORMATTER_VARIABLE_MICROS;
+  private static final DateTimeFormatter FORMATTER_VARIABLE_NANOS;
   private static final int MIN_FRACTION_SECONDS = 0;
-  private static final int MAX_FRACTION_SECONDS = 6;
+  private static final int MAX_FRACTION_SECONDS = 9;
 
   static {
-    FORMATTER_VARIABLE_MICROS = new DateTimeFormatterBuilder()
+    FORMATTER_VARIABLE_NANOS = new DateTimeFormatterBuilder()
         .appendPattern("yyyy-MM-dd HH:mm:ss")
         .appendFraction(
-                ChronoField.MICRO_OF_SECOND,
+                ChronoField.NANO_OF_SECOND,
                 MIN_FRACTION_SECONDS,
                 MAX_FRACTION_SECONDS,
                 true)
@@ -58,12 +58,12 @@ public class ExprTimestampValue extends AbstractExprValue {
    */
   public ExprTimestampValue(String timestamp) {
     try {
-      this.timestamp = LocalDateTime.parse(timestamp, FORMATTER_VARIABLE_MICROS)
+      this.timestamp = LocalDateTime.parse(timestamp, FORMATTER_VARIABLE_NANOS)
           .atZone(ZONE)
           .toInstant();
     } catch (DateTimeParseException e) {
       throw new SemanticCheckException(String.format("timestamp:%s in unsupported format, please "
-          + "use yyyy-MM-dd HH:mm:ss[.SSSSSS]", timestamp));
+          + "use yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]", timestamp));
     }
 
   }
@@ -72,7 +72,7 @@ public class ExprTimestampValue extends AbstractExprValue {
   public String value() {
     return timestamp.getNano() == 0 ? FORMATTER_WITHOUT_NANO.withZone(ZONE)
         .format(timestamp.truncatedTo(ChronoUnit.SECONDS))
-        : FORMATTER_VARIABLE_MICROS.withZone(ZONE).format(timestamp);
+        : FORMATTER_VARIABLE_NANOS.withZone(ZONE).format(timestamp);
   }
 
   @Override

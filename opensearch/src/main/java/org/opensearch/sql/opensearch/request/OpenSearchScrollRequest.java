@@ -29,7 +29,6 @@ import org.opensearch.sql.opensearch.response.OpenSearchResponse;
  * Maintain scroll ID between calls to client search method
  */
 @EqualsAndHashCode
-@RequiredArgsConstructor
 @Getter
 @ToString
 public class OpenSearchScrollRequest implements OpenSearchRequest {
@@ -37,8 +36,10 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
   /** Default scroll context timeout in minutes. */
   public static final TimeValue DEFAULT_SCROLL_TIMEOUT = TimeValue.timeValueMinutes(1L);
 
-  /** Index name. */
-  private final String indexName;
+  /**
+   * {@link OpenSearchRequest.IndexName}.
+   */
+  private final IndexName indexName;
 
   /** Index name. */
   @EqualsAndHashCode.Exclude
@@ -49,11 +50,20 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    * Scroll id which is set after first request issued. Because ElasticsearchClient is shared by
    * multi-thread so this state has to be maintained here.
    */
-  @Setter private String scrollId;
+  @Setter
+  private String scrollId;
 
   /** Search request source builder. */
   private final SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
 
+  public OpenSearchScrollRequest(IndexName indexName, OpenSearchExprValueFactory exprValueFactory) {
+    this.indexName = indexName;
+    this.exprValueFactory = exprValueFactory;
+  }
+
+  public OpenSearchScrollRequest(String indexName, OpenSearchExprValueFactory exprValueFactory) {
+    this(new IndexName(indexName), exprValueFactory);
+  }
 
   @Override
   public OpenSearchResponse search(Function<SearchRequest, SearchResponse> searchAction,
@@ -87,7 +97,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    */
   public SearchRequest searchRequest() {
     return new SearchRequest()
-        .indices(indexName)
+        .indices(indexName.getIndexNames())
         .scroll(DEFAULT_SCROLL_TIMEOUT)
         .source(sourceBuilder);
   }

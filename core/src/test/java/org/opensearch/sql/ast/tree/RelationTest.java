@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ast.tree;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 
+import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 
 class RelationTest {
@@ -26,4 +26,9 @@ class RelationTest {
     assertEquals("t", relation.getTableNameOrAlias());
   }
 
+  @Test
+  void comma_seperated_index_return_concat_table_names() {
+    Relation relation = new Relation(Arrays.asList(qualifiedName("test1"), qualifiedName("test2")));
+    assertEquals("test1,test2", relation.getTableNameOrAlias());
+  }
 }

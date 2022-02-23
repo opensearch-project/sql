@@ -31,7 +31,7 @@ Click on **Download** option for downloading `opensearch_sql_odbc.taco` file.
 <img src="img/tableau_select_connector.png" width=600>
 
 * Enter **Server** & **Port** value. 
-* Select required authentication option. For **AWS_SIGV4** authentication, select **Integrated Authentication** and enter value for **Region**.
+* Select required authentication option. For **AWS_SIGV4** authentication, select **Integrated Authentication** and enter value for **Region**. To setup aws access key id and secret key, create ~/.aws/credentials with [AWS CLI](https://aws.amazon.com/cli/) and use `opensearchodbc` as the profile name.
 * Use **Additional Options** section for specifying options like **FetchSize**, **ResponseTimeout**. Use `;` to separate values. For example,
 
 ```

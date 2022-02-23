@@ -14,7 +14,9 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanFun
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BySpanClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CompareExprContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ConvertedDataTypeContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CountAllFunctionCallContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DataTypeFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DistinctCountFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalClauseContext;
@@ -48,12 +50,13 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
-import org.antlr.v4.runtime.Token;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Field;
@@ -72,7 +75,6 @@ import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.common.utils.StringUtils;
-import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
 
@@ -233,6 +235,19 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
             .stream()
             .map(this::visitFunctionArg)
             .collect(Collectors.toList()));
+  }
+
+  /**
+   * Cast function.
+   */
+  @Override
+  public UnresolvedExpression visitDataTypeFunctionCall(DataTypeFunctionCallContext ctx) {
+    return new Cast(visit(ctx.expression()), visit(ctx.convertedDataType()));
+  }
+
+  @Override
+  public UnresolvedExpression visitConvertedDataType(ConvertedDataTypeContext ctx) {
+    return AstDSL.stringLiteral(ctx.getText());
   }
 
   @Override

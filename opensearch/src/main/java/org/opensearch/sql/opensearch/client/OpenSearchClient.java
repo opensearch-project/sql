@@ -27,7 +27,7 @@ public interface OpenSearchClient {
    * @param indexExpression index expression
    * @return index mapping(s) from index name to its mapping
    */
-  Map<String, IndexMapping> getIndexMappings(String indexExpression);
+  Map<String, IndexMapping> getIndexMappings(String... indexExpression);
 
   /**
    * Perform search query in the search request.

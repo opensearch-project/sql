@@ -384,10 +384,10 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
     List<String> lines = csvResult.getLines();
     Assert.assertEquals(4, lines.size());
     assertThat(lines, containsInAnyOrder(
-        equalTo("31.0"),
-        equalTo("28.0"),
-        equalTo("21.0"),
-        equalTo("24.0")));
+        equalTo("31"),
+        equalTo("28"),
+        equalTo("21"),
+        equalTo("24")));
   }
 
   @Test
@@ -398,15 +398,15 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
     CSVResult csvResult = executeCsvRequest(query, false);
     List<String> headers = csvResult.getHeaders();
     Assert.assertEquals(2, headers.size());
-    assertThat(headers, contains(equalTo("COUNT(*)"), equalTo("SUM(balance)")));
+    assertThat(headers, contains(equalTo("COUNT(*)"), equalTo("sum(balance)")));
 
     List<String> lines = csvResult.getLines();
     Assert.assertEquals(4, lines.size());
     assertThat(lines, containsInAnyOrder(
-        equalTo("31.0,647425.0"),
-        equalTo("28.0,678337.0"),
-        equalTo("21.0,505660.0"),
-        equalTo("24.0,472771.0")));
+        equalTo("31,647425"),
+        equalTo("28,678337"),
+        equalTo("21,505660"),
+        equalTo("24,472771")));
   }
 
   @Test

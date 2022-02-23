@@ -27,7 +27,6 @@ import org.opensearch.sql.opensearch.response.agg.FilterParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
-import org.opensearch.sql.opensearch.response.agg.SpanAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.StatsParser;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -269,74 +268,6 @@ class OpenSearchAggregationResponseParserTest {
     );
     assertThat(parse(parser, response),
         contains(entry("esField", 93.71390409320287, "maxField", 360D)));
-  }
-
-  @Test
-  void parse_histogram() {
-    String response = "{\n"
-        + "  \"histogram#span\":{\n"
-        + "    \"buckets\":[\n"
-        + "      {\n"
-        + "        \"key\":0.0,\n"
-        + "        \"doc_count\":87,\n"
-        + "        \"avg#avg\":{\n"
-        + "          \"value\":48.04521372126437\n"
-        + "        }\n"
-        + "      },\n"
-        + "      {\n"
-        + "        \"key\":1.5,\n"
-        + "        \"doc_count\":4176,\n"
-        + "        \"avg#avg\":{\n"
-        + "          \"value\":68.71430682770594\n"
-        + "        }\n"
-        + "      },\n"
-        + "      {\n"
-        + "        \"key\":3.0,\n"
-        + "        \"doc_count\":412,\n"
-        + "        \"avg#avg\":{\n"
-        + "          \"value\":145.03216019417476\n"
-        + "        }\n"
-        + "      }\n"
-        + "    ]\n"
-        + "  }\n"
-        + "}";
-    OpenSearchAggregationResponseParser parser = new SpanAggregationParser(
-        new SingleValueParser("avg"));
-    assertThat(parse(parser, response), contains(
-        entry("avg", 48.04521372126437, "span", "0.0"),
-        entry("avg", 68.71430682770594, "span", "1.5"),
-        entry("avg", 145.03216019417476, "span", "3.0")));
-  }
-
-  @Test
-  void parse_date_histogram() {
-    String response = "{\n"
-        + "  \"date_histogram#timespan\":{\n"
-        + "    \"buckets\":[\n"
-        + "      {\n"
-        + "        \"key_as_string\":\"2021-07-01T00:00:00.000Z\",\n"
-        + "        \"key\":1625097600000,\n"
-        + "        \"doc_count\":3586,\n"
-        + "        \"value_count#count\":{\n"
-        + "          \"value\":3586\n"
-        + "        }\n"
-        + "      },\n"
-        + "      {\n"
-        + "        \"key_as_string\":\"2021-08-01T00:00:00.000Z\",\n"
-        + "        \"key\":1627776000000,\n"
-        + "        \"doc_count\":1089,\n"
-        + "        \"value_count#count\":{\n"
-        + "          \"value\":1089\n"
-        + "        }\n"
-        + "      }\n"
-        + "    ]\n"
-        + "  }\n"
-        + "}";
-    OpenSearchAggregationResponseParser parser = new SpanAggregationParser(
-        new SingleValueParser("count"));
-    assertThat(parse(parser, response), contains(
-        entry("count", 3586D, "timespan", "2021-07-01T00:00Z"),
-        entry("count", 1089D, "timespan", "2021-08-01T00:00Z")));
   }
 
   public List<Map<String, Object>> parse(OpenSearchAggregationResponseParser parser, String json) {
