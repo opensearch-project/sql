@@ -24,34 +24,7 @@ parse <field> <regular-expression>
 Regular Expression
 ==================
 
-The regular expression is used to match the whole text field of each document with Java regex engine. Each captured group in the expression will become a new field with type to be ``STRING`` by default. The field type can be casted using the following syntax for a captured group: ``(?<fieldName[fieldType]>regex)``. List of available field types:
-
-+------------------------------+
-| Field types (case sensitive) |
-+==============================+
-| STRING                       |
-+------------------------------+
-| BYTE                         |
-+------------------------------+
-| SHORT                        |
-+------------------------------+
-| INTEGER                      |
-+------------------------------+
-| LONG                         |
-+------------------------------+
-| FLOAT                        |
-+------------------------------+
-| BOOLEAN                      |
-+------------------------------+
-| TIME                         |
-+------------------------------+
-| DATE                         |
-+------------------------------+
-| TIMESTAMP                    |
-+------------------------------+
-| DATETIME                     |
-+------------------------------+
-
+The regular expression is used to match the whole text field of each document with Java regex engine. Each named capture group in the expression will become a new ``STRING`` field.
 
 Example 1: Create the new field
 ===============================
@@ -72,26 +45,34 @@ PPL query::
     +--------------------------+-------------+
 
 
-Example 2: Cast new field to other data types
-=============================================
+Example 2: Override the existing field
+======================================
 
-The example shows how to extract the street number from ``address`` and cast to integer.
+The example shows how to override the existing ``address`` field with street number removed.
 
 PPL query::
 
-    os> source=accounts | parse address '(?<streetNumberINTEGER>\d+).*' | fields address, streetNumber ;
+    os> source=accounts | parse address '\d+ (?<address>.+)' | fields address ;
     fetched rows / total rows = 4/4
-    +----------------------+--------------+
-    | address              | streetNumber |
-    |----------------------|--------------|
-    | 880 Holmes Lane      | 880          |
-    | 671 Bristol Street   | 671          |
-    | 789 Madison Street   | 789          |
-    | 467 Hutchinson Court | 467          |
-    +----------------------+--------------+
+    +------------------+
+    | address          |
+    |------------------|
+    | Holmes Lane      |
+    | Bristol Street   |
+    | Madison Street   |
+    | Hutchinson Court |
+    +------------------+
 
 
 Limitation
 ==========
 
-The number of results fetched by ``source`` command is limited by `plugins.query.size_limit setting <../admin/settings.rst#plugins-query-size-limit>`_. The parse command (including subsequent commands) will only operate on the results returned.
+There are a few limitations with parse command:
+
+    - Fields defined by parse cannot be parsed again
+
+    - Fields defined by parse cannot be overridden with other commands
+
+    - The text field used by parse cannot be overridden
+
+    - Fields defined by parse cannot be filtered/sorted after using them in ``stats`` command
