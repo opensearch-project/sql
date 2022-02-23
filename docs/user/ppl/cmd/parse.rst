@@ -69,10 +69,7 @@ Limitation
 
 There are a few limitations with parse command:
 
-    - Fields defined by parse cannot be parsed again
-
-    - Fields defined by parse cannot be overridden with other commands
-
-    - The text field used by parse cannot be overridden
-
-    - Fields defined by parse cannot be filtered/sorted after using them in ``stats`` command
+- Fields defined by parse cannot be parsed again
+- Fields defined by parse cannot be overridden with other commands
+- The text field used by parse cannot be overridden
+- Fields defined by parse cannot be filtered/sorted after using them in ``stats`` command
