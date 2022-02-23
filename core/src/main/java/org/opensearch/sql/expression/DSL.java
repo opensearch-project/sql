@@ -96,6 +96,9 @@ public class DSL {
     if (expression instanceof NamedExpression) {
       return (NamedExpression) expression;
     }
+    if (expression instanceof ParseExpression) {
+      return named(((ParseExpression) expression).getIdentifier(), expression);
+    }
     return named(expression.toString(), expression);
   }
 
