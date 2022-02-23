@@ -94,6 +94,14 @@ class ExpressionAggregationScriptTest {
         .shouldMatch(null);
   }
 
+  @Test
+  void can_execute_parse_expression() {
+    assertThat()
+        .docValues("age_string", "age: 30")
+        .evaluate(DSL.parsed(DSL.ref("age_string", STRING), "age: (?<age>\\d+)", "age"))
+        .shouldMatch("30");
+  }
+
   private ExprScriptAssertion assertThat() {
     return new ExprScriptAssertion(lookup, leafLookup, context);
   }

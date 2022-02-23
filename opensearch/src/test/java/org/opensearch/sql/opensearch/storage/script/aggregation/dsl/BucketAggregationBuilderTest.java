@@ -7,8 +7,10 @@
 package org.opensearch.sql.opensearch.storage.script.aggregation.dsl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.when;
 import static org.opensearch.common.xcontent.ToXContent.EMPTY_PARAMS;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.expression.DSL.ref;
 import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
@@ -30,7 +32,9 @@ import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
 import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.ParseExpression;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -75,6 +79,27 @@ class BucketAggregationBuilderTest {
         buildQuery(
             Arrays.asList(
                 asc(named("name", ref("name", OPENSEARCH_TEXT_KEYWORD))))));
+  }
+
+  @Test
+  void should_build_bucket_with_parse_expression() {
+    ParseExpression parseExpression =
+        DSL.parsed(ref("name.keyword", STRING), "(?<name>\\w+)", "name");
+    when(serializer.serialize(parseExpression)).thenReturn("mock-serialize");
+    assertEquals(
+        "{\n"
+            + "  \"terms\" : {\n"
+            + "    \"script\" : {\n"
+            + "      \"source\" : \"mock-serialize\",\n"
+            + "      \"lang\" : \"opensearch_query_expression\"\n"
+            + "    },\n"
+            + "    \"missing_bucket\" : true,\n"
+            + "    \"order\" : \"asc\"\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            Arrays.asList(
+                asc(named("name", parseExpression)))));
   }
 
   @SneakyThrows

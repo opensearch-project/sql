@@ -93,6 +93,7 @@ public class ExpressionScript {
         context.add(node);
         return null;
       }
+
       @Override
       public Object visitParse(ParseExpression node, Set<ReferenceExpression> context) {
         node.getExpression().accept(this, context);
