@@ -18,7 +18,9 @@ import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
+import static org.opensearch.sql.expression.DSL.ref;
 
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
@@ -30,6 +32,7 @@ import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -310,6 +313,18 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
+  public void parse_expression() {
+    analysisContext.push();
+    analysisContext.peek().define(new Symbol(Namespace.FIELD_NAME, "string_field"), STRING);
+    analysisContext.getParseExpressionMap()
+        .put("string_field", DSL.parsed(ref("string_field", STRING), "(?<group>\\d+)", "group"));
+    assertAnalyzeEqual(
+        DSL.parsed(ref("string_field", STRING), "(?<group>\\d+)", "group"),
+        qualifiedName("string_field")
+    );
+  }
+
+  @Test
   void visit_span() {
     assertAnalyzeEqual(
         DSL.span(DSL.ref("integer_value", INTEGER), DSL.literal(1), ""),
@@ -339,5 +354,10 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   protected void assertAnalyzeEqual(Expression expected,
                                     UnresolvedExpression unresolvedExpression) {
     assertEquals(expected, analyze(unresolvedExpression));
+  }
+
+  protected void assertAnalyzeEqual(Expression expected,
+                                    UnresolvedPlan unresolvedPlan) {
+    assertEquals(expected, analyze(unresolvedPlan));
   }
 }

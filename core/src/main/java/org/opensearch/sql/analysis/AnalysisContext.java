@@ -21,7 +21,7 @@ public class AnalysisContext {
    */
   private TypeEnvironment environment;
   @Getter
-  private Map<String, ParseExpression> parseExpressionMap;
+  private final Map<String, ParseExpression> parseExpressionMap;
 
   public AnalysisContext() {
     this(new TypeEnvironment(null));

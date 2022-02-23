@@ -50,12 +50,14 @@ import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @Configuration
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = {ExpressionConfig.class, AnalyzerTest.class})
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class AnalyzerTest extends AnalyzerTestBase {
 
   @Test
@@ -671,7 +673,20 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void parse_pattern() {
-
+  public void parse_relation() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.relation("schema"),
+            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
+            ImmutableMap.of("group",
+                DSL.parsed(DSL.ref("string_value", STRING), "(?<group>.*)", "group"))
+        ),
+        AstDSL.project(
+            AstDSL.parse(
+                AstDSL.relation("schema"),
+                AstDSL.field("string_value"),
+                AstDSL.stringLiteral("(?<group>.*)")),
+            AstDSL.alias("string_value", qualifiedName("string_value"))
+        ));
   }
 }
