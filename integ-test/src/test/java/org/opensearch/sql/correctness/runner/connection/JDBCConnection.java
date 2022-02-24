@@ -30,6 +30,7 @@ public class JDBCConnection implements DBConnection {
 
   private static final String SINGLE_QUOTE = "'";
   private static final String DOUBLE_QUOTE = "''";
+  private static final String BACKTICK = "`";
 
   /**
    * Database name for display
@@ -103,7 +104,8 @@ public class JDBCConnection implements DBConnection {
   @Override
   public void insert(String tableName, String[] columnNames, List<Object[]> batch) {
     try (Statement stmt = connection.createStatement()) {
-      String names = String.join(",", columnNames);
+      String names =
+          Arrays.stream(columnNames).map(this::delimited).collect(joining(","));
       for (Object[] fieldValues : batch) {
         stmt.addBatch(StringUtils.format(
             "INSERT INTO %s(%s) VALUES (%s)", tableName, names, getValueList(fieldValues)));
@@ -143,7 +145,8 @@ public class JDBCConnection implements DBConnection {
   private String parseColumnNameAndTypesInSchemaJson(String schema) {
     JSONObject json = (JSONObject) new JSONObject(schema).query("/mappings/properties");
     return json.keySet().stream().
-        map(colName -> colName + " " + mapToJDBCType(json.getJSONObject(colName).getString("type")))
+        map(colName -> delimited(colName) + " " + mapToJDBCType(json.getJSONObject(colName)
+            .getString("type")))
         .collect(joining(","));
   }
 
@@ -211,5 +214,9 @@ public class JDBCConnection implements DBConnection {
    */
   public void setConnection(Connection connection) {
     this.connection = connection;
+  }
+
+  private String delimited(String columnName) {
+    return BACKTICK + columnName + BACKTICK;
   }
 }

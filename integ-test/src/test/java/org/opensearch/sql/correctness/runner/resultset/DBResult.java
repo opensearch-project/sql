@@ -30,8 +30,16 @@ public class DBResult {
 
   /**
    * Possible types for floating point number
+   * H2 2.x use DOUBLE PRECISION instead of DOUBLE.
    */
-  private static final Set<String> FLOAT_TYPES = ImmutableSet.of("FLOAT", "DOUBLE", "REAL");
+  private static final Set<String> FLOAT_TYPES =
+      ImmutableSet.of("FLOAT", "DOUBLE", "REAL", "DOUBLE PRECISION", "DECFLOAT");
+
+  /**
+   * Possible types for varchar.
+   * H2 2.x use CHARACTER VARYING instead of VARCHAR.
+   */
+  private static final Set<String> VARCHAR = ImmutableSet.of("CHARACTER VARYING", "VARCHAR");
 
   /**
    * Database name for display
@@ -81,6 +89,8 @@ public class DBResult {
     // Ignore float type by assigning all type names string to it.
     if (FLOAT_TYPES.contains(type)) {
       type = FLOAT_TYPES.toString();
+    } else if (VARCHAR.contains(type)) {
+      type = "VARCHAR";
     }
     schema.add(new Type(StringUtils.toUpper(name), type));
   }

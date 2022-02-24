@@ -21,33 +21,33 @@ SELECT FlightDelayMin, AvgTicketPrice, STDDEV_POP(AvgTicketPrice) OVER (ORDER BY
 SELECT FlightDelayMin, AvgTicketPrice, STDDEV_SAMP(AvgTicketPrice) OVER (ORDER BY FlightDelayMin) AS num FROM opensearch_dashboards_sample_data_flights ORDER BY FlightDelayMin
 SELECT FlightDelayMin, AvgTicketPrice, VAR_POP(AvgTicketPrice) OVER (ORDER BY FlightDelayMin) AS num FROM opensearch_dashboards_sample_data_flights ORDER BY FlightDelayMin
 SELECT FlightDelayMin, AvgTicketPrice, VAR_SAMP(AvgTicketPrice) OVER (ORDER BY FlightDelayMin) AS num FROM opensearch_dashboards_sample_data_flights ORDER BY FlightDelayMin
-SELECT user, RANK() OVER (ORDER BY user) AS rnk FROM opensearch_dashboards_sample_data_ecommerce
-SELECT user, DENSE_RANK() OVER (ORDER BY user) AS rnk FROM opensearch_dashboards_sample_data_ecommerce
-SELECT user, COUNT(day_of_week_i) OVER (ORDER BY user) AS cnt FROM opensearch_dashboards_sample_data_ecommerce
-SELECT user, SUM(day_of_week_i) OVER (ORDER BY user) AS num FROM opensearch_dashboards_sample_data_ecommerce
-SELECT user, AVG(day_of_week_i) OVER (ORDER BY user) AS num FROM opensearch_dashboards_sample_data_ecommerce
-SELECT user, MAX(day_of_week_i) OVER (ORDER BY user) AS num FROM opensearch_dashboards_sample_data_ecommerce
-SELECT user, MIN(day_of_week_i) OVER (ORDER BY user) AS num FROM opensearch_dashboards_sample_data_ecommerce
-SELECT user, STDDEV_POP(day_of_week_i) OVER (ORDER BY user) AS num FROM opensearch_dashboards_sample_data_ecommerce ORDER BY user
-SELECT user, VAR_POP(day_of_week_i) OVER (ORDER BY user) AS num FROM opensearch_dashboards_sample_data_ecommerce ORDER BY user
-SELECT user, RANK() OVER (ORDER BY user DESC) AS rnk FROM opensearch_dashboards_sample_data_ecommerce
-SELECT user, DENSE_RANK() OVER (ORDER BY user DESC) AS rnk FROM opensearch_dashboards_sample_data_ecommerce
-SELECT user, COUNT(day_of_week_i) OVER (PARTITION BY user ORDER BY order_id) AS cnt FROM opensearch_dashboards_sample_data_ecommerce
-SELECT user, SUM(day_of_week_i) OVER (PARTITION BY user ORDER BY order_id) AS num FROM opensearch_dashboards_sample_data_ecommerce
-SELECT user, AVG(day_of_week_i) OVER (PARTITION BY user ORDER BY order_id) AS num FROM opensearch_dashboards_sample_data_ecommerce
-SELECT user, MAX(day_of_week_i) OVER (PARTITION BY user ORDER BY order_id) AS num FROM opensearch_dashboards_sample_data_ecommerce
-SELECT user, MIN(day_of_week_i) OVER (PARTITION BY user ORDER BY order_id) AS num FROM opensearch_dashboards_sample_data_ecommerce
-SELECT user, STDDEV_POP(day_of_week_i) OVER (PARTITION BY user ORDER BY order_id) AS num FROM opensearch_dashboards_sample_data_ecommerce ORDER BY user
-SELECT user, VAR_POP(day_of_week_i) OVER (PARTITION BY user ORDER BY order_id) AS num FROM opensearch_dashboards_sample_data_ecommerce ORDER BY user
-SELECT customer_gender, user, ROW_NUMBER() OVER (PARTITION BY customer_gender ORDER BY user) AS num FROM opensearch_dashboards_sample_data_ecommerce
-SELECT customer_gender, user, RANK() OVER (PARTITION BY customer_gender ORDER BY user) AS num FROM opensearch_dashboards_sample_data_ecommerce
-SELECT customer_gender, user, DENSE_RANK() OVER (PARTITION BY customer_gender ORDER BY user) AS num FROM opensearch_dashboards_sample_data_ecommerce
-SELECT customer_gender, user, customer_id, ROW_NUMBER() OVER (PARTITION BY customer_gender, user ORDER BY customer_id) AS num FROM opensearch_dashboards_sample_data_ecommerce
-SELECT customer_gender, user, customer_id, RANK() OVER (PARTITION BY customer_gender, user ORDER BY customer_id) AS num FROM opensearch_dashboards_sample_data_ecommerce
-SELECT customer_gender, user, customer_id, DENSE_RANK() OVER (PARTITION BY customer_gender, user ORDER BY customer_id) AS num FROM opensearch_dashboards_sample_data_ecommerce
-SELECT customer_gender, user, ROW_NUMBER() OVER (ORDER BY customer_gender, user) AS num FROM opensearch_dashboards_sample_data_ecommerce
-SELECT customer_gender, user, RANK() OVER (ORDER BY customer_gender, user) AS num FROM opensearch_dashboards_sample_data_ecommerce
-SELECT customer_gender, user, DENSE_RANK() OVER (ORDER BY customer_gender, user) AS num FROM opensearch_dashboards_sample_data_ecommerce
-SELECT customer_gender, user, SUM(total_quantity), ROW_NUMBER() OVER (PARTITION BY customer_gender ORDER BY user) AS num FROM opensearch_dashboards_sample_data_ecommerce GROUP BY customer_gender, user
-SELECT customer_gender, user, AVG(total_quantity), RANK() OVER (PARTITION BY customer_gender ORDER BY user) AS num FROM opensearch_dashboards_sample_data_ecommerce GROUP BY customer_gender, user
-SELECT customer_gender, user, DENSE_RANK() OVER (PARTITION BY customer_gender ORDER BY user) AS num FROM opensearch_dashboards_sample_data_ecommerce GROUP BY customer_gender, user
+SELECT `user`, RANK() OVER (ORDER BY `user`) AS rnk FROM opensearch_dashboards_sample_data_ecommerce
+SELECT `user`, DENSE_RANK() OVER (ORDER BY `user`) AS rnk FROM opensearch_dashboards_sample_data_ecommerce
+SELECT `user`, COUNT(day_of_week_i) OVER (ORDER BY `user`) AS cnt FROM opensearch_dashboards_sample_data_ecommerce
+SELECT `user`, SUM(day_of_week_i) OVER (ORDER BY `user`) AS num FROM opensearch_dashboards_sample_data_ecommerce
+SELECT `user`, AVG(day_of_week_i) OVER (ORDER BY `user`) AS num FROM opensearch_dashboards_sample_data_ecommerce
+SELECT `user`, MAX(day_of_week_i) OVER (ORDER BY `user`) AS num FROM opensearch_dashboards_sample_data_ecommerce
+SELECT `user`, MIN(day_of_week_i) OVER (ORDER BY `user`) AS num FROM opensearch_dashboards_sample_data_ecommerce
+SELECT `user`, STDDEV_POP(day_of_week_i) OVER (ORDER BY `user`) AS num FROM opensearch_dashboards_sample_data_ecommerce ORDER BY `user`
+SELECT `user`, VAR_POP(day_of_week_i) OVER (ORDER BY `user`) AS num FROM opensearch_dashboards_sample_data_ecommerce ORDER BY `user`
+SELECT `user`, RANK() OVER (ORDER BY `user` DESC) AS rnk FROM opensearch_dashboards_sample_data_ecommerce
+SELECT `user`, DENSE_RANK() OVER (ORDER BY `user` DESC) AS rnk FROM opensearch_dashboards_sample_data_ecommerce
+SELECT `user`, COUNT(day_of_week_i) OVER (PARTITION BY `user` ORDER BY order_id) AS cnt FROM opensearch_dashboards_sample_data_ecommerce
+SELECT `user`, SUM(day_of_week_i) OVER (PARTITION BY `user` ORDER BY order_id) AS num FROM opensearch_dashboards_sample_data_ecommerce
+SELECT `user`, AVG(day_of_week_i) OVER (PARTITION BY `user` ORDER BY order_id) AS num FROM opensearch_dashboards_sample_data_ecommerce
+SELECT `user`, MAX(day_of_week_i) OVER (PARTITION BY `user` ORDER BY order_id) AS num FROM opensearch_dashboards_sample_data_ecommerce
+SELECT `user`, MIN(day_of_week_i) OVER (PARTITION BY `user` ORDER BY order_id) AS num FROM opensearch_dashboards_sample_data_ecommerce
+SELECT `user`, STDDEV_POP(day_of_week_i) OVER (PARTITION BY `user` ORDER BY order_id) AS num FROM opensearch_dashboards_sample_data_ecommerce ORDER BY `user`
+SELECT `user`, VAR_POP(day_of_week_i) OVER (PARTITION BY `user` ORDER BY order_id) AS num FROM opensearch_dashboards_sample_data_ecommerce ORDER BY `user`
+SELECT customer_gender, `user`, ROW_NUMBER() OVER (PARTITION BY customer_gender ORDER BY `user`) AS num FROM opensearch_dashboards_sample_data_ecommerce
+SELECT customer_gender, `user`, RANK() OVER (PARTITION BY customer_gender ORDER BY `user`) AS num FROM opensearch_dashboards_sample_data_ecommerce
+SELECT customer_gender, `user`, DENSE_RANK() OVER (PARTITION BY customer_gender ORDER BY `user`) AS num FROM opensearch_dashboards_sample_data_ecommerce
+SELECT customer_gender, `user`, customer_id, ROW_NUMBER() OVER (PARTITION BY customer_gender, `user` ORDER BY customer_id) AS num FROM opensearch_dashboards_sample_data_ecommerce
+SELECT customer_gender, `user`, customer_id, RANK() OVER (PARTITION BY customer_gender, `user` ORDER BY customer_id) AS num FROM opensearch_dashboards_sample_data_ecommerce
+SELECT customer_gender, `user`, customer_id, DENSE_RANK() OVER (PARTITION BY customer_gender, `user` ORDER BY customer_id) AS num FROM opensearch_dashboards_sample_data_ecommerce
+SELECT customer_gender, `user`, ROW_NUMBER() OVER (ORDER BY customer_gender, `user`) AS num FROM opensearch_dashboards_sample_data_ecommerce
+SELECT customer_gender, `user`, RANK() OVER (ORDER BY customer_gender, `user`) AS num FROM opensearch_dashboards_sample_data_ecommerce
+SELECT customer_gender, `user`, DENSE_RANK() OVER (ORDER BY customer_gender, `user`) AS num FROM opensearch_dashboards_sample_data_ecommerce
+SELECT customer_gender, `user`, SUM(total_quantity), ROW_NUMBER() OVER (PARTITION BY customer_gender ORDER BY `user`) AS num FROM opensearch_dashboards_sample_data_ecommerce GROUP BY customer_gender, `user`
+SELECT customer_gender, `user`, AVG(total_quantity), RANK() OVER (PARTITION BY customer_gender ORDER BY `user`) AS num FROM opensearch_dashboards_sample_data_ecommerce GROUP BY customer_gender, `user`
+SELECT customer_gender, `user`, DENSE_RANK() OVER (PARTITION BY customer_gender ORDER BY `user`) AS num FROM opensearch_dashboards_sample_data_ecommerce GROUP BY customer_gender, `user`

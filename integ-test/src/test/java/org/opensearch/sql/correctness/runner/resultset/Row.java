@@ -44,6 +44,8 @@ public class Row implements Comparable<Row> {
     } else if (value instanceof Double) {
       BigDecimal decimal = BigDecimal.valueOf((Double) value).setScale(2, RoundingMode.CEILING);
       value = decimal.doubleValue();
+    } else if (value instanceof BigDecimal) {
+      value = ((BigDecimal) value).setScale(2, RoundingMode.CEILING).doubleValue();
     }
     return value;
   }
