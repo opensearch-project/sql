@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.executor.protector;
 
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.monitor.ResourceMonitor;
+import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.planner.physical.AggregationOperator;
 import org.opensearch.sql.planner.physical.DedupeOperator;
@@ -134,6 +135,17 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
                     mlCommonsOperator.getAlgorithm(),
                     mlCommonsOperator.getArguments(),
                     mlCommonsOperator.getNodeClient())
+    );
+  }
+
+  @Override
+  public PhysicalPlan visitAD(PhysicalPlan node, Object context) {
+    ADOperator adOperator = (ADOperator) node;
+    return doProtect(
+            new ADOperator(visitInput(adOperator.getInput(), context),
+                    adOperator.getArguments(),
+                    adOperator.getNodeClient()
+                    )
     );
   }
 

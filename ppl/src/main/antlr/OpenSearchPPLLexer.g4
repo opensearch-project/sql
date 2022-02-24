@@ -23,6 +23,7 @@ HEAD:                               'HEAD';
 TOP:                                'TOP';
 RARE:                               'RARE';
 KMEANS:                             'KMEANS';
+AD:                                 'AD';
 
 // COMMAND ASSIST KEYWORDS
 AS:                                 'AS';
@@ -267,6 +268,7 @@ Y:                                  'Y';
 //STRING_LITERAL:                     DQUOTA_STRING | SQUOTA_STRING | BQUOTA_STRING;
 ID:                                 ID_LITERAL;
 INTEGER_LITERAL:                    DEC_DIGIT+;
+DOUBLE_LITERAL:                     (DEC_DIGIT+)? '.' DEC_DIGIT+;
 DECIMAL_LITERAL:                    (DEC_DIGIT+)? '.' DEC_DIGIT+;
 
 fragment DATE_SUFFIX:               ([\-.][*0-9]+)*;

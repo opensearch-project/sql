@@ -20,7 +20,7 @@ pplStatement
 /** commands */
 commands
     : whereCommand | fieldsCommand | renameCommand | statsCommand | dedupCommand | sortCommand | evalCommand | headCommand
-    | topCommand | rareCommand | kmeansCommand;
+    | topCommand | rareCommand | kmeansCommand | adCommand;
 
 searchCommand
     : (SEARCH)? fromClause                                          #searchFrom
@@ -87,6 +87,13 @@ rareCommand
 kmeansCommand
     : KMEANS
     k=integerLiteral
+    ;
+
+adCommand
+    : AD
+    (shingle_size=integerLiteral)?
+    (time_decay=doubleLiteral)?
+    (time_field=stringLiteral)?
     ;
 
 /** clauses */
@@ -319,6 +326,10 @@ stringLiteral
 
 integerLiteral
     : (PLUS | MINUS)? INTEGER_LITERAL
+    ;
+
+doubleLiteral
+    : (PLUS | MINUS)? DOUBLE_LITERAL
     ;
 
 decimalLiteral

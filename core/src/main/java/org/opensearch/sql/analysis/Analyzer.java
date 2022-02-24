@@ -31,6 +31,7 @@ import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
@@ -57,6 +58,7 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
 import org.opensearch.sql.planner.logical.LogicalEval;
@@ -381,6 +383,22 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     currentEnv.define(new Symbol(Namespace.FIELD_NAME, "ClusterID"), ExprCoreType.INTEGER);
 
     return new LogicalMLCommons(child, "kmeans", options);
+  }
+
+  /**
+   * Build {@link } for Kmeans command.
+   */
+  @Override
+  public LogicalPlan visitAD(AD node, AnalysisContext context) {
+    LogicalPlan child = node.getChild().get(0).accept(this, context);
+    java.util.Map<String, Literal> options = node.getArguments();
+
+    TypeEnvironment currentEnv = context.peek();
+    currentEnv.define(new Symbol(Namespace.FIELD_NAME, "timestamp"), ExprCoreType.TIMESTAMP);
+    currentEnv.define(new Symbol(Namespace.FIELD_NAME, "score"), ExprCoreType.DOUBLE);
+    currentEnv.define(new Symbol(Namespace.FIELD_NAME, "anomaly_grade"), ExprCoreType.DOUBLE);
+
+    return new LogicalAD(child, options);
   }
 
   /**

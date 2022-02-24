@@ -17,12 +17,16 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommand
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.KmeansCommandContext;
 
 
@@ -146,6 +150,26 @@ public class ArgumentFactory {
     // TODO: add iterations and distanceType parameters for Kemans
     return Collections
             .singletonList(new Argument("k", getArgumentValue(ctx.k)));
+  }
+
+  /**
+   * Get list of {@link Argument}.
+   *
+   * @param ctx ADCommandContext instance
+   * @return the list of arguments fetched from the kmeans command
+   */
+  public static Map<String, Literal> getArgumentMap(OpenSearchPPLParser.AdCommandContext ctx) {
+    return new HashMap<String, Literal>() {{
+      put("shingle_size", (ctx.shingle_size != null)
+              ? getArgumentValue(ctx.shingle_size)
+              : new Literal(8, DataType.INTEGER));
+      put("time_decay", (ctx.time_decay != null)
+              ? getArgumentValue(ctx.time_decay)
+              : new Literal(0.0001, DataType.DOUBLE));
+      put("time_field", (ctx.time_field != null)
+              ? getArgumentValue(ctx.time_field)
+              : new Literal(null, DataType.STRING));
+    }};
   }
 
   private static Literal getArgumentValue(ParserRuleContext ctx) {
