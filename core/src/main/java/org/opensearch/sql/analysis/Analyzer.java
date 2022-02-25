@@ -386,7 +386,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   /**
-   * Build {@link } for Kmeans command.
+   * Build {@link LogicalAD} for AD command.
    */
   @Override
   public LogicalPlan visitAD(AD node, AnalysisContext context) {

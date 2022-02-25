@@ -91,9 +91,9 @@ kmeansCommand
 
 adCommand
     : AD
-    (shingle_size=integerLiteral)?
-    (time_decay=doubleLiteral)?
-    (time_field=stringLiteral)?
+    (SHINGLE_SIZE EQUAL shingle_size=integerLiteral)?
+    (TIME_DECAY EQUAL time_decay=doubleLiteral)?
+    (TIME_FIELD EQUAL time_field=stringLiteral)?
     ;
 
 /** clauses */
