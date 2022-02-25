@@ -69,7 +69,26 @@ Limitation
 
 There are a few limitations with parse command:
 
-- Fields defined by parse cannot be parsed again
-- Fields defined by parse cannot be overridden with other commands
-- The text field used by parse cannot be overridden
-- Fields defined by parse cannot be filtered/sorted after using them in ``stats`` command
+- Fields defined by parse cannot be parsed again.
+
+  The following command will not work::
+
+    source=accounts | parse address '\d+ (?<street>.+)' | parse street '\w+ (?<road>\w+)' ;
+
+- Fields defined by parse cannot be overridden with other commands.
+
+  ``where`` will not match any documents since ``street`` cannot be overridden::
+
+    source=accounts | parse address '\d+ (?<street>.+)' | eval street='1' | where street='1' ;
+
+- The text field used by parse cannot be overridden.
+
+  ``street`` will not be successfully parsed since ``address`` is overridden::
+
+    source=accounts | parse address '\d+ (?<street>.+)' | eval address='1' ;
+
+- Fields defined by parse cannot be filtered/sorted after using them in ``stats`` command.
+
+  ``where`` in the following command will not work::
+
+    source=accounts | parse email '.+@(?<host>.+)' | stats avg(age) by host | where host=pyrami.com ;
