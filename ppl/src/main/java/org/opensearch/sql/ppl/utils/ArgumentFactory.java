@@ -7,6 +7,7 @@
 package org.opensearch.sql.ppl.utils;
 
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
@@ -26,8 +27,8 @@ import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.common.utils.StringUtils;
-import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.KmeansCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.AdCommandContext;
 
 
 /**
@@ -153,12 +154,12 @@ public class ArgumentFactory {
   }
 
   /**
-   * Get list of {@link Argument}.
+   * Get map of {@link Argument}.
    *
    * @param ctx ADCommandContext instance
-   * @return the list of arguments fetched from the kmeans command
+   * @return the list of arguments fetched from the AD command
    */
-  public static Map<String, Literal> getArgumentMap(OpenSearchPPLParser.AdCommandContext ctx) {
+  public static Map<String, Literal> getArgumentMap(AdCommandContext ctx) {
     return new HashMap<String, Literal>() {{
       put("shingle_size", (ctx.shingle_size != null)
               ? getArgumentValue(ctx.shingle_size)
@@ -177,6 +178,8 @@ public class ArgumentFactory {
         ? new Literal(Integer.parseInt(ctx.getText()), DataType.INTEGER)
         : ctx instanceof BooleanLiteralContext
         ? new Literal(Boolean.valueOf(ctx.getText()), DataType.BOOLEAN)
+        : ctx instanceof DecimalLiteralContext
+        ? new Literal(Double.valueOf(ctx.getText()), DataType.DOUBLE)
         : new Literal(StringUtils.unquoteText(ctx.getText()), DataType.STRING);
   }
 

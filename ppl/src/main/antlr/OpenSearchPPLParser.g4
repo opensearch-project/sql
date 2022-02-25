@@ -92,7 +92,7 @@ kmeansCommand
 adCommand
     : AD
     (SHINGLE_SIZE EQUAL shingle_size=integerLiteral)?
-    (TIME_DECAY EQUAL time_decay=doubleLiteral)?
+    (TIME_DECAY EQUAL time_decay=decimalLiteral)?
     (TIME_FIELD EQUAL time_field=stringLiteral)?
     ;
 
@@ -326,10 +326,6 @@ stringLiteral
 
 integerLiteral
     : (PLUS | MINUS)? INTEGER_LITERAL
-    ;
-
-doubleLiteral
-    : (PLUS | MINUS)? DOUBLE_LITERAL
     ;
 
 decimalLiteral

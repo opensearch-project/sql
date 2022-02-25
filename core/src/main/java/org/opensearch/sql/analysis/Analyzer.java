@@ -397,6 +397,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     currentEnv.define(new Symbol(Namespace.FIELD_NAME, "timestamp"), ExprCoreType.TIMESTAMP);
     currentEnv.define(new Symbol(Namespace.FIELD_NAME, "score"), ExprCoreType.DOUBLE);
     currentEnv.define(new Symbol(Namespace.FIELD_NAME, "anomaly_grade"), ExprCoreType.DOUBLE);
+    currentEnv.define(new Symbol(Namespace.FIELD_NAME, "anomalous"), ExprCoreType.BOOLEAN);
 
     return new LogicalAD(child, options);
   }

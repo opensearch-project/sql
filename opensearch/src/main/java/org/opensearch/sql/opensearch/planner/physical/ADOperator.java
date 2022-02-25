@@ -21,6 +21,7 @@ import org.opensearch.ml.common.parameter.MLInput;
 import org.opensearch.ml.common.parameter.MLPredictionOutput;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprFloatValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
@@ -34,6 +35,7 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
 import sun.swing.AccumulativeRunnable;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -95,7 +97,7 @@ public class ADOperator extends PhysicalPlan {
         ImmutableMap.Builder<String, ExprValue> resultBuilder = new ImmutableMap.Builder<>();
         resultBuilder.putAll(convertRowIntoExprValue(inputDataFrame.columnMetas(),
                 inputRowIter.next()));
-        resultBuilder.putAll(convertRowIntoExprValue(
+        resultBuilder.putAll(convertResultRowIntoExprValue(
                 predictionResult.getPredictionResult().columnMetas(),
                 resultRowIter.next()));
         return ExprTupleValue.fromExprValueMap(resultBuilder.build());
@@ -110,17 +112,17 @@ public class ADOperator extends PhysicalPlan {
 
   @Override
   public boolean hasNext() {
-    return false;
+    return iterator.hasNext();
   }
 
   @Override
   public ExprValue next() {
-    return null;
+    return iterator.next();
   }
 
   @Override
   public List<PhysicalPlan> getChild() {
-    return null;
+    return Collections.singletonList(input);
   }
 
   protected MLAlgoParams convertArgumentToMLParameter(Map<String, Literal> arguments) {
@@ -135,10 +137,47 @@ public class ADOperator extends PhysicalPlan {
             .shingleSize((Integer) arguments.get("shingle_size").getValue())
             .timeDecay((Double) arguments.get("time_decay").getValue())
             .timeField((String) arguments.get("time_field").getValue())
+            .dateFormat("yyyy-MM-dd HH:mm:ss")
             .build();
   }
 
   private Map<String, ExprValue> convertRowIntoExprValue(ColumnMeta[] columnMetas, Row row) {
+    ImmutableMap.Builder<String, ExprValue> resultBuilder = new ImmutableMap.Builder<>();
+    for (int i = 0; i < columnMetas.length; i++) {
+      ColumnValue columnValue = row.getValue(i);
+      String resultKeyName = columnMetas[i].getName();
+      if ("timestamp".equalsIgnoreCase(resultKeyName)) {
+        resultKeyName = "timestamp1";
+      }
+      switch (columnValue.columnType()) {
+        case INTEGER:
+          resultBuilder.put(resultKeyName, new ExprIntegerValue(columnValue.intValue()));
+          break;
+        case DOUBLE:
+          resultBuilder.put(resultKeyName, new ExprDoubleValue(columnValue.doubleValue()));
+          break;
+        case STRING:
+          resultBuilder.put(resultKeyName, new ExprStringValue(columnValue.stringValue()));
+          break;
+        case SHORT:
+          resultBuilder.put(resultKeyName, new ExprShortValue(columnValue.shortValue()));
+          break;
+        case LONG:
+          resultBuilder.put(resultKeyName, new ExprLongValue(columnValue.longValue()));
+          break;
+        case FLOAT:
+          resultBuilder.put(resultKeyName, new ExprFloatValue(columnValue.floatValue()));
+          break;
+        case BOOLEAN:
+          resultBuilder.put(resultKeyName, new ExprBooleanValue(columnValue.booleanValue()));
+        default:
+          break;
+      }
+    }
+    return resultBuilder.build();
+  }
+
+  private Map<String, ExprValue> convertResultRowIntoExprValue(ColumnMeta[] columnMetas, Row row) {
     ImmutableMap.Builder<String, ExprValue> resultBuilder = new ImmutableMap.Builder<>();
     for (int i = 0; i < columnMetas.length; i++) {
       ColumnValue columnValue = row.getValue(i);
@@ -162,6 +201,8 @@ public class ADOperator extends PhysicalPlan {
         case FLOAT:
           resultBuilder.put(resultKeyName, new ExprFloatValue(columnValue.floatValue()));
           break;
+        case BOOLEAN:
+          resultBuilder.put(resultKeyName, new ExprBooleanValue(columnValue.booleanValue()));
         default:
           break;
       }

@@ -49,7 +49,7 @@ DEDUP_SPLITVALUES:                  'DEDUP_SPLITVALUES';
 PARTITIONS:                         'PARTITIONS';
 ALLNUM:                             'ALLNUM';
 DELIM:                              'DELIM';
-SHINGLE_SIZE:                       'SINGLE_SIZE';
+SHINGLE_SIZE:                       'SHINGLE_SIZE';
 TIME_DECAY:                         'TIME_DECAY';
 TIME_FIELD:                         'TIME_FIELD';
 
@@ -271,7 +271,6 @@ Y:                                  'Y';
 //STRING_LITERAL:                     DQUOTA_STRING | SQUOTA_STRING | BQUOTA_STRING;
 ID:                                 ID_LITERAL;
 INTEGER_LITERAL:                    DEC_DIGIT+;
-DOUBLE_LITERAL:                     (DEC_DIGIT+)? '.' DEC_DIGIT+;
 DECIMAL_LITERAL:                    (DEC_DIGIT+)? '.' DEC_DIGIT+;
 
 fragment DATE_SUFFIX:               ([\-.][*0-9]+)*;

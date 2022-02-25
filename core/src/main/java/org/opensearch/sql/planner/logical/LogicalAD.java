@@ -1,14 +1,11 @@
 package org.opensearch.sql.planner.logical;
 
+import java.util.Collections;
+import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
-import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Literal;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
 /*
  * AD logical plan.
@@ -19,6 +16,11 @@ import java.util.Map;
 public class LogicalAD extends LogicalPlan {
   private final Map<String, Literal> arguments;
 
+  /**
+   * Constructor of LogicalAD.
+   * @param child child logical plan
+   * @param arguments arguments of the algorithm
+   */
   public LogicalAD(LogicalPlan child, Map<String, Literal> arguments) {
     super(Collections.singletonList(child));
     this.arguments = arguments;
