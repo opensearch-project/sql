@@ -27,13 +27,18 @@ OpenSearchProjectType = type function (
             Documentation.FieldCaption = "Use SSL",
             Documentation.FieldDescription = "Use SSL",
             Documentation.AllowedValues = { true, false }
+        ]),
+        HostnameVerification as (type logical meta [
+            Documentation.FieldCaption = "Certificate validation",
+            Documentation.FieldDescription = "Certificate validation",
+            Documentation.AllowedValues = { true, false }
         ])
     )
     as table meta [
         Documentation.Name = "OpenSearch Project"
     ];
 
-OpenSearchProjectImpl = (Server as text, Port as number, UseSSL as logical) as table =>
+OpenSearchProjectImpl = (Server as text, Port as number, UseSSL as logical, HostnameVerification as logical) as table =>
     let
         Credential = Extension.CurrentCredential(),
         AuthenticationMode = Credential[AuthenticationKind],
@@ -76,7 +81,8 @@ OpenSearchProjectImpl = (Server as text, Port as number, UseSSL as logical) as t
 
         ConnectionString = [
             Driver = "OpenSearch SQL ODBC Driver",
-            Host = FinalServerString
+            Host = FinalServerString,
+            HostnameVerification = if HostnameVerification then 1 else 0
         ],
 
         SQLGetInfo = Diagnostics.LogValue("SQLGetInfo_Options", [
@@ -185,9 +191,10 @@ OpenSearchProject = [
             json = Json.Document(dataSourcePath),
             Server = json[Server],
             Port = json[Port],
-            UseSSL = json[UseSSL]
+            UseSSL = json[UseSSL],
+            HostnameVerification = json[HostnameVerification]
         in
-            { "OpenSearchProject.Contents", Server, Port, UseSSL },
+            { "OpenSearchProject.Contents", Server, Port, UseSSL, HostnameVerification },
 
     // Authentication modes
     Authentication = [
