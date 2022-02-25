@@ -231,7 +231,7 @@ OpenSearchProject = [
 
 // Data Source UI publishing description
 OpenSearchProject.Publish = [
-    Beta = true,
+    Beta = false,
     Category = "Other",
     ButtonText = { Extension.LoadString("ButtonTitle"), Extension.LoadString("ButtonHelp") },
     LearnMoreUrl = "https://github.com/opensearch-project/sql/blob/main/bi-connectors/PowerBIConnector/docs/OpenSearchProject.md",

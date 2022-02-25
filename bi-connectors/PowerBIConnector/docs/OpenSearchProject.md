@@ -31,7 +31,7 @@
 
 <img src="img/pbi_third_party_warning.png" width="500">
 
-4. Enter host and port values and select your preferred SSL option. Click on **OK**.
+4. Enter host and port values and select your preferred SSL and Certificate validation options. Click on **OK**.
 
 <img src="img/pbi_connection_string_options.png" width="500">
 
