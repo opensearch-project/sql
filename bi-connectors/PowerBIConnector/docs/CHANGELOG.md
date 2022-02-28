@@ -6,6 +6,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.1] 2022-02-28
 ### Added
-- Added option to allow users to choose a certificate validation option
+- Allow users to enable or disable validation for SSL certificate validation.
 ### Changed
 - Changed beta to false
