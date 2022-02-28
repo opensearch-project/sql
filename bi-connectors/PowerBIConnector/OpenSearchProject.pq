@@ -213,10 +213,10 @@ OpenSearchProject = [
     // PBIDS Handler
     DSRHandlers = [
       opensearchproject = [
-        GetDSR = (server, schema, object, optional options) => [ protocol = "opensearchproject-odbc", address = [ server = server, port = schema, useSSL = object ] ],
+        GetDSR = (Server, Port, UseSSL, HostnameVerification, optional Options) => [ protocol = "opensearchproject-odbc", address = [ server = Server, port = Port, useSSL = UseSSL, hostnameVerification = HostnameVerification ] ],
         GetFormula = (dsr, optional options) => () =>
           let
-            db = OpenSearchProject.Contents(dsr[address][server], dsr[address][port], dsr[address][useSSL])
+            db = OpenSearchProject.Contents(dsr[address][server], dsr[address][port], dsr[address][useSSL], dsr[address][hostnameVerification])
           in
             db,
         GetFriendlyName = (dsr) => "OpenSearch Project"
