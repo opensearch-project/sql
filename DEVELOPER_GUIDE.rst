@@ -17,15 +17,15 @@ Prerequisites
 JDK
 ---
 
-Specific version of JDK is required to build the plugin because of the dependency on OpenSearch test framework in our integration test. So you must have the required version of JDK installation on your machine. After the installation, please configure the ``JAVA_HOME`` environment variable accordingly. If everything goes right, you should something similar to this sample output on macOS (take OpenJDK 14 for example)::
+OpenSearch builds using Java 11 at a minimum. This means you must have a JDK 11 installed with the environment variable `JAVA_HOME` referencing the path to Java home for your JDK 11 installation::
 
    $ echo $JAVA_HOME
-   /Library/Java/JavaVirtualMachines/adoptopenjdk-14.jdk/Contents/Home
+   /Library/Java/JavaVirtualMachines/adoptopenjdk-11.jdk/Contents/Home
 
    $ java -version
-   openjdk version "14.0.1" 2020-04-14
-   OpenJDK Runtime Environment AdoptOpenJDK (build 14.0.1+7)
-   OpenJDK 64-Bit Server VM AdoptOpenJDK (build 14.0.1+7, mixed mode, sharing)
+    openjdk version "11.0.1" 2018-10-16
+    OpenJDK Runtime Environment 18.9 (build 11.0.1+13)
+    OpenJDK 64-Bit Server VM 18.9 (build 11.0.1+13, mixed mode)
 
 Here are the official instructions on how to set ``JAVA_HOME`` for different platforms: https://docs.oracle.com/cd/E19182-01/820-7851/inst_cli_jdk_javahome_t/. 
 
