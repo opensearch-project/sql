@@ -17,10 +17,14 @@ cast('01:01:01' as time) as castTime
 cast('true' as boolean) as castBool
 cast(1 as boolean) as castBool
 cast(cast(1 as string) as int) castCombine
-false = 'False' as implicitCast
-false = 'true' as implicitCast
-'TRUE' = true as implicitCast
-'false' = true as implicitCast
+# disable, H2 2.x does not support 'False' literal
+#false = 'False' as implicitCast
+# disable, H2 2.x does not support 'true' literal
+#false = 'true' as implicitCast
+# disable, H2 2.x does not support 'TRUE' literal
+#'TRUE' = true as implicitCast
+# disable, H2 2.x does not support 'false' literal
+#'false' = true as implicitCast
 CAST('2021-06-17 00:00:00' AS TIMESTAMP) = '2021-06-17 00:00:00' as implicitCast
 '2021-06-18' < CAST('2021-06-17' AS DATE) as implicitCast
 '10:20:00' <= CAST('11:00:00' AS TIME) as implicitCast

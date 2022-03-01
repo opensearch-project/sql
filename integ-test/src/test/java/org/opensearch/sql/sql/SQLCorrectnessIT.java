@@ -48,9 +48,13 @@ public class SQLCorrectnessIT extends CorrectnessTestBase {
     }
   }
 
+  /**
+   * Comment start with #
+   */
   private void verifyQueries(Path file, Function<String, String> converter) {
     try {
       String[] queries = Files.lines(file)
+                              .filter(line -> !line.startsWith("#"))
                               .map(converter)
                               .toArray(String[]::new);
       verify(queries);
