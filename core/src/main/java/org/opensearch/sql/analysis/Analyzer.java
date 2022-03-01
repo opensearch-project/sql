@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -394,11 +395,14 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     java.util.Map<String, Literal> options = node.getArguments();
 
     TypeEnvironment currentEnv = context.peek();
-    currentEnv.define(new Symbol(Namespace.FIELD_NAME, "timestamp"), ExprCoreType.TIMESTAMP);
-    currentEnv.define(new Symbol(Namespace.FIELD_NAME, "score"), ExprCoreType.DOUBLE);
-    currentEnv.define(new Symbol(Namespace.FIELD_NAME, "anomaly_grade"), ExprCoreType.DOUBLE);
-    currentEnv.define(new Symbol(Namespace.FIELD_NAME, "anomalous"), ExprCoreType.BOOLEAN);
 
+    currentEnv.define(new Symbol(Namespace.FIELD_NAME, "score"), ExprCoreType.DOUBLE);
+    if (Objects.isNull(node.getArguments().get("time_field").getValue())) {
+      currentEnv.define(new Symbol(Namespace.FIELD_NAME, "anomalous"), ExprCoreType.BOOLEAN);
+    } else {
+      currentEnv.define(new Symbol(Namespace.FIELD_NAME, "anomaly_grade"), ExprCoreType.DOUBLE);
+      currentEnv.define(new Symbol(Namespace.FIELD_NAME, "timestamp"), ExprCoreType.TIMESTAMP);
+    }
     return new LogicalAD(child, options);
   }
 
