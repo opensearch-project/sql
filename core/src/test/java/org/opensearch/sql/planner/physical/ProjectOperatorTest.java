@@ -112,10 +112,12 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         project(inputPlan, ImmutableList.of(DSL.named("action", DSL.ref("action", STRING))),
             ImmutableMap.of("action",
-                DSL.parsed(DSL.ref("response", STRING), "(?<action>\\w+) (?<response>\\d+)",
-                    "action"), "response",
-                DSL.parsed(DSL.ref("response", STRING), "(?<action>\\w+) (?<response>\\d+)",
-                    "response"))
+                DSL.parsed(DSL.ref("response", STRING),
+                    DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
+                    DSL.literal("action")), "response",
+                DSL.parsed(DSL.ref("response", STRING),
+                    DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
+                    DSL.literal("response")))
         );
     List<ExprValue> result = execute(plan);
 
@@ -137,10 +139,12 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         project(inputPlan, ImmutableList.of(DSL.named("action", DSL.ref("action", STRING))),
             ImmutableMap.of("action",
-                DSL.parsed(DSL.ref("response", STRING), "(?<action>\\w+) (?<response>\\d+)",
-                    "action"), "response",
-                DSL.parsed(DSL.ref("response", STRING), "(?<action>\\w+) (?<response>\\d+)",
-                    "response"))
+                DSL.parsed(DSL.ref("response", STRING),
+                    DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
+                    DSL.literal("action")), "response",
+                DSL.parsed(DSL.ref("response", STRING),
+                    DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
+                    DSL.literal("response")))
         );
     List<ExprValue> result = execute(plan);
 

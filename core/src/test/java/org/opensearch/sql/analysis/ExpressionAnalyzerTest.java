@@ -317,9 +317,11 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
     analysisContext.push();
     analysisContext.peek().define(new Symbol(Namespace.FIELD_NAME, "string_field"), STRING);
     analysisContext.getParseExpressionMap()
-        .put("string_field", DSL.parsed(ref("string_field", STRING), "(?<group>\\d+)", "group"));
+        .put("string_field", DSL.parsed(ref("string_field", STRING), DSL.literal("(?<group>\\d+)"),
+            DSL.literal("group")));
     assertAnalyzeEqual(
-        DSL.parsed(ref("string_field", STRING), "(?<group>\\d+)", "group"),
+        DSL.parsed(ref("string_field", STRING), DSL.literal("(?<group>\\d+)"),
+            DSL.literal("group")),
         qualifiedName("string_field")
     );
   }

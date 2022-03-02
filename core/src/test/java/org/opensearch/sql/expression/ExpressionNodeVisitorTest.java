@@ -45,7 +45,8 @@ class ExpressionNodeVisitorTest {
     assertNull(new WhenClause(literal("test"), literal(10)).accept(visitor, null));
     assertNull(dsl.namedArgument("field", literal("message")).accept(visitor, null));
     assertNull(DSL.span(ref("age", INTEGER), literal(1), "").accept(visitor, null));
-    assertNull(DSL.parsed(ref("name", STRING), "(?<group>\\d+)", "group").accept(visitor, null));
+    assertNull(DSL.parsed(ref("name", STRING), DSL.literal("(?<group>\\d+)"), DSL.literal("group"))
+        .accept(visitor, null));
   }
 
   @Test
@@ -58,8 +59,8 @@ class ExpressionNodeVisitorTest {
                         ref("balance", INTEGER),
                         literal(10))
                 )),
-            "(?<group>\\d+)",
-            "group");
+            DSL.literal("(?<group>\\d+)"),
+            DSL.literal("group"));
 
     Expression actual = expr.accept(new ExpressionNodeVisitor<Expression, Object>() {
       @Override

@@ -98,7 +98,8 @@ class ExpressionAggregationScriptTest {
   void can_execute_parse_expression() {
     assertThat()
         .docValues("age_string", "age: 30")
-        .evaluate(DSL.parsed(DSL.ref("age_string", STRING), "age: (?<age>\\d+)", "age"))
+        .evaluate(DSL.parsed(DSL.ref("age_string", STRING), DSL.literal("age: (?<age>\\d+)"),
+            DSL.literal("age")))
         .shouldMatch("30");
   }
 

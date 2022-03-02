@@ -11,15 +11,11 @@ import com.google.common.collect.ImmutableMap.Builder;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -35,7 +31,6 @@ import org.opensearch.sql.utils.ParseUtils;
 @EqualsAndHashCode
 @RequiredArgsConstructor
 public class ProjectOperator extends PhysicalPlan {
-  private static final Logger log = LogManager.getLogger(ProjectOperator.class);
   @Getter
   private final PhysicalPlan input;
   @Getter
@@ -74,14 +69,16 @@ public class ProjectOperator extends PhysicalPlan {
       if (value.isMissing()) {
         // value will be missing after stats command, read from inputValue if it exists
         // otherwise do nothing since it should not appear as a field
-        ExprValue exprValue = ExprValueUtils.getTupleValue(inputValue).get(expr.getIdentifier());
+        ExprValue exprValue = ExprValueUtils.getTupleValue(inputValue)
+            .get(expr.getIdentifier().valueOf(null).stringValue());
         if (exprValue != null) {
-          mapBuilder.put(expr.getIdentifier(), exprValue);
+          mapBuilder.put(expr.getIdentifier().valueOf(null).stringValue(), exprValue);
         }
       } else {
         ExprValue parsedValue =
-            ParseUtils.parseValue(value, expr.getPattern(), expr.getIdentifier());
-        mapBuilder.put(expr.getIdentifier(), parsedValue);
+            ParseUtils.parseValue(value, expr.getPattern(),
+                expr.getIdentifier().valueOf(null).stringValue());
+        mapBuilder.put(expr.getIdentifier().valueOf(null).stringValue(), parsedValue);
       }
     }
     return ExprTupleValue.fromExprValueMap(mapBuilder.build());

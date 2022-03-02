@@ -321,11 +321,13 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     LogicalPlan child = node.getChild().get(0).accept(this, context);
     Expression expression = expressionAnalyzer.analyze(node.getExpression(), context);
     String pattern = (String) node.getPattern().getValue();
+    Expression patternExpression = DSL.literal(pattern);
 
     TypeEnvironment curEnv = context.peek();
     ParseUtils.getNamedGroupCandidates(pattern).forEach(group -> {
       curEnv.define(new Symbol(Namespace.FIELD_NAME, group), ExprCoreType.STRING);
-      context.getParseExpressionMap().put(group, new ParseExpression(expression, pattern, group));
+      context.getParseExpressionMap()
+          .put(group, new ParseExpression(expression, patternExpression, DSL.literal(group)));
     });
     return child;
   }

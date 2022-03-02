@@ -26,27 +26,32 @@ class ParseExpressionTest extends ExpressionTestBase {
   @Test
   public void resolve_value() {
     assertEquals(stringValue("st"),
-        DSL.parsed(DSL.ref("string_value", STRING), "(?<group>\\w{2})\\w", "group")
+        DSL.parsed(DSL.ref("string_value", STRING), DSL.literal("(?<group>\\w{2})\\w"),
+                DSL.literal("group"))
             .valueOf(valueEnv()));
     assertEquals(LITERAL_NULL,
-        DSL.parsed(DSL.ref(STRING_TYPE_NULL_VALUE_FIELD, STRING), "(?<group>\\w{2})\\w", "group")
+        DSL.parsed(DSL.ref(STRING_TYPE_NULL_VALUE_FIELD, STRING),
+                DSL.literal("(?<group>\\w{2})\\w"), DSL.literal("group"))
             .valueOf(valueEnv()));
     assertEquals(LITERAL_NULL,
-        DSL.parsed(DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING), "(?<group>\\w{2})\\w", "group")
+        DSL.parsed(DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING),
+                DSL.literal("(?<group>\\w{2})\\w"), DSL.literal("group"))
             .valueOf(valueEnv()));
   }
 
   @Test
   public void resolve_type() {
     assertEquals(STRING,
-        DSL.parsed(DSL.ref("string_value", STRING), "(?<group>\\w{2})\\w", "group").type());
+        DSL.parsed(DSL.ref("string_value", STRING), DSL.literal("(?<group>\\w{2})\\w"),
+            DSL.literal("group")).type());
   }
 
   @Test
   public void throws_semantic_exception_if_value_type_is_not_string() {
     assertThrows(
         SemanticCheckException.class,
-        () -> DSL.parsed(DSL.ref("boolean_value", BOOLEAN), "(?<group>\\w{2})\\w", "group")
+        () -> DSL.parsed(DSL.ref("boolean_value", BOOLEAN), DSL.literal("(?<group>\\w{2})\\w"),
+                DSL.literal("group"))
             .valueOf(valueEnv()));
   }
 }

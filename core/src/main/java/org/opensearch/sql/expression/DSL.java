@@ -97,7 +97,8 @@ public class DSL {
       return (NamedExpression) expression;
     }
     if (expression instanceof ParseExpression) {
-      return named(((ParseExpression) expression).getIdentifier(), expression);
+      return named(((ParseExpression) expression).getIdentifier().valueOf(null).stringValue(),
+          expression);
     }
     return named(expression.toString(), expression);
   }
@@ -118,7 +119,8 @@ public class DSL {
     return new NamedArgumentExpression(argName, value);
   }
 
-  public static ParseExpression parsed(Expression expression, String pattern, String identifier) {
+  public static ParseExpression parsed(Expression expression, Expression pattern,
+                                       Expression identifier) {
     return new ParseExpression(expression, pattern, identifier);
   }
 
