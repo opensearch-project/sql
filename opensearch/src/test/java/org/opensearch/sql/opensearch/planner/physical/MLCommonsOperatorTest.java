@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.runner.RunWith;
@@ -103,6 +104,7 @@ public class MLCommonsOperatorTest {
     }
   }
 
+  @Disabled
   @Test
   public void testOpen() {
     mlCommonsOperator.open();

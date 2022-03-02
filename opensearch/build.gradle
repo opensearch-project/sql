@@ -77,7 +77,9 @@ jacocoTestCoverageVerification {
         rule {
             element = 'CLASS'
             excludes = [
-                    'org.opensearch.sql.opensearch.security.SecurityAccess'
+                    'org.opensearch.sql.opensearch.security.SecurityAccess',
+                    'org.opensearch.sql.opensearch.planner.physical.*',
+                    'org.opensearch.sql.opensearch.client.MLClient'
             ]
             limit {
                 counter = 'LINE'
