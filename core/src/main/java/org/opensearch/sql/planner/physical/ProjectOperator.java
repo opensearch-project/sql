@@ -10,8 +10,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -23,7 +21,6 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ParseExpression;
-import org.opensearch.sql.utils.ParseUtils;
 
 /**
  * Project the fields specified in {@link ProjectOperator#projectList} from input.
@@ -36,11 +33,8 @@ public class ProjectOperator extends PhysicalPlan {
   private final PhysicalPlan input;
   @Getter
   private final List<NamedExpression> projectList;
-  /**
-   * Named parse expressions.
-   */
   @Getter
-  private final List<NamedExpression> parsedList;
+  private final List<NamedExpression> namedParseExpressions;
 
   @Override
   public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
@@ -63,13 +57,13 @@ public class ProjectOperator extends PhysicalPlan {
     ImmutableMap.Builder<String, ExprValue> mapBuilder = new Builder<>();
     for (NamedExpression expr : projectList) {
       ExprValue exprValue = expr.valueOf(inputValue.bindingTuples());
-      if (parsedList.stream()
+      if (namedParseExpressions.stream()
           .noneMatch(parsed -> parsed.getNameOrAlias().equals(expr.getNameOrAlias()))) {
         mapBuilder.put(expr.getNameOrAlias(), exprValue);
       }
     }
     // ParseExpression will always override NamedExpression when identifier conflicts
-    for (NamedExpression expr : parsedList) {
+    for (NamedExpression expr : namedParseExpressions) {
       ExprValue value = inputValue.bindingTuples()
           .resolve(((ParseExpression) expr.getDelegated()).getExpression());
       if (value.isMissing()) {

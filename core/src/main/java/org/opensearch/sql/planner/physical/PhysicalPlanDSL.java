@@ -47,8 +47,8 @@ public class PhysicalPlanDSL {
   }
 
   public static ProjectOperator project(PhysicalPlan input, List<NamedExpression> fields,
-                                        List<NamedExpression> parsedList) {
-    return new ProjectOperator(input, fields, parsedList);
+                                        List<NamedExpression> namedParseExpressions) {
+    return new ProjectOperator(input, fields, namedParseExpressions);
   }
 
   public static RemoveOperator remove(PhysicalPlan input, ReferenceExpression... fields) {
