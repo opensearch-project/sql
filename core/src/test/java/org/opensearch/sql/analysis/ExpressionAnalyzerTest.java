@@ -313,7 +313,7 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void parse_expression() {
+  public void named_parse_expression() {
     analysisContext.push();
     analysisContext.peek().define(new Symbol(Namespace.FIELD_NAME, "string_field"), STRING);
     analysisContext.getNamedParseExpressions()
@@ -325,6 +325,15 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
             DSL.literal("group")),
         qualifiedName("group")
     );
+  }
+
+  @Test
+  public void named_non_parse_expression() {
+    analysisContext.push();
+    analysisContext.peek().define(new Symbol(Namespace.FIELD_NAME, "string_field"), STRING);
+    analysisContext.getNamedParseExpressions()
+        .add(DSL.named("string_field", DSL.literal("123")));
+    assertAnalyzeEqual(DSL.ref("string_field", STRING), qualifiedName("string_field"));
   }
 
   @Test
