@@ -46,6 +46,7 @@ import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
+import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ParseExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.AggregationState;
@@ -277,9 +278,10 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
 
   private Expression visitIdentifier(String ident, AnalysisContext context) {
     // ParseExpression will always override ReferenceExpression when ident conflicts
-    ParseExpression parseExpression = context.getParseExpressionMap().get(ident);
-    if (parseExpression != null) {
-      return parseExpression;
+    for (NamedExpression expr : context.getParsedList()) {
+      if (expr.getNameOrAlias().equals(ident)) {
+        return expr;
+      }
     }
 
     TypeEnvironment typeEnv = context.peek();

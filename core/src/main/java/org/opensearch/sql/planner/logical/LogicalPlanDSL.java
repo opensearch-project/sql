@@ -6,7 +6,7 @@
 
 package org.opensearch.sql.planner.logical;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
 import java.util.List;
@@ -48,12 +48,12 @@ public class LogicalPlanDSL {
   }
 
   public static LogicalPlan project(LogicalPlan input, NamedExpression... fields) {
-    return new LogicalProject(input, Arrays.asList(fields), ImmutableMap.of());
+    return new LogicalProject(input, Arrays.asList(fields), ImmutableList.of());
   }
 
   public static LogicalPlan project(LogicalPlan input, List<NamedExpression> fields,
-                                    Map<String, ParseExpression> parseExpressionMap) {
-    return new LogicalProject(input, fields, parseExpressionMap);
+                                    List<NamedExpression> parsedList) {
+    return new LogicalProject(input, fields, parsedList);
   }
 
   public LogicalPlan window(LogicalPlan input,

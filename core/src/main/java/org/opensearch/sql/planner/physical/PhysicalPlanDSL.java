@@ -6,11 +6,9 @@
 
 package org.opensearch.sql.planner.physical;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.experimental.UtilityClass;
@@ -20,7 +18,6 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.NamedExpression;
-import org.opensearch.sql.expression.ParseExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
@@ -46,12 +43,12 @@ public class PhysicalPlanDSL {
   }
 
   public static ProjectOperator project(PhysicalPlan input, NamedExpression... fields) {
-    return new ProjectOperator(input, Arrays.asList(fields), ImmutableMap.of());
+    return new ProjectOperator(input, Arrays.asList(fields), ImmutableList.of());
   }
 
   public static ProjectOperator project(PhysicalPlan input, List<NamedExpression> fields,
-                                        Map<String, ParseExpression> parseExpressionMap) {
-    return new ProjectOperator(input, fields, parseExpressionMap);
+                                        List<NamedExpression> parsedList) {
+    return new ProjectOperator(input, fields, parsedList);
   }
 
   public static RemoveOperator remove(PhysicalPlan input, ReferenceExpression... fields) {
@@ -89,13 +86,13 @@ public class PhysicalPlanDSL {
   }
 
   public static RareTopNOperator rareTopN(PhysicalPlan input, CommandType commandType,
-      List<Expression> groups, Expression... expressions) {
+                                          List<Expression> groups, Expression... expressions) {
     return new RareTopNOperator(input, commandType, Arrays.asList(expressions), groups);
   }
 
   public static RareTopNOperator rareTopN(PhysicalPlan input, CommandType commandType,
-      int noOfResults,
-      List<Expression> groups, Expression... expressions) {
+                                          int noOfResults,
+                                          List<Expression> groups, Expression... expressions) {
     return new RareTopNOperator(input, commandType, noOfResults, Arrays.asList(expressions),
         groups);
   }

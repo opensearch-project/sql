@@ -290,8 +290,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     TypeEnvironment newEnv = context.peek();
     namedExpressions.forEach(expr -> newEnv.define(new Symbol(Namespace.FIELD_NAME,
         expr.getNameOrAlias()), expr.type()));
-    java.util.Map<String, ParseExpression> parseExpressionMap = context.getParseExpressionMap();
-    return new LogicalProject(child, namedExpressions, parseExpressionMap);
+    List<NamedExpression> parsedList = context.getParsedList();
+    return new LogicalProject(child, namedExpressions, parsedList);
   }
 
   /**
@@ -326,8 +326,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     TypeEnvironment curEnv = context.peek();
     ParseUtils.getNamedGroupCandidates(pattern).forEach(group -> {
       curEnv.define(new Symbol(Namespace.FIELD_NAME, group), ExprCoreType.STRING);
-      context.getParseExpressionMap()
-          .put(group, new ParseExpression(expression, patternExpression, DSL.literal(group)));
+      context.getParsedList().add(new NamedExpression(group,
+          new ParseExpression(expression, patternExpression, DSL.literal(group))));
     });
     return child;
   }

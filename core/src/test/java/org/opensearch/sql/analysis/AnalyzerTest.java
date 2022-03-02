@@ -678,9 +678,9 @@ class AnalyzerTest extends AnalyzerTestBase {
         LogicalPlanDSL.project(
             LogicalPlanDSL.relation("schema"),
             ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
-            ImmutableMap.of("group",
+            ImmutableList.of(DSL.named("group",
                 DSL.parsed(DSL.ref("string_value", STRING), DSL.literal("(?<group>.*)"),
-                    DSL.literal("group")))
+                    DSL.literal("group"))))
         ),
         AstDSL.project(
             AstDSL.parse(

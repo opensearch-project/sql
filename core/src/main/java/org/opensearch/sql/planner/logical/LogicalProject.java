@@ -25,7 +25,7 @@ public class LogicalProject extends LogicalPlan {
   @Getter
   private final List<NamedExpression> projectList;
   @Getter
-  private final Map<String, ParseExpression> parseExpressionMap;
+  private final List<NamedExpression> parsedList;
 
   /**
    * Constructor of LogicalProject.
@@ -33,10 +33,10 @@ public class LogicalProject extends LogicalPlan {
   public LogicalProject(
       LogicalPlan child,
       List<NamedExpression> projectList,
-      Map<String, ParseExpression> parseExpressionMap) {
+      List<NamedExpression> parsedList) {
     super(Collections.singletonList(child));
     this.projectList = projectList;
-    this.parseExpressionMap = parseExpressionMap;
+    this.parsedList = parsedList;
   }
 
   @Override
