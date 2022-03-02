@@ -278,9 +278,9 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
 
   private Expression visitIdentifier(String ident, AnalysisContext context) {
     // ParseExpression will always override ReferenceExpression when ident conflicts
-    for (NamedExpression expr : context.getParsedList()) {
-      if (expr.getNameOrAlias().equals(ident)) {
-        return expr;
+    for (NamedExpression expr : context.getNamedParseExpressions()) {
+      if (expr.getNameOrAlias().equals(ident) && expr.getDelegated() instanceof ParseExpression) {
+        return expr.getDelegated();
       }
     }
 

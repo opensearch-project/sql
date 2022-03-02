@@ -316,13 +316,13 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   public void parse_expression() {
     analysisContext.push();
     analysisContext.peek().define(new Symbol(Namespace.FIELD_NAME, "string_field"), STRING);
-    analysisContext.getParsedList()
+    analysisContext.getNamedParseExpressions()
         .add(DSL.named("group",
             DSL.parsed(ref("string_field", STRING), DSL.literal("(?<group>\\d+)"),
             DSL.literal("group"))));
     assertAnalyzeEqual(
-        DSL.named(DSL.parsed(ref("string_field", STRING), DSL.literal("(?<group>\\d+)"),
-            DSL.literal("group"))),
+        DSL.parsed(ref("string_field", STRING), DSL.literal("(?<group>\\d+)"),
+            DSL.literal("group")),
         qualifiedName("group")
     );
   }
