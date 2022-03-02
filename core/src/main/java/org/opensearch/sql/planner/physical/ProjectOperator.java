@@ -75,9 +75,7 @@ public class ProjectOperator extends PhysicalPlan {
           mapBuilder.put(expr.getIdentifier().valueOf(null).stringValue(), exprValue);
         }
       } else {
-        ExprValue parsedValue =
-            ParseUtils.parseValue(value, expr.getPattern(),
-                expr.getIdentifier().valueOf(null).stringValue());
+        ExprValue parsedValue = expr.valueOf(inputValue.bindingTuples());
         mapBuilder.put(expr.getIdentifier().valueOf(null).stringValue(), parsedValue);
       }
     }
