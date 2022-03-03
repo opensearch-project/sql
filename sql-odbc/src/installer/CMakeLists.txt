@@ -73,9 +73,9 @@ cpack_add_component(Resources
 	DISPLAY_NAME "Resources"
 	DESCRIPTION "Resources for OpenSearch SQL ODBC Driver"
 )
-
 # Install driver files
 install(TARGETS sqlodbc DESTINATION bin COMPONENT "Driver")
+
 # TODO: look into DSN Installer failure
 # if(APPLE)
 #     install(FILES "${PROJECT_ROOT}/bin64/dsn_installer" DESTINATION bin COMPONENT "Driver")
@@ -93,10 +93,18 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/Resources/opensearch_sql_odbc.tdc" DE
 # Install AWS dependencies
 if(WIN32)
     set(AWS_SDK_BIN_DIR "${PROJECT_ROOT}/build/aws-sdk/install/bin")
-    install(FILES "${AWS_SDK_BIN_DIR}/aws-c-common.dll" DESTINATION bin COMPONENT "Driver")
-    install(FILES "${AWS_SDK_BIN_DIR}/aws-c-event-stream.dll" DESTINATION bin COMPONENT "Driver")
-    install(FILES "${AWS_SDK_BIN_DIR}/aws-checksums.dll" DESTINATION bin COMPONENT "Driver")
-    install(FILES "${AWS_SDK_BIN_DIR}/aws-cpp-sdk-core.dll" DESTINATION bin COMPONENT "Driver")
+    install(DIRECTORY ${AWS_SDK_BIN_DIR} DESTINATION . COMPONENT "Driver")
+endif()
+
+if(WIN32)
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        # We actually never build the installer for Debug
+        install(FILES "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug/libcurl-d.dll" DESTINATION bin COMPONENT "Driver")
+        install(FILES "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug/zlibd1.dll" DESTINATION bin COMPONENT "Driver")
+    else() # release
+        install(FILES "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Release/libcurl.dll" DESTINATION bin COMPONENT "Driver")
+        install(FILES "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Release/zlib1.dll" DESTINATION bin COMPONENT "Driver")
+    endif()
 endif()
 
 include(CPack)
