@@ -290,8 +290,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     TypeEnvironment newEnv = context.peek();
     namedExpressions.forEach(expr -> newEnv.define(new Symbol(Namespace.FIELD_NAME,
         expr.getNameOrAlias()), expr.type()));
-    List<NamedExpression> parsedList = context.getNamedParseExpressions();
-    return new LogicalProject(child, namedExpressions, parsedList);
+    List<NamedExpression> namedParseExpressions = context.getNamedParseExpressions();
+    return new LogicalProject(child, namedExpressions, namedParseExpressions);
   }
 
   /**

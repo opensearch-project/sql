@@ -61,7 +61,7 @@ public class PushProjectAndRelation implements Rule<LogicalProject> {
             .projectList(findReferenceExpressions(project.getProjectList()))
             .build(),
         project.getProjectList(),
-        project.getParsedList()
+        project.getNamedParseExpressions()
     );
   }
 }

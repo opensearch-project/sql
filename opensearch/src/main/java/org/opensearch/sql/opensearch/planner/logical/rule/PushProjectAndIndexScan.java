@@ -57,6 +57,7 @@ public class PushProjectAndIndexScan implements Rule<LogicalProject> {
                            Captures captures) {
     OpenSearchLogicalIndexScan indexScan = captures.get(indexScanCapture);
     indexScan.setProjectList(pushDownProjects);
-    return new LogicalProject(indexScan, project.getProjectList(), project.getParsedList());
+    return new LogicalProject(indexScan, project.getProjectList(),
+        project.getNamedParseExpressions());
   }
 }

@@ -52,8 +52,8 @@ public class LogicalPlanDSL {
   }
 
   public static LogicalPlan project(LogicalPlan input, List<NamedExpression> fields,
-                                    List<NamedExpression> parsedList) {
-    return new LogicalProject(input, fields, parsedList);
+                                    List<NamedExpression> namedParseExpressions) {
+    return new LogicalProject(input, fields, namedParseExpressions);
   }
 
   public LogicalPlan window(LogicalPlan input,
