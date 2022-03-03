@@ -63,6 +63,7 @@ public class ProjectOperator extends PhysicalPlan {
       }
     }
     // ParseExpression will always override NamedExpression when identifier conflicts
+    // TODO needs a better implementation, see https://github.com/opensearch-project/sql/issues/458
     for (NamedExpression expr : namedParseExpressions) {
       ExprValue value = inputValue.bindingTuples()
           .resolve(((ParseExpression) expr.getDelegated()).getExpression());
