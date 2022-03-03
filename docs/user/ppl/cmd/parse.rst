@@ -29,20 +29,20 @@ The regular expression is used to match the whole text field of each document wi
 Example 1: Create the new field
 ===============================
 
-The example shows how to create new field ``host`` for each document. ``host`` will be the host name after ``@`` in ``email`` field.
+The example shows how to create new field ``host`` for each document. ``host`` will be the host name after ``@`` in ``email`` field. Parsing a null field will return an empty string.
 
 PPL query::
 
     os> source=accounts | parse email '.+@(?<host>.+)' | fields email, host ;
     fetched rows / total rows = 4/4
-    +--------------------------+-------------+
-    | email                    | host        |
-    |--------------------------+-------------|
-    | amberduke@pyrami.com     | pyrami.com  |
-    | hattiebond@netagy.com    | netagy.com  |
-    | nanettebates@quility.com | quility.com |
-    | daleadams@boink.com      | boink.com   |
-    +--------------------------+-------------+
+    +-----------------------+------------+
+    | email                 | host       |
+    |-----------------------+------------|
+    | amberduke@pyrami.com  | pyrami.com |
+    | hattiebond@netagy.com | netagy.com |
+    | null                  |            |
+    | daleadams@boink.com   | boink.com  |
+    +-----------------------+------------+
 
 
 Example 2: Override the existing field
@@ -63,6 +63,22 @@ PPL query::
     | Hutchinson Court |
     +------------------+
 
+Example 3: Filter and sort by casted parsed field
+=================================================
+
+The example shows how to sort street numbers that are higher than 500 in ``address`` field.
+
+PPL query::
+
+    os> source=accounts | parse address '(?<streetNumber>\d+) (?<street>.+)' | where cast(streetNumber as int) > 500 | sort num(streetNumber) | fields streetNumber, street ;
+    fetched rows / total rows = 3/3
+    +----------------+----------------+
+    | streetNumber   | street         |
+    |----------------+----------------|
+    | 671            | Bristol Street |
+    | 789            | Madison Street |
+    | 880            | Holmes Lane    |
+    +----------------+----------------+
 
 Limitation
 ==========
