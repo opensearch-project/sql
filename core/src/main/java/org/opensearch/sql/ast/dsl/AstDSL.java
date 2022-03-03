@@ -153,6 +153,14 @@ public class AstDSL {
     return literal(value, DataType.LONG);
   }
 
+  public static Literal shortLiteral(Short value) {
+    return literal(value, DataType.SHORT);
+  }
+
+  public static Literal floatLiteral(Float value) {
+    return literal(value, DataType.FLOAT);
+  }
+
   public static Literal dateLiteral(String value) {
     return literal(value, DataType.DATE);
   }

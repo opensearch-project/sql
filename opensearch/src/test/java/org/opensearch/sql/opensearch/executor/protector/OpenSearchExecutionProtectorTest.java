@@ -4,7 +4,7 @@
  */
 
 
-package org.opensearch.sql.opensearch.executor;
+package org.opensearch.sql.opensearch.executor.protector;
 
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -34,6 +34,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.client.node.NodeClient;
+import org.opensearch.ml.client.MachineLearningClient;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.common.setting.Settings;
@@ -52,6 +55,7 @@ import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProtector;
 import org.opensearch.sql.opensearch.executor.protector.ResourceMonitorPlan;
+import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndexScan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -250,6 +254,21 @@ class OpenSearchExecutionProtectorTest {
                 filterExpr)
         )
     );
+  }
+
+  @Test
+  public void testVisitMlCommons() {
+    NodeClient nodeClient = mock(NodeClient.class);
+    MLCommonsOperator mlCommonsOperator =
+            new MLCommonsOperator(
+              values(emptyList()),
+              "kmeans",
+              AstDSL.exprList(AstDSL.argument("k1", AstDSL.intLiteral(3))),
+                nodeClient
+            );
+
+    assertEquals(executionProtector.doProtect(mlCommonsOperator),
+            executionProtector.visitMLCommons(mlCommonsOperator, null));
   }
 
   PhysicalPlan resourceMonitor(PhysicalPlan input) {

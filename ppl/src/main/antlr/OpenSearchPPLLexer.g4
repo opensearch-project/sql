@@ -23,6 +23,7 @@ HEAD:                               'HEAD';
 TOP:                                'TOP';
 RARE:                               'RARE';
 PARSE:                              'PARSE';
+KMEANS:                             'KMEANS';
 
 // COMMAND ASSIST KEYWORDS
 AS:                                 'AS';

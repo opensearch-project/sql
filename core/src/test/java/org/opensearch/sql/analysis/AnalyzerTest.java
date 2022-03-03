@@ -43,11 +43,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.SpanUnit;
+import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.window.WindowDefinition;
+import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.annotation.DirtiesContext;
@@ -689,5 +691,16 @@ class AnalyzerTest extends AnalyzerTestBase {
                 AstDSL.stringLiteral("(?<group>.*)")),
             AstDSL.alias("string_value", qualifiedName("string_value"))
         ));
+  }
+  
+  @Test
+  public void kmeanns_relation() {
+    assertAnalyzeEqual(
+            new LogicalMLCommons(LogicalPlanDSL.relation("schema"),
+                    "kmeans",
+                    AstDSL.exprList(AstDSL.argument("k", AstDSL.intLiteral(3)))),
+            new Kmeans(AstDSL.relation("schema"),
+                    AstDSL.exprList(AstDSL.argument("k", AstDSL.intLiteral(3))))
+    );
   }
 }
