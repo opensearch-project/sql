@@ -61,3 +61,6 @@ PPL query::
     | Nanette       | 28        |
     +---------------+-----------+
 
+Limitation
+==========
+The ``head`` command is not rewrite as OpenSearch DSL and executed on coordination node only.
