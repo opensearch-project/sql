@@ -142,6 +142,14 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
     assertNull(physicalPlanNodeVisitor.visitMLCommons(plan, null));
   }
 
+  @Test
+  public void test_visitAD() {
+    PhysicalPlanNodeVisitor physicalPlanNodeVisitor =
+            new PhysicalPlanNodeVisitor<Integer, Object>() {};
+
+    assertNull(physicalPlanNodeVisitor.visitAD(plan, null));
+  }
+
   public static class PhysicalPlanPrinter extends PhysicalPlanNodeVisitor<String, Integer> {
 
     public String print(PhysicalPlan node) {

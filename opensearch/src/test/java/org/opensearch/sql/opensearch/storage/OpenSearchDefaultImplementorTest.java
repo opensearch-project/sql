@@ -18,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 
@@ -55,5 +56,15 @@ public class OpenSearchDefaultImplementorTest {
     OpenSearchIndex.OpenSearchDefaultImplementor implementor =
             new OpenSearchIndex.OpenSearchDefaultImplementor(indexScan, client);
     assertNotNull(implementor.visitMLCommons(node, indexScan));
+  }
+
+  @Test
+  public void visitAD() {
+    LogicalAD node = Mockito.mock(LogicalAD.class,
+            Answers.RETURNS_DEEP_STUBS);
+    Mockito.when(node.getChild().get(0)).thenReturn(Mockito.mock(LogicalPlan.class));
+    OpenSearchIndex.OpenSearchDefaultImplementor implementor =
+            new OpenSearchIndex.OpenSearchDefaultImplementor(indexScan, client);
+    assertNotNull(implementor.visitAD(node, indexScan));
   }
 }

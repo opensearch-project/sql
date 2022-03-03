@@ -38,12 +38,16 @@ import static org.opensearch.sql.ast.dsl.AstDSL.sort;
 import static org.opensearch.sql.ast.dsl.AstDSL.span;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 
+import java.util.HashMap;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.opensearch.sql.ast.Node;
+import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.SpanUnit;
+import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
@@ -538,6 +542,28 @@ public class AstBuilderTest {
   public void testKmeansCommand() {
     assertEqual("source=t | kmeans 3",
             new Kmeans(relation("t"),exprList(argument("k", intLiteral(3)))));
+  }
+
+  @Test
+  public void test_fitRCFADCommand() {
+    assertEqual("source=t | AD shingle_size=10 time_decay=0.0001 time_field='timestamp'",
+            new AD(relation("t"),new HashMap<String, Literal>() {{
+                put("shingle_size", new Literal(10, DataType.INTEGER));
+                put("time_decay", new Literal(0.0001, DataType.DOUBLE));
+                put("time_field", new Literal("timestamp", DataType.STRING));
+              }
+            }));
+  }
+
+  @Test
+  public void test_batchRCFADCommand() {
+    assertEqual("source=t | AD",
+            new AD(relation("t"),new HashMap<String, Literal>() {{
+                put("shingle_size", new Literal(8, DataType.INTEGER));
+                put("time_decay", new Literal(0.0001, DataType.DOUBLE));
+                put("time_field", new Literal(null, DataType.STRING));
+              }
+            }));
   }
 
   protected void assertEqual(String query, Node expectedPlan) {

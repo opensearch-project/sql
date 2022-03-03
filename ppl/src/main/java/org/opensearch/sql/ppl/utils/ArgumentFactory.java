@@ -21,15 +21,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.common.utils.StringUtils;
-import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.KmeansCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.AdCommandContext;
-
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.KmeansCommandContext;
 
 /**
  * Util class to get all arguments as a list from the PPL command.
@@ -161,16 +159,17 @@ public class ArgumentFactory {
    */
   public static Map<String, Literal> getArgumentMap(AdCommandContext ctx) {
     return new HashMap<String, Literal>() {{
-      put("shingle_size", (ctx.shingle_size != null)
+        put("shingle_size", (ctx.shingle_size != null)
               ? getArgumentValue(ctx.shingle_size)
               : new Literal(8, DataType.INTEGER));
-      put("time_decay", (ctx.time_decay != null)
+        put("time_decay", (ctx.time_decay != null)
               ? getArgumentValue(ctx.time_decay)
               : new Literal(0.0001, DataType.DOUBLE));
-      put("time_field", (ctx.time_field != null)
+        put("time_field", (ctx.time_field != null)
               ? getArgumentValue(ctx.time_field)
               : new Literal(null, DataType.STRING));
-    }};
+      }
+    };
   }
 
   private static Literal getArgumentValue(ParserRuleContext ctx) {
