@@ -20,7 +20,7 @@ pplStatement
 /** commands */
 commands
     : whereCommand | fieldsCommand | renameCommand | statsCommand | dedupCommand | sortCommand | evalCommand | headCommand
-    | topCommand | rareCommand;
+    | topCommand | rareCommand | kmeansCommand;
 
 searchCommand
     : (SEARCH)? fromClause                                          #searchFrom
@@ -82,6 +82,11 @@ rareCommand
     : RARE
     fieldList
     (byClause)?
+    ;
+
+kmeansCommand
+    : KMEANS
+    k=integerLiteral
     ;
 
 /** clauses */

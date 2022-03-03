@@ -24,6 +24,7 @@ import org.opensearch.client.indices.GetIndexRequest;
 import org.opensearch.client.indices.GetIndexResponse;
 import org.opensearch.client.indices.GetMappingsRequest;
 import org.opensearch.client.indices.GetMappingsResponse;
+import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
@@ -134,5 +135,10 @@ public class OpenSearchRestClient implements OpenSearchClient {
   @Override
   public void schedule(Runnable task) {
     task.run();
+  }
+
+  @Override
+  public NodeClient getNodeClient() {
+    throw new UnsupportedOperationException("Unsupported method.");
   }
 }

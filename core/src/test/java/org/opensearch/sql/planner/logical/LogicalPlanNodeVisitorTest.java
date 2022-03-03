@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.expression.DSL;
@@ -107,6 +108,12 @@ class LogicalPlanNodeVisitorTest {
     LogicalPlan rareTopN = LogicalPlanDSL.rareTopN(
         relation, CommandType.TOP, ImmutableList.of(expression), expression);
     assertNull(rareTopN.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
+    }, null));
+
+    LogicalPlan mlCommons = new LogicalMLCommons(LogicalPlanDSL.relation("schema"),
+            "kmeans",
+            AstDSL.exprList(AstDSL.argument("k", AstDSL.intLiteral(3))));
+    assertNull(mlCommons.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
     }, null));
   }
 
