@@ -78,4 +78,4 @@ PPL query::
 
 Limitation
 ==========
-The ``eval`` command is not rewrite as OpenSearch DSL and executed on coordination node only.
+The ``eval`` command is not rewritten to OpenSearch DSL, it is only executed on the coordination node.
