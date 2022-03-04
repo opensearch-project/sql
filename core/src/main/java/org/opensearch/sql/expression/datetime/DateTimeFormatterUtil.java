@@ -80,7 +80,7 @@ class DateTimeFormatterUtil {
 
   private static final Pattern pattern = Pattern.compile("%.");
   private static final Pattern CHARACTERS_WITH_NO_MOD_LITERAL_BEHIND_PATTERN
-          = Pattern.compile("(?<!%)[a-zA-Z&&[^ydmshiHIMYDS]]+");
+          = Pattern.compile("(?<!%)[a-zA-Z&&[^aydmshiHIMYDSEL]]+");
   private static final String MOD_LITERAL = "%";
 
   private DateTimeFormatterUtil() {
