@@ -11,6 +11,11 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
+import static org.opensearch.sql.utils.MLCommonsConstants.RCF_ANOMALOUS;
+import static org.opensearch.sql.utils.MLCommonsConstants.RCF_ANOMALY_GRADE;
+import static org.opensearch.sql.utils.MLCommonsConstants.RCF_SCORE;
+import static org.opensearch.sql.utils.MLCommonsConstants.RCF_TIMESTAMP;
+import static org.opensearch.sql.utils.MLCommonsConstants.TIME_FIELD;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
@@ -396,12 +401,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
     TypeEnvironment currentEnv = context.peek();
 
-    currentEnv.define(new Symbol(Namespace.FIELD_NAME, "score"), ExprCoreType.DOUBLE);
-    if (Objects.isNull(node.getArguments().get("time_field").getValue())) {
-      currentEnv.define(new Symbol(Namespace.FIELD_NAME, "anomalous"), ExprCoreType.BOOLEAN);
+    currentEnv.define(new Symbol(Namespace.FIELD_NAME, RCF_SCORE), ExprCoreType.DOUBLE);
+    if (Objects.isNull(node.getArguments().get(TIME_FIELD).getValue())) {
+      currentEnv.define(new Symbol(Namespace.FIELD_NAME, RCF_ANOMALOUS), ExprCoreType.BOOLEAN);
     } else {
-      currentEnv.define(new Symbol(Namespace.FIELD_NAME, "anomaly_grade"), ExprCoreType.DOUBLE);
-      currentEnv.define(new Symbol(Namespace.FIELD_NAME, "timestamp"), ExprCoreType.TIMESTAMP);
+      currentEnv.define(new Symbol(Namespace.FIELD_NAME, RCF_ANOMALY_GRADE), ExprCoreType.DOUBLE);
+      currentEnv.define(new Symbol(Namespace.FIELD_NAME, RCF_TIMESTAMP), ExprCoreType.TIMESTAMP);
     }
     return new LogicalAD(child, options);
   }

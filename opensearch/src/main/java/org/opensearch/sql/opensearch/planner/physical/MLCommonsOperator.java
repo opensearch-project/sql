@@ -7,40 +7,21 @@ package org.opensearch.sql.opensearch.planner.physical;
 
 import static org.opensearch.ml.common.parameter.FunctionName.KMEANS;
 
-import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.ml.client.MachineLearningNodeClient;
-import org.opensearch.ml.common.dataframe.ColumnMeta;
-import org.opensearch.ml.common.dataframe.ColumnValue;
 import org.opensearch.ml.common.dataframe.DataFrame;
-import org.opensearch.ml.common.dataframe.DataFrameBuilder;
 import org.opensearch.ml.common.dataframe.Row;
-import org.opensearch.ml.common.dataset.DataFrameInputDataset;
 import org.opensearch.ml.common.parameter.FunctionName;
 import org.opensearch.ml.common.parameter.KMeansParams;
 import org.opensearch.ml.common.parameter.MLAlgoParams;
-import org.opensearch.ml.common.parameter.MLInput;
 import org.opensearch.ml.common.parameter.MLPredictionOutput;
 import org.opensearch.sql.ast.expression.Argument;
-import org.opensearch.sql.data.model.ExprDoubleValue;
-import org.opensearch.sql.data.model.ExprFloatValue;
-import org.opensearch.sql.data.model.ExprIntegerValue;
-import org.opensearch.sql.data.model.ExprLongValue;
-import org.opensearch.sql.data.model.ExprShortValue;
-import org.opensearch.sql.data.model.ExprStringValue;
-import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.opensearch.client.MLClient;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
 
@@ -50,7 +31,7 @@ import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
  */
 @RequiredArgsConstructor
 @EqualsAndHashCode(callSuper = false)
-public class MLCommonsOperator extends PhysicalPlan {
+public class MLCommonsOperator extends OperatorActions {
   @Getter
   private final PhysicalPlan input;
 
@@ -69,19 +50,12 @@ public class MLCommonsOperator extends PhysicalPlan {
   @Override
   public void open() {
     super.open();
-    DataFrame inputDataFrame = generateInputDataset();
+    DataFrame inputDataFrame = generateInputDataset(input);
     MLAlgoParams mlAlgoParams = convertArgumentToMLParameter(arguments.get(0), algorithm);
-    MLInput mlinput = MLInput.builder()
-            .algorithm(FunctionName.valueOf(algorithm.toUpperCase()))
-            .parameters(mlAlgoParams)
-            .inputDataset(new DataFrameInputDataset(inputDataFrame))
-            .build();
+    MLPredictionOutput predictionResult =
+            getMLPredictionResult(FunctionName.valueOf(algorithm.toUpperCase()),
+                    mlAlgoParams, inputDataFrame, nodeClient);
 
-    MachineLearningNodeClient machineLearningClient =
-            MLClient.getMLClient(nodeClient);
-    MLPredictionOutput predictionResult = (MLPredictionOutput) machineLearningClient
-            .trainAndPredict(mlinput)
-            .actionGet(30, TimeUnit.SECONDS);
     Iterator<Row> inputRowIter = inputDataFrame.iterator();
     Iterator<Row> resultRowIter = predictionResult.getPredictionResult().iterator();
     iterator = new Iterator<ExprValue>() {
@@ -92,13 +66,7 @@ public class MLCommonsOperator extends PhysicalPlan {
 
       @Override
       public ExprValue next() {
-        ImmutableMap.Builder<String, ExprValue> resultBuilder = new ImmutableMap.Builder<>();
-        resultBuilder.putAll(convertRowIntoExprValue(inputDataFrame.columnMetas(),
-                inputRowIter.next()));
-        resultBuilder.putAll(convertRowIntoExprValue(
-                predictionResult.getPredictionResult().columnMetas(),
-                resultRowIter.next()));
-        return ExprTupleValue.fromExprValueMap(resultBuilder.build());
+        return buildResult(inputRowIter, inputDataFrame, predictionResult, resultRowIter);
       }
     };
   }
@@ -140,48 +108,5 @@ public class MLCommonsOperator extends PhysicalPlan {
     }
   }
 
-  private Map<String, ExprValue> convertRowIntoExprValue(ColumnMeta[] columnMetas, Row row) {
-    ImmutableMap.Builder<String, ExprValue> resultBuilder = new ImmutableMap.Builder<>();
-    for (int i = 0; i < columnMetas.length; i++) {
-      ColumnValue columnValue = row.getValue(i);
-      String resultKeyName = columnMetas[i].getName();
-      switch (columnValue.columnType()) {
-        case INTEGER:
-          resultBuilder.put(resultKeyName, new ExprIntegerValue(columnValue.intValue()));
-          break;
-        case DOUBLE:
-          resultBuilder.put(resultKeyName, new ExprDoubleValue(columnValue.doubleValue()));
-          break;
-        case STRING:
-          resultBuilder.put(resultKeyName, new ExprStringValue(columnValue.stringValue()));
-          break;
-        case SHORT:
-          resultBuilder.put(resultKeyName, new ExprShortValue(columnValue.shortValue()));
-          break;
-        case LONG:
-          resultBuilder.put(resultKeyName, new ExprLongValue(columnValue.longValue()));
-          break;
-        case FLOAT:
-          resultBuilder.put(resultKeyName, new ExprFloatValue(columnValue.floatValue()));
-          break;
-        default:
-          break;
-      }
-    }
-    return resultBuilder.build();
-  }
-
-  private DataFrame generateInputDataset() {
-    List<Map<String, Object>> inputData = new LinkedList<>();
-    while (input.hasNext()) {
-      inputData.add(new HashMap<String, Object>() {
-        {
-          input.next().tupleValue().forEach((key, value) -> put(key, value.value()));
-        }
-      });
-    }
-
-    return DataFrameBuilder.load(inputData);
-  }
 }
 

@@ -15,6 +15,9 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareComman
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
+import static org.opensearch.sql.utils.MLCommonsConstants.SHINGLE_SIZE;
+import static org.opensearch.sql.utils.MLCommonsConstants.TIME_DECAY;
+import static org.opensearch.sql.utils.MLCommonsConstants.TIME_FIELD;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -159,13 +162,13 @@ public class ArgumentFactory {
    */
   public static Map<String, Literal> getArgumentMap(AdCommandContext ctx) {
     return new HashMap<String, Literal>() {{
-        put("shingle_size", (ctx.shingle_size != null)
+        put(SHINGLE_SIZE, (ctx.shingle_size != null)
               ? getArgumentValue(ctx.shingle_size)
-              : new Literal(8, DataType.INTEGER));
-        put("time_decay", (ctx.time_decay != null)
+              : new Literal(null, DataType.INTEGER));
+        put(TIME_DECAY, (ctx.time_decay != null)
               ? getArgumentValue(ctx.time_decay)
-              : new Literal(0.0001, DataType.DOUBLE));
-        put("time_field", (ctx.time_field != null)
+              : new Literal(null, DataType.DOUBLE));
+        put(TIME_FIELD, (ctx.time_field != null)
               ? getArgumentValue(ctx.time_field)
               : new Literal(null, DataType.STRING));
       }

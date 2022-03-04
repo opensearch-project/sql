@@ -559,8 +559,8 @@ public class AstBuilderTest {
   public void test_batchRCFADCommand() {
     assertEqual("source=t | AD",
             new AD(relation("t"),new HashMap<String, Literal>() {{
-                put("shingle_size", new Literal(8, DataType.INTEGER));
-                put("time_decay", new Literal(0.0001, DataType.DOUBLE));
+                put("shingle_size", new Literal(null, DataType.INTEGER));
+                put("time_decay", new Literal(null, DataType.DOUBLE));
                 put("time_field", new Literal(null, DataType.STRING));
               }
             }));
