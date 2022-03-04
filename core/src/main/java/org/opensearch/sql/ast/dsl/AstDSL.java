@@ -44,6 +44,7 @@ import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Limit;
+import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -406,5 +407,10 @@ public class AstDSL {
 
   public static Limit limit(UnresolvedPlan input, Integer limit, Integer offset) {
     return new Limit(limit, offset).attach(input);
+  }
+
+  public static Parse parse(UnresolvedPlan input, UnresolvedExpression expression,
+                            Literal pattern) {
+    return new Parse(expression, pattern, input);
   }
 }

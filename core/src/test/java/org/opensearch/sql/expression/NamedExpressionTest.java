@@ -8,6 +8,7 @@ package org.opensearch.sql.expression;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -48,6 +49,16 @@ class NamedExpressionTest extends ExpressionTestBase {
     SpanExpression span = DSL.span(DSL.ref("integer_value", INTEGER), DSL.literal(1), "");
     NamedExpression named = DSL.named(span);
     assertEquals(span, named.getDelegated());
+  }
+
+  @Test
+  void name_a_parse_expression() {
+    ParseExpression parse =
+        DSL.parsed(DSL.ref("string_value", STRING), DSL.literal("(?<group>\\w{2})\\w"),
+            DSL.literal("group"));
+    NamedExpression named = DSL.named(parse);
+    assertEquals(parse, named.getDelegated());
+    assertEquals(parse.getIdentifier().valueOf(null).stringValue(), named.getName());
   }
 
 }

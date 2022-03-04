@@ -20,7 +20,7 @@ pplStatement
 /** commands */
 commands
     : whereCommand | fieldsCommand | renameCommand | statsCommand | dedupCommand | sortCommand | evalCommand | headCommand
-    | topCommand | rareCommand;
+    | topCommand | rareCommand | parseCommand;
 
 searchCommand
     : (SEARCH)? fromClause                                          #searchFrom
@@ -82,6 +82,10 @@ rareCommand
     : RARE
     fieldList
     (byClause)?
+    ;
+
+parseCommand
+    : PARSE expression pattern
     ;
 
 /** clauses */
@@ -347,6 +351,10 @@ decimalLiteral
 
 booleanLiteral
     : TRUE | FALSE
+    ;
+
+pattern
+    : stringLiteral
     ;
 
 intervalUnit

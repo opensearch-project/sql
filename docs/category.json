@@ -10,6 +10,7 @@
     "user/ppl/cmd/dedup.rst",
     "user/ppl/cmd/eval.rst",
     "user/ppl/cmd/fields.rst",
+    "user/ppl/cmd/parse.rst",
     "user/ppl/cmd/rename.rst",
     "user/ppl/cmd/search.rst",
     "user/ppl/cmd/sort.rst",

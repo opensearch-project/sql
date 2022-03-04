@@ -37,6 +37,7 @@ import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Limit;
+import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
@@ -47,11 +48,13 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.data.model.ExprMissingValue;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.ParseExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
@@ -70,6 +73,7 @@ import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.planner.logical.LogicalValues;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
+import org.opensearch.sql.utils.ParseUtils;
 
 /**
  * Analyze the {@link UnresolvedPlan} in the {@link AnalysisContext} to construct the {@link
@@ -286,7 +290,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     TypeEnvironment newEnv = context.peek();
     namedExpressions.forEach(expr -> newEnv.define(new Symbol(Namespace.FIELD_NAME,
         expr.getNameOrAlias()), expr.type()));
-    return new LogicalProject(child, namedExpressions);
+    List<NamedExpression> namedParseExpressions = context.getNamedParseExpressions();
+    return new LogicalProject(child, namedExpressions, namedParseExpressions);
   }
 
   /**
@@ -306,6 +311,25 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       typeEnvironment.define(ref);
     }
     return new LogicalEval(child, expressionsBuilder.build());
+  }
+
+  /**
+   * Build {@link ParseExpression} to context and skip to child nodes.
+   */
+  @Override
+  public LogicalPlan visitParse(Parse node, AnalysisContext context) {
+    LogicalPlan child = node.getChild().get(0).accept(this, context);
+    Expression expression = expressionAnalyzer.analyze(node.getExpression(), context);
+    String pattern = (String) node.getPattern().getValue();
+    Expression patternExpression = DSL.literal(pattern);
+
+    TypeEnvironment curEnv = context.peek();
+    ParseUtils.getNamedGroupCandidates(pattern).forEach(group -> {
+      curEnv.define(new Symbol(Namespace.FIELD_NAME, group), ExprCoreType.STRING);
+      context.getNamedParseExpressions().add(new NamedExpression(group,
+          new ParseExpression(expression, patternExpression, DSL.literal(group))));
+    });
+    return child;
   }
 
   /**

@@ -50,12 +50,14 @@ import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @Configuration
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = {ExpressionConfig.class, AnalyzerTest.class})
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class AnalyzerTest extends AnalyzerTestBase {
 
   @Test
@@ -668,5 +670,24 @@ class AnalyzerTest extends AnalyzerTestBase {
             ImmutableList.of(alias("string_value", qualifiedName("string_value"))),
             alias("span", span(field("long_value"), intLiteral(10), SpanUnit.NONE)),
             emptyList()));
+  }
+
+  @Test
+  public void parse_relation() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.relation("schema"),
+            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
+            ImmutableList.of(DSL.named("group",
+                DSL.parsed(DSL.ref("string_value", STRING), DSL.literal("(?<group>.*)"),
+                    DSL.literal("group"))))
+        ),
+        AstDSL.project(
+            AstDSL.parse(
+                AstDSL.relation("schema"),
+                AstDSL.field("string_value"),
+                AstDSL.stringLiteral("(?<group>.*)")),
+            AstDSL.alias("string_value", qualifiedName("string_value"))
+        ));
   }
 }

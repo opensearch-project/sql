@@ -134,6 +134,16 @@ class ExpressionFilterScriptTest {
   }
 
   @Test
+  void can_execute_parse_expression() {
+    assertThat()
+        .docValues("age_string", "age: 30")
+        .filterBy(dsl.equal(
+            DSL.parsed(DSL.ref("age_string", STRING), literal("age: (?<age>\\d+)"), literal("age")),
+            literal("30")))
+        .shouldMatch();
+  }
+
+  @Test
   void cannot_execute_non_predicate_expression() {
     assertThrow(IllegalStateException.class,
                 "Expression has wrong result type instead of boolean: expression [10], result [10]")

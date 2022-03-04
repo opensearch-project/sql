@@ -29,6 +29,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.let;
 import static org.opensearch.sql.ast.dsl.AstDSL.map;
 import static org.opensearch.sql.ast.dsl.AstDSL.nullLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.parse;
 import static org.opensearch.sql.ast.dsl.AstDSL.projectWithArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.rareTopN;
@@ -561,6 +562,16 @@ public class AstBuilderTest {
             exprList(field("c")),
             field("a"),
             field("b")
+        ));
+  }
+
+  @Test
+  public void testParseCommand() {
+    assertEqual("source=t | parse raw \"pattern\"",
+        parse(
+            relation("t"),
+            field("raw"),
+            stringLiteral("pattern")
         ));
   }
 

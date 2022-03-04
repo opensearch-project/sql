@@ -45,15 +45,22 @@ class ExpressionNodeVisitorTest {
     assertNull(new WhenClause(literal("test"), literal(10)).accept(visitor, null));
     assertNull(dsl.namedArgument("field", literal("message")).accept(visitor, null));
     assertNull(DSL.span(ref("age", INTEGER), literal(1), "").accept(visitor, null));
+    assertNull(DSL.parsed(ref("name", STRING), DSL.literal("(?<group>\\d+)"), DSL.literal("group"))
+        .accept(visitor, null));
   }
 
   @Test
   void can_visit_all_types_of_expression_node() {
     Expression expr =
-        dsl.sum(
-            dsl.add(
-                ref("balance", INTEGER),
-                literal(10)));
+        DSL.parsed(
+            dsl.castString(
+                dsl.sum(
+                    dsl.add(
+                        ref("balance", INTEGER),
+                        literal(10))
+                )),
+            DSL.literal("(?<group>\\d+)"),
+            DSL.literal("group"));
 
     Expression actual = expr.accept(new ExpressionNodeVisitor<Expression, Object>() {
       @Override
@@ -63,6 +70,11 @@ class ExpressionNodeVisitorTest {
 
       @Override
       public Expression visitReference(ReferenceExpression node, Object context) {
+        return node;
+      }
+
+      @Override
+      public Expression visitParse(ParseExpression node, Object context) {
         return node;
       }
 

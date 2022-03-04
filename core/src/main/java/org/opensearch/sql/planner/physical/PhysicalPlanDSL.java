@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.planner.physical;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
 import java.util.List;
@@ -42,7 +43,12 @@ public class PhysicalPlanDSL {
   }
 
   public static ProjectOperator project(PhysicalPlan input, NamedExpression... fields) {
-    return new ProjectOperator(input, Arrays.asList(fields));
+    return new ProjectOperator(input, Arrays.asList(fields), ImmutableList.of());
+  }
+
+  public static ProjectOperator project(PhysicalPlan input, List<NamedExpression> fields,
+                                        List<NamedExpression> namedParseExpressions) {
+    return new ProjectOperator(input, fields, namedParseExpressions);
   }
 
   public static RemoveOperator remove(PhysicalPlan input, ReferenceExpression... fields) {
@@ -80,13 +86,13 @@ public class PhysicalPlanDSL {
   }
 
   public static RareTopNOperator rareTopN(PhysicalPlan input, CommandType commandType,
-      List<Expression> groups, Expression... expressions) {
+                                          List<Expression> groups, Expression... expressions) {
     return new RareTopNOperator(input, commandType, Arrays.asList(expressions), groups);
   }
 
   public static RareTopNOperator rareTopN(PhysicalPlan input, CommandType commandType,
-      int noOfResults,
-      List<Expression> groups, Expression... expressions) {
+                                          int noOfResults,
+                                          List<Expression> groups, Expression... expressions) {
     return new RareTopNOperator(input, commandType, noOfResults, Arrays.asList(expressions),
         groups);
   }

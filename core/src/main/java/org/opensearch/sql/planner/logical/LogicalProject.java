@@ -22,15 +22,19 @@ public class LogicalProject extends LogicalPlan {
 
   @Getter
   private final List<NamedExpression> projectList;
+  @Getter
+  private final List<NamedExpression> namedParseExpressions;
 
   /**
    * Constructor of LogicalProject.
    */
   public LogicalProject(
       LogicalPlan child,
-      List<NamedExpression> projectList) {
+      List<NamedExpression> projectList,
+      List<NamedExpression> namedParseExpressions) {
     super(Collections.singletonList(child));
     this.projectList = projectList;
+    this.namedParseExpressions = namedParseExpressions;
   }
 
   @Override
