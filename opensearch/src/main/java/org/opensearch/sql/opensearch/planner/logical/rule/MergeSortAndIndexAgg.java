@@ -47,7 +47,6 @@ public class MergeSortAndIndexAgg implements Rule<LogicalSort> {
 
     this.pattern = typeOf(LogicalSort.class)
         .matching(OptimizationRuleUtils::sortByFieldsOnly)
-        .matching(OptimizationRuleUtils::sortByDefaultOptionOnly)
         .matching(sort -> {
           sortRef.set(sort);
           return true;

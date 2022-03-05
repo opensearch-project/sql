@@ -14,13 +14,14 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.AggregatorFactories;
+import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.data.type.ExprType;
@@ -92,7 +93,9 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
                       bucketBuilder.build(
                           groupByList.stream()
                               .sorted(groupSortOrder)
-                              .map(expr -> Pair.of(expr, groupSortOrder.apply(expr)))
+                              .map(expr -> Triple.of(expr,
+                                          groupSortOrder.sortOrder(expr),
+                                          groupSortOrder.missingOrder(expr)))
                               .collect(Collectors.toList())))
                   .subAggregations(metrics.getLeft())
                   .size(AGGREGATION_BUCKET_SIZE)),
@@ -112,27 +115,37 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
     return builder.build();
   }
 
+  /**
+   * Group By field sort order.
+   */
   @VisibleForTesting
-  public static class GroupSortOrder implements Comparator<NamedExpression>,
-      Function<NamedExpression, SortOrder> {
+  public static class GroupSortOrder implements Comparator<NamedExpression> {
 
     /**
      * The default order of group field.
      * The order is ASC NULL_FIRST.
      * The field should be the last one in the group list.
      */
-    private static final Pair<SortOrder, Integer> DEFAULT_ORDER =
-        Pair.of(SortOrder.ASC, Integer.MAX_VALUE);
+    private static final Pair<Sort.SortOption, Integer> DEFAULT_ORDER =
+        Pair.of(Sort.SortOption.DEFAULT_ASC, Integer.MAX_VALUE);
 
     /**
-     * The mapping betwen {@link Sort.SortOption} and {@link SortOrder}.
+     * The mapping between {@link Sort.SortOrder} and {@link SortOrder}.
      */
-    private static final Map<Sort.SortOption, SortOrder> SORT_MAP =
-        new ImmutableMap.Builder<Sort.SortOption, SortOrder>()
-            .put(Sort.SortOption.DEFAULT_ASC, SortOrder.ASC)
-            .put(Sort.SortOption.DEFAULT_DESC, SortOrder.DESC).build();
+    private static final Map<Sort.SortOrder, SortOrder> SORT_MAP =
+        new ImmutableMap.Builder<Sort.SortOrder, SortOrder>()
+            .put(Sort.SortOrder.ASC, SortOrder.ASC)
+            .put(Sort.SortOrder.DESC, SortOrder.DESC).build();
 
-    private final Map<String, Pair<SortOrder, Integer>> map = new HashMap<>();
+    /**
+     * The mapping between {@link Sort.NullOrder} and {@link MissingOrder}.
+     */
+    private static final Map<Sort.NullOrder, MissingOrder> NULL_MAP =
+        new ImmutableMap.Builder<Sort.NullOrder, MissingOrder>()
+            .put(Sort.NullOrder.NULL_FIRST, MissingOrder.FIRST)
+            .put(Sort.NullOrder.NULL_LAST, MissingOrder.LAST).build();
+
+    private final Map<String, Pair<Sort.SortOption, Integer>> map = new HashMap<>();
 
     /**
      * Constructor of GroupSortOrder.
@@ -144,7 +157,7 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
       int pos = 0;
       for (Pair<Sort.SortOption, Expression> sortPair : sortList) {
         map.put(((ReferenceExpression) sortPair.getRight()).getAttr(),
-            Pair.of(SORT_MAP.getOrDefault(sortPair.getLeft(), SortOrder.ASC), pos++));
+            Pair.of(sortPair.getLeft(), pos++));
       }
     }
 
@@ -161,9 +174,9 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
      */
     @Override
     public int compare(NamedExpression o1, NamedExpression o2) {
-      final Pair<SortOrder, Integer> o1Value =
+      final Pair<Sort.SortOption, Integer> o1Value =
           map.getOrDefault(o1.getName(), DEFAULT_ORDER);
-      final Pair<SortOrder, Integer> o2Value =
+      final Pair<Sort.SortOption, Integer> o2Value =
           map.getOrDefault(o2.getName(), DEFAULT_ORDER);
       return o1Value.getRight().compareTo(o2Value.getRight());
     }
@@ -172,8 +185,19 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
      * Get the {@link SortOrder} for expression.
      * By default, the {@link SortOrder} is ASC.
      */
-    @Override
-    public SortOrder apply(NamedExpression expression) {
+    public SortOrder sortOrder(NamedExpression expression) {
+      return SORT_MAP.get(sortOption(expression).getSortOrder());
+    }
+
+    /**
+     * Get the {@link MissingOrder} for expression.
+     * By default, the {@link MissingOrder} is ASC missing first / DESC missing last.
+     */
+    public MissingOrder missingOrder(NamedExpression expression) {
+      return NULL_MAP.get(sortOption(expression).getNullOrder());
+    }
+
+    private Sort.SortOption sortOption(NamedExpression expression) {
       return map.getOrDefault(expression.getName(), DEFAULT_ORDER).getLeft();
     }
   }

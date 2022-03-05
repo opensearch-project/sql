@@ -7,12 +7,13 @@ package org.opensearch.sql.opensearch.storage.script.aggregation.dsl;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.composite.DateHistogramValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.composite.HistogramValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.histogram.DateHistogramInterval;
+import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.expression.NamedExpression;
@@ -35,50 +36,56 @@ public class BucketAggregationBuilder {
    * Build the list of CompositeValuesSourceBuilder.
    */
   public List<CompositeValuesSourceBuilder<?>> build(
-      List<Pair<NamedExpression, SortOrder>> groupList) {
+      List<Triple<NamedExpression, SortOrder, MissingOrder>> groupList) {
     ImmutableList.Builder<CompositeValuesSourceBuilder<?>> resultBuilder =
         new ImmutableList.Builder<>();
-    for (Pair<NamedExpression, SortOrder> groupPair : groupList) {
+    for (Triple<NamedExpression, SortOrder, MissingOrder> groupPair : groupList) {
       resultBuilder.add(
-          buildCompositeValuesSourceBuilder(groupPair.getLeft(), groupPair.getRight()));
+          buildCompositeValuesSourceBuilder(groupPair.getLeft(),
+              groupPair.getMiddle(), groupPair.getRight()));
     }
     return resultBuilder.build();
   }
 
   // todo, Expression should implement buildCompositeValuesSourceBuilder() interface.
   private CompositeValuesSourceBuilder<?> buildCompositeValuesSourceBuilder(
-      NamedExpression expr, SortOrder order) {
+      NamedExpression expr, SortOrder sortOrder, MissingOrder missingOrder) {
     if (expr.getDelegated() instanceof SpanExpression) {
       SpanExpression spanExpr = (SpanExpression) expr.getDelegated();
       return buildHistogram(
           expr.getNameOrAlias(),
           spanExpr.getField().toString(),
           spanExpr.getValue().valueOf(null).doubleValue(),
-          spanExpr.getUnit());
+          spanExpr.getUnit(),
+          missingOrder);
     } else {
       CompositeValuesSourceBuilder<?> sourceBuilder =
-          new TermsValuesSourceBuilder(expr.getNameOrAlias()).missingBucket(true).order(order);
+          new TermsValuesSourceBuilder(expr.getNameOrAlias())
+              .missingBucket(true)
+              .missingOrder(missingOrder)
+              .order(sortOrder);
       return helper.build(expr.getDelegated(), sourceBuilder::field, sourceBuilder::script);
     }
   }
 
   private CompositeValuesSourceBuilder<?> buildHistogram(
-      String name, String field, Double value, SpanUnit unit) {
+      String name, String field, Double value, SpanUnit unit, MissingOrder missingOrder) {
     switch (unit) {
       case NONE:
         return new HistogramValuesSourceBuilder(name)
             .field(field)
             .interval(value)
-            .missingBucket(true);
+            .missingBucket(true)
+            .missingOrder(missingOrder);
       case UNKNOWN:
         throw new IllegalStateException("Invalid span unit");
       default:
-        return buildDateHistogram(name, field, value.intValue(), unit);
+        return buildDateHistogram(name, field, value.intValue(), unit, missingOrder);
     }
   }
 
   private CompositeValuesSourceBuilder<?> buildDateHistogram(
-      String name, String field, Integer value, SpanUnit unit) {
+      String name, String field, Integer value, SpanUnit unit, MissingOrder missingOrder) {
     String spanValue = value + unit.getName();
     switch (unit) {
       case MILLISECOND:
@@ -94,11 +101,13 @@ public class BucketAggregationBuilder {
         return new DateHistogramValuesSourceBuilder(name)
             .field(field)
             .missingBucket(true)
+            .missingOrder(missingOrder)
             .fixedInterval(new DateHistogramInterval(spanValue));
       default:
         return new DateHistogramValuesSourceBuilder(name)
             .field(field)
             .missingBucket(true)
+            .missingOrder(missingOrder)
             .calendarInterval(new DateHistogramInterval(spanValue));
     }
   }
