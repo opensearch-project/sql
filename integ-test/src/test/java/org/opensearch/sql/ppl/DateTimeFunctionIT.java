@@ -448,4 +448,19 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     String dateFormatted = "4 4 4 4 Saturday 6 1998 1998 1998 98";
     verifyDateFormat(date, "date", dateFormat, dateFormatted);
   }
+
+
+  @Test
+  public void testDateFormatISO8601() throws IOException {
+    String timestamp = "1998-01-31 13:14:15.012345";
+    String timestampFormat = "%Y-%m-%dT%TZ";
+    String timestampFormatted = "1998-01-31T13:14:15Z";
+    verifyDateFormat(timestamp, "timestamp", timestampFormat, timestampFormatted);
+
+    String date = "1998-01-31";
+    String dateFormat = "%Y-%m-%dT%TZ";
+    String dateFormatted = "1998-01-31T00:00:00Z";
+    verifyDateFormat(date, "date", dateFormat, dateFormatted);
+  }
+
 }

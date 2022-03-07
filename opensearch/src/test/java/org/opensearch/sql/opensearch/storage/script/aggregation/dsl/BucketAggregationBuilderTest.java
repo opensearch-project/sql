@@ -97,6 +97,7 @@ class BucketAggregationBuilderTest {
             + "      \"lang\" : \"opensearch_query_expression\"\n"
             + "    },\n"
             + "    \"missing_bucket\" : true,\n"
+            + "    \"missing_order\" : \"first\",\n"
             + "    \"order\" : \"asc\"\n"
             + "  }\n"
             + "}",

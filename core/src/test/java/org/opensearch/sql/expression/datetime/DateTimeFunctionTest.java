@@ -123,7 +123,18 @@ class DateTimeFunctionTest extends ExpressionTestBase {
       new DateFormatTester("2008-12-31",
           ImmutableList.of("%v","%V","%u","%U"),
           ImmutableList.of("53","52","53","52")
-      )
+      ),
+      new DateFormatTester("1998-01-31 13:14:15.012345",
+          ImmutableList.of("%Y-%m-%dT%TZ"),
+          ImmutableList.of("1998-01-31T13:14:15Z")
+      ),
+      new DateFormatTester("1998-01-31 13:14:15.012345",
+          ImmutableList.of("%Y-%m-%da %T a"),
+          ImmutableList.of("1998-01-31PM 13:14:15 PM")
+      ),
+      new DateFormatTester("1998-01-31 13:14:15.012345",
+          ImmutableList.of("%Y-%m-%db %T b"),
+          ImmutableList.of("1998-01-31b 13:14:15 b"))
   );
 
   @AllArgsConstructor
