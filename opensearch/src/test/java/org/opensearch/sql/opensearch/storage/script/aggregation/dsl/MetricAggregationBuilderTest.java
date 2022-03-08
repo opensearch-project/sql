@@ -1,30 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *
- *    Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *    Licensed under the Apache License, Version 2.0 (the "License").
- *    You may not use this file except in compliance with the License.
- *    A copy of the License is located at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    or in the "license" file accompanying this file. This file is distributed
- *    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *    express or implied. See the License for the specific language governing
- *    permissions and limitations under the License.
- *
- */
 
 package org.opensearch.sql.opensearch.storage.script.aggregation.dsl;
 
@@ -32,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.expression.DSL.ref;
@@ -42,6 +21,7 @@ import static org.opensearch.sql.expression.aggregation.VarianceAggregator.varia
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,19 +31,21 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.aggregation.AvgAggregator;
 import org.opensearch.sql.expression.aggregation.CountAggregator;
 import org.opensearch.sql.expression.aggregation.MaxAggregator;
 import org.opensearch.sql.expression.aggregation.MinAggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.aggregation.SumAggregator;
-import org.opensearch.sql.expression.aggregation.VarianceAggregator;
+import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
 class MetricAggregationBuilderTest {
+  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
 
   @Mock
   private ExpressionSerializer serializer;
@@ -256,6 +238,61 @@ class MetricAggregationBuilderTest {
             Arrays.asList(
                 named("stddev_samp(age)",
                     stddevSample(Arrays.asList(ref("age", INTEGER)), INTEGER)))));
+  }
+
+  @Test
+  void should_build_cardinality_aggregation() {
+    assertEquals(
+        "{\n"
+            + "  \"count(distinct name)\" : {\n"
+            + "    \"cardinality\" : {\n"
+            + "      \"field\" : \"name\"\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            Collections.singletonList(named("count(distinct name)", new CountAggregator(
+                Collections.singletonList(ref("name", STRING)), INTEGER).distinct(true)))));
+  }
+
+  @Test
+  void should_build_filtered_cardinality_aggregation() {
+    assertEquals(
+        "{\n"
+            + "  \"count(distinct name) filter(where age > 30)\" : {\n"
+            + "    \"filter\" : {\n"
+            + "      \"range\" : {\n"
+            + "        \"age\" : {\n"
+            + "          \"from\" : 30,\n"
+            + "          \"to\" : null,\n"
+            + "          \"include_lower\" : false,\n"
+            + "          \"include_upper\" : true,\n"
+            + "          \"boost\" : 1.0\n"
+            + "        }\n"
+            + "      }\n"
+            + "    },\n"
+            + "    \"aggregations\" : {\n"
+            + "      \"count(distinct name) filter(where age > 30)\" : {\n"
+            + "        \"cardinality\" : {\n"
+            + "          \"field\" : \"name\"\n"
+            + "        }\n"
+            + "      }\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
+        buildQuery(Collections.singletonList(named(
+            "count(distinct name) filter(where age > 30)",
+            new CountAggregator(Collections.singletonList(ref("name", STRING)), INTEGER)
+                .condition(dsl.greater(ref("age", INTEGER), literal(30)))
+                .distinct(true)))));
+  }
+
+  @Test
+  void should_throw_exception_for_unsupported_distinct_aggregator() {
+    assertThrows(IllegalStateException.class,
+        () -> buildQuery(Collections.singletonList(named("avg(distinct age)", new AvgAggregator(
+            Collections.singletonList(ref("name", STRING)), STRING).distinct(true)))),
+        "unsupported distinct aggregator avg");
   }
 
   @Test

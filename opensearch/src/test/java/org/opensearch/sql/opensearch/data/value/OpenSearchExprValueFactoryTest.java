@@ -1,30 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *
- *    Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *    Licensed under the Apache License, Version 2.0 (the "License").
- *    You may not use this file except in compliance with the License.
- *    A copy of the License is located at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    or in the "license" file accompanying this file. This file is distributed
- *    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *    express or implied. See the License for the specific language governing
- *    permissions and limitations under the License.
- *
- */
 
 package org.opensearch.sql.opensearch.data.value;
 
@@ -125,18 +103,21 @@ class OpenSearchExprValueFactoryTest {
   public void constructByte() {
     assertEquals(byteValue((byte) 1), tupleValue("{\"byteV\":1}").get("byteV"));
     assertEquals(byteValue((byte) 1), constructFromObject("byteV", 1));
+    assertEquals(byteValue((byte) 1), constructFromObject("byteV", "1.0"));
   }
 
   @Test
   public void constructShort() {
     assertEquals(shortValue((short) 1), tupleValue("{\"shortV\":1}").get("shortV"));
     assertEquals(shortValue((short) 1), constructFromObject("shortV", 1));
+    assertEquals(shortValue((short) 1), constructFromObject("shortV", "1.0"));
   }
 
   @Test
   public void constructInteger() {
     assertEquals(integerValue(1), tupleValue("{\"intV\":1}").get("intV"));
     assertEquals(integerValue(1), constructFromObject("intV", 1));
+    assertEquals(integerValue(1), constructFromObject("intV", "1.0"));
   }
 
   @Test
@@ -148,6 +129,7 @@ class OpenSearchExprValueFactoryTest {
   public void constructLong() {
     assertEquals(longValue(1L), tupleValue("{\"longV\":1}").get("longV"));
     assertEquals(longValue(1L), constructFromObject("longV", 1L));
+    assertEquals(longValue(1L), constructFromObject("longV", "1.0"));
   }
 
   @Test
@@ -172,6 +154,9 @@ class OpenSearchExprValueFactoryTest {
   public void constructBoolean() {
     assertEquals(booleanValue(true), tupleValue("{\"boolV\":true}").get("boolV"));
     assertEquals(booleanValue(true), constructFromObject("boolV", true));
+    assertEquals(booleanValue(true), constructFromObject("boolV", "true"));
+    assertEquals(booleanValue(true), constructFromObject("boolV", 1));
+    assertEquals(booleanValue(false), constructFromObject("boolV", 0));
   }
 
   @Test
@@ -362,10 +347,10 @@ class OpenSearchExprValueFactoryTest {
   }
 
   @Test
-  public void noTypeFoundForMappingThrowException() {
-    IllegalStateException exception =
-        assertThrows(IllegalStateException.class, () -> tupleValue("{\"not_exist\":1}"));
-    assertEquals("No type found for field: not_exist.", exception.getMessage());
+  public void noTypeFoundForMapping() {
+    assertEquals(nullValue(), tupleValue("{\"not_exist\":[]}").get("not_exist"));
+    // Only for test coverage, It is impossible in OpenSearch.
+    assertEquals(nullValue(), tupleValue("{\"not_exist\":1}").get("not_exist"));
   }
 
   @Test

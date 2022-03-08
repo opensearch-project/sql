@@ -1,28 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *   Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *   Licensed under the Apache License, Version 2.0 (the "License").
- *   You may not use this file except in compliance with the License.
- *   A copy of the License is located at
- *
- *       http://www.apache.org/licenses/LICENSE-2.0
- *
- *   or in the "license" file accompanying this file. This file is distributed
- *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *   express or implied. See the License for the specific language governing
- *   permissions and limitations under the License.
- */
 
 package org.opensearch.sql.ppl.parser;
 
@@ -33,10 +13,12 @@ import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.and;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.cast;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultFieldsArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultSortFieldArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultStatsArgs;
+import static org.opensearch.sql.ast.dsl.AstDSL.distinctAggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.doubleLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.equalTo;
 import static org.opensearch.sql.ast.dsl.AstDSL.eval;
@@ -57,6 +39,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.ast.dsl.AstDSL.sort;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.xor;
 
 import org.junit.Ignore;
@@ -461,6 +444,19 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testDistinctCount() {
+    assertEqual("source=t | stats distinct_count(a)",
+        agg(
+            relation("t"),
+            exprList(
+                alias("distinct_count(a)",
+                    distinctAggregate("count", field("a")))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+  }
+
+  @Test
   public void testEvalFuncCallExpr() {
     assertEqual("source=t | eval f=abs(a)",
         eval(
@@ -468,6 +464,18 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             let(
                 field("f"),
                 function("abs", field("a"))
+            )
+        ));
+  }
+
+  @Test
+  public void testDataTypeFuncCall() {
+    assertEqual("source=t | eval f=cast(1 as string)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                cast(intLiteral(1), stringLiteral("string"))
             )
         ));
   }
@@ -628,6 +636,22 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             relation("test"),
             defaultFieldsArgs(),
             field("timestamp")
+        )
+    );
+  }
+
+  @Test
+  public void canBuildRelevanceFunctionWithArguments() {
+    assertEqual(
+        "source=test | where match(message, 'test query', analyzer='keyword')",
+        filter(
+            relation("test"),
+            function(
+                "match",
+                unresolvedArg("field", stringLiteral("message")),
+                unresolvedArg("query", stringLiteral("test query")),
+                unresolvedArg("analyzer", stringLiteral("keyword"))
+            )
         )
     );
   }

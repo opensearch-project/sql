@@ -522,5 +522,5 @@ See the [LICENSE](./LICENSE) file for our project's licensing. We will ask you t
 
 ## Copyright
 
-Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+Copyright OpenSearch Contributors. See [NOTICE](./NOTICE) for details.
 

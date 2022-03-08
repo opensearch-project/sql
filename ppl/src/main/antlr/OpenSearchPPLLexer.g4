@@ -1,28 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *   Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *   Licensed under the Apache License, Version 2.0 (the "License").
- *   You may not use this file except in compliance with the License.
- *   A copy of the License is located at
- *
- *       http://www.apache.org/licenses/LICENSE-2.0
- *
- *   or in the "license" file accompanying this file. This file is distributed
- *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *   express or implied. See the License for the specific language governing
- *   permissions and limitations under the License.
- */
 
 lexer grammar OpenSearchPPLLexer;
 
@@ -42,6 +22,7 @@ EVAL:                               'EVAL';
 HEAD:                               'HEAD';
 TOP:                                'TOP';
 RARE:                               'RARE';
+PARSE:                              'PARSE';
 
 // COMMAND ASSIST KEYWORDS
 AS:                                 'AS';
@@ -85,6 +66,7 @@ REGEXP:                             'REGEXP';
 DATETIME:                           'DATETIME';
 INTERVAL:                           'INTERVAL';
 MICROSECOND:                        'MICROSECOND';
+MILLISECOND:                        'MILLISECOND';
 SECOND:                             'SECOND';
 MINUTE:                             'MINUTE';
 HOUR:                               'HOUR';
@@ -109,6 +91,15 @@ YEAR_MONTH:                         'YEAR_MONTH';
 DATAMODEL:                          'DATAMODEL';
 LOOKUP:                             'LOOKUP';
 SAVEDSEARCH:                        'SAVEDSEARCH';
+
+// CONVERTED DATA TYPES
+INT:                                'INT';
+INTEGER:                            'INTEGER';
+DOUBLE:                             'DOUBLE';
+LONG:                               'LONG';
+FLOAT:                              'FLOAT';
+STRING:                             'STRING';
+BOOLEAN:                            'BOOLEAN';
 
 // SPECIAL CHARACTERS AND OPERATORS
 PIPE:                               '|';
@@ -244,6 +235,7 @@ LEFT:                               'LEFT';
 ASCII:                              'ASCII';
 LOCATE:                             'LOCATE';
 REPLACE:                            'REPLACE';
+CAST:                               'CAST';
 
 // BOOL FUNCTIONS
 LIKE:                               'LIKE';
@@ -254,6 +246,31 @@ ISNOTNULL:                          'ISNOTNULL';
 IFNULL:                             'IFNULL';
 NULLIF:                             'NULLIF';
 IF:                                 'IF';
+
+// RELEVANCE FUNCTIONS AND PARAMETERS
+MATCH:                              'MATCH';
+ANALYZER:                           'ANALYZER';
+FUZZINESS:                          'FUZZINESS';
+AUTO_GENERATE_SYNONYMS_PHRASE_QUERY:'AUTO_GENERATE_SYNONYMS_PHRASE_QUERY';
+MAX_EXPANSIONS:                     'MAX_EXPANSIONS';
+PREFIX_LENGTH:                      'PREFIX_LENGTH';
+FUZZY_TRANSPOSITIONS:               'FUZZY_TRANSPOSITIONS';
+FUZZY_REWRITE:                      'FUZZY_REWRITE';
+LENIENT:                            'LENIENT';
+OPERATOR:                           'OPERATOR';
+MINIMUM_SHOULD_MATCH:               'MINIMUM_SHOULD_MATCH';
+ZERO_TERMS_QUERY:                   'ZERO_TERMS_QUERY';
+BOOST:                              'BOOST';
+
+// SPAN KEYWORDS
+SPAN:                               'SPAN';
+MS:                                 'MS';
+S:                                  'S';
+M:                                  'M';
+H:                                  'H';
+W:                                  'W';
+Q:                                  'Q';
+Y:                                  'Y';
 
 
 // LITERALS AND VALUES

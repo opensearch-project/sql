@@ -32,12 +32,44 @@ The following table catalogs the aggregation functions and also indicates how th
 
 Syntax
 ============
-stats <aggregation>... [by-clause]...
+stats <aggregation>... [by-clause]
 
 
 * aggregation: mandatory. A aggregation function. The argument of aggregation must be field.
-* by-clause: optional. The one or more fields to group the results by. **Default**: If no <by-clause> is specified, the stats command returns only one row, which is the aggregation over the entire result set.
 
+* by-clause: optional.
+
+ * Syntax: by [span-expression,] [field,]...
+ * Description: The by clause could be the fields and expressions like scalar functions and aggregation functions. Besides, the span clause can be used to split specific field into buckets in the same interval, the stats then does the aggregation by these span buckets.
+ * Default: If no <by-clause> is specified, the stats command returns only one row, which is the aggregation over the entire result set.
+
+* span-expression: optional.
+
+ * Syntax: span(field_expr, interval_expr)
+ * Description: The unit of the interval expression is the natural unit by default. If the field is a date and time type field, and the interval is in date/time units, you will need to specify the unit in the interval expression. For example, to split the field ``age`` into buckets by 10 years, it looks like ``span(age, 10)``. And here is another example of time span, the span to split a ``timestamp`` field into hourly intervals, it looks like ``span(timestamp, 1h)``.
+
+* Available time unit:
++----------------------------+
+| Span Interval Units        |
++============================+
+| millisecond (ms)           |
++----------------------------+
+| second (s)                 |
++----------------------------+
+| minute (m, case sensitive) |
++----------------------------+
+| hour (h)                   |
++----------------------------+
+| day (d)                    |
++----------------------------+
+| week (w)                   |
++----------------------------+
+| month (M, case sensitive)  |
++----------------------------+
+| quarter (q)                |
++----------------------------+
+| year (y)                   |
++----------------------------+
 
 Aggregation Functions
 =====================
@@ -302,3 +334,50 @@ PPL query::
     | 36         | 32         | M        |
     +------------+------------+----------+
 
+Example 7: Calculate the distinct count of a field
+==================================================
+
+To get the count of distinct values of a field, you can use ``DISTINCT_COUNT`` (or ``DC``) function instead of ``COUNT``. The example calculates both the count and the distinct count of gender field of all the accounts.
+
+PPL query::
+
+    os> source=accounts | stats count(gender), distinct_count(gender);
+    fetched rows / total rows = 1/1
+    +-----------------+--------------------------+
+    | count(gender)   | distinct_count(gender)   |
+    |-----------------+--------------------------|
+    | 4               | 2                        |
+    +-----------------+--------------------------+
+
+Example 8: Calculate the count by a span
+========================================
+
+The example gets the count of age by the interval of 10 years.
+
+PPL query::
+
+    os> source=accounts | stats count(age) by span(age, 10) as age_span
+    fetched rows / total rows = 2/2
+    +--------------+------------+
+    | count(age)   | age_span   |
+    |--------------+------------|
+    | 1            | 20         |
+    | 3            | 30         |
+    +--------------+------------+
+
+Example 9: Calculate the count by a gender and span
+===================================================
+
+The example gets the count of age by the interval of 10 years and group by gender.
+
+PPL query::
+
+    os> source=accounts | stats count() as cnt by span(age, 5) as age_span, gender
+    fetched rows / total rows = 3/3
+    +-------+------------+----------+
+    | cnt   | age_span   | gender   |
+    |-------+------------+----------|
+    | 1     | 25         | F        |
+    | 2     | 30         | M        |
+    | 1     | 35         | M        |
+    +-------+------------+----------+

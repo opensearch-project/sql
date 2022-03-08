@@ -1,12 +1,6 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
 package org.opensearch.sql.expression.function;
@@ -177,6 +171,8 @@ public enum BuiltinFunctionName {
    * Data Type Convert Function.
    */
   CAST_TO_STRING(FunctionName.of("cast_to_string")),
+  CAST_TO_BYTE(FunctionName.of("cast_to_byte")),
+  CAST_TO_SHORT(FunctionName.of("cast_to_short")),
   CAST_TO_INT(FunctionName.of("cast_to_int")),
   CAST_TO_LONG(FunctionName.of("cast_to_long")),
   CAST_TO_FLOAT(FunctionName.of("cast_to_float")),
@@ -184,7 +180,20 @@ public enum BuiltinFunctionName {
   CAST_TO_BOOLEAN(FunctionName.of("cast_to_boolean")),
   CAST_TO_DATE(FunctionName.of("cast_to_date")),
   CAST_TO_TIME(FunctionName.of("cast_to_time")),
-  CAST_TO_TIMESTAMP(FunctionName.of("cast_to_timestamp"));
+  CAST_TO_TIMESTAMP(FunctionName.of("cast_to_timestamp")),
+  CAST_TO_DATETIME(FunctionName.of("cast_to_datetime")),
+
+  /**
+   * Relevance Function.
+   */
+  MATCH(FunctionName.of("match")),
+
+  /**
+   * Legacy Relevance Function.
+   */
+  QUERY(FunctionName.of("query")),
+  MATCH_QUERY(FunctionName.of("match_query")),
+  MATCHQUERY(FunctionName.of("matchquery"));
 
   private final FunctionName name;
 

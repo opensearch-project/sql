@@ -1,30 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *
- *    Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *    Licensed under the Apache License, Version 2.0 (the "License").
- *    You may not use this file except in compliance with the License.
- *    A copy of the License is located at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    or in the "license" file accompanying this file. This file is distributed
- *    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *    express or implied. See the License for the specific language governing
- *    permissions and limitations under the License.
- *
- */
 
 package org.opensearch.sql.opensearch.storage.script.aggregation.dsl;
 
@@ -32,11 +10,13 @@ import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.AggregatorFactories;
 import org.opensearch.search.aggregations.bucket.filter.FilterAggregationBuilder;
+import org.opensearch.search.aggregations.metrics.CardinalityAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.ExtendedStats;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.sql.expression.Expression;
@@ -57,11 +37,14 @@ import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 public class MetricAggregationBuilder
     extends ExpressionNodeVisitor<Pair<AggregationBuilder, MetricParser>, Object> {
 
-  private final AggregationBuilderHelper<ValuesSourceAggregationBuilder<?>> helper;
+  private final AggregationBuilderHelper helper;
   private final FilterQueryBuilder filterBuilder;
 
+  /**
+   * Constructor.
+   */
   public MetricAggregationBuilder(ExpressionSerializer serializer) {
-    this.helper = new AggregationBuilderHelper<>(serializer);
+    this.helper = new AggregationBuilderHelper(serializer);
     this.filterBuilder = new FilterQueryBuilder(serializer);
   }
 
@@ -88,9 +71,26 @@ public class MetricAggregationBuilder
       NamedAggregator node, Object context) {
     Expression expression = node.getArguments().get(0);
     Expression condition = node.getDelegated().condition();
+    Boolean distinct = node.getDelegated().distinct();
     String name = node.getName();
+    String functionName = node.getFunctionName().getFunctionName().toLowerCase(Locale.ROOT);
 
-    switch (node.getFunctionName().getFunctionName()) {
+    if (distinct) {
+      switch (functionName) {
+        case "count":
+          return make(
+              AggregationBuilders.cardinality(name),
+              expression,
+              condition,
+              name,
+              new SingleValueParser(name));
+        default:
+          throw new IllegalStateException(String.format(
+              "unsupported distinct aggregator %s", node.getFunctionName().getFunctionName()));
+      }
+    }
+
+    switch (functionName) {
       case "avg":
         return make(
             AggregationBuilders.avg(name),
@@ -167,6 +167,24 @@ public class MetricAggregationBuilder
       String name,
       MetricParser parser) {
     ValuesSourceAggregationBuilder aggregationBuilder =
+        helper.build(expression, builder::field, builder::script);
+    if (condition != null) {
+      return Pair.of(
+          makeFilterAggregation(aggregationBuilder, condition, name),
+          FilterParser.builder().name(name).metricsParser(parser).build());
+    }
+    return Pair.of(aggregationBuilder, parser);
+  }
+
+  /**
+   * Make {@link CardinalityAggregationBuilder} for distinct count aggregations.
+   */
+  private Pair<AggregationBuilder, MetricParser> make(CardinalityAggregationBuilder builder,
+                                                      Expression expression,
+                                                      Expression condition,
+                                                      String name,
+                                                      MetricParser parser) {
+    CardinalityAggregationBuilder aggregationBuilder =
         helper.build(expression, builder::field, builder::script);
     if (condition != null) {
       return Pair.of(

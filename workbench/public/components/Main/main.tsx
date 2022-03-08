@@ -1,37 +1,14 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *   Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *   Licensed under the Apache License, Version 2.0 (the "License").
- *   You may not use this file except in compliance with the License.
- *   A copy of the License is located at
- *
- *       http://www.apache.org/licenses/LICENSE-2.0
- *
- *   or in the "license" file accompanying this file. This file is distributed
- *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *   express or implied. See the License for the specific language governing
- *   permissions and limitations under the License.
- */
-
-import React from 'react';
-import { EuiSpacer, EuiFlexGroup, EuiFlexItem, EuiButton, EuiTitle } from '@elastic/eui';
-import { IHttpResponse, IHttpService } from 'angular';
+import { EuiButton, EuiFlexGroup, EuiFlexItem, EuiSpacer, EuiTitle } from '@elastic/eui';
+import { IHttpResponse } from 'angular';
 import _ from 'lodash';
-import QueryResults from '../QueryResults/QueryResults';
-import Switch from '../QueryLanguageSwitch/Switch';
-import { SQLPage } from '../SQLPage/SQLPage';
-import { PPLPage } from '../PPLPage/PPLPage';
+import React from 'react';
+import { ChromeBreadcrumb, CoreStart } from '../../../../../src/core/public';
+import { MESSAGE_TAB_LABEL } from '../../utils/constants';
 import {
   getDefaultTabId,
   getDefaultTabLabel,
@@ -39,8 +16,10 @@ import {
   getSelectedResults,
   Tree,
 } from '../../utils/utils';
-import { MESSAGE_TAB_LABEL } from '../../utils/constants';
-import { ChromeBreadcrumb, CoreStart } from '../../../../../src/core/public';
+import { PPLPage } from '../PPLPage/PPLPage';
+import Switch from '../QueryLanguageSwitch/Switch';
+import QueryResults from '../QueryResults/QueryResults';
+import { SQLPage } from '../SQLPage/SQLPage';
 
 interface ResponseData {
   ok: boolean;
@@ -82,9 +61,9 @@ export type ItemIdToExpandedRowMap = {
 };
 
 export type DataRow = {
-  rowId: number
-  data: { [key: string]: any }
-}
+  rowId: number;
+  data: { [key: string]: any };
+};
 
 interface MainProps {
   httpClient: CoreStart['http'];
@@ -113,12 +92,16 @@ interface MainState {
 const SUCCESS_MESSAGE = 'Success';
 
 const errorQueryResponse = (queryResultResponseDetail: any) => {
-  let errorMessage = queryResultResponseDetail.errorMessage + ', this query is not runnable. \n \n' +
+  let errorMessage =
+    queryResultResponseDetail.errorMessage +
+    ', this query is not runnable. \n \n' +
     queryResultResponseDetail.data;
   return errorMessage;
-}
+};
 
-export function getQueryResultsForTable(queryResults: ResponseDetail<string>[]): ResponseDetail<QueryResult>[] {
+export function getQueryResultsForTable(
+  queryResults: ResponseDetail<string>[]
+): ResponseDetail<QueryResult>[] {
   return queryResults.map(
     (queryResultResponseDetail: ResponseDetail<string>): ResponseDetail<QueryResult> => {
       if (!queryResultResponseDetail.fulfilled) {
@@ -127,7 +110,9 @@ export function getQueryResultsForTable(queryResults: ResponseDetail<string>[]):
           errorMessage: errorQueryResponse(queryResultResponseDetail),
         };
       } else {
-        const responseObj = queryResultResponseDetail.data ? JSON.parse(queryResultResponseDetail.data) : '';
+        const responseObj = queryResultResponseDetail.data
+          ? JSON.parse(queryResultResponseDetail.data)
+          : '';
         let fields: string[] = [];
         let dataRows: DataRow[] = [];
 
@@ -161,7 +146,7 @@ export function getQueryResultsForTable(queryResults: ResponseDetail<string>[]):
               row['TABLE_NAME'] = field[index];
               let dataRow: DataRow = {
                 rowId: id,
-                data: row
+                data: row,
               };
               dataRows[id] = dataRow;
             }
@@ -188,14 +173,13 @@ export function getQueryResultsForTable(queryResults: ResponseDetail<string>[]):
               }
               let dataRow: DataRow = {
                 rowId: id,
-                data: row
+                data: row,
               };
               dataRows[id] = dataRow;
             }
             break;
 
           default:
-
         }
         return {
           fulfilled: queryResultResponseDetail.fulfilled,
@@ -205,7 +189,6 @@ export function getQueryResultsForTable(queryResults: ResponseDetail<string>[]):
             message: SUCCESS_MESSAGE,
           },
         };
-
       }
     }
   );
@@ -244,14 +227,12 @@ export class Main extends React.Component<MainProps, MainState> {
   }
 
   componentDidMount() {
-    this.props.setBreadcrumbs(
-      [
-        {
-          text: 'Query Workbench',
-          href: '#',
-        },
-      ]
-    );
+    this.props.setBreadcrumbs([
+      {
+        text: 'Query Workbench',
+        href: '#',
+      },
+    ]);
   }
 
   processTranslateResponse(response: IHttpResponse<ResponseData>): ResponseDetail<TranslateResult> {
@@ -285,23 +266,23 @@ export class Main extends React.Component<MainProps, MainState> {
     }
     if (!response.data.ok) {
       let err = response.data.resp;
-      console.log("Error occurred when processing query response: ", err)
+      console.log('Error occurred when processing query response: ', err);
 
       // Exclude a special case from the error cases:
       // When downloading the csv result, it gets the "Unable to parse/serialize body" response
       // But data is also returned in data body. For this case:
       // Mark fulfilled to true for this case to write the csv result to downloading file
-      if (response.data.body && err == "Unable to parse/serialize body") {
+      if (response.data.body && err == 'Unable to parse/serialize body') {
         return {
           fulfilled: true,
           errorMessage: err,
-          data: response.data.body
-        }
+          data: response.data.body,
+        };
       }
       return {
         fulfilled: false,
         errorMessage: err,
-        data: ''
+        data: '',
       };
     }
 
@@ -361,16 +342,18 @@ export class Main extends React.Component<MainProps, MainState> {
       let endpoint = '../api/sql_console/' + (_.isEqual(language, 'SQL') ? 'sqlquery' : 'pplquery');
       const responsePromise = Promise.all(
         queries.map((query: string) =>
-          this.httpClient.post(endpoint, { body: `{ "query": "${query}" }` }).catch((error: any) => {
-            this.setState({
-              messages: [
-                {
-                  text: error.message,
-                  className: 'error-message',
-                },
-              ],
-            });
-          })
+          this.httpClient
+            .post(endpoint, { body: JSON.stringify({ query }) })
+            .catch((error: any) => {
+              this.setState({
+                messages: [
+                  {
+                    text: error.message,
+                    className: 'error-message',
+                  },
+                ],
+              });
+            })
         )
       );
 
@@ -408,16 +391,18 @@ export class Main extends React.Component<MainProps, MainState> {
         '../api/sql_console/' + (_.isEqual(language, 'SQL') ? 'translatesql' : 'translateppl');
       const translationPromise = Promise.all(
         queries.map((query: string) =>
-          this.httpClient.post(endpoint, { body: `{ "query": "${query}" }` }).catch((error: any) => {
-            this.setState({
-              messages: [
-                {
-                  text: error.message,
-                  className: 'error-message',
-                },
-              ],
-            });
-          })
+          this.httpClient
+            .post(endpoint, { body: JSON.stringify({ query }) })
+            .catch((error: any) => {
+              this.setState({
+                messages: [
+                  {
+                    text: error.message,
+                    className: 'error-message',
+                  },
+                ],
+              });
+            })
         )
       );
 
@@ -452,16 +437,18 @@ export class Main extends React.Component<MainProps, MainState> {
     if (queries.length > 0) {
       Promise.all(
         queries.map((query: string) =>
-          this.httpClient.post('../api/sql_console/sqljson', { body: `{ "query": "${query}" }` }).catch((error: any) => {
-            this.setState({
-              messages: [
-                {
-                  text: error.message,
-                  className: 'error-message',
-                },
-              ],
-            });
-          })
+          this.httpClient
+            .post('../api/sql_console/sqljson', { body: JSON.stringify({ query }) })
+            .catch((error: any) => {
+              this.setState({
+                messages: [
+                  {
+                    text: error.message,
+                    className: 'error-message',
+                  },
+                ],
+              });
+            })
         )
       ).then((response) => {
         const results: ResponseDetail<string>[] = response.map((response) =>
@@ -484,16 +471,18 @@ export class Main extends React.Component<MainProps, MainState> {
       let endpoint = '../api/sql_console/' + (_.isEqual(language, 'SQL') ? 'sqlquery' : 'pplquery');
       Promise.all(
         queries.map((query: string) =>
-          this.httpClient.post(endpoint, { body: `{ "query": "${query}" }` }).catch((error: any) => {
-            this.setState({
-              messages: [
-                {
-                  text: error.message,
-                  className: 'error-message',
-                },
-              ],
-            });
-          })
+          this.httpClient
+            .post(endpoint, { body: JSON.stringify({ query }) })
+            .catch((error: any) => {
+              this.setState({
+                messages: [
+                  {
+                    text: error.message,
+                    className: 'error-message',
+                  },
+                ],
+              });
+            })
         )
       ).then((jdbcResponse) => {
         const jdbcResult: ResponseDetail<string>[] = jdbcResponse.map((jdbcResponse) =>
@@ -516,16 +505,18 @@ export class Main extends React.Component<MainProps, MainState> {
       let endpoint = '../api/sql_console/' + (_.isEqual(language, 'SQL') ? 'sqlcsv' : 'pplcsv');
       Promise.all(
         queries.map((query: string) =>
-          this.httpClient.post(endpoint, { body: `{ "query": "${query}" }` }).catch((error: any) => {
-            this.setState({
-              messages: [
-                {
-                  text: error.message,
-                  className: 'error-message',
-                },
-              ],
-            });
-          })
+          this.httpClient
+            .post(endpoint, { body: JSON.stringify({ query }) })
+            .catch((error: any) => {
+              this.setState({
+                messages: [
+                  {
+                    text: error.message,
+                    className: 'error-message',
+                  },
+                ],
+              });
+            })
         )
       ).then((csvResponse) => {
         const csvResult: ResponseDetail<string>[] = csvResponse.map((csvResponse) =>
@@ -548,16 +539,18 @@ export class Main extends React.Component<MainProps, MainState> {
       let endpoint = '../api/sql_console/' + (_.isEqual(language, 'SQL') ? 'sqltext' : 'ppltext');
       Promise.all(
         queries.map((query: string) =>
-          this.httpClient.post(endpoint, { body: `{ "query": "${query}" }` }).catch((error: any) => {
-            this.setState({
-              messages: [
-                {
-                  text: error.message,
-                  className: 'error-message',
-                },
-              ],
-            });
-          })
+          this.httpClient
+            .post(endpoint, { body: JSON.stringify({ query }) })
+            .catch((error: any) => {
+              this.setState({
+                messages: [
+                  {
+                    text: error.message,
+                    className: 'error-message',
+                  },
+                ],
+              });
+            })
         )
       ).then((textResponse) => {
         const textResult: ResponseDetail<string>[] = textResponse.map((textResponse) =>
@@ -634,7 +627,7 @@ export class Main extends React.Component<MainProps, MainState> {
           updateSQLQueries={this.updateSQLQueries}
         />
       );
-      link = 'https://docs-beta.opensearch.org/search-plugins/sql/index/';
+      link = 'https://opensearch.org/docs/latest/search-plugins/sql/index/';
       linkTitle = 'SQL documentation';
     } else {
       page = (
@@ -647,7 +640,7 @@ export class Main extends React.Component<MainProps, MainState> {
           updatePPLQueries={this.updatePPLQueries}
         />
       );
-      link = 'https://docs-beta.opensearch.org/search-plugins/ppl/index/';
+      link = 'https://opensearch.org/docs/latest/observability/ppl/index/';
       linkTitle = 'PPL documentation';
     }
 

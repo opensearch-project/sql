@@ -1,28 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *   Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *   Licensed under the Apache License, Version 2.0 (the "License").
- *   You may not use this file except in compliance with the License.
- *   A copy of the License is located at
- *
- *       http://www.apache.org/licenses/LICENSE-2.0
- *
- *   or in the "license" file accompanying this file. This file is distributed
- *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *   express or implied. See the License for the specific language governing
- *   permissions and limitations under the License.
- */
 
 
 parser grammar OpenSearchPPLParser;
@@ -40,7 +20,7 @@ pplStatement
 /** commands */
 commands
     : whereCommand | fieldsCommand | renameCommand | statsCommand | dedupCommand | sortCommand | evalCommand | headCommand
-    | topCommand | rareCommand;
+    | topCommand | rareCommand | parseCommand;
 
 searchCommand
     : (SEARCH)? fromClause                                          #searchFrom
@@ -66,7 +46,7 @@ statsCommand
     (ALLNUM EQUAL allnum=booleanLiteral)?
     (DELIM EQUAL delim=stringLiteral)?
     statsAggTerm (COMMA statsAggTerm)*
-    (byClause)?
+    (statsByClause)?
     (DEDUP_SPLITVALUES EQUAL dedupsplit=booleanLiteral)?
     ;
 
@@ -104,10 +84,14 @@ rareCommand
     (byClause)?
     ;
 
+parseCommand
+    : PARSE expression pattern
+    ;
+
 /** clauses */
 fromClause
-    : SOURCE EQUAL tableSource
-    | INDEX EQUAL tableSource
+    : SOURCE EQUAL tableSource (COMMA tableSource)*
+    | INDEX EQUAL tableSource (COMMA tableSource)*
     ;
 
 renameClasue
@@ -116,6 +100,20 @@ renameClasue
 
 byClause
     : BY fieldList
+    ;
+
+statsByClause
+    : BY fieldList
+    | BY bySpanClause
+    | BY bySpanClause COMMA fieldList
+    ;
+
+bySpanClause
+    : spanClause (AS alias=qualifiedName)?
+    ;
+
+spanClause
+    : SPAN LT_PRTHS fieldExpression COMMA value=literalValue (unit=timespanUnit)? RT_PRTHS
     ;
 
 sortbyClause
@@ -135,6 +133,7 @@ statsAggTerm
 statsFunction
     : statsFunctionName LT_PRTHS valueExpression RT_PRTHS           #statsFunctionCall
     | COUNT LT_PRTHS RT_PRTHS                                       #countAllFunctionCall
+    | (DISTINCT_COUNT | DC) LT_PRTHS valueExpression RT_PRTHS       #distinctCountFunctionCall
     | percentileAggFunction                                         #percentileAggFunctionCall
     ;
 
@@ -160,6 +159,7 @@ logicalExpression
     | left=logicalExpression (AND)? right=logicalExpression         #logicalAnd
     | left=logicalExpression XOR right=logicalExpression            #logicalXor
     | booleanExpression                                             #booleanExpr
+    | relevanceExpression                                           #relevanceExpr
     ;
 
 comparisonExpression
@@ -176,12 +176,19 @@ valueExpression
 
 primaryExpression
     : evalFunctionCall
+    | dataTypeFunctionCall
     | fieldExpression
     | literalValue
     ;
 
 booleanExpression
     : booleanFunctionCall
+    ;
+
+relevanceExpression
+    : relevanceFunctionName LT_PRTHS
+        field=relevanceArgValue COMMA query=relevanceArgValue
+        (COMMA relevanceArg)* RT_PRTHS
     ;
 
 /** tables */
@@ -224,9 +231,27 @@ evalFunctionCall
     : evalFunctionName LT_PRTHS functionArgs RT_PRTHS
     ;
 
+/** cast function */
+dataTypeFunctionCall
+    : CAST LT_PRTHS expression AS convertedDataType RT_PRTHS
+    ;
+
 /** boolean functions */
 booleanFunctionCall
     : conditionFunctionBase LT_PRTHS functionArgs RT_PRTHS
+    ;
+
+convertedDataType
+    : typeName=DATE
+    | typeName=TIME
+    | typeName=TIMESTAMP
+    | typeName=INT
+    | typeName=INTEGER
+    | typeName=DOUBLE
+    | typeName=LONG
+    | typeName=FLOAT
+    | typeName=STRING
+    | typeName=BOOLEAN
     ;
 
 evalFunctionName
@@ -242,6 +267,21 @@ functionArgs
 
 functionArg
     : valueExpression
+    ;
+
+relevanceArg
+    : relevanceArgName EQUAL relevanceArgValue
+    ;
+
+relevanceArgName
+    : ANALYZER | FUZZINESS | AUTO_GENERATE_SYNONYMS_PHRASE_QUERY | MAX_EXPANSIONS | PREFIX_LENGTH
+    | FUZZY_TRANSPOSITIONS | FUZZY_REWRITE | LENIENT | OPERATOR | MINIMUM_SHOULD_MATCH | ZERO_TERMS_QUERY
+    | BOOST
+    ;
+
+relevanceArgValue
+    : qualifiedName
+    | literalValue
     ;
 
 mathematicalFunctionBase
@@ -280,6 +320,10 @@ binaryOperator
     : PLUS | MINUS | STAR | DIVIDE | MODULE
     ;
 
+relevanceFunctionName
+    : MATCH
+    ;
+
 /** literals and values*/
 literalValue
     : intervalLiteral
@@ -309,10 +353,19 @@ booleanLiteral
     : TRUE | FALSE
     ;
 
+pattern
+    : stringLiteral
+    ;
+
 intervalUnit
     : MICROSECOND | SECOND | MINUTE | HOUR | DAY | WEEK | MONTH | QUARTER | YEAR | SECOND_MICROSECOND
     | MINUTE_MICROSECOND | MINUTE_SECOND | HOUR_MICROSECOND | HOUR_SECOND | HOUR_MINUTE | DAY_MICROSECOND
     | DAY_SECOND | DAY_MINUTE | DAY_HOUR | YEAR_MONTH
+    ;
+
+timespanUnit
+    : MS | S | M | H | D | W | Q | Y
+    | MILLISECOND | SECOND | MINUTE | HOUR | DAY | WEEK | MONTH | QUARTER | YEAR
     ;
 
 
@@ -347,4 +400,5 @@ keywordsCanBeId
     | statsFunctionName
     | TIMESTAMP | DATE | TIME
     | FIRST | LAST
+    | timespanUnit | SPAN
     ;

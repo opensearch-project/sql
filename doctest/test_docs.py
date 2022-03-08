@@ -1,24 +1,5 @@
+# Copyright OpenSearch Contributors
 # SPDX-License-Identifier: Apache-2.0
-#
-# The OpenSearch Contributors require contributions made to
-# this file be licensed under the Apache-2.0 license or a
-# compatible open source license.
-#
-# Modifications Copyright OpenSearch Contributors. See
-# GitHub history for details.
-
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License").
-# You may not use this file except in compliance with the License.
-# A copy of the License is located at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# or in the "license" file accompanying this file. This file is distributed
-# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
-# express or implied. See the License for the specific language governing
-# permissions and limitations under the License.
 
 import doctest
 import os
@@ -35,12 +16,13 @@ from functools import partial
 from opensearch_sql_cli.opensearch_connection import OpenSearchConnection
 from opensearch_sql_cli.utils import OutputSettings
 from opensearch_sql_cli.formatter import Formatter
-from elasticsearch import Elasticsearch as OpenSearch, helpers
+from opensearchpy import OpenSearch, helpers
 
 ENDPOINT = "http://localhost:9200"
 ACCOUNTS = "accounts"
 EMPLOYEES = "employees"
 PEOPLE = "people"
+ACCOUNT2 = "account2"
 
 
 class DocTestConnection(OpenSearchConnection):
@@ -103,6 +85,7 @@ def set_up_test_indices(test):
     set_up(test)
     load_file("accounts.json", index_name=ACCOUNTS)
     load_file("people.json", index_name=PEOPLE)
+    load_file("account2.json", index_name=ACCOUNT2)
 
 
 def load_file(filename, index_name):
@@ -131,7 +114,7 @@ def set_up(test):
 
 def tear_down(test):
     # drop leftover tables after each test
-    test_data_client.indices.delete(index=[ACCOUNTS, EMPLOYEES, PEOPLE], ignore_unavailable=True)
+    test_data_client.indices.delete(index=[ACCOUNTS, EMPLOYEES, PEOPLE, ACCOUNT2], ignore_unavailable=True)
 
 
 docsuite = partial(doctest.DocFileSuite,

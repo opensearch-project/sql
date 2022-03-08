@@ -1,39 +1,18 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *
- *    Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *    Licensed under the Apache License, Version 2.0 (the "License").
- *    You may not use this file except in compliance with the License.
- *    A copy of the License is located at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    or in the "license" file accompanying this file. This file is distributed
- *    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *    express or implied. See the License for the specific language governing
- *    permissions and limitations under the License.
- *
- */
 
 package org.opensearch.sql.data.type;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -63,24 +42,23 @@ public enum ExprCoreType implements ExprType {
   DOUBLE(FLOAT),
 
   /**
-   * Boolean.
-   */
-  BOOLEAN(UNDEFINED),
-
-  /**
    * String.
    */
   STRING(UNDEFINED),
 
+  /**
+   * Boolean.
+   */
+  BOOLEAN(STRING),
 
   /**
    * Date.
    * Todo. compatible relationship.
    */
-  TIMESTAMP(UNDEFINED),
-  DATE(UNDEFINED),
-  TIME(UNDEFINED),
-  DATETIME(UNDEFINED),
+  TIMESTAMP(STRING),
+  DATE(STRING),
+  TIME(STRING),
+  DATETIME(STRING),
   INTERVAL(UNDEFINED),
 
   /**
@@ -106,6 +84,16 @@ public enum ExprCoreType implements ExprType {
           .put(STRUCT, "object")
           .put(ARRAY, "nested")
           .put(STRING, "keyword")
+          .build();
+
+  private static final Set<ExprType> NUMBER_TYPES =
+      new ImmutableSet.Builder<ExprType>()
+          .add(BYTE)
+          .add(SHORT)
+          .add(INTEGER)
+          .add(LONG)
+          .add(FLOAT)
+          .add(DOUBLE)
           .build();
 
   ExprCoreType(ExprCoreType... compatibleTypes) {
@@ -139,7 +127,7 @@ public enum ExprCoreType implements ExprType {
                  .collect(Collectors.toList());
   }
 
-  public static List<ExprType> numberTypes() {
-    return ImmutableList.of(INTEGER, LONG, FLOAT, DOUBLE);
+  public static Set<ExprType> numberTypes() {
+    return NUMBER_TYPES;
   }
 }

@@ -1,29 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *    Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *    Licensed under the Apache License, Version 2.0 (the "License").
- *    You may not use this file except in compliance with the License.
- *    A copy of the License is located at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *    or in the "license" file accompanying this file. This file is distributed
- *    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *    express or implied. See the License for the specific language governing
- *    permissions and limitations under the License.
- *
- */
 
 package org.opensearch.sql.sql.parser;
 
@@ -43,6 +22,7 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ConvertedD
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CountStarFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DataTypeFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DateLiteralContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DistinctCountFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.IsNullPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.LikePredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.MathExpressionAtomContext;
@@ -52,6 +32,7 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.OverClause
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.QualifiedNameContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.RegexpPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.RegularAggregateFunctionCallContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.RelevanceFunctionContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ScalarFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ScalarWindowFunctionContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ShowDescribePatternContext;
@@ -65,6 +46,7 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.TimestampL
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.WindowFunctionClauseContext;
 import static org.opensearch.sql.sql.parser.ParserUtils.createSortOption;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -78,12 +60,15 @@ import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
+import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Interval;
 import org.opensearch.sql.ast.expression.IntervalUnit;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.WindowFunction;
@@ -171,7 +156,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   public UnresolvedExpression visitFilteredAggregationFunctionCall(
       OpenSearchSQLParser.FilteredAggregationFunctionCallContext ctx) {
     AggregateFunction agg = (AggregateFunction) visit(ctx.aggregateFunction());
-    return new AggregateFunction(agg.getFuncName(), agg.getField(), visit(ctx.filterClause()));
+    return agg.condition(visit(ctx.filterClause()));
   }
 
   @Override
@@ -213,6 +198,14 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   }
 
   @Override
+  public UnresolvedExpression visitDistinctCountFunctionCall(DistinctCountFunctionCallContext ctx) {
+    return new AggregateFunction(
+        ctx.COUNT().getText(),
+        visitFunctionArg(ctx.functionArg()),
+        true);
+  }
+
+  @Override
   public UnresolvedExpression visitCountStarFunctionCall(CountStarFunctionCallContext ctx) {
     return new AggregateFunction("COUNT", AllFields.of());
   }
@@ -242,6 +235,19 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   public UnresolvedExpression visitRegexpPredicate(RegexpPredicateContext ctx) {
     return new Function(REGEXP.getName().getFunctionName(),
             Arrays.asList(visit(ctx.left), visit(ctx.right)));
+  }
+
+  @Override
+  public UnresolvedExpression visitInPredicate(OpenSearchSQLParser.InPredicateContext ctx) {
+    UnresolvedExpression field = visit(ctx.predicate());
+    List<UnresolvedExpression> inLists = ctx
+        .expressions()
+        .expression()
+        .stream()
+        .map(this::visit)
+        .collect(Collectors.toList());
+    UnresolvedExpression in = AstDSL.in(field, inLists);
+    return ctx.NOT() != null ? AstDSL.not(in) : in;
   }
 
   @Override
@@ -354,6 +360,13 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
     return AstDSL.stringLiteral(ctx.getText());
   }
 
+  @Override
+  public UnresolvedExpression visitRelevanceFunction(RelevanceFunctionContext ctx) {
+    return new Function(
+        ctx.relevanceFunctionName().getText().toLowerCase(),
+        relevanceArguments(ctx));
+  }
+
   private Function visitFunction(String functionName, FunctionArgsContext args) {
     if (args == null) {
       return new Function(functionName, Collections.emptyList());
@@ -374,6 +387,20 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
                    .map(StringUtils::unquoteIdentifier)
                    .collect(Collectors.toList())
     );
+  }
+
+  private List<UnresolvedExpression> relevanceArguments(RelevanceFunctionContext ctx) {
+    // all the arguments are defaulted to string values
+    // to skip environment resolving and function signature resolving
+    ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
+    builder.add(new UnresolvedArgument("field",
+        new Literal(StringUtils.unquoteText(ctx.field.getText()), DataType.STRING)));
+    builder.add(new UnresolvedArgument("query",
+        new Literal(StringUtils.unquoteText(ctx.query.getText()), DataType.STRING)));
+    ctx.relevanceArg().forEach(v -> builder.add(new UnresolvedArgument(
+        v.relevanceArgName().getText().toLowerCase(), new Literal(StringUtils.unquoteText(
+            v.relevanceArgValue().getText()), DataType.STRING))));
+    return builder.build();
   }
 
 }

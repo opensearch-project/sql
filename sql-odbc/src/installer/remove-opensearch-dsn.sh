@@ -1,14 +1,5 @@
 #!/bin/bash
 
-# SPDX-License-Identifier: Apache-2.0
-#
-# The OpenSearch Contributors require contributions made to
-# this file be licensed under the Apache-2.0 license or a
-# compatible open source license.
-#
-# Modifications Copyright OpenSearch Contributors. See
-# GitHub history for details.
-
 echo "This script will only remove the default DSN and Driver entries from your ODBC configuration."
 echo "You will be responsible for removing installed files from the system."
 if [[ $EUID -ne 0 ]]; then

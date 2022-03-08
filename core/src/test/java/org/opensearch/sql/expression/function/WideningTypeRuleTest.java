@@ -1,39 +1,25 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *   Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *   Licensed under the Apache License, Version 2.0 (the "License").
- *   You may not use this file except in compliance with the License.
- *   A copy of the License is located at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *   or in the "license" file accompanying this file. This file is distributed
- *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *   express or implied. See the License for the specific language governing
- *   permissions and limitations under the License.
- */
 
 package org.opensearch.sql.expression.function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
+import static org.opensearch.sql.data.type.ExprCoreType.DATE;
+import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.TIME;
+import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.data.type.ExprCoreType.UNDEFINED;
 import static org.opensearch.sql.data.type.WideningTypeRule.IMPOSSIBLE_WIDENING;
 import static org.opensearch.sql.data.type.WideningTypeRule.TYPE_EQUAL;
@@ -70,6 +56,11 @@ class WideningTypeRuleTest {
           .put(LONG, FLOAT, 1)
           .put(LONG, DOUBLE, 2)
           .put(FLOAT, DOUBLE, 1)
+          .put(STRING, BOOLEAN, 1)
+          .put(STRING, TIMESTAMP, 1)
+          .put(STRING, DATE, 1)
+          .put(STRING, TIME, 1)
+          .put(STRING, DATETIME, 1)
           .put(UNDEFINED, BYTE, 1)
           .put(UNDEFINED, SHORT, 2)
           .put(UNDEFINED, INTEGER, 3)

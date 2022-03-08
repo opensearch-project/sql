@@ -173,6 +173,8 @@ Usage: date_format(date, format) formats the date argument using the specifiers 
      - A literal % character
    * - %x
      - x, for any “x” not listed above
+   * - x
+     - x, for any smallcase/uppercase alphabet except [aydmshiHIMYDSEL]
 
 Argument type: STRING/DATE/DATETIME/TIMESTAMP, STRING
 

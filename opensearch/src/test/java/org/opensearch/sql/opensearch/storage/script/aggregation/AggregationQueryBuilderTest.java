@@ -1,44 +1,26 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *
- *    Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *    Licensed under the Apache License, Version 2.0 (the "License").
- *    You may not use this file except in compliance with the License.
- *    A copy of the License is located at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    or in the "license" file accompanying this file. This file is distributed
- *    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *    express or implied. See the License for the specific language governing
- *    permissions and limitations under the License.
- *
- */
 
 package org.opensearch.sql.opensearch.storage.script.aggregation;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.expression.DSL.ref;
+import static org.opensearch.sql.expression.DSL.span;
 import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
 import static org.opensearch.sql.opensearch.utils.Utils.agg;
 import static org.opensearch.sql.opensearch.utils.Utils.avg;
@@ -67,6 +49,7 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.aggregation.AvgAggregator;
+import org.opensearch.sql.expression.aggregation.CountAggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
@@ -99,6 +82,7 @@ class AggregationQueryBuilderTest {
             + "          \"terms\" : {\n"
             + "            \"field\" : \"name\",\n"
             + "            \"missing_bucket\" : true,\n"
+            + "            \"missing_order\" : \"first\",\n"
             + "            \"order\" : \"asc\"\n"
             + "          }\n"
             + "        }\n"
@@ -131,6 +115,7 @@ class AggregationQueryBuilderTest {
             + "          \"terms\" : {\n"
             + "            \"field\" : \"name\",\n"
             + "            \"missing_bucket\" : true,\n"
+            + "            \"missing_order\" : \"last\",\n"
             + "            \"order\" : \"desc\"\n"
             + "          }\n"
             + "        }\n"
@@ -177,6 +162,7 @@ class AggregationQueryBuilderTest {
             + "          \"terms\" : {\n"
             + "            \"field\" : \"name.keyword\",\n"
             + "            \"missing_bucket\" : true,\n"
+            + "            \"missing_order\" : \"first\",\n"
             + "            \"order\" : \"asc\"\n"
             + "          }\n"
             + "        }\n"
@@ -228,6 +214,7 @@ class AggregationQueryBuilderTest {
             + "              \"lang\" : \"opensearch_query_expression\"\n"
             + "            },\n"
             + "            \"missing_bucket\" : true,\n"
+            + "            \"missing_order\" : \"first\",\n"
             + "            \"order\" : \"asc\"\n"
             + "          }\n"
             + "        }\n"
@@ -264,6 +251,7 @@ class AggregationQueryBuilderTest {
             + "          \"terms\" : {\n"
             + "            \"field\" : \"name\",\n"
             + "            \"missing_bucket\" : true,\n"
+            + "            \"missing_order\" : \"last\",\n"
             + "            \"order\" : \"desc\"\n"
             + "          }\n"
             + "        }\n"
@@ -272,6 +260,7 @@ class AggregationQueryBuilderTest {
             + "          \"terms\" : {\n"
             + "            \"field\" : \"age\",\n"
             + "            \"missing_bucket\" : true,\n"
+            + "            \"missing_order\" : \"first\",\n"
             + "            \"order\" : \"asc\"\n"
             + "          }\n"
             + "        }\n"
@@ -367,7 +356,8 @@ class AggregationQueryBuilderTest {
             + "        \"gender\" : {\n" 
             + "          \"terms\" : {\n" 
             + "            \"field\" : \"gender\",\n" 
-            + "            \"missing_bucket\" : true,\n" 
+            + "            \"missing_bucket\" : true,\n"
+            + "            \"missing_order\" : \"first\",\n"
             + "            \"order\" : \"asc\"\n" 
             + "          }\n" 
             + "        }\n" 
@@ -414,6 +404,190 @@ class AggregationQueryBuilderTest {
         containsInAnyOrder(
             map("avg(balance)", INTEGER)
         ));
+  }
+
+  @Test
+  void should_build_histogram() {
+    assertEquals(
+        "{\n"
+            + "  \"composite_buckets\" : {\n"
+            + "    \"composite\" : {\n"
+            + "      \"size\" : 1000,\n"
+            + "      \"sources\" : [ {\n"
+            + "        \"SpanExpression(field=age, value=10, unit=NONE)\" : {\n"
+            + "          \"histogram\" : {\n"
+            + "            \"field\" : \"age\",\n"
+            + "            \"missing_bucket\" : true,\n"
+            + "            \"missing_order\" : \"first\",\n"
+            + "            \"order\" : \"asc\",\n"
+            + "            \"interval\" : 10.0\n"
+            + "          }\n"
+            + "        }\n"
+            + "      } ]\n"
+            + "    },\n"
+            + "    \"aggregations\" : {\n"
+            + "      \"count(a)\" : {\n"
+            + "        \"value_count\" : {\n"
+            + "          \"field\" : \"a\"\n"
+            + "        }\n"
+            + "      }\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            Arrays.asList(
+                named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER))),
+            Arrays.asList(named(span(ref("age", INTEGER), literal(10), "")))));
+  }
+
+  @Test
+  void should_build_histogram_two_metrics() {
+    assertEquals(
+        "{\n"
+            + "  \"composite_buckets\" : {\n"
+            + "    \"composite\" : {\n"
+            + "      \"size\" : 1000,\n"
+            + "      \"sources\" : [ {\n"
+            + "        \"SpanExpression(field=age, value=10, unit=NONE)\" : {\n"
+            + "          \"histogram\" : {\n"
+            + "            \"field\" : \"age\",\n"
+            + "            \"missing_bucket\" : true,\n"
+            + "            \"missing_order\" : \"first\",\n"
+            + "            \"order\" : \"asc\",\n"
+            + "            \"interval\" : 10.0\n"
+            + "          }\n"
+            + "        }\n"
+            + "      } ]\n"
+            + "    },\n"
+            + "    \"aggregations\" : {\n"
+            + "      \"count(a)\" : {\n"
+            + "        \"value_count\" : {\n"
+            + "          \"field\" : \"a\"\n"
+            + "        }\n"
+            + "      },\n"
+            + "      \"avg(b)\" : {\n"
+            + "        \"avg\" : {\n"
+            + "          \"field\" : \"b\"\n"
+            + "        }\n"
+            + "      }\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            Arrays.asList(
+                named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER)),
+                named("avg(b)", new AvgAggregator(Arrays.asList(ref("b", INTEGER)), INTEGER))),
+            Arrays.asList(named(span(ref("age", INTEGER), literal(10), "")))));
+  }
+
+  @Test
+  void fixed_interval_time_span() {
+    assertEquals(
+        "{\n"
+            + "  \"composite_buckets\" : {\n"
+            + "    \"composite\" : {\n"
+            + "      \"size\" : 1000,\n"
+            + "      \"sources\" : [ {\n"
+            + "        \"SpanExpression(field=timestamp, value=1, unit=H)\" : {\n"
+            + "          \"date_histogram\" : {\n"
+            + "            \"field\" : \"timestamp\",\n"
+            + "            \"missing_bucket\" : true,\n"
+            + "            \"missing_order\" : \"first\",\n"
+            + "            \"order\" : \"asc\",\n"
+            + "            \"fixed_interval\" : \"1h\"\n"
+            + "          }\n"
+            + "        }\n"
+            + "      } ]\n"
+            + "    },\n"
+            + "    \"aggregations\" : {\n"
+            + "      \"count(a)\" : {\n"
+            + "        \"value_count\" : {\n"
+            + "          \"field\" : \"a\"\n"
+            + "        }\n"
+            + "      }\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            Arrays.asList(
+                named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER))),
+            Arrays.asList(named(span(ref("timestamp", TIMESTAMP), literal(1), "h")))));
+  }
+
+  @Test
+  void calendar_interval_time_span() {
+    assertEquals(
+        "{\n"
+            + "  \"composite_buckets\" : {\n"
+            + "    \"composite\" : {\n"
+            + "      \"size\" : 1000,\n"
+            + "      \"sources\" : [ {\n"
+            + "        \"SpanExpression(field=date, value=1, unit=W)\" : {\n"
+            + "          \"date_histogram\" : {\n"
+            + "            \"field\" : \"date\",\n"
+            + "            \"missing_bucket\" : true,\n"
+            + "            \"missing_order\" : \"first\",\n"
+            + "            \"order\" : \"asc\",\n"
+            + "            \"calendar_interval\" : \"1w\"\n"
+            + "          }\n"
+            + "        }\n"
+            + "      } ]\n"
+            + "    },\n"
+            + "    \"aggregations\" : {\n"
+            + "      \"count(a)\" : {\n"
+            + "        \"value_count\" : {\n"
+            + "          \"field\" : \"a\"\n"
+            + "        }\n"
+            + "      }\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            Arrays.asList(
+                named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER))),
+            Arrays.asList(named(span(ref("date", DATE), literal(1), "w")))));
+  }
+
+  @Test
+  void general_span() {
+    assertEquals(
+        "{\n"
+            + "  \"composite_buckets\" : {\n"
+            + "    \"composite\" : {\n"
+            + "      \"size\" : 1000,\n"
+            + "      \"sources\" : [ {\n"
+            + "        \"SpanExpression(field=age, value=1, unit=NONE)\" : {\n"
+            + "          \"histogram\" : {\n"
+            + "            \"field\" : \"age\",\n"
+            + "            \"missing_bucket\" : true,\n"
+            + "            \"missing_order\" : \"first\",\n"
+            + "            \"order\" : \"asc\",\n"
+            + "            \"interval\" : 1.0\n"
+            + "          }\n"
+            + "        }\n"
+            + "      } ]\n"
+            + "    },\n"
+            + "    \"aggregations\" : {\n"
+            + "      \"count(a)\" : {\n"
+            + "        \"value_count\" : {\n"
+            + "          \"field\" : \"a\"\n"
+            + "        }\n"
+            + "      }\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            Arrays.asList(
+                named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER))),
+            Arrays.asList(named(span(ref("age", INTEGER), literal(1), "")))));
+  }
+
+  @Test
+  void invalid_unit() {
+    assertThrows(IllegalStateException.class, () -> buildQuery(
+        Arrays.asList(
+            named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER))),
+        Arrays.asList(named(span(ref("age", INTEGER), literal(1), "invalid_unit")))));
   }
 
   @SneakyThrows

@@ -1,29 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *    Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *    Licensed under the Apache License, Version 2.0 (the "License").
- *    You may not use this file except in compliance with the License.
- *    A copy of the License is located at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *    or in the "license" file accompanying this file. This file is distributed
- *    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *    express or implied. See the License for the specific language governing
- *    permissions and limitations under the License.
- *
- */
 
 package org.opensearch.sql.sql.parser;
 
@@ -36,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
+import static org.opensearch.sql.ast.dsl.AstDSL.distinctAggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
@@ -50,6 +30,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -165,6 +146,17 @@ class AstAggregationBuilderTest {
             hasGroupByItems(),
             hasAggregators(
                 alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
+  }
+
+  @Test
+  void can_build_distinct_aggregator() {
+    assertThat(
+        buildAggregation("SELECT COUNT(DISTINCT name) FROM test group by age"),
+        allOf(
+            hasGroupByItems(alias("age", qualifiedName("age"))),
+            hasAggregators(
+                alias("COUNT(DISTINCT name)", distinctAggregate("COUNT", qualifiedName(
+                    "name"))))));
   }
 
   @Test

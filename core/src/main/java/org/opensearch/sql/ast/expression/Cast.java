@@ -1,39 +1,20 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *
- *    Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *    Licensed under the Apache License, Version 2.0 (the "License").
- *    You may not use this file except in compliance with the License.
- *    A copy of the License is located at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    or in the "license" file accompanying this file. This file is distributed
- *    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *    express or implied. See the License for the specific language governing
- *    permissions and limitations under the License.
- *
- */
 
 package org.opensearch.sql.ast.expression;
 
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_BOOLEAN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_BYTE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_DATE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_DATETIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_DOUBLE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_FLOAT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_INT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_LONG;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_SHORT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_STRING;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_TIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_TIMESTAMP;
@@ -49,6 +30,7 @@ import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.FunctionName;
 
 /**
@@ -60,9 +42,11 @@ import org.opensearch.sql.expression.function.FunctionName;
 @ToString
 public class Cast extends UnresolvedExpression {
 
-  private static Map<String, FunctionName> CONVERTED_TYPE_FUNCTION_NAME_MAP =
+  private static final Map<String, FunctionName> CONVERTED_TYPE_FUNCTION_NAME_MAP =
       new ImmutableMap.Builder<String, FunctionName>()
           .put("string", CAST_TO_STRING.getName())
+          .put("byte", CAST_TO_BYTE.getName())
+          .put("short", CAST_TO_SHORT.getName())
           .put("int", CAST_TO_INT.getName())
           .put("integer", CAST_TO_INT.getName())
           .put("long", CAST_TO_LONG.getName())
@@ -72,6 +56,7 @@ public class Cast extends UnresolvedExpression {
           .put("date", CAST_TO_DATE.getName())
           .put("time", CAST_TO_TIME.getName())
           .put("timestamp", CAST_TO_TIMESTAMP.getName())
+          .put("datetime", CAST_TO_DATETIME.getName())
           .build();
 
   /**
@@ -83,6 +68,25 @@ public class Cast extends UnresolvedExpression {
    * Expression that represents ELSE statement result.
    */
   private final UnresolvedExpression convertedType;
+
+  /**
+   * Check if the given function name is a cast function or not.
+   * @param name  function name
+   * @return true if cast function, otherwise false.
+   */
+  public static boolean isCastFunction(FunctionName name) {
+    return CONVERTED_TYPE_FUNCTION_NAME_MAP.containsValue(name);
+  }
+
+  /**
+   * Get the cast function name for a given target data type.
+   * @param targetType  target data type
+   * @return cast function name corresponding
+   */
+  public static FunctionName getCastFunctionName(ExprType targetType) {
+    String type = targetType.typeName().toLowerCase(Locale.ROOT);
+    return CONVERTED_TYPE_FUNCTION_NAME_MAP.get(type);
+  }
 
   /**
    * Get the converted type.

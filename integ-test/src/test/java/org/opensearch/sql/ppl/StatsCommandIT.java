@@ -1,32 +1,13 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *   Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *   Licensed under the Apache License, Version 2.0 (the "License").
- *   You may not use this file except in compliance with the License.
- *   A copy of the License is located at
- *
- *       http://www.apache.org/licenses/LICENSE-2.0
- *
- *   or in the "license" file accompanying this file. This file is distributed
- *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *   express or implied. See the License for the specific language governing
- *   permissions and limitations under the License.
- */
 
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -34,6 +15,10 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
@@ -43,6 +28,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void init() throws IOException {
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
+    loadIndex(Index.BANK);
   }
 
   @Test
@@ -75,6 +61,19 @@ public class StatsCommandIT extends PPLIntegTestCase {
         executeQuery(String.format("source=%s | stats count()", TEST_INDEX_ACCOUNT));
     verifySchema(response, schema("count()", null, "integer"));
     verifyDataRows(response, rows(1000));
+  }
+
+  @Test
+  public void testStatsDistinctCount() throws IOException {
+    JSONObject response =
+        executeQuery(String.format("source=%s | stats distinct_count(gender)", TEST_INDEX_ACCOUNT));
+    verifySchema(response, schema("distinct_count(gender)", null, "integer"));
+    verifyDataRows(response, rows(2));
+
+    response =
+        executeQuery(String.format("source=%s | stats dc(age)", TEST_INDEX_ACCOUNT));
+    verifySchema(response, schema("dc(age)", null, "integer"));
+    verifyDataRows(response, rows(21));
   }
 
   @Test
@@ -171,5 +170,33 @@ public class StatsCommandIT extends PPLIntegTestCase {
         TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifySchema(response, schema("avg(balance)", null, "double"));
     verifyDataRows(response, rows(31082.25));
+  }
+
+  @Test
+  public void testStatsBySpan() throws IOException {
+    JSONObject response = executeQuery(String.format(
+        "source=%s | stats count() by span(age,10)",
+        TEST_INDEX_BANK));
+    verifySchema(response, schema("count()", null, "integer"), schema("span(age,10)", null, "integer"));
+    verifyDataRows(response, rows(1, 20), rows(6, 30));
+  }
+
+  @Test
+  public void testStatsTimeSpan() throws IOException {
+    JSONObject response = executeQuery(String.format(
+        "source=%s | stats count() by span(birthdate,1y)",
+        TEST_INDEX_BANK));
+    verifySchema(response, schema("count()", null, "integer"), schema(
+        "span(birthdate,1y)", null, "timestamp"));
+    verifyDataRows(response, rows(2, "2017-01-01 00:00:00"), rows(5, "2018-01-01 00:00:00"));
+  }
+
+  @Test
+  public void testStatsAliasedSpan() throws IOException {
+    JSONObject response = executeQuery(String.format(
+        "source=%s | stats count() by span(age,10) as age_bucket",
+        TEST_INDEX_BANK));
+    verifySchema(response, schema("count()", null, "integer"), schema("age_bucket", null, "integer"));
+    verifyDataRows(response, rows(1, 20), rows(6, 30));
   }
 }

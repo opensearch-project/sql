@@ -1,30 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *
- *    Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *    Licensed under the Apache License, Version 2.0 (the "License").
- *    You may not use this file except in compliance with the License.
- *    A copy of the License is located at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    or in the "license" file accompanying this file. This file is distributed
- *    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *    express or implied. See the License for the specific language governing
- *    permissions and limitations under the License.
- *
- */
 
 package org.opensearch.sql.opensearch.storage.script.aggregation;
 
@@ -39,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.expression.NamedExpression;
@@ -58,31 +37,41 @@ class GroupSortOrderTest {
   void both_expression_in_sort_list() {
     assertEquals(-1, compare(named("name", ref), named("age", ref)));
     assertEquals(1, compare(named("age", ref), named("name", ref)));
-    assertEquals(SortOrder.DESC, order(named("name", ref)));
-    assertEquals(SortOrder.ASC, order(named("age", ref)));
+    assertEquals(SortOrder.DESC, sortOrder(named("name", ref)));
+    assertEquals(MissingOrder.LAST, missingOrder(named("name", ref)));
+    assertEquals(SortOrder.ASC, sortOrder(named("age", ref)));
+    assertEquals(MissingOrder.FIRST, missingOrder(named("age", ref)));
   }
 
   @Test
   void only_one_expression_in_sort_list() {
     assertEquals(-1, compare(named("name", ref), named("noSort", ref)));
     assertEquals(1, compare(named("noSort", ref), named("name", ref)));
-    assertEquals(SortOrder.DESC, order(named("name", ref)));
-    assertEquals(SortOrder.ASC, order(named("noSort", ref)));
+    assertEquals(SortOrder.DESC, sortOrder(named("name", ref)));
+    assertEquals(MissingOrder.LAST, missingOrder(named("name", ref)));
+    assertEquals(SortOrder.ASC, sortOrder(named("noSort", ref)));
+    assertEquals(MissingOrder.FIRST, missingOrder(named("noSort", ref)));
   }
 
   @Test
   void no_expression_in_sort_list() {
     assertEquals(0, compare(named("noSort1", ref), named("noSort2", ref)));
     assertEquals(0, compare(named("noSort2", ref), named("noSort1", ref)));
-    assertEquals(SortOrder.ASC, order(named("noSort1", ref)));
-    assertEquals(SortOrder.ASC, order(named("noSort2", ref)));
+    assertEquals(SortOrder.ASC, sortOrder(named("noSort1", ref)));
+    assertEquals(MissingOrder.FIRST, missingOrder(named("noSort1", ref)));
+    assertEquals(SortOrder.ASC, sortOrder(named("noSort2", ref)));
+    assertEquals(MissingOrder.FIRST, missingOrder(named("noSort2", ref)));
   }
 
   private int compare(NamedExpression e1, NamedExpression e2) {
     return groupSortOrder.compare(e1, e2);
   }
 
-  private SortOrder order(NamedExpression expr) {
-    return groupSortOrder.apply(expr);
+  private SortOrder sortOrder(NamedExpression expr) {
+    return groupSortOrder.sortOrder(expr);
+  }
+
+  private MissingOrder missingOrder(NamedExpression expr) {
+    return groupSortOrder.missingOrder(expr);
   }
 }

@@ -9,5 +9,10 @@
   "videosFolder": ".cypress/videos",
   "requestTimeout": 60000,
   "responseTimeout": 60000,
-  "defaultCommandTimeout": 60000
+  "defaultCommandTimeout": 60000,
+  "env": {
+    "opensearch": "localhost:9200",
+    "opensearchDashboards": "localhost:5601",
+    "security_enabled": true
+  }
 }

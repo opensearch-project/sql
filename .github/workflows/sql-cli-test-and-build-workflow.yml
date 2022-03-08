@@ -5,7 +5,7 @@ on: [pull_request, push]
 jobs:
   build:
 
-    runs-on: [ubuntu-16.04]
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: sql-cli
@@ -53,11 +53,11 @@ jobs:
 
       - name: Create Artifact Path
         run: |
-          mkdir -p opensearch-sql-cli-builds
-          cp -r ./dist/*.tar.gz ./dist/*.whl opensearch-sql-cli-builds/
+          mkdir -p opensearchsql-builds
+          cp -r ./dist/*.tar.gz ./dist/*.whl opensearchsql-builds/
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
-          name: opensearch-sql-cli
-          path: sql-cli/opensearch-sql-cli-builds
+          name: opensearchsql
+          path: sql-cli/opensearchsql-builds

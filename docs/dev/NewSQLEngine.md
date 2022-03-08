@@ -12,23 +12,23 @@ The current SQL query engine provides users the basic query capability for using
 With the architecture and extensibility improved significantly, the following SQL features are able to be introduced in the new query engine:
 
 * **Language Structure**
-    * [Identifiers](/docs/user/general/identifiers.rst): added support for identifier names with special characters
-    * [Data types](/docs/user/general/datatypes.rst): added support for date and interval types
-    * [Expressions](/docs/user/dql/expressions.rst): complex nested expression support
-    * [SQL functions](/docs/user/dql/functions.rst): more date function support, `ADDDATE`, `DATE_ADD`, `DATE_SUB`, `DAY`, `DAYNAME`, `DAYOFMONTH`, `DAYOFWEEK`, `DAYOFYEAR`, `FROM_DAYS`, `HOUR`, `MICROSECOND`, `MINUTE`, `QUARTER`, `SECOND`, `SUBDATE`, `TIME`, `TIME_TO_SEC`, `TO_DAYS`, `WEEK`
-    * [Comments](/docs/user/general/comments.rst): SQL comment support
+    * [Identifiers](../../docs/user/general/identifiers.rst): added support for identifier names with special characters
+    * [Data types](../../docs/user/general/datatypes.rst): added support for date and interval types
+    * [Expressions](../../docs/user/dql/expressions.rst): complex nested expression support
+    * [SQL functions](../../docs/user/dql/functions.rst): more date function support, `ADDDATE`, `DATE_ADD`, `DATE_SUB`, `DAY`, `DAYNAME`, `DAYOFMONTH`, `DAYOFWEEK`, `DAYOFYEAR`, `FROM_DAYS`, `HOUR`, `MICROSECOND`, `MINUTE`, `QUARTER`, `SECOND`, `SUBDATE`, `TIME`, `TIME_TO_SEC`, `TO_DAYS`, `WEEK`
+    * [Comments](../../docs/user/general/comments.rst): SQL comment support
 * **Basic queries**
-    * [HAVING without GROUP BY clause](/docs/user/dql/aggregations.rst#having-without-group-by)
-    * [Aggregate over arbitrary expression](/docs/user/dql/aggregations.rst#expression)
-    * [Ordering by NULLS FIRST/LAST](/docs/user/dql/basics.rst#example-2-specifying-order-for-null)
-    * [Ordering by aggregate function](/docs/user/dql/basics.rst#example-3-ordering-by-aggregate-functions)
+    * [HAVING without GROUP BY clause](../../docs/user/dql/aggregations.rst#having-without-group-by)
+    * [Aggregate over arbitrary expression](../../docs/user/dql/aggregations.rst#expression)
+    * [Ordering by NULLS FIRST/LAST](../../docs/user/dql/basics.rst#example-2-specifying-order-for-null)
+    * [Ordering by aggregate function](../../docs/user/dql/basics.rst#example-3-ordering-by-aggregate-functions)
 * **Complex queries**
-    * [Subqueries in FROM clause](/docs/user/dql/complex.rst#example-2-subquery-in-from-clause): support arbitrary nesting level and aggregation
+    * [Subqueries in FROM clause](../../docs/user/dql/complex.rst#example-2-subquery-in-from-clause): support arbitrary nesting level and aggregation
 * **Advanced Features**
-    * [Window functions](/docs/user/dql/window.rst): ranking and aggregate window functions
-    * [Selective aggregation](/docs/user/dql/aggregations.rst#filter-clause): by standard `FILTER` function
+    * [Window functions](../../docs/user/dql/window.rst): ranking and aggregate window functions
+    * [Selective aggregation](../../docs/user/dql/aggregations.rst#filter-clause): by standard `FILTER` function
 * **Beyond SQL**
-    * [Semi-structured data query](/docs/user/beyond/partiql.rst#example-2-selecting-deeper-levels): support querying OpenSearch object fields on arbitrary level
+    * [Semi-structured data query](../../docs/user/beyond/partiql.rst#example-2-selecting-deeper-levels): support querying OpenSearch object fields on arbitrary level
     * OpenSearch multi-field: handled automatically and users won't have the access, ex. `text` is converted to `text.keyword` if it’s a multi-field
 
 As for correctness, besides full coverage of unit and integration test, we developed a new comparison test framework to ensure correctness by comparing with other databases. Please find more details in [Testing](./Testing.md).
@@ -57,7 +57,7 @@ For the following features unsupported in the new engine, the query will be forw
 
 ### 3.3 Limitations
 
-You can find all the limitations in [Limitations](/docs/user/limitations/limitations.rst). 
+You can find all the limitations in [Limitations](../../docs/user/limitations/limitations.rst). 
 
 
 ---

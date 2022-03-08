@@ -1,28 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *   Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *   Licensed under the Apache License, Version 2.0 (the "License").
- *   You may not use this file except in compliance with the License.
- *   A copy of the License is located at
- *
- *       http://www.apache.org/licenses/LICENSE-2.0
- *
- *   or in the "license" file accompanying this file. This file is distributed
- *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *   express or implied. See the License for the specific language governing
- *   permissions and limitations under the License.
- */
 
 package org.opensearch.sql.ast.dsl;
 
@@ -50,6 +30,8 @@ import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.Span;
+import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedAttribute;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
@@ -62,6 +44,7 @@ import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Limit;
+import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -110,7 +93,17 @@ public class AstDSL {
       List<UnresolvedExpression> sortList,
       List<UnresolvedExpression> groupList,
       List<Argument> argList) {
-    return new Aggregation(aggList, sortList, groupList, argList).attach(input);
+    return new Aggregation(aggList, sortList, groupList, null, argList).attach(input);
+  }
+
+  public static UnresolvedPlan agg(
+      UnresolvedPlan input,
+      List<UnresolvedExpression> aggList,
+      List<UnresolvedExpression> sortList,
+      List<UnresolvedExpression> groupList,
+      UnresolvedExpression span,
+      List<Argument> argList) {
+    return new Aggregation(aggList, sortList, groupList, span, argList).attach(input);
   }
 
   public static UnresolvedPlan rename(UnresolvedPlan input, Map... maps) {
@@ -211,7 +204,16 @@ public class AstDSL {
 
   public static UnresolvedExpression filteredAggregate(
       String func, UnresolvedExpression field, UnresolvedExpression condition) {
-    return new AggregateFunction(func, field, condition);
+    return new AggregateFunction(func, field).condition(condition);
+  }
+
+  public static UnresolvedExpression distinctAggregate(String func, UnresolvedExpression field) {
+    return new AggregateFunction(func, field, true);
+  }
+
+  public static UnresolvedExpression filteredDistinctCount(
+      String func, UnresolvedExpression field, UnresolvedExpression condition) {
+    return new AggregateFunction(func, field, true).condition(condition);
   }
 
   public static Function function(String funcName, UnresolvedExpression... funcArgs) {
@@ -276,6 +278,11 @@ public class AstDSL {
   public static UnresolvedExpression in(
       UnresolvedExpression field, UnresolvedExpression... valueList) {
     return new In(field, Arrays.asList(valueList));
+  }
+
+  public static UnresolvedExpression in(
+      UnresolvedExpression field, List<UnresolvedExpression> valueList) {
+    return new In(field, valueList);
   }
 
   public static UnresolvedExpression compare(
@@ -372,6 +379,10 @@ public class AstDSL {
     return exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()));
   }
 
+  public static Span span(UnresolvedExpression field, UnresolvedExpression value, SpanUnit unit) {
+    return new Span(field, value, unit);
+  }
+
   public static Sort sort(UnresolvedPlan input, Field... sorts) {
     return new Sort(input, Arrays.asList(sorts));
   }
@@ -396,5 +407,10 @@ public class AstDSL {
 
   public static Limit limit(UnresolvedPlan input, Integer limit, Integer offset) {
     return new Limit(limit, offset).attach(input);
+  }
+
+  public static Parse parse(UnresolvedPlan input, UnresolvedExpression expression,
+                            Literal pattern) {
+    return new Parse(expression, pattern, input);
   }
 }

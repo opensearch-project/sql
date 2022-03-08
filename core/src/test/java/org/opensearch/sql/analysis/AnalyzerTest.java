@@ -1,28 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *   Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *   Licensed under the Apache License, Version 2.0 (the "License").
- *   You may not use this file except in compliance with the License.
- *   A copy of the License is located at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *   or in the "license" file accompanying this file. This file is distributed
- *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *   express or implied. See the License for the specific language governing
- *   permissions and limitations under the License.
- */
 
 package org.opensearch.sql.analysis;
 
@@ -41,6 +21,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
+import static org.opensearch.sql.ast.dsl.AstDSL.span;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder;
 import static org.opensearch.sql.ast.tree.Sort.SortOption;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
@@ -61,6 +42,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
@@ -68,12 +50,14 @@ import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @Configuration
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = {ExpressionConfig.class, AnalyzerTest.class})
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class AnalyzerTest extends AnalyzerTestBase {
 
   @Test
@@ -663,5 +647,47 @@ class AnalyzerTest extends AnalyzerTestBase {
                     ">", qualifiedName("integer_value"), intLiteral(1))))
         )
     );
+  }
+
+  /**
+   * stats avg(integer_value) by string_value span(long_value, 10).
+   */
+  @Test
+  public void ppl_stats_by_fieldAndSpan() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.aggregation(
+            LogicalPlanDSL.relation("schema"),
+            ImmutableList.of(
+                DSL.named("AVG(integer_value)", dsl.avg(DSL.ref("integer_value", INTEGER)))),
+            ImmutableList.of(
+                DSL.named("span", DSL.span(DSL.ref("long_value", LONG), DSL.literal(10), "")),
+                DSL.named("string_value", DSL.ref("string_value", STRING)))),
+        AstDSL.agg(
+            AstDSL.relation("schema"),
+            ImmutableList.of(
+                alias("AVG(integer_value)", aggregate("AVG", qualifiedName("integer_value")))),
+            emptyList(),
+            ImmutableList.of(alias("string_value", qualifiedName("string_value"))),
+            alias("span", span(field("long_value"), intLiteral(10), SpanUnit.NONE)),
+            emptyList()));
+  }
+
+  @Test
+  public void parse_relation() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.relation("schema"),
+            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
+            ImmutableList.of(DSL.named("group",
+                DSL.parsed(DSL.ref("string_value", STRING), DSL.literal("(?<group>.*)"),
+                    DSL.literal("group"))))
+        ),
+        AstDSL.project(
+            AstDSL.parse(
+                AstDSL.relation("schema"),
+                AstDSL.field("string_value"),
+                AstDSL.stringLiteral("(?<group>.*)")),
+            AstDSL.alias("string_value", qualifiedName("string_value"))
+        ));
   }
 }

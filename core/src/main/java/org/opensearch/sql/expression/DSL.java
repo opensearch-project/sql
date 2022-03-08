@@ -1,34 +1,16 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *   Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *   Licensed under the Apache License, Version 2.0 (the "License").
- *   You may not use this file except in compliance with the License.
- *   A copy of the License is located at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *   or in the "license" file accompanying this file. This file is distributed
- *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *   express or implied. See the License for the specific language governing
- *   permissions and limitations under the License.
- */
 
 package org.opensearch.sql.expression;
 
+import com.sun.tools.javac.util.List;
 import java.util.Arrays;
 import java.util.Collections;
 import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.data.model.ExprShortValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -39,6 +21,7 @@ import org.opensearch.sql.expression.conditional.cases.CaseClause;
 import org.opensearch.sql.expression.conditional.cases.WhenClause;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.expression.window.ranking.RankingWindowFunction;
 
 @RequiredArgsConstructor
@@ -113,6 +96,10 @@ public class DSL {
     if (expression instanceof NamedExpression) {
       return (NamedExpression) expression;
     }
+    if (expression instanceof ParseExpression) {
+      return named(((ParseExpression) expression).getIdentifier().valueOf(null).stringValue(),
+          expression);
+    }
     return named(expression.toString(), expression);
   }
 
@@ -126,6 +113,19 @@ public class DSL {
 
   public static NamedAggregator named(String name, Aggregator aggregator) {
     return new NamedAggregator(name, aggregator);
+  }
+
+  public NamedArgumentExpression namedArgument(String argName, Expression value) {
+    return new NamedArgumentExpression(argName, value);
+  }
+
+  public static ParseExpression parsed(Expression expression, Expression pattern,
+                                       Expression identifier) {
+    return new ParseExpression(expression, pattern, identifier);
+  }
+
+  public static SpanExpression span(Expression field, Expression value, String unit) {
+    return new SpanExpression(field, value, SpanUnit.of(unit));
   }
 
   public FunctionExpression abs(Expression... expressions) {
@@ -263,7 +263,7 @@ public class DSL {
   public FunctionExpression multiply(Expression... expressions) {
     return function(BuiltinFunctionName.MULTIPLY, expressions);
   }
-  
+
   public FunctionExpression adddate(Expression... expressions) {
     return function(BuiltinFunctionName.ADDDATE, expressions);
   }
@@ -375,7 +375,7 @@ public class DSL {
   public FunctionExpression substr(Expression... expressions) {
     return function(BuiltinFunctionName.SUBSTR, expressions);
   }
-  
+
   public FunctionExpression substring(Expression... expressions) {
     return function(BuiltinFunctionName.SUBSTR, expressions);
   }
@@ -500,6 +500,10 @@ public class DSL {
     return aggregate(BuiltinFunctionName.COUNT, expressions);
   }
 
+  public Aggregator distinctCount(Expression... expressions) {
+    return count(expressions).distinct(true);
+  }
+
   public Aggregator varSamp(Expression... expressions) {
     return aggregate(BuiltinFunctionName.VARSAMP, expressions);
   }
@@ -592,6 +596,16 @@ public class DSL {
         .compile(BuiltinFunctionName.CAST_TO_STRING.getName(), Arrays.asList(value));
   }
 
+  public FunctionExpression castByte(Expression value) {
+    return (FunctionExpression) repository
+        .compile(BuiltinFunctionName.CAST_TO_BYTE.getName(), Arrays.asList(value));
+  }
+
+  public FunctionExpression castShort(Expression value) {
+    return (FunctionExpression) repository
+        .compile(BuiltinFunctionName.CAST_TO_SHORT.getName(), Arrays.asList(value));
+  }
+
   public FunctionExpression castInt(Expression value) {
     return (FunctionExpression) repository
         .compile(BuiltinFunctionName.CAST_TO_INT.getName(), Arrays.asList(value));
@@ -630,5 +644,15 @@ public class DSL {
   public FunctionExpression castTimestamp(Expression value) {
     return (FunctionExpression) repository
         .compile(BuiltinFunctionName.CAST_TO_TIMESTAMP.getName(), Arrays.asList(value));
+  }
+
+  public FunctionExpression castDatetime(Expression value) {
+    return (FunctionExpression) repository
+        .compile(BuiltinFunctionName.CAST_TO_DATETIME.getName(), Arrays.asList(value));
+  }
+
+  public FunctionExpression match(Expression... args) {
+    return (FunctionExpression) repository
+        .compile(BuiltinFunctionName.MATCH.getName(), Arrays.asList(args.clone()));
   }
 }

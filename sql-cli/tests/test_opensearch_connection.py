@@ -1,33 +1,14 @@
 """
+Copyright OpenSearch Contributors
 SPDX-License-Identifier: Apache-2.0
-
-The OpenSearch Contributors require contributions made to
-this file be licensed under the Apache-2.0 license or a
-compatible open source license.
-
-Modifications Copyright OpenSearch Contributors. See
-GitHub history for details.
 """
-"""
-Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License").
-You may not use this file except in compliance with the License.
-A copy of the License is located at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-or in the "license" file accompanying this file. This file is distributed
-on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
-express or implied. See the License for the specific language governing
-permissions and limitations under the License.
-"""
 import pytest
 import mock
 from textwrap import dedent
 
-from elasticsearch.exceptions import ConnectionError
-from elasticsearch import Elasticsearch as OpenSearch, RequestsHttpConnection
+from opensearchpy.exceptions import ConnectionError
+from opensearchpy import OpenSearch, RequestsHttpConnection
 
 from .utils import estest, load_data, run, TEST_INDEX_NAME
 from src.opensearch_sql_cli.opensearch_connection import OpenSearchConnection
@@ -78,7 +59,9 @@ class TestExecutor:
         test_executor = OpenSearchConnection(endpoint=INVALID_ENDPOINT)
         err_message = "Can not connect to endpoint %s" % INVALID_ENDPOINT
 
-        with mock.patch("sys.exit") as mock_sys_exit, mock.patch("src.opensearch_sql_cli.opensearch_connection.click.secho") as mock_secho:
+        with mock.patch("sys.exit") as mock_sys_exit, mock.patch(
+            "src.opensearch_sql_cli.opensearch_connection.click.secho"
+        ) as mock_secho:
             test_executor.set_connection()
 
         mock_sys_exit.assert_called()
@@ -140,8 +123,11 @@ class TestExecutor:
             od_test_executor.get_opensearch_client()
 
             mock_es.assert_called_with(
-                [OPENSEARCH_ENDPOINT], http_auth=AUTH, verify_certs=False, ssl_context=od_test_executor.ssl_context,
-                connection_class=RequestsHttpConnection
+                [OPENSEARCH_ENDPOINT],
+                http_auth=AUTH,
+                verify_certs=False,
+                ssl_context=od_test_executor.ssl_context,
+                connection_class=RequestsHttpConnection,
             )
 
     def test_get_aes_client(self):

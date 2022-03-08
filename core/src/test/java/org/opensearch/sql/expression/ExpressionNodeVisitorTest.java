@@ -1,29 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *    Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *    Licensed under the Apache License, Version 2.0 (the "License").
- *    You may not use this file except in compliance with the License.
- *    A copy of the License is located at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *    or in the "license" file accompanying this file. This file is distributed
- *    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *    express or implied. See the License for the specific language governing
- *    permissions and limitations under the License.
- *
- */
 
 package org.opensearch.sql.expression;
 
@@ -64,15 +43,24 @@ class ExpressionNodeVisitorTest {
         INTEGER)).accept(visitor, null));
     assertNull(new CaseClause(ImmutableList.of(), null).accept(visitor, null));
     assertNull(new WhenClause(literal("test"), literal(10)).accept(visitor, null));
+    assertNull(dsl.namedArgument("field", literal("message")).accept(visitor, null));
+    assertNull(DSL.span(ref("age", INTEGER), literal(1), "").accept(visitor, null));
+    assertNull(DSL.parsed(ref("name", STRING), DSL.literal("(?<group>\\d+)"), DSL.literal("group"))
+        .accept(visitor, null));
   }
 
   @Test
   void can_visit_all_types_of_expression_node() {
     Expression expr =
-        dsl.sum(
-            dsl.add(
-                ref("balance", INTEGER),
-                literal(10)));
+        DSL.parsed(
+            dsl.castString(
+                dsl.sum(
+                    dsl.add(
+                        ref("balance", INTEGER),
+                        literal(10))
+                )),
+            DSL.literal("(?<group>\\d+)"),
+            DSL.literal("group"));
 
     Expression actual = expr.accept(new ExpressionNodeVisitor<Expression, Object>() {
       @Override
@@ -82,6 +70,11 @@ class ExpressionNodeVisitorTest {
 
       @Override
       public Expression visitReference(ReferenceExpression node, Object context) {
+        return node;
+      }
+
+      @Override
+      public Expression visitParse(ParseExpression node, Object context) {
         return node;
       }
 

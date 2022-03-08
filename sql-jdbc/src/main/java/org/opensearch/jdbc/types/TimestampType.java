@@ -1,34 +1,14 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- * Copyright <2019> Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License").
- * You may not use this file except in compliance with the License.
- * A copy of the License is located at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * or in the "license" file accompanying this file. This file is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- * express or implied. See the License for the specific language governing
- * permissions and limitations under the License.
- *
- */
 
 package org.opensearch.jdbc.types;
 
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Calendar;
 import java.util.Map;
@@ -99,13 +79,18 @@ public class TimestampType implements TypeHelper<Timestamp> {
                 }
             }
 
-            if (calendar == null) {
-                return Timestamp.valueOf(value);
+            final Timestamp ts;
+            // 11 to check if the value is in yyyy-MM-dd format
+            if (value.length() < 11) {
+                ts = Timestamp.valueOf(LocalDate.parse(value).atStartOfDay());
             } else {
-                Timestamp ts = Timestamp.valueOf(value);
-                return localDateTimeToTimestamp(ts.toLocalDateTime(), calendar);
+                ts = Timestamp.valueOf(value);
             }
 
+            if (calendar == null) {
+                return ts;
+            }
+            return localDateTimeToTimestamp(ts.toLocalDateTime(), calendar);
         } catch (IllegalArgumentException iae) {
             throw stringConversionException(value, iae);
         }

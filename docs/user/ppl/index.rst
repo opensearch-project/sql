@@ -60,6 +60,8 @@ The query start with search command and then flowing a set of command delimited 
 
 * **Functions**
 
+  - `Expressions <functions/expressions.rst>`_
+
   - `Math Functions <functions/math.rst>`_
 
   - `Date and Time Functions <functions/datetime.rst>`_
@@ -67,6 +69,10 @@ The query start with search command and then flowing a set of command delimited 
   - `String Functions <functions/string.rst>`_
 
   - `Condition Functions <functions/condition.rst>`_
+
+  - `Relevance Functions <functions/relevance.rst>`_
+
+  - `Type Conversion Functions <functions/conversion.rst>`_
 
 * **Optimization**
 

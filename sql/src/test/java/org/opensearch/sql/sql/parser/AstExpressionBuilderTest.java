@@ -1,29 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *    Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *    Licensed under the Apache License, Version 2.0 (the "License").
- *    You may not use this file except in compliance with the License.
- *    A copy of the License is located at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *    or in the "license" file accompanying this file. This file is distributed
- *    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *    express or implied. See the License for the specific language governing
- *    permissions and limitations under the License.
- *
- */
 
 package org.opensearch.sql.sql.parser;
 
@@ -45,6 +24,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.timeLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.timestampLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.when;
 import static org.opensearch.sql.ast.dsl.AstDSL.window;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
@@ -429,6 +409,56 @@ class AstExpressionBuilderTest {
     assertEquals(
         aggregate("variance", qualifiedName("age")),
         buildExprAst("variance(age)"));
+  }
+
+  @Test
+  public void distinctCount() {
+    assertEquals(
+        AstDSL.distinctAggregate("count", qualifiedName("name")),
+        buildExprAst("count(distinct name)")
+    );
+  }
+
+  @Test
+  public void filteredDistinctCount() {
+    assertEquals(
+        AstDSL.filteredDistinctCount("count", qualifiedName("name"), function(
+            ">", qualifiedName("age"), intLiteral(30))),
+        buildExprAst("count(distinct name) filter(where age > 30)")
+    );
+  }
+
+  @Test
+  public void relevanceMatch() {
+    assertEquals(AstDSL.function("match",
+        unresolvedArg("field", stringLiteral("message")),
+        unresolvedArg("query", stringLiteral("search query"))),
+        buildExprAst("match(message, 'search query')")
+    );
+
+    assertEquals(AstDSL.function("match",
+        unresolvedArg("field", stringLiteral("message")),
+        unresolvedArg("query", stringLiteral("search query")),
+        unresolvedArg("analyzer", stringLiteral("keyword")),
+        unresolvedArg("operator", stringLiteral("AND"))),
+        buildExprAst("match(message, 'search query', analyzer='keyword', operator='AND')"));
+  }
+
+  @Test
+  public void canBuildInClause() {
+    assertEquals(
+        AstDSL.in(qualifiedName("age"), AstDSL.intLiteral(20), AstDSL.intLiteral(30)),
+        buildExprAst("age in (20, 30)"));
+
+    assertEquals(
+        AstDSL.not(AstDSL.in(qualifiedName("age"), AstDSL.intLiteral(20), AstDSL.intLiteral(30))),
+        buildExprAst("age not in (20, 30)"));
+
+    assertEquals(
+        AstDSL.in(qualifiedName("age"),
+            AstDSL.function("abs", AstDSL.intLiteral(20)),
+            AstDSL.function("abs", AstDSL.intLiteral(30))),
+        buildExprAst("age in (abs(20), abs(30))"));
   }
 
   private Node buildExprAst(String expr) {

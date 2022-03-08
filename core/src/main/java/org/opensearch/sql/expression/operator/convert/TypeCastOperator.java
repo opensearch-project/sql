@@ -1,30 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *
- *    Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *    Licensed under the Apache License, Version 2.0 (the "License").
- *    You may not use this file except in compliance with the License.
- *    A copy of the License is located at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    or in the "license" file accompanying this file. This file is distributed
- *    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *    express or implied. See the License for the specific language governing
- *    permissions and limitations under the License.
- *
- */
 
 package org.opensearch.sql.expression.operator.convert;
 
@@ -48,11 +26,14 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprBooleanValue;
+import org.opensearch.sql.data.model.ExprByteValue;
 import org.opensearch.sql.data.model.ExprDateValue;
+import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprFloatValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprLongValue;
+import org.opensearch.sql.data.model.ExprShortValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
@@ -68,6 +49,8 @@ public class TypeCastOperator {
    */
   public static void register(BuiltinFunctionRepository repository) {
     repository.register(castToString());
+    repository.register(castToByte());
+    repository.register(castToShort());
     repository.register(castToInt());
     repository.register(castToLong());
     repository.register(castToFloat());
@@ -76,6 +59,7 @@ public class TypeCastOperator {
     repository.register(castToDate());
     repository.register(castToTime());
     repository.register(castToTimestamp());
+    repository.register(castToDatetime());
   }
 
 
@@ -89,6 +73,28 @@ public class TypeCastOperator {
                     STRING, type)),
             Stream.of(impl(nullMissingHandling((v) -> v), STRING, STRING)))
             .collect(Collectors.toList())
+    );
+  }
+
+  private static FunctionResolver castToByte() {
+    return FunctionDSL.define(BuiltinFunctionName.CAST_TO_BYTE.getName(),
+        impl(nullMissingHandling(
+            (v) -> new ExprByteValue(Byte.valueOf(v.stringValue()))), BYTE, STRING),
+        impl(nullMissingHandling(
+            (v) -> new ExprByteValue(v.byteValue())), BYTE, DOUBLE),
+        impl(nullMissingHandling(
+            (v) -> new ExprByteValue(v.booleanValue() ? 1 : 0)), BYTE, BOOLEAN)
+    );
+  }
+
+  private static FunctionResolver castToShort() {
+    return FunctionDSL.define(BuiltinFunctionName.CAST_TO_SHORT.getName(),
+        impl(nullMissingHandling(
+            (v) -> new ExprShortValue(Short.valueOf(v.stringValue()))), SHORT, STRING),
+        impl(nullMissingHandling(
+            (v) -> new ExprShortValue(v.shortValue())), SHORT, DOUBLE),
+        impl(nullMissingHandling(
+            (v) -> new ExprShortValue(v.booleanValue() ? 1 : 0)), SHORT, BOOLEAN)
     );
   }
 
@@ -177,6 +183,17 @@ public class TypeCastOperator {
         impl(nullMissingHandling(
             (v) -> new ExprTimestampValue(v.timestampValue())), TIMESTAMP, DATETIME),
         impl(nullMissingHandling((v) -> v), TIMESTAMP, TIMESTAMP)
+    );
+  }
+
+  private static FunctionResolver castToDatetime() {
+    return FunctionDSL.define(BuiltinFunctionName.CAST_TO_DATETIME.getName(),
+        impl(nullMissingHandling(
+            (v) -> new ExprDatetimeValue(v.stringValue())), DATETIME, STRING),
+        impl(nullMissingHandling(
+            (v) -> new ExprDatetimeValue(v.datetimeValue())), DATETIME, TIMESTAMP),
+        impl(nullMissingHandling(
+            (v) -> new ExprDatetimeValue(v.datetimeValue())), DATETIME, DATE)
     );
   }
 }

@@ -1,27 +1,3 @@
-# SPDX-License-Identifier: Apache-2.0
-#
-# The OpenSearch Contributors require contributions made to
-# this file be licensed under the Apache-2.0 license or a
-# compatible open source license.
-#
-# Modifications Copyright OpenSearch Contributors. See
-# GitHub history for details.
-
-#
-#   Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-#
-#   Licensed under the Apache License, Version 2.0 (the "License").
-#   You may not use this file except in compliance with the License.
-#   A copy of the License is located at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-#   or in the "license" file accompanying this file. This file is distributed
-#   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
-#   express or implied. See the License for the specific language governing
-#   permissions and limitations under the License.
-#
-
 # Pre 3.16 versions of Windows set MD/MT incorrectly and cause linker 'warnings' which are actually serious issues
 if(WIN32)
 cmake_minimum_required(VERSION 3.16) 
@@ -87,8 +63,8 @@ set(INSTALL_SRC "${CMAKE_CURRENT_SOURCE_DIR}/installer")
 set(DSN_INSTALLER_SRC "${CMAKE_CURRENT_SOURCE_DIR}/DSNInstaller")
 
 # ODBC Driver version 
-set(DRIVER_PACKAGE_VERSION "1.0.0.0")
-set(DRIVER_PACKAGE_VERSION_COMMA_SEPARATED "1,0,0,0")
+set(DRIVER_PACKAGE_VERSION "1.3.0.0")
+set(DRIVER_PACKAGE_VERSION_COMMA_SEPARATED "1,3,0,0")
 add_compile_definitions( OPENSEARCH_ODBC_VERSION="${DRIVER_PACKAGE_VERSION}"
                          # Comma separated version is required for odbc administrator's driver file.
                          OPENSEARCH_ODBC_DRVFILE_VERSION=${DRIVER_PACKAGE_VERSION_COMMA_SEPARATED} )

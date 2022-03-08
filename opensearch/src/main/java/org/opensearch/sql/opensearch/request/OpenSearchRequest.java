@@ -1,35 +1,14 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *
- *    Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *    Licensed under the Apache License, Version 2.0 (the "License").
- *    You may not use this file except in compliance with the License.
- *    A copy of the License is located at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    or in the "license" file accompanying this file. This file is distributed
- *    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *    express or implied. See the License for the specific language governing
- *    permissions and limitations under the License.
- *
- */
 
 package org.opensearch.sql.opensearch.request;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
+import lombok.EqualsAndHashCode;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
@@ -41,7 +20,6 @@ import org.opensearch.sql.opensearch.response.OpenSearchResponse;
  * OpenSearch search request.
  */
 public interface OpenSearchRequest {
-
   /**
    * Apply the search action or scroll action on request based on context.
    *
@@ -71,4 +49,28 @@ public interface OpenSearchRequest {
    * @return ElasticsearchExprValueFactory.
    */
   OpenSearchExprValueFactory getExprValueFactory();
+
+  /**
+   * OpenSearch Index Name.
+   * Indices are seperated by ",".
+   */
+  @EqualsAndHashCode
+  class IndexName {
+    private static final String COMMA = ",";
+
+    private final String[] indexNames;
+
+    public IndexName(String indexName) {
+      this.indexNames = indexName.split(COMMA);
+    }
+
+    public String[] getIndexNames() {
+      return indexNames;
+    }
+
+    @Override
+    public String toString() {
+      return String.join(COMMA, indexNames);
+    }
+  }
 }
