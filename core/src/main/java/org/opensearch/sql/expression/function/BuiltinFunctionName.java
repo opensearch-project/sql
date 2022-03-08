@@ -1,12 +1,6 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
 package org.opensearch.sql.expression.function;
@@ -187,7 +181,19 @@ public enum BuiltinFunctionName {
   CAST_TO_DATE(FunctionName.of("cast_to_date")),
   CAST_TO_TIME(FunctionName.of("cast_to_time")),
   CAST_TO_TIMESTAMP(FunctionName.of("cast_to_timestamp")),
-  CAST_TO_DATETIME(FunctionName.of("cast_to_datetime"));
+  CAST_TO_DATETIME(FunctionName.of("cast_to_datetime")),
+
+  /**
+   * Relevance Function.
+   */
+  MATCH(FunctionName.of("match")),
+
+  /**
+   * Legacy Relevance Function.
+   */
+  QUERY(FunctionName.of("query")),
+  MATCH_QUERY(FunctionName.of("match_query")),
+  MATCHQUERY(FunctionName.of("matchquery"));
 
   private final FunctionName name;
 

@@ -1,27 +1,8 @@
 """
+Copyright OpenSearch Contributors
 SPDX-License-Identifier: Apache-2.0
-
-The OpenSearch Contributors require contributions made to
-this file be licensed under the Apache-2.0 license or a
-compatible open source license.
-
-Modifications Copyright OpenSearch Contributors. See
-GitHub history for details.
 """
-"""
-Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License").
-You may not use this file except in compliance with the License.
-A copy of the License is located at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-or in the "license" file accompanying this file. This file is distributed
-on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
-express or implied. See the License for the specific language governing
-permissions and limitations under the License.
-"""
 import boto3
 import click
 import logging
@@ -29,9 +10,9 @@ import ssl
 import sys
 import urllib3
 
-from elasticsearch import Elasticsearch as OpenSearch, RequestsHttpConnection
-from elasticsearch.exceptions import ConnectionError, RequestError
-from elasticsearch.connection import create_ssl_context
+from opensearchpy import OpenSearch, RequestsHttpConnection
+from opensearchpy.exceptions import ConnectionError, RequestError
+from opensearchpy.connection import create_ssl_context
 from requests_aws4auth import AWS4Auth
 
 
@@ -40,7 +21,13 @@ class OpenSearchConnection:
     as well as send user's SQL query to OpenSearch.
     """
 
-    def __init__(self, endpoint=None, http_auth=None, use_aws_authentication=False, query_language="sql"):
+    def __init__(
+        self,
+        endpoint=None,
+        http_auth=None,
+        use_aws_authentication=False,
+        query_language="sql",
+    ):
         """Initialize an OpenSearchConnection instance.
 
         Set up client and get indices list.
@@ -73,7 +60,10 @@ class OpenSearchConnection:
         if credentials is not None:
             self.aws_auth = AWS4Auth(credentials.access_key, credentials.secret_key, region, service)
         else:
-            click.secho(message="Can not retrieve your AWS credentials, check your AWS config", fg="red")
+            click.secho(
+                message="Can not retrieve your AWS credentials, check your AWS config",
+                fg="red",
+            )
 
         aes_client = OpenSearch(
             hosts=[self.endpoint],
@@ -150,7 +140,10 @@ class OpenSearchConnection:
             self.set_connection(is_reconnect=True)
             click.secho(message="Reconnected! Please run query again", fg="green")
         except ConnectionError as reconnection_err:
-            click.secho(message="Connection Failed. Check your OpenSearch is running and then come back", fg="red")
+            click.secho(
+                message="Connection Failed. Check your OpenSearch is running and then come back",
+                fg="red",
+            )
             click.secho(repr(reconnection_err), err=True, fg="red")
 
     def execute_query(self, query, output_format="jdbc", explain=False, use_console=True):

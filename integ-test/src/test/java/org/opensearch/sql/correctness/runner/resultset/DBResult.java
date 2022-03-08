@@ -1,28 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *   Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *   Licensed under the Apache License, Version 2.0 (the "License").
- *   You may not use this file except in compliance with the License.
- *   A copy of the License is located at
- *
- *       http://www.apache.org/licenses/LICENSE-2.0
- *
- *   or in the "license" file accompanying this file. This file is distributed
- *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *   express or implied. See the License for the specific language governing
- *   permissions and limitations under the License.
- */
 
 package org.opensearch.sql.correctness.runner.resultset;
 
@@ -50,8 +30,16 @@ public class DBResult {
 
   /**
    * Possible types for floating point number
+   * H2 2.x use DOUBLE PRECISION instead of DOUBLE.
    */
-  private static final Set<String> FLOAT_TYPES = ImmutableSet.of("FLOAT", "DOUBLE", "REAL");
+  private static final Set<String> FLOAT_TYPES =
+      ImmutableSet.of("FLOAT", "DOUBLE", "REAL", "DOUBLE PRECISION", "DECFLOAT");
+
+  /**
+   * Possible types for varchar.
+   * H2 2.x use CHARACTER VARYING instead of VARCHAR.
+   */
+  private static final Set<String> VARCHAR = ImmutableSet.of("CHARACTER VARYING", "VARCHAR");
 
   /**
    * Database name for display
@@ -101,6 +89,8 @@ public class DBResult {
     // Ignore float type by assigning all type names string to it.
     if (FLOAT_TYPES.contains(type)) {
       type = FLOAT_TYPES.toString();
+    } else if (VARCHAR.contains(type)) {
+      type = "VARCHAR";
     }
     schema.add(new Type(StringUtils.toUpper(name), type));
   }

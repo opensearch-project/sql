@@ -1,12 +1,6 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
 /*
@@ -30,6 +24,9 @@
 
 import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 import org.opensearch.gradle.test.RestIntegTestTask
+import org.opensearch.gradle.testclusters.StandaloneRestIntegTestTask
+
+import java.util.concurrent.Callable
 
 apply plugin: 'opensearch.build'
 apply plugin: 'opensearch.rest-test'
@@ -50,12 +47,13 @@ validateNebulaPom.enabled = false
 loggerUsageCheck.enabled = false
 
 configurations.all {
+    resolutionStrategy.force 'junit:junit:4.13.2'
     exclude group: "commons-logging", module: "commons-logging"
     // enforce 1.1.3, https://www.whitesourcesoftware.com/vulnerability-database/WS-2019-0379
     resolutionStrategy.force 'commons-codec:commons-codec:1.13'
-    resolutionStrategy.force 'com.google.guava:guava:29.0-jre'
-    resolutionStrategy.force 'com.fasterxml.jackson.core:jackson-core:2.10.5'
-    resolutionStrategy.force 'com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.11.4'
+    resolutionStrategy.force 'com.google.guava:guava:31.0.1-jre'
+    resolutionStrategy.force 'com.fasterxml.jackson.core:jackson-core:2.12.6'
+    resolutionStrategy.force 'com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.12.6'
 }
 
 dependencies {
@@ -63,7 +61,7 @@ dependencies {
     testCompile group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
     testCompile group: 'org.opensearch.client', name: 'opensearch-rest-client', version: "${opensearch_version}"
     testCompile group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
-    testCompile group: 'org.apache.logging.log4j', name: 'log4j-core', version:'2.11.1'
+    testCompile group: 'org.apache.logging.log4j', name: 'log4j-core', version:'2.17.1'
     testCompile project(':plugin')
     testCompile project(':legacy')
     testImplementation('org.junit.jupiter:junit-jupiter-api:5.6.2')
@@ -74,9 +72,9 @@ dependencies {
         include '*.jar'
         builtBy 'compileJdbc'
     }
-    testCompile group: 'com.h2database', name: 'h2', version: '1.4.200'
+    testCompile group: 'com.h2database', name: 'h2', version: '2.1.210'
     testCompile group: 'org.xerial', name: 'sqlite-jdbc', version: '3.28.0'
-    testCompile group: 'com.google.code.gson', name: 'gson', version: '2.8.6'
+    testCompile group: 'com.google.code.gson', name: 'gson', version: '2.8.9'
 }
 
 dependencyLicenses.enabled = false
@@ -94,6 +92,9 @@ compileTestJava {
 
 testClusters.all {
     testDistribution = 'archive'
+}
+
+testClusters.integTest {
     plugin ":plugin"
 }
 
@@ -117,6 +118,12 @@ integTest {
 
     if (System.getProperty("test.debug") != null) {
         jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
+    }
+
+    if (System.getProperty("tests.rest.bwcsuite") == null) {
+        filter {
+            excludeTestsMatching "org.opensearch.sql.bwc.*IT"
+        }
     }
 
     exclude 'org/opensearch/sql/doctest/**/*IT.class'
@@ -144,7 +151,7 @@ task docTest(type: RestIntegTestTask) {
 
     // Tell the test JVM if the cluster JVM is running under a debugger so that tests can use longer timeouts for
     // requests. The 'doFirst' delays reading the debug setting on the cluster till execution time.
-    doFirst { systemProperty 'cluster.debug', getDebug()}
+    doFirst { systemProperty 'cluster.debug', getDebug() }
 
     if (System.getProperty("test.debug") != null) {
         jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
@@ -165,7 +172,7 @@ task comparisonTest(type: RestIntegTestTask) {
 
     // Tell the test JVM if the cluster JVM is running under a debugger so that tests can use longer timeouts for
     // requests. The 'doFirst' delays reading the debug setting on the cluster till execution time.
-    doFirst { systemProperty 'cluster.debug', getDebug()}
+    doFirst { systemProperty 'cluster.debug', getDebug() }
 
     if (System.getProperty("test.debug") != null) {
         jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
@@ -186,7 +193,7 @@ task comparisonTest(type: RestIntegTestTask) {
     systemProperty "queries", System.getProperty("queries")
 }
 
-task compileJdbc(type:Exec) {
+task compileJdbc(type: Exec) {
     workingDir '../sql-jdbc/'
 
     if (DefaultNativePlatform.getCurrentOperatingSystem().isWindows()) {
@@ -196,4 +203,177 @@ task compileJdbc(type:Exec) {
         commandLine './gradlew', 'build'
         commandLine './gradlew', 'shadowJar'
     }
+}
+
+String bwcVersion = "1.13.2.0";
+String baseName = "sqlBwcCluster"
+String bwcFilePath = "src/test/resources/bwc/"
+
+2.times { i ->
+    testClusters {
+        "${baseName}$i" {
+            testDistribution = "ARCHIVE"
+            versions = ["7.10.2", opensearch_version]
+            numberOfNodes = 3
+            plugin(provider(new Callable<RegularFile>() {
+                @Override
+                RegularFile call() throws Exception {
+                    return new RegularFile() {
+                        @Override
+                        File getAsFile() {
+                            return fileTree(bwcFilePath + bwcVersion).getSingleFile()
+                        }
+                    }
+                }
+            }))
+            setting 'path.repo', "${buildDir}/cluster/shared/repo/${baseName}"
+            setting 'http.content_type.required', 'true'
+        }
+    }
+}
+
+List<Provider<RegularFile>> plugins = [
+    provider(new Callable<RegularFile>() {
+        @Override
+        RegularFile call() throws Exception {
+            return new RegularFile() {
+                @Override
+                File getAsFile() {
+                    return fileTree(bwcFilePath + project.version).getSingleFile()
+                }
+            }
+        }
+    })
+]
+
+// Creates 2 test clusters with 3 nodes of the old version.
+2.times { i ->
+    task "${baseName}#oldVersionClusterTask$i"(type: StandaloneRestIntegTestTask) {
+        useCluster testClusters."${baseName}$i"
+        filter {
+            includeTestsMatching "org.opensearch.sql.bwc.*IT"
+        }
+        systemProperty 'tests.rest.bwcsuite', 'old_cluster'
+        systemProperty 'tests.rest.bwcsuite_round', 'old'
+        systemProperty 'tests.plugin_bwc_version', bwcVersion
+        nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}$i".allHttpSocketURI.join(",")}")
+        nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}$i".getName()}")
+    }
+}
+
+// Upgrade one node of the old cluster to new OpenSearch version with upgraded plugin version.
+// This results in a mixed cluster with 2 nodes on the old version and 1 upgraded node.
+// This is also used as a one third upgraded cluster for a rolling upgrade.
+task "${baseName}#mixedClusterTask"(type: StandaloneRestIntegTestTask) {
+    useCluster testClusters."${baseName}0"
+    dependsOn "${baseName}#oldVersionClusterTask0"
+    doFirst {
+        testClusters."${baseName}0".upgradeNodeAndPluginToNextVersion(plugins)
+    }
+    filter {
+        includeTestsMatching "org.opensearch.sql.bwc.*IT"
+    }
+    systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
+    systemProperty 'tests.rest.bwcsuite_round', 'first'
+    systemProperty 'tests.plugin_bwc_version', bwcVersion
+    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}0".allHttpSocketURI.join(",")}")
+    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}0".getName()}")
+}
+
+// Upgrade the second node to new OpenSearch version with upgraded plugin version after the first node is upgraded.
+// This results in a mixed cluster with 1 node on the old version and 2 upgraded nodes.
+// This is used for rolling upgrade.
+task "${baseName}#twoThirdsUpgradedClusterTask"(type: StandaloneRestIntegTestTask) {
+    dependsOn "${baseName}#mixedClusterTask"
+    useCluster testClusters."${baseName}0"
+    doFirst {
+        testClusters."${baseName}0".upgradeNodeAndPluginToNextVersion(plugins)
+    }
+    filter {
+        includeTestsMatching "org.opensearch.sql.bwc.*IT"
+    }
+    systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
+    systemProperty 'tests.rest.bwcsuite_round', 'second'
+    systemProperty 'tests.plugin_bwc_version', bwcVersion
+    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}0".allHttpSocketURI.join(",")}")
+    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}0".getName()}")
+}
+
+// Upgrade the third node to new OpenSearch version with upgraded plugin version after the second node is upgraded.
+// This results in a fully upgraded cluster.
+// This is used for rolling upgrade.
+task "${baseName}#rollingUpgradeClusterTask"(type: StandaloneRestIntegTestTask) {
+    dependsOn "${baseName}#twoThirdsUpgradedClusterTask"
+    useCluster testClusters."${baseName}0"
+    doFirst {
+        testClusters."${baseName}0".upgradeNodeAndPluginToNextVersion(plugins)
+    }
+    filter {
+        includeTestsMatching "org.opensearch.sql.bwc.*IT"
+    }
+    mustRunAfter "${baseName}#mixedClusterTask"
+    systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
+    systemProperty 'tests.rest.bwcsuite_round', 'third'
+    systemProperty 'tests.plugin_bwc_version', bwcVersion
+    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}0".allHttpSocketURI.join(",")}")
+    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}0".getName()}")
+}
+
+// Upgrade all the nodes of the old cluster to new OpenSearch version with upgraded plugin version
+// at the same time resulting in a fully upgraded cluster.
+task "${baseName}#fullRestartClusterTask"(type: StandaloneRestIntegTestTask) {
+    dependsOn "${baseName}#oldVersionClusterTask1"
+    useCluster testClusters."${baseName}1"
+    doFirst {
+        testClusters."${baseName}1".upgradeAllNodesAndPluginsToNextVersion(plugins)
+    }
+    filter {
+        includeTestsMatching "org.opensearch.sql.bwc.*IT"
+    }
+    systemProperty 'tests.rest.bwcsuite', 'upgraded_cluster'
+    systemProperty 'tests.plugin_bwc_version', bwcVersion
+    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}1".allHttpSocketURI.join(",")}")
+    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}1".getName()}")
+}
+
+// A bwc test suite which runs all the bwc tasks combined
+task bwcTestSuite(type: StandaloneRestIntegTestTask) {
+    exclude '**/*Test*'
+    exclude '**/*IT*'
+    dependsOn tasks.named("${baseName}#mixedClusterTask")
+    dependsOn tasks.named("${baseName}#rollingUpgradeClusterTask")
+    dependsOn tasks.named("${baseName}#fullRestartClusterTask")
+}
+
+def opensearch_tmp_dir = rootProject.file('build/private/es_tmp').absoluteFile
+opensearch_tmp_dir.mkdirs()
+
+task integTestRemote(type: RestIntegTestTask) {
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    systemProperty 'tests.security.manager', 'false'
+    systemProperty('project.root', project.projectDir.absolutePath)
+    systemProperty 'java.io.tmpdir', opensearch_tmp_dir.absolutePath
+
+    systemProperty "https", System.getProperty("https")
+    systemProperty "user", System.getProperty("user")
+    systemProperty "password", System.getProperty("password")
+
+    // Set default query size limit
+    systemProperty 'defaultQuerySizeLimit', '10000'
+
+    if (System.getProperty("tests.rest.bwcsuite") == null) {
+        filter {
+            excludeTestsMatching "org.opensearch.sql.bwc.*IT"
+        }
+    }
+
+    // Exclude the same tests that are excluded for integTest
+    exclude 'org/opensearch/sql/doctest/**/*IT.class'
+    exclude 'org/opensearch/sql/correctness/**'
+    exclude 'org/opensearch/sql/legacy/ExplainIT.class'
+    exclude 'org/opensearch/sql/legacy/PrettyFormatterIT.class'
+    exclude 'org/opensearch/sql/legacy/TermQueryExplainIT.class'
+    exclude 'org/opensearch/sql/legacy/QueryAnalysisIT.class'
+    exclude 'org/opensearch/sql/legacy/OrderIT.class'
 }

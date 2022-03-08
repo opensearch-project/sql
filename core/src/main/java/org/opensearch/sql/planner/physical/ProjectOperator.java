@@ -1,28 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *   Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *   Licensed under the Apache License, Version 2.0 (the "License").
- *   You may not use this file except in compliance with the License.
- *   A copy of the License is located at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *   or in the "license" file accompanying this file. This file is distributed
- *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *   express or implied. See the License for the specific language governing
- *   permissions and limitations under the License.
- */
 
 package org.opensearch.sql.planner.physical;
 
@@ -37,8 +17,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.ParseExpression;
 
 /**
  * Project the fields specified in {@link ProjectOperator#projectList} from input.
@@ -51,6 +33,8 @@ public class ProjectOperator extends PhysicalPlan {
   private final PhysicalPlan input;
   @Getter
   private final List<NamedExpression> projectList;
+  @Getter
+  private final List<NamedExpression> namedParseExpressions;
 
   @Override
   public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
@@ -73,7 +57,27 @@ public class ProjectOperator extends PhysicalPlan {
     ImmutableMap.Builder<String, ExprValue> mapBuilder = new Builder<>();
     for (NamedExpression expr : projectList) {
       ExprValue exprValue = expr.valueOf(inputValue.bindingTuples());
-      mapBuilder.put(expr.getNameOrAlias(), exprValue);
+      if (namedParseExpressions.stream()
+          .noneMatch(parsed -> parsed.getNameOrAlias().equals(expr.getNameOrAlias()))) {
+        mapBuilder.put(expr.getNameOrAlias(), exprValue);
+      }
+    }
+    // ParseExpression will always override NamedExpression when identifier conflicts
+    // TODO needs a better implementation, see https://github.com/opensearch-project/sql/issues/458
+    for (NamedExpression expr : namedParseExpressions) {
+      ExprValue value = inputValue.bindingTuples()
+          .resolve(((ParseExpression) expr.getDelegated()).getExpression());
+      if (value.isMissing()) {
+        // value will be missing after stats command, read from inputValue if it exists
+        // otherwise do nothing since it should not appear as a field
+        ExprValue exprValue = ExprValueUtils.getTupleValue(inputValue).get(expr.getNameOrAlias());
+        if (exprValue != null) {
+          mapBuilder.put(expr.getNameOrAlias(), exprValue);
+        }
+      } else {
+        ExprValue parsedValue = expr.valueOf(inputValue.bindingTuples());
+        mapBuilder.put(expr.getNameOrAlias(), parsedValue);
+      }
     }
     return ExprTupleValue.fromExprValueMap(mapBuilder.build());
   }

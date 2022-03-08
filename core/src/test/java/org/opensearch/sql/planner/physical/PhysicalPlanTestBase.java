@@ -1,28 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *   Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *   Licensed under the Apache License, Version 2.0 (the "License").
- *   You may not use this file except in compliance with the License.
- *   A copy of the License is located at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *   or in the "license" file accompanying this file. This file is distributed
- *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *   express or implied. See the License for the specific language governing
- *   permissions and limitations under the License.
- */
 
 package org.opensearch.sql.planner.physical;
 
@@ -32,6 +12,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.opensearch.sql.data.model.ExprDateValue;
+import org.opensearch.sql.data.model.ExprDatetimeValue;
+import org.opensearch.sql.data.model.ExprTimeValue;
+import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -104,6 +88,113 @@ public class PhysicalPlanTestBase {
           .put("referer", ExprCoreType.STRING)
           .build();
 
+  protected static final List<ExprValue> dateInputs = new ImmutableList.Builder<ExprValue>()
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "day", new ExprDateValue("2021-01-03"),
+          "month", new ExprDateValue("2021-02-04"),
+          "quarter", new ExprDatetimeValue("2021-01-01 12:25:02"),
+          "year", new ExprTimestampValue("2013-01-01 12:25:02"))))
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "day", new ExprDateValue("2021-01-01"),
+          "month", new ExprDateValue("2021-03-17"),
+          "quarter", new ExprDatetimeValue("2021-05-17 12:25:01"),
+          "year", new ExprTimestampValue("2021-01-01 12:25:02"))))
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "day", new ExprDateValue("2021-01-04"),
+          "month", new ExprDateValue("2021-02-08"),
+          "quarter", new ExprDatetimeValue("2021-06-08 12:25:02"),
+          "year", new ExprTimestampValue("2016-01-01 12:25:02"))))
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "day", new ExprDateValue("2021-01-02"),
+          "month", new ExprDateValue("2020-12-12"),
+          "quarter", new ExprDatetimeValue("2020-12-12 12:25:03"),
+          "year", new ExprTimestampValue("1999-01-01 12:25:02"))))
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "day", new ExprDateValue("2021-01-01"),
+          "month", new ExprDateValue("2021-02-28"),
+          "quarter", new ExprDatetimeValue("2020-09-28 12:25:01"),
+          "year", new ExprTimestampValue("2018-01-01 12:25:02"))))
+      .build();
+
+  protected static final List<ExprValue> datetimeInputs = new ImmutableList.Builder<ExprValue>()
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "hour", new ExprTimeValue("17:17:00"),
+          "minute", new ExprDatetimeValue("2020-12-31 23:54:12"),
+          "second", new ExprTimestampValue("2021-01-01 00:00:05"))))
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "hour", new ExprTimeValue("18:17:00"),
+          "minute", new ExprDatetimeValue("2021-01-01 00:05:12"),
+          "second", new ExprTimestampValue("2021-01-01 00:00:12"))))
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "hour", new ExprTimeValue("17:15:00"),
+          "minute", new ExprDatetimeValue("2021-01-01 00:03:12"),
+          "second", new ExprTimestampValue("2021-01-01 00:00:17"))))
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "hour", new ExprTimeValue("19:01:00"),
+          "minute", new ExprDatetimeValue("2021-01-01 00:02:12"),
+          "second", new ExprTimestampValue("2021-01-01 00:00:03"))))
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "hour", new ExprTimeValue("18:50:00"),
+          "minute", new ExprDatetimeValue("2021-01-01 00:00:12"),
+          "second", new ExprTimestampValue("2021-01-01 00:00:13"))))
+      .build();
+
+  protected static final List<ExprValue> numericInputs = new ImmutableList.Builder<ExprValue>()
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "integer", 2,
+          "long", 2L,
+          "float", 2F,
+          "double", 2D)))
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "integer", 1,
+          "long", 1L,
+          "float", 1F,
+          "double", 1D)))
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "integer", 5,
+          "long", 5L,
+          "float", 5F,
+          "double", 5D)))
+      .build();
+
+  protected static final List<ExprValue> compoundInputs = new ImmutableList.Builder<ExprValue>()
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "day", new ExprDateValue("2021-01-03"),
+          "region", "iad",
+          "host", "h1",
+          "errors", 2)))
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "day", new ExprDateValue("2021-01-03"),
+          "region", "iad",
+          "host", "h2",
+          "errors", 3)))
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "day", new ExprDateValue("2021-01-04"),
+          "region", "iad",
+          "host", "h1",
+          "errors", 1)))
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "day", new ExprDateValue("2021-01-04"),
+          "region", "iad",
+          "host", "h2",
+          "errors", 10)))
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "day", new ExprDateValue("2021-01-06"),
+          "region", "iad",
+          "host", "h1",
+          "errors", 1)))
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "day", new ExprDateValue("2021-01-07"),
+          "region", "iad",
+          "host", "h1",
+          "errors", 6)))
+      .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+          "day", new ExprDateValue("2021-01-07"),
+          "region", "iad",
+          "host", "h2",
+          "errors", 8)))
+      .build();
+
   @Bean
   protected Environment<Expression, ExprCoreType> typeEnv() {
     return var -> {
@@ -127,6 +218,10 @@ public class PhysicalPlanTestBase {
     return builder.build();
   }
 
+  protected static PhysicalPlan testScan(List<ExprValue> inputs) {
+    return new TestScan(inputs);
+  }
+
   protected static class TestScan extends PhysicalPlan {
     private final Iterator<ExprValue> iterator;
 
@@ -134,32 +229,8 @@ public class PhysicalPlanTestBase {
       iterator = inputs.iterator();
     }
 
-    @Override
-    public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
-      return null;
-    }
-
-    @Override
-    public List<PhysicalPlan> getChild() {
-      return ImmutableList.of();
-    }
-
-    @Override
-    public boolean hasNext() {
-      return iterator.hasNext();
-    }
-
-    @Override
-    public ExprValue next() {
-      return iterator.next();
-    }
-  }
-
-  protected static class CountTestScan extends PhysicalPlan {
-    private final Iterator<ExprValue> iterator;
-
-    public CountTestScan() {
-      iterator = countTestInputs.iterator();
+    public TestScan(List<ExprValue> inputs) {
+      iterator = inputs.iterator();
     }
 
     @Override

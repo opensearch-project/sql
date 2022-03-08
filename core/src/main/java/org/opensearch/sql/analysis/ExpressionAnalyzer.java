@@ -1,28 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *   Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *   Licensed under the Apache License, Version 2.0 (the "License").
- *   You may not use this file except in compliance with the License.
- *   A copy of the License is located at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *   or in the "license" file accompanying this file. This file is distributed
- *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *   express or implied. See the License for the specific language governing
- *   permissions and limitations under the License.
- */
 
 package org.opensearch.sql.analysis;
 
@@ -46,11 +26,14 @@ import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.Span;
+import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedAttribute;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.When;
@@ -62,6 +45,9 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.NamedArgumentExpression;
+import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.ParseExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.AggregationState;
 import org.opensearch.sql.expression.aggregation.Aggregator;
@@ -70,6 +56,7 @@ import org.opensearch.sql.expression.conditional.cases.WhenClause;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.expression.window.aggregation.AggregateWindowFunction;
 
 /**
@@ -193,6 +180,24 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
   }
 
   @Override
+  public Expression visitIn(In node, AnalysisContext context) {
+    return visitIn(node.getField(), node.getValueList(), context);
+  }
+
+  private Expression visitIn(
+      UnresolvedExpression field, List<UnresolvedExpression> valueList, AnalysisContext context) {
+    if (valueList.size() == 1) {
+      return visitCompare(new Compare("=", field, valueList.get(0)), context);
+    } else if (valueList.size() > 1) {
+      return dsl.or(
+          visitCompare(new Compare("=", field, valueList.get(0)), context),
+          visitIn(field, valueList.subList(1, valueList.size()), context));
+    } else {
+      throw new SemanticCheckException("Values in In clause should not be empty");
+    }
+  }
+
+  @Override
   public Expression visitCompare(Compare node, AnalysisContext context) {
     FunctionName functionName = FunctionName.of(node.getOperator());
     Expression left = analyze(node.getLeft(), context);
@@ -258,7 +263,27 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     return visitIdentifier(qualifierAnalyzer.unqualified(node), context);
   }
 
+  @Override
+  public Expression visitSpan(Span node, AnalysisContext context) {
+    return new SpanExpression(
+        node.getField().accept(this, context),
+        node.getValue().accept(this, context),
+        node.getUnit());
+  }
+
+  @Override
+  public Expression visitUnresolvedArgument(UnresolvedArgument node, AnalysisContext context) {
+    return new NamedArgumentExpression(node.getArgName(), node.getValue().accept(this, context));
+  }
+
   private Expression visitIdentifier(String ident, AnalysisContext context) {
+    // ParseExpression will always override ReferenceExpression when ident conflicts
+    for (NamedExpression expr : context.getNamedParseExpressions()) {
+      if (expr.getNameOrAlias().equals(ident) && expr.getDelegated() instanceof ParseExpression) {
+        return expr.getDelegated();
+      }
+    }
+
     TypeEnvironment typeEnv = context.peek();
     ReferenceExpression ref = DSL.ref(ident,
         typeEnv.resolve(new Symbol(Namespace.FIELD_NAME, ident)));

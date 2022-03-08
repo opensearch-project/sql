@@ -1,28 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *   Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *   Licensed under the Apache License, Version 2.0 (the "License").
- *   You may not use this file except in compliance with the License.
- *   A copy of the License is located at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *   or in the "license" file accompanying this file. This file is distributed
- *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *   express or implied. See the License for the specific language governing
- *   permissions and limitations under the License.
- */
 
 package org.opensearch.sql.expression.operator.arthmetic;
 
@@ -36,8 +16,8 @@ import static org.opensearch.sql.config.TestConfig.DOUBLE_TYPE_MISSING_VALUE_FIE
 import static org.opensearch.sql.config.TestConfig.DOUBLE_TYPE_NULL_VALUE_FIELD;
 import static org.opensearch.sql.config.TestConfig.INT_TYPE_MISSING_VALUE_FIELD;
 import static org.opensearch.sql.config.TestConfig.INT_TYPE_NULL_VALUE_FIELD;
-import static org.opensearch.sql.config.TestConfig.STRING_TYPE_MISSING_VALUE_FILED;
-import static org.opensearch.sql.config.TestConfig.STRING_TYPE_NULL_VALUE_FILED;
+import static org.opensearch.sql.config.TestConfig.STRING_TYPE_MISSING_VALUE_FIELD;
+import static org.opensearch.sql.config.TestConfig.STRING_TYPE_NULL_VALUE_FIELD;
 import static org.opensearch.sql.data.model.ExprValueUtils.getDoubleValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.getFloatValue;
 import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
@@ -405,7 +385,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   @Test
   public void conv_null_value() {
     FunctionExpression conv = dsl.conv(
-        DSL.ref(STRING_TYPE_NULL_VALUE_FILED, STRING), DSL.literal(10), DSL.literal(2));
+        DSL.ref(STRING_TYPE_NULL_VALUE_FIELD, STRING), DSL.literal(10), DSL.literal(2));
     assertEquals(STRING, conv.type());
     assertTrue(conv.valueOf(valueEnv()).isNull());
 
@@ -426,7 +406,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   @Test
   public void conv_missing_value() {
     FunctionExpression conv = dsl.conv(
-        DSL.ref(STRING_TYPE_MISSING_VALUE_FILED, STRING), DSL.literal(10), DSL.literal(2));
+        DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING), DSL.literal(10), DSL.literal(2));
     assertEquals(STRING, conv.type());
     assertTrue(conv.valueOf(valueEnv()).isMissing());
 
@@ -446,7 +426,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
    */
   @Test
   public void conv_null_missing() {
-    FunctionExpression conv = dsl.conv(DSL.ref(STRING_TYPE_MISSING_VALUE_FILED, STRING),
+    FunctionExpression conv = dsl.conv(DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING),
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER), DSL.literal(2));
     assertEquals(STRING, conv.type());
     assertTrue(conv.valueOf(valueEnv()).isMissing());
@@ -472,7 +452,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
    */
   @Test
   public void crc32_null_value() {
-    FunctionExpression crc = dsl.crc32(DSL.ref(STRING_TYPE_NULL_VALUE_FILED, STRING));
+    FunctionExpression crc = dsl.crc32(DSL.ref(STRING_TYPE_NULL_VALUE_FIELD, STRING));
     assertEquals(LONG, crc.type());
     assertTrue(crc.valueOf(valueEnv()).isNull());
   }
@@ -482,7 +462,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
    */
   @Test
   public void crc32_missing_value() {
-    FunctionExpression crc = dsl.crc32(DSL.ref(STRING_TYPE_MISSING_VALUE_FILED, STRING));
+    FunctionExpression crc = dsl.crc32(DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING));
     assertEquals(LONG, crc.type());
     assertTrue(crc.valueOf(valueEnv()).isMissing());
   }

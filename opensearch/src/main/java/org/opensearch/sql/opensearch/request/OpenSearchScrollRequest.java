@@ -1,29 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *    Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *    Licensed under the Apache License, Version 2.0 (the "License").
- *    You may not use this file except in compliance with the License.
- *    A copy of the License is located at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *    or in the "license" file accompanying this file. This file is distributed
- *    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *    express or implied. See the License for the specific language governing
- *    permissions and limitations under the License.
- *
- */
 
 package org.opensearch.sql.opensearch.request;
 
@@ -50,7 +29,6 @@ import org.opensearch.sql.opensearch.response.OpenSearchResponse;
  * Maintain scroll ID between calls to client search method
  */
 @EqualsAndHashCode
-@RequiredArgsConstructor
 @Getter
 @ToString
 public class OpenSearchScrollRequest implements OpenSearchRequest {
@@ -58,8 +36,10 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
   /** Default scroll context timeout in minutes. */
   public static final TimeValue DEFAULT_SCROLL_TIMEOUT = TimeValue.timeValueMinutes(1L);
 
-  /** Index name. */
-  private final String indexName;
+  /**
+   * {@link OpenSearchRequest.IndexName}.
+   */
+  private final IndexName indexName;
 
   /** Index name. */
   @EqualsAndHashCode.Exclude
@@ -70,11 +50,20 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    * Scroll id which is set after first request issued. Because ElasticsearchClient is shared by
    * multi-thread so this state has to be maintained here.
    */
-  @Setter private String scrollId;
+  @Setter
+  private String scrollId;
 
   /** Search request source builder. */
   private final SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
 
+  public OpenSearchScrollRequest(IndexName indexName, OpenSearchExprValueFactory exprValueFactory) {
+    this.indexName = indexName;
+    this.exprValueFactory = exprValueFactory;
+  }
+
+  public OpenSearchScrollRequest(String indexName, OpenSearchExprValueFactory exprValueFactory) {
+    this(new IndexName(indexName), exprValueFactory);
+  }
 
   @Override
   public OpenSearchResponse search(Function<SearchRequest, SearchResponse> searchAction,
@@ -108,7 +97,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    */
   public SearchRequest searchRequest() {
     return new SearchRequest()
-        .indices(indexName)
+        .indices(indexName.getIndexNames())
         .scroll(DEFAULT_SCROLL_TIMEOUT)
         .source(sourceBuilder);
   }

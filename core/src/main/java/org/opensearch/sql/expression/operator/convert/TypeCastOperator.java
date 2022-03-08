@@ -1,30 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *
- *    Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *    Licensed under the Apache License, Version 2.0 (the "License").
- *    You may not use this file except in compliance with the License.
- *    A copy of the License is located at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    or in the "license" file accompanying this file. This file is distributed
- *    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *    express or implied. See the License for the specific language governing
- *    permissions and limitations under the License.
- *
- */
 
 package org.opensearch.sql.expression.operator.convert;
 
@@ -101,9 +79,9 @@ public class TypeCastOperator {
   private static FunctionResolver castToByte() {
     return FunctionDSL.define(BuiltinFunctionName.CAST_TO_BYTE.getName(),
         impl(nullMissingHandling(
-            (v) -> new ExprByteValue(Short.valueOf(v.stringValue()))), BYTE, STRING),
+            (v) -> new ExprByteValue(Byte.valueOf(v.stringValue()))), BYTE, STRING),
         impl(nullMissingHandling(
-            (v) -> new ExprByteValue(v.shortValue())), BYTE, DOUBLE),
+            (v) -> new ExprByteValue(v.byteValue())), BYTE, DOUBLE),
         impl(nullMissingHandling(
             (v) -> new ExprByteValue(v.booleanValue() ? 1 : 0)), BYTE, BOOLEAN)
     );

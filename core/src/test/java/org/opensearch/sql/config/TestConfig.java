@@ -1,28 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *   Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *   Licensed under the Apache License, Version 2.0 (the "License").
- *   You may not use this file except in compliance with the License.
- *   A copy of the License is located at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *   or in the "license" file accompanying this file. This file is distributed
- *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *   express or implied. See the License for the specific language governing
- *   permissions and limitations under the License.
- */
 
 package org.opensearch.sql.config;
 
@@ -55,8 +35,8 @@ public class TestConfig {
   public static final String DOUBLE_TYPE_MISSING_VALUE_FIELD = "double_missing_value";
   public static final String BOOL_TYPE_NULL_VALUE_FIELD = "null_value_boolean";
   public static final String BOOL_TYPE_MISSING_VALUE_FIELD = "missing_value_boolean";
-  public static final String STRING_TYPE_NULL_VALUE_FILED = "string_null_value";
-  public static final String STRING_TYPE_MISSING_VALUE_FILED = "string_missing_value";
+  public static final String STRING_TYPE_NULL_VALUE_FIELD = "string_null_value";
+  public static final String STRING_TYPE_MISSING_VALUE_FIELD = "string_missing_value";
 
   public static Map<String, ExprType> typeMapping = new ImmutableMap.Builder<String, ExprType>()
       .put("integer_value", ExprCoreType.INTEGER)
@@ -71,8 +51,8 @@ public class TestConfig {
       .put(BOOL_TYPE_NULL_VALUE_FIELD, ExprCoreType.BOOLEAN)
       .put(BOOL_TYPE_MISSING_VALUE_FIELD, ExprCoreType.BOOLEAN)
       .put("string_value", ExprCoreType.STRING)
-      .put(STRING_TYPE_NULL_VALUE_FILED, ExprCoreType.STRING)
-      .put(STRING_TYPE_MISSING_VALUE_FILED, ExprCoreType.STRING)
+      .put(STRING_TYPE_NULL_VALUE_FIELD, ExprCoreType.STRING)
+      .put(STRING_TYPE_MISSING_VALUE_FIELD, ExprCoreType.STRING)
       .put("struct_value", ExprCoreType.STRUCT)
       .put("array_value", ExprCoreType.ARRAY)
       .build();

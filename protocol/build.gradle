@@ -1,12 +1,6 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
 /*
@@ -35,12 +29,11 @@ plugins {
 }
 
 dependencies {
-    // https://github.com/google/guava/wiki/CVE-2018-10237
-    compile group: 'com.google.guava', name: 'guava', version: '29.0-jre'
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.10.5' 
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.4'
-    compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: '2.11.4'
-    implementation 'com.google.code.gson:gson:2.8.6'
+    compile group: 'com.google.guava', name: 'guava', version: '31.0.1-jre'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.12.6' 
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.12.6'
+    compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: '2.12.6'
+    implementation 'com.google.code.gson:gson:2.8.9'
     compile project(':core')
     compile project(':opensearch')
 

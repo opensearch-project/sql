@@ -1,12 +1,6 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
 /*
@@ -51,18 +45,17 @@ dependencies {
     antlr "org.antlr:antlr4:4.7.1"
 
     compile "org.antlr:antlr4-runtime:4.7.1"
-    // https://github.com/google/guava/wiki/CVE-2018-10237
-    compile group: 'com.google.guava', name: 'guava', version: '29.0-jre'
+    compile group: 'com.google.guava', name: 'guava', version: '31.0.1-jre'
     compile group: 'org.opensearch', name: 'opensearch-x-content', version: "${opensearch_version}"
     compile group: 'org.json', name: 'json', version: '20180813'
-    compile group: 'org.springframework', name: 'spring-context', version: '5.2.5.RELEASE'
-    compile group: 'org.springframework', name: 'spring-beans', version: '5.2.5.RELEASE'
-    compile group: 'org.apache.logging.log4j', name: 'log4j-core', version:'2.11.1'
+    compile group: 'org.springframework', name: 'spring-context', version: '5.2.19.RELEASE'
+    compile group: 'org.springframework', name: 'spring-beans', version: '5.2.19.RELEASE'
+    compile group: 'org.apache.logging.log4j', name: 'log4j-core', version:'2.17.1'
     compile project(':common')
     compile project(':core')
     compile project(':protocol')
 
-    testCompile group: 'junit', name: 'junit', version: '4.12'
+    testCompile group: 'junit', name: 'junit', version: '4.13.2'
     testCompile group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
     testCompile group: 'org.mockito', name: 'mockito-core', version: '3.3.3'
 

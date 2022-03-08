@@ -1,30 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *
- *    Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *    Licensed under the Apache License, Version 2.0 (the "License").
- *    You may not use this file except in compliance with the License.
- *    A copy of the License is located at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    or in the "license" file accompanying this file. This file is distributed
- *    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *    express or implied. See the License for the specific language governing
- *    permissions and limitations under the License.
- *
- */
 
 package org.opensearch.sql.data.model;
 
@@ -56,19 +34,19 @@ public class ExprTimestampValue extends AbstractExprValue {
   /**
    * todo. only support timestamp in format yyyy-MM-dd HH:mm:ss.
    */
-  private static final DateTimeFormatter FORMATTER_WITNOUT_NANO = DateTimeFormatter
+  private static final DateTimeFormatter FORMATTER_WITHOUT_NANO = DateTimeFormatter
       .ofPattern("yyyy-MM-dd HH:mm:ss");
   private final Instant timestamp;
 
-  private static final DateTimeFormatter FORMATTER_VARIABLE_MICROS;
+  private static final DateTimeFormatter FORMATTER_VARIABLE_NANOS;
   private static final int MIN_FRACTION_SECONDS = 0;
-  private static final int MAX_FRACTION_SECONDS = 6;
+  private static final int MAX_FRACTION_SECONDS = 9;
 
   static {
-    FORMATTER_VARIABLE_MICROS = new DateTimeFormatterBuilder()
+    FORMATTER_VARIABLE_NANOS = new DateTimeFormatterBuilder()
         .appendPattern("yyyy-MM-dd HH:mm:ss")
         .appendFraction(
-                ChronoField.MICRO_OF_SECOND,
+                ChronoField.NANO_OF_SECOND,
                 MIN_FRACTION_SECONDS,
                 MAX_FRACTION_SECONDS,
                 true)
@@ -80,21 +58,21 @@ public class ExprTimestampValue extends AbstractExprValue {
    */
   public ExprTimestampValue(String timestamp) {
     try {
-      this.timestamp = LocalDateTime.parse(timestamp, FORMATTER_VARIABLE_MICROS)
+      this.timestamp = LocalDateTime.parse(timestamp, FORMATTER_VARIABLE_NANOS)
           .atZone(ZONE)
           .toInstant();
     } catch (DateTimeParseException e) {
       throw new SemanticCheckException(String.format("timestamp:%s in unsupported format, please "
-          + "use yyyy-MM-dd HH:mm:ss[.SSSSSS]", timestamp));
+          + "use yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]", timestamp));
     }
 
   }
 
   @Override
   public String value() {
-    return timestamp.getNano() == 0 ? FORMATTER_WITNOUT_NANO.withZone(ZONE)
+    return timestamp.getNano() == 0 ? FORMATTER_WITHOUT_NANO.withZone(ZONE)
         .format(timestamp.truncatedTo(ChronoUnit.SECONDS))
-        : FORMATTER_VARIABLE_MICROS.withZone(ZONE).format(timestamp);
+        : FORMATTER_VARIABLE_NANOS.withZone(ZONE).format(timestamp);
   }
 
   @Override

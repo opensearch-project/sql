@@ -1,12 +1,6 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
 /*
@@ -255,7 +249,7 @@ intervalUnit
     | DAY_SECOND | DAY_MINUTE | DAY_HOUR | YEAR_MONTH
     ;
 
-//    Expressions, predicates
+// predicates
 
 // Simplified approach for expression
 expression
@@ -271,6 +265,11 @@ predicate
     | predicate IS nullNotnull                                      #isNullPredicate
     | left=predicate NOT? LIKE right=predicate                      #likePredicate
     | left=predicate REGEXP right=predicate                         #regexpPredicate
+    | predicate NOT? IN '(' expressions ')'                         #inPredicate
+    ;
+
+expressions
+    : expression (',' expression)*
     ;
 
 expressionAtom
@@ -300,6 +299,7 @@ functionCall
     | windowFunctionClause                                          #windowFunctionCall
     | aggregateFunction                                             #aggregateFunctionCall
     | aggregateFunction (orderByClause)? filterClause               #filteredAggregationFunctionCall
+    | relevanceFunction                                             #relevanceFunctionCall
     ;
 
 scalarFunctionName
@@ -315,6 +315,12 @@ specificFunction
     | CASE caseFuncAlternative+
         (ELSE elseArg=functionArg)? END                               #caseFunctionCall
     | CAST '(' expression AS convertedDataType ')'                    #dataTypeFunctionCall
+    ;
+
+relevanceFunction
+    : relevanceFunctionName LR_BRACKET
+        field=relevanceArgValue COMMA query=relevanceArgValue
+        (COMMA relevanceArg)* RR_BRACKET
     ;
 
 convertedDataType
@@ -376,11 +382,34 @@ flowControlFunctionName
     : IF | IFNULL | NULLIF | ISNULL
     ;
 
+relevanceFunctionName
+    : MATCH
+    ;
+
+legacyRelevanceFunctionName
+    : QUERY | MATCH_QUERY | MATCHQUERY
+    ;
+
 functionArgs
     : functionArg (COMMA functionArg)*
     ;
 
 functionArg
     : expression
+    ;
+
+relevanceArg
+    : relevanceArgName EQUAL_SYMBOL relevanceArgValue
+    ;
+
+relevanceArgName
+    : ANALYZER | FUZZINESS | AUTO_GENERATE_SYNONYMS_PHRASE_QUERY | MAX_EXPANSIONS | PREFIX_LENGTH
+    | FUZZY_TRANSPOSITIONS | FUZZY_REWRITE | LENIENT | OPERATOR | MINIMUM_SHOULD_MATCH | ZERO_TERMS_QUERY
+    | BOOST
+    ;
+
+relevanceArgValue
+    : qualifiedName
+    | constant
     ;
 
