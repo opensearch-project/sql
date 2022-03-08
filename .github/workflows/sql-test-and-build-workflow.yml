@@ -21,17 +21,6 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: ${{ matrix.java }}
-
-    # dependencies: ml-commons
-    - name: Checkout ml-commons
-      uses: actions/checkout@v2
-      with:
-        repository: 'opensearch-project/ml-commons'
-        path: ml-commons
-        ref: 'main'
-    - name: Build ml-commons
-      working-directory: ./ml-commons
-      run: ./gradlew publishToMavenLocal
     
     - name: Build with Gradle
       run: ./gradlew build assemble -Dopensearch.version=${{ env.OPENSEARCH_VERSION }}

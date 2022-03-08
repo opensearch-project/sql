@@ -20,17 +20,6 @@ jobs:
       - name: Checkout SQL CLI
         uses: actions/checkout@v2
 
-      # dependencies: ml-commons
-      - name: Checkout ml-commons
-        uses: actions/checkout@v2
-        with:
-          repository: 'opensearch-project/ml-commons'
-          path: ml-commons
-          ref: 'main'
-      - name: Build ml-commons
-        working-directory: ./ml-commons
-        run: ./gradlew publishToMavenLocal
-
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
