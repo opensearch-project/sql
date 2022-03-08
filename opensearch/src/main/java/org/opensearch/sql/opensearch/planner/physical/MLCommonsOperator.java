@@ -31,7 +31,7 @@ import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
  */
 @RequiredArgsConstructor
 @EqualsAndHashCode(callSuper = false)
-public class MLCommonsOperator extends OperatorActions {
+public class MLCommonsOperator extends MLCommonsOperatorActions {
   @Getter
   private final PhysicalPlan input;
 

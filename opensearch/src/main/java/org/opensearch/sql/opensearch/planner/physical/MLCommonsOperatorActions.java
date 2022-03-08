@@ -7,7 +7,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import lombok.EqualsAndHashCode;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.ml.client.MachineLearningNodeClient;
 import org.opensearch.ml.common.dataframe.ColumnMeta;
@@ -32,11 +31,16 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.opensearch.client.MLClient;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 
-public abstract class OperatorActions extends PhysicalPlan {
+/**
+ * Common method actions for ml-commons related operators.
+ */
+public abstract class MLCommonsOperatorActions extends PhysicalPlan {
 
-  @EqualsAndHashCode.Exclude
-  private Iterator<ExprValue> iterator;
-
+  /**
+   * generate ml-commons request input dataset.
+   * @param input physical input
+   * @return ml-commons dataframe
+   */
   protected DataFrame generateInputDataset(PhysicalPlan input) {
     List<Map<String, Object>> inputData = new LinkedList<>();
     while (input.hasNext()) {
@@ -50,6 +54,12 @@ public abstract class OperatorActions extends PhysicalPlan {
     return DataFrameBuilder.load(inputData);
   }
 
+  /**
+   * covert result schema into ExprValue.
+   * @param columnMetas column metas
+   * @param row row
+   * @return a map of result schema in ExprValue format
+   */
   protected Map<String, ExprValue> convertRowIntoExprValue(ColumnMeta[] columnMetas, Row row) {
     ImmutableMap.Builder<String, ExprValue> resultBuilder = new ImmutableMap.Builder<>();
     for (int i = 0; i < columnMetas.length; i++) {
@@ -60,6 +70,12 @@ public abstract class OperatorActions extends PhysicalPlan {
     return resultBuilder.build();
   }
 
+  /**
+   * populate result map by ml-commons supported data type.
+   * @param columnValue column value
+   * @param resultKeyName result kay name
+   * @param resultBuilder result builder
+   */
   protected void populateResultBuilder(ColumnValue columnValue,
                                      String resultKeyName,
                                      ImmutableMap.Builder<String, ExprValue> resultBuilder) {
@@ -83,13 +99,20 @@ public abstract class OperatorActions extends PhysicalPlan {
         resultBuilder.put(resultKeyName, new ExprFloatValue(columnValue.floatValue()));
         break;
       case BOOLEAN:
-        resultBuilder.put(resultKeyName, new ExprBooleanValue(columnValue.booleanValue()));
+        resultBuilder.put(resultKeyName, ExprBooleanValue.of(columnValue.booleanValue()));
         break;
       default:
         break;
     }
   }
 
+  /**
+   * concert result into ExprValue.
+   * @param columnMetas column metas
+   * @param row row
+   * @param schema schema
+   * @return a map of result in ExprValue format
+   */
   protected Map<String, ExprValue> convertResultRowIntoExprValue(ColumnMeta[] columnMetas,
                                                                Row row,
                                                                Map<String, ExprValue> schema) {
@@ -108,6 +131,14 @@ public abstract class OperatorActions extends PhysicalPlan {
     return resultBuilder.build();
   }
 
+  /**
+   * iterate result and built it into ExprTupleValue.
+   * @param inputRowIter input row iterator
+   * @param inputDataFrame input data frame
+   * @param predictionResult prediction result
+   * @param resultRowIter result row iterator
+   * @return result in ExprTupleValue format
+   */
   protected ExprTupleValue buildResult(Iterator<Row> inputRowIter, DataFrame inputDataFrame,
                              MLPredictionOutput predictionResult, Iterator<Row> resultRowIter) {
     ImmutableMap.Builder<String, ExprValue> resultSchemaBuilder = new ImmutableMap.Builder<>();
@@ -123,6 +154,14 @@ public abstract class OperatorActions extends PhysicalPlan {
     return ExprTupleValue.fromExprValueMap(resultBuilder.build());
   }
 
+  /**
+   * get ml-commons train and predict result.
+   * @param functionName ml-commons algorithm name
+   * @param mlAlgoParams ml-commons algorithm parameters
+   * @param inputDataFrame input data frame
+   * @param nodeClient node client
+   * @return ml-commons train and predict result
+   */
   protected MLPredictionOutput getMLPredictionResult(FunctionName functionName,
                                                      MLAlgoParams mlAlgoParams,
                                                      DataFrame inputDataFrame,

@@ -30,7 +30,7 @@ import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
  */
 @RequiredArgsConstructor
 @EqualsAndHashCode(callSuper = false)
-public class ADOperator extends OperatorActions {
+public class ADOperator extends MLCommonsOperatorActions {
 
   @Getter
   private final PhysicalPlan input;
