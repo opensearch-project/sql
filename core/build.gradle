@@ -82,6 +82,10 @@ test.finalizedBy(project.tasks.jacocoTestReport)
 jacocoTestCoverageVerification {
     violationRules {
         rule {
+            element = 'CLASS'
+            excludes = [
+                    'org.opensearch.sql.utils.MLCommonsConstants'
+            ]
             limit {
                 counter = 'LINE'
                 minimum = 1.0
