@@ -25,6 +25,7 @@ import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.window;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -35,8 +36,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.ml.client.MachineLearningClient;
 import org.opensearch.sql.ast.dsl.AstDSL;
+import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.common.setting.Settings;
@@ -53,8 +55,7 @@ import org.opensearch.sql.expression.window.ranking.RankFunction;
 import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
-import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProtector;
-import org.opensearch.sql.opensearch.executor.protector.ResourceMonitorPlan;
+import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndexScan;
@@ -269,6 +270,23 @@ class OpenSearchExecutionProtectorTest {
 
     assertEquals(executionProtector.doProtect(mlCommonsOperator),
             executionProtector.visitMLCommons(mlCommonsOperator, null));
+  }
+
+  @Test
+  public void testVisitAD() {
+    NodeClient nodeClient = mock(NodeClient.class);
+    ADOperator adOperator =
+            new ADOperator(
+                    values(emptyList()),
+                    new HashMap<String, Literal>() {{
+          put("shingle_size", new Literal(8, DataType.INTEGER));
+          put("time_decay", new Literal(0.0001, DataType.DOUBLE));
+          put("time_field", new Literal(null, DataType.STRING));
+        }
+      }, nodeClient);
+
+    assertEquals(executionProtector.doProtect(adOperator),
+            executionProtector.visitAD(adOperator, null));
   }
 
   PhysicalPlan resourceMonitor(PhysicalPlan input) {
