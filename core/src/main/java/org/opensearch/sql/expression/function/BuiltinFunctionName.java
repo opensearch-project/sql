@@ -177,8 +177,6 @@ public enum BuiltinFunctionName {
    * Data Type Convert Function.
    */
   CAST_TO_STRING(FunctionName.of("cast_to_string")),
-  CAST_TO_BYTE(FunctionName.of("cast_to_byte")),
-  CAST_TO_SHORT(FunctionName.of("cast_to_short")),
   CAST_TO_INT(FunctionName.of("cast_to_int")),
   CAST_TO_LONG(FunctionName.of("cast_to_long")),
   CAST_TO_FLOAT(FunctionName.of("cast_to_float")),
@@ -186,8 +184,7 @@ public enum BuiltinFunctionName {
   CAST_TO_BOOLEAN(FunctionName.of("cast_to_boolean")),
   CAST_TO_DATE(FunctionName.of("cast_to_date")),
   CAST_TO_TIME(FunctionName.of("cast_to_time")),
-  CAST_TO_TIMESTAMP(FunctionName.of("cast_to_timestamp")),
-  CAST_TO_DATETIME(FunctionName.of("cast_to_datetime"));
+  CAST_TO_TIMESTAMP(FunctionName.of("cast_to_timestamp"));
 
   private final FunctionName name;
 

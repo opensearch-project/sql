@@ -42,11 +42,11 @@ import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
  */
 public class BucketAggregationBuilder {
 
-  private final AggregationBuilderHelper helper;
+  private final AggregationBuilderHelper<CompositeValuesSourceBuilder<?>> helper;
 
   public BucketAggregationBuilder(
       ExpressionSerializer serializer) {
-    this.helper = new AggregationBuilderHelper(serializer);
+    this.helper = new AggregationBuilderHelper<>(serializer);
   }
 
   /**
@@ -62,8 +62,8 @@ public class BucketAggregationBuilder {
               .missingBucket(true)
               .order(groupPair.getRight());
       resultBuilder
-          .add((CompositeValuesSourceBuilder<?>) helper.build(groupPair.getLeft().getDelegated(),
-              valuesSourceBuilder::field, valuesSourceBuilder::script));
+          .add(helper.build(groupPair.getLeft().getDelegated(), valuesSourceBuilder::field,
+              valuesSourceBuilder::script));
     }
     return resultBuilder.build();
   }

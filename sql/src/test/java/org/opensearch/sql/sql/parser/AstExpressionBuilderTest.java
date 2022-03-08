@@ -431,23 +431,6 @@ class AstExpressionBuilderTest {
         buildExprAst("variance(age)"));
   }
 
-  @Test
-  public void distinctCount() {
-    assertEquals(
-        AstDSL.distinctAggregate("count", qualifiedName("name")),
-        buildExprAst("count(distinct name)")
-    );
-  }
-
-  @Test
-  public void filteredDistinctCount() {
-    assertEquals(
-        AstDSL.filteredDistinctCount("count", qualifiedName("name"), function(
-            ">", qualifiedName("age"), intLiteral(30))),
-        buildExprAst("count(distinct name) filter(where age > 30)")
-    );
-  }
-
   private Node buildExprAst(String expr) {
     OpenSearchSQLLexer lexer = new OpenSearchSQLLexer(new CaseInsensitiveCharStream(expr));
     OpenSearchSQLParser parser = new OpenSearchSQLParser(new CommonTokenStream(lexer));

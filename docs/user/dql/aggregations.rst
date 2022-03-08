@@ -357,19 +357,6 @@ Example::
     | 2.8613807855648994 |
     +--------------------+
 
-DISTINCT COUNT Aggregation
---------------------------
-
-To get the count of distinct values of a field, you can add a keyword ``DISTINCT`` before the field in the count aggregation. Example::
-
-    os> SELECT COUNT(DISTINCT gender), COUNT(gender) FROM accounts;
-    fetched rows / total rows = 1/1
-    +--------------------------+-----------------+
-    | COUNT(DISTINCT gender)   | COUNT(gender)   |
-    |--------------------------+-----------------|
-    | 2                        | 4               |
-    +--------------------------+-----------------+
-
 HAVING Clause
 =============
 
@@ -468,17 +455,4 @@ The ``FILTER`` clause can be used in aggregation functions without GROUP BY as w
     |--------------+------------|
     | 4            | 1          |
     +--------------+------------+
-
-Distinct count aggregate with FILTER
-------------------------------------
-
-The ``FILTER`` clause is also used in distinct count to do the filtering before count the distinct values of specific field. For example::
-
-    os> SELECT COUNT(DISTINCT firstname) FILTER(WHERE age > 30) AS distinct_count FROM accounts
-    fetched rows / total rows = 1/1
-    +------------------+
-    | distinct_count   |
-    |------------------|
-    | 3                |
-    +------------------+
 

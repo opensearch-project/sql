@@ -36,7 +36,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
-import static org.opensearch.sql.ast.dsl.AstDSL.distinctAggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
@@ -51,7 +50,6 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
-import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -167,17 +165,6 @@ class AstAggregationBuilderTest {
             hasGroupByItems(),
             hasAggregators(
                 alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
-  }
-
-  @Test
-  void can_build_distinct_aggregator() {
-    assertThat(
-        buildAggregation("SELECT COUNT(DISTINCT name) FROM test group by age"),
-        allOf(
-            hasGroupByItems(alias("age", qualifiedName("age"))),
-            hasAggregators(
-                alias("COUNT(DISTINCT name)", distinctAggregate("COUNT", qualifiedName(
-                    "name"))))));
   }
 
   @Test

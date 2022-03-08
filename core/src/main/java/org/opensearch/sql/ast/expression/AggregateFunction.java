@@ -28,12 +28,9 @@ package org.opensearch.sql.ast.expression;
 
 import java.util.Collections;
 import java.util.List;
-import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
-import lombok.experimental.Accessors;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.common.utils.StringUtils;
 
@@ -48,10 +45,7 @@ public class AggregateFunction extends UnresolvedExpression {
   private final String funcName;
   private final UnresolvedExpression field;
   private final List<UnresolvedExpression> argList;
-  @Setter
-  @Accessors(fluent = true)
   private UnresolvedExpression condition;
-  private Boolean distinct = false;
 
   /**
    * Constructor.
@@ -68,13 +62,14 @@ public class AggregateFunction extends UnresolvedExpression {
    * Constructor.
    * @param funcName function name.
    * @param field {@link UnresolvedExpression}.
-   * @param distinct whether distinct field is specified or not.
+   * @param condition condition in aggregation filter.
    */
-  public AggregateFunction(String funcName, UnresolvedExpression field, Boolean distinct) {
+  public AggregateFunction(String funcName, UnresolvedExpression field,
+                           UnresolvedExpression condition) {
     this.funcName = funcName;
     this.field = field;
     this.argList = Collections.emptyList();
-    this.distinct = distinct;
+    this.condition = condition;
   }
 
   @Override

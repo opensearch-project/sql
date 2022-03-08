@@ -54,8 +54,8 @@ public class NamedAggregator extends Aggregator<AggregationState> {
 
   /**
    * NamedAggregator.
-   * The aggregator properties {@link #condition} and {@link #distinct}
-   * are inherited by named aggregator to avoid errors introduced by the property inconsistency.
+   * The aggregator properties {@link #condition} is inherited by named aggregator
+   * to avoid errors introduced by the property inconsistency.
    *
    * @param name name
    * @param delegated delegated
@@ -67,7 +67,6 @@ public class NamedAggregator extends Aggregator<AggregationState> {
     this.name = name;
     this.delegated = delegated;
     this.condition = delegated.condition;
-    this.distinct = delegated.distinct;
   }
 
   @Override

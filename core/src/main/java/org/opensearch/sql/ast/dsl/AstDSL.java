@@ -211,16 +211,7 @@ public class AstDSL {
 
   public static UnresolvedExpression filteredAggregate(
       String func, UnresolvedExpression field, UnresolvedExpression condition) {
-    return new AggregateFunction(func, field).condition(condition);
-  }
-
-  public static UnresolvedExpression distinctAggregate(String func, UnresolvedExpression field) {
-    return new AggregateFunction(func, field, true);
-  }
-
-  public static UnresolvedExpression filteredDistinctCount(
-      String func, UnresolvedExpression field, UnresolvedExpression condition) {
-    return new AggregateFunction(func, field, true).condition(condition);
+    return new AggregateFunction(func, field, condition);
   }
 
   public static Function function(String funcName, UnresolvedExpression... funcArgs) {

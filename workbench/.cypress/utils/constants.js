@@ -26,17 +26,6 @@
 
 export const delay = 1000;
 
-export const testDataSet = [
-  {
-    url: 'https://raw.githubusercontent.com/opensearch-project/sql/main/integ-test/src/test/resources/accounts.json',
-    index: 'accounts',
-  },
-  {
-    url: 'https://raw.githubusercontent.com/opensearch-project/sql/main/integ-test/src/test/resources/employee_nested.json',
-    index: 'employee_nested'
-  }
-]
-
 export const verifyDownloadData = [
   {
     title: 'Download and verify JSON',

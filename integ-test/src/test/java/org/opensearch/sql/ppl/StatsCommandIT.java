@@ -78,19 +78,6 @@ public class StatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testStatsDistinctCount() throws IOException {
-    JSONObject response =
-        executeQuery(String.format("source=%s | stats distinct_count(gender)", TEST_INDEX_ACCOUNT));
-    verifySchema(response, schema("distinct_count(gender)", null, "integer"));
-    verifyDataRows(response, rows(2));
-
-    response =
-        executeQuery(String.format("source=%s | stats dc(age)", TEST_INDEX_ACCOUNT));
-    verifySchema(response, schema("dc(age)", null, "integer"));
-    verifyDataRows(response, rows(21));
-  }
-
-  @Test
   public void testStatsMin() throws IOException {
     JSONObject response = executeQuery(String.format(
         "source=%s | stats min(age)",

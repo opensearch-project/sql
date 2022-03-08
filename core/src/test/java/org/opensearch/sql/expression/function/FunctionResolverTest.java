@@ -70,7 +70,7 @@ class FunctionResolverTest {
     FunctionResolver resolver = new FunctionResolver(functionName,
         ImmutableMap.of(exactlyMatchFS, exactlyMatchBuilder));
 
-    assertEquals(exactlyMatchBuilder, resolver.resolve(functionSignature).getValue());
+    assertEquals(exactlyMatchBuilder, resolver.resolve(functionSignature));
   }
 
   @Test
@@ -80,7 +80,7 @@ class FunctionResolverTest {
     FunctionResolver resolver = new FunctionResolver(functionName,
         ImmutableMap.of(bestMatchFS, bestMatchBuilder, leastMatchFS, leastMatchBuilder));
 
-    assertEquals(bestMatchBuilder, resolver.resolve(functionSignature).getValue());
+    assertEquals(bestMatchBuilder, resolver.resolve(functionSignature));
   }
 
   @Test

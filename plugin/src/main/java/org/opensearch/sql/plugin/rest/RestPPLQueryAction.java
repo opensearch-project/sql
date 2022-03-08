@@ -97,6 +97,8 @@ public class RestPPLQueryAction extends BaseRestHandler {
 
   private final Supplier<Boolean> pplEnabled;
 
+  private PPLQueryRequest pplRequest;
+
   /**
    * Constructor of RestPPLQueryAction.
    */
@@ -153,12 +155,12 @@ public class RestPPLQueryAction extends BaseRestHandler {
     }
 
     PPLService pplService = createPPLService(nodeClient);
-    PPLQueryRequest pplRequest = PPLQueryRequestFactory.getPPLRequest(request);
+    pplRequest = PPLQueryRequestFactory.getPPLRequest(request);
 
     if (pplRequest.isExplainRequest()) {
       return channel -> pplService.explain(pplRequest, createExplainResponseListener(channel));
     }
-    return channel -> pplService.execute(pplRequest, createListener(channel, pplRequest));
+    return channel -> pplService.execute(pplRequest, createListener(channel));
   }
 
   /**
@@ -213,8 +215,7 @@ public class RestPPLQueryAction extends BaseRestHandler {
     };
   }
 
-  private ResponseListener<QueryResponse> createListener(RestChannel channel,
-                                                         PPLQueryRequest pplRequest) {
+  private ResponseListener<QueryResponse> createListener(RestChannel channel) {
     Format format = pplRequest.format();
     ResponseFormatter<QueryResult> formatter;
     if (format.equals(Format.CSV)) {
