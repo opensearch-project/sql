@@ -1,29 +1,3 @@
-/*
- * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
- */
-
-/*
- * Copyright <2019> Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License").
- * You may not use this file except in compliance with the License.
- * A copy of the License is located at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * or in the "license" file accompanying this file. This file is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- * express or implied. See the License for the specific language governing
- * permissions and limitations under the License.
- *
- */
 #include "opensearch_info.h"
 
 #include <stdio.h>
@@ -93,7 +67,7 @@ const std::unordered_map< int, std::vector< int > > sql_opensearch_type_map = {
     {SQL_WVARCHAR,
      {OPENSEARCH_TYPE_KEYWORD, OPENSEARCH_TYPE_TEXT, OPENSEARCH_TYPE_NESTED,
       OPENSEARCH_TYPE_OBJECT}},
-    {SQL_TYPE_TIMESTAMP, {OPENSEARCH_TYPE_DATETIME}}};
+    {SQL_TYPE_TIMESTAMP, {OPENSEARCH_TYPE_DATETIME, OPENSEARCH_TYPE_TIMESTAMP}}};
 
 const std::unordered_map< std::string, int > data_name_data_type_map = {
     {OPENSEARCH_TYPE_NAME_BOOLEAN, SQL_BIT},
@@ -108,6 +82,7 @@ const std::unordered_map< std::string, int > data_name_data_type_map = {
     {OPENSEARCH_TYPE_NAME_KEYWORD, SQL_WVARCHAR},
     {OPENSEARCH_TYPE_NAME_TEXT, SQL_WVARCHAR},
     {OPENSEARCH_TYPE_NAME_DATE, SQL_TYPE_TIMESTAMP},
+    {OPENSEARCH_TYPE_NAME_TIMESTAMP, SQL_TYPE_TIMESTAMP},
     {OPENSEARCH_TYPE_NAME_OBJECT, SQL_WVARCHAR},
     {OPENSEARCH_TYPE_NAME_NESTED, SQL_WVARCHAR}};
 

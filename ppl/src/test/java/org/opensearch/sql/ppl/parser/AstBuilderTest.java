@@ -1,28 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *   Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *   Licensed under the Apache License, Version 2.0 (the "License").
- *   You may not use this file except in compliance with the License.
- *   A copy of the License is located at
- *
- *       http://www.apache.org/licenses/LICENSE-2.0
- *
- *   or in the "license" file accompanying this file. This file is distributed
- *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *   express or implied. See the License for the specific language governing
- *   permissions and limitations under the License.
- */
 
 package org.opensearch.sql.ppl.parser;
 
@@ -49,12 +29,14 @@ import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.let;
 import static org.opensearch.sql.ast.dsl.AstDSL.map;
 import static org.opensearch.sql.ast.dsl.AstDSL.nullLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.parse;
 import static org.opensearch.sql.ast.dsl.AstDSL.projectWithArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.rareTopN;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.ast.dsl.AstDSL.rename;
 import static org.opensearch.sql.ast.dsl.AstDSL.sort;
+import static org.opensearch.sql.ast.dsl.AstDSL.span;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 
 import org.junit.Ignore;
@@ -62,6 +44,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.opensearch.sql.ast.Node;
+import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 
@@ -287,6 +270,96 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testStatsCommandWithSpan() {
+    assertEqual("source=t | stats avg(price) by span(timestamp, 1h)",
+        agg(
+            relation("t"),
+            exprList(
+                alias("avg(price)", aggregate("avg", field("price")))
+            ),
+            emptyList(),
+            emptyList(),
+            alias("span(timestamp,1h)", span(field("timestamp"), intLiteral(1), SpanUnit.H)),
+            defaultStatsArgs()
+        ));
+
+    assertEqual("source=t | stats count(a) by span(age, 10)",
+        agg(
+            relation("t"),
+            exprList(
+                alias("count(a)", aggregate("count", field("a")))
+            ),
+            emptyList(),
+            emptyList(),
+            alias("span(age,10)", span(field("age"), intLiteral(10), SpanUnit.NONE)),
+            defaultStatsArgs()
+        ));
+
+    assertEqual("source=t | stats avg(price) by span(timestamp, 1h), b",
+        agg(
+            relation("t"),
+            exprList(
+                alias("avg(price)", aggregate("avg", field("price")))
+            ),
+            emptyList(),
+            exprList(alias("b", field("b"))),
+            alias("span(timestamp,1h)", span(field("timestamp"), intLiteral(1), SpanUnit.H)),
+            defaultStatsArgs()
+        ));
+
+    assertEqual("source=t | stats avg(price) by span(timestamp, 1h), f1, f2",
+        agg(
+            relation("t"),
+            exprList(
+                alias("avg(price)", aggregate("avg", field("price")))
+            ),
+            emptyList(),
+            exprList(alias("f1", field("f1")), alias("f2", field("f2"))),
+            alias("span(timestamp,1h)", span(field("timestamp"), intLiteral(1), SpanUnit.H)),
+            defaultStatsArgs()
+        ));
+  }
+
+  @Test(expected = org.opensearch.sql.common.antlr.SyntaxCheckException.class)
+  public void throwExceptionIfSpanInGroupByList() {
+    plan("source=t | stats avg(price) by f1, f2, span(timestamp, 1h)");
+  }
+
+  @Test(expected = org.opensearch.sql.common.antlr.SyntaxCheckException.class)
+  public void throwExceptionWithEmptyGroupByList() {
+    plan("source=t | stats avg(price) by)");
+  }
+
+  @Test
+  public void testStatsSpanWithAlias() {
+    assertEqual("source=t | stats avg(price) by span(timestamp, 1h) as time_span",
+        agg(
+            relation("t"),
+            exprList(
+                alias("avg(price)", aggregate("avg", field("price")))
+            ),
+            emptyList(),
+            emptyList(),
+            alias("span(timestamp,1h)", span(
+                field("timestamp"), intLiteral(1), SpanUnit.H), "time_span"),
+            defaultStatsArgs()
+        ));
+
+    assertEqual("source=t | stats count(a) by span(age, 10) as numeric_span",
+        agg(
+            relation("t"),
+            exprList(
+                alias("count(a)", aggregate("count", field("a")))
+            ),
+            emptyList(),
+            emptyList(),
+            alias("span(age,10)", span(
+                field("age"), intLiteral(10), SpanUnit.NONE), "numeric_span"),
+            defaultStatsArgs()
+        ));
+  }
+
+  @Test
   public void testDedupCommand() {
     assertEqual("source=t | dedup f1, f2",
         dedupe(
@@ -489,6 +562,16 @@ public class AstBuilderTest {
             exprList(field("c")),
             field("a"),
             field("b")
+        ));
+  }
+
+  @Test
+  public void testParseCommand() {
+    assertEqual("source=t | parse raw \"pattern\"",
+        parse(
+            relation("t"),
+            field("raw"),
+            stringLiteral("pattern")
         ));
   }
 

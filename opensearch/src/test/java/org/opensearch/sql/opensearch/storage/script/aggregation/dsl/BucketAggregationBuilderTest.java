@@ -1,36 +1,16 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *
- *    Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *    Licensed under the Apache License, Version 2.0 (the "License").
- *    You may not use this file except in compliance with the License.
- *    A copy of the License is located at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    or in the "license" file accompanying this file. This file is distributed
- *    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *    express or implied. See the License for the specific language governing
- *    permissions and limitations under the License.
- *
- */
 
 package org.opensearch.sql.opensearch.storage.script.aggregation.dsl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.when;
 import static org.opensearch.common.xcontent.ToXContent.EMPTY_PARAMS;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.expression.DSL.ref;
 import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
@@ -38,7 +18,7 @@ import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEA
 import java.util.Arrays;
 import java.util.List;
 import lombok.SneakyThrows;
-import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -51,8 +31,11 @@ import org.opensearch.common.xcontent.XContentBuilder;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
+import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
 import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.ParseExpression;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -76,6 +59,7 @@ class BucketAggregationBuilderTest {
             + "  \"terms\" : {\n"
             + "    \"field\" : \"age\",\n"
             + "    \"missing_bucket\" : true,\n"
+            + "    \"missing_order\" : \"first\",\n"
             + "    \"order\" : \"asc\"\n"
             + "  }\n"
             + "}",
@@ -91,6 +75,7 @@ class BucketAggregationBuilderTest {
             + "  \"terms\" : {\n"
             + "    \"field\" : \"name.keyword\",\n"
             + "    \"missing_bucket\" : true,\n"
+            + "    \"missing_order\" : \"first\",\n"
             + "    \"order\" : \"asc\"\n"
             + "  }\n"
             + "}",
@@ -99,8 +84,31 @@ class BucketAggregationBuilderTest {
                 asc(named("name", ref("name", OPENSEARCH_TEXT_KEYWORD))))));
   }
 
+  @Test
+  void should_build_bucket_with_parse_expression() {
+    ParseExpression parseExpression =
+        DSL.parsed(ref("name.keyword", STRING), DSL.literal("(?<name>\\w+)"), DSL.literal("name"));
+    when(serializer.serialize(parseExpression)).thenReturn("mock-serialize");
+    assertEquals(
+        "{\n"
+            + "  \"terms\" : {\n"
+            + "    \"script\" : {\n"
+            + "      \"source\" : \"mock-serialize\",\n"
+            + "      \"lang\" : \"opensearch_query_expression\"\n"
+            + "    },\n"
+            + "    \"missing_bucket\" : true,\n"
+            + "    \"missing_order\" : \"first\",\n"
+            + "    \"order\" : \"asc\"\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            Arrays.asList(
+                asc(named("name", parseExpression)))));
+  }
+
   @SneakyThrows
-  private String buildQuery(List<Pair<NamedExpression, SortOrder>> groupByExpressions) {
+  private String buildQuery(
+      List<Triple<NamedExpression, SortOrder, MissingOrder>> groupByExpressions) {
     XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON).prettyPrint();
     builder.startObject();
     CompositeValuesSourceBuilder<?> sourceBuilder =
@@ -110,7 +118,7 @@ class BucketAggregationBuilderTest {
     return BytesReference.bytes(builder).utf8ToString();
   }
 
-  private Pair<NamedExpression, SortOrder> asc(NamedExpression expression) {
-    return Pair.of(expression, SortOrder.ASC);
+  private Triple<NamedExpression, SortOrder, MissingOrder> asc(NamedExpression expression) {
+    return Triple.of(expression, SortOrder.ASC, MissingOrder.FIRST);
   }
 }

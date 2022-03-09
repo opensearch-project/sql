@@ -1,12 +1,6 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
 /*
@@ -38,9 +32,9 @@ dependencies {
     compile project(':core')
     compile group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
     compile "io.github.resilience4j:resilience4j-retry:1.5.0"
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.10.5' 
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.4'
-    compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: '2.11.4'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.12.6' 
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.12.6'
+    compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: '2.12.6'
     compile group: 'org.json', name: 'json', version:'20180813'
     compileOnly group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
 

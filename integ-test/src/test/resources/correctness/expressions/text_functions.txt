@@ -1,5 +1,11 @@
 RIGHT('Hello World', 5) as column
+RIGHT('Hello World', 20) as column
+RIGHT('Hello World', 0) as column
+RIGHT('', 5) as column
 LEFT('Hello World', 5) as column
+LEFT('Hello World', 20) as column
+LEFT('Hello World', 0) as column
+LEFT('', 5) as column
 ASCII('hello') as column
 LOCATE('world', 'helloworld') as column
 LOCATE('world', 'hello') as column

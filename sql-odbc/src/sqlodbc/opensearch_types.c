@@ -1,30 +1,3 @@
-/*
- * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
- */
-
-/*
- * Copyright <2019> Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License").
- * You may not use this file except in compliance with the License.
- * A copy of the License is located at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * or in the "license" file accompanying this file. This file is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- * express or implied. See the License for the specific language governing
- * permissions and limitations under the License.
- *
- */
-
 #include "opensearch_types.h"
 
 #include "dlg_specific.h"
@@ -515,6 +488,8 @@ const char *opensearchtype_attr_to_name(const ConnectionClass *conn, OID type,
             return OPENSEARCH_TYPE_NAME_NESTED;
         case OPENSEARCH_TYPE_DATETIME:
             return OPENSEARCH_TYPE_NAME_DATE;
+        case OPENSEARCH_TYPE_TIMESTAMP:
+            return OPENSEARCH_TYPE_NAME_TIMESTAMP;
         case OPENSEARCH_TYPE_OBJECT:
             return OPENSEARCH_TYPE_NAME_OBJECT;
         case OPENSEARCH_TYPE_VARCHAR:
@@ -554,6 +529,8 @@ opensearchtype_attr_column_size(const ConnectionClass *conn, OID type, int attty
         case OPENSEARCH_TYPE_NESTED:
             return 0;
         case OPENSEARCH_TYPE_DATETIME:
+            return 24;
+        case OPENSEARCH_TYPE_TIMESTAMP:
             return 24;
         case OPENSEARCH_TYPE_OBJECT:
             return 0;
@@ -1011,7 +988,7 @@ OID sqltype_to_opensearchtype(const ConnectionClass *conn, SQLSMALLINT fSqlType)
 
         case SQL_TIMESTAMP:
         case SQL_TYPE_TIMESTAMP:
-            openSearchType = OPENSEARCH_TYPE_DATETIME;
+            openSearchType = OPENSEARCH_TYPE_TIMESTAMP;
             break;
 
         case SQL_VARBINARY:
@@ -1332,6 +1309,7 @@ Int2 opensearchtype_unsigned(const ConnectionClass *conn, OID type) {
         case OPENSEARCH_TYPE_TEXT:
         case OPENSEARCH_TYPE_NESTED:
         case OPENSEARCH_TYPE_DATETIME:
+        case OPENSEARCH_TYPE_TIMESTAMP:
         case OPENSEARCH_TYPE_OBJECT:
             return SQL_TRUE;
 

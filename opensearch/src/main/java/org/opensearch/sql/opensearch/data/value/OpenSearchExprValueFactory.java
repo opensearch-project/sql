@@ -1,30 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *
- *    Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *    Licensed under the Apache License, Version 2.0 (the "License").
- *    You may not use this file except in compliance with the License.
- *    A copy of the License is located at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    or in the "license" file accompanying this file. This file is distributed
- *    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *    express or implied. See the License for the specific language governing
- *    permissions and limitations under the License.
- *
- */
 
 package org.opensearch.sql.opensearch.data.value;
 
@@ -62,6 +40,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import lombok.Getter;
 import lombok.Setter;
@@ -152,7 +131,7 @@ public class OpenSearchExprValueFactory {
   public ExprValue construct(String jsonString) {
     try {
       return parse(new OpenSearchJsonContent(OBJECT_MAPPER.readTree(jsonString)), TOP_PATH,
-          STRUCT);
+          Optional.of(STRUCT));
     } catch (JsonProcessingException e) {
       throw new IllegalStateException(String.format("invalid json: %s.", jsonString), e);
     }
@@ -171,11 +150,12 @@ public class OpenSearchExprValueFactory {
     return parse(new ObjectContent(value), field, type(field));
   }
 
-  private ExprValue parse(Content content, String field, ExprType type) {
-    if (content.isNull()) {
+  private ExprValue parse(Content content, String field, Optional<ExprType> fieldType) {
+    if (content.isNull() || !fieldType.isPresent()) {
       return ExprNullValue.of();
     }
 
+    ExprType type = fieldType.get();
     if (type == STRUCT) {
       return parseStruct(content, field);
     } else if (type == ARRAY) {
@@ -191,17 +171,19 @@ public class OpenSearchExprValueFactory {
     }
   }
 
-  private ExprType type(String field) {
-    if (typeMapping.containsKey(field)) {
-      return typeMapping.get(field);
-    } else {
-      throw new IllegalStateException(String.format("No type found for field: %s.", field));
-    }
+  /**
+   * In OpenSearch, it is possible field doesn't have type definition in mapping.
+   * but has empty value. For example, {"empty_field": []}.
+   */
+  private Optional<ExprType> type(String field) {
+    return Optional.ofNullable(typeMapping.get(field));
   }
 
   /**
-   * Only default strict_date_optional_time||epoch_millis is supported.
+   * Only default strict_date_optional_time||epoch_millis is supported,
+   * strict_date_optional_time_nanos||epoch_millis if field is date_nanos.
    * https://www.elastic.co/guide/en/elasticsearch/reference/current/date.html
+   * https://www.elastic.co/guide/en/elasticsearch/reference/current/date_nanos.html
    * The customized date_format is not supported.
    */
   private ExprValue constructTimestamp(String value) {
@@ -243,7 +225,7 @@ public class OpenSearchExprValueFactory {
    */
   private ExprValue parseArray(Content content, String prefix) {
     List<ExprValue> result = new ArrayList<>();
-    content.array().forEachRemaining(v -> result.add(parse(v, prefix, STRUCT)));
+    content.array().forEachRemaining(v -> result.add(parse(v, prefix, Optional.of(STRUCT))));
     return new ExprCollectionValue(result);
   }
 

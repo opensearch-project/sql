@@ -1,28 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *   Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *   Licensed under the Apache License, Version 2.0 (the "License").
- *   You may not use this file except in compliance with the License.
- *   A copy of the License is located at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *   or in the "license" file accompanying this file. This file is distributed
- *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *   express or implied. See the License for the specific language governing
- *   permissions and limitations under the License.
- */
 
 package org.opensearch.sql.analysis;
 
@@ -57,6 +37,7 @@ import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Limit;
+import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
@@ -67,11 +48,13 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.data.model.ExprMissingValue;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.ParseExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
@@ -90,6 +73,7 @@ import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.planner.logical.LogicalValues;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
+import org.opensearch.sql.utils.ParseUtils;
 
 /**
  * Analyze the {@link UnresolvedPlan} in the {@link AnalysisContext} to construct the {@link
@@ -205,14 +189,19 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       aggregatorBuilder
           .add(new NamedAggregator(aggExpr.getNameOrAlias(), (Aggregator) aggExpr.getDelegated()));
     }
-    ImmutableList<NamedAggregator> aggregators = aggregatorBuilder.build();
 
     ImmutableList.Builder<NamedExpression> groupbyBuilder = new ImmutableList.Builder<>();
+    // Span should be first expression if exist.
+    if (node.getSpan() != null) {
+      groupbyBuilder.add(namedExpressionAnalyzer.analyze(node.getSpan(), context));
+    }
+
     for (UnresolvedExpression expr : node.getGroupExprList()) {
       groupbyBuilder.add(namedExpressionAnalyzer.analyze(expr, context));
     }
     ImmutableList<NamedExpression> groupBys = groupbyBuilder.build();
 
+    ImmutableList<NamedAggregator> aggregators = aggregatorBuilder.build();
     // new context
     context.push();
     TypeEnvironment newEnv = context.peek();
@@ -301,7 +290,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     TypeEnvironment newEnv = context.peek();
     namedExpressions.forEach(expr -> newEnv.define(new Symbol(Namespace.FIELD_NAME,
         expr.getNameOrAlias()), expr.type()));
-    return new LogicalProject(child, namedExpressions);
+    List<NamedExpression> namedParseExpressions = context.getNamedParseExpressions();
+    return new LogicalProject(child, namedExpressions, namedParseExpressions);
   }
 
   /**
@@ -321,6 +311,25 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       typeEnvironment.define(ref);
     }
     return new LogicalEval(child, expressionsBuilder.build());
+  }
+
+  /**
+   * Build {@link ParseExpression} to context and skip to child nodes.
+   */
+  @Override
+  public LogicalPlan visitParse(Parse node, AnalysisContext context) {
+    LogicalPlan child = node.getChild().get(0).accept(this, context);
+    Expression expression = expressionAnalyzer.analyze(node.getExpression(), context);
+    String pattern = (String) node.getPattern().getValue();
+    Expression patternExpression = DSL.literal(pattern);
+
+    TypeEnvironment curEnv = context.peek();
+    ParseUtils.getNamedGroupCandidates(pattern).forEach(group -> {
+      curEnv.define(new Symbol(Namespace.FIELD_NAME, group), ExprCoreType.STRING);
+      context.getNamedParseExpressions().add(new NamedExpression(group,
+          new ParseExpression(expression, patternExpression, DSL.literal(group))));
+    });
+    return child;
   }
 
   /**

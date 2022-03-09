@@ -1,53 +1,24 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *   Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *   Licensed under the Apache License, Version 2.0 (the "License").
- *   You may not use this file except in compliance with the License.
- *   A copy of the License is located at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *   or in the "license" file accompanying this file. This file is distributed
- *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *   express or implied. See the License for the specific language governing
- *   permissions and limitations under the License.
- */
 
 package org.opensearch.sql.planner.physical;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
-import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.ToString;
-import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedExpression;
-import org.opensearch.sql.expression.aggregation.AggregationState;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.expression.span.SpanExpression;
+import org.opensearch.sql.planner.physical.collector.Collector;
 import org.opensearch.sql.storage.bindingtuple.BindingTuple;
 
 /**
@@ -63,8 +34,13 @@ public class AggregationOperator extends PhysicalPlan {
   private final List<NamedAggregator> aggregatorList;
   @Getter
   private final List<NamedExpression> groupByExprList;
+  @Getter
+  private final NamedExpression span;
+  /**
+   * {@link BindingTuple} Collector.
+   */
   @EqualsAndHashCode.Exclude
-  private final Group group;
+  private final Collector collector;
   @EqualsAndHashCode.Exclude
   private Iterator<ExprValue> iterator;
 
@@ -79,8 +55,14 @@ public class AggregationOperator extends PhysicalPlan {
                              List<NamedExpression> groupByExprList) {
     this.input = input;
     this.aggregatorList = aggregatorList;
-    this.groupByExprList = groupByExprList;
-    this.group = new Group();
+    if (hasSpan(groupByExprList)) {
+      this.span = groupByExprList.get(0);
+      this.groupByExprList = groupByExprList.subList(1, groupByExprList.size());
+    } else {
+      this.span = null;
+      this.groupByExprList = groupByExprList;
+    }
+    this.collector = Collector.Builder.build(this.span, this.groupByExprList, this.aggregatorList);
   }
 
   @Override
@@ -108,84 +90,13 @@ public class AggregationOperator extends PhysicalPlan {
   public void open() {
     super.open();
     while (input.hasNext()) {
-      group.push(input.next());
+      collector.collect(input.next().bindingTuples());
     }
-    iterator = group.result().iterator();
+    iterator = collector.results().iterator();
   }
 
-  @VisibleForTesting
-  @RequiredArgsConstructor
-  public class Group {
-
-    private final Map<GroupKey, List<Map.Entry<NamedAggregator, AggregationState>>> groupListMap =
-        new HashMap<>();
-
-    /**
-     * Push the BindingTuple to Group. Two functions will be applied to each BindingTuple to
-     * generate the {@link GroupKey} and {@link AggregationState}
-     * Key = GroupKey(bindingTuple), State = Aggregator(bindingTuple)
-     */
-    public void push(ExprValue inputValue) {
-      GroupKey groupKey = new GroupKey(inputValue);
-      groupListMap.computeIfAbsent(groupKey, k ->
-          aggregatorList.stream()
-              .map(aggregator -> new AbstractMap.SimpleEntry<>(aggregator,
-                  aggregator.create()))
-              .collect(Collectors.toList())
-      );
-      groupListMap.computeIfPresent(groupKey, (key, aggregatorList) -> {
-        aggregatorList
-            .forEach(entry -> entry.getKey().iterate(inputValue.bindingTuples(), entry.getValue()));
-        return aggregatorList;
-      });
-    }
-
-    /**
-     * Get the list of {@link BindingTuple} for each group.
-     */
-    public List<ExprValue> result() {
-      ImmutableList.Builder<ExprValue> resultBuilder = new ImmutableList.Builder<>();
-      for (Map.Entry<GroupKey, List<Map.Entry<NamedAggregator, AggregationState>>>
-          entry : groupListMap.entrySet()) {
-        LinkedHashMap<String, ExprValue> map = new LinkedHashMap<>();
-        map.putAll(entry.getKey().groupKeyMap());
-        for (Map.Entry<NamedAggregator, AggregationState> stateEntry : entry.getValue()) {
-          map.put(stateEntry.getKey().getName(), stateEntry.getValue().result());
-        }
-        resultBuilder.add(ExprTupleValue.fromExprValueMap(map));
-      }
-      return resultBuilder.build();
-    }
-  }
-
-  /**
-   * Group Key.
-   */
-  @EqualsAndHashCode
-  @VisibleForTesting
-  public class GroupKey {
-
-    private final List<ExprValue> groupByValueList;
-
-    /**
-     * GroupKey constructor.
-     */
-    public GroupKey(ExprValue value) {
-      this.groupByValueList = new ArrayList<>();
-      for (Expression groupExpr : groupByExprList) {
-        this.groupByValueList.add(groupExpr.valueOf(value.bindingTuples()));
-      }
-    }
-
-    /**
-     * Return the Map of group field and group field value.
-     */
-    public LinkedHashMap<String, ExprValue> groupKeyMap() {
-      LinkedHashMap<String, ExprValue> map = new LinkedHashMap<>();
-      for (int i = 0; i < groupByExprList.size(); i++) {
-        map.put(groupByExprList.get(i).getNameOrAlias(), groupByValueList.get(i));
-      }
-      return map;
-    }
+  private boolean hasSpan(List<NamedExpression> namedExpressionList) {
+    return !namedExpressionList.isEmpty()
+        && namedExpressionList.get(0).getDelegated() instanceof SpanExpression;
   }
 }

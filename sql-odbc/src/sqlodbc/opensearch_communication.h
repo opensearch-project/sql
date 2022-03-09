@@ -1,30 +1,3 @@
-/*
- * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
- */
-
-/*
- * Copyright <2019> Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License").
- * You may not use this file except in compliance with the License.
- * A copy of the License is located at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * or in the "license" file accompanying this file. This file is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- * express or implied. See the License for the specific language governing
- * permissions and limitations under the License.
- *
- */
-
 #ifndef OPENSEARCH_COMMUNICATION
 #define OPENSEARCH_COMMUNICATION
 
@@ -78,6 +51,7 @@ class OpenSearchCommunication {
     static bool IsSQLPluginEnabled(std::shared_ptr< ErrorDetails > error_details);
     bool CheckSQLPluginAvailability();
     std::string GetServerVersion();
+    std::string GetServerDistribution();
     std::string GetClusterName();
     std::shared_ptr< Aws::Http::HttpResponse > IssueRequest(
         const std::string& endpoint, const Aws::Http::HttpMethod request_type,
@@ -90,6 +64,10 @@ class OpenSearchCommunication {
     void StopResultRetrieval();
     std::vector< std::string > GetColumnsWithSelectQuery(
         const std::string table_name);
+    void SetSqlEndpoint();
+
+    // the endpoint is set according to distribution (ES/OpenSearch)
+    std::string sql_endpoint;
 
    private:
     void InitializeConnection();

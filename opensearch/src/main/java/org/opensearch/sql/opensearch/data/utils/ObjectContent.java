@@ -1,29 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *     Copyright 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *     Licensed under the Apache License, Version 2.0 (the "License").
- *     You may not use this file except in compliance with the License.
- *     A copy of the License is located at
- *
- *       http://www.apache.org/licenses/LICENSE-2.0
- *
- *     or in the "license" file accompanying this file. This file is distributed
- *     on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *     express or implied. See the License for the specific language governing
- *     permissions and limitations under the License.
- *
- */
 
 package org.opensearch.sql.opensearch.data.utils;
 
@@ -43,24 +22,28 @@ public class ObjectContent implements Content {
 
   private final Object value;
 
+  /**
+   * The parse method parses the value as double value,
+   * since the key values histogram buckets are defaulted to double.
+   */
   @Override
   public Integer intValue() {
-    return parseNumberValue(value, Integer::valueOf, Number::intValue);
+    return parseNumberValue(value, v -> Double.valueOf(v).intValue(), Number::intValue);
   }
 
   @Override
   public Long longValue() {
-    return parseNumberValue(value, Long::valueOf, Number::longValue);
+    return parseNumberValue(value, v -> Double.valueOf(v).longValue(), Number::longValue);
   }
 
   @Override
   public Short shortValue() {
-    return parseNumberValue(value, Short::valueOf, Number::shortValue);
+    return parseNumberValue(value, v -> Double.valueOf(v).shortValue(), Number::shortValue);
   }
 
   @Override
   public Byte byteValue() {
-    return parseNumberValue(value, Byte::valueOf, Number::byteValue);
+    return parseNumberValue(value, v -> Double.valueOf(v).byteValue(), Number::byteValue);
   }
 
   @Override
@@ -80,7 +63,13 @@ public class ObjectContent implements Content {
 
   @Override
   public Boolean booleanValue() {
-    return (Boolean) value;
+    if (value instanceof String) {
+      return Boolean.valueOf((String) value);
+    } else if (value instanceof Number) {
+      return ((Number) value).intValue() != 0;
+    } else {
+      return (Boolean) value;
+    }
   }
 
   @Override

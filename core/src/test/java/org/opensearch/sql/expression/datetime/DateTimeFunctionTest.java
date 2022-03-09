@@ -1,30 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *
- *    Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *    Licensed under the Apache License, Version 2.0 (the "License").
- *    You may not use this file except in compliance with the License.
- *    A copy of the License is located at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    or in the "license" file accompanying this file. This file is distributed
- *    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *    express or implied. See the License for the specific language governing
- *    permissions and limitations under the License.
- *
- */
 
 package org.opensearch.sql.expression.datetime;
 
@@ -145,7 +123,18 @@ class DateTimeFunctionTest extends ExpressionTestBase {
       new DateFormatTester("2008-12-31",
           ImmutableList.of("%v","%V","%u","%U"),
           ImmutableList.of("53","52","53","52")
-      )
+      ),
+      new DateFormatTester("1998-01-31 13:14:15.012345",
+          ImmutableList.of("%Y-%m-%dT%TZ"),
+          ImmutableList.of("1998-01-31T13:14:15Z")
+      ),
+      new DateFormatTester("1998-01-31 13:14:15.012345",
+          ImmutableList.of("%Y-%m-%da %T a"),
+          ImmutableList.of("1998-01-31PM 13:14:15 PM")
+      ),
+      new DateFormatTester("1998-01-31 13:14:15.012345",
+          ImmutableList.of("%Y-%m-%db %T b"),
+          ImmutableList.of("1998-01-31b 13:14:15 b"))
   );
 
   @AllArgsConstructor

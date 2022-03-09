@@ -1,28 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *   Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *   Licensed under the Apache License, Version 2.0 (the "License").
- *   You may not use this file except in compliance with the License.
- *   A copy of the License is located at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *   or in the "license" file accompanying this file. This file is distributed
- *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *   express or implied. See the License for the specific language governing
- *   permissions and limitations under the License.
- */
 
 package org.opensearch.sql.plugin.request;
 
@@ -33,6 +13,7 @@ import org.json.JSONObject;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.format.Format;
+import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 
 /**
  * Factory of {@link PPLQueryRequest}.
@@ -43,6 +24,7 @@ public class PPLQueryRequestFactory {
   private static final String QUERY_PARAMS_FORMAT = "format";
   private static final String QUERY_PARAMS_SANITIZE = "sanitize";
   private static final String DEFAULT_RESPONSE_FORMAT = "jdbc";
+  private static final String QUERY_PARAMS_PRETTY = "pretty";
 
   /**
    * Build {@link PPLQueryRequest} from {@link RestRequest}.
@@ -75,6 +57,7 @@ public class PPLQueryRequestFactory {
     String content = restRequest.content().utf8ToString();
     JSONObject jsonContent;
     Format format = getFormat(restRequest.params());
+    boolean pretty = getPrettyOption(restRequest.params());
     try {
       jsonContent = new JSONObject(content);
     } catch (JSONException e) {
@@ -85,6 +68,10 @@ public class PPLQueryRequestFactory {
     // set sanitize option if csv format
     if (format.equals(Format.CSV)) {
       pplRequest.sanitize(getSanitizeOption(restRequest.params()));
+    }
+    // set pretty option
+    if (pretty) {
+      pplRequest.style(JsonResponseFormatter.Style.PRETTY);
     }
     return pplRequest;
   }
@@ -108,5 +95,16 @@ public class PPLQueryRequestFactory {
       return Boolean.parseBoolean(requestParams.get(QUERY_PARAMS_SANITIZE));
     }
     return true;
+  }
+
+  private static boolean getPrettyOption(Map<String, String> requestParams) {
+    if (requestParams.containsKey(QUERY_PARAMS_PRETTY)) {
+      String prettyValue = requestParams.get(QUERY_PARAMS_PRETTY);
+      if (prettyValue.isEmpty()) {
+        return true;
+      }
+      return Boolean.parseBoolean(prettyValue);
+    }
+    return false;
   }
 }

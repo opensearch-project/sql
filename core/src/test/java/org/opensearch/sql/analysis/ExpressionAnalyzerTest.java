@@ -1,28 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *   Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *   Licensed under the Apache License, Version 2.0 (the "License").
- *   You may not use this file except in compliance with the License.
- *   A copy of the License is located at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *   or in the "license" file accompanying this file. This file is distributed
- *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *   express or implied. See the License for the specific language governing
- *   permissions and limitations under the License.
- */
 
 package org.opensearch.sql.analysis;
 
@@ -33,12 +13,16 @@ import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
+import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
+import static org.opensearch.sql.expression.DSL.ref;
 
+import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensearch.sql.analysis.symbol.Namespace;
@@ -46,7 +30,9 @@ import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -318,6 +304,61 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
     );
   }
 
+  @Test
+  public void named_argument() {
+    assertAnalyzeEqual(
+        dsl.namedArgument("arg_name", DSL.literal("query")),
+        AstDSL.unresolvedArg("arg_name", stringLiteral("query"))
+    );
+  }
+
+  @Test
+  public void named_parse_expression() {
+    analysisContext.push();
+    analysisContext.peek().define(new Symbol(Namespace.FIELD_NAME, "string_field"), STRING);
+    analysisContext.getNamedParseExpressions()
+        .add(DSL.named("group",
+            DSL.parsed(ref("string_field", STRING), DSL.literal("(?<group>\\d+)"),
+            DSL.literal("group"))));
+    assertAnalyzeEqual(
+        DSL.parsed(ref("string_field", STRING), DSL.literal("(?<group>\\d+)"),
+            DSL.literal("group")),
+        qualifiedName("group")
+    );
+  }
+
+  @Test
+  public void named_non_parse_expression() {
+    analysisContext.push();
+    analysisContext.peek().define(new Symbol(Namespace.FIELD_NAME, "string_field"), STRING);
+    analysisContext.getNamedParseExpressions()
+        .add(DSL.named("string_field", DSL.literal("123")));
+    assertAnalyzeEqual(DSL.ref("string_field", STRING), qualifiedName("string_field"));
+  }
+
+  @Test
+  void visit_span() {
+    assertAnalyzeEqual(
+        DSL.span(DSL.ref("integer_value", INTEGER), DSL.literal(1), ""),
+        AstDSL.span(qualifiedName("integer_value"), intLiteral(1), SpanUnit.NONE)
+    );
+  }
+
+  @Test
+  void visit_in() {
+    assertAnalyzeEqual(
+        dsl.or(
+            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(1)),
+            dsl.or(
+                dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(2)),
+                dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(3)))),
+        AstDSL.in(field("integer_value"), intLiteral(1), intLiteral(2), intLiteral(3)));
+
+    assertThrows(
+        SemanticCheckException.class,
+        () -> analyze(AstDSL.in(field("integer_value"), Collections.emptyList())));
+  }
+
   protected Expression analyze(UnresolvedExpression unresolvedExpression) {
     return expressionAnalyzer.analyze(unresolvedExpression, analysisContext);
   }
@@ -325,5 +366,10 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   protected void assertAnalyzeEqual(Expression expected,
                                     UnresolvedExpression unresolvedExpression) {
     assertEquals(expected, analyze(unresolvedExpression));
+  }
+
+  protected void assertAnalyzeEqual(Expression expected,
+                                    UnresolvedPlan unresolvedPlan) {
+    assertEquals(expected, analyze(unresolvedPlan));
   }
 }

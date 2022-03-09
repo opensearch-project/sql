@@ -128,7 +128,10 @@ Operators
 +----------------+----------------------------------------+
 | REGEXP         | String matches regular expression test |
 +----------------+----------------------------------------+
-
+| IN             | IN value list test                     |
++----------------+----------------------------------------+
+| NOT IN         | NOT IN value list test                 |
++----------------+----------------------------------------+
 
 Basic Comparison Operator
 -------------------------
@@ -182,6 +185,19 @@ expr REGEXP pattern. The expr is string value, pattern is supports regular expre
     |------------------------+------------------|
     | 1                      | 0                |
     +------------------------+------------------+
+
+IN value list test
+------------------
+
+Here is an example for IN value test::
+
+    os> SELECT 1 in (1, 2), 3 not in (1, 2);
+    fetched rows / total rows = 1/1
+    +---------------+-------------------+
+    | 1 in (1, 2)   | 3 not in (1, 2)   |
+    |---------------+-------------------|
+    | True          | True              |
+    +---------------+-------------------+
 
 Function Call
 =============

@@ -1,29 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *    Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *    Licensed under the Apache License, Version 2.0 (the "License").
- *    You may not use this file except in compliance with the License.
- *    A copy of the License is located at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *    or in the "license" file accompanying this file. This file is distributed
- *    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *    express or implied. See the License for the specific language governing
- *    permissions and limitations under the License.
- *
- */
 
 package org.opensearch.sql.opensearch.storage;
 
@@ -43,6 +22,7 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.planner.logical.OpenSearchLogicalIndexAgg;
 import org.opensearch.sql.opensearch.planner.logical.OpenSearchLogicalIndexScan;
 import org.opensearch.sql.opensearch.planner.logical.OpenSearchLogicalPlanOptimizerFactory;
+import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.system.OpenSearchDescribeIndexRequest;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.script.aggregation.AggregationQueryBuilder;
@@ -56,7 +36,6 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.Table;
 
 /** OpenSearch table (index) implementation. */
-@RequiredArgsConstructor
 public class OpenSearchIndex implements Table {
 
   /** OpenSearch client connection. */
@@ -64,13 +43,24 @@ public class OpenSearchIndex implements Table {
 
   private final Settings settings;
 
-  /** Current OpenSearch index name. */
-  private final String indexName;
+  /**
+   * {@link OpenSearchRequest.IndexName}.
+   */
+  private final OpenSearchRequest.IndexName indexName;
 
   /**
    * The cached mapping of field and type in index.
    */
   private Map<String, ExprType> cachedFieldTypes = null;
+
+  /**
+   * Constructor.
+   */
+  public OpenSearchIndex(OpenSearchClient client, Settings settings, String indexName) {
+    this.client = client;
+    this.settings = settings;
+    this.indexName = new OpenSearchRequest.IndexName(indexName);
+  }
 
   /*
    * TODO: Assume indexName doesn't have wildcard.

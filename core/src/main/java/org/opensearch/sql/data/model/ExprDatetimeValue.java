@@ -1,28 +1,8 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
-/*
- *   Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *   Licensed under the Apache License, Version 2.0 (the "License").
- *   You may not use this file except in compliance with the License.
- *   A copy of the License is located at
- *
- *       http://www.apache.org/licenses/LICENSE-2.0
- *
- *   or in the "license" file accompanying this file. This file is distributed
- *   on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- *   express or implied. See the License for the specific language governing
- *   permissions and limitations under the License.
- */
 
 package org.opensearch.sql.data.model;
 
@@ -47,15 +27,15 @@ import org.opensearch.sql.exception.SemanticCheckException;
 public class ExprDatetimeValue extends AbstractExprValue {
   private final LocalDateTime datetime;
 
-  private static final DateTimeFormatter FORMATTER_VARIABLE_MICROS;
+  private static final DateTimeFormatter FORMATTER_VARIABLE_NANOS;
   private static final int MIN_FRACTION_SECONDS = 0;
-  private static final int MAX_FRACTION_SECONDS = 6;
+  private static final int MAX_FRACTION_SECONDS = 9;
 
   static {
-    FORMATTER_VARIABLE_MICROS = new DateTimeFormatterBuilder()
+    FORMATTER_VARIABLE_NANOS = new DateTimeFormatterBuilder()
         .appendPattern("yyyy-MM-dd HH:mm:ss")
         .appendFraction(
-            ChronoField.MICRO_OF_SECOND,
+            ChronoField.NANO_OF_SECOND,
             MIN_FRACTION_SECONDS,
             MAX_FRACTION_SECONDS,
             true)
@@ -67,10 +47,10 @@ public class ExprDatetimeValue extends AbstractExprValue {
    */
   public ExprDatetimeValue(String datetime) {
     try {
-      this.datetime = LocalDateTime.parse(datetime, FORMATTER_VARIABLE_MICROS);
+      this.datetime = LocalDateTime.parse(datetime, FORMATTER_VARIABLE_NANOS);
     } catch (DateTimeParseException e) {
       throw new SemanticCheckException(String.format("datetime:%s in unsupported format, please "
-          + "use yyyy-MM-dd HH:mm:ss[.SSSSSS]", datetime));
+          + "use yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]", datetime));
     }
   }
 
