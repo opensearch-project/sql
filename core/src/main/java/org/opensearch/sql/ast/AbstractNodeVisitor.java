@@ -32,11 +32,13 @@ import org.opensearch.sql.ast.expression.UnresolvedAttribute;
 import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
+import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
@@ -237,6 +239,14 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitSpan(Span node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitKmeans(Kmeans node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitAD(AD node, C context) {
     return visitChildren(node, context);
   }
 }
