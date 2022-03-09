@@ -69,4 +69,12 @@ public abstract class LogicalPlanNodeVisitor<R, C> {
   public R visitLimit(LogicalLimit plan, C context) {
     return visitNode(plan, context);
   }
+
+  public R visitMLCommons(LogicalMLCommons plan, C context) {
+    return visitNode(plan, context);
+  }
+
+  public R visitAD(LogicalAD plan, C context) {
+    return visitNode(plan, context);
+  }
 }

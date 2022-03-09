@@ -147,6 +147,11 @@ public class OpenSearchNodeClient implements OpenSearchClient {
     );
   }
 
+  @Override
+  public NodeClient getNodeClient() {
+    return client;
+  }
+
   private String[] resolveIndexExpression(ClusterState state, String[] indices) {
     return resolver.concreteIndexNames(state, IndicesOptions.strictExpandOpen(), true, indices);
   }

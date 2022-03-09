@@ -267,6 +267,11 @@ class OpenSearchRestClientTest {
     assertThrows(IllegalStateException.class, () -> client.meta());
   }
 
+  @Test
+  void mlWithException() {
+    assertThrows(UnsupportedOperationException.class, () -> client.getNodeClient());
+  }
+
   private Map<String, MappingMetadata> mockFieldMappings(String indexName, String mappings)
       throws IOException {
     return ImmutableMap.of(indexName, IndexMetadata.fromXContent(createParser(mappings)).mapping());
