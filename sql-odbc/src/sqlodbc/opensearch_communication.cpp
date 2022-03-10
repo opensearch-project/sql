@@ -243,6 +243,9 @@ OpenSearchCommunication::OpenSearchCommunication()
 }
 
 OpenSearchCommunication::~OpenSearchCommunication() {
+    // Release the HTTP client instance to free its resources before releasing AWS SDK.
+    // Changing order of these actions would cause crash on disconnect.
+    m_http_client.reset();
     --AWS_SDK_HELPER;
 }
 
