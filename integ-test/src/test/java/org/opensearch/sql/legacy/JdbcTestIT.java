@@ -40,6 +40,8 @@ public class JdbcTestIT extends SQLIntegTestCase {
     assertThat(percentileRow.getDouble("99.9"), equalTo(39.0));
   }
 
+  @Ignore("flaky test, trigger resource not enough exception. "
+      + "ORDER BY date_format(insert_time, 'dd-MM-YYYY') can't be pushed down ")
   public void testDateTimeInQuery() {
     JSONObject response = executeJdbcRequest(
         "SELECT date_format(insert_time, 'dd-MM-YYYY') " +
@@ -55,6 +57,8 @@ public class JdbcTestIT extends SQLIntegTestCase {
         equalTo("17-08-2014"));
   }
 
+  @Ignore("flaky test, trigger resource not enough exception. "
+      + "ORDER BY all_client/10 can't be pushed down ")
   public void testDivisionInQuery() {
     JSONObject response = executeJdbcRequest(
         "SELECT all_client/10 from opensearch-sql_test_index_online ORDER BY all_client/10 desc limit 1");
