@@ -6,7 +6,11 @@
 
 package org.opensearch.sql.analysis;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import lombok.Getter;
+import org.opensearch.sql.expression.NamedExpression;
 
 /**
  * The context used for Analyzer.
@@ -16,13 +20,16 @@ public class AnalysisContext {
    * Environment stack for symbol scope management.
    */
   private TypeEnvironment environment;
+  @Getter
+  private final List<NamedExpression> namedParseExpressions;
 
   public AnalysisContext() {
-    this.environment = new TypeEnvironment(null);
+    this(new TypeEnvironment(null));
   }
 
   public AnalysisContext(TypeEnvironment environment) {
     this.environment = environment;
+    this.namedParseExpressions = new ArrayList<>();
   }
 
   /**

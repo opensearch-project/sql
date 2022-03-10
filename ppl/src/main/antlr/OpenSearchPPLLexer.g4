@@ -22,6 +22,9 @@ EVAL:                               'EVAL';
 HEAD:                               'HEAD';
 TOP:                                'TOP';
 RARE:                               'RARE';
+PARSE:                              'PARSE';
+KMEANS:                             'KMEANS';
+AD:                                 'AD';
 
 // COMMAND ASSIST KEYWORDS
 AS:                                 'AS';
@@ -47,6 +50,9 @@ DEDUP_SPLITVALUES:                  'DEDUP_SPLITVALUES';
 PARTITIONS:                         'PARTITIONS';
 ALLNUM:                             'ALLNUM';
 DELIM:                              'DELIM';
+SHINGLE_SIZE:                       'SHINGLE_SIZE';
+TIME_DECAY:                         'TIME_DECAY';
+TIME_FIELD:                         'TIME_FIELD';
 
 // COMPARISON FUNCTION KEYWORDS
 CASE:                               'CASE';

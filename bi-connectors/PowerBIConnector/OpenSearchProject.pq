@@ -1,5 +1,5 @@
 // This file contains Data Connector logic
-[Version = "1.0.0"]
+[Version = "1.0.1"]
 section OpenSearchProject;
 
 // When set to true, additional trace information will be written out to the User log. 
@@ -27,13 +27,18 @@ OpenSearchProjectType = type function (
             Documentation.FieldCaption = "Use SSL",
             Documentation.FieldDescription = "Use SSL",
             Documentation.AllowedValues = { true, false }
+        ]),
+        HostnameVerification as (type logical meta [
+            Documentation.FieldCaption = "Certificate validation",
+            Documentation.FieldDescription = "Certificate validation",
+            Documentation.AllowedValues = { true, false }
         ])
     )
     as table meta [
         Documentation.Name = "OpenSearch Project"
     ];
 
-OpenSearchProjectImpl = (Server as text, Port as number, UseSSL as logical) as table =>
+OpenSearchProjectImpl = (Server as text, Port as number, UseSSL as logical, HostnameVerification as logical) as table =>
     let
         Credential = Extension.CurrentCredential(),
         AuthenticationMode = Credential[AuthenticationKind],
@@ -76,7 +81,8 @@ OpenSearchProjectImpl = (Server as text, Port as number, UseSSL as logical) as t
 
         ConnectionString = [
             Driver = "OpenSearch SQL ODBC Driver",
-            Host = FinalServerString
+            Host = FinalServerString,
+            HostnameVerification = if HostnameVerification then 1 else 0
         ],
 
         SQLGetInfo = Diagnostics.LogValue("SQLGetInfo_Options", [
@@ -185,9 +191,10 @@ OpenSearchProject = [
             json = Json.Document(dataSourcePath),
             Server = json[Server],
             Port = json[Port],
-            UseSSL = json[UseSSL]
+            UseSSL = json[UseSSL],
+            HostnameVerification = json[HostnameVerification]
         in
-            { "OpenSearchProject.Contents", Server, Port, UseSSL },
+            { "OpenSearchProject.Contents", Server, Port, UseSSL, HostnameVerification },
 
     // Authentication modes
     Authentication = [
@@ -206,10 +213,10 @@ OpenSearchProject = [
     // PBIDS Handler
     DSRHandlers = [
       opensearchproject = [
-        GetDSR = (server, schema, object, optional options) => [ protocol = "opensearchproject-odbc", address = [ server = server, port = schema, useSSL = object ] ],
+        GetDSR = (Server, Port, UseSSL, HostnameVerification, optional Options) => [ protocol = "opensearchproject-odbc", address = [ server = Server, port = Port, useSSL = UseSSL, hostnameVerification = HostnameVerification ] ],
         GetFormula = (dsr, optional options) => () =>
           let
-            db = OpenSearchProject.Contents(dsr[address][server], dsr[address][port], dsr[address][useSSL])
+            db = OpenSearchProject.Contents(dsr[address][server], dsr[address][port], dsr[address][useSSL], dsr[address][hostnameVerification])
           in
             db,
         GetFriendlyName = (dsr) => "OpenSearch Project"
@@ -224,7 +231,7 @@ OpenSearchProject = [
 
 // Data Source UI publishing description
 OpenSearchProject.Publish = [
-    Beta = true,
+    Beta = false,
     Category = "Other",
     ButtonText = { Extension.LoadString("ButtonTitle"), Extension.LoadString("ButtonHelp") },
     LearnMoreUrl = "https://github.com/opensearch-project/sql/blob/main/bi-connectors/PowerBIConnector/docs/OpenSearchProject.md",

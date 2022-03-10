@@ -25,6 +25,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
+import org.opensearch.sql.expression.ParseExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
@@ -90,6 +91,12 @@ public class ExpressionScript {
       @Override
       public Object visitReference(ReferenceExpression node, Set<ReferenceExpression> context) {
         context.add(node);
+        return null;
+      }
+
+      @Override
+      public Object visitParse(ParseExpression node, Set<ReferenceExpression> context) {
+        node.getExpression().accept(this, context);
         return null;
       }
     }, fields);

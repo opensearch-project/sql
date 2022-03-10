@@ -79,6 +79,8 @@ class DateTimeFormatterUtil {
       .build();
 
   private static final Pattern pattern = Pattern.compile("%.");
+  private static final Pattern CHARACTERS_WITH_NO_MOD_LITERAL_BEHIND_PATTERN
+          = Pattern.compile("(?<!%)[a-zA-Z&&[^aydmshiHIMYDSEL]]+");
   private static final String MOD_LITERAL = "%";
 
   private DateTimeFormatterUtil() {
@@ -92,7 +94,15 @@ class DateTimeFormatterUtil {
    */
   static ExprValue getFormattedDate(ExprValue dateExpr, ExprValue formatExpr) {
     final LocalDateTime date = dateExpr.datetimeValue();
-    final Matcher matcher = pattern.matcher(formatExpr.stringValue());
+    final StringBuffer cleanFormat = new StringBuffer();
+    final Matcher m = CHARACTERS_WITH_NO_MOD_LITERAL_BEHIND_PATTERN
+            .matcher(formatExpr.stringValue());
+    while (m.find()) {
+      m.appendReplacement(cleanFormat,String.format("'%s'", m.group()));
+    }
+    m.appendTail(cleanFormat);
+
+    final Matcher matcher = pattern.matcher(cleanFormat.toString());
     final StringBuffer format = new StringBuffer();
     while (matcher.find()) {
       matcher.appendReplacement(format,

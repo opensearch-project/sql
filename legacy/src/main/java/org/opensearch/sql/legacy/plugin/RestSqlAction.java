@@ -35,6 +35,7 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.legacy.antlr.OpenSearchLegacySqlAnalyzer;
 import org.opensearch.sql.legacy.antlr.SqlAnalysisConfig;
@@ -244,7 +245,8 @@ public class RestSqlAction extends BaseRestHandler {
             || e instanceof VerificationException
             || e instanceof SqlAnalysisException
             || e instanceof SyntaxCheckException
-            || e instanceof SemanticCheckException;
+            || e instanceof SemanticCheckException
+            || e instanceof ExpressionEvaluationException;
     }
 
     private void sendResponse(final RestChannel channel, final String message, final RestStatus status) {

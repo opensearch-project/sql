@@ -13,8 +13,8 @@ import static org.opensearch.sql.config.TestConfig.BOOL_TYPE_MISSING_VALUE_FIELD
 import static org.opensearch.sql.config.TestConfig.BOOL_TYPE_NULL_VALUE_FIELD;
 import static org.opensearch.sql.config.TestConfig.INT_TYPE_MISSING_VALUE_FIELD;
 import static org.opensearch.sql.config.TestConfig.INT_TYPE_NULL_VALUE_FIELD;
-import static org.opensearch.sql.config.TestConfig.STRING_TYPE_MISSING_VALUE_FILED;
-import static org.opensearch.sql.config.TestConfig.STRING_TYPE_NULL_VALUE_FILED;
+import static org.opensearch.sql.config.TestConfig.STRING_TYPE_MISSING_VALUE_FIELD;
+import static org.opensearch.sql.config.TestConfig.STRING_TYPE_NULL_VALUE_FIELD;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_FALSE;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_MISSING;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
@@ -716,16 +716,16 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @Test
   public void test_like_null() {
     FunctionExpression like =
-        dsl.like(DSL.literal("str"), DSL.ref(STRING_TYPE_NULL_VALUE_FILED, STRING));
+        dsl.like(DSL.literal("str"), DSL.ref(STRING_TYPE_NULL_VALUE_FIELD, STRING));
     assertEquals(BOOLEAN, like.type());
     assertEquals(LITERAL_NULL, like.valueOf(valueEnv()));
 
-    like = dsl.like(DSL.ref(STRING_TYPE_NULL_VALUE_FILED, STRING), DSL.literal("str"));
+    like = dsl.like(DSL.ref(STRING_TYPE_NULL_VALUE_FIELD, STRING), DSL.literal("str"));
     assertEquals(BOOLEAN, like.type());
     assertEquals(LITERAL_NULL, like.valueOf(valueEnv()));
 
-    like = dsl.like(DSL.ref(STRING_TYPE_NULL_VALUE_FILED, STRING),
-        DSL.ref(STRING_TYPE_NULL_VALUE_FILED, STRING));
+    like = dsl.like(DSL.ref(STRING_TYPE_NULL_VALUE_FIELD, STRING),
+        DSL.ref(STRING_TYPE_NULL_VALUE_FIELD, STRING));
     assertEquals(BOOLEAN, like.type());
     assertEquals(LITERAL_NULL, like.valueOf(valueEnv()));
   }
@@ -733,29 +733,29 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @Test
   public void test_like_missing() {
     FunctionExpression like =
-        dsl.like(DSL.literal("str"), DSL.ref(STRING_TYPE_MISSING_VALUE_FILED, STRING));
+        dsl.like(DSL.literal("str"), DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING));
     assertEquals(BOOLEAN, like.type());
     assertEquals(LITERAL_MISSING, like.valueOf(valueEnv()));
 
-    like = dsl.like(DSL.ref(STRING_TYPE_MISSING_VALUE_FILED, STRING), DSL.literal("str"));
+    like = dsl.like(DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING), DSL.literal("str"));
     assertEquals(BOOLEAN, like.type());
     assertEquals(LITERAL_MISSING, like.valueOf(valueEnv()));
 
-    like = dsl.like(DSL.ref(STRING_TYPE_MISSING_VALUE_FILED, STRING),
-        DSL.ref(STRING_TYPE_MISSING_VALUE_FILED, STRING));
+    like = dsl.like(DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING),
+        DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING));
     assertEquals(BOOLEAN, like.type());
     assertEquals(LITERAL_MISSING, like.valueOf(valueEnv()));
   }
 
   @Test
   public void test_null_like_missing() {
-    FunctionExpression like = dsl.like(DSL.ref(STRING_TYPE_NULL_VALUE_FILED, STRING),
-        DSL.ref(STRING_TYPE_MISSING_VALUE_FILED, STRING));
+    FunctionExpression like = dsl.like(DSL.ref(STRING_TYPE_NULL_VALUE_FIELD, STRING),
+        DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING));
     assertEquals(BOOLEAN, like.type());
     assertEquals(LITERAL_MISSING, like.valueOf(valueEnv()));
 
-    like = dsl.like(DSL.ref(STRING_TYPE_MISSING_VALUE_FILED, STRING),
-        DSL.ref(STRING_TYPE_NULL_VALUE_FILED, STRING));
+    like = dsl.like(DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING),
+        DSL.ref(STRING_TYPE_NULL_VALUE_FIELD, STRING));
     assertEquals(BOOLEAN, like.type());
     assertEquals(LITERAL_MISSING, like.valueOf(valueEnv()));
   }

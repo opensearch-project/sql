@@ -21,6 +21,8 @@ public enum DataType {
 
   INTEGER(ExprCoreType.INTEGER),
   LONG(ExprCoreType.LONG),
+  SHORT(ExprCoreType.SHORT),
+  FLOAT(ExprCoreType.FLOAT),
   DOUBLE(ExprCoreType.DOUBLE),
   STRING(ExprCoreType.STRING),
   BOOLEAN(ExprCoreType.BOOLEAN),

@@ -60,6 +60,10 @@ public abstract class ExpressionNodeVisitor<T, C> {
     return visitNode(node, context);
   }
 
+  public T visitParse(ParseExpression node, C context) {
+    return visitNode(node, context);
+  }
+
   public T visitFunction(FunctionExpression node, C context) {
     return visitChildren(node, context);
   }

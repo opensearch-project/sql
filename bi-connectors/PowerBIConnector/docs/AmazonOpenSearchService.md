@@ -29,15 +29,15 @@
 
 3. You will get a warning for using a third-party service. Click on **Continue**.
 
-<img src="img/pbi_third_party_warning.png" width="500">
+<img src="img/pbi_third_party_warning_amz.png" width="500">
 
-4. Enter host and port values and select your preferred SSL option. Click on **OK**.
+4. Enter host and port values and select your preferred SSL and Certificate validation options. Click on **OK**.
 
-<img src="img/pbi_connection_string_options.png" width="500">
+<img src="img/pbi_connection_string_options_amz.png" width="500">
 
 5. Select authentication option. Enter credentials if required and click on **Connect**.
 
-<img src="img/pbi_auth.png" width="500">
+<img src="img/pbi_auth_amz.png" width="500">
 
 6. Select required table. Data preview will be loaded.
 

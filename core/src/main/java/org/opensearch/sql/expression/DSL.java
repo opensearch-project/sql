@@ -96,6 +96,10 @@ public class DSL {
     if (expression instanceof NamedExpression) {
       return (NamedExpression) expression;
     }
+    if (expression instanceof ParseExpression) {
+      return named(((ParseExpression) expression).getIdentifier().valueOf(null).stringValue(),
+          expression);
+    }
     return named(expression.toString(), expression);
   }
 
@@ -113,6 +117,11 @@ public class DSL {
 
   public NamedArgumentExpression namedArgument(String argName, Expression value) {
     return new NamedArgumentExpression(argName, value);
+  }
+
+  public static ParseExpression parsed(Expression expression, Expression pattern,
+                                       Expression identifier) {
+    return new ParseExpression(expression, pattern, identifier);
   }
 
   public static SpanExpression span(Expression field, Expression value, String unit) {
@@ -254,7 +263,7 @@ public class DSL {
   public FunctionExpression multiply(Expression... expressions) {
     return function(BuiltinFunctionName.MULTIPLY, expressions);
   }
-  
+
   public FunctionExpression adddate(Expression... expressions) {
     return function(BuiltinFunctionName.ADDDATE, expressions);
   }
@@ -366,7 +375,7 @@ public class DSL {
   public FunctionExpression substr(Expression... expressions) {
     return function(BuiltinFunctionName.SUBSTR, expressions);
   }
-  
+
   public FunctionExpression substring(Expression... expressions) {
     return function(BuiltinFunctionName.SUBSTR, expressions);
   }

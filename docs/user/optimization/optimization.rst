@@ -287,7 +287,7 @@ The Aggregation operator will merge into OpenSearch Aggregation::
           {
             "name": "OpenSearchIndexScan",
             "description": {
-              "request": "OpenSearchQueryRequest(indexName=accounts, sourceBuilder={\"from\":0,\"size\":0,\"timeout\":\"1m\",\"aggregations\":{\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":[{\"gender\":{\"terms\":{\"field\":\"gender.keyword\",\"missing_bucket\":true,\"order\":\"asc\"}}}]},\"aggregations\":{\"avg(age)\":{\"avg\":{\"field\":\"age\"}}}}}}, searchDone=false)"
+              "request": "OpenSearchQueryRequest(indexName=accounts, sourceBuilder={\"from\":0,\"size\":0,\"timeout\":\"1m\",\"aggregations\":{\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":[{\"gender\":{\"terms\":{\"field\":\"gender.keyword\",\"missing_bucket\":true,\"missing_order\":\"first\",\"order\":\"asc\"}}}]},\"aggregations\":{\"avg(age)\":{\"avg\":{\"field\":\"age\"}}}}}}, searchDone=false)"
             },
             "children": []
           }
@@ -313,7 +313,7 @@ The Sort operator will merge into OpenSearch Aggregation.::
           {
             "name": "OpenSearchIndexScan",
             "description": {
-              "request": "OpenSearchQueryRequest(indexName=accounts, sourceBuilder={\"from\":0,\"size\":0,\"timeout\":\"1m\",\"aggregations\":{\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":[{\"gender\":{\"terms\":{\"field\":\"gender.keyword\",\"missing_bucket\":true,\"order\":\"desc\"}}}]},\"aggregations\":{\"avg(age)\":{\"avg\":{\"field\":\"age\"}}}}}}, searchDone=false)"
+              "request": "OpenSearchQueryRequest(indexName=accounts, sourceBuilder={\"from\":0,\"size\":0,\"timeout\":\"1m\",\"aggregations\":{\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":[{\"gender\":{\"terms\":{\"field\":\"gender.keyword\",\"missing_bucket\":true,\"missing_order\":\"last\",\"order\":\"desc\"}}}]},\"aggregations\":{\"avg(age)\":{\"avg\":{\"field\":\"age\"}}}}}}, searchDone=false)"
             },
             "children": []
           }
@@ -321,41 +321,6 @@ The Sort operator will merge into OpenSearch Aggregation.::
       }
     }
 
-Because the OpenSearch Composite Aggregation order doesn't support separate NULL_FIRST/NULL_LAST option. only the default sort option (ASC NULL_FIRST/DESC NULL_LAST) will be supported for push down to OpenSearch Aggregation, otherwise it will fall back to the default memory based operator::
-
-    sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST localhost:9200/_plugins/_sql/_explain \
-    ... -d '{"query" : "SELECT gender, avg(age) FROM accounts GROUP BY gender ORDER BY gender ASC NULLS LAST"}'
-    {
-      "root": {
-        "name": "ProjectOperator",
-        "description": {
-          "fields": "[gender, avg(age)]"
-        },
-        "children": [
-          {
-            "name": "SortOperator",
-            "description": {
-              "sortList": {
-                "gender": {
-                  "sortOrder": "ASC",
-                  "nullOrder": "NULL_LAST"
-                }
-              }
-            },
-            "children": [
-              {
-                "name": "OpenSearchIndexScan",
-                "description": {
-                  "request": "OpenSearchQueryRequest(indexName=accounts, sourceBuilder={\"from\":0,\"size\":0,\"timeout\":\"1m\",\"aggregations\":{\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":[{\"gender\":{\"terms\":{\"field\":\"gender.keyword\",\"missing_bucket\":true,\"order\":\"asc\"}}}]},\"aggregations\":{\"avg(age)\":{\"avg\":{\"field\":\"age\"}}}}}}, searchDone=false)"
-                },
-                "children": []
-              }
-            ]
-          }
-        ]
-      }
-    }
 
 Because the OpenSearch Composite Aggregation doesn't support order by metrics field, then if the sort list include fields which refer to metrics aggregation, then the sort operator can't be push down to OpenSearch Aggregation::
 
@@ -383,7 +348,7 @@ Because the OpenSearch Composite Aggregation doesn't support order by metrics fi
               {
                 "name": "OpenSearchIndexScan",
                 "description": {
-                  "request": "OpenSearchQueryRequest(indexName=accounts, sourceBuilder={\"from\":0,\"size\":0,\"timeout\":\"1m\",\"aggregations\":{\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":[{\"gender\":{\"terms\":{\"field\":\"gender.keyword\",\"missing_bucket\":true,\"order\":\"asc\"}}}]},\"aggregations\":{\"avg(age)\":{\"avg\":{\"field\":\"age\"}}}}}}, searchDone=false)"
+                  "request": "OpenSearchQueryRequest(indexName=accounts, sourceBuilder={\"from\":0,\"size\":0,\"timeout\":\"1m\",\"aggregations\":{\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":[{\"gender\":{\"terms\":{\"field\":\"gender.keyword\",\"missing_bucket\":true,\"missing_order\":\"first\",\"order\":\"asc\"}}}]},\"aggregations\":{\"avg(age)\":{\"avg\":{\"field\":\"age\"}}}}}}, searchDone=false)"
                 },
                 "children": []
               }

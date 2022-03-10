@@ -35,6 +35,8 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Disabled;
@@ -42,20 +44,28 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.SpanUnit;
+import org.opensearch.sql.ast.tree.AD;
+import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.window.WindowDefinition;
+import org.opensearch.sql.planner.logical.LogicalAD;
+import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @Configuration
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = {ExpressionConfig.class, AnalyzerTest.class})
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class AnalyzerTest extends AnalyzerTestBase {
 
   @Test
@@ -668,5 +678,62 @@ class AnalyzerTest extends AnalyzerTestBase {
             ImmutableList.of(alias("string_value", qualifiedName("string_value"))),
             alias("span", span(field("long_value"), intLiteral(10), SpanUnit.NONE)),
             emptyList()));
+  }
+
+  @Test
+  public void parse_relation() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.relation("schema"),
+            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
+            ImmutableList.of(DSL.named("group",
+                DSL.parsed(DSL.ref("string_value", STRING), DSL.literal("(?<group>.*)"),
+                    DSL.literal("group"))))
+        ),
+        AstDSL.project(
+            AstDSL.parse(
+                AstDSL.relation("schema"),
+                AstDSL.field("string_value"),
+                AstDSL.stringLiteral("(?<group>.*)")),
+            AstDSL.alias("string_value", qualifiedName("string_value"))
+        ));
+  }
+  
+  @Test
+  public void kmeanns_relation() {
+    assertAnalyzeEqual(
+            new LogicalMLCommons(LogicalPlanDSL.relation("schema"),
+                    "kmeans",
+                    AstDSL.exprList(AstDSL.argument("k", AstDSL.intLiteral(3)))),
+            new Kmeans(AstDSL.relation("schema"),
+                    AstDSL.exprList(AstDSL.argument("k", AstDSL.intLiteral(3))))
+    );
+  }
+
+  @Test
+  public void ad_batchRCF_relation() {
+    Map<String, Literal> argumentMap =
+            new HashMap<String, Literal>() {{
+        put("shingle_size", new Literal(8, DataType.INTEGER));
+        put("time_decay", new Literal(0.0001, DataType.DOUBLE));
+        put("time_field", new Literal(null, DataType.STRING));
+      }};
+    assertAnalyzeEqual(
+            new LogicalAD(LogicalPlanDSL.relation("schema"), argumentMap),
+            new AD(AstDSL.relation("schema"), argumentMap)
+    );
+  }
+
+  @Test
+  public void ad_fitRCF_relation() {
+    Map<String, Literal> argumentMap = new HashMap<String, Literal>() {{
+        put("shingle_size", new Literal(8, DataType.INTEGER));
+        put("time_decay", new Literal(0.0001, DataType.DOUBLE));
+        put("time_field", new Literal("timestamp", DataType.STRING));
+      }};
+    assertAnalyzeEqual(
+            new LogicalAD(LogicalPlanDSL.relation("schema"), argumentMap),
+            new AD(AstDSL.relation("schema"), argumentMap)
+    );
   }
 }
