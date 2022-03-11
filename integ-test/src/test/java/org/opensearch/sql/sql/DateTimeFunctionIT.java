@@ -17,6 +17,7 @@ import static org.opensearch.sql.util.TestUtils.getResponseBody;
 import java.io.IOException;
 import java.util.Locale;
 import org.json.JSONObject;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
@@ -437,6 +438,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result, rows(formatted));
   }
 
+  @Ignore
   @Test
   public void testDateFormat() throws IOException {
     String timestamp = "1998-01-31 13:14:15.012345";

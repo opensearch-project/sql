@@ -14,6 +14,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySome;
 
 import java.io.IOException;
 import org.json.JSONObject;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.common.utils.StringUtils;
 
@@ -434,6 +435,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySome(result.getJSONArray("datarows"), rows(formatted));
   }
 
+  @Ignore
   @Test
   public void testDateFormat() throws IOException {
     String timestamp = "1998-01-31 13:14:15.012345";

@@ -86,7 +86,8 @@ public class TextFunction {
    */
   private FunctionResolver ltrim() {
     return define(BuiltinFunctionName.LTRIM.getName(),
-        impl(nullMissingHandling((v) -> new ExprStringValue(v.stringValue().stripLeading())),
+        impl(nullMissingHandling((v) -> new ExprStringValue(v.stringValue().replaceAll(
+                "^\\s+", ""))),
             STRING, STRING));
   }
 
@@ -97,7 +98,8 @@ public class TextFunction {
    */
   private FunctionResolver rtrim() {
     return define(BuiltinFunctionName.RTRIM.getName(),
-        impl(nullMissingHandling((v) -> new ExprStringValue(v.stringValue().stripTrailing())),
+        impl(nullMissingHandling((v) -> new ExprStringValue(v.stringValue().replaceAll(
+                "\\s+$", ""))),
                 STRING, STRING));
   }
 

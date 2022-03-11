@@ -10,6 +10,7 @@ jobs:
     strategy:
       matrix:
         java:
+          - 8
           - 11
           - 14
     runs-on: ubuntu-latest
