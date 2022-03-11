@@ -6,7 +6,6 @@
 
 package org.opensearch.sql.expression;
 
-import com.sun.tools.javac.util.List;
 import java.util.Arrays;
 import java.util.Collections;
 import lombok.RequiredArgsConstructor;
