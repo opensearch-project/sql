@@ -27,8 +27,9 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnJre;
+import org.junit.jupiter.api.condition.JRE;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -960,7 +961,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     assertEquals(integerValue(2020), eval(expression));
   }
 
-  @Disabled
+  @DisabledOnJre(JRE.JAVA_8)
   @Test
   public void date_format() {
     dateFormatTesters.forEach(this::testDateFormat);
