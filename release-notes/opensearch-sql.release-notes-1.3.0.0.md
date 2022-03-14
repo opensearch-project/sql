@@ -8,7 +8,6 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 1.3.0
 
 ### Enhancements
 * Support ISO 8601 Format in Date Format. ([#460](https://github.com/opensearch-project/sql/pull/460))
-* Treating ExpressionEvaluationException as client Error. ([#459](https://github.com/opensearch-project/sql/pull/459))
 * Add Certificate Validation option ([#449](https://github.com/opensearch-project/sql/pull/449))
 * Span expression should always be first in by list if exist ([#437](https://github.com/opensearch-project/sql/pull/437))
 * Support multiple indices in PPL and SQL ([#408](https://github.com/opensearch-project/sql/pull/408))
@@ -20,6 +19,7 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 1.3.0
 ### Bug Fixes
 * Fix certificate validation for ODBC driver ([#479](https://github.com/opensearch-project/sql/pull/479))
 * Update dependency opensearch-ml-client group name ([#477](https://github.com/opensearch-project/sql/pull/477))
+* Treating ExpressionEvaluationException as client Error. ([#459](https://github.com/opensearch-project/sql/pull/459))
 * Version Bump: H2 1.x -> 2.x ([#444](https://github.com/opensearch-project/sql/pull/444))
 * Version Bump: springframework and jackson ([#443](https://github.com/opensearch-project/sql/pull/443))
 * Bug Fix, disable html escape when formatting response ([#412](https://github.com/opensearch-project/sql/pull/412))
