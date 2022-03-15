@@ -7,6 +7,9 @@
 buildscript {
     ext {
         opensearch_version = System.getProperty("opensearch.version", "1.3.0-SNAPSHOT")
+        opensearch_build = opensearch_version.replaceAll(/(\.\d)([^\d]*)$/, '$1.0$2')
+        common_utils_version = System.getProperty("common_utils.version", opensearch_build)
+        kotlin_version = System.getProperty("kotlin.version", "1.4.32")
     }
 
     repositories {
@@ -18,6 +21,8 @@ buildscript {
 
     dependencies {
         classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlin_version}"
+        classpath "org.jetbrains.kotlin:kotlin-allopen:${kotlin_version}"
     }
 }
 
@@ -28,6 +33,9 @@ plugins {
     id "io.freefair.lombok" version "5.0.0-rc4"
     id 'jacoco'
 }
+
+apply plugin: 'org.jetbrains.kotlin.jvm'
+apply plugin: 'org.jetbrains.kotlin.plugin.allopen'
 
 // Repository on root level is for dependencies that project code depends on. And this block must be placed after plugins{}
 repositories {
@@ -48,6 +56,10 @@ allprojects {
 
     plugins.withId('java') {
         sourceCompatibility = targetCompatibility = "1.8"
+    }
+
+    plugins.withId('org.jetbrains.kotlin.jvm') {
+        compileKotlin.kotlinOptions.jvmTarget = compileTestKotlin.kotlinOptions.jvmTarget = "1.8"
     }
 }
 
