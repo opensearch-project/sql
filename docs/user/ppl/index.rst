@@ -42,6 +42,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `fields command <cmd/fields.rst>`_
 
+  - `parse command <cmd/parse.rst>`_
+
   - `rename command <cmd/rename.rst>`_
 
   - `search command <cmd/search.rst>`_
