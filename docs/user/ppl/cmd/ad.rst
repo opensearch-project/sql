@@ -11,7 +11,7 @@ ad
 
 Description
 ============
-| The ``ad`` command applies Random Cut Forest (RCF) algorithm in ml-commons plugin on the search result returned by a PPL command. Based on the input, two types of RCF algorithms will be utilized: fixed in time RCF for processing time-series data, batch RCF for processing non-time-series data.
+| The ``ad`` command applies Random Cut Forest (RCF) algorithm in the ml-commons plugin on the search result returned by a PPL command. Based on the input, the command uses two types of RCF algorithms: fixed in time RCF for processing time-series data, batch RCF for processing non-time-series data.
 
 
 Fixed In Time RCF For Time-series Data Command Syntax
@@ -34,7 +34,7 @@ ad <shingle_size> <time_decay>
 Example1: Detecting events in New York City from taxi ridership data with time-series data
 ==========================================================================================
 
-The example trains a RCF model and use the model to detect anomalies in the time-series ridership data.
+The example trains an RCF model and uses the model to detect anomalies in the time-series ridership data.
 
 PPL query::
 
@@ -49,7 +49,7 @@ PPL query::
 Example2: Detecting events in New York City from taxi ridership data with non-time-series data
 ==============================================================================================
 
-The example trains a RCF model and use the model to detect anomalies in the non-time-series ridership data.
+The example trains an RCF model and uses the model to detect anomalies in the non-time-series ridership data.
 
 PPL query::
 
@@ -59,3 +59,4 @@ PPL query::
     |----------+--------+-----------|
     | 10844.0  | 0.0    | false     |
     +----------+--------+-----------+
+
