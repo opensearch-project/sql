@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import java.util.concurrent.Callable
 import org.opensearch.gradle.testclusters.RunTask
 
 plugins {
@@ -49,7 +50,18 @@ clean.dependsOn(cleanBootstrap)
 
 testClusters {
     docTestCluster {
-        plugin ':plugin'
+        plugin(provider(new Callable<RegularFile>(){
+            @Override
+            RegularFile call() throws Exception {
+                return new RegularFile() {
+                    @Override
+                    File getAsFile() {
+                        return fileTree("resources/ml-commons").getSingleFile()
+                    }
+                }
+            }
+        }))
+
         testDistribution = 'integ_test'
     }
 }

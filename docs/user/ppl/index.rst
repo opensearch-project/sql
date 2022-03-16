@@ -36,11 +36,15 @@ The query start with search command and then flowing a set of command delimited 
 
   - `Syntax <cmd/syntax.rst>`_
 
+  - `ad command <cmd/ad.rst>`_
+
   - `dedup command <cmd/dedup.rst>`_
 
   - `eval command <cmd/eval.rst>`_
 
   - `fields command <cmd/fields.rst>`_
+
+  - `kmeans command <cmd/kmeans.rst>`_
 
   - `parse command <cmd/parse.rst>`_
 
