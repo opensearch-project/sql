@@ -149,9 +149,6 @@ class SearchHitRow implements Row<SearchHit> {
         SearchHit combined = new SearchHit(
                 hit.docId(),
                 hit.getId() + "|" + (other == NULL ? "0" : ((SearchHitRow) other).hit.getId()),
-                new Text(
-                        hit.getType() + "|" + (other == NULL ? null : ((SearchHitRow) other).hit.getType())
-                ),
                 documentFields,
                 metaFields
         );

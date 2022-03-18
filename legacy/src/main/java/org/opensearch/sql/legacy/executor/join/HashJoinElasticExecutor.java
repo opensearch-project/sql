@@ -179,7 +179,6 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
                             matchingHit.getFields().forEach((fieldName, docField) ->
                                 (MapperService.META_FIELDS_BEFORE_7DOT8.contains(fieldName) ? metaFields : documentFields).put(fieldName, docField));
                             SearchHit searchHit = new SearchHit(matchingHit.docId(), combinedId,
-                                    new Text(matchingHit.getType() + "|" + secondTableHit.getType()),
                                     documentFields, metaFields);
                             searchHit.sourceRef(matchingHit.getSourceRef());
                             searchHit.getSourceAsMap().clear();
@@ -239,7 +238,7 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
                 Map<String, DocumentField> metaFields = new HashMap<>();
                 hit.getFields().forEach((fieldName, docField) ->
                     (MapperService.META_FIELDS_BEFORE_7DOT8.contains(fieldName) ? metaFields : documentFields).put(fieldName, docField));
-                SearchHit searchHit = new SearchHit(resultIds, hit.getId(), new Text(hit.getType()), documentFields
+                SearchHit searchHit = new SearchHit(resultIds, hit.getId(), documentFields
                         , metaFields);
                 searchHit.sourceRef(hit.getSourceRef());
 

@@ -307,14 +307,13 @@ public abstract class Maker {
             case IDS_QUERY:
                 Object[] idsParameters = (Object[]) value;
                 String[] ids;
-                String type = idsParameters[0].toString();
                 if (idsParameters.length == 2 && idsParameters[1] instanceof SubQueryExpression) {
                     Object[] idsFromSubQuery = ((SubQueryExpression) idsParameters[1]).getValues();
                     ids = arrayOfObjectsToStringArray(idsFromSubQuery, 0, idsFromSubQuery.length - 1);
                 } else {
                     ids = arrayOfObjectsToStringArray(idsParameters, 1, idsParameters.length - 1);
                 }
-                toXContent = QueryBuilders.idsQuery(type).addIds(ids);
+                toXContent = QueryBuilders.idsQuery().addIds(ids);
                 break;
             case NESTED_COMPLEX:
             case NOT_EXISTS_NESTED_COMPLEX:

@@ -130,11 +130,6 @@ public class DefaultQueryAction extends QueryAction {
      */
     private void setIndicesAndTypes() {
         request.setIndices(query.getIndexArr());
-
-        String[] typeArr = query.getTypeArr();
-        if (typeArr != null) {
-            request.setTypes(typeArr);
-        }
     }
 
     /**

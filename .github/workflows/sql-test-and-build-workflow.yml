@@ -3,14 +3,13 @@ name: SQL Java CI
 on: [push, pull_request]
 
 env:
-  OPENSEARCH_VERSION: '1.3.0-SNAPSHOT'
+  OPENSEARCH_VERSION: '2.0.0-SNAPSHOT'
 
 jobs:
   build:
     strategy:
       matrix:
         java:
-          - 8
           - 11
           - 14
     runs-on: ubuntu-latest

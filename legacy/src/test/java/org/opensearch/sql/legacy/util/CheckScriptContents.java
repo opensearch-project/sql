@@ -119,7 +119,6 @@ public class CheckScriptContents {
     }
 
     public static void stubMockClient(Client mockClient) {
-        try {
             String mappings = "{\n" +
                 "  \"opensearch-sql_test_index_bank\": {\n" +
                 "    \"mappings\": {\n" +
@@ -203,15 +202,7 @@ public class CheckScriptContents {
 
             ActionFuture<GetFieldMappingsResponse> mockActionResp = mock(ActionFuture.class);
             when(mockIndexClient.getFieldMappings(any(GetFieldMappingsRequest.class))).thenReturn(mockActionResp);
-
-            when(mockActionResp.actionGet()).thenReturn(GetFieldMappingsResponse.fromXContent(createParser(mappings)));
-
             mockLocalClusterState(mappings);
-
-        } catch (IOException e) {
-            throw new ParserException(e.getMessage());
-        }
-
     }
 
     public static XContentParser createParser(String mappings) throws IOException {
@@ -236,9 +227,9 @@ public class CheckScriptContents {
         when(mockService.state()).thenReturn(mockState);
         when(mockState.metadata()).thenReturn(mockMetaData);
         try {
-            ImmutableOpenMap.Builder<String, ImmutableOpenMap<String, MappingMetadata>> builder = ImmutableOpenMap.builder();
-            builder.put(TestsConstants.TEST_INDEX_BANK, IndexMetadata.fromXContent(createParser(mappings)).getMappings());
-            when(mockMetaData.findMappings(any(), any(), any())).thenReturn(builder.build());
+            ImmutableOpenMap.Builder<String, MappingMetadata> builder = ImmutableOpenMap.builder();
+            builder.put(TestsConstants.TEST_INDEX_BANK, IndexMetadata.fromXContent(createParser(mappings)).mapping());
+            when(mockMetaData.findMappings(any(),  any())).thenReturn(builder.build());
         }
         catch (IOException e) {
             throw new IllegalStateException(e);

@@ -170,8 +170,7 @@ public class NestedLoopsElasticExecutor extends ElasticJoinExecutor {
         matchedHit.getFields().forEach((fieldName, docField) ->
             (MapperService.META_FIELDS_BEFORE_7DOT8.contains(fieldName) ? metaFields : documentFields).put(fieldName, docField));
         SearchHit searchHit = new SearchHit(currentCombinedResults, hitFromFirstTable.getId() + "|"
-                + matchedHit.getId(), new Text(hitFromFirstTable.getType() + "|" + matchedHit.getType()),
-                documentFields, metaFields);
+                + matchedHit.getId(), documentFields, metaFields);
         searchHit.sourceRef(hitFromFirstTable.getSourceRef());
         searchHit.getSourceAsMap().clear();
         searchHit.getSourceAsMap().putAll(hitFromFirstTable.getSourceAsMap());

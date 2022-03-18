@@ -107,8 +107,8 @@ public class JoinRewriteRule implements RewriteRule<SQLQueryExpr> {
 
             tableNameToAlias.put(table.getName(), table.getAlias());
 
-            FieldMappings fieldMappings = clusterState.getFieldMappings(
-                new String[]{tableName}).firstMapping().firstMapping();
+            FieldMappings fieldMappings = clusterState. getFieldMappings(
+                new String[]{tableName}).firstMapping();
             fieldMappings.flat((fieldName, type) -> tableByFieldName.put(fieldName, table));
         });
 

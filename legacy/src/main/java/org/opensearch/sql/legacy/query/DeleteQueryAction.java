@@ -47,14 +47,6 @@ public class DeleteQueryAction extends QueryAction {
 
         DeleteByQueryRequest innerRequest = request.request();
         innerRequest.indices(query.getIndexArr());
-        String[] typeArr = query.getTypeArr();
-        if (typeArr != null) {
-            innerRequest.getSearchRequest().types(typeArr);
-        }
-//        String[] typeArr = query.getTypeArr();
-//        if (typeArr != null) {
-//            request.set(typeArr);
-//        }
     }
 
 

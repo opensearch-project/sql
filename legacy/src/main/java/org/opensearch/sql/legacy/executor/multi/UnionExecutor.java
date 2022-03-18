@@ -61,7 +61,7 @@ public class UnionExecutor implements ElasticHitsExecutor {
             Map<String, DocumentField> metaFields = new HashMap<>();
             hit.getFields().forEach((fieldName, docField) ->
                 (MapperService.META_FIELDS_BEFORE_7DOT8.contains(fieldName) ? metaFields : documentFields).put(fieldName, docField));
-            SearchHit searchHit = new SearchHit(currentId, hit.getId(), new Text(hit.getType()), documentFields, metaFields);
+            SearchHit searchHit = new SearchHit(currentId, hit.getId(), documentFields, metaFields);
             searchHit.sourceRef(hit.getSourceRef());
             searchHit.getSourceAsMap().clear();
             Map<String, Object> sourceAsMap = hit.getSourceAsMap();

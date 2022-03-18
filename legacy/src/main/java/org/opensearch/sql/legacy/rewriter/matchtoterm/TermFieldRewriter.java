@@ -125,7 +125,7 @@ public class TermFieldRewriter extends MySqlASTVisitorAdapter {
                 String fullFieldName = arr[1];
 
                 String index = curScope().getAliases().get(alias);
-                FieldMappings fieldMappings = curScope().getMapper().mapping(index).firstMapping();
+                FieldMappings fieldMappings = curScope().getMapper().mapping(index);
                 if (fieldMappings.has(fullFieldName)) {
                     source = fieldMappings.mapping(fullFieldName);
                 } else {
