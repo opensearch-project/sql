@@ -29,22 +29,22 @@ plugins {
 }
 
 dependencies {
-    compile project(':core')
-    compile group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
-    compile "io.github.resilience4j:resilience4j-retry:1.5.0"
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.12.6' 
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.12.6'
-    compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: '2.12.6'
-    compile group: 'org.json', name: 'json', version:'20180813'
+    implementation project(':core')
+    implementation group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
+    implementation "io.github.resilience4j:resilience4j-retry:1.5.0"
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.12.6'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.12.6'
+    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: '2.12.6'
+    implementation group: 'org.json', name: 'json', version:'20180813'
     compileOnly group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
-    compile group: 'org.opensearch', name:'opensearch-ml-client', version: '1.3.0.0-SNAPSHOT'
+    implementation group: 'org.opensearch', name:'opensearch-ml-client', version: '1.3.0.0-SNAPSHOT'
 
     testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')
-    testCompile group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
-    testCompile group: 'org.mockito', name: 'mockito-core', version: '3.5.0'
-    testCompile group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.5.0'
-    testCompile group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
-    testCompile group: 'org.opensearch.test', name: 'framework', version: "${opensearch_version}"
+    testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.5.0'
+    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.5.0'
+    testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
+    testImplementation group: 'org.opensearch.test', name: 'framework', version: "${opensearch_version}"
 }
 
 test {

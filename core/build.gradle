@@ -39,19 +39,19 @@ repositories {
 //}
 
 dependencies {
-    compile group: 'com.google.guava', name: 'guava', version: '31.0.1-jre'
-    compile group: 'org.springframework', name: 'spring-context', version: '5.2.19.RELEASE'
-    compile group: 'org.springframework', name: 'spring-beans', version: '5.2.19.RELEASE'
-    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.10'
-    compile group: 'com.facebook.presto', name: 'presto-matching', version: '0.240'
-    compile group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
-    compile project(':common')
+    implementation group: 'com.google.guava', name: 'guava', version: '31.0.1-jre'
+    implementation group: 'org.springframework', name: 'spring-context', version: '5.2.19.RELEASE'
+    implementation group: 'org.springframework', name: 'spring-beans', version: '5.2.19.RELEASE'
+    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.10'
+    implementation group: 'com.facebook.presto', name: 'presto-matching', version: '0.240'
+    implementation group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
+    implementation project(':common')
 
     testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')
-    testCompile group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
-    testCompile group: 'org.springframework', name: 'spring-test', version: '5.2.19.RELEASE'
-    testCompile group: 'org.mockito', name: 'mockito-core', version: '3.3.3'
-    testCompile group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.3.3'
+    testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
+    testImplementation group: 'org.springframework', name: 'spring-test', version: '5.2.19.RELEASE'
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.3.3'
+    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.3.3'
 }
 
 test {
