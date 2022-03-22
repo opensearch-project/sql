@@ -49,9 +49,6 @@ public class GetIndexRequestRestListener extends RestBuilderListener<GetIndexRes
                     case ALIASES:
                         writeAliases(getIndexResponse.aliases().get(index), builder, channel.request());
                         break;
-                    case MAPPINGS:
-                        writeMappings(getIndexResponse.mappings().get(index), builder, channel.request());
-                        break;
                     case SETTINGS:
                         writeSettings(getIndexResponse.settings().get(index), builder, channel.request());
                         break;
@@ -73,18 +70,6 @@ public class GetIndexRequestRestListener extends RestBuilderListener<GetIndexRes
         if (aliases != null) {
             for (AliasMetadata alias : aliases) {
                 AliasMetadata.Builder.toXContent(alias, builder, params);
-            }
-        }
-        builder.endObject();
-    }
-
-    private void writeMappings(ImmutableOpenMap<String, MappingMetadata> mappings,
-                               XContentBuilder builder, ToXContent.Params params) throws IOException {
-        builder.startObject(Fields.MAPPINGS);
-        if (mappings != null) {
-            for (ObjectObjectCursor<String, MappingMetadata> typeEntry : mappings) {
-                builder.field(typeEntry.key);
-                builder.map(typeEntry.value.sourceAsMap());
             }
         }
         builder.endObject();

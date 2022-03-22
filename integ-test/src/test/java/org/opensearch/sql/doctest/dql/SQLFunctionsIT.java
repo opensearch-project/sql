@@ -8,7 +8,6 @@ package org.opensearch.sql.doctest.dql;
 
 import static org.opensearch.sql.legacy.antlr.semantic.types.TypeExpression.TypeExpressionSpec;
 
-import org.opensearch.sql.doctest.core.DocTest;
 import org.opensearch.sql.doctest.core.annotation.DocTestConfig;
 import org.opensearch.sql.doctest.core.annotation.Section;
 import org.opensearch.sql.legacy.antlr.semantic.types.function.ScalarFunction;

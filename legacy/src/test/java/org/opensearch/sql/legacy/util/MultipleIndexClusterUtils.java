@@ -149,14 +149,14 @@ public class MultipleIndexClusterUtils {
                 .build());
     }
 
-    public static void mockLocalClusterState(Map<String, ImmutableOpenMap<String, ImmutableOpenMap<String, MappingMetadata>>> indexMapping) {
+    public static void mockLocalClusterState(Map<String, ImmutableOpenMap<String,MappingMetadata>> indexMapping) {
         LocalClusterState.state().setClusterService(mockClusterService(indexMapping));
         LocalClusterState.state().setResolver(mockIndexNameExpressionResolver());
         LocalClusterState.state().setPluginSettings(mockPluginSettings());
     }
 
 
-    public static ClusterService mockClusterService(Map<String, ImmutableOpenMap<String, ImmutableOpenMap<String, MappingMetadata>>> indexMapping) {
+    public static ClusterService mockClusterService(Map<String, ImmutableOpenMap<String,MappingMetadata>> indexMapping) {
         ClusterService mockService = mock(ClusterService.class);
         ClusterState mockState = mock(ClusterState.class);
         Metadata mockMetaData = mock(Metadata.class);
@@ -164,8 +164,8 @@ public class MultipleIndexClusterUtils {
         when(mockService.state()).thenReturn(mockState);
         when(mockState.metadata()).thenReturn(mockMetaData);
         try {
-            for (Map.Entry<String, ImmutableOpenMap<String, ImmutableOpenMap<String, MappingMetadata>>> entry : indexMapping.entrySet()) {
-                when(mockMetaData.findMappings(eq(new String[]{entry.getKey()}), any(), any())).thenReturn(entry.getValue());
+            for (Map.Entry<String, ImmutableOpenMap<String, MappingMetadata>> entry : indexMapping.entrySet()) {
+                when(mockMetaData.findMappings(eq(new String[]{entry.getKey()}), any())).thenReturn(entry.getValue());
             }
         } catch (IOException e) {
             throw new IllegalStateException(e);
@@ -188,8 +188,8 @@ public class MultipleIndexClusterUtils {
     private static ImmutableOpenMap<String, ImmutableOpenMap<String, MappingMetadata>> buildIndexMapping(String index,
                                                                                                          String mapping) {
         try {
-            ImmutableOpenMap.Builder<String, ImmutableOpenMap<String, MappingMetadata>> builder = ImmutableOpenMap.builder();
-            builder.put(index, IndexMetadata.fromXContent(createParser(mapping)).getMappings());
+            ImmutableOpenMap.Builder<String, MappingMetadata> builder = ImmutableOpenMap.builder();
+            builder.put(index, IndexMetadata.fromXContent(createParser(mapping)).getMappings().iterator().next());
             return builder.build();
         } catch (IOException e) {
             throw new IllegalStateException(e);

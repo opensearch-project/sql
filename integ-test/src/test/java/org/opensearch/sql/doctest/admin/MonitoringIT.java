@@ -19,7 +19,6 @@ import static org.opensearch.sql.legacy.metrics.MetricName.REQ_COUNT_TOTAL;
 import static org.opensearch.sql.legacy.metrics.MetricName.REQ_TOTAL;
 import static org.opensearch.sql.legacy.plugin.RestSqlStatsAction.STATS_API_ENDPOINT;
 
-import org.opensearch.sql.doctest.core.DocTest;
 import org.opensearch.sql.doctest.core.annotation.DocTestConfig;
 import org.opensearch.sql.doctest.core.annotation.Section;
 import org.opensearch.sql.doctest.core.builder.Requests;

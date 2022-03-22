@@ -92,9 +92,9 @@ dependencies {
     implementation group: 'org.json', name: 'json', version:'20180813'
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.10'
     implementation group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
-    implementation project(':sql')
-    implementation project(':common')
-    implementation project(':opensearch')
+    api project(':sql')
+    api project(':common')
+    api project(':opensearch')
 
     // ANTLR gradle plugin and runtime dependency
     antlr "org.antlr:antlr4:4.7.1"

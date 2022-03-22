@@ -296,9 +296,6 @@ public class CSVResultsExtractor {
             if (this.includeScore) {
                 doc.put("_score", hit.getScore());
             }
-            if (this.includeType) {
-                doc.put("_type", hit.getType());
-            }
 
             // select function as field is a special case where each hit has non-null field (function)
             // and sourceAsMap is all columns in index (the same as 'SELECT *')

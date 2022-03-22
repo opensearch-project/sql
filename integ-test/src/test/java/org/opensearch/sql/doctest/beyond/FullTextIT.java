@@ -6,7 +6,6 @@
 
 package org.opensearch.sql.doctest.beyond;
 
-import org.opensearch.sql.doctest.core.DocTest;
 import org.opensearch.sql.doctest.core.annotation.DocTestConfig;
 import org.opensearch.sql.doctest.core.annotation.Section;
 

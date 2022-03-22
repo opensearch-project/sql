@@ -66,7 +66,6 @@ public class ElasticUtils {
         for (SearchHit hit : results) {
             HashMap<String, Object> value = new HashMap<>();
             value.put("_id", hit.getId());
-            value.put("_type", hit.getType());
             value.put("_score", hit.getScore());
             value.put("_source", hit.getSourceAsMap());
             searchHits[i] = value;
@@ -147,9 +146,6 @@ public class ElasticUtils {
      */
     private static void toXContent(XContentBuilder builder, Params params, SearchHit hit) throws IOException {
         builder.startObject();
-        if (hit.getType() != null) {
-            builder.field("_type", hit.getType());
-        }
         if (hit.getId() != null) {
             builder.field("_id", hit.getId());
         }

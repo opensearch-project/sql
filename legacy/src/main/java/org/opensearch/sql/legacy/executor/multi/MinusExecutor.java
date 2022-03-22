@@ -129,7 +129,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
             Map<String, DocumentField> metaFields = new HashMap<>();
             someHit.getFields().forEach((field, docField) ->
                 (MapperService.META_FIELDS_BEFORE_7DOT8.contains(field) ? metaFields : documentFields).put(field, docField));
-            SearchHit searchHit = new SearchHit(currentId, currentId + "", new Text(someHit.getType()),
+            SearchHit searchHit = new SearchHit(currentId, currentId + "",
                     documentFields, metaFields);
             searchHit.sourceRef(someHit.getSourceRef());
             searchHit.getSourceAsMap().clear();
@@ -155,7 +155,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
             Map<String, DocumentField> metaFields = new HashMap<>();
             originalHit.getFields().forEach((fieldName, docField) ->
                 (MapperService.META_FIELDS_BEFORE_7DOT8.contains(fieldName) ? metaFields : documentFields).put(fieldName, docField));
-            SearchHit searchHit = new SearchHit(currentId, originalHit.getId(), new Text(originalHit.getType()),
+            SearchHit searchHit = new SearchHit(currentId, originalHit.getId(),
                     documentFields, metaFields);
             searchHit.sourceRef(originalHit.getSourceRef());
             searchHit.getSourceAsMap().clear();

@@ -13,6 +13,7 @@ import java.util.Objects;
 import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.common.collect.ImmutableOpenMap;
+import org.opensearch.sql.legacy.domain.Field;
 
 /**
  * Index mappings in the cluster.
@@ -32,14 +33,14 @@ import org.opensearch.common.collect.ImmutableOpenMap;
  * ((Map) client.admin().indices().getFieldMappings(request).actionGet().mappings().get("bank")
  * .get("account").get("balance").sourceAsMap().get("balance")).get("type")
  */
-public class IndexMappings implements Mappings<TypeMappings> {
+public class IndexMappings implements Mappings<FieldMappings> {
 
     public static final IndexMappings EMPTY = new IndexMappings();
 
     /**
-     * Mapping from Index name to mappings of all Types in it
+     * Mapping from Index name to mappings of all fields in it
      */
-    private final Map<String, TypeMappings> indexMappings;
+    private final Map<String, FieldMappings> indexMappings;
 
     public IndexMappings() {
         this.indexMappings = emptyMap();
@@ -47,15 +48,15 @@ public class IndexMappings implements Mappings<TypeMappings> {
 
     public IndexMappings(Metadata metaData) {
         this.indexMappings = buildMappings(metaData.indices(),
-                indexMetaData -> new TypeMappings(indexMetaData.getMappings()));
+                indexMetaData -> new FieldMappings(indexMetaData.getMappings().valuesIt().next()));
     }
 
-    public IndexMappings(ImmutableOpenMap<String, ImmutableOpenMap<String, MappingMetadata>> mappings) {
-        this.indexMappings = buildMappings(mappings, TypeMappings::new);
+    public IndexMappings(ImmutableOpenMap<String, MappingMetadata> mappings) {
+        this.indexMappings = buildMappings(mappings, FieldMappings::new);
     }
 
     @Override
-    public Map<String, TypeMappings> data() {
+    public Map<String, FieldMappings> data() {
         return indexMappings;
     }
 

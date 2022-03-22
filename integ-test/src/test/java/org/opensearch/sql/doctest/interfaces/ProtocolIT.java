@@ -12,7 +12,6 @@ import static org.opensearch.sql.doctest.core.response.SqlResponseFormat.IGNORE_
 import static org.opensearch.sql.doctest.core.response.SqlResponseFormat.ORIGINAL_RESPONSE;
 import static org.opensearch.sql.doctest.core.response.SqlResponseFormat.PRETTY_JSON_RESPONSE;
 
-import org.opensearch.sql.doctest.core.DocTest;
 import org.opensearch.sql.doctest.core.annotation.DocTestConfig;
 import org.opensearch.sql.doctest.core.annotation.Section;
 

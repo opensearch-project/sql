@@ -23,14 +23,14 @@
  */
 
 plugins {
-    id 'java'
+    id 'java-library'
     id "io.freefair.lombok"
     id 'jacoco'
 }
 
 dependencies {
-    implementation project(':core')
-    implementation group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
+    api project(':core')
+    api group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
     implementation "io.github.resilience4j:resilience4j-retry:1.5.0"
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.12.6'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.12.6'

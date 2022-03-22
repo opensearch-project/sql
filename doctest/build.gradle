@@ -7,8 +7,8 @@ import java.util.concurrent.Callable
 import org.opensearch.gradle.testclusters.RunTask
 
 plugins {
-    id "com.wiredforcode.spawn" version "0.8.2"
     id 'base'
+    id 'com.wiredforcode.spawn'
 }
 
 apply plugin: 'opensearch.testclusters'

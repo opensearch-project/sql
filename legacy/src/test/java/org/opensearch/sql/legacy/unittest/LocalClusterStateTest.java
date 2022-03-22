@@ -33,7 +33,6 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.esdomain.mapping.FieldMappings;
 import org.opensearch.sql.legacy.esdomain.mapping.IndexMappings;
-import org.opensearch.sql.legacy.esdomain.mapping.TypeMappings;
 import org.opensearch.sql.legacy.util.TestsConstants;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 

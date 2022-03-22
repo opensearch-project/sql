@@ -236,9 +236,9 @@ public class CheckScriptContents {
         when(mockService.state()).thenReturn(mockState);
         when(mockState.metadata()).thenReturn(mockMetaData);
         try {
-            ImmutableOpenMap.Builder<String, ImmutableOpenMap<String, MappingMetadata>> builder = ImmutableOpenMap.builder();
+            ImmutableOpenMap.Builder<String, MappingMetadata> builder = ImmutableOpenMap.builder();
             builder.put(TestsConstants.TEST_INDEX_BANK, IndexMetadata.fromXContent(createParser(mappings)).getMappings());
-            when(mockMetaData.findMappings(any(), any(), any())).thenReturn(builder.build());
+            when(mockMetaData.findMappings(any(),  any())).thenReturn(builder.build());
         }
         catch (IOException e) {
             throw new IllegalStateException(e);
