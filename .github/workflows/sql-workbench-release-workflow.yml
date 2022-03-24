@@ -7,8 +7,8 @@ on:
 
 env: 
   PLUGIN_NAME: query-workbench-dashboards
-  OPENSEARCH_VERSION: '1.x'
-  OPENSEARCH_PLUGIN_VERSION: 1.3.0.0
+  OPENSEARCH_VERSION: 'main'
+  OPENSEARCH_PLUGIN_VERSION: 2.0.0.0
 
 jobs:
 
@@ -38,7 +38,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v1
         with:
-          node-version: '10.24.1'
+          node-version: '14.18.2'
 
       - name: Move Workbench to Plugins Dir
         run: |

@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -37,9 +36,6 @@ import org.opensearch.threadpool.ThreadPool;
 
 /** OpenSearch connection by node client. */
 public class OpenSearchNodeClient implements OpenSearchClient {
-
-  /** Default types and field filter to match all. */
-  public static final String[] ALL_TYPES = new String[0];
 
   public static final Function<String, Predicate<String>> ALL_FIELDS =
       (anyIndex -> (anyField -> true));
@@ -83,7 +79,7 @@ public class OpenSearchNodeClient implements OpenSearchClient {
       String[] concreteIndices = resolveIndexExpression(state, indexExpression);
 
       return populateIndexMappings(
-          state.metadata().findMappings(concreteIndices, ALL_TYPES, ALL_FIELDS));
+          state.metadata().findMappings(concreteIndices, ALL_FIELDS));
     } catch (IOException e) {
       throw new IllegalStateException(
           "Failed to read mapping in cluster state for index pattern [" + indexExpression + "]", e);
@@ -157,22 +153,14 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   }
 
   private Map<String, IndexMapping> populateIndexMappings(
-      ImmutableOpenMap<String, ImmutableOpenMap<String, MappingMetadata>> indexMappings) {
+      ImmutableOpenMap<String, MappingMetadata> indexMappings) {
 
     ImmutableMap.Builder<String, IndexMapping> result = ImmutableMap.builder();
-    for (ObjectObjectCursor<String, ImmutableOpenMap<String, MappingMetadata>> cursor :
-        indexMappings) {
-      result.put(cursor.key, populateIndexMapping(cursor.value));
+    for (ObjectObjectCursor<String, MappingMetadata> cursor:
+         indexMappings) {
+      result.put(cursor.key, new IndexMapping(cursor.value));
     }
     return result.build();
-  }
-
-  private IndexMapping populateIndexMapping(
-      ImmutableOpenMap<String, MappingMetadata> indexMapping) {
-    if (indexMapping.isEmpty()) {
-      return new IndexMapping(Collections.emptyMap());
-    }
-    return new IndexMapping(indexMapping.iterator().next().value);
   }
 
   /** Copy from LogUtils. */

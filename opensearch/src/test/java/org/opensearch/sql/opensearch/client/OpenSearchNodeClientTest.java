@@ -313,16 +313,18 @@ class OpenSearchNodeClientTest {
     when(mockService.state()).thenReturn(mockState);
     when(mockState.metadata()).thenReturn(mockMetaData);
     try {
-      ImmutableOpenMap.Builder<String, ImmutableOpenMap<String, MappingMetadata>> builder =
+      ImmutableOpenMap.Builder<String, MappingMetadata> builder =
           ImmutableOpenMap.builder();
-      ImmutableOpenMap<String, MappingMetadata> metadata;
+      MappingMetadata metadata;
       if (mappings.isEmpty()) {
-        metadata = ImmutableOpenMap.of();
+        metadata = MappingMetadata.EMPTY_MAPPINGS;
       } else {
-        metadata = IndexMetadata.fromXContent(createParser(mappings)).getMappings();
+        metadata = IndexMetadata.fromXContent(createParser(mappings)).mapping();
       }
+
+
       builder.put(indexName, metadata);
-      when(mockMetaData.findMappings(any(), any(), any())).thenReturn(builder.build());
+      when(mockMetaData.findMappings(any(),  any())).thenReturn(builder.build());
 
       // IndexNameExpressionResolver use this method to check if index exists. If not,
       // IndexNotFoundException is thrown.
@@ -342,7 +344,7 @@ class OpenSearchNodeClientTest {
     when(mockService.state()).thenReturn(mockState);
     when(mockState.metadata()).thenReturn(mockMetaData);
     try {
-      when(mockMetaData.findMappings(any(), any(), any())).thenThrow(t);
+      when(mockMetaData.findMappings(any(), any())).thenThrow(t);
       when(mockMetaData.getIndicesLookup())
               .thenReturn(ImmutableSortedMap.of(indexName, mock(IndexAbstraction.class)));
     } catch (IOException e) {

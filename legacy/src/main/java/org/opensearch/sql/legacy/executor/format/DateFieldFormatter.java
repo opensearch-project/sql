@@ -22,7 +22,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.esdomain.mapping.FieldMappings;
-import org.opensearch.sql.legacy.esdomain.mapping.TypeMappings;
 
 /**
  * Formatter to transform date fields into a consistent format for consumption by clients.
@@ -112,11 +111,10 @@ public class DateFieldFormatter {
         Map<String, List<String>> formatMap = new HashMap<>();
 
         String[] indices = indexName.split("\\|");
-        Collection<TypeMappings> typeProperties = state.getFieldMappings(indices)
+        Collection<FieldMappings> typeProperties = state.getFieldMappings(indices)
             .allMappings();
 
-        for (TypeMappings mappings: typeProperties) {
-            FieldMappings fieldMappings = mappings.firstMapping();
+        for (FieldMappings fieldMappings: typeProperties) {
             for (Map.Entry<String, Map<String, Object>> field : fieldMappings.data().entrySet()) {
                 String fieldName = field.getKey();
                 Map<String, Object> properties = field.getValue();

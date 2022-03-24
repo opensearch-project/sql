@@ -89,7 +89,7 @@ public class SqlRequest {
     private void addFilterFromJson(BoolQueryBuilder boolQuery) throws SqlParseException {
         try {
             String filter = getFilterObjectAsString(jsonContent);
-            SearchModule searchModule = new SearchModule(Settings.EMPTY, false, Collections.emptyList());
+            SearchModule searchModule = new SearchModule(Settings.EMPTY,  Collections.emptyList());
             XContentParser parser = XContentFactory.xContent(XContentType.JSON).
                     createParser(new NamedXContentRegistry(searchModule.getNamedXContents()),
                             LoggingDeprecationHandler.INSTANCE,

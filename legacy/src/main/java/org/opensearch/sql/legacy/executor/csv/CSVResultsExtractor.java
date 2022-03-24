@@ -36,14 +36,12 @@ import org.opensearch.sql.legacy.utils.Util;
  */
 public class CSVResultsExtractor {
 
-    private final boolean includeType;
     private final boolean includeScore;
     private final boolean includeId;
     private int currentLineIndex;
 
-    public CSVResultsExtractor(boolean includeScore, boolean includeType, boolean includeId) {
+    public CSVResultsExtractor(boolean includeScore, boolean includeId) {
         this.includeScore = includeScore;
-        this.includeType = includeType;
         this.includeId = includeId;
         this.currentLineIndex = 0;
     }
@@ -295,9 +293,6 @@ public class CSVResultsExtractor {
             }
             if (this.includeScore) {
                 doc.put("_score", hit.getScore());
-            }
-            if (this.includeType) {
-                doc.put("_type", hit.getType());
             }
 
             // select function as field is a special case where each hit has non-null field (function)

@@ -37,4 +37,5 @@ module.exports = {
   ],
   clearMocks: true,
   testPathIgnorePatterns: ["<rootDir>/build/", "<rootDir>/node_modules/"],
+  testEnvironment: 'jsdom',
 };
