@@ -341,13 +341,13 @@ Return type: DOUBLE
 
 Example::
 
-    os> SELECT DEGREES(0)
+    os> SELECT DEGREES(1.57)
     fetched rows / total rows  = 1/1
-    +--------------+
-    | DEGREES(0)   |
-    |--------------|
-    | 0.0          |
-    +--------------+
+    +-------------------+
+    | DEGREES(1.57)     |
+    |-------------------|
+    | 89.95437383553924 |
+    +-------------------+
 
 
 DIVIDE
