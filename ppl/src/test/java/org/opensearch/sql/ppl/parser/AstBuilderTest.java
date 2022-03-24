@@ -587,12 +587,45 @@ public class AstBuilderTest {
   }
 
   @Test
-  public void test_fitRCFADCommand() {
-    assertEqual("source=t | AD shingle_size=10 time_decay=0.0001 time_field='timestamp'",
+  public void test_fitRCFADCommand_withoutDataFormat() {
+    assertEqual("source=t | AD shingle_size=10, time_decay=0.0001, time_field='timestamp', "
+                    + "anomaly_rate=0.1, anomaly_score_threshold=0.1, sample_size=256, "
+                    + "number_of_trees=256, time_zone='PST', output_after=256, "
+                    + "training_data_size=256",
             new AD(relation("t"),new HashMap<String, Literal>() {{
+                put("anomaly_rate", new Literal(0.1, DataType.DOUBLE));
+                put("anomaly_score_threshold", new Literal(0.1, DataType.DOUBLE));
+                put("sample_size", new Literal(256, DataType.INTEGER));
+                put("number_of_trees", new Literal(256, DataType.INTEGER));
+                put("date_format", new Literal("yyyy-MM-dd HH:mm:ss", DataType.STRING));
+                put("time_zone", new Literal("PST", DataType.STRING));
+                put("output_after", new Literal(256, DataType.INTEGER));
                 put("shingle_size", new Literal(10, DataType.INTEGER));
                 put("time_decay", new Literal(0.0001, DataType.DOUBLE));
                 put("time_field", new Literal("timestamp", DataType.STRING));
+                put("training_data_size", new Literal(256, DataType.INTEGER));
+              }
+            }));
+  }
+
+  @Test
+  public void test_fitRCFADCommand_withDataFormat() {
+    assertEqual("source=t | AD shingle_size=10, time_decay=0.0001, time_field='timestamp', "
+                    + "anomaly_rate=0.1, anomaly_score_threshold=0.1, sample_size=256, "
+                    + "number_of_trees=256, time_zone='PST', output_after=256, "
+                    + "training_data_size=256, date_format='HH:mm:ss yyyy-MM-dd'",
+            new AD(relation("t"),new HashMap<String, Literal>() {{
+                put("anomaly_rate", new Literal(0.1, DataType.DOUBLE));
+                put("anomaly_score_threshold", new Literal(0.1, DataType.DOUBLE));
+                put("sample_size", new Literal(256, DataType.INTEGER));
+                put("number_of_trees", new Literal(256, DataType.INTEGER));
+                put("date_format", new Literal("HH:mm:ss yyyy-MM-dd", DataType.STRING));
+                put("time_zone", new Literal("PST", DataType.STRING));
+                put("output_after", new Literal(256, DataType.INTEGER));
+                put("shingle_size", new Literal(10, DataType.INTEGER));
+                put("time_decay", new Literal(0.0001, DataType.DOUBLE));
+                put("time_field", new Literal("timestamp", DataType.STRING));
+                put("training_data_size", new Literal(256, DataType.INTEGER));
               }
             }));
   }
@@ -601,6 +634,14 @@ public class AstBuilderTest {
   public void test_batchRCFADCommand() {
     assertEqual("source=t | AD",
             new AD(relation("t"),new HashMap<String, Literal>() {{
+                put("anomaly_rate", new Literal(null, DataType.DOUBLE));
+                put("anomaly_score_threshold", new Literal(null, DataType.DOUBLE));
+                put("sample_size", new Literal(null, DataType.INTEGER));
+                put("number_of_trees", new Literal(null, DataType.INTEGER));
+                put("date_format", new Literal(null, DataType.STRING));
+                put("time_zone", new Literal(null, DataType.STRING));
+                put("output_after", new Literal(null, DataType.INTEGER));
+                put("training_data_size", new Literal(null, DataType.INTEGER));
                 put("shingle_size", new Literal(null, DataType.INTEGER));
                 put("time_decay", new Literal(null, DataType.DOUBLE));
                 put("time_field", new Literal(null, DataType.STRING));

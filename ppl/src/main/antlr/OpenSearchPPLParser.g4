@@ -94,10 +94,21 @@ kmeansCommand
     ;
 
 adCommand
-    : AD
-    (SHINGLE_SIZE EQUAL shingle_size=integerLiteral)?
-    (TIME_DECAY EQUAL time_decay=decimalLiteral)?
-    (TIME_FIELD EQUAL time_field=stringLiteral)?
+    : AD (adParameter)? (COMMA adParameter)*
+    ;
+
+adParameter
+    : (NUMBER_OF_TREES EQUAL number_of_trees=integerLiteral)
+    | (SHINGLE_SIZE EQUAL shingle_size=integerLiteral)
+    | (SAMPLE_SIZE EQUAL sample_size=integerLiteral)
+    | (OUTPUT_AFTER EQUAL output_after=integerLiteral)
+    | (TIME_DECAY EQUAL time_decay=decimalLiteral)
+    | (ANOMALY_RATE EQUAL anomaly_rate=decimalLiteral)
+    | (TIME_FIELD EQUAL time_field=stringLiteral)
+    | (DATE_FORMAT EQUAL date_format=stringLiteral)
+    | (TIME_ZONE EQUAL time_zone=stringLiteral)
+    | (TRAINING_DATA_SIZE EQUAL training_data_size=integerLiteral)
+    | (ANOMALY_SCORE_THRESHOLD EQUAL anomaly_score_threshold=decimalLiteral)
     ;
 
 /** clauses */

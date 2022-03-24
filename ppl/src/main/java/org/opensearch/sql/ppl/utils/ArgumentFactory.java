@@ -14,15 +14,25 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLit
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StringLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
+import static org.opensearch.sql.utils.MLCommonsConstants.ANOMALY_RATE;
+import static org.opensearch.sql.utils.MLCommonsConstants.ANOMALY_SCORE_THRESHOLD;
+import static org.opensearch.sql.utils.MLCommonsConstants.DATE_FORMAT;
+import static org.opensearch.sql.utils.MLCommonsConstants.NUMBER_OF_TREES;
+import static org.opensearch.sql.utils.MLCommonsConstants.OUTPUT_AFTER;
+import static org.opensearch.sql.utils.MLCommonsConstants.SAMPLE_SIZE;
 import static org.opensearch.sql.utils.MLCommonsConstants.SHINGLE_SIZE;
 import static org.opensearch.sql.utils.MLCommonsConstants.TIME_DECAY;
 import static org.opensearch.sql.utils.MLCommonsConstants.TIME_FIELD;
+import static org.opensearch.sql.utils.MLCommonsConstants.TIME_ZONE;
+import static org.opensearch.sql.utils.MLCommonsConstants.TRAINING_DATA_SIZE;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.opensearch.sql.ast.expression.Argument;
@@ -30,6 +40,7 @@ import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.AdCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.AdParameterContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.KmeansCommandContext;
 
 /**
@@ -161,18 +172,84 @@ public class ArgumentFactory {
    * @return the list of arguments fetched from the AD command
    */
   public static Map<String, Literal> getArgumentMap(AdCommandContext ctx) {
-    return new HashMap<String, Literal>() {{
-        put(SHINGLE_SIZE, (ctx.shingle_size != null)
-              ? getArgumentValue(ctx.shingle_size)
-              : new Literal(null, DataType.INTEGER));
-        put(TIME_DECAY, (ctx.time_decay != null)
-              ? getArgumentValue(ctx.time_decay)
-              : new Literal(null, DataType.DOUBLE));
-        put(TIME_FIELD, (ctx.time_field != null)
-              ? getArgumentValue(ctx.time_field)
-              : new Literal(null, DataType.STRING));
+    List<AdParameterContext> adParameters = ctx.adParameter();
+    Literal numberOfTrees = null;
+    Literal shingleSize = null;
+    Literal sampleSize = null;
+    Literal outputAfter = null;
+    Literal timeDecay = null;
+    Literal anomalyRate = null;
+    Literal timeField = null;
+    Literal dateFormat = null;
+    Literal timeZone = null;
+    Literal trainingDataSize = null;
+    Literal anomalyScoreThreshold = null;
+
+    for (AdParameterContext p : adParameters) {
+      if (p.number_of_trees != null) {
+        numberOfTrees = getArgumentValue(p.number_of_trees);
       }
-    };
+      if (p.shingle_size != null) {
+        shingleSize = getArgumentValue(p.shingle_size);
+      }
+      if (p.sample_size != null) {
+        sampleSize = getArgumentValue(p.sample_size);
+      }
+      if (p.output_after != null) {
+        outputAfter = getArgumentValue(p.output_after);
+      }
+      if (p.time_decay != null) {
+        timeDecay = getArgumentValue(p.time_decay);
+      }
+      if (p.anomaly_rate != null) {
+        anomalyRate = getArgumentValue(p.anomaly_rate);
+      }
+      if (p.time_field != null) {
+        timeField = getArgumentValue(p.time_field);
+      }
+      if (p.date_format != null) {
+        dateFormat = getArgumentValue(p.date_format);
+      }
+      if (p.time_zone != null) {
+        timeZone = getArgumentValue(p.time_zone);
+      }
+      if (p.training_data_size != null) {
+        trainingDataSize = getArgumentValue(p.training_data_size);
+      }
+      if (p.anomaly_score_threshold != null) {
+        anomalyScoreThreshold = getArgumentValue(p.anomaly_score_threshold);
+      }
+    }
+
+    if (timeField != null && dateFormat == null) {
+      dateFormat = new Literal("yyyy-MM-dd HH:mm:ss", DataType.STRING);
+    }
+
+    HashMap<String, Literal> params = new HashMap<>();
+    params.put(NUMBER_OF_TREES, numberOfTrees != null
+            ? numberOfTrees : new Literal(null, DataType.INTEGER));
+    params.put(SHINGLE_SIZE, shingleSize != null
+            ? shingleSize : new Literal(null, DataType.INTEGER));
+    params.put(SAMPLE_SIZE, sampleSize != null
+            ? sampleSize : new Literal(null, DataType.INTEGER));
+    params.put(OUTPUT_AFTER, outputAfter != null
+            ? outputAfter : new Literal(null, DataType.INTEGER));
+    params.put(TIME_DECAY, timeDecay != null
+            ? timeDecay : new Literal(null, DataType.DOUBLE));
+    params.put(ANOMALY_RATE, anomalyRate != null
+            ? anomalyRate : new Literal(null, DataType.DOUBLE));
+    params.put(TIME_FIELD, timeField != null
+            ? timeField : new Literal(null, DataType.STRING));
+    params.put(DATE_FORMAT, dateFormat != null
+            ? dateFormat : new Literal(null, DataType.STRING));
+    params.put(TIME_ZONE, timeZone != null
+            ? timeZone : new Literal(null, DataType.STRING));
+    params.put(TRAINING_DATA_SIZE, trainingDataSize != null
+            ? trainingDataSize : new Literal(null, DataType.INTEGER));
+    params.put(ANOMALY_SCORE_THRESHOLD, anomalyScoreThreshold != null
+            ? anomalyScoreThreshold : new Literal(null, DataType.DOUBLE));
+
+    return params;
   }
 
   private static Literal getArgumentValue(ParserRuleContext ctx) {
