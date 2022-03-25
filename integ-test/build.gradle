@@ -57,30 +57,31 @@ configurations.all {
 }
 
 dependencies {
-    testCompile group: 'org.opensearch.test', name: 'framework', version: "${opensearch_version}"
-    testCompile group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
-    testCompile group: 'org.opensearch.client', name: 'opensearch-rest-client', version: "${opensearch_version}"
-    testCompile group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
-    testCompile group: 'org.apache.logging.log4j', name: 'log4j-core', version:'2.17.1'
-    testCompile project(':plugin')
-    testCompile project(':legacy')
+    testImplementation group: 'org.opensearch.test', name: 'framework', version: "${opensearch_version}"
+    testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
+    testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-client', version: "${opensearch_version}"
+    testImplementation group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
+    implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version:'2.17.1'
+    testImplementation project(':plugin')
+    testImplementation project(':legacy')
     testImplementation('org.junit.jupiter:junit-jupiter-api:5.6.2')
     testRuntimeOnly('org.junit.jupiter:junit-jupiter-engine:5.6.2')
 
     // JDBC drivers for comparison test. Somehow Apache Derby throws security permission exception.
-    testCompile fileTree('../sql-jdbc/build/libs') {
+    testImplementation fileTree('../sql-jdbc/build/libs') {
         include '*.jar'
         builtBy 'compileJdbc'
     }
-    testCompile group: 'com.h2database', name: 'h2', version: '2.1.210'
-    testCompile group: 'org.xerial', name: 'sqlite-jdbc', version: '3.28.0'
-    testCompile group: 'com.google.code.gson', name: 'gson', version: '2.8.9'
+    testImplementation group: 'com.h2database', name: 'h2', version: '2.1.210'
+    testImplementation group: 'org.xerial', name: 'sqlite-jdbc', version: '3.28.0'
+    testImplementation group: 'com.google.code.gson', name: 'gson', version: '2.8.9'
 }
 
 dependencyLicenses.enabled = false
 testingConventions.enabled = false
 checkstyleTest.ignoreFailures = true
 forbiddenApisTest.enabled = false
+thirdPartyAudit.enabled = false
 
 compileTestJava {
     options.compilerArgs.addAll(["-processor", 'lombok.launch.AnnotationProcessorHider$AnnotationProcessor'])
@@ -142,27 +143,6 @@ integTest {
     exclude 'org/opensearch/sql/legacy/OrderIT.class'
 }
 
-
-task docTest(type: RestIntegTestTask) {
-    dependsOn ':plugin:bundlePlugin'
-
-    systemProperty 'tests.security.manager', 'false'
-    systemProperty('project.root', project.projectDir.absolutePath)
-
-    // Tell the test JVM if the cluster JVM is running under a debugger so that tests can use longer timeouts for
-    // requests. The 'doFirst' delays reading the debug setting on the cluster till execution time.
-    doFirst { systemProperty 'cluster.debug', getDebug() }
-
-    if (System.getProperty("test.debug") != null) {
-        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
-    }
-
-    include 'org/opensearch/sql/doctest/**/*IT.class'
-    exclude 'org/opensearch/sql/correctness/**/*IT.class'
-    exclude 'org/opensearch/sql/ppl/**/*IT.class'
-    exclude 'org/opensearch/sql/sql/**/*IT.class'
-    exclude 'org/opensearch/sql/legacy/**/*IT.class'
-}
 
 task comparisonTest(type: RestIntegTestTask) {
     dependsOn ':plugin:bundlePlugin'

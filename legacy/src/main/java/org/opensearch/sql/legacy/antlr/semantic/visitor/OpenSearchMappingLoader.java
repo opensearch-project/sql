@@ -9,6 +9,7 @@ package org.opensearch.sql.legacy.antlr.semantic.visitor;
 import static org.opensearch.sql.legacy.antlr.semantic.types.base.OpenSearchIndex.IndexType.INDEX;
 import static org.opensearch.sql.legacy.antlr.semantic.types.base.OpenSearchIndex.IndexType.NESTED_FIELD;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -172,9 +173,7 @@ public class OpenSearchMappingLoader implements GenericSqlParseTreeVisitor<Type>
 
     private Set<FieldMappings> getFieldMappings(String indexName) {
         IndexMappings indexMappings = clusterState.getFieldMappings(new String[]{indexName});
-        Set<FieldMappings> fieldMappingsSet = indexMappings.allMappings().stream().
-                flatMap(typeMappings -> typeMappings.allMappings().stream()).
-                collect(Collectors.toSet());
+        Set<FieldMappings> fieldMappingsSet = new HashSet<>(indexMappings.allMappings());
 
         for (FieldMappings fieldMappings : fieldMappingsSet) {
             int size = fieldMappings.data().size();

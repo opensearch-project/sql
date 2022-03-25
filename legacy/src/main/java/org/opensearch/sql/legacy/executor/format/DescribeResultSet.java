@@ -79,20 +79,14 @@ public class DescribeResultSet extends ResultSet {
     private List<Row> loadRows() {
         List<Row> rows = new ArrayList<>();
         GetIndexResponse indexResponse = (GetIndexResponse) queryResult;
-        ImmutableOpenMap<String, ImmutableOpenMap<String, MappingMetadata>> indexMappings = indexResponse.getMappings();
+        ImmutableOpenMap<String, MappingMetadata> indexMappings = indexResponse.getMappings();
 
         // Iterate through indices in indexMappings
-        for (ObjectObjectCursor<String, ImmutableOpenMap<String, MappingMetadata>> indexCursor : indexMappings) {
+        for (ObjectObjectCursor<String, MappingMetadata> indexCursor : indexMappings) {
             String index = indexCursor.key;
 
             if (matchesPatternIfRegex(index, statement.getIndexPattern())) {
-                ImmutableOpenMap<String, MappingMetadata> typeMapping = indexCursor.value;
-                // Assuming OpenSearch 6.x, iterate through the only type of the index to get mapping data
-                for (ObjectObjectCursor<String, MappingMetadata> typeCursor : typeMapping) {
-                    MappingMetadata mappingMetaData = typeCursor.value;
-                    // Load rows for each field in the mapping
-                    rows.addAll(loadIndexData(index, mappingMetaData.getSourceAsMap()));
-                }
+                rows.addAll(loadIndexData(index, indexCursor.value.getSourceAsMap()));
             }
         }
         return rows;

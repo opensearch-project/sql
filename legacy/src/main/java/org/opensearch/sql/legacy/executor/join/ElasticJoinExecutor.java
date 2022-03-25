@@ -206,13 +206,12 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
     protected SearchHit createUnmachedResult(List<Field> secondTableReturnedFields, int docId, String t1Alias,
                                              String t2Alias, SearchHit hit) {
         String unmatchedId = hit.getId() + "|0";
-        Text unamatchedType = new Text(hit.getType() + "|null");
 
         Map<String, DocumentField> documentFields = new HashMap<>();
         Map<String, DocumentField> metaFields = new HashMap<>();
         hit.getFields().forEach((fieldName, docField) ->
             (MapperService.META_FIELDS_BEFORE_7DOT8.contains(fieldName) ? metaFields : documentFields).put(fieldName, docField));
-        SearchHit searchHit = new SearchHit(docId, unmatchedId, unamatchedType, documentFields, metaFields);
+        SearchHit searchHit = new SearchHit(docId, unmatchedId,  documentFields, metaFields);
 
         searchHit.sourceRef(hit.getSourceRef());
         searchHit.getSourceAsMap().clear();

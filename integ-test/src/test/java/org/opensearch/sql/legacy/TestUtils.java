@@ -264,8 +264,6 @@ public class TestUtils {
 
         IndexRequest indexRequest = new IndexRequest();
         indexRequest.index(defaultIndex);
-        String docType = actionJson.getJSONObject("index").getString("_type");
-        indexRequest.type(docType);
         if (actionJson.getJSONObject("index").has("_id")) {
           String docId = actionJson.getJSONObject("index").getString("_id");
           indexRequest.id(docId);

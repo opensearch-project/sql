@@ -45,10 +45,6 @@ public class LocalClusterState {
 
     private static final Logger LOG = LogManager.getLogger();
 
-    /**
-     * Default types and field filter to match all
-     */
-    private static final String[] ALL_TYPES = new String[0];
     private static final Function<String, Predicate<String>> ALL_FIELDS = (anyIndex -> (anyField -> true));
 
     /**
@@ -72,7 +68,7 @@ public class LocalClusterState {
      * Thread-safe mapping cache to save the computation of sourceAsMap() which is not lightweight as thought
      * Array cannot be used as key because hashCode() always return reference address, so either use wrapper or List.
      */
-    private final Cache<Tuple<List<String>, List<String>>, IndexMappings> cache;
+    private final Cache<List<String>, IndexMappings> cache;
 
     /**
      * Latest setting value for each registered key. Thread-safe is required.
@@ -148,14 +144,7 @@ public class LocalClusterState {
      * Get field mappings by index expressions. All types and fields are included in response.
      */
     public IndexMappings getFieldMappings(String[] indices) {
-        return getFieldMappings(indices, ALL_TYPES, ALL_FIELDS);
-    }
-
-    /**
-     * Get field mappings by index expressions, type. All fields are included in response.
-     */
-    public IndexMappings getFieldMappings(String[] indices, String[] types) {
-        return getFieldMappings(indices, types, ALL_FIELDS);
+        return getFieldMappings(indices, ALL_FIELDS);
     }
 
     /**
@@ -167,12 +156,10 @@ public class LocalClusterState {
      * to ClusterService.state() here.
      *
      * @param indices     index name expression
-     * @param types       type name
      * @param fieldFilter field filter predicate
      * @return index mapping(s)
      */
-    public IndexMappings getFieldMappings(String[] indices, String[] types,
-                                          Function<String, Predicate<String>> fieldFilter) {
+    private IndexMappings getFieldMappings(String[] indices, Function<String, Predicate<String>> fieldFilter) {
         Objects.requireNonNull(clusterService, "Cluster service is null");
         Objects.requireNonNull(resolver, "Index name expression resolver is null");
 
@@ -182,9 +169,9 @@ public class LocalClusterState {
 
             IndexMappings mappings;
             if (fieldFilter == ALL_FIELDS) {
-                mappings = findMappingsInCache(state, concreteIndices, types);
+                mappings = findMappingsInCache(state, concreteIndices);
             } else {
-                mappings = findMappings(state, concreteIndices, types, fieldFilter);
+                mappings = findMappings(state, concreteIndices, fieldFilter);
             }
 
             LOG.debug("Found mappings: {}", mappings);
@@ -194,7 +181,7 @@ public class LocalClusterState {
         } catch (Exception e) {
             throw new IllegalStateException(
                     "Failed to read mapping in cluster state for indices="
-                            + Arrays.toString(indices) + ", types=" + Arrays.toString(types), e);
+                            + Arrays.toString(indices) , e);
         }
     }
 
@@ -208,20 +195,19 @@ public class LocalClusterState {
         return concreteIndices;
     }
 
-    private IndexMappings findMappings(ClusterState state, String[] indices, String[] types,
+    private IndexMappings findMappings(ClusterState state, String[] indices,
                                        Function<String, Predicate<String>> fieldFilter) throws IOException {
         LOG.debug("Cache didn't help. Load and parse mapping in cluster state");
         return new IndexMappings(
-                state.metadata().findMappings(indices, types, fieldFilter)
+                state.metadata().findMappings(indices, fieldFilter)
         );
     }
 
-    private IndexMappings findMappingsInCache(ClusterState state, String[] indices, String[] types)
+    private IndexMappings findMappingsInCache(ClusterState state, String[] indices)
             throws ExecutionException {
         LOG.debug("Looking for mapping in cache: {}", cache.asMap());
-        return cache.get(
-                new Tuple<>(sortToList(indices), sortToList(types)),
-                () -> findMappings(state, indices, types, ALL_FIELDS)
+        return cache.get(sortToList(indices),
+                () -> findMappings(state, indices, ALL_FIELDS)
         );
     }
 

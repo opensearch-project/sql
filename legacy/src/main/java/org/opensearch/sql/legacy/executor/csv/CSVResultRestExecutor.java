@@ -49,11 +49,10 @@ public class CSVResultRestExecutor implements RestExecutor {
 
         final boolean flat = getBooleanOrDefault(params, "flat", false);
         final boolean includeScore = getBooleanOrDefault(params, "_score", false);
-        final boolean includeType = getBooleanOrDefault(params, "_type", false);
         final boolean includeId = getBooleanOrDefault(params, "_id", false);
 
         final List<String> fieldNames = queryAction.getFieldNames().orElse(null);
-        final CSVResult result = new CSVResultsExtractor(includeScore, includeType, includeId)
+        final CSVResult result = new CSVResultsExtractor(includeScore, includeId)
                 .extractResults(queryResult, flat, separator, fieldNames);
 
         return buildString(separator, result, newLine);

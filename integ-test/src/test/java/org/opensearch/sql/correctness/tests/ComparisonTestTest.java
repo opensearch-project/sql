@@ -8,7 +8,7 @@ package org.opensearch.sql.correctness.tests;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -17,7 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.sql.correctness.report.ErrorTestCase;
 import org.opensearch.sql.correctness.report.FailedTestCase;
 import org.opensearch.sql.correctness.report.SuccessTestCase;
