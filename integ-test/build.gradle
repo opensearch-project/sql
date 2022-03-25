@@ -28,6 +28,7 @@ import org.opensearch.gradle.testclusters.StandaloneRestIntegTestTask
 
 import java.util.concurrent.Callable
 
+
 apply plugin: 'opensearch.build'
 apply plugin: 'opensearch.rest-test'
 apply plugin: 'java'
@@ -188,6 +189,8 @@ task compileJdbc(type: Exec) {
 String bwcVersion = "1.13.2.0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
+String bwcOpenDistroPlugin = "opendistro-sql-1.13.2.0.zip"
+String bwcRemoteFile = 'https://d3g5vo6xdbdb9a.cloudfront.net/downloads/elasticsearch-plugins/opendistro-sql/opendistro-sql-1.13.2.0.zip'
 
 2.times { i ->
     testClusters {
@@ -201,6 +204,14 @@ String bwcFilePath = "src/test/resources/bwc/"
                     return new RegularFile() {
                         @Override
                         File getAsFile() {
+                            File dir = new File('./integ-test/' + bwcFilePath + bwcVersion)
+                            if (!dir.exists()) {
+                                dir.mkdirs()
+                            }
+                            File f = new File(bwcOpenDistroPlugin, dir)
+                            if (!f.exists()) {
+                                new URL(bwcRemoteFile).withInputStream{ ins -> f.withOutputStream{ it << ins }}
+                            }
                             return fileTree(bwcFilePath + bwcVersion).getSingleFile()
                         }
                     }
