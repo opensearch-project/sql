@@ -37,10 +37,14 @@ repositories {
 
 ext {
     isSnapshot = "true" == System.getProperty("build.snapshot", "true")
+    buildVersionQualifier = System.getProperty("build.version_qualifier")
 }
 
 allprojects {
-    version = opensearch_version - "-SNAPSHOT" + ".0"
+    version = opensearch_version.tokenize('-')[0] + '.0'
+    if (buildVersionQualifier) {
+        version += "-${buildVersionQualifier}"
+    }
     if (isSnapshot) {
         version += "-SNAPSHOT"
     }
