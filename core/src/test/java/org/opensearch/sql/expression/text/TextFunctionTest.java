@@ -190,13 +190,13 @@ public class TextFunctionTest extends ExpressionTestBase {
   void ltrimString(String str) {
     FunctionExpression expression = dsl.ltrim(DSL.literal(str));
     assertEquals(STRING, expression.type());
-    assertEquals(str.replaceAll("^\\s+", ""), eval(expression).stringValue());
+    assertEquals(str.stripLeading(), eval(expression).stringValue());
   }
 
   void rtrimString(String str) {
     FunctionExpression expression = dsl.rtrim(DSL.literal(str));
     assertEquals(STRING, expression.type());
-    assertEquals(str.replaceAll("\\s+$", ""), eval(expression).stringValue());
+    assertEquals(str.stripTrailing(), eval(expression).stringValue());
   }
 
   void trimString(String str) {

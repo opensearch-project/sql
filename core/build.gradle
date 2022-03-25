@@ -80,11 +80,7 @@ jacocoTestCoverageVerification {
         rule {
             element = 'CLASS'
             excludes = [
-                    'org.opensearch.sql.utils.MLCommonsConstants',
-                    'org.opensearch.sql.expression.datetime.DateTimeFormatterUtil',
-                    'org.opensearch.sql.expression.DSL',
-                    'org.opensearch.sql.expression.datetime.CalendarLookup'
-
+                    'org.opensearch.sql.utils.MLCommonsConstants'
             ]
             limit {
                 counter = 'LINE'

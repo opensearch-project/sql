@@ -252,13 +252,13 @@ Return type: DOUBLE
 
 Example::
 
-    os> source=people | eval `DEGREES(0)` = DEGREES(0) | fields `DEGREES(0)`
+    os> source=people | eval `DEGREES(1.57)` = DEGREES(1.57) | fields `DEGREES(1.57)`
     fetched rows / total rows  = 1/1
-    +--------------+
-    | DEGREES(0)   |
-    |--------------|
-    | 0.0          |
-    +--------------+
+    +-------------------+
+    | DEGREES(1.57)     |
+    |-------------------|
+    | 89.95437383553924 |
+    +-------------------+
 
 E
 -
