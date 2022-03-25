@@ -57,7 +57,7 @@ dependencies {
 
     testImplementation group: 'junit', name: 'junit', version: '4.13.2'
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.3.3'
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.12.4'
 
 }
 
@@ -66,10 +66,6 @@ test {
         events "passed", "skipped", "failed"
         exceptionFormat "full"
     }
-}
-
-jacoco {
-    toolVersion = "0.8.5"
 }
 
 jacocoTestReport {

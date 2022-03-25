@@ -12,6 +12,7 @@ jobs:
         java:
           - 11
           - 14
+          - 17
     runs-on: ubuntu-latest
 
     steps:

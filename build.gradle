@@ -24,7 +24,7 @@ plugins {
     id 'nebula.ospackage' version "8.3.0"
     id 'java-library'
     id 'checkstyle'
-    id "io.freefair.lombok" version "5.0.0-rc4"
+    id "io.freefair.lombok" version "6.4.0"
     id 'jacoco'
 }
 
@@ -80,7 +80,7 @@ compileTestJava {
 }
 
 jacoco {
-    toolVersion = "0.8.5"
+    toolVersion = "0.8.7"
 }
 jacocoTestReport {
     reports {

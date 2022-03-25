@@ -17,7 +17,7 @@ Prerequisites
 JDK
 ---
 
-OpenSearch builds using Java 11 at a minimum. This means you must have a JDK 11 installed with the environment variable `JAVA_HOME` referencing the path to Java home for your JDK 11 installation::
+OpenSearch builds using Java 11 at a minimum and supports JDK 11, 14 and 17. This means you must have a JDK of supported version installed with the environment variable `JAVA_HOME` referencing the path to Java home for your JDK installation::
 
    $ echo $JAVA_HOME
    /Library/Java/JavaVirtualMachines/adoptopenjdk-11.jdk/Contents/Home

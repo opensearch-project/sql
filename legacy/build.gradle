@@ -102,7 +102,7 @@ dependencies {
     compileOnly group: 'javax.servlet', name: 'servlet-api', version:'2.5'
 
     testImplementation group: 'org.hamcrest', name: 'hamcrest-core', version:'2.2'
-    testImplementation group: 'org.mockito', name: 'mockito-inline', version:'3.5.0'
+    testImplementation group: 'org.mockito', name: 'mockito-inline', version:'3.12.4'
     testImplementation group: 'junit', name: 'junit', version: '4.13.2'
     testImplementation group: "org.opensearch.client", name: 'transport', version: "${opensearch_version}"
 
