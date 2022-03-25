@@ -115,7 +115,12 @@ class LogicalPlanNodeVisitorTest {
 
     LogicalPlan mlCommons = new LogicalMLCommons(LogicalPlanDSL.relation("schema"),
             "kmeans",
-            AstDSL.exprList(AstDSL.argument("k", AstDSL.intLiteral(3))));
+            new HashMap<String, Literal>() {{
+              put("centroids", new Literal(3, DataType.INTEGER));
+              put("iterations", new Literal(3, DataType.DOUBLE));
+              put("distance_type", new Literal(null, DataType.STRING));
+        }
+      });
     assertNull(mlCommons.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
     }, null));
 

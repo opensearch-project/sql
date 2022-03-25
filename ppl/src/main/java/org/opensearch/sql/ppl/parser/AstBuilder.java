@@ -309,7 +309,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitKmeansCommand(KmeansCommandContext ctx) {
-    return new Kmeans(ArgumentFactory.getArgumentList(ctx));
+    return new Kmeans(ArgumentFactory.getArgumentMap(ctx));
   }
 
   @Override

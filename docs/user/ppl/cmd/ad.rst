@@ -16,20 +16,28 @@ Description
 
 Fixed In Time RCF For Time-series Data Command Syntax
 =====================================================
-ad <shingle_size> <time_decay> <time_field>
+ad <number_of_trees>, <shingle_size>, <sample_size>, <output_after>, <time_decay>, <anomaly_rate>, <time_field>, <date_format>, <time_zone>
 
-* shingle_size: optional. A shingle is a consecutive sequence of the most recent records. The default value is 8.
-* time_decay: optional. It specifies how much of the recent past to consider when computing an anomaly score. The default value is 0.001.
-* time_field: mandatory. It specifies the time filed for RCF to use as time-series data.
+* number_of_trees(integer): optional. Number of trees in the forest. The default value is 30.
+* shingle_size(integer): optional. A shingle is a consecutive sequence of the most recent records. The default value is 8.
+* sample_size(integer): optional. The sample size used by stream samplers in this forest. The default value is 256.
+* output_after(integer): optional. The number of points required by stream samplers before results are returned. The default value is 32.
+* time_decay(double): optional. The decay factor used by stream samplers in this forest. The default value is 0.0001.
+* anomaly_rate(double): optional. The anomaly rate. The default value is 0.005.
+* time_field(string): mandatory. It specifies the time filed for RCF to use as time-series data.
+* date_format(string): optional. It's used for formatting time_field field. The default formatting is "yyyy-MM-dd HH:mm:ss".
+* time_zone(string): optional. It's used for setting time zone for time_field filed. The default time zone is UTC.
 
 
 Batch RCF for Non-time-series Data Command Syntax
 =================================================
-ad <shingle_size> <time_decay>
+ad <number_of_trees>, <sample_size>, <output_after>, <training_data_size>, <anomaly_score_threshold>
 
-* shingle_size: optional. A shingle is a consecutive sequence of the most recent records. The default value is 8.
-* time_decay: optional. It specifies how much of the recent past to consider when computing an anomaly score. The default value is 0.001.
-
+* number_of_trees(integer): optional. Number of trees in the forest. The default value is 30.
+* sample_size(integer): optional. Number of random samples given to each tree from the training data set. The default value is 256.
+* output_after(integer): optional. The number of points required by stream samplers before results are returned. The default value is 32.
+* training_data_size(integer): optional. The default value is the size of your training data set.
+* anomaly_score_threshold(double): optional. The threshold of anomaly score. The default value is 1.0.
 
 Example1: Detecting events in New York City from taxi ridership data with time-series data
 ==========================================================================================

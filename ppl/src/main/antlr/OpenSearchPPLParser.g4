@@ -89,8 +89,13 @@ parseCommand
     ;
     
 kmeansCommand
-    : KMEANS
-    k=integerLiteral
+    : KMEANS (kmeansParameter)? (COMMA kmeansParameter)*
+    ;
+
+kmeansParameter
+    : (CENTROIDS EQUAL centroids=integerLiteral)
+    | (ITERATIONS EQUAL iterations=integerLiteral)
+    | (DISTANCE_TYPE EQUAL distance_type=stringLiteral)
     ;
 
 adCommand

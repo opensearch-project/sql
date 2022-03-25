@@ -1,11 +1,11 @@
 package org.opensearch.sql.planner.logical;
 
 import java.util.Collections;
-import java.util.List;
+import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
-import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Literal;
 
 /**
  * ml-commons logical plan.
@@ -16,7 +16,7 @@ import org.opensearch.sql.ast.expression.Argument;
 public class LogicalMLCommons extends LogicalPlan {
   private final String algorithm;
 
-  private final List<Argument> arguments;
+  private final  Map<String, Literal> arguments;
 
   /**
    * Constructor of LogicalMLCommons.
@@ -25,7 +25,7 @@ public class LogicalMLCommons extends LogicalPlan {
    * @param arguments arguments of the algorithm
    */
   public LogicalMLCommons(LogicalPlan child, String algorithm,
-                          List<Argument> arguments) {
+                          Map<String, Literal> arguments) {
     super(Collections.singletonList(child));
     this.algorithm = algorithm;
     this.arguments = arguments;

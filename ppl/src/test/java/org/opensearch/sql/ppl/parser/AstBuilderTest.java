@@ -582,8 +582,24 @@ public class AstBuilderTest {
 
   @Test
   public void testKmeansCommand() {
-    assertEqual("source=t | kmeans 3",
-            new Kmeans(relation("t"),exprList(argument("k", intLiteral(3)))));
+    assertEqual("source=t | kmeans centroids=3, iterations=2, distance_type='l1'",
+            new Kmeans(relation("t"), new HashMap<String, Literal>() {{
+                put("centroids", new Literal(3, DataType.INTEGER));
+                put("iterations", new Literal(2, DataType.INTEGER));
+                put("distance_type", new Literal("l1", DataType.STRING));
+              }
+            }));
+  }
+
+  @Test
+  public void testKmeansCommandWithoutParameter() {
+    assertEqual("source=t | kmeans",
+            new Kmeans(relation("t"), new HashMap<String, Literal>() {{
+                put("centroids", new Literal(null, DataType.INTEGER));
+                put("iterations", new Literal(null, DataType.INTEGER));
+                put("distance_type", new Literal(null, DataType.STRING));
+              }
+            }));
   }
 
   @Test
@@ -592,7 +608,7 @@ public class AstBuilderTest {
                     + "anomaly_rate=0.1, anomaly_score_threshold=0.1, sample_size=256, "
                     + "number_of_trees=256, time_zone='PST', output_after=256, "
                     + "training_data_size=256",
-            new AD(relation("t"),new HashMap<String, Literal>() {{
+            new AD(relation("t"), new HashMap<String, Literal>() {{
                 put("anomaly_rate", new Literal(0.1, DataType.DOUBLE));
                 put("anomaly_score_threshold", new Literal(0.1, DataType.DOUBLE));
                 put("sample_size", new Literal(256, DataType.INTEGER));

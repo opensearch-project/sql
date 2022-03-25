@@ -18,7 +18,10 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StringLite
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 import static org.opensearch.sql.utils.MLCommonsConstants.ANOMALY_RATE;
 import static org.opensearch.sql.utils.MLCommonsConstants.ANOMALY_SCORE_THRESHOLD;
+import static org.opensearch.sql.utils.MLCommonsConstants.CENTROIDS;
 import static org.opensearch.sql.utils.MLCommonsConstants.DATE_FORMAT;
+import static org.opensearch.sql.utils.MLCommonsConstants.DISTANCE_TYPE;
+import static org.opensearch.sql.utils.MLCommonsConstants.ITERATIONS;
 import static org.opensearch.sql.utils.MLCommonsConstants.NUMBER_OF_TREES;
 import static org.opensearch.sql.utils.MLCommonsConstants.OUTPUT_AFTER;
 import static org.opensearch.sql.utils.MLCommonsConstants.SAMPLE_SIZE;
@@ -39,9 +42,11 @@ import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.AdCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.AdParameterContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.KmeansCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.KmeansParameterContext;
 
 /**
  * Util class to get all arguments as a list from the PPL command.
@@ -154,22 +159,44 @@ public class ArgumentFactory {
   }
 
   /**
-   * Get list of {@link Argument}.
+   * Get a map of {@link Argument}.
    *
    * @param ctx KmeansCommandContext instance
-   * @return the list of arguments fetched from the kmeans command
+   * @return a map of arguments fetched from the kmeans command
    */
-  public static List<Argument> getArgumentList(KmeansCommandContext ctx) {
-    // TODO: add iterations and distanceType parameters for Kemans
-    return Collections
-            .singletonList(new Argument("k", getArgumentValue(ctx.k)));
+  public static Map<String, Literal> getArgumentMap(KmeansCommandContext ctx) {
+    List<OpenSearchPPLParser.KmeansParameterContext> kmeansParameters = ctx.kmeansParameter();
+    Literal centroids = null;
+    Literal iterations = null;
+    Literal distanceType = null;
+
+    for (KmeansParameterContext p : kmeansParameters) {
+      if (p.centroids != null) {
+        centroids = getArgumentValue(p.centroids);
+      }
+      if (p.iterations != null) {
+        iterations = getArgumentValue(p.iterations);
+      }
+      if (p.distance_type != null) {
+        distanceType = getArgumentValue(p.distance_type);
+      }
+    }
+
+    Map<String, Literal> params = new HashMap<>();
+    params.put(CENTROIDS, centroids != null
+            ? centroids : new Literal(null, DataType.INTEGER));
+    params.put(ITERATIONS, iterations != null
+            ? iterations : new Literal(null, DataType.INTEGER));
+    params.put(DISTANCE_TYPE, distanceType != null
+            ? distanceType : new Literal(null, DataType.STRING));
+    return params;
   }
 
   /**
-   * Get map of {@link Argument}.
+   * Get a map of {@link Argument}.
    *
    * @param ctx ADCommandContext instance
-   * @return the list of arguments fetched from the AD command
+   * @return a map of arguments fetched from the AD command
    */
   public static Map<String, Literal> getArgumentMap(AdCommandContext ctx) {
     List<AdParameterContext> adParameters = ctx.adParameter();

@@ -109,7 +109,6 @@ public class ADOperator extends MLCommonsOperatorActions {
       rcfType = FunctionName.BATCH_RCF;
       return BatchRCFParams.builder()
               .numberOfTrees((Integer) arguments.get(NUMBER_OF_TREES).getValue())
-              .shingleSize((Integer) arguments.get(SHINGLE_SIZE).getValue())
               .sampleSize((Integer) arguments.get(SAMPLE_SIZE).getValue())
               .outputAfter((Integer) arguments.get(OUTPUT_AFTER).getValue())
               .trainingDataSize((Integer) arguments.get(TRAINING_DATA_SIZE).getValue())
