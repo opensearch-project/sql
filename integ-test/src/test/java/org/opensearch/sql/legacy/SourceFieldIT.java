@@ -32,7 +32,7 @@ public class SourceFieldIT extends SQLIntegTestCase {
   @Test
   public void includeTest() throws IOException {
     SearchHits response = query(String.format(
-        "SELECT include('*name','*ge'),include('b*'),include('*ddre*'),include('gender') FROM %s/account LIMIT 1000",
+        "SELECT include('*name','*ge'),include('b*'),include('*ddre*'),include('gender') FROM %s LIMIT 1000",
         TEST_INDEX_ACCOUNT));
     for (SearchHit hit : response.getHits()) {
       Set<String> keySet = hit.getSourceAsMap().keySet();
@@ -48,7 +48,7 @@ public class SourceFieldIT extends SQLIntegTestCase {
   public void excludeTest() throws IOException {
 
     SearchHits response = query(String.format(
-        "SELECT exclude('*name','*ge'),exclude('b*'),exclude('*ddre*'),exclude('gender') FROM %s/account LIMIT 1000",
+        "SELECT exclude('*name','*ge'),exclude('b*'),exclude('*ddre*'),exclude('gender') FROM %s LIMIT 1000",
         TEST_INDEX_ACCOUNT));
 
     for (SearchHit hit : response.getHits()) {
@@ -65,7 +65,7 @@ public class SourceFieldIT extends SQLIntegTestCase {
   public void allTest() throws IOException {
 
     SearchHits response = query(String.format(
-        "SELECT exclude('*name','*ge'),include('b*'),exclude('*ddre*'),include('gender') FROM %s/account LIMIT 1000",
+        "SELECT exclude('*name','*ge'),include('b*'),exclude('*ddre*'),include('gender') FROM %s LIMIT 1000",
         TEST_INDEX_ACCOUNT));
 
     for (SearchHit hit : response.getHits()) {

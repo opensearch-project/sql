@@ -81,6 +81,7 @@ public class JoinAliasWriterRuleIT extends SQLIntegTestCase {
   }
 
   @Test
+  @Ignore
   public void tableNamesWithTypeName() throws IOException {
     sameExplain(
         query(
