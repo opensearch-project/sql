@@ -48,7 +48,7 @@ public class IndexMappings implements Mappings<FieldMappings> {
 
     public IndexMappings(Metadata metaData) {
         this.indexMappings = buildMappings(metaData.indices(),
-                indexMetaData -> new FieldMappings(indexMetaData.getMappings().valuesIt().next()));
+                indexMetaData -> new FieldMappings(indexMetaData.mapping()));
     }
 
     public IndexMappings(ImmutableOpenMap<String, MappingMetadata> mappings) {

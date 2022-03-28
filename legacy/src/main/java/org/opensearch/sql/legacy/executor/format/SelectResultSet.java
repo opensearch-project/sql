@@ -69,7 +69,6 @@ public class SelectResultSet extends ResultSet {
 
     private boolean selectAll;
     private String indexName;
-    private String typeName;
     private List<Schema.Column> columns = new ArrayList<>();
     private ColumnTypeProvider outputColumnType;
 
@@ -105,7 +104,7 @@ public class SelectResultSet extends ResultSet {
         } else {
             loadFromEsState(query);
         }
-        this.schema = new Schema(indexName, typeName, columns);
+        this.schema = new Schema(indexName, columns);
         this.head = schema.getHeaders();
         this.dateFieldFormatter = new DateFieldFormatter(indexName, columns, fieldAliasMap);
 
@@ -142,7 +141,7 @@ public class SelectResultSet extends ResultSet {
 
     private void populateResultSetFromDefaultCursor(DefaultCursor cursor) {
         this.columns = cursor.getColumns();
-        this.schema = new Schema(null, null, columns);
+        this.schema = new Schema(columns);
         this.head = schema.getHeaders();
         this.dateFieldFormatter = new DateFieldFormatter(
                 cursor.getIndexPattern(),
@@ -163,7 +162,6 @@ public class SelectResultSet extends ResultSet {
      */
     private void loadFromEsState(Query query) {
         String indexName = fetchIndexName(query);
-        String typeName = fetchTypeName(query);
         String[] fieldNames = fetchFieldsAsArray(query);
 
         // Reset boolean in the case of JOIN query where multiple calls to loadFromEsState() are made
@@ -171,42 +169,20 @@ public class SelectResultSet extends ResultSet {
 
         GetFieldMappingsRequest request = new GetFieldMappingsRequest()
                 .indices(indexName)
-                .types(emptyArrayIfNull(typeName))
                 .fields(selectAllFieldsIfEmpty(fieldNames))
                 .local(true);
         GetFieldMappingsResponse response = client.admin().indices()
                 .getFieldMappings(request)
                 .actionGet();
 
-        Map<String, Map<String, Map<String, FieldMappingMetadata>>> mappings = response.mappings();
-        if (mappings.isEmpty()) {
+        Map<String,  Map<String, FieldMappingMetadata>> mappings = response.mappings();
+        if (mappings.isEmpty() || !mappings.containsKey(indexName)) {
             throw new IllegalArgumentException(String.format("Index type %s does not exist", query.getFrom()));
         }
+        Map<String, FieldMappingMetadata> typeMappings = mappings.get(indexName);
 
-        // Assumption is all indices share the same mapping which is validated in TermFieldRewriter.
-        Map<String, Map<String, FieldMappingMetadata>> indexMappings = mappings.values().iterator().next();
-
-        // if index mappings size is 0 and the expression is a cast: that means that we are casting by alias
-        // if so, add the original field that was being looked at to the mapping (how?)
-
-        /*
-         * There are three cases regarding type name to consider:
-         * 1. If the correct type name was given, its typeMapping is retrieved
-         * 2. If the incorrect type name was given then the response is null
-         * 3. If no type name is given, the indexMapping is searched for a typeMapping
-         */
-        Map<String, FieldMappingMetadata> typeMappings = new HashMap<>();
-        if (indexMappings.containsKey(typeName)) {
-            typeMappings = indexMappings.get(typeName);
-        } else {
-            // Assuming OpenSearch version 6.x, there can be only one type per index so this for loop should grab the only type
-            for (String type : indexMappings.keySet()) {
-                typeMappings = indexMappings.get(type);
-            }
-        }
 
         this.indexName = this.indexName == null ? indexName : (this.indexName + "|" + indexName);
-        this.typeName = this.typeName == null ? typeName : (this.typeName + "|" + typeName);
         this.columns.addAll(renameColumnWithTableAlias(query, populateColumns(query, fieldNames, typeMappings)));
     }
 
@@ -287,10 +263,6 @@ public class SelectResultSet extends ResultSet {
 
     private String fetchIndexName(Query query) {
         return query.getFrom().get(0).getIndex();
-    }
-
-    private String fetchTypeName(Query query) {
-        return query.getFrom().get(0).getType();
     }
 
     /**

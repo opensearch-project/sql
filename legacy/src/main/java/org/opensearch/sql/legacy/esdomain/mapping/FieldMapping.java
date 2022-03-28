@@ -118,8 +118,8 @@ public class FieldMapping {
      */
     @SuppressWarnings("unchecked")
     public String type() {
-        FieldMappingMetadata metaData = typeMappings.getOrDefault(fieldName, FieldMappingMetadata.NULL);
-        if (metaData.isNull()) {
+        FieldMappingMetadata metaData = typeMappings.get(fieldName);
+        if (metaData == null) {
             return DescribeResultSet.DEFAULT_OBJECT_DATATYPE;
         }
 

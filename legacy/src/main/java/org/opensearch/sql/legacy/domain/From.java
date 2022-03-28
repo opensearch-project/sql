@@ -54,14 +54,6 @@ public class From {
         this.index = index;
     }
 
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
     public String getAlias() {
         return alias;
     }
