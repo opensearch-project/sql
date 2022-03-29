@@ -189,8 +189,8 @@ task compileJdbc(type: Exec) {
 String bwcVersion = "1.13.2.0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
-String bwcOpenDistroPlugin = "opendistro-sql-1.13.2.0.zip"
-String bwcRemoteFile = 'https://d3g5vo6xdbdb9a.cloudfront.net/downloads/elasticsearch-plugins/opendistro-sql/opendistro-sql-1.13.2.0.zip'
+String bwcOpenDistroPlugin = "opendistro-sql-" + bwcVersion + ".zip"
+String bwcRemoteFile = 'https://d3g5vo6xdbdb9a.cloudfront.net/downloads/elasticsearch-plugins/opendistro-sql/' + bwcOpenDistroPlugin
 
 2.times { i ->
     testClusters {
@@ -208,7 +208,7 @@ String bwcRemoteFile = 'https://d3g5vo6xdbdb9a.cloudfront.net/downloads/elastics
                             if (!dir.exists()) {
                                 dir.mkdirs()
                             }
-                            File f = new File(bwcOpenDistroPlugin, dir)
+                            File f = new File(dir, bwcOpenDistroPlugin)
                             if (!f.exists()) {
                                 new URL(bwcRemoteFile).withInputStream{ ins -> f.withOutputStream{ it << ins }}
                             }
