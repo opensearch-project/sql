@@ -430,7 +430,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     TypeEnvironment currentEnv = context.peek();
 
     currentEnv.define(new Symbol(Namespace.FIELD_NAME, RCF_SCORE), ExprCoreType.DOUBLE);
-    if (Objects.isNull(node.getArguments().get(TIME_FIELD).getValue())) {
+    if (Objects.isNull(node.getArguments().get(TIME_FIELD))) {
       currentEnv.define(new Symbol(Namespace.FIELD_NAME, RCF_ANOMALOUS), ExprCoreType.BOOLEAN);
     } else {
       currentEnv.define(new Symbol(Namespace.FIELD_NAME, RCF_ANOMALY_GRADE), ExprCoreType.DOUBLE);

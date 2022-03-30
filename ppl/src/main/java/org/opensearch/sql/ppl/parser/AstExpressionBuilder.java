@@ -9,15 +9,20 @@ package org.opensearch.sql.ppl.parser;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NULL;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.Anomaly_rateContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.Anomaly_score_thresholdContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BinaryArithmeticContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BySpanClauseContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CentroidsContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CompareExprContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ConvertedDataTypeContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CountAllFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DataTypeFunctionCallContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.Date_formatContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.Distance_typeContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DistinctCountFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalFunctionCallContext;
@@ -27,19 +32,43 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsWi
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.InExprContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntervalLiteralContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IterationsContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalAndContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalNotContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalOrContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalXorContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.Number_of_treesContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.Output_afterContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ParentheticBinaryArithmeticContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PercentileAggFunctionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RelevanceExpressionContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.Sample_sizeContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.Shingle_sizeContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SpanClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StringLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.Time_decayContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.Time_fieldContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.Time_zoneContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.Training_data_sizeContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WcFieldExpressionContext;
+import static org.opensearch.sql.ppl.utils.ArgumentFactory.getArgumentValue;
+import static org.opensearch.sql.utils.MLCommonsConstants.ANOMALY_RATE;
+import static org.opensearch.sql.utils.MLCommonsConstants.ANOMALY_SCORE_THRESHOLD;
+import static org.opensearch.sql.utils.MLCommonsConstants.CENTROIDS;
+import static org.opensearch.sql.utils.MLCommonsConstants.DATE_FORMAT;
+import static org.opensearch.sql.utils.MLCommonsConstants.DISTANCE_TYPE;
+import static org.opensearch.sql.utils.MLCommonsConstants.ITERATIONS;
+import static org.opensearch.sql.utils.MLCommonsConstants.NUMBER_OF_TREES;
+import static org.opensearch.sql.utils.MLCommonsConstants.OUTPUT_AFTER;
+import static org.opensearch.sql.utils.MLCommonsConstants.SAMPLE_SIZE;
+import static org.opensearch.sql.utils.MLCommonsConstants.SHINGLE_SIZE;
+import static org.opensearch.sql.utils.MLCommonsConstants.TIME_DECAY;
+import static org.opensearch.sql.utils.MLCommonsConstants.TIME_FIELD;
+import static org.opensearch.sql.utils.MLCommonsConstants.TIME_ZONE;
+import static org.opensearch.sql.utils.MLCommonsConstants.TRAINING_DATA_SIZE;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -98,6 +127,82 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitEvalClause(EvalClauseContext ctx) {
     return new Let((Field) visit(ctx.fieldExpression()), visit(ctx.expression()));
+  }
+
+  /**
+   * Kmeans arguments.
+   */
+  @Override
+  public UnresolvedExpression visitCentroids(CentroidsContext ctx) {
+    return new Argument(CENTROIDS, getArgumentValue(ctx.centroids));
+  }
+
+  @Override
+  public UnresolvedExpression visitIterations(IterationsContext ctx) {
+    return new Argument(ITERATIONS, getArgumentValue(ctx.iterations));
+  }
+
+  @Override
+  public UnresolvedExpression visitDistance_type(Distance_typeContext ctx) {
+    return new Argument(DISTANCE_TYPE, getArgumentValue(ctx.distance_type));
+  }
+
+  /**
+   * AD arguments.
+   */
+  @Override
+  public UnresolvedExpression visitNumber_of_trees(Number_of_treesContext ctx) {
+    return new Argument(NUMBER_OF_TREES, getArgumentValue(ctx.number_of_trees));
+  }
+
+  @Override
+  public UnresolvedExpression visitShingle_size(Shingle_sizeContext ctx) {
+    return new Argument(SHINGLE_SIZE, getArgumentValue(ctx.shingle_size));
+  }
+
+  @Override
+  public UnresolvedExpression visitSample_size(Sample_sizeContext ctx) {
+    return new Argument(SAMPLE_SIZE, getArgumentValue(ctx.sample_size));
+  }
+
+  @Override
+  public UnresolvedExpression visitOutput_after(Output_afterContext ctx) {
+    return new Argument(OUTPUT_AFTER, getArgumentValue(ctx.output_after));
+  }
+
+  @Override
+  public UnresolvedExpression visitTime_decay(Time_decayContext ctx) {
+    return new Argument(TIME_DECAY, getArgumentValue(ctx.time_decay));
+  }
+
+  @Override
+  public UnresolvedExpression visitAnomaly_rate(Anomaly_rateContext ctx) {
+    return new Argument(ANOMALY_RATE, getArgumentValue(ctx.anomaly_rate));
+  }
+
+  @Override
+  public UnresolvedExpression visitTime_field(Time_fieldContext ctx) {
+    return new Argument(TIME_FIELD, getArgumentValue(ctx.time_field));
+  }
+
+  @Override
+  public UnresolvedExpression visitDate_format(Date_formatContext ctx) {
+    return new Argument(DATE_FORMAT, getArgumentValue(ctx.date_format));
+  }
+
+  @Override
+  public UnresolvedExpression visitTime_zone(Time_zoneContext ctx) {
+    return new Argument(TIME_ZONE, getArgumentValue(ctx.time_zone));
+  }
+
+  @Override
+  public UnresolvedExpression visitTraining_data_size(Training_data_sizeContext ctx) {
+    return new Argument(TRAINING_DATA_SIZE, getArgumentValue(ctx.training_data_size));
+  }
+
+  @Override
+  public UnresolvedExpression visitAnomaly_score_threshold(Anomaly_score_thresholdContext ctx) {
+    return new Argument(ANOMALY_SCORE_THRESHOLD, getArgumentValue(ctx.anomaly_score_threshold));
   }
 
   /**

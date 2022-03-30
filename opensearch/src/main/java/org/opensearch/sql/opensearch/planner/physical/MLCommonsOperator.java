@@ -101,11 +101,17 @@ public class MLCommonsOperator extends MLCommonsOperatorActions {
     switch (FunctionName.valueOf(algorithm.toUpperCase())) {
       case KMEANS:
         return KMeansParams.builder()
-                .centroids((Integer) arguments.get(CENTROIDS).getValue())
-                .iterations((Integer) arguments.get(ITERATIONS).getValue())
-                .distanceType(arguments.get(DISTANCE_TYPE).getValue() != null
+                .centroids(arguments.containsKey(CENTROIDS)
+                        ? ((Integer) arguments.get(CENTROIDS).getValue())
+                        : null)
+                .iterations(arguments.containsKey(ITERATIONS)
+                        ? ((Integer) arguments.get(ITERATIONS).getValue())
+                        : null)
+                .distanceType(arguments.containsKey(DISTANCE_TYPE)
+                        ? (arguments.get(DISTANCE_TYPE).getValue() != null
                         ? KMeansParams.DistanceType.valueOf((
                                 (String) arguments.get(DISTANCE_TYPE).getValue()).toUpperCase())
+                        : null)
                         : null)
                 .build();
       default:

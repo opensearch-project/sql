@@ -16,7 +16,7 @@ Description
 
 Fixed In Time RCF For Time-series Data Command Syntax
 =====================================================
-ad <number_of_trees>, <shingle_size>, <sample_size>, <output_after>, <time_decay>, <anomaly_rate>, <time_field>, <date_format>, <time_zone>
+ad <number_of_trees> <shingle_size> <sample_size> <output_after> <time_decay> <anomaly_rate> <time_field> <date_format> <time_zone>
 
 * number_of_trees(integer): optional. Number of trees in the forest. The default value is 30.
 * shingle_size(integer): optional. A shingle is a consecutive sequence of the most recent records. The default value is 8.
@@ -31,7 +31,7 @@ ad <number_of_trees>, <shingle_size>, <sample_size>, <output_after>, <time_decay
 
 Batch RCF for Non-time-series Data Command Syntax
 =================================================
-ad <number_of_trees>, <sample_size>, <output_after>, <training_data_size>, <anomaly_score_threshold>
+ad <number_of_trees> <sample_size> <output_after> <training_data_size> <anomaly_score_threshold>
 
 * number_of_trees(integer): optional. Number of trees in the forest. The default value is 30.
 * sample_size(integer): optional. Number of random samples given to each tree from the training data set. The default value is 256.

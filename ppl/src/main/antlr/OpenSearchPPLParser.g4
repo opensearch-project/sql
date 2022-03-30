@@ -89,31 +89,31 @@ parseCommand
     ;
     
 kmeansCommand
-    : KMEANS (kmeansParameter)? (COMMA kmeansParameter)*
+    : KMEANS (kmeansParameter)*
     ;
 
 kmeansParameter
-    : (CENTROIDS EQUAL centroids=integerLiteral)
-    | (ITERATIONS EQUAL iterations=integerLiteral)
-    | (DISTANCE_TYPE EQUAL distance_type=stringLiteral)
+    : (CENTROIDS EQUAL centroids=integerLiteral)             #centroids
+    | (ITERATIONS EQUAL iterations=integerLiteral)           #iterations
+    | (DISTANCE_TYPE EQUAL distance_type=stringLiteral)      #distance_type
     ;
 
 adCommand
-    : AD (adParameter)? (COMMA adParameter)*
+    : AD (adParameter)*
     ;
 
 adParameter
-    : (NUMBER_OF_TREES EQUAL number_of_trees=integerLiteral)
-    | (SHINGLE_SIZE EQUAL shingle_size=integerLiteral)
-    | (SAMPLE_SIZE EQUAL sample_size=integerLiteral)
-    | (OUTPUT_AFTER EQUAL output_after=integerLiteral)
-    | (TIME_DECAY EQUAL time_decay=decimalLiteral)
-    | (ANOMALY_RATE EQUAL anomaly_rate=decimalLiteral)
-    | (TIME_FIELD EQUAL time_field=stringLiteral)
-    | (DATE_FORMAT EQUAL date_format=stringLiteral)
-    | (TIME_ZONE EQUAL time_zone=stringLiteral)
-    | (TRAINING_DATA_SIZE EQUAL training_data_size=integerLiteral)
-    | (ANOMALY_SCORE_THRESHOLD EQUAL anomaly_score_threshold=decimalLiteral)
+    : (NUMBER_OF_TREES EQUAL number_of_trees=integerLiteral)                          #number_of_trees
+    | (SHINGLE_SIZE EQUAL shingle_size=integerLiteral)                                #shingle_size
+    | (SAMPLE_SIZE EQUAL sample_size=integerLiteral)                                  #sample_size
+    | (OUTPUT_AFTER EQUAL output_after=integerLiteral)                                #output_after
+    | (TIME_DECAY EQUAL time_decay=decimalLiteral)                                    #time_decay
+    | (ANOMALY_RATE EQUAL anomaly_rate=decimalLiteral)                                #anomaly_rate
+    | (TIME_FIELD EQUAL time_field=stringLiteral)                                     #time_field
+    | (DATE_FORMAT EQUAL date_format=stringLiteral)                                   #date_format
+    | (TIME_ZONE EQUAL time_zone=stringLiteral)                                       #time_zone
+    | (TRAINING_DATA_SIZE EQUAL training_data_size=integerLiteral)                    #training_data_size
+    | (ANOMALY_SCORE_THRESHOLD EQUAL anomaly_score_threshold=decimalLiteral)          #anomaly_score_threshold
     ;
 
 /** clauses */

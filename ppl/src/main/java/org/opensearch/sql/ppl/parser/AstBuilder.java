@@ -32,6 +32,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
@@ -307,14 +308,30 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return aggregate;
   }
 
+  /**
+   * Kmeans command.
+   */
   @Override
   public UnresolvedPlan visitKmeansCommand(KmeansCommandContext ctx) {
-    return new Kmeans(ArgumentFactory.getArgumentMap(ctx));
+    return new Kmeans(ctx.kmeansParameter().stream()
+            .map(p -> (Argument) internalVisitExpression(p))
+            .collect(Collectors.toMap(
+                    Argument::getArgName, Argument::getValue,
+              (value1, value2) -> value2)
+            ));
   }
 
+  /**
+   * AD command.
+   */
   @Override
   public UnresolvedPlan visitAdCommand(AdCommandContext ctx) {
-    return new AD(ArgumentFactory.getArgumentMap(ctx));
+    return new AD(ctx.adParameter().stream()
+            .map(p -> (Argument) internalVisitExpression(p))
+            .collect(Collectors.toMap(
+                    Argument::getArgName, Argument::getValue,
+              (value1, value2) -> value2)
+            ));
   }
 
   /**
