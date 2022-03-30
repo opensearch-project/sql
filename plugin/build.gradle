@@ -62,6 +62,7 @@ configurations.all {
     resolutionStrategy.force 'commons-codec:commons-codec:1.13'
     resolutionStrategy.force 'com.google.guava:guava:31.0.1-jre'
     resolutionStrategy.force 'com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.13.2'
+    resolutionStrategy.force 'com.fasterxml.jackson.core:jackson-databind:2.13.2.2'
 }
 
 dependencies {
