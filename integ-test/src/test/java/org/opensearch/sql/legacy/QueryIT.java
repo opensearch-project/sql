@@ -755,7 +755,7 @@ public class QueryIT extends SQLIntegTestCase {
 
     JSONObject response = executeQuery(
         String.format(Locale.ROOT,
-            "SELECT odbc_time FROM %s/odbc WHERE odbc_time < {ts '2015-03-15 00:00:00.000'}",
+            "SELECT odbc_time FROM %s WHERE odbc_time < {ts '2015-03-15 00:00:00.000'}",
             TestsConstants.TEST_INDEX_ODBC));
     JSONArray hits = getHits(response);
     for (int i = 0; i < hits.length(); i++) {
