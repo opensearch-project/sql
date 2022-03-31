@@ -39,7 +39,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.sort;
 import static org.opensearch.sql.ast.dsl.AstDSL.span;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 
-import java.util.HashMap;
+import com.google.common.collect.ImmutableMap;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -583,36 +583,36 @@ public class AstBuilderTest {
   @Test
   public void testKmeansCommand() {
     assertEqual("source=t | kmeans centroids=3 iterations=2 distance_type='l1'",
-            new Kmeans(relation("t"), new HashMap<String, Literal>() {{
-                put("centroids", new Literal(3, DataType.INTEGER));
-                put("iterations", new Literal(2, DataType.INTEGER));
-                put("distance_type", new Literal("l1", DataType.STRING));
-              }
-            }));
+            new Kmeans(relation("t"), ImmutableMap.<String, Literal>builder()
+                    .put("centroids", new Literal(3, DataType.INTEGER))
+                    .put("iterations", new Literal(2, DataType.INTEGER))
+                    .put("distance_type", new Literal("l1", DataType.STRING))
+                    .build()
+              ));
   }
 
   @Test
   public void testKmeansCommand_withDuplicateParameters() {
     assertEqual("source=t | kmeans centroids=3 centroids=2",
-            new Kmeans(relation("t"), new HashMap<String, Literal>() {{
-                put("centroids", new Literal(2, DataType.INTEGER));
-              }
-            }));
+          new Kmeans(relation("t"), ImmutableMap.<String, Literal>builder()
+                  .put("centroids", new Literal(2, DataType.INTEGER))
+                  .build()
+            ));
   }
 
   @Test
   public void testKmeansCommandWithoutParameter() {
     assertEqual("source=t | kmeans",
-            new Kmeans(relation("t"), new HashMap<String, Literal>() {}));
+            new Kmeans(relation("t"), ImmutableMap.of()));
   }
 
   @Test
   public void test_fitRCFADCommand_withDuplicateParameters() {
     assertEqual("source=t | AD shingle_size=10 shingle_size=8",
-            new AD(relation("t"), new HashMap<String, Literal>() {{
-                put("shingle_size", new Literal(8, DataType.INTEGER));
-              }
-            }));
+            new AD(relation("t"), ImmutableMap.<String, Literal>builder()
+                    .put("shingle_size", new Literal(8, DataType.INTEGER))
+                    .build()
+            ));
   }
 
   @Test
@@ -621,19 +621,19 @@ public class AstBuilderTest {
                     + "anomaly_rate=0.1 anomaly_score_threshold=0.1 sample_size=256 "
                     + "number_of_trees=256 time_zone='PST' output_after=256 "
                     + "training_data_size=256",
-            new AD(relation("t"), new HashMap<String, Literal>() {{
-                put("anomaly_rate", new Literal(0.1, DataType.DOUBLE));
-                put("anomaly_score_threshold", new Literal(0.1, DataType.DOUBLE));
-                put("sample_size", new Literal(256, DataType.INTEGER));
-                put("number_of_trees", new Literal(256, DataType.INTEGER));
-                put("time_zone", new Literal("PST", DataType.STRING));
-                put("output_after", new Literal(256, DataType.INTEGER));
-                put("shingle_size", new Literal(10, DataType.INTEGER));
-                put("time_decay", new Literal(0.0001, DataType.DOUBLE));
-                put("time_field", new Literal("timestamp", DataType.STRING));
-                put("training_data_size", new Literal(256, DataType.INTEGER));
-              }
-            }));
+            new AD(relation("t"), ImmutableMap.<String, Literal>builder()
+                    .put("anomaly_rate", new Literal(0.1, DataType.DOUBLE))
+                    .put("anomaly_score_threshold", new Literal(0.1, DataType.DOUBLE))
+                    .put("sample_size", new Literal(256, DataType.INTEGER))
+                    .put("number_of_trees", new Literal(256, DataType.INTEGER))
+                    .put("time_zone", new Literal("PST", DataType.STRING))
+                    .put("output_after", new Literal(256, DataType.INTEGER))
+                    .put("shingle_size", new Literal(10, DataType.INTEGER))
+                    .put("time_decay", new Literal(0.0001, DataType.DOUBLE))
+                    .put("time_field", new Literal("timestamp", DataType.STRING))
+                    .put("training_data_size", new Literal(256, DataType.INTEGER))
+                    .build()
+            ));
   }
 
   @Test
@@ -642,26 +642,26 @@ public class AstBuilderTest {
                     + "anomaly_rate=0.1 anomaly_score_threshold=0.1 sample_size=256 "
                     + "number_of_trees=256 time_zone='PST' output_after=256 "
                     + "training_data_size=256 date_format='HH:mm:ss yyyy-MM-dd'",
-            new AD(relation("t"),new HashMap<String, Literal>() {{
-                put("anomaly_rate", new Literal(0.1, DataType.DOUBLE));
-                put("anomaly_score_threshold", new Literal(0.1, DataType.DOUBLE));
-                put("sample_size", new Literal(256, DataType.INTEGER));
-                put("number_of_trees", new Literal(256, DataType.INTEGER));
-                put("date_format", new Literal("HH:mm:ss yyyy-MM-dd", DataType.STRING));
-                put("time_zone", new Literal("PST", DataType.STRING));
-                put("output_after", new Literal(256, DataType.INTEGER));
-                put("shingle_size", new Literal(10, DataType.INTEGER));
-                put("time_decay", new Literal(0.0001, DataType.DOUBLE));
-                put("time_field", new Literal("timestamp", DataType.STRING));
-                put("training_data_size", new Literal(256, DataType.INTEGER));
-              }
-            }));
+            new AD(relation("t"), ImmutableMap.<String, Literal>builder()
+                    .put("anomaly_rate", new Literal(0.1, DataType.DOUBLE))
+                    .put("anomaly_score_threshold", new Literal(0.1, DataType.DOUBLE))
+                    .put("sample_size", new Literal(256, DataType.INTEGER))
+                    .put("number_of_trees", new Literal(256, DataType.INTEGER))
+                    .put("date_format", new Literal("HH:mm:ss yyyy-MM-dd", DataType.STRING))
+                    .put("time_zone", new Literal("PST", DataType.STRING))
+                    .put("output_after", new Literal(256, DataType.INTEGER))
+                    .put("shingle_size", new Literal(10, DataType.INTEGER))
+                    .put("time_decay", new Literal(0.0001, DataType.DOUBLE))
+                    .put("time_field", new Literal("timestamp", DataType.STRING))
+                    .put("training_data_size", new Literal(256, DataType.INTEGER))
+                    .build()
+            ));
   }
 
   @Test
   public void test_batchRCFADCommand() {
     assertEqual("source=t | AD",
-            new AD(relation("t"),new HashMap<String, Literal>() { }));
+            new AD(relation("t"),ImmutableMap.of()));
   }
 
   protected void assertEqual(String query, Node expectedPlan) {

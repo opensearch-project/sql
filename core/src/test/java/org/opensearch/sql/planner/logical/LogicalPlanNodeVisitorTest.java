@@ -115,12 +115,11 @@ class LogicalPlanNodeVisitorTest {
 
     LogicalPlan mlCommons = new LogicalMLCommons(LogicalPlanDSL.relation("schema"),
             "kmeans",
-            new HashMap<String, Literal>() {{
-              put("centroids", new Literal(3, DataType.INTEGER));
-              put("iterations", new Literal(3, DataType.DOUBLE));
-              put("distance_type", new Literal(null, DataType.STRING));
-        }
-      });
+            ImmutableMap.<String, Literal>builder()
+                    .put("centroids", new Literal(3, DataType.INTEGER))
+                    .put("iterations", new Literal(3, DataType.DOUBLE))
+                    .put("distance_type", new Literal(null, DataType.STRING))
+                    .build());
     assertNull(mlCommons.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
     }, null));
 

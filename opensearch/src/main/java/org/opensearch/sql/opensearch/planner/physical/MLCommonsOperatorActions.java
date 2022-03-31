@@ -7,7 +7,6 @@
 package org.opensearch.sql.opensearch.planner.physical;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -49,12 +48,11 @@ public abstract class MLCommonsOperatorActions extends PhysicalPlan {
    */
   protected DataFrame generateInputDataset(PhysicalPlan input) {
     List<Map<String, Object>> inputData = new LinkedList<>();
+    ImmutableMap.Builder<String, Object> inputDataBuilder = new ImmutableMap.Builder<>();
     while (input.hasNext()) {
-      inputData.add(new HashMap<String, Object>() {
-        {
-          input.next().tupleValue().forEach((key, value) -> put(key, value.value()));
-        }
-      });
+      input.next().tupleValue().forEach((key, value)
+          -> inputDataBuilder.put(key, value.value()));
+      inputData.add(inputDataBuilder.build());
     }
 
     return DataFrameBuilder.load(inputData);
