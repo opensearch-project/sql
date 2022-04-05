@@ -66,7 +66,7 @@ configurations.all {
 }
 
 dependencies {
-    api group: 'org.springframework', name: 'spring-beans', version: '5.2.19.RELEASE'
+    api group: 'org.springframework', name: 'spring-beans', version: '5.2.20.RELEASE'
     api project(":ppl")
     api project(':legacy')
     api project(':opensearch')
