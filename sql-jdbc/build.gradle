@@ -35,8 +35,8 @@ jacoco {
     toolVersion = "0.8.3"
 }
 
-sourceCompatibility = 11
-targetCompatibility = 11
+sourceCompatibility = 8
+targetCompatibility = 8
 
 repositories {
     mavenLocal()
