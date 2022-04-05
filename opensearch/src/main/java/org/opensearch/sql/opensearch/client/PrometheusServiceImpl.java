@@ -1,4 +1,4 @@
-package org.opensearch.sql.opensearch.prometheus;
+package org.opensearch.sql.opensearch.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.OkHttpClient;
@@ -6,17 +6,20 @@ import okhttp3.Request;
 import okhttp3.Response;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.opensearch.rest.RestHandler;
 
 import java.io.IOException;
 import java.util.Objects;
 
-public class PrometheusServiceImpl implements IPrometheusService{
+public class PrometheusServiceImpl implements IPrometheusService {
 
     private static final Logger logger = LogManager.getLogger(PrometheusServiceImpl.class);
 
-    @Autowired
-    private OkHttpClient client;
+    private OkHttpClient okHttpClient;
+
+    public PrometheusServiceImpl(OkHttpClient okHttpClient) {
+        this.okHttpClient = okHttpClient;
+    }
 
 
     @Override
@@ -27,7 +30,7 @@ public class PrometheusServiceImpl implements IPrometheusService{
         Request request = new Request.Builder()
                 .url(queryUrl)
                 .build();
-        Response response = client.newCall(request).execute();
+        Response response = this.okHttpClient.newCall(request).execute();
         ObjectMapper om = new ObjectMapper();
         PrometheusResponse prometheusResponse = om.readValue(Objects.requireNonNull(response.body()).string(), PrometheusResponse.class);
         if ("success".equals(prometheusResponse.getStatus())) {

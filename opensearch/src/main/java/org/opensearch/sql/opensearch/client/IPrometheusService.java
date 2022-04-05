@@ -1,15 +1,17 @@
-package org.opensearch.sql.opensearch.prometheus;
+package org.opensearch.sql.opensearch.client;
 
 import java.io.IOException;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public interface IPrometheusService {
 
-    public String[][] queryRange(String endpoint, String query, long start, long end, int step) throws IOException;
+    String[][] queryRange(String endpoint, String query, long start, long end, int step) throws IOException;
 
-    public static class PrometheusResponse {
+
+    class PrometheusResponse {
         private String status;
         private ResponseData data;
         public String getStatus() {
@@ -26,7 +28,8 @@ public interface IPrometheusService {
         }
     }
 
-    public static class ResponseData {
+    @JsonIgnoreProperties
+    class ResponseData {
         private String resultType;
         private List<Result> result;
         public String getResultType() {
@@ -42,7 +45,8 @@ public interface IPrometheusService {
             this.result = result;
         }
     }
-    public static class Result {
+
+    class Result {
         private Metric metric;
         private String[][] values;
         public Metric getMetric() {
@@ -60,9 +64,38 @@ public interface IPrometheusService {
 
     }
 
-    public static class Metric {
+
+    class Metric {
         @JsonProperty("__name__")
         private String name;
+        private String code;
+
+        public String getCode() {
+            return code;
+        }
+
+        public void setCode(String code) {
+            this.code = code;
+        }
+
+        public String getHandler() {
+            return handler;
+        }
+
+        public void setHandler(String handler) {
+            this.handler = handler;
+        }
+
+        public String getYoutube() {
+            return youtube;
+        }
+
+        public void setYoutube(String youtube) {
+            this.youtube = youtube;
+        }
+
+        private String handler;
+        private String youtube;
         private String instance;
         private String job;
         public String getName() {

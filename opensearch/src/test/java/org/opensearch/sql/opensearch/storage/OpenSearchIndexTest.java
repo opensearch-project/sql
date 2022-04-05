@@ -109,7 +109,7 @@ class OpenSearchIndexTest {
                         .put("blob", "binary")
                         .build())));
 
-    Table index = new OpenSearchIndex(client, settings, "test");
+    Table index = new OpenSearchIndex(client, prometheusService, settings, "test");
     Map<String, ExprType> fieldTypes = index.getFieldTypes();
     assertThat(
         fieldTypes,
@@ -137,7 +137,7 @@ class OpenSearchIndexTest {
 
     String indexName = "test";
     LogicalPlan plan = relation(indexName);
-    Table index = new OpenSearchIndex(client, settings, indexName);
+    Table index = new OpenSearchIndex(client, prometheusService, settings, indexName);
     assertEquals(
         new OpenSearchIndexScan(client, settings, indexName, exprValueFactory),
         index.implement(plan));
@@ -149,7 +149,7 @@ class OpenSearchIndexTest {
 
     String indexName = "test";
     LogicalPlan plan = relation(indexName);
-    Table index = new OpenSearchIndex(client, settings, indexName);
+    Table index = new OpenSearchIndex(client, prometheusService, settings, indexName);
     assertEquals(
         new OpenSearchIndexScan(client, settings, indexName, exprValueFactory),
         index.implement(index.optimize(plan)));
@@ -191,7 +191,7 @@ class OpenSearchIndexTest {
                 dedupeField),
             include);
 
-    Table index = new OpenSearchIndex(client, settings, indexName);
+    Table index = new OpenSearchIndex(client, prometheusService, settings, indexName);
     assertEquals(
         PhysicalPlanDSL.project(
             PhysicalPlanDSL.dedupe(
@@ -219,7 +219,7 @@ class OpenSearchIndexTest {
     Expression filterExpr = dsl.equal(field, literal("John"));
 
     String indexName = "test";
-    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
+    OpenSearchIndex index = new OpenSearchIndex(client, prometheusService, settings, indexName);
     PhysicalPlan plan = index.implement(
         project(
             indexScan(
@@ -244,7 +244,7 @@ class OpenSearchIndexTest {
             DOUBLE)));
 
     String indexName = "test";
-    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
+    OpenSearchIndex index = new OpenSearchIndex(client, prometheusService, settings, indexName);
     PhysicalPlan plan = index.implement(
         filter(
             aggregation(
@@ -269,7 +269,7 @@ class OpenSearchIndexTest {
             DOUBLE)));
 
     String indexName = "test";
-    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
+    OpenSearchIndex index = new OpenSearchIndex(client, prometheusService, settings, indexName);
 
     // IndexScanAgg without Filter
     PhysicalPlan plan = index.implement(
@@ -305,7 +305,7 @@ class OpenSearchIndexTest {
             DOUBLE)));
 
     String indexName = "test";
-    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
+    OpenSearchIndex index = new OpenSearchIndex(client, prometheusService, settings, indexName);
 
     PhysicalPlan plan = index.implement(
         aggregation(
@@ -326,7 +326,7 @@ class OpenSearchIndexTest {
     Expression sortExpr = ref("name", STRING);
 
     String indexName = "test";
-    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
+    OpenSearchIndex index = new OpenSearchIndex(client, prometheusService, settings, indexName);
     PhysicalPlan plan = index.implement(
         project(
             indexScan(
@@ -347,7 +347,7 @@ class OpenSearchIndexTest {
     NamedExpression named = named("n", field);
 
     String indexName = "test";
-    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
+    OpenSearchIndex index = new OpenSearchIndex(client, prometheusService, settings, indexName);
     PhysicalPlan plan = index.implement(
         project(
             indexScan(
@@ -369,7 +369,7 @@ class OpenSearchIndexTest {
     Expression sortExpr = ref("name", STRING);
 
     String indexName = "test";
-    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
+    OpenSearchIndex index = new OpenSearchIndex(client, prometheusService, settings, indexName);
     PhysicalPlan plan = index.implement(
         project(
             indexScan(
@@ -389,7 +389,7 @@ class OpenSearchIndexTest {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
 
     String indexName = "test";
-    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
+    OpenSearchIndex index = new OpenSearchIndex(client, prometheusService, settings, indexName);
     PhysicalPlan plan = index.implement(index.optimize(
         project(
             limit(
@@ -413,7 +413,7 @@ class OpenSearchIndexTest {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
 
     String indexName = "test";
-    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
+    OpenSearchIndex index = new OpenSearchIndex(client, prometheusService, settings, indexName);
     PhysicalPlan plan = index.implement(
         project(
             indexScan(

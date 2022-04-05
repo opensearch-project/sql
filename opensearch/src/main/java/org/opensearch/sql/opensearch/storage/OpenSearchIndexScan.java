@@ -10,11 +10,11 @@ import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
 
 import com.google.common.collect.Iterables;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+
+import java.io.IOException;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.util.*;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -32,6 +32,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
+import org.opensearch.sql.opensearch.client.IPrometheusService;
 import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
@@ -48,6 +49,8 @@ public class OpenSearchIndexScan extends TableScanOperator {
   /** OpenSearch client. */
   private final OpenSearchClient client;
 
+  private final IPrometheusService prometheusService;
+
   /** Search request. */
   @EqualsAndHashCode.Include
   @Getter
@@ -57,24 +60,37 @@ public class OpenSearchIndexScan extends TableScanOperator {
   /** Search response for current batch. */
   private Iterator<ExprValue> iterator;
 
-  /**
-   * Constructor.
-   */
-  public OpenSearchIndexScan(OpenSearchClient client,
-                             Settings settings, String indexName,
-                             OpenSearchExprValueFactory exprValueFactory) {
-    this(client, settings, new OpenSearchRequest.IndexName(indexName), exprValueFactory);
-  }
 
   /**
    * Constructor.
    */
   public OpenSearchIndexScan(OpenSearchClient client,
+                             IPrometheusService prometheusService,
+                             Settings settings, String indexName,
+                             OpenSearchExprValueFactory exprValueFactory) {
+    this(client, prometheusService, settings, new OpenSearchRequest.IndexName(indexName), exprValueFactory);
+  }
+
+  /**
+   * Constructor.
+   */
+  public OpenSearchIndexScan(OpenSearchClient client, IPrometheusService prometheusService,
       Settings settings, OpenSearchRequest.IndexName indexName,
       OpenSearchExprValueFactory exprValueFactory) {
     this.client = client;
+    this.prometheusService = prometheusService;
     this.request = new OpenSearchQueryRequest(indexName,
         settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT), exprValueFactory);
+    String[][] response = AccessController.doPrivileged((PrivilegedAction<String[][]>)  ()-> {
+        try {
+          return this.prometheusService
+                  .queryRange("http://localhost:9090","prometheus_http_requests_total", 1648760920, 1648764520, 14);
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      return new String[0][];
+    });
+    Arrays.stream(response).forEach(a -> Arrays.stream(a).forEach(System.out::println));
   }
 
   @Override

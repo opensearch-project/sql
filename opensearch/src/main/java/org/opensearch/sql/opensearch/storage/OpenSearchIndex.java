@@ -24,6 +24,7 @@ import org.opensearch.sql.opensearch.planner.logical.OpenSearchLogicalIndexScan;
 import org.opensearch.sql.opensearch.planner.logical.OpenSearchLogicalPlanOptimizerFactory;
 import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
+import org.opensearch.sql.opensearch.client.IPrometheusService;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.system.OpenSearchDescribeIndexRequest;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
@@ -44,6 +45,7 @@ public class OpenSearchIndex implements Table {
 
   /** OpenSearch client connection. */
   private final OpenSearchClient client;
+  private final IPrometheusService prometheusService;
 
   private final Settings settings;
 
@@ -60,8 +62,9 @@ public class OpenSearchIndex implements Table {
   /**
    * Constructor.
    */
-  public OpenSearchIndex(OpenSearchClient client, Settings settings, String indexName) {
+  public OpenSearchIndex(OpenSearchClient client, IPrometheusService prometheusService, Settings settings, String indexName) {
     this.client = client;
+    this.prometheusService = prometheusService;
     this.settings = settings;
     this.indexName = new OpenSearchRequest.IndexName(indexName);
   }
@@ -84,7 +87,7 @@ public class OpenSearchIndex implements Table {
    */
   @Override
   public PhysicalPlan implement(LogicalPlan plan) {
-    OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings, indexName,
+    OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, prometheusService, settings, indexName,
         new OpenSearchExprValueFactory(getFieldTypes()));
 
     /*
