@@ -70,8 +70,18 @@ dependencies {
     api project(":ppl")
     api project(':legacy')
     api project(':opensearch')
+    api "org.opensearch:common-utils:${common_utils_version}"
+    api "org.jetbrains.kotlin:kotlin-stdlib:${kotlin_version}"
+    api "org.jetbrains.kotlin:kotlin-stdlib-common:${kotlin_version}"
 }
 
+configurations.all {
+    if (it.state != Configuration.State.UNRESOLVED) return
+    resolutionStrategy {
+        force "org.jetbrains.kotlin:kotlin-stdlib:${kotlin_version}"
+        force "org.jetbrains.kotlin:kotlin-stdlib-common:${kotlin_version}"
+    }
+}
 
 ext {
     projectSubstitutions = [:]
@@ -106,12 +116,14 @@ dependencyLicenses.enabled = false
 // enable testingConventions check will cause errors like:  "Classes ending with [Tests] must subclass [LuceneTestCase]"
 testingConventions.enabled = false
 
-// TODO: need to verify the thirdPartyAudi
+// TODO: need to verify the thirdParty
 // currently it complains missing classes like ibatis, mysql etc, should not be a problem
 thirdPartyAudit.enabled = false
 
 
 apply plugin: 'nebula.ospackage'
+apply plugin: 'org.jetbrains.kotlin.jvm'
+apply plugin: 'org.jetbrains.kotlin.plugin.allopen'
 validateNebulaPom.enabled = false
 
 // This is afterEvaluate because the bundlePlugin ZIP task is updated afterEvaluate and changes the ZIP name to match the plugin name
