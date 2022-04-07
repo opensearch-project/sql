@@ -47,6 +47,11 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
    */
   private final SearchSourceBuilder sourceBuilder;
 
+  /**
+   * Prometheus Query
+   */
+  private final StringBuilder prometheusQueryBuilder;
+
 
   /**
    * ElasticsearchExprValueFactory.
@@ -75,6 +80,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       OpenSearchExprValueFactory factory) {
     this.indexName = indexName;
     this.sourceBuilder = new SearchSourceBuilder();
+    this.prometheusQueryBuilder = new StringBuilder();
     sourceBuilder.from(0);
     sourceBuilder.size(size);
     sourceBuilder.timeout(DEFAULT_QUERY_TIMEOUT);

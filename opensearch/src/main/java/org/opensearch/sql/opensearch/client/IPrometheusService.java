@@ -5,11 +5,34 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.json.JSONObject;
 
 public interface IPrometheusService {
 
-    String[][] queryRange(String endpoint, String query, long start, long end, int step) throws IOException;
+    JSONObject queryRange(String endpoint, String query, long start, long end, int step) throws IOException;
 
+    String[] getLabels(String endpoint, String metricName) throws IOException;
+
+    class PrometheusLabelResponse {
+        private String status;
+        private String[] data;
+
+        public String getStatus() {
+            return status;
+        }
+
+        public void setStatus(String status) {
+            this.status = status;
+        }
+
+        public String[] getData() {
+            return data;
+        }
+
+        public void setData(String[] data) {
+            this.data = data;
+        }
+    }
 
     class PrometheusResponse {
         private String status;

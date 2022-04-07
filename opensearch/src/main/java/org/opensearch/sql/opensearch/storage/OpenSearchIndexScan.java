@@ -20,6 +20,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.apache.commons.lang3.tuple.Pair;
+import org.json.JSONObject;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
@@ -81,30 +82,29 @@ public class OpenSearchIndexScan extends TableScanOperator {
     this.prometheusService = prometheusService;
     this.request = new OpenSearchQueryRequest(indexName,
         settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT), exprValueFactory);
-    String[][] response = AccessController.doPrivileged((PrivilegedAction<String[][]>)  ()-> {
-        try {
-          return this.prometheusService
-                  .queryRange("http://localhost:9090","prometheus_http_requests_total", 1648760920, 1648764520, 14);
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
-      return new String[0][];
-    });
-    Arrays.stream(response).forEach(a -> Arrays.stream(a).forEach(System.out::println));
   }
 
   @Override
   public void open() {
     super.open();
 
-    // For now pull all results immediately once open
-    List<OpenSearchResponse> responses = new ArrayList<>();
-    OpenSearchResponse response = client.search(request);
-    while (!response.isEmpty()) {
-      responses.add(response);
-      response = client.search(request);
+    JSONObject responseObject = AccessController.doPrivileged((PrivilegedAction<JSONObject>)  ()-> {
+      try {
+        return prometheusService.queryRange("http://localhost:9090",
+                request.getPrometheusQueryBuilder().toString(),
+                new Date().getTime()-30000, new Date().getTime(), 14);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+      return null;
+    });
+    List<ExprValue> result = new ArrayList<>();
+    if("matrix".equals(responseObject.getString("resultType"))){
+
     }
-    iterator = Iterables.concat(responses.toArray(new OpenSearchResponse[0])).iterator();
+    OpenSearchExprValueFactory exprValueFactory = this.request.getExprValueFactory();
+    exprValueFactory.
+
   }
 
   @Override

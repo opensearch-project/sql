@@ -72,7 +72,7 @@ public class OpenSearchSystemIndex implements Table {
           new OpenSearchCatIndicesRequest(client));
     } else {
       return Pair.of(OpenSearchSystemIndexSchema.SYS_TABLE_MAPPINGS,
-          new OpenSearchDescribeIndexRequest(client, systemTable.getTableName()));
+          new OpenSearchDescribeIndexRequest(client, null, systemTable.getTableName()));
     }
   }
 }

@@ -12,11 +12,14 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.lucene.util.CollectionUtil;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.planner.logical.OpenSearchLogicalIndexAgg;
@@ -30,6 +33,7 @@ import org.opensearch.sql.opensearch.request.system.OpenSearchDescribeIndexReque
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.script.aggregation.AggregationQueryBuilder;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
+import org.opensearch.sql.opensearch.storage.script.filter.PromQLFilterQueryBuilder;
 import org.opensearch.sql.opensearch.storage.script.sort.SortQueryBuilder;
 import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
 import org.opensearch.sql.planner.DefaultImplementor;
@@ -39,6 +43,7 @@ import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.Table;
+import org.springframework.util.CollectionUtils;
 
 /** OpenSearch table (index) implementation. */
 public class OpenSearchIndex implements Table {
@@ -77,7 +82,7 @@ public class OpenSearchIndex implements Table {
   @Override
   public Map<String, ExprType> getFieldTypes() {
     if (cachedFieldTypes == null) {
-      cachedFieldTypes = new OpenSearchDescribeIndexRequest(client, indexName).getFieldTypes();
+      cachedFieldTypes = new OpenSearchDescribeIndexRequest(client, prometheusService, indexName).getFieldTypes();
     }
     return cachedFieldTypes;
   }
@@ -156,12 +161,20 @@ public class OpenSearchIndex implements Table {
      */
     public PhysicalPlan visitIndexAggregation(OpenSearchLogicalIndexAgg node,
                                               OpenSearchIndexScan context) {
+      StringBuilder promQlBuilder = context.getRequest().getPrometheusQueryBuilder();
+
+      promQlBuilder.append(node.getRelationName().split("\\.")[1]);
       if (node.getFilter() != null) {
         FilterQueryBuilder queryBuilder = new FilterQueryBuilder(
             new DefaultExpressionSerializer());
+        PromQLFilterQueryBuilder promQLFilterQueryBuilder = new PromQLFilterQueryBuilder();
+        StringBuilder filterQuery = promQLFilterQueryBuilder.build(node.getFilter());
         QueryBuilder query = queryBuilder.build(node.getFilter());
         context.pushDown(query);
+        promQlBuilder.append(filterQuery);
       }
+      promQlBuilder.insert(0, "(");
+      promQlBuilder.append(")");
       AggregationQueryBuilder builder =
           new AggregationQueryBuilder(new DefaultExpressionSerializer());
       Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
@@ -171,6 +184,24 @@ public class OpenSearchIndex implements Table {
       context.pushTypeMapping(
           builder.buildTypeMapping(node.getAggregatorList(),
               node.getGroupByList()));
+
+      StringBuilder aggregateQuery = new StringBuilder();
+      if(!node.getAggregatorList().isEmpty()) {
+        aggregateQuery.insert(0,node.getAggregatorList().get(0).getFunctionName().getFunctionName() + " ");
+        if(!node.getGroupByList().isEmpty()) {
+          aggregateQuery.append("by (");
+          for (int i = 0; i < node.getGroupByList().size(); i++) {
+            if( i == node.getGroupByList().size()-1) {
+              aggregateQuery.append(node.getGroupByList().get(i).getName());
+            }
+            else {
+              aggregateQuery.append(node.getGroupByList().get(i).getName()).append(", ");
+            }
+          }
+          aggregateQuery.append(")");
+        }
+      }
+      promQlBuilder.insert(0, aggregateQuery);
       return indexScan;
     }
 

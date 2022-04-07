@@ -90,6 +90,11 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
     }
   }
 
+  @Override
+  public StringBuilder getPrometheusQueryBuilder() {
+    return null;
+  }
+
   /**
    * Generate OpenSearch search request.
    *

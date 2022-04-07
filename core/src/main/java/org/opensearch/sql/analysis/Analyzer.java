@@ -217,6 +217,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     TypeEnvironment newEnv = context.peek();
     aggregators.forEach(aggregator -> newEnv.define(new Symbol(Namespace.FIELD_NAME,
         aggregator.getName()), aggregator.type()));
+    newEnv.define(new Symbol(Namespace.FIELD_NAME, "@timestamp"), ExprCoreType.TIMESTAMP);
     groupBys.forEach(group -> newEnv.define(new Symbol(Namespace.FIELD_NAME,
         group.getNameOrAlias()), group.type()));
     return new LogicalAggregation(child, aggregators, groupBys);

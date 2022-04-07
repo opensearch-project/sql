@@ -45,6 +45,13 @@ public interface OpenSearchRequest {
   SearchSourceBuilder getSourceBuilder();
 
   /**
+   * Get the StringBuilder.
+   *
+   * @return StringBuilder.
+   */
+  StringBuilder getPrometheusQueryBuilder();
+
+  /**
    * Get the ElasticsearchExprValueFactory.
    * @return ElasticsearchExprValueFactory.
    */

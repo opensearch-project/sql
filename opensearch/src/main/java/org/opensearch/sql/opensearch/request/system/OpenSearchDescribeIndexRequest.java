@@ -11,6 +11,10 @@ import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 import static org.opensearch.sql.opensearch.client.OpenSearchClient.META_CLUSTER_NAME;
 
 import com.google.common.collect.ImmutableMap;
+
+import java.io.IOException;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -21,6 +25,7 @@ import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.client.IPrometheusService;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
@@ -71,17 +76,20 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
    */
   private final OpenSearchClient client;
 
+  private final IPrometheusService iPrometheusService;
+
   /**
    * {@link OpenSearchRequest.IndexName}.
    */
   private final OpenSearchRequest.IndexName indexName;
 
-  public OpenSearchDescribeIndexRequest(OpenSearchClient client, String indexName) {
-    this(client, new OpenSearchRequest.IndexName(indexName));
+  public OpenSearchDescribeIndexRequest(OpenSearchClient client, IPrometheusService iPrometheusService, String indexName) {
+    this(client, iPrometheusService, new OpenSearchRequest.IndexName(indexName));
   }
 
-  public OpenSearchDescribeIndexRequest(OpenSearchClient client,
+  public OpenSearchDescribeIndexRequest(OpenSearchClient client, IPrometheusService iPrometheusService,
       OpenSearchRequest.IndexName indexName) {
+    this.iPrometheusService = iPrometheusService;
     this.client = client;
     this.indexName = indexName;
   }
@@ -111,12 +119,20 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
    */
   public Map<String, ExprType> getFieldTypes() {
     Map<String, ExprType> fieldTypes = new HashMap<>();
-    Map<String, IndexMapping> indexMappings = client.getIndexMappings(indexName.getIndexNames());
-    for (IndexMapping indexMapping : indexMappings.values()) {
-      fieldTypes
-          .putAll(indexMapping.getAllFieldTypes(this::transformESTypeToExprType).entrySet().stream()
-              .filter(entry -> !ExprCoreType.UNKNOWN.equals(entry.getValue()))
-              .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+
+    String[] labels = AccessController.doPrivileged((PrivilegedAction<String[]>)  ()-> {
+      try {
+        return iPrometheusService
+                .getLabels("http://localhost:9090", indexName.getIndexNames()[0].split("\\.")[1]);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+      return null;
+    });
+    fieldTypes.put("@value", ExprCoreType.DOUBLE);
+    fieldTypes.put("@timestamp", ExprCoreType.TIMESTAMP);
+    for (String label : labels) {
+      fieldTypes.put(label, ExprCoreType.STRING);
     }
     return fieldTypes;
   }
