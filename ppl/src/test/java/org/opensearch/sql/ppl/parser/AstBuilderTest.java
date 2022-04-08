@@ -592,27 +592,9 @@ public class AstBuilderTest {
   }
 
   @Test
-  public void testKmeansCommand_withDuplicateParameters() {
-    assertEqual("source=t | kmeans centroids=3 centroids=2",
-          new Kmeans(relation("t"), ImmutableMap.<String, Literal>builder()
-                  .put("centroids", new Literal(2, DataType.INTEGER))
-                  .build()
-            ));
-  }
-
-  @Test
   public void testKmeansCommandWithoutParameter() {
     assertEqual("source=t | kmeans",
             new Kmeans(relation("t"), ImmutableMap.of()));
-  }
-
-  @Test
-  public void test_fitRCFADCommand_withDuplicateParameters() {
-    assertEqual("source=t | AD shingle_size=10 shingle_size=8",
-            new AD(relation("t"), ImmutableMap.<String, Literal>builder()
-                    .put("shingle_size", new Literal(8, DataType.INTEGER))
-                    .build()
-            ));
   }
 
   @Test

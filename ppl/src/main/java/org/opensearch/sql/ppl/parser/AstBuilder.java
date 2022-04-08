@@ -23,6 +23,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommand
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WhereCommandContext;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -32,7 +33,6 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.expression.Alias;
-import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
@@ -313,12 +313,13 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    */
   @Override
   public UnresolvedPlan visitKmeansCommand(KmeansCommandContext ctx) {
-    return new Kmeans(ctx.kmeansParameter().stream()
-            .map(p -> (Argument) internalVisitExpression(p))
-            .collect(Collectors.toMap(
-                    Argument::getArgName, Argument::getValue,
-              (value1, value2) -> value2)
-            ));
+    ImmutableMap.Builder<String, Literal> builder = ImmutableMap.builder();
+    ctx.kmeansParameter()
+            .forEach(x -> {
+              builder.put(x.children.get(0).toString(),
+                      (Literal) internalVisitExpression(x.children.get(2)));
+            });
+    return new Kmeans(builder.build());
   }
 
   /**
@@ -326,12 +327,14 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    */
   @Override
   public UnresolvedPlan visitAdCommand(AdCommandContext ctx) {
-    return new AD(ctx.adParameter().stream()
-            .map(p -> (Argument) internalVisitExpression(p))
-            .collect(Collectors.toMap(
-                    Argument::getArgName, Argument::getValue,
-              (value1, value2) -> value2)
-            ));
+    ImmutableMap.Builder<String, Literal> builder = ImmutableMap.builder();
+    ctx.adParameter()
+            .forEach(x -> {
+              builder.put(x.children.get(0).toString(),
+                      (Literal) internalVisitExpression(x.children.get(2)));
+            });
+
+    return new AD(builder.build());
   }
 
   /**

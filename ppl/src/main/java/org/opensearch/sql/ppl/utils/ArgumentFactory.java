@@ -140,14 +140,12 @@ public class ArgumentFactory {
    * @param ctx ParserRuleContext instance
    * @return Literal
    */
-  public static Literal getArgumentValue(ParserRuleContext ctx) {
+  private static Literal getArgumentValue(ParserRuleContext ctx) {
     return ctx instanceof IntegerLiteralContext
-        ? new Literal(Integer.parseInt(ctx.getText()), DataType.INTEGER)
-        : ctx instanceof BooleanLiteralContext
-        ? new Literal(Boolean.valueOf(ctx.getText()), DataType.BOOLEAN)
-        : ctx instanceof DecimalLiteralContext
-        ? new Literal(Double.valueOf(ctx.getText()), DataType.DOUBLE)
-        : new Literal(StringUtils.unquoteText(ctx.getText()), DataType.STRING);
+            ? new Literal(Integer.parseInt(ctx.getText()), DataType.INTEGER)
+            : ctx instanceof BooleanLiteralContext
+            ? new Literal(Boolean.valueOf(ctx.getText()), DataType.BOOLEAN)
+            : new Literal(StringUtils.unquoteText(ctx.getText()), DataType.STRING);
   }
 
 }
