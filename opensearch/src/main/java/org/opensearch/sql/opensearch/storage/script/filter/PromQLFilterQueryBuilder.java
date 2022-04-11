@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.FunctionExpression;
+import org.opensearch.sql.expression.function.FunctionDSL;
 
 
 @RequiredArgsConstructor
@@ -27,10 +28,23 @@ public class PromQLFilterQueryBuilder extends ExpressionNodeVisitor<StringBuilde
 
     @Override
     public StringBuilder visitFunction(FunctionExpression func, Object context) {
-        return new StringBuilder().append("{")
-                .append(func.getArguments().get(0))
-                .append(func.getFunctionName().getFunctionName())
-                .append(func.getArguments().get(1))
-                .append("}");
+
+        if(func.getFunctionName().getFunctionName().equals("and")) {
+                return new StringBuilder()
+                        .append("{")
+                        .append(visitFunction((FunctionExpression) func.getArguments().get(0), context))
+                        .append(" , ")
+                        .append(visitFunction((FunctionExpression) func.getArguments().get(1), context))
+                        .append("}");
+        }
+        else if(func.getFunctionName().getFunctionName().startsWith("=")) {
+            return new StringBuilder()
+                    .append(func.getArguments().get(0))
+                    .append(func.getFunctionName().getFunctionName())
+                    .append(func.getArguments().get(1));
+        }
+        else {
+            throw new RuntimeException("Function Not supported");
+        }
     }
 }

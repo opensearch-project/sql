@@ -9,8 +9,6 @@ package org.opensearch.sql.opensearch.storage;
 import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
 
-import com.google.common.collect.Iterables;
-
 import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -20,6 +18,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.apache.commons.lang3.tuple.Pair;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
@@ -28,7 +27,10 @@ import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.data.model.ExprDoubleValue;
+import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
@@ -36,7 +38,6 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.client.IPrometheusService;
 import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
-import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.storage.TableScanOperator;
 
@@ -90,21 +91,40 @@ public class OpenSearchIndexScan extends TableScanOperator {
 
     JSONObject responseObject = AccessController.doPrivileged((PrivilegedAction<JSONObject>)  ()-> {
       try {
-        return prometheusService.queryRange("http://localhost:9090",
+        return prometheusService.queryRange("localhost", 9090,
                 request.getPrometheusQueryBuilder().toString(),
-                new Date().getTime()-30000, new Date().getTime(), 14);
+                new Date().getTime()/1000-3600, new Date().getTime()/1000, 14);
       } catch (IOException e) {
         e.printStackTrace();
       }
       return null;
     });
     List<ExprValue> result = new ArrayList<>();
-    if("matrix".equals(responseObject.getString("resultType"))){
-
-    }
     OpenSearchExprValueFactory exprValueFactory = this.request.getExprValueFactory();
-    exprValueFactory.
-
+    Map<String, ExprType> typeMapping =  this.request.getExprValueFactory().getTypeMapping();
+    Set<String> keySet =  this.request.getExprValueFactory().getTypeMapping().keySet();
+    String valueKey = keySet.stream().filter(x -> typeMapping.get(x).equals(ExprCoreType.DOUBLE)).findFirst().get();
+    if("matrix".equals(responseObject.getString("resultType"))){
+      JSONArray itemArray = responseObject.getJSONArray("result");
+      for (int i = 0; i < itemArray.length(); i++) {
+        JSONObject item = itemArray.getJSONObject(i);
+        JSONObject metric = item.getJSONObject("metric");
+        JSONArray values = item.getJSONArray("values");
+        for (int j = 0; j < values.length(); j++) {
+          LinkedHashMap<String, ExprValue> linkedHashMap = new LinkedHashMap<>();
+          JSONArray val = values.getJSONArray(j);
+          linkedHashMap.put("@timestamp", exprValueFactory.construct("@timestamp", val.getLong(0)));
+          linkedHashMap.put(valueKey, new ExprDoubleValue(val.getDouble(1)));
+          Iterator<String> iterator = metric.keys();
+          while(iterator.hasNext()) {
+            String key = iterator.next();
+            linkedHashMap.put(key, exprValueFactory.construct(key, metric.getString(key)));
+          }
+          result.add(new ExprTupleValue(linkedHashMap));
+        }
+      }
+    }
+    iterator = result.iterator();
   }
 
   @Override
@@ -114,7 +134,7 @@ public class OpenSearchIndexScan extends TableScanOperator {
 
   @Override
   public ExprValue next() {
-    return iterator.next();
+   return iterator.next();
   }
 
   /**

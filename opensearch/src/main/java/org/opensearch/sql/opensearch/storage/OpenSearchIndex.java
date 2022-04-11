@@ -139,13 +139,16 @@ public class OpenSearchIndex implements Table {
             .map(sort -> builder.build(sort.getValue(), sort.getKey()))
             .collect(Collectors.toList()));
       }
-
+      StringBuilder promQlBuilder = context.getRequest().getPrometheusQueryBuilder();
+      promQlBuilder.append(node.getRelationName().split("\\.")[1]);
       if (null != node.getFilter()) {
         FilterQueryBuilder queryBuilder = new FilterQueryBuilder(new DefaultExpressionSerializer());
         QueryBuilder query = queryBuilder.build(node.getFilter());
         context.pushDown(query);
+        PromQLFilterQueryBuilder promQLFilterQueryBuilder = new PromQLFilterQueryBuilder();
+        StringBuilder filterQuery = promQLFilterQueryBuilder.build(node.getFilter());
+        promQlBuilder.append(filterQuery);
       }
-
       if (node.getLimit() != null) {
         context.pushDownLimit(node.getLimit(), node.getOffset());
       }
@@ -153,6 +156,13 @@ public class OpenSearchIndex implements Table {
       if (node.hasProjects()) {
         context.pushDownProjects(node.getProjectList());
       }
+
+      if (node.getFilter() != null) {
+
+      }
+      promQlBuilder.insert(0, "(");
+      promQlBuilder.append(")");
+
       return indexScan;
     }
 

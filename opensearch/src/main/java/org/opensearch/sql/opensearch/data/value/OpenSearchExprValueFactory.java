@@ -75,6 +75,7 @@ public class OpenSearchExprValueFactory {
    * The Mapping of Field and ExprType.
    */
   @Setter
+  @Getter
   private Map<String, ExprType> typeMapping;
 
   @Getter
