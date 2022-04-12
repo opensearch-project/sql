@@ -33,28 +33,33 @@
             <argument type='datetime' />
         </function>
         <function group='cast' name='STR' return-type='str'>
-            <formula>CAST(%1 as string)</formula>
+            <formula>CAST(%1 AS STRING)</formula>
             <argument type='real' />
         </function>
         <function group='cast' name='STR' return-type='str'>
-            <formula>CAST(%1 as string)</formula>
+            <formula>CAST(%1 AS STRING)</formula>
             <argument type='int' />
         </function>
         <function group='cast' name='STR' return-type='str'>
-            <formula>CAST(%1 as string)</formula>
+            <formula>CAST(%1 AS STRING)</formula>
             <argument type='date' />
         </function>
         <function group='cast' name='STR' return-type='str'>
-            <formula>CAST(%1 as string)</formula>
+            <formula>CAST(%1 AS STRING)</formula>
             <argument type='bool' />
         </function>
         <function group='cast' name='INT' return-type='int'>
-            <formula>CAST(%1 as int)</formula>
+            <formula>CAST(%1 AS INT)</formula>
             <argument type='real' />
         </function>
         <function group='cast' name='INT' return-type='int'>
-            <formula>CAST(%1 as int)</formula>
+            <formula>CAST(%1 AS INT)</formula>
             <argument type='bool' />
+        </function>
+        <function group='cast' name='INT' return-type='int'>
+            <!-- Casting to double covers the case where the string is not an integer. Casting a string double to int fails -->
+            <formula>CAST(CAST(%1 AS DOUBLE) AS INT)</formula>
+            <argument type='str' />
         </function>
 
         <function group='logical' name='IFNULL' return-type='datetime'>
