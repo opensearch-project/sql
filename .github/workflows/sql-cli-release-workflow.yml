@@ -1,5 +1,5 @@
 name: Release SQL CLI Artifacts
-# This workflows is triggered on creating tags to master
+# This workflows is triggered on creating tags to main
 on:
   push:
     tags:
