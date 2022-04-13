@@ -6,9 +6,17 @@
 
 package org.opensearch.sql.opensearch.planner.physical;
 
+import static org.opensearch.sql.utils.MLCommonsConstants.ANOMALY_RATE;
+import static org.opensearch.sql.utils.MLCommonsConstants.ANOMALY_SCORE_THRESHOLD;
+import static org.opensearch.sql.utils.MLCommonsConstants.DATE_FORMAT;
+import static org.opensearch.sql.utils.MLCommonsConstants.NUMBER_OF_TREES;
+import static org.opensearch.sql.utils.MLCommonsConstants.OUTPUT_AFTER;
+import static org.opensearch.sql.utils.MLCommonsConstants.SAMPLE_SIZE;
 import static org.opensearch.sql.utils.MLCommonsConstants.SHINGLE_SIZE;
 import static org.opensearch.sql.utils.MLCommonsConstants.TIME_DECAY;
 import static org.opensearch.sql.utils.MLCommonsConstants.TIME_FIELD;
+import static org.opensearch.sql.utils.MLCommonsConstants.TIME_ZONE;
+import static org.opensearch.sql.utils.MLCommonsConstants.TRAINING_DATA_SIZE;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -97,18 +105,55 @@ public class ADOperator extends MLCommonsOperatorActions {
   }
 
   protected MLAlgoParams convertArgumentToMLParameter(Map<String, Literal> arguments) {
-    if (arguments.get(TIME_FIELD).getValue() == null) {
+    if (arguments.get(TIME_FIELD) == null) {
       rcfType = FunctionName.BATCH_RCF;
       return BatchRCFParams.builder()
-              .shingleSize((Integer) arguments.get(SHINGLE_SIZE).getValue())
+              .numberOfTrees(arguments.containsKey(NUMBER_OF_TREES)
+                      ? ((Integer) arguments.get(NUMBER_OF_TREES).getValue())
+                      : null)
+              .sampleSize(arguments.containsKey(SAMPLE_SIZE)
+                      ? ((Integer) arguments.get(SAMPLE_SIZE).getValue())
+                      : null)
+              .outputAfter(arguments.containsKey(OUTPUT_AFTER)
+                      ? ((Integer) arguments.get(OUTPUT_AFTER).getValue())
+                      : null)
+              .trainingDataSize(arguments.containsKey(TRAINING_DATA_SIZE)
+                      ? ((Integer) arguments.get(TRAINING_DATA_SIZE).getValue())
+                      : null)
+              .anomalyScoreThreshold(arguments.containsKey(ANOMALY_SCORE_THRESHOLD)
+                      ? ((Double) arguments.get(ANOMALY_SCORE_THRESHOLD).getValue())
+                      : null)
               .build();
     }
     rcfType = FunctionName.FIT_RCF;
     return FitRCFParams.builder()
-            .shingleSize((Integer) arguments.get(SHINGLE_SIZE).getValue())
-            .timeDecay((Double) arguments.get(TIME_DECAY).getValue())
-            .timeField((String) arguments.get(TIME_FIELD).getValue())
-            .dateFormat("yyyy-MM-dd HH:mm:ss")
+            .numberOfTrees(arguments.containsKey(NUMBER_OF_TREES)
+                    ? ((Integer) arguments.get(NUMBER_OF_TREES).getValue())
+                    : null)
+            .shingleSize(arguments.containsKey(SHINGLE_SIZE)
+                    ? ((Integer) arguments.get(SHINGLE_SIZE).getValue())
+                    : null)
+            .sampleSize(arguments.containsKey(SAMPLE_SIZE)
+                    ? ((Integer) arguments.get(SAMPLE_SIZE).getValue())
+                    : null)
+            .outputAfter(arguments.containsKey(OUTPUT_AFTER)
+                    ? ((Integer) arguments.get(OUTPUT_AFTER).getValue())
+                    : null)
+            .timeDecay(arguments.containsKey(TIME_DECAY)
+                    ? ((Double) arguments.get(TIME_DECAY).getValue())
+                    : null)
+            .anomalyRate(arguments.containsKey(ANOMALY_RATE)
+                    ? ((Double) arguments.get(ANOMALY_RATE).getValue())
+                    : null)
+            .timeField(arguments.containsKey(TIME_FIELD)
+                    ? ((String) arguments.get(TIME_FIELD).getValue())
+                    : null)
+            .dateFormat(arguments.containsKey(DATE_FORMAT)
+                    ? ((String) arguments.get(DATE_FORMAT).getValue())
+                    : "yyyy-MM-dd HH:mm:ss")
+            .timeZone(arguments.containsKey(TIME_ZONE)
+                    ? ((String) arguments.get(TIME_ZONE).getValue())
+                    : null)
             .build();
   }
 

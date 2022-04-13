@@ -23,6 +23,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommand
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WhereCommandContext;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -307,14 +308,33 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return aggregate;
   }
 
+  /**
+   * Kmeans command.
+   */
   @Override
   public UnresolvedPlan visitKmeansCommand(KmeansCommandContext ctx) {
-    return new Kmeans(ArgumentFactory.getArgumentList(ctx));
+    ImmutableMap.Builder<String, Literal> builder = ImmutableMap.builder();
+    ctx.kmeansParameter()
+            .forEach(x -> {
+              builder.put(x.children.get(0).toString(),
+                      (Literal) internalVisitExpression(x.children.get(2)));
+            });
+    return new Kmeans(builder.build());
   }
 
+  /**
+   * AD command.
+   */
   @Override
   public UnresolvedPlan visitAdCommand(AdCommandContext ctx) {
-    return new AD(ArgumentFactory.getArgumentMap(ctx));
+    ImmutableMap.Builder<String, Literal> builder = ImmutableMap.builder();
+    ctx.adParameter()
+            .forEach(x -> {
+              builder.put(x.children.get(0).toString(),
+                      (Literal) internalVisitExpression(x.children.get(2)));
+            });
+
+    return new AD(builder.build());
   }
 
   /**

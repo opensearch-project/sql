@@ -50,9 +50,19 @@ DEDUP_SPLITVALUES:                  'DEDUP_SPLITVALUES';
 PARTITIONS:                         'PARTITIONS';
 ALLNUM:                             'ALLNUM';
 DELIM:                              'DELIM';
+CENTROIDS:                          'CENTROIDS';
+ITERATIONS:                         'ITERATIONS';
+DISTANCE_TYPE:                      'DISTANCE_TYPE';
+NUMBER_OF_TREES:                    'NUMBER_OF_TREES';
 SHINGLE_SIZE:                       'SHINGLE_SIZE';
+SAMPLE_SIZE:                        'SAMPLE_SIZE';
+OUTPUT_AFTER:                       'OUTPUT_AFTER';
 TIME_DECAY:                         'TIME_DECAY';
+ANOMALY_RATE:                       'ANOMALY_RATE';
 TIME_FIELD:                         'TIME_FIELD';
+TIME_ZONE:                          'TIME_ZONE';
+TRAINING_DATA_SIZE:                 'TRAINING_DATA_SIZE';
+ANOMALY_SCORE_THRESHOLD:            'ANOMALY_SCORE_THRESHOLD';
 
 // COMPARISON FUNCTION KEYWORDS
 CASE:                               'CASE';
