@@ -63,7 +63,6 @@
             <argument type='date' />
         </function>
 
-
         <function group='operator' name='==' return-type='bool'>
             <formula>(%1 = CAST(DATE_FORMAT(%2, '%Y-%m-%d 00:00:00') AS TIMESTAMP))</formula>
             <argument type='datetime' />
