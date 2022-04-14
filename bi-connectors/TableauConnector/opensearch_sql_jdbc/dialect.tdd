@@ -58,9 +58,14 @@
         </function>
 
         <function group='logical' name='IFNULL' return-type='datetime'>
-            <formula>CASE WHEN ISNULL(%1) THEN SUBDATE(TIMESTAMP(%2), INTERVAL HOUR(TIMESTAMP(%2)) HOUR) ELSE %1 END</formula>
+            <formula>CASE WHEN ISNULL(%1) THEN CAST(DATE_FORMAT(%2, '%Y-%m-%d 00:00:00') AS TIMESTAMP) ELSE %1 END</formula>
             <argument type='datetime' />
             <argument type='date' />
+        </function>
+        <function group='logical' name='IFNULL' return-type='datetime'>
+            <formula>CASE WHEN ISNULL(%1) THEN %2 ELSE CAST(DATE_FORMAT(%1, '%Y-%m-%d 00:00:00') AS TIMESTAMP) END</formula>
+            <argument type='date' />
+            <argument type='datetime' />
         </function>
 
         <function group='operator' name='!=' return-type='bool'>
