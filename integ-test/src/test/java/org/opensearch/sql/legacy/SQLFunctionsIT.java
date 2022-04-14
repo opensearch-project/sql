@@ -501,7 +501,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
   }
 
   /**
-   * Ignore this test case because painless doesn't whitelist String.split function.
+   * Ignore this test case because painless doesn't allowlist String.split function.
    *
    * @see <a href="https://www.elastic.co/guide/en/elasticsearch/painless/7.0/painless-api-reference.html">https://www.elastic.co/guide/en/elasticsearch/painless/7.0/painless-api-reference.html</a>
    */
@@ -517,7 +517,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
   }
 
   /**
-   * Ignore this test case because painless doesn't whitelist String.split function.
+   * Ignore this test case because painless doesn't allowlist String.split function.
    *
    * @see <a href="https://www.elastic.co/guide/en/elasticsearch/painless/7.0/painless-api-reference.html">https://www.elastic.co/guide/en/elasticsearch/painless/7.0/painless-api-reference.html</a>
    */
@@ -810,7 +810,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
   }
 
   /**
-   * Ignore this test case because painless doesn't whitelist String.split function.
+   * Ignore this test case because painless doesn't allowlist String.split function.
    *
    * @see <a href="https://www.elastic.co/guide/en/elasticsearch/painless/7.0/painless-api-reference.html">https://www.elastic.co/guide/en/elasticsearch/painless/7.0/painless-api-reference.html</a>
    */
