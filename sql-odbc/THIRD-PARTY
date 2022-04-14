@@ -4,7 +4,7 @@
 ** Visual Leak Detector -- https://github.com/KindDragon/vld
 ** PostgreSQL v12.0 -- https://www.postgresql.org/ftp/source/v12.0/
 ** Googletest -- https://github.com/google/googletest
-** StableCoder - code-coverage.cmake -- https://github.com/StableCoder/cmake-scripts/blob/master/code-coverage.cmake
+** StableCoder - code-coverage.cmake -- https://github.com/StableCoder/cmake-scripts/blob/main/code-coverage.cmake
 
 Apache License
 

@@ -94,7 +94,6 @@ tasks.withType(licenseHeaders.class) {
 forbiddenApis.ignoreFailures = true
 // TODO: fix forbidden code patterns
 // introduced by OpenSearch plugin
-// see https://github.com/elastic/elasticsearch/blob/master/buildSrc/src/main/java/org/elasticsearch/gradle/precommit/ForbiddenPatternsTask.java
 forbiddenPatterns {
     setEnabled(false)
 }
