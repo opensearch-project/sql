@@ -8,6 +8,7 @@ package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -15,7 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
-import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Literal;
 
 @Getter
 @Setter
@@ -26,7 +27,7 @@ import org.opensearch.sql.ast.expression.Argument;
 public class Kmeans extends UnresolvedPlan {
   private UnresolvedPlan child;
 
-  private final List<Argument> options;
+  private final Map<String, Literal> arguments;
 
   @Override
   public UnresolvedPlan attach(UnresolvedPlan child) {

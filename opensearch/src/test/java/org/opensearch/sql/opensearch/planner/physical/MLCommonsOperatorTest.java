@@ -17,6 +17,8 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -39,6 +41,7 @@ import org.opensearch.ml.common.parameter.MLInput;
 import org.opensearch.ml.common.parameter.MLPredictionOutput;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -63,14 +66,17 @@ public class MLCommonsOperatorTest {
 
   @BeforeEach
   void setUp() {
-    mlCommonsOperator = new MLCommonsOperator(input, "kmeans",
-            AstDSL.exprList(AstDSL.argument("k1", AstDSL.intLiteral(3)),
-                    AstDSL.argument("k2", AstDSL.stringLiteral("v1")),
-                    AstDSL.argument("k3", AstDSL.booleanLiteral(true)),
-                    AstDSL.argument("k4", AstDSL.doubleLiteral(2.0D)),
-                    AstDSL.argument("k5", AstDSL.shortLiteral((short)2)),
-                    AstDSL.argument("k6", AstDSL.longLiteral(2L)),
-                    AstDSL.argument("k7", AstDSL.floatLiteral(2F))),
+    Map<String, Literal> arguments = new HashMap<>();
+    arguments.put("k1",AstDSL.intLiteral(3));
+    arguments.put("k2",AstDSL.stringLiteral("v1"));
+    arguments.put("k3",AstDSL.booleanLiteral(true));
+    arguments.put("k4",AstDSL.doubleLiteral(2.0D));
+    arguments.put("k5",AstDSL.shortLiteral((short)2));
+    arguments.put("k6",AstDSL.longLiteral(2L));
+    arguments.put("k7",AstDSL.floatLiteral(2F));
+
+
+    mlCommonsOperator = new MLCommonsOperator(input, "kmeans", arguments,
             nodeClient);
     when(input.hasNext()).thenReturn(true).thenReturn(false);
     ImmutableMap.Builder<String, ExprValue> resultBuilder = new ImmutableMap.Builder<>();
@@ -122,16 +128,10 @@ public class MLCommonsOperatorTest {
 
   @Test
   public void testConvertArgumentToMLParameter_UnsupportedType() {
-    Argument argument = AstDSL.argument("k2", AstDSL.dateLiteral("2020-10-31"));
+    Map<String, Literal> argument = new HashMap<>();
+    argument.put("k2",AstDSL.dateLiteral("2020-10-31"));
     assertThrows(IllegalArgumentException.class, () -> mlCommonsOperator
             .convertArgumentToMLParameter(argument, "LINEAR_REGRESSION"));
-  }
-
-  @Test
-  public void testConvertArgumentToMLParameter_KMeansUnsupportedType() {
-    Argument argument = AstDSL.argument("k2", AstDSL.dateLiteral("string value"));
-    assertThrows(IllegalArgumentException.class, () -> mlCommonsOperator
-            .convertArgumentToMLParameter(argument, "KMEANS"));
   }
 
 }

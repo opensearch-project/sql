@@ -15,22 +15,15 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareComman
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
-import static org.opensearch.sql.utils.MLCommonsConstants.SHINGLE_SIZE;
-import static org.opensearch.sql.utils.MLCommonsConstants.TIME_DECAY;
-import static org.opensearch.sql.utils.MLCommonsConstants.TIME_FIELD;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.common.utils.StringUtils;
-import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.AdCommandContext;
-import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.KmeansCommandContext;
 
 /**
  * Util class to get all arguments as a list from the PPL command.
@@ -143,46 +136,16 @@ public class ArgumentFactory {
   }
 
   /**
-   * Get list of {@link Argument}.
-   *
-   * @param ctx KmeansCommandContext instance
-   * @return the list of arguments fetched from the kmeans command
+   * parse argument value into Literal.
+   * @param ctx ParserRuleContext instance
+   * @return Literal
    */
-  public static List<Argument> getArgumentList(KmeansCommandContext ctx) {
-    // TODO: add iterations and distanceType parameters for Kemans
-    return Collections
-            .singletonList(new Argument("k", getArgumentValue(ctx.k)));
-  }
-
-  /**
-   * Get map of {@link Argument}.
-   *
-   * @param ctx ADCommandContext instance
-   * @return the list of arguments fetched from the AD command
-   */
-  public static Map<String, Literal> getArgumentMap(AdCommandContext ctx) {
-    return new HashMap<String, Literal>() {{
-        put(SHINGLE_SIZE, (ctx.shingle_size != null)
-              ? getArgumentValue(ctx.shingle_size)
-              : new Literal(null, DataType.INTEGER));
-        put(TIME_DECAY, (ctx.time_decay != null)
-              ? getArgumentValue(ctx.time_decay)
-              : new Literal(null, DataType.DOUBLE));
-        put(TIME_FIELD, (ctx.time_field != null)
-              ? getArgumentValue(ctx.time_field)
-              : new Literal(null, DataType.STRING));
-      }
-    };
-  }
-
   private static Literal getArgumentValue(ParserRuleContext ctx) {
     return ctx instanceof IntegerLiteralContext
-        ? new Literal(Integer.parseInt(ctx.getText()), DataType.INTEGER)
-        : ctx instanceof BooleanLiteralContext
-        ? new Literal(Boolean.valueOf(ctx.getText()), DataType.BOOLEAN)
-        : ctx instanceof DecimalLiteralContext
-        ? new Literal(Double.valueOf(ctx.getText()), DataType.DOUBLE)
-        : new Literal(StringUtils.unquoteText(ctx.getText()), DataType.STRING);
+            ? new Literal(Integer.parseInt(ctx.getText()), DataType.INTEGER)
+            : ctx instanceof BooleanLiteralContext
+            ? new Literal(Boolean.valueOf(ctx.getText()), DataType.BOOLEAN)
+            : new Literal(StringUtils.unquoteText(ctx.getText()), DataType.STRING);
   }
 
 }
