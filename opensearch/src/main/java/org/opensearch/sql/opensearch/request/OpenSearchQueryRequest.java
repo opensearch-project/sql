@@ -7,6 +7,8 @@
 package org.opensearch.sql.opensearch.request;
 
 import com.google.common.annotations.VisibleForTesting;
+
+import java.util.Date;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import lombok.EqualsAndHashCode;
@@ -52,6 +54,12 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
    */
   private final StringBuilder prometheusQueryBuilder;
 
+  private final Long startTime;
+
+  private final Long endTime;
+
+  private final Integer step;
+
 
   /**
    * ElasticsearchExprValueFactory.
@@ -81,6 +89,9 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     this.indexName = indexName;
     this.sourceBuilder = new SearchSourceBuilder();
     this.prometheusQueryBuilder = new StringBuilder();
+    this.startTime = new Date().getTime()/1000-3600;
+    this.endTime = new Date().getTime()/1000;
+    this.step = 14;
     sourceBuilder.from(0);
     sourceBuilder.size(size);
     sourceBuilder.timeout(DEFAULT_QUERY_TIMEOUT);

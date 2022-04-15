@@ -51,6 +51,13 @@ public interface OpenSearchRequest {
    */
   StringBuilder getPrometheusQueryBuilder();
 
+
+  Long getStartTime();
+  Long getEndTime();
+  Integer getStep();
+
+
+
   /**
    * Get the ElasticsearchExprValueFactory.
    * @return ElasticsearchExprValueFactory.
