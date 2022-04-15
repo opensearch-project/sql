@@ -98,7 +98,7 @@ The reason we are not using OpenSearch test framework, is due to the difficulty 
     1. bootstrap
     2. StartOpenSearch
         1. ` ./gradlew run`
-        2. https://github.com/elastic/elasticsearch/blob/master/TESTING.asciidoc#running-elasticsearch-from-a-checkout
+        2. https://github.com/elastic/elasticsearch/blob/main/TESTING.asciidoc#running-elasticsearch-from-a-checkout
     3. doctest
     4. StopOpenSearch
 4. Integrate Doctest to project gradle build, which means `./gradlew build` will also run `doctest`

@@ -2,16 +2,13 @@ name: SQL Java CI
 
 on: [push, pull_request]
 
-env:
-  OPENSEARCH_VERSION: '2.0.0-SNAPSHOT'
-
 jobs:
   build:
     strategy:
       matrix:
         java:
           - 11
-          - 14
+          - 17
     runs-on: ubuntu-latest
 
     steps:
@@ -23,7 +20,7 @@ jobs:
         java-version: ${{ matrix.java }}
     
     - name: Build with Gradle
-      run: ./gradlew build assemble -Dopensearch.version=${{ env.OPENSEARCH_VERSION }}
+      run: ./gradlew build assemble
 
     - name: Run backward compatibility tests
       run: ./bwctest.sh

@@ -18,7 +18,6 @@ import org.opensearch.sql.legacy.domain.IndexStatement;
 public class Schema implements Iterable<Schema.Column> {
 
     private String indexName;
-    private String typeName;
     private List<Column> columns;
 
     private static Set<String> types;
@@ -27,9 +26,8 @@ public class Schema implements Iterable<Schema.Column> {
         types = getTypes();
     }
 
-    public Schema(String indexName, String typeName, List<Column> columns) {
+    public Schema(String indexName, List<Column> columns) {
         this.indexName = indexName;
-        this.typeName = typeName;
         this.columns = columns;
     }
 
@@ -44,10 +42,6 @@ public class Schema implements Iterable<Schema.Column> {
 
     public String getIndexName() {
         return indexName;
-    }
-
-    public String getTypeName() {
-        return typeName;
     }
 
     public List<String> getHeaders() {

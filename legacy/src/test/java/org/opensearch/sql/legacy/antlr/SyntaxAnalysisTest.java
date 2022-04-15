@@ -17,7 +17,7 @@ import org.junit.rules.ExpectedException;
 import org.opensearch.sql.legacy.antlr.syntax.SyntaxAnalysisException;
 
 /**
- * Test cases focused on illegal syntax testing (blacklist) along with a few normal cases not covered previously.
+ * Test cases focused on illegal syntax testing (denylist) along with a few normal cases not covered previously.
  * All other normal cases should be covered in existing unit test and IT.
  */
 public class SyntaxAnalysisTest {

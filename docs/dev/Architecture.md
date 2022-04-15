@@ -3,7 +3,7 @@
 ---
 ## 1.Overview
 
-The OpenSearch SQL (OD-SQL) project is developed based on NLPChina project (https://github.com/NLPchina/elasticsearch-sql) which has been deprecated now ([attributions](https://github.com/opensearch-project/sql/blob/master/docs/attributions.md)). Over the one year in development, a lot of features have been added to the OD-SQL project on top of the existing older NLPChina project. The purpose of this document is to explain the OD-SQL current architecture going ahead.
+The OpenSearch SQL (OD-SQL) project is developed based on NLPChina project (https://github.com/NLPchina/elasticsearch-sql) which has been deprecated now ([attributions](https://github.com/opensearch-project/sql/blob/main/docs/attributions.md)). Over the one year in development, a lot of features have been added to the OD-SQL project on top of the existing older NLPChina project. The purpose of this document is to explain the OD-SQL current architecture going ahead.
 
 ---
 ## 2.High Level View

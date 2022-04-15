@@ -47,16 +47,16 @@ dependencies {
     implementation "org.antlr:antlr4-runtime:4.7.1"
     implementation group: 'com.google.guava', name: 'guava', version: '31.0.1-jre'
     implementation group: 'org.json', name: 'json', version:'20180813'
-    implementation group: 'org.springframework', name: 'spring-context', version: '5.2.19.RELEASE'
-    implementation group: 'org.springframework', name: 'spring-beans', version: '5.2.19.RELEASE'
+    implementation group: 'org.springframework', name: 'spring-context', version: '5.2.20.RELEASE'
+    implementation group: 'org.springframework', name: 'spring-beans', version: '5.2.20.RELEASE'
     implementation project(':common')
     implementation project(':core')
     api project(':protocol')
 
     testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.3.3'
-    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.3.3'
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.12.4'
+    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.12.4'
 }
 
 test {
@@ -65,10 +65,6 @@ test {
         events "passed", "skipped", "failed"
         exceptionFormat "full"
     }
-}
-
-jacoco {
-    toolVersion = "0.8.5"
 }
 
 jacocoTestReport {

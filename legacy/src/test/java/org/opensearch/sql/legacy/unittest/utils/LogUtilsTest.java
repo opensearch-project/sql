@@ -8,6 +8,7 @@ package org.opensearch.sql.legacy.unittest.utils;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertEquals;
 
 import org.apache.logging.log4j.ThreadContext;
 import org.junit.After;
@@ -44,10 +45,9 @@ public class LogUtilsTest {
         Assert.assertThat(requestId2, not(equalTo(requestId)));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void getRequestId_doesNotExist() {
-
-        LogUtils.getRequestId();
+        assertEquals("ID", LogUtils.getRequestId());
     }
 
     @Test

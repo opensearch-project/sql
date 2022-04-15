@@ -88,13 +88,13 @@ You can also configure the following connection properties:
     * Amazon OpenSearch Service domain with [Fine Grained Access Control](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/fgac.html) enabled
 * `--aws-auth`: Turns on AWS sigV4 authentication to connect to an Amazon Elasticsearch Service endpoint. Use with the AWS CLI (`aws configure`) to retrieve the local AWS configuration to authenticate and connect.
 
-For a list of all available configurations, see [clirc](https://github.com/opensearch-project/sql/blob/master/sql-cli/src/opensearch_sql_cli/conf/clirc).
+For a list of all available configurations, see [clirc](https://github.com/opensearch-project/sql/blob/main/sql-cli/src/opensearch_sql_cli/conf/clirc).
 
 
 
 ## Using the CLI
 
-1. Save the sample [accounts test data](https://github.com/opensearch-project/sql/blob/master/integ-test/src/test/resources/accounts.json) file.
+1. Save the sample [accounts test data](https://github.com/opensearch-project/sql/blob/main/integ-test/src/test/resources/accounts.json) file.
 2. Index the sample data.
 
     ```

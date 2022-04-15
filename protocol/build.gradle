@@ -30,17 +30,21 @@ plugins {
 
 dependencies {
     implementation group: 'com.google.guava', name: 'guava', version: '31.0.1-jre'
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.12.6'
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.12.6'
-    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: '2.12.6'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.13.2'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.13.2.2'
+    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: '2.13.2'
     implementation 'com.google.code.gson:gson:2.8.9'
     implementation project(':core')
     implementation project(':opensearch')
 
     testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.3.3'
-    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.3.3'
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.12.4'
+    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.12.4'
+}
+
+configurations.all {
+    resolutionStrategy.force 'com.fasterxml.jackson.core:jackson-databind:2.13.2.2'
 }
 
 test {
@@ -51,9 +55,6 @@ test {
     }
 }
 
-jacoco {
-    toolVersion = "0.8.5"
-}
 jacocoTestReport {
     reports {
         html.enabled true

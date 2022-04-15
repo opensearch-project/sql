@@ -17,7 +17,7 @@ Prerequisites
 JDK
 ---
 
-OpenSearch builds using Java 11 at a minimum. This means you must have a JDK 11 installed with the environment variable `JAVA_HOME` referencing the path to Java home for your JDK 11 installation::
+OpenSearch builds using Java 11 at a minimum and supports JDK 11, 14 and 17. This means you must have a JDK of supported version installed with the environment variable `JAVA_HOME` referencing the path to Java home for your JDK installation::
 
    $ echo $JAVA_HOME
    /Library/Java/JavaVirtualMachines/adoptopenjdk-11.jdk/Contents/Home
@@ -46,16 +46,16 @@ Now you can check out the code from your forked GitHub repository and create a n
    $ git clone git@github.com:<your_account>/sql.git
    $ git checkout -b <branch_name>
 
-If there is update in master or you want to keep the forked repository long living, you can sync it by following the instructions: https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/syncing-a-fork. Basically you just need to pull latest changes from upstream master once you add it for the first time::
+If there is update in main or you want to keep the forked repository long living, you can sync it by following the instructions: https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/syncing-a-fork. Basically you just need to pull latest changes from upstream main once you add it for the first time::
 
-   #Merge to your local master
+   #Merge to your local main
    $ git fetch upstream
-   $ git checkout master
-   $ git merge upstream/master
+   $ git checkout main
+   $ git merge upstream/main
 
    #Merge to your branch if any
    $ git checkout <branch_name>
-   $ git merge master
+   $ git merge main
 
 After getting the source code as well as OpenSearch and OpenSearch Dashboards, your workspace layout may look like this::
 
@@ -181,7 +181,7 @@ Note that other related project code has already merged into this single reposit
 Code Convention
 ---------------
 
-We’re integrated Checkstyle plugin into Gradle build: https://github.com/opensearch-project/sql/blob/master/config/checkstyle/google_checks.xml. So any violation will fail the build. You need to identify the offending code from Gradle error message and fix them and rerun the Gradle build. Here are the highlight of some Checkstyle rules:
+We’re integrated Checkstyle plugin into Gradle build: https://github.com/opensearch-project/sql/blob/main/config/checkstyle/google_checks.xml. So any violation will fail the build. You need to identify the offending code from Gradle error message and fix them and rerun the Gradle build. Here are the highlight of some Checkstyle rules:
 
 * 2 spaces indentation.
 * No line starts with tab character in source file.
