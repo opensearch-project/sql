@@ -155,7 +155,7 @@
         </function>
         <function group='operator' name='+' return-type='datetime'>
             <!-- 86400 as it represents seconds in a day -->
-            <formula>DATE_ADD(DATE_ADD(%1, INTERVAL FLOOR(%2) DAY), INTERVAL CAST(86400 * (%2 - FLOOR(%2)) AS INT) SECOND)</formula>
+            <formula>DATE_ADD(%1, INTERVAL CAST((86400 * %2) AS INT) SECOND)</formula>
             <argument type='datetime' />
             <argument type='real' />
         </function>
@@ -187,7 +187,7 @@
         </function>
         <function group='operator' name='-' return-type='datetime'>
             <!-- 86400 as it represents seconds in a day -->
-            <formula>DATE_SUB(DATE_SUB(%1, INTERVAL FLOOR(%2) DAY), INTERVAL CAST(86400 * (%2 - FLOOR(%2)) AS INT) SECOND)</formula>
+            <formula>DATE_SUB(%1, INTERVAL CAST((86400 * %2) AS INT) SECOND)</formula>
             <argument type='datetime' />
             <argument type='real' />
         </function>
