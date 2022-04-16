@@ -93,7 +93,7 @@ public class OpenSearchIndexScan extends TableScanOperator {
       try {
         return prometheusService.queryRange("localhost", 9090,
                 request.getPrometheusQueryBuilder().toString(),
-                request.getStartTime(), request.getEndTime(), request.getxStep());
+                request.getStartTime(), request.getEndTime(), request.getStep());
       } catch (IOException e) {
         e.printStackTrace();
       }

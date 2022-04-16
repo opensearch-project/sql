@@ -110,6 +110,21 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
     return null;
   }
 
+  @Override
+  public void setStartTime(Long startTime) {
+
+  }
+
+  @Override
+  public void setEndTime(Long endTime) {
+
+  }
+
+  @Override
+  public void setStep(Integer step) {
+
+  }
+
   /**
    * Generate OpenSearch search request.
    *

@@ -55,6 +55,9 @@ public interface OpenSearchRequest {
   Long getStartTime();
   Long getEndTime();
   Integer getStep();
+  void setStartTime(Long startTime);
+  void setEndTime(Long endTime);
+  void setStep(Integer step);
 
 
 

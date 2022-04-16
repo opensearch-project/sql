@@ -33,6 +33,7 @@ import org.opensearch.sql.opensearch.request.system.OpenSearchDescribeIndexReque
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.script.aggregation.AggregationQueryBuilder;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
+import org.opensearch.sql.opensearch.storage.script.filter.PromFilterQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.PromQLFilterQueryBuilder;
 import org.opensearch.sql.opensearch.storage.script.sort.SortQueryBuilder;
 import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
@@ -139,6 +140,7 @@ public class OpenSearchIndex implements Table {
             .map(sort -> builder.build(sort.getValue(), sort.getKey()))
             .collect(Collectors.toList()));
       }
+      OpenSearchRequest request = context.getRequest();
       StringBuilder promQlBuilder = context.getRequest().getPrometheusQueryBuilder();
       promQlBuilder.append(node.getRelationName().split("\\.")[1]);
       if (null != node.getFilter()) {
@@ -146,8 +148,17 @@ public class OpenSearchIndex implements Table {
         QueryBuilder query = queryBuilder.build(node.getFilter());
         context.pushDown(query);
         PromQLFilterQueryBuilder promQLFilterQueryBuilder = new PromQLFilterQueryBuilder();
-        StringBuilder filterQuery = promQLFilterQueryBuilder.build(node.getFilter());
-        promQlBuilder.append(filterQuery);
+        PromFilterQuery filterQuery = promQLFilterQueryBuilder.build(node.getFilter());
+        if(filterQuery.getPromQl()!=null && filterQuery.getPromQl().length() > 0) {
+          filterQuery.setPromQl(new StringBuilder().append("{").append(filterQuery.getPromQl()).append("}"));
+        }
+        promQlBuilder.append(filterQuery.getPromQl());
+        if(filterQuery.getStartTime()!= null) {
+          request.setStartTime(filterQuery.getStartTime());
+        }
+        if(filterQuery.getEndTime() != null) {
+          request.setEndTime(filterQuery.getEndTime());
+        }
       }
       if (node.getLimit() != null) {
         context.pushDownLimit(node.getLimit(), node.getOffset());
@@ -171,17 +182,27 @@ public class OpenSearchIndex implements Table {
      */
     public PhysicalPlan visitIndexAggregation(OpenSearchLogicalIndexAgg node,
                                               OpenSearchIndexScan context) {
+      OpenSearchRequest request = context.getRequest();
       StringBuilder promQlBuilder = context.getRequest().getPrometheusQueryBuilder();
-
       promQlBuilder.append(node.getRelationName().split("\\.")[1]);
       if (node.getFilter() != null) {
         FilterQueryBuilder queryBuilder = new FilterQueryBuilder(
             new DefaultExpressionSerializer());
         PromQLFilterQueryBuilder promQLFilterQueryBuilder = new PromQLFilterQueryBuilder();
-        StringBuilder filterQuery = promQLFilterQueryBuilder.build(node.getFilter());
+        PromFilterQuery filterQuery = promQLFilterQueryBuilder.build(node.getFilter());
         QueryBuilder query = queryBuilder.build(node.getFilter());
         context.pushDown(query);
-        promQlBuilder.append(filterQuery);
+        if(filterQuery.getPromQl()!=null && filterQuery.getPromQl().length() > 0) {
+          filterQuery.setPromQl(new StringBuilder().append("{").append(filterQuery.getPromQl()).append("}"));
+        }
+        promQlBuilder.append(filterQuery.getPromQl());
+
+        if(filterQuery.getStartTime()!= null) {
+          request.setStartTime(filterQuery.getStartTime());
+        }
+        if(filterQuery.getEndTime() != null) {
+          request.setEndTime(filterQuery.getEndTime());
+        }
       }
       promQlBuilder.insert(0, "(");
       promQlBuilder.append(")");
