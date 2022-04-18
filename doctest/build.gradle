@@ -48,6 +48,12 @@ doctest.finalizedBy stopOpenSearch
 build.dependsOn doctest
 clean.dependsOn(cleanBootstrap)
 
+// 2.0.0-alpha1-SNAPSHOT -> 2.0.0.0-alpha1-SNAPSHOT
+String opensearch_no_snapshot = opensearch_version.replace("-SNAPSHOT","")
+String opensearch_build = opensearch_no_snapshot.tokenize('-')[0] + '.0-' + opensearch_no_snapshot.tokenize('-')[1]
+String mlCommonsRemoteFile = 'https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/' + opensearch_no_snapshot + '/2500/linux/x64/tar/builds/opensearch/plugins/opensearch-ml-' + opensearch_build +'.zip'
+String mlCommonsPlugin = "ml-commons"
+
 testClusters {
     docTestCluster {
         plugin(provider(new Callable<RegularFile>(){
@@ -56,7 +62,15 @@ testClusters {
                 return new RegularFile() {
                     @Override
                     File getAsFile() {
-                        return fileTree("resources/ml-commons").getSingleFile()
+                        File dir = new File('./doctest/' + mlCommonsPlugin)
+                        if (!dir.exists()) {
+                            dir.mkdirs()
+                        }
+                        File f = new File(dir, mlCommonsPlugin)
+                        if (!f.exists()) {
+                            new URL(mlCommonsRemoteFile).withInputStream{ ins -> f.withOutputStream{ it << ins }}
+                        }
+                        return fileTree(mlCommonsPlugin).getSingleFile()
                     }
                 }
             }
