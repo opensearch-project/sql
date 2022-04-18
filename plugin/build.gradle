@@ -121,7 +121,7 @@ afterEvaluate {
         release = isSnapshot ? "0.1" : '1'
         version = "${project.version}" - "-SNAPSHOT"
 
-        into '/usr/share/elasticsearch/plugins'
+        into '/usr/share/opensearch/plugins'
         from(zipTree(bundlePlugin.archivePath)) {
             into opensearchplugin.name
         }
@@ -131,7 +131,7 @@ afterEvaluate {
         fileMode 0644
         dirMode 0755
 
-        requires('elasticsearch-oss', versions.elasticsearch, EQUAL)
+        requires('opensearch', versions.opensearch, EQUAL)
         packager = 'Amazon'
         vendor = 'Amazon'
         os = 'LINUX'
@@ -142,7 +142,7 @@ afterEvaluate {
         url 'https://www.opensearch.org/downloads.html'
         summary '''
          SQL plugin for OpenSearch.
-         Reference documentation can be found at https://docs-beta.opensearch.org/.
+         Reference documentation can be found at https://opensearch.org/docs/latest/search-plugins/sql/index/.
     '''.stripIndent().replace('\n', ' ').trim()
     }
 
