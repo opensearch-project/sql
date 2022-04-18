@@ -48,7 +48,10 @@ doctest.finalizedBy stopOpenSearch
 build.dependsOn doctest
 clean.dependsOn(cleanBootstrap)
 
-String mlCommonsRemoteFile = 'https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/2.0.0-alpha1/latest/linux/x64/builds/opensearch/plugins/opensearch-ml-2.0.0.0-alpha1.zip'
+// 2.0.0-alpha1-SNAPSHOT -> 2.0.0.0-alpha1-SNAPSHOT
+String opensearch_no_snapshot = opensearch_version.replace("-SNAPSHOT","")
+String opensearch_build = opensearch_no_snapshot.tokenize('-')[0] + '.0-' + opensearch_no_snapshot.tokenize('-')[1]
+String mlCommonsRemoteFile = 'https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/' + opensearch_no_snapshot + '/2500/linux/x64/tar/builds/opensearch/plugins/opensearch-ml-' + opensearch_build +'.zip'
 String mlCommonsPlugin = "ml-commons"
 
 testClusters {
