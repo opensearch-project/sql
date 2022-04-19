@@ -145,8 +145,10 @@ public abstract class MLCommonsOperatorActions extends PhysicalPlan {
    * @param resultRowIter result row iterator
    * @return result in ExprTupleValue format
    */
-  protected ExprTupleValue buildResult(Iterator<Row> inputRowIter, DataFrame inputDataFrame,
-                                       MLPredictionOutput predictionResult, Iterator<Row> resultRowIter) {
+  protected ExprTupleValue buildResult(Iterator<Row> inputRowIter,
+                                       DataFrame inputDataFrame,
+                                       MLPredictionOutput predictionResult,
+                                       Iterator<Row> resultRowIter) {
     ImmutableMap.Builder<String, ExprValue> resultSchemaBuilder = new ImmutableMap.Builder<>();
     resultSchemaBuilder.putAll(convertRowIntoExprValue(inputDataFrame.columnMetas(),
             inputRowIter.next()));
