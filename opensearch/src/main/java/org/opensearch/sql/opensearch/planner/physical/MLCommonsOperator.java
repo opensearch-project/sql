@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.opensearch.planner.physical;
 
-import static org.opensearch.ml.common.parameter.FunctionName.KMEANS;
+import static org.opensearch.ml.common.FunctionName.KMEANS;
 import static org.opensearch.sql.utils.MLCommonsConstants.CENTROIDS;
 import static org.opensearch.sql.utils.MLCommonsConstants.DISTANCE_TYPE;
 import static org.opensearch.sql.utils.MLCommonsConstants.ITERATIONS;
@@ -18,13 +18,12 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.client.node.NodeClient;
+import org.opensearch.ml.common.FunctionName;
 import org.opensearch.ml.common.dataframe.DataFrame;
 import org.opensearch.ml.common.dataframe.Row;
-import org.opensearch.ml.common.parameter.FunctionName;
-import org.opensearch.ml.common.parameter.KMeansParams;
-import org.opensearch.ml.common.parameter.MLAlgoParams;
-import org.opensearch.ml.common.parameter.MLPredictionOutput;
-import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.ml.common.input.parameter.MLAlgoParams;
+import org.opensearch.ml.common.input.parameter.clustering.KMeansParams;
+import org.opensearch.ml.common.output.MLPredictionOutput;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
