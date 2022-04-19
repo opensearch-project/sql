@@ -402,6 +402,12 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testHeadCommandWithNumberAndOffset() {
+    assertEqual("source=t | head 3 from 4",
+        head(relation("t"), 3, 4));
+  }
+
+  @Test
   public void testSortCommand() {
     assertEqual("source=t | sort f1, f2",
         sort(
