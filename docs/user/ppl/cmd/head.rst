@@ -11,14 +11,15 @@ head
 
 Description
 ============
-| The ``head`` command returns the first N number of specified results in search order.
+| The ``head`` command returns the first N number of specified results after an optional offset in search order.
 
 
 Syntax
 ============
-head [N]
+head [<size>] [from <offset>]
 
-* N: optional. number of results to return. **Default:** 10
+* <size>: optional integer. number of results to return. **Default:** 10
+* <offset>: integer after optional ``from``. number of results to skip. **Default:** 0
 
 Example 1: Get first 10 results
 ===========================================
@@ -59,6 +60,23 @@ PPL query::
     | Amber         | 32        |
     | Hattie        | 36        |
     | Nanette       | 28        |
+    +---------------+-----------+
+
+Example 3: Get first N results after offset M
+===========================================
+
+The example show first N results after offset M from accounts index.
+
+PPL query::
+
+    os> source=accounts | fields firstname, age | head 3 offset 3;
+    fetched rows / total rows = 3/3
+    +---------------+-----------+
+    | firstname     | age       |
+    |---------------+-----------|
+    | Dale          | 33        |
+    | Elinor        | 36        |
+    | Virginia      | 39        |
     +---------------+-----------+
 
 Limitation
