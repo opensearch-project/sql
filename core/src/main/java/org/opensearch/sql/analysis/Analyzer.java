@@ -390,7 +390,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
    */
   public LogicalPlan visitHead(Head node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
-    return new LogicalLimit(child, node.getSize(), 0);
+    return new LogicalLimit(child, node.getSize(), node.getFrom());
   }
 
   @Override

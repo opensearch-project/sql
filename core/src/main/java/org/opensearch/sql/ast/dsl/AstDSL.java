@@ -400,7 +400,10 @@ public class AstDSL {
   }
 
   public static Head head(UnresolvedPlan input, Integer size) {
-    return new Head(input, size);
+    return head(input, size, 0);
+  }
+  public static Head head(UnresolvedPlan input, Integer size, Integer from) {
+    return new Head(input, size, from);
   }
 
   public static List<Argument> defaultTopArgs() {
