@@ -402,6 +402,7 @@ public class AstDSL {
   public static Head head(UnresolvedPlan input, Integer size) {
     return head(input, size, 0);
   }
+
   public static Head head(UnresolvedPlan input, Integer size, Integer from) {
     return new Head(input, size, from);
   }
