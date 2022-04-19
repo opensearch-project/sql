@@ -106,7 +106,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
   }
 
   @Override
-  public Integer getStep() {
+  public String getStep() {
     return null;
   }
 
@@ -121,7 +121,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
   }
 
   @Override
-  public void setStep(Integer step) {
+  public void setStep(String step) {
 
   }
 

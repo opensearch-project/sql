@@ -9,17 +9,18 @@ package org.opensearch.sql.opensearch.storage;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.lucene.util.CollectionUtil;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.search.aggregations.AggregationBuilder;
+import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.NamedExpression;
-import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.planner.logical.OpenSearchLogicalIndexAgg;
@@ -44,7 +45,6 @@ import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.Table;
-import org.springframework.util.CollectionUtils;
 
 /** OpenSearch table (index) implementation. */
 public class OpenSearchIndex implements Table {
@@ -151,8 +151,9 @@ public class OpenSearchIndex implements Table {
         PromFilterQuery filterQuery = promQLFilterQueryBuilder.build(node.getFilter());
         if(filterQuery.getPromQl()!=null && filterQuery.getPromQl().length() > 0) {
           filterQuery.setPromQl(new StringBuilder().append("{").append(filterQuery.getPromQl()).append("}"));
+          promQlBuilder.append(filterQuery.getPromQl());
         }
-        promQlBuilder.append(filterQuery.getPromQl());
+
         if(filterQuery.getStartTime()!= null) {
           request.setStartTime(filterQuery.getStartTime());
         }
@@ -194,8 +195,9 @@ public class OpenSearchIndex implements Table {
         context.pushDown(query);
         if(filterQuery.getPromQl()!=null && filterQuery.getPromQl().length() > 0) {
           filterQuery.setPromQl(new StringBuilder().append("{").append(filterQuery.getPromQl()).append("}"));
+          promQlBuilder.append(filterQuery.getPromQl());
         }
-        promQlBuilder.append(filterQuery.getPromQl());
+
 
         if(filterQuery.getStartTime()!= null) {
           request.setStartTime(filterQuery.getStartTime());
@@ -213,26 +215,37 @@ public class OpenSearchIndex implements Table {
               node.getGroupByList(), node.getSortList());
       context.pushDownAggregation(aggregationBuilder);
       context.pushTypeMapping(
-          builder.buildTypeMapping(node.getAggregatorList(),
-              node.getGroupByList()));
-
+              builder.buildTypeMapping(node.getAggregatorList(),
+                      node.getGroupByList()));
       StringBuilder aggregateQuery = new StringBuilder();
       if(!node.getAggregatorList().isEmpty()) {
-        aggregateQuery.insert(0,node.getAggregatorList().get(0).getFunctionName().getFunctionName() + " ");
-        if(!node.getGroupByList().isEmpty()) {
+        aggregateQuery.insert(0, node.getAggregatorList().get(0).getFunctionName().getFunctionName() + " ");
+        if(!node.getGroupByList().isEmpty()){
+          Optional<SpanExpression> spanExpression = node.getGroupByList().stream().map(NamedExpression::getDelegated)
+                .filter(delegated -> delegated instanceof SpanExpression)
+                .map(delegated -> (SpanExpression) delegated)
+                .findFirst();
+          spanExpression.ifPresent(expression -> request.setStep(expression.getValue().toString() + expression.getUnit().getName()));
+        long groupByCount = node.getGroupByList().stream().map(NamedExpression::getDelegated)
+                .filter(delegated -> !(delegated instanceof SpanExpression)).count();
+        if (groupByCount > 0) {
           aggregateQuery.append("by (");
           for (int i = 0; i < node.getGroupByList().size(); i++) {
-            if( i == node.getGroupByList().size()-1) {
-              aggregateQuery.append(node.getGroupByList().get(i).getName());
-            }
-            else {
-              aggregateQuery.append(node.getGroupByList().get(i).getName()).append(", ");
+            NamedExpression expression = node.getGroupByList().get(i);
+            if(expression.getDelegated() instanceof SpanExpression)
+              continue;
+            if (i == node.getGroupByList().size() - 1) {
+              aggregateQuery.append(expression.getName());
+            } else {
+              aggregateQuery.append(expression.getName()).append(", ");
             }
           }
           aggregateQuery.append(")");
         }
       }
+      }
       promQlBuilder.insert(0, aggregateQuery);
+
       return indexScan;
     }
 

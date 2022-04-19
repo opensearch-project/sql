@@ -103,7 +103,11 @@ public class OpenSearchIndexScan extends TableScanOperator {
     OpenSearchExprValueFactory exprValueFactory = this.request.getExprValueFactory();
     Map<String, ExprType> typeMapping =  this.request.getExprValueFactory().getTypeMapping();
     Set<String> keySet =  this.request.getExprValueFactory().getTypeMapping().keySet();
-    String valueKey = keySet.stream().filter(x -> typeMapping.get(x).equals(ExprCoreType.DOUBLE)).findFirst().get();
+    Optional<String> valueKeyOptional = keySet.stream().filter(x -> typeMapping.get(x).equals(ExprCoreType.DOUBLE)).findFirst();
+    if(!valueKeyOptional.isPresent()) {
+      valueKeyOptional = keySet.stream().filter(x -> typeMapping.get(x).equals(ExprCoreType.INTEGER)).findFirst();
+    }
+    String valueKey = valueKeyOptional.get();
     if("matrix".equals(responseObject.getString("resultType"))){
       JSONArray itemArray = responseObject.getJSONArray("result");
       for (int i = 0; i < itemArray.length(); i++) {

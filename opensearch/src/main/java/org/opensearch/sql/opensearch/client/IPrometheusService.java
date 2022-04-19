@@ -9,7 +9,7 @@ import org.json.JSONObject;
 
 public interface IPrometheusService {
 
-    JSONObject queryRange(String host, Integer port, String query, long start, long end, int step) throws IOException;
+    JSONObject queryRange(String host, Integer port, String query, long start, long end, String step) throws IOException;
 
     String[] getLabels(String endpoint, String metricName) throws IOException;
 

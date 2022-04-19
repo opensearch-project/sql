@@ -8,6 +8,8 @@ package org.opensearch.sql.planner.logical;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -33,7 +35,7 @@ public class LogicalProject extends LogicalPlan {
       List<NamedExpression> projectList,
       List<NamedExpression> namedParseExpressions) {
     super(Collections.singletonList(child));
-    this.projectList = projectList;
+    this.projectList = projectList.stream().filter(expression -> !expression.getName().startsWith("span(")).collect(Collectors.toList());
     this.namedParseExpressions = namedParseExpressions;
   }
 

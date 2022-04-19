@@ -58,7 +58,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
 
   private Long endTime;
 
-  private Integer step;
+  private String step;
 
 
   /**
@@ -91,7 +91,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     this.prometheusQueryBuilder = new StringBuilder();
     this.startTime = new Date().getTime()/1000-3600;
     this.endTime = new Date().getTime()/1000;
-    this.step=14;
+    this.step="14";
     sourceBuilder.from(0);
     sourceBuilder.size(size);
     sourceBuilder.timeout(DEFAULT_QUERY_TIMEOUT);
@@ -125,17 +125,17 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   }
 
   @Override
-  public void setStep(Integer step) {
+  public void setStep(String step) {
     this.step = step;
   }
 
   @Override
-  public Integer getStep() {
+  public String getStep() {
     if(this.step!=null) {
       return this.step;
     }
     else {
-     return  ((this.endTime.intValue() - this.startTime.intValue())/11000 + 1);
+     return  String.valueOf((this.endTime.intValue() - this.startTime.intValue())/11000 + 1);
     }
   }
 

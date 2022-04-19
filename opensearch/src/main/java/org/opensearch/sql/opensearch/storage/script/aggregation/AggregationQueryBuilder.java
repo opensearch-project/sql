@@ -31,6 +31,7 @@ import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
@@ -113,7 +114,7 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
     ImmutableMap.Builder<String, ExprType> builder = new ImmutableMap.Builder<>();
     namedAggregatorList.forEach(agg -> builder.put(agg.getName(), agg.type()));
     builder.put("@timestamp", ExprCoreType.TIMESTAMP);
-    groupByList.forEach(group -> builder.put(group.getNameOrAlias(), group.type()));
+    groupByList.stream().filter(expression -> ! (expression.getDelegated() instanceof SpanExpression )).forEach(group -> builder.put(group.getNameOrAlias(), group.type()));
     return builder.build();
   }
 

@@ -26,7 +26,7 @@ public class PrometheusServiceImpl implements IPrometheusService {
 
 
     @Override
-    public JSONObject queryRange(String host, Integer port, String query, long start, long end, int step) throws IOException {
+    public JSONObject queryRange(String host, Integer port, String query, long start, long end, String step) throws IOException {
         //sample http://localhost:9090/api/v1/query_range?query=system_cpu_usage&start=1625994600&end=1626016200&step=20
         HttpUrl httpUrl = new HttpUrl.Builder()
                 .scheme("http")
@@ -38,7 +38,7 @@ public class PrometheusServiceImpl implements IPrometheusService {
                 .addQueryParameter("query", query)
                 .addQueryParameter("start", Long.toString(start))
                 .addQueryParameter("end", Long.toString(end))
-                .addQueryParameter("step", Integer.toString(step))
+                .addQueryParameter("step", step)
                 .build();
         logger.info("queryUrl: " + httpUrl.toString());
         Request request = new Request.Builder()

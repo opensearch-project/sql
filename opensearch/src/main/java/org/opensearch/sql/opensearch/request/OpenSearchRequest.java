@@ -54,10 +54,10 @@ public interface OpenSearchRequest {
 
   Long getStartTime();
   Long getEndTime();
-  Integer getStep();
+  String getStep();
   void setStartTime(Long startTime);
   void setEndTime(Long endTime);
-  void setStep(Integer step);
+  void setStep(String step);
 
 
 
