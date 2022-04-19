@@ -54,6 +54,7 @@ public class PromQLFilterQueryBuilder extends ExpressionNodeVisitor<PromFilterQu
                     })
                     .filter(Objects::nonNull).map(StringBuilder::toString)
                     .collect(Collectors.joining(" , "));
+            promFilterQuery.setPromQl(new StringBuilder(result));
         }
         else if(func.getFunctionName().getFunctionName().contains("=")) {
 
