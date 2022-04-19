@@ -45,7 +45,7 @@
             <argument type='date' />
         </function>
         <function group='cast' name='STR' return-type='str'>
-            <formula>CAST(%1 as string)</formula>
+            <formula>CASE WHEN ISNULL(%1) THEN NULL WHEN %1 = TRUE THEN &apos;1&apos; WHEN %1 = FALSE THEN &apos;0&apos; END</formula>
             <argument type='bool' />
         </function>
         <function group='cast' name='INT' return-type='int'>

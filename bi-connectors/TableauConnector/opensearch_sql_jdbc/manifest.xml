@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8' ?>
 
-<connector-plugin class='opensearch_jdbc' superclass='jdbc' plugin-version='2.0.0.0' name='OpenSearch' version='18.1' min-version-tableau='2021.1'>
+<connector-plugin class='opensearch_jdbc' superclass='jdbc' plugin-version='1.3.0.0' name='OpenSearch' version='18.1' min-version-tableau='2021.1'>
   <vendor-information>
       <company name="OpenSearch Project"/>
       <support-link url="https://github.com/opensearch-project/sql"/>
@@ -13,7 +13,7 @@
       <customization name="CAP_SUPPRESS_DISCOVERY_QUERIES" value="yes" />
       <customization name="CAP_SELECT_INTO" value="no"/>
       <customization name="CAP_SELECT_TOP_INTO" value="no"/>
-      <customization name="CAP_QUERY_BOOLEXPR_TO_INTEXPR" value="yes"/>
+      <customization name="CAP_QUERY_BOOLEXPR_TO_INTEXPR" value="no"/>
       <customization name="CAP_QUERY_GROUP_BY_ALIAS" value="yes"/>
       <customization name="CAP_QUERY_GROUP_BY_BOOL" value="yes"/>
       <customization name="CAP_QUERY_GROUP_BY_DEGREE" value="no"/>
