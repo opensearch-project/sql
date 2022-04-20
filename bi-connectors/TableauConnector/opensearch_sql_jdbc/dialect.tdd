@@ -32,6 +32,10 @@
             <formula>TO_DAYS(%1) - 693961.0</formula>
             <argument type='datetime' />
         </function>
+        <function group='cast' name='FLOAT' return-type='real'>
+            <formula>CAST(%1 AS DOUBLE)</formula>
+            <argument type='str' />
+        </function>
         <function group='cast' name='STR' return-type='str'>
             <formula>CAST(%1 as string)</formula>
             <argument type='real' />
@@ -252,6 +256,16 @@
             <argument type='date' />
         </function>
 
+        <function group='string' name='LEFT' return-type='str'>
+            <formula>(CASE WHEN %2 >= 0 THEN LEFT(%1, CAST(%2 AS INT)) ELSE NULL END)</formula>
+            <argument type='str' />
+            <argument type='real' />
+        </function>
+        <function group='string' name='RIGHT' return-type='str'>
+            <formula>(CASE WHEN %2 >= 0 THEN RIGHT(%1, CAST(%2 AS INT)) ELSE NULL END)</formula>
+            <argument type='str' />
+            <argument type='real' />
+        </function>
         <function group='string' name='MID' return-type='str'>
             <formula>SUBSTR(%1,%2)</formula>
             <argument type='str' />
@@ -281,7 +295,7 @@
             <argument type='real' />
         </function>
         <function group='string' name='MID' return-type='str'>
-            <formula>SUBSTR(%1,CAST(%2 as int),CAST(%3 as int))</formula>
+            <formula>CASE WHEN %3 &lt; 1 THEN &apos;&apos; WHEN %2 &lt; 1 THEN SUBSTR(%1,1,CAST(%3 AS INT)) ELSE SUBSTR(%1,CAST(%2 AS INT),CAST(%3 AS INT)) END</formula>
             <argument type='str' />
             <argument type='real' />
             <argument type='real' />
@@ -392,6 +406,14 @@
 
         <remove-function name='SPACE'>
             <argument type='int' />
+        </remove-function>
+        <remove-function name='SPACE'>
+            <argument type='real' />
+        </remove-function>
+        <remove-function name='SPLIT'>
+            <argument type='str' />
+            <argument type='localstr' />
+            <argument type='localint' />
         </remove-function>
    </function-map>
 </dialect>
