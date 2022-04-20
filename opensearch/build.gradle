@@ -37,7 +37,7 @@ dependencies {
     implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: '2.13.2'
     implementation group: 'org.json', name: 'json', version:'20180813'
     compileOnly group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
-    implementation group: 'org.opensearch', name:'opensearch-ml-client', version: '2.0.0.0-rc1-SNAPSHOT'
+    implementation group: 'org.opensearch', name:'opensearch-ml-client', version: "${opensearch_build}"
 
     testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
