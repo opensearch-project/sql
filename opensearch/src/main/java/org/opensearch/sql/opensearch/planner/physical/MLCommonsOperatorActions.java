@@ -15,16 +15,16 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.ml.client.MachineLearningNodeClient;
+import org.opensearch.ml.common.FunctionName;
 import org.opensearch.ml.common.dataframe.ColumnMeta;
 import org.opensearch.ml.common.dataframe.ColumnValue;
 import org.opensearch.ml.common.dataframe.DataFrame;
 import org.opensearch.ml.common.dataframe.DataFrameBuilder;
 import org.opensearch.ml.common.dataframe.Row;
 import org.opensearch.ml.common.dataset.DataFrameInputDataset;
-import org.opensearch.ml.common.parameter.FunctionName;
-import org.opensearch.ml.common.parameter.MLAlgoParams;
-import org.opensearch.ml.common.parameter.MLInput;
-import org.opensearch.ml.common.parameter.MLPredictionOutput;
+import org.opensearch.ml.common.input.MLInput;
+import org.opensearch.ml.common.input.parameter.MLAlgoParams;
+import org.opensearch.ml.common.output.MLPredictionOutput;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprFloatValue;
@@ -145,8 +145,10 @@ public abstract class MLCommonsOperatorActions extends PhysicalPlan {
    * @param resultRowIter result row iterator
    * @return result in ExprTupleValue format
    */
-  protected ExprTupleValue buildResult(Iterator<Row> inputRowIter, DataFrame inputDataFrame,
-                             MLPredictionOutput predictionResult, Iterator<Row> resultRowIter) {
+  protected ExprTupleValue buildResult(Iterator<Row> inputRowIter,
+                                       DataFrame inputDataFrame,
+                                       MLPredictionOutput predictionResult,
+                                       Iterator<Row> resultRowIter) {
     ImmutableMap.Builder<String, ExprValue> resultSchemaBuilder = new ImmutableMap.Builder<>();
     resultSchemaBuilder.putAll(convertRowIntoExprValue(inputDataFrame.columnMetas(),
             inputRowIter.next()));
