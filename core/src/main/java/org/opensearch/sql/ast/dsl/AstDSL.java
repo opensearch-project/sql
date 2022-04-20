@@ -399,10 +399,6 @@ public class AstDSL {
     return new Dedupe(input, options, Arrays.asList(fields));
   }
 
-  public static Head head(UnresolvedPlan input, Integer size) {
-    return head(input, size, 0);
-  }
-
   public static Head head(UnresolvedPlan input, Integer size, Integer from) {
     return new Head(input, size, from);
   }

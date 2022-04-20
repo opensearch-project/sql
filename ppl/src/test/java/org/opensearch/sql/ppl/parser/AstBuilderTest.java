@@ -392,13 +392,13 @@ public class AstBuilderTest {
   @Test
   public void testHeadCommand() {
     assertEqual("source=t | head",
-        head(relation("t"), 10));
+        head(relation("t"), 10, 0));
   }
 
   @Test
   public void testHeadCommandWithNumber() {
     assertEqual("source=t | head 3",
-        head(relation("t"), 3));
+        head(relation("t"), 3, 0));
   }
 
   @Test
