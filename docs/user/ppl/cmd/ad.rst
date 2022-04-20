@@ -46,7 +46,7 @@ The example trains an RCF model and uses the model to detect anomalies in the ti
 
 PPL query::
 
-    os> source=nyc_taxi | fields value, timestamp | AD time_field='timestamp' | where value=10844.0'
+    os> source=nyc_taxi | fields value, timestamp | AD time_field='timestamp' | where value=10844.0
     +----------+---------------+-------+---------------+
     | value    | timestamp     | score | anomaly_grade |
     |----------+---------------+-------+---------------|
@@ -61,7 +61,7 @@ The example trains an RCF model and uses the model to detect anomalies in the no
 
 PPL query::
 
-    os> source=nyc_taxi | fields value | AD | where value=10844.0'
+    os> source=nyc_taxi | fields value | AD | where value=10844.0
     +----------+--------+-----------+
     | value    | score  | anomalous |
     |----------+--------+-----------|

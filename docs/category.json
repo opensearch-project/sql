@@ -8,6 +8,7 @@
   ],
   "ppl_cli": [
     "user/ppl/cmd/ad.rst",
+    "user/ppl/cmd/kmeans.rst",
     "user/ppl/cmd/dedup.rst",
     "user/ppl/cmd/eval.rst",
     "user/ppl/cmd/fields.rst",
