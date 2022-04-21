@@ -470,9 +470,6 @@
             <argument type='localstr' />
             <argument type='str' />
         </remove-function>
-        <remove-function name='ISDATE'>
-            <argument type='str' />
-        </remove-function>
 
         <remove-function name='USEC_TO_TIMESTAMP'>
             <argument type='int' />
