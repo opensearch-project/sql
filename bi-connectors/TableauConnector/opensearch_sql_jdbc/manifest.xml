@@ -13,7 +13,7 @@
       <customization name="CAP_SUPPRESS_DISCOVERY_QUERIES" value="yes" />
       <customization name="CAP_SELECT_INTO" value="no"/>
       <customization name="CAP_SELECT_TOP_INTO" value="no"/>
-      <customization name="CAP_QUERY_BOOLEXPR_TO_INTEXPR" value="yes"/>
+      <customization name="CAP_QUERY_BOOLEXPR_TO_INTEXPR" value="no"/>
       <customization name="CAP_QUERY_GROUP_BY_ALIAS" value="yes"/>
       <customization name="CAP_QUERY_GROUP_BY_BOOL" value="yes"/>
       <customization name="CAP_QUERY_GROUP_BY_DEGREE" value="no"/>
