@@ -200,7 +200,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitHeadCommand(HeadCommandContext ctx) {
     Integer size = ctx.number != null ? Integer.parseInt(ctx.number.getText()) : 10;
-    return new Head(size);
+    Integer from = ctx.from != null ? Integer.parseInt(ctx.from.getText()) : 0;
+    return new Head(size, from);
   }
 
   /**

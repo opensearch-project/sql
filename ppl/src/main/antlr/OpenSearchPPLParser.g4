@@ -69,6 +69,7 @@ evalCommand
 headCommand
     : HEAD
     (number=integerLiteral)?
+    (FROM from=integerLiteral)?
     ;
     
 topCommand

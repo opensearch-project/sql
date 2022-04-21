@@ -75,7 +75,7 @@ testClusters {
                 }
             }
         }))
-
+        plugin ':plugin'
         testDistribution = 'integ_test'
     }
 }
