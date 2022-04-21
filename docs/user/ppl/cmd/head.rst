@@ -11,38 +11,33 @@ head
 
 Description
 ============
-| The ``head`` command returns the first N number of specified results in search order.
+| The ``head`` command returns the first N number of specified results after an optional offset in search order.
 
 
 Syntax
 ============
-head [N]
+head [<size>] [from <offset>]
 
-* N: optional. number of results to return. **Default:** 10
+* <size>: optional integer. number of results to return. **Default:** 10
+* <offset>: integer after optional ``from``. number of results to skip. **Default:** 0
 
 Example 1: Get first 10 results
 ===========================================
 
-The example show first 10 results from accounts index.
+The example show maximum 10 results from accounts index.
 
 PPL query::
 
     os> source=accounts | fields firstname, age | head;
-    fetched rows / total rows = 10/10
-    +---------------+-----------+
-    | firstname     | age       |
-    |---------------+-----------|
-    | Amber         | 32        |
-    | Hattie        | 36        |
-    | Nanette       | 28        |
-    | Dale          | 33        |
-    | Elinor        | 36        |
-    | Virginia      | 39        |
-    | Dillard       | 34        |
-    | Mcgee         | 39        |
-    | Aurelia       | 37        |
-    | Fulton        | 23        |
-    +---------------+-----------+
+    fetched rows / total rows = 4/4
+    +-------------+-------+
+    | firstname   | age   |
+    |-------------+-------|
+    | Amber       | 32    |
+    | Hattie      | 36    |
+    | Nanette     | 28    |
+    | Dale        | 33    |
+    +-------------+-------+
 
 Example 2: Get first N results
 ===========================================
@@ -53,13 +48,30 @@ PPL query::
 
     os> source=accounts | fields firstname, age | head 3;
     fetched rows / total rows = 3/3
-    +---------------+-----------+
-    | firstname     | age       |
-    |---------------+-----------|
-    | Amber         | 32        |
-    | Hattie        | 36        |
-    | Nanette       | 28        |
-    +---------------+-----------+
+    +-------------+-------+
+    | firstname   | age   |
+    |-------------+-------|
+    | Amber       | 32    |
+    | Hattie      | 36    |
+    | Nanette     | 28    |
+    +-------------+-------+
+
+Example 3: Get first N results after offset M
+=============================================
+
+The example show first N results after offset M from accounts index.
+
+PPL query::
+
+    os> source=accounts | fields firstname, age | head 3 from 1;
+    fetched rows / total rows = 3/3
+    +-------------+-------+
+    | firstname   | age   |
+    |-------------+-------|
+    | Hattie      | 36    |
+    | Nanette     | 28    |
+    | Dale        | 33    |
+    +-------------+-------+
 
 Limitation
 ==========
