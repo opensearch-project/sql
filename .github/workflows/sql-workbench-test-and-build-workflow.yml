@@ -25,9 +25,10 @@ jobs:
           path: sql/OpenSearch-Dashboards
 
       - name: Setup Node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v2
         with:
-          node-version: '14.18.2'
+          node-version-file: "./OpenSearch-Dashboards/.nvmrc"
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Move Workbench to Plugins Dir
         run: |
