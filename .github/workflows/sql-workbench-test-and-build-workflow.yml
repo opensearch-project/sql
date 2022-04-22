@@ -24,16 +24,11 @@ jobs:
           ref: ${{ env.OPENSEARCH_VERSION }}
           path: sql/OpenSearch-Dashboards
 
-      - name: Get node and yarn versions
-        id: versions_step
-        run: |
-          echo "::set-output name=node_version::$(node -p "(require('./OpenSearch-Dashboards/package.json').engines.node).match(/[.0-9]+/)[0]")"
-          echo "::set-output name=yarn_version::$(node -p "(require('./OpenSearch-Dashboards/package.json').engines.yarn).match(/[.0-9]+/)[0]")"
-
       - name: Setup Node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v2
         with:
-          node-version: ${{ steps.versions_step.outputs.node_version }}
+          node-version-file: ".nvmrc"
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Move Workbench to Plugins Dir
         run: |
