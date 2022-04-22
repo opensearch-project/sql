@@ -40,10 +40,14 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
       "operator", DSL.literal("OR"));
   private final NamedArgumentExpression minimumShouldMatch = new NamedArgumentExpression(
       "minimum_should_match", DSL.literal("1"));
-  private final NamedArgumentExpression zeroTermsQuery = new NamedArgumentExpression(
-      "zero_terms_query", DSL.literal("ALL"));
+  private final NamedArgumentExpression zeroTermsQueryAll = new NamedArgumentExpression(
+          "zero_terms_query", DSL.literal("ALL"));
+  private final NamedArgumentExpression zeroTermsQueryNone = new NamedArgumentExpression(
+          "zero_terms_query", DSL.literal("None"));
   private final NamedArgumentExpression boost = new NamedArgumentExpression(
       "boost", DSL.literal("2.0"));
+  private final NamedArgumentExpression slop = new NamedArgumentExpression(
+    "slop", DSL.literal("3"));
 
   @Test
   void match() {
@@ -98,14 +102,36 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
 
     expr = dsl.match(
         field, query, analyzer, autoGenerateSynonymsPhrase, fuzziness, maxExpansions, prefixLength,
-        fuzzyTranspositions, fuzzyRewrite, lenient, operator, minimumShouldMatch, zeroTermsQuery);
+        fuzzyTranspositions, fuzzyRewrite, lenient, operator, minimumShouldMatch, zeroTermsQueryAll);
     assertEquals(BOOLEAN, expr.type());
 
     expr = dsl.match(
         field, query, analyzer, autoGenerateSynonymsPhrase, fuzziness, maxExpansions, prefixLength,
-        fuzzyTranspositions, fuzzyRewrite, lenient, operator, minimumShouldMatch, zeroTermsQuery,
+        fuzzyTranspositions, fuzzyRewrite, lenient, operator, minimumShouldMatch, zeroTermsQueryAll,
         boost);
     assertEquals(BOOLEAN, expr.type());
+  }
+
+  @Test
+  void match_phrase() {
+    {
+      FunctionExpression expr = dsl.match_phrase(field, query);
+      assertEquals(BOOLEAN, expr.type());
+    }
+    {
+      FunctionExpression expr = dsl.match_phrase(field, query, zeroTermsQueryAll);
+      assertEquals(BOOLEAN, expr.type());
+    }
+
+    {
+      FunctionExpression expr = dsl.match_phrase(field, query, zeroTermsQueryNone);
+      assertEquals(BOOLEAN, expr.type());
+    }
+
+    {
+      FunctionExpression expr = dsl.match_phrase(field, query, slop);
+      assertEquals(BOOLEAN, expr.type());
+    }
   }
 
   @Test

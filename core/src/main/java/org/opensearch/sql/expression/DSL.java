@@ -654,4 +654,12 @@ public class DSL {
     return (FunctionExpression) repository
         .compile(BuiltinFunctionName.MATCH.getName(), Arrays.asList(args.clone()));
   }
+
+  public FunctionExpression match_phrase(NamedArgumentExpression ... args) {
+    return compile(BuiltinFunctionName.MATCH_PHRASE, args);
+  }
+
+  private FunctionExpression compile(BuiltinFunctionName bfn, NamedArgumentExpression ... args) {
+    return (FunctionExpression) repository.compile(bfn.getName(), Arrays.asList(args.clone()));
+  }
 }
