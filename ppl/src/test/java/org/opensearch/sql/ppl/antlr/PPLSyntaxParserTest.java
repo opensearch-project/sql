@@ -87,8 +87,16 @@ public class PPLSyntaxParserTest {
   }
 
   @Test
-  public void testMatchPhraseWithSlopShouldPass() {
-    ParseTree tree = new PPLSyntaxParser().analyzeSyntax("source=t a = 1 | where match_phrase(a, 'hello world', slop = 3");
-    assertNotEquals(null, tree);
+  public void testMatchPhraseVariantsShouldPass() {
+    String[] validQueries = {
+            "source=t a = 1 | where match_phrase(a, 'hello world', slop = 3)",
+            "source=t a = 1 | where match_phrase(a, 'hello world', analyzer = 'standard', zero_terms_query = 'none', slop = 3)",
+            "source=t a = 1 | where match_phrase(a, 'hello world', zero_terms_query = all)"
+    };
+
+    for (String query : validQueries) {
+      ParseTree tree = new PPLSyntaxParser().analyzeSyntax(query);
+      assertNotEquals(null, tree);
+    }
   }
 }
