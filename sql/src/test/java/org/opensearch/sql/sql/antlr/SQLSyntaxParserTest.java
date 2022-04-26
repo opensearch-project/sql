@@ -222,6 +222,6 @@ class SQLSyntaxParserTest {
     matchPhraseArgs.put("max_expansions", new Integer[]{ 0, 5, 20 });
     matchPhraseArgs.put("slop", new Integer[]{ 0, 1, 2 });
 
-    generateAndTestQuery("match_phase", matchPhraseArgs);
+    generateAndTestQuery("match_phrase", matchPhraseArgs);
   }
 }
