@@ -6,14 +6,15 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
+import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
 import org.json.JSONObject;
+import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 public class WhereCommandIT extends PPLIntegTestCase {
@@ -23,6 +24,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
     loadIndex(Index.BANK);
+    loadIndex(Index.GAME_OF_THRONES);
   }
 
   @Test
@@ -108,6 +110,26 @@ public class WhereCommandIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | where match(firstname, 'Hattie') | fields firstname",
                 TEST_INDEX_BANK));
+    verifyDataRows(result, rows("Hattie"));
+  }
+
+  @Test
+  @Ignore("Not supported yet")
+  public void testMatchPhraseFunction() throws IOException {
+    JSONObject result =
+            executeQuery(
+                    String.format(
+                            "source=%s | where match_phrase(firstname, 'Hattie') | fields firstname", TEST_INDEX_BANK));
+    verifyDataRows(result, rows("Hattie"));
+  }
+
+  @Test
+  @Ignore("Not supported yet")
+  public void testMathPhraseWithSlop() throws IOException {
+    JSONObject result =
+            executeQuery(
+                    String.format(
+                            "source=%s | where match_phrase(firstname, 'Hattie', slop = 2) | fields firstname", TEST_INDEX_BANK));
     verifyDataRows(result, rows("Hattie"));
   }
 }
