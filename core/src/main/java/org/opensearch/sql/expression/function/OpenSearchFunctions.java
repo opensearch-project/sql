@@ -30,98 +30,59 @@ public class OpenSearchFunctions {
 
   private static FunctionResolver match() {
     FunctionName funcName = BuiltinFunctionName.MATCH.getName();
-    return new FunctionResolver(funcName,
-        ImmutableMap.<FunctionSignature, FunctionBuilder>builder()
-            .put(new FunctionSignature(funcName, ImmutableList.of(STRING, STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .put(new FunctionSignature(funcName, ImmutableList.of(STRING, STRING, STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .put(new FunctionSignature(funcName, ImmutableList.of(STRING, STRING, STRING, STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .put(new FunctionSignature(funcName, ImmutableList
-                    .of(STRING, STRING, STRING, STRING, STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .put(new FunctionSignature(funcName, ImmutableList
-                    .of(STRING, STRING, STRING, STRING, STRING, STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .put(new FunctionSignature(funcName, ImmutableList
-                    .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .put(new FunctionSignature(funcName, ImmutableList
-                    .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .put(new FunctionSignature(funcName, ImmutableList
-                    .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .put(new FunctionSignature(funcName, ImmutableList
-                    .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING,
-                        STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .put(new FunctionSignature(funcName, ImmutableList
-                    .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING,
-                        STRING, STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .put(new FunctionSignature(funcName, ImmutableList
-                    .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING,
-                        STRING, STRING, STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .put(new FunctionSignature(funcName, ImmutableList
-                    .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING,
-                        STRING, STRING, STRING, STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .put(new FunctionSignature(funcName, ImmutableList
-                    .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING,
-                        STRING, STRING, STRING, STRING, STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .build());
+    return getFunctionResolver(funcName);
   }
 
   private static FunctionResolver match_phrase() {
     FunctionName funcName = BuiltinFunctionName.MATCH_PHRASE.getName();
+    return getFunctionResolver(funcName);
+  }
+
+  private static FunctionResolver getFunctionResolver(FunctionName funcName) {
     return new FunctionResolver(funcName,
-            ImmutableMap.<FunctionSignature, FunctionBuilder>builder()
-                    .put(new FunctionSignature(funcName, ImmutableList.of(STRING, STRING)),
-                            args -> new OpenSearchFunction(funcName, args))
-                    .put(new FunctionSignature(funcName, ImmutableList.of(STRING, STRING, STRING)),
-                            args -> new OpenSearchFunction(funcName, args))
-                    .put(new FunctionSignature(funcName, ImmutableList.of(STRING, STRING, STRING, STRING)),
-                            args -> new OpenSearchFunction(funcName, args))
-                    .put(new FunctionSignature(funcName, ImmutableList
-                                    .of(STRING, STRING, STRING, STRING, STRING)),
-                            args -> new OpenSearchFunction(funcName, args))
-                    .put(new FunctionSignature(funcName, ImmutableList
-                                    .of(STRING, STRING, STRING, STRING, STRING, STRING)),
-                            args -> new OpenSearchFunction(funcName, args))
-                    .put(new FunctionSignature(funcName, ImmutableList
-                                    .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING)),
-                            args -> new OpenSearchFunction(funcName, args))
-                    .put(new FunctionSignature(funcName, ImmutableList
-                                    .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING)),
-                            args -> new OpenSearchFunction(funcName, args))
-                    .put(new FunctionSignature(funcName, ImmutableList
-                                    .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING)),
-                            args -> new OpenSearchFunction(funcName, args))
-                    .put(new FunctionSignature(funcName, ImmutableList
-                                    .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING,
-                                            STRING)),
-                            args -> new OpenSearchFunction(funcName, args))
-                    .put(new FunctionSignature(funcName, ImmutableList
-                                    .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING,
-                                            STRING, STRING)),
-                            args -> new OpenSearchFunction(funcName, args))
-                    .put(new FunctionSignature(funcName, ImmutableList
-                                    .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING,
-                                            STRING, STRING, STRING)),
-                            args -> new OpenSearchFunction(funcName, args))
-                    .put(new FunctionSignature(funcName, ImmutableList
-                                    .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING,
-                                            STRING, STRING, STRING, STRING)),
-                            args -> new OpenSearchFunction(funcName, args))
-                    .put(new FunctionSignature(funcName, ImmutableList
-                                    .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING,
-                                            STRING, STRING, STRING, STRING, STRING)),
-                            args -> new OpenSearchFunction(funcName, args))
-                    .build());
+      ImmutableMap.<FunctionSignature, FunctionBuilder>builder()
+        .put(new FunctionSignature(funcName, ImmutableList.of(STRING, STRING)),
+          args -> new OpenSearchFunction(funcName, args))
+        .put(new FunctionSignature(funcName, ImmutableList.of(STRING, STRING, STRING)),
+          args -> new OpenSearchFunction(funcName, args))
+        .put(new FunctionSignature(funcName, ImmutableList.of(STRING, STRING, STRING, STRING)),
+          args -> new OpenSearchFunction(funcName, args))
+        .put(new FunctionSignature(funcName, ImmutableList
+            .of(STRING, STRING, STRING, STRING, STRING)),
+          args -> new OpenSearchFunction(funcName, args))
+        .put(new FunctionSignature(funcName, ImmutableList
+            .of(STRING, STRING, STRING, STRING, STRING, STRING)),
+          args -> new OpenSearchFunction(funcName, args))
+        .put(new FunctionSignature(funcName, ImmutableList
+            .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING)),
+          args -> new OpenSearchFunction(funcName, args))
+        .put(new FunctionSignature(funcName, ImmutableList
+            .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING)),
+          args -> new OpenSearchFunction(funcName, args))
+        .put(new FunctionSignature(funcName, ImmutableList
+            .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING)),
+          args -> new OpenSearchFunction(funcName, args))
+        .put(new FunctionSignature(funcName, ImmutableList
+            .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING,
+              STRING)),
+          args -> new OpenSearchFunction(funcName, args))
+        .put(new FunctionSignature(funcName, ImmutableList
+            .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING,
+              STRING, STRING)),
+          args -> new OpenSearchFunction(funcName, args))
+        .put(new FunctionSignature(funcName, ImmutableList
+            .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING,
+              STRING, STRING, STRING)),
+          args -> new OpenSearchFunction(funcName, args))
+        .put(new FunctionSignature(funcName, ImmutableList
+            .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING,
+              STRING, STRING, STRING, STRING)),
+          args -> new OpenSearchFunction(funcName, args))
+        .put(new FunctionSignature(funcName, ImmutableList
+            .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING,
+              STRING, STRING, STRING, STRING, STRING)),
+          args -> new OpenSearchFunction(funcName, args))
+        .build());
   }
 
   private static class OpenSearchFunction extends FunctionExpression {
