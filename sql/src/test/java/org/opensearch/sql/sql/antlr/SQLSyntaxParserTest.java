@@ -9,8 +9,13 @@ package org.opensearch.sql.sql.antlr;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 class SQLSyntaxParserTest {
 
@@ -144,4 +149,79 @@ class SQLSyntaxParserTest {
     assertThrows(SyntaxCheckException.class, () -> parser.parse("SHOW TABLES"));
   }
 
+  @Test
+  public void canParseRelevanceFunctions() {
+    assertNotNull(parser.parse("SELECT * FROM test WHERE match(column, \"this is a test\")"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE match(column, 'this is a test')"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE match(`column`, \"this is a test\")"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE match(`column`, 'this is a test')"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE match(column, 100500)"));
+
+    assertNotNull(parser.parse("SELECT * FROM test WHERE match_phrase(column, \"this is a test\")"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE match_phrase(column, 'this is a test')"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE match_phrase(`column`, \"this is a test\")"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE match_phrase(`column`, 'this is a test')"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE match_phrase(column, 100500)"));
+  }
+
+  private void generateAndTestQuery(String function, HashMap<String, Object[]> functionArgs) {
+    var rand = new Random();
+
+    for (int i = 0; i < 100; i++)
+    {
+      StringBuilder query = new StringBuilder();
+      query.append(String.format("SELECT * FROM test WHERE %s(%s, %s", function,
+              RandomStringUtils.random(10, true, false),
+              RandomStringUtils.random(10, true, false)));
+      var args = new ArrayList<String>();
+      for (var pair : functionArgs.entrySet())
+      {
+        if (rand.nextBoolean())
+        {
+          var arg = new StringBuilder();
+          arg.append(rand.nextBoolean() ? "," : ", ");
+          arg.append(rand.nextBoolean() ? pair.getKey().toLowerCase() : pair.getKey().toUpperCase());
+          arg.append(rand.nextBoolean() ? "=" : " = ");
+          var quoteSymbol = rand.nextBoolean() ? '\'' : '"';
+          arg.append(quoteSymbol);
+          arg.append(pair.getValue()[rand.nextInt(pair.getValue().length)]);
+          arg.append(quoteSymbol);
+          args.add(arg.toString());
+        }
+      }
+      Collections.shuffle(args);
+      for (var arg : args)
+        query.append(arg);
+      query.append(rand.nextBoolean() ? ")" : ");");
+      //System.out.printf("%d, %s%n", i, query.toString());
+      assertNotNull(parser.parse(query.toString()));
+    }
+  }
+
+  // TODO run all tests and collect exceptions and raise them in the end
+  @Test
+  public void canParseRelevanceFunctionsComplexRandomArgs() {
+    var matchArgs = new HashMap<String, Object[]>();
+    matchArgs.put("fuzziness", new String[]{ "AUTO", "AUTO:1,5", "1" });
+    matchArgs.put("fuzzy_transpositions", new Boolean[]{ true, false });
+    matchArgs.put("operator", new String[]{ "and", "or" });
+    matchArgs.put("minimum_should_match", new String[]{ "3", "-2", "75%", "-25%", "3<90%", "2<-25% 9<-3" });
+    matchArgs.put("analyzer", new String[]{ "standard", "stop", "english" });
+    matchArgs.put("zero_terms_query", new String[]{ "none", "all" });
+    matchArgs.put("lenient", new Boolean[]{ true, false });
+    // deprecated
+    matchArgs.put("cutoff_frequency", new Double[]{ .0, 0.001, 1., 42. });
+    matchArgs.put("prefix_length", new Integer[]{ 0, 2, 5 });
+    matchArgs.put("max_expansions", new Integer[]{ 0, 5, 20 });
+    matchArgs.put("boost", new Double[]{ .5, 1., 2.3 });
+
+    generateAndTestQuery("match", matchArgs);
+
+    var matchPhraseArgs = new HashMap<String, Object[]>();
+    matchPhraseArgs.put("analyzer", new String[]{ "standard", "stop", "english" });
+    matchPhraseArgs.put("max_expansions", new Integer[]{ 0, 5, 20 });
+    matchPhraseArgs.put("slop", new Integer[]{ 0, 1, 2 });
+
+    generateAndTestQuery("match_phase", matchPhraseArgs);
+  }
 }
