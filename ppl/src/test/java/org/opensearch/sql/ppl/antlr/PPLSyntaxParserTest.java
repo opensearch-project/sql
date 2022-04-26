@@ -86,4 +86,9 @@ public class PPLSyntaxParserTest {
     assertNotEquals(null, tree);
   }
 
+  @Test
+  public void testMatchPhraseWithSlopShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().analyzeSyntax("source=t a = 1 | where match_phrase(a, 'hello world', slop = 3");
+    assertNotEquals(null, tree);
+  }
 }

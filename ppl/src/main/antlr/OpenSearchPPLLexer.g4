@@ -277,7 +277,7 @@ OPERATOR:                           'OPERATOR';
 MINIMUM_SHOULD_MATCH:               'MINIMUM_SHOULD_MATCH';
 ZERO_TERMS_QUERY:                   'ZERO_TERMS_QUERY';
 BOOST:                              'BOOST';
-
+SLOP:                                'SLOP';
 // SPAN KEYWORDS
 SPAN:                               'SPAN';
 MS:                                 'MS';
