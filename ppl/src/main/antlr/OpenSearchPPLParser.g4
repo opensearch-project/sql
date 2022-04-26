@@ -351,6 +351,7 @@ binaryOperator
 
 relevanceFunctionName
     : MATCH
+    | MATCH_PHRASE
     ;
 
 /** literals and values*/

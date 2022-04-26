@@ -79,4 +79,11 @@ public class PPLSyntaxParserTest {
     ParseTree tree = new PPLSyntaxParser().analyzeSyntax("source=t a=1 | top a by b");
     assertNotEquals(null, tree);
   }
+
+  @Test
+  public void testMatchPhraseNoOptionsShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().analyzeSyntax("source=t a= 1 | where match_phrase(a, 'hello world')");
+    assertNotEquals(null, tree);
+  }
+
 }
