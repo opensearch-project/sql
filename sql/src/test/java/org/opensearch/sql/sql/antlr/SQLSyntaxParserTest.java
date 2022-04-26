@@ -182,10 +182,14 @@ class SQLSyntaxParserTest {
           arg.append(rand.nextBoolean() ? "," : ", ");
           arg.append(rand.nextBoolean() ? pair.getKey().toLowerCase() : pair.getKey().toUpperCase());
           arg.append(rand.nextBoolean() ? "=" : " = ");
-          var quoteSymbol = rand.nextBoolean() ? '\'' : '"';
-          arg.append(quoteSymbol);
-          arg.append(pair.getValue()[rand.nextInt(pair.getValue().length)]);
-          arg.append(quoteSymbol);
+          if (pair.getValue() instanceof String[] || rand.nextBoolean()) {
+            var quoteSymbol = rand.nextBoolean() ? '\'' : '"';
+            arg.append(quoteSymbol);
+            arg.append(pair.getValue()[rand.nextInt(pair.getValue().length)]);
+            arg.append(quoteSymbol);
+          }
+          else
+            arg.append(pair.getValue()[rand.nextInt(pair.getValue().length)]);
           args.add(arg.toString());
         }
       }
