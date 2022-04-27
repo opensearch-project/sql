@@ -85,6 +85,22 @@ public class OpenSearchFunctions {
         .build());
   }
 
+  private static FunctionResolver match_phrase() {
+    FunctionName funcName = BuiltinFunctionName.MATCH_PHRASE.getName();
+    return new FunctionResolver(funcName,
+        ImmutableMap.<FunctionSignature, FunctionBuilder>builder()
+            .put(new FunctionSignature(funcName, ImmutableList.of(STRING, STRING)),
+                args -> new OpenSearchFunction(funcName, args))
+            .put(new FunctionSignature(funcName, ImmutableList.of(STRING, STRING, STRING)),
+                args -> new OpenSearchFunction(funcName, args))
+            .put(new FunctionSignature(funcName, ImmutableList.of(STRING, STRING, STRING, STRING)),
+                args -> new OpenSearchFunction(funcName, args))
+            .put(new FunctionSignature(funcName, ImmutableList
+                    .of(STRING, STRING, STRING, STRING, STRING)),
+                args -> new OpenSearchFunction(funcName, args))
+            .build());
+  }
+
   private static class OpenSearchFunction extends FunctionExpression {
     private final FunctionName functionName;
     private final List<Expression> arguments;

@@ -661,4 +661,9 @@ public class DSL {
   private FunctionExpression compile(BuiltinFunctionName bfn, Expression... args) {
     return (FunctionExpression) repository.compile(bfn.getName(), Arrays.asList(args.clone()));
   }
+
+  public FunctionExpression match_phrase(Expression... args) {
+    return (FunctionExpression) repository
+         .compile(BuiltinFunctionName.MATCH_PHRASE.getName(), Arrays.asList(args.clone()));
+  }
 }
