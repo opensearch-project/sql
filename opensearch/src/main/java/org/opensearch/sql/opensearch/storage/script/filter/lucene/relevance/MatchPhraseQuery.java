@@ -44,7 +44,7 @@ public class MatchPhraseQuery extends LuceneQuery {
       NamedArgumentExpression arg = (NamedArgumentExpression) iterator.next();
       if (!argAction.containsKey(arg.getArgName())) {
         throw new SemanticCheckException(String
-                .format("Parameter %s is invalid for match function.", arg.getArgName()));
+                .format("Parameter %s is invalid for match_phrase function.", arg.getArgName()));
       }
       ((BiFunction<MatchPhraseQueryBuilder, ExprValue, MatchPhraseQueryBuilder>) argAction
               .get(arg.getArgName()))
