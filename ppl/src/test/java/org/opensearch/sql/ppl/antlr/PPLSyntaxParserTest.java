@@ -79,20 +79,5 @@ public class PPLSyntaxParserTest {
     ParseTree tree = new PPLSyntaxParser().analyzeSyntax("source=t a=1 | top a by b");
     assertNotEquals(null, tree);
   }
-
-  @Test
-  public void testMatchPhraseVariantsShouldPass() {
-    String[] validQueries = {
-      "source=t a= 1 | where match_phrase(a, 'hello world')",
-      "source=t a = 1 | where match_phrase(a, 'hello world', slop = 3)",
-      "source=t a = 1 | where match_phrase(a, 'hello world', analyzer = 'standard',"
-        + "zero_terms_query = 'none', slop = 3)",
-      "source=t a = 1 | where match_phrase(a, 'hello world', zero_terms_query = all)"
-    };
-
-    for (String query : validQueries) {
-      ParseTree tree = new PPLSyntaxParser().analyzeSyntax(query);
-      assertNotEquals(null, tree);
-    }
-  }
 }
+
