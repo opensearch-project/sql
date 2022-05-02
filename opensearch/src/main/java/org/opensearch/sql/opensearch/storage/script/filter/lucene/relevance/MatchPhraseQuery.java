@@ -8,8 +8,9 @@ package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 import com.google.common.collect.ImmutableMap;
 import java.util.Iterator;
 import java.util.function.BiFunction;
-
-import org.opensearch.index.query.*;
+import org.opensearch.index.query.MatchPhraseQueryBuilder;
+import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.Expression;
