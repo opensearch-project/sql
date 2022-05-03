@@ -9,11 +9,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
+
+
 
 public class OpenSearchFunctionsTest extends ExpressionTestBase {
   private final NamedArgumentExpression field = new NamedArgumentExpression(
@@ -115,24 +118,19 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
 
   @Test
   void match_phrase() {
-    {
-      FunctionExpression expr = dsl.match_phrase(field, query);
+    for (FunctionExpression expr : match_phrase_dsl_expressions()) {
       assertEquals(BOOLEAN, expr.type());
     }
-    {
-      FunctionExpression expr = dsl.match_phrase(field, query, zeroTermsQueryAll);
-      assertEquals(BOOLEAN, expr.type());
-    }
+  }
 
-    {
-      FunctionExpression expr = dsl.match_phrase(field, query, zeroTermsQueryNone);
-      assertEquals(BOOLEAN, expr.type());
-    }
 
-    {
-      FunctionExpression expr = dsl.match_phrase(field, query, slop);
-      assertEquals(BOOLEAN, expr.type());
-    }
+  List<FunctionExpression> match_phrase_dsl_expressions() {
+    return List.of(
+      dsl.match_phrase(field, query),
+      dsl.match_phrase(field, query, analyzer),
+      dsl.match_phrase(field, query, analyzer, zeroTermsQueryAll),
+      dsl.match_phrase(field, query, analyzer, zeroTermsQueryNone, slop)
+    );
   }
 
   @Test
