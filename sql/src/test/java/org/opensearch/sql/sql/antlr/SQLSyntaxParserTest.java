@@ -11,6 +11,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 
 import java.util.*;
@@ -162,6 +164,28 @@ class SQLSyntaxParserTest {
     assertNotNull(parser.parse("SELECT * FROM test WHERE match_phrase(`column`, \"this is a test\")"));
     assertNotNull(parser.parse("SELECT * FROM test WHERE match_phrase(`column`, 'this is a test')"));
     assertNotNull(parser.parse("SELECT * FROM test WHERE match_phrase(column, 100500)"));
+  }
+
+  @ParameterizedTest
+  @MethodSource("matchPhraseComplexQueries")
+  public void canParseComplexMatchPhraseArgsTest(String query) {
+    assertNotNull(parser.parse(query));
+  }
+
+  private static Stream<String> matchPhraseComplexQueries() {
+    return Stream.of(
+      "SELECT * FROM t WHERE match_phrase(c, 3)",
+      "SELECT * FROM t WHERE match_phrase(c, 3, fuzziness=AUTO)",
+      "SELECT * FROM t WHERE match_phrase(c, 3, zero_terms_query=\"all\")",
+      "SELECT * FROM t WHERE match_phrase(c, 3, lenient=true)",
+      "SELECT * FROM t WHERE match_phrase(c, 3, lenient='true')",
+      "SELECT * FROM t WHERE match_phrase(c, 3, operator=xor)",
+      "SELECT * FROM t WHERE match_phrase(c, 3, cutoff_frequency=0.04)",
+      "SELECT * FROM t WHERE match_phrase(c, 3, cutoff_frequency=0.04, analyzer = english, prefix_length=34, fuzziness='auto', minimum_should_match='2<-25% 9<-3')",
+      "SELECT * FROM t WHERE match_phrase(c, 3, minimum_should_match='2<-25% 9<-3')",
+      "SELECT * FROM t WHERE match_phrase(c, 3, operator='AUTO')"
+
+    );
   }
 
   private void generateAndTestQuery(String function, HashMap<String, Object[]> functionArgs) {
