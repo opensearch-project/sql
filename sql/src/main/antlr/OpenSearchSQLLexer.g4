@@ -321,6 +321,7 @@ FIELDS:                             'FIELDS';
 FLAGS:                              'FLAGS';
 FUZZINESS:                          'FUZZINESS';
 FUZZY_TRANSPOSITIONS:               'FUZZY_TRANSPOSITIONS';
+FUZZY_REWRITE:                      'FUZZY_REWRITE';
 LENIENT:                            'LENIENT';
 LOW_FREQ_OPERATOR:                  'LOW_FREQ_OPERATOR';
 MAX_DETERMINIZED_STATES:            'MAX_DETERMINIZED_STATES';
