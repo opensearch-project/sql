@@ -39,7 +39,7 @@ public class OpenSearchFunctions {
     FunctionName funcName = BuiltinFunctionName.MATCH_PHRASE.getName();
     // At least field and query parameters
     // At most field, query, and all optional parameters
-    return getFunctionResolver(funcName, 2,6);
+    return getFunctionResolver(funcName, 2, 5);
   }
 
   private static FunctionResolver getFunctionResolver(
