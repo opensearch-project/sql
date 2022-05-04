@@ -169,7 +169,7 @@ class SQLSyntaxParserTest {
   }
 
   @ParameterizedTest
-  @MethodSource({"matchPhraseComplexQueries", "matchPhraseGeneratedQueries"})
+  @MethodSource({"matchPhraseComplexQueries", "matchPhraseGeneratedQueries", "generateMatchPhraseQueries"})
   public void canParseComplexMatchPhraseArgsTest(String query) {
     assertNotNull(parser.parse(query));
   }
@@ -208,6 +208,17 @@ class SQLSyntaxParserTest {
     return generateQueries("match", matchArgs);
   }
 
+  private static Stream<String> generateMatchPhraseQueries() {
+
+
+    var matchPhraseArgs = new HashMap<String, Object[]>();
+    matchPhraseArgs.put("analyzer", new String[]{ "standard", "stop", "english" });
+    matchPhraseArgs.put("max_expansions", new Integer[]{ 0, 5, 20 });
+    matchPhraseArgs.put("slop", new Integer[]{ 0, 1, 2 });
+
+    return generateQueries("match_phrase", matchPhraseArgs);
+  }
+
   private static Stream<String> generateQueries(String function, HashMap<String, Object[]> functionArgs) {
     var rand = new Random(0);
 
@@ -216,6 +227,10 @@ class SQLSyntaxParserTest {
       private final Random rng = new Random(0);
       private final int numQueries = 100;
       private int currentQuery = 0;
+      private String randomIdentifier() {
+        return RandomStringUtils.random(10, 0, 0,true, false, null, rand);
+      }
+
       @Override
       public boolean hasNext() {
         return currentQuery < numQueries;
@@ -227,8 +242,8 @@ class SQLSyntaxParserTest {
 
         StringBuilder query = new StringBuilder();
         query.append(String.format("SELECT * FROM test WHERE %s(%s, %s", function,
-          RandomStringUtils.random(10, true, false),
-          RandomStringUtils.random(10, true, false)));
+          randomIdentifier(),
+          randomIdentifier()));
         var args = new ArrayList<String>();
         for (var pair : functionArgs.entrySet())
         {
@@ -259,56 +274,5 @@ class SQLSyntaxParserTest {
 
     var it = new QueryGenerator();
     return Streams.stream(it);
-  }
-
-  private void generateAndTestQuery(String function, HashMap<String, Object[]> functionArgs) {
-    var rand = new Random(0);
-
-    for (int i = 0; i < 100; i++)
-    {
-      StringBuilder query = new StringBuilder();
-      query.append(String.format("SELECT * FROM test WHERE %s(%s, %s", function,
-              RandomStringUtils.random(10, true, false),
-              RandomStringUtils.random(10, true, false)));
-      var args = new ArrayList<String>();
-      for (var pair : functionArgs.entrySet())
-      {
-        if (rand.nextBoolean())
-        {
-          var arg = new StringBuilder();
-          arg.append(rand.nextBoolean() ? "," : ", ");
-          arg.append(rand.nextBoolean() ? pair.getKey().toLowerCase() : pair.getKey().toUpperCase());
-          arg.append(rand.nextBoolean() ? "=" : " = ");
-          if (pair.getValue() instanceof String[] || rand.nextBoolean()) {
-            var quoteSymbol = rand.nextBoolean() ? '\'' : '"';
-            arg.append(quoteSymbol);
-            arg.append(pair.getValue()[rand.nextInt(pair.getValue().length)]);
-            arg.append(quoteSymbol);
-          }
-          else
-            arg.append(pair.getValue()[rand.nextInt(pair.getValue().length)]);
-          args.add(arg.toString());
-        }
-      }
-      Collections.shuffle(args, rand);
-      for (var arg : args)
-        query.append(arg);
-      query.append(rand.nextBoolean() ? ")" : ");");
-      //System.out.printf("%d, %s%n", i, query.toString());
-      assertNotNull(parser.parse(query.toString()));
-    }
-  }
-
-  // TODO run all tests and collect exceptions and raise them in the end
-  @Test
-  public void canParseRelevanceFunctionsComplexRandomArgs() {
-
-
-    var matchPhraseArgs = new HashMap<String, Object[]>();
-    matchPhraseArgs.put("analyzer", new String[]{ "standard", "stop", "english" });
-    matchPhraseArgs.put("max_expansions", new Integer[]{ 0, 5, 20 });
-    matchPhraseArgs.put("slop", new Integer[]{ 0, 1, 2 });
-
-    generateAndTestQuery("match_phrase", matchPhraseArgs);
   }
 }
