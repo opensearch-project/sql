@@ -114,7 +114,6 @@ public class WhereCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  @Ignore("Not supported yet")
   public void testMatchPhraseFunction() throws IOException {
     JSONObject result =
             executeQuery(
@@ -124,7 +123,6 @@ public class WhereCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  @Ignore("Not supported yet")
   public void testMathPhraseWithSlop() throws IOException {
     JSONObject result =
             executeQuery(
