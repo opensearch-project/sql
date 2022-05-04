@@ -189,7 +189,7 @@ class SQLSyntaxParserTest {
   }
 
   private void generateAndTestQuery(String function, HashMap<String, Object[]> functionArgs) {
-    var rand = new Random();
+    var rand = new Random(0);
 
     for (int i = 0; i < 100; i++)
     {
