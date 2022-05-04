@@ -20,12 +20,12 @@ import org.opensearch.sql.opensearch.storage.script.filter.lucene.LuceneQuery;
 
 public class MatchPhraseQuery extends LuceneQuery {
   private final BiFunction<MatchPhraseQueryBuilder, ExprValue, MatchPhraseQueryBuilder> analyzer =
-          (b, v) -> b.analyzer(v.stringValue());
+      (b, v) -> b.analyzer(v.stringValue());
   private final BiFunction<MatchPhraseQueryBuilder, ExprValue, MatchPhraseQueryBuilder> slop =
-          (b, v) -> b.slop(Integer.parseInt(v.stringValue()));
-  private final BiFunction<MatchPhraseQueryBuilder, ExprValue, MatchPhraseQueryBuilder> zeroTermsQuery =
-          (b, v) -> b.zeroTermsQuery(
-                  org.opensearch.index.search.MatchQuery.ZeroTermsQuery.valueOf(v.stringValue()));
+      (b, v) -> b.slop(Integer.parseInt(v.stringValue()));
+  private final BiFunction<MatchPhraseQueryBuilder, ExprValue, MatchPhraseQueryBuilder>
+        zeroTermsQuery = (b, v) -> b.zeroTermsQuery(
+               org.opensearch.index.search.MatchQuery.ZeroTermsQuery.valueOf(v.stringValue()));
 
   ImmutableMap<Object, Object> argAction = ImmutableMap.builder()
           .put("analyzer", analyzer)

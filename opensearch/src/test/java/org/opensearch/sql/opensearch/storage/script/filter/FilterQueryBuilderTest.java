@@ -6,7 +6,9 @@
 
 package org.opensearch.sql.opensearch.storage.script.filter;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
@@ -368,7 +370,7 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_match_phrase_query_with_default_parameters() {
     assertJsonEquals(
-    "{\n"
+            "{\n"
             + "  \"match_phrase\" : {\n"
             + "    \"message\" : {\n"
             + "      \"query\" : \"search query\",\n"
@@ -387,7 +389,7 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_match_phrase_query_with_custom_parameters() {
     assertJsonEquals(
-      "{\n"
+            "{\n"
             + "  \"match_phrase\" : {\n"
             + "    \"message\" : {\n"
             + "      \"query\" : \"search query\",\n"
@@ -434,7 +436,8 @@ class FilterQueryBuilderTest {
         dsl.namedArgument("query", literal("search query")),
         dsl.namedArgument("zero_terms_query", literal("meow")));
     var msg = assertThrows(IllegalArgumentException.class, () -> buildQuery(expr)).getMessage();
-    assertEquals("No enum constant org.opensearch.index.search.MatchQuery.ZeroTermsQuery.meow", msg);
+    assertEquals("No enum constant org.opensearch.index.search.MatchQuery.ZeroTermsQuery.meow",
+          msg);
   }
 
   @Test
@@ -443,7 +446,8 @@ class FilterQueryBuilderTest {
         dsl.match_phrase(
             dsl.namedArgument("query", literal("search query")))).getMessage();
     assertEquals("match_phrase function expected {[STRING,STRING],[STRING,STRING,STRING],"
-          + "[STRING,STRING,STRING,STRING],[STRING,STRING,STRING,STRING,STRING]}, but get [STRING]", msg);
+          + "[STRING,STRING,STRING,STRING],[STRING,STRING,STRING,STRING,STRING]}, but get [STRING]",
+          msg);
   }
 
   @Test
@@ -452,7 +456,8 @@ class FilterQueryBuilderTest {
         dsl.match_phrase(
             dsl.namedArgument("field", literal("message")))).getMessage();
     assertEquals("match_phrase function expected {[STRING,STRING],[STRING,STRING,STRING],"
-          + "[STRING,STRING,STRING,STRING],[STRING,STRING,STRING,STRING,STRING]}, but get [STRING]", msg);
+          + "[STRING,STRING,STRING,STRING],[STRING,STRING,STRING,STRING,STRING]}, but get [STRING]",
+          msg);
   }
 
   @Test
