@@ -10,16 +10,17 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.common.collect.Streams;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Random;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
-
-import java.util.*;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 class SQLSyntaxParserTest {
 
@@ -161,15 +162,19 @@ class SQLSyntaxParserTest {
     assertNotNull(parser.parse("SELECT * FROM test WHERE match(`column`, 'this is a test')"));
     assertNotNull(parser.parse("SELECT * FROM test WHERE match(column, 100500)"));
 
-    assertNotNull(parser.parse("SELECT * FROM test WHERE match_phrase(column, \"this is a test\")"));
+    assertNotNull(
+            parser.parse("SELECT * FROM test WHERE match_phrase(column, \"this is a test\")"));
     assertNotNull(parser.parse("SELECT * FROM test WHERE match_phrase(column, 'this is a test')"));
-    assertNotNull(parser.parse("SELECT * FROM test WHERE match_phrase(`column`, \"this is a test\")"));
-    assertNotNull(parser.parse("SELECT * FROM test WHERE match_phrase(`column`, 'this is a test')"));
+    assertNotNull(
+            parser.parse("SELECT * FROM test WHERE match_phrase(`column`, \"this is a test\")"));
+    assertNotNull(
+            parser.parse("SELECT * FROM test WHERE match_phrase(`column`, 'this is a test')"));
     assertNotNull(parser.parse("SELECT * FROM test WHERE match_phrase(column, 100500)"));
   }
 
   @ParameterizedTest
-  @MethodSource({"matchPhraseComplexQueries", "matchPhraseGeneratedQueries", "generateMatchPhraseQueries"})
+  @MethodSource({"matchPhraseComplexQueries",
+          "matchPhraseGeneratedQueries", "generateMatchPhraseQueries"})
   public void canParseComplexMatchPhraseArgsTest(String query) {
     assertNotNull(parser.parse(query));
   }
@@ -183,10 +188,10 @@ class SQLSyntaxParserTest {
       "SELECT * FROM t WHERE match_phrase(c, 3, lenient='true')",
       "SELECT * FROM t WHERE match_phrase(c, 3, operator=xor)",
       "SELECT * FROM t WHERE match_phrase(c, 3, cutoff_frequency=0.04)",
-      "SELECT * FROM t WHERE match_phrase(c, 3, cutoff_frequency=0.04, analyzer = english, prefix_length=34, fuzziness='auto', minimum_should_match='2<-25% 9<-3')",
+      "SELECT * FROM t WHERE match_phrase(c, 3, cutoff_frequency=0.04, analyzer = english, "
+              + "prefix_length=34, fuzziness='auto', minimum_should_match='2<-25% 9<-3')",
       "SELECT * FROM t WHERE match_phrase(c, 3, minimum_should_match='2<-25% 9<-3')",
       "SELECT * FROM t WHERE match_phrase(c, 3, operator='AUTO')"
-
     );
   }
 
@@ -195,7 +200,8 @@ class SQLSyntaxParserTest {
     matchArgs.put("fuzziness", new String[]{ "AUTO", "AUTO:1,5", "1" });
     matchArgs.put("fuzzy_transpositions", new Boolean[]{ true, false });
     matchArgs.put("operator", new String[]{ "and", "or" });
-    matchArgs.put("minimum_should_match", new String[]{ "3", "-2", "75%", "-25%", "3<90%", "2<-25% 9<-3" });
+    matchArgs.put("minimum_should_match",
+            new String[]{ "3", "-2", "75%", "-25%", "3<90%", "2<-25% 9<-3" });
     matchArgs.put("analyzer", new String[]{ "standard", "stop", "english" });
     matchArgs.put("zero_terms_query", new String[]{ "none", "all" });
     matchArgs.put("lenient", new Boolean[]{ true, false });
@@ -219,7 +225,8 @@ class SQLSyntaxParserTest {
     return generateQueries("match_phrase", matchPhraseArgs);
   }
 
-  private static Stream<String> generateQueries(String function, HashMap<String, Object[]> functionArgs) {
+  private static Stream<String> generateQueries(
+          String function, HashMap<String, Object[]> functionArgs) {
     var rand = new Random(0);
 
     class QueryGenerator implements Iterator<String> {
@@ -227,6 +234,7 @@ class SQLSyntaxParserTest {
       private final Random rng = new Random(0);
       private final int numQueries = 100;
       private int currentQuery = 0;
+
       private String randomIdentifier() {
         return RandomStringUtils.random(10, 0, 0,true, false, null, rand);
       }
@@ -242,31 +250,31 @@ class SQLSyntaxParserTest {
 
         StringBuilder query = new StringBuilder();
         query.append(String.format("SELECT * FROM test WHERE %s(%s, %s", function,
-          randomIdentifier(),
-          randomIdentifier()));
+            randomIdentifier(),
+            randomIdentifier()));
         var args = new ArrayList<String>();
-        for (var pair : functionArgs.entrySet())
-        {
-          if (rand.nextBoolean())
-          {
+        for (var pair : functionArgs.entrySet()) {
+          if (rand.nextBoolean()) {
             var arg = new StringBuilder();
             arg.append(rand.nextBoolean() ? "," : ", ");
-            arg.append(rand.nextBoolean() ? pair.getKey().toLowerCase() : pair.getKey().toUpperCase());
+            arg.append(rand.nextBoolean() ? pair.getKey().toLowerCase()
+                    : pair.getKey().toUpperCase());
             arg.append(rand.nextBoolean() ? "=" : " = ");
             if (pair.getValue() instanceof String[] || rand.nextBoolean()) {
               var quoteSymbol = rand.nextBoolean() ? '\'' : '"';
               arg.append(quoteSymbol);
               arg.append(pair.getValue()[rand.nextInt(pair.getValue().length)]);
               arg.append(quoteSymbol);
-            }
-            else
+            } else {
               arg.append(pair.getValue()[rand.nextInt(pair.getValue().length)]);
+            }
             args.add(arg.toString());
           }
         }
         Collections.shuffle(args, rand);
-        for (var arg : args)
+        for (var arg : args) {
           query.append(arg);
+        }
         query.append(rand.nextBoolean() ? ")" : ");");
         return query.toString();
       }
