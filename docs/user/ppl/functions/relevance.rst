@@ -72,26 +72,27 @@ The match_phrase function maps to the match_phrase query used in search engine, 
 
 Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
 
-    os> source=accounts | where match(address, 'Street') | fields lastname, address
+    os> source=books | where match_phrase(author, 'Alexander Milne') | fields author, title
     fetched rows / total rows = 2/2
-    +------------+--------------------+
-    | lastname   | address            |
-    |------------+--------------------|
-    | Bond       | 671 Bristol Street |
-    | Bates      | 789 Madison Street |
-    +------------+--------------------+
+    +----------------------+--------------------------+
+    | author               | title                    |
+    |----------------------+--------------------------|
+    | Alan Alexander Milne | The House at Pooh Corner |
+    | Alan Alexander Milne | Winnie-the-Pooh          |
+    +----------------------+--------------------------+
 
 
 
 Another example to show how to set custom values for the optional parameters::
 
-    os> source=accounts | where match_phrase(address, 'Street Madison', slop = 2) | fields address
-    fetched rows / total rows = 1/1
-    +--------------------+
-    | address            |
-    |--------------------|
-    | 789 Madison Street |
-    +--------------------+
+    os> source=books | where match_phrase(author, 'Alan Milne', slop = 2) | fields author, title
+    fetched rows / total rows = 2/2
+    +----------------------+--------------------------+
+    | author               | title                    |
+    |----------------------+--------------------------|
+    | Alan Alexander Milne | The House at Pooh Corner |
+    | Alan Alexander Milne | Winnie-the-Pooh          |
+    +----------------------+--------------------------+
 
 Limitations
 >>>>>>>>>>>

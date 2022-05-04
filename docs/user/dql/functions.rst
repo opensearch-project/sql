@@ -2211,25 +2211,25 @@ The match_phrase function maps to the match_phrase query used in search engine, 
 
 Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
 
-    os> SELECT lastname, address FROM accounts WHERE match_phrase(address, 'Madison Street');
+    os> SELECT author, title FROM books WHERE match_phrase(author, 'Alexander Milne');
     fetched rows / total rows = 2/2
-    +------------+--------------------+
-    | lastname   | address            |
-    |------------+--------------------|
-    | James      | 671 Madison Street |
-    | Bond       | 789 Madison Street |
-    +------------+--------------------+
+    +----------------------+--------------------------+
+    | author               | title                    |
+    |----------------------+--------------------------|
+    | Alan Alexander Milne | The House at Pooh Corner |
+    | Alan Alexander Milne | Winnie-the-Pooh          |
+    +----------------------+--------------------------+
 
 
 
 Another example to show how to set custom values for the optional parameters::
 
-    os> SELECT title FROM accounts WHERE match_phrase(title, 'Winnie Pooh', slop = 2);
-    fetched rows / total rows = 1/1
-    +-----------------+
-    | title           |
-    |-----------------|
-    | Winnie Pooh     |
-    | Winnie the Pooh |
-    +-----------------+
+    os> SELECT author, title FROM books WHERE match_phrase(author, 'Alan Milne', slop = 2);
+    fetched rows / total rows = 2/2
+    +----------------------+--------------------------+
+    | author               | title                    |
+    |----------------------+--------------------------|
+    | Alan Alexander Milne | The House at Pooh Corner |
+    | Alan Alexander Milne | Winnie-the-Pooh          |
+    +----------------------+--------------------------+
 
