@@ -9,6 +9,7 @@ package org.opensearch.sql.sql.antlr;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.google.common.collect.Streams;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -16,6 +17,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -167,7 +169,7 @@ class SQLSyntaxParserTest {
   }
 
   @ParameterizedTest
-  @MethodSource("matchPhraseComplexQueries")
+  @MethodSource({"matchPhraseComplexQueries", "matchPhraseGeneratedQueries"})
   public void canParseComplexMatchPhraseArgsTest(String query) {
     assertNotNull(parser.parse(query));
   }
@@ -186,6 +188,77 @@ class SQLSyntaxParserTest {
       "SELECT * FROM t WHERE match_phrase(c, 3, operator='AUTO')"
 
     );
+  }
+
+  private static Stream<String> matchPhraseGeneratedQueries() {
+    var matchArgs = new HashMap<String, Object[]>();
+    matchArgs.put("fuzziness", new String[]{ "AUTO", "AUTO:1,5", "1" });
+    matchArgs.put("fuzzy_transpositions", new Boolean[]{ true, false });
+    matchArgs.put("operator", new String[]{ "and", "or" });
+    matchArgs.put("minimum_should_match", new String[]{ "3", "-2", "75%", "-25%", "3<90%", "2<-25% 9<-3" });
+    matchArgs.put("analyzer", new String[]{ "standard", "stop", "english" });
+    matchArgs.put("zero_terms_query", new String[]{ "none", "all" });
+    matchArgs.put("lenient", new Boolean[]{ true, false });
+    // deprecated
+    matchArgs.put("cutoff_frequency", new Double[]{ .0, 0.001, 1., 42. });
+    matchArgs.put("prefix_length", new Integer[]{ 0, 2, 5 });
+    matchArgs.put("max_expansions", new Integer[]{ 0, 5, 20 });
+    matchArgs.put("boost", new Double[]{ .5, 1., 2.3 });
+
+    return generateQueries("match", matchArgs);
+  }
+
+  private static Stream<String> generateQueries(String function, HashMap<String, Object[]> functionArgs) {
+    var rand = new Random(0);
+
+    class QueryGenerator implements Iterator<String> {
+
+      private final Random rng = new Random(0);
+      private final int numQueries = 100;
+      private int currentQuery = 0;
+      @Override
+      public boolean hasNext() {
+        return currentQuery < numQueries;
+      }
+
+      @Override
+      public String next() {
+        currentQuery += 1;
+
+        StringBuilder query = new StringBuilder();
+        query.append(String.format("SELECT * FROM test WHERE %s(%s, %s", function,
+          RandomStringUtils.random(10, true, false),
+          RandomStringUtils.random(10, true, false)));
+        var args = new ArrayList<String>();
+        for (var pair : functionArgs.entrySet())
+        {
+          if (rand.nextBoolean())
+          {
+            var arg = new StringBuilder();
+            arg.append(rand.nextBoolean() ? "," : ", ");
+            arg.append(rand.nextBoolean() ? pair.getKey().toLowerCase() : pair.getKey().toUpperCase());
+            arg.append(rand.nextBoolean() ? "=" : " = ");
+            if (pair.getValue() instanceof String[] || rand.nextBoolean()) {
+              var quoteSymbol = rand.nextBoolean() ? '\'' : '"';
+              arg.append(quoteSymbol);
+              arg.append(pair.getValue()[rand.nextInt(pair.getValue().length)]);
+              arg.append(quoteSymbol);
+            }
+            else
+              arg.append(pair.getValue()[rand.nextInt(pair.getValue().length)]);
+            args.add(arg.toString());
+          }
+        }
+        Collections.shuffle(args, rand);
+        for (var arg : args)
+          query.append(arg);
+        query.append(rand.nextBoolean() ? ")" : ");");
+        return query.toString();
+      }
+    }
+
+    var it = new QueryGenerator();
+    return Streams.stream(it);
   }
 
   private void generateAndTestQuery(String function, HashMap<String, Object[]> functionArgs) {
@@ -217,7 +290,7 @@ class SQLSyntaxParserTest {
           args.add(arg.toString());
         }
       }
-      Collections.shuffle(args);
+      Collections.shuffle(args, rand);
       for (var arg : args)
         query.append(arg);
       query.append(rand.nextBoolean() ? ")" : ");");
@@ -229,21 +302,7 @@ class SQLSyntaxParserTest {
   // TODO run all tests and collect exceptions and raise them in the end
   @Test
   public void canParseRelevanceFunctionsComplexRandomArgs() {
-    var matchArgs = new HashMap<String, Object[]>();
-    matchArgs.put("fuzziness", new String[]{ "AUTO", "AUTO:1,5", "1" });
-    matchArgs.put("fuzzy_transpositions", new Boolean[]{ true, false });
-    matchArgs.put("operator", new String[]{ "and", "or" });
-    matchArgs.put("minimum_should_match", new String[]{ "3", "-2", "75%", "-25%", "3<90%", "2<-25% 9<-3" });
-    matchArgs.put("analyzer", new String[]{ "standard", "stop", "english" });
-    matchArgs.put("zero_terms_query", new String[]{ "none", "all" });
-    matchArgs.put("lenient", new Boolean[]{ true, false });
-    // deprecated
-    matchArgs.put("cutoff_frequency", new Double[]{ .0, 0.001, 1., 42. });
-    matchArgs.put("prefix_length", new Integer[]{ 0, 2, 5 });
-    matchArgs.put("max_expansions", new Integer[]{ 0, 5, 20 });
-    matchArgs.put("boost", new Double[]{ .5, 1., 2.3 });
 
-    generateAndTestQuery("match", matchArgs);
 
     var matchPhraseArgs = new HashMap<String, Object[]>();
     matchPhraseArgs.put("analyzer", new String[]{ "standard", "stop", "english" });
