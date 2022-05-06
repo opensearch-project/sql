@@ -215,8 +215,6 @@ class SQLSyntaxParserTest {
   }
 
   private static Stream<String> generateMatchPhraseQueries() {
-
-
     var matchPhraseArgs = new HashMap<String, Object[]>();
     matchPhraseArgs.put("analyzer", new String[]{ "standard", "stop", "english" });
     matchPhraseArgs.put("max_expansions", new Integer[]{ 0, 5, 20 });
@@ -225,14 +223,12 @@ class SQLSyntaxParserTest {
     return generateQueries("match_phrase", matchPhraseArgs);
   }
 
-  private static Stream<String> generateQueries(
-          String function, HashMap<String, Object[]> functionArgs) {
+  private static Stream<String> generateQueries(String function,
+                                                HashMap<String, Object[]> functionArgs) {
     var rand = new Random(0);
 
     class QueryGenerator implements Iterator<String> {
 
-      private final Random rng = new Random(0);
-      private final int numQueries = 100;
       private int currentQuery = 0;
 
       private String randomIdentifier() {
@@ -241,6 +237,7 @@ class SQLSyntaxParserTest {
 
       @Override
       public boolean hasNext() {
+        int numQueries = 100;
         return currentQuery < numQueries;
       }
 
