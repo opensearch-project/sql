@@ -22,6 +22,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
     loadIndex(Index.BANK_WITH_NULL_VALUES);
     loadIndex(Index.BANK);
     loadIndex(Index.GAME_OF_THRONES);
+    loadIndex(Index.PHRASE);
   }
 
   @Test
@@ -115,8 +116,8 @@ public class WhereCommandIT extends PPLIntegTestCase {
     JSONObject result =
             executeQuery(
                     String.format(
-                            "source=%s | where match_phrase(firstname, 'Hattie') | fields firstname", TEST_INDEX_BANK));
-    verifyDataRows(result, rows("Hattie"));
+                            "source=%s | where match_phrase(phrase, 'quick fox') | fields phrase", TEST_INDEX_PHRASE));
+    verifyDataRows(result, rows("quick fox"), rows("quick fox here"));
   }
 
   @Test
@@ -124,7 +125,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
     JSONObject result =
             executeQuery(
                     String.format(
-                            "source=%s | where match_phrase(firstname, 'Hattie', slop = 2) | fields firstname", TEST_INDEX_BANK));
-    verifyDataRows(result, rows("Hattie"));
+                            "source=%s | where match_phrase(phrase, 'brown fox', slop = 2) | fields phrase", TEST_INDEX_PHRASE));
+    verifyDataRows(result, rows("brown fox"), rows("fox brown"));
   }
 }
