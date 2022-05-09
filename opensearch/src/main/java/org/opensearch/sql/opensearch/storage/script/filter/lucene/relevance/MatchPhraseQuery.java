@@ -7,6 +7,8 @@ package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
 import java.util.function.BiFunction;
 import org.opensearch.index.query.MatchPhraseQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
@@ -18,16 +20,25 @@ import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.LuceneQuery;
 
+/**
+ * Lucene query that builds a match_phrase query.
+ */
 public class MatchPhraseQuery extends LuceneQuery {
-  private final BiFunction<MatchPhraseQueryBuilder, ExprValue, MatchPhraseQueryBuilder> analyzer =
+  private final FluentAction analyzer =
       (b, v) -> b.analyzer(v.stringValue());
-  private final BiFunction<MatchPhraseQueryBuilder, ExprValue, MatchPhraseQueryBuilder> slop =
+  private final FluentAction slop =
       (b, v) -> b.slop(Integer.parseInt(v.stringValue()));
-  private final BiFunction<MatchPhraseQueryBuilder, ExprValue, MatchPhraseQueryBuilder>
+  private final FluentAction
         zeroTermsQuery = (b, v) -> b.zeroTermsQuery(
                org.opensearch.index.search.MatchQuery.ZeroTermsQuery.valueOf(v.stringValue()));
 
-  ImmutableMap<Object, Object> argAction = ImmutableMap.builder()
+  interface FluentAction
+      extends BiFunction<MatchPhraseQueryBuilder, ExprValue, MatchPhraseQueryBuilder>  {
+  }
+
+  ImmutableMap<Object, FluentAction>
+      argAction =
+      ImmutableMap.<Object, FluentAction>builder()
           .put("analyzer", analyzer)
           .put("slop", slop)
           .put("zero_terms_query", zeroTermsQuery)
@@ -35,21 +46,27 @@ public class MatchPhraseQuery extends LuceneQuery {
 
   @Override
   public QueryBuilder build(FunctionExpression func) {
-    Iterator<Expression> iterator = func.getArguments().iterator();
-    NamedArgumentExpression field = (NamedArgumentExpression) iterator.next();
-    NamedArgumentExpression query = (NamedArgumentExpression) iterator.next();
+    List<Expression> arguments = func.getArguments();
+    if (arguments.size() < 2) {
+      throw new SemanticCheckException("match_phrase requires at least two parameters");
+    }
+    NamedArgumentExpression field = (NamedArgumentExpression) arguments.get(0);
+    NamedArgumentExpression query = (NamedArgumentExpression) arguments.get(1);
     MatchPhraseQueryBuilder queryBuilder = QueryBuilders.matchPhraseQuery(
-            field.getValue().valueOf(null).stringValue(),
-            query.getValue().valueOf(null).stringValue());
+        field.getValue().valueOf(null).stringValue(),
+        query.getValue().valueOf(null).stringValue());
+
+    Iterator<Expression> iterator = arguments.listIterator(2);
     while (iterator.hasNext()) {
       NamedArgumentExpression arg = (NamedArgumentExpression) iterator.next();
       if (!argAction.containsKey(arg.getArgName())) {
         throw new SemanticCheckException(String
-                .format("Parameter %s is invalid for match_phrase function.", arg.getArgName()));
+            .format("Parameter %s is invalid for match_phrase function.", arg.getArgName()));
       }
-      ((BiFunction<MatchPhraseQueryBuilder, ExprValue, MatchPhraseQueryBuilder>) argAction
-              .get(arg.getArgName()))
-              .apply(queryBuilder, arg.getValue().valueOf(null));
+      (Objects.requireNonNull(
+          argAction
+              .get(arg.getArgName())))
+          .apply(queryBuilder, arg.getValue().valueOf(null));
     }
     return queryBuilder;
   }
