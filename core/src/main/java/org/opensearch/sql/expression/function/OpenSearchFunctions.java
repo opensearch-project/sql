@@ -30,26 +30,27 @@ public class OpenSearchFunctions {
 
   private static FunctionResolver match() {
     FunctionName funcName = BuiltinFunctionName.MATCH.getName();
-    // At least field and query parameters
     // At most field, query, and all optional parameters
-    return getFunctionResolver(funcName, 2, 14);
+    final int matchMaxNumParameters = 14;
+    return getRelevanceFunctionResolver(funcName, matchMaxNumParameters);
   }
 
   private static FunctionResolver match_phrase() {
     FunctionName funcName = BuiltinFunctionName.MATCH_PHRASE.getName();
-    // At least field and query parameters
     // At most field, query, and all optional parameters
-    return getFunctionResolver(funcName, 2, 5);
+    final int matchPhraseMaxNumParameters = 5;
+    return getRelevanceFunctionResolver(funcName, matchPhraseMaxNumParameters);
   }
 
-  private static FunctionResolver getFunctionResolver(
-      FunctionName funcName, int minNumParameters, int maxNumParameters) {
+  private static FunctionResolver getRelevanceFunctionResolver(
+      FunctionName funcName, int maxNumParameters) {
     return new FunctionResolver(funcName,
-      getSignatureMap(funcName, minNumParameters, maxNumParameters));
+      getRelevanceFunctionSignatureMap(funcName, maxNumParameters));
   }
 
-  private static Map<FunctionSignature, FunctionBuilder> getSignatureMap(
-      FunctionName funcName, int minNumParameters, int maxNumParameters) {
+  private static Map<FunctionSignature, FunctionBuilder> getRelevanceFunctionSignatureMap(
+      FunctionName funcName, int maxNumParameters) {
+    final int minNumParameters = 2;
     FunctionBuilder buildFunction = args -> new OpenSearchFunction(funcName, args);
     var signatureMapBuilder = ImmutableMap.<FunctionSignature, FunctionBuilder>builder();
     for (int numParameters = minNumParameters; numParameters <= maxNumParameters; numParameters++) {
