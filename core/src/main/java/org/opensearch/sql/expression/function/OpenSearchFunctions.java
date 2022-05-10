@@ -53,7 +53,9 @@ public class OpenSearchFunctions {
       FunctionName funcName, int numOptionalParameters) {
     FunctionBuilder buildFunction = args -> new OpenSearchFunction(funcName, args);
     var signatureMapBuilder = ImmutableMap.<FunctionSignature, FunctionBuilder>builder();
-    for (int numParameters = MIN_NUM_PARAMETERS; numParameters <= MIN_NUM_PARAMETERS + numOptionalParameters; numParameters++) {
+    for (int numParameters = MIN_NUM_PARAMETERS;
+         numParameters <= MIN_NUM_PARAMETERS + numOptionalParameters;
+         numParameters++) {
       List<ExprType> args = Collections.nCopies(numParameters, STRING);
       signatureMapBuilder.put(new FunctionSignature(funcName, args), buildFunction);
     }
