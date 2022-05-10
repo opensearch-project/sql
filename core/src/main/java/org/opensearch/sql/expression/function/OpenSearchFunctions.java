@@ -23,6 +23,11 @@ import org.opensearch.sql.expression.env.Environment;
 
 @UtilityClass
 public class OpenSearchFunctions {
+
+  public static final int MATCH_MAX_NUM_PARAMETERS = 12;
+  public static final int MATCH_PHRASE_MAX_NUM_PARAMETERS = 3;
+  public static final int MIN_NUM_PARAMETERS = 2;
+
   public void register(BuiltinFunctionRepository repository) {
     repository.register(match());
     repository.register(match_phrase());
@@ -30,16 +35,12 @@ public class OpenSearchFunctions {
 
   private static FunctionResolver match() {
     FunctionName funcName = BuiltinFunctionName.MATCH.getName();
-    // At most field, query, and all optional parameters
-    final int matchMaxNumParameters = 14;
-    return getRelevanceFunctionResolver(funcName, matchMaxNumParameters);
+    return getRelevanceFunctionResolver(funcName, MATCH_MAX_NUM_PARAMETERS);
   }
 
   private static FunctionResolver match_phrase() {
     FunctionName funcName = BuiltinFunctionName.MATCH_PHRASE.getName();
-    // At most field, query, and all optional parameters
-    final int matchPhraseMaxNumParameters = 5;
-    return getRelevanceFunctionResolver(funcName, matchPhraseMaxNumParameters);
+    return getRelevanceFunctionResolver(funcName, MATCH_PHRASE_MAX_NUM_PARAMETERS);
   }
 
   private static FunctionResolver getRelevanceFunctionResolver(
@@ -49,11 +50,10 @@ public class OpenSearchFunctions {
   }
 
   private static Map<FunctionSignature, FunctionBuilder> getRelevanceFunctionSignatureMap(
-      FunctionName funcName, int maxNumParameters) {
-    final int minNumParameters = 2;
+      FunctionName funcName, int numOptionalParameters) {
     FunctionBuilder buildFunction = args -> new OpenSearchFunction(funcName, args);
     var signatureMapBuilder = ImmutableMap.<FunctionSignature, FunctionBuilder>builder();
-    for (int numParameters = minNumParameters; numParameters <= maxNumParameters; numParameters++) {
+    for (int numParameters = MIN_NUM_PARAMETERS; numParameters <= MIN_NUM_PARAMETERS + numOptionalParameters; numParameters++) {
       List<ExprType> args = Collections.nCopies(numParameters, STRING);
       signatureMapBuilder.put(new FunctionSignature(funcName, args), buildFunction);
     }
