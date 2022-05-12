@@ -218,8 +218,4 @@ public class ConditionalIT extends SQLIntegTestCase {
         rsp);
     return SearchResponse.fromXContent(parser).getHits();
   }
-
-  private JSONObject executeJdbcRequest(String query) {
-    return new JSONObject(executeQuery(query, "jdbc"));
-  }
 }

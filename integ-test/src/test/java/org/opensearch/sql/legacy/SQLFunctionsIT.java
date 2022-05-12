@@ -896,8 +896,4 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
       }
     }
   }
-
-  private JSONObject executeJdbcRequest(String query) {
-    return new JSONObject(executeQuery(query, "jdbc"));
-  }
 }

@@ -24,14 +24,14 @@ public class RelevanceFunctionIT extends SQLIntegTestCase {
 
   @Test
   public void match_in_where() throws IOException {
-    JSONObject result = new JSONObject(executeQuery("SELECT firstname FROM " + TEST_INDEX_ACCOUNT + " WHERE match(lastname, 'Bates')", "jdbc"));
+    JSONObject result = executeJdbcRequest("SELECT firstname FROM " + TEST_INDEX_ACCOUNT + " WHERE match(lastname, 'Bates')");
     verifySchema(result, schema("firstname", "text"));
     verifyDataRows(result, rows("Nanette"));
   }
 
   @Test
   public void match_in_having() throws IOException {
-    JSONObject result = new JSONObject(executeQuery("SELECT lastname FROM " + TEST_INDEX_ACCOUNT + " HAVING match(firstname, 'Nanette')", "jdbc"));
+    JSONObject result = executeJdbcRequest("SELECT lastname FROM " + TEST_INDEX_ACCOUNT + " HAVING match(firstname, 'Nanette')");
     verifySchema(result, schema("lastname", "text"));
     verifyDataRows(result, rows("Bates"));
   }

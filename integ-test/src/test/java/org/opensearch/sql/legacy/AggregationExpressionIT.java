@@ -255,8 +255,4 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
     verifySchema(response, schema("SUM(CAST(male AS INT))", "male_sum", "integer"));
     verifyDataRows(response, rows(4));
   }
-
-  private JSONObject executeJdbcRequest(String query) {
-    return new JSONObject(executeQuery(query, "jdbc"));
-  }
 }
