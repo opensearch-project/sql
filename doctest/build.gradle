@@ -49,10 +49,14 @@ build.dependsOn doctest
 clean.dependsOn(cleanBootstrap)
 
 // 2.0.0-alpha1-SNAPSHOT -> 2.0.0.0-alpha1-SNAPSHOT
-String opensearch_no_snapshot = opensearch_version.replace("-SNAPSHOT","")
-String opensearch_build = opensearch_no_snapshot.tokenize('-')[0] + '.0-' + opensearch_no_snapshot.tokenize('-')[1]
-String mlCommonsRemoteFile = 'https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/' + opensearch_no_snapshot + '/2500/linux/x64/tar/builds/opensearch/plugins/opensearch-ml-' + opensearch_build +'.zip'
-String mlCommonsPlugin = "ml-commons"
+String opensearch_no_snapshot = opensearch_version.replace('-SNAPSHOT', '')
+String[] version_tokens = opensearch_no_snapshot.tokenize('-')
+String opensearch_build = version_tokens[0] + '.0'
+if (version_tokens.length > 1) {
+    opensearch_build += '-' + version_tokens[1]
+}
+String mlCommonsRemoteFile = 'https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/' + opensearch_no_snapshot + '/latest/linux/x64/tar/builds/opensearch/plugins/opensearch-ml-' + opensearch_build + '.zip'
+String mlCommonsPlugin = 'opensearch-ml'
 
 testClusters {
     docTestCluster {
@@ -66,9 +70,9 @@ testClusters {
                         if (!dir.exists()) {
                             dir.mkdirs()
                         }
-                        File f = new File(dir, mlCommonsPlugin)
+                        File f = new File(dir, mlCommonsPlugin + '-' + opensearch_build + '.zip')
                         if (!f.exists()) {
-                            new URL(mlCommonsRemoteFile).withInputStream{ ins -> f.withOutputStream{ it << ins }}
+                            new URL(mlCommonsRemoteFile).withInputStream{ ins -> f.withOutputStream{ it << ins } }
                         }
                         return fileTree(mlCommonsPlugin).getSingleFile()
                     }
