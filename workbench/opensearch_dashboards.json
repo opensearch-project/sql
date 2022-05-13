@@ -1,6 +1,6 @@
 {
   "id": "queryWorkbenchDashboards",
-  "version": "2.0.0.0-rc1",
+  "version": "2.0.0.0",
   "opensearchDashboardsVersion": "2.0.0",
   "server": true,
   "ui": true,
