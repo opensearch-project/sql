@@ -63,6 +63,9 @@ public class MatchQuery extends LuceneQuery {
 
   @Override
   public QueryBuilder build(FunctionExpression func) {
+    if(func.getArguments().size() < 2) {
+      throw new SemanticCheckException("match must have at least two arguments");
+    }
     Iterator<Expression> iterator = func.getArguments().iterator();
     NamedArgumentExpression field = (NamedArgumentExpression) iterator.next();
     NamedArgumentExpression query = (NamedArgumentExpression) iterator.next();
