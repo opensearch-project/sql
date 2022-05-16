@@ -171,7 +171,7 @@ statsFunctionName
     ;
 
 percentileAggFunction
-    : PERCENTILE '<' value=integerLiteral '>' LT_PRTHS aggField=fieldExpression RT_PRTHS
+    : PERCENTILE LESS value=integerLiteral GREATER LT_PRTHS aggField=fieldExpression RT_PRTHS
     ;
 
 /** expressions */
