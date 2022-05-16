@@ -30,10 +30,6 @@ public class MatchQueryTest {
   private final MatchQuery matchQuery = new MatchQuery();
   private final FunctionName match = FunctionName.of("match");
 
-  private NamedArgumentExpression namedArgument(String name, String value) {
-    return dsl.namedArgument(name, DSL.literal(value));
-  }
-
   @Test
   public void test_SemanticCheckException_when_no_arguments() {
     List<Expression> arguments = List.of();
@@ -186,6 +182,10 @@ public class MatchQueryTest {
     Assertions.assertNotNull(matchQuery.build(new MatchExpression(arguments)));
   }
 
+  private NamedArgumentExpression namedArgument(String name, String value) {
+    return dsl.namedArgument(name, DSL.literal(value));
+  }
+
   private class MatchExpression extends FunctionExpression {
     public MatchExpression(List<Expression> arguments) {
       super(MatchQueryTest.this.match, arguments);
@@ -193,12 +193,12 @@ public class MatchQueryTest {
 
     @Override
     public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-      return null;
+      throw new UnsupportedOperationException("Invalid function call, valueOf function need implementation only to support Expression interface");
     }
 
     @Override
     public ExprType type() {
-      return null;
+      throw new UnsupportedOperationException("Invalid function call, type function need implementation only to support Expression interface");
     }
   }
 }
