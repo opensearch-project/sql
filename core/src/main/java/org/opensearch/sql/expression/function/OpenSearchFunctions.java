@@ -28,9 +28,15 @@ public class OpenSearchFunctions {
   public static final int MATCH_PHRASE_MAX_NUM_PARAMETERS = 3;
   public static final int MIN_NUM_PARAMETERS = 2;
 
+  /**
+   * Add functions specific to OpenSearch to repository.
+   */
   public void register(BuiltinFunctionRepository repository) {
     repository.register(match());
-    repository.register(match_phrase());
+    // Register MATCHPHRASE as MATCH_PHRASE as well for backwards
+    // compatibility.
+    repository.register(match_phrase(BuiltinFunctionName.MATCH_PHRASE));
+    repository.register(match_phrase(BuiltinFunctionName.MATCHPHRASE));
   }
 
   private static FunctionResolver match() {
@@ -38,8 +44,8 @@ public class OpenSearchFunctions {
     return getRelevanceFunctionResolver(funcName, MATCH_MAX_NUM_PARAMETERS);
   }
 
-  private static FunctionResolver match_phrase() {
-    FunctionName funcName = BuiltinFunctionName.MATCH_PHRASE.getName();
+  private static FunctionResolver match_phrase(BuiltinFunctionName matchPhrase) {
+    FunctionName funcName = matchPhrase.getName();
     return getRelevanceFunctionResolver(funcName, MATCH_PHRASE_MAX_NUM_PARAMETERS);
   }
 
@@ -53,7 +59,9 @@ public class OpenSearchFunctions {
       FunctionName funcName, int numOptionalParameters) {
     FunctionBuilder buildFunction = args -> new OpenSearchFunction(funcName, args);
     var signatureMapBuilder = ImmutableMap.<FunctionSignature, FunctionBuilder>builder();
-    for (int numParameters = MIN_NUM_PARAMETERS; numParameters <= MIN_NUM_PARAMETERS + numOptionalParameters; numParameters++) {
+    for (int numParameters = MIN_NUM_PARAMETERS;
+         numParameters <= MIN_NUM_PARAMETERS + numOptionalParameters;
+         numParameters++) {
       List<ExprType> args = Collections.nCopies(numParameters, STRING);
       signatureMapBuilder.put(new FunctionSignature(funcName, args), buildFunction);
     }

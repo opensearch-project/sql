@@ -383,7 +383,7 @@ flowControlFunctionName
     ;
 
 relevanceFunctionName
-    : MATCH | MATCH_PHRASE
+    : MATCH | MATCH_PHRASE | MATCHPHRASE
     ;
 
 legacyRelevanceFunctionName
