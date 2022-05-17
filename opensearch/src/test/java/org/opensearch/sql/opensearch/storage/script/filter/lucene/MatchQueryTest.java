@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.storage.script.filter.lucene;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -55,16 +56,6 @@ public class MatchQueryTest {
   }
 
   @Test
-  public void test_analyzer_parameter() {
-    List<Expression> arguments = List.of(
-        namedArgument("field", "field_value"),
-        namedArgument("query", "query_value"),
-        namedArgument("analyzer", "standard")
-    );
-    Assertions.assertNotNull(matchQuery.build(new MatchExpression(arguments)));
-  }
-
-  @Test
   public void build_succeeds_with_two_arguments() {
     List<Expression> arguments = List.of(
         namedArgument("field", "field_value"),
@@ -73,113 +64,31 @@ public class MatchQueryTest {
   }
 
   @Test
-  public void test_auto_generate_synonyms_phrase_query_parameter() {
-    List<Expression> arguments = List.of(
-        namedArgument("field", "field_value"),
-        namedArgument("query", "query_value"),
-        namedArgument("auto_generate_synonyms_phrase_query", "true")
-    );
-    Assertions.assertNotNull(matchQuery.build(new MatchExpression(arguments)));
-  }
+  public void test_valid_parameters() {
+    final int validArgIndex = 2;
+    final List<Expression> validArgs = List.of(
+        namedArgument("analyzer", "standard"),
+        namedArgument("auto_generate_synonyms_phrase_query", "true"),
+        namedArgument("fuzziness", "AUTO"),
+        namedArgument("max_expansions", "50"),
+        namedArgument("prefix_length", "0"),
+        namedArgument("fuzzy_transpositions", "true"),
+        namedArgument("fuzzy_rewrite", "constant_score"),
+        namedArgument("lenient", "false"),
+        namedArgument("operator", "OR"),
+        namedArgument("minimum_should_match", "3"),
+        namedArgument("zero_terms_query", "NONE"),
+        namedArgument("boost", "1"));
 
-  @Test
-  public void test_fuzziness_parameter() {
-    List<Expression> arguments = List.of(
-        namedArgument("field", "field_value"),
-        namedArgument("query", "query_value"),
-        namedArgument("fuzziness", "AUTO")
-    );
-    Assertions.assertNotNull(matchQuery.build(new MatchExpression(arguments)));
-  }
+    List<Expression> arguments = new ArrayList<Expression>();
+    arguments.add(namedArgument("field", "field_value"));
+    arguments.add(namedArgument("query", "query_value"));
+    arguments.add(namedArgument("", ""));
 
-  @Test
-  public void test_max_expansions_parameter() {
-    List<Expression> arguments = List.of(
-        namedArgument("field", "field_value"),
-        namedArgument("query", "query_value"),
-        namedArgument("max_expansions", "50")
-    );
-    Assertions.assertNotNull(matchQuery.build(new MatchExpression(arguments)));
-  }
-
-  @Test
-  public void test_prefix_length_parameter() {
-    List<Expression> arguments = List.of(
-        namedArgument("field", "field_value"),
-        namedArgument("query", "query_value"),
-        namedArgument("prefix_length", "0")
-    );
-    Assertions.assertNotNull(matchQuery.build(new MatchExpression(arguments)));
-  }
-
-  @Test
-  public void test_fuzzy_transpositions_parameter() {
-    List<Expression> arguments = List.of(
-        namedArgument("field", "field_value"),
-        namedArgument("query", "query_value"),
-        namedArgument("fuzzy_transpositions", "true")
-    );
-    Assertions.assertNotNull(matchQuery.build(new MatchExpression(arguments)));
-  }
-
-  @Test
-  public void test_fuzzy_rewrite_parameter() {
-    List<Expression> arguments = List.of(
-        namedArgument("field", "field_value"),
-        namedArgument("query", "query_value"),
-        namedArgument("fuzzy_rewrite", "constant_score")
-    );
-    Assertions.assertNotNull(matchQuery.build(new MatchExpression(arguments)));
-  }
-
-  @Test
-  public void test_lenient_parameter() {
-    List<Expression> arguments = List.of(
-        namedArgument("field", "field_value"),
-        namedArgument("query", "query_value"),
-        namedArgument("lenient", "false")
-    );
-    Assertions.assertNotNull(matchQuery.build(new MatchExpression(arguments)));
-  }
-
-  @Test
-  public void test_operator_parameter() {
-    List<Expression> arguments = List.of(
-        namedArgument("field", "field_value"),
-        namedArgument("query", "query_value"),
-        namedArgument("operator", "OR")
-    );
-    Assertions.assertNotNull(matchQuery.build(new MatchExpression(arguments)));
-  }
-
-  @Test
-  public void test_minimum_should_match_parameter() {
-    List<Expression> arguments = List.of(
-        namedArgument("field", "field_value"),
-        namedArgument("query", "query_value"),
-        namedArgument("minimum_should_match", "3")
-    );
-    Assertions.assertNotNull(matchQuery.build(new MatchExpression(arguments)));
-  }
-
-  @Test
-  public void test_zero_terms_query_parameter() {
-    List<Expression> arguments = List.of(
-        namedArgument("field", "field_value"),
-        namedArgument("query", "query_value"),
-        namedArgument("zero_terms_query", "NONE")
-    );
-    Assertions.assertNotNull(matchQuery.build(new MatchExpression(arguments)));
-  }
-
-  @Test
-  public void test_boost_parameter() {
-    List<Expression> arguments = List.of(
-        namedArgument("field", "field_value"),
-        namedArgument("query", "query_value"),
-        namedArgument("boost", "1")
-    );
-    Assertions.assertNotNull(matchQuery.build(new MatchExpression(arguments)));
+    for (Expression arg : validArgs) {
+      arguments.set(validArgIndex, arg);
+      Assertions.assertNotNull(matchQuery.build(new MatchExpression(arguments)));
+    }
   }
 
   private NamedArgumentExpression namedArgument(String name, String value) {
@@ -193,12 +102,14 @@ public class MatchQueryTest {
 
     @Override
     public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-      throw new UnsupportedOperationException("Invalid function call, valueOf function need implementation only to support Expression interface");
+      throw new UnsupportedOperationException("Invalid function call, "
+          + "valueOf function need implementation only to support Expression interface");
     }
 
     @Override
     public ExprType type() {
-      throw new UnsupportedOperationException("Invalid function call, type function need implementation only to support Expression interface");
+      throw new UnsupportedOperationException("Invalid function call, "
+          + "type function need implementation only to support Expression interface");
     }
   }
 }
