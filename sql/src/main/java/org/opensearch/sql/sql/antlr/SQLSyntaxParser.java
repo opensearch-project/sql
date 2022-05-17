@@ -16,13 +16,14 @@ import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
 /**
  * SQL syntax parser which encapsulates an ANTLR parser.
  */
-public class SQLSyntaxParser {
+public class SQLSyntaxParser implements org.opensearch.sql.common.antlr.Parser {
 
   /**
    * Parse a SQL query by ANTLR parser.
    * @param query   a SQL query
    * @return        parse tree root
    */
+  @Override
   public ParseTree parse(String query) {
     OpenSearchSQLLexer lexer = new OpenSearchSQLLexer(new CaseInsensitiveCharStream(query));
     OpenSearchSQLParser parser = new OpenSearchSQLParser(new CommonTokenStream(lexer));

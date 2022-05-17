@@ -7,6 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import lombok.NoArgsConstructor;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 
+/**
+ * A base class for tests for SQL parser.
+ */
 @NoArgsConstructor
 public abstract class SQLSyntaxParserTestBase {
   private final SQLSyntaxParser parser = new SQLSyntaxParser();
