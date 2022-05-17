@@ -14,7 +14,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import java.util.ArrayList;
 import java.util.Collections;
 import org.junit.Test;
-import org.opensearch.sql.legacy.cursor.CursorType;:qqqq
+import org.opensearch.sql.legacy.cursor.CursorType;
 import org.opensearch.sql.legacy.cursor.DefaultCursor;
 
 public class DefaultCursorTest {
