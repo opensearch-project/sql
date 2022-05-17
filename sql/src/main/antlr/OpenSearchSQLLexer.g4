@@ -323,6 +323,8 @@ MINIMUM_SHOULD_MATCH:               'MINIMUM_SHOULD_MATCH';
 ZERO_TERMS_QUERY:                   'ZERO_TERMS_QUERY';
 BOOST:                              'BOOST';
 
+// RELEVANCE FUNCTIONS
+MATCH_BOOL_PREFIX:                  'MATCH_BOOL_PREFIX';
 // Operators
 
 // Operators. Arithmetics

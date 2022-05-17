@@ -384,6 +384,7 @@ flowControlFunctionName
 
 relevanceFunctionName
     : MATCH
+    | MATCH_BOOL_PREFIX
     ;
 
 legacyRelevanceFunctionName
