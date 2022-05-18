@@ -7,12 +7,14 @@ package org.opensearch.sql.opensearch.storage.script.filter.lucene;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -30,6 +32,82 @@ public class MatchQueryTest {
   private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
   private final MatchQuery matchQuery = new MatchQuery();
   private final FunctionName match = FunctionName.of("match");
+
+  static Stream<List<Expression>> generateValidData() {
+    final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
+    return Stream.of(
+        List.of(
+            dsl.namedArgument("field", DSL.literal("field_value")),
+            dsl.namedArgument("query", DSL.literal("query_value"))
+        ),
+        List.of(
+            dsl.namedArgument("field", DSL.literal("field_value")),
+            dsl.namedArgument("query", DSL.literal("query_value")),
+            dsl.namedArgument("analyzer", DSL.literal("standard"))
+        ),
+        List.of(
+            dsl.namedArgument("field", DSL.literal("field_value")),
+            dsl.namedArgument("query", DSL.literal("query_value")),
+            dsl.namedArgument("auto_generate_synonyms_phrase_query", DSL.literal("true"))
+        ),
+        List.of(
+            dsl.namedArgument("field", DSL.literal("field_value")),
+            dsl.namedArgument("query", DSL.literal("query_value")),
+            dsl.namedArgument("fuzziness", DSL.literal("AUTO"))
+        ),
+        List.of(
+            dsl.namedArgument("field", DSL.literal("field_value")),
+            dsl.namedArgument("query", DSL.literal("query_value")),
+            dsl.namedArgument("max_expansions", DSL.literal("50"))
+        ),
+        List.of(
+            dsl.namedArgument("field", DSL.literal("field_value")),
+            dsl.namedArgument("query", DSL.literal("query_value")),
+            dsl.namedArgument("prefix_length", DSL.literal("0"))
+        ),
+        List.of(
+            dsl.namedArgument("field", DSL.literal("field_value")),
+            dsl.namedArgument("query", DSL.literal("query_value")),
+            dsl.namedArgument("fuzzy_transpositions", DSL.literal("true"))
+        ),
+        List.of(
+            dsl.namedArgument("field", DSL.literal("field_value")),
+            dsl.namedArgument("query", DSL.literal("query_value")),
+            dsl.namedArgument("fuzzy_rewrite", DSL.literal("constant_score"))
+        ),
+        List.of(
+            dsl.namedArgument("field", DSL.literal("field_value")),
+            dsl.namedArgument("query", DSL.literal("query_value")),
+            dsl.namedArgument("lenient", DSL.literal("false"))
+        ),
+        List.of(
+            dsl.namedArgument("field", DSL.literal("field_value")),
+            dsl.namedArgument("query", DSL.literal("query_value")),
+            dsl.namedArgument("operator", DSL.literal("OR"))
+        ),
+        List.of(
+            dsl.namedArgument("field", DSL.literal("field_value")),
+            dsl.namedArgument("query", DSL.literal("query_value")),
+            dsl.namedArgument("minimum_should_match", DSL.literal("3"))
+        ),
+        List.of(
+            dsl.namedArgument("field", DSL.literal("field_value")),
+            dsl.namedArgument("query", DSL.literal("query_value")),
+            dsl.namedArgument("zero_terms_query", DSL.literal("NONE"))
+        ),
+        List.of(
+            dsl.namedArgument("field", DSL.literal("field_value")),
+            dsl.namedArgument("query", DSL.literal("query_value")),
+            dsl.namedArgument("boost", DSL.literal("1"))
+        )
+    );
+  }
+
+  @ParameterizedTest
+  @MethodSource("generateValidData")
+  public void test_valid_parameters(List<Expression> validArgs) {
+    Assertions.assertNotNull(matchQuery.build(new MatchExpression(validArgs)));
+  }
 
   @Test
   public void test_SemanticCheckException_when_no_arguments() {
@@ -53,42 +131,6 @@ public class MatchQueryTest {
         namedArgument("unsupported", "unsupported_value"));
     Assertions.assertThrows(SemanticCheckException.class,
         () -> matchQuery.build(new MatchExpression(arguments)));
-  }
-
-  @Test
-  public void build_succeeds_with_two_arguments() {
-    List<Expression> arguments = List.of(
-        namedArgument("field", "field_value"),
-        namedArgument("query", "query_value"));
-    Assertions.assertNotNull(matchQuery.build(new MatchExpression(arguments)));
-  }
-
-  @Test
-  public void test_valid_parameters() {
-    final int validArgIndex = 2;
-    final List<Expression> validArgs = List.of(
-        namedArgument("analyzer", "standard"),
-        namedArgument("auto_generate_synonyms_phrase_query", "true"),
-        namedArgument("fuzziness", "AUTO"),
-        namedArgument("max_expansions", "50"),
-        namedArgument("prefix_length", "0"),
-        namedArgument("fuzzy_transpositions", "true"),
-        namedArgument("fuzzy_rewrite", "constant_score"),
-        namedArgument("lenient", "false"),
-        namedArgument("operator", "OR"),
-        namedArgument("minimum_should_match", "3"),
-        namedArgument("zero_terms_query", "NONE"),
-        namedArgument("boost", "1"));
-
-    List<Expression> arguments = new ArrayList<Expression>();
-    arguments.add(namedArgument("field", "field_value"));
-    arguments.add(namedArgument("query", "query_value"));
-    arguments.add(namedArgument("", ""));
-
-    for (Expression arg : validArgs) {
-      arguments.set(validArgIndex, arg);
-      Assertions.assertNotNull(matchQuery.build(new MatchExpression(arguments)));
-    }
   }
 
   private NamedArgumentExpression namedArgument(String name, String value) {
