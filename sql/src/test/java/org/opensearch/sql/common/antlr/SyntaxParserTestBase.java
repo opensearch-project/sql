@@ -1,18 +1,21 @@
-package org.opensearch.sql.sql.antlr;
+package org.opensearch.sql.common.antlr;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import lombok.NoArgsConstructor;
-import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 
 /**
- * A base class for tests for SQL parser.
+ * A base class for tests for SQL or PPL parser.
  */
-@NoArgsConstructor
-public abstract class SQLSyntaxParserTestBase {
-  private final SQLSyntaxParser parser = new SQLSyntaxParser();
+@RequiredArgsConstructor(access = AccessLevel.PROTECTED)
+public abstract class SyntaxParserTestBase {
+  @Getter
+  private final Parser parser;
 
   /**
    * A helper function that fails a test if the parser rejects a given query.
