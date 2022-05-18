@@ -654,4 +654,9 @@ public class DSL {
     return (FunctionExpression) repository
         .compile(BuiltinFunctionName.MATCH.getName(), Arrays.asList(args.clone()));
   }
+
+  public FunctionExpression match_bool_prefix(Expression... args) {
+    return (FunctionExpression) repository
+        .compile(BuiltinFunctionName.MATCH_BOOL_PREFIX.getName(), Arrays.asList(args.clone()));
+  }
 }

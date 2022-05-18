@@ -337,6 +337,17 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
+  void match_bool_prefix_expression() {
+    assertAnalyzeEqual(
+        dsl.match_bool_prefix(
+            dsl.namedArgument("field", DSL.literal("fieldA")),
+            dsl.namedArgument("query", DSL.literal("sample query"))),
+        AstDSL.function("match_bool_prefix",
+            AstDSL.unresolvedArg("field", stringLiteral("fieldA")),
+            AstDSL.unresolvedArg("query", stringLiteral("sample query"))));
+  }
+
+  @Test
   void visit_span() {
     assertAnalyzeEqual(
         DSL.span(DSL.ref("integer_value", INTEGER), DSL.literal(1), ""),
