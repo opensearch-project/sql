@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.ToString;
 import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -24,7 +25,18 @@ import org.opensearch.sql.expression.env.Environment;
 @UtilityClass
 public class OpenSearchFunctions {
   public void register(BuiltinFunctionRepository repository) {
+    repository.register(match_bool_prefix());
     repository.register(match());
+  }
+
+  private static FunctionResolver match_bool_prefix() {
+    FunctionName name = BuiltinFunctionName.MATCH_BOOL_PREFIX.getName();
+    // TODO: Create different resolver more suited for relevance functions.
+    return new FunctionResolver(name,
+        ImmutableMap.<FunctionSignature, FunctionBuilder>builder()
+            .put(new FunctionSignature(name, ImmutableList.of(STRING, STRING)),
+                args -> new OpenSearchFunction(name, args))
+            .build());
   }
 
   private static FunctionResolver match() {
