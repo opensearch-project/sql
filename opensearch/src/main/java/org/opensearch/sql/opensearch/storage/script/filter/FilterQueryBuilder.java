@@ -29,6 +29,7 @@ import org.opensearch.sql.opensearch.storage.script.filter.lucene.RangeQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.RangeQuery.Comparison;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.TermQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.WildcardQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchBoolPrefixQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchQuery;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
@@ -55,6 +56,7 @@ public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Obje
           .put(BuiltinFunctionName.QUERY.getName(), new MatchQuery())
           .put(BuiltinFunctionName.MATCH_QUERY.getName(), new MatchQuery())
           .put(BuiltinFunctionName.MATCHQUERY.getName(), new MatchQuery())
+          .put(BuiltinFunctionName.MATCH_BOOL_PREFIX.getName(), new MatchBoolPrefixQuery())
           .build();
 
   /**
