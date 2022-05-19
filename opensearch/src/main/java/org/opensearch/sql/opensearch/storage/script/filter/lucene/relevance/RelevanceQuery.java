@@ -21,13 +21,7 @@ import org.opensearch.sql.opensearch.storage.script.filter.lucene.LuceneQuery;
  */
 public abstract class RelevanceQuery<T extends QueryBuilder> extends LuceneQuery {
 
-  protected Map<String, QueryBuilderStep<T>>
-      queryBuildActions;
-
-  public RelevanceQuery() {
-    super();
-    this.queryBuildActions = buildActionMap();
-  }
+  protected Map<String, QueryBuilderStep<T>> queryBuildActions = buildActionMap();
 
   @Override
   public QueryBuilder build(FunctionExpression func) {
@@ -42,8 +36,8 @@ public abstract class RelevanceQuery<T extends QueryBuilder> extends LuceneQuery
         throw new SemanticCheckException(String
             .format("Parameter %s is invalid for match function.", arg.getArgName()));
       }
-      (queryBuildActions
-          .get(arg.getArgName()))
+      queryBuildActions
+          .get(arg.getArgName())
           .apply(queryBuilder, arg.getValue().valueOf(null));
     }
     return queryBuilder;
