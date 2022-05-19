@@ -15,14 +15,12 @@ import org.opensearch.index.query.QueryBuilders;
  * Initializes MatchQueryBuilder from a FunctionExpression.
  */
 public class MatchQuery extends RelevanceQuery<MatchQueryBuilder> {
-  @Override
-  protected MatchQueryBuilder createQueryBuilder(String field, String query) {
-    return QueryBuilders.matchQuery(field, query);
-  }
-
-  @Override
-  protected Map<String, QueryBuilderStep<MatchQueryBuilder>> buildActionMap() {
-    return ImmutableMap.<String, QueryBuilderStep<MatchQueryBuilder>>builder()
+  /**
+   * Default constructor for MatchQuery configures how
+   * RelevanceQuery.build process supported named arguments.
+   */
+  public MatchQuery() {
+    super(ImmutableMap.<String, QueryBuilderStep<MatchQueryBuilder>>builder()
         .put("analyzer", (b, v) -> b.analyzer(v.stringValue()))
         .put("auto_generate_synonyms_phrase_query",
             (b, v) -> b.autoGenerateSynonymsPhraseQuery(Boolean.parseBoolean(v.stringValue())))
@@ -38,6 +36,11 @@ public class MatchQuery extends RelevanceQuery<MatchQueryBuilder> {
         .put("zero_terms_query", (b, v) -> b.zeroTermsQuery(
             org.opensearch.index.search.MatchQuery.ZeroTermsQuery.valueOf(v.stringValue())))
         .put("boost", (b, v) -> b.boost(Float.parseFloat(v.stringValue())))
-        .build();
+        .build());
+  }
+
+  @Override
+  protected MatchQueryBuilder createQueryBuilder(String field, String query) {
+    return QueryBuilders.matchQuery(field, query);
   }
 }

@@ -6,9 +6,13 @@
 package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiFunction;
+import org.opensearch.index.query.MatchPhraseQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.Expression;
@@ -20,32 +24,42 @@ import org.opensearch.sql.opensearch.storage.script.filter.lucene.LuceneQuery;
  * Base class for query abstraction that builds a relevance query from function expression.
  */
 public abstract class RelevanceQuery<T extends QueryBuilder> extends LuceneQuery {
+  protected Map<String, QueryBuilderStep<T>> queryBuildActions;
 
-  protected Map<String, QueryBuilderStep<T>> queryBuildActions = buildActionMap();
+  protected RelevanceQuery(Map<String, QueryBuilderStep<T>> actionMap) {
+    queryBuildActions = actionMap;
+  }
 
   @Override
   public QueryBuilder build(FunctionExpression func) {
-    Iterator<Expression> iterator = func.getArguments().iterator();
-    NamedArgumentExpression field = (NamedArgumentExpression) iterator.next();
-    NamedArgumentExpression query = (NamedArgumentExpression) iterator.next();
-    T queryBuilder = createQueryBuilder(field.getValue().valueOf(null).stringValue(),
+    List<Expression> arguments = func.getArguments();
+    if (arguments.size() < 2) {
+      String queryName = createQueryBuilder("", "").queryName();
+      throw new SemanticCheckException(
+          String.format("%s requires at least two parameters", queryName));
+    }
+    NamedArgumentExpression field = (NamedArgumentExpression) arguments.get(0);
+    NamedArgumentExpression query = (NamedArgumentExpression) arguments.get(1);
+    T queryBuilder = createQueryBuilder(
+        field.getValue().valueOf(null).stringValue(),
         query.getValue().valueOf(null).stringValue());
+
+    Iterator<Expression> iterator = arguments.listIterator(2);
     while (iterator.hasNext()) {
       NamedArgumentExpression arg = (NamedArgumentExpression) iterator.next();
       if (!queryBuildActions.containsKey(arg.getArgName())) {
         throw new SemanticCheckException(String
-            .format("Parameter %s is invalid for match function.", arg.getArgName()));
+            .format("Parameter %s is invalid for match_phrase function.", arg.getArgName()));
       }
-      queryBuildActions
-          .get(arg.getArgName())
+      (Objects.requireNonNull(
+          queryBuildActions
+              .get(arg.getArgName())))
           .apply(queryBuilder, arg.getValue().valueOf(null));
     }
     return queryBuilder;
   }
 
   protected abstract T createQueryBuilder(String field, String query);
-
-  protected abstract Map<String, QueryBuilderStep<T>> buildActionMap();
 
   /**
    * Convenience interface for a function that updates a QueryBuilder

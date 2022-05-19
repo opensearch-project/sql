@@ -16,13 +16,12 @@ import org.opensearch.index.query.QueryBuilders;
 public class MatchBoolPrefixQuery
     extends RelevanceQuery<MatchBoolPrefixQueryBuilder> {
 
-  @Override
-  protected MatchBoolPrefixQueryBuilder createQueryBuilder(String field, String query) {
-    return QueryBuilders.matchBoolPrefixQuery(field, query);
+  public MatchBoolPrefixQuery() {
+    super(ImmutableMap.of());
   }
 
   @Override
-  protected Map<String, QueryBuilderStep<MatchBoolPrefixQueryBuilder>> buildActionMap() {
-    return ImmutableMap.<String, QueryBuilderStep<MatchBoolPrefixQueryBuilder>>builder().build();
+  protected MatchBoolPrefixQueryBuilder createQueryBuilder(String field, String query) {
+    return QueryBuilders.matchBoolPrefixQuery(field, query);
   }
 }
