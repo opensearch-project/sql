@@ -102,10 +102,6 @@ public class JdbcTestIT extends SQLIntegTestCase {
     assertThat(response.getJSONArray("datarows").length(), equalTo(8));
   }
 
-  private JSONObject executeJdbcRequest(String query) {
-    return new JSONObject(executeQuery(query, "jdbc"));
-  }
-
   @Test
   public void numberOperatorNameCaseInsensitiveTest() {
     assertSchemaContains(

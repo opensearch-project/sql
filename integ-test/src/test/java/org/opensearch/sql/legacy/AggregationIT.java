@@ -1355,8 +1355,4 @@ public class AggregationIT extends SQLIntegTestCase {
 
     return targetField.getDouble(subFieldName);
   }
-
-  private JSONObject executeJdbcRequest(String query) {
-    return new JSONObject(executeQuery(query, "jdbc"));
-  }
 }
