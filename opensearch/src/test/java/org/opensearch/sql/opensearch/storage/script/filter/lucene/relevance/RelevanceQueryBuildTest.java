@@ -25,6 +25,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
 import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
@@ -80,8 +81,8 @@ class RelevanceQueryBuildTest {
 
   @ParameterizedTest
   @MethodSource("insufficientArguments")
-  public void throws_SemanticCheckException_when_no_required_arguments(List<Expression> arguments) {
-    assertThrows(SemanticCheckException.class, () -> query.build(createCall(arguments)));
+  public void throws_SyntaxCheckException_when_no_required_arguments(List<Expression> arguments) {
+    assertThrows(SyntaxCheckException.class, () -> query.build(createCall(arguments)));
   }
 
   public static Stream<List<Expression>> insufficientArguments() {

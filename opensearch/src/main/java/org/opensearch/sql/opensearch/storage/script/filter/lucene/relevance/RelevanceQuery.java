@@ -10,9 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiFunction;
-import org.opensearch.index.query.MatchPhraseQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
-import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.Expression;
@@ -35,7 +34,7 @@ public abstract class RelevanceQuery<T extends QueryBuilder> extends LuceneQuery
     List<Expression> arguments = func.getArguments();
     if (arguments.size() < 2) {
       String queryName = createQueryBuilder("", "").getWriteableName();
-      throw new SemanticCheckException(
+      throw new SyntaxCheckException(
           String.format("%s requires at least two parameters", queryName));
     }
     NamedArgumentExpression field = (NamedArgumentExpression) arguments.get(0);
@@ -48,8 +47,9 @@ public abstract class RelevanceQuery<T extends QueryBuilder> extends LuceneQuery
     while (iterator.hasNext()) {
       NamedArgumentExpression arg = (NamedArgumentExpression) iterator.next();
       if (!queryBuildActions.containsKey(arg.getArgName())) {
-        throw new SemanticCheckException(String
-            .format("Parameter %s is invalid for %s function.", arg.getArgName(), queryBuilder.getWriteableName()));
+        throw new SemanticCheckException(
+            String.format("Parameter %s is invalid for %s function.",
+                arg.getArgName(), queryBuilder.getWriteableName()));
       }
       (Objects.requireNonNull(
           queryBuildActions

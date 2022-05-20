@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -37,22 +38,21 @@ public class MatchPhraseQueryTest {
   }
 
   @Test
-  public void test_SemanticCheckException_when_no_arguments() {
-
+  public void test_SyntaxCheckException_when_no_arguments() {
     List<Expression> arguments = List.of();
-    assertThrows(SemanticCheckException.class,
+    assertThrows(SyntaxCheckException.class,
         () -> matchPhraseQuery.build(new MatchPhraseExpression(arguments)));
   }
 
   @Test
-  public void test_SemanticCheckException_when_one_argument() {
+  public void test_SyntaxCheckException_when_one_argument() {
     List<Expression> arguments = List.of(namedArgument("field", "test"));
-    assertThrows(SemanticCheckException.class,
+    assertThrows(SyntaxCheckException.class,
         () -> matchPhraseQuery.build(new MatchPhraseExpression(arguments)));
   }
 
   @Test
-  public void test_SemanticCheckException_when_invalid_parameter() {
+  public void test_SyntaxCheckException_when_invalid_parameter() {
     List<Expression> arguments = List.of(
         namedArgument("field", "test"),
         namedArgument("query", "test2"),
