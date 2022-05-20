@@ -33,7 +33,7 @@ public abstract class RelevanceQuery<T extends QueryBuilder> extends LuceneQuery
   public QueryBuilder build(FunctionExpression func) {
     List<Expression> arguments = func.getArguments();
     if (arguments.size() < 2) {
-      String queryName = createQueryBuilder("", "").getWriteableName();
+      String queryName = createQueryBuilder("dummy_field", "").getWriteableName();
       throw new SyntaxCheckException(
           String.format("%s requires at least two parameters", queryName));
     }
