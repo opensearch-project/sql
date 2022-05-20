@@ -3,7 +3,6 @@ package org.opensearch.sql.sql.antlr;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
-@EnabledIfEnvironmentVariable(named = "INCLUDE_WIP", matches = ".*")
 public class MatchBoolPrefixParserTest extends SQLParserTest {
 
   @Test
