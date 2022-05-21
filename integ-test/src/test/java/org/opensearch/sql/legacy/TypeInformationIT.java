@@ -150,9 +150,4 @@ public class TypeInformationIT extends SQLIntegTestCase {
 
     verifySchema(response, schema("YEAR(insert_time)", null, "integer"));
   }
-
-  private JSONObject executeJdbcRequest(String query) {
-    return new JSONObject(executeQuery(query, "jdbc"));
-  }
-
 }
