@@ -264,6 +264,7 @@ IF:                                 'IF';
 
 // RELEVANCE FUNCTIONS AND PARAMETERS
 MATCH:                              'MATCH';
+MATCH_PHRASE:                       'MATCH_PHRASE';
 ANALYZER:                           'ANALYZER';
 FUZZINESS:                          'FUZZINESS';
 AUTO_GENERATE_SYNONYMS_PHRASE_QUERY:'AUTO_GENERATE_SYNONYMS_PHRASE_QUERY';
@@ -276,7 +277,7 @@ OPERATOR:                           'OPERATOR';
 MINIMUM_SHOULD_MATCH:               'MINIMUM_SHOULD_MATCH';
 ZERO_TERMS_QUERY:                   'ZERO_TERMS_QUERY';
 BOOST:                              'BOOST';
-
+SLOP:                                'SLOP';
 // SPAN KEYWORDS
 SPAN:                               'SPAN';
 MS:                                 'MS';
