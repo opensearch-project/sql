@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -29,6 +30,7 @@ import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
@@ -54,6 +56,7 @@ class RelevanceQueryBuildTest {
     queryBuilder = mock(QueryBuilder.class);
     when(query.createQueryBuilder(any(), any())).thenReturn(queryBuilder);
     when(queryBuilder.queryName()).thenReturn("mocked_query");
+    when(queryBuilder.getWriteableName()).thenReturn("mock_query");
   }
 
   @Test
@@ -67,7 +70,9 @@ class RelevanceQueryBuildTest {
     FunctionExpression expr =
         createCall(List.of(FIELD_ARG, QUERY_ARG, namedArgument("wrongArg", "value")));
 
-    assertThrows(SemanticCheckException.class, () -> query.build(expr));
+    SemanticCheckException exception =
+        assertThrows(SemanticCheckException.class, () -> query.build(expr));
+    assertEquals("Parameter wrongArg is invalid for mock_query function.", exception.getMessage());
   }
 
   @Test
@@ -82,7 +87,9 @@ class RelevanceQueryBuildTest {
   @ParameterizedTest
   @MethodSource("insufficientArguments")
   public void throws_SyntaxCheckException_when_no_required_arguments(List<Expression> arguments) {
-    assertThrows(SyntaxCheckException.class, () -> query.build(createCall(arguments)));
+    SyntaxCheckException exception = assertThrows(SyntaxCheckException.class,
+        () -> query.build(createCall(arguments)));
+    assertEquals("mock_query requires at least two parameters", exception.getMessage());
   }
 
   public static Stream<List<Expression>> insufficientArguments() {
