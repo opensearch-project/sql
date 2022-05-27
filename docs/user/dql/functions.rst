@@ -2195,3 +2195,26 @@ Another example to show how to set custom values for the optional parameters::
     | Bond       |
     +------------+
 
+
+MATCH_BOOL_PREFIX
+-----
+
+Description
+>>>>>>>>>>>
+
+``match_bool_prefix(field_expression, query_expression)``
+
+The match_bool_prefix function maps to the match_bool_prefix query in the search engine. match_bool_prefix creates a match query from all but the last term in the query string. The last term is used to create a prefix query.
+
+Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
+```
+    os> SELECT firstname, address FROM accounts WHERE match_bool_prefix(address, 'Bristol Stre');
+    fetched rows / total rows = 2/2
+    +-------------+--------------------+
+    | firstname   | address            |
+    |-------------+--------------------|
+    | Hattie      | 671 Bristol Street |
+    | Nanette     | 789 Madison Street |
+    +-------------+--------------------+
+
+```
