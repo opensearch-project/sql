@@ -29,6 +29,7 @@ import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
 import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.Plugin;
+import org.opensearch.plugins.ReloadablePlugin;
 import org.opensearch.plugins.ScriptPlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
@@ -45,6 +46,8 @@ import org.opensearch.sql.opensearch.setting.LegacyOpenDistroSettings;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.script.ExpressionScriptEngine;
 import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
+import org.opensearch.sql.plugin.catalog.CatalogServiceImpl;
+import org.opensearch.sql.plugin.catalog.CatalogSettings;
 import org.opensearch.sql.plugin.rest.RestPPLQueryAction;
 import org.opensearch.sql.plugin.rest.RestPPLStatsAction;
 import org.opensearch.sql.plugin.rest.RestQuerySettingsAction;
@@ -53,9 +56,11 @@ import org.opensearch.threadpool.FixedExecutorBuilder;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
-public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
+public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, ReloadablePlugin {
 
   private ClusterService clusterService;
+
+  private CatalogServiceImpl catalogServiceImpl;
 
   /**
    * Settings should be inited when bootstrap the plugin.
@@ -84,7 +89,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
     Metrics.getInstance().registerDefaultMetrics();
 
     return Arrays.asList(
-        new RestPPLQueryAction(restController, clusterService, pluginSettings, settings),
+        new RestPPLQueryAction(restController, clusterService, pluginSettings, settings,
+            catalogServiceImpl),
         new RestSqlAction(settings, clusterService, pluginSettings),
         new RestSqlStatsAction(settings, restController),
         new RestPPLStatsAction(settings, restController),
@@ -103,10 +109,10 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
                                              NamedWriteableRegistry namedWriteableRegistry,
                                              IndexNameExpressionResolver indexNameResolver,
                                              Supplier<RepositoriesService>
-                                                       repositoriesServiceSupplier) {
+                                                 repositoriesServiceSupplier) {
     this.clusterService = clusterService;
     this.pluginSettings = new OpenSearchSettings(clusterService.getClusterSettings());
-
+    this.catalogServiceImpl = new CatalogServiceImpl(clusterService.getSettings());
     LocalClusterState.state().setClusterService(clusterService);
     LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
 
@@ -134,12 +140,19 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
     return new ImmutableList.Builder<Setting<?>>()
         .addAll(LegacyOpenDistroSettings.legacySettings())
         .addAll(OpenSearchSettings.pluginSettings())
+        .add(CatalogSettings.CATALOG_CONFIG)
+        .add(CatalogSettings.FEDERATION_ENABLED)
         .build();
   }
 
   @Override
   public ScriptEngine getScriptEngine(Settings settings, Collection<ScriptContext<?>> contexts) {
     return new ExpressionScriptEngine(new DefaultExpressionSerializer());
+  }
+
+  @Override
+  public void reload(Settings settings) {
+    this.catalogServiceImpl.loadConnectors(settings);
   }
 
 }

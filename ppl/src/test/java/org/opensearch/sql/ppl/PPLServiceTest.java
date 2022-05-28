@@ -18,6 +18,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -44,6 +45,9 @@ public class PPLServiceTest {
   private ExecutionEngine executionEngine;
 
   @Mock
+  private CatalogService catalogService;
+
+  @Mock
   private Table table;
 
   @Mock
@@ -63,6 +67,7 @@ public class PPLServiceTest {
 
     context.registerBean(StorageEngine.class, () -> storageEngine);
     context.registerBean(ExecutionEngine.class, () -> executionEngine);
+    context.registerBean(CatalogService.class, () -> catalogService);
     context.register(PPLServiceConfig.class);
     context.refresh();
     pplService = context.getBean(PPLService.class);

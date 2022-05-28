@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl.config;
 
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.analysis.ExpressionAnalyzer;
+import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
@@ -30,6 +31,9 @@ public class PPLServiceConfig {
   private ExecutionEngine executionEngine;
 
   @Autowired
+  private CatalogService catalogService;
+
+  @Autowired
   private BuiltinFunctionRepository functionRepository;
 
   @Bean
@@ -40,7 +44,7 @@ public class PPLServiceConfig {
   @Bean
   public PPLService pplService() {
     return new PPLService(new PPLSyntaxParser(), analyzer(), storageEngine, executionEngine,
-        functionRepository);
+        functionRepository, catalogService);
   }
 
 }

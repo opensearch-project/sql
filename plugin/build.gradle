@@ -92,6 +92,7 @@ configurations.all {
 
 dependencies {
     api group: 'org.springframework', name: 'spring-beans', version: '5.2.20.RELEASE'
+    api 'com.fasterxml.jackson.core:jackson-databind:2.13.2.2'
     api project(":ppl")
     api project(':legacy')
     api project(':opensearch')
