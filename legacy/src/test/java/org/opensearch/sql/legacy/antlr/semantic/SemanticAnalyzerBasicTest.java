@@ -9,7 +9,7 @@ package org.opensearch.sql.legacy.antlr.semantic;
 import static org.hamcrest.Matchers.aMapWithSize;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.hasEntry;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.BOOLEAN;
 import static org.opensearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.DATE;
 import static org.opensearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.DOUBLE;
@@ -61,7 +61,7 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
             typeByName,
             allOf(
                 aMapWithSize(21),
-                hasEntry("semantics", (Type) new OpenSearchIndex("semantics", INDEX)),
+                hasEntry("semantics", new OpenSearchIndex("semantics", INDEX)),
                 hasEntry("address", TEXT),
                 hasEntry("age", INTEGER),
                 hasEntry("balance", DOUBLE),
@@ -72,10 +72,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("field with spaces", TEXT),
                 hasEntry("employer", TEXT),
                 hasEntry("employer.keyword", KEYWORD),
-                hasEntry("projects", (Type) new OpenSearchIndex("projects", NESTED_FIELD)),
+                hasEntry("projects", new OpenSearchIndex("projects", NESTED_FIELD)),
                 hasEntry("projects.active", BOOLEAN),
                 hasEntry("projects.release", DATE),
-                hasEntry("projects.members", (Type) new OpenSearchIndex("projects.members", NESTED_FIELD)),
+                hasEntry("projects.members", new OpenSearchIndex("projects.members", NESTED_FIELD)),
                 hasEntry("projects.members.name", TEXT),
                 hasEntry("manager", OBJECT),
                 hasEntry("manager.name", TEXT),
@@ -91,7 +91,7 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
             typeByName,
             allOf(
                 aMapWithSize(41),
-                hasEntry("semantics", (Type) new OpenSearchIndex("semantics", INDEX)),
+                hasEntry("semantics", new OpenSearchIndex("semantics", INDEX)),
                 hasEntry("address", TEXT),
                 hasEntry("age", INTEGER),
                 hasEntry("balance", DOUBLE),
@@ -102,10 +102,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("field with spaces", TEXT),
                 hasEntry("employer", TEXT),
                 hasEntry("employer.keyword", KEYWORD),
-                hasEntry("projects", (Type) new OpenSearchIndex("projects", NESTED_FIELD)),
+                hasEntry("projects", new OpenSearchIndex("projects", NESTED_FIELD)),
                 hasEntry("projects.active", BOOLEAN),
                 hasEntry("projects.release", DATE),
-                hasEntry("projects.members", (Type) new OpenSearchIndex("projects.members", NESTED_FIELD)),
+                hasEntry("projects.members", new OpenSearchIndex("projects.members", NESTED_FIELD)),
                 hasEntry("projects.members.name", TEXT),
                 hasEntry("manager", OBJECT),
                 hasEntry("manager.name", TEXT),
@@ -123,10 +123,12 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("semantics.field with spaces", TEXT),
                 hasEntry("semantics.employer", TEXT),
                 hasEntry("semantics.employer.keyword", KEYWORD),
-                hasEntry("semantics.projects", (Type) new OpenSearchIndex("semantics.projects", NESTED_FIELD)),
+                hasEntry("semantics.projects",
+                    new OpenSearchIndex("semantics.projects", NESTED_FIELD)),
                 hasEntry("semantics.projects.active", BOOLEAN),
                 hasEntry("semantics.projects.release", DATE),
-                hasEntry("semantics.projects.members", (Type) new OpenSearchIndex("semantics.projects.members", NESTED_FIELD)),
+                hasEntry("semantics.projects.members",
+                    new OpenSearchIndex("semantics.projects.members", NESTED_FIELD)),
                 hasEntry("semantics.projects.members.name", TEXT),
                 hasEntry("semantics.manager", OBJECT),
                 hasEntry("semantics.manager.name", TEXT),
@@ -148,7 +150,7 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
             typeByName,
             allOf(
                 aMapWithSize(41),
-                hasEntry("semantics", (Type) indexType),
+                hasEntry("semantics", indexType),
                 // These are also valid because alias is optional in SQL
                 hasEntry("address", TEXT),
                 hasEntry("age", INTEGER),
@@ -160,10 +162,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("field with spaces", TEXT),
                 hasEntry("employer", TEXT),
                 hasEntry("employer.keyword", KEYWORD),
-                hasEntry("projects", (Type) new OpenSearchIndex("projects", NESTED_FIELD)),
+                hasEntry("projects", new OpenSearchIndex("projects", NESTED_FIELD)),
                 hasEntry("projects.active", BOOLEAN),
                 hasEntry("projects.release", DATE),
-                hasEntry("projects.members", (Type) new OpenSearchIndex("projects.members", NESTED_FIELD)),
+                hasEntry("projects.members", new OpenSearchIndex("projects.members", NESTED_FIELD)),
                 hasEntry("projects.members.name", TEXT),
                 hasEntry("manager", OBJECT),
                 hasEntry("manager.name", TEXT),
@@ -181,10 +183,11 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("s.field with spaces", TEXT),
                 hasEntry("s.employer", TEXT),
                 hasEntry("s.employer.keyword", KEYWORD),
-                hasEntry("s.projects", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
+                hasEntry("s.projects", new OpenSearchIndex("s.projects", NESTED_FIELD)),
                 hasEntry("s.projects.active", BOOLEAN),
                 hasEntry("s.projects.release", DATE),
-                hasEntry("s.projects.members", (Type) new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
+                hasEntry("s.projects.members",
+                    new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
                 hasEntry("s.projects.members.name", TEXT),
                 hasEntry("s.manager", OBJECT),
                 hasEntry("s.manager.name", TEXT),
@@ -208,7 +211,7 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
             typeByName,
             allOf(
                 aMapWithSize(41),
-                hasEntry("semantics", (Type) indexType),
+                hasEntry("semantics", indexType),
                 // These are also valid because alias is optional in SQL
                 hasEntry("address", TEXT),
                 hasEntry("age", INTEGER),
@@ -220,10 +223,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("field with spaces", TEXT),
                 hasEntry("employer", TEXT),
                 hasEntry("employer.keyword", KEYWORD),
-                hasEntry("projects", (Type) new OpenSearchIndex("projects", NESTED_FIELD)),
+                hasEntry("projects", new OpenSearchIndex("projects", NESTED_FIELD)),
                 hasEntry("projects.active", BOOLEAN),
                 hasEntry("projects.release", DATE),
-                hasEntry("projects.members", (Type) new OpenSearchIndex("projects.members", NESTED_FIELD)),
+                hasEntry("projects.members", new OpenSearchIndex("projects.members", NESTED_FIELD)),
                 hasEntry("projects.members.name", TEXT),
                 hasEntry("manager", OBJECT),
                 hasEntry("manager.name", TEXT),
@@ -241,10 +244,11 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("s.field with spaces", TEXT),
                 hasEntry("s.employer", TEXT),
                 hasEntry("s.employer.keyword", KEYWORD),
-                hasEntry("s.projects", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
+                hasEntry("s.projects", new OpenSearchIndex("s.projects", NESTED_FIELD)),
                 hasEntry("s.projects.active", BOOLEAN),
                 hasEntry("s.projects.release", DATE),
-                hasEntry("s.projects.members", (Type) new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
+                hasEntry("s.projects.members",
+                    new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
                 hasEntry("s.projects.members.name", TEXT),
                 hasEntry("s.manager", OBJECT),
                 hasEntry("s.manager.name", TEXT),
@@ -269,7 +273,7 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
             allOf(
                 aMapWithSize(46),
                 // These are also valid because alias is optional in SQL
-                hasEntry("semantics", (Type) indexType),
+                hasEntry("semantics", indexType),
                 // These are also valid because alias is optional in SQL
                 hasEntry("address", TEXT),
                 hasEntry("age", INTEGER),
@@ -281,10 +285,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("field with spaces", TEXT),
                 hasEntry("employer", TEXT),
                 hasEntry("employer.keyword", KEYWORD),
-                hasEntry("projects", (Type) new OpenSearchIndex("projects", NESTED_FIELD)),
+                hasEntry("projects", new OpenSearchIndex("projects", NESTED_FIELD)),
                 hasEntry("projects.active", BOOLEAN),
                 hasEntry("projects.release", DATE),
-                hasEntry("projects.members", (Type) new OpenSearchIndex("projects.members", NESTED_FIELD)),
+                hasEntry("projects.members", new OpenSearchIndex("projects.members", NESTED_FIELD)),
                 hasEntry("projects.members.name", TEXT),
                 hasEntry("manager", OBJECT),
                 hasEntry("manager.name", TEXT),
@@ -302,10 +306,11 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("s.field with spaces", TEXT),
                 hasEntry("s.employer", TEXT),
                 hasEntry("s.employer.keyword", KEYWORD),
-                hasEntry("s.projects", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
+                hasEntry("s.projects", new OpenSearchIndex("s.projects", NESTED_FIELD)),
                 hasEntry("s.projects.active", BOOLEAN),
                 hasEntry("s.projects.release", DATE),
-                hasEntry("s.projects.members", (Type) new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
+                hasEntry("s.projects.members",
+                    new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
                 hasEntry("s.projects.members.name", TEXT),
                 hasEntry("s.manager", OBJECT),
                 hasEntry("s.manager.name", TEXT),
@@ -313,10 +318,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("s.manager.address", KEYWORD),
                 hasEntry("s.manager.salary", LONG),
                 // Valid because of nested field alias specified
-                hasEntry("p", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
+                hasEntry("p", new OpenSearchIndex("s.projects", NESTED_FIELD)),
                 hasEntry("p.active", BOOLEAN),
                 hasEntry("p.release", DATE),
-                hasEntry("p.members", (Type) new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
+                hasEntry("p.members", new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
                 hasEntry("p.members.name", TEXT)
             )
         );
@@ -336,7 +341,7 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
             typeByName,
             allOf(
                 aMapWithSize(43),
-                hasEntry("semantics", (Type) indexType),
+                hasEntry("semantics", indexType),
                 // These are also valid because alias is optional in SQL
                 hasEntry("address", TEXT),
                 hasEntry("age", INTEGER),
@@ -348,10 +353,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("field with spaces", TEXT),
                 hasEntry("employer", TEXT),
                 hasEntry("employer.keyword", KEYWORD),
-                hasEntry("projects", (Type) new OpenSearchIndex("projects", NESTED_FIELD)),
+                hasEntry("projects", new OpenSearchIndex("projects", NESTED_FIELD)),
                 hasEntry("projects.active", BOOLEAN),
                 hasEntry("projects.release", DATE),
-                hasEntry("projects.members", (Type) new OpenSearchIndex("projects.members", NESTED_FIELD)),
+                hasEntry("projects.members", new OpenSearchIndex("projects.members", NESTED_FIELD)),
                 hasEntry("projects.members.name", TEXT),
                 hasEntry("manager", OBJECT),
                 hasEntry("manager.name", TEXT),
@@ -369,10 +374,11 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("s.field with spaces", TEXT),
                 hasEntry("s.employer", TEXT),
                 hasEntry("s.employer.keyword", KEYWORD),
-                hasEntry("s.projects", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
+                hasEntry("s.projects", new OpenSearchIndex("s.projects", NESTED_FIELD)),
                 hasEntry("s.projects.active", BOOLEAN),
                 hasEntry("s.projects.release", DATE),
-                hasEntry("s.projects.members", (Type) new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
+                hasEntry("s.projects.members",
+                    new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
                 hasEntry("s.projects.members.name", TEXT),
                 hasEntry("s.manager", OBJECT),
                 hasEntry("s.manager.name", TEXT),
@@ -380,7 +386,7 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("s.manager.address", KEYWORD),
                 hasEntry("s.manager.salary", LONG),
                 // Valid because of deep nested field alias specified
-                hasEntry("m", (Type) new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
+                hasEntry("m", new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
                 hasEntry("m.name", TEXT)
             )
         );
@@ -401,7 +407,7 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
             typeByName,
             allOf(
                 aMapWithSize(48),
-                hasEntry("semantics", (Type) indexType),
+                hasEntry("semantics", indexType),
                 // These are also valid because alias is optional in SQL
                 hasEntry("address", TEXT),
                 hasEntry("age", INTEGER),
@@ -413,10 +419,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("field with spaces", TEXT),
                 hasEntry("employer", TEXT),
                 hasEntry("employer.keyword", KEYWORD),
-                hasEntry("projects", (Type) new OpenSearchIndex("projects", NESTED_FIELD)),
+                hasEntry("projects", new OpenSearchIndex("projects", NESTED_FIELD)),
                 hasEntry("projects.active", BOOLEAN),
                 hasEntry("projects.release", DATE),
-                hasEntry("projects.members", (Type) new OpenSearchIndex("projects.members", NESTED_FIELD)),
+                hasEntry("projects.members", new OpenSearchIndex("projects.members", NESTED_FIELD)),
                 hasEntry("projects.members.name", TEXT),
                 hasEntry("manager", OBJECT),
                 hasEntry("manager.name", TEXT),
@@ -434,10 +440,11 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("s.field with spaces", TEXT),
                 hasEntry("s.employer", TEXT),
                 hasEntry("s.employer.keyword", KEYWORD),
-                hasEntry("s.projects", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
+                hasEntry("s.projects", new OpenSearchIndex("s.projects", NESTED_FIELD)),
                 hasEntry("s.projects.active", BOOLEAN),
                 hasEntry("s.projects.release", DATE),
-                hasEntry("s.projects.members", (Type) new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
+                hasEntry("s.projects.members",
+                    new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
                 hasEntry("s.projects.members.name", TEXT),
                 hasEntry("s.manager", OBJECT),
                 hasEntry("s.manager.name", TEXT),
@@ -445,13 +452,13 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("s.manager.address", KEYWORD),
                 hasEntry("s.manager.salary", LONG),
                 // Valid because of nested field alias specified
-                hasEntry("p", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
+                hasEntry("p", new OpenSearchIndex("s.projects", NESTED_FIELD)),
                 hasEntry("p.active", BOOLEAN),
                 hasEntry("p.release", DATE),
-                hasEntry("p.members", (Type) new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
+                hasEntry("p.members", new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
                 hasEntry("p.members.name", TEXT),
                 // Valid because of deep nested field alias specified
-                hasEntry("m", (Type) new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
+                hasEntry("m", new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
                 hasEntry("m.name", TEXT)
             )
         );
@@ -473,7 +480,7 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
             allOf(
                 aMapWithSize(46),
                 // These are also valid because alias is optional in SQL
-                hasEntry("semantics", (Type) indexType),
+                hasEntry("semantics", indexType),
                 // These are also valid because alias is optional in SQL
                 hasEntry("address", TEXT),
                 hasEntry("age", INTEGER),
@@ -485,10 +492,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("field with spaces", TEXT),
                 hasEntry("employer", TEXT),
                 hasEntry("employer.keyword", KEYWORD),
-                hasEntry("projects", (Type) new OpenSearchIndex("projects", NESTED_FIELD)),
+                hasEntry("projects", new OpenSearchIndex("projects", NESTED_FIELD)),
                 hasEntry("projects.active", BOOLEAN),
                 hasEntry("projects.release", DATE),
-                hasEntry("projects.members", (Type) new OpenSearchIndex("projects.members", NESTED_FIELD)),
+                hasEntry("projects.members", new OpenSearchIndex("projects.members", NESTED_FIELD)),
                 hasEntry("projects.members.name", TEXT),
                 hasEntry("manager", OBJECT),
                 hasEntry("manager.name", TEXT),
@@ -506,10 +513,11 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("s.field with spaces", TEXT),
                 hasEntry("s.employer", TEXT),
                 hasEntry("s.employer.keyword", KEYWORD),
-                hasEntry("s.projects", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
+                hasEntry("s.projects", new OpenSearchIndex("s.projects", NESTED_FIELD)),
                 hasEntry("s.projects.active", BOOLEAN),
                 hasEntry("s.projects.release", DATE),
-                hasEntry("s.projects.members", (Type) new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
+                hasEntry("s.projects.members",
+                    new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
                 hasEntry("s.projects.members.name", TEXT),
                 hasEntry("s.manager", OBJECT),
                 hasEntry("s.manager.name", TEXT),
@@ -517,10 +525,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("s.manager.address", KEYWORD),
                 hasEntry("s.manager.salary", LONG),
                 // Valid because of nested field alias specified
-                hasEntry("p", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
+                hasEntry("p", new OpenSearchIndex("s.projects", NESTED_FIELD)),
                 hasEntry("p.active", BOOLEAN),
                 hasEntry("p.release", DATE),
-                hasEntry("p.members", (Type) new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
+                hasEntry("p.members", new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
                 hasEntry("p.members.name", TEXT)
             )
         );
@@ -531,7 +539,7 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
             typeByName,
             allOf(
                 aMapWithSize(41),
-                hasEntry("semantics", (Type) indexType),
+                hasEntry("semantics", indexType),
                 // These are also valid because alias is optional in SQL
                 hasEntry("address", TEXT),
                 hasEntry("age", INTEGER),
@@ -543,10 +551,10 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("field with spaces", TEXT),
                 hasEntry("employer", TEXT),
                 hasEntry("employer.keyword", KEYWORD),
-                hasEntry("projects", (Type) new OpenSearchIndex("projects", NESTED_FIELD)),
+                hasEntry("projects", new OpenSearchIndex("projects", NESTED_FIELD)),
                 hasEntry("projects.active", BOOLEAN),
                 hasEntry("projects.release", DATE),
-                hasEntry("projects.members", (Type) new OpenSearchIndex("projects.members", NESTED_FIELD)),
+                hasEntry("projects.members", new OpenSearchIndex("projects.members", NESTED_FIELD)),
                 hasEntry("projects.members.name", TEXT),
                 hasEntry("manager", OBJECT),
                 hasEntry("manager.name", TEXT),
@@ -564,10 +572,11 @@ public class SemanticAnalyzerBasicTest extends SemanticAnalyzerTestBase {
                 hasEntry("s.field with spaces", TEXT),
                 hasEntry("s.employer", TEXT),
                 hasEntry("s.employer.keyword", KEYWORD),
-                hasEntry("s.projects", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
+                hasEntry("s.projects", new OpenSearchIndex("s.projects", NESTED_FIELD)),
                 hasEntry("s.projects.active", BOOLEAN),
                 hasEntry("s.projects.release", DATE),
-                hasEntry("s.projects.members", (Type) new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
+                hasEntry("s.projects.members",
+                    new OpenSearchIndex("s.projects.members", NESTED_FIELD)),
                 hasEntry("s.projects.members.name", TEXT),
                 hasEntry("s.manager", OBJECT),
                 hasEntry("s.manager.name", TEXT),

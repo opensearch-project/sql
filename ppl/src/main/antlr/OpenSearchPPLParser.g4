@@ -171,7 +171,7 @@ statsFunctionName
     ;
 
 percentileAggFunction
-    : PERCENTILE '<' value=integerLiteral '>' LT_PRTHS aggField=fieldExpression RT_PRTHS
+    : PERCENTILE LESS value=integerLiteral GREATER LT_PRTHS aggField=fieldExpression RT_PRTHS
     ;
 
 /** expressions */
@@ -305,7 +305,7 @@ relevanceArg
 relevanceArgName
     : ANALYZER | FUZZINESS | AUTO_GENERATE_SYNONYMS_PHRASE_QUERY | MAX_EXPANSIONS | PREFIX_LENGTH
     | FUZZY_TRANSPOSITIONS | FUZZY_REWRITE | LENIENT | OPERATOR | MINIMUM_SHOULD_MATCH | ZERO_TERMS_QUERY
-    | BOOST
+    | BOOST | SLOP
     ;
 
 relevanceArgValue
@@ -351,6 +351,7 @@ binaryOperator
 
 relevanceFunctionName
     : MATCH
+    | MATCH_PHRASE
     ;
 
 /** literals and values*/

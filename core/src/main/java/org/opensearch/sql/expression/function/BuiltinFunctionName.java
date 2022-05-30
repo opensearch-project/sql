@@ -187,6 +187,8 @@ public enum BuiltinFunctionName {
    * Relevance Function.
    */
   MATCH(FunctionName.of("match")),
+  MATCH_PHRASE(FunctionName.of("match_phrase")),
+  MATCHPHRASE(FunctionName.of("matchphrase")),
   MATCH_BOOL_PREFIX(FunctionName.of("match_bool_prefix")),
 
   /**

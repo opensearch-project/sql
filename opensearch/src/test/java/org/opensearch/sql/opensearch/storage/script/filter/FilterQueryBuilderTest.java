@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.opensearch.storage.script.filter;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -45,6 +46,7 @@ import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
@@ -361,8 +363,117 @@ class FilterQueryBuilderTest {
         dsl.namedArgument("field", literal("message")),
         dsl.namedArgument("query", literal("search query")),
         dsl.namedArgument("invalid_parameter", literal("invalid_value")));
-    assertThrows(SemanticCheckException.class, () -> buildQuery(expr),
-        "Parameter invalid_parameter is invalid for match function.");
+    var msg = assertThrows(SemanticCheckException.class, () -> buildQuery(expr)).getMessage();
+    assertEquals("Parameter invalid_parameter is invalid for match function.", msg);
+  }
+
+  @Test
+  void should_build_match_phrase_query_with_default_parameters() {
+    assertJsonEquals(
+            "{\n"
+            + "  \"match_phrase\" : {\n"
+            + "    \"message\" : {\n"
+            + "      \"query\" : \"search query\",\n"
+            + "      \"slop\" : 0,\n"
+            + "      \"zero_terms_query\" : \"NONE\",\n"
+            + "      \"boost\" : 1.0\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            dsl.match_phrase(
+                dsl.namedArgument("field", literal("message")),
+                dsl.namedArgument("query", literal("search query")))));
+  }
+
+  @Test
+  void should_build_match_phrase_query_with_custom_parameters() {
+    assertJsonEquals(
+            "{\n"
+            + "  \"match_phrase\" : {\n"
+            + "    \"message\" : {\n"
+            + "      \"query\" : \"search query\",\n"
+            + "      \"analyzer\" : \"keyword\","
+            + "      \"slop\" : 2,\n"
+            + "      \"zero_terms_query\" : \"ALL\",\n"
+            + "      \"boost\" : 1.0\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            dsl.match_phrase(
+                dsl.namedArgument("field", literal("message")),
+                dsl.namedArgument("query", literal("search query")),
+                dsl.namedArgument("analyzer", literal("keyword")),
+                dsl.namedArgument("slop", literal("2")),
+                dsl.namedArgument("zero_terms_query", literal("ALL")))));
+  }
+
+  @Test
+  void match_phrase_invalid_parameter() {
+    FunctionExpression expr = dsl.match_phrase(
+        dsl.namedArgument("field", literal("message")),
+        dsl.namedArgument("query", literal("search query")),
+        dsl.namedArgument("invalid_parameter", literal("invalid_value")));
+    var msg = assertThrows(SemanticCheckException.class, () -> buildQuery(expr)).getMessage();
+    assertEquals("Parameter invalid_parameter is invalid for match_phrase function.", msg);
+  }
+
+  @Test
+  void match_phrase_invalid_value_slop() {
+    FunctionExpression expr = dsl.match_phrase(
+        dsl.namedArgument("field", literal("message")),
+        dsl.namedArgument("query", literal("search query")),
+        dsl.namedArgument("slop", literal("1.5")));
+    var msg = assertThrows(NumberFormatException.class, () -> buildQuery(expr)).getMessage();
+    assertEquals("For input string: \"1.5\"", msg);
+  }
+
+  @Test
+  void match_phrase_invalid_value_ztq() {
+    FunctionExpression expr = dsl.match_phrase(
+        dsl.namedArgument("field", literal("message")),
+        dsl.namedArgument("query", literal("search query")),
+        dsl.namedArgument("zero_terms_query", literal("meow")));
+    var msg = assertThrows(IllegalArgumentException.class, () -> buildQuery(expr)).getMessage();
+    assertEquals("No enum constant org.opensearch.index.search.MatchQuery.ZeroTermsQuery.meow",
+          msg);
+  }
+
+  @Test
+  void match_phrase_missing_field() {
+    var msg = assertThrows(ExpressionEvaluationException.class, () ->
+        dsl.match_phrase(
+            dsl.namedArgument("query", literal("search query")))).getMessage();
+    assertEquals("match_phrase function expected {[STRING,STRING],[STRING,STRING,STRING],"
+          + "[STRING,STRING,STRING,STRING],[STRING,STRING,STRING,STRING,STRING]}, but get [STRING]",
+          msg);
+  }
+
+  @Test
+  void match_phrase_missing_query() {
+    var msg = assertThrows(ExpressionEvaluationException.class, () ->
+        dsl.match_phrase(
+            dsl.namedArgument("field", literal("message")))).getMessage();
+    assertEquals("match_phrase function expected {[STRING,STRING],[STRING,STRING,STRING],"
+          + "[STRING,STRING,STRING,STRING],[STRING,STRING,STRING,STRING,STRING]}, but get [STRING]",
+          msg);
+  }
+
+  @Test
+  void match_phrase_too_many_args() {
+    var msg = assertThrows(ExpressionEvaluationException.class, () ->
+        dsl.match_phrase(
+            dsl.namedArgument("one", literal("1")),
+            dsl.namedArgument("two", literal("2")),
+            dsl.namedArgument("three", literal("3")),
+            dsl.namedArgument("four", literal("4")),
+            dsl.namedArgument("fix", literal("5")),
+            dsl.namedArgument("six", literal("6"))
+                )).getMessage();
+    assertEquals("match_phrase function expected {[STRING,STRING],[STRING,STRING,STRING],"
+          + "[STRING,STRING,STRING,STRING],[STRING,STRING,STRING,STRING,STRING]}, but get "
+          + "[STRING,STRING,STRING,STRING,STRING,STRING]", msg);
   }
 
 
