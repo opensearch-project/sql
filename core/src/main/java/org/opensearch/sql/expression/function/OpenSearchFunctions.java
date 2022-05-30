@@ -9,9 +9,10 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
-import lombok.ToString;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.opensearch.sql.data.model.ExprValue;
@@ -24,9 +25,21 @@ import org.opensearch.sql.expression.env.Environment;
 
 @UtilityClass
 public class OpenSearchFunctions {
+
+  public static final int MATCH_MAX_NUM_PARAMETERS = 12;
+  public static final int MATCH_PHRASE_MAX_NUM_PARAMETERS = 3;
+  public static final int MIN_NUM_PARAMETERS = 2;
+
+  /**
+   * Add functions specific to OpenSearch to repository.
+   */
   public void register(BuiltinFunctionRepository repository) {
     repository.register(match_bool_prefix());
     repository.register(match());
+    // Register MATCHPHRASE as MATCH_PHRASE as well for backwards
+    // compatibility.
+    repository.register(match_phrase(BuiltinFunctionName.MATCH_PHRASE));
+    repository.register(match_phrase(BuiltinFunctionName.MATCHPHRASE));
   }
 
   private static FunctionResolver match_bool_prefix() {
@@ -41,50 +54,31 @@ public class OpenSearchFunctions {
 
   private static FunctionResolver match() {
     FunctionName funcName = BuiltinFunctionName.MATCH.getName();
+    return getRelevanceFunctionResolver(funcName, MATCH_MAX_NUM_PARAMETERS);
+  }
+
+  private static FunctionResolver match_phrase(BuiltinFunctionName matchPhrase) {
+    FunctionName funcName = matchPhrase.getName();
+    return getRelevanceFunctionResolver(funcName, MATCH_PHRASE_MAX_NUM_PARAMETERS);
+  }
+
+  private static FunctionResolver getRelevanceFunctionResolver(
+      FunctionName funcName, int maxNumParameters) {
     return new FunctionResolver(funcName,
-        ImmutableMap.<FunctionSignature, FunctionBuilder>builder()
-            .put(new FunctionSignature(funcName, ImmutableList.of(STRING, STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .put(new FunctionSignature(funcName, ImmutableList.of(STRING, STRING, STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .put(new FunctionSignature(funcName, ImmutableList.of(STRING, STRING, STRING, STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .put(new FunctionSignature(funcName, ImmutableList
-                    .of(STRING, STRING, STRING, STRING, STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .put(new FunctionSignature(funcName, ImmutableList
-                    .of(STRING, STRING, STRING, STRING, STRING, STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .put(new FunctionSignature(funcName, ImmutableList
-                    .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .put(new FunctionSignature(funcName, ImmutableList
-                    .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .put(new FunctionSignature(funcName, ImmutableList
-                    .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .put(new FunctionSignature(funcName, ImmutableList
-                    .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING,
-                        STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .put(new FunctionSignature(funcName, ImmutableList
-                    .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING,
-                        STRING, STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .put(new FunctionSignature(funcName, ImmutableList
-                    .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING,
-                        STRING, STRING, STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .put(new FunctionSignature(funcName, ImmutableList
-                    .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING,
-                        STRING, STRING, STRING, STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .put(new FunctionSignature(funcName, ImmutableList
-                    .of(STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING, STRING,
-                        STRING, STRING, STRING, STRING, STRING)),
-                args -> new OpenSearchFunction(funcName, args))
-            .build());
+      getRelevanceFunctionSignatureMap(funcName, maxNumParameters));
+  }
+
+  private static Map<FunctionSignature, FunctionBuilder> getRelevanceFunctionSignatureMap(
+      FunctionName funcName, int numOptionalParameters) {
+    FunctionBuilder buildFunction = args -> new OpenSearchFunction(funcName, args);
+    var signatureMapBuilder = ImmutableMap.<FunctionSignature, FunctionBuilder>builder();
+    for (int numParameters = MIN_NUM_PARAMETERS;
+         numParameters <= MIN_NUM_PARAMETERS + numOptionalParameters;
+         numParameters++) {
+      List<ExprType> args = Collections.nCopies(numParameters, STRING);
+      signatureMapBuilder.put(new FunctionSignature(funcName, args), buildFunction);
+    }
+    return  signatureMapBuilder.build();
   }
 
   private static class OpenSearchFunction extends FunctionExpression {

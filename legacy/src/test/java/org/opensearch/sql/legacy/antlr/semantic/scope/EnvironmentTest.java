@@ -9,7 +9,7 @@ package org.opensearch.sql.legacy.antlr.semantic.scope;
 import static org.hamcrest.Matchers.aMapWithSize;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.hasEntry;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.opensearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.BOOLEAN;
 import static org.opensearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.DATE;
 import static org.opensearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType.KEYWORD;
@@ -29,7 +29,7 @@ import org.opensearch.sql.legacy.antlr.semantic.types.base.OpenSearchIndex;
 public class EnvironmentTest {
 
     /** Use context class for push/pop */
-    private SemanticContext context = new SemanticContext();
+    private final SemanticContext context = new SemanticContext();
 
     @Test
     public void defineFieldSymbolInDifferentEnvironmentsShouldBeAbleToResolve() {
@@ -118,7 +118,7 @@ public class EnvironmentTest {
             typeByName,
             allOf(
                 aMapWithSize(6),
-                hasEntry("s.projects", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
+                hasEntry("s.projects", new OpenSearchIndex("s.projects", NESTED_FIELD)),
                 hasEntry("s.projects.release", DATE),
                 hasEntry("s.projects.active", BOOLEAN),
                 hasEntry("s.address", TEXT),

@@ -16,8 +16,8 @@ import org.opensearch.index.query.QueryBuilders;
  */
 public class MatchQuery extends RelevanceQuery<MatchQueryBuilder> {
   /**
-   * Default constructor for MatchQuery configures how
-   * RelevanceQuery.build process supported named arguments.
+   *  Default constructor for MatchQuery configures how RelevanceQuery.build() handles
+   * named arguments.
    */
   public MatchQuery() {
     super(ImmutableMap.<String, QueryBuilderStep<MatchQueryBuilder>>builder()

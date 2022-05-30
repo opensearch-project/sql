@@ -6,7 +6,6 @@
 package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.Map;
 import org.opensearch.index.query.MatchBoolPrefixQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 
