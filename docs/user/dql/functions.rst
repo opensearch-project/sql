@@ -2267,11 +2267,10 @@ Example with only ``field`` and ``query`` expressions, and all other parameters 
 
 Another example to show how to set custom values for the optional parameters::
 
-    os> SELECT lastname FROM accounts WHERE match_bool_prefix(lastname, 'Ba', prefix_length=1);
-    fetched rows / total rows = 2/2
-    +-------------+
-    | lastname    |
-    |-------------+
-    | Bond        |
-    | Bates       |
-    +-------------+
+    os> SELECT firstname, address FROM accounts WHERE match_bool_prefix(address, 'Bristol Street', minimum_should_match=2);
+    fetched rows / total rows = 1/1
+    +-------------+--------------------+
+    | firstname   | address            |
+    |-------------+--------------------|
+    | Hattie      | 671 Bristol Street |
+    +-------------+--------------------+
