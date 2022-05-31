@@ -86,8 +86,9 @@ public class TransportPPLQueryAction extends HandledTransportAction<ActionReques
 
         if (transformedRequest.isExplainRequest()) {
             pplService.explain(transformedRequest, createExplainResponseListener(listener));
+        } else {
+            pplService.execute(transformedRequest, createListener(transformedRequest, listener));
         }
-        pplService.execute(transformedRequest, createListener(transformedRequest, listener));
     }
 
     private PPLService createPPLService(NodeClient client) {
