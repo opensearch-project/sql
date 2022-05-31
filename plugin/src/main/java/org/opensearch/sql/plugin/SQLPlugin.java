@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.plugin;
 
 import com.google.common.collect.ImmutableList;
@@ -63,9 +62,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
 
   private ClusterService clusterService;
 
-  /**
-   * Settings should be inited when bootstrap the plugin.
-   */
+  /** Settings should be inited when bootstrap the plugin. */
   private org.opensearch.sql.common.setting.Settings pluginSettings;
 
   public String name() {
@@ -77,12 +74,14 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
   }
 
   @Override
-  public List<RestHandler> getRestHandlers(Settings settings, RestController restController,
-                                           ClusterSettings clusterSettings,
-                                           IndexScopedSettings indexScopedSettings,
-                                           SettingsFilter settingsFilter,
-                                           IndexNameExpressionResolver indexNameExpressionResolver,
-                                           Supplier<DiscoveryNodes> nodesInCluster) {
+  public List<RestHandler> getRestHandlers(
+      Settings settings,
+      RestController restController,
+      ClusterSettings clusterSettings,
+      IndexScopedSettings indexScopedSettings,
+      SettingsFilter settingsFilter,
+      IndexNameExpressionResolver indexNameExpressionResolver,
+      Supplier<DiscoveryNodes> nodesInCluster) {
     Objects.requireNonNull(clusterService, "Cluster service is required");
     Objects.requireNonNull(pluginSettings, "Cluster settings is required");
 
@@ -94,47 +93,49 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         new RestSqlAction(settings, clusterService, pluginSettings),
         new RestSqlStatsAction(settings, restController),
         new RestPPLStatsAction(settings, restController),
-        new RestQuerySettingsAction(settings, restController)
-    );
+        new RestQuerySettingsAction(settings, restController));
   }
 
-  /**
-   * Register action and handler so that transportClient can find proxy for action
-   */
+  /** Register action and handler so that transportClient can find proxy for action. */
   @Override
   public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
-    return Arrays
-            .asList(
-                    new ActionHandler<>(
-                          new ActionType<>(PPLQueryAction.NAME, TransportPPLQueryResponse::new),
-                          TransportPPLQueryAction.class
-                    )
-            );
+    return Arrays.asList(
+        new ActionHandler<>(
+            new ActionType<>(PPLQueryAction.NAME, TransportPPLQueryResponse::new),
+            TransportPPLQueryAction.class));
   }
 
-
   @Override
-  public Collection<Object> createComponents(Client client, ClusterService clusterService,
-                                             ThreadPool threadPool,
-                                             ResourceWatcherService resourceWatcherService,
-                                             ScriptService scriptService,
-                                             NamedXContentRegistry contentRegistry,
-                                             Environment environment,
-                                             NodeEnvironment nodeEnvironment,
-                                             NamedWriteableRegistry namedWriteableRegistry,
-                                             IndexNameExpressionResolver indexNameResolver,
-                                             Supplier<RepositoriesService>
-                                                       repositoriesServiceSupplier) {
+  public Collection<Object> createComponents(
+      Client client,
+      ClusterService clusterService,
+      ThreadPool threadPool,
+      ResourceWatcherService resourceWatcherService,
+      ScriptService scriptService,
+      NamedXContentRegistry contentRegistry,
+      Environment environment,
+      NodeEnvironment nodeEnvironment,
+      NamedWriteableRegistry namedWriteableRegistry,
+      IndexNameExpressionResolver indexNameResolver,
+      Supplier<RepositoriesService> repositoriesServiceSupplier) {
     this.clusterService = clusterService;
     this.pluginSettings = new OpenSearchSettings(clusterService.getClusterSettings());
 
     LocalClusterState.state().setClusterService(clusterService);
     LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
 
-    return super
-        .createComponents(client, clusterService, threadPool, resourceWatcherService, scriptService,
-            contentRegistry, environment, nodeEnvironment, namedWriteableRegistry,
-            indexNameResolver, repositoriesServiceSupplier);
+    return super.createComponents(
+        client,
+        clusterService,
+        threadPool,
+        resourceWatcherService,
+        scriptService,
+        contentRegistry,
+        environment,
+        nodeEnvironment,
+        namedWriteableRegistry,
+        indexNameResolver,
+        repositoriesServiceSupplier);
   }
 
   @Override
@@ -145,9 +146,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
             AsyncRestExecutor.SQL_WORKER_THREAD_POOL_NAME,
             OpenSearchExecutors.allocatedProcessors(settings),
             1000,
-            null
-        )
-    );
+            null));
   }
 
   @Override
@@ -162,5 +161,4 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
   public ScriptEngine getScriptEngine(Settings settings, Collection<ScriptContext<?>> contexts) {
     return new ExpressionScriptEngine(new DefaultExpressionSerializer());
   }
-
 }
