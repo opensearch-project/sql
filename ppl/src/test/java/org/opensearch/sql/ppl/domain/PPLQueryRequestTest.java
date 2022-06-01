@@ -3,15 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl.domain;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
+import org.json.JSONObject;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.opensearch.action.ActionRequest;
+import org.opensearch.action.ActionRequestValidationException;
+import org.opensearch.common.io.stream.StreamOutput;
 import org.opensearch.sql.protocol.response.format.Format;
 
 public class PPLQueryRequestTest {
@@ -63,4 +69,75 @@ public class PPLQueryRequestTest {
     request.format();
   }
 
+  @Test
+  public void testValidate() {
+    PPLQueryRequest request = new PPLQueryRequest("source=t a=1", null, null);
+    assertNull(request.validate());
+  }
+
+  @Test
+  public void testPPLQueryRequestFromActionRequest() {
+    PPLQueryRequest request = new PPLQueryRequest("source=t a=1", null, null);
+    assertEquals(PPLQueryRequest.fromActionRequest(request), request);
+  }
+
+  @Test
+  public void testCustomizedNonNullJSONContentActionRequestFromActionRequest() {
+    PPLQueryRequest request =
+        new PPLQueryRequest("source=t a=1", new JSONObject("{\"query\":\"source=t a=1\"}"), null);
+    ActionRequest actionRequest =
+        new ActionRequest() {
+          @Override
+          public ActionRequestValidationException validate() {
+            return null;
+          }
+
+          @Override
+          public void writeTo(StreamOutput out) throws IOException {
+            request.writeTo(out);
+          }
+        };
+    PPLQueryRequest recreatedObject = PPLQueryRequest.fromActionRequest(actionRequest);
+    assertNotSame(request, recreatedObject);
+    assertEquals(request.getRequest(), recreatedObject.getRequest());
+  }
+
+  @Test
+  public void testCustomizedNullJSONContentActionRequestFromActionRequest() {
+    PPLQueryRequest request = new PPLQueryRequest("source=t a=1", null, null);
+    ActionRequest actionRequest =
+        new ActionRequest() {
+          @Override
+          public ActionRequestValidationException validate() {
+            return null;
+          }
+
+          @Override
+          public void writeTo(StreamOutput out) throws IOException {
+            request.writeTo(out);
+          }
+        };
+    PPLQueryRequest recreatedObject = PPLQueryRequest.fromActionRequest(actionRequest);
+    assertNotSame(request, recreatedObject);
+    assertEquals(request.getRequest(), recreatedObject.getRequest());
+  }
+
+  @Test
+  public void testFailedParsingActionRequestFromActionRequest() {
+    ActionRequest actionRequest =
+        new ActionRequest() {
+          @Override
+          public ActionRequestValidationException validate() {
+            return null;
+          }
+
+          @Override
+          public void writeTo(StreamOutput out) throws IOException {
+            out.writeString("sample");
+          }
+        };
+    exceptionRule.expect(IllegalArgumentException.class);
+    exceptionRule.expectMessage("failed to parse ActionRequest into PPLQueryRequest");
+    PPLQueryRequest.fromActionRequest(actionRequest);
+  }
 }

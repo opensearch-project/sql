@@ -17,7 +17,6 @@ import lombok.experimental.Accessors;
 import org.json.JSONObject;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
-import org.opensearch.action.ValidateActions;
 import org.opensearch.common.io.stream.InputStreamStreamInput;
 import org.opensearch.common.io.stream.OutputStreamStreamOutput;
 import org.opensearch.common.io.stream.StreamInput;
@@ -59,10 +58,11 @@ public class PPLQueryRequest extends ActionRequest {
   /** Constructor of PPLQueryRequest from StreamInput. */
   public PPLQueryRequest(StreamInput in) throws IOException {
     super(in);
-    pplQuery = in.readString();
-    format = in.readString();
-    jsonContent = new JSONObject(in.readString());
-    path = in.readString();
+    pplQuery = in.readOptionalString();
+    format = in.readOptionalString();
+    String jsonContentString = in.readOptionalString();
+    jsonContent = jsonContentString != null ? new JSONObject(jsonContentString) : null;
+    path = in.readOptionalString();
     sanitize = in.readBoolean();
     style = in.readEnum(JsonResponseFormatter.Style.class);
   }
@@ -90,10 +90,10 @@ public class PPLQueryRequest extends ActionRequest {
   @Override
   public void writeTo(StreamOutput out) throws IOException {
     super.writeTo(out);
-    out.writeString(pplQuery);
-    out.writeString(format);
-    out.writeString(jsonContent.toString());
-    out.writeString(path);
+    out.writeOptionalString(pplQuery);
+    out.writeOptionalString(format);
+    out.writeOptionalString(jsonContent != null ? jsonContent.toString() : null);
+    out.writeOptionalString(path);
     out.writeBoolean(sanitize);
     out.writeEnum(style);
   }
@@ -124,9 +124,6 @@ public class PPLQueryRequest extends ActionRequest {
 
   @Override
   public ActionRequestValidationException validate() {
-    if (pplQuery.isEmpty()) {
-      return ValidateActions.addValidationError("query is empty", null);
-    }
     return null;
   }
 }
