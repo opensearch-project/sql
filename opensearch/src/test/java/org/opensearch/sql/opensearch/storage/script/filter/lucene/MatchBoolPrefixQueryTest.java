@@ -15,6 +15,7 @@ import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -25,13 +26,13 @@ import org.opensearch.sql.expression.NamedArgumentExpression;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.FunctionName;
-import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchBoolPrefixQuery;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 public class MatchBoolPrefixQueryTest {
   private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
-  private final MatchQuery matchQuery = new MatchQuery();
-  private final FunctionName match = FunctionName.of("match_bool_prefix");
+  private final MatchBoolPrefixQuery matchBoolPrefixQuery = new MatchBoolPrefixQuery();
+  private final FunctionName matchBoolPrefix = FunctionName.of("match_bool_prefix");
 
   static Stream<List<Expression>> generateValidData() {
     final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
@@ -50,32 +51,40 @@ public class MatchBoolPrefixQueryTest {
 
   @ParameterizedTest
   @MethodSource("generateValidData")
-  public void test_valid_parameters(List<Expression> validArgs) {
-    Assertions.assertNotNull(matchQuery.build(new MatchExpression(validArgs)));
+  public void test_valid_arguments(List<Expression> validArgs) {
+    Assertions.assertNotNull(matchBoolPrefixQuery.build(new MatchExpression(validArgs)));
   }
 
   @Test
-  public void test_SemanticCheckException_when_no_arguments() {
+  public void test_valid_when_two_arguments() {
+    List<Expression> arguments = List.of(
+        namedArgument("field", "field_value"),
+        namedArgument("query", "query_value"));
+    Assertions.assertNotNull(matchBoolPrefixQuery.build(new MatchExpression(arguments)));
+  }
+
+  @Test
+  public void test_SyntaxCheckException_when_no_arguments() {
     List<Expression> arguments = List.of();
-    assertThrows(SemanticCheckException.class,
-        () -> matchQuery.build(new MatchExpression(arguments)));
+    assertThrows(SyntaxCheckException.class,
+        () -> matchBoolPrefixQuery.build(new MatchExpression(arguments)));
   }
 
   @Test
-  public void test_SemanticCheckException_when_one_argument() {
+  public void test_SyntaxCheckException_when_one_argument() {
     List<Expression> arguments = List.of(namedArgument("field", "field_value"));
-    assertThrows(SemanticCheckException.class,
-        () -> matchQuery.build(new MatchExpression(arguments)));
+    assertThrows(SyntaxCheckException.class,
+        () -> matchBoolPrefixQuery.build(new MatchExpression(arguments)));
   }
 
   @Test
-  public void test_SemanticCheckException_when_invalid_parameter() {
+  public void test_SemanticCheckException_when_invalid_argument() {
     List<Expression> arguments = List.of(
         namedArgument("field", "field_value"),
         namedArgument("query", "query_value"),
         namedArgument("unsupported", "unsupported_value"));
     Assertions.assertThrows(SemanticCheckException.class,
-        () -> matchQuery.build(new MatchExpression(arguments)));
+        () -> matchBoolPrefixQuery.build(new MatchExpression(arguments)));
   }
 
   private NamedArgumentExpression namedArgument(String name, String value) {
@@ -84,7 +93,7 @@ public class MatchBoolPrefixQueryTest {
 
   private class MatchExpression extends FunctionExpression {
     public MatchExpression(List<Expression> arguments) {
-      super(MatchBoolPrefixQueryTest.this.match, arguments);
+      super(MatchBoolPrefixQueryTest.this.matchBoolPrefix, arguments);
     }
 
     @Override

@@ -118,7 +118,7 @@ public class EnvironmentTest {
             typeByName,
             allOf(
                 aMapWithSize(6),
-                hasEntry("s.projects", new OpenSearchIndex("s.projects", NESTED_FIELD)),
+                hasEntry("s.projects", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
                 hasEntry("s.projects.release", DATE),
                 hasEntry("s.projects.active", BOOLEAN),
                 hasEntry("s.address", TEXT),
