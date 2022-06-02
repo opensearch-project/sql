@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.sql;
 
-
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_PHRASE;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -32,6 +31,18 @@ public class MatchBoolPrefixIT extends SQLIntegTestCase {
     verifyDataRows(result,
         rows("quick fox"),
         rows("quick fox here"));
+  }
+
+  @Test
+  public void additional_parameters_test() throws IOException {
+    String query = "SELECT phrase FROM "
+        + TEST_INDEX_PHRASE + " WHERE match_bool_prefix(phrase, '2 test', minimum_should_match=1, fuzziness=2)";
+    var result = new JSONObject(executeQuery(query, "jdbc"));
+    verifySchema(result, schema("phrase", "text"));
+
+    verifyDataRows(result,
+        rows("my test"),
+        rows("my test 2"));
   }
 
   @Test

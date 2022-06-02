@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -27,6 +26,7 @@ import org.opensearch.sql.expression.env.Environment;
 public class OpenSearchFunctions {
 
   public static final int MATCH_MAX_NUM_PARAMETERS = 12;
+  public static final int MATCH_BOOL_PREFIX_MAX_NUM_PARAMETERS = 7;
   public static final int MATCH_PHRASE_MAX_NUM_PARAMETERS = 3;
   public static final int MIN_NUM_PARAMETERS = 2;
 
@@ -44,12 +44,7 @@ public class OpenSearchFunctions {
 
   private static FunctionResolver match_bool_prefix() {
     FunctionName name = BuiltinFunctionName.MATCH_BOOL_PREFIX.getName();
-    // TODO: Create different resolver more suited for relevance functions.
-    return new FunctionResolver(name,
-        ImmutableMap.<FunctionSignature, FunctionBuilder>builder()
-            .put(new FunctionSignature(name, ImmutableList.of(STRING, STRING)),
-                args -> new OpenSearchFunction(name, args))
-            .build());
+    return getRelevanceFunctionResolver(name, MATCH_BOOL_PREFIX_MAX_NUM_PARAMETERS);
   }
 
   private static FunctionResolver match() {

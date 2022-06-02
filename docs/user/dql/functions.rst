@@ -2246,8 +2246,16 @@ Description
 
 The match_bool_prefix function maps to the match_bool_prefix query in the search engine. match_bool_prefix creates a match query from all but the last term in the query string. The last term is used to create a prefix query.
 
+- fuzziness
+- max_expansions
+- prefix_length
+- fuzzy_transpositions
+- fuzzy_rewrite
+- minimum_should_match
+- boost
+
 Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
-```
+
     os> SELECT firstname, address FROM accounts WHERE match_bool_prefix(address, 'Bristol Stre');
     fetched rows / total rows = 2/2
     +-------------+--------------------+
@@ -2257,4 +2265,12 @@ Example with only ``field`` and ``query`` expressions, and all other parameters 
     | Nanette     | 789 Madison Street |
     +-------------+--------------------+
 
-```
+Another example to show how to set custom values for the optional parameters::
+
+    os> SELECT firstname, address FROM accounts WHERE match_bool_prefix(address, 'Bristol Street', minimum_should_match=2);
+    fetched rows / total rows = 1/1
+    +-------------+--------------------+
+    | firstname   | address            |
+    |-------------+--------------------|
+    | Hattie      | 671 Bristol Street |
+    +-------------+--------------------+
