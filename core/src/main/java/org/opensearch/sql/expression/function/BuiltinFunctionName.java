@@ -187,6 +187,7 @@ public enum BuiltinFunctionName {
    * Relevance Function.
    */
   MATCH(FunctionName.of("match")),
+  SIMPLE_QUERY_STRING(FunctionName.of("simple_query_string")),
 
   /**
    * Legacy Relevance Function.

@@ -30,6 +30,7 @@ import org.opensearch.sql.opensearch.storage.script.filter.lucene.RangeQuery.Com
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.TermQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.WildcardQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.SimpleQueryStringQuery;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
 @RequiredArgsConstructor
@@ -55,6 +56,7 @@ public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Obje
           .put(BuiltinFunctionName.QUERY.getName(), new MatchQuery())
           .put(BuiltinFunctionName.MATCH_QUERY.getName(), new MatchQuery())
           .put(BuiltinFunctionName.MATCHQUERY.getName(), new MatchQuery())
+          .put(BuiltinFunctionName.SIMPLE_QUERY_STRING.getName(), new SimpleQueryStringQuery())
           .build();
 
   /**

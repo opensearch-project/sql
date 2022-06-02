@@ -144,4 +144,39 @@ class SQLSyntaxParserTest {
     assertThrows(SyntaxCheckException.class, () -> parser.parse("SHOW TABLES"));
   }
 
+  @Test
+  public void can_parse_simple_query_string_relevance_function() {
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE simple_query_string(['address'], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE simple_query_string(['address', 'notes'], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE simple_query_string([\"*\"], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE simple_query_string([\"address\"], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE simple_query_string([`address`], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE simple_query_string([address], 'query')"));
+
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE"
+            + " simple_query_string(['address' ^ 1.0, 'notes' ^ 2.2], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE simple_query_string(['address' ^ 1.1, 'notes'], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE simple_query_string(['address', 'notes' ^ 1.5], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE simple_query_string(['address', 'notes' 3], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE simple_query_string(['address' ^ .3, 'notes' 3], 'query')"));
+
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE"
+            + " simple_query_string([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE"
+            + " simple_query_string([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query', analyzer=keyword,"
+            + "flags='AND', quote_field_suffix=\".exact\", fuzzy_prefix_length = 4)"));
+  }
 }

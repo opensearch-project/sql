@@ -68,6 +68,7 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.RelevanceFieldList;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.When;
@@ -362,9 +363,17 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitRelevanceFunction(RelevanceFunctionContext ctx) {
-    return new Function(
-        ctx.relevanceFunctionName().getText().toLowerCase(),
-        relevanceArguments(ctx));
+    if (ctx.singleFieldRelevanceFunction() != null) {
+      return new Function(
+          ctx.singleFieldRelevanceFunction()
+              .singleFieldRelevanceFunctionName().getText().toLowerCase(),
+          singleFieldRelevanceArguments(ctx.singleFieldRelevanceFunction()));
+    } else {
+      return new Function(
+          ctx.multiFieldRelevanceFunction()
+              .multiFieldRelevanceFunctionName().getText().toLowerCase(),
+          multiFieldRelevanceArguments(ctx.multiFieldRelevanceFunction()));
+    }
   }
 
   private Function visitFunction(String functionName, FunctionArgsContext args) {
@@ -389,7 +398,8 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
     );
   }
 
-  private List<UnresolvedExpression> relevanceArguments(RelevanceFunctionContext ctx) {
+  private List<UnresolvedExpression> singleFieldRelevanceArguments(
+        OpenSearchSQLParser.SingleFieldRelevanceFunctionContext ctx) {
     // all the arguments are defaulted to string values
     // to skip environment resolving and function signature resolving
     ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
@@ -403,4 +413,25 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
     return builder.build();
   }
 
+  private List<UnresolvedExpression> multiFieldRelevanceArguments(
+      OpenSearchSQLParser.MultiFieldRelevanceFunctionContext ctx) {
+    // all the arguments are defaulted to string values
+    // to skip environment resolving and function signature resolving
+    ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
+    var fields = new RelevanceFieldList(ctx
+        .getRuleContexts(OpenSearchSQLParser.RelevanceFieldAndWeightContext.class)
+        .stream()
+        .collect(Collectors.toMap(
+            f -> new Literal(StringUtils.unquoteText(f.field.getText()), DataType.STRING),
+            f -> (f.weight == null)
+                ? new Literal(1F, DataType.FLOAT)
+                : new Literal(Float.parseFloat(f.weight.getText()), DataType.FLOAT))));
+    builder.add(new UnresolvedArgument("fields", fields));
+    builder.add(new UnresolvedArgument("query",
+        new Literal(StringUtils.unquoteText(ctx.query.getText()), DataType.STRING)));
+    ctx.relevanceArg().forEach(v -> builder.add(new UnresolvedArgument(
+        v.relevanceArgName().getText().toLowerCase(), new Literal(StringUtils.unquoteText(
+            v.relevanceArgValue().getText()), DataType.STRING))));
+    return builder.build();
+  }
 }

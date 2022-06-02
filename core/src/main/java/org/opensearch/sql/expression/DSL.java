@@ -654,4 +654,9 @@ public class DSL {
     return (FunctionExpression) repository
         .compile(BuiltinFunctionName.MATCH.getName(), Arrays.asList(args.clone()));
   }
+
+  public FunctionExpression simple_query_string(Expression... args) {
+    return (FunctionExpression) repository
+        .compile(BuiltinFunctionName.SIMPLE_QUERY_STRING.getName(), Arrays.asList(args.clone()));
+  }
 }
