@@ -9,6 +9,7 @@ package org.opensearch.sql.ppl;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_PHRASE;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
@@ -23,6 +24,8 @@ public class WhereCommandIT extends PPLIntegTestCase {
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
     loadIndex(Index.BANK);
+    loadIndex(Index.GAME_OF_THRONES);
+    loadIndex(Index.PHRASE);
   }
 
   @Test
@@ -109,5 +112,23 @@ public class WhereCommandIT extends PPLIntegTestCase {
                 "source=%s | where match(firstname, 'Hattie') | fields firstname",
                 TEST_INDEX_BANK));
     verifyDataRows(result, rows("Hattie"));
+  }
+
+  @Test
+  public void testMatchPhraseFunction() throws IOException {
+    JSONObject result =
+            executeQuery(
+                    String.format(
+                            "source=%s | where match_phrase(phrase, 'quick fox') | fields phrase", TEST_INDEX_PHRASE));
+    verifyDataRows(result, rows("quick fox"), rows("quick fox here"));
+  }
+
+  @Test
+  public void testMathPhraseWithSlop() throws IOException {
+    JSONObject result =
+            executeQuery(
+                    String.format(
+                            "source=%s | where match_phrase(phrase, 'brown fox', slop = 2) | fields phrase", TEST_INDEX_PHRASE));
+    verifyDataRows(result, rows("brown fox"), rows("fox brown"));
   }
 }

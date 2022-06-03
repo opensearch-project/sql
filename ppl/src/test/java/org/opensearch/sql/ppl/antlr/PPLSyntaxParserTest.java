@@ -113,3 +113,4 @@ public class PPLSyntaxParserTest {
             + "analyzer=keyword, quote_field_suffix=\".exact\", fuzzy_prefix_length = 4)"));
   }
 }
+

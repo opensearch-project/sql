@@ -57,6 +57,47 @@ Another example to show how to set custom values for the optional parameters::
     +------------+
 
 
+MATCH_PHRASE
+------------
+
+Description
+>>>>>>>>>>>
+
+``match_phrase(field_expression, query_expression[, option=<option_value>]*)``
+
+The match_phrase function maps to the match_phrase query used in search engine, to return the documents that match a provided text with a given field. Available parameters include:
+
+- analyzer
+- slop
+- zero_terms_query
+
+For backward compatibility, matchphrase is also supported and mapped to match_phrase query as well.
+
+Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
+
+    os> source=books | where match_phrase(author, 'Alexander Milne') | fields author, title
+    fetched rows / total rows = 2/2
+    +----------------------+--------------------------+
+    | author               | title                    |
+    |----------------------+--------------------------|
+    | Alan Alexander Milne | The House at Pooh Corner |
+    | Alan Alexander Milne | Winnie-the-Pooh          |
+    +----------------------+--------------------------+
+
+
+
+Another example to show how to set custom values for the optional parameters::
+
+    os> source=books | where match_phrase(author, 'Alan Milne', slop = 2) | fields author, title
+    fetched rows / total rows = 2/2
+    +----------------------+--------------------------+
+    | author               | title                    |
+    |----------------------+--------------------------|
+    | Alan Alexander Milne | The House at Pooh Corner |
+    | Alan Alexander Milne | Winnie-the-Pooh          |
+    +----------------------+--------------------------+
+
+
 SIMPLE_QUERY_STRING
 -------------------
 
@@ -99,8 +140,6 @@ Example with only ``fields`` and ``query`` expressions, and all other parameters
     | Nanette     | Bates      | Nogal  | 789 Madison Street |
     +-------------+------------+--------+--------------------+
 
-
-
 Another example to show how to set custom values for the optional parameters::
 
     os> source=accounts | where simple_query_string(['firstname', city ^ 2], 'Amber Nogal', analyzer=keyword, default_operator='AND') | fields firstname, lastname, city, address;
@@ -109,6 +148,7 @@ Another example to show how to set custom values for the optional parameters::
     | firstname   | lastname   | city   | address   |
     |-------------+------------+--------+-----------|
     +-------------+------------+--------+-----------+
+
 
 Limitations
 >>>>>>>>>>>
