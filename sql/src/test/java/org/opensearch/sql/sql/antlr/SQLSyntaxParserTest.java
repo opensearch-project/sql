@@ -9,11 +9,13 @@ package org.opensearch.sql.sql.antlr;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Random;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -173,9 +175,20 @@ class SQLSyntaxParserTest {
   }
 
   @ParameterizedTest
-  @MethodSource({"matchPhraseComplexQueries",
-          "matchPhraseGeneratedQueries", "generateMatchPhraseQueries"})
+  @MethodSource({
+      "matchPhraseComplexQueries",
+      "matchPhraseGeneratedQueries",
+      "generateMatchPhraseQueries",
+  })
   public void canParseComplexMatchPhraseArgsTest(String query) {
+    assertNotNull(parser.parse(query));
+  }
+
+  @ParameterizedTest
+  @MethodSource({
+      "generateMatchPhrasePrefixQueries"
+  })
+  public void canParseComplexMatchPhrasePrefixQueries(String query) {
     assertNotNull(parser.parse(query));
   }
 
@@ -223,8 +236,13 @@ class SQLSyntaxParserTest {
     return generateQueries("match_phrase", matchPhraseArgs);
   }
 
+  private static Stream<String> generateMatchPhrasePrefixQueries() {
+    return generateQueries("match_phrase_prefix", ImmutableMap.<String, Object[]>builder()
+        .build());
+  }
+
   private static Stream<String> generateQueries(String function,
-                                                HashMap<String, Object[]> functionArgs) {
+                                                Map<String, Object[]> functionArgs) {
     var rand = new Random(0);
 
     class QueryGenerator implements Iterator<String> {
