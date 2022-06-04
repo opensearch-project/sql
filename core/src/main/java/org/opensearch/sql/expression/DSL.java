@@ -658,6 +658,10 @@ public class DSL {
     return compile(BuiltinFunctionName.MATCH_PHRASE, args);
   }
 
+  public FunctionExpression match_phrase_prefix(Expression... args) {
+    return compile(BuiltinFunctionName.MATCH_PHRASE_PREFIX, args);
+  }
+
   private FunctionExpression compile(BuiltinFunctionName bfn, Expression... args) {
     return (FunctionExpression) repository.compile(bfn.getName(), Arrays.asList(args.clone()));
   }

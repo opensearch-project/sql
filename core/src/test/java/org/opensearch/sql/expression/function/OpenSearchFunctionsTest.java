@@ -133,6 +133,19 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
     );
   }
 
+  List<FunctionExpression> match_phrase_prefix_dsl_expressions() {
+    return List.of(
+        dsl.match_phrase_prefix(field, query)
+    );
+  }
+
+  @Test
+  public void match_phrase_prefix() {
+    for (FunctionExpression fe : match_phrase_prefix_dsl_expressions()) {
+      assertEquals(BOOLEAN, fe.type());
+    }
+  }
+
   @Test
   void match_in_memory() {
     FunctionExpression expr = dsl.match(field, query);
