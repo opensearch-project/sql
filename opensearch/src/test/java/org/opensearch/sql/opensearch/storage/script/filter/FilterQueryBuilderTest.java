@@ -495,6 +495,7 @@ class FilterQueryBuilderTest {
                 dsl.namedArgument("field", literal("message")),
                 dsl.namedArgument("query", literal("search query")))));
   }
+
   @Test
   void cast_to_string_in_filter() {
     String json = "{\n"
