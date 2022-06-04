@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.Getter;
@@ -165,14 +166,8 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
 
   @Override
   public Expression visitRelevanceFieldList(RelevanceFieldList node, AnalysisContext context) {
-    return new LiteralExpression(new ExprTupleValue(new LinkedHashMap<>(node
-        .getFieldList()
-        .entrySet()
-        .stream()
-        .collect(ImmutableMap.toImmutableMap(
-            n -> n.getKey().toString(),
-            n -> ExprValueUtils.floatValue((Float) ((Literal) n.getValue()).getValue())
-        )))));
+    return new LiteralExpression(ExprValueUtils.tupleValue(
+        ImmutableMap.copyOf(node.getFieldList())));
   }
 
   @Override

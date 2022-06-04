@@ -364,10 +364,8 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
         .getRuleContexts(OpenSearchPPLParser.RelevanceFieldAndWeightContext.class)
         .stream()
         .collect(Collectors.toMap(
-            f -> new Literal(StringUtils.unquoteText(f.field.getText()), DataType.STRING),
-            f -> (f.weight == null)
-                ? new Literal(1F, DataType.FLOAT)
-                : new Literal(Float.parseFloat(f.weight.getText()), DataType.FLOAT))));
+            f -> StringUtils.unquoteText(f.field.getText()),
+            f -> (f.weight == null) ? 1F : Float.parseFloat(f.weight.getText()))));
     builder.add(new UnresolvedArgument("fields", fields));
     builder.add(new UnresolvedArgument("query",
         new Literal(StringUtils.unquoteText(ctx.query.getText()), DataType.STRING)));

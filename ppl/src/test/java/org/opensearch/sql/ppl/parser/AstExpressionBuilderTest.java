@@ -669,8 +669,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             function(
                 "simple_query_string",
                 unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
-                    stringLiteral("field1"), floatLiteral(1.F),
-                    stringLiteral("field2"), floatLiteral(3.2F)))),
+                    "field1", 1.F, "field2", 3.2F))),
                 unresolvedArg("query", stringLiteral("test query")),
                 unresolvedArg("analyzer", stringLiteral("keyword"))
             )

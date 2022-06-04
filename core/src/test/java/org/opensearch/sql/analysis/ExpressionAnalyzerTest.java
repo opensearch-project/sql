@@ -375,7 +375,7 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
             dsl.namedArgument("query", DSL.literal("sample query"))),
         AstDSL.function("simple_query_string",
             AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of(
-                stringLiteral("field"), floatLiteral(1.F)))),
+                "field", 1.F))),
             AstDSL.unresolvedArg("query", stringLiteral("sample query"))));
   }
 
@@ -390,7 +390,7 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
             dsl.namedArgument("analyzer", DSL.literal("keyword"))),
         AstDSL.function("simple_query_string",
             AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of(
-                stringLiteral("field"), floatLiteral(1.F)))),
+                "field", 1.F))),
             AstDSL.unresolvedArg("query", stringLiteral("sample query")),
             AstDSL.unresolvedArg("analyzer", stringLiteral("keyword"))));
   }
@@ -406,8 +406,7 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
             dsl.namedArgument("query", DSL.literal("sample query"))),
         AstDSL.function("simple_query_string",
             AstDSL.unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
-                stringLiteral("field1"), floatLiteral(1.F),
-                stringLiteral("field2"), floatLiteral(.3F)))),
+                "field1", 1.F, "field2", .3F))),
             AstDSL.unresolvedArg("query", stringLiteral("sample query"))));
   }
 

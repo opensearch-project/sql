@@ -20,7 +20,7 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 @AllArgsConstructor
 public class RelevanceFieldList extends UnresolvedExpression {
   @Getter
-  private java.util.Map<UnresolvedExpression, UnresolvedExpression> fieldList;
+  private java.util.Map<String, Float> fieldList;
 
   @Override
   public List<UnresolvedExpression> getChild() {
