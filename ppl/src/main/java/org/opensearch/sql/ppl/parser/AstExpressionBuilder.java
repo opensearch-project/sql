@@ -31,9 +31,10 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalAnd
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalNotContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalOrContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalXorContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.MultiFieldRelevanceFunctionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ParentheticBinaryArithmeticContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PercentileAggFunctionContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RelevanceExpressionContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SingleFieldRelevanceFunctionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SpanClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsFunctionCallContext;
@@ -253,18 +254,19 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   @Override
-  public UnresolvedExpression visitRelevanceExpression(RelevanceExpressionContext ctx) {
-    if (ctx.singleFieldRelevanceFunction() != null) {
-      return new Function(
-          ctx.singleFieldRelevanceFunction()
-              .singleFieldRelevanceFunctionName().getText().toLowerCase(),
-          singleFieldRelevanceArguments(ctx.singleFieldRelevanceFunction()));
-    } else {
-      return new Function(
-          ctx.multiFieldRelevanceFunction()
-              .multiFieldRelevanceFunctionName().getText().toLowerCase(),
-          multiFieldRelevanceArguments(ctx.multiFieldRelevanceFunction()));
-    }
+  public UnresolvedExpression visitSingleFieldRelevanceFunction(
+      SingleFieldRelevanceFunctionContext ctx) {
+    return new Function(
+        ctx.singleFieldRelevanceFunctionName().getText().toLowerCase(),
+        singleFieldRelevanceArguments(ctx));
+  }
+
+  @Override
+  public UnresolvedExpression visitMultiFieldRelevanceFunction(
+      MultiFieldRelevanceFunctionContext ctx) {
+    return new Function(
+        ctx.multiFieldRelevanceFunctionName().getText().toLowerCase(),
+        multiFieldRelevanceArguments(ctx));
   }
 
   @Override

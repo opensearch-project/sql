@@ -26,18 +26,19 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DistinctCo
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.IsNullPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.LikePredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.MathExpressionAtomContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.MultiFieldRelevanceFunctionContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.NotExpressionContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.NullLiteralContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.OverClauseContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.QualifiedNameContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.RegexpPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.RegularAggregateFunctionCallContext;
-import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.RelevanceFunctionContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ScalarFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ScalarWindowFunctionContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ShowDescribePatternContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.SignedDecimalContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.SignedRealContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.SingleFieldRelevanceFunctionContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.StringContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.StringLiteralContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.TableFilterContext;
@@ -362,18 +363,19 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   }
 
   @Override
-  public UnresolvedExpression visitRelevanceFunction(RelevanceFunctionContext ctx) {
-    if (ctx.singleFieldRelevanceFunction() != null) {
-      return new Function(
-          ctx.singleFieldRelevanceFunction()
-              .singleFieldRelevanceFunctionName().getText().toLowerCase(),
-          singleFieldRelevanceArguments(ctx.singleFieldRelevanceFunction()));
-    } else {
-      return new Function(
-          ctx.multiFieldRelevanceFunction()
-              .multiFieldRelevanceFunctionName().getText().toLowerCase(),
-          multiFieldRelevanceArguments(ctx.multiFieldRelevanceFunction()));
-    }
+  public UnresolvedExpression visitSingleFieldRelevanceFunction(
+      SingleFieldRelevanceFunctionContext ctx) {
+    return new Function(
+        ctx.singleFieldRelevanceFunctionName().getText().toLowerCase(),
+        singleFieldRelevanceArguments(ctx));
+  }
+
+  @Override
+  public UnresolvedExpression visitMultiFieldRelevanceFunction(
+      MultiFieldRelevanceFunctionContext ctx) {
+    return new Function(
+        ctx.multiFieldRelevanceFunctionName().getText().toLowerCase(),
+        multiFieldRelevanceArguments(ctx));
   }
 
   private Function visitFunction(String functionName, FunctionArgsContext args) {
