@@ -8,7 +8,6 @@ package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 import com.google.common.collect.ImmutableMap;
 import java.util.Iterator;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import org.opensearch.index.query.Operator;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
@@ -60,7 +59,7 @@ public class SimpleQueryStringQuery extends RelevanceQuery<SimpleQueryStringBuil
         .tupleValue()
         .entrySet()
         .stream()
-        .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().floatValue()));
+        .collect(ImmutableMap.toImmutableMap(e -> e.getKey(), e -> e.getValue().floatValue()));
 
     SimpleQueryStringBuilder queryBuilder = createQueryBuilder(null,
             query.getValue().valueOf(null).stringValue())
