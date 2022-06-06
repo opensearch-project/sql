@@ -7,6 +7,7 @@ package org.opensearch.sql.expression.function;
 
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
 import java.util.List;
@@ -25,6 +26,7 @@ import org.opensearch.sql.expression.env.Environment;
 public class OpenSearchFunctions {
 
   public static final int MATCH_MAX_NUM_PARAMETERS = 12;
+  public static final int MATCH_BOOL_PREFIX_MAX_NUM_PARAMETERS = 7;
   public static final int MATCH_PHRASE_MAX_NUM_PARAMETERS = 3;
   public static final int MIN_NUM_PARAMETERS = 2;
 
@@ -32,11 +34,17 @@ public class OpenSearchFunctions {
    * Add functions specific to OpenSearch to repository.
    */
   public void register(BuiltinFunctionRepository repository) {
+    repository.register(match_bool_prefix());
     repository.register(match());
     // Register MATCHPHRASE as MATCH_PHRASE as well for backwards
     // compatibility.
     repository.register(match_phrase(BuiltinFunctionName.MATCH_PHRASE));
     repository.register(match_phrase(BuiltinFunctionName.MATCHPHRASE));
+  }
+
+  private static FunctionResolver match_bool_prefix() {
+    FunctionName name = BuiltinFunctionName.MATCH_BOOL_PREFIX.getName();
+    return getRelevanceFunctionResolver(name, MATCH_BOOL_PREFIX_MAX_NUM_PARAMETERS);
   }
 
   private static FunctionResolver match() {

@@ -265,6 +265,7 @@ IF:                                 'IF';
 // RELEVANCE FUNCTIONS AND PARAMETERS
 MATCH:                              'MATCH';
 MATCH_PHRASE:                       'MATCH_PHRASE';
+MATCH_BOOL_PREFIX:                  'MATCH_BOOL_PREFIX';
 ANALYZER:                           'ANALYZER';
 FUZZINESS:                          'FUZZINESS';
 AUTO_GENERATE_SYNONYMS_PHRASE_QUERY:'AUTO_GENERATE_SYNONYMS_PHRASE_QUERY';

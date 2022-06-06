@@ -20,19 +20,19 @@ public class PPLSyntaxParserTest {
 
   @Test
   public void testSearchCommandShouldPass() {
-    ParseTree tree = new PPLSyntaxParser().analyzeSyntax("search source=t a=1 b=2");
+    ParseTree tree = new PPLSyntaxParser().parse("search source=t a=1 b=2");
     assertNotEquals(null, tree);
   }
 
   @Test
   public void testSearchCommandIgnoreSearchKeywordShouldPass() {
-    ParseTree tree = new PPLSyntaxParser().analyzeSyntax("source=t a=1 b=2");
+    ParseTree tree = new PPLSyntaxParser().parse("source=t a=1 b=2");
     assertNotEquals(null, tree);
   }
 
   @Test
   public void testSearchFieldsCommandShouldPass() {
-    ParseTree tree = new PPLSyntaxParser().analyzeSyntax("search source=t a=1 b=2 | fields a,b");
+    ParseTree tree = new PPLSyntaxParser().parse("search source=t a=1 b=2 | fields a,b");
     assertNotEquals(null, tree);
   }
 
@@ -41,42 +41,42 @@ public class PPLSyntaxParserTest {
     exceptionRule.expect(RuntimeException.class);
     exceptionRule.expectMessage("Failed to parse query due to offending symbol");
 
-    new PPLSyntaxParser().analyzeSyntax("search a=1");
+    new PPLSyntaxParser().parse("search a=1");
   }
 
   @Test
   public void testRareCommandShouldPass() {
-    ParseTree tree = new PPLSyntaxParser().analyzeSyntax("source=t a=1 | rare a");
+    ParseTree tree = new PPLSyntaxParser().parse("source=t a=1 | rare a");
     assertNotEquals(null, tree);
   }
 
   @Test
   public void testRareCommandWithGroupByShouldPass() {
-    ParseTree tree = new PPLSyntaxParser().analyzeSyntax("source=t a=1 | rare a by b");
+    ParseTree tree = new PPLSyntaxParser().parse("source=t a=1 | rare a by b");
     assertNotEquals(null, tree);
   }
 
   @Test
   public void testTopCommandWithoutNShouldPass() {
-    ParseTree tree = new PPLSyntaxParser().analyzeSyntax("source=t a=1 | top a");
+    ParseTree tree = new PPLSyntaxParser().parse("source=t a=1 | top a");
     assertNotEquals(null, tree);
   }
 
   @Test
   public void testTopCommandWithNShouldPass() {
-    ParseTree tree = new PPLSyntaxParser().analyzeSyntax("source=t a=1 | top 1 a");
+    ParseTree tree = new PPLSyntaxParser().parse("source=t a=1 | top 1 a");
     assertNotEquals(null, tree);
   }
 
   @Test
   public void testTopCommandWithNAndGroupByShouldPass() {
-    ParseTree tree = new PPLSyntaxParser().analyzeSyntax("source=t a=1 | top 1 a by b");
+    ParseTree tree = new PPLSyntaxParser().parse("source=t a=1 | top 1 a by b");
     assertNotEquals(null, tree);
   }
 
   @Test
   public void testTopCommandWithoutNAndGroupByShouldPass() {
-    ParseTree tree = new PPLSyntaxParser().analyzeSyntax("source=t a=1 | top a by b");
+    ParseTree tree = new PPLSyntaxParser().parse("source=t a=1 | top a by b");
     assertNotEquals(null, tree);
   }
 }
