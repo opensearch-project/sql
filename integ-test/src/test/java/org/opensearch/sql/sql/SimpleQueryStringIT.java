@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.sql;
 
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BEER;
+
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
@@ -27,7 +29,7 @@ public class SimpleQueryStringIT extends SQLIntegTestCase {
   @Test
   public void test1() throws IOException {
     String query = "SELECT count(*) FROM "
-        + Index.BEER.getName() + " WHERE simple_query_string([\\\"Tags\\\" ^ 1.5, Title, `Body` 4.2], 'taste')";
+        + TEST_INDEX_BEER + " WHERE simple_query_string([\\\"Tags\\\" ^ 1.5, Title, `Body` 4.2], 'taste')";
     var result = new JSONObject(executeQuery(query, "jdbc"));
     assertNotEquals(0, result.getInt("total"));
   }
@@ -35,10 +37,10 @@ public class SimpleQueryStringIT extends SQLIntegTestCase {
   @Test
   public void verify_wildcard_test() throws IOException {
     String query1 = "SELECT count(*) FROM "
-        + Index.BEER.getName() + " WHERE simple_query_string(['Tags'], 'taste')";
+        + TEST_INDEX_BEER + " WHERE simple_query_string(['Tags'], 'taste')";
     var result1 = new JSONObject(executeQuery(query1, "jdbc"));
     String query2 = "SELECT count(*) FROM "
-        + Index.BEER.getName() + " WHERE simple_query_string(['T*'], 'taste')";
+        + TEST_INDEX_BEER + " WHERE simple_query_string(['T*'], 'taste')";
     var result2 = new JSONObject(executeQuery(query2, "jdbc"));
     assertNotEquals(result2.getInt("total"), result1.getInt("total"));
   }
