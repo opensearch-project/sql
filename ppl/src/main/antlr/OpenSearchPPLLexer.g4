@@ -144,7 +144,6 @@ BACKTICK:                           '`';
 // Operators. Bit
 
 BIT_NOT_OP:                         '~';
-//BIT_OR_OP:                          '|';
 BIT_AND_OP:                         '&';
 BIT_XOR_OP:                         '^';
 
@@ -302,7 +301,6 @@ QUOTE_FIELD_SUFFIX:                 'QUOTE_FIELD_SUFFIX';
 REWRITE:                            'REWRITE';
 SLOP:                               'SLOP';
 TIE_BREAKER:                        'TIE_BREAKER';
-//TIME_ZONE:                          'TIME_ZONE'; // already defined on line 63
 TYPE:                               'TYPE';
 ZERO_TERMS_QUERY:                   'ZERO_TERMS_QUERY';
 

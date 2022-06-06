@@ -26,8 +26,6 @@ public class RelevanceFunctionIT extends PPLIntegTestCase {
     String query = "SOURCE=" + TEST_INDEX_BEER
         + " | WHERE simple_query_string([\\\"Tags\\\" ^ 1.5, Title, `Body` 4.2], 'taste')";
     var result = executeQuery(query);
-    //verifyDataRows(result, rows(32));
-
     assertNotEquals(0, result.getInt("total"));
   }
 
