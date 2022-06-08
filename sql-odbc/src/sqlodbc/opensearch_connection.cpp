@@ -95,6 +95,15 @@ int LIBOPENSEARCH_connect(ConnectionClass *self) {
     rt_opts.crypt.verify_server = (self->connInfo.verify_server == 1);
     rt_opts.crypt.use_ssl = (self->connInfo.use_ssl == 1);
 
+    // Server host url protocol is necessary for sql plugin validation
+    if (rt_opts.conn.server.size() && rt_opts.conn.server.find("http", 0) != 0) {
+        if(rt_opts.crypt.use_ssl) {
+            rt_opts.conn.server = std::string("https://") + std::string(self->connInfo.server);
+        } else {
+            rt_opts.conn.server = std::string("http://") + std::string(self->connInfo.server);
+        }
+    }
+
     void *opensearchconn = OpenSearchConnectDBParams(rt_opts, FALSE, OPTION_COUNT);
     if (opensearchconn == NULL) {
         std::string err = GetErrorMsg(opensearchconn);
