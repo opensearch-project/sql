@@ -48,7 +48,7 @@ doctest.finalizedBy stopOpenSearch
 build.dependsOn doctest
 clean.dependsOn(cleanBootstrap)
 
-// 2.0.0-alpha1-SNAPSHOT -> 2.0.0.0-alpha1-SNAPSHOT
+// 2.0.1-alpha1-SNAPSHOT -> 2.0.1.0-alpha1-SNAPSHOT
 String opensearch_no_snapshot = opensearch_version.replace('-SNAPSHOT', '')
 String[] version_tokens = opensearch_no_snapshot.tokenize('-')
 String opensearch_build = version_tokens[0] + '.0'
