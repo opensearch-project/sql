@@ -283,6 +283,41 @@ TEST_F(TestSQLDriverConnect, ConnStringAbbrevsUIDPWD) {
     EXPECT_EQ(SQL_SUCCESS, ret);
 }
 
+TEST_F(TestSQLDriverConnect, ConnStringAbbrevsHost) {
+    std::wstring abbrev_str =
+        use_ssl ? L"Driver={OpenSearch ODBC};"
+                  L"host=localhost;port=9200;"
+                  L"UID=admin;PWD=admin;auth=BASIC;useSSL="
+                  L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"responseTimeout=10;"
+                : L"Driver={OpenSearch ODBC};"
+                  L"host=localhost;port=9200;"
+                  L"UID=admin;PWD=admin;auth=BASIC;useSSL="
+                  L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"responseTimeout=10;";
+
+    SQLRETURN ret =
+        SQLDriverConnect(m_conn, NULL, (SQLTCHAR*)abbrev_str.c_str(), SQL_NTS,
+                         m_out_conn_string, IT_SIZEOF(m_out_conn_string),
+                         &m_out_conn_string_length, SQL_DRIVER_NOPROMPT);
+    EXPECT_EQ(SQL_SUCCESS, ret);
+}
+
+TEST_F(TestSQLDriverConnect, ConnStringAbbrevsHostHttp) {
+    std::wstring abbrev_str =
+                  L"Driver={OpenSearch ODBC};"
+                  L"host=http://localhost;port=9200;"
+                  L"UID=admin;PWD=admin;auth=BASIC;useSSL="
+                  L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"responseTimeout=10;";
+
+    SQLRETURN ret =
+        SQLDriverConnect(m_conn, NULL, (SQLTCHAR*)abbrev_str.c_str(), SQL_NTS,
+                         m_out_conn_string, IT_SIZEOF(m_out_conn_string),
+                         &m_out_conn_string_length, SQL_DRIVER_NOPROMPT);
+    EXPECT_EQ(SQL_SUCCESS, ret);
+}
+
 TEST_F(TestSQLDriverConnect, ConnStringAbbrevsServer) {
     std::wstring abbrev_str =
         use_ssl ? L"Driver={OpenSearch ODBC};"
