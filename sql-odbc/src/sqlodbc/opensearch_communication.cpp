@@ -503,8 +503,10 @@ bool OpenSearchCommunication::CheckSQLPluginAvailability() {
         }
     } catch (...) {
         m_error_message_to_user =
-            "SQL plugin is not available, please install the SQL plugin "
-            "to use this driver.";
+            "SQL plugin is not available at url: " +
+            (m_rt_opts.conn.server + (m_rt_opts.conn.port.empty() ?
+            "" : ":" + m_rt_opts.conn.port)) +
+            ", please install the SQL plugin to use this driver.";
         m_error_message +=
             "Unexpected exception thrown from the server, "
             "the SQL plugin is not installed or in unhealthy status.";
@@ -900,10 +902,12 @@ std::string OpenSearchCommunication::GetServerDistribution() {
 
     std::shared_ptr< Aws::Http::HttpResponse > response =
         IssueRequest("", Aws::Http::HttpMethod::HTTP_GET, "", "", "");
-    if (response == nullptr) {
+    if (response == nullptr || response->GetResponseCode() == Aws::Http::HttpResponseCode::REQUEST_NOT_MADE) {
         m_error_message =
             "Failed to receive response from server version query. "
-            "Received NULL response.";
+            "Received no response from url: "
+            + (m_rt_opts.conn.server + (m_rt_opts.conn.port.empty() ?
+            "" : ":" + m_rt_opts.conn.port));
         SetErrorDetails("Connection error", m_error_message,
                         ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
         LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
@@ -1005,7 +1009,9 @@ std::string OpenSearchCommunication::GetClusterName() {
 
 void OpenSearchCommunication::SetSqlEndpoint() {
     std::string distribution = GetServerDistribution();
-    if (distribution.compare("opensearch") == 0) {
+    if (distribution.empty()) {
+        sql_endpoint = "Error";
+    } else if (distribution.compare("opensearch") == 0) {
         sql_endpoint = "/_plugins/_sql";
     } else {
         sql_endpoint = "/_opendistro/_sql";
