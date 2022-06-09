@@ -667,4 +667,7 @@ public class DSL {
   }
 
 
+  public NamedArgumentExpression namedArgument(String name, String value) {
+    return namedArgument(name, literal(value));
+  }
 }
