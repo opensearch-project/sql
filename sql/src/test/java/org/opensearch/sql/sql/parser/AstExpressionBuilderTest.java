@@ -429,6 +429,23 @@ class AstExpressionBuilderTest {
   }
 
   @Test
+  public void matchPhrasePrefixAllParameters() {
+    assertEquals(
+      AstDSL.function("match_phrase_prefix",
+          unresolvedArg("field", stringLiteral("test")),
+          unresolvedArg("query", stringLiteral("search query")),
+          unresolvedArg("slop", stringLiteral("3")),
+          unresolvedArg("boost", stringLiteral("1.5")),
+          unresolvedArg("analyzer", stringLiteral("standard")),
+          unresolvedArg("max_expansions", stringLiteral("4")),
+          unresolvedArg("zero_terms_query", stringLiteral("NONE"))
+          ),
+        buildExprAst("match_phrase_prefix(test, 'search query', slop = 3, boost = 1.5"
+            + ", analyzer = 'standard', max_expansions = 4, zero_terms_query='NONE'"
+            + ")")
+    );
+  }
+  @Test
   public void relevanceMatch() {
     assertEquals(AstDSL.function("match",
         unresolvedArg("field", stringLiteral("message")),
