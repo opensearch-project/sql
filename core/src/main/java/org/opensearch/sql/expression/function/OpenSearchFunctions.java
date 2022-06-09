@@ -27,7 +27,7 @@ public class OpenSearchFunctions {
   public static final int MATCH_MAX_NUM_PARAMETERS = 12;
   public static final int MATCH_PHRASE_MAX_NUM_PARAMETERS = 3;
   public static final int MIN_NUM_PARAMETERS = 2;
-  public static final int MATCH_PHRASE_PREFIX_MAX_NUM_PARAMETERS = 4;
+  public static final int MATCH_PHRASE_PREFIX_MAX_NUM_PARAMETERS = 5;
 
   /**
    * Add functions specific to OpenSearch to repository.
