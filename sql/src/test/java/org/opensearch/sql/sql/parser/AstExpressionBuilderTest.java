@@ -431,7 +431,7 @@ class AstExpressionBuilderTest {
   @Test
   public void matchPhrasePrefixAllParameters() {
     assertEquals(
-      AstDSL.function("match_phrase_prefix",
+        AstDSL.function("match_phrase_prefix",
           unresolvedArg("field", stringLiteral("test")),
           unresolvedArg("query", stringLiteral("search query")),
           unresolvedArg("slop", stringLiteral("3")),
@@ -445,6 +445,7 @@ class AstExpressionBuilderTest {
             + ")")
     );
   }
+
   @Test
   public void relevanceMatch() {
     assertEquals(AstDSL.function("match",
