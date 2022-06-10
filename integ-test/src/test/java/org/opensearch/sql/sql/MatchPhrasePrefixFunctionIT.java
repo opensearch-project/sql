@@ -28,4 +28,12 @@ public class MatchPhrasePrefixFunctionIT extends SQLIntegTestCase {
         + " WHERE match_phrase_prefix(address, 'Quentin Str')");
     verifyDataRows(result, rows("Mcpherson"));
   }
+
+  @Test
+  public void match_phrase_prefix_all_parameters() throws IOException {
+    JSONObject result = executeJdbcRequest("SELECT lastname FROM " + TEST_INDEX_BANK
+        + " WHERE match_phrase_prefix(address, 'Quentin Str', boost = 1.0, zero_terms_query='ALL',"
+        + " max_expansions = 3, analyzer='standard')");
+    verifyDataRows(result, rows("Mcpherson"));
+  }
 }

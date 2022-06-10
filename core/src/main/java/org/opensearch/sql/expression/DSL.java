@@ -118,6 +118,10 @@ public class DSL {
     return new NamedArgumentExpression(argName, value);
   }
 
+  public NamedArgumentExpression namedArgument(String name, String value) {
+    return namedArgument(name, literal(value));
+  }
+
   public static ParseExpression parsed(Expression expression, Expression pattern,
                                        Expression identifier) {
     return new ParseExpression(expression, pattern, identifier);
@@ -665,6 +669,4 @@ public class DSL {
   private FunctionExpression compile(BuiltinFunctionName bfn, Expression... args) {
     return (FunctionExpression) repository.compile(bfn.getName(), Arrays.asList(args.clone()));
   }
-
-
 }

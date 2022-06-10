@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.stream.Stream;
@@ -238,6 +239,11 @@ class SQLSyntaxParserTest {
 
   private static Stream<String> generateMatchPhrasePrefixQueries() {
     return generateQueries("match_phrase_prefix", ImmutableMap.<String, Object[]>builder()
+        .put("analyzer", new String[] {"standard", "stop", "english"})
+        .put("slop", new Integer[] {0, 1, 2})
+        .put("max_expansions", new Integer[] {0, 3, 10})
+        .put("zero_terms_query", new String[] {"NONE", "ALL", "NULL"})
+        .put("boost", new Float[] {-0.5f, 1.0f, 1.2f})
         .build());
   }
 
