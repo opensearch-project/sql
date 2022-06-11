@@ -29,4 +29,13 @@ public class MatchPhrasePrefixWhereCommandIT extends PPLIntegTestCase {
         + "| where match_phrase_prefix(address, 'Quentin Str') | fields lastname");
     verifyDataRows(result, rows("Mcpherson"));
   }
+
+  @Test
+  public void match_phrase_prefix_all_parameters() throws IOException {
+    JSONObject result = executeQuery("source=" + TEST_INDEX_BANK
+        + "| where match_phrase_prefix(address, 'Quentin Str', "
+        + "boost = 1.0, zero_terms_query='ALL',max_expansions = 3, analyzer='standard') "
+        + "| fields lastname");
+    verifyDataRows(result, rows("Mcpherson"));
+  }
 }
