@@ -547,7 +547,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     DATA_TYPE_NONNUMERIC(TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC,
         "_doc",
         getDataTypeNonnumericIndexMapping(),
-        "src/test/resources/datatypes.json");
+        "src/test/resources/datatypes.json"),
+    BEER(TestsConstants.TEST_INDEX_BEER,
+        "beer",
+        null,
+        "src/test/resources/beer.stackexchange.json"),;
 
     private final String name;
     private final String type;

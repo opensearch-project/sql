@@ -45,7 +45,7 @@ public class ExprCollectionValue extends AbstractExprValue {
   public String toString() {
     return valueList.stream()
         .map(Object::toString)
-        .collect(Collectors.joining(",", "[", "]"));
+        .collect(Collectors.joining(", ", "[", "]"));
   }
 
   @Override
