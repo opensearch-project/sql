@@ -15,6 +15,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
+import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -85,7 +86,10 @@ public class ProjectOperator extends PhysicalPlan {
   @Override
   public ExecutionEngine.Schema schema() {
     return new ExecutionEngine.Schema(getProjectList().stream()
-        .map(expr -> new ExecutionEngine.Schema.Column(expr.getName(),
-            expr.getAlias(), expr.type())).collect(Collectors.toList()));
+        .map(expr -> new ExecutionEngine.Schema.Column(
+                StringUtils.unescapeBackslashes(expr.getName()),
+                expr.getAlias() == null ? null : StringUtils.unescapeBackslashes(expr.getAlias()),
+                expr.type())
+        ).collect(Collectors.toList()));
   }
 }

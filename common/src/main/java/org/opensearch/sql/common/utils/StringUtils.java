@@ -27,12 +27,19 @@ public class StringUtils {
 
   /**
    * Unquote Identifier which has " or ' or ` as mark.
+   * Replace doubled quotes within the string with single version
    * @param text string
    * @return An unquoted string whose outer pair of (single/double/back-tick) quotes have been
    *     removed
    */
   public static String unquoteText(String text) {
-    if (isQuoted(text, "\"") || isQuoted(text, "'") || isQuoted(text, "`")) {
+    if (isQuoted(text, "\"")) {
+      return text.substring(1, text.length() - 1).replace("\"\"", "\"");
+    }
+    if (isQuoted(text, "'")) {
+      return text.substring(1, text.length() - 1).replace("''", "'");
+    }
+    if (isQuoted(text, "`")) {
       return text.substring(1, text.length() - 1);
     } else {
       return text;
@@ -68,6 +75,16 @@ public class StringUtils {
    */
   public static String format(final String format, Object... args) {
     return String.format(Locale.ROOT, format, args);
+  }
+
+  /**
+   * Returns a string without escaped slashes
+   *
+   * @param text - string
+   * @return string
+   */
+  public static String unescapeBackslashes(String text) {
+     return text.replace("\\\\", "\\");
   }
 
   private static boolean isQuoted(String text, String mark) {

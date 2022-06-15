@@ -8,9 +8,13 @@ package org.opensearch.sql.opensearch.executor;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.Explain;
@@ -37,7 +41,21 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
             plan.open();
 
             while (plan.hasNext()) {
-              result.add(plan.next());
+              ExprValue resultItem = plan.next();
+              if (resultItem instanceof ExprTupleValue) {
+                LinkedHashMap<String, ExprValue> newTupleResultItem = new LinkedHashMap<>();
+                resultItem.tupleValue().forEach(
+                    (exprKey, exprValue) -> {
+                        newTupleResultItem.put(StringUtils.unescapeBackslashes(exprKey),
+                                exprValue instanceof ExprStringValue ?
+                                        new ExprStringValue(StringUtils.unescapeBackslashes(exprValue.stringValue())) :
+                                        exprValue
+                                );
+                      });
+                result.add(new ExprTupleValue(newTupleResultItem));
+              } else {
+                result.add(resultItem);
+              }
             }
 
             QueryResponse response = new QueryResponse(physicalPlan.schema(), result);
