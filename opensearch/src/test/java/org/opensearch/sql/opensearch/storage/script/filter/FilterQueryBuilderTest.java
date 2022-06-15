@@ -533,6 +533,121 @@ class FilterQueryBuilderTest {
   }
 
   @Test
+  // Notes for following three tests:
+  // 1) OpenSearch (not the plugin) might change order of fields
+  // 2) `flags` are printed by OpenSearch as an integer
+  // 3) `minimum_should_match` printed as a string
+  void should_build_simple_query_string_query_with_default_parameters_single_field() {
+    assertJsonEquals("{\n"
+            + "  \"simple_query_string\" : {\n"
+            + "    \"query\" : \"search query\",\n"
+            + "    \"fields\" : [\n"
+            + "      \"field1^1.0\"\n"
+            + "    ],\n"
+            + "    \"default_operator\" : \"or\",\n"
+            + "    \"analyze_wildcard\" : false,\n"
+            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
+            + "    \"flags\" : -1,\n"
+            + "    \"fuzzy_max_expansions\" : 50,\n"
+            + "    \"fuzzy_prefix_length\" : 0,\n"
+            + "    \"fuzzy_transpositions\" : true,\n"
+            + "    \"boost\" : 1.0\n"
+            + "  }\n"
+            + "}",
+        buildQuery(dsl.simple_query_string(
+            dsl.namedArgument("fields", DSL.literal(new ExprTupleValue(
+                new LinkedHashMap<>(ImmutableMap.of(
+                    "field1", ExprValueUtils.floatValue(1.F)))))),
+            dsl.namedArgument("query", literal("search query")))));
+  }
+
+  @Test
+  void should_build_simple_query_string_query_with_default_parameters_multiple_fields() {
+    var expected = "{\n"
+            + "  \"simple_query_string\" : {\n"
+            + "    \"query\" : \"search query\",\n"
+            + "    \"fields\" : [%s],\n"
+            + "    \"default_operator\" : \"or\",\n"
+            + "    \"analyze_wildcard\" : false,\n"
+            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
+            + "    \"flags\" : -1,\n"
+            + "    \"fuzzy_max_expansions\" : 50,\n"
+            + "    \"fuzzy_prefix_length\" : 0,\n"
+            + "    \"fuzzy_transpositions\" : true,\n"
+            + "    \"boost\" : 1.0\n"
+            + "  }\n"
+            + "}";
+    var actual = buildQuery(dsl.simple_query_string(
+        dsl.namedArgument("fields", DSL.literal(new ExprTupleValue(
+            new LinkedHashMap<>(ImmutableMap.of(
+                "field1", ExprValueUtils.floatValue(1.F),
+                "field2", ExprValueUtils.floatValue(.3F)))))),
+        dsl.namedArgument("query", literal("search query"))));
+
+    var ex1 = String.format(expected, "\"field1^1.0\", \"field2^0.3\"");
+    var ex2 = String.format(expected, "\"field2^0.3\", \"field1^1.0\"");
+    assertTrue(new JSONObject(ex1).similar(new JSONObject(actual))
+        || new JSONObject(ex2).similar(new JSONObject(actual)),
+        StringUtils.format("Actual %s doesn't match neither expected %s nor %s", actual, ex1, ex2));
+  }
+
+  @Test
+  void should_build_simple_query_string_query_with_custom_parameters() {
+    var expected = "{\n"
+            + "  \"simple_query_string\" : {\n"
+            + "    \"query\" : \"search query\",\n"
+            + "    \"fields\" : [%s],\n"
+            + "    \"analyze_wildcard\" : true,\n"
+            + "    \"analyzer\" : \"keyword\",\n"
+            + "    \"auto_generate_synonyms_phrase_query\" : false,\n"
+            + "    \"default_operator\" : \"and\",\n"
+            + "    \"flags\" : 1,\n"
+            + "    \"fuzzy_max_expansions\" : 10,\n"
+            + "    \"fuzzy_prefix_length\" : 2,\n"
+            + "    \"fuzzy_transpositions\" : false,\n"
+            + "    \"lenient\" : false,\n"
+            + "    \"minimum_should_match\" : \"3\",\n"
+            + "    \"boost\" : 2.0\n"
+            + "  }\n"
+            + "}";
+    var actual = buildQuery(
+            dsl.simple_query_string(
+                dsl.namedArgument("fields", DSL.literal(
+                    ExprValueUtils.tupleValue(ImmutableMap.of("field1", 1.F, "field2", .3F)))),
+                dsl.namedArgument("query", literal("search query")),
+                dsl.namedArgument("analyze_wildcard", literal("true")),
+                dsl.namedArgument("analyzer", literal("keyword")),
+                dsl.namedArgument("auto_generate_synonyms_phrase_query", literal("false")),
+                dsl.namedArgument("default_operator", literal("AND")),
+                dsl.namedArgument("flags", literal("AND")),
+                dsl.namedArgument("fuzzy_max_expansions", literal("10")),
+                dsl.namedArgument("fuzzy_prefix_length", literal("2")),
+                dsl.namedArgument("fuzzy_transpositions", literal("false")),
+                dsl.namedArgument("lenient", literal("false")),
+                dsl.namedArgument("minimum_should_match", literal("3")),
+                dsl.namedArgument("boost", literal("2.0"))));
+
+    var ex1 = String.format(expected, "\"field1^1.0\", \"field2^0.3\"");
+    var ex2 = String.format(expected, "\"field2^0.3\", \"field1^1.0\"");
+    assertTrue(new JSONObject(ex1).similar(new JSONObject(actual))
+        || new JSONObject(ex2).similar(new JSONObject(actual)),
+        StringUtils.format("Actual %s doesn't match neither expected %s nor %s", actual, ex1, ex2));
+  }
+
+  @Test
+  void simple_query_string_invalid_parameter() {
+    FunctionExpression expr = dsl.simple_query_string(
+        dsl.namedArgument("fields", DSL.literal(
+            new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
+                "field1", ExprValueUtils.floatValue(1.F),
+                "field2", ExprValueUtils.floatValue(.3F)))))),
+        dsl.namedArgument("query", literal("search query")),
+        dsl.namedArgument("invalid_parameter", literal("invalid_value")));
+    assertThrows(SemanticCheckException.class, () -> buildQuery(expr),
+        "Parameter invalid_parameter is invalid for match function.");
+  }
+
+  @Test
   void match_phrase_invalid_parameter() {
     FunctionExpression expr = dsl.match_phrase(
         dsl.namedArgument("field", literal("message")),

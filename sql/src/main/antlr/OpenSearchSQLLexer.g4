@@ -279,6 +279,7 @@ INCLUDE:                            'INCLUDE';
 IN_TERMS:                           'IN_TERMS';
 MATCHPHRASE:                        'MATCHPHRASE';
 MATCH_PHRASE:                       'MATCH_PHRASE';
+SIMPLE_QUERY_STRING:                'SIMPLE_QUERY_STRING';
 MATCHQUERY:                         'MATCHQUERY';
 MATCH_QUERY:                        'MATCH_QUERY';
 MINUTE_OF_DAY:                      'MINUTE_OF_DAY';

@@ -151,6 +151,57 @@ Another example to show how to set custom values for the optional parameters::
     +-------------+------------+--------+-----------+
 
 
+SIMPLE_QUERY_STRING
+-------------------
+
+Description
+>>>>>>>>>>>
+
+``simple_query_string([field_expression+], query_expression[, option=<option_value>]*)``
+
+The simple_query_string function maps to the simple_query_string query used in search engine, to return the documents that match a provided text, number, date or boolean value with a given field or fields.
+The **^** lets you *boost* certain fields. Boosts are multipliers that weigh matches in one field more heavily than matches in other fields. The syntax allows to specify the fields in double quotes, single quotes, in backtick or even without any wrap. All fields search using star ``"*"`` is also available (star symbol should be wrapped). The weight is optional and should be specified using after the field name, it could be delimeted by the `caret` character or by whitespace. Please, refer to examples below:
+
+| ``simple_query_string(["Tags" ^ 2, 'Title' 3.4, `Body`, Comments ^ 0.3], ...)``
+| ``simple_query_string(["*"], ...)``
+
+
+Available parameters include:
+
+- analyze_wildcard
+- analyzer
+- auto_generate_synonyms_phrase
+- flags
+- fuzziness
+- fuzzy_max_expansions
+- fuzzy_prefix_length
+- fuzzy_transpositions
+- lenient
+- default_operator
+- minimum_should_match
+- quote_field_suffix
+- boost
+
+Example with only ``fields`` and ``query`` expressions, and all other parameters are set default values::
+
+    os> source=accounts | where simple_query_string(['firstname', city ^ 2], 'Amber | Nogal') | fields firstname, lastname, city, address;
+    fetched rows / total rows = 2/2
+    +-------------+------------+--------+--------------------+
+    | firstname   | lastname   | city   | address            |
+    |-------------+------------+--------+--------------------|
+    | Amber       | Duke       | Brogan | 880 Holmes Lane    |
+    | Nanette     | Bates      | Nogal  | 789 Madison Street |
+    +-------------+------------+--------+--------------------+
+
+Another example to show how to set custom values for the optional parameters::
+
+    os> source=accounts | where simple_query_string(['firstname', city ^ 2], 'Amber Nogal', analyzer=keyword, default_operator='AND') | fields firstname, lastname, city, address;
+    fetched rows / total rows = 0/0
+    +-------------+------------+--------+-----------+
+    | firstname   | lastname   | city   | address   |
+    |-------------+------------+--------+-----------|
+    +-------------+------------+--------+-----------+
+
 Limitations
 >>>>>>>>>>>
 

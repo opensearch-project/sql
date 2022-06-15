@@ -467,6 +467,25 @@ class AstExpressionBuilderTest {
   }
 
   @Test
+  public void relevanceSimple_query_string() {
+    assertEquals(AstDSL.function("simple_query_string",
+            unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
+                "field2", 3.2F, "field1", 1.F))),
+            unresolvedArg("query", stringLiteral("search query"))),
+        buildExprAst("simple_query_string(['field1', 'field2' ^ 3.2], 'search query')")
+    );
+
+    assertEquals(AstDSL.function("simple_query_string",
+            unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
+                "field2", 3.2F, "field1", 1.F))),
+            unresolvedArg("query", stringLiteral("search query")),
+            unresolvedArg("analyzer", stringLiteral("keyword")),
+            unresolvedArg("operator", stringLiteral("AND"))),
+        buildExprAst("simple_query_string(['field1', 'field2' ^ 3.2], 'search query',"
+            + "analyzer='keyword', operator='AND')"));
+  }
+
+  @Test
   public void canBuildInClause() {
     assertEquals(
         AstDSL.in(qualifiedName("age"), AstDSL.intLiteral(20), AstDSL.intLiteral(30)),

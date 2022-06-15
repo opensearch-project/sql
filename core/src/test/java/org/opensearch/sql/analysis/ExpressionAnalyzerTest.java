@@ -410,6 +410,51 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
             AstDSL.unresolvedArg("query", stringLiteral("sample query"))));
   }
 
+  @Test
+  void simple_query_string_expression() {
+    assertAnalyzeEqual(
+        dsl.simple_query_string(
+            dsl.namedArgument("fields", DSL.literal(
+                new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
+                    "field", ExprValueUtils.floatValue(1.F)))))),
+            dsl.namedArgument("query", DSL.literal("sample query"))),
+        AstDSL.function("simple_query_string",
+            AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of(
+                "field", 1.F))),
+            AstDSL.unresolvedArg("query", stringLiteral("sample query"))));
+  }
+
+  @Test
+  void simple_query_string_expression_with_params() {
+    assertAnalyzeEqual(
+        dsl.simple_query_string(
+            dsl.namedArgument("fields", DSL.literal(
+                new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
+                    "field", ExprValueUtils.floatValue(1.F)))))),
+            dsl.namedArgument("query", DSL.literal("sample query")),
+            dsl.namedArgument("analyzer", DSL.literal("keyword"))),
+        AstDSL.function("simple_query_string",
+            AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of(
+                "field", 1.F))),
+            AstDSL.unresolvedArg("query", stringLiteral("sample query")),
+            AstDSL.unresolvedArg("analyzer", stringLiteral("keyword"))));
+  }
+
+  @Test
+  void simple_query_string_expression_two_fields() {
+    assertAnalyzeEqual(
+        dsl.simple_query_string(
+            dsl.namedArgument("fields", DSL.literal(
+                new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
+                    "field1", ExprValueUtils.floatValue(1.F),
+                    "field2", ExprValueUtils.floatValue(.3F)))))),
+            dsl.namedArgument("query", DSL.literal("sample query"))),
+        AstDSL.function("simple_query_string",
+            AstDSL.unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
+                "field1", 1.F, "field2", .3F))),
+            AstDSL.unresolvedArg("query", stringLiteral("sample query"))));
+  }
+
   protected Expression analyze(UnresolvedExpression unresolvedExpression) {
     return expressionAnalyzer.analyze(unresolvedExpression, analysisContext);
   }

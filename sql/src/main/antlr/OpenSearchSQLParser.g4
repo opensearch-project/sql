@@ -399,6 +399,7 @@ singleFieldRelevanceFunctionName
 
 multiFieldRelevanceFunctionName
     : MULTI_MATCH
+    | SIMPLE_QUERY_STRING
     ;
 
 legacyRelevanceFunctionName
