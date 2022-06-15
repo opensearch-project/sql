@@ -56,8 +56,9 @@ Another example to show how to set custom values for the optional parameters::
     | Bond       |
     +------------+
 
+
 MATCH_PHRASE
------
+------------
 
 Description
 >>>>>>>>>>>
@@ -95,6 +96,60 @@ Another example to show how to set custom values for the optional parameters::
     | Alan Alexander Milne | The House at Pooh Corner |
     | Alan Alexander Milne | Winnie-the-Pooh          |
     +----------------------+--------------------------+
+
+
+MULTI_MATCH
+-----------
+
+Description
+>>>>>>>>>>>
+
+``multi_match([field_expression+], query_expression[, option=<option_value>]*)``
+
+The multi_match function maps to the multi_match query used in search engine, to return the documents that match a provided text, number, date or boolean value with a given field or fields.
+The **^** lets you *boost* certain fields. Boosts are multipliers that weigh matches in one field more heavily than matches in other fields. The syntax allows to specify the fields in double quotes, single quotes, in backtick or even without any wrap. All fields search using star ``"*"`` is also available (star symbol should be wrapped). The weight is optional and should be specified using after the field name, it could be delimeted by the `caret` character or by whitespace. Please, refer to examples below:
+
+| ``multi_match(["Tags" ^ 2, 'Title' 3.4, `Body`, Comments ^ 0.3], ...)``
+| ``multi_match(["*"], ...)``
+
+
+Available parameters include:
+
+- analyzer
+- auto_generate_synonyms_phrase
+- cutoff_frequency
+- fuzziness
+- fuzzy_transpositions
+- lenient
+- max_expansions
+- minimum_should_match
+- operator
+- prefix_length
+- tie_breaker
+- type
+- slop
+- boost
+
+Example with only ``fields`` and ``query`` expressions, and all other parameters are set default values::
+
+    os> source=accounts | where multi_match(['firstname', city ^ 2], 'Amber | Nogal') | fields firstname, lastname, city, address;
+    fetched rows / total rows = 2/2
+    +-------------+------------+--------+--------------------+
+    | firstname   | lastname   | city   | address            |
+    |-------------+------------+--------+--------------------|
+    | Amber       | Duke       | Brogan | 880 Holmes Lane    |
+    | Nanette     | Bates      | Nogal  | 789 Madison Street |
+    +-------------+------------+--------+--------------------+
+
+Another example to show how to set custom values for the optional parameters::
+
+    os> source=accounts | where multi_match(['firstname', city ^ 2], 'Amber Nogal', analyzer=keyword, operator='AND') | fields firstname, lastname, city, address;
+    fetched rows / total rows = 0/0
+    +-------------+------------+--------+-----------+
+    | firstname   | lastname   | city   | address   |
+    |-------------+------------+--------+-----------|
+    +-------------+------------+--------+-----------+
+
 
 Limitations
 >>>>>>>>>>>

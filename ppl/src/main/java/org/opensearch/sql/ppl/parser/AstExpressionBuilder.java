@@ -31,9 +31,10 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalAnd
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalNotContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalOrContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalXorContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.MultiFieldRelevanceFunctionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ParentheticBinaryArithmeticContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PercentileAggFunctionContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RelevanceExpressionContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SingleFieldRelevanceFunctionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SpanClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsFunctionCallContext;
@@ -69,12 +70,14 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.RelevanceFieldList;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
 
@@ -251,10 +254,19 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   @Override
-  public UnresolvedExpression visitRelevanceExpression(RelevanceExpressionContext ctx) {
+  public UnresolvedExpression visitSingleFieldRelevanceFunction(
+      SingleFieldRelevanceFunctionContext ctx) {
     return new Function(
-        ctx.relevanceFunctionName().getText().toLowerCase(),
-        relevanceArguments(ctx));
+        ctx.singleFieldRelevanceFunctionName().getText().toLowerCase(),
+        singleFieldRelevanceArguments(ctx));
+  }
+
+  @Override
+  public UnresolvedExpression visitMultiFieldRelevanceFunction(
+      MultiFieldRelevanceFunctionContext ctx) {
+    return new Function(
+        ctx.multiFieldRelevanceFunctionName().getText().toLowerCase(),
+        multiFieldRelevanceArguments(ctx));
   }
 
   @Override
@@ -328,7 +340,8 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     );
   }
 
-  private List<UnresolvedExpression> relevanceArguments(RelevanceExpressionContext ctx) {
+  private List<UnresolvedExpression> singleFieldRelevanceArguments(
+      OpenSearchPPLParser.SingleFieldRelevanceFunctionContext ctx) {
     // all the arguments are defaulted to string values
     // to skip environment resolving and function signature resolving
     ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
@@ -342,4 +355,23 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return builder.build();
   }
 
+  private List<UnresolvedExpression> multiFieldRelevanceArguments(
+      OpenSearchPPLParser.MultiFieldRelevanceFunctionContext ctx) {
+    // all the arguments are defaulted to string values
+    // to skip environment resolving and function signature resolving
+    ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
+    var fields = new RelevanceFieldList(ctx
+        .getRuleContexts(OpenSearchPPLParser.RelevanceFieldAndWeightContext.class)
+        .stream()
+        .collect(Collectors.toMap(
+            f -> StringUtils.unquoteText(f.field.getText()),
+            f -> (f.weight == null) ? 1F : Float.parseFloat(f.weight.getText()))));
+    builder.add(new UnresolvedArgument("fields", fields));
+    builder.add(new UnresolvedArgument("query",
+        new Literal(StringUtils.unquoteText(ctx.query.getText()), DataType.STRING)));
+    ctx.relevanceArg().forEach(v -> builder.add(new UnresolvedArgument(
+        v.relevanceArgName().getText().toLowerCase(), new Literal(StringUtils.unquoteText(
+        v.relevanceArgValue().getText()), DataType.STRING))));
+    return builder.build();
+  }
 }

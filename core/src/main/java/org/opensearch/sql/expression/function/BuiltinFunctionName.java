@@ -195,7 +195,8 @@ public enum BuiltinFunctionName {
    */
   QUERY(FunctionName.of("query")),
   MATCH_QUERY(FunctionName.of("match_query")),
-  MATCHQUERY(FunctionName.of("matchquery"));
+  MATCHQUERY(FunctionName.of("matchquery")),
+  MULTI_MATCH(FunctionName.of("multi_match"));
 
   private final FunctionName name;
 

@@ -79,5 +79,38 @@ public class PPLSyntaxParserTest {
     ParseTree tree = new PPLSyntaxParser().analyzeSyntax("source=t a=1 | top a by b");
     assertNotEquals(null, tree);
   }
+
+  @Test
+  public void can_parse_multi_match_relevance_function() {
+    assertNotEquals(null, new PPLSyntaxParser().analyzeSyntax(
+        "SOURCE=test | WHERE multi_match(['address'], 'query')"));
+    assertNotEquals(null, new PPLSyntaxParser().analyzeSyntax(
+        "SOURCE=test | WHERE multi_match(['address', 'notes'], 'query')"));
+    assertNotEquals(null, new PPLSyntaxParser().analyzeSyntax(
+        "SOURCE=test | WHERE multi_match([\"*\"], 'query')"));
+    assertNotEquals(null, new PPLSyntaxParser().analyzeSyntax(
+        "SOURCE=test | WHERE multi_match([\"address\"], 'query')"));
+    assertNotEquals(null, new PPLSyntaxParser().analyzeSyntax(
+        "SOURCE=test | WHERE multi_match([`address`], 'query')"));
+    assertNotEquals(null, new PPLSyntaxParser().analyzeSyntax(
+        "SOURCE=test | WHERE multi_match([address], 'query')"));
+
+    assertNotEquals(null, new PPLSyntaxParser().analyzeSyntax(
+        "SOURCE=test | WHERE multi_match(['address' ^ 1.0, 'notes' ^ 2.2], 'query')"));
+    assertNotEquals(null, new PPLSyntaxParser().analyzeSyntax(
+        "SOURCE=test | WHERE multi_match(['address' ^ 1.1, 'notes'], 'query')"));
+    assertNotEquals(null, new PPLSyntaxParser().analyzeSyntax(
+        "SOURCE=test | WHERE multi_match(['address', 'notes' ^ 1.5], 'query')"));
+    assertNotEquals(null, new PPLSyntaxParser().analyzeSyntax(
+        "SOURCE=test | WHERE multi_match(['address', 'notes' 3], 'query')"));
+    assertNotEquals(null, new PPLSyntaxParser().analyzeSyntax(
+        "SOURCE=test | WHERE multi_match(['address' ^ .3, 'notes' 3], 'query')"));
+
+    assertNotEquals(null, new PPLSyntaxParser().analyzeSyntax(
+        "SOURCE=test | WHERE multi_match([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query')"));
+    assertNotEquals(null, new PPLSyntaxParser().analyzeSyntax(
+        "SOURCE=test | WHERE multi_match([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query',"
+            + "analyzer=keyword, quote_field_suffix=\".exact\", fuzzy_prefix_length = 4)"));
+  }
 }
 

@@ -13,6 +13,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.caseWhen;
 import static org.opensearch.sql.ast.dsl.AstDSL.dateLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.doubleLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.floatLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.intervalLiteral;
@@ -32,12 +33,14 @@ import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.RelevanceFieldList;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.common.antlr.CaseInsensitiveCharStream;
 import org.opensearch.sql.common.antlr.SyntaxAnalysisErrorListener;
@@ -433,7 +436,7 @@ class AstExpressionBuilderTest {
     assertEquals(AstDSL.function("match",
         unresolvedArg("field", stringLiteral("message")),
         unresolvedArg("query", stringLiteral("search query"))),
-        buildExprAst("match(message, 'search query')")
+        buildExprAst("match('message', 'search query')")
     );
 
     assertEquals(AstDSL.function("match",
@@ -441,7 +444,26 @@ class AstExpressionBuilderTest {
         unresolvedArg("query", stringLiteral("search query")),
         unresolvedArg("analyzer", stringLiteral("keyword")),
         unresolvedArg("operator", stringLiteral("AND"))),
-        buildExprAst("match(message, 'search query', analyzer='keyword', operator='AND')"));
+        buildExprAst("match('message', 'search query', analyzer='keyword', operator='AND')"));
+  }
+
+  @Test
+  public void relevanceMulti_match() {
+    assertEquals(AstDSL.function("multi_match",
+            unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
+                "field2", 3.2F, "field1", 1.F))),
+            unresolvedArg("query", stringLiteral("search query"))),
+        buildExprAst("multi_match(['field1', 'field2' ^ 3.2], 'search query')")
+    );
+
+    assertEquals(AstDSL.function("multi_match",
+            unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
+                "field2", 3.2F, "field1", 1.F))),
+            unresolvedArg("query", stringLiteral("search query")),
+            unresolvedArg("analyzer", stringLiteral("keyword")),
+            unresolvedArg("operator", stringLiteral("AND"))),
+        buildExprAst("multi_match(['field1', 'field2' ^ 3.2], 'search query',"
+            + "analyzer='keyword', operator='AND')"));
   }
 
   @Test
@@ -467,5 +489,4 @@ class AstExpressionBuilderTest {
     parser.addErrorListener(new SyntaxAnalysisErrorListener());
     return parser.expression().accept(astExprBuilder);
   }
-
 }

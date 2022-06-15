@@ -6,8 +6,10 @@
 package org.opensearch.sql.expression.function;
 
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -24,15 +26,17 @@ import org.opensearch.sql.expression.env.Environment;
 @UtilityClass
 public class OpenSearchFunctions {
 
-  public static final int MATCH_MAX_NUM_PARAMETERS = 12;
-  public static final int MATCH_PHRASE_MAX_NUM_PARAMETERS = 3;
+  public static final int MATCH_MAX_NUM_PARAMETERS = 14;
+  public static final int MATCH_PHRASE_MAX_NUM_PARAMETERS = 5;
   public static final int MIN_NUM_PARAMETERS = 2;
+  public static final int MULTI_MATCH_MAX_NUM_PARAMETERS = 17;
 
   /**
    * Add functions specific to OpenSearch to repository.
    */
   public void register(BuiltinFunctionRepository repository) {
     repository.register(match());
+    repository.register(multi_match());
     // Register MATCHPHRASE as MATCH_PHRASE as well for backwards
     // compatibility.
     repository.register(match_phrase(BuiltinFunctionName.MATCH_PHRASE));
@@ -41,31 +45,36 @@ public class OpenSearchFunctions {
 
   private static FunctionResolver match() {
     FunctionName funcName = BuiltinFunctionName.MATCH.getName();
-    return getRelevanceFunctionResolver(funcName, MATCH_MAX_NUM_PARAMETERS);
+    return getRelevanceFunctionResolver(funcName, MATCH_MAX_NUM_PARAMETERS, STRING);
   }
 
   private static FunctionResolver match_phrase(BuiltinFunctionName matchPhrase) {
     FunctionName funcName = matchPhrase.getName();
-    return getRelevanceFunctionResolver(funcName, MATCH_PHRASE_MAX_NUM_PARAMETERS);
+    return getRelevanceFunctionResolver(funcName, MATCH_PHRASE_MAX_NUM_PARAMETERS, STRING);
+  }
+
+  private static FunctionResolver multi_match() {
+    FunctionName funcName = BuiltinFunctionName.MULTI_MATCH.getName();
+    return getRelevanceFunctionResolver(funcName, MULTI_MATCH_MAX_NUM_PARAMETERS, STRUCT);
   }
 
   private static FunctionResolver getRelevanceFunctionResolver(
-      FunctionName funcName, int maxNumParameters) {
+      FunctionName funcName, int maxNumParameters, ExprCoreType firstArgType) {
     return new FunctionResolver(funcName,
-      getRelevanceFunctionSignatureMap(funcName, maxNumParameters));
+      getRelevanceFunctionSignatureMap(funcName, maxNumParameters, firstArgType));
   }
 
   private static Map<FunctionSignature, FunctionBuilder> getRelevanceFunctionSignatureMap(
-      FunctionName funcName, int numOptionalParameters) {
+      FunctionName funcName, int maxNumParameters, ExprCoreType firstArgType) {
     FunctionBuilder buildFunction = args -> new OpenSearchFunction(funcName, args);
     var signatureMapBuilder = ImmutableMap.<FunctionSignature, FunctionBuilder>builder();
     for (int numParameters = MIN_NUM_PARAMETERS;
-         numParameters <= MIN_NUM_PARAMETERS + numOptionalParameters;
-         numParameters++) {
-      List<ExprType> args = Collections.nCopies(numParameters, STRING);
+         numParameters <= maxNumParameters; numParameters++) {
+      List<ExprType> args = new ArrayList<>(Collections.nCopies(numParameters - 1, STRING));
+      args.add(0, firstArgType);
       signatureMapBuilder.put(new FunctionSignature(funcName, args), buildFunction);
     }
-    return  signatureMapBuilder.build();
+    return signatureMapBuilder.build();
   }
 
   private static class OpenSearchFunction extends FunctionExpression {
