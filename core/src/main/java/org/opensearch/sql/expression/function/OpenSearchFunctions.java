@@ -52,7 +52,7 @@ public class OpenSearchFunctions {
 
   private static FunctionResolver match_phrase_prefix() {
     FunctionName funcName = BuiltinFunctionName.MATCH_PHRASE_PREFIX.getName();
-    return getRelevanceFunctionResolver(funcName, MATCH_PHRASE_PREFIX_MAX_NUM_PARAMETERS);
+    return getRelevanceFunctionResolver(funcName, MATCH_PHRASE_PREFIX_MAX_NUM_PARAMETERS, STRING);
   }
 
   private static FunctionResolver match_phrase(BuiltinFunctionName matchPhrase) {
