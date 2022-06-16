@@ -415,6 +415,57 @@ class FilterQueryBuilderTest {
   }
 
   @Test
+  void should_build_multi_match_query_with_default_parameters_all_fields() {
+    assertJsonEquals("{\n"
+            + "  \"multi_match\" : {\n"
+            + "    \"query\" : \"search query\",\n"
+            + "    \"fields\" : [\n"
+            + "      \"*^1.0\"\n"
+            + "    ],\n"
+            + "    \"type\" : \"best_fields\",\n"
+            + "    \"operator\" : \"OR\",\n"
+            + "    \"slop\" : 0,\n"
+            + "    \"prefix_length\" : 0,\n"
+            + "    \"max_expansions\" : 50,\n"
+            + "    \"zero_terms_query\" : \"NONE\",\n"
+            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
+            + "    \"fuzzy_transpositions\" : true,\n"
+            + "    \"boost\" : 1.0,\n"
+            + "  }\n"
+            + "}",
+        buildQuery(dsl.multi_match(
+            dsl.namedArgument("fields", DSL.literal(new ExprTupleValue(
+                new LinkedHashMap<>(ImmutableMap.of(
+                    "*", ExprValueUtils.floatValue(1.F)))))),
+            dsl.namedArgument("query", literal("search query")))));
+  }
+
+  @Test
+  void should_build_multi_match_query_with_default_parameters_no_fields() {
+    assertJsonEquals("{\n"
+            + "  \"multi_match\" : {\n"
+            + "    \"query\" : \"search query\",\n"
+            + "    \"fields\" : [],\n"
+            + "    \"type\" : \"best_fields\",\n"
+            + "    \"operator\" : \"OR\",\n"
+            + "    \"slop\" : 0,\n"
+            + "    \"prefix_length\" : 0,\n"
+            + "    \"max_expansions\" : 50,\n"
+            + "    \"zero_terms_query\" : \"NONE\",\n"
+            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
+            + "    \"fuzzy_transpositions\" : true,\n"
+            + "    \"boost\" : 1.0,\n"
+            + "  }\n"
+            + "}",
+        buildQuery(dsl.multi_match(
+            dsl.namedArgument("fields", DSL.literal(new ExprTupleValue(
+                new LinkedHashMap<>(ImmutableMap.of())))),
+            dsl.namedArgument("query", literal("search query")))));
+  }
+
+  // Note: we can't test `multi_match` and `simple_query_string` without weight(s)
+
+  @Test
   void should_build_multi_match_query_with_default_parameters_multiple_fields() {
     var expected = "{\n"
             + "  \"multi_match\" : {\n"
@@ -762,11 +813,6 @@ class FilterQueryBuilderTest {
           + "STRING,STRING,STRING,STRING]}, but get [STRUCT]",
           msg);
   }
-
-  // TODO multi_match tests:
-  // - with one field
-  // - without weight(s)
-  // - with all fields ("*")
 
   @Test
   void cast_to_string_in_filter() {
