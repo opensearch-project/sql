@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 
 import com.google.common.collect.ImmutableMap;
 import org.opensearch.index.query.MatchBoolPrefixQueryBuilder;
+import org.opensearch.index.query.Operator;
 import org.opensearch.index.query.QueryBuilders;
 
 /**
@@ -28,6 +29,8 @@ public class MatchBoolPrefixQuery
             (b, v) -> b.fuzzyTranspositions(Boolean.parseBoolean(v.stringValue())))
         .put("fuzzy_rewrite", (b, v) -> b.fuzzyRewrite(v.stringValue()))
         .put("boost", (b, v) -> b.boost(Float.parseFloat(v.stringValue())))
+        .put("analyzer", (b, v) -> b.analyzer(v.stringValue()))
+        .put("operator", (b,v) -> b.operator(Operator.fromString(v.stringValue())))
         .build());
   }
 
