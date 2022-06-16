@@ -9,18 +9,25 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 
+import com.google.common.collect.ImmutableMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.data.model.ExprTupleValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
 
 
-
 public class OpenSearchFunctionsTest extends ExpressionTestBase {
   private final NamedArgumentExpression field = new NamedArgumentExpression(
       "field", DSL.literal("message"));
+  private final NamedArgumentExpression fields = new NamedArgumentExpression(
+      "fields", DSL.literal(new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
+          "title", ExprValueUtils.floatValue(1.F),
+          "body", ExprValueUtils.floatValue(.3F))))));
   private final NamedArgumentExpression query = new NamedArgumentExpression(
       "query", DSL.literal("search query"));
   private final NamedArgumentExpression analyzer = new NamedArgumentExpression(
@@ -44,9 +51,9 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
   private final NamedArgumentExpression minimumShouldMatch = new NamedArgumentExpression(
       "minimum_should_match", DSL.literal("1"));
   private final NamedArgumentExpression zeroTermsQueryAll = new NamedArgumentExpression(
-          "zero_terms_query", DSL.literal("ALL"));
+      "zero_terms_query", DSL.literal("ALL"));
   private final NamedArgumentExpression zeroTermsQueryNone = new NamedArgumentExpression(
-          "zero_terms_query", DSL.literal("None"));
+      "zero_terms_query", DSL.literal("None"));
   private final NamedArgumentExpression boost = new NamedArgumentExpression(
       "boost", DSL.literal("2.0"));
   private final NamedArgumentExpression slop = new NamedArgumentExpression(
@@ -111,8 +118,8 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
 
     expr = dsl.match(
         field, query, analyzer, autoGenerateSynonymsPhrase, fuzziness, maxExpansions, prefixLength,
-        fuzzyTranspositions, fuzzyRewrite, lenient, operator, minimumShouldMatch, zeroTermsQueryAll,
-        boost);
+        fuzzyTranspositions, fuzzyRewrite, lenient, operator, minimumShouldMatch,
+        zeroTermsQueryNone, boost);
     assertEquals(BOOLEAN, expr.type());
   }
 
@@ -158,5 +165,13 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
   void match_to_string() {
     FunctionExpression expr = dsl.match(field, query);
     assertEquals("match(field=\"message\", query=\"search query\")", expr.toString());
+  }
+
+  @Test
+  void simple_query_string() {
+    FunctionExpression expr = dsl.simple_query_string(fields, query);
+    assertEquals(String.format("simple_query_string(fields=%s, query=%s)",
+            fields.getValue().toString(), query.getValue().toString()),
+        expr.toString());
   }
 }
