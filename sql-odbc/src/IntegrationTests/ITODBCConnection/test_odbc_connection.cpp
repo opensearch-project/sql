@@ -303,9 +303,14 @@ TEST_F(TestSQLDriverConnect, ConnStringAbbrevsHost) {
     EXPECT_EQ(SQL_SUCCESS, ret);
 }
 
-TEST_F(TestSQLDriverConnect, ConnStringAbbrevsHostHttp) {
+TEST_F(TestSQLDriverConnect, ConnStringAbbrevsHostProtocol) {
     std::wstring abbrev_str =
-                  L"Driver={OpenSearch ODBC};"
+        false ? L"Driver={OpenSearch ODBC};"
+                  L"host=https://localhost;port=9200;"
+                  L"UID=admin;PWD=admin;auth=BASIC;useSSL="
+                  L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"responseTimeout=10;"
+                : L"Driver={OpenSearch ODBC};"
                   L"host=http://localhost;port=9200;"
                   L"UID=admin;PWD=admin;auth=BASIC;useSSL="
                   L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
