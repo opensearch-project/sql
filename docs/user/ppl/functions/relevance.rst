@@ -117,6 +117,7 @@ The match_bool_prefix function maps to the match_bool_prefix query in the search
 - max_expansions
 - prefix_length
 - fuzzy_transpositions
+- operator
 - fuzzy_rewrite
 - minimum_should_match
 - boost

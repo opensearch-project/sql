@@ -2253,6 +2253,8 @@ The match_bool_prefix function maps to the match_bool_prefix query in the search
 - fuzzy_rewrite
 - minimum_should_match
 - boost
+- operator
+- analyzer
 
 Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
 

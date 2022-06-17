@@ -45,7 +45,10 @@ public class MatchBoolPrefixQueryTest {
             dsl.namedArgument("fuzzy_transpositions", DSL.literal("true")),
             dsl.namedArgument("fuzzy_rewrite", DSL.literal("constant_score")),
             dsl.namedArgument("minimum_should_match", DSL.literal("3")),
-            dsl.namedArgument("boost", DSL.literal("1"))
+            dsl.namedArgument("boost", DSL.literal("1")),
+            dsl.namedArgument("analyzer", DSL.literal("simple")),
+            dsl.namedArgument("operator", DSL.literal("Or")),
+            dsl.namedArgument("operator", DSL.literal("and"))
         ).stream().map(arg -> List.of(field, query, arg));
   }
 
