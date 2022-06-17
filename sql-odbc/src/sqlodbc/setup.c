@@ -326,6 +326,7 @@ INT_PTR CALLBACK ConfigDlgProc(HWND hdlg, UINT wMsg, WPARAM wParam,
                     break;
                 }
                 case ID_ADVANCED_OPTIONS: {
+                    GetDlgStuff(hdlg, &lpsetupdlg->ci);
                     if (DialogBoxParam(
                             s_hModule, MAKEINTRESOURCE(DLG_ADVANCED_OPTIONS),
                             hdlg, advancedOptionsProc, (LPARAM)&lpsetupdlg->ci) > 0)
