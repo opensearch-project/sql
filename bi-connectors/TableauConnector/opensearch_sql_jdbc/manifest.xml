@@ -3,7 +3,7 @@
 <connector-plugin class='opensearch_jdbc' superclass='jdbc' plugin-version='2.0.0.0' name='OpenSearch' version='18.1' min-version-tableau='2021.1'>
   <vendor-information>
       <company name="OpenSearch Project"/>
-      <support-link url="https://github.com/opensearch-project/sql"/>
+      <support-link url="https://forum.opensearch.org/"/>
   </vendor-information>
   <connection-customization class="opensearch_jdbc" enabled="true" version="10.0">
     <vendor name="OpenSearch Project"/>
