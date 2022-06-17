@@ -32,7 +32,7 @@ done
 function setup_bwc_artifact() {
     # This gets opensearch version from build.gradle (e.g. 1.2.0-SNAPSHOT),
     # then converts to plugin version by appending ".0" (e.g. 1.2.0.0-SNAPSHOT),
-    # assuming one line in build.gradle is 'opensearch_version= System.getProperty("opensearch.version", "<opensearch_version>")'.
+    # assuming one line in build.gradle is 'opensearch_version = System.getProperty("opensearch.version", "<opensearch_version>")'.
     plugin_version=$(grep 'opensearch_version = System.getProperty' build.gradle | \
         grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+[^"]*' | sed -e 's/\(.*\)\(\.[0-9]\)/\1\2.0/')
     plugin_artifact="./plugin/build/distributions/opensearch-sql-$plugin_version.zip"

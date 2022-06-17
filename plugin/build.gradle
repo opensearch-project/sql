@@ -28,6 +28,8 @@ plugins {
     id 'opensearch.opensearchplugin'
 }
 
+apply plugin: 'opensearch.pluginzip'
+
 ext {
     projectSubstitutions = [:]
     licenseFile = rootProject.file('LICENSE.TXT')
@@ -44,6 +46,29 @@ opensearchplugin {
     classname 'org.opensearch.sql.plugin.SQLPlugin'
     licenseFile rootProject.file("LICENSE.txt")
     noticeFile rootProject.file("NOTICE")
+}
+
+publishing {
+    publications {
+        pluginZip(MavenPublication) { publication ->
+            pom {
+                name = 'opensearch-sql'
+                description = 'OpenSearch SQL'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        name = 'OpenSearch'
+                        url = 'https://github.com/opensearch-project/sql'
+                    }
+                }
+            }
+        }
+    }
 }
 
 javadoc.enabled = false
