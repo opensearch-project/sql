@@ -2273,6 +2273,7 @@ Another example to show how to set custom values for the optional parameters::
     |-------------+--------------------|
     | Hattie      | 671 Bristol Street |
     +-------------+--------------------+
+
 SIMPLE_QUERY_STRING
 -------------------
 
