@@ -11,7 +11,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalComman
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FromClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.HeadCommandContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PplStatementContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchStatementContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFilterFromContext;
@@ -78,7 +78,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   private final String query;
 
   @Override
-  public UnresolvedPlan visitPplStatement(PplStatementContext ctx) {
+  public UnresolvedPlan visitSearchStatement(SearchStatementContext ctx) {
     UnresolvedPlan search = visit(ctx.searchCommand());
     return ctx.commands()
         .stream()

@@ -9,11 +9,11 @@ parser grammar OpenSearchPPLParser;
 options { tokenVocab=OpenSearchPPLLexer; }
 
 root
-    : pplStatement? EOF
+    : searchStatement? EOF
     ;
 
 /** statement */
-pplStatement
+searchStatement
     : searchCommand (PIPE commands)*
     ;
 
