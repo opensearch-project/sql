@@ -16,6 +16,8 @@
 #include <aws/core/http/HttpClient.h>
 // clang-format on
 
+#define SQL_ENDPOINT_ERROR_STR "Error"
+
 static const std::string ctype = "application/json";
 static const std::string ALLOCATION_TAG = "AWS_SIGV4_AUTH";
 static const std::string SERVICE_NAME = "es";
@@ -531,7 +533,7 @@ bool OpenSearchCommunication::EstablishConnection() {
     // Check whether SQL plugin has been installed and enabled in the
     // OpenSearch server since the SQL plugin is a prerequisite to
     // use this driver.
-    if(CheckSQLPluginAvailability()) {
+    if((sql_endpoint != SQL_ENDPOINT_ERROR_STR) && CheckSQLPluginAvailability()) {
         return true;
     }
 
@@ -1010,7 +1012,7 @@ std::string OpenSearchCommunication::GetClusterName() {
 void OpenSearchCommunication::SetSqlEndpoint() {
     std::string distribution = GetServerDistribution();
     if (distribution.empty()) {
-        sql_endpoint = "Error";
+        sql_endpoint = SQL_ENDPOINT_ERROR_STR;
     } else if (distribution.compare("opensearch") == 0) {
         sql_endpoint = "/_plugins/_sql";
     } else {

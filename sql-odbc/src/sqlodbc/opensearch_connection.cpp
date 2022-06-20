@@ -30,6 +30,8 @@
 #include "qresult.h"
 #include "statement.h"
 
+#define HTTP_PREFIX     "http://"
+#define HTTPS_PREFIX    "https://"
 #define PROTOCOL3_OPTS_MAX 30
 #define ERROR_BUFF_SIZE 200
 #define OPTION_COUNT 4
@@ -73,6 +75,34 @@ char CC_connect(ConnectionClass *self) {
     return 1;
 }
 
+std::string generateValidServerUrl(ConnectionClass *self) {
+    std::string valid_server_url = "";
+    if(!strlen(self->connInfo.server)) {
+        return valid_server_url;
+    }
+
+    bool url_len_valid = (strlen(self->connInfo.server) > strlen(HTTPS_PREFIX));
+    bool http_prefix_prepended = (url_len_valid && std::string(self->connInfo.server).find(HTTP_PREFIX, 0) == 0);
+    bool https_prefix_prepended = (url_len_valid && std::string(self->connInfo.server).find(HTTPS_PREFIX, 0) == 0);
+
+    if (!url_len_valid || (!http_prefix_prepended && !https_prefix_prepended)) {
+        valid_server_url = self->connInfo.use_ssl ?
+            std::string(HTTPS_PREFIX) + std::string(self->connInfo.server) :
+            std::string(HTTP_PREFIX) + std::string(self->connInfo.server);
+
+    // In the event that a user prepends a protocol and the UseSSL flag doesn't match selection
+    } else if((http_prefix_prepended && self->connInfo.use_ssl) ||
+        (https_prefix_prepended && !self->connInfo.use_ssl)) {
+        const char error_message_out[ERROR_BUFF_SIZE] =
+            "Mismatch between UseSSL flag value and specified protocol in server url.";
+        CC_set_error(self, CONN_INVALID_ARGUMENT_NO, error_message_out,
+                     "LIBOPENSEARCH_connect");
+    } else {
+        valid_server_url = self->connInfo.server;
+    }
+    return valid_server_url;
+}
+
 int LIBOPENSEARCH_connect(ConnectionClass *self) {
     if (self == NULL)
         return 0;
@@ -81,7 +111,10 @@ int LIBOPENSEARCH_connect(ConnectionClass *self) {
     runtime_options rt_opts;
 
     // Connection
-    rt_opts.conn.server.assign(self->connInfo.server);
+    rt_opts.conn.server.assign(generateValidServerUrl(self));
+    if(rt_opts.conn.server.empty()) {
+        return 0;
+    }
     rt_opts.conn.port.assign(self->connInfo.port);
     rt_opts.conn.timeout.assign(self->connInfo.response_timeout);
 
@@ -94,15 +127,6 @@ int LIBOPENSEARCH_connect(ConnectionClass *self) {
     // Encryption
     rt_opts.crypt.verify_server = (self->connInfo.verify_server == 1);
     rt_opts.crypt.use_ssl = (self->connInfo.use_ssl == 1);
-
-    // Server host url protocol is necessary for sql plugin validation
-    if (rt_opts.conn.server.size() && rt_opts.conn.server.find("http", 0) != 0) {
-        if(rt_opts.crypt.use_ssl) {
-            rt_opts.conn.server = std::string("https://") + std::string(self->connInfo.server);
-        } else {
-            rt_opts.conn.server = std::string("http://") + std::string(self->connInfo.server);
-        }
-    }
 
     void *opensearchconn = OpenSearchConnectDBParams(rt_opts, FALSE, OPTION_COUNT);
     if (opensearchconn == NULL) {
