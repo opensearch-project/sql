@@ -7,16 +7,17 @@
 package org.opensearch.sql.ppl.parser;
 
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeStatementContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FromClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.HeadCommandContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchStatementContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFilterFromContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFromContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFromFilterContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchStatementContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
@@ -84,6 +85,15 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         .stream()
         .map(this::visit)
         .reduce(search, (r, e) -> e.attach(r));
+  }
+
+  @Override
+  public UnresolvedPlan visitDescribeStatement(DescribeStatementContext ctx) {
+    UnresolvedPlan search = visit(ctx.describeCommand());
+    return ctx.commands()
+            .stream()
+            .map(this::visit)
+            .reduce(search, (r, e) -> e.attach(r));
   }
 
   /**

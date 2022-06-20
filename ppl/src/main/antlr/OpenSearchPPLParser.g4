@@ -9,12 +9,20 @@ parser grammar OpenSearchPPLParser;
 options { tokenVocab=OpenSearchPPLLexer; }
 
 root
-    : searchStatement? EOF
+    : pplStatement? EOF
     ;
 
 /** statement */
+pplStatement
+    : searchStatement | describeStatement
+    ;
+
 searchStatement
     : searchCommand (PIPE commands)*
+    ;
+
+describeStatement
+    : describeCommand (PIPE commands)*
     ;
 
 /** commands */
@@ -26,6 +34,10 @@ searchCommand
     : (SEARCH)? fromClause                                          #searchFrom
     | (SEARCH)? fromClause logicalExpression                        #searchFromFilter
     | (SEARCH)? logicalExpression fromClause                        #searchFilterFrom
+    ;
+
+describeCommand
+    : DESCRIBE fromClause
     ;
 
 whereCommand
