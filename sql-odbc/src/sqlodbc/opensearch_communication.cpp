@@ -913,6 +913,7 @@ std::string OpenSearchCommunication::GetServerDistribution() {
         SetErrorDetails("Connection error", m_error_message,
                         ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
         LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
+        m_error_message_to_user = m_error_message;
         return "";
     }
 
