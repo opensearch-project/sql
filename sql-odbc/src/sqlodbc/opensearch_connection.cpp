@@ -89,14 +89,6 @@ std::string generateValidServerUrl(ConnectionClass *self) {
         valid_server_url = self->connInfo.use_ssl ?
             std::string(HTTPS_PREFIX) + std::string(self->connInfo.server) :
             std::string(HTTP_PREFIX) + std::string(self->connInfo.server);
-
-    // In the event that a user prepends a protocol and the UseSSL flag doesn't match selection
-    } else if((http_prefix_prepended && self->connInfo.use_ssl) ||
-        (https_prefix_prepended && !self->connInfo.use_ssl)) {
-        const char error_message_out[ERROR_BUFF_SIZE] =
-            "Mismatch between UseSSL flag value and specified protocol in server url.";
-        CC_set_error(self, CONN_INVALID_ARGUMENT_NO, error_message_out,
-                     "LIBOPENSEARCH_connect");
     } else {
         valid_server_url = self->connInfo.server;
     }
