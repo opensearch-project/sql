@@ -6,11 +6,14 @@
 
 package org.opensearch.sql.ppl.parser;
 
+import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeStatementContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FromClauseContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FromMetaClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.HeadCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameCommandContext;
@@ -22,6 +25,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortComman
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WhereCommandContext;
+import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -33,12 +37,7 @@ import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
-import org.opensearch.sql.ast.expression.Alias;
-import org.opensearch.sql.ast.expression.Field;
-import org.opensearch.sql.ast.expression.Let;
-import org.opensearch.sql.ast.expression.Literal;
-import org.opensearch.sql.ast.expression.Map;
-import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.*;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
@@ -89,11 +88,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitDescribeStatement(DescribeStatementContext ctx) {
-    UnresolvedPlan search = visit(ctx.describeCommand());
+    UnresolvedPlan describe = visit(ctx.describeCommand());
     return ctx.commands()
             .stream()
             .map(this::visit)
-            .reduce(search, (r, e) -> e.attach(r));
+            .reduce(describe, (r, e) -> e.attach(r));
   }
 
   /**
@@ -114,6 +113,14 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitSearchFilterFrom(SearchFilterFromContext ctx) {
     return new Filter(internalVisitExpression(ctx.logicalExpression())).attach(
         visit(ctx.fromClause()));
+  }
+
+  /**
+   * Describe command.
+   */
+  @Override
+  public UnresolvedPlan visitDescribeCommand(DescribeCommandContext ctx) {
+    return visitFromMetaClause(ctx.fromMetaClause());
   }
 
   /**
@@ -299,6 +306,13 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return new Relation(ctx.tableSource()
         .stream().map(this::internalVisitExpression)
         .collect(Collectors.toList()));
+  }
+
+  @Override
+  public UnresolvedPlan visitFromMetaClause(FromMetaClauseContext ctx) {
+    final String tableName = ctx.tableSource().getText();
+    final Relation table = new Relation(qualifiedName(mappingTable(tableName)));
+    return new Project(Collections.singletonList(AllFields.of())).attach(table);
   }
 
   /**

@@ -37,7 +37,7 @@ searchCommand
     ;
 
 describeCommand
-    : DESCRIBE fromClause
+    : DESCRIBE fromMetaClause
     ;
 
 whereCommand
@@ -133,6 +133,10 @@ adParameter
 fromClause
     : SOURCE EQUAL tableSource (COMMA tableSource)*
     | INDEX EQUAL tableSource (COMMA tableSource)*
+    ;
+
+fromMetaClause
+    : tableSource
     ;
 
 renameClasue
