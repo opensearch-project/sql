@@ -14,18 +14,15 @@ root
 
 /** statement */
 pplStatement
-    : searchStatement | describeStatement
-    ;
-
-searchStatement
-    : searchCommand (PIPE commands)*
-    ;
-
-describeStatement
-    : describeCommand (PIPE commands)*
+    : pplCommands (PIPE commands)*
     ;
 
 /** commands */
+pplCommands
+    : searchCommand
+    | describeCommand
+    ;
+
 commands
     : whereCommand | fieldsCommand | renameCommand | statsCommand | dedupCommand | sortCommand | evalCommand | headCommand
     | topCommand | rareCommand | parseCommand | kmeansCommand | adCommand;
