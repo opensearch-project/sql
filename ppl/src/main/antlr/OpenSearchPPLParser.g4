@@ -389,6 +389,7 @@ binaryOperator
 singleFieldRelevanceFunctionName
     : MATCH
     | MATCH_PHRASE
+    | MATCH_PHRASE_PREFIX
     ;
 
 multiFieldRelevanceFunctionName
