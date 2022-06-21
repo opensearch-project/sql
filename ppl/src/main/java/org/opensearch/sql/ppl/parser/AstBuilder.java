@@ -13,7 +13,6 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeSt
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FromClauseContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FromMetaClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.HeadCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameCommandContext;
@@ -126,7 +125,9 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    */
   @Override
   public UnresolvedPlan visitDescribeCommand(DescribeCommandContext ctx) {
-    return visitFromMetaClause(ctx.fromMetaClause());
+    final String tableName = ctx.tableSource().getText();
+    final Relation table = new Relation(qualifiedName(mappingTable(tableName)));
+    return new Project(Collections.singletonList(AllFields.of())).attach(table);
   }
 
   /**
@@ -312,13 +313,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return new Relation(ctx.tableSource()
         .stream().map(this::internalVisitExpression)
         .collect(Collectors.toList()));
-  }
-
-  @Override
-  public UnresolvedPlan visitFromMetaClause(FromMetaClauseContext ctx) {
-    final String tableName = ctx.tableSource().getText();
-    final Relation table = new Relation(qualifiedName(mappingTable(tableName)));
-    return new Project(Collections.singletonList(AllFields.of())).attach(table);
   }
 
   /**
