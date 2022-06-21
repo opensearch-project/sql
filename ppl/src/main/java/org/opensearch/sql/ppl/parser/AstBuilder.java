@@ -96,9 +96,9 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitDescribeStatement(DescribeStatementContext ctx) {
     UnresolvedPlan describe = visit(ctx.describeCommand());
     return ctx.commands()
-            .stream()
-            .map(this::visit)
-            .reduce(describe, (r, e) -> e.attach(r));
+        .stream()
+        .map(this::visit)
+        .reduce(describe, (r, e) -> e.attach(r));
   }
 
   /**
