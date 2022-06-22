@@ -20,6 +20,7 @@
 
 #include <map>
 #include <string>
+#include <string_view>
 
 #include "dlg_specific.h"
 #include "environ.h"
@@ -30,8 +31,6 @@
 #include "qresult.h"
 #include "statement.h"
 
-#define HTTP_PREFIX     "http://"
-#define HTTPS_PREFIX    "https://"
 #define PROTOCOL3_OPTS_MAX 30
 #define ERROR_BUFF_SIZE 200
 #define OPTION_COUNT 4
@@ -75,22 +74,31 @@ char CC_connect(ConnectionClass *self) {
     return 1;
 }
 
+/**
+ * @brief Prepends the appropriate protocol to the user supplied server url
+ * when necessary. With no protocol speciefied, the use_ssl flag determines
+ * returned value.
+ * 
+ * @param self : Supplied connection input data
+ * @return std::string : Valid server URL with prepended protocol
+ */
 std::string generateValidServerUrl(ConnectionClass *self) {
     std::string valid_server_url = "";
-    if(!strlen(self->connInfo.server)) {
+    std::string_view server_url = self->connInfo.server;
+    std::string_view http_prefix = "http://";
+    std::string_view https_prefix = "https://";
+    if(server_url.empty()) {
         return valid_server_url;
     }
 
-    bool url_len_valid = (strlen(self->connInfo.server) > strlen(HTTPS_PREFIX));
-    bool http_prefix_prepended = (url_len_valid && std::string(self->connInfo.server).find(HTTP_PREFIX, 0) == 0);
-    bool https_prefix_prepended = (url_len_valid && std::string(self->connInfo.server).find(HTTPS_PREFIX, 0) == 0);
-
-    if (!url_len_valid || (!http_prefix_prepended && !https_prefix_prepended)) {
+    bool http_prefix_prepended = (server_url.size() > http_prefix.size() && (server_url.substr(0, http_prefix.size()) == http_prefix));
+    bool https_prefix_prepended = (server_url.size() > https_prefix.size() && (server_url.substr(0, https_prefix.size()) == https_prefix));
+    if (!http_prefix_prepended && !https_prefix_prepended) {
         valid_server_url = self->connInfo.use_ssl ?
-            std::string(HTTPS_PREFIX) + std::string(self->connInfo.server) :
-            std::string(HTTP_PREFIX) + std::string(self->connInfo.server);
+            std::string(https_prefix) + std::string(server_url) :
+            std::string(http_prefix) + std::string(server_url);
     } else {
-        valid_server_url = self->connInfo.server;
+        valid_server_url = server_url;
     }
     return valid_server_url;
 }

@@ -140,6 +140,15 @@ static void getDriversDefaultsOfCi(const ConnInfo *ci, GLOBAL_VALUES *glbv) {
         getDriversDefaults(INVALID_DRIVER, glbv);
 }
 
+/**
+ * @brief Initializes and closes the advanced dialog box.
+ * 
+ * @param hdlg : Handle to dialog box
+ * @param wMsg : Dialog box command message
+ * @param wParam : Handle to the control to receive keyboard focus
+ * @param lParam : Dialog connection data
+ * @return INT_PTR : Returns true on successful command of advanced dialog box
+ */
 INT_PTR CALLBACK advancedOptionsProc(HWND hdlg, UINT wMsg, WPARAM wParam,
                                      LPARAM lParam) {
     switch (wMsg) {

@@ -450,6 +450,12 @@ bool OpenSearchCommunication::IsSQLPluginEnabled(std::shared_ptr< ErrorDetails >
     return true;
 }
 
+/**
+ * @brief Queries server to determine SQL plugin availability.
+ * 
+ * @return true : Successfully queried server for SQL plugin
+ * @return false : Failed to query server, no plugin available, exception was caught
+ */
 bool OpenSearchCommunication::CheckSQLPluginAvailability() {
     LogMsg(OPENSEARCH_ALL, "Checking for SQL plugin status.");
     std::string test_query = "SHOW TABLES LIKE %";
@@ -897,6 +903,12 @@ std::string OpenSearchCommunication::GetServerVersion() {
     return "";
 }
 
+/**
+ * @brief Queries supplied URL to validate Server Distribution. Maintains
+ * backwards compatibility with opendistro distribution.
+ * 
+ * @return std::string : Server distribution name, returns "" on error
+ */
 std::string OpenSearchCommunication::GetServerDistribution() {
     if (!m_http_client) {
         InitializeConnection();
@@ -1010,6 +1022,11 @@ std::string OpenSearchCommunication::GetClusterName() {
     return "";
 }
 
+/**
+ * @brief Sets URL endpoint for SQL plugin. On failure to
+ * determine appropriate endpoint, value is set to SQL_ENDPOINT_ERROR_STR
+ * 
+ */
 void OpenSearchCommunication::SetSqlEndpoint() {
     std::string distribution = GetServerDistribution();
     if (distribution.empty()) {
