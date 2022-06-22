@@ -450,7 +450,7 @@ public class AstBuilderTest {
             relation("log.2020.04.20."),
             compare("=", field("a"), intLiteral(1))
         ));
-    assertEqual("describe log.2020.04.20.",
+    assertEqual("describe `log.2020.04.20.`",
         project(
             relation(mappingTable("log.2020.04.20.")),
             AllFields.of()
@@ -472,18 +472,38 @@ public class AstBuilderTest {
   public void testIdentifierAsIndexNameWithDotInTheMiddle() {
     assertEqual("source=log.2020.10.10", relation("log.2020.10.10"));
     assertEqual("source=log-7.10-2020.10.10", relation("log-7.10-2020.10.10"));
+    assertEqual("describe log.2020.10.10",
+        project(
+            relation(mappingTable("log.2020.10.10")),
+            AllFields.of()
+        ));
+    assertEqual("describe log-7.10-2020.10.10",
+        project(
+            relation(mappingTable("log-7.10-2020.10.10")),
+            AllFields.of()
+        ));
   }
 
   @Test
   public void testIdentifierAsIndexNameWithSlashInTheMiddle() {
     assertEqual("source=log-2020",
         relation("log-2020"));
+    assertEqual("describe log-2020",
+        project(
+            relation(mappingTable("log-2020")),
+            AllFields.of()
+        ));
   }
 
   @Test
   public void testIdentifierAsIndexNameContainStar() {
     assertEqual("source=log-2020-10-*",
         relation("log-2020-10-*"));
+    assertEqual("describe log-2020-10-*",
+        project(
+            relation(mappingTable("log-2020-10-*")),
+            AllFields.of()
+        ));
   }
 
   @Test
@@ -491,6 +511,21 @@ public class AstBuilderTest {
     assertEqual("source=log-2020.10.*", relation("log-2020.10.*"));
     assertEqual("source=log-2020.*.01", relation("log-2020.*.01"));
     assertEqual("source=log-2020.*.*", relation("log-2020.*.*"));
+    assertEqual("describe log-2020.10.*",
+        project(
+            relation(mappingTable("log-2020.10.*")),
+            AllFields.of()
+        ));
+    assertEqual("describe log-2020.*.01",
+        project(
+            relation(mappingTable("log-2020.*.01")),
+            AllFields.of()
+        ));
+    assertEqual("describe log-2020.*.*",
+        project(
+            relation(mappingTable("log-2020.*.*")),
+            AllFields.of()
+        ));
   }
 
   @Test

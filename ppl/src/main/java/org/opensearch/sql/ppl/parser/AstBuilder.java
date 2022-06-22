@@ -115,7 +115,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    */
   @Override
   public UnresolvedPlan visitDescribeCommand(DescribeCommandContext ctx) {
-    final String tableName = ctx.tableSource().getText();
+    final String tableName = internalVisitExpression(ctx.tableSource()).toString();
     final Relation table = new Relation(qualifiedName(mappingTable(tableName)));
     return new Project(Collections.singletonList(AllFields.of())).attach(table);
   }
