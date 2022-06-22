@@ -30,6 +30,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.let;
 import static org.opensearch.sql.ast.dsl.AstDSL.map;
 import static org.opensearch.sql.ast.dsl.AstDSL.nullLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.parse;
+import static org.opensearch.sql.ast.dsl.AstDSL.project;
 import static org.opensearch.sql.ast.dsl.AstDSL.projectWithArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.rareTopN;
@@ -38,6 +39,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.rename;
 import static org.opensearch.sql.ast.dsl.AstDSL.sort;
 import static org.opensearch.sql.ast.dsl.AstDSL.span;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
+import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableMap;
 import org.junit.Ignore;
@@ -45,6 +47,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.opensearch.sql.ast.Node;
+import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.SpanUnit;
@@ -447,12 +450,22 @@ public class AstBuilderTest {
             relation("log.2020.04.20."),
             compare("=", field("a"), intLiteral(1))
         ));
+    assertEqual("describe log.2020.04.20.",
+        project(
+            relation(mappingTable("log.2020.04.20.")),
+            AllFields.of()
+        ));
   }
 
   @Test
   public void testIdentifierAsIndexNameStartWithDot() {
     assertEqual("source=.opensearch_dashboards",
         relation(".opensearch_dashboards"));
+    assertEqual("describe .opensearch_dashboards",
+        project(
+            relation(mappingTable(".opensearch_dashboards")),
+            AllFields.of()
+        ));
   }
 
   @Test
@@ -601,6 +614,16 @@ public class AstBuilderTest {
   public void testKmeansCommandWithoutParameter() {
     assertEqual("source=t | kmeans",
             new Kmeans(relation("t"), ImmutableMap.of()));
+  }
+
+  @Test
+  public void testDescribeCommand() {
+    assertEqual("describe t",
+        project(
+            relation(mappingTable("t")),
+            AllFields.of()
+        )
+    );
   }
 
   @Test
