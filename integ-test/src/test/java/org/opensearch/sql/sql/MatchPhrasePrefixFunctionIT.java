@@ -34,21 +34,11 @@ public class MatchPhrasePrefixFunctionIT extends SQLIntegTestCase {
   @Test
   public void all_optional_parameters() throws IOException {
     // The values for optional parameters are valid but arbitrary.
-    String query = "SELECT Title FROM %s WHERE match_phrase_prefix(Title, 'champagne be', " +
-        "boost = 1.0, zero_terms_query='ALL', max_expansions = 3, analyzer=standard, slop=0)";
+    String query = "SELECT Title FROM %s " +
+        "WHERE match_phrase_prefix(Title, 'flat champ', boost = 1.0, zero_terms_query='ALL', " +
+        "max_expansions = 2, analyzer=standard, slop=0)";
     JSONObject result = executeJdbcRequest(String.format(query, TEST_INDEX_BEER));
     verifyDataRows(result, rows("Can old flat champagne be used for vinegar?"));
-  }
-
-  @Test
-  public void max_expansions_is_2() throws IOException {
-    // max_expansions applies to the last term in the query -- 'bottl'
-    // It tells OpenSearch to consider only the first 2 terms that start with 'bottl'
-    // In this dataset these are 'bottle-conditioning', and 'bottling'.
-    String query = "SELECT Tags FROM %s " +
-        "WHERE match_phrase_prefix(Tags, 'draught bottl', max_expansions=2)";
-    JSONObject result = executeJdbcRequest(String.format(query, TEST_INDEX_BEER));
-    verifyDataRows(result, rows("brewing draught bottling"));
   }
 
   @Test
@@ -100,25 +90,21 @@ public class MatchPhrasePrefixFunctionIT extends SQLIntegTestCase {
 
 
   @Test
-  public void slop_is_0() throws IOException {
+  public void slop_is_2() throws IOException {
     // When slop is 0, the terms are matched exactly in the order specified.
     // 'open' is used to match prefix of the next term.
-    String query = "SELECT Title FROM %s WHERE match_phrase_prefix(Title, 'bottle open', slop=0)";
+    String query = "SELECT Tags from %s where match_phrase_prefix(Tags, 'gas ta', slop=2)";
     JSONObject result = executeJdbcRequest(String.format(query, TEST_INDEX_BEER));
-    verifyDataRows(result, rows("How to open a beer without a bottle opener?"));
+    verifyDataRows(result, rows("taste gas"));
   }
 
   @Test
-  public void slop_is_2() throws IOException {
+  public void slop_is_3() throws IOException {
     // When slop is 2, results will include phrases where the query terms are transposed.
-    String query = "SELECT Title FROM %s WHERE match_phrase_prefix(Title, 'bottle open', slop=1)";
+    String query = "SELECT Tags from %s where match_phrase_prefix(Tags, 'gas ta', slop=3)";
     JSONObject result = executeJdbcRequest(String.format(query, TEST_INDEX_BEER));
     verifyDataRows(result,
-        rows("How long does an opened bottle of wine last in the fridge?"),
-        rows("How long will an opened bottle of whisky last while stored " +
-            "under ideal conditions?"),
-        rows("How long does an open bottle of Sake last?"),
-        rows("Does whisky change its taste in an open bottle?"),
-        rows("How to open a beer without a bottle opener?"));
+        rows("taste draught gas"),
+        rows("taste gas"));
   }
 }
