@@ -16,6 +16,8 @@
 #include <aws/core/http/HttpClient.h>
 // clang-format on
 
+#define SQL_ENDPOINT_ERROR_STR "Error"
+
 static const std::string ctype = "application/json";
 static const std::string ALLOCATION_TAG = "AWS_SIGV4_AUTH";
 static const std::string SERVICE_NAME = "es";
@@ -448,6 +450,12 @@ bool OpenSearchCommunication::IsSQLPluginEnabled(std::shared_ptr< ErrorDetails >
     return true;
 }
 
+/**
+ * @brief Queries server to determine SQL plugin availability.
+ * 
+ * @return true : Successfully queried server for SQL plugin
+ * @return false : Failed to query server, no plugin available, exception was caught
+ */
 bool OpenSearchCommunication::CheckSQLPluginAvailability() {
     LogMsg(OPENSEARCH_ALL, "Checking for SQL plugin status.");
     std::string test_query = "SHOW TABLES LIKE %";
@@ -503,8 +511,10 @@ bool OpenSearchCommunication::CheckSQLPluginAvailability() {
         }
     } catch (...) {
         m_error_message_to_user =
-            "SQL plugin is not available, please install the SQL plugin "
-            "to use this driver.";
+            "SQL plugin is not available at url: " +
+            (m_rt_opts.conn.server + (m_rt_opts.conn.port.empty() ?
+            "" : ":" + m_rt_opts.conn.port)) +
+            ", please install the SQL plugin to use this driver.";
         m_error_message +=
             "Unexpected exception thrown from the server, "
             "the SQL plugin is not installed or in unhealthy status.";
@@ -529,7 +539,7 @@ bool OpenSearchCommunication::EstablishConnection() {
     // Check whether SQL plugin has been installed and enabled in the
     // OpenSearch server since the SQL plugin is a prerequisite to
     // use this driver.
-    if(CheckSQLPluginAvailability()) {
+    if((sql_endpoint != SQL_ENDPOINT_ERROR_STR) && CheckSQLPluginAvailability()) {
         return true;
     }
 
@@ -893,6 +903,12 @@ std::string OpenSearchCommunication::GetServerVersion() {
     return "";
 }
 
+/**
+ * @brief Queries supplied URL to validate Server Distribution. Maintains
+ * backwards compatibility with opendistro distribution.
+ * 
+ * @return std::string : Server distribution name, returns "" on error
+ */
 std::string OpenSearchCommunication::GetServerDistribution() {
     if (!m_http_client) {
         InitializeConnection();
@@ -900,13 +916,16 @@ std::string OpenSearchCommunication::GetServerDistribution() {
 
     std::shared_ptr< Aws::Http::HttpResponse > response =
         IssueRequest("", Aws::Http::HttpMethod::HTTP_GET, "", "", "");
-    if (response == nullptr) {
+    if (response == nullptr || response->GetResponseCode() == Aws::Http::HttpResponseCode::REQUEST_NOT_MADE) {
         m_error_message =
             "Failed to receive response from server version query. "
-            "Received NULL response.";
+            "Received no response from url: "
+            + (m_rt_opts.conn.server + (m_rt_opts.conn.port.empty() ?
+            "" : ":" + m_rt_opts.conn.port));
         SetErrorDetails("Connection error", m_error_message,
                         ConnErrorType::CONN_ERROR_COMM_LINK_FAILURE);
         LogMsg(OPENSEARCH_ERROR, m_error_message.c_str());
+        m_error_message_to_user = m_error_message;
         return "";
     }
 
@@ -1003,9 +1022,16 @@ std::string OpenSearchCommunication::GetClusterName() {
     return "";
 }
 
+/**
+ * @brief Sets URL endpoint for SQL plugin. On failure to
+ * determine appropriate endpoint, value is set to SQL_ENDPOINT_ERROR_STR
+ * 
+ */
 void OpenSearchCommunication::SetSqlEndpoint() {
     std::string distribution = GetServerDistribution();
-    if (distribution.compare("opensearch") == 0) {
+    if (distribution.empty()) {
+        sql_endpoint = SQL_ENDPOINT_ERROR_STR;
+    } else if (distribution.compare("opensearch") == 0) {
         sql_endpoint = "/_plugins/_sql";
     } else {
         sql_endpoint = "/_opendistro/_sql";
