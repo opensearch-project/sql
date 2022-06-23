@@ -34,7 +34,7 @@ searchCommand
     ;
 
 describeCommand
-    : DESCRIBE tableSource
+    : DESCRIBE tableSource (COMMA tableSource)*
     ;
 
 whereCommand
