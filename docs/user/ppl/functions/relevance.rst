@@ -132,23 +132,24 @@ Available parameters include:
 
 Example with only ``fields`` and ``query`` expressions, and all other parameters are set default values::
 
-    os> source=accounts | where multi_match(['firstname', city ^ 2], 'Amber | Nogal') | fields firstname, lastname, city, address;
+    os> source=books | where multi_match(['title'], 'Pooh House');
     fetched rows / total rows = 2/2
-    +-------------+------------+--------+--------------------+
-    | firstname   | lastname   | city   | address            |
-    |-------------+------------+--------+--------------------|
-    | Amber       | Duke       | Brogan | 880 Holmes Lane    |
-    | Nanette     | Bates      | Nogal  | 789 Madison Street |
-    +-------------+------------+--------+--------------------+
+    +------+--------------------------+----------------------+
+    | id   | title                    | author               |
+    |------+--------------------------+----------------------|
+    | 1    | The House at Pooh Corner | Alan Alexander Milne |
+    | 2    | Winnie-the-Pooh          | Alan Alexander Milne |
+    +------+--------------------------+----------------------+
 
 Another example to show how to set custom values for the optional parameters::
 
-    os> source=accounts | where multi_match(['firstname', city ^ 2], 'Amber Nogal', analyzer=keyword, operator='AND') | fields firstname, lastname, city, address;
-    fetched rows / total rows = 0/0
-    +-------------+------------+--------+-----------+
-    | firstname   | lastname   | city   | address   |
-    |-------------+------------+--------+-----------|
-    +-------------+------------+--------+-----------+
+    os> source=books | where multi_match(['title'], 'Pooh House', operator='AND', analyzer=default);
+    fetched rows / total rows = 1/1
+    +------+--------------------------+----------------------+
+    | id   | title                    | author               |
+    |------+--------------------------+----------------------|
+    | 1    | The House at Pooh Corner | Alan Alexander Milne |
+    +------+--------------------------+----------------------+
 
 
 SIMPLE_QUERY_STRING
@@ -184,23 +185,24 @@ Available parameters include:
 
 Example with only ``fields`` and ``query`` expressions, and all other parameters are set default values::
 
-    os> source=accounts | where simple_query_string(['firstname', city ^ 2], 'Amber | Nogal') | fields firstname, lastname, city, address;
+    os> source=books | where simple_query_string(['title'], 'Pooh House');
     fetched rows / total rows = 2/2
-    +-------------+------------+--------+--------------------+
-    | firstname   | lastname   | city   | address            |
-    |-------------+------------+--------+--------------------|
-    | Amber       | Duke       | Brogan | 880 Holmes Lane    |
-    | Nanette     | Bates      | Nogal  | 789 Madison Street |
-    +-------------+------------+--------+--------------------+
+    +------+--------------------------+----------------------+
+    | id   | title                    | author               |
+    |------+--------------------------+----------------------|
+    | 1    | The House at Pooh Corner | Alan Alexander Milne |
+    | 2    | Winnie-the-Pooh          | Alan Alexander Milne |
+    +------+--------------------------+----------------------+
 
 Another example to show how to set custom values for the optional parameters::
 
-    os> source=accounts | where simple_query_string(['firstname', city ^ 2], 'Amber Nogal', analyzer=keyword, default_operator='AND') | fields firstname, lastname, city, address;
-    fetched rows / total rows = 0/0
-    +-------------+------------+--------+-----------+
-    | firstname   | lastname   | city   | address   |
-    |-------------+------------+--------+-----------|
-    +-------------+------------+--------+-----------+
+    os> source=books | where simple_query_string(['title'], 'Pooh House', flags='ALL', default_operator='AND');
+    fetched rows / total rows = 1/1
+    +------+--------------------------+----------------------+
+    | id   | title                    | author               |
+    |------+--------------------------+----------------------|
+    | 1    | The House at Pooh Corner | Alan Alexander Milne |
+    +------+--------------------------+----------------------+
 
 Limitations
 >>>>>>>>>>>
