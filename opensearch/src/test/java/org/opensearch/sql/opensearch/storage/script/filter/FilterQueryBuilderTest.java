@@ -389,6 +389,201 @@ class FilterQueryBuilderTest {
   }
 
   @Test
+  void should_build_multi_match_query_with_default_parameters_single_field() {
+    assertJsonEquals("{\n"
+            + "  \"multi_match\" : {\n"
+            + "    \"query\" : \"search query\",\n"
+            + "    \"fields\" : [\n"
+            + "      \"field1^1.0\"\n"
+            + "    ],\n"
+            + "    \"type\" : \"best_fields\",\n"
+            + "    \"operator\" : \"OR\",\n"
+            + "    \"slop\" : 0,\n"
+            + "    \"prefix_length\" : 0,\n"
+            + "    \"max_expansions\" : 50,\n"
+            + "    \"zero_terms_query\" : \"NONE\",\n"
+            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
+            + "    \"fuzzy_transpositions\" : true,\n"
+            + "    \"boost\" : 1.0,\n"
+            + "  }\n"
+            + "}",
+        buildQuery(dsl.multi_match(
+            dsl.namedArgument("fields", DSL.literal(new ExprTupleValue(
+                new LinkedHashMap<>(ImmutableMap.of(
+                    "field1", ExprValueUtils.floatValue(1.F)))))),
+            dsl.namedArgument("query", literal("search query")))));
+  }
+
+  @Test
+  void should_build_multi_match_query_with_default_parameters_all_fields() {
+    assertJsonEquals("{\n"
+            + "  \"multi_match\" : {\n"
+            + "    \"query\" : \"search query\",\n"
+            + "    \"fields\" : [\n"
+            + "      \"*^1.0\"\n"
+            + "    ],\n"
+            + "    \"type\" : \"best_fields\",\n"
+            + "    \"operator\" : \"OR\",\n"
+            + "    \"slop\" : 0,\n"
+            + "    \"prefix_length\" : 0,\n"
+            + "    \"max_expansions\" : 50,\n"
+            + "    \"zero_terms_query\" : \"NONE\",\n"
+            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
+            + "    \"fuzzy_transpositions\" : true,\n"
+            + "    \"boost\" : 1.0,\n"
+            + "  }\n"
+            + "}",
+        buildQuery(dsl.multi_match(
+            dsl.namedArgument("fields", DSL.literal(new ExprTupleValue(
+                new LinkedHashMap<>(ImmutableMap.of(
+                    "*", ExprValueUtils.floatValue(1.F)))))),
+            dsl.namedArgument("query", literal("search query")))));
+  }
+
+  @Test
+  void should_build_multi_match_query_with_default_parameters_no_fields() {
+    assertJsonEquals("{\n"
+            + "  \"multi_match\" : {\n"
+            + "    \"query\" : \"search query\",\n"
+            + "    \"fields\" : [],\n"
+            + "    \"type\" : \"best_fields\",\n"
+            + "    \"operator\" : \"OR\",\n"
+            + "    \"slop\" : 0,\n"
+            + "    \"prefix_length\" : 0,\n"
+            + "    \"max_expansions\" : 50,\n"
+            + "    \"zero_terms_query\" : \"NONE\",\n"
+            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
+            + "    \"fuzzy_transpositions\" : true,\n"
+            + "    \"boost\" : 1.0,\n"
+            + "  }\n"
+            + "}",
+        buildQuery(dsl.multi_match(
+            dsl.namedArgument("fields", DSL.literal(new ExprTupleValue(
+                new LinkedHashMap<>(ImmutableMap.of())))),
+            dsl.namedArgument("query", literal("search query")))));
+  }
+
+  // Note: we can't test `multi_match` and `simple_query_string` without weight(s)
+
+  @Test
+  void should_build_multi_match_query_with_default_parameters_multiple_fields() {
+    var expected = "{\n"
+            + "  \"multi_match\" : {\n"
+            + "    \"query\" : \"search query\",\n"
+            + "    \"fields\" : [%s],\n"
+            + "    \"type\" : \"best_fields\",\n"
+            + "    \"operator\" : \"OR\",\n"
+            + "    \"slop\" : 0,\n"
+            + "    \"max_expansions\" : 50,\n"
+            + "    \"prefix_length\" : 0,\n"
+            + "    \"zero_terms_query\" : \"NONE\",\n"
+            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
+            + "    \"fuzzy_transpositions\" : true,\n"
+            + "    \"boost\" : 1.0,\n"
+            + "  }\n"
+            + "}";
+    var actual = buildQuery(dsl.multi_match(
+        dsl.namedArgument("fields", DSL.literal(new ExprTupleValue(
+            new LinkedHashMap<>(ImmutableMap.of(
+                "field1", ExprValueUtils.floatValue(1.F),
+                "field2", ExprValueUtils.floatValue(.3F)))))),
+        dsl.namedArgument("query", literal("search query"))));
+
+    var ex1 = String.format(expected, "\"field1^1.0\", \"field2^0.3\"");
+    var ex2 = String.format(expected, "\"field2^0.3\", \"field1^1.0\"");
+    assertTrue(new JSONObject(ex1).similar(new JSONObject(actual))
+        || new JSONObject(ex2).similar(new JSONObject(actual)),
+        StringUtils.format("Actual %s doesn't match neither expected %s nor %s", actual, ex1, ex2));
+  }
+
+  @Test
+  void should_build_multi_match_query_with_custom_parameters() {
+    var expected = "{\n"
+            + "  \"multi_match\" : {\n"
+            + "    \"query\" : \"search query\",\n"
+            + "    \"fields\" : [%s],\n"
+            + "    \"type\" : \"phrase_prefix\",\n"
+            + "    \"operator\" : \"AND\",\n"
+            + "    \"analyzer\" : \"keyword\",\n"
+            + "    \"slop\" : 1,\n"
+            + "    \"fuzziness\" : \"2\",\n"
+            + "    \"prefix_length\" : 1,\n"
+            + "    \"max_expansions\" : 3,\n"
+            + "    \"minimum_should_match\" : \"3\",\n"
+            + "    \"tie_breaker\" : 1.0,\n"
+            + "    \"lenient\" : false,\n"
+            + "    \"cutoff_frequency\" : 4.3,\n"
+            + "    \"zero_terms_query\" : \"ALL\",\n"
+            + "    \"auto_generate_synonyms_phrase_query\" : false,\n"
+            + "    \"fuzzy_transpositions\" : false,\n"
+            + "    \"boost\" : 2.0\n"
+            + "  }\n"
+            + "}";
+    var actual = buildQuery(
+            dsl.multi_match(
+                dsl.namedArgument("fields", DSL.literal(
+                    ExprValueUtils.tupleValue(ImmutableMap.of("field1", 1.F, "field2", .3F)))),
+                dsl.namedArgument("query", literal("search query")),
+                dsl.namedArgument("analyzer", literal("keyword")),
+                dsl.namedArgument("auto_generate_synonyms_phrase_query", literal("false")),
+                dsl.namedArgument("cutoff_frequency", literal("4.3")),
+                dsl.namedArgument("fuzziness", literal("2")),
+                dsl.namedArgument("fuzzy_transpositions", literal("false")),
+                dsl.namedArgument("lenient", literal("false")),
+                dsl.namedArgument("max_expansions", literal("3")),
+                dsl.namedArgument("minimum_should_match", literal("3")),
+                dsl.namedArgument("operator", literal("AND")),
+                dsl.namedArgument("prefix_length", literal("1")),
+                dsl.namedArgument("slop", literal("1")),
+                dsl.namedArgument("tie_breaker", literal("1")),
+                dsl.namedArgument("type", literal("phrase_prefix")),
+                dsl.namedArgument("zero_terms_query", literal("ALL")),
+                dsl.namedArgument("boost", literal("2.0"))));
+
+    var ex1 = String.format(expected, "\"field1^1.0\", \"field2^0.3\"");
+    var ex2 = String.format(expected, "\"field2^0.3\", \"field1^1.0\"");
+    assertTrue(new JSONObject(ex1).similar(new JSONObject(actual))
+        || new JSONObject(ex2).similar(new JSONObject(actual)),
+        StringUtils.format("Actual %s doesn't match neither expected %s nor %s", actual, ex1, ex2));
+  }
+
+  @Test
+  void multi_match_invalid_parameter() {
+    FunctionExpression expr = dsl.multi_match(
+        dsl.namedArgument("fields", DSL.literal(
+            new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
+                "field1", ExprValueUtils.floatValue(1.F),
+                "field2", ExprValueUtils.floatValue(.3F)))))),
+        dsl.namedArgument("query", literal("search query")),
+        dsl.namedArgument("invalid_parameter", literal("invalid_value")));
+    assertThrows(SemanticCheckException.class, () -> buildQuery(expr),
+        "Parameter invalid_parameter is invalid for match function.");
+  }
+
+  @Test
+  void should_build_match_phrase_query_with_custom_parameters() {
+    assertJsonEquals(
+            "{\n"
+            + "  \"match_phrase\" : {\n"
+            + "    \"message\" : {\n"
+            + "      \"query\" : \"search query\",\n"
+            + "      \"analyzer\" : \"keyword\","
+            + "      \"slop\" : 2,\n"
+            + "      \"zero_terms_query\" : \"ALL\",\n"
+            + "      \"boost\" : 1.0\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            dsl.match_phrase(
+                dsl.namedArgument("field", literal("message")),
+                dsl.namedArgument("query", literal("search query")),
+                dsl.namedArgument("analyzer", literal("keyword")),
+                dsl.namedArgument("slop", literal("2")),
+                dsl.namedArgument("zero_terms_query", literal("ALL")))));
+  }
+
+  @Test
   // Notes for following three tests:
   // 1) OpenSearch (not the plugin) might change order of fields
   // 2) `flags` are printed by OpenSearch as an integer
@@ -417,6 +612,7 @@ class FilterQueryBuilderTest {
             dsl.namedArgument("query", literal("search query")))));
   }
 
+  @Test
   void should_build_simple_query_string_query_with_default_parameters_multiple_fields() {
     var expected = "{\n"
             + "  \"simple_query_string\" : {\n"
@@ -500,29 +696,6 @@ class FilterQueryBuilderTest {
         dsl.namedArgument("invalid_parameter", literal("invalid_value")));
     assertThrows(SemanticCheckException.class, () -> buildQuery(expr),
         "Parameter invalid_parameter is invalid for match function.");
-  }
-
-  @Test
-  void should_build_match_phrase_query_with_custom_parameters() {
-    assertJsonEquals(
-            "{\n"
-            + "  \"match_phrase\" : {\n"
-            + "    \"message\" : {\n"
-            + "      \"query\" : \"search query\",\n"
-            + "      \"analyzer\" : \"keyword\","
-            + "      \"slop\" : 2,\n"
-            + "      \"zero_terms_query\" : \"ALL\",\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
-        buildQuery(
-            dsl.match_phrase(
-                dsl.namedArgument("field", literal("message")),
-                dsl.namedArgument("query", literal("search query")),
-                dsl.namedArgument("analyzer", literal("keyword")),
-                dsl.namedArgument("slop", literal("2")),
-                dsl.namedArgument("zero_terms_query", literal("ALL")))));
   }
 
   @Test
@@ -615,11 +788,11 @@ class FilterQueryBuilderTest {
   }
 
   @Test
-  void simple_query_string_missing_fields() {
+  void multi_match_missing_fields() {
     var msg = assertThrows(ExpressionEvaluationException.class, () ->
-        dsl.simple_query_string(
+        dsl.multi_match(
             dsl.namedArgument("query", literal("search query")))).getMessage();
-    assertEquals("simple_query_string function expected {[STRUCT,STRING],[STRUCT,STRING,STRING],"
+    assertEquals("multi_match function expected {[STRUCT,STRING],[STRUCT,STRING,STRING],"
           + "[STRUCT,STRING,STRING,STRING],[STRUCT,STRING,STRING,STRING,STRING],[STRUCT,STRING,"
           + "STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,STRING,STRING,STRING,STRING],"
           + "[STRUCT,STRING,STRING,STRING,STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,"
@@ -628,20 +801,24 @@ class FilterQueryBuilderTest {
           + "STRING,STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,STRING,STRING,STRING,"
           + "STRING,STRING,STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,STRING,STRING,"
           + "STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,"
-          + "STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING]},"
-          + " but get [STRING]",
+          + "STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING],"
+          + "[STRUCT,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,"
+          + "STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,STRING,STRING,STRING,STRING,"
+          + "STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING],[STRUCT,STRING,"
+          + "STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,"
+          + "STRING,STRING,STRING,STRING]}, but get [STRING]",
           msg);
   }
 
   @Test
-  void simple_query_string_missing_query() {
+  void multi_match_missing_query() {
     var msg = assertThrows(ExpressionEvaluationException.class, () ->
-        dsl.simple_query_string(
+        dsl.multi_match(
             dsl.namedArgument("fields", DSL.literal(
                 new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
                     "field1", ExprValueUtils.floatValue(1.F),
                     "field2", ExprValueUtils.floatValue(.3F)))))))).getMessage();
-    assertEquals("simple_query_string function expected {[STRUCT,STRING],[STRUCT,STRING,STRING],"
+    assertEquals("multi_match function expected {[STRUCT,STRING],[STRUCT,STRING,STRING],"
           + "[STRUCT,STRING,STRING,STRING],[STRUCT,STRING,STRING,STRING,STRING],[STRUCT,STRING,"
           + "STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,STRING,STRING,STRING,STRING],"
           + "[STRUCT,STRING,STRING,STRING,STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,"
@@ -650,15 +827,14 @@ class FilterQueryBuilderTest {
           + "STRING,STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,STRING,STRING,STRING,"
           + "STRING,STRING,STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,STRING,STRING,"
           + "STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,"
-          + "STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING]},"
-          + " but get [STRUCT]",
+          + "STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING],"
+          + "[STRUCT,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,"
+          + "STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,STRING,STRING,STRING,STRING,"
+          + "STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING],[STRUCT,STRING,"
+          + "STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,"
+          + "STRING,STRING,STRING,STRING]}, but get [STRUCT]",
           msg);
   }
-
-  // TODO simple_query_string tests:
-  // - with one field
-  // - without weight(s)
-  // - with all fields ("*")
 
   @Test
   void cast_to_string_in_filter() {

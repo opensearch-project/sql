@@ -155,10 +155,18 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
   }
 
   @Test
+  void multi_match() {
+    FunctionExpression expr = dsl.multi_match(fields, query);
+    assertEquals(String.format("multi_match(fields=%s, query=%s)",
+            fields.getValue(), query.getValue()),
+        expr.toString());
+  }
+
+  @Test
   void simple_query_string() {
     FunctionExpression expr = dsl.simple_query_string(fields, query);
     assertEquals(String.format("simple_query_string(fields=%s, query=%s)",
-            fields.getValue().toString(), query.getValue().toString()),
+            fields.getValue(), query.getValue()),
         expr.toString());
   }
 }
