@@ -98,6 +98,51 @@ Another example to show how to set custom values for the optional parameters::
     +----------------------+--------------------------+
 
 
+
+MATCH_PHRASE_PREFIX
+------------
+
+Description
+>>>>>>>>>>>
+
+``match_phrase_prefix(field_expression, query_expression[, option=<option_value>]*)``
+
+The match_phrase function maps to the match_phrase query used in search engine, to return the documents that match a provided text with a given field. Available parameters include:
+
+- analyzer
+- slop
+- max_expansions
+- boost
+- zero_terms_query
+
+For backward compatibility, matchphrase is also supported and mapped to match_phrase query as well.
+
+Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
+
+    os> source=books | where match_phrase_prefix(author, 'Alexander Mil') | fields author, title
+    fetched rows / total rows = 2/2
+    +----------------------+--------------------------+
+    | author               | title                    |
+    |----------------------+--------------------------|
+    | Alan Alexander Milne | The House at Pooh Corner |
+    | Alan Alexander Milne | Winnie-the-Pooh          |
+    +----------------------+--------------------------+
+
+
+
+Another example to show how to set custom values for the optional parameters::
+
+    os> source=books | where match_phrase_prefix(author, 'Alan Mil', slop = 2) | fields author, title
+    fetched rows / total rows = 2/2
+    +----------------------+--------------------------+
+    | author               | title                    |
+    |----------------------+--------------------------|
+    | Alan Alexander Milne | The House at Pooh Corner |
+    | Alan Alexander Milne | Winnie-the-Pooh          |
+    +----------------------+--------------------------+
+
+
+
 SIMPLE_QUERY_STRING
 -------------------
 
