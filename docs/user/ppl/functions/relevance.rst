@@ -99,18 +99,20 @@ Another example to show how to set custom values for the optional parameters::
 
 
 
-MATCH_PHRASE
+MATCH_PHRASE_PREFIX
 ------------
 
 Description
 >>>>>>>>>>>
 
-``match_phrase(field_expression, query_expression[, option=<option_value>]*)``
+``match_phrase_prefix(field_expression, query_expression[, option=<option_value>]*)``
 
 The match_phrase function maps to the match_phrase query used in search engine, to return the documents that match a provided text with a given field. Available parameters include:
 
 - analyzer
 - slop
+- max_expansions
+- boost
 - zero_terms_query
 
 For backward compatibility, matchphrase is also supported and mapped to match_phrase query as well.
