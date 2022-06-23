@@ -272,6 +272,7 @@ IF:                                 'IF';
 MATCH:                              'MATCH';
 MATCH_PHRASE:                       'MATCH_PHRASE';
 SIMPLE_QUERY_STRING:                'SIMPLE_QUERY_STRING';
+MULTI_MATCH:                        'MULTI_MATCH';
 
 ALLOW_LEADING_WILDCARD:             'ALLOW_LEADING_WILDCARD';
 ANALYZE_WILDCARD:                   'ANALYZE_WILDCARD';

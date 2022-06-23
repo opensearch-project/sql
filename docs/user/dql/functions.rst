@@ -2233,6 +2233,58 @@ Another example to show how to set custom values for the optional parameters::
     +----------------------+--------------------------+
 
 
+MULTI_MATCH
+-----------
+
+Description
+>>>>>>>>>>>
+
+``multi_match([field_expression+], query_expression[, option=<option_value>]*)``
+
+The multi_match function maps to the multi_match query used in search engine, to return the documents that match a provided text, number, date or boolean value with a given field or fields.
+The **^** lets you *boost* certain fields. Boosts are multipliers that weigh matches in one field more heavily than matches in other fields. The syntax allows to specify the fields in double quotes, single quotes, in backtick or even without any wrap. All fields search using star ``"*"`` is also available (star symbol should be wrapped). The weight is optional and should be specified using after the field name, it could be delimeted by the `caret` character or by whitespace. Please, refer to examples below:
+
+| ``multi_match(["Tags" ^ 2, 'Title' 3.4, `Body`, Comments ^ 0.3], ...)``
+| ``multi_match(["*"], ...)``
+
+Available parameters include:
+
+- analyzer
+- auto_generate_synonyms_phrase
+- cutoff_frequency
+- fuzziness
+- fuzzy_transpositions
+- lenient
+- max_expansions
+- minimum_should_match
+- operator
+- prefix_length
+- tie_breaker
+- type
+- slop
+- boost
+
+Example with only ``fields`` and ``query`` expressions, and all other parameters are set default values::
+
+    os> select * from books where multi_match(['title'], 'Pooh House');
+    fetched rows / total rows = 2/2
+    +------+--------------------------+----------------------+
+    | id   | title                    | author               |
+    |------+--------------------------+----------------------|
+    | 1    | The House at Pooh Corner | Alan Alexander Milne |
+    | 2    | Winnie-the-Pooh          | Alan Alexander Milne |
+    +------+--------------------------+----------------------+
+
+Another example to show how to set custom values for the optional parameters::
+
+    os> select * from books where multi_match(['title'], 'Pooh House', operator='AND', analyzer=default);
+    fetched rows / total rows = 1/1
+    +------+--------------------------+----------------------+
+    | id   | title                    | author               |
+    |------+--------------------------+----------------------|
+    | 1    | The House at Pooh Corner | Alan Alexander Milne |
+    +------+--------------------------+----------------------+
+
 SIMPLE_QUERY_STRING
 -------------------
 
@@ -2265,20 +2317,21 @@ Available parameters include:
 
 Example with only ``fields`` and ``query`` expressions, and all other parameters are set default values::
 
-    os> select firstname, lastname, city, address from accounts where simple_query_string(['firstname', city ^ 2], 'Amber | Nogal');
+    os> select * from books where simple_query_string(['title'], 'Pooh House');
     fetched rows / total rows = 2/2
-    +-------------+------------+--------+--------------------+
-    | firstname   | lastname   | city   | address            |
-    |-------------+------------+--------+--------------------|
-    | Amber       | Duke       | Brogan | 880 Holmes Lane    |
-    | Nanette     | Bates      | Nogal  | 789 Madison Street |
-    +-------------+------------+--------+--------------------+
+    +------+--------------------------+----------------------+
+    | id   | title                    | author               |
+    |------+--------------------------+----------------------|
+    | 1    | The House at Pooh Corner | Alan Alexander Milne |
+    | 2    | Winnie-the-Pooh          | Alan Alexander Milne |
+    +------+--------------------------+----------------------+
 
 Another example to show how to set custom values for the optional parameters::
 
-    os> select firstname, lastname, city, address from accounts where simple_query_string(['firstname', city ^ 2], 'Amber Nogal', analyzer=keyword, default_operator='AND');
-    fetched rows / total rows = 0/0
-    +-------------+------------+--------+-----------+
-    | firstname   | lastname   | city   | address   |
-    |-------------+------------+--------+-----------|
-    +-------------+------------+--------+-----------+
+    os> select * from books where simple_query_string(['title'], 'Pooh House', flags='ALL', default_operator='AND');
+    fetched rows / total rows = 1/1
+    +------+--------------------------+----------------------+
+    | id   | title                    | author               |
+    |------+--------------------------+----------------------|
+    | 1    | The House at Pooh Corner | Alan Alexander Milne |
+    +------+--------------------------+----------------------+
