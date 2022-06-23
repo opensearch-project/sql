@@ -8,6 +8,7 @@
   ],
   "ppl_cli": [
     "user/ppl/cmd/dedup.rst",
+    "user/ppl/cmd/describe.rst",
     "user/ppl/cmd/eval.rst",
     "user/ppl/cmd/fields.rst",
     "user/ppl/cmd/head.rst",
