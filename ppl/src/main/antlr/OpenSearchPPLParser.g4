@@ -34,7 +34,7 @@ searchCommand
     ;
 
 describeCommand
-    : DESCRIBE tableSource (COMMA tableSource)*
+    : DESCRIBE tableSourceClause
     ;
 
 whereCommand
@@ -128,8 +128,12 @@ adParameter
 
 /** clauses */
 fromClause
-    : SOURCE EQUAL tableSource (COMMA tableSource)*
-    | INDEX EQUAL tableSource (COMMA tableSource)*
+    : SOURCE EQUAL tableSourceClause
+    | INDEX EQUAL tableSourceClause
+    ;
+
+tableSourceClause
+    : tableSource (COMMA tableSource)*
     ;
 
 renameClasue

@@ -21,6 +21,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFrom
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFromFilterContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WhereCommandContext;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
@@ -36,7 +37,6 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.expression.Alias;
-import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
@@ -115,10 +115,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    */
   @Override
   public UnresolvedPlan visitDescribeCommand(DescribeCommandContext ctx) {
-    // Gets the mapping table (_ODFE_SYS_TABLE_MAPPINGS) of the indices by name
-    final Relation table = new Relation(ctx.tableSource()
-        .stream().map(this::internalVisitExpression)
-        .collect(Collectors.toList()));
+    final Relation table = (Relation) visitTableSourceClause(ctx.tableSourceClause());
     return new Relation(qualifiedName(mappingTable(table.getTableName())));
   }
 
@@ -302,6 +299,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    */
   @Override
   public UnresolvedPlan visitFromClause(FromClauseContext ctx) {
+    return visitTableSourceClause(ctx.tableSourceClause());
+  }
+
+  @Override
+  public UnresolvedPlan visitTableSourceClause(TableSourceClauseContext ctx) {
     return new Relation(ctx.tableSource()
         .stream().map(this::internalVisitExpression)
         .collect(Collectors.toList()));
