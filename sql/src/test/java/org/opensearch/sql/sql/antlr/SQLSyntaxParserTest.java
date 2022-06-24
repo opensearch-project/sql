@@ -158,6 +158,42 @@ class SQLSyntaxParserTest {
   }
 
   @Test
+  public void can_parse_multi_match_relevance_function() {
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE multi_match(['address'], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE multi_match(['address', 'notes'], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE multi_match([\"*\"], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE multi_match([\"address\"], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE multi_match([`address`], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE multi_match([address], 'query')"));
+
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE"
+            + " multi_match(['address' ^ 1.0, 'notes' ^ 2.2], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE multi_match(['address' ^ 1.1, 'notes'], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE multi_match(['address', 'notes' ^ 1.5], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE multi_match(['address', 'notes' 3], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE multi_match(['address' ^ .3, 'notes' 3], 'query')"));
+
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE"
+            + " multi_match([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE"
+            + " multi_match([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query', analyzer=keyword,"
+            + "operator='AND', tie_breaker=0.3, type = \"most_fields\", fuzziness = 4)"));
+  }
+
+  @Test
   public void can_parse_simple_query_string_relevance_function() {
     assertNotNull(parser.parse(
         "SELECT id FROM test WHERE simple_query_string(['address'], 'query')"));
