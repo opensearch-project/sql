@@ -344,11 +344,6 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void match_phrase_prefix_all_parameters() {
-
-  }
-
-  @Test
   void visit_span() {
     assertAnalyzeEqual(
         DSL.span(DSL.ref("integer_value", INTEGER), DSL.literal(1), ""),
