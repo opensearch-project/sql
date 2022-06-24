@@ -662,6 +662,16 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testDescribeCommandWithMultipleIndices() {
+    assertEqual("describe t,u",
+        project(
+            relation(mappingTable("t,u")),
+            AllFields.of()
+        )
+    );
+  }
+
+  @Test
   public void test_fitRCFADCommand_withoutDataFormat() {
     assertEqual("source=t | AD shingle_size=10 time_decay=0.0001 time_field='timestamp' "
                     + "anomaly_rate=0.1 anomaly_score_threshold=0.1 sample_size=256 "
