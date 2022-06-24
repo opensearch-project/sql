@@ -21,8 +21,8 @@ describe <index>
 * index: mandatory. describe command must specify which index to query from.
 
 
-Example
-=======
+Example 1: Fetch all the metadata
+=================================
 
 The example describes accounts index.
 
@@ -45,4 +45,21 @@ PPL query::
     | docTestCluster | null          | accounts     | email          | null        | text        | null          | null            | null             | 10               | 2          | null      | null         | null            | null               | null                | 9                  |               | null            | null           | null          | null               | NO                 |                      |
     | docTestCluster | null          | accounts     | lastname       | null        | text        | null          | null            | null             | 10               | 2          | null      | null         | null            | null               | null                | 10                 |               | null            | null           | null          | null               | NO                 |                      |
     +----------------+---------------+--------------+----------------+-------------+-------------+---------------+-----------------+------------------+------------------+------------+-----------+--------------+-----------------+--------------------+---------------------+--------------------+---------------+-----------------+----------------+---------------+--------------------+--------------------+----------------------+
+
+Example 2: Fetch metadata with condition and filter
+===================================================
+
+The example retrieves columns with type long in accounts index.
+
+PPL query::
+
+    os> describe accounts | where TYPE_NAME="long" | fields COLUMN_NAME;
+    fetched rows / total rows = 3/3
+    +----------------+
+    | COLUMN_NAME    |
+    |----------------|
+    | account_number |
+    | balance        |
+    | age            |
+    +----------------+
 
