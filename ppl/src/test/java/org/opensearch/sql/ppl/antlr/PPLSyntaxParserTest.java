@@ -120,6 +120,12 @@ public class PPLSyntaxParserTest {
   }
 
   @Test
+  public void testDescribeCommandWithMultipleIndicesShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().analyzeSyntax("describe t,u");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
   public void testDescribeFieldsCommandShouldPass() {
     ParseTree tree = new PPLSyntaxParser().analyzeSyntax("describe t | fields a,b");
     assertNotEquals(null, tree);

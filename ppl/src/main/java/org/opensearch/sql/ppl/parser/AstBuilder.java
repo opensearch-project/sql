@@ -115,7 +115,12 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    */
   @Override
   public UnresolvedPlan visitDescribeCommand(DescribeCommandContext ctx) {
-    final String tableName = internalVisitExpression(ctx.tableSource()).toString();
+    // Gets the mapping table (_ODFE_SYS_TABLE_MAPPINGS) of the indices by name
+    final String tableName = ctx.tableSource()
+        .stream()
+        .map(this::internalVisitExpression)
+        .map(UnresolvedExpression::toString)
+        .collect(Collectors.joining(","));
     final Relation table = new Relation(qualifiedName(mappingTable(tableName)));
     return new Project(Collections.singletonList(AllFields.of())).attach(table);
   }
