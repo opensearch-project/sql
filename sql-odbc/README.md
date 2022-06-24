@@ -9,19 +9,20 @@ The driver is compatible with ODBC 3.51.
 ## Supported Versions
 
 
-  | Operating System  | Version | Supported Bitness |
-  | ------------- |-------------| ----------------- |
-  |  Windows    |  Windows 10   | 32-bit, 64-bit |
-  |  MacOS    |  Catalina 10.15.4, Mojave 10.14.6 | 64-bit |
+  | Operating System  | Version                           | Supported Bitness |
+  | ----------------- |-----------------------------------| ----------------- |
+  |  Windows          |  Windows 10, Windows 11           | 32-bit, 64-bit    |
+  |  MacOS            |  Catalina 10.15.4, Mojave 10.14.6 | 64-bit            |
 
-## Connectors
+## BI Tool Connectors
 
-* **Power BI Desktop**: [`OpenSearch.mez`](./src/PowerBIConnector/bin/Release/OpenSearch.mez)
-* **Tableau**: [`opensearch_sql_odbc.taco`](./src/TableauConnector/opensearch_sql_odbc/opensearch_sql_odbc.taco)
+* [Power BI Desktop](../bi-connectors/PowerBIConnector/README.md)
+* [Tableau Desktop](../bi-connectors/TableauConnector/README.md)
 
-## Installing the Driver
+## Download and Installation the Driver
 
 You can use the installers generated as part of the most recent release.
+They are available for download from an [automated CI workflow](https://github.com/opensearch-project/sql/actions/workflows/sql-odbc-main.yml) and from [Artifacts page](https://opensearch.org/artifacts) on OpenSearch.org at the very bottom.
 
 ### Windows
 
