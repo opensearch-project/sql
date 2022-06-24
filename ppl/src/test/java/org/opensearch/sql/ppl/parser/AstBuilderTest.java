@@ -451,10 +451,7 @@ public class AstBuilderTest {
             compare("=", field("a"), intLiteral(1))
         ));
     assertEqual("describe `log.2020.04.20.`",
-        project(
-            relation(mappingTable("log.2020.04.20.")),
-            AllFields.of()
-        ));
+        relation(mappingTable("log.2020.04.20.")));
   }
 
   @Test
@@ -462,10 +459,7 @@ public class AstBuilderTest {
     assertEqual("source=.opensearch_dashboards",
         relation(".opensearch_dashboards"));
     assertEqual("describe .opensearch_dashboards",
-        project(
-            relation(mappingTable(".opensearch_dashboards")),
-            AllFields.of()
-        ));
+        relation(mappingTable(".opensearch_dashboards")));
   }
 
   @Test
@@ -473,15 +467,9 @@ public class AstBuilderTest {
     assertEqual("source=log.2020.10.10", relation("log.2020.10.10"));
     assertEqual("source=log-7.10-2020.10.10", relation("log-7.10-2020.10.10"));
     assertEqual("describe log.2020.10.10",
-        project(
-            relation(mappingTable("log.2020.10.10")),
-            AllFields.of()
-        ));
+        relation(mappingTable("log.2020.10.10")));
     assertEqual("describe log-7.10-2020.10.10",
-        project(
-            relation(mappingTable("log-7.10-2020.10.10")),
-            AllFields.of()
-        ));
+        relation(mappingTable("log-7.10-2020.10.10")));
   }
 
   @Test
@@ -489,10 +477,7 @@ public class AstBuilderTest {
     assertEqual("source=log-2020",
         relation("log-2020"));
     assertEqual("describe log-2020",
-        project(
-            relation(mappingTable("log-2020")),
-            AllFields.of()
-        ));
+        relation(mappingTable("log-2020")));
   }
 
   @Test
@@ -500,10 +485,7 @@ public class AstBuilderTest {
     assertEqual("source=log-2020-10-*",
         relation("log-2020-10-*"));
     assertEqual("describe log-2020-10-*",
-        project(
-            relation(mappingTable("log-2020-10-*")),
-            AllFields.of()
-        ));
+        relation(mappingTable("log-2020-10-*")));
   }
 
   @Test
@@ -512,20 +494,11 @@ public class AstBuilderTest {
     assertEqual("source=log-2020.*.01", relation("log-2020.*.01"));
     assertEqual("source=log-2020.*.*", relation("log-2020.*.*"));
     assertEqual("describe log-2020.10.*",
-        project(
-            relation(mappingTable("log-2020.10.*")),
-            AllFields.of()
-        ));
+        relation(mappingTable("log-2020.10.*")));
     assertEqual("describe log-2020.*.01",
-        project(
-            relation(mappingTable("log-2020.*.01")),
-            AllFields.of()
-        ));
+        relation(mappingTable("log-2020.*.01")));
     assertEqual("describe log-2020.*.*",
-        project(
-            relation(mappingTable("log-2020.*.*")),
-            AllFields.of()
-        ));
+        relation(mappingTable("log-2020.*.*")));
   }
 
   @Test
@@ -654,21 +627,13 @@ public class AstBuilderTest {
   @Test
   public void testDescribeCommand() {
     assertEqual("describe t",
-        project(
-            relation(mappingTable("t")),
-            AllFields.of()
-        )
-    );
+        relation(mappingTable("t")));
   }
 
   @Test
   public void testDescribeCommandWithMultipleIndices() {
     assertEqual("describe t,u",
-        project(
-            relation(mappingTable("t,u")),
-            AllFields.of()
-        )
-    );
+        relation(mappingTable("t,u")));
   }
 
   @Test
