@@ -59,7 +59,6 @@ dependencies {
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
     testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.12.4'
 
-    api group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
 }
 
 test {

@@ -24,6 +24,7 @@
 
 plugins {
     id 'java'
+    id "io.freefair.lombok"
     id 'jacoco'
     id 'opensearch.opensearchplugin'
 }
@@ -47,7 +48,6 @@ opensearchplugin {
 }
 
 javadoc.enabled = false
-test.enabled = false
 loggerUsageCheck.enabled = false
 dependencyLicenses.enabled = false
 thirdPartyAudit.enabled = false
@@ -64,6 +64,13 @@ configurations.all {
     resolutionStrategy.force 'com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.13.2'
     resolutionStrategy.force 'com.fasterxml.jackson.core:jackson-databind:2.13.2.2'
 }
+compileJava {
+    options.compilerArgs.addAll(["-processor", 'lombok.launch.AnnotationProcessorHider$AnnotationProcessor'])
+}
+
+compileTestJava {
+    options.compilerArgs.addAll(["-processor", 'lombok.launch.AnnotationProcessorHider$AnnotationProcessor'])
+}
 
 dependencies {
     api group: 'org.springframework', name: 'spring-beans', version: '5.2.20.RELEASE'
@@ -72,6 +79,13 @@ dependencies {
     api project(':opensearch')
 }
 
+test {
+    include '**/*Test.class'
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+    }
+}
 
 ext {
     projectSubstitutions = [:]

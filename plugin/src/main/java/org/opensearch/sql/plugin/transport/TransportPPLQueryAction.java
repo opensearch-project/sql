@@ -61,7 +61,7 @@ public class TransportPPLQueryAction
       NodeClient client,
       ClusterService clusterService,
       org.opensearch.common.settings.Settings clusterSettings) {
-    super(PPLQueryAction.NAME, transportService, actionFilters, PPLQueryRequest::new);
+    super(PPLQueryAction.NAME, transportService, actionFilters, TransportPPLQueryRequest::new);
     this.client = client;
     this.clusterService = clusterService;
     this.pluginSettings = new OpenSearchSettings(clusterService.getClusterSettings());
@@ -80,7 +80,9 @@ public class TransportPPLQueryAction
     LogUtils.addRequestId();
 
     PPLService pplService = createPPLService(client);
-    PPLQueryRequest transformedRequest = PPLQueryRequest.fromActionRequest(request);
+    TransportPPLQueryRequest transportRequest = TransportPPLQueryRequest.fromActionRequest(request);
+    // in order to use PPL service, we need to convert TransportPPLQueryRequest to PPLQueryRequest
+    PPLQueryRequest transformedRequest = transportRequest.toPPLQueryRequest();
 
     if (transformedRequest.isExplainRequest()) {
       pplService.explain(transformedRequest, createExplainResponseListener(listener));

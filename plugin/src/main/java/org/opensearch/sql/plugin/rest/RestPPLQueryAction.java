@@ -36,6 +36,7 @@ import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.opensearch.response.error.ErrorMessageFactory;
 import org.opensearch.sql.plugin.request.PPLQueryRequestFactory;
 import org.opensearch.sql.plugin.transport.PPLQueryAction;
+import org.opensearch.sql.plugin.transport.TransportPPLQueryRequest;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 
@@ -107,21 +108,23 @@ public class RestPPLQueryAction extends BaseRestHandler {
           BAD_REQUEST);
     }
 
-    PPLQueryRequest pplRequest = PPLQueryRequestFactory.getPPLRequest(request);
+    TransportPPLQueryRequest transportPPLQueryRequest = new TransportPPLQueryRequest(
+            PPLQueryRequestFactory.getPPLRequest(request)
+    );
 
     return channel ->
         nodeClient.execute(
             PPLQueryAction.INSTANCE,
-            pplRequest,
+                transportPPLQueryRequest,
             new ActionListener<>() {
               @Override
               public void onResponse(TransportPPLQueryResponse response) {
-                sendResponse(channel, OK, response.result());
+                sendResponse(channel, OK, response.getResult());
               }
 
               @Override
               public void onFailure(Exception e) {
-                if (pplRequest.isExplainRequest()) {
+                if (transportPPLQueryRequest.isExplainRequest()) {
                   LOG.error("Error happened during explain", e);
                   sendResponse(
                       channel,
