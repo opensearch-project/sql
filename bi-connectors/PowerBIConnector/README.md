@@ -18,3 +18,6 @@ The release snapshots are also available here: [OpenSearch Project](OpenSearchPr
 * Installation instructions for
   * [OpenSearch Project connector](OpenSearchProject.md)
   * [Amazon OpenSearch Service connector](AmazonOpenSearchService.md)
+* Connector user manual for
+  * [Power BI Service](power_bi_service_support.md)
+  * [Power BI Desktop](power_bi_support.md)

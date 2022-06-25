@@ -22,3 +22,8 @@ Most recent tests of the connector were performed on OpenSearch v.1.2.0 with SQL
 TDVT test results are available in [tdvt_test_results.csv](tdvt_test_results.csv).
 
 Test pass rate is 669/837 (80%).
+
+## See also
+
+* [Connector user manual for Tableau Desktop](tableau_support.md)
+* JDBC Driver user manual [describes](../../sql-jdbc/docs/tableau.md) how to use the `JDBC` driver without the connector
