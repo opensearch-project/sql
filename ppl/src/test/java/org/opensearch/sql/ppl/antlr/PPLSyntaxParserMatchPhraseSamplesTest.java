@@ -39,7 +39,7 @@ public class PPLSyntaxParserMatchPhraseSamplesTest {
 
   @Test
   public void test() {
-    ParseTree tree = new PPLSyntaxParser().analyzeSyntax(query);
+    ParseTree tree = new PPLSyntaxParser().parse(query);
     assertNotEquals(null, tree);
   }
 }

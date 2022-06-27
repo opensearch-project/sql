@@ -29,7 +29,7 @@ import org.opensearch.sql.legacy.antlr.semantic.types.base.OpenSearchIndex;
 public class EnvironmentTest {
 
     /** Use context class for push/pop */
-    private SemanticContext context = new SemanticContext();
+    private final SemanticContext context = new SemanticContext();
 
     @Test
     public void defineFieldSymbolInDifferentEnvironmentsShouldBeAbleToResolve() {

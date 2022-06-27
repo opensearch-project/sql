@@ -344,6 +344,8 @@ TIME_ZONE:                          'TIME_ZONE';
 TYPE:                               'TYPE';
 ZERO_TERMS_QUERY:                   'ZERO_TERMS_QUERY';
 
+// RELEVANCE FUNCTIONS
+MATCH_BOOL_PREFIX:                  'MATCH_BOOL_PREFIX';
 // Operators
 
 // Operators. Arithmetics
