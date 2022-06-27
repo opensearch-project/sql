@@ -666,6 +666,10 @@ public class DSL {
     return compile(BuiltinFunctionName.SIMPLE_QUERY_STRING, args);
   }
 
+  public FunctionExpression query_string(Expression... args) {
+    return compile(BuiltinFunctionName.QUERY_STRING, args);
+  }
+
   private FunctionExpression compile(BuiltinFunctionName bfn, Expression... args) {
     return (FunctionExpression) repository.compile(bfn.getName(), Arrays.asList(args.clone()));
   }

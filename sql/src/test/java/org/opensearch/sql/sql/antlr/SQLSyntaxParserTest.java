@@ -227,6 +227,13 @@ class SQLSyntaxParserTest {
   }
 
   @Test
+  public void can_parse_query_string_relevance_function() {
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE query_string(['address'], 'query')"));
+  }
+
+
+  @Test
   public void can_parse_match_relevance_function() {
     assertNotNull(parser.parse("SELECT * FROM test WHERE match(column, \"this is a test\")"));
     assertNotNull(parser.parse("SELECT * FROM test WHERE match(column, 'this is a test')"));

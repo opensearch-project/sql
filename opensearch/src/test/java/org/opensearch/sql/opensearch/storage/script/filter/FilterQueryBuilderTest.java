@@ -584,6 +584,39 @@ class FilterQueryBuilderTest {
   }
 
   @Test
+    // Notes for following three tests:
+    // 1) OpenSearch (not the plugin) might change order of fields
+    // 2) `flags` are printed by OpenSearch as an integer
+    // 3) `minimum_should_match` printed as a string
+  void should_build_query_string_query_with_default_parameters_single_field() {
+    assertJsonEquals("{\n"
+            + "  \"query_string\" : {\n"
+            + "    \"query\" : \"search query\",\n"
+            + "    \"fields\" : [\n"
+            + "      \"field1^1.0\"\n"
+            + "    ],\n"
+            + "    \"type\" : best_fields,\n"
+            + "    \"default_operator\" : or,\n"
+            + "    \"max_determinized_states\" : 10000,\n"
+            + "    \"enable_position_increments\" : true,\n"
+            + "    \"fuzziness\" : \"AUTO\",\n"
+            + "    \"fuzzy_prefix_length\" : 0,\n"
+            + "    \"fuzzy_max_expansions\" : 50,\n"
+            + "    \"phrase_slop\" : 0,\n"
+            + "    \"escape\" : false,\n"
+            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
+            + "    \"fuzzy_transpositions\" : true,\n"
+            + "    \"boost\" : 1.0,\n"
+            + "  }\n"
+            + "}",
+        buildQuery(dsl.query_string(
+            dsl.namedArgument("fields", DSL.literal(new ExprTupleValue(
+                new LinkedHashMap<>(ImmutableMap.of(
+                    "field1", ExprValueUtils.floatValue(1.F)))))),
+            dsl.namedArgument("query", literal("search query")))));
+  }
+
+  @Test
   // Notes for following three tests:
   // 1) OpenSearch (not the plugin) might change order of fields
   // 2) `flags` are printed by OpenSearch as an integer
