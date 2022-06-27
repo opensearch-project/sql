@@ -20,6 +20,7 @@
 
 #include <map>
 #include <string>
+#include <string_view>
 
 #include "dlg_specific.h"
 #include "environ.h"
@@ -73,6 +74,35 @@ char CC_connect(ConnectionClass *self) {
     return 1;
 }
 
+/**
+ * @brief Prepends the appropriate protocol to the user supplied server url
+ * when necessary. With no protocol speciefied, the use_ssl flag determines
+ * returned value.
+ * 
+ * @param self : Supplied connection input data
+ * @return std::string : Valid server URL with prepended protocol
+ */
+std::string generateValidServerUrl(ConnectionClass *self) {
+    std::string valid_server_url = "";
+    std::string_view server_url = self->connInfo.server;
+    std::string_view http_prefix = "http://";
+    std::string_view https_prefix = "https://";
+    if(server_url.empty()) {
+        return valid_server_url;
+    }
+
+    bool http_prefix_prepended = (server_url.size() > http_prefix.size() && (server_url.substr(0, http_prefix.size()) == http_prefix));
+    bool https_prefix_prepended = (server_url.size() > https_prefix.size() && (server_url.substr(0, https_prefix.size()) == https_prefix));
+    if (!http_prefix_prepended && !https_prefix_prepended) {
+        valid_server_url = self->connInfo.use_ssl ?
+            std::string(https_prefix) + std::string(server_url) :
+            std::string(http_prefix) + std::string(server_url);
+    } else {
+        valid_server_url = server_url;
+    }
+    return valid_server_url;
+}
+
 int LIBOPENSEARCH_connect(ConnectionClass *self) {
     if (self == NULL)
         return 0;
@@ -81,7 +111,10 @@ int LIBOPENSEARCH_connect(ConnectionClass *self) {
     runtime_options rt_opts;
 
     // Connection
-    rt_opts.conn.server.assign(self->connInfo.server);
+    rt_opts.conn.server.assign(generateValidServerUrl(self));
+    if(rt_opts.conn.server.empty()) {
+        return 0;
+    }
     rt_opts.conn.port.assign(self->connInfo.port);
     rt_opts.conn.timeout.assign(self->connInfo.response_timeout);
 
