@@ -22,7 +22,7 @@ The driver is compatible with ODBC 3.51.
 ## Download and Installation the Driver
 
 You can use the installers generated as part of the most recent release.
-They are available for download from an [automated CI workflow](https://github.com/opensearch-project/sql/actions/workflows/sql-odbc-main.yml) and from [Artifacts page](https://opensearch.org/artifacts) on OpenSearch.org at the very bottom.
+They are available for download from [Artifacts page](https://opensearch.org/artifacts) on OpenSearch.org at the very bottom from and [automated CI workflow](https://github.com/opensearch-project/sql/actions/workflows/sql-odbc-main.yml).
 
 ### Windows
 
