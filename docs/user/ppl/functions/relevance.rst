@@ -107,15 +107,13 @@ Description
 
 ``match_phrase_prefix(field_expression, query_expression[, option=<option_value>]*)``
 
-The match_phrase function maps to the match_phrase query used in search engine, to return the documents that match a provided text with a given field. Available parameters include:
+The match_phrase_prefix function maps to the match_phrase_prefix query used in search engine, to return the documents that match a provided text with a given field. Available parameters include:
 
 - analyzer
 - slop
 - max_expansions
 - boost
 - zero_terms_query
-
-For backward compatibility, matchphrase is also supported and mapped to match_phrase query as well.
 
 Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
 
