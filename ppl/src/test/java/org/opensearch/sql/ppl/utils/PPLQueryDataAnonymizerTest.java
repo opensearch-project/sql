@@ -20,7 +20,7 @@ import org.opensearch.sql.ppl.parser.AstExpressionBuilder;
 
 public class PPLQueryDataAnonymizerTest {
 
-  private PPLSyntaxParser parser = new PPLSyntaxParser();
+  private final PPLSyntaxParser parser = new PPLSyntaxParser();
 
   @Test
   public void testSearchCommand() {
@@ -160,7 +160,7 @@ public class PPLQueryDataAnonymizerTest {
 
   private String anonymize(String query) {
     AstBuilder astBuilder = new AstBuilder(new AstExpressionBuilder(), query);
-    return anonymize(astBuilder.visit(parser.analyzeSyntax(query)));
+    return anonymize(astBuilder.visit(parser.parse(query)));
   }
 
   private String anonymize(UnresolvedPlan plan) {

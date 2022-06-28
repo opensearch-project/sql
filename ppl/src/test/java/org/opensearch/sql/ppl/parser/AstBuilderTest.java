@@ -58,7 +58,7 @@ public class AstBuilderTest {
   @Rule
   public ExpectedException exceptionRule = ExpectedException.none();
 
-  private PPLSyntaxParser parser = new PPLSyntaxParser();
+  private final PPLSyntaxParser parser = new PPLSyntaxParser();
 
   @Test
   public void testSearchCommand() {
@@ -664,6 +664,6 @@ public class AstBuilderTest {
 
   private Node plan(String query) {
     AstBuilder astBuilder = new AstBuilder(new AstExpressionBuilder(), query);
-    return astBuilder.visit(parser.analyzeSyntax(query));
+    return astBuilder.visit(parser.parse(query));
   }
 }

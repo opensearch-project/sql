@@ -674,6 +674,10 @@ public class DSL {
     return compile(BuiltinFunctionName.SIMPLE_QUERY_STRING, args);
   }
 
+  public FunctionExpression match_bool_prefix(Expression... args) {
+    return compile(BuiltinFunctionName.MATCH_BOOL_PREFIX, args);
+  }
+
   private FunctionExpression compile(BuiltinFunctionName bfn, Expression... args) {
     return (FunctionExpression) repository.compile(bfn.getName(), Arrays.asList(args.clone()));
   }

@@ -144,13 +144,13 @@ TEST_F(TestSQLDriverConnect, InvalidDriver) {
     std::wstring invalid_driver_conn_string =
          use_ssl ? L"Driver=xxxx;"
                    L"host=https://localhost;port=5432;"
-                   L"user=admin;password=admin;auth=BASIC;useSSL="
-                   L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                   L"user=admin;password=admin;auth=BASIC;useSSL=1;"
+                   L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                    L"responseTimeout=10;"
                  : L"Driver=xxxx;"
                    L"host=localhost;port=5432;"
-                   L"user=admin;password=admin;auth=BASIC;useSSL="
-                   L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                   L"user=admin;password=admin;auth=BASIC;useSSL=0;"
+                   L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                    L"responseTimeout=10;";
 
     SQLRETURN ret = SQLDriverConnect(
@@ -164,13 +164,13 @@ TEST_F(TestSQLDriverConnect, InvalidHost) {
     std::wstring invalid_host_conn_string =
         use_ssl ? L"Driver={OpenSearch ODBC};"
                   L"host=https://8.8.8.8;port=9200;"
-                  L"user=admin;password=admin;auth=BASIC;useSSL="
-                  L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"user=admin;password=admin;auth=BASIC;useSSL=1;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=1;"
                 : L"Driver={OpenSearch ODBC};"
                   L"host=8.8.8.8;port=9200;"
-                  L"user=admin;password=admin;auth=BASIC;useSSL="
-                  L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"user=admin;password=admin;auth=BASIC;useSSL=0;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=1;";
 
     SQLRETURN ret = SQLDriverConnect(
@@ -184,13 +184,13 @@ TEST_F(TestSQLDriverConnect, InvalidPort) {
     std::wstring invalid_port_conn_string =
         use_ssl ? L"Driver={OpenSearch ODBC};"
                   L"host=https://localhost;port=5432;"
-                  L"user=admin;password=admin;auth=BASIC;useSSL="
-                  L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"user=admin;password=admin;auth=BASIC;useSSL=1;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=10;"
                 : L"Driver={OpenSearch ODBC};"
                   L"host=localhost;port=5432;"
-                  L"user=admin;password=admin;auth=BASIC;useSSL="
-                  L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"user=admin;password=admin;auth=BASIC;useSSL=0;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=10;";
 
     SQLRETURN ret = SQLDriverConnect(
@@ -207,13 +207,13 @@ TEST_F(TestSQLDriverConnect, UnsupportedKeyword) {
     std::wstring unsupported_keyword_conn_string =
         use_ssl ? L"Driver={OpenSearch ODBC};"
                   L"host=https://localhost;port=5432;"
-                  L"user=admin;password=admin;auth=BASIC;useSSL="
-                  L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"user=admin;password=admin;auth=BASIC;useSSL=1;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=10;extra=1"
                 : L"Driver={OpenSearch ODBC};"
                   L"host=localhost;port=5432;"
-                  L"user=admin;password=admin;auth=BASIC;useSSL="
-                  L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"user=admin;password=admin;auth=BASIC;useSSL=0;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=10;extra=1";
 
     SQLRETURN ret = SQLDriverConnect(
@@ -227,13 +227,13 @@ TEST_F(TestSQLDriverConnect, ConnStringAbbrevsUID) {
     std::wstring abbrev_str =
         use_ssl ? L"Driver={OpenSearch ODBC};"
                   L"host=https://localhost;port=9200;"
-                  L"UID=admin;password=admin;auth=BASIC;useSSL="
-                  L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"UID=admin;password=admin;auth=BASIC;useSSL=1;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=10;"
                 : L"Driver={OpenSearch ODBC};"
                   L"host=localhost;port=9200;"
-                  L"UID=admin;password=admin;auth=BASIC;useSSL="
-                  L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"UID=admin;password=admin;auth=BASIC;useSSL=0;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=10;";
 
     SQLRETURN ret =
@@ -247,13 +247,13 @@ TEST_F(TestSQLDriverConnect, ConnStringAbbrevsPWD) {
     std::wstring abbrev_str =
         use_ssl ? L"Driver={OpenSearch ODBC};"
                   L"host=https://localhost;port=9200;"
-                  L"user=admin;PWD=admin;auth=BASIC;useSSL="
-                  L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"user=admin;PWD=admin;auth=BASIC;useSSL=1;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=10;"
                 : L"Driver={OpenSearch ODBC};"
                   L"host=localhost;port=9200;"
-                  L"user=admin;PWD=admin;auth=BASIC;useSSL="
-                  L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"user=admin;PWD=admin;auth=BASIC;useSSL=0;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=10;";
 
     SQLRETURN ret =
@@ -267,13 +267,73 @@ TEST_F(TestSQLDriverConnect, ConnStringAbbrevsUIDPWD) {
     std::wstring abbrev_str =
         use_ssl ? L"Driver={OpenSearch ODBC};"
                   L"host=https://localhost;port=9200;"
-                  L"UID=admin;PWD=admin;auth=BASIC;useSSL="
-                  L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"UID=admin;PWD=admin;auth=BASIC;useSSL=1;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=10;"
                 : L"Driver={OpenSearch ODBC};"
                   L"host=localhost;port=9200;"
-                  L"UID=admin;PWD=admin;auth=BASIC;useSSL="
-                  L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"UID=admin;PWD=admin;auth=BASIC;useSSL=0;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"responseTimeout=10;";
+
+    SQLRETURN ret =
+        SQLDriverConnect(m_conn, NULL, (SQLTCHAR*)abbrev_str.c_str(), SQL_NTS,
+                         m_out_conn_string, IT_SIZEOF(m_out_conn_string),
+                         &m_out_conn_string_length, SQL_DRIVER_NOPROMPT);
+    EXPECT_EQ(SQL_SUCCESS, ret);
+}
+
+TEST_F(TestSQLDriverConnect, ConnStringAbbrevsHostMixedProtocol) {
+    std::wstring abbrev_str =
+        use_ssl ? L"Driver={OpenSearch ODBC};"
+                  L"host=http://localhost;port=9200;"
+                  L"UID=admin;PWD=admin;auth=BASIC;useSSL=1;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"responseTimeout=10;"
+                : L"Driver={OpenSearch ODBC};"
+                  L"host=https://localhost;port=9200;"
+                  L"UID=admin;PWD=admin;auth=BASIC;useSSL=0;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"responseTimeout=10;";
+
+    SQLRETURN ret =
+        SQLDriverConnect(m_conn, NULL, (SQLTCHAR*)abbrev_str.c_str(), SQL_NTS,
+                         m_out_conn_string, IT_SIZEOF(m_out_conn_string),
+                         &m_out_conn_string_length, SQL_DRIVER_NOPROMPT);
+    EXPECT_EQ(SQL_ERROR, ret);
+}
+
+TEST_F(TestSQLDriverConnect, ConnStringAbbrevsHost) {
+    std::wstring abbrev_str =
+        use_ssl ? L"Driver={OpenSearch ODBC};"
+                  L"host=localhost;port=9200;"
+                  L"UID=admin;PWD=admin;auth=BASIC;useSSL=1;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"responseTimeout=10;"
+                : L"Driver={OpenSearch ODBC};"
+                  L"host=localhost;port=9200;"
+                  L"UID=admin;PWD=admin;auth=BASIC;useSSL=0;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"responseTimeout=10;";
+
+    SQLRETURN ret =
+        SQLDriverConnect(m_conn, NULL, (SQLTCHAR*)abbrev_str.c_str(), SQL_NTS,
+                         m_out_conn_string, IT_SIZEOF(m_out_conn_string),
+                         &m_out_conn_string_length, SQL_DRIVER_NOPROMPT);
+    EXPECT_EQ(SQL_SUCCESS, ret);
+}
+
+TEST_F(TestSQLDriverConnect, ConnStringAbbrevsHostProtocol) {
+    std::wstring abbrev_str =
+        use_ssl ? L"Driver={OpenSearch ODBC};"
+                  L"host=https://localhost;port=9200;"
+                  L"UID=admin;PWD=admin;auth=BASIC;useSSL=1;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"responseTimeout=10;"
+                : L"Driver={OpenSearch ODBC};"
+                  L"host=http://localhost;port=9200;"
+                  L"UID=admin;PWD=admin;auth=BASIC;useSSL=0;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=10;";
 
     SQLRETURN ret =
@@ -287,13 +347,13 @@ TEST_F(TestSQLDriverConnect, ConnStringAbbrevsServer) {
     std::wstring abbrev_str =
         use_ssl ? L"Driver={OpenSearch ODBC};"
                   L"server=https://localhost;port=9200;"
-                  L"user=admin;password=admin;auth=BASIC;useSSL="
-                  L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"user=admin;password=admin;auth=BASIC;useSSL=1;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=10;"
                 : L"Driver={OpenSearch ODBC};"
                   L"server=localhost;port=9200;"
-                  L"user=admin;password=admin;auth=BASIC;useSSL="
-                  L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"user=admin;password=admin;auth=BASIC;useSSL=0;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=10;";
 
     SQLRETURN ret =
@@ -307,13 +367,13 @@ TEST_F(TestSQLDriverConnect, ConnStringAbbrevsServerUIDPWD) {
     std::wstring abbrev_str =
         use_ssl ? L"Driver={OpenSearch ODBC};"
                   L"server=https://localhost;port=9200;"
-                  L"UID=admin;PWD=admin;auth=BASIC;useSSL="
-                  L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"UID=admin;PWD=admin;auth=BASIC;useSSL=1;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=10;"
                 : L"Driver={OpenSearch ODBC};"
                   L"server=localhost;port=9200;"
-                  L"UID=admin;PWD=admin;auth=BASIC;useSSL="
-                  L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"UID=admin;PWD=admin;auth=BASIC;useSSL=0;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=10;";
 
     SQLRETURN ret =
@@ -327,13 +387,13 @@ TEST_F(TestSQLDriverConnect, Timeout1Second) {
     std::wstring one_second_timeout =
         use_ssl ? L"Driver={OpenSearch ODBC};"
                   L"host=https://8.8.8.8;port=9200;"
-                  L"user=admin;password=admin;auth=BASIC;useSSL="
-                  L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"user=admin;password=admin;auth=BASIC;useSSL=1;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=1;"
                 : L"Driver={OpenSearch ODBC};"
                   L"host=8.8.8.8;port=9200;"
-                  L"user=admin;password=admin;auth=BASIC;useSSL="
-                  L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"user=admin;password=admin;auth=BASIC;useSSL=0;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=1;";
 
     auto start = std::chrono::steady_clock::now();
@@ -363,13 +423,13 @@ TEST_F(TestSQLDriverConnect, Timeout3Second) {
     std::wstring one_second_timeout =
         use_ssl ? L"Driver={OpenSearch ODBC};"
                   L"host=https://8.8.8.8;port=9200;"
-                  L"user=admin;password=admin;auth=BASIC;useSSL="
-                  L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"user=admin;password=admin;auth=BASIC;useSSL=1;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=3;"
                 : L"Driver={OpenSearch ODBC};"
                   L"host=8.8.8.8;port=9200;"
-                  L"user=admin;password=admin;auth=BASIC;useSSL="
-                  L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"user=admin;password=admin;auth=BASIC;useSSL=0;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=3;";
 
     auto start = std::chrono::steady_clock::now();
@@ -399,13 +459,13 @@ TEST_F(TestSQLDriverConnect, Timeout7Second) {
     std::wstring seven_second_timeout =
         use_ssl ? L"Driver={OpenSearch ODBC};"
                   L"host=https://8.8.8.8;port=9200;"
-                  L"user=admin;password=admin;auth=BASIC;useSSL="
-                  L"1;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"user=admin;password=admin;auth=BASIC;useSSL=1;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=7;"
                 : L"Driver={OpenSearch ODBC};"
                   L"host=8.8.8.8;port=9200;"
-                  L"user=admin;password=admin;auth=BASIC;useSSL="
-                  L"0;hostnameVerification=0;logLevel=0;logOutput=C:\\;"
+                  L"user=admin;password=admin;auth=BASIC;useSSL=0;"
+                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
                   L"responseTimeout=7;";
 
     auto start = std::chrono::steady_clock::now();

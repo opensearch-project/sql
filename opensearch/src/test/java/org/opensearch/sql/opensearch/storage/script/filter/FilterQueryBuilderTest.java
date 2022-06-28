@@ -765,6 +765,28 @@ class FilterQueryBuilderTest {
           + "[STRING,STRING,STRING,STRING,STRING,STRING]", msg);
   }
 
+
+  @Test
+  void should_build_match_bool_prefix_query_with_default_parameters() {
+    assertJsonEquals(
+        "{\n"
+            + "  \"match_bool_prefix\" : {\n"
+            + "    \"message\" : {\n"
+            + "      \"query\" : \"search query\",\n"
+            + "      \"operator\" : \"OR\",\n"
+            + "      \"prefix_length\" : 0,\n"
+            + "      \"max_expansions\" : 50,\n"
+            + "      \"fuzzy_transpositions\" : true,\n"
+            + "      \"boost\" : 1.0\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            dsl.match_bool_prefix(
+                dsl.namedArgument("field", literal("message")),
+                dsl.namedArgument("query", literal("search query")))));
+  }
+
   @Test
   void multi_match_missing_fields() {
     var msg = assertThrows(ExpressionEvaluationException.class, () ->
