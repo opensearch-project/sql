@@ -60,7 +60,6 @@ public class StringUtils {
     if (isQuoted(text, "`")) {
       return text.substring(1, text.length() - 1).replace("\\`", "`").replace("\\\\", "\\");
     }
-
     return text;
   }
 
