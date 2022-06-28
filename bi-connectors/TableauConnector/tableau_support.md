@@ -8,14 +8,14 @@ Connect an OpenSearch data source to Tableau Desktop via the Tableau Connector t
 
 * Download and Install [Tableau Desktop](https://www.tableau.com/products/desktop/download) 2020 and higher
 * Install and Configure [OpenSearch](https://docs-beta.opensearch.org/opensearch/install/index/)
-* Download and Install [OpenSearch SQL ODBC driver](../../README.md)
-* Download Tableau Connector for `SQL by OpenSearch for ES` ([opensearch_sql_odbc.taco](../../src/TableauConnector/opensearch_sql_odbc/opensearch_sql_odbc.taco)).
-Click on **Download** option for downloading `opensearch_sql_odbc.taco` file.
+* Download and Install [OpenSearch SQL JDBC driver](../../sql-jdbc/README.md)
+* Download Tableau Connector ([opensearch_sql_jdbc.taco](opensearch_sql_jdbc.taco)).
+Click on **Download** option for downloading `opensearch_sql_jdbc.taco` file.
 <img src="img/tableau_download_taco.png" >
 
 ## Prepare data 
 
-* Copy `opensearch_sql_odbc.taco` file to My Tableau Repository.
+* Copy `opensearch_sql_jdbc.taco` file to My Tableau Repository.
 
   * On windows: **%User%/Documents/My Tableau Repository/Connectors/**.
   * On Mac: **~/Documents/My Tableau Repository/Connectors/**.
@@ -26,12 +26,12 @@ Click on **Download** option for downloading `opensearch_sql_odbc.taco` file.
 <full-Tableau-path>\bin\tableau.exe -DDisableVerifyConnectorPluginSignature=true
 ```
 
-* Click on **Connect** > **More** > **SQL by OpenSearch for ES**.
+* Click on **Connect** > **More** > **OpenSearch by OpenSearch Project**.
 
 <img src="img/tableau_select_connector.png" width=600>
 
 * Enter **Server** & **Port** value. 
-* Select required authentication option. For **AWS_SIGV4** authentication, select **Integrated Authentication** and enter value for **Region**. To setup aws access key id and secret key, create ~/.aws/credentials with [AWS CLI](https://aws.amazon.com/cli/) and use `opensearchodbc` as the profile name.
+* Select required authentication option. For **AWS_SIGV4** authentication, select **AWS_SIGv4** and enter value for **Region**. You need to create `~/.aws/credentials` and add `default` profile with aws access key id and secret key.
 * Use **Additional Options** section for specifying options like **FetchSize**, **ResponseTimeout**. Use `;` to separate values. For example,
 
 ```
