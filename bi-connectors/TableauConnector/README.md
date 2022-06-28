@@ -1,6 +1,6 @@
 ## Connector Download
 
-The Tableau connector is available to be downloaded from the automated CI workflow: [link](https://github.com/opensearch-project/sql/actions/workflows/bi-connectors.yml).
+The Tableau connector is available to download from the automated CI workflow: [link](https://github.com/opensearch-project/sql/actions/workflows/bi-connectors.yml).
 The release snapshot is also available [here](opensearch_sql_jdbc.taco).
 
 ## Connector Install
@@ -11,7 +11,10 @@ The release snapshot is also available [here](opensearch_sql_jdbc.taco).
 2. Put OpenSearch `JDBC` [driver](../../sql-jdbc/README.md) (`jar` file) into
   * Windows: `C:\Program Files\Tableau\Drivers`;
   * MacOS: `~/Library/Tableau/Drivers`.
-3. Run `Tableau Desktop` with command line flag `-DDisableVerifyConnectorPluginSignature=true`. You can create a shortcut or a script to simplify this step.
+3. Run `Tableau Desktop` with command line flag `-DDisableVerifyConnectorPluginSignature=true`:
+  * Windows: `"C:\Program Files\Tableau\Tableau 2022.1\bin\tableau.exe" -DDisableVerifyConnectorPluginSignature=true`;
+  * MacOS: `open -n /Applications/Tableau\ Desktop\ 2022.1.app --args -DDisableVerifyConnectorPluginSignature=true`.    
+Adjust the command line accoring to the Tableau version you have. You can create a shortcut or a script to simplify this step.
 
 ## TDVT report for OpenSearch JDBC Tableau connector
 
