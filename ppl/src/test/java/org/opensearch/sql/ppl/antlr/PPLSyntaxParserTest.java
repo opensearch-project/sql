@@ -145,5 +145,31 @@ public class PPLSyntaxParserTest {
         "SOURCE=test | WHERE simple_query_string([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query',"
             + "analyzer=keyword, quote_field_suffix=\".exact\", fuzzy_prefix_length = 4)"));
   }
+
+  @Test
+  public void testDescribeCommandShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().analyzeSyntax("describe t");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testDescribeCommandWithMultipleIndicesShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().analyzeSyntax("describe t,u");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testDescribeFieldsCommandShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().analyzeSyntax("describe t | fields a,b");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testDescribeCommandWithSourceShouldFail() {
+    exceptionRule.expect(RuntimeException.class);
+    exceptionRule.expectMessage("Failed to parse query due to offending symbol");
+
+    new PPLSyntaxParser().analyzeSyntax("describe source=t");
+  }
 }
 

@@ -30,6 +30,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.let;
 import static org.opensearch.sql.ast.dsl.AstDSL.map;
 import static org.opensearch.sql.ast.dsl.AstDSL.nullLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.parse;
+import static org.opensearch.sql.ast.dsl.AstDSL.project;
 import static org.opensearch.sql.ast.dsl.AstDSL.projectWithArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.rareTopN;
@@ -38,6 +39,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.rename;
 import static org.opensearch.sql.ast.dsl.AstDSL.sort;
 import static org.opensearch.sql.ast.dsl.AstDSL.span;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
+import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableMap;
 import org.junit.Ignore;
@@ -45,6 +47,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.opensearch.sql.ast.Node;
+import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.SpanUnit;
@@ -447,30 +450,42 @@ public class AstBuilderTest {
             relation("log.2020.04.20."),
             compare("=", field("a"), intLiteral(1))
         ));
+    assertEqual("describe `log.2020.04.20.`",
+        relation(mappingTable("log.2020.04.20.")));
   }
 
   @Test
   public void testIdentifierAsIndexNameStartWithDot() {
     assertEqual("source=.opensearch_dashboards",
         relation(".opensearch_dashboards"));
+    assertEqual("describe .opensearch_dashboards",
+        relation(mappingTable(".opensearch_dashboards")));
   }
 
   @Test
   public void testIdentifierAsIndexNameWithDotInTheMiddle() {
     assertEqual("source=log.2020.10.10", relation("log.2020.10.10"));
     assertEqual("source=log-7.10-2020.10.10", relation("log-7.10-2020.10.10"));
+    assertEqual("describe log.2020.10.10",
+        relation(mappingTable("log.2020.10.10")));
+    assertEqual("describe log-7.10-2020.10.10",
+        relation(mappingTable("log-7.10-2020.10.10")));
   }
 
   @Test
   public void testIdentifierAsIndexNameWithSlashInTheMiddle() {
     assertEqual("source=log-2020",
         relation("log-2020"));
+    assertEqual("describe log-2020",
+        relation(mappingTable("log-2020")));
   }
 
   @Test
   public void testIdentifierAsIndexNameContainStar() {
     assertEqual("source=log-2020-10-*",
         relation("log-2020-10-*"));
+    assertEqual("describe log-2020-10-*",
+        relation(mappingTable("log-2020-10-*")));
   }
 
   @Test
@@ -478,6 +493,12 @@ public class AstBuilderTest {
     assertEqual("source=log-2020.10.*", relation("log-2020.10.*"));
     assertEqual("source=log-2020.*.01", relation("log-2020.*.01"));
     assertEqual("source=log-2020.*.*", relation("log-2020.*.*"));
+    assertEqual("describe log-2020.10.*",
+        relation(mappingTable("log-2020.10.*")));
+    assertEqual("describe log-2020.*.01",
+        relation(mappingTable("log-2020.*.01")));
+    assertEqual("describe log-2020.*.*",
+        relation(mappingTable("log-2020.*.*")));
   }
 
   @Test
@@ -601,6 +622,18 @@ public class AstBuilderTest {
   public void testKmeansCommandWithoutParameter() {
     assertEqual("source=t | kmeans",
             new Kmeans(relation("t"), ImmutableMap.of()));
+  }
+
+  @Test
+  public void testDescribeCommand() {
+    assertEqual("describe t",
+        relation(mappingTable("t")));
+  }
+
+  @Test
+  public void testDescribeCommandWithMultipleIndices() {
+    assertEqual("describe t,u",
+        relation(mappingTable("t,u")));
   }
 
   @Test
