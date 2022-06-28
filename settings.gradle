@@ -6,7 +6,8 @@
 
 rootProject.name = 'opensearch-sql'
 
-include 'plugin'
+include 'sql'
+project(':sql').projectDir = file('plugin')
 include 'ppl'
 include 'integ-test'
 include 'common'
