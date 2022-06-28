@@ -46,9 +46,9 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
                 LinkedHashMap<String, ExprValue> newTupleResultItem = new LinkedHashMap<>();
                 resultItem.tupleValue().forEach(
                     (exprKey, exprValue) -> {
-                        newTupleResultItem.put(StringUtils.unescapeBackslashes(exprKey),
+                        newTupleResultItem.put(StringUtils.unquoteText(exprKey),
                                 exprValue instanceof ExprStringValue ?
-                                        new ExprStringValue(StringUtils.unescapeBackslashes(exprValue.stringValue())) :
+                                        new ExprStringValue(StringUtils.unquoteText(exprValue.stringValue())) :
                                         exprValue
                                 );
                       });

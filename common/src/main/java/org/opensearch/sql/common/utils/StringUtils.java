@@ -32,24 +32,6 @@ public class StringUtils {
    * @return An unquoted string whose outer pair of (single/double/back-tick) quotes have been
    *     removed
    */
-//  public static String unquoteText(String text) {
-//
-//  //text = text.replaceAll("\\\\", "");
-//    if (isQuoted(text, "\"")) {
-//      return text.substring(1, text.length() - 1).replace("\"\"", "\"");
-//    }
-//    if (isQuoted(text, "'")) {
-//      return text.substring(1, text.length() - 1).replace("''", "'");
-//    }
-//    if (isQuoted(text, "`")) {
-//      return text.substring(1, text.length() - 1);
-//    } else {
-//      return text;
-//    }
-//
-//
-//  }
-
   public static String unquoteText(String text) {
     if (isQuoted(text, "\"")) {
       return text.substring(1, text.length() - 1).replace("\\\"", "\"").replace("\\\\", "\\");
@@ -92,25 +74,6 @@ public class StringUtils {
    */
   public static String format(final String format, Object... args) {
     return String.format(Locale.ROOT, format, args);
-  }
-
-  /**
-   * Returns a string without escaped slashes
-   *
-   * @param text - string
-   * @return string
-   */
-  public static String unescapeBackslashes(String text) {
-    return text;
-//    var yury = text.replace("\\\\", "\\").replace("\\", "");
-//    //return text.replace("\\\"", "\"");
-//    String noBackSlash = text.replace("\\\\", "~");
-//    String temp = noBackSlash.replace("\\", "");
-//    String temp2 = temp.replace("~", "\\");
-//
-//    //String pairBackSlash = text.replace("\\\\", "\\");
-//
-//    return temp2;
   }
 
   private static boolean isQuoted(String text, String mark) {

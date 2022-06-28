@@ -86,10 +86,7 @@ public class ProjectOperator extends PhysicalPlan {
   @Override
   public ExecutionEngine.Schema schema() {
     return new ExecutionEngine.Schema(getProjectList().stream()
-        .map(expr -> new ExecutionEngine.Schema.Column(
-                StringUtils.unescapeBackslashes(expr.getName()),
-                expr.getAlias() == null ? null : StringUtils.unescapeBackslashes(expr.getAlias()),
-                expr.type())
-        ).collect(Collectors.toList()));
+            .map(expr -> new ExecutionEngine.Schema.Column(expr.getName(),
+                    expr.getAlias(), expr.type())).collect(Collectors.toList()));
   }
 }
