@@ -13,15 +13,15 @@ class StringUtilsTest {
     assertEquals("test\\\\'s", unquoteText("'test\\\\\\\\'s'"));
     assertEquals("test\\\\'s", unquoteText("'test\\\\\\\\\\'s'"));
 
-    assertEquals("test\\'s", unquoteText("`test\\'s`"));
-    assertEquals("test\\'s", unquoteText("`test\\\\'s`"));
-    assertEquals("test\\\\'s", unquoteText("`test\\\\\\'s`"));
-    assertEquals("test\\\\'s", unquoteText("`test\\\\\\\\'s`"));
+    assertEquals("`test\\'s`", unquoteText("`test\\'s`"));
+    assertEquals("`test\\'s`", unquoteText("`test\\\\'s`"));
+    assertEquals("`test\\\\'s`", unquoteText("`test\\\\\\'s`"));
+    assertEquals("`test\\\\'s`", unquoteText("`test\\\\\\\\'s`"));
 
-    assertEquals("test\\'s", unquoteText("\"test\\'s\""));
-    assertEquals("test\\'s", unquoteText("\"test\\\\'s\""));
-    assertEquals("test\\\\'s", unquoteText("\"test\\\\\\'s\""));
-    assertEquals("test\\\\'s", unquoteText("\"test\\\\\\\\'s\""));
+    assertEquals("\"test\\'s\"", unquoteText("\"test\\'s\""));
+    assertEquals("\"test\\'s\"", unquoteText("\"test\\\\'s\""));
+    assertEquals("\"test\\\\'s\"", unquoteText("\"test\\\\\\'s\""));
+    assertEquals("\"test\\\\'s\"", unquoteText("\"test\\\\\\\\'s\""));
 
     assertEquals("test's", unquoteText("'test''s'"));
     assertEquals("test''s", unquoteText("'test''''s'"));

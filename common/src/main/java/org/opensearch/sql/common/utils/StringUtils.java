@@ -35,13 +35,13 @@ public class StringUtils {
   public static String unquoteText(String text) {
     text = text.replace("''", "'");
     if (isQuoted(text, "\"")) {
-      return text.substring(1, text.length() - 1).replace("\\\"", "\"").replace("\\\\", "\\");
+      return text.replace("\\\"", "\"").replace("\\\\", "\\");
     }
     if (isQuoted(text, "'")) {
       return text.substring(1, text.length() - 1).replace("\\'", "'").replace("\\\\", "\\");
     }
     if (isQuoted(text, "`")) {
-      return text.substring(1, text.length() - 1).replace("\\`", "`").replace("\\\\", "\\");
+      return text.replace("\\`", "`").replace("\\\\", "\\");
     }
     return text;
   }
