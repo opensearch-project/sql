@@ -148,19 +148,19 @@ public class PPLSyntaxParserTest {
 
   @Test
   public void testDescribeCommandShouldPass() {
-    ParseTree tree = new PPLSyntaxParser().analyzeSyntax("describe t");
+    ParseTree tree = new PPLSyntaxParser().parse("describe t");
     assertNotEquals(null, tree);
   }
 
   @Test
   public void testDescribeCommandWithMultipleIndicesShouldPass() {
-    ParseTree tree = new PPLSyntaxParser().analyzeSyntax("describe t,u");
+    ParseTree tree = new PPLSyntaxParser().parse("describe t,u");
     assertNotEquals(null, tree);
   }
 
   @Test
   public void testDescribeFieldsCommandShouldPass() {
-    ParseTree tree = new PPLSyntaxParser().analyzeSyntax("describe t | fields a,b");
+    ParseTree tree = new PPLSyntaxParser().parse("describe t | fields a,b");
     assertNotEquals(null, tree);
   }
 
@@ -169,7 +169,7 @@ public class PPLSyntaxParserTest {
     exceptionRule.expect(RuntimeException.class);
     exceptionRule.expectMessage("Failed to parse query due to offending symbol");
 
-    new PPLSyntaxParser().analyzeSyntax("describe source=t");
+    new PPLSyntaxParser().parse("describe source=t");
   }
 }
 
