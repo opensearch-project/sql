@@ -45,13 +45,13 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
               if (resultItem instanceof ExprTupleValue) {
                 LinkedHashMap<String, ExprValue> newTupleResultItem = new LinkedHashMap<>();
                 resultItem.tupleValue().forEach(
-                    (exprKey, exprValue) -> {
+                    (exprKey, exprValue) ->
                         newTupleResultItem.put(StringUtils.unquoteText(exprKey),
                                 exprValue instanceof ExprStringValue ?
                                         new ExprStringValue(StringUtils.unquoteText(exprValue.stringValue())) :
                                         exprValue
-                                );
-                      });
+                                )
+                      );
                 result.add(new ExprTupleValue(newTupleResultItem));
               } else {
                 result.add(resultItem);
@@ -75,9 +75,9 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         Explain openSearchExplain = new Explain() {
           @Override
           public ExplainResponseNode visitTableScan(TableScanOperator node, Object context) {
-            return explain(node, context, explainNode -> {
-              explainNode.setDescription(ImmutableMap.of("request", node.explain()));
-            });
+            return explain(node, context, explainNode ->
+              explainNode.setDescription(ImmutableMap.of("request", node.explain()))
+            );
           }
         };
 
