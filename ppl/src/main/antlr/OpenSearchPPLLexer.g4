@@ -271,6 +271,7 @@ IF:                                 'IF';
 // RELEVANCE FUNCTIONS AND PARAMETERS
 MATCH:                              'MATCH';
 MATCH_PHRASE:                       'MATCH_PHRASE';
+MATCH_PHRASE_PREFIX:                'MATCH_PHRASE_PREFIX';
 SIMPLE_QUERY_STRING:                'SIMPLE_QUERY_STRING';
 MULTI_MATCH:                        'MULTI_MATCH';
 

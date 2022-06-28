@@ -394,7 +394,7 @@ flowControlFunctionName
     ;
 
 singleFieldRelevanceFunctionName
-    : MATCH | MATCH_PHRASE | MATCHPHRASE
+    : MATCH | MATCH_PHRASE | MATCHPHRASE | MATCH_PHRASE_PREFIX
     ;
 
 multiFieldRelevanceFunctionName

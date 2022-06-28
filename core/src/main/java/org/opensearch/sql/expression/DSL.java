@@ -118,6 +118,10 @@ public class DSL {
     return new NamedArgumentExpression(argName, value);
   }
 
+  public NamedArgumentExpression namedArgument(String name, String value) {
+    return namedArgument(name, literal(value));
+  }
+
   public static ParseExpression parsed(Expression expression, Expression pattern,
                                        Expression identifier) {
     return new ParseExpression(expression, pattern, identifier);
@@ -656,6 +660,10 @@ public class DSL {
 
   public FunctionExpression match_phrase(Expression... args) {
     return compile(BuiltinFunctionName.MATCH_PHRASE, args);
+  }
+
+  public FunctionExpression match_phrase_prefix(Expression... args) {
+    return compile(BuiltinFunctionName.MATCH_PHRASE_PREFIX, args);
   }
 
   public FunctionExpression multi_match(Expression... args) {

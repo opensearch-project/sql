@@ -815,6 +815,48 @@ class FilterQueryBuilderTest {
   }
 
   @Test
+  void should_build_match_phrase_prefix_query_with_default_parameters() {
+    assertJsonEquals(
+        "{\n"
+            + "  \"match_phrase_prefix\" : {\n"
+            + "    \"message\" : {\n"
+            + "      \"query\" : \"search query\",\n"
+            + "      \"slop\" : 0,\n"
+            + "      \"zero_terms_query\" : \"NONE\",\n"
+            + "      \"max_expansions\" : 50,\n"
+            + "      \"boost\" : 1.0\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            dsl.match_phrase_prefix(
+                dsl.namedArgument("field", literal("message")),
+                dsl.namedArgument("query", literal("search query")))));
+  }
+
+  @Test
+  void should_build_match_phrase_prefix_query_with_analyzer() {
+    assertJsonEquals(
+        "{\n"
+            + "  \"match_phrase_prefix\" : {\n"
+            + "    \"message\" : {\n"
+            + "      \"query\" : \"search query\",\n"
+            + "      \"slop\" : 0,\n"
+            + "      \"zero_terms_query\" : \"NONE\",\n"
+            + "      \"max_expansions\" : 50,\n"
+            + "      \"boost\" : 1.0,\n"
+            + "      \"analyzer\": english\n"
+            + "    }\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            dsl.match_phrase_prefix(
+                dsl.namedArgument("field", literal("message")),
+                dsl.namedArgument("query", literal("search query")),
+                dsl.namedArgument("analyzer", literal("english")))));
+  }
+
+  @Test
   void cast_to_string_in_filter() {
     String json = "{\n"
         + "  \"term\" : {\n"
