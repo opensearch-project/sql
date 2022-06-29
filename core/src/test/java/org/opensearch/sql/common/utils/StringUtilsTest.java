@@ -38,6 +38,9 @@ class StringUtilsTest {
     assertEquals("test\"\"s", unquoteText("'test\"\"s'"));
     assertEquals("test\"\"\"\"s", unquoteText("'test\"\"\"\"s'"));
 
+    assertEquals("\"test''s", unquoteText("\"test''s"));
+    //assertEquals("'test'", unquoteText("'\'test\''"));
+
     // Tests case of unquoted string sent to unquoteText function
     assertEquals("test", unquoteText("test"));
   }
