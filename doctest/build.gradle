@@ -79,7 +79,7 @@ testClusters {
                 }
             }
         }))
-        plugin ':sql'
+        plugin ':opensearch-sql-plugin'
         testDistribution = 'integ_test'
     }
 }
