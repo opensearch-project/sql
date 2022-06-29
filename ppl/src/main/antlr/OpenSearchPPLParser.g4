@@ -393,6 +393,7 @@ singleFieldRelevanceFunctionName
 
 multiFieldRelevanceFunctionName
     : SIMPLE_QUERY_STRING
+    | MULTI_MATCH
     | QUERY_STRING
     ;
 

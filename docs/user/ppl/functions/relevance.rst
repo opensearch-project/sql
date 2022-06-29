@@ -208,3 +208,76 @@ Limitations
 >>>>>>>>>>>
 
 The relevance functions are available to execute only in OpenSearch DSL but not in memory as of now, so the relevance search might fail for queries that are too complex to translate into DSL if the relevance function is following after a complex PPL query. To make your queries always work-able, it is recommended to place the relevance commands as close to the search command as possible, to ensure the relevance functions are eligible to push down. For example, a complex query like ``search source = people | rename firstname as name | dedup account_number | fields name, account_number, balance, employer | where match(employer, 'Open Search') | stats count() by city`` could fail because it is difficult to translate to DSL, but it would be better if we rewrite it to an equivalent query as ``search source = people | where match(employer, 'Open Search') | rename firstname as name | dedup account_number | fields name, account_number, balance, employer | stats count() by city`` by moving the where command with relevance function to the second command right after the search command, and the relevance would be optimized and executed smoothly in OpenSearch DSL. See `Optimization <../../optimization/optimization.rst>`_ to get more details about the query engine optimization.
+
+
+QUERY_STRING
+-------------------
+
+Description
+>>>>>>>>>>>
+
+``query_string([field_expression+], query_expression[, option=<option_value>]*)``
+
+The query_string function maps to the query_string query used in search engine, to return the documents that match a provided text, number, date or boolean value with a given field or fields.
+The **^** lets you *boost* certain fields. Boosts are multipliers that weigh matches in one field more heavily than matches in other fields. The syntax allows to specify the fields in double quotes,
+single quotes, in backtick or even without any wrap. All fields search using star ``"*"`` is also available (star symbol should be wrapped). The weight is optional and should be specified using after the field name,
+it could be delimeted by the `caret` character or by whitespace. Please, refer to examples below:
+
+| ``query_string(["Tags" ^ 2, 'Title' 3.4, `Body`, Comments ^ 0.3], ...)``
+| ``query_string(["*"], ...)``
+
+
+Available parameters include:
+
+- analyzer
+- escape
+- allow_leading_wildcard
+- analyze_wildcard
+- auto_generate_synonyms_phrase_query
+- boost
+- default_operator
+- enable_position_increments
+- fuzziness
+- fuzzy_max_expansions
+- fuzzy_prefix_length
+- fuzzy_transpositions
+- fuzzy_rewrite
+- tie_breaker
+- lenient
+- type
+- max_determinized_states
+- minimum_should_match
+- quote_analyzer
+- phrase_slop
+- quote_field_suffix
+- rewrite
+- time_zone
+
+Example with only ``fields`` and ``query`` expressions, and all other parameters are set default values::
+
+    os> source=books | where query_string(['title'], 'Pooh House');
+    fetched rows / total rows = 2/2
+    +------+--------------------------+----------------------+
+    | id   | title                    | author               |
+    |------+--------------------------+----------------------|
+    | 1    | The House at Pooh Corner | Alan Alexander Milne |
+    | 2    | Winnie-the-Pooh          | Alan Alexander Milne |
+    +------+--------------------------+----------------------+
+
+Another example to show how to set custom values for the optional parameters::
+
+    os> source=books | where query_string(['title'], 'Pooh House', default_operator='AND');
+    fetched rows / total rows = 1/1
+    +------+--------------------------+----------------------+
+    | id   | title                    | author               |
+    |------+--------------------------+----------------------|
+    | 1    | The House at Pooh Corner | Alan Alexander Milne |
+    +------+--------------------------+----------------------+
+
+Limitations
+>>>>>>>>>>>
+
+The relevance functions are available to execute only in OpenSearch DSL but not in memory as of now,
+so the relevance search might fail for queries that are too complex to translate into DSL if the
+relevance function is following after a complex PPL query. See SIMPLE_QUERY_STRING -> Limitations for
+a detailed explanation.

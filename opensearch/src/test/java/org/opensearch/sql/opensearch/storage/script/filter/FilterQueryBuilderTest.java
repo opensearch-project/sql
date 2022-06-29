@@ -584,10 +584,10 @@ class FilterQueryBuilderTest {
   }
 
   @Test
-    // Notes for following three tests:
-    // 1) OpenSearch (not the plugin) might change order of fields
-    // 2) `flags` are printed by OpenSearch as an integer
-    // 3) `minimum_should_match` printed as a string
+  // Notes for following three tests:
+  // 1) OpenSearch (not the plugin) might change order of fields
+  // 2) `flags` are printed by OpenSearch as an integer
+  // 3) `minimum_should_match` printed as a string
   void should_build_query_string_query_with_default_parameters_single_field() {
     assertJsonEquals("{\n"
             + "  \"query_string\" : {\n"
