@@ -506,7 +506,7 @@ class FilterQueryBuilderTest {
             + "    \"operator\" : \"AND\",\n"
             + "    \"analyzer\" : \"keyword\",\n"
             + "    \"slop\" : 1,\n"
-            + "    \"fuzziness\" : \"2\",\n"
+            + "    \"fuzziness\" : \"AUTO:2,4\",\n"
             + "    \"prefix_length\" : 1,\n"
             + "    \"max_expansions\" : 3,\n"
             + "    \"minimum_should_match\" : \"3\",\n"
@@ -527,7 +527,7 @@ class FilterQueryBuilderTest {
                 dsl.namedArgument("analyzer", literal("keyword")),
                 dsl.namedArgument("auto_generate_synonyms_phrase_query", literal("false")),
                 dsl.namedArgument("cutoff_frequency", literal("4.3")),
-                dsl.namedArgument("fuzziness", literal("2")),
+                dsl.namedArgument("fuzziness", literal("AUTO:2,4")),
                 dsl.namedArgument("fuzzy_transpositions", literal("false")),
                 dsl.namedArgument("lenient", literal("false")),
                 dsl.namedArgument("max_expansions", literal("3")),
