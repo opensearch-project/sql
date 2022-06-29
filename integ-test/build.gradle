@@ -64,7 +64,7 @@ dependencies {
     testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-client', version: "${opensearch_version}"
     testImplementation group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
     implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version:'2.17.1'
-    testImplementation project(':plugin')
+    testImplementation project(':sql')
     testImplementation project(':legacy')
     testImplementation('org.junit.jupiter:junit-jupiter-api:5.6.2')
     testRuntimeOnly('org.junit.jupiter:junit-jupiter-engine:5.6.2')
