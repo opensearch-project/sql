@@ -187,7 +187,7 @@ class SQLSyntaxParserTest {
     assertNotNull(parser.parse(
         "SELECT id FROM test WHERE"
             + " multi_match([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query', analyzer=keyword,"
-            + "operator='AND', tie_breaker=0.3, type = \"most_fields\", fuzziness = 4)"));
+            + "operator='AND', tie_breaker=0.3, type = \"most_fields\", fuzziness = \"AUTO\")"));
   }
 
   @Test

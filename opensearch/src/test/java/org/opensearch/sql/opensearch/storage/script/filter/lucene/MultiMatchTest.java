@@ -74,7 +74,7 @@ class MultiMatchTest {
         List.of(
             dsl.namedArgument("fields", fields_value),
             dsl.namedArgument("query", query_value),
-            dsl.namedArgument("fuzziness", DSL.literal("4"))
+            dsl.namedArgument("fuzziness", DSL.literal("AUTO:2,4"))
         ),
         List.of(
             dsl.namedArgument("fields", fields_value),
