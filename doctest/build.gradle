@@ -79,7 +79,7 @@ testClusters {
                 }
             }
         }))
-        plugin ':plugin'
+        plugin ':sql'
         testDistribution = 'integ_test'
     }
 }
