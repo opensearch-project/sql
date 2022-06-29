@@ -98,7 +98,7 @@ testClusters.all {
 }
 
 testClusters.integTest {
-    plugin ":plugin"
+    plugin ":sql"
 }
 
 // Run PPL ITs and new, legacy and comparison SQL ITs with new SQL engine enabled
