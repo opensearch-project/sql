@@ -33,17 +33,20 @@ public class StringUtils {
    *     removed
    */
   public static String unquoteText(String text) {
-    text = text.replace("''", "'");
-    text = text.replace("\"\"", "\"");
 
     if (isQuoted(text, "\"")) {
-      return text.substring(1, text.length() - 1).replace("\\\"", "\"").replace("\\\\", "\\");
+      text = text.replace("\"\"", "\"");
+      text = text.substring(1, text.length() - 1).replace("\\\"", "\"").replace("\\\\", "\\");
+      return text;
     }
     if (isQuoted(text, "'")) {
-      return text.substring(1, text.length() - 1).replace("\\'", "'").replace("\\\\", "\\");
+      text = text.replace("''", "'");
+      text = text.substring(1, text.length() - 1).replace("\\'", "'").replace("\\\\", "\\");
+      return text;
     }
     if (isQuoted(text, "`")) {
-      return text.substring(1, text.length() - 1).replace("\\`", "`").replace("\\\\", "\\");
+      text =  text.substring(1, text.length() - 1).replace("\\`", "`").replace("\\\\", "\\");
+      return text;
     }
     return text;
   }
