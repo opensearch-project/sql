@@ -24,9 +24,9 @@ class StringUtilsTest {
     assertEquals("test\\\\'s", unquoteText("\"test\\\\\\\\'s\""));
 
     assertEquals("'test'", unquoteText("\"'test'\""));
-    assertEquals("\"test\"" , unquoteText("'\"test\"'"));
-    assertEquals("test" , unquoteText("'test'"));
-    assertEquals("test" , unquoteText("\"test\""));
+    assertEquals("\"test\"", unquoteText("'\"test\"'"));
+    assertEquals("test", unquoteText("'test'"));
+    assertEquals("test", unquoteText("\"test\""));
 
     assertEquals("test's", unquoteText("'test''s'"));
     assertEquals("test''s", unquoteText("'test''''s'"));
