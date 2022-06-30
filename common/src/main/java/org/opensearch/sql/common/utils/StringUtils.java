@@ -35,21 +35,21 @@ public class StringUtils {
   public static String unquoteText(String text) {
 
     if (isQuoted(text, "\"")) {
-      return text.substring(1, text.length() - 1).
-          replace("\\\"", "\"").
-          replace("\\\\", "\\").
-          replace("\"\"", "\"");
+      return text.substring(1, text.length() - 1)
+          .replace("\\\"", "\"")
+          .replace("\\\\", "\\")
+          .replace("\"\"", "\"");
     }
     if (isQuoted(text, "'")) {
-      return text.substring(1, text.length() - 1).
-          replace("\\'", "'").
-          replace("\\\\", "\\").
-          replace("''", "'");
+      return text.substring(1, text.length() - 1)
+          .replace("\\'", "'")
+          .replace("\\\\", "\\")
+          .replace("''", "'");
     }
     if (isQuoted(text, "`")) {
-      return text.substring(1, text.length() - 1).
-          replace("\\`", "`").
-          replace("\\\\", "\\");
+      return text.substring(1, text.length() - 1)
+          .replace("\\`", "`")
+          .replace("\\\\", "\\");
     }
     return text;
   }
