@@ -8,7 +8,10 @@ package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 import com.google.common.collect.ImmutableMap;
 import java.util.Iterator;
 import java.util.Objects;
+
 import org.opensearch.common.unit.Fuzziness;
+import org.opensearch.common.xcontent.LoggingDeprecationHandler;
+import org.opensearch.index.query.MultiMatchQueryBuilder;
 import org.opensearch.index.query.Operator;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
@@ -41,6 +44,7 @@ public class QueryStringQuery extends RelevanceQuery<QueryStringQueryBuilder> {
         .put("enable_position_increments", (b, v) ->
             b.enablePositionIncrements(Boolean.parseBoolean(v.stringValue())))
         .put("fuzziness", (b, v) -> b.fuzziness(Fuzziness.build(v.stringValue())))
+        .put("fuzzy_rewrite", (b, v) -> b.fuzzyRewrite(v.stringValue()))
         .put("escape", (b, v) -> b.escape(Boolean.parseBoolean(v.stringValue())))
         .put("fuzzy_max_expansions", (b, v) ->
             b.fuzzyMaxExpansions(Integer.parseInt(v.stringValue())))
@@ -56,6 +60,9 @@ public class QueryStringQuery extends RelevanceQuery<QueryStringQueryBuilder> {
         .put("phrase_slop", (b, v) -> b.phraseSlop(Integer.parseInt(v.stringValue())))
         .put("quote_field_suffix", (b, v) -> b.quoteFieldSuffix(v.stringValue()))
         .put("rewrite", (b, v) -> b.rewrite(v.stringValue()))
+        .put("type", (b, v) -> b.type(MultiMatchQueryBuilder.Type.parse(v.stringValue(),
+            LoggingDeprecationHandler.INSTANCE)))
+        .put("tie_breaker", (b, v) -> b.tieBreaker(Float.parseFloat(v.stringValue())))
         .put("time_zone", (b, v) -> b.timeZone(v.stringValue()))
         .build());
   }

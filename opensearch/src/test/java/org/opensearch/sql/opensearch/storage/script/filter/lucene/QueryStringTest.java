@@ -57,6 +57,7 @@ class QueryStringTest {
         dsl.namedArgument("enable_position_increments", DSL.literal("true")),
         dsl.namedArgument("escape", DSL.literal("false")),
         dsl.namedArgument("fuzziness", DSL.literal("1")),
+        dsl.namedArgument("fuzzy_rewrite", DSL.literal("constant_score")),
         dsl.namedArgument("fuzzy_max_expansions", DSL.literal("42")),
         dsl.namedArgument("fuzzy_prefix_length", DSL.literal("42")),
         dsl.namedArgument("fuzzy_transpositions", DSL.literal("42")),
@@ -67,7 +68,9 @@ class QueryStringTest {
         dsl.namedArgument("phrase_slop", DSL.literal("0")),
         dsl.namedArgument("quote_field_suffix", DSL.literal(".exact")),
         dsl.namedArgument("rewrite", DSL.literal("constant_score")),
-        dsl.namedArgument("time_zone", DSL.literal("America/Los_Angeles"))
+        dsl.namedArgument("type", DSL.literal("best_fields")),
+        dsl.namedArgument("tie_breaker", DSL.literal("0.3")),
+        dsl.namedArgument("time_zone", DSL.literal("Canada/Pacific"))
     ).stream().map(arg -> List.of(field, query, arg));
   }
 

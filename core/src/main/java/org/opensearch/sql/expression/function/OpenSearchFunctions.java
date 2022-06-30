@@ -31,7 +31,7 @@ public class OpenSearchFunctions {
   public static final int MIN_NUM_PARAMETERS = 2;
   public static final int MULTI_MATCH_MAX_NUM_PARAMETERS = 17;
   public static final int SIMPLE_QUERY_STRING_MAX_NUM_PARAMETERS = 14;
-  public static final int QUERY_STRING_MAX_NUM_PARAMETERS = 21;//?? Is This Correct
+  public static final int QUERY_STRING_MAX_NUM_PARAMETERS = 25;
 
   /**
    * Add functions specific to OpenSearch to repository.
