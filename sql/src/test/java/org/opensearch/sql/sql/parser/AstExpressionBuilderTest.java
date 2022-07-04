@@ -15,6 +15,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.dateLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.doubleLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.floatLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
+import static org.opensearch.sql.ast.dsl.AstDSL.highlight;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.intervalLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.longLiteral;
@@ -306,6 +307,14 @@ class AstExpressionBuilderTest {
             ImmutableList.of(ImmutablePair.of(
                 new SortOption(ASC, NULL_LAST), qualifiedName("age")))),
         buildExprAst("DENSE_RANK() OVER (ORDER BY age ASC NULLS LAST)"));
+  }
+
+  @Test
+  public void canBuildHighlighFunction() {
+    assertEquals(
+      highlight("fieldA"),
+      buildExprAst("highlight(fieldA)")
+    );
   }
 
   @Test
