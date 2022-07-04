@@ -33,25 +33,39 @@ public class StringUtils {
    *     removed
    */
   public static String unquoteText(String text) {
+    //IF input_string IsQuoteBy $QUOTE
+    //FOREACH char in input_string[1, LENGTH - 1):
+    //   IF char is '\' ADD next char to StringBuilder
+    //   ELSE ADD char to StringBuilder
 
-    if (isQuoted(text, "\"")) {
-      return text.substring(1, text.length() - 1)
-          .replace("\\\"", "\"")
-          .replace("\\\\", "\\")
-          .replace("\"\"", "\"");
+    StringBuilder textSB = new StringBuilder();
+
+    boolean lastWasEscape = false;
+
+    if (isQuoted(text, "\"")
+        || isQuoted(text, "'")
+        || isQuoted(text, "`")) {
+      if (isQuoted(text, "'")) {
+        text = text.substring(1, text.length() - 1).replace("''", "'");
+      } else if (isQuoted(text, "\"")) {
+        text = text.substring(1, text.length() - 1).replace("\"\"", "\"");
+      } else {
+        text = text.substring(1, text.length() - 1);
+      }
+
+
+      for (char ch: text.toCharArray()) {
+        if (ch == '\\' && !lastWasEscape) {
+          lastWasEscape = true;
+        } else {
+          textSB.append(ch);
+          lastWasEscape = false;
+        }
+      }
+    } else {
+      textSB.append(text);
     }
-    if (isQuoted(text, "'")) {
-      return text.substring(1, text.length() - 1)
-          .replace("\\'", "'")
-          .replace("\\\\", "\\")
-          .replace("''", "'");
-    }
-    if (isQuoted(text, "`")) {
-      return text.substring(1, text.length() - 1)
-          .replace("\\`", "`")
-          .replace("\\\\", "\\");
-    }
-    return text;
+    return textSB.toString();
   }
 
   /**
