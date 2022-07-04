@@ -22,7 +22,7 @@ import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
 
 /**
- * REMEMBER YOUR JAVADOCS.
+ * Class for Lucene query that builds the query_string query.
  */
 public class QueryStringQuery extends RelevanceQuery<QueryStringQueryBuilder> {
   /**
@@ -67,6 +67,11 @@ public class QueryStringQuery extends RelevanceQuery<QueryStringQueryBuilder> {
         .build());
   }
 
+  /**
+   * Override base build function for multi-field query support.
+   * @param func  function : 'query_string' function
+   * @return : QueryBuilder for query_string query
+   */
   @Override
   public QueryBuilder build(FunctionExpression func) {
     Iterator<Expression> iterator = func.getArguments().iterator();
