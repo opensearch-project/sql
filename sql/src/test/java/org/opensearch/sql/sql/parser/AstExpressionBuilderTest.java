@@ -499,9 +499,10 @@ class AstExpressionBuilderTest {
                 "field2", 3.2F, "field1", 1.F))),
             unresolvedArg("query", stringLiteral("search query")),
             unresolvedArg("analyzer", stringLiteral("keyword")),
-            unresolvedArg("operator", stringLiteral("AND"))),
+            unresolvedArg("time_zone", stringLiteral("Canada/Pacific")),
+            unresolvedArg("tie_breaker", stringLiteral("1.3"))),
         buildExprAst("query_string(['field1', 'field2' ^ 3.2], 'search query',"
-            + "analyzer='keyword', operator='AND')"));
+            + "analyzer='keyword', time_zone='Canada/Pacific', tie_breaker='1.3')"));
   }
 
   @Test
