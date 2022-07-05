@@ -40,7 +40,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
               result.add(plan.next());
             }
 
-            QueryResponse response = new QueryResponse(physicalPlan.schema(), result);
+            QueryResponse response = new QueryResponse(physicalPlan.schema(), result, plan.getCursor());
             listener.onResponse(response);
           } catch (Exception e) {
             listener.onFailure(e);

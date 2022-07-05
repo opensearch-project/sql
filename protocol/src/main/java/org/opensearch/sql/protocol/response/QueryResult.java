@@ -32,6 +32,9 @@ public class QueryResult implements Iterable<Object[]> {
    */
   private final Collection<ExprValue> exprValues;
 
+  @Getter
+  private final String cursor;
+
 
   /**
    * size of results.

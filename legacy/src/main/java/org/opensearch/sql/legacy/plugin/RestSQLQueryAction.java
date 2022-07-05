@@ -29,7 +29,9 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.opensearch.security.SecurityAccess;
+import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.CsvResponseFormatter;
@@ -101,9 +103,10 @@ public class RestSQLQueryAction extends BaseRestHandler {
     try {
       // For now analyzing and planning stage may throw syntax exception as well
       // which hints the fallback to legacy code is necessary here.
-      plan = sqlService.plan(
-                sqlService.analyze(
-                    sqlService.parse(request.getQuery())));
+      LogicalPlan logicalPlan = sqlService.analyze(sqlService.parse(request.getQuery()));
+      PlanContext planContext = new PlanContext();
+      planContext.setFetchSize(request.getFetchSize());
+      plan = sqlService.plan(logicalPlan, planContext);
     } catch (SyntaxCheckException e) {
       // When explain, print info log for what unsupported syntax is causing fallback to old engine
       if (request.isExplainRequest()) {
@@ -167,7 +170,7 @@ public class RestSQLQueryAction extends BaseRestHandler {
       @Override
       public void onResponse(QueryResponse response) {
         sendResponse(channel, OK,
-            formatter.format(new QueryResult(response.getSchema(), response.getResults())));
+            formatter.format(new QueryResult(response.getSchema(), response.getResults(), response.getCursor())));
       }
 
       @Override

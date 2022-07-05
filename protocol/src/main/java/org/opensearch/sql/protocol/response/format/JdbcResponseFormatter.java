@@ -38,6 +38,12 @@ public class JdbcResponseFormatter extends JsonResponseFormatter<QueryResult> {
     response.getSchema().getColumns().forEach(col -> json.column(fetchColumn(col)));
     json.datarows(fetchDataRows(response));
 
+    // Fetch cursor
+    String cursor = response.getCursor();
+    if (cursor != null) {
+      json.cursor(cursor);
+    }
+
     // Populate other fields
     json.total(response.size())
         .size(response.size())
@@ -92,6 +98,7 @@ public class JdbcResponseFormatter extends JsonResponseFormatter<QueryResult> {
     @Singular("column")
     private final List<Column> schema;
     private final Object[][] datarows;
+    private final String cursor;
     private final long total;
     private final long size;
     private final int status;

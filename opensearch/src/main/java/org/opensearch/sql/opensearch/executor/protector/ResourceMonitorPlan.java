@@ -70,6 +70,11 @@ public class ResourceMonitorPlan extends PhysicalPlan {
   }
 
   @Override
+  public String getCursor() {
+    return delegate.getCursor();
+  }
+
+  @Override
   public boolean hasNext() {
     return delegate.hasNext();
   }
