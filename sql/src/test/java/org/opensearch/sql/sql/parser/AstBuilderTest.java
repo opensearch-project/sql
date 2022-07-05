@@ -18,6 +18,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.doubleLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
+import static org.opensearch.sql.ast.dsl.AstDSL.highlight;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.limit;
 import static org.opensearch.sql.ast.dsl.AstDSL.project;
@@ -665,6 +666,15 @@ class AstBuilderTest {
             alias("name", qualifiedName("name"))
         ),
         buildAST("SELECT name FROM test LIMIT 5, 10"));
+  }
+
+  @Test
+  public void can_build_highlight() {
+    assertEquals(
+      project(relation("test"),
+          alias("highlight(fieldA)", highlight("fieldA"))),
+      buildAST("SELECT highlight(fieldA) FROM test")
+    );
   }
 
   private UnresolvedPlan buildAST(String query) {
