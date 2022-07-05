@@ -28,7 +28,7 @@ public class QueryStringIT extends PPLIntegTestCase {
   @Test
   public void all_params_test() throws IOException {
     String query = "source=" + TEST_INDEX_BEER + " | where query_string(['Body', Tags, Title], 'taste beer',"
-        + "allow_leading_wildcard=true, enable_position_increments=true,"
+        + "allow_leading_wildcard=true, enable_position_increments=true, escape=false,"
         + "fuzziness= 1, fuzzy_rewrite='constant_score', max_determinized_states = 10000,"
         + "analyzer='english', analyze_wildcard = false, quote_field_suffix = '.exact',"
         + "auto_generate_synonyms_phrase_query=true, boost = 0.77,"

@@ -29,7 +29,7 @@ public class QueryStringIT extends SQLIntegTestCase {
   @Test
   public void all_params_test() throws IOException {
     String query = "SELECT Id FROM " + TEST_INDEX_BEER
-        + " WHERE query_string(['Body', Tags, Title], 'taste beer',"
+        + " WHERE query_string(['Body', Tags, Title], 'taste beer', escape=false,"
         + "allow_leading_wildcard=true, enable_position_increments=true,"
         + "fuzziness= 1, fuzzy_rewrite='constant_score', max_determinized_states = 10000,"
         + "analyzer='english', analyze_wildcard = false, quote_field_suffix = '.exact',"

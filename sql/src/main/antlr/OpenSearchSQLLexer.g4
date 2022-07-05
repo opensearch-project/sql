@@ -320,6 +320,7 @@ BOOST:                              'BOOST';
 CUTOFF_FREQUENCY:                   'CUTOFF_FREQUENCY';
 DEFAULT_FIELD:                      'DEFAULT_FIELD';
 DEFAULT_OPERATOR:                   'DEFAULT_OPERATOR';
+ESCAPE:                             'ESCAPE';
 ENABLE_POSITION_INCREMENTS:         'ENABLE_POSITION_INCREMENTS';
 FIELDS:                             'FIELDS';
 FLAGS:                              'FLAGS';
