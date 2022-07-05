@@ -10,7 +10,6 @@ import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
-import static org.opensearch.sql.ast.dsl.AstDSL.floatLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
@@ -35,6 +34,7 @@ import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
@@ -534,6 +534,11 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
           unresolvedArg("zero_terms_query", stringLiteral("NONE"))
           )
     );
+  }
+
+  @Test
+  void highlight() {
+    assertAnalyzeEqual(new HighlightExpression("fieldA"), new HighlightFunction("fieldA"));
   }
 
   protected Expression analyze(UnresolvedExpression unresolvedExpression) {

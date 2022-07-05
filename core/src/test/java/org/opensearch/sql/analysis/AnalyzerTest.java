@@ -45,6 +45,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
@@ -231,6 +232,18 @@ class AnalyzerTest extends AnalyzerTestBase {
             AstDSL.alias("double_value", AstDSL.field("double_value"))));
   }
 
+  @Test
+  public void project_highlight() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(LogicalPlanDSL.relation("schema"),
+            DSL.named("highlight(fieldA)",  new HighlightExpression("fieldA"))),
+        AstDSL.projectWithArg(
+            AstDSL.relation("schema"),
+            AstDSL.defaultFieldsArgs(),
+            AstDSL.alias("highlight(fieldA)", new HighlightFunction("fieldA"))
+        )
+    );
+  }
   @Test
   public void remove_source() {
     assertAnalyzeEqual(
