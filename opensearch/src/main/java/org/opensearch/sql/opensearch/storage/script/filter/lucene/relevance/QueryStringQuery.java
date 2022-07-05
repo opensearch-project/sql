@@ -8,7 +8,6 @@ package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 import com.google.common.collect.ImmutableMap;
 import java.util.Iterator;
 import java.util.Objects;
-
 import org.opensearch.common.unit.Fuzziness;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.index.query.MultiMatchQueryBuilder;
