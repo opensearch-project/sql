@@ -229,7 +229,13 @@ class SQLSyntaxParserTest {
   @Test
   public void can_parse_query_string_relevance_function() {
     assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE query_string(['*'], 'query')"));
+    assertNotNull(parser.parse(
         "SELECT id FROM test WHERE query_string(['address'], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE query_string(['add*'], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE query_string(['*ess'], 'query')"));
     assertNotNull(parser.parse(
         "SELECT id FROM test WHERE query_string(['address', 'notes'], 'query')"));
     assertNotNull(parser.parse(
@@ -237,9 +243,29 @@ class SQLSyntaxParserTest {
     assertNotNull(parser.parse(
         "SELECT id FROM test WHERE query_string([\"address\"], 'query')"));
     assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE query_string([\"ad*\"], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE query_string([\"*s\"], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE query_string([\"address\", \"notes\"], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE query_string([`*`], 'query')"));
+    assertNotNull(parser.parse(
         "SELECT id FROM test WHERE query_string([`address`], 'query')"));
     assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE query_string([`ad*`], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE query_string([`*ss`], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE query_string([`address`, `notes`], 'query')"));
+    assertNotNull(parser.parse(
         "SELECT id FROM test WHERE query_string([address], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE query_string([addr*], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE query_string([*ss], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE query_string([address, notes], 'query')"));
 
     assertNotNull(parser.parse(
         "SELECT id FROM test WHERE"

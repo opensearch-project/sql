@@ -19,6 +19,13 @@ public class QueryStringIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void all_fields_test() throws IOException {
+    String query = "source=" + TEST_INDEX_BEER + " | where query_string([`*`], 'taste')";
+    JSONObject result = executeQuery(query);
+    assertEquals(713, result.getInt("total"));
+  }
+
+  @Test
   public void mandatory_params_test() throws IOException {
     String query = "source=" + TEST_INDEX_BEER + " | where query_string([\\\"Tags\\\" ^ 1.5, Title, `Body` 4.2], 'taste')";
     JSONObject result = executeQuery(query);
