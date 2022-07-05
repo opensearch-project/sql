@@ -106,7 +106,12 @@ public class QueryStringQuery extends RelevanceQuery<QueryStringQueryBuilder> {
     return queryBuilder;
   }
 
-
+  /**
+   * Builds QueryBuilder with query value and other default parameter values set.
+   * @param field : Field value in query_string query
+   * @param query : Query value for query_string query
+   * @return : Builder for query_string query
+   */
   @Override
   protected QueryStringQueryBuilder createQueryBuilder(String field, String query) {
     return QueryBuilders.queryStringQuery(query);
