@@ -312,8 +312,8 @@ class AstExpressionBuilderTest {
   @Test
   public void canBuildHighlighFunction() {
     assertEquals(
-      highlight("fieldA"),
-      buildExprAst("highlight(fieldA)")
+        highlight("fieldA"),
+        buildExprAst("highlight(fieldA)")
     );
   }
 
