@@ -262,7 +262,6 @@ class SQLSyntaxParserTest {
             + "operator='AND', tie_breaker=0.3, type = \"most_fields\", fuzziness = 4)"));
   }
 
-
   @Test
   public void can_parse_match_relevance_function() {
     assertNotNull(parser.parse("SELECT * FROM test WHERE match(column, \"this is a test\")"));
