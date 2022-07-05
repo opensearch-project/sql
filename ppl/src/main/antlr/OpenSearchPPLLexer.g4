@@ -11,6 +11,7 @@ channels { WHITESPACE, ERRORCHANNEL }
 
 // COMMAND KEYWORDS
 SEARCH:                             'SEARCH';
+DESCRIBE:                           'DESCRIBE';
 FROM:                               'FROM';
 WHERE:                              'WHERE';
 FIELDS:                             'FIELDS';
@@ -271,6 +272,7 @@ IF:                                 'IF';
 // RELEVANCE FUNCTIONS AND PARAMETERS
 MATCH:                              'MATCH';
 MATCH_PHRASE:                       'MATCH_PHRASE';
+MATCH_BOOL_PREFIX:                  'MATCH_BOOL_PREFIX';
 SIMPLE_QUERY_STRING:                'SIMPLE_QUERY_STRING';
 MULTI_MATCH:                        'MULTI_MATCH';
 QUERY_STRING:                       'QUERY_STRING';

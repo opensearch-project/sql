@@ -204,27 +204,49 @@ Another example to show how to set custom values for the optional parameters::
     | 1    | The House at Pooh Corner | Alan Alexander Milne |
     +------+--------------------------+----------------------+
 
-Limitations
+MATCH_BOOL_PREFIX
+-----------------
+
+Description
 >>>>>>>>>>>
 
-The relevance functions are available to execute only in OpenSearch DSL but not in memory as of now,
-so the relevance search might fail for queries that are too complex to translate into DSL if the
-relevance function is following after a complex PPL query. To make your queries always work-able,
-it is recommended to place the relevance commands as close to the search command as possible, to
-ensure the relevance functions are eligible to push down. For example, a complex query like ``search
-source = people | rename firstname as name | dedup account_number | fields name, account_number,
-balance, employer | where match(employer, 'Open Search') | stats count() by city`` could fail
-because it is difficult to translate to DSL, but it would be better if we rewrite it to an
-equivalent query as ``search source = people | where match(employer, 'Open Search') | rename
-firstname as name | dedup account_number | fields name, account_number, balance,
-employer | stats count() by city`` by moving the where command with relevance function to the
-second command right after the search command, and the relevance would be optimized and executed
-smoothly in OpenSearch DSL. See `Optimization <../../optimization/optimization.rst>`_ to get more
-details about the query engine optimization.
+``match_bool_prefix(field_expression, query_expression)``
 
+The match_bool_prefix function maps to the match_bool_prefix query in the search engine. match_bool_prefix creates a match query from all but the last term in the query string. The last term is used to create a prefix query.
+
+- analyzer
+- fuzziness
+- max_expansions
+- prefix_length
+- fuzzy_transpositions
+- operator
+- fuzzy_rewrite
+- minimum_should_match
+- boost
+
+Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
+
+    os> source=accounts | where match_bool_prefix(address, 'Bristol Stre') | fields firstname, address
+    fetched rows / total rows = 2/2
+    +-------------+--------------------+
+    | firstname   | address            |
+    |-------------+--------------------|
+    | Hattie      | 671 Bristol Street |
+    | Nanette     | 789 Madison Street |
+    +-------------+--------------------+
+
+Another example to show how to set custom values for the optional parameters::
+
+    os> source=accounts | where match_bool_prefix(address, 'Bristol Stre', minimum_should_match = 2) | fields firstname, address
+    fetched rows / total rows = 1/1
+    +-------------+--------------------+
+    | firstname   | address            |
+    |-------------+--------------------|
+    | Hattie      | 671 Bristol Street |
+    +-------------+--------------------+
 
 QUERY_STRING
--------------------
+------------
 
 Description
 >>>>>>>>>>>
@@ -290,7 +312,4 @@ Another example to show how to set custom values for the optional parameters::
 Limitations
 >>>>>>>>>>>
 
-The relevance functions are available to execute only in OpenSearch DSL but not in memory as of now,
-so the relevance search might fail for queries that are too complex to translate into DSL if the
-relevance function is following after a complex PPL query. See SIMPLE_QUERY_STRING -> Limitations for
-a detailed explanation.
+The relevance functions are available to execute only in OpenSearch DSL but not in memory as of now, so the relevance search might fail for queries that are too complex to translate into DSL if the relevance function is following after a complex PPL query. To make your queries always work-able, it is recommended to place the relevance commands as close to the search command as possible, to ensure the relevance functions are eligible to push down. For example, a complex query like ``search source = people | rename firstname as name | dedup account_number | fields name, account_number, balance, employer | where match(employer, 'Open Search') | stats count() by city`` could fail because it is difficult to translate to DSL, but it would be better if we rewrite it to an equivalent query as ``search source = people | where match(employer, 'Open Search') | rename firstname as name | dedup account_number | fields name, account_number, balance, employer | stats count() by city`` by moving the where command with relevance function to the second command right after the search command, and the relevance would be optimized and executed smoothly in OpenSearch DSL. See `Optimization <../../optimization/optimization.rst>`_ to get more details about the query engine optimization.

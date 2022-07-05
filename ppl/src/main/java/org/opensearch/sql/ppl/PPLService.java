@@ -80,7 +80,7 @@ public class PPLService {
 
   private PhysicalPlan plan(PPLQueryRequest request) {
     // 1.Parse query and convert parse tree (CST) to abstract syntax tree (AST)
-    ParseTree cst = parser.analyzeSyntax(request.getRequest());
+    ParseTree cst = parser.parse(request.getRequest());
     UnresolvedPlan ast = cst.accept(
         new AstBuilder(new AstExpressionBuilder(), request.getRequest()));
 
