@@ -666,6 +666,10 @@ public class DSL {
     return compile(BuiltinFunctionName.SIMPLE_QUERY_STRING, args);
   }
 
+  public FunctionExpression query_string(Expression... args) {
+    return compile(BuiltinFunctionName.QUERY_STRING, args);
+  }
+
   public FunctionExpression match_bool_prefix(Expression... args) {
     return compile(BuiltinFunctionName.MATCH_BOOL_PREFIX, args);
   }

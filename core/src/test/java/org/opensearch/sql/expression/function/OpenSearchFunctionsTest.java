@@ -169,4 +169,12 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
             fields.getValue(), query.getValue()),
         expr.toString());
   }
+
+  @Test
+  void query_string() {
+    FunctionExpression expr = dsl.query_string(fields, query);
+    assertEquals(String.format("query_string(fields=%s, query=%s)",
+            fields.getValue(), query.getValue()),
+        expr.toString());
+  }
 }
