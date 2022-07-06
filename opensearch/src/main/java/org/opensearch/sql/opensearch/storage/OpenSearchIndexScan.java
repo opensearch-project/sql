@@ -25,6 +25,7 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprValue;
@@ -156,6 +157,16 @@ public class OpenSearchIndexScan extends TableScanOperator {
   public void pushDownLimit(Integer limit, Integer offset) {
     SearchSourceBuilder sourceBuilder = request.getSourceBuilder();
     sourceBuilder.from(offset).size(limit);
+  }
+
+  /**
+   * Add highlight to DSL requests.
+   * @param field name of the field to highlight
+   */
+  public void pushDownHighlight(String field) {
+    SearchSourceBuilder sourceBuilder = request.getSourceBuilder();
+    HighlightBuilder highlightBuilder = new HighlightBuilder().field(field);
+    sourceBuilder.highlighter(highlightBuilder);
   }
 
   /**
