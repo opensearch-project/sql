@@ -45,6 +45,7 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.window.aggregation.AggregateWindowFunction;
 import org.springframework.context.annotation.Configuration;
@@ -538,7 +539,8 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
 
   @Test
   void highlight() {
-    assertAnalyzeEqual(new HighlightExpression("fieldA"), new HighlightFunction("fieldA"));
+    assertAnalyzeEqual(new HighlightExpression(DSL.literal("fieldA")),
+        new HighlightFunction(stringLiteral("fieldA")));
   }
 
   protected Expression analyze(UnresolvedExpression unresolvedExpression) {

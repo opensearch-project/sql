@@ -22,6 +22,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.ast.dsl.AstDSL.span;
+import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder;
 import static org.opensearch.sql.ast.tree.Sort.SortOption;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
@@ -235,15 +236,19 @@ class AnalyzerTest extends AnalyzerTestBase {
   @Test
   public void project_highlight() {
     assertAnalyzeEqual(
-        LogicalPlanDSL.project(LogicalPlanDSL.relation("schema"),
-            DSL.named("highlight(fieldA)",  new HighlightExpression("fieldA"))),
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.highlight(LogicalPlanDSL.relation("schema"),
+                DSL.literal("fieldA")),
+            DSL.named("highlight(fieldA)", new HighlightExpression(DSL.literal("fieldA")))
+        ),
         AstDSL.projectWithArg(
             AstDSL.relation("schema"),
             AstDSL.defaultFieldsArgs(),
-            AstDSL.alias("highlight(fieldA)", new HighlightFunction("fieldA"))
+            AstDSL.alias("highlight(fieldA)", new HighlightFunction(AstDSL.stringLiteral("fieldA")))
         )
     );
   }
+
   @Test
   public void remove_source() {
     assertAnalyzeEqual(
@@ -287,7 +292,7 @@ class AnalyzerTest extends AnalyzerTestBase {
         AstDSL.project(
             AstDSL.values(ImmutableList.of(AstDSL.intLiteral(123))),
             AstDSL.alias("123", AstDSL.intLiteral(123)),
-            AstDSL.alias("hello", AstDSL.stringLiteral("hello")),
+            AstDSL.alias("hello", stringLiteral("hello")),
             AstDSL.alias("false", AstDSL.booleanLiteral(false))
         )
     );
@@ -707,7 +712,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             AstDSL.parse(
                 AstDSL.relation("schema"),
                 AstDSL.field("string_value"),
-                AstDSL.stringLiteral("(?<group>.*)")),
+                stringLiteral("(?<group>.*)")),
             AstDSL.alias("string_value", qualifiedName("string_value"))
         ));
   }

@@ -292,6 +292,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       child = windowAnalyzer.analyze(expr, context);
     }
 
+    for (UnresolvedExpression expr : node.getProjectList()) {
+      HighlightAnalyzer highlightAnalyzer = new HighlightAnalyzer(expressionAnalyzer, child);
+      child = highlightAnalyzer.analyze(expr, context);
+    }
+
     List<NamedExpression> namedExpressions =
         selectExpressionAnalyzer.analyze(node.getProjectList(), context,
             new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child));
