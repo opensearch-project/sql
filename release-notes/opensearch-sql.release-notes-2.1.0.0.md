@@ -18,18 +18,7 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 2.1.0
 * Fix `fuzziness` parsing in `multi_match` function. Update tests. ([#668](https://github.com/opensearch-project/sql/pull/668))
 * ODBC SSL Compliance Fix ([#653](https://github.com/opensearch-project/sql/pull/653))
 
-
 ### Infrastructure
 * Match Query Unit Tests ([#614](https://github.com/opensearch-project/sql/pull/614))
 * Uses custom plugin to publish zips to maven  ([#638](https://github.com/opensearch-project/sql/pull/638))
 * version bump to 2.1.0 and gradle version bump ([#655](https://github.com/opensearch-project/sql/pull/655))
-
-
-
-
-
-
-
-
-
-
