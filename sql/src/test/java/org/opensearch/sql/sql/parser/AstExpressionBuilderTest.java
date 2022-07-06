@@ -312,7 +312,7 @@ class AstExpressionBuilderTest {
   @Test
   public void canBuildHighlighFunction() {
     assertEquals(
-        highlight("fieldA"),
+        highlight(AstDSL.stringLiteral("fieldA")),
         buildExprAst("highlight(fieldA)")
     );
   }

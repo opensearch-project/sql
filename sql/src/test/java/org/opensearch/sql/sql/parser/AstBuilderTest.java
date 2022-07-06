@@ -34,6 +34,7 @@ import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 import com.google.common.collect.ImmutableList;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
@@ -671,9 +672,9 @@ class AstBuilderTest {
   @Test
   public void can_build_highlight() {
     assertEquals(
-      project(relation("test"),
-          alias("highlight(fieldA)", highlight("fieldA"))),
-      buildAST("SELECT highlight(fieldA) FROM test")
+        project(relation("test"),
+            alias("highlight(fieldA)", highlight(AstDSL.stringLiteral("fieldA")))),
+        buildAST("SELECT highlight(fieldA) FROM test")
     );
   }
 

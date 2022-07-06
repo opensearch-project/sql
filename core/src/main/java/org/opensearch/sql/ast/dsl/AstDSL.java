@@ -262,7 +262,7 @@ public class AstDSL {
     return new When(condition, result);
   }
 
-  public UnresolvedExpression highlight(String fieldName) {
+  public UnresolvedExpression highlight(UnresolvedExpression fieldName) {
     return new HighlightFunction(fieldName);
   }
 

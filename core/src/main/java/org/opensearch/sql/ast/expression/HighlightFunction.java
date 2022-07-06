@@ -1,5 +1,7 @@
 package org.opensearch.sql.ast.expression;
 
+import com.google.common.collect.ImmutableList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -10,15 +12,17 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 @Getter
-@RequiredArgsConstructor
 @ToString
 public class HighlightFunction extends UnresolvedExpression {
-  @Getter
-  private final String highlightField;
-
+  private final UnresolvedExpression highlightField;
 
   @Override
   public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {
     return nodeVisitor.visitHighlight(this, context);
+  }
+
+  @Override
+  public List<UnresolvedExpression> getChild() {
+    return List.of(highlightField);
   }
 }
