@@ -44,22 +44,11 @@ public class StringUtils {
 
     char quote = whichQuote(text);
     if (quote != 0) {
-      //      if (isQuoted(text, "'")) {
-      //        text = text.substring(1, text.length() - 1).replace("''", "'");
-      //      } else if (isQuoted(text, "\"")) {
-      //        text = text.substring(1, text.length() - 1).replace("\"\"", "\"");
-      //      } else {
-      //        text = text.substring(1, text.length() - 1);
-      //      }
-
-      //String quote = whichQuote(text);
       char currentChar;
       char nextChar;
-
       char outsideQuote = whichQuote(text);
 
       for (int chIndex = 1; chIndex < text.length() - 1; chIndex++) {
-        //for (char ch: text.toCharArray()) {
         currentChar = text.charAt(chIndex);
         nextChar = text.charAt(chIndex + 1);
 
@@ -76,23 +65,6 @@ public class StringUtils {
         } else {
           textSB.append(currentChar);
         }
-
-        //        if (lastWasEscape && needsEscape(currentChar)) {
-        //          textSB.append(currentChar);
-        //          lastWasEscape = false;
-        //        } else if (lastWasEscape) {
-        //          textSB.append('\\');
-        //          textSB.append(currentChar);
-        //          lastWasEscape = false;
-        //        } else if (currentChar == '\\' && !lastWasEscape) {
-        //          lastWasEscape = true;
-        //        } else {
-        //          textSB.append(currentChar);
-        //          //lastWasEscape = false;
-        //        }
-        //        if (currentChar != '\\') {
-        //          lastWasEscape = false;
-        //        }
       }
     } else {
       textSB.append(text);
@@ -155,22 +127,5 @@ public class StringUtils {
 
     return quote;
   }
-
-  //    private static String whichQuote (String text){
-  //      return !Strings.isNullOrEmpty(text) &&
-  //      text.startsWith("\"") &&
-  //      ext.endsWith("\"") ? "\"" :
-  //          !Strings.isNullOrEmpty(text) && text.startsWith("'") && text.endsWith("'") ? "'" : "";
-  //    }
-
-  //    public static boolean needsEscape ( char text)
-  //    {
-  //      return (text == '\\' || text == '\'' || text == '"');
-  //    }
-  //
-  //  private static String whichQuote(String text) {
-  //    return !Strings.isNullOrEmpty(text) && text.startsWith("\"") && text.endsWith("\"") ? "\"" :
-  //        !Strings.isNullOrEmpty(text) && text.startsWith("'") && text.endsWith("'") ? "'" : "";
-  //  }
 }
 

@@ -50,8 +50,7 @@ class StringUtilsTest {
   }
 
   @Test
-  void whichQuoteTest()
-  {
+  void whichQuoteTest() {
     assertEquals('\'', whichQuote("'hello'"));
     assertEquals('"', whichQuote("\"hello\""));
     assertEquals('`', whichQuote("`hello`"));
