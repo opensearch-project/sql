@@ -10,6 +10,7 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 2.1.0
 
 ### Maintenance
 * change plugin folder name to opensearch-sql-plugin ([#670](https://github.com/opensearch-project/sql/pull/670))
+* Version bump to 2.1.0 and gradle version bump ([#655](https://github.com/opensearch-project/sql/pull/655))
 
 ### Bug Fixes
 * Integ replace junit assertthat with hamcrest import ([#616](https://github.com/opensearch-project/sql/pull/616))
@@ -21,4 +22,3 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 2.1.0
 ### Infrastructure
 * Match Query Unit Tests ([#614](https://github.com/opensearch-project/sql/pull/614))
 * Uses custom plugin to publish zips to maven  ([#638](https://github.com/opensearch-project/sql/pull/638))
-* version bump to 2.1.0 and gradle version bump ([#655](https://github.com/opensearch-project/sql/pull/655))
