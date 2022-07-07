@@ -198,6 +198,7 @@ public class OpenSearchIndex implements Table {
 
     @Override
     public PhysicalPlan visitHighlight(LogicalHighlight node, OpenSearchIndexScan context) {
+      context.pushDownHighlight(node.getHighlightField().toString());
       return new HighlightOperator(visitChild(node, context), node.getHighlightField());
     }
   }

@@ -1,9 +1,11 @@
 package org.opensearch.sql.planner.physical;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.Expression;
@@ -14,7 +16,9 @@ import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
 @EqualsAndHashCode(callSuper = false)
 @Getter
 public class HighlightOperator extends PhysicalPlan {
+  @NonNull
   private final PhysicalPlan input;
+  @NonNull
   private final Expression highlightField;
 
   @Override
@@ -35,6 +39,9 @@ public class HighlightOperator extends PhysicalPlan {
   @Override
   public ExprValue next() {
     ExprValue inputValue = input.next();
+    ImmutableMap.Builder<String, ExprValue> mapBuilder = new ImmutableMap.Builder<>();
+    inputValue.tupleValue().forEach(mapBuilder::put);
+
     return inputValue;
   }
 }

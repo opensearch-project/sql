@@ -17,6 +17,7 @@ import org.opensearch.search.SearchHits;
 import org.opensearch.search.aggregations.Aggregations;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 
 /**
@@ -91,7 +92,20 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
       }).iterator();
     } else {
       return Arrays.stream(hits.getHits())
-          .map(hit -> (ExprValue) exprValueFactory.construct(hit.getSourceAsString())).iterator();
+          .map(hit -> {
+            ExprValue docData = exprValueFactory.construct(hit.getSourceAsString());
+            if (hit.getHighlightFields().isEmpty()) {
+              return docData;
+            } else {
+              ImmutableMap.Builder<String, ExprValue> builder = new ImmutableMap.Builder<>();
+              builder.putAll(docData.tupleValue());
+              for (var es : hit.getHighlightFields().entrySet()) {
+                String key = "_highlight(" + es.getKey() + ")";
+                builder.put(key, ExprValueUtils.stringValue(es.getValue().toString()));
+              }
+              return ExprTupleValue.fromExprValueMap(builder.build());
+            }
+          }).iterator();
     }
   }
 }

@@ -1,5 +1,6 @@
 package org.opensearch.sql.analysis;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import lombok.EqualsAndHashCode;
@@ -10,8 +11,10 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
@@ -28,7 +31,9 @@ public class HighlightExpression extends FunctionExpression {
 
   @Override
   public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-    throw new SemanticCheckException("valeOf highlight is not supported");
+    // TODO Find the highlight data for the field highlightField, and return it.
+    String refName = "_highlight(" + highlightField.toString() + ")";
+    return valueEnv.resolve(DSL.ref(refName, ExprCoreType.STRING));
   }
 
   @Override
