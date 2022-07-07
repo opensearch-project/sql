@@ -21,8 +21,11 @@ public class PPLQueryRequest {
   public static final PPLQueryRequest NULL = new PPLQueryRequest("", null, "", "");
 
   private final String pplQuery;
+  @Getter
   private final JSONObject jsonContent;
+  @Getter
   private final String path;
+  @Getter
   private String format = "";
 
   @Setter
