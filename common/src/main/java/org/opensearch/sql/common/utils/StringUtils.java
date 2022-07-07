@@ -42,25 +42,57 @@ public class StringUtils {
 
     boolean lastWasEscape = false;
 
-    if (isQuoted(text, "\"")
-        || isQuoted(text, "'")
-        || isQuoted(text, "`")) {
-      if (isQuoted(text, "'")) {
-        text = text.substring(1, text.length() - 1).replace("''", "'");
-      } else if (isQuoted(text, "\"")) {
-        text = text.substring(1, text.length() - 1).replace("\"\"", "\"");
-      } else {
-        text = text.substring(1, text.length() - 1);
-      }
+    char quote = whichQuote(text);
+    if (quote != 0) {
+      //      if (isQuoted(text, "'")) {
+      //        text = text.substring(1, text.length() - 1).replace("''", "'");
+      //      } else if (isQuoted(text, "\"")) {
+      //        text = text.substring(1, text.length() - 1).replace("\"\"", "\"");
+      //      } else {
+      //        text = text.substring(1, text.length() - 1);
+      //      }
 
+      //String quote = whichQuote(text);
+      char currentChar;
+      char nextChar;
 
-      for (char ch: text.toCharArray()) {
-        if (ch == '\\' && !lastWasEscape) {
-          lastWasEscape = true;
+      char outsideQuote = whichQuote(text);
+
+      for (int chIndex = 1; chIndex < text.length() - 1; chIndex++) {
+        //for (char ch: text.toCharArray()) {
+        currentChar = text.charAt(chIndex);
+        nextChar = text.charAt(chIndex + 1);
+
+        if (currentChar == '\\') {
+          textSB.append(nextChar);
+          chIndex++;
+        } else if (currentChar == outsideQuote) {
+          if (nextChar == currentChar) {
+            textSB.append(currentChar);
+            chIndex++;
+          } else {
+            textSB.append(currentChar);
+          }
         } else {
-          textSB.append(ch);
-          lastWasEscape = false;
+          textSB.append(currentChar);
         }
+
+        //        if (lastWasEscape && needsEscape(currentChar)) {
+        //          textSB.append(currentChar);
+        //          lastWasEscape = false;
+        //        } else if (lastWasEscape) {
+        //          textSB.append('\\');
+        //          textSB.append(currentChar);
+        //          lastWasEscape = false;
+        //        } else if (currentChar == '\\' && !lastWasEscape) {
+        //          lastWasEscape = true;
+        //        } else {
+        //          textSB.append(currentChar);
+        //          //lastWasEscape = false;
+        //        }
+        //        if (currentChar != '\\') {
+        //          lastWasEscape = false;
+        //        }
       }
     } else {
       textSB.append(text);
@@ -102,4 +134,43 @@ public class StringUtils {
   private static boolean isQuoted(String text, String mark) {
     return !Strings.isNullOrEmpty(text) && text.startsWith(mark) && text.endsWith(mark);
   }
+
+  /**
+   * Returns a character that is quoted or 0 if there is no quote.
+   *
+   * @return A formatted string
+   */
+  public static char whichQuote(String text) {
+    char firstChar = text.charAt(0);
+    char lastChar = text.charAt(text.length() - 1);
+    char quote = 0;
+
+    if (firstChar == lastChar) {
+      if (firstChar == '\''
+          || firstChar == '"'
+          || firstChar == '`') {
+        quote = firstChar;
+      }
+    }
+
+    return quote;
+  }
+
+  //    private static String whichQuote (String text){
+  //      return !Strings.isNullOrEmpty(text) &&
+  //      text.startsWith("\"") &&
+  //      ext.endsWith("\"") ? "\"" :
+  //          !Strings.isNullOrEmpty(text) && text.startsWith("'") && text.endsWith("'") ? "'" : "";
+  //    }
+
+  //    public static boolean needsEscape ( char text)
+  //    {
+  //      return (text == '\\' || text == '\'' || text == '"');
+  //    }
+  //
+  //  private static String whichQuote(String text) {
+  //    return !Strings.isNullOrEmpty(text) && text.startsWith("\"") && text.endsWith("\"") ? "\"" :
+  //        !Strings.isNullOrEmpty(text) && text.startsWith("'") && text.endsWith("'") ? "'" : "";
+  //  }
 }
+
