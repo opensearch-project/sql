@@ -33,35 +33,22 @@ public class StringUtils {
    *     removed
    */
   public static String unquoteText(String text) {
-    //IF input_string IsQuoteBy $QUOTE
-    //FOREACH char in input_string[1, LENGTH - 1):
-    //   IF char is '\' ADD next char to StringBuilder
-    //   ELSE ADD char to StringBuilder
-
     StringBuilder textSB = new StringBuilder();
 
-    boolean lastWasEscape = false;
-
-    char quote = whichQuote(text);
-    if (quote != 0) {
+    char outsideQuote = whichQuote(text);
+    if (outsideQuote != 0) {
       char currentChar;
       char nextChar;
-      char outsideQuote = whichQuote(text);
 
       for (int chIndex = 1; chIndex < text.length() - 1; chIndex++) {
         currentChar = text.charAt(chIndex);
         nextChar = text.charAt(chIndex + 1);
-
-        if (currentChar == outsideQuote && currentChar != '`') {
-          if (nextChar == currentChar) {
-            textSB.append(currentChar);
-            chIndex++;
-          } else {
-            textSB.append(currentChar);
-          }
-        } else {
-          textSB.append(currentChar);
+        if (currentChar == outsideQuote
+            && nextChar == currentChar
+            && currentChar != '`') {
+          chIndex++;
         }
+        textSB.append(currentChar);
       }
     } else {
       textSB.append(text);

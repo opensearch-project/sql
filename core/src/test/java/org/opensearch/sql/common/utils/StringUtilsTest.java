@@ -29,6 +29,9 @@ class StringUtilsTest {
     assertEquals("te\"st", unquoteText("\"te\"\"st\""));
     assertEquals("te\"\"st", unquoteText("`te\"\"st`"));
 
+    assertEquals("''", unquoteText("''''''"));
+    assertEquals("\"\"", unquoteText("\"\"\"\"\"\""));
+    assertEquals("````", unquoteText("``````"));
   }
 
   @Test
