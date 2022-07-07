@@ -40,6 +40,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `dedup command <cmd/dedup.rst>`_
 
+  - `describe command <cmd/describe.rst>`_
+
   - `eval command <cmd/eval.rst>`_
 
   - `fields command <cmd/fields.rst>`_

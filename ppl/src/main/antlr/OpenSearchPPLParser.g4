@@ -14,10 +14,15 @@ root
 
 /** statement */
 pplStatement
-    : searchCommand (PIPE commands)*
+    : pplCommands (PIPE commands)*
     ;
 
 /** commands */
+pplCommands
+    : searchCommand
+    | describeCommand
+    ;
+
 commands
     : whereCommand | fieldsCommand | renameCommand | statsCommand | dedupCommand | sortCommand | evalCommand | headCommand
     | topCommand | rareCommand | parseCommand | kmeansCommand | adCommand;
@@ -26,6 +31,10 @@ searchCommand
     : (SEARCH)? fromClause                                          #searchFrom
     | (SEARCH)? fromClause logicalExpression                        #searchFromFilter
     | (SEARCH)? logicalExpression fromClause                        #searchFilterFrom
+    ;
+
+describeCommand
+    : DESCRIBE tableSourceClause
     ;
 
 whereCommand
@@ -119,8 +128,12 @@ adParameter
 
 /** clauses */
 fromClause
-    : SOURCE EQUAL tableSource (COMMA tableSource)*
-    | INDEX EQUAL tableSource (COMMA tableSource)*
+    : SOURCE EQUAL tableSourceClause
+    | INDEX EQUAL tableSourceClause
+    ;
+
+tableSourceClause
+    : tableSource (COMMA tableSource)*
     ;
 
 renameClasue
@@ -389,6 +402,7 @@ binaryOperator
 singleFieldRelevanceFunctionName
     : MATCH
     | MATCH_PHRASE
+    | MATCH_BOOL_PREFIX
     ;
 
 multiFieldRelevanceFunctionName

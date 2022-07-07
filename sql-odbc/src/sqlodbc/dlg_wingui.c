@@ -10,6 +10,9 @@
 #include "xalibname.h"
 #endif /* _HANDLE_ENLIST_IN_DTC_ */
 
+#define HTTP_PREFIX   "http://"
+#define HTTPS_PREFIX  "https://"
+
 #define AUTHMODE_CNT 3
 #define LOGLEVEL_CNT 8
 extern HINSTANCE s_hModule;
@@ -137,14 +140,37 @@ static void getDriversDefaultsOfCi(const ConnInfo *ci, GLOBAL_VALUES *glbv) {
         getDriversDefaults(INVALID_DRIVER, glbv);
 }
 
+/**
+ * @brief Initializes and closes the advanced dialog box.
+ * 
+ * @param hdlg : Handle to dialog box
+ * @param wMsg : Dialog box command message
+ * @param wParam : Handle to the control to receive keyboard focus
+ * @param lParam : Dialog connection data
+ * @return INT_PTR : Returns true on successful command of advanced dialog box
+ */
 INT_PTR CALLBACK advancedOptionsProc(HWND hdlg, UINT wMsg, WPARAM wParam,
                                      LPARAM lParam) {
     switch (wMsg) {
         case WM_INITDIALOG: {
             SetWindowLongPtr(hdlg, DWLP_USER, lParam);
             ConnInfo *ci = (ConnInfo *)lParam;
-            CheckDlgButton(hdlg, IDC_USESSL, ci->use_ssl);
-            CheckDlgButton(hdlg, IDC_HOST_VER, ci->verify_server);
+
+            // To avoid cases in which the "UseSSL" flag is different from a specified server protocol
+            if (strncmp(HTTP_PREFIX, ci->server, strlen(HTTP_PREFIX)) == 0) {
+                CheckDlgButton(hdlg, IDC_USESSL, FALSE);
+                CheckDlgButton(hdlg, IDC_HOST_VER, FALSE);
+                EnableWindow(GetDlgItem(hdlg, IDC_USESSL), FALSE);
+                EnableWindow(GetDlgItem(hdlg, IDC_HOST_VER), FALSE);
+            } else if (strncmp(HTTPS_PREFIX, ci->server, strlen(HTTPS_PREFIX)) == 0) {
+                CheckDlgButton(hdlg, IDC_USESSL, TRUE);
+                CheckDlgButton(hdlg, IDC_HOST_VER, ci->verify_server);
+                EnableWindow(GetDlgItem(hdlg, IDC_USESSL), FALSE);
+            } else {
+                CheckDlgButton(hdlg, IDC_USESSL, ci->use_ssl);
+                CheckDlgButton(hdlg, IDC_HOST_VER, ci->verify_server);
+            }
+
             SetDlgItemText(hdlg, IDC_CONNTIMEOUT, ci->response_timeout);
             SetDlgItemText(hdlg, IDC_FETCH_SIZE, ci->fetch_size);
             break;

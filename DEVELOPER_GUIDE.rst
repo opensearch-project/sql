@@ -34,7 +34,7 @@ OpenSearch & OpenSearch Dashboards
 
 For convenience, we recommend installing `OpenSearch <https://www.opensearch.org/downloads.html>`_ and `OpenSearch Dashboards <https://www.opensearch.org/downloads.html>`_ on your local machine. You can download the open source ZIP for each and extract them to a folder.
 
-If you just want to have a quick look, you can also get an OpenSearch running with plugin installed by ``./gradlew :plugin:run``.
+If you just want to have a quick look, you can also get an OpenSearch running with plugin installed by ``./gradlew :opensearch-sql-plugin:run``.
 
 OpenSearch Dashboards is optional, but makes it easier to test your queries. Alternately, you can use curl from the terminal to run queries against the plugin.
 
