@@ -52,10 +52,7 @@ public class StringUtils {
         currentChar = text.charAt(chIndex);
         nextChar = text.charAt(chIndex + 1);
 
-        if (currentChar == '\\') {
-          textSB.append(nextChar);
-          chIndex++;
-        } else if (currentChar == outsideQuote) {
+        if (currentChar == outsideQuote && currentChar != '`') {
           if (nextChar == currentChar) {
             textSB.append(currentChar);
             chIndex++;
