@@ -166,7 +166,7 @@ task versionIncrement {
         }
         ant.replaceregexp(file:'sql-jdbc/build.gradle', match:"version '\\d+.\\d+.\\d+.\\d+'", replace:"version " + "'" + newVersion.tokenize('-')[0] + '.0' + "'", flags:'g', byline:true)
         ant.replaceregexp(match:'"version": "\\d+.\\d+.\\d+.\\d+', replace:'"version": ' + '"' + newVersion.tokenize('-')[0] + '.0', flags:'g', byline:true) {
-            fileset(dir: workingDir) {
+            fileset(dir: projectDir) {
                 include(name: "workbench/package.json")
                 include(name: "workbench/opensearch_dashboards.json")
             }
