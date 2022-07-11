@@ -29,7 +29,7 @@ public class MultiMatchQuery extends RelevanceQuery<MultiMatchQueryBuilder> {
             b.autoGenerateSynonymsPhraseQuery(Boolean.parseBoolean(v.stringValue())))
         .put("boost", (b, v) -> b.boost(Float.parseFloat(v.stringValue())))
         .put("cutoff_frequency", (b, v) -> b.cutoffFrequency(Float.parseFloat(v.stringValue())))
-        .put("fuzziness", (b, v) -> b.fuzziness(Integer.parseInt(v.stringValue())))
+        .put("fuzziness", (b, v) -> b.fuzziness(v.stringValue()))
         .put("fuzzy_transpositions", (b, v) ->
             b.fuzzyTranspositions(Boolean.parseBoolean(v.stringValue())))
         .put("lenient", (b, v) -> b.lenient(Boolean.parseBoolean(v.stringValue())))

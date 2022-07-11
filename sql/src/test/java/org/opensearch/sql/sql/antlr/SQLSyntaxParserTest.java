@@ -9,11 +9,14 @@ package org.opensearch.sql.sql.antlr;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -187,7 +190,7 @@ class SQLSyntaxParserTest {
     assertNotNull(parser.parse(
         "SELECT id FROM test WHERE"
             + " multi_match([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query', analyzer=keyword,"
-            + "operator='AND', tie_breaker=0.3, type = \"most_fields\", fuzziness = 4)"));
+            + "operator='AND', tie_breaker=0.3, type = \"most_fields\", fuzziness = \"AUTO\")"));
   }
 
   @Test
@@ -307,9 +310,20 @@ class SQLSyntaxParserTest {
   }
 
   @ParameterizedTest
-  @MethodSource({"matchPhraseComplexQueries",
-          "matchPhraseGeneratedQueries", "generateMatchPhraseQueries"})
+  @MethodSource({
+      "matchPhraseComplexQueries",
+      "matchPhraseGeneratedQueries",
+      "generateMatchPhraseQueries",
+  })
   public void canParseComplexMatchPhraseArgsTest(String query) {
+    assertNotNull(parser.parse(query));
+  }
+
+  @ParameterizedTest
+  @MethodSource({
+      "generateMatchPhrasePrefixQueries"
+  })
+  public void canParseComplexMatchPhrasePrefixQueries(String query) {
     assertNotNull(parser.parse(query));
   }
 
@@ -357,8 +371,18 @@ class SQLSyntaxParserTest {
     return generateQueries("match_phrase", matchPhraseArgs);
   }
 
+  private static Stream<String> generateMatchPhrasePrefixQueries() {
+    return generateQueries("match_phrase_prefix", ImmutableMap.<String, Object[]>builder()
+        .put("analyzer", new String[] {"standard", "stop", "english"})
+        .put("slop", new Integer[] {0, 1, 2})
+        .put("max_expansions", new Integer[] {0, 3, 10})
+        .put("zero_terms_query", new String[] {"NONE", "ALL", "NULL"})
+        .put("boost", new Float[] {-0.5f, 1.0f, 1.2f})
+        .build());
+  }
+
   private static Stream<String> generateQueries(String function,
-                                                HashMap<String, Object[]> functionArgs) {
+                                                Map<String, Object[]> functionArgs) {
     var rand = new Random(0);
 
     class QueryGenerator implements Iterator<String> {

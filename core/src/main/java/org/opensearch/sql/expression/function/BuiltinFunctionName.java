@@ -192,7 +192,7 @@ public enum BuiltinFunctionName {
   MATCHPHRASE(FunctionName.of("matchphrase")),
   QUERY_STRING(FunctionName.of("query_string")),
   MATCH_BOOL_PREFIX(FunctionName.of("match_bool_prefix")),
-
+  MATCH_PHRASE_PREFIX(FunctionName.of("match_phrase_prefix")),
   /**
    * Legacy Relevance Function.
    */
