@@ -272,10 +272,10 @@ IF:                                 'IF';
 // RELEVANCE FUNCTIONS AND PARAMETERS
 MATCH:                              'MATCH';
 MATCH_PHRASE:                       'MATCH_PHRASE';
+MATCH_PHRASE_PREFIX:                'MATCH_PHRASE_PREFIX';
 MATCH_BOOL_PREFIX:                  'MATCH_BOOL_PREFIX';
 SIMPLE_QUERY_STRING:                'SIMPLE_QUERY_STRING';
 MULTI_MATCH:                        'MULTI_MATCH';
-
 ALLOW_LEADING_WILDCARD:             'ALLOW_LEADING_WILDCARD';
 ANALYZE_WILDCARD:                   'ANALYZE_WILDCARD';
 ANALYZER:                           'ANALYZER';
