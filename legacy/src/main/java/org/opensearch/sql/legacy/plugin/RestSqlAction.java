@@ -162,7 +162,7 @@ public class RestSqlAction extends BaseRestHandler {
             return channel -> executeSqlRequest(request, queryAction, client, channel);
         } catch (Exception e) {
             logAndPublishMetrics(e);
-            return channel -> reportError(channel, e, isClientError(e) ? BAD_REQUEST : SERVICE_UNAVAILABLE);
+            return channel -> reportError(channel, e, isClientError(e) ? BAD_REQUEST : SERVICE_UNAVAILABLE, newSqlQueryHandler.getErrorStr());
         }
     }
 
@@ -234,7 +234,7 @@ public class RestSqlAction extends BaseRestHandler {
         return request.path().endsWith("/_explain");
     }
 
-    private static boolean isClientError(Exception e) {
+    public static boolean isClientError(Exception e) {
         return e instanceof NullPointerException // NPE is hard to differentiate but more likely caused by bad query
             || e instanceof SqlParseException
             || e instanceof ParserException
@@ -253,8 +253,10 @@ public class RestSqlAction extends BaseRestHandler {
         channel.sendResponse(new BytesRestResponse(status, message));
     }
 
-    private void reportError(final RestChannel channel, final Exception e, final RestStatus status) {
-        sendResponse(channel, ErrorMessageFactory.createErrorMessage(e, status.getStatus()).toString(), status);
+    private void reportError(final RestChannel channel, final Exception e, final RestStatus status, String otherError) {
+        sendResponse(channel, ErrorMessageFactory.createErrorMessage(e, status.getStatus()).toString() + (otherError.isEmpty()
+            ? "" : "\nQuery failed both legacy and new SQL engines, see error message below for new SQL engine error.\n"
+            + otherError), status);
     }
 
     private boolean isSQLFeatureEnabled() {

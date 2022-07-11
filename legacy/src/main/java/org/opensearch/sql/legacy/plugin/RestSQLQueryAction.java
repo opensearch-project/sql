@@ -6,9 +6,12 @@
 
 package org.opensearch.sql.legacy.plugin;
 
+import static org.opensearch.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
 import static org.opensearch.rest.RestStatus.OK;
+import static org.opensearch.rest.RestStatus.SERVICE_UNAVAILABLE;
 import static org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
+import static org.opensearch.sql.legacy.plugin.RestSqlAction.isClientError;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
 import java.io.IOException;
@@ -27,6 +30,7 @@ import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
+import org.opensearch.sql.legacy.executor.format.ErrorMessageFactory;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.opensearch.security.SecurityAccess;
@@ -60,6 +64,7 @@ public class RestSQLQueryAction extends BaseRestHandler {
    * Settings required by been initialization.
    */
   private final Settings pluginSettings;
+  private String ErrorStr;
 
   /**
    * Constructor of RestSQLQueryAction.
@@ -83,6 +88,14 @@ public class RestSQLQueryAction extends BaseRestHandler {
   @Override
   protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient nodeClient) {
     throw new UnsupportedOperationException("New SQL handler is not ready yet");
+  }
+
+  public void setErrorStr(String error) {
+    ErrorStr = error;
+  }
+
+  public String getErrorStr() {
+    return ErrorStr;
   }
 
   /**
@@ -109,6 +122,7 @@ public class RestSQLQueryAction extends BaseRestHandler {
       if (request.isExplainRequest()) {
         LOG.info("Request is falling back to old SQL engine due to: " + e.getMessage());
       }
+      setErrorStr(ErrorMessageFactory.createErrorMessage(e, isClientError(e) ? BAD_REQUEST.getStatus() : SERVICE_UNAVAILABLE.getStatus()).toString());
       return NOT_SUPPORTED_YET;
     }
 
