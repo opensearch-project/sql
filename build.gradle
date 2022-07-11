@@ -148,3 +148,29 @@ configurations.all {
     resolutionStrategy.force 'commons-codec:commons-codec:1.13'
     resolutionStrategy.force 'com.google.guava:guava:31.0.1-jre'
 }
+
+// versionIncrement: Task to auto increment to the next development iteration
+task versionIncrement {
+    onlyIf { System.getProperty('newVersion') }
+    doLast {
+        ext.newVersion = System.getProperty('newVersion')
+        println "Setting version to ${newVersion}."
+        // String tokenization to support -SNAPSHOT
+        ant.replaceregexp(match: opensearch_version.tokenize('-')[0], replace: newVersion.tokenize('-')[0], flags:'g', byline:true) {
+            fileset(dir: projectDir) {
+                // Include the required files that needs to be updated with new Version
+                include(name: ".github/workflows/sql-workbench-test-and-build-workflow.yml")
+                include(name: "doctest/build.gradle")
+                include(name: "build.gradle")
+            }
+        }
+        ant.replaceregexp(file:'sql-jdbc/build.gradle', match:"version '\\d+.\\d+.\\d+.\\d+'", replace:"version " + "'" + newVersion.tokenize('-')[0] + '.0' + "'", flags:'g', byline:true)
+        ant.replaceregexp(match:'"version": "\\d+.\\d+.\\d+.\\d+', replace:'"version": ' + '"' + newVersion.tokenize('-')[0] + '.0', flags:'g', byline:true) {
+            fileset(dir: workingDir) {
+                include(name: "workbench/package.json")
+                include(name: "workbench/opensearch_dashboards.json")
+            }
+        }
+        ant.replaceregexp(file:'workbench/opensearch_dashboards.json', match:'"opensearchDashboardsVersion": "\\d+.\\d+.\\d+', replace:'"opensearchDashboardsVersion": ' + '"' + newVersion.tokenize('-')[0], flags:'g', byline:true)
+    }
+}
