@@ -24,9 +24,12 @@
 
 plugins {
     id 'java'
+    id "io.freefair.lombok"
     id 'jacoco'
     id 'opensearch.opensearchplugin'
 }
+
+apply plugin: 'opensearch.pluginzip'
 
 ext {
     projectSubstitutions = [:]
@@ -46,8 +49,30 @@ opensearchplugin {
     noticeFile rootProject.file("NOTICE")
 }
 
+publishing {
+    publications {
+        pluginZip(MavenPublication) { publication ->
+            pom {
+                name = 'opensearch-sql'
+                description = 'OpenSearch SQL'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        name = 'OpenSearch'
+                        url = 'https://github.com/opensearch-project/sql'
+                    }
+                }
+            }
+        }
+    }
+}
+
 javadoc.enabled = false
-test.enabled = false
 loggerUsageCheck.enabled = false
 dependencyLicenses.enabled = false
 thirdPartyAudit.enabled = false
@@ -64,6 +89,13 @@ configurations.all {
     resolutionStrategy.force 'com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.13.2'
     resolutionStrategy.force 'com.fasterxml.jackson.core:jackson-databind:2.13.2.2'
 }
+compileJava {
+    options.compilerArgs.addAll(["-processor", 'lombok.launch.AnnotationProcessorHider$AnnotationProcessor'])
+}
+
+compileTestJava {
+    options.compilerArgs.addAll(["-processor", 'lombok.launch.AnnotationProcessorHider$AnnotationProcessor'])
+}
 
 dependencies {
     api group: 'org.springframework', name: 'spring-beans', version: '5.2.20.RELEASE'
@@ -72,6 +104,13 @@ dependencies {
     api project(':opensearch')
 }
 
+test {
+    include '**/*Test.class'
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+    }
+}
 
 ext {
     projectSubstitutions = [:]

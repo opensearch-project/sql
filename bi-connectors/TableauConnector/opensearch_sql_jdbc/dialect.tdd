@@ -32,37 +32,61 @@
             <formula>TO_DAYS(%1) - 693961.0</formula>
             <argument type='datetime' />
         </function>
+        <function group='cast' name='FLOAT' return-type='real'>
+            <formula>CAST(%1 AS DOUBLE)</formula>
+            <argument type='str' />
+        </function>
         <function group='cast' name='STR' return-type='str'>
-            <formula>CAST(%1 as string)</formula>
+            <formula>CAST(%1 AS STRING)</formula>
             <argument type='real' />
         </function>
         <function group='cast' name='STR' return-type='str'>
-            <formula>CAST(%1 as string)</formula>
+            <formula>CAST(%1 AS STRING)</formula>
             <argument type='int' />
         </function>
         <function group='cast' name='STR' return-type='str'>
-            <formula>CAST(%1 as string)</formula>
+            <formula>CAST(%1 AS STRING)</formula>
             <argument type='date' />
         </function>
         <function group='cast' name='STR' return-type='str'>
-            <formula>CAST(%1 as string)</formula>
+            <formula>CASE WHEN ISNULL(%1) THEN NULL WHEN %1 = TRUE THEN &apos;1&apos; WHEN %1 = FALSE THEN &apos;0&apos; END</formula>
             <argument type='bool' />
         </function>
         <function group='cast' name='INT' return-type='int'>
-            <formula>CAST(%1 as int)</formula>
+            <formula>CAST(%1 AS INT)</formula>
             <argument type='real' />
         </function>
         <function group='cast' name='INT' return-type='int'>
-            <formula>CAST(%1 as int)</formula>
+            <formula>CAST(%1 AS INT)</formula>
             <argument type='bool' />
+        </function>
+        <function group='cast' name='INT' return-type='int'>
+            <!-- Casting to double covers the case where the string is not an integer. Casting a string double to int fails -->
+            <formula>CAST(CAST(%1 AS DOUBLE) AS INT)</formula>
+            <argument type='str' />
         </function>
 
         <function group='logical' name='IFNULL' return-type='datetime'>
-            <formula>CASE WHEN ISNULL(%1) THEN SUBDATE(TIMESTAMP(%2), INTERVAL HOUR(TIMESTAMP(%2)) HOUR) ELSE %1 END</formula>
+            <formula>CASE WHEN ISNULL(%1) THEN CAST(DATE_FORMAT(%2, '%Y-%m-%d 00:00:00') AS TIMESTAMP) ELSE %1 END</formula>
             <argument type='datetime' />
             <argument type='date' />
         </function>
+        <function group='logical' name='IFNULL' return-type='datetime'>
+            <formula>CASE WHEN ISNULL(%1) THEN %2 ELSE CAST(DATE_FORMAT(%1, '%Y-%m-%d 00:00:00') AS TIMESTAMP) END</formula>
+            <argument type='date' />
+            <argument type='datetime' />
+        </function>
 
+        <function group='operator' name='==' return-type='bool'>
+            <formula>(%1 = CAST(DATE_FORMAT(%2, '%Y-%m-%d 00:00:00') AS TIMESTAMP))</formula>
+            <argument type='datetime' />
+            <argument type='date' />
+        </function>
+        <function group='operator' name='==' return-type='bool'>
+            <formula>(CAST(DATE_FORMAT(%1, '%Y-%m-%d 00:00:00') AS TIMESTAMP) = %2)</formula>
+            <argument type='date' />
+            <argument type='datetime' />
+        </function>
         <function group='operator' name='!=' return-type='bool'>
             <formula>(%1 AND NOT %2 OR NOT %1 AND %2)</formula>
             <argument type='bool' />
@@ -103,9 +127,49 @@
             <argument type='datetime' />
             <argument type='date' />
         </function>
+        <function group='operator' name='&gt;' return-type='bool'>
+            <formula>(%1 &gt; CAST(DATE_FORMAT(%2, '%Y-%m-%d 00:00:00') AS TIMESTAMP))</formula>
+            <argument type='datetime' />
+            <argument type='date' />
+        </function>
+        <function group='operator' name='&gt;' return-type='bool'>
+            <formula>(CAST(DATE_FORMAT(%1, '%Y-%m-%d 00:00:00') AS TIMESTAMP)  &gt; %2)</formula>
+            <argument type='date' />
+            <argument type='datetime' />
+        </function>
+        <function group='operator' name='&gt;=' return-type='bool'>
+            <formula>(%1 &gt;= CAST(DATE_FORMAT(%2, '%Y-%m-%d 00:00:00') AS TIMESTAMP))</formula>
+            <argument type='datetime' />
+            <argument type='date' />
+        </function>
+        <function group='operator' name='&gt;=' return-type='bool'>
+            <formula>(CAST(DATE_FORMAT(%1, '%Y-%m-%d 00:00:00') AS TIMESTAMP)  &gt;= %2)</formula>
+            <argument type='date' />
+            <argument type='datetime' />
+        </function>
+        <function group='operator' name='&lt;' return-type='bool'>
+            <formula>(%1 &lt; CAST(DATE_FORMAT(%2, '%Y-%m-%d 00:00:00') AS TIMESTAMP))</formula>
+            <argument type='datetime' />
+            <argument type='date' />
+        </function>
+        <function group='operator' name='&lt;' return-type='bool'>
+            <formula>(CAST(DATE_FORMAT(%1, '%Y-%m-%d 00:00:00') AS TIMESTAMP)  &lt; %2)</formula>
+            <argument type='date' />
+            <argument type='datetime' />
+        </function>
+        <function group='operator' name='&lt;=' return-type='bool'>
+            <formula>(%1 &lt;= CAST(DATE_FORMAT(%2, '%Y-%m-%d 00:00:00') AS TIMESTAMP))</formula>
+            <argument type='datetime' />
+            <argument type='date' />
+        </function>
+        <function group='operator' name='&lt;=' return-type='bool'>
+            <formula>(CAST(DATE_FORMAT(%1, '%Y-%m-%d 00:00:00') AS TIMESTAMP)  &lt;= %2)</formula>
+            <argument type='date' />
+            <argument type='datetime' />
+        </function>
         <function group='operator' name='+' return-type='datetime'>
             <!-- 86400 as it represents seconds in a day -->
-            <formula>DATE_ADD(DATE_ADD(%1, INTERVAL FLOOR(%2) DAY), INTERVAL CAST(86400 * (%2 - FLOOR(%2)) AS INT) SECOND)</formula>
+            <formula>DATE_ADD(%1, INTERVAL CAST((86400 * %2) AS INT) SECOND)</formula>
             <argument type='datetime' />
             <argument type='real' />
         </function>
@@ -117,9 +181,27 @@
             <formula>(%1 * -1)</formula>
             <argument type='real' />
         </function>
+        <function group='operator' name='-' return-type='real'>
+            <!-- 86400 as it represents seconds in a day -->
+            <formula>((TO_DAYS(%1) - TO_DAYS(%2)) + ((TIME_TO_SEC(%1) - TIME_TO_SEC(%2)) / 86400.0))</formula>
+            <argument type='datetime' />
+            <argument type='datetime' />
+        </function>
+        <function group='operator' name='-' return-type='real'>
+            <!-- 86400 as it represents seconds in a day -->
+            <formula>((TO_DAYS(%1) - TO_DAYS(CAST(DATE_FORMAT(%2, '%Y-%m-%d 00:00:00') AS TIMESTAMP))) + ((TIME_TO_SEC(%1) - TIME_TO_SEC(CAST(DATE_FORMAT(%2, '%Y-%m-%d 00:00:00') AS TIMESTAMP))) / 86400.0))</formula>
+            <argument type='datetime' />
+            <argument type='date' />
+        </function>
+        <function group='operator' name='-' return-type='real'>
+            <!-- 86400 as it represents seconds in a day -->
+            <formula>((TO_DAYS(CAST(DATE_FORMAT(%1, '%Y-%m-%d 00:00:00') AS TIMESTAMP))) - TO_DAYS(%1) + ((TIME_TO_SEC(CAST(DATE_FORMAT(%1, '%Y-%m-%d 00:00:00') AS TIMESTAMP)) - TIME_TO_SEC(%2)) / 86400.0))</formula>
+            <argument type='date' />
+            <argument type='datetime' />
+        </function>
         <function group='operator' name='-' return-type='datetime'>
             <!-- 86400 as it represents seconds in a day -->
-            <formula>DATE_SUB(DATE_SUB(%1, INTERVAL FLOOR(%2) DAY), INTERVAL CAST(86400 * (%2 - FLOOR(%2)) AS INT) SECOND)</formula>
+            <formula>DATE_SUB(%1, INTERVAL CAST((86400 * %2) AS INT) SECOND)</formula>
             <argument type='datetime' />
             <argument type='real' />
         </function>
@@ -252,6 +334,16 @@
             <argument type='date' />
         </function>
 
+        <function group='string' name='LEFT' return-type='str'>
+            <formula>(CASE WHEN %2 >= 0 THEN LEFT(%1, CAST(%2 AS INT)) ELSE NULL END)</formula>
+            <argument type='str' />
+            <argument type='real' />
+        </function>
+        <function group='string' name='RIGHT' return-type='str'>
+            <formula>(CASE WHEN %2 >= 0 THEN RIGHT(%1, CAST(%2 AS INT)) ELSE NULL END)</formula>
+            <argument type='str' />
+            <argument type='real' />
+        </function>
         <function group='string' name='MID' return-type='str'>
             <formula>SUBSTR(%1,%2)</formula>
             <argument type='str' />
@@ -281,7 +373,7 @@
             <argument type='real' />
         </function>
         <function group='string' name='MID' return-type='str'>
-            <formula>SUBSTR(%1,CAST(%2 as int),CAST(%3 as int))</formula>
+            <formula>CASE WHEN %3 &lt; 1 THEN &apos;&apos; WHEN %2 &lt; 1 THEN SUBSTR(%1,1,CAST(%3 AS INT)) ELSE SUBSTR(%1,CAST(%2 AS INT),CAST(%3 AS INT)) END</formula>
             <argument type='str' />
             <argument type='real' />
             <argument type='real' />
@@ -378,9 +470,6 @@
             <argument type='localstr' />
             <argument type='str' />
         </remove-function>
-        <remove-function name='ISDATE'>
-            <argument type='str' />
-        </remove-function>
 
         <remove-function name='USEC_TO_TIMESTAMP'>
             <argument type='int' />
@@ -392,6 +481,14 @@
 
         <remove-function name='SPACE'>
             <argument type='int' />
+        </remove-function>
+        <remove-function name='SPACE'>
+            <argument type='real' />
+        </remove-function>
+        <remove-function name='SPLIT'>
+            <argument type='str' />
+            <argument type='localstr' />
+            <argument type='localint' />
         </remove-function>
    </function-map>
 </dialect>

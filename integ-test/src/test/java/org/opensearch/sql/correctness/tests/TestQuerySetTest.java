@@ -7,7 +7,7 @@
 package org.opensearch.sql.correctness.tests;
 
 import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.junit.Test;
 import org.opensearch.sql.correctness.testset.TestQuerySet;

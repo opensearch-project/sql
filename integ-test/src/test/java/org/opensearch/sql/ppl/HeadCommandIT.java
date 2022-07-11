@@ -59,4 +59,14 @@ public class HeadCommandIT extends PPLIntegTestCase {
         rows("Hattie", 36),
         rows("Nanette", 28));
   }
+
+  @Test
+  public void testHeadWithNumberAndFrom() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source=%s | fields firstname, age | head 3 from 4", TEST_INDEX_ACCOUNT));
+    verifyDataRows(result,
+        rows("Elinor", 36),
+        rows("Virginia", 39),
+        rows("Dillard", 34));
+  }
 }

@@ -14,10 +14,15 @@ root
 
 /** statement */
 pplStatement
-    : searchCommand (PIPE commands)*
+    : pplCommands (PIPE commands)*
     ;
 
 /** commands */
+pplCommands
+    : searchCommand
+    | describeCommand
+    ;
+
 commands
     : whereCommand | fieldsCommand | renameCommand | statsCommand | dedupCommand | sortCommand | evalCommand | headCommand
     | topCommand | rareCommand | parseCommand | kmeansCommand | adCommand;
@@ -26,6 +31,10 @@ searchCommand
     : (SEARCH)? fromClause                                          #searchFrom
     | (SEARCH)? fromClause logicalExpression                        #searchFromFilter
     | (SEARCH)? logicalExpression fromClause                        #searchFilterFrom
+    ;
+
+describeCommand
+    : DESCRIBE tableSourceClause
     ;
 
 whereCommand
@@ -69,6 +78,7 @@ evalCommand
 headCommand
     : HEAD
     (number=integerLiteral)?
+    (FROM from=integerLiteral)?
     ;
     
 topCommand
@@ -118,8 +128,12 @@ adParameter
 
 /** clauses */
 fromClause
-    : SOURCE EQUAL tableSource (COMMA tableSource)*
-    | INDEX EQUAL tableSource (COMMA tableSource)*
+    : SOURCE EQUAL tableSourceClause
+    | INDEX EQUAL tableSourceClause
+    ;
+
+tableSourceClause
+    : tableSource (COMMA tableSource)*
     ;
 
 renameClasue
@@ -170,7 +184,7 @@ statsFunctionName
     ;
 
 percentileAggFunction
-    : PERCENTILE '<' value=integerLiteral '>' LT_PRTHS aggField=fieldExpression RT_PRTHS
+    : PERCENTILE LESS value=integerLiteral GREATER LT_PRTHS aggField=fieldExpression RT_PRTHS
     ;
 
 /** expressions */
@@ -214,9 +228,21 @@ booleanExpression
     ;
 
 relevanceExpression
-    : relevanceFunctionName LT_PRTHS
-        field=relevanceArgValue COMMA query=relevanceArgValue
+    : singleFieldRelevanceFunction | multiFieldRelevanceFunction
+    ;
+
+// Field is a single column
+singleFieldRelevanceFunction
+    : singleFieldRelevanceFunctionName LT_PRTHS
+        field=relevanceField COMMA query=relevanceQuery
         (COMMA relevanceArg)* RT_PRTHS
+    ;
+
+// Field is a list of columns
+multiFieldRelevanceFunction
+    : multiFieldRelevanceFunctionName LT_PRTHS
+        LT_SQR_PRTHS field=relevanceFieldAndWeight (COMMA field=relevanceFieldAndWeight)* RT_SQR_PRTHS
+        COMMA query=relevanceQuery (COMMA relevanceArg)* RT_PRTHS
     ;
 
 /** tables */
@@ -302,9 +328,33 @@ relevanceArg
     ;
 
 relevanceArgName
-    : ANALYZER | FUZZINESS | AUTO_GENERATE_SYNONYMS_PHRASE_QUERY | MAX_EXPANSIONS | PREFIX_LENGTH
-    | FUZZY_TRANSPOSITIONS | FUZZY_REWRITE | LENIENT | OPERATOR | MINIMUM_SHOULD_MATCH | ZERO_TERMS_QUERY
-    | BOOST
+    : ALLOW_LEADING_WILDCARD | ANALYZER | ANALYZE_WILDCARD | AUTO_GENERATE_SYNONYMS_PHRASE_QUERY
+    | BOOST | CUTOFF_FREQUENCY | DEFAULT_FIELD | DEFAULT_OPERATOR | ENABLE_POSITION_INCREMENTS
+    | FIELDS | FLAGS | FUZZINESS | FUZZY_MAX_EXPANSIONS | FUZZY_PREFIX_LENGTH | FUZZY_REWRITE
+    | FUZZY_TRANSPOSITIONS | LENIENT | LOW_FREQ_OPERATOR | MAX_DETERMINIZED_STATES
+    | MAX_EXPANSIONS | MINIMUM_SHOULD_MATCH | OPERATOR | PHRASE_SLOP | PREFIX_LENGTH
+    | QUOTE_ANALYZER | QUOTE_FIELD_SUFFIX | REWRITE | SLOP | TIE_BREAKER | TIME_ZONE | TYPE
+    | ZERO_TERMS_QUERY
+    ;
+
+relevanceFieldAndWeight
+    : field=relevanceField
+    | field=relevanceField weight=relevanceFieldWeight
+    | field=relevanceField BIT_XOR_OP weight=relevanceFieldWeight
+    ;
+
+relevanceFieldWeight
+    : integerLiteral
+    | decimalLiteral
+    ;
+
+relevanceField
+    : qualifiedName
+    | stringLiteral
+    ;
+
+relevanceQuery
+    : relevanceArgValue
     ;
 
 relevanceArgValue
@@ -348,8 +398,17 @@ binaryOperator
     : PLUS | MINUS | STAR | DIVIDE | MODULE
     ;
 
-relevanceFunctionName
+
+singleFieldRelevanceFunctionName
     : MATCH
+    | MATCH_PHRASE
+    | MATCH_BOOL_PREFIX
+    | MATCH_PHRASE_PREFIX
+    ;
+
+multiFieldRelevanceFunctionName
+    : SIMPLE_QUERY_STRING
+    | MULTI_MATCH
     ;
 
 /** literals and values*/

@@ -318,9 +318,20 @@ specificFunction
     ;
 
 relevanceFunction
-    : relevanceFunctionName LR_BRACKET
-        field=relevanceArgValue COMMA query=relevanceArgValue
-        (COMMA relevanceArg)* RR_BRACKET
+    : singleFieldRelevanceFunction | multiFieldRelevanceFunction
+    ;
+
+// Field is a single column
+singleFieldRelevanceFunction
+    : singleFieldRelevanceFunctionName LR_BRACKET
+        field=relevanceField COMMA query=relevanceQuery
+        (COMMA relevanceArg)* RR_BRACKET;
+
+// Field is a list of columns
+multiFieldRelevanceFunction
+    : multiFieldRelevanceFunctionName LR_BRACKET
+        LT_SQR_PRTHS field=relevanceFieldAndWeight (COMMA field=relevanceFieldAndWeight)* RT_SQR_PRTHS
+        COMMA query=relevanceQuery (COMMA relevanceArg)* RR_BRACKET
     ;
 
 convertedDataType
@@ -382,8 +393,14 @@ flowControlFunctionName
     : IF | IFNULL | NULLIF | ISNULL
     ;
 
-relevanceFunctionName
-    : MATCH
+singleFieldRelevanceFunctionName
+    : MATCH | MATCH_PHRASE | MATCHPHRASE
+    | MATCH_BOOL_PREFIX | MATCH_PHRASE_PREFIX
+    ;
+
+multiFieldRelevanceFunctionName
+    : MULTI_MATCH
+    | SIMPLE_QUERY_STRING
     ;
 
 legacyRelevanceFunctionName
@@ -403,9 +420,33 @@ relevanceArg
     ;
 
 relevanceArgName
-    : ANALYZER | FUZZINESS | AUTO_GENERATE_SYNONYMS_PHRASE_QUERY | MAX_EXPANSIONS | PREFIX_LENGTH
-    | FUZZY_TRANSPOSITIONS | FUZZY_REWRITE | LENIENT | OPERATOR | MINIMUM_SHOULD_MATCH | ZERO_TERMS_QUERY
-    | BOOST
+    : ALLOW_LEADING_WILDCARD | ANALYZER | ANALYZE_WILDCARD | AUTO_GENERATE_SYNONYMS_PHRASE_QUERY
+    | BOOST | CUTOFF_FREQUENCY | DEFAULT_FIELD | DEFAULT_OPERATOR | ENABLE_POSITION_INCREMENTS
+    | FIELDS | FLAGS | FUZZINESS | FUZZY_MAX_EXPANSIONS | FUZZY_PREFIX_LENGTH | FUZZY_REWRITE
+    | FUZZY_TRANSPOSITIONS | LENIENT | LOW_FREQ_OPERATOR | MAX_DETERMINIZED_STATES
+    | MAX_EXPANSIONS | MINIMUM_SHOULD_MATCH | OPERATOR | PHRASE_SLOP | PREFIX_LENGTH
+    | QUOTE_ANALYZER | QUOTE_FIELD_SUFFIX | REWRITE | SLOP | TIE_BREAKER | TIME_ZONE | TYPE
+    | ZERO_TERMS_QUERY
+    ;
+
+relevanceFieldAndWeight
+    : field=relevanceField
+    | field=relevanceField weight=relevanceFieldWeight
+    | field=relevanceField BIT_XOR_OP weight=relevanceFieldWeight
+    ;
+
+relevanceFieldWeight
+    : realLiteral
+    | decimalLiteral
+    ;
+
+relevanceField
+    : qualifiedName
+    | stringLiteral
+    ;
+
+relevanceQuery
+    : relevanceArgValue
     ;
 
 relevanceArgValue

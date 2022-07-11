@@ -64,7 +64,7 @@ dependencies {
     testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-client', version: "${opensearch_version}"
     testImplementation group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
     implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version:'2.17.1'
-    testImplementation project(':plugin')
+    testImplementation project(':opensearch-sql-plugin')
     testImplementation project(':legacy')
     testImplementation('org.junit.jupiter:junit-jupiter-api:5.6.2')
     testRuntimeOnly('org.junit.jupiter:junit-jupiter-engine:5.6.2')
@@ -98,12 +98,12 @@ testClusters.all {
 }
 
 testClusters.integTest {
-    plugin ":plugin"
+    plugin ":opensearch-sql-plugin"
 }
 
 // Run PPL ITs and new, legacy and comparison SQL ITs with new SQL engine enabled
 integTest {
-    dependsOn ':plugin:bundlePlugin'
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
 
     systemProperty 'tests.security.manager', 'false'
     systemProperty('project.root', project.projectDir.absolutePath)
@@ -147,7 +147,7 @@ integTest {
 
 
 task comparisonTest(type: RestIntegTestTask) {
-    dependsOn ':plugin:bundlePlugin'
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
 
     systemProperty 'tests.security.manager', 'false'
     systemProperty('project.root', project.projectDir.absolutePath)

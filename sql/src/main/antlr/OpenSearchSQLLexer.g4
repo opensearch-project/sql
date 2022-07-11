@@ -279,6 +279,8 @@ INCLUDE:                            'INCLUDE';
 IN_TERMS:                           'IN_TERMS';
 MATCHPHRASE:                        'MATCHPHRASE';
 MATCH_PHRASE:                       'MATCH_PHRASE';
+SIMPLE_QUERY_STRING:                'SIMPLE_QUERY_STRING';
+MATCH_PHRASE_PREFIX:                'MATCH_PHRASE_PREFIX';
 MATCHQUERY:                         'MATCHQUERY';
 MATCH_QUERY:                        'MATCH_QUERY';
 MINUTE_OF_DAY:                      'MINUTE_OF_DAY';
@@ -310,19 +312,41 @@ STRCMP:                             'STRCMP';
 ADDDATE:                            'ADDDATE';
 
 // RELEVANCE FUNCTIONS AND PARAMETERS
+ALLOW_LEADING_WILDCARD:             'ALLOW_LEADING_WILDCARD';
 ANALYZER:                           'ANALYZER';
-FUZZINESS:                          'FUZZINESS';
+ANALYZE_WILDCARD:                   'ANALYZE_WILDCARD';
 AUTO_GENERATE_SYNONYMS_PHRASE_QUERY:'AUTO_GENERATE_SYNONYMS_PHRASE_QUERY';
-MAX_EXPANSIONS:                     'MAX_EXPANSIONS';
-PREFIX_LENGTH:                      'PREFIX_LENGTH';
-FUZZY_TRANSPOSITIONS:               'FUZZY_TRANSPOSITIONS';
-FUZZY_REWRITE:                      'FUZZY_REWRITE';
-LENIENT:                            'LENIENT';
-OPERATOR:                           'OPERATOR';
-MINIMUM_SHOULD_MATCH:               'MINIMUM_SHOULD_MATCH';
-ZERO_TERMS_QUERY:                   'ZERO_TERMS_QUERY';
 BOOST:                              'BOOST';
+CUTOFF_FREQUENCY:                   'CUTOFF_FREQUENCY';
+DEFAULT_FIELD:                      'DEFAULT_FIELD';
+DEFAULT_OPERATOR:                   'DEFAULT_OPERATOR';
+ENABLE_POSITION_INCREMENTS:         'ENABLE_POSITION_INCREMENTS';
+FIELDS:                             'FIELDS';
+FLAGS:                              'FLAGS';
+FUZZINESS:                          'FUZZINESS';
+FUZZY_MAX_EXPANSIONS:               'FUZZY_MAX_EXPANSIONS';
+FUZZY_PREFIX_LENGTH:                'FUZZY_PREFIX_LENGTH';
+FUZZY_REWRITE:                      'FUZZY_REWRITE';
+FUZZY_TRANSPOSITIONS:               'FUZZY_TRANSPOSITIONS';
+LENIENT:                            'LENIENT';
+LOW_FREQ_OPERATOR:                  'LOW_FREQ_OPERATOR';
+MAX_DETERMINIZED_STATES:            'MAX_DETERMINIZED_STATES';
+MAX_EXPANSIONS:                     'MAX_EXPANSIONS';
+MINIMUM_SHOULD_MATCH:               'MINIMUM_SHOULD_MATCH';
+OPERATOR:                           'OPERATOR';
+PHRASE_SLOP:                        'PHRASE_SLOP';
+PREFIX_LENGTH:                      'PREFIX_LENGTH';
+QUOTE_ANALYZER:                     'QUOTE_ANALYZER';
+QUOTE_FIELD_SUFFIX:                 'QUOTE_FIELD_SUFFIX';
+REWRITE:                            'REWRITE';
+SLOP:                               'SLOP';
+TIE_BREAKER:                        'TIE_BREAKER';
+TIME_ZONE:                          'TIME_ZONE';
+TYPE:                               'TYPE';
+ZERO_TERMS_QUERY:                   'ZERO_TERMS_QUERY';
 
+// RELEVANCE FUNCTIONS
+MATCH_BOOL_PREFIX:                  'MATCH_BOOL_PREFIX';
 // Operators
 
 // Operators. Arithmetics
@@ -357,6 +381,8 @@ BIT_XOR_OP:                         '^';
 DOT:                                '.';
 LR_BRACKET:                         '(';
 RR_BRACKET:                         ')';
+LT_SQR_PRTHS:                       '[';
+RT_SQR_PRTHS:                       ']';
 COMMA:                              ',';
 SEMI:                               ';';
 AT_SIGN:                            '@';

@@ -6,7 +6,7 @@
 
 package org.opensearch.sql.ppl.utils;
 
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;

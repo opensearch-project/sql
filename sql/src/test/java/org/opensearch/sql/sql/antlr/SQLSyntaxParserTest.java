@@ -9,7 +9,20 @@ package org.opensearch.sql.sql.antlr;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Streams;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.stream.Stream;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 
 class SQLSyntaxParserTest {
@@ -144,4 +157,223 @@ class SQLSyntaxParserTest {
     assertThrows(SyntaxCheckException.class, () -> parser.parse("SHOW TABLES"));
   }
 
+  @Test
+  public void can_parse_multi_match_relevance_function() {
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE multi_match(['address'], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE multi_match(['address', 'notes'], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE multi_match([\"*\"], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE multi_match([\"address\"], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE multi_match([`address`], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE multi_match([address], 'query')"));
+
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE"
+            + " multi_match(['address' ^ 1.0, 'notes' ^ 2.2], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE multi_match(['address' ^ 1.1, 'notes'], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE multi_match(['address', 'notes' ^ 1.5], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE multi_match(['address', 'notes' 3], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE multi_match(['address' ^ .3, 'notes' 3], 'query')"));
+
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE"
+            + " multi_match([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE"
+            + " multi_match([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query', analyzer=keyword,"
+            + "operator='AND', tie_breaker=0.3, type = \"most_fields\", fuzziness = \"AUTO\")"));
+  }
+
+  @Test
+  public void can_parse_simple_query_string_relevance_function() {
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE simple_query_string(['address'], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE simple_query_string(['address', 'notes'], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE simple_query_string([\"*\"], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE simple_query_string([\"address\"], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE simple_query_string([`address`], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE simple_query_string([address], 'query')"));
+
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE"
+            + " simple_query_string(['address' ^ 1.0, 'notes' ^ 2.2], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE simple_query_string(['address' ^ 1.1, 'notes'], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE simple_query_string(['address', 'notes' ^ 1.5], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE simple_query_string(['address', 'notes' 3], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE simple_query_string(['address' ^ .3, 'notes' 3], 'query')"));
+
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE"
+            + " simple_query_string([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query')"));
+    assertNotNull(parser.parse(
+        "SELECT id FROM test WHERE"
+            + " simple_query_string([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query', analyzer=keyword,"
+            + "flags='AND', quote_field_suffix=\".exact\", fuzzy_prefix_length = 4)"));
+  }
+
+  @Test
+  public void can_parse_match_relevance_function() {
+    assertNotNull(parser.parse("SELECT * FROM test WHERE match(column, \"this is a test\")"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE match(column, 'this is a test')"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE match(`column`, \"this is a test\")"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE match(`column`, 'this is a test')"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE match(column, 100500)"));
+
+    assertNotNull(
+            parser.parse("SELECT * FROM test WHERE match_phrase(column, \"this is a test\")"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE match_phrase(column, 'this is a test')"));
+    assertNotNull(
+            parser.parse("SELECT * FROM test WHERE match_phrase(`column`, \"this is a test\")"));
+    assertNotNull(
+            parser.parse("SELECT * FROM test WHERE match_phrase(`column`, 'this is a test')"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE match_phrase(column, 100500)"));
+  }
+
+  @ParameterizedTest
+  @MethodSource({
+      "matchPhraseComplexQueries",
+      "matchPhraseGeneratedQueries",
+      "generateMatchPhraseQueries",
+  })
+  public void canParseComplexMatchPhraseArgsTest(String query) {
+    assertNotNull(parser.parse(query));
+  }
+
+  @ParameterizedTest
+  @MethodSource({
+      "generateMatchPhrasePrefixQueries"
+  })
+  public void canParseComplexMatchPhrasePrefixQueries(String query) {
+    assertNotNull(parser.parse(query));
+  }
+
+  private static Stream<String> matchPhraseComplexQueries() {
+    return Stream.of(
+      "SELECT * FROM t WHERE match_phrase(c, 3)",
+      "SELECT * FROM t WHERE match_phrase(c, 3, fuzziness=AUTO)",
+      "SELECT * FROM t WHERE match_phrase(c, 3, zero_terms_query=\"all\")",
+      "SELECT * FROM t WHERE match_phrase(c, 3, lenient=true)",
+      "SELECT * FROM t WHERE match_phrase(c, 3, lenient='true')",
+      "SELECT * FROM t WHERE match_phrase(c, 3, operator=xor)",
+      "SELECT * FROM t WHERE match_phrase(c, 3, cutoff_frequency=0.04)",
+      "SELECT * FROM t WHERE match_phrase(c, 3, cutoff_frequency=0.04, analyzer = english, "
+              + "prefix_length=34, fuzziness='auto', minimum_should_match='2<-25% 9<-3')",
+      "SELECT * FROM t WHERE match_phrase(c, 3, minimum_should_match='2<-25% 9<-3')",
+      "SELECT * FROM t WHERE match_phrase(c, 3, operator='AUTO')"
+    );
+  }
+
+  private static Stream<String> matchPhraseGeneratedQueries() {
+    var matchArgs = new HashMap<String, Object[]>();
+    matchArgs.put("fuzziness", new String[]{ "AUTO", "AUTO:1,5", "1" });
+    matchArgs.put("fuzzy_transpositions", new Boolean[]{ true, false });
+    matchArgs.put("operator", new String[]{ "and", "or" });
+    matchArgs.put("minimum_should_match",
+            new String[]{ "3", "-2", "75%", "-25%", "3<90%", "2<-25% 9<-3" });
+    matchArgs.put("analyzer", new String[]{ "standard", "stop", "english" });
+    matchArgs.put("zero_terms_query", new String[]{ "none", "all" });
+    matchArgs.put("lenient", new Boolean[]{ true, false });
+    // deprecated
+    matchArgs.put("cutoff_frequency", new Double[]{ .0, 0.001, 1., 42. });
+    matchArgs.put("prefix_length", new Integer[]{ 0, 2, 5 });
+    matchArgs.put("max_expansions", new Integer[]{ 0, 5, 20 });
+    matchArgs.put("boost", new Double[]{ .5, 1., 2.3 });
+
+    return generateQueries("match", matchArgs);
+  }
+
+  private static Stream<String> generateMatchPhraseQueries() {
+    var matchPhraseArgs = new HashMap<String, Object[]>();
+    matchPhraseArgs.put("analyzer", new String[]{ "standard", "stop", "english" });
+    matchPhraseArgs.put("max_expansions", new Integer[]{ 0, 5, 20 });
+    matchPhraseArgs.put("slop", new Integer[]{ 0, 1, 2 });
+
+    return generateQueries("match_phrase", matchPhraseArgs);
+  }
+
+  private static Stream<String> generateMatchPhrasePrefixQueries() {
+    return generateQueries("match_phrase_prefix", ImmutableMap.<String, Object[]>builder()
+        .put("analyzer", new String[] {"standard", "stop", "english"})
+        .put("slop", new Integer[] {0, 1, 2})
+        .put("max_expansions", new Integer[] {0, 3, 10})
+        .put("zero_terms_query", new String[] {"NONE", "ALL", "NULL"})
+        .put("boost", new Float[] {-0.5f, 1.0f, 1.2f})
+        .build());
+  }
+
+  private static Stream<String> generateQueries(String function,
+                                                Map<String, Object[]> functionArgs) {
+    var rand = new Random(0);
+
+    class QueryGenerator implements Iterator<String> {
+
+      private int currentQuery = 0;
+
+      private String randomIdentifier() {
+        return RandomStringUtils.random(10, 0, 0,true, false, null, rand);
+      }
+
+      @Override
+      public boolean hasNext() {
+        int numQueries = 100;
+        return currentQuery < numQueries;
+      }
+
+      @Override
+      public String next() {
+        currentQuery += 1;
+
+        StringBuilder query = new StringBuilder();
+        query.append(String.format("SELECT * FROM test WHERE %s(%s, %s", function,
+            randomIdentifier(),
+            randomIdentifier()));
+        var args = new ArrayList<String>();
+        for (var pair : functionArgs.entrySet()) {
+          if (rand.nextBoolean()) {
+            var arg = new StringBuilder();
+            arg.append(rand.nextBoolean() ? "," : ", ");
+            arg.append(rand.nextBoolean() ? pair.getKey().toLowerCase()
+                    : pair.getKey().toUpperCase());
+            arg.append(rand.nextBoolean() ? "=" : " = ");
+            if (pair.getValue() instanceof String[] || rand.nextBoolean()) {
+              var quoteSymbol = rand.nextBoolean() ? '\'' : '"';
+              arg.append(quoteSymbol);
+              arg.append(pair.getValue()[rand.nextInt(pair.getValue().length)]);
+              arg.append(quoteSymbol);
+            } else {
+              arg.append(pair.getValue()[rand.nextInt(pair.getValue().length)]);
+            }
+            args.add(arg.toString());
+          }
+        }
+        Collections.shuffle(args, rand);
+        for (var arg : args) {
+          query.append(arg);
+        }
+        query.append(rand.nextBoolean() ? ")" : ");");
+        return query.toString();
+      }
+    }
+
+    var it = new QueryGenerator();
+    return Streams.stream(it);
+  }
 }

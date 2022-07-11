@@ -45,7 +45,7 @@ public class ConditionalIT extends SQLIntegTestCase {
     JSONObject response = executeJdbcRequest(
         "SELECT IFNULL(lastname, 'unknown') AS name FROM " + TEST_INDEX_ACCOUNT
             + " GROUP BY name");
-    assertEquals("IFNULL(lastname, \'unknown\')", response.query("/schema/0/name"));
+    assertEquals("IFNULL(lastname, 'unknown')", response.query("/schema/0/name"));
     assertEquals("name", response.query("/schema/0/alias"));
     assertEquals("keyword", response.query("/schema/0/type"));
   }
@@ -92,7 +92,7 @@ public class ConditionalIT extends SQLIntegTestCase {
   public void nullifShouldPassJDBC() throws IOException {
     JSONObject response = executeJdbcRequest(
             "SELECT NULLIF(lastname, 'unknown') AS name FROM " + TEST_INDEX_ACCOUNT);
-    assertEquals("NULLIF(lastname, \'unknown\')", response.query("/schema/0/name"));
+    assertEquals("NULLIF(lastname, 'unknown')", response.query("/schema/0/name"));
     assertEquals("name", response.query("/schema/0/alias"));
     assertEquals("keyword", response.query("/schema/0/type"));
   }
@@ -181,8 +181,8 @@ public class ConditionalIT extends SQLIntegTestCase {
   @Test
   public void ifShouldPassJDBC() throws IOException {
     JSONObject response = executeJdbcRequest(
-            "SELECT IF(2 > 0, \'hello\', \'world\') AS name FROM " + TEST_INDEX_ACCOUNT);
-    assertEquals("IF(2 > 0, \'hello\', \'world\')", response.query("/schema/0/name"));
+        "SELECT IF(2 > 0, 'hello', 'world') AS name FROM " + TEST_INDEX_ACCOUNT);
+    assertEquals("IF(2 > 0, 'hello', 'world')", response.query("/schema/0/name"));
     assertEquals("name", response.query("/schema/0/alias"));
     assertEquals("keyword", response.query("/schema/0/type"));
   }
@@ -217,9 +217,5 @@ public class ConditionalIT extends SQLIntegTestCase {
         LoggingDeprecationHandler.INSTANCE,
         rsp);
     return SearchResponse.fromXContent(parser).getHits();
-  }
-
-  private JSONObject executeJdbcRequest(String query) {
-    return new JSONObject(executeQuery(query, "jdbc"));
   }
 }

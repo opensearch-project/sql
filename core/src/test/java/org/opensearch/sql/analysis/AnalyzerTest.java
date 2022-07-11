@@ -83,7 +83,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   public void head_relation() {
     assertAnalyzeEqual(
         LogicalPlanDSL.limit(LogicalPlanDSL.relation("schema"),10, 0),
-        AstDSL.head(AstDSL.relation("schema"), 10));
+        AstDSL.head(AstDSL.relation("schema"), 10, 0));
   }
 
   @Test

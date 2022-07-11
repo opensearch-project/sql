@@ -10,10 +10,12 @@ import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
+import static org.opensearch.sql.ast.dsl.AstDSL.floatLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
@@ -22,7 +24,10 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.expression.DSL.ref;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensearch.sql.analysis.symbol.Namespace;
@@ -30,10 +35,12 @@ import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.RelevanceFieldList;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
@@ -337,6 +344,17 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
+  void match_bool_prefix_expression() {
+    assertAnalyzeEqual(
+        dsl.match_bool_prefix(
+            dsl.namedArgument("field", DSL.literal("fieldA")),
+            dsl.namedArgument("query", DSL.literal("sample query"))),
+        AstDSL.function("match_bool_prefix",
+            AstDSL.unresolvedArg("field", stringLiteral("fieldA")),
+            AstDSL.unresolvedArg("query", stringLiteral("sample query"))));
+  }
+
+  @Test
   void visit_span() {
     assertAnalyzeEqual(
         DSL.span(DSL.ref("integer_value", INTEGER), DSL.literal(1), ""),
@@ -357,6 +375,120 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
     assertThrows(
         SemanticCheckException.class,
         () -> analyze(AstDSL.in(field("integer_value"), Collections.emptyList())));
+  }
+
+  @Test
+  void multi_match_expression() {
+    assertAnalyzeEqual(
+        dsl.multi_match(
+            dsl.namedArgument("fields", DSL.literal(
+                new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
+                    "field", ExprValueUtils.floatValue(1.F)))))),
+            dsl.namedArgument("query", DSL.literal("sample query"))),
+        AstDSL.function("multi_match",
+            AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of(
+                "field", 1.F))),
+            AstDSL.unresolvedArg("query", stringLiteral("sample query"))));
+  }
+
+  @Test
+  void multi_match_expression_with_params() {
+    assertAnalyzeEqual(
+        dsl.multi_match(
+            dsl.namedArgument("fields", DSL.literal(
+                new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
+                    "field", ExprValueUtils.floatValue(1.F)))))),
+            dsl.namedArgument("query", DSL.literal("sample query")),
+            dsl.namedArgument("analyzer", DSL.literal("keyword"))),
+        AstDSL.function("multi_match",
+            AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of(
+                "field", 1.F))),
+            AstDSL.unresolvedArg("query", stringLiteral("sample query")),
+            AstDSL.unresolvedArg("analyzer", stringLiteral("keyword"))));
+  }
+
+  @Test
+  void multi_match_expression_two_fields() {
+    assertAnalyzeEqual(
+        dsl.multi_match(
+            dsl.namedArgument("fields", DSL.literal(
+                new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
+                    "field1", ExprValueUtils.floatValue(1.F),
+                    "field2", ExprValueUtils.floatValue(.3F)))))),
+            dsl.namedArgument("query", DSL.literal("sample query"))),
+        AstDSL.function("multi_match",
+            AstDSL.unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
+                "field1", 1.F, "field2", .3F))),
+            AstDSL.unresolvedArg("query", stringLiteral("sample query"))));
+  }
+
+  @Test
+  void simple_query_string_expression() {
+    assertAnalyzeEqual(
+        dsl.simple_query_string(
+            dsl.namedArgument("fields", DSL.literal(
+                new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
+                    "field", ExprValueUtils.floatValue(1.F)))))),
+            dsl.namedArgument("query", DSL.literal("sample query"))),
+        AstDSL.function("simple_query_string",
+            AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of(
+                "field", 1.F))),
+            AstDSL.unresolvedArg("query", stringLiteral("sample query"))));
+  }
+
+  @Test
+  void simple_query_string_expression_with_params() {
+    assertAnalyzeEqual(
+        dsl.simple_query_string(
+            dsl.namedArgument("fields", DSL.literal(
+                new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
+                    "field", ExprValueUtils.floatValue(1.F)))))),
+            dsl.namedArgument("query", DSL.literal("sample query")),
+            dsl.namedArgument("analyzer", DSL.literal("keyword"))),
+        AstDSL.function("simple_query_string",
+            AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of(
+                "field", 1.F))),
+            AstDSL.unresolvedArg("query", stringLiteral("sample query")),
+            AstDSL.unresolvedArg("analyzer", stringLiteral("keyword"))));
+  }
+
+  @Test
+  void simple_query_string_expression_two_fields() {
+    assertAnalyzeEqual(
+        dsl.simple_query_string(
+            dsl.namedArgument("fields", DSL.literal(
+                new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
+                    "field1", ExprValueUtils.floatValue(1.F),
+                    "field2", ExprValueUtils.floatValue(.3F)))))),
+            dsl.namedArgument("query", DSL.literal("sample query"))),
+        AstDSL.function("simple_query_string",
+            AstDSL.unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
+                "field1", 1.F, "field2", .3F))),
+            AstDSL.unresolvedArg("query", stringLiteral("sample query"))));
+  }
+
+  @Test
+  public void match_phrase_prefix_all_params() {
+    assertAnalyzeEqual(
+        dsl.match_phrase_prefix(
+            dsl.namedArgument("field", "test"),
+            dsl.namedArgument("query", "search query"),
+            dsl.namedArgument("slop", "3"),
+            dsl.namedArgument("boost", "1.5"),
+            dsl.namedArgument("analyzer", "standard"),
+            dsl.namedArgument("max_expansions", "4"),
+            dsl.namedArgument("zero_terms_query", "NONE")
+            ),
+        AstDSL.function("match_phrase_prefix",
+          unresolvedArg("field", stringLiteral("test")),
+          unresolvedArg("query", stringLiteral("search query")),
+          unresolvedArg("slop", stringLiteral("3")),
+          unresolvedArg("boost", stringLiteral("1.5")),
+          unresolvedArg("analyzer", stringLiteral("standard")),
+          unresolvedArg("max_expansions", stringLiteral("4")),
+          unresolvedArg("zero_terms_query", stringLiteral("NONE"))
+          )
+    );
   }
 
   protected Expression analyze(UnresolvedExpression unresolvedExpression) {

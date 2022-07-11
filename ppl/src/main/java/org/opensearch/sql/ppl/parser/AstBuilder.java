@@ -6,7 +6,9 @@
 
 package org.opensearch.sql.ppl.parser;
 
+import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FromClauseContext;
@@ -19,8 +21,10 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFrom
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFromFilterContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WhereCommandContext;
+import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -79,11 +83,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitPplStatement(PplStatementContext ctx) {
-    UnresolvedPlan search = visit(ctx.searchCommand());
+    UnresolvedPlan pplCommand = visit(ctx.pplCommands());
     return ctx.commands()
         .stream()
         .map(this::visit)
-        .reduce(search, (r, e) -> e.attach(r));
+        .reduce(pplCommand, (r, e) -> e.attach(r));
   }
 
   /**
@@ -104,6 +108,15 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitSearchFilterFrom(SearchFilterFromContext ctx) {
     return new Filter(internalVisitExpression(ctx.logicalExpression())).attach(
         visit(ctx.fromClause()));
+  }
+
+  /**
+   * Describe command.
+   */
+  @Override
+  public UnresolvedPlan visitDescribeCommand(DescribeCommandContext ctx) {
+    final Relation table = (Relation) visitTableSourceClause(ctx.tableSourceClause());
+    return new Relation(qualifiedName(mappingTable(table.getTableName())));
   }
 
   /**
@@ -200,7 +213,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitHeadCommand(HeadCommandContext ctx) {
     Integer size = ctx.number != null ? Integer.parseInt(ctx.number.getText()) : 10;
-    return new Head(size);
+    Integer from = ctx.from != null ? Integer.parseInt(ctx.from.getText()) : 0;
+    return new Head(size, from);
   }
 
   /**
@@ -285,6 +299,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    */
   @Override
   public UnresolvedPlan visitFromClause(FromClauseContext ctx) {
+    return visitTableSourceClause(ctx.tableSourceClause());
+  }
+
+  @Override
+  public UnresolvedPlan visitTableSourceClause(TableSourceClauseContext ctx) {
     return new Relation(ctx.tableSource()
         .stream().map(this::internalVisitExpression)
         .collect(Collectors.toList()));
