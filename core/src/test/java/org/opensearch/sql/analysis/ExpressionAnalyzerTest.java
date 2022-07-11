@@ -510,6 +510,7 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
             AstDSL.unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
                 "field1", 1.F, "field2", .3F))),
             AstDSL.unresolvedArg("query", stringLiteral("query_value"))));
+  }
 
   @Test
   public void match_phrase_prefix_all_params() {
