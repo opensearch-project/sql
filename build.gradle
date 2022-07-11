@@ -160,11 +160,9 @@ task versionIncrement {
             fileset(dir: projectDir) {
                 // Include the required files that needs to be updated with new Version
                 include(name: ".github/workflows/sql-workbench-test-and-build-workflow.yml")
-                include(name: "doctest/build.gradle")
                 include(name: "build.gradle")
             }
         }
-        ant.replaceregexp(file:'sql-jdbc/build.gradle', match:"version '\\d+.\\d+.\\d+.\\d+'", replace:"version " + "'" + newVersion.tokenize('-')[0] + '.0' + "'", flags:'g', byline:true)
         ant.replaceregexp(match:'"version": "\\d+.\\d+.\\d+.\\d+', replace:'"version": ' + '"' + newVersion.tokenize('-')[0] + '.0', flags:'g', byline:true) {
             fileset(dir: projectDir) {
                 include(name: "workbench/package.json")
