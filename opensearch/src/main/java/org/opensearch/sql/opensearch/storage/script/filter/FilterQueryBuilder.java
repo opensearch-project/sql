@@ -34,6 +34,7 @@ import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.Matc
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhraseQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MultiMatchQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.QueryStringQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.SimpleQueryStringQuery;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
@@ -64,6 +65,7 @@ public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Obje
           .put(BuiltinFunctionName.MATCHQUERY.getName(), new MatchQuery())
           .put(BuiltinFunctionName.MULTI_MATCH.getName(), new MultiMatchQuery())
           .put(BuiltinFunctionName.SIMPLE_QUERY_STRING.getName(), new SimpleQueryStringQuery())
+          .put(BuiltinFunctionName.QUERY_STRING.getName(), new QueryStringQuery())
           .put(BuiltinFunctionName.MATCH_BOOL_PREFIX.getName(), new MatchBoolPrefixQuery())
           .put(BuiltinFunctionName.MATCH_PHRASE_PREFIX.getName(), new MatchPhrasePrefixQuery())
           .build();

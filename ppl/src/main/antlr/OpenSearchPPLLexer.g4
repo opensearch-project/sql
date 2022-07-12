@@ -276,6 +276,8 @@ MATCH_PHRASE_PREFIX:                'MATCH_PHRASE_PREFIX';
 MATCH_BOOL_PREFIX:                  'MATCH_BOOL_PREFIX';
 SIMPLE_QUERY_STRING:                'SIMPLE_QUERY_STRING';
 MULTI_MATCH:                        'MULTI_MATCH';
+QUERY_STRING:                       'QUERY_STRING';
+
 ALLOW_LEADING_WILDCARD:             'ALLOW_LEADING_WILDCARD';
 ANALYZE_WILDCARD:                   'ANALYZE_WILDCARD';
 ANALYZER:                           'ANALYZER';
@@ -285,6 +287,7 @@ CUTOFF_FREQUENCY:                   'CUTOFF_FREQUENCY';
 DEFAULT_FIELD:                      'DEFAULT_FIELD';
 DEFAULT_OPERATOR:                   'DEFAULT_OPERATOR';
 ENABLE_POSITION_INCREMENTS:         'ENABLE_POSITION_INCREMENTS';
+ESCAPE:                             'ESCAPE';
 FLAGS:                              'FLAGS';
 FUZZY_MAX_EXPANSIONS:               'FUZZY_MAX_EXPANSIONS';
 FUZZY_PREFIX_LENGTH:                'FUZZY_PREFIX_LENGTH';

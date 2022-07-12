@@ -694,4 +694,22 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         )
     );
   }
+
+  @Test
+  public void canBuildQuery_stringRelevanceFunctionWithArguments() {
+    assertEqual(
+        "source=test | where query_string(['field1', 'field2' ^ 3.2],"
+            + "'test query', analyzer='keyword')",
+        filter(
+            relation("test"),
+            function(
+                "query_string",
+                unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
+                    "field1", 1.F, "field2", 3.2F))),
+                unresolvedArg("query", stringLiteral("test query")),
+                unresolvedArg("analyzer", stringLiteral("keyword"))
+            )
+        )
+    );
+  }
 }

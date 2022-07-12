@@ -468,6 +468,51 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
+  void query_string_expression() {
+    assertAnalyzeEqual(
+        dsl.query_string(
+            dsl.namedArgument("fields", DSL.literal(
+                new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
+                    "field", ExprValueUtils.floatValue(1.F)))))),
+            dsl.namedArgument("query", DSL.literal("query_value"))),
+        AstDSL.function("query_string",
+            AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of(
+                "field", 1.F))),
+            AstDSL.unresolvedArg("query", stringLiteral("query_value"))));
+  }
+
+  @Test
+  void query_string_expression_with_params() {
+    assertAnalyzeEqual(
+        dsl.query_string(
+            dsl.namedArgument("fields", DSL.literal(
+                new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
+                    "field", ExprValueUtils.floatValue(1.F)))))),
+            dsl.namedArgument("query", DSL.literal("query_value")),
+            dsl.namedArgument("escape", DSL.literal("false"))),
+        AstDSL.function("query_string",
+            AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of(
+                "field", 1.F))),
+            AstDSL.unresolvedArg("query", stringLiteral("query_value")),
+            AstDSL.unresolvedArg("escape", stringLiteral("false"))));
+  }
+
+  @Test
+  void query_string_expression_two_fields() {
+    assertAnalyzeEqual(
+        dsl.query_string(
+            dsl.namedArgument("fields", DSL.literal(
+                new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
+                    "field1", ExprValueUtils.floatValue(1.F),
+                    "field2", ExprValueUtils.floatValue(.3F)))))),
+            dsl.namedArgument("query", DSL.literal("query_value"))),
+        AstDSL.function("query_string",
+            AstDSL.unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
+                "field1", 1.F, "field2", .3F))),
+            AstDSL.unresolvedArg("query", stringLiteral("query_value"))));
+  }
+
+  @Test
   public void match_phrase_prefix_all_params() {
     assertAnalyzeEqual(
         dsl.match_phrase_prefix(
