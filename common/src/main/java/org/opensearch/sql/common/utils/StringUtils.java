@@ -35,24 +35,35 @@ public class StringUtils {
   public static String unquoteText(String text) {
     StringBuilder textSB = new StringBuilder();
 
-    char outsideQuote = whichQuote(text);
-    if (outsideQuote != 0) {
-      char currentChar;
-      char nextChar;
+    char enclosingQuote = Character.MIN_VALUE;
+    char firstChar = text.charAt(0);
+    char lastChar = text.charAt(text.length() - 1);
 
-      for (int chIndex = 1; chIndex < text.length() - 1; chIndex++) {
-        currentChar = text.charAt(chIndex);
-        nextChar = text.charAt(chIndex + 1);
-        if (currentChar == outsideQuote
-            && nextChar == currentChar
-            && currentChar != '`') {
-          chIndex++;
-        }
-        textSB.append(currentChar);
-      }
-    } else {
-      textSB.append(text);
+    if (firstChar == lastChar
+        && (firstChar == '\''
+        || firstChar == '"'
+        || firstChar == '`')) {
+      enclosingQuote = firstChar;
     }
+
+    if (enclosingQuote == Character.MIN_VALUE) {
+      return text;
+    }
+    char currentChar;
+    char nextChar;
+
+    // Ignores first and last character as they are the quotes that should be removed
+    for (int chIndex = 1; chIndex < text.length() - 1; chIndex++) {
+      currentChar = text.charAt(chIndex);
+      nextChar = text.charAt(chIndex + 1);
+      if (currentChar == enclosingQuote
+          && nextChar == currentChar
+          && currentChar != '`') {
+        chIndex++;
+      }
+      textSB.append(currentChar);
+    }
+
     return textSB.toString();
   }
 
@@ -90,26 +101,4 @@ public class StringUtils {
   private static boolean isQuoted(String text, String mark) {
     return !Strings.isNullOrEmpty(text) && text.startsWith(mark) && text.endsWith(mark);
   }
-
-  /**
-   * Returns a character that is quoted or 0 if there is no quote.
-   *
-   * @return A formatted string
-   */
-  public static char whichQuote(String text) {
-    char firstChar = text.charAt(0);
-    char lastChar = text.charAt(text.length() - 1);
-    char quote = 0;
-
-    if (firstChar == lastChar) {
-      if (firstChar == '\''
-          || firstChar == '"'
-          || firstChar == '`') {
-        quote = firstChar;
-      }
-    }
-
-    return quote;
-  }
 }
-
