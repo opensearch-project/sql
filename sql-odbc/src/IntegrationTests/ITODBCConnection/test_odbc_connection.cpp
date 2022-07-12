@@ -283,26 +283,6 @@ TEST_F(TestSQLDriverConnect, ConnStringAbbrevsUIDPWD) {
     EXPECT_EQ(SQL_SUCCESS, ret);
 }
 
-TEST_F(TestSQLDriverConnect, ConnStringAbbrevsHostMixedProtocol) {
-    std::wstring abbrev_str =
-        use_ssl ? L"Driver={OpenSearch ODBC};"
-                  L"host=http://localhost;port=9200;"
-                  L"UID=admin;PWD=admin;auth=BASIC;useSSL=1;"
-                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
-                  L"responseTimeout=10;"
-                : L"Driver={OpenSearch ODBC};"
-                  L"host=https://localhost;port=9200;"
-                  L"UID=admin;PWD=admin;auth=BASIC;useSSL=0;"
-                  L"hostnameVerification=0;logLevel=0;logOutput=C:\\;"
-                  L"responseTimeout=10;";
-
-    SQLRETURN ret =
-        SQLDriverConnect(m_conn, NULL, (SQLTCHAR*)abbrev_str.c_str(), SQL_NTS,
-                         m_out_conn_string, IT_SIZEOF(m_out_conn_string),
-                         &m_out_conn_string_length, SQL_DRIVER_NOPROMPT);
-    EXPECT_EQ(SQL_ERROR, ret);
-}
-
 TEST_F(TestSQLDriverConnect, ConnStringAbbrevsHost) {
     std::wstring abbrev_str =
         use_ssl ? L"Driver={OpenSearch ODBC};"

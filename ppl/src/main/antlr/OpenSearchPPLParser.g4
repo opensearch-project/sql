@@ -403,6 +403,7 @@ singleFieldRelevanceFunctionName
     : MATCH
     | MATCH_PHRASE
     | MATCH_BOOL_PREFIX
+    | MATCH_PHRASE_PREFIX
     ;
 
 multiFieldRelevanceFunctionName

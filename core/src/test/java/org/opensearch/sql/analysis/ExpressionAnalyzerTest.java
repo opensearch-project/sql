@@ -15,6 +15,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
@@ -464,6 +465,30 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
             AstDSL.unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
                 "field1", 1.F, "field2", .3F))),
             AstDSL.unresolvedArg("query", stringLiteral("sample query"))));
+  }
+
+  @Test
+  public void match_phrase_prefix_all_params() {
+    assertAnalyzeEqual(
+        dsl.match_phrase_prefix(
+            dsl.namedArgument("field", "test"),
+            dsl.namedArgument("query", "search query"),
+            dsl.namedArgument("slop", "3"),
+            dsl.namedArgument("boost", "1.5"),
+            dsl.namedArgument("analyzer", "standard"),
+            dsl.namedArgument("max_expansions", "4"),
+            dsl.namedArgument("zero_terms_query", "NONE")
+            ),
+        AstDSL.function("match_phrase_prefix",
+          unresolvedArg("field", stringLiteral("test")),
+          unresolvedArg("query", stringLiteral("search query")),
+          unresolvedArg("slop", stringLiteral("3")),
+          unresolvedArg("boost", stringLiteral("1.5")),
+          unresolvedArg("analyzer", stringLiteral("standard")),
+          unresolvedArg("max_expansions", stringLiteral("4")),
+          unresolvedArg("zero_terms_query", stringLiteral("NONE"))
+          )
+    );
   }
 
   protected Expression analyze(UnresolvedExpression unresolvedExpression) {
