@@ -64,6 +64,13 @@ public class RestSQLQueryAction extends BaseRestHandler {
    * Settings required by been initialization.
    */
   private final Settings pluginSettings;
+
+  /**
+   * Captured error message to aggregate diagnostics
+   * for both legacy and new SQL engines.
+   * This member variable and it's usage can be deleted once the
+   * legacy SQL engine is deprecated.
+   */
   private String ErrorStr;
 
   /**
@@ -90,10 +97,18 @@ public class RestSQLQueryAction extends BaseRestHandler {
     throw new UnsupportedOperationException("New SQL handler is not ready yet");
   }
 
+  /**
+   * Setter for ErrorStr member variable.
+   * @param error : String error value to set member variable.
+   */
   public void setErrorStr(String error) {
     ErrorStr = error;
   }
 
+  /**
+   * Getter for ErrorStr member variable.
+   * @return : ErrorStr member variable.
+   */
   public String getErrorStr() {
     return ErrorStr;
   }
@@ -122,6 +137,11 @@ public class RestSQLQueryAction extends BaseRestHandler {
       if (request.isExplainRequest()) {
         LOG.info("Request is falling back to old SQL engine due to: " + e.getMessage());
       }
+
+      /**
+       * Setting ErrorStr member variable is used to aggregate error messages when both legacy and new SQL engines fail.
+       * This implementation can be removed when the legacy SQL engine is deprecated.
+       */
       setErrorStr(ErrorMessageFactory.createErrorMessage(e, isClientError(e) ? BAD_REQUEST.getStatus() : SERVICE_UNAVAILABLE.getStatus()).toString());
       return NOT_SUPPORTED_YET;
     }

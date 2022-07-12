@@ -253,10 +253,17 @@ public class RestSqlAction extends BaseRestHandler {
         channel.sendResponse(new BytesRestResponse(status, message));
     }
 
-    private void reportError(final RestChannel channel, final Exception e, final RestStatus status, String otherError) {
-        sendResponse(channel, ErrorMessageFactory.createErrorMessage(e, status.getStatus()).toString() + (otherError.isEmpty()
+    /**
+     * Report Error message to user.
+     * @param channel : Rest channel to sent response through.
+     * @param e : Exception caught when attempting query.
+     * @param status : Status for rest request made.
+     * @param newSqlEngineError : Error message for new SQL engine. Can be removed when old SQL engine is deprecated.
+     */
+    private void reportError(final RestChannel channel, final Exception e, final RestStatus status, String newSqlEngineError) {
+        sendResponse(channel, ErrorMessageFactory.createErrorMessage(e, status.getStatus()).toString() + (newSqlEngineError.isEmpty()
             ? "" : "\nQuery failed both legacy and new SQL engines, see error message below for new SQL engine error.\n"
-            + otherError), status);
+            + newSqlEngineError), status);
     }
 
     private boolean isSQLFeatureEnabled() {
