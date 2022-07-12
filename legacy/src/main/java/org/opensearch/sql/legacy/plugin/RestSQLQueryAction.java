@@ -71,7 +71,7 @@ public class RestSQLQueryAction extends BaseRestHandler {
    * This member variable and it's usage can be deleted once the
    * legacy SQL engine is deprecated.
    */
-  private String ErrorStr;
+  private String errorStr;
 
   /**
    * Constructor of RestSQLQueryAction.
@@ -98,19 +98,19 @@ public class RestSQLQueryAction extends BaseRestHandler {
   }
 
   /**
-   * Setter for ErrorStr member variable.
+   * Setter for errorStr member variable.
    * @param error : String error value to set member variable.
    */
   public void setErrorStr(String error) {
-    ErrorStr = error;
+    errorStr = error;
   }
 
   /**
-   * Getter for ErrorStr member variable.
-   * @return : ErrorStr member variable.
+   * Getter for errorStr member variable.
+   * @return : errorStr member variable.
    */
   public String getErrorStr() {
-    return ErrorStr;
+    return errorStr;
   }
 
   /**
@@ -139,7 +139,7 @@ public class RestSQLQueryAction extends BaseRestHandler {
       }
 
       /**
-       * Setting ErrorStr member variable is used to aggregate error messages when both legacy and new SQL engines fail.
+       * Setting errorStr member variable is used to aggregate error messages when both legacy and new SQL engines fail.
        * This implementation can be removed when the legacy SQL engine is deprecated.
        */
       setErrorStr(ErrorMessageFactory.createErrorMessage(e, isClientError(e) ? BAD_REQUEST.getStatus() : SERVICE_UNAVAILABLE.getStatus()).toString());

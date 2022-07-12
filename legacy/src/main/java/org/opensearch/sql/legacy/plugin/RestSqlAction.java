@@ -258,12 +258,14 @@ public class RestSqlAction extends BaseRestHandler {
      * @param channel : Rest channel to sent response through.
      * @param e : Exception caught when attempting query.
      * @param status : Status for rest request made.
-     * @param newSqlEngineError : Error message for new SQL engine. Can be removed when old SQL engine is deprecated.
+     * @param v2SqlEngineError : Error message for new SQL engine. Can be removed when old SQL engine is deprecated.
      */
-    private void reportError(final RestChannel channel, final Exception e, final RestStatus status, String newSqlEngineError) {
-        sendResponse(channel, ErrorMessageFactory.createErrorMessage(e, status.getStatus()).toString() + (newSqlEngineError.isEmpty()
-            ? "" : "\nQuery failed both legacy and new SQL engines, see error message below for new SQL engine error.\n"
-            + newSqlEngineError), status);
+    private void reportError(final RestChannel channel, final Exception e, final RestStatus status, String v2SqlEngineError) {
+        String errorMsg = ErrorMessageFactory.createErrorMessage(e, status.getStatus()).toString();
+        errorMsg += v2SqlEngineError.isEmpty() ? "" :
+            "\nQuery failed on both V1 and V2 SQL parser engines. V2 SQL parser error following: \n"
+            + v2SqlEngineError;
+        sendResponse(channel, errorMsg, status);
     }
 
     private boolean isSQLFeatureEnabled() {
