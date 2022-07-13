@@ -24,7 +24,7 @@ plugins {
 group 'org.opensearch.client'
 
 // keep version in sync with version in Driver source
-version '2.1.0.0'
+version '2.1.1.0'
 
 boolean snapshot = "true".equals(System.getProperty("build.snapshot", "false"));
 if (snapshot) {
@@ -55,7 +55,7 @@ dependencies {
     testImplementation('org.mockito:mockito-core:2.23.0')
     testImplementation('org.junit.jupiter:junit-jupiter-engine:5.3.1')
     testImplementation('org.junit-pioneer:junit-pioneer:0.3.0')
-    testImplementation('org.eclipse.jetty:jetty-server:9.2.24.v20180105')
+    testImplementation('org.eclipse.jetty:jetty-server:9.2.24.v2.1.1105')
 
     testRuntimeOnly('org.slf4j:slf4j-simple:1.7.25') // capture WireMock logging
 }
