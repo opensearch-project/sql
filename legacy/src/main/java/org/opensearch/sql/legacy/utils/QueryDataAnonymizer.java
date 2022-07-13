@@ -26,7 +26,8 @@ public class QueryDataAnonymizer {
      * Sensitive data includes index names, column names etc.,
      * which in druid parser are parsed to SQLIdentifierExpr instances
      * @param query entire sql query string
-     * @return sql query string with all identifiers replaced with "***"
+     * @return sql query string with all identifiers replaced with "***" on success
+     * and failure string otherwise to ensure no non-anonymized data is logged in production.
      */
     public static String anonymizeData(String query) {
         String resultQuery;
@@ -38,7 +39,8 @@ public class QueryDataAnonymizer {
                     .replaceAll("false", "boolean_literal")
                     .replaceAll("[\\n][\\t]+", " ");
         } catch (Exception e) {
-            LOG.warn("Caught an exception when anonymizing sensitive data");
+            LOG.warn("Caught an exception when anonymizing sensitive data.");
+            LOG.debug("String {} failed anonymization.", query);
             resultQuery = "Failed to anonymize data.";
         }
         return resultQuery;
