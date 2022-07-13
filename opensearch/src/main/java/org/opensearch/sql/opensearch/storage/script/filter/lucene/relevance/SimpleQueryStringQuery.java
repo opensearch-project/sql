@@ -6,8 +6,13 @@
 package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 
 import com.google.common.collect.ImmutableMap;
+
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.Objects;
+
+import org.opensearch.common.Strings;
 import org.opensearch.index.query.Operator;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
@@ -17,6 +22,9 @@ import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
+
+import static org.opensearch.index.query.SimpleQueryStringFlag.ALL;
+import static org.opensearch.index.query.SimpleQueryStringFlag.NONE;
 
 public class SimpleQueryStringQuery extends RelevanceQuery<SimpleQueryStringBuilder> {
   /**
@@ -31,7 +39,9 @@ public class SimpleQueryStringQuery extends RelevanceQuery<SimpleQueryStringBuil
             b.autoGenerateSynonymsPhraseQuery(Boolean.parseBoolean(v.stringValue())))
         .put("boost", (b, v) -> b.boost(Float.parseFloat(v.stringValue())))
         .put("default_operator", (b, v) -> b.defaultOperator(Operator.fromString(v.stringValue())))
-        .put("flags", (b, v) -> b.flags(SimpleQueryStringFlag.valueOf(v.stringValue())))
+        .put("flags", (b, v) -> b.flags(Arrays.stream(v.stringValue().split("\\|"))
+            .map(SimpleQueryStringFlag::valueOf)
+            .toArray(SimpleQueryStringFlag[]::new)))
         .put("fuzzy_max_expansions", (b, v) ->
             b.fuzzyMaxExpansions(Integer.parseInt(v.stringValue())))
         .put("fuzzy_prefix_length", (b, v) ->

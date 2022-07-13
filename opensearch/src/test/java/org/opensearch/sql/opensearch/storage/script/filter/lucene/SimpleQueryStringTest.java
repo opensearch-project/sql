@@ -74,6 +74,11 @@ class SimpleQueryStringTest {
         List.of(
             dsl.namedArgument("fields", fields_value),
             dsl.namedArgument("query", query_value),
+            dsl.namedArgument("flags", DSL.literal("PREFIX|NOT|AND"))
+        ),
+        List.of(
+            dsl.namedArgument("fields", fields_value),
+            dsl.namedArgument("query", query_value),
             dsl.namedArgument("fuzzy_max_expansions", DSL.literal("42"))
         ),
         List.of(
