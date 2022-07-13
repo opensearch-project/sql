@@ -39,7 +39,7 @@ class StringUtilsTest {
     assertEquals("\"", unquoteText("\""));
 
     assertEquals("hello'", unquoteText("'hello''"));
-    assertEquals("hello'", unquoteText("'don't'"));
+    assertEquals("don't", unquoteText("'don't'"));
 
   }
 
