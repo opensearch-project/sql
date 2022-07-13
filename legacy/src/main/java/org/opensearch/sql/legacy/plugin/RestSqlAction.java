@@ -12,6 +12,9 @@ import static org.opensearch.rest.RestStatus.SERVICE_UNAVAILABLE;
 
 import com.alibaba.druid.sql.parser.ParserException;
 import com.google.common.collect.ImmutableList;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -118,6 +121,13 @@ public class RestSqlAction extends BaseRestHandler {
         return "sql_action";
     }
 
+    /**
+     * Prepare and execute rest SQL request. In the event the V2 SQL engine fails, the V1
+     * engine attempts the query.
+     * @param request : Rest request being made.
+     * @param client : Rest client for making the request.
+     * @return : Resulting values for request.
+     */
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         Metrics.getInstance().getNumericalMetric(MetricName.REQ_TOTAL).increment();
@@ -161,6 +171,7 @@ public class RestSqlAction extends BaseRestHandler {
             final QueryAction queryAction = explainRequest(client, sqlRequest, format);
             return channel -> executeSqlRequest(request, queryAction, client, channel);
         } catch (Exception e) {
+            LOG.error(LogUtils.getRequestId() + " V2 SQL error during query execution", QueryDataAnonymizer.anonymizeData(newSqlQueryHandler.getErrorStr()));
             logAndPublishMetrics(e);
             return channel -> reportError(channel, e, isClientError(e) ? BAD_REQUEST : SERVICE_UNAVAILABLE, newSqlQueryHandler.getErrorStr());
         }
@@ -180,14 +191,27 @@ public class RestSqlAction extends BaseRestHandler {
         cursorRestExecutor.execute(client, request.params(), channel);
     }
 
+    /**
+     * Log error message for exception and increment failure statistics.
+     * @param e : Caught exception.
+     */
     private static void logAndPublishMetrics(final Exception e) {
+        /**
+         * Use PrintWriter to copy the stack trace for logging. This is used to anonymize
+         * log messages, and can be reverted to the simpler implementation when
+         * the anonymizer is fixed.
+         */
+        StringWriter sw = new StringWriter();
+        e.printStackTrace(new PrintWriter(sw));
+        String stackTrace = sw.toString();
         if (isClientError(e)) {
-            LOG.error(LogUtils.getRequestId() + " Client side error during query execution", e);
+            LOG.error(LogUtils.getRequestId() + " Client side error during query execution", QueryDataAnonymizer.anonymizeData(e.getMessage()));
             Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_CUS).increment();
         } else {
-            LOG.error(LogUtils.getRequestId() + " Server side error during query execution", e);
+            LOG.error(LogUtils.getRequestId() + " Server side error during query execution", QueryDataAnonymizer.anonymizeData(e.getMessage()));
             Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
         }
+        LOG.error(stackTrace);
     }
 
     private static QueryAction explainRequest(final NodeClient client, final SqlRequest sqlRequest, Format format)
