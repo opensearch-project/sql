@@ -33,9 +33,14 @@ public class StringUtils {
    *     removed
    */
   public static String unquoteText(String text) {
+
+    if (text.length() < 2) {
+      return text;
+    }
+
     StringBuilder textSB = new StringBuilder();
 
-    char enclosingQuote = Character.MIN_VALUE;
+    char enclosingQuote;
     char firstChar = text.charAt(0);
     char lastChar = text.charAt(text.length() - 1);
 
@@ -44,11 +49,14 @@ public class StringUtils {
         || firstChar == '"'
         || firstChar == '`')) {
       enclosingQuote = firstChar;
-    }
-
-    if (enclosingQuote == Character.MIN_VALUE) {
+    } else {
       return text;
     }
+
+    if (enclosingQuote == '`') {
+      return text.substring(1, text.length() - 1);
+    }
+
     char currentChar;
     char nextChar;
 
@@ -57,8 +65,7 @@ public class StringUtils {
       currentChar = text.charAt(chIndex);
       nextChar = text.charAt(chIndex + 1);
       if (currentChar == enclosingQuote
-          && nextChar == currentChar
-          && currentChar != '`') {
+          && nextChar == currentChar) {
         chIndex++;
       }
       textSB.append(currentChar);

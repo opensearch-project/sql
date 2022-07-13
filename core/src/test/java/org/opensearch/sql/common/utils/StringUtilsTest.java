@@ -32,6 +32,15 @@ class StringUtilsTest {
     assertEquals("````", unquoteText("``````"));
 
     assertEquals("test'", unquoteText("'test''"));
+
+    assertEquals("", unquoteText(""));
+    assertEquals("'", unquoteText("'"));
+    assertEquals("`", unquoteText("`"));
+    assertEquals("\"", unquoteText("\""));
+
+    assertEquals("hello'", unquoteText("'hello''"));
+    assertEquals("hello'", unquoteText("'don't'"));
+
   }
 
 }
