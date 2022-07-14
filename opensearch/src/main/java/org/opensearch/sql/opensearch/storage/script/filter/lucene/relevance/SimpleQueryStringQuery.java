@@ -54,7 +54,6 @@ public class SimpleQueryStringQuery extends RelevanceQuery<SimpleQueryStringBuil
         .build());
   }
 
-
   @Override
   public QueryBuilder build(FunctionExpression func) {
     if (func.getArguments().size() < 2) {
