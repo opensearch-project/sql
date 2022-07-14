@@ -9,10 +9,8 @@ import com.google.common.collect.ImmutableMap;
 
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.Locale;
 import java.util.Objects;
 
-import org.opensearch.common.Strings;
 import org.opensearch.index.query.Operator;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
@@ -22,9 +20,6 @@ import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
-
-import static org.opensearch.index.query.SimpleQueryStringFlag.ALL;
-import static org.opensearch.index.query.SimpleQueryStringFlag.NONE;
 
 public class SimpleQueryStringQuery extends RelevanceQuery<SimpleQueryStringBuilder> {
   /**
