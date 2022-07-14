@@ -57,9 +57,9 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         Explain openSearchExplain = new Explain() {
           @Override
           public ExplainResponseNode visitTableScan(TableScanOperator node, Object context) {
-            return explain(node, context, explainNode ->
-              explainNode.setDescription(ImmutableMap.of("request", node.explain()))
-            );
+            return explain(node, context, explainNode -> {
+              explainNode.setDescription(ImmutableMap.of("request", node.explain()));
+            });
           }
         };
 
