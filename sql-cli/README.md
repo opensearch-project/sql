@@ -1,7 +1,7 @@
 [![SQL CLI Test and Build](https://github.com/opensearch-project/sql/workflows/SQL%20CLI%20Test%20and%20Build/badge.svg)](https://github.com/opensearch-project/sql/actions)
 [![Latest Version](https://img.shields.io/pypi/v/opensearchsql.svg)](https://pypi.python.org/pypi/opensearchsql/)
 [![Documentation](https://img.shields.io/badge/documentation-blue.svg)](https://docs-beta.opensearch.org/docs/sql/cli/)
-[![Chat](https://img.shields.io/badge/chat-on%20forums-blue)](https://discuss.opendistrocommunity.dev/c/sql/)
+[![Chat](https://img.shields.io/badge/chat-on%20forums-blue)](https://forum.opensearch.org/c/plugins/sql)
 ![PyPi Downloads](https://img.shields.io/pypi/dm/opensearchsql.svg)
 ![PRs welcome!](https://img.shields.io/badge/PRs-welcome!-success)
 
