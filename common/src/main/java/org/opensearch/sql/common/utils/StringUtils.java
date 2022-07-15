@@ -38,8 +38,6 @@ public class StringUtils {
       return text;
     }
 
-    StringBuilder textSB = new StringBuilder();
-
     char enclosingQuote;
     char firstChar = text.charAt(0);
     char lastChar = text.charAt(text.length() - 1);
@@ -59,6 +57,8 @@ public class StringUtils {
 
     char currentChar;
     char nextChar;
+
+    StringBuilder textSB = new StringBuilder();
 
     // Ignores first and last character as they are the quotes that should be removed
     for (int chIndex = 1; chIndex < text.length() - 1; chIndex++) {

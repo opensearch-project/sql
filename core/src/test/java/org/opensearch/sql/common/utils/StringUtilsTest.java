@@ -40,6 +40,8 @@ class StringUtilsTest {
 
     assertEquals("hello'", unquoteText("'hello''"));
     assertEquals("don't", unquoteText("'don't'"));
+    assertEquals("hello`", unquoteText("`hello``"));
+    assertEquals("don\"t", unquoteText("\"don\"t\""));
 
   }
 
