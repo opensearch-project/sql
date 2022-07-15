@@ -15,6 +15,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareComman
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopOfAllCommandContext;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -117,6 +118,14 @@ public class ArgumentFactory {
    * @return the list of arguments fetched from the top command
    */
   public static List<Argument> getArgumentList(TopCommandContext ctx) {
+    return Collections.singletonList(
+        ctx.number != null
+            ? new Argument("noOfResults", getArgumentValue(ctx.number))
+            : new Argument("noOfResults", new Literal(10, DataType.INTEGER))
+    );
+  }
+
+  public static List<Argument> getArgumentList(TopOfAllCommandContext ctx) {
     return Collections.singletonList(
         ctx.number != null
             ? new Argument("noOfResults", getArgumentValue(ctx.number))

@@ -66,6 +66,7 @@ import org.opensearch.sql.expression.ParseExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.planner.IndexScanType;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
@@ -241,6 +242,10 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     }
     ImmutableList<Expression> fields = fieldsBuilder.build();
 
+    if (node.getCommandType() == RareTopN.CommandType.TOPOFALL) {
+      context.getPlanContext().setIndexScanType(IndexScanType.FETCH_ALL);
+    }
+
     // new context
     context.push();
     TypeEnvironment newEnv = context.peek();
@@ -252,7 +257,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     List<Argument> options = node.getNoOfResults();
     Integer noOfResults = (Integer) options.get(0).getValue().getValue();
 
-    return new LogicalRareTopN(child, node.getCommandType(), noOfResults, fields, groupBys);
+    if (node.getCommandType() != RareTopN.CommandType.TOPOFALL) {
+      return new LogicalRareTopN(child, node.getCommandType(), noOfResults, fields, groupBys);
+    } else {
+      return new LogicalRareTopN(child, RareTopN.CommandType.TOP, noOfResults, fields, groupBys);
+    }
   }
 
   /**

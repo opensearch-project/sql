@@ -25,7 +25,7 @@ pplCommands
 
 commands
     : whereCommand | fieldsCommand | renameCommand | statsCommand | dedupCommand | sortCommand | evalCommand | headCommand
-    | topCommand | rareCommand | parseCommand | kmeansCommand | adCommand;
+    | topCommand | rareCommand | parseCommand | kmeansCommand | adCommand | topOfAllCommand;
 
 searchCommand
     : (SEARCH)? fromClause                                          #searchFrom
@@ -81,6 +81,13 @@ headCommand
     (FROM from=integerLiteral)?
     ;
     
+topOfAllCommand
+    : TOPOFALL
+    (number=integerLiteral)?
+    fieldList
+    (byClause)?
+    ;
+
 topCommand
     : TOP
     (number=integerLiteral)?

@@ -23,6 +23,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortComman
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopOfAllCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WhereCommandContext;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
@@ -288,6 +289,18 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         getGroupByList(ctx.byClause());
     return new RareTopN(
         CommandType.TOP,
+        ArgumentFactory.getArgumentList(ctx),
+        getFieldList(ctx.fieldList()),
+        groupList
+    );
+  }
+
+  @Override
+  public UnresolvedPlan visitTopOfAllCommand(TopOfAllCommandContext ctx) {
+    List<UnresolvedExpression> groupList = ctx.byClause() == null ? Collections.emptyList() :
+        getGroupByList(ctx.byClause());
+    return new RareTopN(
+        CommandType.TOPOFALL,
         ArgumentFactory.getArgumentList(ctx),
         getFieldList(ctx.fieldList()),
         groupList

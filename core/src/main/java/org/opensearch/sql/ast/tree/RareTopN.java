@@ -54,7 +54,8 @@ public class RareTopN extends UnresolvedPlan {
 
   public enum CommandType {
     TOP,
-    RARE
+    RARE,
+    TOPOFALL
   }
 }
 
