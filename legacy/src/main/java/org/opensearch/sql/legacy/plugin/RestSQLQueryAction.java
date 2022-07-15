@@ -121,6 +121,8 @@ public class RestSQLQueryAction extends BaseRestHandler {
    */
   public RestChannelConsumer prepareRequest(SQLQueryRequest request, NodeClient nodeClient) {
     if (!request.isSupported()) {
+      setErrorStr("Query request is not supported. Either unsupported fields present," +
+          " the request is not a cursor request, or response format can't be supported.");
       return NOT_SUPPORTED_YET;
     }
 

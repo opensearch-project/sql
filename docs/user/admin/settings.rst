@@ -109,15 +109,6 @@ Result set::
 	  },
 	  "status" : 400
 	}
-	Query failed on both V1 and V2 SQL parser engines. V2 SQL parser error following:
-	{
-	  "error": {
-	    "reason": "Invalid SQL query",
-	    "details": "Failed to parse query due to offending symbol [DELETE] at: 'DELETE' <--- HERE... More details: Expecting tokens in {<EOF>, 'DESCRIBE', 'SELECT', 'SHOW', ';'}",
-	    "type": "SyntaxCheckException"
-	  },
-	  "status": 400
-	}
 
 plugins.sql.slowlog
 ============================
