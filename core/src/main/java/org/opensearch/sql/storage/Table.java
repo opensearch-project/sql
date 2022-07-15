@@ -8,6 +8,7 @@ package org.opensearch.sql.storage;
 
 import java.util.Map;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 
@@ -28,6 +29,7 @@ public interface Table {
    * @return physical plan
    */
   PhysicalPlan implement(LogicalPlan plan);
+  PhysicalPlan implement(LogicalPlan plan, PlanContext context);
 
   /**
    * Optimize the {@link LogicalPlan} by storage engine rule.

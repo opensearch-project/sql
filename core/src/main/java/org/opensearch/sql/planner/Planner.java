@@ -10,6 +10,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.java.Log;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
 import org.opensearch.sql.planner.logical.LogicalRelation;
@@ -40,6 +41,10 @@ public class Planner {
    * @return optimal physical plan
    */
   public PhysicalPlan plan(LogicalPlan plan) {
+    return plan(plan, new PlanContext());
+  }
+
+  public PhysicalPlan plan(LogicalPlan plan, PlanContext context) {
     String tableName = findTableName(plan);
     if (isNullOrEmpty(tableName)) {
       return plan.accept(new DefaultImplementor<>(), null);
@@ -47,7 +52,8 @@ public class Planner {
 
     Table table = storageEngine.getTable(tableName);
     return table.implement(
-        table.optimize(optimize(plan)));
+        table.optimize(optimize(plan)),
+        context);
   }
 
   private String findTableName(LogicalPlan plan) {

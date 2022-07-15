@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Objects;
 import lombok.Getter;
 import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.planner.PlanContext;
 
 /**
  * The context used for Analyzer.
@@ -23,13 +24,28 @@ public class AnalysisContext {
   @Getter
   private final List<NamedExpression> namedParseExpressions;
 
+  /**
+   * Context for physical plan building.
+   */
+  @Getter
+  private PlanContext planContext;
+
   public AnalysisContext() {
-    this(new TypeEnvironment(null));
+    this(new TypeEnvironment(null), new PlanContext());
+  }
+
+  public AnalysisContext(PlanContext planContext) {
+    this(new TypeEnvironment(null), planContext);
   }
 
   public AnalysisContext(TypeEnvironment environment) {
+    this(environment, new PlanContext());
+  }
+
+  public AnalysisContext(TypeEnvironment environment, PlanContext planContext) {
     this.environment = environment;
     this.namedParseExpressions = new ArrayList<>();
+    this.planContext = planContext;
   }
 
   /**

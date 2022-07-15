@@ -21,6 +21,7 @@ import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
@@ -87,12 +88,13 @@ public class PPLService {
     LOG.info("[{}] Incoming request {}", LogUtils.getRequestId(), anonymizer.anonymizeData(ast));
 
     // 2.Analyze abstract syntax to generate logical plan
+    PlanContext planContext = new PlanContext();
     LogicalPlan logicalPlan = analyzer.analyze(UnresolvedPlanHelper.addSelectAll(ast),
-        new AnalysisContext());
+        new AnalysisContext(planContext));
 
     // 3.Generate optimal physical plan from logical plan
     return new Planner(storageEngine, LogicalPlanOptimizer.create(new DSL(repository)))
-        .plan(logicalPlan);
+        .plan(logicalPlan, planContext);
   }
 
 }

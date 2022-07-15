@@ -11,6 +11,7 @@ import static org.opensearch.sql.utils.SystemIndexUtils.systemTable;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.java.Log;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
@@ -18,6 +19,7 @@ import org.opensearch.sql.opensearch.request.system.OpenSearchCatIndicesRequest;
 import org.opensearch.sql.opensearch.request.system.OpenSearchDescribeIndexRequest;
 import org.opensearch.sql.opensearch.request.system.OpenSearchSystemRequest;
 import org.opensearch.sql.planner.DefaultImplementor;
+import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -46,6 +48,12 @@ public class OpenSearchSystemIndex implements Table {
   @Override
   public PhysicalPlan implement(LogicalPlan plan) {
     return plan.accept(new OpenSearchSystemIndexDefaultImplementor(), null);
+  }
+
+  @Override
+  public PhysicalPlan implement(LogicalPlan plan, PlanContext context) {
+    // context is of no use for system index scan
+    return implement(plan);
   }
 
   @VisibleForTesting
