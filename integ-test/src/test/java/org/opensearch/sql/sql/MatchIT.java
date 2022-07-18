@@ -16,7 +16,7 @@ import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 
-public class RelevanceFunctionIT extends SQLIntegTestCase {
+public class MatchIT extends SQLIntegTestCase {
   @Override
   public void init() throws IOException {
     loadIndex(Index.ACCOUNT);
@@ -35,5 +35,4 @@ public class RelevanceFunctionIT extends SQLIntegTestCase {
     verifySchema(result, schema("lastname", "text"));
     verifyDataRows(result, rows("Bates"));
   }
-
 }
