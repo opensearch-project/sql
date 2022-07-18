@@ -91,7 +91,7 @@ public class MatchPhrasePrefixFunctionIT extends SQLIntegTestCase {
 
   @Test
   public void slop_is_2() throws IOException {
-    // When slop is 0, the terms are matched exactly in the order specified.
+    // When slop is 2, the terms are matched exactly in the order specified.
     // 'open' is used to match prefix of the next term.
     String query = "SELECT Tags from %s where match_phrase_prefix(Tags, 'gas ta', slop=2)";
     JSONObject result = executeJdbcRequest(String.format(query, TEST_INDEX_BEER));
@@ -100,7 +100,7 @@ public class MatchPhrasePrefixFunctionIT extends SQLIntegTestCase {
 
   @Test
   public void slop_is_3() throws IOException {
-    // When slop is 2, results will include phrases where the query terms are transposed.
+    // When slop is 3, results will include phrases where the query terms are transposed.
     String query = "SELECT Tags from %s where match_phrase_prefix(Tags, 'gas ta', slop=3)";
     JSONObject result = executeJdbcRequest(String.format(query, TEST_INDEX_BEER));
     verifyDataRows(result,

@@ -31,7 +31,7 @@ public class MultiMatchIT extends SQLIntegTestCase {
     String query = "SELECT Id FROM " + TEST_INDEX_BEER
         + " WHERE multi_match([\\\"Tags\\\" ^ 1.5, Title, `Body` 4.2], 'taste')";
     var result = new JSONObject(executeQuery(query, "jdbc"));
-    assertEquals(713, result.getInt("total"));
+    assertEquals(16, result.getInt("total"));
   }
 
   @Test
@@ -43,7 +43,7 @@ public class MultiMatchIT extends SQLIntegTestCase {
         + "minimum_should_match = '2<-25% 9<-3', prefix_length = 7, tie_breaker = 0.3,"
         + "type = most_fields, slop = 2, zero_terms_query = 'ALL');";
     var result = new JSONObject(executeQuery(query, "jdbc"));
-    assertEquals(424, result.getInt("total"));
+    assertEquals(10, result.getInt("total"));
   }
 
   @Test
@@ -57,8 +57,8 @@ public class MultiMatchIT extends SQLIntegTestCase {
     assertNotEquals(result2.getInt("total"), result1.getInt("total"));
 
     String query = "SELECT Id FROM " + TEST_INDEX_BEER
-        + " WHERE multi_match(['*Date'], '2015-01-29');";
+        + " WHERE multi_match(['*Date'], '2014-01-22');";
     var result = new JSONObject(executeQuery(query, "jdbc"));
-    assertEquals(5, result.getInt("total"));
+    assertEquals(10, result.getInt("total"));
   }
 }
