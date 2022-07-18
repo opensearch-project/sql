@@ -7,25 +7,60 @@
 package org.opensearch.sql.ppl.utils;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.when;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.projectWithArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.parser.AstBuilder;
 import org.opensearch.sql.ppl.parser.AstExpressionBuilder;
 
+@RunWith(MockitoJUnitRunner.class)
 public class PPLQueryDataAnonymizerTest {
 
   private final PPLSyntaxParser parser = new PPLSyntaxParser();
+
+  @Mock
+  private CatalogService catalogService;
+
+  /**
+   * Setup the test context.
+   */
+  @Before
+  public void setUp() {
+    Mockito.lenient().when(catalogService.getCatalogs()).thenReturn(ImmutableSet.of());
+  }
 
   @Test
   public void testSearchCommand() {
     assertEquals("source=t | where a = ***",
         anonymize("search source=t a=1")
+    );
+  }
+
+  @Test
+  public void testPrometheusPPLCommand() {
+    when(catalogService.getCatalogs()).thenReturn(ImmutableSet.of("prometheus"));
+    assertEquals("source=prometheus.http_requests_process",
+        anonymize("source=prometheus.http_requests_process")
+    );
+  }
+
+  @Test
+  public void testNativeQueryCommand() {
+    assertEquals("source=prometheus.nativeQuery(`http_request_param`,starttime=123,endtime=455)",
+        anonymize("source=prometheus.nativeQuery(`http_request_param`,starttime=123,endtime=455 )")
     );
   }
 
@@ -159,7 +194,7 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   private String anonymize(String query) {
-    AstBuilder astBuilder = new AstBuilder(new AstExpressionBuilder(), query);
+    AstBuilder astBuilder = new AstBuilder(new AstExpressionBuilder(), catalogService, query);
     return anonymize(astBuilder.visit(parser.parse(query)));
   }
 

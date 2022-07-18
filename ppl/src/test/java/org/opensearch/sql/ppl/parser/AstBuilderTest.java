@@ -28,9 +28,9 @@ import static org.opensearch.sql.ast.dsl.AstDSL.head;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.let;
 import static org.opensearch.sql.ast.dsl.AstDSL.map;
+import static org.opensearch.sql.ast.dsl.AstDSL.nativeQuery;
 import static org.opensearch.sql.ast.dsl.AstDSL.nullLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.parse;
-import static org.opensearch.sql.ast.dsl.AstDSL.project;
 import static org.opensearch.sql.ast.dsl.AstDSL.projectWithArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.rareTopN;
@@ -42,26 +42,47 @@ import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import java.util.Arrays;
+import java.util.Collections;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.sql.ast.Node;
-import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
+import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 
+@RunWith(MockitoJUnitRunner.class)
 public class AstBuilderTest {
 
   @Rule
   public ExpectedException exceptionRule = ExpectedException.none();
 
-  private final PPLSyntaxParser parser = new PPLSyntaxParser();
+  @Mock
+  private CatalogService catalogService;
+
+  private PPLSyntaxParser parser = new PPLSyntaxParser();
+
+  /**
+   * Setup the test context.
+   */
+  @Before
+  public void setUp() {
+    Mockito.lenient().when(catalogService.getCatalogs()).thenReturn(ImmutableSet.of());
+  }
 
   @Test
   public void testSearchCommand() {
@@ -71,6 +92,33 @@ public class AstBuilderTest {
             compare("=", field("a"), intLiteral(1))
         )
     );
+  }
+
+  @Test
+  public void testPrometheusSearchCommand() {
+    Mockito.when(catalogService.getCatalogs()).thenReturn(ImmutableSet.of("prometheus"));
+    assertEqual("search source = prometheus.http_requests_total",
+        relation(qualifiedName("http_requests_total"), qualifiedName("prometheus"))
+    );
+  }
+
+  @Test
+  public void testEscapePrometheusSearchCommand() {
+    Mockito.when(catalogService.getCatalogs()).thenReturn(ImmutableSet.of("prometheus"));
+    assertEqual("search source = `prometheus.http_requests_total`",
+        relation("prometheus.http_requests_total")
+    );
+  }
+
+  @Test
+  public void testPrometheusNativeQueryCommand() {
+    assertEqual("search source = prometheus.nativeQuery(`http_requests_total`, starttime=123)",
+        nativeQuery("prometheus", Arrays.asList(
+            new Argument("query",
+                new Literal("http_requests_total", DataType.STRING)),
+            new Argument("starttime",
+                new Literal("123", DataType.LONG))
+            )));
   }
 
   @Test
@@ -610,18 +658,18 @@ public class AstBuilderTest {
   @Test
   public void testKmeansCommand() {
     assertEqual("source=t | kmeans centroids=3 iterations=2 distance_type='l1'",
-            new Kmeans(relation("t"), ImmutableMap.<String, Literal>builder()
-                    .put("centroids", new Literal(3, DataType.INTEGER))
-                    .put("iterations", new Literal(2, DataType.INTEGER))
-                    .put("distance_type", new Literal("l1", DataType.STRING))
-                    .build()
-              ));
+        new Kmeans(relation("t"), ImmutableMap.<String, Literal>builder()
+            .put("centroids", new Literal(3, DataType.INTEGER))
+            .put("iterations", new Literal(2, DataType.INTEGER))
+            .put("distance_type", new Literal("l1", DataType.STRING))
+            .build()
+        ));
   }
 
   @Test
   public void testKmeansCommandWithoutParameter() {
     assertEqual("source=t | kmeans",
-            new Kmeans(relation("t"), ImmutableMap.of()));
+        new Kmeans(relation("t"), ImmutableMap.of()));
   }
 
   @Test
@@ -639,50 +687,50 @@ public class AstBuilderTest {
   @Test
   public void test_fitRCFADCommand_withoutDataFormat() {
     assertEqual("source=t | AD shingle_size=10 time_decay=0.0001 time_field='timestamp' "
-                    + "anomaly_rate=0.1 anomaly_score_threshold=0.1 sample_size=256 "
-                    + "number_of_trees=256 time_zone='PST' output_after=256 "
-                    + "training_data_size=256",
-            new AD(relation("t"), ImmutableMap.<String, Literal>builder()
-                    .put("anomaly_rate", new Literal(0.1, DataType.DOUBLE))
-                    .put("anomaly_score_threshold", new Literal(0.1, DataType.DOUBLE))
-                    .put("sample_size", new Literal(256, DataType.INTEGER))
-                    .put("number_of_trees", new Literal(256, DataType.INTEGER))
-                    .put("time_zone", new Literal("PST", DataType.STRING))
-                    .put("output_after", new Literal(256, DataType.INTEGER))
-                    .put("shingle_size", new Literal(10, DataType.INTEGER))
-                    .put("time_decay", new Literal(0.0001, DataType.DOUBLE))
-                    .put("time_field", new Literal("timestamp", DataType.STRING))
-                    .put("training_data_size", new Literal(256, DataType.INTEGER))
-                    .build()
-            ));
+            + "anomaly_rate=0.1 anomaly_score_threshold=0.1 sample_size=256 "
+            + "number_of_trees=256 time_zone='PST' output_after=256 "
+            + "training_data_size=256",
+        new AD(relation("t"), ImmutableMap.<String, Literal>builder()
+            .put("anomaly_rate", new Literal(0.1, DataType.DOUBLE))
+            .put("anomaly_score_threshold", new Literal(0.1, DataType.DOUBLE))
+            .put("sample_size", new Literal(256, DataType.INTEGER))
+            .put("number_of_trees", new Literal(256, DataType.INTEGER))
+            .put("time_zone", new Literal("PST", DataType.STRING))
+            .put("output_after", new Literal(256, DataType.INTEGER))
+            .put("shingle_size", new Literal(10, DataType.INTEGER))
+            .put("time_decay", new Literal(0.0001, DataType.DOUBLE))
+            .put("time_field", new Literal("timestamp", DataType.STRING))
+            .put("training_data_size", new Literal(256, DataType.INTEGER))
+            .build()
+        ));
   }
 
   @Test
   public void test_fitRCFADCommand_withDataFormat() {
     assertEqual("source=t | AD shingle_size=10 time_decay=0.0001 time_field='timestamp' "
-                    + "anomaly_rate=0.1 anomaly_score_threshold=0.1 sample_size=256 "
-                    + "number_of_trees=256 time_zone='PST' output_after=256 "
-                    + "training_data_size=256 date_format='HH:mm:ss yyyy-MM-dd'",
-            new AD(relation("t"), ImmutableMap.<String, Literal>builder()
-                    .put("anomaly_rate", new Literal(0.1, DataType.DOUBLE))
-                    .put("anomaly_score_threshold", new Literal(0.1, DataType.DOUBLE))
-                    .put("sample_size", new Literal(256, DataType.INTEGER))
-                    .put("number_of_trees", new Literal(256, DataType.INTEGER))
-                    .put("date_format", new Literal("HH:mm:ss yyyy-MM-dd", DataType.STRING))
-                    .put("time_zone", new Literal("PST", DataType.STRING))
-                    .put("output_after", new Literal(256, DataType.INTEGER))
-                    .put("shingle_size", new Literal(10, DataType.INTEGER))
-                    .put("time_decay", new Literal(0.0001, DataType.DOUBLE))
-                    .put("time_field", new Literal("timestamp", DataType.STRING))
-                    .put("training_data_size", new Literal(256, DataType.INTEGER))
-                    .build()
-            ));
+            + "anomaly_rate=0.1 anomaly_score_threshold=0.1 sample_size=256 "
+            + "number_of_trees=256 time_zone='PST' output_after=256 "
+            + "training_data_size=256 date_format='HH:mm:ss yyyy-MM-dd'",
+        new AD(relation("t"), ImmutableMap.<String, Literal>builder()
+            .put("anomaly_rate", new Literal(0.1, DataType.DOUBLE))
+            .put("anomaly_score_threshold", new Literal(0.1, DataType.DOUBLE))
+            .put("sample_size", new Literal(256, DataType.INTEGER))
+            .put("number_of_trees", new Literal(256, DataType.INTEGER))
+            .put("date_format", new Literal("HH:mm:ss yyyy-MM-dd", DataType.STRING))
+            .put("time_zone", new Literal("PST", DataType.STRING))
+            .put("output_after", new Literal(256, DataType.INTEGER))
+            .put("shingle_size", new Literal(10, DataType.INTEGER))
+            .put("time_decay", new Literal(0.0001, DataType.DOUBLE))
+            .put("time_field", new Literal("timestamp", DataType.STRING))
+            .put("training_data_size", new Literal(256, DataType.INTEGER))
+            .build()
+        ));
   }
 
   @Test
   public void test_batchRCFADCommand() {
     assertEqual("source=t | AD",
-            new AD(relation("t"),ImmutableMap.of()));
+        new AD(relation("t"), ImmutableMap.of()));
   }
 
   protected void assertEqual(String query, Node expectedPlan) {
@@ -696,7 +744,7 @@ public class AstBuilderTest {
   }
 
   private Node plan(String query) {
-    AstBuilder astBuilder = new AstBuilder(new AstExpressionBuilder(), query);
+    AstBuilder astBuilder = new AstBuilder(new AstExpressionBuilder(), catalogService, query);
     return astBuilder.visit(parser.parse(query));
   }
 }

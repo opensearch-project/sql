@@ -13,12 +13,12 @@ import java.util.List;
 import java.util.Map;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.NamedExpression;
-import org.opensearch.sql.expression.ParseExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
@@ -40,6 +40,14 @@ public class LogicalPlanDSL {
 
   public static LogicalPlan relation(String tableName) {
     return new LogicalRelation(tableName);
+  }
+
+  public static LogicalPlan relation(String tableName, String catalogName) {
+    return new LogicalRelation(tableName, catalogName);
+  }
+
+  public static LogicalPlan nativeQuery(String catalogName, Map<String, Literal> queryParams) {
+    return new LogicalNativeQuery(catalogName,  queryParams);
   }
 
   public static LogicalPlan rename(

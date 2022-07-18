@@ -88,6 +88,8 @@ configurations.all {
     resolutionStrategy.force 'com.google.guava:guava:31.0.1-jre'
     resolutionStrategy.force 'com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.13.2'
     resolutionStrategy.force 'com.fasterxml.jackson.core:jackson-databind:2.13.2.2'
+    resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.6.0"
+    resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0"
 }
 compileJava {
     options.compilerArgs.addAll(["-processor", 'lombok.launch.AnnotationProcessorHider$AnnotationProcessor'])
@@ -99,9 +101,11 @@ compileTestJava {
 
 dependencies {
     api group: 'org.springframework', name: 'spring-beans', version: '5.2.20.RELEASE'
+    api 'com.fasterxml.jackson.core:jackson-databind:2.13.2.2'
     api project(":ppl")
     api project(':legacy')
     api project(':opensearch')
+    api project(':prometheus')
 }
 
 test {

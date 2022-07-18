@@ -32,6 +32,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.intervalLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.let;
 import static org.opensearch.sql.ast.dsl.AstDSL.longLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.nativeQuery;
 import static org.opensearch.sql.ast.dsl.AstDSL.not;
 import static org.opensearch.sql.ast.dsl.AstDSL.nullLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.or;
@@ -44,10 +45,14 @@ import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.xor;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Arrays;
+import java.util.Collections;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
 
 public class AstExpressionBuilderTest extends AstBuilderTest {
@@ -711,5 +716,16 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             )
         )
     );
+  }
+
+
+  @Test
+  public void testPrometheusNativeQueryCommand() {
+    assertEqual("search source = prometheus.nativeQuery(`http_requests_total`, starttime=123)",
+        nativeQuery("prometheus", Arrays.asList(
+            new Argument("query",
+                new Literal("http_requests_total", DataType.STRING)),
+            new Argument("starttime", new Literal("123", DataType.LONG))
+        )));
   }
 }

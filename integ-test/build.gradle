@@ -56,6 +56,8 @@ configurations.all {
     resolutionStrategy.force 'com.fasterxml.jackson.core:jackson-core:2.13.2'
     resolutionStrategy.force 'com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.13.2'
     resolutionStrategy.force 'com.fasterxml.jackson.core:jackson-databind:2.13.2.2'
+    resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.6.0"
+    resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0"
 }
 
 dependencies {
