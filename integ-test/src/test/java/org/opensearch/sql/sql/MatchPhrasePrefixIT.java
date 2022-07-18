@@ -15,7 +15,7 @@ import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 
-public class MatchPhrasePrefixFunctionIT extends SQLIntegTestCase {
+public class MatchPhrasePrefixIT extends SQLIntegTestCase {
 
   @Override
   protected void init() throws Exception {

@@ -12,6 +12,8 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
 import org.json.JSONObject;
+import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class MatchPhraseIT extends PPLIntegTestCase {
@@ -27,6 +29,16 @@ public class MatchPhraseIT extends PPLIntegTestCase {
             executeQuery(
                     String.format(
                             "source=%s | where match_phrase(phrase, 'quick fox') | fields phrase", TEST_INDEX_PHRASE));
+    verifyDataRows(result, rows("quick fox"), rows("quick fox here"));
+  }
+
+  @Test
+  @Ignore("Not supported actually in PPL")
+  public void test_matchphrase_legacy_function() throws IOException {
+    JSONObject result =
+            executeQuery(
+                    String.format(
+                            "source=%s | where matchphrase(phrase, 'quick fox') | fields phrase", TEST_INDEX_PHRASE));
     verifyDataRows(result, rows("quick fox"), rows("quick fox here"));
   }
 
