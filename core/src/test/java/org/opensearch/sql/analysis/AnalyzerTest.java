@@ -698,6 +698,28 @@ class AnalyzerTest extends AnalyzerTestBase {
             AstDSL.alias("string_value", qualifiedName("string_value"))
         ));
   }
+
+  @Test
+  public void create_materialized_view() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.createMaterializedView(
+            "test_mv",
+            LogicalPlanDSL.project(
+                LogicalPlanDSL.relation("test"),
+                DSL.named("string_value", DSL.ref("string_value", STRING)),
+                DSL.named("integer_value", DSL.ref("integer_value", INTEGER))
+            )
+        ),
+        AstDSL.createMaterializedView(
+            AstDSL.qualifiedName("test_mv"),
+            AstDSL.project(
+                AstDSL.relation("test"),
+                AstDSL.field("string_value"),
+                AstDSL.field("integer_value")
+            )
+        )
+    );
+  }
   
   @Test
   public void kmeanns_relation() {

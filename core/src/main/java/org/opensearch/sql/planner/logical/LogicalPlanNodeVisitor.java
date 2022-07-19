@@ -18,6 +18,11 @@ public abstract class LogicalPlanNodeVisitor<R, C> {
     return null;
   }
 
+  public R visitCreateMaterializedView(LogicalCreateMaterializedView plan,
+                                       C context) {
+    return visitNode(plan, context);
+  }
+
   public R visitRelation(LogicalRelation plan, C context) {
     return visitNode(plan, context);
   }

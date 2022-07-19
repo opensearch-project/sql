@@ -63,7 +63,8 @@ import org.opensearch.sql.ast.tree.Values;
 @UtilityClass
 public class AstDSL {
 
-  public static UnresolvedPlan createMaterializedView(UnresolvedExpression viewName, UnresolvedPlan query) {
+  public static UnresolvedPlan createMaterializedView(UnresolvedExpression viewName,
+                                                      UnresolvedPlan query) {
     return new CreateMaterializedView(viewName).attach(query);
   }
 

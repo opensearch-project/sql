@@ -675,8 +675,8 @@ class AstBuilderTest {
             qualifiedName("test_mv"),
             project(
                 relation("test"),
-                qualifiedName("name"),
-                qualifiedName("age")
+                alias("name", qualifiedName("name")),
+                alias("age", qualifiedName("age"))
             )
         ),
         buildAST("CREATE MATERIALIZED VIEW test_mv "

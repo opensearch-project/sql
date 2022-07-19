@@ -29,6 +29,10 @@ import org.opensearch.sql.expression.window.WindowDefinition;
 @UtilityClass
 public class LogicalPlanDSL {
 
+  public static LogicalPlan createMaterializedView(String viewName, LogicalPlan query) {
+    return new LogicalCreateMaterializedView(viewName, query);
+  }
+
   public static LogicalPlan aggregation(
       LogicalPlan input, List<NamedAggregator> aggregatorList, List<NamedExpression> groupByList) {
     return new LogicalAggregation(input, aggregatorList, groupByList);

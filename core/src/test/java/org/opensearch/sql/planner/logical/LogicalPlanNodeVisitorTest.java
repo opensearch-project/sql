@@ -113,6 +113,11 @@ class LogicalPlanNodeVisitorTest {
     assertNull(rareTopN.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
     }, null));
 
+    LogicalPlan createMv = LogicalPlanDSL.createMaterializedView(
+        "test_mv", project);
+    assertNull(createMv.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
+    }, null));
+
     LogicalPlan mlCommons = new LogicalMLCommons(LogicalPlanDSL.relation("schema"),
             "kmeans",
             ImmutableMap.<String, Literal>builder()
