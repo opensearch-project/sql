@@ -47,7 +47,7 @@ For futher details check [using a .tdc file with Tableau](https://kb.tableau.com
  ### Connection information
 
 You will need:
-* [JDBC connection string](https://github.com/opensearch-project/sql/blob/main/sql-jdbc/README.md#connection-url-and-other-settings) to enter in the URL field when you connect.
+* [JDBC connection string](../../sql-jdbc/README.md#connection-url-and-other-settings) to enter in the URL field when you connect.
 
   Sample connection string for connecting to localhost: `jdbc:opensearch://localhost:9200`.
 
