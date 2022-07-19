@@ -35,6 +35,7 @@ import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.CreateMaterializedView;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
@@ -81,6 +82,10 @@ public abstract class AbstractNodeVisitor<T, C> {
 
   private T aggregateResult(T aggregate, T nextResult) {
     return nextResult;
+  }
+
+  public T visitCreateMaterializedView(CreateMaterializedView node, C context) {
+    return visitChildren(node, context);
   }
 
   public T visitRelation(Relation node, C context) {

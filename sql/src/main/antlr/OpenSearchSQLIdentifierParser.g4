@@ -39,6 +39,10 @@ tableName
     : qualifiedName
     ;
 
+viewName
+    : qualifiedName
+    ;
+
 columnName
     : qualifiedName
     ;

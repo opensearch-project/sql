@@ -14,6 +14,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.createMaterializedView;
 import static org.opensearch.sql.ast.dsl.AstDSL.doubleLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
@@ -665,6 +666,22 @@ class AstBuilderTest {
             alias("name", qualifiedName("name"))
         ),
         buildAST("SELECT name FROM test LIMIT 5, 10"));
+  }
+
+  @Test
+  public void can_build_create_view() {
+    assertEquals(
+        createMaterializedView(
+            qualifiedName("test_mv"),
+            project(
+                relation("test"),
+                qualifiedName("name"),
+                qualifiedName("age")
+            )
+        ),
+        buildAST("CREATE MATERIALIZED VIEW test_mv "
+            + "AS SELECT name, age FROM test")
+    );
   }
 
   private UnresolvedPlan buildAST(String query) {
