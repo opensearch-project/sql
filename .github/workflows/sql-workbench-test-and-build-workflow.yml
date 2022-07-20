@@ -32,7 +32,7 @@ jobs:
 
       - name: Move Workbench to Plugins Dir
         run: |
-          mv workbench OpenSearch-Dashboards/plugins
+          mv workbench ../OpenSearch-Dashboards/plugins
 
       - name: OpenSearch Dashboards Plugin Bootstrap
         uses: nick-invision/retry@v1
