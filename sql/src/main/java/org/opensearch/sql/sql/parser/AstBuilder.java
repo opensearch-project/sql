@@ -29,6 +29,7 @@ import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.CreateMaterializedView;
+import org.opensearch.sql.ast.tree.CreateTable;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Project;
@@ -39,7 +40,8 @@ import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
-import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CreateMaterializedViewStatementContext;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CreateMaterializedViewContext;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CreateTableContext;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.QuerySpecificationContext;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
 import org.opensearch.sql.sql.parser.context.ParsingContext;
@@ -64,10 +66,15 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
   private final String query;
 
   @Override
-  public UnresolvedPlan visitCreateMaterializedViewStatement(
-      CreateMaterializedViewStatementContext ctx) {
+  public UnresolvedPlan visitCreateTable(CreateTableContext ctx) {
+    return new CreateTable(visitAstExpression(ctx.tableName()))
+        .attach(visit(ctx.selectStatement()));
+  }
+
+  @Override
+  public UnresolvedPlan visitCreateMaterializedView(CreateMaterializedViewContext ctx) {
     return new CreateMaterializedView(visitAstExpression(ctx.viewName()))
-            .attach(visit(ctx.selectStatement()));
+        .attach(visit(ctx.selectStatement()));
   }
 
   @Override

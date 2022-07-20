@@ -40,6 +40,7 @@ import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.CreateMaterializedView;
+import org.opensearch.sql.ast.tree.CreateTable;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
@@ -62,6 +63,11 @@ import org.opensearch.sql.ast.tree.Values;
  */
 @UtilityClass
 public class AstDSL {
+
+  public static UnresolvedPlan createTable(UnresolvedExpression viewName,
+                                           UnresolvedPlan query) {
+    return new CreateTable(viewName).attach(query);
+  }
 
   public static UnresolvedPlan createMaterializedView(UnresolvedExpression viewName,
                                                       UnresolvedPlan query) {

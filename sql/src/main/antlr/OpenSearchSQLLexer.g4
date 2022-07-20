@@ -102,6 +102,7 @@ RIGHT:                              'RIGHT';
 SELECT:                             'SELECT';
 SHOW:                               'SHOW';
 STRING:                             'STRING';
+TABLE:                              'TABLE';
 THEN:                               'THEN';
 TRUE:                               'TRUE';
 UNION:                              'UNION';

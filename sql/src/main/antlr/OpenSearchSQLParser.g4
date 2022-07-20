@@ -52,7 +52,7 @@ dmlStatement
     ;
 
 ddlStatement
-    : createMaterializedViewStatement
+    : createTable | createMaterializedView
     ;
 
 // Data Manipulation Language
@@ -97,7 +97,12 @@ compatibleID
 
 //    Create statements
 
-createMaterializedViewStatement
+createTable
+    : CREATE TABLE tableName
+      AS selectStatement
+    ;
+
+createMaterializedView
     : CREATE MATERIALIZED VIEW viewName //LR_BRACKET RR_BRACKET
       AS selectStatement
     ;

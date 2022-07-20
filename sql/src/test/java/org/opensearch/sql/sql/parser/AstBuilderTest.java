@@ -15,6 +15,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.createMaterializedView;
+import static org.opensearch.sql.ast.dsl.AstDSL.createTable;
 import static org.opensearch.sql.ast.dsl.AstDSL.doubleLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
@@ -669,7 +670,23 @@ class AstBuilderTest {
   }
 
   @Test
-  public void can_build_create_view() {
+  public void can_build_create_table() {
+    assertEquals(
+        createTable(
+            qualifiedName("test_new"),
+            project(
+                relation("test"),
+                alias("name", qualifiedName("name")),
+                alias("age", qualifiedName("age"))
+            )
+        ),
+        buildAST("CREATE TABLE test_new "
+            + "AS SELECT name, age FROM test")
+    );
+  }
+
+  @Test
+  public void can_build_create_materialized_view() {
     assertEquals(
         createMaterializedView(
             qualifiedName("test_mv"),
