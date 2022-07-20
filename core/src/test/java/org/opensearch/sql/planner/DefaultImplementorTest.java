@@ -49,6 +49,8 @@ import org.opensearch.sql.expression.aggregation.AvgAggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.expression.window.ranking.RowNumberFunction;
+import org.opensearch.sql.planner.logical.LogicalCreateMaterializedView;
+import org.opensearch.sql.planner.logical.LogicalCreateTable;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.opensearch.sql.planner.logical.LogicalRelation;
@@ -151,6 +153,18 @@ class DefaultImplementorTest {
   public void visitRelationShouldThrowException() {
     assertThrows(UnsupportedOperationException.class,
         () -> new LogicalRelation("test").accept(implementor, null));
+  }
+
+  @Test
+  public void visitCreateTableShouldThrowException() {
+    assertThrows(UnsupportedOperationException.class,
+        () -> new LogicalCreateTable("test", null).accept(implementor, null));
+  }
+
+  @Test
+  public void visitCreateMaterializedViewShouldThrowException() {
+    assertThrows(UnsupportedOperationException.class,
+        () -> new LogicalCreateMaterializedView("test", null).accept(implementor, null));
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})

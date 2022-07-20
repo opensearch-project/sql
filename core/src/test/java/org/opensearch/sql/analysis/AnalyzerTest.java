@@ -700,6 +700,28 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
+  public void create_table() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.createTable(
+            "test_new",
+            LogicalPlanDSL.project(
+                LogicalPlanDSL.relation("test"),
+                DSL.named("string_value", DSL.ref("string_value", STRING)),
+                DSL.named("integer_value", DSL.ref("integer_value", INTEGER))
+            )
+        ),
+        AstDSL.createTable(
+            AstDSL.qualifiedName("test_new"),
+            AstDSL.project(
+                AstDSL.relation("test"),
+                AstDSL.field("string_value"),
+                AstDSL.field("integer_value")
+            )
+        )
+    );
+  }
+
+  @Test
   public void create_materialized_view() {
     assertAnalyzeEqual(
         LogicalPlanDSL.createMaterializedView(

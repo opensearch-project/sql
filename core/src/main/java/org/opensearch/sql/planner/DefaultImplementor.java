@@ -8,6 +8,7 @@ package org.opensearch.sql.planner;
 
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalCreateMaterializedView;
+import org.opensearch.sql.planner.logical.LogicalCreateTable;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
 import org.opensearch.sql.planner.logical.LogicalEval;
 import org.opensearch.sql.planner.logical.LogicalFilter;
@@ -128,6 +129,12 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
   public PhysicalPlan visitRelation(LogicalRelation node, C context) {
     throw new UnsupportedOperationException("Storage engine is responsible for "
         + "implementing and optimizing logical plan with relation involved");
+  }
+
+  @Override
+  public PhysicalPlan visitCreateTable(LogicalCreateTable plan, C context) {
+    throw new UnsupportedOperationException("Storage engine is responsible for "
+        + "implementing create table plan");
   }
 
   @Override

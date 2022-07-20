@@ -29,6 +29,10 @@ import org.opensearch.sql.expression.window.WindowDefinition;
 @UtilityClass
 public class LogicalPlanDSL {
 
+  public static LogicalPlan createTable(String tableName, LogicalPlan query) {
+    return new LogicalCreateTable(tableName, query);
+  }
+
   public static LogicalPlan createMaterializedView(String viewName, LogicalPlan query) {
     return new LogicalCreateMaterializedView(viewName, query);
   }
