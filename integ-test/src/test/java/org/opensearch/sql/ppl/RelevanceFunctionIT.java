@@ -41,10 +41,10 @@ public class RelevanceFunctionIT extends PPLIntegTestCase {
   @Test
   public void verify_flags_in_simple_query_string() throws IOException {
     String query1 = "SOURCE="
-        + TEST_INDEX_BEER + " | WHERE simple_query_string(['Body'], '-free', flags='NONE')";
+        + TEST_INDEX_BEER + " | WHERE simple_query_string(['Body'], '-free', flags='NONE|PREFIX|ESCAPE')";
     var result1 = executeQuery(query1);
     String query2 = "SOURCE="
-        + TEST_INDEX_BEER + " | WHERE simple_query_string([Body], '-free', flags='NOT')";
+        + TEST_INDEX_BEER + " | WHERE simple_query_string([Body], '-free', flags='NOT|AND|OR')";
     var result2 = executeQuery(query2);
     assertNotEquals(result2.getInt("total"), result1.getInt("total"));
 

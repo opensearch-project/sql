@@ -25,10 +25,10 @@ public class RelevanceFunctionIT extends SQLIntegTestCase {
   @Test
   public void verify_flags_in_simple_query_string() throws IOException {
     String query1 = "SELECT Id FROM "
-        + TEST_INDEX_BEER + " WHERE simple_query_string(['Body'], '-free', flags='NONE')";
+        + TEST_INDEX_BEER + " WHERE simple_query_string(['Body'], '-free', flags='NONE|PREFIX|ESCAPE')";
     var result1 = new JSONObject(executeQuery(query1, "jdbc"));
     String query2 = "SELECT Id FROM "
-        + TEST_INDEX_BEER + " WHERE simple_query_string([Body], '-free', flags='NOT')";
+        + TEST_INDEX_BEER + " WHERE simple_query_string([Body], '-free', flags='NOT|AND|OR')";
     var result2 = new JSONObject(executeQuery(query2, "jdbc"));
     assertNotEquals(result2.getInt("total"), result1.getInt("total"));
 
