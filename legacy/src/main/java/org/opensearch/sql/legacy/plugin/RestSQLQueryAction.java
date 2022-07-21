@@ -17,6 +17,9 @@ import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import java.util.List;
+
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
@@ -71,6 +74,8 @@ public class RestSQLQueryAction extends BaseRestHandler {
    * This member variable and it's usage can be deleted once the
    * legacy SQL engine is deprecated.
    */
+  @Setter
+  @Getter
   private String errorStr;
 
   /**
@@ -98,22 +103,6 @@ public class RestSQLQueryAction extends BaseRestHandler {
   }
 
   /**
-   * Setter for errorStr member variable.
-   * @param error : String error value to set member variable.
-   */
-  public void setErrorStr(String error) {
-    errorStr = error;
-  }
-
-  /**
-   * Getter for errorStr member variable.
-   * @return : errorStr member variable.
-   */
-  public String getErrorStr() {
-    return errorStr;
-  }
-
-  /**
    * Prepare REST channel consumer for a SQL query request.
    * @param request     SQL request
    * @param nodeClient  node client
@@ -121,8 +110,8 @@ public class RestSQLQueryAction extends BaseRestHandler {
    */
   public RestChannelConsumer prepareRequest(SQLQueryRequest request, NodeClient nodeClient) {
     if (!request.isSupported()) {
-      setErrorStr("Query request is not supported. Either unsupported fields present," +
-          " the request is not a cursor request, or response format can't be supported.");
+      setErrorStr("Query request is not supported. Either unsupported fields are present," +
+          " the request is not a cursor request, or the response format is not supported.");
       return NOT_SUPPORTED_YET;
     }
 

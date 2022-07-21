@@ -197,6 +197,14 @@ public class RestSqlAction extends BaseRestHandler {
      * @param e : Caught exception.
      */
     private static void logAndPublishMetrics(final Exception e) {
+        if (isClientError(e)) {
+            LOG.error(LogUtils.getRequestId() + " Client side error during query execution", QueryDataAnonymizer.anonymizeData(e.getMessage()));
+            Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_CUS).increment();
+        } else {
+            LOG.error(LogUtils.getRequestId() + " Server side error during query execution", QueryDataAnonymizer.anonymizeData(e.getMessage()));
+            Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
+        }
+
         /**
          * Use PrintWriter to copy the stack trace for logging. This is used to anonymize
          * log messages, and can be reverted to the simpler implementation when
@@ -205,13 +213,6 @@ public class RestSqlAction extends BaseRestHandler {
         StringWriter sw = new StringWriter();
         e.printStackTrace(new PrintWriter(sw));
         String stackTrace = sw.toString();
-        if (isClientError(e)) {
-            LOG.error(LogUtils.getRequestId() + " Client side error during query execution", QueryDataAnonymizer.anonymizeData(e.getMessage()));
-            Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_CUS).increment();
-        } else {
-            LOG.error(LogUtils.getRequestId() + " Server side error during query execution", QueryDataAnonymizer.anonymizeData(e.getMessage()));
-            Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-        }
         LOG.error(stackTrace);
     }
 
