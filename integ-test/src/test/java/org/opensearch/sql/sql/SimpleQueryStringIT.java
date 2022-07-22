@@ -31,7 +31,7 @@ public class SimpleQueryStringIT extends SQLIntegTestCase {
     String query = "SELECT Id FROM "
         + TEST_INDEX_BEER + " WHERE simple_query_string([\\\"Tags\\\" ^ 1.5, Title, `Body` 4.2], 'taste')";
     var result = new JSONObject(executeQuery(query, "jdbc"));
-    assertEquals(713, result.getInt("total"));
+    assertEquals(16, result.getInt("total"));
   }
 
   @Test
@@ -43,7 +43,7 @@ public class SimpleQueryStringIT extends SQLIntegTestCase {
         + "fuzzy_transpositions = false, lenient = true, fuzzy_max_expansions = 25,"
         + "minimum_should_match = '2<-25% 9<-3', fuzzy_prefix_length = 7);";
     var result = new JSONObject(executeQuery(query, "jdbc"));
-    assertEquals(1990, result.getInt("total"));
+    assertEquals(49, result.getInt("total"));
   }
 
   @Test
@@ -57,8 +57,8 @@ public class SimpleQueryStringIT extends SQLIntegTestCase {
     assertNotEquals(result2.getInt("total"), result1.getInt("total"));
 
     String query = "SELECT Id FROM " + TEST_INDEX_BEER
-        + " WHERE simple_query_string(['*Date'], '2015-01-29');";
+        + " WHERE simple_query_string(['*Date'], '2014-01-22');";
     var result = new JSONObject(executeQuery(query, "jdbc"));
-    assertEquals(5, result.getInt("total"));
+    assertEquals(10, result.getInt("total"));
   }
 }

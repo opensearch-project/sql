@@ -13,7 +13,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
 
-public class MatchPhrasePrefixWhereCommandIT extends PPLIntegTestCase {
+public class MatchPhrasePrefixIT extends PPLIntegTestCase {
 
   @Override
   public void init() throws IOException {
@@ -93,7 +93,7 @@ public class MatchPhrasePrefixWhereCommandIT extends PPLIntegTestCase {
 
   @Test
   public void slop_is_2() throws IOException {
-    // When slop is 0, the terms are matched exactly in the order specified.
+    // When slop is 2, the terms are matched exactly in the order specified.
     // 'open' is used to match prefix of the next term.
     String query = "source = %s" +
         "| where match_phrase_prefix(Tags, 'gas ta', slop=2) " +
@@ -104,7 +104,7 @@ public class MatchPhrasePrefixWhereCommandIT extends PPLIntegTestCase {
 
   @Test
   public void slop_is_3() throws IOException {
-    // When slop is 2, results will include phrases where the query terms are transposed.
+    // When slop is 3, results will include phrases where the query terms are transposed.
     String query = "source = %s" +
         "| where match_phrase_prefix(Tags, 'gas ta', slop=3)" +
         "| fields Tags";
