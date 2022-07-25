@@ -39,6 +39,7 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
+import org.opensearch.sql.planner.PlanContext;
 
 @ExtendWith(MockitoExtension.class)
 class OpenSearchIndexScanTest {
@@ -48,6 +49,9 @@ class OpenSearchIndexScanTest {
 
   @Mock
   private Settings settings;
+
+  @Mock
+  private PlanContext context;
 
   private OpenSearchExprValueFactory exprValueFactory = new OpenSearchExprValueFactory(
       ImmutableMap.of("name", STRING, "department", STRING));
@@ -61,7 +65,7 @@ class OpenSearchIndexScanTest {
   void queryEmptyResult() {
     mockResponse();
     try (OpenSearchIndexScan indexScan =
-             new OpenSearchIndexScan(client, settings, "test", exprValueFactory)) {
+             new OpenSearchIndexScan(client, settings, "test", context, exprValueFactory)) {
       indexScan.open();
       assertFalse(indexScan.hasNext());
     }
@@ -75,7 +79,7 @@ class OpenSearchIndexScanTest {
         new ExprValue[]{employee(3, "Allen", "IT")});
 
     try (OpenSearchIndexScan indexScan =
-             new OpenSearchIndexScan(client, settings, "employees", exprValueFactory)) {
+             new OpenSearchIndexScan(client, settings, "employees", context, exprValueFactory)) {
       indexScan.open();
 
       assertTrue(indexScan.hasNext());
@@ -111,7 +115,7 @@ class OpenSearchIndexScanTest {
   }
 
   private PushDownAssertion assertThat() {
-    return new PushDownAssertion(client, exprValueFactory, settings);
+    return new PushDownAssertion(client, exprValueFactory, settings, context);
   }
 
   private static class PushDownAssertion {
@@ -122,9 +126,10 @@ class OpenSearchIndexScanTest {
 
     public PushDownAssertion(OpenSearchClient client,
                              OpenSearchExprValueFactory valueFactory,
-                             Settings settings) {
+                             Settings settings,
+                             PlanContext context) {
       this.client = client;
-      this.indexScan = new OpenSearchIndexScan(client, settings, "test", valueFactory);
+      this.indexScan = new OpenSearchIndexScan(client, settings, "test", context, valueFactory);
       this.response = mock(OpenSearchResponse.class);
       this.factory = valueFactory;
       when(response.isEmpty()).thenReturn(true);

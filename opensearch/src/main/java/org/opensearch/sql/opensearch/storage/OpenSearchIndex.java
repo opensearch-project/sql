@@ -85,7 +85,7 @@ public class OpenSearchIndex implements Table {
    */
   @Override
   public PhysicalPlan implement(LogicalPlan plan, PlanContext context) {
-    OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings, indexName,
+    OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings, indexName, context,
         new OpenSearchExprValueFactory(getFieldTypes()));
 
     /*

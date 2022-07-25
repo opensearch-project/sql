@@ -40,6 +40,7 @@ import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProtector;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndexScan;
+import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.TableScanOperator;
 
@@ -124,9 +125,10 @@ class OpenSearchExecutionEngineTest {
   void explainSuccessfully() {
     OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector);
     Settings settings = mock(Settings.class);
+    PlanContext context = mock(PlanContext.class);
     when(settings.getSettingValue(QUERY_SIZE_LIMIT)).thenReturn(100);
     PhysicalPlan plan = new OpenSearchIndexScan(mock(OpenSearchClient.class),
-        settings, "test", mock(OpenSearchExprValueFactory.class));
+        settings, "test", context, mock(OpenSearchExprValueFactory.class));
 
     AtomicReference<ExplainResponse> result = new AtomicReference<>();
     executor.explain(plan, new ResponseListener<ExplainResponse>() {

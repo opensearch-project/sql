@@ -36,6 +36,7 @@ import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
+import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.storage.TableScanOperator;
 
 /**
@@ -62,16 +63,16 @@ public class OpenSearchIndexScan extends TableScanOperator {
    */
   public OpenSearchIndexScan(OpenSearchClient client,
                              Settings settings, String indexName,
-                             OpenSearchExprValueFactory exprValueFactory) {
-    this(client, settings, new OpenSearchRequest.IndexName(indexName), exprValueFactory);
+                             PlanContext context, OpenSearchExprValueFactory exprValueFactory) {
+    this(client, settings, new OpenSearchRequest.IndexName(indexName), context, exprValueFactory);
   }
 
   /**
    * Constructor.
    */
   public OpenSearchIndexScan(OpenSearchClient client,
-      Settings settings, OpenSearchRequest.IndexName indexName,
-      OpenSearchExprValueFactory exprValueFactory) {
+                             Settings settings, OpenSearchRequest.IndexName indexName,
+                             PlanContext context, OpenSearchExprValueFactory exprValueFactory) {
     this.client = client;
     this.request = new OpenSearchQueryRequest(indexName,
         settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT), exprValueFactory);

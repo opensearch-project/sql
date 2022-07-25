@@ -138,10 +138,11 @@ class OpenSearchIndexTest {
 
     String indexName = "test";
     LogicalPlan plan = relation(indexName);
+    PlanContext context = new PlanContext();
     Table index = new OpenSearchIndex(client, settings, indexName);
     assertEquals(
-        new OpenSearchIndexScan(client, settings, indexName, exprValueFactory),
-        index.implement(plan, new PlanContext()));
+        new OpenSearchIndexScan(client, settings, indexName, context, exprValueFactory),
+        index.implement(plan, context));
   }
 
   @Test
@@ -150,10 +151,11 @@ class OpenSearchIndexTest {
 
     String indexName = "test";
     LogicalPlan plan = relation(indexName);
+    PlanContext context = new PlanContext();
     Table index = new OpenSearchIndex(client, settings, indexName);
     assertEquals(
-        new OpenSearchIndexScan(client, settings, indexName, exprValueFactory),
-        index.implement(index.optimize(plan), new PlanContext()));
+        new OpenSearchIndexScan(client, settings, indexName, context, exprValueFactory),
+        index.implement(index.optimize(plan), context));
   }
 
   @Test
@@ -192,6 +194,7 @@ class OpenSearchIndexTest {
                 dedupeField),
             include);
 
+    PlanContext context = new PlanContext();
     Table index = new OpenSearchIndex(client, settings, indexName);
     assertEquals(
         PhysicalPlanDSL.project(
@@ -200,7 +203,7 @@ class OpenSearchIndexTest {
                     PhysicalPlanDSL.eval(
                         PhysicalPlanDSL.remove(
                             PhysicalPlanDSL.rename(
-                                new OpenSearchIndexScan(client, settings, indexName,
+                                new OpenSearchIndexScan(client, settings, indexName, context,
                                     exprValueFactory),
                                 mappings),
                             exclude),
@@ -208,7 +211,7 @@ class OpenSearchIndexTest {
                     sortField),
                 dedupeField),
             include),
-        index.implement(plan, new PlanContext()));
+        index.implement(plan, context));
   }
 
   @Test
