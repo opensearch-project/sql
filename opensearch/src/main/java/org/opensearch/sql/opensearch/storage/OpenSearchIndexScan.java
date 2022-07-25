@@ -34,6 +34,7 @@ import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
+import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.planner.PlanContext;
@@ -74,26 +75,32 @@ public class OpenSearchIndexScan extends TableScanOperator {
                              Settings settings, OpenSearchRequest.IndexName indexName,
                              PlanContext context, OpenSearchExprValueFactory exprValueFactory) {
     this.client = client;
-    this.request = new OpenSearchQueryRequest(indexName,
-        settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT), exprValueFactory);
+    switch (context.getIndexScanType()) {
+      case SCROLL:
+        this.request = new OpenSearchScrollRequest(indexName, exprValueFactory);
+        break;
+      case QUERY:
+      default:
+        this.request = new OpenSearchQueryRequest(indexName,
+            settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT), exprValueFactory);
+    }
   }
 
   @Override
   public void open() {
     super.open();
 
-    // For now pull all results immediately once open
-    List<OpenSearchResponse> responses = new ArrayList<>();
     OpenSearchResponse response = client.search(request);
-    while (!response.isEmpty()) {
-      responses.add(response);
-      response = client.search(request);
-    }
-    iterator = Iterables.concat(responses.toArray(new OpenSearchResponse[0])).iterator();
+    iterator = response.iterator();
   }
 
   @Override
   public boolean hasNext() {
+    if (!iterator.hasNext()) {
+      // Fetch next batch
+      OpenSearchResponse response = client.search(request);
+      iterator = response.iterator();
+    }
     return iterator.hasNext();
   }
 
