@@ -6,14 +6,20 @@
 
 package org.opensearch.sql.legacy.plugin;
 
+import static org.opensearch.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
 import static org.opensearch.rest.RestStatus.OK;
+import static org.opensearch.rest.RestStatus.SERVICE_UNAVAILABLE;
 import static org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
+import static org.opensearch.sql.legacy.plugin.RestSqlAction.isClientError;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import java.util.List;
+
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
@@ -27,6 +33,7 @@ import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
+import org.opensearch.sql.legacy.executor.format.ErrorMessageFactory;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.opensearch.security.SecurityAccess;
@@ -62,6 +69,16 @@ public class RestSQLQueryAction extends BaseRestHandler {
   private final Settings pluginSettings;
 
   /**
+   * Captured error message to aggregate diagnostics
+   * for both legacy and new SQL engines.
+   * This member variable and it's usage can be deleted once the
+   * legacy SQL engine is deprecated.
+   */
+  @Setter
+  @Getter
+  private String errorStr;
+
+  /**
    * Constructor of RestSQLQueryAction.
    */
   public RestSQLQueryAction(ClusterService clusterService, Settings pluginSettings) {
@@ -93,6 +110,8 @@ public class RestSQLQueryAction extends BaseRestHandler {
    */
   public RestChannelConsumer prepareRequest(SQLQueryRequest request, NodeClient nodeClient) {
     if (!request.isSupported()) {
+      setErrorStr("Query request is not supported. Either unsupported fields are present," +
+          " the request is not a cursor request, or the response format is not supported.");
       return NOT_SUPPORTED_YET;
     }
 
@@ -109,6 +128,12 @@ public class RestSQLQueryAction extends BaseRestHandler {
       if (request.isExplainRequest()) {
         LOG.info("Request is falling back to old SQL engine due to: " + e.getMessage());
       }
+
+      /**
+       * Setting errorStr member variable is used to aggregate error messages when both legacy and new SQL engines fail.
+       * This implementation can be removed when the legacy SQL engine is deprecated.
+       */
+      setErrorStr(ErrorMessageFactory.createErrorMessage(e, isClientError(e) ? BAD_REQUEST.getStatus() : SERVICE_UNAVAILABLE.getStatus()).toString());
       return NOT_SUPPORTED_YET;
     }
 
