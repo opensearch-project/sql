@@ -84,7 +84,8 @@ public class PlannerTest extends PhysicalPlanTestBase {
                 ImmutableList.of()
             ),
             ImmutableMap.of(DSL.ref("ivalue", INTEGER), DSL.ref("avg(response)", DOUBLE))
-        )
+        ),
+        new PlanContext()
     );
   }
 
@@ -105,16 +106,17 @@ public class PlannerTest extends PhysicalPlanTestBase {
             DSL.named("123", DSL.literal(123)),
             DSL.named("hello", DSL.literal("hello")),
             DSL.named("false", DSL.literal(false))
-        )
+        ),
+        new PlanContext()
     );
   }
 
-  protected void assertPhysicalPlan(PhysicalPlan expected, LogicalPlan logicalPlan) {
-    assertEquals(expected, analyze(logicalPlan));
+  protected void assertPhysicalPlan(PhysicalPlan expected, LogicalPlan logicalPlan, PlanContext planContext) {
+    assertEquals(expected, analyze(logicalPlan, planContext));
   }
 
-  protected PhysicalPlan analyze(LogicalPlan logicalPlan) {
-    return new Planner(storageEngine, optimizer).plan(logicalPlan);
+  protected PhysicalPlan analyze(LogicalPlan logicalPlan, PlanContext planContext) {
+    return new Planner(storageEngine, optimizer).plan(logicalPlan, planContext);
   }
 
   protected class MockTable extends LogicalPlanNodeVisitor<PhysicalPlan, Object> implements Table {

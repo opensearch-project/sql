@@ -36,10 +36,11 @@ public class Planner {
    * translate logical plan to physical by default implementor.
    * TODO: for now just delegate entire logical plan to storage engine.
    *
-   * @param plan logical plan
+   * @param plan    logical plan
+   * @param context plan context
    * @return optimal physical plan
    */
-  public PhysicalPlan plan(LogicalPlan plan) {
+  public PhysicalPlan plan(LogicalPlan plan, PlanContext context) {
     String tableName = findTableName(plan);
     if (isNullOrEmpty(tableName)) {
       return plan.accept(new DefaultImplementor<>(), null);
