@@ -22,14 +22,14 @@ public class QueryStringIT extends PPLIntegTestCase {
   public void all_fields_test() throws IOException {
     String query = "source=" + TEST_INDEX_BEER + " | where query_string([`*`], 'taste')";
     JSONObject result = executeQuery(query);
-    assertEquals(713, result.getInt("total"));
+    assertEquals(16, result.getInt("total"));
   }
 
   @Test
   public void mandatory_params_test() throws IOException {
     String query = "source=" + TEST_INDEX_BEER + " | where query_string([\\\"Tags\\\" ^ 1.5, Title, `Body` 4.2], 'taste')";
     JSONObject result = executeQuery(query);
-    assertEquals(713, result.getInt("total"));
+    assertEquals(16, result.getInt("total"));
   }
 
   @Test
@@ -44,7 +44,7 @@ public class QueryStringIT extends PPLIntegTestCase {
         + "fuzzy_transpositions = false, lenient = true, fuzzy_max_expansions = 25,"
         + "minimum_should_match = '2<-25% 9<-3', fuzzy_prefix_length = 7)";
     JSONObject result = executeQuery(query);
-    assertEquals(1990, result.getInt("total"));
+    assertEquals(49, result.getInt("total"));
   }
 
   @Test
@@ -57,8 +57,8 @@ public class QueryStringIT extends PPLIntegTestCase {
     JSONObject result2 = executeQuery(query2);
     assertNotEquals(result1.getInt("total"), result2.getInt("total"));
 
-    String query3 = "source=" + TEST_INDEX_BEER + " | where query_string(['*Date'], '2015-01-29')";
+    String query3 = "source=" + TEST_INDEX_BEER + " | where query_string(['*Date'], '2014-01-22')";
     JSONObject result3 = executeQuery(query3);
-    assertEquals(5, result3.getInt("total"));
+    assertEquals(10, result3.getInt("total"));
   }
 }
