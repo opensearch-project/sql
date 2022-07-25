@@ -17,6 +17,7 @@ import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
@@ -49,10 +50,15 @@ public class SQLService {
    */
   public void execute(SQLQueryRequest request, ResponseListener<QueryResponse> listener) {
     try {
+      PlanContext context = new PlanContext();
       executionEngine.execute(
                         plan(
                             analyze(
-                                parse(request.getQuery()))), listener);
+                                parse(request.getQuery()),
+                                context
+                            ),
+                            context
+                        ), listener);
     } catch (Exception e) {
       listener.onFailure(e);
     }
@@ -95,16 +101,16 @@ public class SQLService {
   /**
    * Analyze abstract syntax to generate logical plan.
    */
-  public LogicalPlan analyze(UnresolvedPlan ast) {
-    return analyzer.analyze(ast, new AnalysisContext());
+  public LogicalPlan analyze(UnresolvedPlan ast, PlanContext planContext) {
+    return analyzer.analyze(ast, new AnalysisContext(planContext));
   }
 
   /**
    * Generate optimal physical plan from logical plan.
    */
-  public PhysicalPlan plan(LogicalPlan logicalPlan) {
+  public PhysicalPlan plan(LogicalPlan logicalPlan, PlanContext planContext) {
     return new Planner(storageEngine, LogicalPlanOptimizer.create(new DSL(repository)))
-        .plan(logicalPlan);
+        .plan(logicalPlan, planContext);
   }
 
 }

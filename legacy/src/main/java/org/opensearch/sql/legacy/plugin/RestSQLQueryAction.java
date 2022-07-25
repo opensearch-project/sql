@@ -30,6 +30,7 @@ import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.opensearch.security.SecurityAccess;
+import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.CsvResponseFormatter;
@@ -101,9 +102,12 @@ public class RestSQLQueryAction extends BaseRestHandler {
     try {
       // For now analyzing and planning stage may throw syntax exception as well
       // which hints the fallback to legacy code is necessary here.
+      PlanContext context = new PlanContext();
       plan = sqlService.plan(
-                sqlService.analyze(
-                    sqlService.parse(request.getQuery())));
+                 sqlService.analyze(
+                     sqlService.parse(request.getQuery()),
+                     context
+                 ), context);
     } catch (SyntaxCheckException e) {
       // When explain, print info log for what unsupported syntax is causing fallback to old engine
       if (request.isExplainRequest()) {
