@@ -62,6 +62,7 @@ import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
+import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.opensearch.sql.planner.physical.AggregationOperator;
@@ -140,7 +141,7 @@ class OpenSearchIndexTest {
     Table index = new OpenSearchIndex(client, settings, indexName);
     assertEquals(
         new OpenSearchIndexScan(client, settings, indexName, exprValueFactory),
-        index.implement(plan));
+        index.implement(plan, new PlanContext()));
   }
 
   @Test
@@ -152,7 +153,7 @@ class OpenSearchIndexTest {
     Table index = new OpenSearchIndex(client, settings, indexName);
     assertEquals(
         new OpenSearchIndexScan(client, settings, indexName, exprValueFactory),
-        index.implement(index.optimize(plan)));
+        index.implement(index.optimize(plan), new PlanContext()));
   }
 
   @Test
@@ -207,7 +208,7 @@ class OpenSearchIndexTest {
                     sortField),
                 dedupeField),
             include),
-        index.implement(plan));
+        index.implement(plan, new PlanContext()));
   }
 
   @Test
@@ -226,7 +227,8 @@ class OpenSearchIndexTest {
                 indexName,
                 filterExpr
             ),
-            named));
+            named),
+        new PlanContext());
 
     assertTrue(plan instanceof ProjectOperator);
     assertTrue(((ProjectOperator) plan).getInput() instanceof OpenSearchIndexScan);
@@ -252,7 +254,8 @@ class OpenSearchIndexTest {
                 aggregators,
                 groupByExprs
             ),
-            filterExpr));
+            filterExpr),
+        new PlanContext());
 
     assertTrue(plan instanceof FilterOperator);
   }
@@ -279,7 +282,8 @@ class OpenSearchIndexTest {
                 aggregators,
                 groupByExprs
             ),
-            filterExpr));
+            filterExpr),
+        new PlanContext());
 
     assertTrue(plan.getChild().get(0) instanceof OpenSearchIndexScan);
 
@@ -289,7 +293,8 @@ class OpenSearchIndexTest {
             indexName,
             filterExpr,
             aggregators,
-            groupByExprs));
+            groupByExprs),
+        new PlanContext());
     assertTrue(plan instanceof OpenSearchIndexScan);
   }
 
@@ -313,7 +318,8 @@ class OpenSearchIndexTest {
                 relation(indexName),
                 filterExpr), filterExpr),
             aggregators,
-            groupByExprs));
+            groupByExprs),
+        new PlanContext());
     assertTrue(plan instanceof AggregationOperator);
   }
 
@@ -333,7 +339,8 @@ class OpenSearchIndexTest {
                 indexName,
                 Pair.of(Sort.SortOption.DEFAULT_ASC, sortExpr)
             ),
-            named));
+            named),
+        new PlanContext());
 
     assertTrue(plan instanceof ProjectOperator);
     assertTrue(((ProjectOperator) plan).getInput() instanceof OpenSearchIndexScan);
@@ -354,7 +361,8 @@ class OpenSearchIndexTest {
                 indexName,
                 1, 1, noProjects()
             ),
-            named));
+            named),
+        new PlanContext());
 
     assertTrue(plan instanceof ProjectOperator);
     assertTrue(((ProjectOperator) plan).getInput() instanceof OpenSearchIndexScan);
@@ -378,7 +386,8 @@ class OpenSearchIndexTest {
                 1, 1,
                 noProjects()
             ),
-            named));
+            named),
+        new PlanContext());
 
     assertTrue(plan instanceof ProjectOperator);
     assertTrue(((ProjectOperator) plan).getInput() instanceof OpenSearchIndexScan);
@@ -402,7 +411,7 @@ class OpenSearchIndexTest {
             ),
             named("intV", ref("intV", INTEGER))
         )
-    ));
+    ), new PlanContext());
 
     assertTrue(plan instanceof ProjectOperator);
     assertTrue(((ProjectOperator) plan).getInput() instanceof LimitOperator);
@@ -419,7 +428,8 @@ class OpenSearchIndexTest {
             indexScan(
                 indexName, projects(ref("intV", INTEGER))
             ),
-            named("i", ref("intV", INTEGER))));
+            named("i", ref("intV", INTEGER))),
+        new PlanContext());
 
     assertTrue(plan instanceof ProjectOperator);
     assertTrue(((ProjectOperator) plan).getInput() instanceof OpenSearchIndexScan);

@@ -127,7 +127,7 @@ public class PlannerTest extends PhysicalPlanTestBase {
     }
 
     @Override
-    public PhysicalPlan implement(LogicalPlan plan) {
+    public PhysicalPlan implement(LogicalPlan plan, PlanContext context) {
       return plan.accept(this, null);
     }
 

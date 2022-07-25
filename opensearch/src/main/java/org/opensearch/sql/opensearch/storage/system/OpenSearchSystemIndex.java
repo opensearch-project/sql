@@ -18,6 +18,7 @@ import org.opensearch.sql.opensearch.request.system.OpenSearchCatIndicesRequest;
 import org.opensearch.sql.opensearch.request.system.OpenSearchDescribeIndexRequest;
 import org.opensearch.sql.opensearch.request.system.OpenSearchSystemRequest;
 import org.opensearch.sql.planner.DefaultImplementor;
+import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -44,7 +45,7 @@ public class OpenSearchSystemIndex implements Table {
   }
 
   @Override
-  public PhysicalPlan implement(LogicalPlan plan) {
+  public PhysicalPlan implement(LogicalPlan plan, PlanContext context) {
     return plan.accept(new OpenSearchSystemIndexDefaultImplementor(), null);
   }
 

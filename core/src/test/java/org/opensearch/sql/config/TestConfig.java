@@ -17,6 +17,7 @@ import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.StorageEngine;
@@ -69,7 +70,7 @@ public class TestConfig {
           }
 
           @Override
-          public PhysicalPlan implement(LogicalPlan plan) {
+          public PhysicalPlan implement(LogicalPlan plan, PlanContext context) {
             throw new UnsupportedOperationException();
           }
         };

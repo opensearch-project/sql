@@ -26,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.ProjectOperator;
 
@@ -58,12 +59,13 @@ class OpenSearchSystemIndexTest {
   void implement() {
     OpenSearchSystemIndex systemIndex = new OpenSearchSystemIndex(client, TABLE_INFO);
     NamedExpression projectExpr = named("TABLE_NAME", ref("TABLE_NAME", STRING));
+    PlanContext planContext = new PlanContext();
 
     final PhysicalPlan plan = systemIndex.implement(
         project(
             relation(TABLE_INFO),
             projectExpr
-        ));
+        ), planContext);
     assertTrue(plan instanceof ProjectOperator);
     assertTrue(plan.getChild().get(0) instanceof OpenSearchSystemIndexScan);
   }
