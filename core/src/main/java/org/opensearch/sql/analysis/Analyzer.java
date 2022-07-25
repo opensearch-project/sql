@@ -66,6 +66,7 @@ import org.opensearch.sql.expression.ParseExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
@@ -144,7 +145,14 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitLimit(Limit node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
-    return new LogicalLimit(child, node.getLimit(), node.getOffset());
+    Integer limit = node.getLimit();
+    Integer offset = node.getOffset();
+    // TODO: use index.MAX_RESULT_WINDOW, but how?
+    Integer max_result_window = 10000;
+    if (limit + offset > max_result_window) {
+      context.getPlanContext().setIndexScanType(PlanContext.IndexScanType.SCROLL);
+    }
+    return new LogicalLimit(child, limit, offset);
   }
 
   @Override
@@ -390,7 +398,14 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
    */
   public LogicalPlan visitHead(Head node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
-    return new LogicalLimit(child, node.getSize(), node.getFrom());
+    Integer size = node.getSize();
+    Integer from = node.getFrom();
+    // TODO: use index.MAX_RESULT_WINDOW, but how?
+    Integer max_result_window = 10000;
+    if (size + from > max_result_window) {
+      context.getPlanContext().setIndexScanType(PlanContext.IndexScanType.SCROLL);
+    }
+    return new LogicalLimit(child, size, from);
   }
 
   @Override

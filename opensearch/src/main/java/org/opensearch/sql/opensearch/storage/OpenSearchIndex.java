@@ -34,9 +34,11 @@ import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSeri
 import org.opensearch.sql.planner.DefaultImplementor;
 import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.logical.LogicalAD;
+import org.opensearch.sql.planner.logical.LogicalLimit;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.physical.LimitOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.Table;
 
@@ -139,8 +141,16 @@ public class OpenSearchIndex implements Table {
         context.pushDown(query);
       }
 
+      // TODO: duplicate logic with visitLimit
       if (node.getLimit() != null) {
-        context.pushDownLimit(node.getLimit(), node.getOffset());
+        Integer limit = node.getLimit();
+        Integer offset = node.getOffset();
+        // TODO: use index.MAX_RESULT_WINDOW, but how?
+        Integer max_result_window = 10000;
+        if (limit + offset > max_result_window) {
+          limit = max_result_window - offset;
+        }
+        context.pushDownLimit(limit, offset);
       }
 
       if (node.hasProjects()) {
@@ -175,6 +185,21 @@ public class OpenSearchIndex implements Table {
     @Override
     public PhysicalPlan visitRelation(LogicalRelation node, OpenSearchIndexScan context) {
       return indexScan;
+    }
+
+    @Override
+    public PhysicalPlan visitLimit(LogicalLimit node, OpenSearchIndexScan context) {
+      Integer limit = node.getLimit();
+      Integer offset = node.getOffset();
+      // TODO: use index.MAX_RESULT_WINDOW, but how?
+      Integer max_result_window = 10000;
+      if (limit + offset > max_result_window) {
+        context.pushDownLimit(max_result_window - offset, offset);
+      }
+      else {
+        context.pushDownLimit(limit, offset);
+      }
+      return new LimitOperator(visitChild(node, context), limit, offset);
     }
 
     @Override

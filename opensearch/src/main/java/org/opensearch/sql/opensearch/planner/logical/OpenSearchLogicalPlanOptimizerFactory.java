@@ -38,8 +38,8 @@ public class OpenSearchLogicalPlanOptimizerFactory {
         new MergeSortAndIndexScan(),
         new MergeSortAndIndexAgg(),
         new MergeSortAndIndexScan(),
-        new MergeLimitAndRelation(),
-        new MergeLimitAndIndexScan(),
+        // new MergeLimitAndRelation(),
+        // new MergeLimitAndIndexScan(),
         new PushProjectAndRelation(),
         new PushProjectAndIndexScan()
     ));
