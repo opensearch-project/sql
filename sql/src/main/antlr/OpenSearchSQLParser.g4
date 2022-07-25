@@ -86,7 +86,7 @@ showDescribePattern
     ;
 
 compatibleID
-    : (MODULE | ID)+?
+    : (MODULE | ID | keywordsCanBeId)+?
     ;
 
 //    Select Statement's Details
