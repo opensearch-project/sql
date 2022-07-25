@@ -6,20 +6,20 @@ import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.Expression;
-import org.opensearch.sql.planner.physical.PhysicalPlan;
-import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
 
-@RequiredArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 @Getter
 public class HighlightOperator extends PhysicalPlan {
   @NonNull
   private final PhysicalPlan input;
-  @NonNull
   private final Expression highlightField;
+
+  public HighlightOperator(PhysicalPlan input, Expression highlightField) {
+    this.input = input;
+    this.highlightField = highlightField;
+  }
 
   @Override
   public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {

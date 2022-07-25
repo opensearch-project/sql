@@ -23,6 +23,7 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
 import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.common.utils.StringUtils;
 
 @UtilityClass
 public class OpenSearchFunctions {

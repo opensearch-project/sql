@@ -305,6 +305,7 @@ functionCall
 
 highlightFunction
     : HIGHLIGHT LR_BRACKET relevanceField RR_BRACKET
+    | HIGHLIGHT LR_BRACKET STAR RR_BRACKET
     ;
 
 scalarFunctionName

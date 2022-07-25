@@ -15,7 +15,6 @@ public class HighlightFunctionIT extends SQLIntegTestCase {
   @Test
   public void defaultParameters() {
     String query = "SELECT Tags, highlight('Tags') from %s WHERE match(Tags, 'yeast') limit 1";
-//    String query = "SELECT Tags from %s WHERE match(Tags, 'yeast') limit 1";
     JSONObject response = executeJdbcRequest(String.format(query, TestsConstants.TEST_INDEX_BEER));
     assertEquals(1, response.getInt("total"));
   }

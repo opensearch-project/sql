@@ -28,6 +28,7 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.ReferenceExpression;
@@ -165,7 +166,7 @@ public class OpenSearchIndexScan extends TableScanOperator {
    */
   public void pushDownHighlight(String field) {
     SearchSourceBuilder sourceBuilder = request.getSourceBuilder();
-    HighlightBuilder highlightBuilder = new HighlightBuilder().field(field);
+    HighlightBuilder highlightBuilder = new HighlightBuilder().field(StringUtils.unquoteText(field));
     sourceBuilder.highlighter(highlightBuilder);
   }
 

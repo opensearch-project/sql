@@ -295,6 +295,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     for (UnresolvedExpression expr : node.getProjectList()) {
       HighlightAnalyzer highlightAnalyzer = new HighlightAnalyzer(expressionAnalyzer, child);
       child = highlightAnalyzer.analyze(expr, context);
+
     }
 
     List<NamedExpression> namedExpressions =

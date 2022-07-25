@@ -153,9 +153,8 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
 
   @Override
   public PhysicalPlan visitHighlight(HighlightOperator node, Object context) {
-    return doProtect(
-        doProtect(new HighlightOperator(visitInput(node.getInput(), context),
-            node.getHighlightField()))
+    return doProtect(new HighlightOperator(visitInput(node.getInput(), context),
+            node.getHighlightField())
     );
   }
 
