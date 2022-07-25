@@ -24,6 +24,7 @@ import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponseNode;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
+import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.ppl.config.PPLServiceConfig;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
@@ -58,7 +59,7 @@ public class PPLServiceTest {
   @Before
   public void setUp() {
     when(table.getFieldTypes()).thenReturn(ImmutableMap.of("a", ExprCoreType.INTEGER));
-    when(table.implement(any())).thenReturn(plan);
+    when(table.implement(any(), new PlanContext())).thenReturn(plan);
     when(storageEngine.getTable(any())).thenReturn(table);
 
     context.registerBean(StorageEngine.class, () -> storageEngine);

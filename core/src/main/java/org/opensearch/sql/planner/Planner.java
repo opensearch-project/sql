@@ -48,7 +48,8 @@ public class Planner {
 
     Table table = storageEngine.getTable(tableName);
     return table.implement(
-        table.optimize(optimize(plan)));
+        table.optimize(optimize(plan)),
+        context);
   }
 
   private String findTableName(LogicalPlan plan) {
