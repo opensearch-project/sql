@@ -59,7 +59,7 @@ public class PPLServiceTest {
   @Before
   public void setUp() {
     when(table.getFieldTypes()).thenReturn(ImmutableMap.of("a", ExprCoreType.INTEGER));
-    when(table.implement(any(), new PlanContext())).thenReturn(plan);
+    when(table.implement(any(), any())).thenReturn(plan);
     when(storageEngine.getTable(any())).thenReturn(table);
 
     context.registerBean(StorageEngine.class, () -> storageEngine);
