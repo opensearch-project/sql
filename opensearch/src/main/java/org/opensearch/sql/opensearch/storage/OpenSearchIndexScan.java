@@ -33,6 +33,9 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
+import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
+import org.opensearch.sql.opensearch.request.OpenSearchScrollCursorRequest;
+import org.opensearch.sql.opensearch.request.OpenSearchScrollQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
@@ -57,13 +60,25 @@ public class OpenSearchIndexScan extends TableScanOperator {
   /** Search response for current batch. */
   private Iterator<ExprValue> iterator;
 
+  /** Cursor response. */
+  private String cursor;
+
   /**
    * Constructor.
    */
   public OpenSearchIndexScan(OpenSearchClient client,
                              Settings settings, String indexName,
                              OpenSearchExprValueFactory exprValueFactory) {
-    this(client, settings, new OpenSearchRequest.IndexName(indexName), exprValueFactory);
+    this(client, settings, new OpenSearchRequest.IndexName(indexName), exprValueFactory, 0);
+  }
+
+  /**
+   * Constructor.
+   */
+  public OpenSearchIndexScan(OpenSearchClient client,
+                             Settings settings, String indexName,
+                             OpenSearchExprValueFactory exprValueFactory, int fetchSize) {
+    this(client, settings, new OpenSearchRequest.IndexName(indexName), exprValueFactory, fetchSize);
   }
 
   /**
@@ -72,23 +87,39 @@ public class OpenSearchIndexScan extends TableScanOperator {
   public OpenSearchIndexScan(OpenSearchClient client,
       Settings settings, OpenSearchRequest.IndexName indexName,
       OpenSearchExprValueFactory exprValueFactory) {
-    this.client = client;
-    this.request = new OpenSearchQueryRequest(indexName,
-        settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT), exprValueFactory);
+    this(client, settings, indexName, exprValueFactory, 0);
   }
+
+  /**
+   * Constructor.
+   */
+  public OpenSearchIndexScan(OpenSearchClient client,
+                             Settings settings, OpenSearchRequest.IndexName indexName,
+                             OpenSearchExprValueFactory exprValueFactory, int fetchSize) {
+    this.client = client;
+    if (fetchSize > 0) {
+      this.request = new OpenSearchScrollQueryRequest(indexName, fetchSize, exprValueFactory);
+    } else {
+      this.request = new OpenSearchQueryRequest(indexName,
+          settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT), exprValueFactory);
+    }
+  }
+
+  //public setScanMode
 
   @Override
   public void open() {
     super.open();
 
     // For now pull all results immediately once open
-    List<OpenSearchResponse> responses = new ArrayList<>();
     OpenSearchResponse response = client.search(request);
-    while (!response.isEmpty()) {
-      responses.add(response);
-      response = client.search(request);
-    }
-    iterator = Iterables.concat(responses.toArray(new OpenSearchResponse[0])).iterator();
+    cursor = response.getScrollId();
+    iterator = response.iterator();
+  }
+
+  @Override
+  public String getCursor() {
+    return cursor;
   }
 
   @Override

@@ -60,6 +60,12 @@ public class SQLQueryRequest {
    */
   private Map<String, String> params = Collections.emptyMap();
 
+  /**
+   * Request params.
+   */
+  @Getter
+  private final int fetchSize;
+
   @Getter
   @Accessors(fluent = true)
   private boolean sanitize = true;
@@ -68,11 +74,28 @@ public class SQLQueryRequest {
    * Constructor of SQLQueryRequest that passes request params.
    */
   public SQLQueryRequest(
+      JSONObject jsonContent, String query, String path, String params) {
+    this(jsonContent, query, path, params, 0);
+  }
+
+  /**
+   * Constructor of SQLQueryRequest that passes request params.
+   */
+  public SQLQueryRequest(
       JSONObject jsonContent, String query, String path, Map<String, String> params) {
+    this(jsonContent, query, path, params, 0);
+  }
+
+  /**
+   * Constructor of SQLQueryRequest that passes request params.
+   */
+  public SQLQueryRequest(
+      JSONObject jsonContent, String query, String path, Map<String, String> params, int fetchSize) {
     this.jsonContent = jsonContent;
     this.query = query;
     this.path = path;
     this.params = params;
+    this.fetchSize = fetchSize;
     this.format = getFormat(params);
     this.sanitize = shouldSanitize(params);
   }
@@ -87,7 +110,6 @@ public class SQLQueryRequest {
    */
   public boolean isSupported() {
     return isOnlySupportedFieldInPayload()
-        && isFetchSizeZeroIfPresent()
         && isSupportedFormat();
   }
 
@@ -114,10 +136,6 @@ public class SQLQueryRequest {
 
   private boolean isOnlySupportedFieldInPayload() {
     return SUPPORTED_FIELDS.containsAll(jsonContent.keySet());
-  }
-
-  private boolean isFetchSizeZeroIfPresent() {
-    return (jsonContent.optInt("fetch_size") == 0);
   }
 
   private boolean isSupportedFormat() {

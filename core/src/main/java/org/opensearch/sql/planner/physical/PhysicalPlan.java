@@ -32,6 +32,14 @@ public abstract class PhysicalPlan implements PlanNode<PhysicalPlan>,
     getChild().forEach(PhysicalPlan::open);
   }
 
+  public String getCursor() {
+    try {
+      return getChild().get(0).getCursor();
+    } catch (IndexOutOfBoundsException e) {
+      return getCursor();
+    }
+  }
+
   public void close() {
     getChild().forEach(PhysicalPlan::close);
   }

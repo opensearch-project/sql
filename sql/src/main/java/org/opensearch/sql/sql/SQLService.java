@@ -17,6 +17,7 @@ import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
@@ -105,6 +106,14 @@ public class SQLService {
   public PhysicalPlan plan(LogicalPlan logicalPlan) {
     return new Planner(storageEngine, LogicalPlanOptimizer.create(new DSL(repository)))
         .plan(logicalPlan);
+  }
+
+  /**
+   * Generate optimal physical plan from logical plan and context.
+   */
+  public PhysicalPlan plan(LogicalPlan logicalPlan, PlanContext planContext) {
+    return new Planner(storageEngine, LogicalPlanOptimizer.create(new DSL(repository)))
+        .plan(logicalPlan, planContext);
   }
 
 }

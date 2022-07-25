@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.search.SearchHits;
@@ -37,6 +38,12 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
   private final Aggregations aggregations;
 
   /**
+   * Search scrollId result.
+   */
+  @Getter
+  private final String scrollId;
+
+  /**
    * ElasticsearchExprValueFactory used to build ExprValue from search result.
    */
   @EqualsAndHashCode.Exclude
@@ -49,6 +56,7 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
                             OpenSearchExprValueFactory exprValueFactory) {
     this.hits = searchResponse.getHits();
     this.aggregations = searchResponse.getAggregations();
+    this.scrollId = searchResponse.getScrollId();
     this.exprValueFactory = exprValueFactory;
   }
 
@@ -58,6 +66,7 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
   public OpenSearchResponse(SearchHits hits, OpenSearchExprValueFactory exprValueFactory) {
     this.hits = hits;
     this.aggregations = null;
+    this.scrollId = null;
     this.exprValueFactory = exprValueFactory;
   }
 

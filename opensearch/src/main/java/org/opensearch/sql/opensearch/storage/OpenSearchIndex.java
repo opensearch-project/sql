@@ -32,6 +32,7 @@ import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
 import org.opensearch.sql.opensearch.storage.script.sort.SortQueryBuilder;
 import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
 import org.opensearch.sql.planner.DefaultImplementor;
+import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
@@ -83,9 +84,9 @@ public class OpenSearchIndex implements Table {
    * TODO: Push down operations to index scan operator as much as possible in future.
    */
   @Override
-  public PhysicalPlan implement(LogicalPlan plan) {
+  public PhysicalPlan implement(LogicalPlan plan, PlanContext planContext) {
     OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings, indexName,
-        new OpenSearchExprValueFactory(getFieldTypes()));
+        new OpenSearchExprValueFactory(getFieldTypes()), planContext.getFetchSize());
 
     /*
      * Visit logical plan with index scan as context so logical operators visited, such as
@@ -94,6 +95,12 @@ public class OpenSearchIndex implements Table {
      */
     return plan.accept(new OpenSearchDefaultImplementor(indexScan, client), indexScan);
   }
+
+  @Override
+  public PhysicalPlan implement(LogicalPlan plan) {
+    return this.implement(plan, new PlanContext());
+  }
+
 
   @Override
   public LogicalPlan optimize(LogicalPlan plan) {
