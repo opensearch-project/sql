@@ -30,6 +30,7 @@ import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
+import org.opensearch.sql.storage.Table;
 
 /**
  * Todo. Temporary added for UT coverage, Will be removed.
@@ -43,6 +44,8 @@ class LogicalPlanNodeVisitorTest {
   ReferenceExpression ref;
   @Mock
   Aggregator aggregator;
+  @Mock
+  Table table;
 
   @Test
   public void logicalPlanShouldTraversable() {
@@ -50,7 +53,7 @@ class LogicalPlanNodeVisitorTest {
         LogicalPlanDSL.rename(
             LogicalPlanDSL.aggregation(
                 LogicalPlanDSL.rareTopN(
-                    LogicalPlanDSL.filter(LogicalPlanDSL.relation("schema"), expression),
+                    LogicalPlanDSL.filter(LogicalPlanDSL.relation("schema", table), expression),
                     CommandType.TOP,
                     ImmutableList.of(expression),
                     expression),
@@ -64,7 +67,7 @@ class LogicalPlanNodeVisitorTest {
 
   @Test
   public void testAbstractPlanNodeVisitorShouldReturnNull() {
-    LogicalPlan relation = LogicalPlanDSL.relation("schema");
+    LogicalPlan relation = LogicalPlanDSL.relation("schema", table);
     assertNull(relation.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
     }, null));
 
@@ -119,7 +122,7 @@ class LogicalPlanNodeVisitorTest {
     assertNull(highlight.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
     }, null));
 
-    LogicalPlan mlCommons = new LogicalMLCommons(LogicalPlanDSL.relation("schema"),
+    LogicalPlan mlCommons = new LogicalMLCommons(LogicalPlanDSL.relation("schema", table),
             "kmeans",
             ImmutableMap.<String, Literal>builder()
                     .put("centroids", new Literal(3, DataType.INTEGER))
@@ -129,7 +132,7 @@ class LogicalPlanNodeVisitorTest {
     assertNull(mlCommons.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
     }, null));
 
-    LogicalPlan ad = new LogicalAD(LogicalPlanDSL.relation("schema"),
+    LogicalPlan ad = new LogicalAD(LogicalPlanDSL.relation("schema", table),
             new HashMap<String, Literal>() {{
               put("shingle_size", new Literal(8, DataType.INTEGER));
               put("time_decay", new Literal(0.0001, DataType.DOUBLE));

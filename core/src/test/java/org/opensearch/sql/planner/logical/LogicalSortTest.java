@@ -36,7 +36,7 @@ class LogicalSortTest extends AnalyzerTestBase {
   public void analyze_sort_with_two_field_with_default_option() {
     assertAnalyzeEqual(
         LogicalPlanDSL.sort(
-            LogicalPlanDSL.relation("schema"),
+            LogicalPlanDSL.relation("schema", table),
             ImmutablePair.of(SortOption.DEFAULT_ASC, DSL.ref("integer_value", INTEGER)),
             ImmutablePair.of(SortOption.DEFAULT_ASC, DSL.ref("double_value", DOUBLE))),
         sort(
@@ -49,7 +49,7 @@ class LogicalSortTest extends AnalyzerTestBase {
   public void analyze_sort_with_two_field() {
     assertAnalyzeEqual(
         LogicalPlanDSL.sort(
-            LogicalPlanDSL.relation("schema"),
+            LogicalPlanDSL.relation("schema", table),
             ImmutablePair.of(SortOption.DEFAULT_DESC, DSL.ref("integer_value", INTEGER)),
             ImmutablePair.of(SortOption.DEFAULT_ASC, DSL.ref("double_value", DOUBLE))),
         sort(

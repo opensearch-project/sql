@@ -22,7 +22,6 @@ import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.ast.dsl.AstDSL.span;
-import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder;
 import static org.opensearch.sql.ast.tree.Sort.SortOption;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
@@ -48,6 +47,7 @@ import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -75,7 +75,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   public void filter_relation() {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
-            LogicalPlanDSL.relation("schema"),
+            LogicalPlanDSL.relation("schema", table),
             dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
         AstDSL.filter(
             AstDSL.relation("schema"),
@@ -83,9 +83,43 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
+  public void filter_relation_with_catalog() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("http_total_requests", table),
+            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+        AstDSL.filter(
+            AstDSL.relation(AstDSL.qualifiedName("prometheus", "http_total_requests")),
+            AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
+  }
+
+  @Test
+  public void filter_relation_with_escaped_catalog() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("prometheus.http_total_requests", table),
+            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+        AstDSL.filter(
+            AstDSL.relation(AstDSL.qualifiedName("prometheus.http_total_requests")),
+            AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
+  }
+
+  @Test
+  public void filter_relation_with_non_existing_catalog() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("test.http_total_requests", table),
+            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+        AstDSL.filter(
+            AstDSL.relation(AstDSL.qualifiedName("test", "http_total_requests")),
+            AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
+  }
+
+  @Test
   public void head_relation() {
     assertAnalyzeEqual(
-        LogicalPlanDSL.limit(LogicalPlanDSL.relation("schema"),10, 0),
+        LogicalPlanDSL.limit(LogicalPlanDSL.relation("schema", table),
+            10, 0),
         AstDSL.head(AstDSL.relation("schema"), 10, 0));
   }
 
@@ -93,7 +127,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   public void analyze_filter_relation() {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
-            LogicalPlanDSL.relation("schema"),
+            LogicalPlanDSL.relation("schema", table),
             dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
         filter(relation("schema"), compare("=", field("integer_value"), intLiteral(1))));
   }
@@ -103,11 +137,11 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.aggregation(
-                LogicalPlanDSL.relation("schema"),
+                LogicalPlanDSL.relation("schema", table),
                 ImmutableList.of(
                     DSL.named("AVG(integer_value)", dsl.avg(DSL.ref("integer_value", INTEGER))),
                     DSL.named("MIN(integer_value)", dsl.min(DSL.ref("integer_value", INTEGER)))),
-            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING)))),
+                ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING)))),
             dsl.greater(// Expect to be replaced with reference by expression optimizer
                 DSL.ref("MIN(integer_value)", INTEGER), DSL.literal(integerValue(10)))),
         AstDSL.filter(
@@ -116,7 +150,7 @@ class AnalyzerTest extends AnalyzerTestBase {
                 ImmutableList.of(
                     alias("AVG(integer_value)", aggregate("AVG", qualifiedName("integer_value"))),
                     alias("MIN(integer_value)", aggregate("MIN", qualifiedName("integer_value")))),
-            emptyList(),
+                emptyList(),
                 ImmutableList.of(alias("string_value", qualifiedName("string_value"))),
                 emptyList()),
             compare(">",
@@ -127,7 +161,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   public void rename_relation() {
     assertAnalyzeEqual(
         LogicalPlanDSL.rename(
-            LogicalPlanDSL.relation("schema"),
+            LogicalPlanDSL.relation("schema", table),
             ImmutableMap.of(DSL.ref("integer_value", INTEGER), DSL.ref("ivalue", INTEGER))),
         AstDSL.rename(
             AstDSL.relation("schema"),
@@ -138,7 +172,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   public void stats_source() {
     assertAnalyzeEqual(
         LogicalPlanDSL.aggregation(
-            LogicalPlanDSL.relation("schema"),
+            LogicalPlanDSL.relation("schema", table),
             ImmutableList
                 .of(DSL.named("avg(integer_value)", dsl.avg(DSL.ref("integer_value", INTEGER)))),
             ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING)))),
@@ -159,7 +193,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   public void rare_source() {
     assertAnalyzeEqual(
         LogicalPlanDSL.rareTopN(
-            LogicalPlanDSL.relation("schema"),
+            LogicalPlanDSL.relation("schema", table),
             CommandType.RARE,
             10,
             ImmutableList.of(DSL.ref("string_value", STRING)),
@@ -179,7 +213,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   public void top_source() {
     assertAnalyzeEqual(
         LogicalPlanDSL.rareTopN(
-            LogicalPlanDSL.relation("schema"),
+            LogicalPlanDSL.relation("schema", table),
             CommandType.TOP,
             5,
             ImmutableList.of(DSL.ref("string_value", STRING)),
@@ -223,7 +257,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   public void project_source() {
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
-            LogicalPlanDSL.relation("schema"),
+            LogicalPlanDSL.relation("schema", table),
             DSL.named("integer_value", DSL.ref("integer_value", INTEGER)),
             DSL.named("double_value", DSL.ref("double_value", DOUBLE))
         ),
@@ -238,7 +272,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   public void project_highlight() {
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
-            LogicalPlanDSL.highlight(LogicalPlanDSL.relation("schema"),
+            LogicalPlanDSL.highlight(LogicalPlanDSL.relation("schema", table),
                 DSL.literal("fieldA")),
             DSL.named("highlight(fieldA)", new HighlightExpression(DSL.literal("fieldA")))
         ),
@@ -254,7 +288,8 @@ class AnalyzerTest extends AnalyzerTestBase {
   public void remove_source() {
     assertAnalyzeEqual(
         LogicalPlanDSL.remove(
-            LogicalPlanDSL.relation("schema"), DSL.ref("integer_value", INTEGER), DSL.ref(
+            LogicalPlanDSL.relation("schema", table),
+            DSL.ref("integer_value", INTEGER), DSL.ref(
                 "double_value", DOUBLE)),
         AstDSL.projectWithArg(
             AstDSL.relation("schema"),
@@ -306,7 +341,7 @@ class AnalyzerTest extends AnalyzerTestBase {
         LogicalPlanDSL.project(
             LogicalPlanDSL.sort(
                 LogicalPlanDSL.aggregation(
-                    LogicalPlanDSL.relation("test"),
+                    LogicalPlanDSL.relation("test", table),
                     ImmutableList.of(
                         DSL.named(
                             "avg(integer_value)",
@@ -338,25 +373,25 @@ class AnalyzerTest extends AnalyzerTestBase {
   public void sort_with_options() {
     ImmutableMap<Argument[], SortOption> argOptions =
         ImmutableMap.<Argument[], SortOption>builder()
-            .put(new Argument[]{argument("asc", booleanLiteral(true))},
+            .put(new Argument[] {argument("asc", booleanLiteral(true))},
                 new SortOption(SortOrder.ASC, NullOrder.NULL_FIRST))
-            .put(new Argument[]{argument("asc", booleanLiteral(false))},
+            .put(new Argument[] {argument("asc", booleanLiteral(false))},
                 new SortOption(SortOrder.DESC, NullOrder.NULL_LAST))
-            .put(new Argument[]{
-                argument("asc", booleanLiteral(true)),
-                argument("nullFirst", booleanLiteral(true))},
+            .put(new Argument[] {
+                    argument("asc", booleanLiteral(true)),
+                    argument("nullFirst", booleanLiteral(true))},
                 new SortOption(SortOrder.ASC, NullOrder.NULL_FIRST))
-            .put(new Argument[]{
-                argument("asc", booleanLiteral(true)),
-                argument("nullFirst", booleanLiteral(false))},
+            .put(new Argument[] {
+                    argument("asc", booleanLiteral(true)),
+                    argument("nullFirst", booleanLiteral(false))},
                 new SortOption(SortOrder.ASC, NullOrder.NULL_LAST))
-            .put(new Argument[]{
-                argument("asc", booleanLiteral(false)),
-                argument("nullFirst", booleanLiteral(true))},
+            .put(new Argument[] {
+                    argument("asc", booleanLiteral(false)),
+                    argument("nullFirst", booleanLiteral(true))},
                 new SortOption(SortOrder.DESC, NullOrder.NULL_FIRST))
-            .put(new Argument[]{
-                argument("asc", booleanLiteral(false)),
-                argument("nullFirst", booleanLiteral(false))},
+            .put(new Argument[] {
+                    argument("asc", booleanLiteral(false)),
+                    argument("nullFirst", booleanLiteral(false))},
                 new SortOption(SortOrder.DESC, NullOrder.NULL_LAST))
             .build();
 
@@ -364,7 +399,7 @@ class AnalyzerTest extends AnalyzerTestBase {
         assertAnalyzeEqual(
             LogicalPlanDSL.project(
                 LogicalPlanDSL.sort(
-                    LogicalPlanDSL.relation("test"),
+                    LogicalPlanDSL.relation("test", table),
                     Pair.of(expectOption, DSL.ref("integer_value", INTEGER))),
                 DSL.named("string_value", DSL.ref("string_value", STRING))),
             AstDSL.project(
@@ -381,7 +416,7 @@ class AnalyzerTest extends AnalyzerTestBase {
         LogicalPlanDSL.project(
             LogicalPlanDSL.window(
                 LogicalPlanDSL.sort(
-                    LogicalPlanDSL.relation("test"),
+                    LogicalPlanDSL.relation("test", table),
                     ImmutablePair.of(DEFAULT_ASC, DSL.ref("string_value", STRING)),
                     ImmutablePair.of(DEFAULT_ASC, DSL.ref("integer_value", INTEGER))),
                 DSL.named("window_function", dsl.rowNumber()),
@@ -406,7 +441,7 @@ class AnalyzerTest extends AnalyzerTestBase {
 
   /**
    * SELECT name FROM (
-   *   SELECT name, age FROM test
+   * SELECT name, age FROM test
    * ) AS schema.
    */
   @Test
@@ -414,7 +449,7 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
             LogicalPlanDSL.project(
-                LogicalPlanDSL.relation("schema"),
+                LogicalPlanDSL.relation("schema", table),
                 DSL.named("string_value", DSL.ref("string_value", STRING)),
                 DSL.named("integer_value", DSL.ref("integer_value", INTEGER))
             ),
@@ -436,7 +471,7 @@ class AnalyzerTest extends AnalyzerTestBase {
 
   /**
    * SELECT * FROM (
-   *   SELECT name FROM test
+   * SELECT name FROM test
    * ) AS schema.
    */
   @Test
@@ -444,7 +479,7 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
             LogicalPlanDSL.project(
-                LogicalPlanDSL.relation("schema"),
+                LogicalPlanDSL.relation("schema", table),
                 DSL.named("string_value", DSL.ref("string_value", STRING))),
             DSL.named("string_value", DSL.ref("string_value", STRING))
         ),
@@ -469,7 +504,7 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
             LogicalPlanDSL.aggregation(
-                LogicalPlanDSL.relation("schema"),
+                LogicalPlanDSL.relation("schema", table),
                 ImmutableList
                     .of(DSL
                         .named("AVG(integer_value)", dsl.avg(DSL.ref("integer_value", INTEGER)))),
@@ -497,7 +532,7 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
             LogicalPlanDSL.aggregation(
-                LogicalPlanDSL.relation("schema"),
+                LogicalPlanDSL.relation("schema", table),
                 ImmutableList
                     .of(DSL
                         .named("AVG(integer_value)", dsl.avg(DSL.ref("integer_value", INTEGER)))),
@@ -527,7 +562,7 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
             LogicalPlanDSL.aggregation(
-                LogicalPlanDSL.relation("schema"),
+                LogicalPlanDSL.relation("schema", table),
                 ImmutableList
                     .of(DSL
                         .named("AVG(integer_value)", dsl.avg(DSL.ref("integer_value", INTEGER)))),
@@ -557,7 +592,7 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
             LogicalPlanDSL.aggregation(
-                LogicalPlanDSL.relation("schema"),
+                LogicalPlanDSL.relation("schema", table),
                 ImmutableList
                     .of(DSL.named("avg(integer_value)",
                         dsl.avg(DSL.ref("integer_value", INTEGER)))),
@@ -588,10 +623,10 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
             LogicalPlanDSL.aggregation(
-                LogicalPlanDSL.relation("schema"),
+                LogicalPlanDSL.relation("schema", table),
                 ImmutableList
                     .of(DSL.named("sum(integer_value)",
-                        dsl.sum(DSL.ref("integer_value", INTEGER))),
+                            dsl.sum(DSL.ref("integer_value", INTEGER))),
                         DSL.named("avg(integer_value)",
                             dsl.avg(DSL.ref("integer_value", INTEGER)))),
                 ImmutableList.of(DSL.named("abs(long_value)",
@@ -622,7 +657,7 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
             LogicalPlanDSL.limit(
-                LogicalPlanDSL.relation("schema"),
+                LogicalPlanDSL.relation("schema", table),
                 1, 1
             ),
             DSL.named("integer_value", DSL.ref("integer_value", INTEGER))
@@ -647,7 +682,7 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
             LogicalPlanDSL.aggregation(
-                LogicalPlanDSL.relation("schema"),
+                LogicalPlanDSL.relation("schema", table),
                 ImmutableList.of(
                     DSL.named("count(string_value) filter(where integer_value > 1)",
                         dsl.count(DSL.ref("string_value", STRING)).condition(dsl.greater(DSL.ref(
@@ -683,7 +718,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   public void ppl_stats_by_fieldAndSpan() {
     assertAnalyzeEqual(
         LogicalPlanDSL.aggregation(
-            LogicalPlanDSL.relation("schema"),
+            LogicalPlanDSL.relation("schema", table),
             ImmutableList.of(
                 DSL.named("AVG(integer_value)", dsl.avg(DSL.ref("integer_value", INTEGER)))),
             ImmutableList.of(
@@ -703,7 +738,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   public void parse_relation() {
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
-            LogicalPlanDSL.relation("schema"),
+            LogicalPlanDSL.relation("schema", table),
             ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
             ImmutableList.of(DSL.named("group",
                 DSL.parsed(DSL.ref("string_value", STRING), DSL.literal("(?<group>.*)"),
@@ -717,7 +752,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             AstDSL.alias("string_value", qualifiedName("string_value"))
         ));
   }
-  
+
   @Test
   public void kmeanns_relation() {
     Map<String, Literal> argumentMap = new HashMap<String, Literal>() {{
@@ -726,9 +761,9 @@ class AnalyzerTest extends AnalyzerTestBase {
         put("distance_type", new Literal("COSINE", DataType.STRING));
       }};
     assertAnalyzeEqual(
-            new LogicalMLCommons(LogicalPlanDSL.relation("schema"),
-                    "kmeans", argumentMap),
-            new Kmeans(AstDSL.relation("schema"), argumentMap)
+        new LogicalMLCommons(LogicalPlanDSL.relation("schema", table),
+            "kmeans", argumentMap),
+        new Kmeans(AstDSL.relation("schema"), argumentMap)
     );
   }
 
@@ -739,7 +774,7 @@ class AnalyzerTest extends AnalyzerTestBase {
                 put("shingle_size", new Literal(8, DataType.INTEGER));
             }};
     assertAnalyzeEqual(
-        new LogicalAD(LogicalPlanDSL.relation("schema"), argumentMap),
+        new LogicalAD(LogicalPlanDSL.relation("schema", table), argumentMap),
         new AD(AstDSL.relation("schema"), argumentMap)
     );
   }
@@ -752,8 +787,9 @@ class AnalyzerTest extends AnalyzerTestBase {
         put("time_field", new Literal("timestamp", DataType.STRING));
       }};
     assertAnalyzeEqual(
-            new LogicalAD(LogicalPlanDSL.relation("schema"), argumentMap),
-            new AD(AstDSL.relation("schema"), argumentMap)
+        new LogicalAD(LogicalPlanDSL.relation("schema", table),
+            argumentMap),
+        new AD(AstDSL.relation("schema"), argumentMap)
     );
   }
 }
