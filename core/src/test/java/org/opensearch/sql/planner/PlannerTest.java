@@ -127,6 +127,11 @@ public class PlannerTest extends PhysicalPlanTestBase {
     }
 
     @Override
+    public Integer getMaxResultWindow() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
     public PhysicalPlan implement(LogicalPlan plan, PlanContext context) {
       return plan.accept(this, null);
     }

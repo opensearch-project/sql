@@ -36,6 +36,8 @@ public class AnalyzerTestBase {
     return TestConfig.typeMapping;
   }
 
+  protected Integer maxResultWindow() { return TestConfig.MAX_RESULT_WINDOW; }
+
   @Bean
   protected StorageEngine storageEngine() {
     return new StorageEngine() {
@@ -45,6 +47,11 @@ public class AnalyzerTestBase {
           @Override
           public Map<String, ExprType> getFieldTypes() {
             return typeMapping();
+          }
+
+          @Override
+          public Integer getMaxResultWindow() {
+            return maxResultWindow();
           }
 
           @Override

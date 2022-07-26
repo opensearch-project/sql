@@ -39,6 +39,8 @@ public class TestConfig {
   public static final String STRING_TYPE_NULL_VALUE_FIELD = "string_null_value";
   public static final String STRING_TYPE_MISSING_VALUE_FIELD = "string_missing_value";
 
+  public static final Integer MAX_RESULT_WINDOW = 10000;
+
   public static Map<String, ExprType> typeMapping = new ImmutableMap.Builder<String, ExprType>()
       .put("integer_value", ExprCoreType.INTEGER)
       .put(INT_TYPE_NULL_VALUE_FIELD, ExprCoreType.INTEGER)
@@ -68,6 +70,9 @@ public class TestConfig {
           public Map<String, ExprType> getFieldTypes() {
             return typeMapping;
           }
+
+          @Override
+          public Integer getMaxResultWindow() { return MAX_RESULT_WINDOW; }
 
           @Override
           public PhysicalPlan implement(LogicalPlan plan, PlanContext context) {
