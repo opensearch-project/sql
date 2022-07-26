@@ -15,14 +15,14 @@ public class HighlightTest  extends SQLParserTest {
 
   @Test
   void multiple_highlights_test() {
-    acceptQuery("SELECT HIGHLIGHT(Tags), HIGHLIGHT(Body) FROM Index " +
-        "WHERE MULTI_MATCH([Tags, Body], 'Time')");
+    acceptQuery("SELECT HIGHLIGHT(Tags), HIGHLIGHT(Body) FROM Index "
+        + "WHERE MULTI_MATCH([Tags, Body], 'Time')");
   }
 
   @Test
   void wildcard_test() {
-    acceptQuery("SELECT HIGHLIGHT('T*') FROM Index " +
-        "WHERE MULTI_MATCH([Tags, Body], 'Time')");
+    acceptQuery("SELECT HIGHLIGHT('T*') FROM Index "
+        + "WHERE MULTI_MATCH([Tags, Body], 'Time')");
   }
 
   @Test
