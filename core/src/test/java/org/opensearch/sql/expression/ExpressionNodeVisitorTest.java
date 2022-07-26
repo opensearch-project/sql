@@ -20,6 +20,7 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.analysis.HighlightExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.aggregation.AvgAggregator;
 import org.opensearch.sql.expression.conditional.cases.CaseClause;
@@ -86,6 +87,11 @@ class ExpressionNodeVisitorTest {
       @Override
       public Expression visitAggregator(Aggregator<?> node, Object context) {
         return dsl.sum(visitArguments(node.getArguments(), context));
+      }
+
+      @Override
+      public Expression visitHighlight(HighlightExpression node, Object context) {
+        return node;
       }
 
       private Expression[] visitArguments(List<Expression> arguments, Object context) {

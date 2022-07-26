@@ -191,6 +191,11 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
       return name(node, "Limit->", tabs);
     }
 
+    @Override
+    public String visitHighlight(HighlightOperator node, Integer tabs) {
+      return name(node, "Highlight->", tabs);
+    }
+
     private String name(PhysicalPlan node, String current, int tabs) {
       String child = node.getChild().get(0).accept(this, tabs + 1);
       StringBuilder sb = new StringBuilder();
