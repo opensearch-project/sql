@@ -121,6 +121,15 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
     return fieldTypes;
   }
 
+  /**
+   * Get the max result window of index.
+   *
+   * @return max result window of index.
+   */
+  public Integer getMaxResultWindow() {
+    return client.getIndexMaxResultWindow(indexName.getIndexNames());
+  }
+
   private ExprType transformESTypeToExprType(String openSearchType) {
     return OPENSEARCH_TYPE_TO_EXPR_TYPE_MAPPING.getOrDefault(openSearchType, ExprCoreType.UNKNOWN);
   }

@@ -122,6 +122,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     TypeEnvironment curEnv = context.peek();
     Table table = storageEngine.getTable(node.getTableName());
     table.getFieldTypes().forEach((k, v) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));
+    Integer maxResultWindow = table.getMaxResultWindow();
+    context.getPlanContext().setMaxResultWindow(maxResultWindow);
 
     // Put index name or its alias in index namespace on type environment so qualifier
     // can be removed when analyzing qualified name. The value (expr type) here doesn't matter.
@@ -147,10 +149,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     LogicalPlan child = node.getChild().get(0).accept(this, context);
     Integer limit = node.getLimit();
     Integer offset = node.getOffset();
-    // TODO: use index.MAX_RESULT_WINDOW, but how?
-    Integer max_result_window = 10000;
-    if (limit + offset > max_result_window) {
-      context.getPlanContext().setIndexScanType(PlanContext.IndexScanType.SCROLL);
+    PlanContext planContext = context.getPlanContext();
+    if (limit + offset > planContext.getMaxResultWindow()) {
+      planContext.setIndexScanType(PlanContext.IndexScanType.SCROLL);
     }
     return new LogicalLimit(child, limit, offset);
   }
@@ -400,12 +401,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     LogicalPlan child = node.getChild().get(0).accept(this, context);
     Integer size = node.getSize();
     Integer from = node.getFrom();
-    // TODO: use index.MAX_RESULT_WINDOW, but how?
-    Integer max_result_window = 10000;
-    if (size + from > max_result_window) {
-      context.getPlanContext().setIndexScanType(PlanContext.IndexScanType.SCROLL);
+    PlanContext planContext = context.getPlanContext();
+    if (size + from > planContext.getMaxResultWindow()) {
+      planContext.setIndexScanType(PlanContext.IndexScanType.SCROLL);
     }
-    return new LogicalLimit(child, size, from);
+    return new LogicalLimit(child, node.getSize(), node.getFrom());
   }
 
   @Override

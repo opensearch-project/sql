@@ -61,6 +61,11 @@ public class OpenSearchIndex implements Table {
   private Map<String, ExprType> cachedFieldTypes = null;
 
   /**
+   * The cached max result window of index.
+   */
+  private Integer cachedMaxResultWindow = null;
+
+  /**
    * Constructor.
    */
   public OpenSearchIndex(OpenSearchClient client, Settings settings, String indexName) {
@@ -80,6 +85,14 @@ public class OpenSearchIndex implements Table {
       cachedFieldTypes = new OpenSearchDescribeIndexRequest(client, indexName).getFieldTypes();
     }
     return cachedFieldTypes;
+  }
+
+  @Override
+  public Integer getMaxResultWindow() {
+    if (cachedMaxResultWindow == null) {
+      cachedMaxResultWindow = new OpenSearchDescribeIndexRequest(client, indexName).getMaxResultWindow();
+    }
+    return cachedMaxResultWindow;
   }
 
   /**
@@ -141,16 +154,8 @@ public class OpenSearchIndex implements Table {
         context.pushDown(query);
       }
 
-      // TODO: duplicate logic with visitLimit
       if (node.getLimit() != null) {
-        Integer limit = node.getLimit();
-        Integer offset = node.getOffset();
-        // TODO: use index.MAX_RESULT_WINDOW, but how?
-        Integer max_result_window = 10000;
-        if (limit + offset > max_result_window) {
-          limit = max_result_window - offset;
-        }
-        context.pushDownLimit(limit, offset);
+        context.pushDownLimit(node.getLimit(), node.getOffset());
       }
 
       if (node.hasProjects()) {
@@ -191,14 +196,7 @@ public class OpenSearchIndex implements Table {
     public PhysicalPlan visitLimit(LogicalLimit node, OpenSearchIndexScan context) {
       Integer limit = node.getLimit();
       Integer offset = node.getOffset();
-      // TODO: use index.MAX_RESULT_WINDOW, but how?
-      Integer max_result_window = 10000;
-      if (limit + offset > max_result_window) {
-        context.pushDownLimit(max_result_window - offset, offset);
-      }
-      else {
-        context.pushDownLimit(limit, offset);
-      }
+      context.pushDownLimit(limit, offset);
       return new LimitOperator(visitChild(node, context), limit, offset);
     }
 

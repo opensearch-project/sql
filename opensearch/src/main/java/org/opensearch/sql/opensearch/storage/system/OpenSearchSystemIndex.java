@@ -45,6 +45,13 @@ public class OpenSearchSystemIndex implements Table {
   }
 
   @Override
+  public Integer getMaxResultWindow() {
+    // system index doesn't need this function
+    // the magic number is the number of fields of the mapping table
+    return 27;
+  }
+
+  @Override
   public PhysicalPlan implement(LogicalPlan plan, PlanContext context) {
     return plan.accept(new OpenSearchSystemIndexDefaultImplementor(), null);
   }

@@ -11,11 +11,11 @@ import lombok.Setter;
 public class PlanContext {
   @Getter
   @Setter
-  private IndexScanType indexScanType;
+  private IndexScanType indexScanType = IndexScanType.QUERY;
 
-  public PlanContext() {
-    this.indexScanType = IndexScanType.QUERY;
-  }
+  @Getter
+  @Setter
+  private Integer maxResultWindow = 10000;
 
   public enum IndexScanType {
     /**

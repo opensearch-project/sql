@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.logging.log4j.ThreadContext;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
+import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.ClusterState;
@@ -28,6 +29,7 @@ import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.collect.ImmutableOpenMap;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
@@ -84,6 +86,15 @@ public class OpenSearchNodeClient implements OpenSearchClient {
       throw new IllegalStateException(
           "Failed to read mapping in cluster state for index pattern [" + indexExpression + "]", e);
     }
+  }
+
+  @Override
+  public Integer getIndexMaxResultWindow(String... indexExpression) {
+    final GetSettingsResponse response = client.admin().indices().prepareGetSettings(indexExpression).get();
+    // return the minimum `index.max_result_window` of all indices
+    return ImmutableList.copyOf(response.getIndexToSettings().values().toArray(Settings.class))
+        .stream().map(settings -> settings.getAsInt("index.max_result_window", 10000))
+        .min(Integer::compare).get();
   }
 
   /**

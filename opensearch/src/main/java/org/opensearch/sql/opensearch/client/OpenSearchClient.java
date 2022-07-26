@@ -30,6 +30,8 @@ public interface OpenSearchClient {
    */
   Map<String, IndexMapping> getIndexMappings(String... indexExpression);
 
+  Integer getIndexMaxResultWindow(String... indexExpression);
+
   /**
    * Perform search query in the search request.
    *

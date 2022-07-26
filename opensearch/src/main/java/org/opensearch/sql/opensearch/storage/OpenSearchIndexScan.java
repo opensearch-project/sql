@@ -56,6 +56,9 @@ public class OpenSearchIndexScan extends TableScanOperator {
   @ToString.Include
   private final OpenSearchRequest request;
 
+  /** Max result window per request. */
+  private final Integer maxResultWindow;
+
   /** Search response for current batch. */
   private Iterator<ExprValue> iterator;
 
@@ -75,6 +78,7 @@ public class OpenSearchIndexScan extends TableScanOperator {
                              Settings settings, OpenSearchRequest.IndexName indexName,
                              PlanContext context, OpenSearchExprValueFactory exprValueFactory) {
     this.client = client;
+    this.maxResultWindow = context.getMaxResultWindow();
     switch (context.getIndexScanType()) {
       case SCROLL:
         this.request = new OpenSearchScrollRequest(indexName, exprValueFactory);
@@ -163,7 +167,8 @@ public class OpenSearchIndexScan extends TableScanOperator {
    */
   public void pushDownLimit(Integer limit, Integer offset) {
     SearchSourceBuilder sourceBuilder = request.getSourceBuilder();
-    sourceBuilder.from(offset).size(limit);
+    // If limit > maxResultWindow, scroll with batch size = maxResultWindow
+    sourceBuilder.from(offset).size(Math.min(limit, maxResultWindow));
   }
 
   /**

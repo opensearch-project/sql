@@ -17,6 +17,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.action.admin.cluster.settings.ClusterGetSettingsRequest;
+import org.opensearch.action.admin.indices.settings.get.GetSettingsRequest;
+import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.opensearch.action.search.ClearScrollRequest;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.RestHighLevelClient;
@@ -51,6 +53,19 @@ public class OpenSearchRestClient implements OpenSearchClient {
           .collect(Collectors.toMap(Map.Entry::getKey, e -> new IndexMapping(e.getValue())));
     } catch (IOException e) {
       throw new IllegalStateException("Failed to get index mappings for " + indexExpression, e);
+    }
+  }
+
+  @Override
+  public Integer getIndexMaxResultWindow(String... indexExpression) {
+    GetSettingsRequest request = new GetSettingsRequest().indices(indexExpression);
+    try {
+      GetSettingsResponse response = client.indices().getSettings(request, RequestOptions.DEFAULT);
+      return ImmutableList.copyOf(response.getIndexToSettings().values().toArray(Settings.class))
+          .stream().map(settings -> settings.getAsInt("index.max_result_window", 10000))
+          .min(Integer::compare).get();
+    } catch (IOException e) {
+      throw new IllegalStateException("Failed to get index max result window for " + indexExpression, e);
     }
   }
 

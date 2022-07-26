@@ -23,6 +23,11 @@ public interface Table {
   Map<String, ExprType> getFieldTypes();
 
   /**
+   * Get the index.max_result_window setting.
+   */
+  Integer getMaxResultWindow();
+
+  /**
    * Implement a {@link LogicalPlan} by {@link PhysicalPlan} in storage engine.
    *
    * @param plan    logical plan
