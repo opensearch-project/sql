@@ -38,14 +38,14 @@ class LogicalPlanOptimizerTest extends AnalyzerTestBase {
   void filter_merge_filter() {
     assertEquals(
         filter(
-            relation("schema"),
+            relation("schema", table),
             dsl.and(dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(2))),
                 dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1))))
         ),
         optimize(
             filter(
                 filter(
-                    relation("schema"),
+                    relation("schema", table),
                     dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))
                 ),
                 dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(2)))
@@ -62,7 +62,7 @@ class LogicalPlanOptimizerTest extends AnalyzerTestBase {
     assertEquals(
         sort(
             filter(
-                relation("schema"),
+                relation("schema", table),
                 dsl.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
             ),
             Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))
@@ -70,7 +70,7 @@ class LogicalPlanOptimizerTest extends AnalyzerTestBase {
         optimize(
             filter(
                 sort(
-                    relation("schema"),
+                    relation("schema", table),
                     Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))
                 ),
                 dsl.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
@@ -87,7 +87,7 @@ class LogicalPlanOptimizerTest extends AnalyzerTestBase {
     assertEquals(
         sort(
             filter(
-                relation("schema"),
+                relation("schema", table),
                 dsl.and(dsl.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1))),
                     dsl.less(DSL.ref("longV", INTEGER), DSL.literal(longValue(1L))))
             ),
@@ -97,7 +97,7 @@ class LogicalPlanOptimizerTest extends AnalyzerTestBase {
             filter(
                 sort(
                     filter(
-                        relation("schema"),
+                        relation("schema", table),
                         dsl.less(DSL.ref("longV", INTEGER), DSL.literal(longValue(1L)))
                     ),
                     Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))

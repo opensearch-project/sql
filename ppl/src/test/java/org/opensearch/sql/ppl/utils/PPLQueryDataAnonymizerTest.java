@@ -7,17 +7,26 @@
 package org.opensearch.sql.ppl.utils;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.when;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.projectWithArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.parser.AstBuilder;
 import org.opensearch.sql.ppl.parser.AstExpressionBuilder;
 
+@RunWith(MockitoJUnitRunner.class)
 public class PPLQueryDataAnonymizerTest {
 
   private final PPLSyntaxParser parser = new PPLSyntaxParser();
@@ -26,6 +35,13 @@ public class PPLQueryDataAnonymizerTest {
   public void testSearchCommand() {
     assertEquals("source=t | where a = ***",
         anonymize("search source=t a=1")
+    );
+  }
+
+  @Test
+  public void testPrometheusPPLCommand() {
+    assertEquals("source=prometheus.http_requests_process",
+        anonymize("source=prometheus.http_requests_process")
     );
   }
 

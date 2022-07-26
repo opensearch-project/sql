@@ -271,7 +271,11 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitTableSource(TableSourceContext ctx) {
-    return visitIdentifiers(Arrays.asList(ctx));
+    if (ctx.getChild(0) instanceof IdentsAsQualifiedNameContext) {
+      return visitIdentifiers(((IdentsAsQualifiedNameContext) ctx.getChild(0)).ident());
+    } else {
+      return visitIdentifiers(Arrays.asList(ctx));
+    }
   }
 
   /**
@@ -374,4 +378,5 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
         v.relevanceArgValue().getText()), DataType.STRING))));
     return builder.build();
   }
+
 }
