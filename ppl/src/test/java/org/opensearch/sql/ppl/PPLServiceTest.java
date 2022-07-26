@@ -11,6 +11,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import org.junit.Assert;
 import org.junit.Before;
@@ -18,6 +19,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -44,6 +46,9 @@ public class PPLServiceTest {
   private ExecutionEngine executionEngine;
 
   @Mock
+  private CatalogService catalogService;
+
+  @Mock
   private Table table;
 
   @Mock
@@ -63,6 +68,7 @@ public class PPLServiceTest {
 
     context.registerBean(StorageEngine.class, () -> storageEngine);
     context.registerBean(ExecutionEngine.class, () -> executionEngine);
+    context.registerBean(CatalogService.class, () -> catalogService);
     context.register(PPLServiceConfig.class);
     context.refresh();
     pplService = context.getBean(PPLService.class);
@@ -151,7 +157,7 @@ public class PPLServiceTest {
   @Test
   public void testExplainWithIllegalQueryShouldBeCaughtByHandler() {
     pplService.explain(new PPLQueryRequest("search", null, null),
-        new ResponseListener<ExplainResponse>() {
+        new ResponseListener<>() {
           @Override
           public void onResponse(ExplainResponse pplQueryResponse) {
             Assert.fail();
@@ -160,6 +166,29 @@ public class PPLServiceTest {
           @Override
           public void onFailure(Exception e) {
 
+          }
+        });
+  }
+
+  @Test
+  public void testPrometheusQuery() {
+    doAnswer(invocation -> {
+      ResponseListener<QueryResponse> listener = invocation.getArgument(1);
+      listener.onResponse(new QueryResponse(schema, Collections.emptyList()));
+      return null;
+    }).when(executionEngine).execute(any(), any());
+    when(catalogService.getCatalogs()).thenReturn(ImmutableSet.of("prometheus"));
+
+    pplService.execute(new PPLQueryRequest("source = prometheus.http_requests_total", null, null),
+        new ResponseListener<>() {
+          @Override
+          public void onResponse(QueryResponse pplQueryResponse) {
+
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            Assert.fail();
           }
         });
   }
