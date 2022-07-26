@@ -13,9 +13,9 @@ import java.util.function.Supplier;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.DefaultFunctionResolver;
 import org.opensearch.sql.expression.function.FunctionBuilder;
 import org.opensearch.sql.expression.function.FunctionName;
-import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.expression.function.FunctionSignature;
 import org.opensearch.sql.expression.window.ranking.DenseRankFunction;
 import org.opensearch.sql.expression.window.ranking.RankFunction;
@@ -30,6 +30,7 @@ public class WindowFunctions {
 
   /**
    * Register all window functions to function repository.
+   *
    * @param repository  function repository
    */
   public void register(BuiltinFunctionRepository repository) {
@@ -38,23 +39,24 @@ public class WindowFunctions {
     repository.register(denseRank());
   }
 
-  private FunctionResolver rowNumber() {
+  private DefaultFunctionResolver rowNumber() {
     return rankingFunction(BuiltinFunctionName.ROW_NUMBER.getName(), RowNumberFunction::new);
   }
 
-  private FunctionResolver rank() {
+  private DefaultFunctionResolver rank() {
     return rankingFunction(BuiltinFunctionName.RANK.getName(), RankFunction::new);
   }
 
-  private FunctionResolver denseRank() {
+  private DefaultFunctionResolver denseRank() {
     return rankingFunction(BuiltinFunctionName.DENSE_RANK.getName(), DenseRankFunction::new);
   }
 
-  private FunctionResolver rankingFunction(FunctionName functionName,
-                                           Supplier<RankingWindowFunction> constructor) {
+  private DefaultFunctionResolver rankingFunction(FunctionName functionName,
+                                                  Supplier<RankingWindowFunction> constructor) {
     FunctionSignature functionSignature = new FunctionSignature(functionName, emptyList());
     FunctionBuilder functionBuilder = arguments -> constructor.get();
-    return new FunctionResolver(functionName, ImmutableMap.of(functionSignature, functionBuilder));
+    return new DefaultFunctionResolver(functionName,
+        ImmutableMap.of(functionSignature, functionBuilder));
   }
 
 }
