@@ -58,10 +58,6 @@ public class OpenSearchLogicalIndexScan extends LogicalPlan {
   @Setter
   private Integer limit;
 
-
-  @Setter
-  private String highlightField;
-
   /**
    * ElasticsearchLogicalIndexScan Constructor.
    */
@@ -79,7 +75,6 @@ public class OpenSearchLogicalIndexScan extends LogicalPlan {
     this.sortList = sortList;
     this.limit = limit;
     this.offset = offset;
-//    this.highlightField = highlightField;
   }
 
   @Override

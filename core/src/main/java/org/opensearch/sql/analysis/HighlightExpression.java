@@ -5,12 +5,12 @@
 
 package org.opensearch.sql.analysis;
 
-import java.util.List;
-
 import com.google.common.collect.ImmutableMap;
+import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
+import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -21,7 +21,6 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
-import org.opensearch.sql.common.utils.StringUtils;
 
 @EqualsAndHashCode(callSuper = false)
 @Getter
@@ -46,13 +45,13 @@ public class HighlightExpression extends FunctionExpression {
   @Override
   public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
     String refName = "_highlight";
-    if(!getHighlightField().toString().contains("*")) {
+    if (!getHighlightField().toString().contains("*")) {
       refName += "." + StringUtils.unquoteText(getHighlightField().toString());
     }
     ExprValue retVal = valueEnv.resolve(DSL.ref(refName, ExprCoreType.STRING));
     ImmutableMap.Builder<String, ExprValue> builder = new ImmutableMap.Builder<>();
 
-    if(retVal.isMissing() || retVal.type() != ExprCoreType.STRUCT) {
+    if (retVal.isMissing() || retVal.type() != ExprCoreType.STRUCT) {
       return retVal;
     }
 
