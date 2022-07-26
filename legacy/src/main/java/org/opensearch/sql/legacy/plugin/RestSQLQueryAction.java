@@ -14,6 +14,7 @@ import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import java.util.List;
+import javax.xml.catalog.Catalog;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
@@ -23,6 +24,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
+import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
@@ -61,13 +63,16 @@ public class RestSQLQueryAction extends BaseRestHandler {
    */
   private final Settings pluginSettings;
 
+  private final CatalogService catalogService;
+
   /**
    * Constructor of RestSQLQueryAction.
    */
-  public RestSQLQueryAction(ClusterService clusterService, Settings pluginSettings) {
+  public RestSQLQueryAction(ClusterService clusterService, Settings pluginSettings, CatalogService catalogService) {
     super();
     this.clusterService = clusterService;
     this.pluginSettings = pluginSettings;
+    this.catalogService = catalogService;
   }
 
   @Override
@@ -124,6 +129,7 @@ public class RestSQLQueryAction extends BaseRestHandler {
       context.registerBean(ClusterService.class, () -> clusterService);
       context.registerBean(NodeClient.class, () -> client);
       context.registerBean(Settings.class, () -> pluginSettings);
+      context.registerBean(CatalogService.class, () -> catalogService);
       context.register(OpenSearchSQLPluginConfig.class);
       context.register(SQLServiceConfig.class);
       context.refresh();

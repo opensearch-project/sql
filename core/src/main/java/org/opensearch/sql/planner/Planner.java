@@ -6,7 +6,6 @@
 
 package org.opensearch.sql.planner;
 
-import static com.google.common.base.Strings.isNullOrEmpty;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +14,6 @@ import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
 import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
-import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
 
 /**
@@ -23,11 +21,6 @@ import org.opensearch.sql.storage.Table;
  */
 @RequiredArgsConstructor
 public class Planner {
-
-  /**
-   * Storage engine.
-   */
-  private final StorageEngine storageEngine;
 
   private final LogicalPlanOptimizer logicalOptimizer;
 
@@ -40,32 +33,31 @@ public class Planner {
    * @return optimal physical plan
    */
   public PhysicalPlan plan(LogicalPlan plan) {
-    String tableName = findTableName(plan);
-    if (isNullOrEmpty(tableName)) {
+    Table table = findTable(plan);
+    if (table == null) {
       return plan.accept(new DefaultImplementor<>(), null);
     }
-
-    Table table = storageEngine.getTable(tableName);
     return table.implement(
         table.optimize(optimize(plan)));
   }
 
-  private String findTableName(LogicalPlan plan) {
-    return plan.accept(new LogicalPlanNodeVisitor<String, Object>() {
+  private Table findTable(LogicalPlan plan) {
+    return plan.accept(new LogicalPlanNodeVisitor<Table, Object>() {
 
       @Override
-      public String visitNode(LogicalPlan node, Object context) {
+      public Table visitNode(LogicalPlan node, Object context) {
         List<LogicalPlan> children = node.getChild();
         if (children.isEmpty()) {
-          return "";
+          return null;
         }
         return children.get(0).accept(this, context);
       }
 
       @Override
-      public String visitRelation(LogicalRelation node, Object context) {
-        return node.getRelationName();
+      public Table visitRelation(LogicalRelation node, Object context) {
+        return node.getTable();
       }
+
     }, null);
   }
 

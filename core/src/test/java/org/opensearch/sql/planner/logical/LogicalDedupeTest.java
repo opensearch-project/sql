@@ -34,7 +34,7 @@ class LogicalDedupeTest extends AnalyzerTestBase {
   public void analyze_dedup_with_two_field_with_default_option() {
     assertAnalyzeEqual(
         LogicalPlanDSL.dedupe(
-            LogicalPlanDSL.relation("schema"),
+            LogicalPlanDSL.relation("schema", table),
             DSL.ref("integer_value", INTEGER),
             DSL.ref("double_value", DOUBLE)),
         dedupe(
@@ -48,7 +48,7 @@ class LogicalDedupeTest extends AnalyzerTestBase {
   public void analyze_dedup_with_one_field_with_customize_option() {
     assertAnalyzeEqual(
         LogicalPlanDSL.dedupe(
-            LogicalPlanDSL.relation("schema"),
+            LogicalPlanDSL.relation("schema", table),
             3, false, true,
             DSL.ref("integer_value", INTEGER),
             DSL.ref("double_value", DOUBLE)),
