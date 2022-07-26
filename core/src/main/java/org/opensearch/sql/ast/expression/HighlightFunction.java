@@ -18,10 +18,12 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 @ToString
 public class HighlightFunction extends UnresolvedExpression {
   private final UnresolvedExpression highlightField;
+
   @Override
   public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {
     return nodeVisitor.visitHighlight(this, context);
   }
+
   @Override
   public List<UnresolvedExpression> getChild() {
     return List.of(highlightField);

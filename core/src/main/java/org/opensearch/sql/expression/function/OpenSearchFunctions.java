@@ -23,7 +23,6 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
 import org.opensearch.sql.expression.env.Environment;
-import org.opensearch.sql.common.utils.StringUtils;
 
 @UtilityClass
 public class OpenSearchFunctions {
@@ -57,7 +56,6 @@ public class OpenSearchFunctions {
   private static FunctionResolver highlight() {
     FunctionName functionName = BuiltinFunctionName.HIGHLIGHT.getName();
     FunctionSignature functionSignature = new FunctionSignature(functionName, List.of(STRING));
-    // TODO change to pass the argument as a StringLiteral
     FunctionBuilder functionBuilder = arguments -> new HighlightExpression(arguments.get(0));
     return new FunctionResolver(functionName, ImmutableMap.of(functionSignature, functionBuilder));
   }
