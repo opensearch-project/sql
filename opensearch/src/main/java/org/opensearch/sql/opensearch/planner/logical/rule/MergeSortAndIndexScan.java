@@ -56,7 +56,6 @@ public class MergeSortAndIndexScan implements Rule<LogicalSort> {
         .relationName(indexScan.getRelationName())
         .filter(indexScan.getFilter())
         .sortList(mergeSortList(indexScan.getSortList(), sort.getSortList()))
-        .highlightField(indexScan.getHighlightField())
         .build();
   }
 

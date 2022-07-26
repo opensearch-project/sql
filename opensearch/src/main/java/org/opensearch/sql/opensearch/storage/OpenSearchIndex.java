@@ -122,7 +122,6 @@ public class OpenSearchIndex implements Table {
       }
     }
 
-
     /**
      * Implement ElasticsearchLogicalIndexScan.
      */
@@ -148,11 +147,6 @@ public class OpenSearchIndex implements Table {
       if (node.hasProjects()) {
         context.pushDownProjects(node.getProjectList());
       }
-
-      if (node.hasHighlight()) {
-        context.pushDownHighlight(node.getHighlightField());
-      }
-
       return indexScan;
     }
 

@@ -22,15 +22,4 @@ class OpenSearchLogicalIndexScanTest {
 
     assertFalse(OpenSearchLogicalIndexScan.builder().build().hasProjects());
   }
-
-  @Test
-  void has_highlight() {
-    assertTrue(
-        OpenSearchLogicalIndexScan.builder().highlightField("fieldA").build().hasHighlight());
-  }
-
-  @Test
-  void no_highlight_by_default() {
-    assertFalse(OpenSearchLogicalIndexScan.builder().build().hasHighlight());
-  }
 }
