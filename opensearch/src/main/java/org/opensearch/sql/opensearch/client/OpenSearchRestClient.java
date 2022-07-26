@@ -61,8 +61,12 @@ public class OpenSearchRestClient implements OpenSearchClient {
     GetSettingsRequest request = new GetSettingsRequest().indices(indexExpression);
     try {
       GetSettingsResponse response = client.indices().getSettings(request, RequestOptions.DEFAULT);
-      return ImmutableList.copyOf(response.getIndexToSettings().values().toArray(Settings.class))
-          .stream().map(settings -> settings.getAsInt("index.max_result_window", 10000))
+      final ImmutableList<Settings> settings = ImmutableList.copyOf(
+          response.getIndexToSettings().values().toArray(Settings.class));
+      final ImmutableList<Settings> defaultSettings = ImmutableList.copyOf(
+          response.getIndexToDefaultSettings().values().toArray(Settings.class));
+      return Stream.concat(settings.stream(), defaultSettings.stream())
+          .map(setting -> setting.getAsInt("index.max_result_window", Integer.MAX_VALUE))
           .min(Integer::compare).get();
     } catch (IOException e) {
       throw new IllegalStateException("Failed to get index max result window for " + indexExpression, e);
