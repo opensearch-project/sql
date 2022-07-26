@@ -13,11 +13,13 @@ import java.util.Locale;
 import java.util.Optional;
 import org.opensearch.action.ActionListener;
 import org.opensearch.action.ActionRequest;
+import org.opensearch.action.admin.cluster.node.reload.NodesReloadSecureSettingsAction;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.LogUtils;
@@ -26,6 +28,7 @@ import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.opensearch.security.SecurityAccess;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
+import org.opensearch.sql.plugin.catalog.CatalogServiceImpl;
 import org.opensearch.sql.plugin.rest.OpenSearchPluginConfig;
 import org.opensearch.sql.ppl.PPLService;
 import org.opensearch.sql.ppl.config.PPLServiceConfig;
@@ -52,6 +55,7 @@ public class TransportPPLQueryAction
 
   /** Settings required by been initialization. */
   private final Settings pluginSettings;
+
 
   /** Constructor of TransportPPLQueryAction. */
   @Inject
@@ -98,8 +102,10 @@ public class TransportPPLQueryAction
           context.registerBean(ClusterService.class, () -> clusterService);
           context.registerBean(NodeClient.class, () -> client);
           context.registerBean(Settings.class, () -> pluginSettings);
+          context.registerBean(CatalogService.class, CatalogServiceImpl::getInstance);
           context.register(OpenSearchPluginConfig.class);
           context.register(PPLServiceConfig.class);
+
           context.refresh();
           return context.getBean(PPLService.class);
         });

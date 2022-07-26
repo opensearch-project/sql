@@ -9,6 +9,9 @@ package org.opensearch.sql.planner;
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.opensearch.sql.constants.TestConstants.DUMMY_CATALOG;
+import static org.opensearch.sql.constants.TestConstants.QUERY_ARG_NAME;
+import static org.opensearch.sql.constants.TestConstants.QUERY_ARG_VALUE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.literal;
@@ -29,6 +32,7 @@ import static org.opensearch.sql.planner.logical.LogicalPlanDSL.window;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -37,6 +41,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.data.model.ExprBooleanValue;
@@ -49,6 +55,7 @@ import org.opensearch.sql.expression.aggregation.AvgAggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.expression.window.ranking.RowNumberFunction;
+import org.opensearch.sql.planner.logical.LogicalNativeQuery;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.opensearch.sql.planner.logical.LogicalRelation;
@@ -147,10 +154,21 @@ class DefaultImplementorTest {
         actual);
   }
 
+
   @Test
   public void visitRelationShouldThrowException() {
     assertThrows(UnsupportedOperationException.class,
         () -> new LogicalRelation("test").accept(implementor, null));
+  }
+
+  @Test
+  public void visitNativeQueryShouldThrowException() {
+    assertThrows(UnsupportedOperationException.class,
+        () -> new LogicalNativeQuery(DUMMY_CATALOG, new HashMap<>() {
+          {
+            put(QUERY_ARG_NAME, new Literal(QUERY_ARG_VALUE, DataType.STRING));
+          }
+        }).accept(implementor, null));
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})

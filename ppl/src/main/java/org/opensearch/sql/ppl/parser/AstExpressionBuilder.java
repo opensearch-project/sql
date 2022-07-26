@@ -22,6 +22,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DistinctCo
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldExpressionContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentAsCatalogNameContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsQualifiedNameContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsWildcardQualifiedNameContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.InExprContext;
@@ -274,6 +275,12 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return visitIdentifiers(Arrays.asList(ctx));
   }
 
+  @Override
+  public UnresolvedExpression visitIdentAsCatalogName(
+      IdentAsCatalogNameContext ctx) {
+    return visitIdentifiers(Arrays.asList(ctx));
+  }
+
   /**
    * Literal and value.
    */
@@ -374,4 +381,5 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
         v.relevanceArgValue().getText()), DataType.STRING))));
     return builder.build();
   }
+
 }

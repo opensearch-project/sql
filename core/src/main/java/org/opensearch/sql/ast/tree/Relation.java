@@ -27,7 +27,14 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 public class Relation extends UnresolvedPlan {
   private static final String COMMA = ",";
 
+  private UnresolvedExpression catalog;
+
   private final List<UnresolvedExpression> tableName;
+
+  public Relation(List<UnresolvedExpression> tableName, UnresolvedExpression catalog) {
+    this.tableName = tableName;
+    this.catalog = catalog;
+  }
 
   public Relation(UnresolvedExpression tableName) {
     this(tableName, null);
@@ -52,6 +59,15 @@ public class Relation extends UnresolvedPlan {
     return tableName.stream()
         .map(UnresolvedExpression::toString)
         .collect(Collectors.joining(COMMA));
+  }
+
+
+  /**
+   * Get Catalog Name.
+   * @return catalog name
+   */
+  public String getCatalogName() {
+    return catalog != null ? catalog.toString() : null;
   }
 
   /**

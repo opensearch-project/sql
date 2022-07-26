@@ -41,6 +41,7 @@ import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
+import org.opensearch.sql.ast.tree.NativeQuery;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
@@ -84,6 +85,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitRelation(Relation node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitNativeQuery(NativeQuery node, C context) {
     return visitChildren(node, context);
   }
 
