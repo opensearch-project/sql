@@ -247,8 +247,35 @@ multiFieldRelevanceFunction
 
 /** tables */
 tableSource
-    : qualifiedName
+    : catalogName DOT nativeQueryFunction
+    | (catalogName DOT)? qualifiedName
     | ID_DATE_SUFFIX
+    ;
+
+// Field is a single column
+nativeQueryFunction
+    : nativeQueryFunctionName LT_PRTHS
+        field = nativeQuery (COMMA nativeQueryArg)* RT_PRTHS
+    ;
+
+nativeQueryFunctionName
+    : NATIVEQUERY
+    ;
+
+nativeQuery
+    : BQUOTA_STRING
+    ;
+
+nativeQueryArg
+    : nativeQueryArgName EQUAL nativeQueryArgValue
+    ;
+
+nativeQueryArgName
+    : STARTTIME | ENDTIME | STEP
+    ;
+
+nativeQueryArgValue
+    : INTEGER_LITERAL
     ;
 
 /** fields */
@@ -463,6 +490,10 @@ valueList
 
 qualifiedName
     : ident (DOT ident)*                             #identsAsQualifiedName
+    ;
+
+catalogName
+    : ident                                         #identAsCatalogName
     ;
 
 wcQualifiedName

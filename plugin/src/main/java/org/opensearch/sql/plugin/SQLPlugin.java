@@ -31,6 +31,7 @@ import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
 import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.Plugin;
+import org.opensearch.plugins.ReloadablePlugin;
 import org.opensearch.plugins.ScriptPlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
@@ -47,6 +48,8 @@ import org.opensearch.sql.opensearch.setting.LegacyOpenDistroSettings;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.script.ExpressionScriptEngine;
 import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
+import org.opensearch.sql.plugin.catalog.CatalogServiceImpl;
+import org.opensearch.sql.plugin.catalog.CatalogSettings;
 import org.opensearch.sql.plugin.rest.RestPPLQueryAction;
 import org.opensearch.sql.plugin.rest.RestPPLStatsAction;
 import org.opensearch.sql.plugin.rest.RestQuerySettingsAction;
@@ -58,7 +61,7 @@ import org.opensearch.threadpool.FixedExecutorBuilder;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
-public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
+public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, ReloadablePlugin {
 
   private ClusterService clusterService;
 
@@ -120,7 +123,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
       Supplier<RepositoriesService> repositoriesServiceSupplier) {
     this.clusterService = clusterService;
     this.pluginSettings = new OpenSearchSettings(clusterService.getClusterSettings());
-
+    CatalogServiceImpl.getInstance().loadConnectors(clusterService.getSettings());
     LocalClusterState.state().setClusterService(clusterService);
     LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
 
@@ -154,11 +157,18 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
     return new ImmutableList.Builder<Setting<?>>()
         .addAll(LegacyOpenDistroSettings.legacySettings())
         .addAll(OpenSearchSettings.pluginSettings())
+        .add(CatalogSettings.CATALOG_CONFIG)
+        .add(CatalogSettings.FEDERATION_ENABLED)
         .build();
   }
 
   @Override
   public ScriptEngine getScriptEngine(Settings settings, Collection<ScriptContext<?>> contexts) {
     return new ExpressionScriptEngine(new DefaultExpressionSerializer());
+  }
+
+  @Override
+  public void reload(Settings settings) {
+    CatalogServiceImpl.getInstance().loadConnectors(clusterService.getSettings());
   }
 }

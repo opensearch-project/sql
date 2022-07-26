@@ -208,6 +208,10 @@ ROUND:                              'ROUND';
 SIGN:                               'SIGN';
 SQRT:                               'SQRT';
 TRUNCATE:                           'TRUNCATE';
+NATIVEQUERY:                        'NATIVEQUERY';
+STARTTIME:                          'STARTTIME';
+ENDTIME:                            'ENDTIME';
+STEP:                               'STEP';
 
 // TRIGONOMETRIC FUNCTIONS
 ACOS:                               'ACOS';

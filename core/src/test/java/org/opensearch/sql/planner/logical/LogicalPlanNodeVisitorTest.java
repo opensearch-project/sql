@@ -8,6 +8,9 @@ package org.opensearch.sql.planner.logical;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.opensearch.sql.constants.TestConstants.DUMMY_CATALOG;
+import static org.opensearch.sql.constants.TestConstants.QUERY_ARG_NAME;
+import static org.opensearch.sql.constants.TestConstants.QUERY_ARG_VALUE;
 import static org.opensearch.sql.expression.DSL.named;
 
 import com.google.common.collect.ImmutableList;
@@ -19,7 +22,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -114,23 +116,33 @@ class LogicalPlanNodeVisitorTest {
     }, null));
 
     LogicalPlan mlCommons = new LogicalMLCommons(LogicalPlanDSL.relation("schema"),
-            "kmeans",
-            ImmutableMap.<String, Literal>builder()
-                    .put("centroids", new Literal(3, DataType.INTEGER))
-                    .put("iterations", new Literal(3, DataType.DOUBLE))
-                    .put("distance_type", new Literal(null, DataType.STRING))
-                    .build());
+        "kmeans",
+        ImmutableMap.<String, Literal>builder()
+            .put("centroids", new Literal(3, DataType.INTEGER))
+            .put("iterations", new Literal(3, DataType.DOUBLE))
+            .put("distance_type", new Literal(null, DataType.STRING))
+            .build());
     assertNull(mlCommons.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
     }, null));
 
     LogicalPlan ad = new LogicalAD(LogicalPlanDSL.relation("schema"),
-            new HashMap<String, Literal>() {{
-              put("shingle_size", new Literal(8, DataType.INTEGER));
-              put("time_decay", new Literal(0.0001, DataType.DOUBLE));
-              put("time_field", new Literal(null, DataType.STRING));
-        }
-      });
+        new HashMap<String, Literal>() {
+          {
+            put("shingle_size", new Literal(8, DataType.INTEGER));
+            put("time_decay", new Literal(0.0001, DataType.DOUBLE));
+            put("time_field", new Literal(null, DataType.STRING));
+          }
+        });
     assertNull(ad.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
+    }, null));
+
+    LogicalPlan nativeQuery = new LogicalNativeQuery(DUMMY_CATALOG,
+        new HashMap<>() {
+          {
+            put(QUERY_ARG_NAME, new Literal(QUERY_ARG_VALUE, DataType.STRING));
+          }
+        });
+    assertNull(nativeQuery.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
     }, null));
   }
 

@@ -7,6 +7,7 @@
 package org.opensearch.sql.ast.dsl;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.tuple.Pair;
@@ -44,6 +45,7 @@ import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Limit;
+import org.opensearch.sql.ast.tree.NativeQuery;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
@@ -72,6 +74,14 @@ public class AstDSL {
 
   public UnresolvedPlan relation(String tableName, String alias) {
     return new Relation(qualifiedName(tableName), alias);
+  }
+
+  public UnresolvedPlan relation(QualifiedName tableName, QualifiedName catalogName) {
+    return new Relation(Collections.singletonList(tableName), catalogName);
+  }
+
+  public UnresolvedPlan nativeQuery(String catalog, List<Argument> queryParams) {
+    return new NativeQuery(qualifiedName(catalog), queryParams);
   }
 
   public static UnresolvedPlan project(UnresolvedPlan input, UnresolvedExpression... projectList) {
@@ -113,7 +123,7 @@ public class AstDSL {
   /**
    * Initialize Values node by rows of literals.
    * @param values  rows in which each row is a list of literal values
-   * @return        Values node
+   * @return       Values node
    */
   @SafeVarargs
   public UnresolvedPlan values(List<Literal>... values) {
@@ -408,7 +418,8 @@ public class AstDSL {
   }
 
   public static RareTopN rareTopN(UnresolvedPlan input, CommandType commandType,
-      List<Argument> noOfResults, List<UnresolvedExpression> groupList, Field... fields) {
+                                  List<Argument> noOfResults, List<UnresolvedExpression> groupList,
+                                  Field... fields) {
     return new RareTopN(input, commandType, noOfResults, Arrays.asList(fields), groupList)
         .attach(input);
   }

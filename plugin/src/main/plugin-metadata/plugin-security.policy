@@ -11,4 +11,6 @@ grant {
   permission java.lang.RuntimePermission "accessDeclaredMembers";
   permission java.lang.RuntimePermission "getClassLoader";
   permission java.lang.reflect.ReflectPermission "suppressAccessChecks";
+  permission java.net.NetPermission "getProxySelector";
+  permission java.net.SocketPermission "*", "accept,connect,resolve";
 };

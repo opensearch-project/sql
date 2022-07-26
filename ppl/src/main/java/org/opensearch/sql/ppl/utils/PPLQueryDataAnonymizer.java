@@ -9,6 +9,7 @@ package org.opensearch.sql.ppl.utils;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.lang.annotation.Native;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -34,6 +35,7 @@ import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.NativeQuery;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
@@ -75,7 +77,31 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitRelation(Relation node, String context) {
-    return StringUtils.format("source=%s", node.getTableName());
+    if (node.getCatalogName() != null) {
+      return StringUtils.format("source=%s.%s", node.getCatalogName(), node.getTableName());
+    } else {
+      return StringUtils.format("source=%s", node.getTableName());
+    }
+  }
+
+
+  @Override
+  public String visitNativeQuery(NativeQuery node, String context) {
+
+    List<Argument> argumentList = node.getArgExprList();
+    String query = "";
+    StringBuilder argumentBuilder = new StringBuilder();
+    for (Argument argument : argumentList) {
+      if (argument.getArgName().equals("query")) {
+        query = "`" + argument.getValue().toString() + "`";
+      } else {
+        argumentBuilder
+            .append(",")
+            .append(argument.getArgName() + "=" + argument.getValue().toString());
+      }
+    }
+    return StringUtils.format("source=%s.nativeQuery(%s)", node.getCatalogName(),
+        query + argumentBuilder);
   }
 
   @Override

@@ -12,11 +12,15 @@ import static org.mockito.AdditionalAnswers.returnsFirstArg;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
+import static org.opensearch.sql.constants.TestConstants.DUMMY_CATALOG;
+import static org.opensearch.sql.constants.TestConstants.QUERY_ARG_NAME;
+import static org.opensearch.sql.constants.TestConstants.QUERY_ARG_VALUE;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,10 +28,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalFilter;
+import org.opensearch.sql.planner.logical.LogicalNativeQuery;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
@@ -109,6 +116,20 @@ public class PlannerTest extends PhysicalPlanTestBase {
     );
   }
 
+  @Test
+  public void plan_a_query_with_native_query_involved() {
+    doAnswer(returnsFirstArg()).when(optimizer).optimize(any());
+    assertPhysicalPlan(
+        scan,
+        LogicalPlanDSL.nativeQuery(DUMMY_CATALOG,
+            new HashMap<>() {
+              {
+                put(QUERY_ARG_NAME, new Literal(QUERY_ARG_VALUE, DataType.STRING));
+              }
+            })
+    );
+  }
+
   protected void assertPhysicalPlan(PhysicalPlan expected, LogicalPlan logicalPlan) {
     assertEquals(expected, analyze(logicalPlan));
   }
@@ -131,6 +152,11 @@ public class PlannerTest extends PhysicalPlanTestBase {
 
     @Override
     public PhysicalPlan visitRelation(LogicalRelation plan, Object context) {
+      return scan;
+    }
+
+    @Override
+    public PhysicalPlan visitNativeQuery(LogicalNativeQuery plan, Object context) {
       return scan;
     }
 
