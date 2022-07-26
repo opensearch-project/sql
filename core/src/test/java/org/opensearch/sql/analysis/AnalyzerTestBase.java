@@ -8,11 +8,14 @@ package org.opensearch.sql.analysis;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Map;
+import java.util.Set;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.analysis.symbol.SymbolTable;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.config.TestConfig;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -40,19 +43,29 @@ public class AnalyzerTestBase {
     return new StorageEngine() {
       @Override
       public Table getTable(String name) {
-        return new Table() {
-          @Override
-          public Map<String, ExprType> getFieldTypes() {
-            return typeMapping();
-          }
-
-          @Override
-          public PhysicalPlan implement(LogicalPlan plan) {
-            throw new UnsupportedOperationException();
-          }
-        };
+        return table;
       }
     };
+  }
+
+  @Bean
+  protected Table table() {
+    return new Table() {
+      @Override
+      public Map<String, ExprType> getFieldTypes() {
+        return typeMapping();
+      }
+
+      @Override
+      public PhysicalPlan implement(LogicalPlan plan) {
+        throw new UnsupportedOperationException();
+      }
+    };
+  }
+
+  @Bean
+  protected CatalogService catalogService() {
+    return new DefaultCatalogService();
   }
 
 
@@ -95,11 +108,16 @@ public class AnalyzerTestBase {
   protected Analyzer analyzer;
 
   @Autowired
+  protected Table table;
+
+  @Autowired
   protected Environment<Expression, ExprType> typeEnv;
 
   @Bean
-  protected Analyzer analyzer(ExpressionAnalyzer expressionAnalyzer, StorageEngine engine) {
-    return new Analyzer(expressionAnalyzer, engine);
+  protected Analyzer analyzer(ExpressionAnalyzer expressionAnalyzer, CatalogService catalogService,
+                              StorageEngine storageEngine) {
+    catalogService.registerOpenSearchStorageEngine(storageEngine);
+    return new Analyzer(expressionAnalyzer, catalogService);
   }
 
   @Bean
@@ -123,5 +141,25 @@ public class AnalyzerTestBase {
 
   protected LogicalPlan analyze(UnresolvedPlan unresolvedPlan) {
     return analyzer.analyze(unresolvedPlan, analysisContext);
+  }
+
+  private class DefaultCatalogService implements CatalogService {
+
+    private StorageEngine storageEngine;
+
+    @Override
+    public StorageEngine getStorageEngine(String catalog) {
+      return storageEngine;
+    }
+
+    @Override
+    public Set<String> getCatalogs() {
+      return ImmutableSet.of("prometheus");
+    }
+
+    @Override
+    public void registerOpenSearchStorageEngine(StorageEngine storageEngine) {
+      this.storageEngine = storageEngine;
+    }
   }
 }

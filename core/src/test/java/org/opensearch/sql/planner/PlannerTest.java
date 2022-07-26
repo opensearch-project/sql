@@ -77,7 +77,7 @@ public class PlannerTest extends PhysicalPlanTestBase {
         LogicalPlanDSL.rename(
             LogicalPlanDSL.aggregation(
                 LogicalPlanDSL.filter(
-                    LogicalPlanDSL.relation("schema"),
+                    LogicalPlanDSL.relation("schema", storageEngine.getTable("schema")),
                     dsl.equal(DSL.ref("response", INTEGER), DSL.literal(10))
                 ),
                 ImmutableList.of(DSL.named("avg(response)", dsl.avg(DSL.ref("response", INTEGER)))),
@@ -114,7 +114,7 @@ public class PlannerTest extends PhysicalPlanTestBase {
   }
 
   protected PhysicalPlan analyze(LogicalPlan logicalPlan) {
-    return new Planner(storageEngine, optimizer).plan(logicalPlan);
+    return new Planner(optimizer).plan(logicalPlan);
   }
 
   protected class MockTable extends LogicalPlanNodeVisitor<PhysicalPlan, Object> implements Table {

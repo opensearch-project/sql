@@ -36,8 +36,6 @@ public class SQLService {
 
   private final Analyzer analyzer;
 
-  private final StorageEngine storageEngine;
-
   private final ExecutionEngine executionEngine;
 
   private final BuiltinFunctionRepository repository;
@@ -103,7 +101,7 @@ public class SQLService {
    * Generate optimal physical plan from logical plan.
    */
   public PhysicalPlan plan(LogicalPlan logicalPlan) {
-    return new Planner(storageEngine, LogicalPlanOptimizer.create(new DSL(repository)))
+    return new Planner(LogicalPlanOptimizer.create(new DSL(repository)))
         .plan(logicalPlan);
   }
 
