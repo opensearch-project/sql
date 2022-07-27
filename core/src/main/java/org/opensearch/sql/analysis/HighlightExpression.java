@@ -57,7 +57,6 @@ public class HighlightExpression extends FunctionExpression {
 
     var hlBuilder = ImmutableMap.<String, ExprValue>builder();
     hlBuilder.putAll(retVal.tupleValue());
-
     for (var entry : retVal.tupleValue().entrySet()) {
       String entryKey = "highlight(" + getHighlightField() + ")." + entry.getKey();
       builder.put(entryKey, ExprValueUtils.stringValue(entry.getValue().toString()));
