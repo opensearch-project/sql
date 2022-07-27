@@ -19,7 +19,7 @@ import org.opensearch.sql.legacy.executor.csv.CsvExtractorException;
 import org.opensearch.sql.legacy.expression.domain.BindingTuple;
 
 public class CSVResultsExtractorTest {
-    private final CSVResultsExtractor csvResultsExtractor = new CSVResultsExtractor(false, false, false);
+    private final CSVResultsExtractor csvResultsExtractor = new CSVResultsExtractor(false, false);
 
     @Test
     public void extractResultsFromBindingTupleListShouldPass() throws CsvExtractorException {

@@ -83,7 +83,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   public void head_relation() {
     assertAnalyzeEqual(
         LogicalPlanDSL.limit(LogicalPlanDSL.relation("schema"),10, 0),
-        AstDSL.head(AstDSL.relation("schema"), 10));
+        AstDSL.head(AstDSL.relation("schema"), 10, 0));
   }
 
   @Test
@@ -701,12 +701,15 @@ class AnalyzerTest extends AnalyzerTestBase {
   
   @Test
   public void kmeanns_relation() {
+    Map<String, Literal> argumentMap = new HashMap<String, Literal>() {{
+        put("centroids", new Literal(3, DataType.INTEGER));
+        put("iterations", new Literal(2, DataType.INTEGER));
+        put("distance_type", new Literal("COSINE", DataType.STRING));
+      }};
     assertAnalyzeEqual(
             new LogicalMLCommons(LogicalPlanDSL.relation("schema"),
-                    "kmeans",
-                    AstDSL.exprList(AstDSL.argument("k", AstDSL.intLiteral(3)))),
-            new Kmeans(AstDSL.relation("schema"),
-                    AstDSL.exprList(AstDSL.argument("k", AstDSL.intLiteral(3))))
+                    "kmeans", argumentMap),
+            new Kmeans(AstDSL.relation("schema"), argumentMap)
     );
   }
 
@@ -715,8 +718,6 @@ class AnalyzerTest extends AnalyzerTestBase {
     Map<String, Literal> argumentMap =
             new HashMap<String, Literal>() {{
         put("shingle_size", new Literal(8, DataType.INTEGER));
-        put("time_decay", new Literal(0.0001, DataType.DOUBLE));
-        put("time_field", new Literal(null, DataType.STRING));
       }};
     assertAnalyzeEqual(
             new LogicalAD(LogicalPlanDSL.relation("schema"), argumentMap),

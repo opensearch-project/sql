@@ -7,7 +7,6 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -22,7 +21,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
   public void init() throws IOException {
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
-    loadIndex(Index.BANK);
+    loadIndex(Index.GAME_OF_THRONES);
   }
 
   @Test
@@ -99,15 +98,5 @@ public class WhereCommandIT extends PPLIntegTestCase {
                 "source=%s | where isnotnull(age) and like(firstname, 'Ambe_') | fields firstname",
                 TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifyDataRows(result, rows("Amber JOHnny"));
-  }
-
-  @Test
-  public void testRelevanceFunction() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | where match(firstname, 'Hattie') | fields firstname",
-                TEST_INDEX_BANK));
-    verifyDataRows(result, rows("Hattie"));
   }
 }

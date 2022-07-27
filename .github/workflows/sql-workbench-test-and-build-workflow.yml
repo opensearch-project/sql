@@ -4,8 +4,8 @@ on: [pull_request, push]
 
 env: 
   PLUGIN_NAME: query-workbench-dashboards
-  OPENSEARCH_VERSION: '1.x'
-  OPENSEARCH_PLUGIN_VERSION: 1.3.0.0
+  OPENSEARCH_VERSION: 'main'
+  OPENSEARCH_PLUGIN_VERSION: 2.1.0.0
 
 jobs:
 
@@ -25,9 +25,10 @@ jobs:
           path: sql/OpenSearch-Dashboards
 
       - name: Setup Node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v2
         with:
-          node-version: '10.24.1'
+          node-version-file: "./OpenSearch-Dashboards/.nvmrc"
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Move Workbench to Plugins Dir
         run: |

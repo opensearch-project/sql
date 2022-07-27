@@ -4,7 +4,7 @@
 
 * Download and install [Tableau Desktop](https://www.tableau.com/en-ca/products/desktop/download).
 * Install and configure [OpenSearch](https://docs-beta.opensearch.org/opensearch/install/index/).
-* Download the [OpenSearch JDBC Driver](https://github.com/opensearch-project/sql/blob/master/sql-jdbc/README.md#download-and-installation).
+* Download the [OpenSearch JDBC Driver](https://github.com/opensearch-project/sql/blob/main/sql-jdbc/README.md#download-and-installation).
 
 ## Setup
 
@@ -47,7 +47,7 @@ For futher details check [using a .tdc file with Tableau](https://kb.tableau.com
  ### Connection information
 
 You will need:
-* [JDBC connection string](https://github.com/opensearch-project/sql/blob/master/sql-jdbc/README.md#connection-url-and-other-settings) to enter in the URL field when you connect.
+* [JDBC connection string](../../sql-jdbc/README.md#connection-url-and-other-settings) to enter in the URL field when you connect.
 
   Sample connection string for connecting to localhost: `jdbc:opensearch://localhost:9200`.
 

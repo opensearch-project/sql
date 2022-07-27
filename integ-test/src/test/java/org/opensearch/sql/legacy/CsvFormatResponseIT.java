@@ -489,28 +489,12 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
     Assert.assertEquals("32.0,32.0,34.0,36.0,38.0,40.0,40.0", lines.get(0));
   }
 
-  @Ignore("only work for legacy engine")
-  public void includeTypeAndNotScore() throws Exception {
-    String query =
-        String.format(Locale.ROOT, "select age , firstname from %s where age > 31 limit 2",
-            TEST_INDEX_ACCOUNT);
-    CSVResult csvResult = executeCsvRequest(query, false, false, true, false);
-    List<String> headers = csvResult.getHeaders();
-    Assert.assertEquals(3, headers.size());
-    Assert.assertTrue(headers.contains("age"));
-    Assert.assertTrue(headers.contains("firstname"));
-    Assert.assertTrue(headers.contains("_type"));
-    List<String> lines = csvResult.getLines();
-    Assert.assertTrue(lines.get(0).contains(",_doc") || lines.get(0).contains("_doc,"));
-    Assert.assertTrue(lines.get(1).contains(",_doc") || lines.get(1).contains("_doc,"));
-  }
-
   @Test
-  public void includeScoreAndNotType() throws Exception {
+  public void includeScore() throws Exception {
     String query = String.format(Locale.ROOT,
         "select age , firstname from %s where age > 31 order by _score desc limit 2 ",
         TEST_INDEX_ACCOUNT);
-    CSVResult csvResult = executeCsvRequest(query, false, true, false, false);
+    CSVResult csvResult = executeCsvRequest(query, false, true, false);
     List<String> headers = csvResult.getHeaders();
     Assert.assertEquals(3, headers.size());
     Assert.assertTrue(headers.contains("age"));
@@ -519,24 +503,6 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
     List<String> lines = csvResult.getLines();
     Assert.assertTrue(lines.get(0).contains("1.0"));
     Assert.assertTrue(lines.get(1).contains("1.0"));
-  }
-
-  @Test
-  public void includeScoreAndType() throws Exception {
-    String query = String.format(Locale.ROOT,
-        "select age , firstname from %s where age > 31 order by _score desc limit 2 ",
-        TEST_INDEX_ACCOUNT);
-    CSVResult csvResult = executeCsvRequest(query, false, true, true, false);
-    List<String> headers = csvResult.getHeaders();
-    Assert.assertEquals(4, headers.size());
-    Assert.assertTrue(headers.contains("age"));
-    Assert.assertTrue(headers.contains("firstname"));
-    Assert.assertTrue(headers.contains("_score"));
-    Assert.assertTrue(headers.contains("_type"));
-    List<String> lines = csvResult.getLines();
-    String firstLine = lines.get(0);
-    Assert.assertTrue(firstLine.contains("_doc,1.0") || firstLine.contains("1.0,_doc"));
-    Assert.assertTrue(lines.get(1).contains("_doc,1.0") || lines.get(1).contains("1.0,_doc"));
   }
 
   /* todo: more tests:
@@ -584,7 +550,7 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
   public void includeIdAndNotTypeOrScore() throws Exception {
     String query = String.format(Locale.ROOT,
         "select age , firstname from %s where lastname = 'Marquez' ", TEST_INDEX_ACCOUNT);
-    CSVResult csvResult = executeCsvRequest(query, false, false, false, true);
+    CSVResult csvResult = executeCsvRequest(query, false, false, true);
     List<String> headers = csvResult.getHeaders();
     Assert.assertEquals(3, headers.size());
     Assert.assertTrue(headers.contains("age"));
@@ -592,21 +558,6 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
     Assert.assertTrue(headers.contains("_id"));
     List<String> lines = csvResult.getLines();
     Assert.assertTrue(lines.get(0).contains(",437") || lines.get(0).contains("437,"));
-  }
-
-  @Ignore("only work for legacy engine")
-  public void includeIdAndTypeButNoScore() throws Exception {
-    String query = String.format(Locale.ROOT,
-        "select age , firstname from %s where lastname = 'Marquez' ", TEST_INDEX_ACCOUNT);
-    CSVResult csvResult = executeCsvRequest(query, false, false, true, true);
-    List<String> headers = csvResult.getHeaders();
-    Assert.assertEquals(4, headers.size());
-    Assert.assertTrue(headers.contains("age"));
-    Assert.assertTrue(headers.contains("firstname"));
-    Assert.assertTrue(headers.contains("_id"));
-    Assert.assertTrue(headers.contains("_type"));
-    List<String> lines = csvResult.getLines();
-    Assert.assertTrue(lines.get(0).contains("_doc,437") || lines.get(0).contains("437,_doc"));
   }
   //endregion Tests migrated from CSVResultsExtractorTests
 
@@ -622,7 +573,7 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
     request.setJsonEntity(requestBody);
     TestUtils.performRequest(client(), request);
 
-    CSVResult csvResult = executeCsvRequest("SELECT * FROM userdata", false, false, false, false);
+    CSVResult csvResult = executeCsvRequest("SELECT * FROM userdata", false, false, false);
     List<String> headers = csvResult.getHeaders();
     Assert.assertEquals(2, headers.size());
     Assert.assertTrue(headers.contains("'=cmd|' /C notepad'!_xlbgnm.A1"));
@@ -647,7 +598,7 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
     request.setJsonEntity(requestBody);
     TestUtils.performRequest(client(), request);
 
-    CSVResult csvResult = executeCsvRequest("SELECT * FROM userdata2", false, false, false, false);
+    CSVResult csvResult = executeCsvRequest("SELECT * FROM userdata2", false, false, false);
     String headers = String.join(",", csvResult.getHeaders());
     Assert.assertTrue(headers.contains("\"'=cmd|' /C notepad'!_xlbgnm.A1,,\""));
     Assert.assertTrue(headers.contains("\",@cmd|' /C notepad'!_xlbgnm.A1\""));
@@ -676,7 +627,7 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
   @Test
   public void selectFunctionAsFieldTest() throws IOException {
     String query = "select log(age) from " + TEST_INDEX_ACCOUNT;
-    CSVResult result = executeCsvRequest(query, false, false, false, false);
+    CSVResult result = executeCsvRequest(query, false, false, false);
     List<String> headers = result.getHeaders();
     Assert.assertEquals(1, headers.size());
   }
@@ -706,16 +657,16 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
 
   private CSVResult executeCsvRequest(final String query, boolean flat) throws IOException {
 
-    return executeCsvRequest(query, flat, false, false, false);
+    return executeCsvRequest(query, flat, false, false);
   }
 
   private CSVResult executeCsvRequest(final String query, boolean flat, boolean includeScore,
-                                      boolean includeType, boolean includeId) throws IOException {
+                                      boolean includeId) throws IOException {
 
     final String requestBody = super.makeRequest(query);
     final String endpoint = String.format(Locale.ROOT,
-        "/_plugins/_sql?format=csv&flat=%b&_id=%b&_score=%b&_type=%b",
-        flat, includeId, includeScore, includeType);
+        "/_plugins/_sql?format=csv&flat=%b&_id=%b&_score=%b",
+        flat, includeId, includeScore);
     final Request sqlRequest = new Request("POST", endpoint);
     sqlRequest.setJsonEntity(requestBody);
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();

@@ -366,8 +366,4 @@ public class SubqueryIT extends SQLIntegTestCase {
     verifyDataRows(response,
         rows("Lynn", "Pollard", 40));
   }
-
-  private JSONObject executeJdbcRequest(String query) {
-    return new JSONObject(executeQuery(query, "jdbc"));
-  }
 }

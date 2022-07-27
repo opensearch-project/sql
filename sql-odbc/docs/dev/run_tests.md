@@ -87,7 +87,7 @@ The **Test Runner** has been tried and tested with [Python3.7.6](https://www.pyt
 
 ### Run with Coverage (Mac only)
 
-(using a CMake script provided by George Cave (StableCoder) under the Apache 2.0 license, found [here](https://github.com/StableCoder/cmake-scripts/blob/master/code-coverage.cmake))
+(using a CMake script provided by George Cave (StableCoder) under the Apache 2.0 license, found [here](https://github.com/StableCoder/cmake-scripts/blob/main/code-coverage.cmake))
 
 #### Requirements
 * `llvm-cov` in your PATH environment variable

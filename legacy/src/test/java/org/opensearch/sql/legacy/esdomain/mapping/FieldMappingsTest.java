@@ -45,7 +45,7 @@ public class FieldMappingsTest {
     @Test
     public void flatFieldMappingsShouldIncludeFieldsOnAllLevels() {
         IndexMappings indexMappings = LocalClusterState.state().getFieldMappings(new String[]{"field_mappings"});
-        FieldMappings fieldMappings = indexMappings.firstMapping().firstMapping();
+        FieldMappings fieldMappings = indexMappings.firstMapping();
 
         Map<String, String> typeByFieldName = new HashMap<>();
         fieldMappings.flat(typeByFieldName::put);

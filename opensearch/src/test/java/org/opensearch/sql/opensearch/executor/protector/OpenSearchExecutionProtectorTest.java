@@ -262,11 +262,13 @@ class OpenSearchExecutionProtectorTest {
     NodeClient nodeClient = mock(NodeClient.class);
     MLCommonsOperator mlCommonsOperator =
             new MLCommonsOperator(
-              values(emptyList()),
-              "kmeans",
-              AstDSL.exprList(AstDSL.argument("k1", AstDSL.intLiteral(3))),
-                nodeClient
-            );
+              values(emptyList()), "kmeans",
+                    new HashMap<String, Literal>() {{
+          put("centroids", new Literal(3, DataType.INTEGER));
+          put("iterations", new Literal(2, DataType.INTEGER));
+          put("distance_type", new Literal(null, DataType.STRING));
+        }
+      }, nodeClient);
 
     assertEquals(executionProtector.doProtect(mlCommonsOperator),
             executionProtector.visitMLCommons(mlCommonsOperator, null));

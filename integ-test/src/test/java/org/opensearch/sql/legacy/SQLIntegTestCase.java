@@ -226,6 +226,10 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     }
   }
 
+  protected JSONObject executeJdbcRequest(String query) {
+    return new JSONObject(executeQuery(query, "jdbc"));
+  }
+
   protected String executeFetchQuery(String query, int fetchSize, String requestType)
       throws IOException {
     String endpoint = "/_plugins/_sql?format=" + requestType;
@@ -543,7 +547,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     DATA_TYPE_NONNUMERIC(TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC,
         "_doc",
         getDataTypeNonnumericIndexMapping(),
-        "src/test/resources/datatypes.json");
+        "src/test/resources/datatypes.json"),
+    BEER(TestsConstants.TEST_INDEX_BEER,
+        "beer",
+        null,
+        "src/test/resources/beer.stackexchange.json"),;
 
     private final String name;
     private final String type;

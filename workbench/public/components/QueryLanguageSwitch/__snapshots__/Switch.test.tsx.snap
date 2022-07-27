@@ -3,7 +3,7 @@
 exports[`<Switch /> spec renders the component 1`] = `
 <div>
   <fieldset
-    class="euiButtonGroup__fieldset"
+    class="euiButtonGroup euiButtonGroup--medium euiButtonGroup--text query-language-switch"
   >
     <legend
       class="euiScreenReaderOnly"
@@ -11,63 +11,57 @@ exports[`<Switch /> spec renders the component 1`] = `
       query-language-swtich
     </legend>
     <div
-      class="euiButtonGroup euiButtonGroup--m query-language-switch"
+      class="euiButtonGroup__buttons"
     >
-      <div
-        class="euiToggle euiToggle--checked euiButtonToggle__wrapper euiButtonGroup__toggle"
+      <label
+        class="euiButtonGroupButton euiButtonGroupButton--text euiButtonGroupButton--fill euiButtonGroupButton-isSelected"
+        for="some_html_id"
       >
-        <input
-          aria-label="SQL"
-          checked=""
-          class="euiToggle__input euiButtonToggle__input"
-          title="SQL"
-          type="radio"
-          value=""
-        />
-        <button
-          class="euiButton euiButton--text euiButtonToggle euiButtonGroup__button euiButtonGroup__button--selected euiButton--fill"
-          id="SQL"
-          tabindex="-1"
-          type="button"
+        <span
+          class="euiButtonContent euiButton__content"
         >
           <span
-            class="euiButtonContent euiButton__content"
+            class="euiButton__text euiButtonGroupButton__textShift"
+            data-text="SQL"
+            title="SQL"
           >
-            <span
-              class="euiButton__text"
-            >
-              SQL
-            </span>
+            <input
+              checked=""
+              class="euiScreenReaderOnly"
+              data-test-subj="SQL"
+              id="some_html_id"
+              name="some_html_id"
+              type="radio"
+              value=""
+            />
+            SQL
           </span>
-        </button>
-      </div>
-      <div
-        class="euiToggle euiButtonToggle__wrapper euiButtonGroup__toggle"
+        </span>
+      </label>
+      <label
+        class="euiButtonGroupButton euiButtonGroupButton--text"
+        for="some_html_id"
       >
-        <input
-          aria-label="PPL"
-          class="euiToggle__input euiButtonToggle__input"
-          title="PPL"
-          type="radio"
-          value=""
-        />
-        <button
-          class="euiButton euiButton--text euiButtonToggle euiButtonGroup__button"
-          id="PPL"
-          tabindex="-1"
-          type="button"
+        <span
+          class="euiButtonContent euiButton__content"
         >
           <span
-            class="euiButtonContent euiButton__content"
+            class="euiButton__text euiButtonGroupButton__textShift"
+            data-text="PPL"
+            title="PPL"
           >
-            <span
-              class="euiButton__text"
-            >
-              PPL
-            </span>
+            <input
+              class="euiScreenReaderOnly"
+              data-test-subj="PPL"
+              id="some_html_id"
+              name="some_html_id"
+              type="radio"
+              value=""
+            />
+            PPL
           </span>
-        </button>
-      </div>
+        </span>
+      </label>
     </div>
   </fieldset>
 </div>

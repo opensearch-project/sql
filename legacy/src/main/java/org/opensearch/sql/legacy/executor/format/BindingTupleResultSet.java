@@ -36,7 +36,7 @@ public class BindingTupleResultSet extends ResultSet {
                                                          node.getAlias(),
                                                          node.getType()))
                                                  .collect(Collectors.toList());
-        return new Schema("dummy", "dummy", columnList);
+        return new Schema(columnList);
     }
 
     @VisibleForTesting

@@ -19,6 +19,8 @@
 | `Password` / `PWD` | [`Auth=BASIC`] Password for the connection. | string | |
 | `Region` | [`Auth=AWS_SIGV4`] Region used for signing requests | AWS region (eg. `us-west-1`) | |
 
+**NOTE:** To use `AWS_SIGV4` authentication you need to create `~/.aws/credentials` and add `opensearchodbc` profile with aws access key id and secret key.
+
 #### Advanced Options
 
 | Option | Description | Type | Default |

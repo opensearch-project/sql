@@ -39,3 +39,6 @@ gen
 */.venv
 */__pycache__
 *.iml
+.DS_Store
+
+/artifacts/

@@ -480,7 +480,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
   public void castStatementInWhereClauseDatetimeCastTest() {
     JSONObject response = executeJdbcRequest("SELECT date_keyword FROM "
         + TestsConstants.TEST_INDEX_DATE
-        + " WHERE (CAST(date_keyword AS DATETIME) = \'2014-08-19T07:09:13.434Z\')");
+        + " WHERE (CAST(date_keyword AS DATETIME) = '2014-08-19T07:09:13.434Z')");
 
     String schema_result = "{\"name\":\"date_keyword\",\"type\":\"keyword\"}";
     assertEquals(response.getJSONArray("schema").get(0).toString(), schema_result);
@@ -501,7 +501,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
   }
 
   /**
-   * Ignore this test case because painless doesn't whitelist String.split function.
+   * Ignore this test case because painless doesn't allowlist String.split function.
    *
    * @see <a href="https://www.elastic.co/guide/en/elasticsearch/painless/7.0/painless-api-reference.html">https://www.elastic.co/guide/en/elasticsearch/painless/7.0/painless-api-reference.html</a>
    */
@@ -517,7 +517,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
   }
 
   /**
-   * Ignore this test case because painless doesn't whitelist String.split function.
+   * Ignore this test case because painless doesn't allowlist String.split function.
    *
    * @see <a href="https://www.elastic.co/guide/en/elasticsearch/painless/7.0/painless-api-reference.html">https://www.elastic.co/guide/en/elasticsearch/painless/7.0/painless-api-reference.html</a>
    */
@@ -704,7 +704,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
     JSONObject response = executeJdbcRequest(
         "SELECT IF(age > 30, 'True', 'False') AS Ages FROM " + TEST_INDEX_ACCOUNT
             + " WHERE age IS NOT NULL GROUP BY Ages");
-    assertEquals("IF(age > 30, \'True\', \'False\')", response.query("/schema/0/name"));
+    assertEquals("IF(age > 30, 'True', 'False')", response.query("/schema/0/name"));
     assertEquals("Ages", response.query("/schema/0/alias"));
     assertEquals("keyword", response.query("/schema/0/type"));
   }
@@ -742,7 +742,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
     JSONObject response = executeJdbcRequest(
         "SELECT IFNULL(lastname, 'unknown') AS name FROM " + TEST_INDEX_ACCOUNT
             + " GROUP BY name");
-    assertEquals("IFNULL(lastname, \'unknown\')", response.query("/schema/0/name"));
+    assertEquals("IFNULL(lastname, 'unknown')", response.query("/schema/0/name"));
     assertEquals("name", response.query("/schema/0/alias"));
     assertEquals("keyword", response.query("/schema/0/type"));
   }
@@ -810,7 +810,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
   }
 
   /**
-   * Ignore this test case because painless doesn't whitelist String.split function.
+   * Ignore this test case because painless doesn't allowlist String.split function.
    *
    * @see <a href="https://www.elastic.co/guide/en/elasticsearch/painless/7.0/painless-api-reference.html">https://www.elastic.co/guide/en/elasticsearch/painless/7.0/painless-api-reference.html</a>
    */
@@ -895,9 +895,5 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
           break;
       }
     }
-  }
-
-  private JSONObject executeJdbcRequest(String query) {
-    return new JSONObject(executeQuery(query, "jdbc"));
   }
 }

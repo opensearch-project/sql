@@ -6,6 +6,15 @@ This is the driver for JDBC connectivity to a cluster running with OpenSearch SQ
 
 The driver is compatible with JDBC 4.2 specification and requires a minimum of Java 8.
 
+## BI Tool Connectors
+
+* [Power BI Desktop](../bi-connectors/PowerBIConnector/README.md)
+* [Tableau Desktop](../bi-connectors/TableauConnector/README.md)
+
+## Download and Installation
+
+The driver is available for download from [Artifacts page](https://opensearch.org/artifacts) on OpenSearch.org at the very bottom and from [automated CI workflow](https://github.com/opensearch-project/sql/actions/workflows/sql-jdbc-test-and-build-workflow.yml).
+
 ## Using the driver
 
 The driver comes in the form of a single jar file. To use it, simply place it on the classpath of the
@@ -475,10 +484,6 @@ Statement st = con.createStatement();
 // close connection
 con.close();
 ```
-
-## Download and Installation
-
-The driver will be available through standard open source repositories for Java artifacts.
 
 ## Building from source
 

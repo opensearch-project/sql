@@ -28,6 +28,7 @@ import org.opensearch.gradle.testclusters.StandaloneRestIntegTestTask
 
 import java.util.concurrent.Callable
 
+
 apply plugin: 'opensearch.build'
 apply plugin: 'opensearch.rest-test'
 apply plugin: 'java'
@@ -52,35 +53,37 @@ configurations.all {
     // enforce 1.1.3, https://www.whitesourcesoftware.com/vulnerability-database/WS-2019-0379
     resolutionStrategy.force 'commons-codec:commons-codec:1.13'
     resolutionStrategy.force 'com.google.guava:guava:31.0.1-jre'
-    resolutionStrategy.force 'com.fasterxml.jackson.core:jackson-core:2.12.6'
-    resolutionStrategy.force 'com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.12.6'
+    resolutionStrategy.force 'com.fasterxml.jackson.core:jackson-core:2.13.2'
+    resolutionStrategy.force 'com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.13.2'
+    resolutionStrategy.force 'com.fasterxml.jackson.core:jackson-databind:2.13.2.2'
 }
 
 dependencies {
-    testCompile group: 'org.opensearch.test', name: 'framework', version: "${opensearch_version}"
-    testCompile group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
-    testCompile group: 'org.opensearch.client', name: 'opensearch-rest-client', version: "${opensearch_version}"
-    testCompile group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
-    testCompile group: 'org.apache.logging.log4j', name: 'log4j-core', version:'2.17.1'
-    testCompile project(':plugin')
-    testCompile project(':legacy')
+    testImplementation group: 'org.opensearch.test', name: 'framework', version: "${opensearch_version}"
+    testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
+    testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-client', version: "${opensearch_version}"
+    testImplementation group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
+    implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version:'2.17.1'
+    testImplementation project(':opensearch-sql-plugin')
+    testImplementation project(':legacy')
     testImplementation('org.junit.jupiter:junit-jupiter-api:5.6.2')
     testRuntimeOnly('org.junit.jupiter:junit-jupiter-engine:5.6.2')
 
     // JDBC drivers for comparison test. Somehow Apache Derby throws security permission exception.
-    testCompile fileTree('../sql-jdbc/build/libs') {
+    testImplementation fileTree('../sql-jdbc/build/libs') {
         include '*.jar'
         builtBy 'compileJdbc'
     }
-    testCompile group: 'com.h2database', name: 'h2', version: '2.1.210'
-    testCompile group: 'org.xerial', name: 'sqlite-jdbc', version: '3.28.0'
-    testCompile group: 'com.google.code.gson', name: 'gson', version: '2.8.9'
+    testImplementation group: 'com.h2database', name: 'h2', version: '2.1.210'
+    testImplementation group: 'org.xerial', name: 'sqlite-jdbc', version: '3.28.0'
+    testImplementation group: 'com.google.code.gson', name: 'gson', version: '2.8.9'
 }
 
 dependencyLicenses.enabled = false
 testingConventions.enabled = false
 checkstyleTest.ignoreFailures = true
 forbiddenApisTest.enabled = false
+thirdPartyAudit.enabled = false
 
 compileTestJava {
     options.compilerArgs.addAll(["-processor", 'lombok.launch.AnnotationProcessorHider$AnnotationProcessor'])
@@ -95,12 +98,12 @@ testClusters.all {
 }
 
 testClusters.integTest {
-    plugin ":plugin"
+    plugin ":opensearch-sql-plugin"
 }
 
 // Run PPL ITs and new, legacy and comparison SQL ITs with new SQL engine enabled
 integTest {
-    dependsOn ':plugin:bundlePlugin'
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
 
     systemProperty 'tests.security.manager', 'false'
     systemProperty('project.root', project.projectDir.absolutePath)
@@ -143,29 +146,8 @@ integTest {
 }
 
 
-task docTest(type: RestIntegTestTask) {
-    dependsOn ':plugin:bundlePlugin'
-
-    systemProperty 'tests.security.manager', 'false'
-    systemProperty('project.root', project.projectDir.absolutePath)
-
-    // Tell the test JVM if the cluster JVM is running under a debugger so that tests can use longer timeouts for
-    // requests. The 'doFirst' delays reading the debug setting on the cluster till execution time.
-    doFirst { systemProperty 'cluster.debug', getDebug() }
-
-    if (System.getProperty("test.debug") != null) {
-        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
-    }
-
-    include 'org/opensearch/sql/doctest/**/*IT.class'
-    exclude 'org/opensearch/sql/correctness/**/*IT.class'
-    exclude 'org/opensearch/sql/ppl/**/*IT.class'
-    exclude 'org/opensearch/sql/sql/**/*IT.class'
-    exclude 'org/opensearch/sql/legacy/**/*IT.class'
-}
-
 task comparisonTest(type: RestIntegTestTask) {
-    dependsOn ':plugin:bundlePlugin'
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
 
     systemProperty 'tests.security.manager', 'false'
     systemProperty('project.root', project.projectDir.absolutePath)
@@ -208,6 +190,8 @@ task compileJdbc(type: Exec) {
 String bwcVersion = "1.13.2.0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
+String bwcOpenDistroPlugin = "opendistro-sql-" + bwcVersion + ".zip"
+String bwcRemoteFile = 'https://d3g5vo6xdbdb9a.cloudfront.net/downloads/elasticsearch-plugins/opendistro-sql/' + bwcOpenDistroPlugin
 
 2.times { i ->
     testClusters {
@@ -221,6 +205,14 @@ String bwcFilePath = "src/test/resources/bwc/"
                     return new RegularFile() {
                         @Override
                         File getAsFile() {
+                            File dir = new File('./integ-test/' + bwcFilePath + bwcVersion)
+                            if (!dir.exists()) {
+                                dir.mkdirs()
+                            }
+                            File f = new File(dir, bwcOpenDistroPlugin)
+                            if (!f.exists()) {
+                                new URL(bwcRemoteFile).withInputStream{ ins -> f.withOutputStream{ it << ins }}
+                            }
                             return fileTree(bwcFilePath + bwcVersion).getSingleFile()
                         }
                     }

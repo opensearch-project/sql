@@ -1,0 +1,16 @@
+{
+  "mappings": {
+    "properties": {
+      "anomaly_type": {
+        "type": "keyword"
+      },
+      "timestamp": {
+        "type": "date",
+        "format": "yyyy-MM-dd HH:mm:ss"
+      },
+      "value": {
+        "type": "float"
+      }
+    }
+  }
+}

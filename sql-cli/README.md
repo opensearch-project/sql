@@ -1,7 +1,7 @@
 [![SQL CLI Test and Build](https://github.com/opensearch-project/sql/workflows/SQL%20CLI%20Test%20and%20Build/badge.svg)](https://github.com/opensearch-project/sql/actions)
 [![Latest Version](https://img.shields.io/pypi/v/opensearchsql.svg)](https://pypi.python.org/pypi/opensearchsql/)
 [![Documentation](https://img.shields.io/badge/documentation-blue.svg)](https://docs-beta.opensearch.org/docs/sql/cli/)
-[![Chat](https://img.shields.io/badge/chat-on%20forums-blue)](https://discuss.opendistrocommunity.dev/c/sql/)
+[![Chat](https://img.shields.io/badge/chat-on%20forums-blue)](https://forum.opensearch.org/c/plugins/sql)
 ![PyPi Downloads](https://img.shields.io/pypi/dm/opensearchsql.svg)
 ![PRs welcome!](https://img.shields.io/badge/PRs-welcome!-success)
 
@@ -88,13 +88,13 @@ You can also configure the following connection properties:
     * Amazon OpenSearch Service domain with [Fine Grained Access Control](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/fgac.html) enabled
 * `--aws-auth`: Turns on AWS sigV4 authentication to connect to an Amazon Elasticsearch Service endpoint. Use with the AWS CLI (`aws configure`) to retrieve the local AWS configuration to authenticate and connect.
 
-For a list of all available configurations, see [clirc](https://github.com/opensearch-project/sql/blob/master/sql-cli/src/opensearch_sql_cli/conf/clirc).
+For a list of all available configurations, see [clirc](https://github.com/opensearch-project/sql/blob/main/sql-cli/src/opensearch_sql_cli/conf/clirc).
 
 
 
 ## Using the CLI
 
-1. Save the sample [accounts test data](https://github.com/opensearch-project/sql/blob/master/integ-test/src/test/resources/accounts.json) file.
+1. Save the sample [accounts test data](https://github.com/opensearch-project/sql/blob/main/integ-test/src/test/resources/accounts.json) file.
 2. Index the sample data.
 
     ```

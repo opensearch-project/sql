@@ -29,6 +29,7 @@ public class Head extends UnresolvedPlan {
 
   private UnresolvedPlan child;
   private final Integer size;
+  private final Integer from;
 
   @Override
   public Head attach(UnresolvedPlan child) {

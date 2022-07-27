@@ -6,11 +6,7 @@
 
 package org.opensearch.sql.legacy.rewriter.matchtoterm;
 
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.json.JSONObject;
 import org.opensearch.sql.legacy.esdomain.mapping.FieldMappings;
@@ -48,9 +44,7 @@ public class TermFieldScope {
     }
 
     public Optional<Map<String, Object>> resolveFieldMapping(String fieldName) {
-        Set<FieldMappings> indexMappings = mapper.allMappings().stream().
-                flatMap(typeMappings -> typeMappings.allMappings().stream()).
-                collect(Collectors.toSet());
+        Set<FieldMappings> indexMappings = new HashSet<>(mapper.allMappings());
         Optional<Map<String, Object>> resolvedMapping =
                 indexMappings.stream()
                         .filter(mapping -> mapping.has(fieldName))

@@ -11,6 +11,7 @@ channels { WHITESPACE, ERRORCHANNEL }
 
 // COMMAND KEYWORDS
 SEARCH:                             'SEARCH';
+DESCRIBE:                           'DESCRIBE';
 FROM:                               'FROM';
 WHERE:                              'WHERE';
 FIELDS:                             'FIELDS';
@@ -50,9 +51,19 @@ DEDUP_SPLITVALUES:                  'DEDUP_SPLITVALUES';
 PARTITIONS:                         'PARTITIONS';
 ALLNUM:                             'ALLNUM';
 DELIM:                              'DELIM';
+CENTROIDS:                          'CENTROIDS';
+ITERATIONS:                         'ITERATIONS';
+DISTANCE_TYPE:                      'DISTANCE_TYPE';
+NUMBER_OF_TREES:                    'NUMBER_OF_TREES';
 SHINGLE_SIZE:                       'SHINGLE_SIZE';
+SAMPLE_SIZE:                        'SAMPLE_SIZE';
+OUTPUT_AFTER:                       'OUTPUT_AFTER';
 TIME_DECAY:                         'TIME_DECAY';
+ANOMALY_RATE:                       'ANOMALY_RATE';
 TIME_FIELD:                         'TIME_FIELD';
+TIME_ZONE:                          'TIME_ZONE';
+TRAINING_DATA_SIZE:                 'TRAINING_DATA_SIZE';
+ANOMALY_SCORE_THRESHOLD:            'ANOMALY_SCORE_THRESHOLD';
 
 // COMPARISON FUNCTION KEYWORDS
 CASE:                               'CASE';
@@ -130,6 +141,12 @@ RT_SQR_PRTHS:                       ']';
 SINGLE_QUOTE:                       '\'';
 DOUBLE_QUOTE:                       '"';
 BACKTICK:                           '`';
+
+// Operators. Bit
+
+BIT_NOT_OP:                         '~';
+BIT_AND_OP:                         '&';
+BIT_XOR_OP:                         '^';
 
 // AGGREGATIONS
 AVG:                                'AVG';
@@ -254,18 +271,44 @@ IF:                                 'IF';
 
 // RELEVANCE FUNCTIONS AND PARAMETERS
 MATCH:                              'MATCH';
+MATCH_PHRASE:                       'MATCH_PHRASE';
+MATCH_PHRASE_PREFIX:                'MATCH_PHRASE_PREFIX';
+MATCH_BOOL_PREFIX:                  'MATCH_BOOL_PREFIX';
+SIMPLE_QUERY_STRING:                'SIMPLE_QUERY_STRING';
+MULTI_MATCH:                        'MULTI_MATCH';
+QUERY_STRING:                       'QUERY_STRING';
+
+ALLOW_LEADING_WILDCARD:             'ALLOW_LEADING_WILDCARD';
+ANALYZE_WILDCARD:                   'ANALYZE_WILDCARD';
 ANALYZER:                           'ANALYZER';
-FUZZINESS:                          'FUZZINESS';
 AUTO_GENERATE_SYNONYMS_PHRASE_QUERY:'AUTO_GENERATE_SYNONYMS_PHRASE_QUERY';
-MAX_EXPANSIONS:                     'MAX_EXPANSIONS';
-PREFIX_LENGTH:                      'PREFIX_LENGTH';
+BOOST:                              'BOOST';
+CUTOFF_FREQUENCY:                   'CUTOFF_FREQUENCY';
+DEFAULT_FIELD:                      'DEFAULT_FIELD';
+DEFAULT_OPERATOR:                   'DEFAULT_OPERATOR';
+ENABLE_POSITION_INCREMENTS:         'ENABLE_POSITION_INCREMENTS';
+ESCAPE:                             'ESCAPE';
+FLAGS:                              'FLAGS';
+FUZZY_MAX_EXPANSIONS:               'FUZZY_MAX_EXPANSIONS';
+FUZZY_PREFIX_LENGTH:                'FUZZY_PREFIX_LENGTH';
 FUZZY_TRANSPOSITIONS:               'FUZZY_TRANSPOSITIONS';
 FUZZY_REWRITE:                      'FUZZY_REWRITE';
+FUZZINESS:                          'FUZZINESS';
 LENIENT:                            'LENIENT';
-OPERATOR:                           'OPERATOR';
+LOW_FREQ_OPERATOR:                  'LOW_FREQ_OPERATOR';
+MAX_DETERMINIZED_STATES:            'MAX_DETERMINIZED_STATES';
+MAX_EXPANSIONS:                     'MAX_EXPANSIONS';
 MINIMUM_SHOULD_MATCH:               'MINIMUM_SHOULD_MATCH';
+OPERATOR:                           'OPERATOR';
+PHRASE_SLOP:                        'PHRASE_SLOP';
+PREFIX_LENGTH:                      'PREFIX_LENGTH';
+QUOTE_ANALYZER:                     'QUOTE_ANALYZER';
+QUOTE_FIELD_SUFFIX:                 'QUOTE_FIELD_SUFFIX';
+REWRITE:                            'REWRITE';
+SLOP:                               'SLOP';
+TIE_BREAKER:                        'TIE_BREAKER';
+TYPE:                               'TYPE';
 ZERO_TERMS_QUERY:                   'ZERO_TERMS_QUERY';
-BOOST:                              'BOOST';
 
 // SPAN KEYWORDS
 SPAN:                               'SPAN';

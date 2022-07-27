@@ -28,8 +28,6 @@ import java.util.List;
 import lombok.AllArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnJre;
-import org.junit.jupiter.api.condition.JRE;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -74,7 +72,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
               "Saturday","31st","1998","98","Sat","Jan","031","01","31","01","15","6","12345",
               "q","%")
       ),
-
       new DateFormatTester("1999-12-01",
           ImmutableList.of("%D"),
           ImmutableList.of("1st")
@@ -961,7 +958,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     assertEquals(integerValue(2020), eval(expression));
   }
 
-  @DisabledOnJre(JRE.JAVA_8)
   @Test
   public void date_format() {
     dateFormatTesters.forEach(this::testDateFormat);
@@ -970,6 +966,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         + "%m %p %r %S %s %T %% %P";
     String timestampFormatted = "Sat Jan 01 31st 31 31 12345 13 01 01 14 031 13 1 "
         + "January 01 PM 01:14:15 PM 15 15 13:14:15 % P";
+
     FunctionExpression expr = dsl.date_format(DSL.literal(timestamp), DSL.literal(timestampFormat));
     assertEquals(STRING, expr.type());
     assertEquals(timestampFormatted, eval(expr).stringValue());

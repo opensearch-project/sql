@@ -187,13 +187,19 @@ public enum BuiltinFunctionName {
    * Relevance Function.
    */
   MATCH(FunctionName.of("match")),
-
+  SIMPLE_QUERY_STRING(FunctionName.of("simple_query_string")),
+  MATCH_PHRASE(FunctionName.of("match_phrase")),
+  MATCHPHRASE(FunctionName.of("matchphrase")),
+  QUERY_STRING(FunctionName.of("query_string")),
+  MATCH_BOOL_PREFIX(FunctionName.of("match_bool_prefix")),
+  MATCH_PHRASE_PREFIX(FunctionName.of("match_phrase_prefix")),
   /**
    * Legacy Relevance Function.
    */
   QUERY(FunctionName.of("query")),
   MATCH_QUERY(FunctionName.of("match_query")),
-  MATCHQUERY(FunctionName.of("matchquery"));
+  MATCHQUERY(FunctionName.of("matchquery")),
+  MULTI_MATCH(FunctionName.of("multi_match"));
 
   private final FunctionName name;
 

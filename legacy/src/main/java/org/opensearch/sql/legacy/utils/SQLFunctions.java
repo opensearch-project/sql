@@ -136,7 +136,7 @@ public class SQLFunctions {
                 break;
             }
 
-            // Split is currently not supported since its using .split() in painless which is not whitelisted
+            // Split is currently not supported since its using .split() in painless which is not allow-listed
             case "split":
                 if (paramers.size() == 3) {
                     functionStr = split((SQLExpr) paramers.get(0).value,

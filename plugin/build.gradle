@@ -24,9 +24,12 @@
 
 plugins {
     id 'java'
+    id "io.freefair.lombok"
     id 'jacoco'
     id 'opensearch.opensearchplugin'
 }
+
+apply plugin: 'opensearch.pluginzip'
 
 ext {
     projectSubstitutions = [:]
@@ -46,8 +49,30 @@ opensearchplugin {
     noticeFile rootProject.file("NOTICE")
 }
 
+publishing {
+    publications {
+        pluginZip(MavenPublication) { publication ->
+            pom {
+                name = 'opensearch-sql'
+                description = 'OpenSearch SQL'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        name = 'OpenSearch'
+                        url = 'https://github.com/opensearch-project/sql'
+                    }
+                }
+            }
+        }
+    }
+}
+
 javadoc.enabled = false
-test.enabled = false
 loggerUsageCheck.enabled = false
 dependencyLicenses.enabled = false
 thirdPartyAudit.enabled = false
@@ -57,20 +82,35 @@ configurations.all {
     // conflict with spring-jcl
     exclude group: "commons-logging", module: "commons-logging"
     // enforce 2.12.6, https://github.com/opensearch-project/sql/issues/424
-    resolutionStrategy.force 'com.fasterxml.jackson.core:jackson-core:2.12.6'
+    resolutionStrategy.force 'com.fasterxml.jackson.core:jackson-core:2.13.2'
     // enforce 1.1.3, https://www.whitesourcesoftware.com/vulnerability-database/WS-2019-0379
     resolutionStrategy.force 'commons-codec:commons-codec:1.13'
     resolutionStrategy.force 'com.google.guava:guava:31.0.1-jre'
-    resolutionStrategy.force 'com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.12.6'
+    resolutionStrategy.force 'com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.13.2'
+    resolutionStrategy.force 'com.fasterxml.jackson.core:jackson-databind:2.13.2.2'
+}
+compileJava {
+    options.compilerArgs.addAll(["-processor", 'lombok.launch.AnnotationProcessorHider$AnnotationProcessor'])
+}
+
+compileTestJava {
+    options.compilerArgs.addAll(["-processor", 'lombok.launch.AnnotationProcessorHider$AnnotationProcessor'])
 }
 
 dependencies {
-    compile group: 'org.springframework', name: 'spring-beans', version: '5.2.19.RELEASE'
-    compile project(":ppl")
-    compile project(':legacy')
-    compile project(':opensearch')
+    api group: 'org.springframework', name: 'spring-beans', version: '5.2.20.RELEASE'
+    api project(":ppl")
+    api project(':legacy')
+    api project(':opensearch')
 }
 
+test {
+    include '**/*Test.class'
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+    }
+}
 
 ext {
     projectSubstitutions = [:]
@@ -93,7 +133,6 @@ tasks.withType(licenseHeaders.class) {
 forbiddenApis.ignoreFailures = true
 // TODO: fix forbidden code patterns
 // introduced by OpenSearch plugin
-// see https://github.com/elastic/elasticsearch/blob/master/buildSrc/src/main/java/org/elasticsearch/gradle/precommit/ForbiddenPatternsTask.java
 forbiddenPatterns {
     setEnabled(false)
 }
@@ -121,7 +160,7 @@ afterEvaluate {
         release = isSnapshot ? "0.1" : '1'
         version = "${project.version}" - "-SNAPSHOT"
 
-        into '/usr/share/elasticsearch/plugins'
+        into '/usr/share/opensearch/plugins'
         from(zipTree(bundlePlugin.archivePath)) {
             into opensearchplugin.name
         }
@@ -131,7 +170,7 @@ afterEvaluate {
         fileMode 0644
         dirMode 0755
 
-        requires('elasticsearch-oss', versions.elasticsearch, EQUAL)
+        requires('opensearch', versions.opensearch, EQUAL)
         packager = 'Amazon'
         vendor = 'Amazon'
         os = 'LINUX'
@@ -142,7 +181,7 @@ afterEvaluate {
         url 'https://www.opensearch.org/downloads.html'
         summary '''
          SQL plugin for OpenSearch.
-         Reference documentation can be found at https://docs-beta.opensearch.org/.
+         Reference documentation can be found at https://opensearch.org/docs/latest/search-plugins/sql/index/.
     '''.stripIndent().replace('\n', ' ').trim()
     }
 

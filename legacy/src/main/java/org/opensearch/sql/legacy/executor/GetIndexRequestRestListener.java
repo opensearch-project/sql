@@ -9,6 +9,8 @@ package org.opensearch.sql.legacy.executor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+
 import org.opensearch.action.admin.indices.get.GetIndexRequest;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.cluster.metadata.AliasMetadata;
@@ -23,6 +25,7 @@ import org.opensearch.rest.RestResponse;
 import org.opensearch.rest.RestStatus;
 import org.opensearch.rest.action.RestBuilderListener;
 import org.opensearch.sql.legacy.antlr.semantic.SemanticAnalysisException;
+import org.opensearch.sql.legacy.domain.Field;
 
 /**
  * Created by Eliran on 6/10/2015.
@@ -78,23 +81,19 @@ public class GetIndexRequestRestListener extends RestBuilderListener<GetIndexRes
         builder.endObject();
     }
 
-    private void writeMappings(ImmutableOpenMap<String, MappingMetadata> mappings,
-                               XContentBuilder builder, ToXContent.Params params) throws IOException {
-        builder.startObject(Fields.MAPPINGS);
-        if (mappings != null) {
-            for (ObjectObjectCursor<String, MappingMetadata> typeEntry : mappings) {
-                builder.field(typeEntry.key);
-                builder.map(typeEntry.value.sourceAsMap());
-            }
-        }
-        builder.endObject();
-    }
-
     private void writeSettings(Settings settings, XContentBuilder builder, ToXContent.Params params)
             throws IOException {
         builder.startObject(Fields.SETTINGS);
         settings.toXContent(builder, params);
         builder.endObject();
+    }
+
+    private void writeMappings(MappingMetadata mappingMetadata,
+                               XContentBuilder builder, ToXContent.Params params) throws IOException {
+        if ( mappingMetadata != null) {
+            builder.field(Fields.MAPPINGS);
+            builder.map(mappingMetadata.getSourceAsMap());
+        }
     }
 
 

@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import java.util.concurrent.Callable
 import org.opensearch.gradle.testclusters.RunTask
 
 plugins {
-    id "com.wiredforcode.spawn" version "0.8.2"
     id 'base'
+    id 'com.wiredforcode.spawn'
 }
 
 apply plugin: 'opensearch.testclusters'
@@ -47,9 +48,38 @@ doctest.finalizedBy stopOpenSearch
 build.dependsOn doctest
 clean.dependsOn(cleanBootstrap)
 
+// 2.0.0-alpha1-SNAPSHOT -> 2.0.0.0-alpha1-SNAPSHOT
+String opensearch_no_snapshot = opensearch_version.replace('-SNAPSHOT', '')
+String[] version_tokens = opensearch_no_snapshot.tokenize('-')
+String opensearch_build = version_tokens[0] + '.0'
+if (version_tokens.length > 1) {
+    opensearch_build += '-' + version_tokens[1]
+}
+String mlCommonsRemoteFile = 'https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/' + opensearch_no_snapshot + '/latest/linux/x64/tar/builds/opensearch/plugins/opensearch-ml-' + opensearch_build + '.zip'
+String mlCommonsPlugin = 'opensearch-ml'
+
 testClusters {
     docTestCluster {
-        plugin ':plugin'
+        plugin(provider(new Callable<RegularFile>(){
+            @Override
+            RegularFile call() throws Exception {
+                return new RegularFile() {
+                    @Override
+                    File getAsFile() {
+                        File dir = new File('./doctest/' + mlCommonsPlugin)
+                        if (!dir.exists()) {
+                            dir.mkdirs()
+                        }
+                        File f = new File(dir, mlCommonsPlugin + '-' + opensearch_build + '.zip')
+                        if (!f.exists()) {
+                            new URL(mlCommonsRemoteFile).withInputStream{ ins -> f.withOutputStream{ it << ins } }
+                        }
+                        return fileTree(mlCommonsPlugin).getSingleFile()
+                    }
+                }
+            }
+        }))
+        plugin ':opensearch-sql-plugin'
         testDistribution = 'integ_test'
     }
 }

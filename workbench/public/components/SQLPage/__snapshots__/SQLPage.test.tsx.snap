@@ -3,7 +3,7 @@
 exports[`<SQLPage /> spec renders the component 1`] = `
 <div>
   <div
-    class="euiPanel euiPanel--paddingLarge sql-console-query-editor container-panel"
+    class="euiPanel euiPanel--paddingLarge euiPanel--borderRadiusMedium euiPanel--plain euiPanel--hasShadow sql-console-query-editor container-panel"
   >
     <div
       class="euiText euiText--medium sql-query-panel-header"
@@ -20,12 +20,10 @@ exports[`<SQLPage /> spec renders the component 1`] = `
       data-test-subj="codeEditorContainer"
       style="width: 100%; height: 7rem;"
     >
-      <div
+      <button
         class="euiCodeEditorKeyboardHint"
         data-test-subj="codeEditorHint"
         id="some_html_id"
-        role="button"
-        tabindex="0"
       >
         <p
           class="euiText"
@@ -37,7 +35,7 @@ exports[`<SQLPage /> spec renders the component 1`] = `
         >
           When you're done, press Escape to stop editing.
         </p>
-      </div>
+      </button>
       <div
         class=" ace_editor ace-sql-console"
         id="some_html_id"
@@ -139,7 +137,7 @@ exports[`<SQLPage /> spec renders the component 1`] = `
         class="euiFlexItem euiFlexItem--flexGrowZero"
       >
         <button
-          class="euiButton euiButton--primary sql-editor-button euiButton--fill"
+          class="euiButton euiButton--primary euiButton--fill sql-editor-button"
           type="button"
         >
           <span
@@ -197,7 +195,7 @@ exports[`<SQLPage /> spec renders the component 1`] = `
 exports[`<SQLPage /> spec tests the action buttons 1`] = `
 <div>
   <div
-    class="euiPanel euiPanel--paddingLarge sql-console-query-editor container-panel"
+    class="euiPanel euiPanel--paddingLarge euiPanel--borderRadiusMedium euiPanel--plain euiPanel--hasShadow sql-console-query-editor container-panel"
   >
     <div
       class="euiText euiText--medium sql-query-panel-header"
@@ -214,12 +212,10 @@ exports[`<SQLPage /> spec tests the action buttons 1`] = `
       data-test-subj="codeEditorContainer"
       style="width: 100%; height: 7rem;"
     >
-      <div
+      <button
         class="euiCodeEditorKeyboardHint"
         data-test-subj="codeEditorHint"
         id="some_html_id"
-        role="button"
-        tabindex="0"
       >
         <p
           class="euiText"
@@ -231,7 +227,7 @@ exports[`<SQLPage /> spec tests the action buttons 1`] = `
         >
           When you're done, press Escape to stop editing.
         </p>
-      </div>
+      </button>
       <div
         class=" ace_editor ace-sql-console"
         id="some_html_id"
@@ -333,7 +329,7 @@ exports[`<SQLPage /> spec tests the action buttons 1`] = `
         class="euiFlexItem euiFlexItem--flexGrowZero"
       >
         <button
-          class="euiButton euiButton--primary sql-editor-button euiButton--fill"
+          class="euiButton euiButton--primary euiButton--fill sql-editor-button"
           type="button"
         >
           <span
