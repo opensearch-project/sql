@@ -7,7 +7,6 @@
 package org.opensearch.sql.opensearch.planner.logical;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.common.collect.ImmutableSet;
 import org.junit.jupiter.api.Test;
