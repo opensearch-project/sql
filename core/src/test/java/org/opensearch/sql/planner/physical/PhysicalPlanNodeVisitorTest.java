@@ -120,6 +120,10 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
     assertNull(dedupe.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
     }, null));
 
+    PhysicalPlan highlight = PhysicalPlanDSL.highlight(plan, ref);
+    assertNull(highlight.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
+    }, null));
+
     PhysicalPlan values = PhysicalPlanDSL.values(emptyList());
     assertNull(values.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
     }, null));
@@ -189,11 +193,6 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
     @Override
     public String visitLimit(LimitOperator node, Integer tabs) {
       return name(node, "Limit->", tabs);
-    }
-
-    @Override
-    public String visitHighlight(HighlightOperator node, Integer tabs) {
-      return name(node, "Highlight->", tabs);
     }
 
     private String name(PhysicalPlan node, String current, int tabs) {

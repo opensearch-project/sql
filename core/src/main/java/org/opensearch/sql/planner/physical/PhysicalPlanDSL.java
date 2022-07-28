@@ -105,4 +105,8 @@ public class PhysicalPlanDSL {
   public static LimitOperator limit(PhysicalPlan input, Integer limit, Integer offset) {
     return new LimitOperator(input, limit, offset);
   }
+
+  public static HighlightOperator highlight(PhysicalPlan input, Expression highlightField) {
+    return new HighlightOperator(input, highlightField);
+  }
 }

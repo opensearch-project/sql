@@ -6,7 +6,6 @@
 
 package org.opensearch.sql.expression;
 
-import org.opensearch.sql.analysis.HighlightExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.conditional.cases.CaseClause;

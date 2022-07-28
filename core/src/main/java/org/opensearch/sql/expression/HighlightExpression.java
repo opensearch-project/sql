@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.analysis;
+package org.opensearch.sql.expression;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
@@ -22,9 +22,10 @@ import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
-@EqualsAndHashCode(callSuper = false)
+/**
+ * Highlight Expression.
+ */
 @Getter
-@ToString
 public class HighlightExpression extends FunctionExpression {
   private final Expression highlightField;
 
@@ -49,14 +50,15 @@ public class HighlightExpression extends FunctionExpression {
       refName += "." + StringUtils.unquoteText(getHighlightField().toString());
     }
     ExprValue retVal = valueEnv.resolve(DSL.ref(refName, ExprCoreType.STRING));
-    ImmutableMap.Builder<String, ExprValue> builder = new ImmutableMap.Builder<>();
 
+    // If only one highlight returned, or no highlights can be parsed.
     if (retVal.isMissing() || retVal.type() != ExprCoreType.STRUCT) {
       return retVal;
     }
 
-    var hlBuilder = ImmutableMap.<String, ExprValue>builder();
-    hlBuilder.putAll(retVal.tupleValue());
+    var highlightMapBuilder = ImmutableMap.<String, ExprValue>builder();
+    highlightMapBuilder.putAll(retVal.tupleValue());
+    ImmutableMap.Builder<String, ExprValue> builder = new ImmutableMap.Builder<>();
     for (var entry : retVal.tupleValue().entrySet()) {
       String entryKey = "highlight(" + getHighlightField() + ")." + entry.getKey();
       builder.put(entryKey, ExprValueUtils.stringValue(entry.getValue().toString()));
@@ -72,5 +74,10 @@ public class HighlightExpression extends FunctionExpression {
   @Override
   public ExprType type() {
     return ExprCoreType.STRING;
+  }
+
+  @Override
+  public <T, C> T accept(ExpressionNodeVisitor<T, C> visitor, C context) {
+    return visitor.visitHighlight(this, context);
   }
 }
