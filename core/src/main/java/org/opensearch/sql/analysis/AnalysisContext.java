@@ -43,6 +43,9 @@ public class AnalysisContext {
     this(environment, new PlanContext());
   }
 
+  /**
+   * Constructor.
+   */
   public AnalysisContext(TypeEnvironment environment, PlanContext planContext) {
     this.environment = environment;
     this.namedParseExpressions = new ArrayList<>();

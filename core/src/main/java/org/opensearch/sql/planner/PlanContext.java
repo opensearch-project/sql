@@ -8,6 +8,9 @@ package org.opensearch.sql.planner;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * PlanContext that stores context for physical plan generation.
+ */
 public class PlanContext {
   @Getter
   @Setter
@@ -19,12 +22,12 @@ public class PlanContext {
 
   public enum IndexScanType {
     /**
-     * default query request
+     * default query request.
      */
     QUERY,
 
     /**
-     * scroll request
+     * scroll request.
      */
     SCROLL
   }

@@ -111,7 +111,9 @@ public class PlannerTest extends PhysicalPlanTestBase {
     );
   }
 
-  protected void assertPhysicalPlan(PhysicalPlan expected, LogicalPlan logicalPlan, PlanContext planContext) {
+  protected void assertPhysicalPlan(PhysicalPlan expected,
+                                    LogicalPlan logicalPlan,
+                                    PlanContext planContext) {
     assertEquals(expected, analyze(logicalPlan, planContext));
   }
 
