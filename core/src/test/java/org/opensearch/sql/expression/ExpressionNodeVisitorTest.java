@@ -20,7 +20,6 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
-import org.opensearch.sql.analysis.HighlightExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.aggregation.AvgAggregator;
 import org.opensearch.sql.expression.conditional.cases.CaseClause;
@@ -35,6 +34,7 @@ class ExpressionNodeVisitorTest {
   @Test
   void should_return_null_by_default() {
     ExpressionNodeVisitor<Object, Object> visitor = new ExpressionNodeVisitor<Object, Object>(){};
+    assertNull(new HighlightExpression(DSL.literal("Title")).accept(visitor, null));
     assertNull(literal(10).accept(visitor, null));
     assertNull(ref("name", STRING).accept(visitor, null));
     assertNull(named("bool", literal(true)).accept(visitor, null));
@@ -87,11 +87,6 @@ class ExpressionNodeVisitorTest {
       @Override
       public Expression visitAggregator(Aggregator<?> node, Object context) {
         return dsl.sum(visitArguments(node.getArguments(), context));
-      }
-
-      @Override
-      public Expression visitHighlight(HighlightExpression node, Object context) {
-        return node;
       }
 
       private Expression[] visitArguments(List<Expression> arguments, Object context) {

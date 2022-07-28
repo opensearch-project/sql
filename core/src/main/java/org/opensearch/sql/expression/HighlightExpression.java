@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.analysis;
+package org.opensearch.sql.expression;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
@@ -22,9 +22,7 @@ import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
-@EqualsAndHashCode(callSuper = false)
 @Getter
-@ToString
 public class HighlightExpression extends FunctionExpression {
   private final Expression highlightField;
 
@@ -72,5 +70,10 @@ public class HighlightExpression extends FunctionExpression {
   @Override
   public ExprType type() {
     return ExprCoreType.STRING;
+  }
+
+  @Override
+  public <T, C> T accept(ExpressionNodeVisitor<T, C> visitor, C context) {
+    return visitor.visitHighlight(this, context);
   }
 }

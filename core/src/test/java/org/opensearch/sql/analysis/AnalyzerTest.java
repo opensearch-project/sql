@@ -54,6 +54,7 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.planner.logical.LogicalAD;
@@ -292,7 +293,7 @@ class AnalyzerTest extends AnalyzerTestBase {
         AstDSL.project(
             AstDSL.values(ImmutableList.of(AstDSL.intLiteral(123))),
             AstDSL.alias("123", AstDSL.intLiteral(123)),
-            AstDSL.alias("hello", stringLiteral("hello")),
+            AstDSL.alias("hello", AstDSL.stringLiteral("hello")),
             AstDSL.alias("false", AstDSL.booleanLiteral(false))
         )
     );
@@ -712,7 +713,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             AstDSL.parse(
                 AstDSL.relation("schema"),
                 AstDSL.field("string_value"),
-                stringLiteral("(?<group>.*)")),
+                AstDSL.stringLiteral("(?<group>.*)")),
             AstDSL.alias("string_value", qualifiedName("string_value"))
         ));
   }
