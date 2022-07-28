@@ -9,8 +9,6 @@ package org.opensearch.sql.opensearch.storage;
 import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
 
-import com.google.common.collect.Iterables;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -91,16 +89,13 @@ public class OpenSearchIndexScan extends TableScanOperator {
   public void open() {
     super.open();
     iterator = Collections.emptyIterator();
+    fetchNextBatch();
   }
 
   @Override
   public boolean hasNext() {
     if (!iterator.hasNext()) {
-      // Fetch next batch
-      OpenSearchResponse response = client.search(request);
-      if (!response.isEmpty()) {
-        iterator = response.iterator();
-      }
+      fetchNextBatch();
     }
     return iterator.hasNext();
   }
@@ -108,6 +103,13 @@ public class OpenSearchIndexScan extends TableScanOperator {
   @Override
   public ExprValue next() {
     return iterator.next();
+  }
+
+  private void fetchNextBatch() {
+    OpenSearchResponse response = client.search(request);
+    if (!response.isEmpty()) {
+      iterator = response.iterator();
+    }
   }
 
   /**

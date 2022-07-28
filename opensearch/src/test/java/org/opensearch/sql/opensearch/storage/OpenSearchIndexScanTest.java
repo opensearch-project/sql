@@ -164,10 +164,8 @@ class OpenSearchIndexScanTest {
                   when(response.isEmpty()).thenReturn(false);
                   ExprValue[] searchHit = searchHitBatches[batchNum];
                   when(response.iterator()).thenReturn(Arrays.asList(searchHit).iterator());
-                } else if (batchNum == totalBatch) {
-                  when(response.isEmpty()).thenReturn(true);
                 } else {
-                  fail("Search request after empty response returned already");
+                  when(response.isEmpty()).thenReturn(true);
                 }
 
                 batchNum++;
