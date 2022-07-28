@@ -77,7 +77,6 @@ class OpenSearchExecutionProtectorTest {
   @Mock
   private OpenSearchSettings settings;
 
-  @Mock
   private PlanContext context;
 
   private OpenSearchExecutionProtector executionProtector;
@@ -85,6 +84,7 @@ class OpenSearchExecutionProtectorTest {
   @BeforeEach
   public void setup() {
     executionProtector = new OpenSearchExecutionProtector(resourceMonitor);
+    context = new PlanContext();
   }
 
   @Test

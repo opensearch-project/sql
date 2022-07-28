@@ -50,8 +50,7 @@ class OpenSearchIndexScanTest {
   @Mock
   private Settings settings;
 
-  @Mock
-  private PlanContext context;
+  private PlanContext context = new PlanContext();
 
   private OpenSearchExprValueFactory exprValueFactory = new OpenSearchExprValueFactory(
       ImmutableMap.of("name", STRING, "department", STRING));

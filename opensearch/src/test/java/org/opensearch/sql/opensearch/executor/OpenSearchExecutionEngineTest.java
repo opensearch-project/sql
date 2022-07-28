@@ -125,7 +125,7 @@ class OpenSearchExecutionEngineTest {
   void explainSuccessfully() {
     OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector);
     Settings settings = mock(Settings.class);
-    PlanContext context = mock(PlanContext.class);
+    PlanContext context = new PlanContext();
     when(settings.getSettingValue(QUERY_SIZE_LIMIT)).thenReturn(100);
     PhysicalPlan plan = new OpenSearchIndexScan(mock(OpenSearchClient.class),
         settings, "test", context, mock(OpenSearchExprValueFactory.class));
