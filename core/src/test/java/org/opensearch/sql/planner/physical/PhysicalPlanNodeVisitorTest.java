@@ -120,10 +120,6 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
     assertNull(dedupe.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
     }, null));
 
-    PhysicalPlan highlight = PhysicalPlanDSL.highlight(plan, ref);
-    assertNull(highlight.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
-    }, null));
-
     PhysicalPlan values = PhysicalPlanDSL.values(emptyList());
     assertNull(values.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
     }, null));

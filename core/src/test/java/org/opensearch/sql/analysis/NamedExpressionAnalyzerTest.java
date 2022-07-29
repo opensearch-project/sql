@@ -12,6 +12,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.HighlightFunction;
+import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.springframework.context.annotation.Configuration;
@@ -31,5 +36,16 @@ class NamedExpressionAnalyzerTest extends AnalyzerTestBase {
 
     NamedExpression analyze = analyzer.analyze(alias, analysisContext);
     assertEquals("integer_value", analyze.getNameOrAlias());
+  }
+
+  @Test
+  void visit_highlight() {
+    Alias alias = AstDSL.alias("highlight(fieldA)",
+        new HighlightFunction(AstDSL.stringLiteral("fieldA")));
+    NamedExpressionAnalyzer analyzer =
+        new NamedExpressionAnalyzer(expressionAnalyzer);
+
+    NamedExpression analyze = analyzer.analyze(alias, analysisContext);
+    assertEquals("highlight(fieldA)", analyze.getNameOrAlias());
   }
 }

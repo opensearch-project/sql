@@ -58,7 +58,6 @@ import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndexScan;
-import org.opensearch.sql.planner.physical.HighlightOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
 
@@ -289,16 +288,6 @@ class OpenSearchExecutionProtectorTest {
 
     assertEquals(executionProtector.doProtect(adOperator),
             executionProtector.visitAD(adOperator, null));
-  }
-
-  @Test
-  public void testVisitHighlight() {
-    HighlightOperator hl =
-        new HighlightOperator(
-            values(emptyList()), DSL.ref("*", STRING));
-
-    assertEquals(executionProtector.doProtect(hl),
-        executionProtector.visitHighlight(hl, null));
   }
 
   PhysicalPlan resourceMonitor(PhysicalPlan input) {

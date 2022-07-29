@@ -9,6 +9,8 @@ package org.opensearch.sql.opensearch.storage;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.relation;
 
 import org.junit.jupiter.api.Test;
@@ -76,6 +78,8 @@ public class OpenSearchDefaultImplementorTest {
     Mockito.when(node.getChild().get(0)).thenReturn(Mockito.mock(LogicalPlan.class));
     OpenSearchIndex.OpenSearchDefaultImplementor implementor =
         new OpenSearchIndex.OpenSearchDefaultImplementor(indexScan, client);
-    assertNotNull(implementor.visitHighlight(node, indexScan));
+
+    implementor.visitHighlight(node, indexScan);
+    verify(indexScan).pushDownHighlight(any());
   }
 }
