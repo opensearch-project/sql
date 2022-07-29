@@ -12,6 +12,9 @@ import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 
+/**
+ * Expression node of Highlight function.
+ */
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 @Getter
