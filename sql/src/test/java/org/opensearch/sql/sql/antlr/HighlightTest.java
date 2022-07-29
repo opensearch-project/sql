@@ -27,6 +27,19 @@ public class HighlightTest extends SQLParserTest {
 
   @Test
   void highlight_all_test() {
+
     acceptQuery("SELECT HIGHLIGHT('*') FROM Index WHERE MULTI_MATCH([Tags, Body], 'Time')");
+  }
+
+  @Test
+  void multiple_parameters_failure_test() {
+    rejectQuery("SELECT HIGHLIGHT(Tags1, Tags2) FROM Index "
+        + "WHERE MULTI_MATCH([Tags, Body], 'Time')");
+  }
+
+  @Test
+  void no_parameters_failure_test() {
+    rejectQuery("SELECT HIGHLIGHT() FROM Index "
+        + "WHERE MULTI_MATCH([Tags, Body], 'Time')");
   }
 }

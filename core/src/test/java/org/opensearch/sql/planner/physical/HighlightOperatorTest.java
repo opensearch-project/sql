@@ -20,7 +20,7 @@ import org.opensearch.sql.expression.DSL;
 public class HighlightOperatorTest extends PhysicalPlanTestBase {
 
   @Test
-  public void highlight_all_test() {
+  public void valid_highlight_operator_test() {
     PhysicalPlan plan = new HighlightOperator(new TestScan(), DSL.ref("*", STRING));
     List<ExprValue> result = execute(plan);
     assertEquals(5, result.size());
