@@ -42,6 +42,7 @@ public class MergeLimitAndRelation implements Rule<LogicalLimit> {
     LogicalRelation relation = captures.get(relationCapture);
     return OpenSearchLogicalIndexScan.builder()
         .relationName(relation.getRelationName())
+        .maxResultWindow(relation.getMaxResultWindow())
         .offset(plan.getOffset())
         .limit(plan.getLimit())
         .build();

@@ -58,6 +58,7 @@ public class PushProjectAndRelation implements Rule<LogicalProject> {
         OpenSearchLogicalIndexScan
             .builder()
             .relationName(relation.getRelationName())
+            .maxResultWindow(relation.getMaxResultWindow())
             .projectList(findReferenceExpressions(project.getProjectList()))
             .build(),
         project.getProjectList(),
