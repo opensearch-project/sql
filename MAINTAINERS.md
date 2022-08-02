@@ -10,3 +10,8 @@
 | Chloe Zhang | [chloe-zh](https://github.com/chloe-zh) | Amazon |
 | Nick Knize | [nknize](https://github.com/nknize) | Amazon |
 | Charlotte Henkle | [CEHENKLE](https://github.com/CEHENKLE) | Amazon |
+| Max Ksyunz |  [MaxKsyunz](https://github.com/MaxKsyunz) | BitQuill |
+| Yury Fridlyand | [Yury-Fridlyand](https://github.com/Yury-Fridlyand) | BitQuill |
+| Forest Vey | [forestmvey](https://github.com/forestmvey) | BitQuill |
+| Mitchell Gale | [MitchellGale-BitQuill](https://github.com/MitchellGale-BitQuill) | BitQuill |
+| Andrew Carbonetto | [acarbonetto](https://github.com/acarbonetto) | BitQuill |
