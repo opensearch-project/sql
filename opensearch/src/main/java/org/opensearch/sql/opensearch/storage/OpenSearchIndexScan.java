@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.storage;
 
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import lombok.EqualsAndHashCode;
@@ -49,6 +50,9 @@ public class OpenSearchIndexScan extends TableScanOperator {
   @ToString.Include
   private Integer querySize;
 
+  /** Number of rows returned. */
+  private Integer queryCount;
+
   /** Search response for current batch. */
   private Iterator<ExprValue> iterator;
 
@@ -75,27 +79,33 @@ public class OpenSearchIndexScan extends TableScanOperator {
   @Override
   public void open() {
     super.open();
-    this.querySize = requestBuilder.getSourceBuilder().size();
-    this.request = requestBuilder.build();
-
-    // For now pull all results immediately once open
-    List<OpenSearchResponse> responses = new ArrayList<>();
-    OpenSearchResponse response = client.search(request);
-    while (!response.isEmpty()) {
-      responses.add(response);
-      response = client.search(request);
-    }
-    iterator = Iterables.concat(responses.toArray(new OpenSearchResponse[0])).iterator();
+    querySize = requestBuilder.getSourceBuilder().size();
+    request = requestBuilder.build();
+    iterator = Collections.emptyIterator();
+    queryCount = 0;
+    fetchNextBatch();
   }
 
   @Override
   public boolean hasNext() {
+    if (queryCount >= querySize) {
+      iterator = Collections.emptyIterator();
+    } else if (!iterator.hasNext()) {
+      fetchNextBatch();
+    }
     return iterator.hasNext();
   }
 
   @Override
   public ExprValue next() {
     return iterator.next();
+  }
+
+  private void fetchNextBatch() {
+    OpenSearchResponse response = client.search(request);
+    if (!response.isEmpty()) {
+      iterator = response.iterator();
+    }
   }
 
   @Override
