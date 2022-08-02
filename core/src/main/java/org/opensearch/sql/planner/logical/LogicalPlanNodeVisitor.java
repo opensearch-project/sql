@@ -26,6 +26,10 @@ public abstract class LogicalPlanNodeVisitor<R, C> {
     return visitNode(plan, context);
   }
 
+  public R visitHighlight(LogicalHighlight plan, C context) {
+    return visitNode(plan, context);
+  }
+
   public R visitAggregation(LogicalAggregation plan, C context) {
     return visitNode(plan, context);
   }

@@ -19,13 +19,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
@@ -111,6 +112,11 @@ class LogicalPlanNodeVisitorTest {
     LogicalPlan rareTopN = LogicalPlanDSL.rareTopN(
         relation, CommandType.TOP, ImmutableList.of(expression), expression);
     assertNull(rareTopN.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
+    }, null));
+
+    LogicalPlan highlight = new LogicalHighlight(filter,
+        new LiteralExpression(ExprValueUtils.stringValue("fieldA")));
+    assertNull(highlight.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
     }, null));
 
     LogicalPlan mlCommons = new LogicalMLCommons(LogicalPlanDSL.relation("schema"),

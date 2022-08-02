@@ -11,9 +11,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.Getter;
@@ -29,6 +27,7 @@ import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
 import org.opensearch.sql.ast.expression.Literal;
@@ -44,12 +43,12 @@ import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
-import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
 import org.opensearch.sql.expression.NamedExpression;
@@ -189,6 +188,12 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
       return new AggregateWindowFunction((Aggregator<AggregationState>) expr);
     }
     return expr;
+  }
+
+  @Override
+  public Expression visitHighlight(HighlightFunction node, AnalysisContext context) {
+    Expression expr = node.getHighlightField().accept(this, context);
+    return new HighlightExpression(expr);
   }
 
   @Override

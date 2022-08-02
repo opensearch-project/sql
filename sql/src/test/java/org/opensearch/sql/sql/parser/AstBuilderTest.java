@@ -18,6 +18,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.doubleLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
+import static org.opensearch.sql.ast.dsl.AstDSL.highlight;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.limit;
 import static org.opensearch.sql.ast.dsl.AstDSL.project;
@@ -33,6 +34,7 @@ import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 import com.google.common.collect.ImmutableList;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
@@ -665,6 +667,24 @@ class AstBuilderTest {
             alias("name", qualifiedName("name"))
         ),
         buildAST("SELECT name FROM test LIMIT 5, 10"));
+  }
+
+  @Test
+  public void can_build_qualified_name_highlight() {
+    assertEquals(
+        project(relation("test"),
+            alias("highlight(fieldA)", highlight(AstDSL.qualifiedName("fieldA")))),
+        buildAST("SELECT highlight(fieldA) FROM test")
+    );
+  }
+
+  @Test
+  public void can_build_string_literal_highlight() {
+    assertEquals(
+        project(relation("test"),
+            alias("highlight(\"fieldA\")", highlight(AstDSL.stringLiteral("fieldA")))),
+        buildAST("SELECT highlight(\"fieldA\") FROM test")
+    );
   }
 
   private UnresolvedPlan buildAST(String query) {

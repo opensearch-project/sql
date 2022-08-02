@@ -8,7 +8,6 @@ package org.opensearch.sql.expression.function;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,11 +15,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
+import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
 import org.opensearch.sql.expression.env.Environment;
 
@@ -50,6 +51,14 @@ public class OpenSearchFunctions {
     repository.register(match_phrase(BuiltinFunctionName.MATCH_PHRASE));
     repository.register(match_phrase(BuiltinFunctionName.MATCHPHRASE));
     repository.register(match_phrase_prefix());
+    repository.register(highlight());
+  }
+
+  private static FunctionResolver highlight() {
+    FunctionName functionName = BuiltinFunctionName.HIGHLIGHT.getName();
+    FunctionSignature functionSignature = new FunctionSignature(functionName, List.of(STRING));
+    FunctionBuilder functionBuilder = arguments -> new HighlightExpression(arguments.get(0));
+    return new FunctionResolver(functionName, ImmutableMap.of(functionSignature, functionBuilder));
   }
 
   private static FunctionResolver match_bool_prefix() {

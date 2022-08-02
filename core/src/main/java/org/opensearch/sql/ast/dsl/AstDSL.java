@@ -22,6 +22,7 @@ import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
 import org.opensearch.sql.ast.expression.Let;
@@ -259,6 +260,10 @@ public class AstDSL {
 
   public When when(UnresolvedExpression condition, UnresolvedExpression result) {
     return new When(condition, result);
+  }
+
+  public UnresolvedExpression highlight(UnresolvedExpression fieldName) {
+    return new HighlightFunction(fieldName);
   }
 
   public UnresolvedExpression window(UnresolvedExpression function,

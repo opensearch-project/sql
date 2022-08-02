@@ -18,6 +18,7 @@ import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
 import org.opensearch.sql.ast.expression.Let;
@@ -252,6 +253,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitAD(AD node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitHighlight(HighlightFunction node, C context) {
     return visitChildren(node, context);
   }
 }

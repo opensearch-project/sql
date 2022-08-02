@@ -22,6 +22,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.ast.dsl.AstDSL.span;
+import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder;
 import static org.opensearch.sql.ast.tree.Sort.SortOption;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
@@ -45,6 +46,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
@@ -52,6 +54,7 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.planner.logical.LogicalAD;
@@ -229,6 +232,22 @@ class AnalyzerTest extends AnalyzerTestBase {
             AstDSL.defaultFieldsArgs(),
             AstDSL.field("integer_value"), // Field not wrapped by Alias
             AstDSL.alias("double_value", AstDSL.field("double_value"))));
+  }
+
+  @Test
+  public void project_highlight() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.highlight(LogicalPlanDSL.relation("schema"),
+                DSL.literal("fieldA")),
+            DSL.named("highlight(fieldA)", new HighlightExpression(DSL.literal("fieldA")))
+        ),
+        AstDSL.projectWithArg(
+            AstDSL.relation("schema"),
+            AstDSL.defaultFieldsArgs(),
+            AstDSL.alias("highlight(fieldA)", new HighlightFunction(AstDSL.stringLiteral("fieldA")))
+        )
+    );
   }
 
   @Test

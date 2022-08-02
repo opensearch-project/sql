@@ -300,6 +300,11 @@ functionCall
     | aggregateFunction                                             #aggregateFunctionCall
     | aggregateFunction (orderByClause)? filterClause               #filteredAggregationFunctionCall
     | relevanceFunction                                             #relevanceFunctionCall
+    | highlightFunction                                             #highlightFunctionCall
+    ;
+
+highlightFunction
+    : HIGHLIGHT LR_BRACKET relevanceField RR_BRACKET
     ;
 
 scalarFunctionName
