@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -64,17 +65,23 @@ public class OpenSearchRestClient implements OpenSearchClient {
       GetSettingsResponse response = client.indices().getSettings(request, RequestOptions.DEFAULT);
       ImmutableOpenMap<String, Settings> settings = response.getIndexToSettings();
       ImmutableOpenMap<String, Settings> defaultSettings = response.getIndexToDefaultSettings();
-      ImmutableMap.Builder<String, Integer> result = ImmutableMap.builder();
+      Map<String, Integer> result = new HashMap<>();
 
-      settings.keysIt().forEachRemaining(index -> {
-        Integer maxResultWindow = settings.get(index).getAsInt("index.max_result_window", null);
-        if (maxResultWindow == null) {
-          maxResultWindow = defaultSettings.get(index).getAsInt("index.max_result_window", null);
+      defaultSettings.forEach(entry -> {
+        Integer maxResultWindow = entry.value.getAsInt("index.max_result_window", null);
+        if (maxResultWindow != null) {
+          result.put(entry.key, maxResultWindow);
         }
-        result.put(index, maxResultWindow);
       });
 
-      return result.build();
+      settings.forEach(entry -> {
+        Integer maxResultWindow = entry.value.getAsInt("index.max_result_window", null);
+        if (maxResultWindow != null) {
+          result.put(entry.key, maxResultWindow);
+        }
+      });
+
+      return result;
     } catch (IOException e) {
       throw new IllegalStateException("Failed to get max result window for " + indexExpression, e);
     }
