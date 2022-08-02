@@ -56,6 +56,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
   /** Search request source builder. */
   private final SearchSourceBuilder sourceBuilder;
 
+  /** Constructor. */
   public OpenSearchScrollRequest(IndexName indexName, OpenSearchExprValueFactory exprValueFactory) {
     this.indexName = indexName;
     this.sourceBuilder = new SearchSourceBuilder();
@@ -66,6 +67,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
     this(new IndexName(indexName), exprValueFactory);
   }
 
+  /** Constructor. */
   public OpenSearchScrollRequest(IndexName indexName,
                                  SearchSourceBuilder sourceBuilder,
                                  OpenSearchExprValueFactory exprValueFactory) {
@@ -74,6 +76,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
     this.exprValueFactory = exprValueFactory;
   }
 
+  /** Constructor. */
   @Override
   public OpenSearchResponse search(Function<SearchRequest, SearchResponse> searchAction,
                                    Function<SearchScrollRequest, SearchResponse> scrollAction) {

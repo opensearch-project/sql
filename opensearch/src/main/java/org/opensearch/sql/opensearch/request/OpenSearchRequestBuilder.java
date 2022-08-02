@@ -6,6 +6,13 @@
 
 package org.opensearch.sql.opensearch.request;
 
+import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
+import static org.opensearch.search.sort.SortOrder.ASC;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,14 +30,6 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
-import static org.opensearch.search.sort.SortOrder.ASC;
 
 /**
  * OpenSearch search request builder.
@@ -68,6 +67,9 @@ public class OpenSearchRequestBuilder {
   @ToString.Exclude
   private final OpenSearchExprValueFactory exprValueFactory;
 
+  /**
+   * Constructor.
+   */
   public OpenSearchRequestBuilder(OpenSearchRequest.IndexName indexName,
                                   Settings settings,
                                   SearchSourceBuilder sourceBuilder,
@@ -80,14 +82,18 @@ public class OpenSearchRequestBuilder {
     sourceBuilder.timeout(DEFAULT_QUERY_TIMEOUT);
   }
 
+  /**
+   * Build DSL request.
+   *
+   * @return query request or scroll request
+   */
   public OpenSearchRequest build() {
     Integer from = sourceBuilder.from();
     Integer size = sourceBuilder.size();
 
     if (from + size <= maxResultWindow) {
       return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory);
-    }
-    else {
+    } else {
       sourceBuilder.size(maxResultWindow - from);
       return new OpenSearchScrollRequest(indexName, sourceBuilder, exprValueFactory);
     }
@@ -95,6 +101,7 @@ public class OpenSearchRequestBuilder {
 
   /**
    * Push down query to DSL request.
+   *
    * @param query  query request
    */
   public void pushDown(QueryBuilder query) {
@@ -119,6 +126,7 @@ public class OpenSearchRequestBuilder {
 
   /**
    * Push down aggregation to DSL request.
+   *
    * @param aggregationBuilder pair of aggregation query and aggregation parser.
    */
   public void pushDownAggregation(
