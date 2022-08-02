@@ -17,6 +17,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.action.admin.cluster.settings.ClusterGetSettingsRequest;
+import org.opensearch.action.admin.indices.settings.get.GetSettingsRequest;
+import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.opensearch.action.search.ClearScrollRequest;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.RestHighLevelClient;
@@ -26,6 +28,7 @@ import org.opensearch.client.indices.GetMappingsRequest;
 import org.opensearch.client.indices.GetMappingsResponse;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.metadata.AliasMetadata;
+import org.opensearch.common.collect.ImmutableOpenMap;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
@@ -51,6 +54,29 @@ public class OpenSearchRestClient implements OpenSearchClient {
           .collect(Collectors.toMap(Map.Entry::getKey, e -> new IndexMapping(e.getValue())));
     } catch (IOException e) {
       throw new IllegalStateException("Failed to get index mappings for " + indexExpression, e);
+    }
+  }
+
+  @Override
+  public Map<String, Integer> getIndexMaxResultWindow(String... indexExpression) {
+    GetSettingsRequest request = new GetSettingsRequest().indices(indexExpression);
+    try {
+      GetSettingsResponse response = client.indices().getSettings(request, RequestOptions.DEFAULT);
+      ImmutableOpenMap<String, Settings> settings = response.getIndexToSettings();
+      ImmutableOpenMap<String, Settings> defaultSettings = response.getIndexToDefaultSettings();
+      ImmutableMap.Builder<String, Integer> result = ImmutableMap.builder();
+
+      settings.keysIt().forEachRemaining(index -> {
+        Integer maxResultWindow = settings.get(index).getAsInt("index.max_result_window", null);
+        if (maxResultWindow == null) {
+          maxResultWindow = defaultSettings.get(index).getAsInt("index.max_result_window", null);
+        }
+        result.put(index, maxResultWindow);
+      });
+
+      return result.build();
+    } catch (IOException e) {
+      throw new IllegalStateException("Failed to get index max result window for " + indexExpression, e);
     }
   }
 

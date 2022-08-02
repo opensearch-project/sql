@@ -24,11 +24,14 @@ import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.AliasMetadata;
+import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.collect.ImmutableOpenMap;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.index.IndexSettings;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
@@ -84,6 +87,29 @@ public class OpenSearchNodeClient implements OpenSearchClient {
       throw new IllegalStateException(
           "Failed to read mapping in cluster state for index pattern [" + indexExpression + "]", e);
     }
+  }
+
+  /**
+   * Fetch index.max_result_window settings according to index expression given.
+   *
+   * @param indexExpression index expression
+   * @return map from index name to its max result window
+   */
+  @Override
+  public Map<String, Integer> getIndexMaxResultWindow(String... indexExpression) {
+    ClusterState state = clusterService.state();
+    ImmutableOpenMap<String, IndexMetadata> indicesMetadata = state.metadata().getIndices();
+    String[] concreteIndices = resolveIndexExpression(state, indexExpression);
+
+    ImmutableMap.Builder<String, Integer> result = ImmutableMap.builder();
+    for (String index : concreteIndices) {
+      Settings settings = indicesMetadata.get(index).getSettings();
+      Integer maxResultWindow = settings.getAsInt("index.max_result_window",
+          IndexSettings.MAX_RESULT_WINDOW_SETTING.getDefault(settings));
+      result.put(index, maxResultWindow);
+    }
+
+    return result.build();
   }
 
   /**
