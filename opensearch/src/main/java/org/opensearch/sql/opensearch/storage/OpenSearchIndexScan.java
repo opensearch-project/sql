@@ -75,10 +75,14 @@ public class OpenSearchIndexScan extends TableScanOperator {
   }
 
   @Override
-  public void open() {
-    super.open();
+  public void build() {
     this.querySize = requestBuilder.getSourceBuilder().size();
     this.request = requestBuilder.build();
+  }
+
+  @Override
+  public void open() {
+    super.open();
 
     // For now pull all results immediately once open
     List<OpenSearchResponse> responses = new ArrayList<>();
