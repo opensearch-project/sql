@@ -17,4 +17,11 @@ class LogicalRelationTest {
     LogicalPlan relation = LogicalPlanDSL.relation("index");
     assertEquals(0, relation.getChild().size());
   }
+
+  @Test
+  public void logicalRelationWithCatalogHasNoInput() {
+    LogicalPlan relation = LogicalPlanDSL.relation("index", "dummy_catalog");
+    assertEquals(0, relation.getChild().size());
+  }
+
 }

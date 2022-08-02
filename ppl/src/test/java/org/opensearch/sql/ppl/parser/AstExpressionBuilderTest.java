@@ -25,7 +25,6 @@ import static org.opensearch.sql.ast.dsl.AstDSL.eval;
 import static org.opensearch.sql.ast.dsl.AstDSL.exprList;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
-import static org.opensearch.sql.ast.dsl.AstDSL.floatLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.in;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
@@ -44,10 +43,14 @@ import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.xor;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Arrays;
+import java.util.Collections;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
 
 public class AstExpressionBuilderTest extends AstBuilderTest {

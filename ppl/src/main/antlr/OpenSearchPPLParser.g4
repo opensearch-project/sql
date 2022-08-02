@@ -247,7 +247,7 @@ multiFieldRelevanceFunction
 
 /** tables */
 tableSource
-    : qualifiedName
+    : (catalogName DOT)? qualifiedName
     | ID_DATE_SUFFIX
     ;
 
@@ -463,6 +463,10 @@ valueList
 
 qualifiedName
     : ident (DOT ident)*                             #identsAsQualifiedName
+    ;
+
+catalogName
+    : ident                                         #identAsCatalogName
     ;
 
 wcQualifiedName
