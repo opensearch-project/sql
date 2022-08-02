@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -127,8 +128,12 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
    * @return max result window
    */
   public Integer getMaxResultWindow() {
-    return client.getIndexMaxResultWindow(indexName.getIndexNames())
-        .values().stream().min(Integer::compare).get();
+    try {
+      return client.getIndexMaxResultWindow(indexName.getIndexNames())
+          .values().stream().min(Integer::compare).get();
+    } catch (NoSuchElementException e) {
+      return 10000;
+    }
   }
 
   private ExprType transformESTypeToExprType(String openSearchType) {
