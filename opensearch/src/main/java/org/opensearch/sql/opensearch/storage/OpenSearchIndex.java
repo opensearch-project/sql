@@ -58,6 +58,11 @@ public class OpenSearchIndex implements Table {
   private Map<String, ExprType> cachedFieldTypes = null;
 
   /**
+   * The cached max result window setting of index.
+   */
+  private Integer cachedMaxResultWindow = null;
+
+  /**
    * Constructor.
    */
   public OpenSearchIndex(OpenSearchClient client, Settings settings, String indexName) {
@@ -77,6 +82,15 @@ public class OpenSearchIndex implements Table {
       cachedFieldTypes = new OpenSearchDescribeIndexRequest(client, indexName).getFieldTypes();
     }
     return cachedFieldTypes;
+  }
+
+  @Override
+  public Integer getMaxResultWindow() {
+    if (cachedMaxResultWindow == null) {
+      cachedMaxResultWindow = new OpenSearchDescribeIndexRequest(client, indexName)
+          .getMaxResultWindow();
+    }
+    return cachedMaxResultWindow;
   }
 
   /**

@@ -76,7 +76,7 @@ public class OpenSearchRestClient implements OpenSearchClient {
 
       return result.build();
     } catch (IOException e) {
-      throw new IllegalStateException("Failed to get index max result window for " + indexExpression, e);
+      throw new IllegalStateException("Failed to get max result window for " + indexExpression, e);
     }
   }
 
