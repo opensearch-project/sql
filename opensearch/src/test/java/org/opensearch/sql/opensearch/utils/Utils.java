@@ -132,7 +132,7 @@ public class Utils {
    */
   public static LogicalPlan indexScanAgg(String tableName, List<NamedAggregator> aggregators,
                                          List<NamedExpression> groupByList) {
-    return OpenSearchLogicalIndexAgg.builder().relationName(tableName)
+    return OpenSearchLogicalIndexAgg.builder().relationName(tableName).maxResultWindow(10000)
         .aggregatorList(aggregators).groupByList(groupByList).build();
   }
 
@@ -142,7 +142,7 @@ public class Utils {
   public static LogicalPlan indexScanAgg(String tableName, List<NamedAggregator> aggregators,
                                          List<NamedExpression> groupByList,
                                          List<Pair<Sort.SortOption, Expression>> sortList) {
-    return OpenSearchLogicalIndexAgg.builder().relationName(tableName)
+    return OpenSearchLogicalIndexAgg.builder().relationName(tableName).maxResultWindow(10000)
         .aggregatorList(aggregators).groupByList(groupByList).sortList(sortList).build();
   }
 
@@ -153,7 +153,8 @@ public class Utils {
                                          Expression filter,
                                          List<NamedAggregator> aggregators,
                                          List<NamedExpression> groupByList) {
-    return OpenSearchLogicalIndexAgg.builder().relationName(tableName).filter(filter)
+    return OpenSearchLogicalIndexAgg.builder()
+        .relationName(tableName).maxResultWindow(10000).filter(filter)
         .aggregatorList(aggregators).groupByList(groupByList).build();
   }
 
