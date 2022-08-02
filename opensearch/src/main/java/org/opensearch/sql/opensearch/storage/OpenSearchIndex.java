@@ -125,9 +125,13 @@ public class OpenSearchIndex implements Table {
      */
     public PhysicalPlan visitIndexScan(OpenSearchLogicalIndexScan node,
                                        OpenSearchIndexScan context) {
+      if (null != node.getMaxResultWindow()) {
+        context.getRequestBuilder().setMaxResultWindow(node.getMaxResultWindow());
+      }
+
       if (null != node.getSortList()) {
         final SortQueryBuilder builder = new SortQueryBuilder();
-        context.pushDownSort(node.getSortList().stream()
+        context.getRequestBuilder().pushDownSort(node.getSortList().stream()
             .map(sort -> builder.build(sort.getValue(), sort.getKey()))
             .collect(Collectors.toList()));
       }
@@ -135,15 +139,15 @@ public class OpenSearchIndex implements Table {
       if (null != node.getFilter()) {
         FilterQueryBuilder queryBuilder = new FilterQueryBuilder(new DefaultExpressionSerializer());
         QueryBuilder query = queryBuilder.build(node.getFilter());
-        context.pushDown(query);
+        context.getRequestBuilder().pushDown(query);
       }
 
       if (node.getLimit() != null) {
-        context.pushDownLimit(node.getLimit(), node.getOffset());
+        context.getRequestBuilder().pushDownLimit(node.getLimit(), node.getOffset());
       }
 
       if (node.hasProjects()) {
-        context.pushDownProjects(node.getProjectList());
+        context.getRequestBuilder().pushDownProjects(node.getProjectList());
       }
       return indexScan;
     }
@@ -157,15 +161,15 @@ public class OpenSearchIndex implements Table {
         FilterQueryBuilder queryBuilder = new FilterQueryBuilder(
             new DefaultExpressionSerializer());
         QueryBuilder query = queryBuilder.build(node.getFilter());
-        context.pushDown(query);
+        context.getRequestBuilder().pushDown(query);
       }
       AggregationQueryBuilder builder =
           new AggregationQueryBuilder(new DefaultExpressionSerializer());
       Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
           builder.buildAggregationBuilder(node.getAggregatorList(),
               node.getGroupByList(), node.getSortList());
-      context.pushDownAggregation(aggregationBuilder);
-      context.pushTypeMapping(
+      context.getRequestBuilder().pushDownAggregation(aggregationBuilder);
+      context.getRequestBuilder().pushTypeMapping(
           builder.buildTypeMapping(node.getAggregatorList(),
               node.getGroupByList()));
       return indexScan;

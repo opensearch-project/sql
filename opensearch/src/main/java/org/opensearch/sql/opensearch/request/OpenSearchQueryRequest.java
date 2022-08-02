@@ -81,6 +81,16 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     this.exprValueFactory = factory;
   }
 
+  /**
+   * Constructor of ElasticsearchQueryRequest.
+   */
+  public OpenSearchQueryRequest(IndexName indexName, SearchSourceBuilder sourceBuilder,
+                                OpenSearchExprValueFactory factory) {
+    this.indexName = indexName;
+    this.sourceBuilder = sourceBuilder;
+    this.exprValueFactory = factory;
+  }
+
   @Override
   public OpenSearchResponse search(Function<SearchRequest, SearchResponse> searchAction,
                                    Function<SearchScrollRequest, SearchResponse> scrollAction) {
