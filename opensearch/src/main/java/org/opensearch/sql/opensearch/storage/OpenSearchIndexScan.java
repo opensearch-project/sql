@@ -18,7 +18,6 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
-import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
@@ -74,14 +73,10 @@ public class OpenSearchIndexScan extends TableScanOperator {
   }
 
   @Override
-  public void build() {
-    this.querySize = requestBuilder.getSourceBuilder().size();
-    this.request = requestBuilder.build();
-  }
-
-  @Override
   public void open() {
     super.open();
+    this.querySize = requestBuilder.getSourceBuilder().size();
+    this.request = requestBuilder.build();
 
     // For now pull all results immediately once open
     List<OpenSearchResponse> responses = new ArrayList<>();

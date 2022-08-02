@@ -34,7 +34,6 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         () -> {
           try {
             List<ExprValue> result = new ArrayList<>();
-            plan.build();
             plan.open();
 
             while (plan.hasNext()) {

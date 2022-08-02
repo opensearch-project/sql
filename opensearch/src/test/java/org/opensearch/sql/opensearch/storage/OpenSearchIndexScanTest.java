@@ -141,7 +141,6 @@ class OpenSearchIndexScanTest {
              .query(expected)
              .sort(DOC_FIELD_NAME, ASC);
       when(client.search(request)).thenReturn(response);
-      indexScan.build();
       indexScan.open();
       return this;
     }

@@ -52,11 +52,6 @@ public class ResourceMonitorPlan extends PhysicalPlan {
   }
 
   @Override
-  public void build() {
-    delegate.build();
-  }
-
-  @Override
   public void open() {
     if (!this.monitor.isHealthy()) {
       throw new IllegalStateException("resource is not enough to run the query, quit.");
