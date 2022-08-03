@@ -54,10 +54,12 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
   private String scrollId;
 
   /** Search request source builder. */
-  private final SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+  private final SearchSourceBuilder sourceBuilder;
 
+  /** Constructor. */
   public OpenSearchScrollRequest(IndexName indexName, OpenSearchExprValueFactory exprValueFactory) {
     this.indexName = indexName;
+    this.sourceBuilder = new SearchSourceBuilder();
     this.exprValueFactory = exprValueFactory;
   }
 
@@ -65,6 +67,16 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
     this(new IndexName(indexName), exprValueFactory);
   }
 
+  /** Constructor. */
+  public OpenSearchScrollRequest(IndexName indexName,
+                                 SearchSourceBuilder sourceBuilder,
+                                 OpenSearchExprValueFactory exprValueFactory) {
+    this.indexName = indexName;
+    this.sourceBuilder = sourceBuilder;
+    this.exprValueFactory = exprValueFactory;
+  }
+
+  /** Constructor. */
   @Override
   public OpenSearchResponse search(Function<SearchRequest, SearchResponse> searchAction,
                                    Function<SearchScrollRequest, SearchResponse> scrollAction) {

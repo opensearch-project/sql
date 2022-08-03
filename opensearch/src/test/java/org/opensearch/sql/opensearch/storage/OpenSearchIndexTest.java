@@ -425,7 +425,7 @@ class OpenSearchIndexTest {
     assertTrue(((ProjectOperator) plan).getInput() instanceof OpenSearchIndexScan);
 
     final FetchSourceContext fetchSource =
-        ((OpenSearchIndexScan) ((ProjectOperator) plan).getInput()).getRequest()
+        ((OpenSearchIndexScan) ((ProjectOperator) plan).getInput()).getRequestBuilder()
             .getSourceBuilder().fetchSource();
     assertThat(fetchSource.includes(), arrayContaining("intV"));
     assertThat(fetchSource.excludes(), emptyArray());

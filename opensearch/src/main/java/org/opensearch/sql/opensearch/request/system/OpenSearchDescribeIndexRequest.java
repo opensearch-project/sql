@@ -121,6 +121,16 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
     return fieldTypes;
   }
 
+  /**
+   * Get the minimum of the max result windows of the indices.
+   *
+   * @return max result window
+   */
+  public Integer getMaxResultWindow() {
+    return client.getIndexMaxResultWindow(indexName.getIndexNames())
+        .values().stream().min(Integer::compare).get();
+  }
+
   private ExprType transformESTypeToExprType(String openSearchType) {
     return OPENSEARCH_TYPE_TO_EXPR_TYPE_MAPPING.getOrDefault(openSearchType, ExprCoreType.UNKNOWN);
   }

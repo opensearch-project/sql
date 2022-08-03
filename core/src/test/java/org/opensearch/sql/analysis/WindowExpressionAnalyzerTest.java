@@ -45,7 +45,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class WindowExpressionAnalyzerTest extends AnalyzerTestBase {
 
-  private final LogicalPlan child = new LogicalRelation("test");
+  private final LogicalPlan child = new LogicalRelation("test", 10000);
 
   private WindowExpressionAnalyzer analyzer;
 

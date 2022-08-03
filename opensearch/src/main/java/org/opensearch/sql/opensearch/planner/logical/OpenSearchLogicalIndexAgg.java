@@ -32,6 +32,11 @@ public class OpenSearchLogicalIndexAgg extends LogicalPlan {
   private final String relationName;
 
   /**
+   * Max Result Window.
+   */
+  private final Integer maxResultWindow;
+
+  /**
    * Filter Condition.
    */
   @Setter
@@ -61,12 +66,13 @@ public class OpenSearchLogicalIndexAgg extends LogicalPlan {
   @Builder
   public OpenSearchLogicalIndexAgg(
       String relationName,
-      Expression filter,
+      Integer maxResultWindow, Expression filter,
       List<NamedAggregator> aggregatorList,
       List<NamedExpression> groupByList,
       List<Pair<Sort.SortOption, Expression>> sortList) {
     super(ImmutableList.of());
     this.relationName = relationName;
+    this.maxResultWindow = maxResultWindow;
     this.filter = filter;
     this.aggregatorList = aggregatorList;
     this.groupByList = groupByList;

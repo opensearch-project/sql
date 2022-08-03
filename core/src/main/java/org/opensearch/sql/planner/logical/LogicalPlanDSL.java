@@ -39,7 +39,7 @@ public class LogicalPlanDSL {
   }
 
   public static LogicalPlan relation(String tableName) {
-    return new LogicalRelation(tableName);
+    return new LogicalRelation(tableName, 10000);
   }
 
   public static LogicalPlan rename(
