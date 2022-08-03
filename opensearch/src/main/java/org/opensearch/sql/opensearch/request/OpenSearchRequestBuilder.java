@@ -72,11 +72,10 @@ public class OpenSearchRequestBuilder {
   public OpenSearchRequestBuilder(OpenSearchRequest.IndexName indexName,
                                   Integer maxResultWindow,
                                   Settings settings,
-                                  SearchSourceBuilder sourceBuilder,
                                   OpenSearchExprValueFactory exprValueFactory) {
     this.indexName = indexName;
     this.maxResultWindow = maxResultWindow;
-    this.sourceBuilder = sourceBuilder;
+    this.sourceBuilder = new SearchSourceBuilder();
     this.exprValueFactory = exprValueFactory;
     sourceBuilder.from(0);
     sourceBuilder.size(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT));
