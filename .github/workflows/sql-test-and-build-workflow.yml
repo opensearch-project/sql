@@ -22,9 +22,6 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew build assemble
 
-    - name: Run backward compatibility tests
-      run: ./scripts/bwctest.sh
-
     - name: Create Artifact Path
       run: |
         mkdir -p opensearch-sql-builds
