@@ -139,10 +139,8 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
    */
   @AfterClass
   public static void cleanUpIndices() throws IOException {
-    if (System.getProperty("tests.rest.bwcsuite") == null) {
-      wipeAllOpenSearchIndices();
-      wipeAllClusterSettings();
-    }
+    wipeAllOpenSearchIndices();
+    wipeAllClusterSettings();
   }
 
   protected void setQuerySizeLimit(Integer limit) throws IOException {
