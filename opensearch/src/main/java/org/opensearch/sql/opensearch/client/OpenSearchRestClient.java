@@ -60,7 +60,8 @@ public class OpenSearchRestClient implements OpenSearchClient {
 
   @Override
   public Map<String, Integer> getIndexMaxResultWindow(String... indexExpression) {
-    GetSettingsRequest request = new GetSettingsRequest().indices(indexExpression);
+    GetSettingsRequest request = new GetSettingsRequest()
+        .indices(indexExpression).includeDefaults(true);
     try {
       GetSettingsResponse response = client.indices().getSettings(request, RequestOptions.DEFAULT);
       ImmutableOpenMap<String, Settings> settings = response.getIndexToSettings();

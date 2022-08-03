@@ -128,12 +128,8 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
    * @return max result window
    */
   public Integer getMaxResultWindow() {
-    try {
-      return client.getIndexMaxResultWindow(indexName.getIndexNames())
-          .values().stream().min(Integer::compare).get();
-    } catch (NoSuchElementException e) {
-      return 10000;
-    }
+    return client.getIndexMaxResultWindow(indexName.getIndexNames())
+        .values().stream().min(Integer::compare).get();
   }
 
   private ExprType transformESTypeToExprType(String openSearchType) {
