@@ -168,7 +168,6 @@ public class OpenSearchIndexScan extends TableScanOperator {
     SearchSourceBuilder sourceBuilder = request.getSourceBuilder();
     if (sourceBuilder.highlighter() != null) {
       sourceBuilder.highlighter().field(StringUtils.unquoteText(field));
-      sourceBuilder.highlighter(sourceBuilder.highlighter());
     } else {
       HighlightBuilder highlightBuilder =
           new HighlightBuilder().field(StringUtils.unquoteText(field));

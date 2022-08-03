@@ -2479,3 +2479,44 @@ Another example to show how to set custom values for the optional parameters::
     |------+--------------------------+----------------------|
     | 1    | The House at Pooh Corner | Alan Alexander Milne |
     +------+--------------------------+----------------------+
+
+
+HIGHLIGHT
+------------
+
+Description
+>>>>>>>>>>>
+
+``highlight(field_expression)``
+
+The highlight function maps to the highlight function used in search engine to return highlight fields for the given search.
+The syntax allows to specify the field in double quotes or single quotes or without any wrap.
+All fields search using star ``"*"`` is also available (star symbol should be wrapped).
+The star ``"*"`` can be used as a wildcard to complete a portion of a field or fields.
+Please refer to examples below:
+
+| ``highlight(title)``
+| ``highlight("*")``
+| ``highlight("T*")``
+
+Example searching for field Tags::
+
+    os> select highlight(title) from books where query_string(['title'], 'Pooh House');
+    fetched rows / total rows = 2/2
+    +------------------------------------------------------------------+
+    | highlight(title)                                                 |
+    |------------------------------------------------------------------|
+    | [title], fragments[[The <em>House</em> at <em>Pooh</em> Corner]] |
+    | [title], fragments[[Winnie-the-<em>Pooh</em>]]                   |
+    +------------------------------------------------------------------+
+
+Another example to show how to set custom values for the optional parameters::
+
+    os> select highlight('*') from books where query_string(['title'], 'Pooh House');
+    fetched rows / total rows = 2/2
+    +------------------------------------------------------------------------------------------------+
+    | highlight('*')                                                                                 |
+    |------------------------------------------------------------------------------------------------|
+    | {'highlight("*").title': '"[title], fragments[[The <em>House</em> at <em>Pooh</em> Corner]]"'} |
+    | {'highlight("*").title': '"[title], fragments[[Winnie-the-<em>Pooh</em>]]"'}                   |
+    +------------------------------------------------------------------------------------------------+
