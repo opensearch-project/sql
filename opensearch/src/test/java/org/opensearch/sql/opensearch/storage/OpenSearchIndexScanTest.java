@@ -61,7 +61,7 @@ class OpenSearchIndexScanTest {
   void queryEmptyResult() {
     mockResponse();
     try (OpenSearchIndexScan indexScan =
-             new OpenSearchIndexScan(client, settings, "test", exprValueFactory)) {
+             new OpenSearchIndexScan(client, settings, "test", 10000, exprValueFactory)) {
       indexScan.open();
       assertFalse(indexScan.hasNext());
     }
@@ -75,7 +75,7 @@ class OpenSearchIndexScanTest {
         new ExprValue[]{employee(3, "Allen", "IT")});
 
     try (OpenSearchIndexScan indexScan =
-             new OpenSearchIndexScan(client, settings, "employees", exprValueFactory)) {
+             new OpenSearchIndexScan(client, settings, "employees", 10000, exprValueFactory)) {
       indexScan.open();
 
       assertTrue(indexScan.hasNext());
@@ -124,7 +124,7 @@ class OpenSearchIndexScanTest {
                              OpenSearchExprValueFactory valueFactory,
                              Settings settings) {
       this.client = client;
-      this.indexScan = new OpenSearchIndexScan(client, settings, "test", valueFactory);
+      this.indexScan = new OpenSearchIndexScan(client, settings, "test", 10000, valueFactory);
       this.response = mock(OpenSearchResponse.class);
       this.factory = valueFactory;
       when(response.isEmpty()).thenReturn(true);

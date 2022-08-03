@@ -35,7 +35,9 @@ public class OpenSearchIndexScan extends TableScanOperator {
   private final OpenSearchClient client;
 
   /** Search request builder. */
+  @EqualsAndHashCode.Include
   @Getter
+  @ToString.Include
   private final OpenSearchRequestBuilder requestBuilder;
 
   /** Search request. */
@@ -61,19 +63,11 @@ public class OpenSearchIndexScan extends TableScanOperator {
   /**
    * Constructor.
    */
-  public OpenSearchIndexScan(OpenSearchClient client,
-                             Settings settings, String indexName,
+  public OpenSearchIndexScan(OpenSearchClient client, Settings settings,
+                             String indexName, Integer maxResultWindow,
                              OpenSearchExprValueFactory exprValueFactory) {
-    this(client, settings, new OpenSearchRequest.IndexName(indexName), exprValueFactory);
-  }
-
-  /**
-   * Constructor.
-   */
-  public OpenSearchIndexScan(OpenSearchClient client,
-      Settings settings, OpenSearchRequest.IndexName indexName,
-      OpenSearchExprValueFactory exprValueFactory) {
-    this(client, settings, indexName, 10000, exprValueFactory);
+    this(client, settings,
+        new OpenSearchRequest.IndexName(indexName),maxResultWindow, exprValueFactory);
   }
 
   /**
@@ -83,8 +77,8 @@ public class OpenSearchIndexScan extends TableScanOperator {
                              OpenSearchRequest.IndexName indexName, Integer maxResultWindow,
                              OpenSearchExprValueFactory exprValueFactory) {
     this.client = client;
-    this.requestBuilder = new OpenSearchRequestBuilder(indexName,
-        maxResultWindow, settings,exprValueFactory);
+    this.requestBuilder = new OpenSearchRequestBuilder(
+        indexName, maxResultWindow, settings,exprValueFactory);
   }
 
   @Override

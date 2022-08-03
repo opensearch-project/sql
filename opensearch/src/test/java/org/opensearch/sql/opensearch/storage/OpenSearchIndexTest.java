@@ -139,8 +139,9 @@ class OpenSearchIndexTest {
     String indexName = "test";
     LogicalPlan plan = relation(indexName);
     Table index = new OpenSearchIndex(client, settings, indexName);
+    Integer maxResultWindow = index.getMaxResultWindow();
     assertEquals(
-        new OpenSearchIndexScan(client, settings, indexName, exprValueFactory),
+        new OpenSearchIndexScan(client, settings, indexName, maxResultWindow, exprValueFactory),
         index.implement(plan));
   }
 
@@ -152,8 +153,9 @@ class OpenSearchIndexTest {
     String indexName = "test";
     LogicalPlan plan = relation(indexName);
     Table index = new OpenSearchIndex(client, settings, indexName);
+    Integer maxResultWindow = index.getMaxResultWindow();
     assertEquals(
-        new OpenSearchIndexScan(client, settings, indexName, exprValueFactory),
+        new OpenSearchIndexScan(client, settings, indexName, maxResultWindow, exprValueFactory),
         index.implement(index.optimize(plan)));
   }
 
@@ -195,6 +197,7 @@ class OpenSearchIndexTest {
             include);
 
     Table index = new OpenSearchIndex(client, settings, indexName);
+    Integer maxResultWindow = index.getMaxResultWindow();
     assertEquals(
         PhysicalPlanDSL.project(
             PhysicalPlanDSL.dedupe(
@@ -203,7 +206,7 @@ class OpenSearchIndexTest {
                         PhysicalPlanDSL.remove(
                             PhysicalPlanDSL.rename(
                                 new OpenSearchIndexScan(client, settings, indexName,
-                                    exprValueFactory),
+                                    maxResultWindow, exprValueFactory),
                                 mappings),
                             exclude),
                         newEvalField),
