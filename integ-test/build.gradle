@@ -123,6 +123,12 @@ integTest {
         jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
     }
 
+    if (System.getProperty("tests.rest.bwcsuite") == null) {
+        filter {
+            excludeTestsMatching "org.opensearch.sql.bwc.*IT"
+        }
+    }
+
     exclude 'org/opensearch/sql/doctest/**/*IT.class'
     exclude 'org/opensearch/sql/correctness/**'
 
@@ -181,6 +187,160 @@ task compileJdbc(type: Exec) {
     }
 }
 
+/*
+BWC test suite was running on OpenDistro which was discontinued and no available anymore for testing.
+Test suite is not removed, because it could be reused later between different OpenSearch versions.
+*/
+String bwcVersion = "1.13.2.0";
+String baseName = "sqlBwcCluster"
+String bwcFilePath = "src/test/resources/bwc/"
+String bwcOpenDistroPlugin = "opendistro-sql-" + bwcVersion + ".zip"
+String bwcRemoteFile = 'https://d3g5vo6xdbdb9a.cloudfront.net/downloads/elasticsearch-plugins/opendistro-sql/' + bwcOpenDistroPlugin
+
+2.times { i ->
+    testClusters {
+        "${baseName}$i" {
+            testDistribution = "ARCHIVE"
+            versions = ["7.10.2", opensearch_version]
+            numberOfNodes = 3
+            plugin(provider(new Callable<RegularFile>() {
+                @Override
+                RegularFile call() throws Exception {
+                    return new RegularFile() {
+                        @Override
+                        File getAsFile() {
+                            File dir = new File('./integ-test/' + bwcFilePath + bwcVersion)
+                            if (!dir.exists()) {
+                                dir.mkdirs()
+                            }
+                            File f = new File(dir, bwcOpenDistroPlugin)
+                            if (!f.exists()) {
+                                new URL(bwcRemoteFile).withInputStream{ ins -> f.withOutputStream{ it << ins }}
+                            }
+                            return fileTree(bwcFilePath + bwcVersion).getSingleFile()
+                        }
+                    }
+                }
+            }))
+            setting 'path.repo', "${buildDir}/cluster/shared/repo/${baseName}"
+            setting 'http.content_type.required', 'true'
+        }
+    }
+}
+
+List<Provider<RegularFile>> plugins = [
+    provider(new Callable<RegularFile>() {
+        @Override
+        RegularFile call() throws Exception {
+            return new RegularFile() {
+                @Override
+                File getAsFile() {
+                    return fileTree(bwcFilePath + project.version).getSingleFile()
+                }
+            }
+        }
+    })
+]
+
+// Creates 2 test clusters with 3 nodes of the old version.
+2.times { i ->
+    task "${baseName}#oldVersionClusterTask$i"(type: StandaloneRestIntegTestTask) {
+        useCluster testClusters."${baseName}$i"
+        filter {
+            includeTestsMatching "org.opensearch.sql.bwc.*IT"
+        }
+        systemProperty 'tests.rest.bwcsuite', 'old_cluster'
+        systemProperty 'tests.rest.bwcsuite_round', 'old'
+        systemProperty 'tests.plugin_bwc_version', bwcVersion
+        nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}$i".allHttpSocketURI.join(",")}")
+        nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}$i".getName()}")
+    }
+}
+
+// Upgrade one node of the old cluster to new OpenSearch version with upgraded plugin version.
+// This results in a mixed cluster with 2 nodes on the old version and 1 upgraded node.
+// This is also used as a one third upgraded cluster for a rolling upgrade.
+task "${baseName}#mixedClusterTask"(type: StandaloneRestIntegTestTask) {
+    useCluster testClusters."${baseName}0"
+    dependsOn "${baseName}#oldVersionClusterTask0"
+    doFirst {
+        testClusters."${baseName}0".upgradeNodeAndPluginToNextVersion(plugins)
+    }
+    filter {
+        includeTestsMatching "org.opensearch.sql.bwc.*IT"
+    }
+    systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
+    systemProperty 'tests.rest.bwcsuite_round', 'first'
+    systemProperty 'tests.plugin_bwc_version', bwcVersion
+    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}0".allHttpSocketURI.join(",")}")
+    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}0".getName()}")
+}
+
+// Upgrade the second node to new OpenSearch version with upgraded plugin version after the first node is upgraded.
+// This results in a mixed cluster with 1 node on the old version and 2 upgraded nodes.
+// This is used for rolling upgrade.
+task "${baseName}#twoThirdsUpgradedClusterTask"(type: StandaloneRestIntegTestTask) {
+    dependsOn "${baseName}#mixedClusterTask"
+    useCluster testClusters."${baseName}0"
+    doFirst {
+        testClusters."${baseName}0".upgradeNodeAndPluginToNextVersion(plugins)
+    }
+    filter {
+        includeTestsMatching "org.opensearch.sql.bwc.*IT"
+    }
+    systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
+    systemProperty 'tests.rest.bwcsuite_round', 'second'
+    systemProperty 'tests.plugin_bwc_version', bwcVersion
+    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}0".allHttpSocketURI.join(",")}")
+    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}0".getName()}")
+}
+
+// Upgrade the third node to new OpenSearch version with upgraded plugin version after the second node is upgraded.
+// This results in a fully upgraded cluster.
+// This is used for rolling upgrade.
+task "${baseName}#rollingUpgradeClusterTask"(type: StandaloneRestIntegTestTask) {
+    dependsOn "${baseName}#twoThirdsUpgradedClusterTask"
+    useCluster testClusters."${baseName}0"
+    doFirst {
+        testClusters."${baseName}0".upgradeNodeAndPluginToNextVersion(plugins)
+    }
+    filter {
+        includeTestsMatching "org.opensearch.sql.bwc.*IT"
+    }
+    mustRunAfter "${baseName}#mixedClusterTask"
+    systemProperty 'tests.rest.bwcsuite', 'mixed_cluster'
+    systemProperty 'tests.rest.bwcsuite_round', 'third'
+    systemProperty 'tests.plugin_bwc_version', bwcVersion
+    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}0".allHttpSocketURI.join(",")}")
+    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}0".getName()}")
+}
+
+// Upgrade all the nodes of the old cluster to new OpenSearch version with upgraded plugin version
+// at the same time resulting in a fully upgraded cluster.
+task "${baseName}#fullRestartClusterTask"(type: StandaloneRestIntegTestTask) {
+    dependsOn "${baseName}#oldVersionClusterTask1"
+    useCluster testClusters."${baseName}1"
+    doFirst {
+        testClusters."${baseName}1".upgradeAllNodesAndPluginsToNextVersion(plugins)
+    }
+    filter {
+        includeTestsMatching "org.opensearch.sql.bwc.*IT"
+    }
+    systemProperty 'tests.rest.bwcsuite', 'upgraded_cluster'
+    systemProperty 'tests.plugin_bwc_version', bwcVersion
+    nonInputProperties.systemProperty('tests.rest.cluster', "${-> testClusters."${baseName}1".allHttpSocketURI.join(",")}")
+    nonInputProperties.systemProperty('tests.clustername', "${-> testClusters."${baseName}1".getName()}")
+}
+
+// A bwc test suite which runs all the bwc tasks combined
+task bwcTestSuite(type: StandaloneRestIntegTestTask) {
+    exclude '**/*Test*'
+    exclude '**/*IT*'
+    dependsOn tasks.named("${baseName}#mixedClusterTask")
+    dependsOn tasks.named("${baseName}#rollingUpgradeClusterTask")
+    dependsOn tasks.named("${baseName}#fullRestartClusterTask")
+}
+
 def opensearch_tmp_dir = rootProject.file('build/private/es_tmp').absoluteFile
 opensearch_tmp_dir.mkdirs()
 
@@ -197,6 +357,12 @@ task integTestRemote(type: RestIntegTestTask) {
 
     // Set default query size limit
     systemProperty 'defaultQuerySizeLimit', '10000'
+
+    if (System.getProperty("tests.rest.bwcsuite") == null) {
+        filter {
+            excludeTestsMatching "org.opensearch.sql.bwc.*IT"
+        }
+    }
 
     // Exclude the same tests that are excluded for integTest
     exclude 'org/opensearch/sql/doctest/**/*IT.class'
