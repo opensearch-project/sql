@@ -35,11 +35,6 @@ public class OpenSearchLogicalIndexScan extends LogicalPlan {
   private final String relationName;
 
   /**
-   * Max Result Window.
-   */
-  private final Integer maxResultWindow;
-
-  /**
    * Filter Condition.
    */
   @Setter
@@ -69,13 +64,12 @@ public class OpenSearchLogicalIndexScan extends LogicalPlan {
   @Builder
   public OpenSearchLogicalIndexScan(
       String relationName,
-      Integer maxResultWindow, Expression filter,
+      Expression filter,
       Set<ReferenceExpression> projectList,
       List<Pair<Sort.SortOption, Expression>> sortList,
       Integer limit, Integer offset) {
     super(ImmutableList.of());
     this.relationName = relationName;
-    this.maxResultWindow = maxResultWindow;
     this.filter = filter;
     this.projectList = projectList;
     this.sortList = sortList;

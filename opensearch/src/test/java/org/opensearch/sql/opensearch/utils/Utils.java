@@ -31,7 +31,7 @@ public class Utils {
    * Build ElasticsearchLogicalIndexScan.
    */
   public static LogicalPlan indexScan(String tableName, Expression filter) {
-    return OpenSearchLogicalIndexScan.builder().relationName(tableName).maxResultWindow(10000)
+    return OpenSearchLogicalIndexScan.builder().relationName(tableName)
         .filter(filter)
         .build();
   }
@@ -41,7 +41,7 @@ public class Utils {
    */
   public static LogicalPlan indexScan(String tableName,
                                       Pair<Sort.SortOption, Expression>... sorts) {
-    return OpenSearchLogicalIndexScan.builder().relationName(tableName).maxResultWindow(10000)
+    return OpenSearchLogicalIndexScan.builder().relationName(tableName)
         .sortList(Arrays.asList(sorts))
         .build();
   }
@@ -52,7 +52,7 @@ public class Utils {
   public static LogicalPlan indexScan(String tableName,
                                       Expression filter,
                                       Pair<Sort.SortOption, Expression>... sorts) {
-    return OpenSearchLogicalIndexScan.builder().relationName(tableName).maxResultWindow(10000)
+    return OpenSearchLogicalIndexScan.builder().relationName(tableName)
         .filter(filter)
         .sortList(Arrays.asList(sorts))
         .build();
@@ -63,7 +63,7 @@ public class Utils {
    */
   public static LogicalPlan indexScan(String tableName, Integer offset, Integer limit,
                                       Set<ReferenceExpression> projectList) {
-    return OpenSearchLogicalIndexScan.builder().relationName(tableName).maxResultWindow(10000)
+    return OpenSearchLogicalIndexScan.builder().relationName(tableName)
         .offset(offset)
         .limit(limit)
         .projectList(projectList)
@@ -77,7 +77,7 @@ public class Utils {
                                       Expression filter,
                                       Integer offset, Integer limit,
                                       Set<ReferenceExpression> projectList) {
-    return OpenSearchLogicalIndexScan.builder().relationName(tableName).maxResultWindow(10000)
+    return OpenSearchLogicalIndexScan.builder().relationName(tableName)
         .filter(filter)
         .offset(offset)
         .limit(limit)
@@ -93,7 +93,7 @@ public class Utils {
                                       Integer offset, Integer limit,
                                       List<Pair<Sort.SortOption, Expression>> sorts,
                                       Set<ReferenceExpression> projectList) {
-    return OpenSearchLogicalIndexScan.builder().relationName(tableName).maxResultWindow(10000)
+    return OpenSearchLogicalIndexScan.builder().relationName(tableName)
         .filter(filter)
         .sortList(sorts)
         .offset(offset)
@@ -109,7 +109,6 @@ public class Utils {
                                       Set<ReferenceExpression> projects) {
     return OpenSearchLogicalIndexScan.builder()
         .relationName(tableName)
-        .maxResultWindow(10000)
         .projectList(projects)
         .build();
   }
@@ -121,7 +120,6 @@ public class Utils {
                                       Set<ReferenceExpression> projects) {
     return OpenSearchLogicalIndexScan.builder()
         .relationName(tableName)
-        .maxResultWindow(10000)
         .filter(filter)
         .projectList(projects)
         .build();
@@ -132,7 +130,7 @@ public class Utils {
    */
   public static LogicalPlan indexScanAgg(String tableName, List<NamedAggregator> aggregators,
                                          List<NamedExpression> groupByList) {
-    return OpenSearchLogicalIndexAgg.builder().relationName(tableName).maxResultWindow(10000)
+    return OpenSearchLogicalIndexAgg.builder().relationName(tableName)
         .aggregatorList(aggregators).groupByList(groupByList).build();
   }
 
@@ -142,7 +140,7 @@ public class Utils {
   public static LogicalPlan indexScanAgg(String tableName, List<NamedAggregator> aggregators,
                                          List<NamedExpression> groupByList,
                                          List<Pair<Sort.SortOption, Expression>> sortList) {
-    return OpenSearchLogicalIndexAgg.builder().relationName(tableName).maxResultWindow(10000)
+    return OpenSearchLogicalIndexAgg.builder().relationName(tableName)
         .aggregatorList(aggregators).groupByList(groupByList).sortList(sortList).build();
   }
 
@@ -153,8 +151,7 @@ public class Utils {
                                          Expression filter,
                                          List<NamedAggregator> aggregators,
                                          List<NamedExpression> groupByList) {
-    return OpenSearchLogicalIndexAgg.builder()
-        .relationName(tableName).maxResultWindow(10000).filter(filter)
+    return OpenSearchLogicalIndexAgg.builder().relationName(tableName).filter(filter)
         .aggregatorList(aggregators).groupByList(groupByList).build();
   }
 

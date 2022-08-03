@@ -139,10 +139,6 @@ public class OpenSearchIndex implements Table {
      */
     public PhysicalPlan visitIndexScan(OpenSearchLogicalIndexScan node,
                                        OpenSearchIndexScan context) {
-      if (null != node.getMaxResultWindow()) {
-        context.getRequestBuilder().setMaxResultWindow(node.getMaxResultWindow());
-      }
-
       if (null != node.getSortList()) {
         final SortQueryBuilder builder = new SortQueryBuilder();
         context.getRequestBuilder().pushDownSort(node.getSortList().stream()

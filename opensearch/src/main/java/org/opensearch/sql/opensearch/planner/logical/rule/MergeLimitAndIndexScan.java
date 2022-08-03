@@ -43,7 +43,6 @@ public class MergeLimitAndIndexScan implements Rule<LogicalLimit> {
     OpenSearchLogicalIndexScan.OpenSearchLogicalIndexScanBuilder builder =
         OpenSearchLogicalIndexScan.builder();
     builder.relationName(indexScan.getRelationName())
-        .maxResultWindow(indexScan.getMaxResultWindow())
         .filter(indexScan.getFilter())
         .offset(plan.getOffset())
         .limit(plan.getLimit());

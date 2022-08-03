@@ -150,7 +150,7 @@ class DefaultImplementorTest {
   @Test
   public void visitRelationShouldThrowException() {
     assertThrows(UnsupportedOperationException.class,
-        () -> new LogicalRelation("test", 10000).accept(implementor, null));
+        () -> new LogicalRelation("test").accept(implementor, null));
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})

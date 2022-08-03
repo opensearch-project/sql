@@ -20,16 +20,12 @@ public class LogicalRelation extends LogicalPlan {
   @Getter
   private final String relationName;
 
-  @Getter
-  private final Integer maxResultWindow;
-
   /**
    * Constructor of LogicalRelation.
    */
-  public LogicalRelation(String relationName, Integer maxResultWindow) {
+  public LogicalRelation(String relationName) {
     super(ImmutableList.of());
     this.relationName = relationName;
-    this.maxResultWindow = maxResultWindow;
   }
 
   @Override

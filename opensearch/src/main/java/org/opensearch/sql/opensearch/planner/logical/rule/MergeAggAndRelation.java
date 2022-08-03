@@ -47,7 +47,6 @@ public class MergeAggAndRelation implements Rule<LogicalAggregation> {
     return OpenSearchLogicalIndexAgg
         .builder()
         .relationName(relation.getRelationName())
-        .maxResultWindow(relation.getMaxResultWindow())
         .aggregatorList(aggregation.getAggregatorList())
         .groupByList(aggregation.getGroupByList())
         .build();

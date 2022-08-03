@@ -49,7 +49,6 @@ public class MergeAggAndIndexScan implements Rule<LogicalAggregation> {
     return OpenSearchLogicalIndexAgg
         .builder()
         .relationName(indexScan.getRelationName())
-        .maxResultWindow(indexScan.getMaxResultWindow())
         .filter(indexScan.getFilter())
         .aggregatorList(aggregation.getAggregatorList())
         .groupByList(aggregation.getGroupByList())

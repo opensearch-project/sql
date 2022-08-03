@@ -62,7 +62,6 @@ public class MergeSortAndIndexAgg implements Rule<LogicalSort> {
     OpenSearchLogicalIndexAgg indexAgg = captures.get(indexAggCapture);
     return OpenSearchLogicalIndexAgg.builder()
         .relationName(indexAgg.getRelationName())
-        .maxResultWindow(indexAgg.getMaxResultWindow())
         .filter(indexAgg.getFilter())
         .groupByList(indexAgg.getGroupByList())
         .aggregatorList(indexAgg.getAggregatorList())

@@ -54,7 +54,6 @@ public class MergeSortAndIndexScan implements Rule<LogicalSort> {
     return OpenSearchLogicalIndexScan
         .builder()
         .relationName(indexScan.getRelationName())
-        .maxResultWindow(indexScan.getMaxResultWindow())
         .filter(indexScan.getFilter())
         .sortList(mergeSortList(indexScan.getSortList(), sort.getSortList()))
         .build();

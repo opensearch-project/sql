@@ -47,7 +47,6 @@ public class MergeFilterAndRelation implements Rule<LogicalFilter> {
     return OpenSearchLogicalIndexScan
         .builder()
         .relationName(relation.getRelationName())
-        .maxResultWindow(relation.getMaxResultWindow())
         .filter(filter.getCondition())
         .build();
   }

@@ -47,7 +47,6 @@ public class MergeSortAndRelation implements Rule<LogicalSort> {
     return OpenSearchLogicalIndexScan
         .builder()
         .relationName(relation.getRelationName())
-        .maxResultWindow(relation.getMaxResultWindow())
         .sortList(sort.getSortList())
         .build();
   }
