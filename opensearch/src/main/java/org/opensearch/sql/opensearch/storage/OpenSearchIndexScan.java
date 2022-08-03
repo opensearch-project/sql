@@ -73,8 +73,17 @@ public class OpenSearchIndexScan extends TableScanOperator {
   public OpenSearchIndexScan(OpenSearchClient client,
       Settings settings, OpenSearchRequest.IndexName indexName,
       OpenSearchExprValueFactory exprValueFactory) {
+    this(client, settings, indexName, 10000, exprValueFactory);
+  }
+
+  /**
+   * Constructor.
+   */
+  public OpenSearchIndexScan(OpenSearchClient client, Settings settings,
+                             OpenSearchRequest.IndexName indexName, Integer maxResultWindow,
+                             OpenSearchExprValueFactory exprValueFactory) {
     this.client = client;
-    this.requestBuilder = new OpenSearchRequestBuilder(indexName, settings,
+    this.requestBuilder = new OpenSearchRequestBuilder(indexName, maxResultWindow, settings,
         new SearchSourceBuilder(), exprValueFactory);
   }
 
@@ -91,9 +100,6 @@ public class OpenSearchIndexScan extends TableScanOperator {
 
   @Override
   public boolean hasNext() {
-    if (isAggregation) {
-      // do nothing
-    }
     if (!isAggregation && queryCount >= querySize) {
       iterator = Collections.emptyIterator();
     } else if (!iterator.hasNext()) {

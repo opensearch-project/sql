@@ -99,7 +99,7 @@ public class OpenSearchIndex implements Table {
   @Override
   public PhysicalPlan implement(LogicalPlan plan) {
     OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings, indexName,
-        new OpenSearchExprValueFactory(getFieldTypes()));
+        getMaxResultWindow(), new OpenSearchExprValueFactory(getFieldTypes()));
 
     /*
      * Visit logical plan with index scan as context so logical operators visited, such as

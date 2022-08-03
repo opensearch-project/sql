@@ -52,8 +52,7 @@ public class OpenSearchRequestBuilder {
   /**
    * Index max result window.
    */
-  @Setter
-  private Integer maxResultWindow = 10000;
+  private final Integer maxResultWindow;
 
   /**
    * Search request source builder.
@@ -71,10 +70,12 @@ public class OpenSearchRequestBuilder {
    * Constructor.
    */
   public OpenSearchRequestBuilder(OpenSearchRequest.IndexName indexName,
+                                  Integer maxResultWindow,
                                   Settings settings,
                                   SearchSourceBuilder sourceBuilder,
                                   OpenSearchExprValueFactory exprValueFactory) {
     this.indexName = indexName;
+    this.maxResultWindow = maxResultWindow;
     this.sourceBuilder = sourceBuilder;
     this.exprValueFactory = exprValueFactory;
     sourceBuilder.from(0);
