@@ -353,7 +353,7 @@ A string can also represent and be converted to date and time types (except to i
 String Data Types
 =================
 
-A string is a sequence of characters enclosed in either single or double quotes. For example, both 'text' and "text" will be treated as string literal. To use quote characters in a string literal, you can two quotes of the same type as the enclosing quotes::
+A string is a sequence of characters enclosed in either single or double quotes. For example, both 'text' and "text" will be treated as string literal. To use quote characters in a string literal, you can use two quotes of the same type as the enclosing quotes::
 
     os> SELECT 'hello', "world", '"hello"', "'world'", '''hello''', """world"""
     fetched rows / total rows = 1/1
