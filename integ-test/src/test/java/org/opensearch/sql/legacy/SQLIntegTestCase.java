@@ -31,6 +31,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
 import static org.opensearch.sql.legacy.TestUtils.getAccountIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getBankIndexMapping;
@@ -71,6 +72,8 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   public static final String TRANSIENT = "transient";
   public static final Integer DEFAULT_QUERY_SIZE_LIMIT =
       Integer.parseInt(System.getProperty("defaultQuerySizeLimit", "200"));
+  public static final Integer DEFAULT_MAX_RESULT_WINDOW =
+      Integer.parseInt(System.getProperty("defaultMaxResultWindow", "10000"));
 
   public boolean shouldResetQuerySizeLimit() {
     return true;
@@ -159,6 +162,15 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   protected static void wipeAllClusterSettings() throws IOException {
     updateClusterSettings(new ClusterSetting("persistent", "*", null));
     updateClusterSettings(new ClusterSetting("transient", "*", null));
+  }
+
+  protected void setMaxResultWindow(String indexName, Integer window) throws IOException {
+    updateIndexSettings(indexName, "{ \"index\": { \"max_result_window\":" + window + " } }");
+  }
+
+  protected void resetMaxResultWindow(String indexName) throws IOException {
+    updateIndexSettings(indexName,
+        "{ \"index\": { \"max_result_window\": " + DEFAULT_MAX_RESULT_WINDOW + " } }");
   }
 
   /**
@@ -376,6 +388,18 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
           ", value='" + value + '\'' +
           '}';
     }
+  }
+
+  protected static JSONObject updateIndexSettings(String indexName, String setting)
+      throws IOException {
+    Request request = new Request("PUT", "/" + indexName + "/_settings");
+    if (!isNullOrEmpty(setting)) {
+      request.setJsonEntity(setting);
+    }
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+    return new JSONObject(executeRequest(request));
   }
 
   protected String makeRequest(String query) {
