@@ -323,7 +323,8 @@ class OpenSearchRestClientTest {
     return ImmutableMap.of(indexName, IndexMetadata.fromXContent(createParser(mappings)).mapping());
   }
 
-  private ImmutableOpenMap<String, Settings> mockMaxResultWindowSettings(String indexName, Integer value) {
+  private ImmutableOpenMap<String, Settings> mockMaxResultWindowSettings(
+      String indexName, Integer value) {
     Settings settings = Settings.builder()
         .put("index.max_result_window", value)
         .build();

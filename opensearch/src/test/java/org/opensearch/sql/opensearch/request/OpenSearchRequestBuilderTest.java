@@ -6,6 +6,9 @@
 
 package org.opensearch.sql.opensearch.request;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.when;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,9 +18,6 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class OpenSearchRequestBuilderTest {
