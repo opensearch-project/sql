@@ -34,6 +34,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.action.admin.cluster.settings.ClusterGetSettingsResponse;
+import org.opensearch.action.admin.indices.settings.get.GetSettingsRequest;
+import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.RestHighLevelClient;
@@ -43,6 +45,7 @@ import org.opensearch.client.indices.GetMappingsRequest;
 import org.opensearch.client.indices.GetMappingsResponse;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.MappingMetadata;
+import org.opensearch.common.collect.ImmutableOpenMap;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.DeprecationHandler;
 import org.opensearch.common.xcontent.NamedXContentRegistry;
@@ -126,6 +129,49 @@ class OpenSearchRestClientTest {
     when(restClient.indices().getMapping(any(GetMappingsRequest.class), any()))
         .thenThrow(new IOException());
     assertThrows(IllegalStateException.class, () -> client.getIndexMappings("test"));
+  }
+
+  @Test
+  void getIndexMaxResultWindowsSettings() throws IOException {
+    String indexName = "test";
+    Integer maxResultWindow = 1000;
+
+    GetSettingsResponse response = mock(GetSettingsResponse.class);
+    ImmutableOpenMap<String, Settings> indexToSettings = mockMaxResultWindowSettings(
+        indexName, maxResultWindow);
+    when(response.getIndexToSettings()).thenReturn(indexToSettings);
+    when(response.getIndexToDefaultSettings()).thenReturn(ImmutableOpenMap.of());
+    when(restClient.indices().getSettings(any(GetSettingsRequest.class), any()))
+        .thenReturn(response);
+
+    Map<String, Integer> indexMaxResultWindows = client.getIndexMaxResultWindows(indexName);
+    assertEquals(1, indexMaxResultWindows.size());
+    assertEquals(maxResultWindow, indexMaxResultWindows.values().iterator().next());
+  }
+
+  @Test
+  void getIndexMaxResultWindowsDefaultSettings() throws IOException {
+    String indexName = "test";
+    Integer maxResultWindow = 10000;
+
+    GetSettingsResponse response = mock(GetSettingsResponse.class);
+    ImmutableOpenMap<String, Settings> indexToDefaultSettings = mockMaxResultWindowSettings(
+        indexName, maxResultWindow);
+    when(response.getIndexToSettings()).thenReturn(ImmutableOpenMap.of());
+    when(response.getIndexToDefaultSettings()).thenReturn(indexToDefaultSettings);
+    when(restClient.indices().getSettings(any(GetSettingsRequest.class), any()))
+        .thenReturn(response);
+
+    Map<String, Integer> indexMaxResultWindows = client.getIndexMaxResultWindows(indexName);
+    assertEquals(1, indexMaxResultWindows.size());
+    assertEquals(maxResultWindow, indexMaxResultWindows.values().iterator().next());
+  }
+
+  @Test
+  void getIndexMaxResultWindowsWithIOException() throws IOException {
+    when(restClient.indices().getSettings(any(GetSettingsRequest.class), any()))
+        .thenThrow(new IOException());
+    assertThrows(IllegalStateException.class, () -> client.getIndexMaxResultWindows("test"));
   }
 
   @Test
@@ -275,6 +321,15 @@ class OpenSearchRestClientTest {
   private Map<String, MappingMetadata> mockFieldMappings(String indexName, String mappings)
       throws IOException {
     return ImmutableMap.of(indexName, IndexMetadata.fromXContent(createParser(mappings)).mapping());
+  }
+
+  private ImmutableOpenMap<String, Settings> mockMaxResultWindowSettings(String indexName, Integer value) {
+    Settings settings = Settings.builder()
+        .put("index.max_result_window", value)
+        .build();
+    ImmutableOpenMap.Builder<String, Settings> indexToSettingsBuilder = ImmutableOpenMap.builder();
+    indexToSettingsBuilder.put(indexName, settings);
+    return indexToSettingsBuilder.build();
   }
 
   private XContentParser createParser(String mappings) throws IOException {
