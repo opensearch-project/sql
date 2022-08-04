@@ -31,9 +31,9 @@ public class HighlightExpression extends FunctionExpression {
   }
 
   /**
-   * Return String or Map value matching highlight field.
+   * Return collection value matching highlight field.
    * @param valueEnv : Dataset to parse value from.
-   * @return : String or Map value of highlight fields.
+   * @return : collection value of highlight fields.
    */
   @Override
   public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
@@ -47,7 +47,7 @@ public class HighlightExpression extends FunctionExpression {
    */
   @Override
   public ExprType type() {
-    return ExprCoreType.STRING;
+    return ExprCoreType.ARRAY;
   }
 
   @Override

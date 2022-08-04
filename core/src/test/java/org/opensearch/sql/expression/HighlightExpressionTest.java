@@ -7,6 +7,7 @@ package org.opensearch.sql.expression;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 
 import com.google.common.collect.ImmutableMap;
@@ -26,7 +27,7 @@ public class HighlightExpressionTest extends ExpressionTestBase {
     HighlightExpression expr = new HighlightExpression(DSL.literal("Title"));
     ExprValue resultVal = expr.valueOf(hlTuple);
 
-    assertEquals(expr.type(), resultVal.type());
+    assertEquals(expr.type(), ARRAY);
     assertEquals("result value", resultVal.stringValue());
   }
 
@@ -54,7 +55,7 @@ public class HighlightExpressionTest extends ExpressionTestBase {
     HighlightExpression hlExpr = new HighlightExpression(DSL.literal("*"));
     ExprValue resultVal = hlExpr.valueOf(
         ExprTupleValue.fromExprValueMap(builder.build()).bindingTuples());
-    assertEquals(STRUCT, resultVal.type());
+    assertEquals(ARRAY, resultVal.type());
     for (var field : resultVal.tupleValue().entrySet()) {
       assertTrue(field.toString().contains(hlExpr.getHighlightField().toString()));
     }
