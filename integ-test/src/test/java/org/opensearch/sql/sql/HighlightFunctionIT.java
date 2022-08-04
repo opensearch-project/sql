@@ -8,6 +8,7 @@ package org.opensearch.sql.sql;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
+import com.google.errorprone.annotations.DoNotCall;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
@@ -47,7 +48,8 @@ public class HighlightFunctionIT extends SQLIntegTestCase {
     assertEquals(1, response.getInt("total"));
   }
 
-  @Test
+  // Enable me when * is supported
+  @DoNotCall
   public void wildcard_highlight_test() {
     String query = "SELECT highlight('*itle') FROM %s WHERE MULTI_MATCH([Title, Body], 'hops') LIMIT 1";
     JSONObject response = executeJdbcRequest(String.format(query, TestsConstants.TEST_INDEX_BEER));
@@ -55,7 +57,8 @@ public class HighlightFunctionIT extends SQLIntegTestCase {
     assertEquals(1, response.getInt("total"));
   }
 
-  @Test
+  // Enable me when * is supported
+  @DoNotCall
   public void wildcard_multi_field_highlight_test() {
     String query = "SELECT highlight('T*') FROM %s WHERE MULTI_MATCH([Title, Tags], 'hops') LIMIT 1";
     JSONObject response = executeJdbcRequest(String.format(query, TestsConstants.TEST_INDEX_BEER));
@@ -66,7 +69,8 @@ public class HighlightFunctionIT extends SQLIntegTestCase {
     assertTrue(resultMap.has("highlight(\"T*\").Tags"));
   }
 
-  @Test
+  // Enable me when * is supported
+  @DoNotCall
   public void highlight_all_test() {
     String query = "SELECT highlight('*') FROM %s WHERE MULTI_MATCH([Title, Body], 'hops') LIMIT 1";
     JSONObject response = executeJdbcRequest(String.format(query, TestsConstants.TEST_INDEX_BEER));

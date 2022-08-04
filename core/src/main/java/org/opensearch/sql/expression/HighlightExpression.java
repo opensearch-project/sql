@@ -5,13 +5,10 @@
 
 package org.opensearch.sql.expression;
 
-import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import lombok.Getter;
 import org.opensearch.sql.common.utils.StringUtils;
-import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.env.Environment;
@@ -40,26 +37,8 @@ public class HighlightExpression extends FunctionExpression {
    */
   @Override
   public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-    String refName = "_highlight";
-    if (!getHighlightField().toString().contains("*")) {
-      refName += "." + StringUtils.unquoteText(getHighlightField().toString());
-    }
-    ExprValue retVal = valueEnv.resolve(DSL.ref(refName, ExprCoreType.STRING));
-
-    // If only one highlight returned, or no highlights can be parsed.
-    if (retVal.isMissing() || retVal.type() != ExprCoreType.STRUCT) {
-      return retVal;
-    }
-
-    var highlightMapBuilder = ImmutableMap.<String, ExprValue>builder();
-    highlightMapBuilder.putAll(retVal.tupleValue());
-    ImmutableMap.Builder<String, ExprValue> builder = new ImmutableMap.Builder<>();
-    for (var entry : retVal.tupleValue().entrySet()) {
-      String entryKey = "highlight(" + getHighlightField() + ")." + entry.getKey();
-      builder.put(entryKey, ExprValueUtils.stringValue(entry.getValue().toString()));
-    }
-
-    return ExprTupleValue.fromExprValueMap(builder.build());
+    String refName = "_highlight" + "." + StringUtils.unquoteText(getHighlightField().toString());
+    return valueEnv.resolve(DSL.ref(refName, ExprCoreType.STRING));
   }
 
   /**

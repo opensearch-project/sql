@@ -18,6 +18,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.apache.lucene.search.TotalHits;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -176,8 +177,9 @@ class OpenSearchResponseTest {
     when(factory.construct(any())).thenReturn(resultTuple);
 
     for (ExprValue resultHit : new OpenSearchResponse(searchResponse, factory)) {
-      var expected = ExprValueUtils.stringValue(
-          searchHit.getHighlightFields().get("highlights").toString());
+      var expected = ExprValueUtils.collectionValue(
+          Arrays.stream(searchHit.getHighlightFields().get("highlights").getFragments())
+              .map(t -> (t.toString())).collect(Collectors.toList()));
       var result = resultHit.tupleValue().get(
           "_highlight").tupleValue().get("highlights");
       assertTrue(expected.equals(result));

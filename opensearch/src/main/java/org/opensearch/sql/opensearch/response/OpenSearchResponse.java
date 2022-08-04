@@ -9,14 +9,13 @@ package org.opensearch.sql.opensearch.response;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.aggregations.Aggregations;
-import org.opensearch.search.fetch.subphase.highlight.HighlightField;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -103,7 +102,9 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
               builder.putAll(docData.tupleValue());
               var hlBuilder = ImmutableMap.<String, ExprValue>builder();
               for (var es : hit.getHighlightFields().entrySet()) {
-                hlBuilder.put(es.getKey(), ExprValueUtils.stringValue(es.getValue().toString()));
+                hlBuilder.put(es.getKey(), ExprValueUtils.collectionValue(
+                    Arrays.stream(es.getValue().fragments()).map(
+                        t -> (t.toString())).collect(Collectors.toList())));
               }
               builder.put("_highlight", ExprTupleValue.fromExprValueMap(hlBuilder.build()));
               return ExprTupleValue.fromExprValueMap(builder.build());
