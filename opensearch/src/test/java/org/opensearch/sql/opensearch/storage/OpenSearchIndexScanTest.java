@@ -93,6 +93,30 @@ class OpenSearchIndexScanTest {
   }
 
   @Test
+  void queryAllResultsWithScroll() {
+    mockResponse(
+        new ExprValue[]{employee(1, "John", "IT"), employee(2, "Smith", "HR")},
+        new ExprValue[]{employee(3, "Allen", "IT")});
+
+    try (OpenSearchIndexScan indexScan =
+             new OpenSearchIndexScan(client, settings, "employees", 2, exprValueFactory)) {
+      indexScan.open();
+
+      assertTrue(indexScan.hasNext());
+      assertEquals(employee(1, "John", "IT"), indexScan.next());
+
+      assertTrue(indexScan.hasNext());
+      assertEquals(employee(2, "Smith", "HR"), indexScan.next());
+
+      assertTrue(indexScan.hasNext());
+      assertEquals(employee(3, "Allen", "IT"), indexScan.next());
+
+      assertFalse(indexScan.hasNext());
+    }
+    verify(client).cleanup(any());
+  }
+
+  @Test
   void pushDownFilters() {
     assertThat()
         .pushDown(QueryBuilders.termQuery("name", "John"))

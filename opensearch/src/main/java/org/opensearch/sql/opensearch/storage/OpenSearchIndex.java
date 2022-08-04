@@ -87,8 +87,8 @@ public class OpenSearchIndex implements Table {
   @Override
   public Integer getMaxResultWindow() {
     if (cachedMaxResultWindow == null) {
-      cachedMaxResultWindow = new OpenSearchDescribeIndexRequest(client, indexName)
-          .getMaxResultWindow();
+      cachedMaxResultWindow =
+          new OpenSearchDescribeIndexRequest(client, indexName).getMaxResultWindow();
     }
     return cachedMaxResultWindow;
   }

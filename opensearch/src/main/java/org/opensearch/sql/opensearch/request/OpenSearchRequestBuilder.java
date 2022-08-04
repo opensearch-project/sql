@@ -15,7 +15,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.ToString;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.common.unit.TimeValue;
@@ -65,6 +64,13 @@ public class OpenSearchRequestBuilder {
   @EqualsAndHashCode.Exclude
   @ToString.Exclude
   private final OpenSearchExprValueFactory exprValueFactory;
+
+  public OpenSearchRequestBuilder(String indexName,
+                                  Integer maxResultWindow,
+                                  Settings settings,
+                                  OpenSearchExprValueFactory exprValueFactory) {
+    this(new OpenSearchRequest.IndexName(indexName), maxResultWindow, settings, exprValueFactory);
+  }
 
   /**
    * Constructor.
