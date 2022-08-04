@@ -22,40 +22,40 @@ jobs:
         with:
           repository: opensearch-project/Opensearch-Dashboards
           ref: ${{ env.OPENSEARCH_VERSION }}
-          path: sql/OpenSearch-Dashboards
+          path: OpenSearch-Dashboards
 
       - name: Setup Node
         uses: actions/setup-node@v2
         with:
-          node-version-file: "./OpenSearch-Dashboards/.nvmrc"
+          node-version-file: "../OpenSearch-Dashboards/.nvmrc"
           registry-url: 'https://registry.npmjs.org'
 
       - name: Move Workbench to Plugins Dir
         run: |
-          mv workbench OpenSearch-Dashboards/plugins
+          mv workbench ../OpenSearch-Dashboards/plugins
 
       - name: OpenSearch Dashboards Plugin Bootstrap
         uses: nick-invision/retry@v1
         with:
           timeout_minutes: 60
           max_attempts: 3
-          command: cd OpenSearch-Dashboards/plugins/workbench; yarn osd bootstrap
+          command: cd ../OpenSearch-Dashboards/plugins/workbench; yarn osd bootstrap
 
       - name: Test
         run: |
-          cd OpenSearch-Dashboards/plugins/workbench
+          cd ../OpenSearch-Dashboards/plugins/workbench
           yarn test:jest --coverage
 
       - name: Upload coverage
         uses: codecov/codecov-action@v1
         with:
           flags: query-workbench
-          directory: ./OpenSearch-Dashboards/plugins/workbench
+          directory: ../OpenSearch-Dashboards/plugins/workbench
           token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Build Artifact
         run: |
-          cd OpenSearch-Dashboards/plugins/workbench
+          cd ../OpenSearch-Dashboards/plugins/workbench
           yarn build
           mv ./build/*.zip ./build/${{ env.PLUGIN_NAME }}-${{ env.OPENSEARCH_PLUGIN_VERSION }}.zip
 
@@ -63,4 +63,4 @@ jobs:
         uses: actions/upload-artifact@v1
         with:
           name: workbench
-          path: OpenSearch-Dashboards/plugins/workbench/build
+          path: ../OpenSearch-Dashboards/plugins/workbench/build
