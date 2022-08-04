@@ -6,15 +6,11 @@
 
 package org.opensearch.sql.opensearch.storage;
 
-import com.google.common.collect.Iterables;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
-import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
@@ -42,13 +38,11 @@ public class OpenSearchIndexScan extends TableScanOperator {
 
   /** Search request. */
   @EqualsAndHashCode.Include
-  @Getter
   @ToString.Include
   private OpenSearchRequest request;
 
   /** Total query size. */
   @EqualsAndHashCode.Include
-  @Getter
   @ToString.Include
   private Integer querySize;
 
