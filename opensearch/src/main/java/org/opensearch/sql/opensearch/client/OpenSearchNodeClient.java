@@ -96,7 +96,7 @@ public class OpenSearchNodeClient implements OpenSearchClient {
    * @return map from index name to its max result window
    */
   @Override
-  public Map<String, Integer> getIndexMaxResultWindow(String... indexExpression) {
+  public Map<String, Integer> getIndexMaxResultWindows(String... indexExpression) {
     ClusterState state = clusterService.state();
     ImmutableOpenMap<String, IndexMetadata> indicesMetadata = state.metadata().getIndices();
     String[] concreteIndices = resolveIndexExpression(state, indexExpression);

@@ -134,7 +134,7 @@ class OpenSearchIndexTest {
   @Test
   void implementRelationOperatorOnly() {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
-    when(client.getIndexMaxResultWindow("test")).thenReturn(Map.of("test", 10000));
+    when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
 
     String indexName = "test";
     LogicalPlan plan = relation(indexName);
@@ -148,7 +148,7 @@ class OpenSearchIndexTest {
   @Test
   void implementRelationOperatorWithOptimization() {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
-    when(client.getIndexMaxResultWindow("test")).thenReturn(Map.of("test", 10000));
+    when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
 
     String indexName = "test";
     LogicalPlan plan = relation(indexName);
@@ -162,7 +162,7 @@ class OpenSearchIndexTest {
   @Test
   void implementOtherLogicalOperators() {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
-    when(client.getIndexMaxResultWindow("test")).thenReturn(Map.of("test", 10000));
+    when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
 
     String indexName = "test";
     NamedExpression include = named("age", ref("age", INTEGER));
@@ -219,7 +219,7 @@ class OpenSearchIndexTest {
   @Test
   void shouldImplLogicalIndexScan() {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
-    when(client.getIndexMaxResultWindow("test")).thenReturn(Map.of("test", 10000));
+    when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
 
     ReferenceExpression field = ref("name", STRING);
     NamedExpression named = named("n", field);
@@ -242,7 +242,7 @@ class OpenSearchIndexTest {
   @Test
   void shouldNotPushDownFilterFarFromRelation() {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
-    when(client.getIndexMaxResultWindow("test")).thenReturn(Map.of("test", 10000));
+    when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
 
     ReferenceExpression field = ref("name", STRING);
     Expression filterExpr = dsl.equal(field, literal("John"));
@@ -268,7 +268,7 @@ class OpenSearchIndexTest {
   @Test
   void shouldImplLogicalIndexScanAgg() {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
-    when(client.getIndexMaxResultWindow("test")).thenReturn(Map.of("test", 10000));
+    when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
 
     ReferenceExpression field = ref("name", STRING);
     Expression filterExpr = dsl.equal(field, literal("John"));
@@ -305,7 +305,7 @@ class OpenSearchIndexTest {
   @Test
   void shouldNotPushDownAggregationFarFromRelation() {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
-    when(client.getIndexMaxResultWindow("test")).thenReturn(Map.of("test", 10000));
+    when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
 
     ReferenceExpression field = ref("name", STRING);
     Expression filterExpr = dsl.equal(field, literal("John"));
@@ -330,7 +330,7 @@ class OpenSearchIndexTest {
   @Test
   void shouldImplIndexScanWithSort() {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
-    when(client.getIndexMaxResultWindow("test")).thenReturn(Map.of("test", 10000));
+    when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
 
     ReferenceExpression field = ref("name", STRING);
     NamedExpression named = named("n", field);
@@ -353,7 +353,7 @@ class OpenSearchIndexTest {
   @Test
   void shouldImplIndexScanWithLimit() {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
-    when(client.getIndexMaxResultWindow("test")).thenReturn(Map.of("test", 10000));
+    when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
 
     ReferenceExpression field = ref("name", STRING);
     NamedExpression named = named("n", field);
@@ -375,7 +375,7 @@ class OpenSearchIndexTest {
   @Test
   void shouldImplIndexScanWithSortAndLimit() {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
-    when(client.getIndexMaxResultWindow("test")).thenReturn(Map.of("test", 10000));
+    when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
 
     ReferenceExpression field = ref("name", STRING);
     NamedExpression named = named("n", field);
@@ -400,7 +400,7 @@ class OpenSearchIndexTest {
   @Test
   void shouldNotPushDownLimitFarFromRelationButUpdateScanSize() {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
-    when(client.getIndexMaxResultWindow("test")).thenReturn(Map.of("test", 10000));
+    when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
 
     String indexName = "test";
     OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
@@ -425,7 +425,7 @@ class OpenSearchIndexTest {
   @Test
   void shouldPushDownProjects() {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
-    when(client.getIndexMaxResultWindow("test")).thenReturn(Map.of("test", 10000));
+    when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
 
     String indexName = "test";
     OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
