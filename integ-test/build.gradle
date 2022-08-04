@@ -187,6 +187,10 @@ task compileJdbc(type: Exec) {
     }
 }
 
+/*
+BWC test suite was running on OpenDistro which was discontinued and no available anymore for testing.
+Test suite is not removed, because it could be reused later between different OpenSearch versions.
+*/
 String bwcVersion = "1.13.2.0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
