@@ -2,6 +2,8 @@ scalar Time
 scalar Json
 scalar Long
 scalar URL
+scalar IP
+scalar GeoPoint
 
 # type of supported streams
 enum StreamType {
@@ -63,4 +65,57 @@ type LogRecord {
     event: Event!
     #    A list of top-level observations which describe 'things' that happened, where observed and reported
     observations: [BaseRecord]
+}
+
+# geographic related fields container
+type Geo {
+    timezone:String
+    regionName:String
+    regionIsoCode:String
+    postalCode:String
+    #    User-defined description of a location, at the level of granularity
+    #        they care about
+    name:String
+    #    Longitude and latitude
+    location:GeoPoint
+    countryName:String
+    countryIsoCode:String
+    continentName:String
+    #    Two-letter code representing continent's name
+    continentCode:String
+    cityName:String
+}
+
+#An autonomous system (AS) is a collection of connected Internet Protocol (IP) routing prefixes under the control of one or more network operators on behalf of a single administrative entity or domain that presents a common, clearly defined routing policy to the internet.
+type AutonomousSystem {
+    #    Unique number allocated to the autonomous system. The autonomous system number (ASN) uniquely identifies each network on the Internet.
+    number: Long
+    #    organization name such as amazon.com
+    organizationName:String
+}
+
+type Group {
+    #    Unique identifier for the group on the system/platform.
+    id:String!
+    #    Name of the directory the group is a member of
+    domain:String
+}
+
+type User {
+    #    Unique identifier of the user.
+    id:String!
+    #    Short name or login of the user
+    name:String
+    #    User full name
+    fullName:String
+    #   Name of the directory the user is a member of
+    domain:String
+    #    User email address
+    email:String
+    #  Array of user roles at the time of the event
+    roles:[String]
+    #    Unique user hash to correlate information for a user in anonymized form.
+    hash:String
+    #    the group in which the client is a member of
+    group:Group
 }

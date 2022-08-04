@@ -1,0 +1,32 @@
+type Container implements BaseRecord {
+    #    container's unique id
+    id:ID!
+    #    container's name
+    name:String
+    #Percent CPU used which is normalized by the number of CPU cores and it ranges from 0 to 1.
+    cpuUsage:Float
+    #The total number of bytes (gauge) read successfully (aggregated from all disks) since the last metric collection.
+    diskReadBytes:Long
+    #The total number of bytes (gauge) written successfully (aggregated from all disks) since the last metric collection.
+    diskWriteBytes:Long
+    #    An array of digests of the image the container was built on
+    imageHash:String
+    #    Name of the image the container was built on.
+    imageName:String
+    #    Container image tags.
+    imageTag:[String]
+    #    Container image labels.
+    labels:Json
+    #    Memory usage percentage and it ranges from 0 to 1
+    memoryUsage:Long
+    #    The number of bytes sent on all network interfaces
+    networkEgressBytes:Long
+    #    The number of packets (gauge) sent out on all network interfaces
+    networkIngressPackets:Long
+    #    The number of bytes received from all network interfaces
+    networkEgressBytes:Long
+    #    The number of packets (gauge) received  from all network interfaces
+    networkIngressPackets:Long
+    #    Runtime managing this container.
+    runtime:String
+}

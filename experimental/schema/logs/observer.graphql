@@ -1,0 +1,48 @@
+type Interface {
+
+}
+
+#An observer is defined as a special network, security, or application device used to detect, observe, or create network, security, or application-related events and metrics.
+#
+#This could be a custom hardware appliance or a server that has been configured to run special network, security, or application software. Examples include firewalls, web proxies, intrusion detection/prevention systems, network monitoring sensors, web application firewalls, data loss prevention systems, and APM servers.
+# The observer.* fields shall be populated with details of the system, if any, that detects, observes and/or creates a network, security, or application event or metric. Message queues and ETL components used in processing events or metrics are not considered observers
+type Observer implements BaseRecord {
+    #    Custom name of the observer.
+    #This is a name that can be given to an observer. This can be helpful for example if multiple firewalls of the same model are used in an organization.
+    name:String
+    #    Observer.egress holds information like interface number and name, vlan, and zone information to classify egress traffic. Single armed monitoring such as a network sensor on a span port should only use observer.ingress to categorize traffic.
+    egress:Json
+    #    Network zone of outbound traffic as reported by the observer to categorize the destination area of egress traffic, e.g. Internal, External, DMZ, HR, Legal, etc.
+    #    flattened egress.zone
+    egressZone:String
+    #    Hostname of the observer.
+    hostname:String
+    #    Observer.ingress holds information like interface number and name, vlan, and zone information to classify ingress traffic. Single armed monitoring such as a network sensor on a span port should only use observer.ingress to categorize traffic.
+    ingress:Json
+    #Network zone of incoming traffic as reported by the observer to categorize the source area of ingress traffic. e.g. internal, External, DMZ, HR, Legal, etc.
+    #    flattened ingress.zone
+    ingressZone:String
+    #IP addresses of the observer.
+    ip:IP
+    #mac addresses of the observer.
+    mac:String
+    #    The product name of the observer.
+    product:String
+    #    The observer's' SN
+    serialNumber:String
+    #    The type of the observer the data is coming from.
+    #There is no predefined list of observer types. Some examples are forwarder, firewall, ids, ips, proxy, poller, sensor, APM server.
+    aType:String
+    #    Vendor name of the observer.
+    vendor:String
+    #OS fields contain information about the operating system.
+    os:OS
+    #    Observer version.
+    version:String
+    #Fields describing the observer's location.
+    geo:Geo
+    #Fields to describe observer interface information.
+    egressInterface:Interface
+    #    Fields to describe observed VLAN information.
+    egressVlan:Vlan
+}

@@ -1,0 +1,18 @@
+#The OS fields contain information about the operating system.
+type OS {
+    #Operating system name, without the version.
+    name:String
+    #    OS family (such as redhat, debian, freebsd, windows).
+    family:String
+    #    Operating system platform (such centos, ubuntu, windows).
+    platform:String
+    #Operating system name, including the version or code name.
+    full:String
+    #    Operating system kernel version as a raw string.
+    kernel:String
+    #    Use the os.type field to categorize the operating system into one of the broad commercial families.
+    #One of these following values should be used (lowercase): linux, macos, unix, windows.
+    aType:String
+    #    Operating system version as a raw string
+    version:String
+}
