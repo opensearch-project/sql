@@ -84,7 +84,9 @@ public class OpenSearchIndex implements Table {
     return cachedFieldTypes;
   }
 
-  @Override
+  /**
+   * Get the max result window setting of the table.
+   */
   public Integer getMaxResultWindow() {
     if (cachedMaxResultWindow == null) {
       cachedMaxResultWindow =

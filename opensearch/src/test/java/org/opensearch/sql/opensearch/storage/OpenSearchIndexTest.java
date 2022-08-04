@@ -70,7 +70,6 @@ import org.opensearch.sql.planner.physical.LimitOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
 import org.opensearch.sql.planner.physical.ProjectOperator;
-import org.opensearch.sql.storage.Table;
 
 @ExtendWith(MockitoExtension.class)
 class OpenSearchIndexTest {
@@ -109,7 +108,7 @@ class OpenSearchIndexTest {
                         .put("blob", "binary")
                         .build())));
 
-    Table index = new OpenSearchIndex(client, settings, "test");
+    OpenSearchIndex index = new OpenSearchIndex(client, settings, "test");
     Map<String, ExprType> fieldTypes = index.getFieldTypes();
     assertThat(
         fieldTypes,
@@ -138,7 +137,7 @@ class OpenSearchIndexTest {
 
     String indexName = "test";
     LogicalPlan plan = relation(indexName);
-    Table index = new OpenSearchIndex(client, settings, indexName);
+    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
     Integer maxResultWindow = index.getMaxResultWindow();
     assertEquals(
         new OpenSearchIndexScan(client, settings, indexName, maxResultWindow, exprValueFactory),
@@ -152,7 +151,7 @@ class OpenSearchIndexTest {
 
     String indexName = "test";
     LogicalPlan plan = relation(indexName);
-    Table index = new OpenSearchIndex(client, settings, indexName);
+    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
     Integer maxResultWindow = index.getMaxResultWindow();
     assertEquals(
         new OpenSearchIndexScan(client, settings, indexName, maxResultWindow, exprValueFactory),
@@ -196,7 +195,7 @@ class OpenSearchIndexTest {
                 dedupeField),
             include);
 
-    Table index = new OpenSearchIndex(client, settings, indexName);
+    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
     Integer maxResultWindow = index.getMaxResultWindow();
     assertEquals(
         PhysicalPlanDSL.project(
