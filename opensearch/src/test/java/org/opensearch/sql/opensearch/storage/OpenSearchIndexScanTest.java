@@ -31,6 +31,7 @@ import org.opensearch.common.bytes.BytesArray;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
+import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -110,6 +111,16 @@ class OpenSearchIndexScanTest {
                 .filter(QueryBuilders.rangeQuery("balance").gte(10000)));
   }
 
+  @Test
+  void pushDownHighlight() {
+    assertThat()
+        .pushDown(QueryBuilders.termQuery("name", "John"))
+        .pushDownHighlight("Title")
+        .pushDownHighlight("Body")
+        .shouldQueryHighlight(QueryBuilders.termQuery("name", "John"),
+            new HighlightBuilder().field("Title").field("Body"));
+  }
+
   private PushDownAssertion assertThat() {
     return new PushDownAssertion(client, exprValueFactory, settings);
   }
@@ -132,6 +143,22 @@ class OpenSearchIndexScanTest {
 
     PushDownAssertion pushDown(QueryBuilder query) {
       indexScan.pushDown(query);
+      return this;
+    }
+
+    PushDownAssertion pushDownHighlight(String query) {
+      indexScan.pushDownHighlight(query);
+      return this;
+    }
+
+    PushDownAssertion shouldQueryHighlight(QueryBuilder query, HighlightBuilder highlight) {
+      OpenSearchRequest request = new OpenSearchQueryRequest("test", 200, factory);
+      request.getSourceBuilder()
+          .query(query)
+          .highlighter(highlight)
+          .sort(DOC_FIELD_NAME, ASC);
+      when(client.search(request)).thenReturn(response);
+      indexScan.open();
       return this;
     }
 

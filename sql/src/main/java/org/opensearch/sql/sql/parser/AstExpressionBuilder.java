@@ -63,6 +63,7 @@ import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.Interval;
 import org.opensearch.sql.ast.expression.IntervalUnit;
 import org.opensearch.sql.ast.expression.Literal;
@@ -128,6 +129,12 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitScalarFunctionCall(ScalarFunctionCallContext ctx) {
     return visitFunction(ctx.scalarFunctionName().getText(), ctx.functionArgs());
+  }
+
+  @Override
+  public UnresolvedExpression visitHighlightFunctionCall(
+      OpenSearchSQLParser.HighlightFunctionCallContext ctx) {
+    return new HighlightFunction(visit(ctx.highlightFunction().relevanceField()));
   }
 
   @Override
