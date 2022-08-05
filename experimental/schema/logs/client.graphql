@@ -1,0 +1,49 @@
+#A client is defined as the initiator of a network connection for events
+#    regarding sessions, connections, or bidirectional flow records.
+#
+#    For TCP events, the client is the initiator of the TCP connection that sends the
+#    SYN packet(s). For other protocols, the client is generally the initiator or requestor
+#    in the network transaction. Some systems use the term "originator" to refer the
+#    client in TCP connections. The client fields describe details about the system
+#    acting as the client in the network event. Client fields are usually populated
+#    in conjunction with server fields. Client fields are generally not populated for
+#    packet-level events.
+#
+#    Client / server representations can add semantic context to an exchange, which
+#    is helpful to visualize the data in certain situations. If your context falls
+#    in that category, you should still ensure that source and destination are filled
+#    appropriately.
+type Client implements BaseRecord {
+    #    Client network address
+    address: String
+    #
+    as:AutonomousSystem
+    #    The domain name of the client system.
+    domain:String
+    #    Bytes sent from the client to the server
+    bytes:Long
+    #    geographic related fields deriving from client's location
+    geo:Geo
+    #    Translated IP of source based NAT sessions (e.g. internal client to internet)
+    natIpp:IP
+    #    IP address of the client (IPv4 or IPv6).
+    ip:IP
+    # mac address of the client
+    mac:String
+    # port of the client
+    port:Long
+    #    Translated port of source based NAT sessions
+    natPort:Long
+    #    Packets sent from the client to the server
+    packets:Long
+    #    The highest registered client domain, stripped of the subdomain.
+    registeredDomain:String
+    #    The subdomain portion of a fully qualified domain name includes
+    #        all of the names except the host name under the registered_domain
+    subdomain:String
+    #    he effective top level domain (eTLD), also known as the domain
+    #        suffix, is the last part of the domain name.
+    topLevelDomain:String
+    #    Fields about the client side of a network connection, used with server
+    user:User
+}
