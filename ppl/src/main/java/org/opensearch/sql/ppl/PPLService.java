@@ -84,7 +84,8 @@ public class PPLService {
     UnresolvedPlan ast = cst.accept(
         new AstBuilder(new AstExpressionBuilder(), request.getRequest()));
 
-    LOG.info("[{}] Incoming request {}", QueryContext.getRequestId(), anonymizer.anonymizeData(ast));
+    LOG.info("[{}] Incoming request {}", QueryContext.getRequestId(),
+        anonymizer.anonymizeData(ast));
 
     // 2.Analyze abstract syntax to generate logical plan
     LogicalPlan logicalPlan = analyzer.analyze(UnresolvedPlanHelper.addSelectAll(ast),
