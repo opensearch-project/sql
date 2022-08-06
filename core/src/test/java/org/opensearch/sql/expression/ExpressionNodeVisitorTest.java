@@ -34,6 +34,7 @@ class ExpressionNodeVisitorTest {
   @Test
   void should_return_null_by_default() {
     ExpressionNodeVisitor<Object, Object> visitor = new ExpressionNodeVisitor<Object, Object>(){};
+    assertNull(new HighlightExpression(DSL.literal("Title")).accept(visitor, null));
     assertNull(literal(10).accept(visitor, null));
     assertNull(ref("name", STRING).accept(visitor, null));
     assertNull(named("bool", literal(true)).accept(visitor, null));

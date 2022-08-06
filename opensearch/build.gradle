@@ -32,9 +32,9 @@ dependencies {
     api project(':core')
     api group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
     implementation "io.github.resilience4j:resilience4j-retry:1.5.0"
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.13.2'
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.13.2.2'
-    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: '2.13.2'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.13.3'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.13.3'
+    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: '2.13.3'
     implementation group: 'org.json', name: 'json', version:'20180813'
     compileOnly group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
     implementation group: 'org.opensearch', name:'opensearch-ml-client', version: "${opensearch_build}"
