@@ -33,6 +33,7 @@ import org.opensearch.sql.opensearch.storage.script.sort.SortQueryBuilder;
 import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
 import org.opensearch.sql.planner.DefaultImplementor;
 import org.opensearch.sql.planner.logical.LogicalAD;
+import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalRelation;
@@ -202,6 +203,12 @@ public class OpenSearchIndex implements Table {
     public PhysicalPlan visitAD(LogicalAD node, OpenSearchIndexScan context) {
       return new ADOperator(visitChild(node, context),
               node.getArguments(), client.getNodeClient());
+    }
+
+    @Override
+    public PhysicalPlan visitHighlight(LogicalHighlight node, OpenSearchIndexScan context) {
+      context.getRequestBuilder().pushDownHighlight(node.getHighlightField().toString());
+      return visitChild(node, context);
     }
   }
 }

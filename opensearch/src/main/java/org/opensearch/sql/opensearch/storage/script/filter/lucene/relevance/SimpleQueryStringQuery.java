@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Objects;
 import org.opensearch.index.query.Operator;
@@ -31,7 +32,9 @@ public class SimpleQueryStringQuery extends RelevanceQuery<SimpleQueryStringBuil
             b.autoGenerateSynonymsPhraseQuery(Boolean.parseBoolean(v.stringValue())))
         .put("boost", (b, v) -> b.boost(Float.parseFloat(v.stringValue())))
         .put("default_operator", (b, v) -> b.defaultOperator(Operator.fromString(v.stringValue())))
-        .put("flags", (b, v) -> b.flags(SimpleQueryStringFlag.valueOf(v.stringValue())))
+        .put("flags", (b, v) -> b.flags(Arrays.stream(v.stringValue().split("\\|"))
+            .map(SimpleQueryStringFlag::valueOf)
+            .toArray(SimpleQueryStringFlag[]::new)))
         .put("fuzzy_max_expansions", (b, v) ->
             b.fuzzyMaxExpansions(Integer.parseInt(v.stringValue())))
         .put("fuzzy_prefix_length", (b, v) ->

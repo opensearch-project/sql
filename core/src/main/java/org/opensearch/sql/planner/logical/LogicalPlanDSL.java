@@ -61,6 +61,10 @@ public class LogicalPlanDSL {
     return new LogicalWindow(input, windowFunction, windowDefinition);
   }
 
+  public LogicalPlan highlight(LogicalPlan input, Expression field) {
+    return new LogicalHighlight(input, field);
+  }
+
   public static LogicalPlan remove(LogicalPlan input, ReferenceExpression... fields) {
     return new LogicalRemove(input, ImmutableSet.copyOf(fields));
   }

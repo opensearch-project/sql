@@ -23,8 +23,10 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
@@ -162,6 +164,20 @@ public class OpenSearchRequestBuilder {
   public void pushDownLimit(Integer limit, Integer offset) {
     querySize = limit;
     sourceBuilder.from(offset).size(limit);
+  }
+
+  /**
+   * Add highlight to DSL requests.
+   * @param field name of the field to highlight
+   */
+  public void pushDownHighlight(String field) {
+    if (sourceBuilder.highlighter() != null) {
+      sourceBuilder.highlighter().field(StringUtils.unquoteText(field));
+    } else {
+      HighlightBuilder highlightBuilder =
+          new HighlightBuilder().field(StringUtils.unquoteText(field));
+      sourceBuilder.highlighter(highlightBuilder);
+    }
   }
 
   /**

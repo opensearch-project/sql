@@ -2479,3 +2479,29 @@ Another example to show how to set custom values for the optional parameters::
     |------+--------------------------+----------------------|
     | 1    | The House at Pooh Corner | Alan Alexander Milne |
     +------+--------------------------+----------------------+
+
+
+HIGHLIGHT
+------------
+
+Description
+>>>>>>>>>>>
+
+``highlight(field_expression)``
+
+The highlight function maps to the highlight function used in search engine to return highlight fields for the given search.
+The syntax allows to specify the field in double quotes or single quotes or without any wrap.
+Please refer to examples below:
+
+| ``highlight(title)``
+
+Example searching for field Tags::
+
+    os> select highlight(title) from books where query_string(['title'], 'Pooh House');
+    fetched rows / total rows = 2/2
+    +----------------------------------------------+
+    | highlight(title)                             |
+    |----------------------------------------------|
+    | [The <em>House</em> at <em>Pooh</em> Corner] |
+    | [Winnie-the-<em>Pooh</em>]                   |
+    +----------------------------------------------+
