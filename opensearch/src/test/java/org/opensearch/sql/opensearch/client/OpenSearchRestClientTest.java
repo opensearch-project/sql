@@ -137,10 +137,16 @@ class OpenSearchRestClientTest {
     Integer maxResultWindow = 1000;
 
     GetSettingsResponse response = mock(GetSettingsResponse.class);
-    ImmutableOpenMap<String, Settings> indexToSettings = mockMaxResultWindowSettings(
-        indexName, maxResultWindow);
+    Settings maxResultWindowSettings = Settings.builder()
+        .put("index.max_result_window", maxResultWindow)
+        .build();
+    Settings emptySettings = Settings.builder().build();
+    ImmutableOpenMap<String, Settings> indexToSettings =
+        mockSettings(indexName, maxResultWindowSettings);
+    ImmutableOpenMap<String, Settings> indexToDefaultSettings =
+        mockSettings(indexName, emptySettings);
     when(response.getIndexToSettings()).thenReturn(indexToSettings);
-    when(response.getIndexToDefaultSettings()).thenReturn(ImmutableOpenMap.of());
+    when(response.getIndexToDefaultSettings()).thenReturn(indexToDefaultSettings);
     when(restClient.indices().getSettings(any(GetSettingsRequest.class), any()))
         .thenReturn(response);
 
@@ -155,9 +161,15 @@ class OpenSearchRestClientTest {
     Integer maxResultWindow = 10000;
 
     GetSettingsResponse response = mock(GetSettingsResponse.class);
-    ImmutableOpenMap<String, Settings> indexToDefaultSettings = mockMaxResultWindowSettings(
-        indexName, maxResultWindow);
-    when(response.getIndexToSettings()).thenReturn(ImmutableOpenMap.of());
+    Settings maxResultWindowSettings = Settings.builder()
+        .put("index.max_result_window", maxResultWindow)
+        .build();
+    Settings emptySettings = Settings.builder().build();
+    ImmutableOpenMap<String, Settings> indexToSettings =
+        mockSettings(indexName, emptySettings);
+    ImmutableOpenMap<String, Settings> indexToDefaultSettings =
+        mockSettings(indexName, maxResultWindowSettings);
+    when(response.getIndexToSettings()).thenReturn(indexToSettings);
     when(response.getIndexToDefaultSettings()).thenReturn(indexToDefaultSettings);
     when(restClient.indices().getSettings(any(GetSettingsRequest.class), any()))
         .thenReturn(response);
@@ -323,11 +335,7 @@ class OpenSearchRestClientTest {
     return ImmutableMap.of(indexName, IndexMetadata.fromXContent(createParser(mappings)).mapping());
   }
 
-  private ImmutableOpenMap<String, Settings> mockMaxResultWindowSettings(
-      String indexName, Integer value) {
-    Settings settings = Settings.builder()
-        .put("index.max_result_window", value)
-        .build();
+  private ImmutableOpenMap<String, Settings> mockSettings(String indexName, Settings settings) {
     ImmutableOpenMap.Builder<String, Settings> indexToSettingsBuilder = ImmutableOpenMap.builder();
     indexToSettingsBuilder.put(indexName, settings);
     return indexToSettingsBuilder.build();
