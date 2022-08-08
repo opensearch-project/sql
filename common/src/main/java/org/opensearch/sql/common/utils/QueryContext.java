@@ -22,11 +22,6 @@ public class QueryContext {
   private static final String REQUEST_ID_KEY = "request_id";
 
   /**
-   * An empty dummy ID is used unless no request registered.
-   */
-  private static final String EMPTY_ID = "ID";
-
-  /**
    * Generates a random UUID and adds to the {@link ThreadContext} as the request id.
    * <p>
    * Note: If a request id already present, this method will overwrite it with a new
@@ -44,7 +39,10 @@ public class QueryContext {
    * @return the current request id from {@link ThreadContext}.
    */
   public static String getRequestId() {
-    return Optional.ofNullable(ThreadContext.get(REQUEST_ID_KEY)).orElseGet(() -> EMPTY_ID);
+    if (null == ThreadContext.get(REQUEST_ID_KEY)) {
+        addRequestId();
+    }
+    return ThreadContext.get(REQUEST_ID_KEY);
   }
 
   /**
