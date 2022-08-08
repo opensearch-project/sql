@@ -20,7 +20,7 @@ class RangeQueryTest {
 
   @Test
   void should_throw_exception_for_unsupported_comparison() {
-    // Note that since we do switch check on enum comparison, this should'be impossible
+    // Note that since we do switch check on enum comparison, this should be impossible
     assertThrows(IllegalStateException.class, () ->
         new RangeQuery(Comparison.BETWEEN)
             .doBuild("name", STRING, ExprValueUtils.stringValue("John")));
