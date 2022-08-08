@@ -57,6 +57,10 @@ dependencies {
     testImplementation('org.junit-pioneer:junit-pioneer:0.3.0')
     testImplementation('org.eclipse.jetty:jetty-server:9.2.24.v20180105')
 
+    // Enforce wiremock to use latest guava and json-smart
+    testImplementation('com.google.guava:guava:31.1-jre')
+    testImplementation('net.minidev:json-smart:2.4.8')
+
     testRuntimeOnly('org.slf4j:slf4j-simple:1.7.25') // capture WireMock logging
 }
 
