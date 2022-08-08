@@ -21,6 +21,9 @@ public class QueryContext {
    */
   private static final String REQUEST_ID_KEY = "request_id";
 
+  /**
+   * An empty dummy ID is used unless no request registered.
+   */
   private static final String EMPTY_ID = "ID";
 
   /**
