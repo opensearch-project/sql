@@ -46,8 +46,6 @@ public class OpenSearchIndexScan extends TableScanOperator {
   @ToString.Include
   private Integer querySize;
 
-  private boolean isAggregation = false;
-
   /** Number of rows returned. */
   private Integer queryCount;
 
@@ -78,8 +76,7 @@ public class OpenSearchIndexScan extends TableScanOperator {
   @Override
   public void open() {
     super.open();
-    querySize = requestBuilder.getSourceBuilder().size();
-    isAggregation = !(null == requestBuilder.getSourceBuilder().aggregations());
+    querySize = requestBuilder.getQuerySize();
     request = requestBuilder.build();
     iterator = Collections.emptyIterator();
     queryCount = 0;
@@ -88,7 +85,7 @@ public class OpenSearchIndexScan extends TableScanOperator {
 
   @Override
   public boolean hasNext() {
-    if (!isAggregation && queryCount >= querySize) {
+    if (queryCount >= querySize) {
       iterator = Collections.emptyIterator();
     } else if (!iterator.hasNext()) {
       fetchNextBatch();

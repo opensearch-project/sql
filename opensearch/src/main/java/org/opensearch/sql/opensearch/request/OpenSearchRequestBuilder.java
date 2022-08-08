@@ -65,6 +65,8 @@ public class OpenSearchRequestBuilder {
   @ToString.Exclude
   private final OpenSearchExprValueFactory exprValueFactory;
 
+  private Integer querySize;
+
   public OpenSearchRequestBuilder(String indexName,
                                   Integer maxResultWindow,
                                   Settings settings,
@@ -83,8 +85,9 @@ public class OpenSearchRequestBuilder {
     this.maxResultWindow = maxResultWindow;
     this.sourceBuilder = new SearchSourceBuilder();
     this.exprValueFactory = exprValueFactory;
+    this.querySize = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
     sourceBuilder.from(0);
-    sourceBuilder.size(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT));
+    sourceBuilder.size(querySize);
     sourceBuilder.timeout(DEFAULT_QUERY_TIMEOUT);
   }
 
@@ -157,6 +160,7 @@ public class OpenSearchRequestBuilder {
    * Push down size (limit) and from (offset) to DSL request.
    */
   public void pushDownLimit(Integer limit, Integer offset) {
+    querySize = limit;
     sourceBuilder.from(offset).size(limit);
   }
 
