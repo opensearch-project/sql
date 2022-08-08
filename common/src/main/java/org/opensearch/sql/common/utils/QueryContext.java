@@ -40,7 +40,7 @@ public class QueryContext {
    */
   public static String getRequestId() {
     if (null == ThreadContext.get(REQUEST_ID_KEY)) {
-        addRequestId();
+      addRequestId();
     }
     return ThreadContext.get(REQUEST_ID_KEY);
   }
