@@ -8,7 +8,7 @@ package org.opensearch.sql.legacy.unittest.utils;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 
 import org.apache.logging.log4j.ThreadContext;
 import org.junit.After;
@@ -47,7 +47,7 @@ public class QueryContextTest {
 
     @Test
     public void getRequestId_doesNotExist() {
-        assertNotEquals(null, QueryContext.getRequestId());
+        assertNotNull(QueryContext.getRequestId());
     }
 
     @Test
