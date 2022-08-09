@@ -24,7 +24,7 @@ public class MatchQuery extends RelevanceQuery<MatchQueryBuilder> {
         .put("analyzer", (b, v) -> b.analyzer(v.stringValue()))
         .put("auto_generate_synonyms_phrase_query",
             (b, v) -> b.autoGenerateSynonymsPhraseQuery(Boolean.parseBoolean(v.stringValue())))
-        .put("fuzziness", (b, v) -> b.fuzziness(v.stringValue()))
+        .put("fuzziness", (b, v) -> b.fuzziness(valueOfToUpper(v)))
         .put("max_expansions", (b, v) -> b.maxExpansions(Integer.parseInt(v.stringValue())))
         .put("prefix_length", (b, v) -> b.prefixLength(Integer.parseInt(v.stringValue())))
         .put("fuzzy_transpositions",
@@ -34,7 +34,7 @@ public class MatchQuery extends RelevanceQuery<MatchQueryBuilder> {
         .put("operator", (b, v) -> b.operator(Operator.fromString(v.stringValue())))
         .put("minimum_should_match", (b, v) -> b.minimumShouldMatch(v.stringValue()))
         .put("zero_terms_query", (b, v) -> b.zeroTermsQuery(
-            org.opensearch.index.search.MatchQuery.ZeroTermsQuery.valueOf(v.stringValue())))
+            org.opensearch.index.search.MatchQuery.ZeroTermsQuery.valueOf(valueOfToUpper(v))))
         .put("boost", (b, v) -> b.boost(Float.parseFloat(v.stringValue())))
         .build());
   }

@@ -84,6 +84,16 @@ class SimpleQueryStringTest {
         List.of(
             dsl.namedArgument("fields", fields_value),
             dsl.namedArgument("query", query_value),
+            dsl.namedArgument("flags", DSL.literal("PREFIX|not|AND"))
+        ),
+        List.of(
+            dsl.namedArgument("fields", fields_value),
+            dsl.namedArgument("query", query_value),
+            dsl.namedArgument("flags", DSL.literal("not|and"))
+        ),
+        List.of(
+            dsl.namedArgument("fields", fields_value),
+            dsl.namedArgument("query", query_value),
             dsl.namedArgument("fuzzy_max_expansions", DSL.literal("42"))
         ),
         List.of(
@@ -109,6 +119,11 @@ class SimpleQueryStringTest {
         List.of(
             dsl.namedArgument("fields", fields_value),
             dsl.namedArgument("query", query_value),
+            dsl.namedArgument("default_operator", DSL.literal("and"))
+        ),
+        List.of(
+            dsl.namedArgument("fields", fields_value),
+            dsl.namedArgument("query", query_value),
             dsl.namedArgument("minimum_should_match", DSL.literal("4"))
         ),
         List.of(
@@ -120,6 +135,20 @@ class SimpleQueryStringTest {
             dsl.namedArgument("fields", fields_value),
             dsl.namedArgument("query", query_value),
             dsl.namedArgument("boost", DSL.literal("1"))
+        ),
+        List.of(
+            dsl.namedArgument("FIELDS", fields_value),
+            dsl.namedArgument("QUERY", query_value)
+        ),
+        List.of(
+            dsl.namedArgument("FIELDS", fields_value),
+            dsl.namedArgument("query", query_value),
+            dsl.namedArgument("ANALYZE_wildcard", DSL.literal("true"))
+        ),
+        List.of(
+            dsl.namedArgument("fields", fields_value),
+            dsl.namedArgument("query", query_value),
+            dsl.namedArgument("analyZER", DSL.literal("standard"))
         )
       );
   }

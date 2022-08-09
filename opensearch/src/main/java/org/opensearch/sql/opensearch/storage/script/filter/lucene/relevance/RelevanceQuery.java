@@ -46,14 +46,15 @@ public abstract class RelevanceQuery<T extends QueryBuilder> extends LuceneQuery
     Iterator<Expression> iterator = arguments.listIterator(2);
     while (iterator.hasNext()) {
       NamedArgumentExpression arg = (NamedArgumentExpression) iterator.next();
-      if (!queryBuildActions.containsKey(arg.getArgName())) {
+      String argNormalized = arg.getArgName().toLowerCase();
+      if (!queryBuildActions.containsKey(argNormalized)) {
         throw new SemanticCheckException(
             String.format("Parameter %s is invalid for %s function.",
-                arg.getArgName(), queryBuilder.getWriteableName()));
+                argNormalized, queryBuilder.getWriteableName()));
       }
       (Objects.requireNonNull(
           queryBuildActions
-              .get(arg.getArgName())))
+              .get(argNormalized)))
           .apply(queryBuilder, arg.getValue().valueOf(null));
     }
     return queryBuilder;
@@ -69,5 +70,13 @@ public abstract class RelevanceQuery<T extends QueryBuilder> extends LuceneQuery
   public interface QueryBuilderStep<T extends QueryBuilder> extends
       BiFunction<T, ExprValue, T> {
 
+  }
+
+  public static String valueOfToUpper(ExprValue v) {
+    return v.stringValue().toUpperCase();
+  }
+
+  public static String valueOfToLower(ExprValue v) {
+    return v.stringValue().toLowerCase();
   }
 }

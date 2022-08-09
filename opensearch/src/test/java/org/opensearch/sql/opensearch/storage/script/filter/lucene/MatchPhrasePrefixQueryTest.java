@@ -94,6 +94,15 @@ public class MatchPhrasePrefixQueryTest {
     Assertions.assertNotNull(matchPhrasePrefixQuery.build(new MatchPhraseExpression(arguments)));
   }
 
+  @Test
+  public void test_zero_terms_query_parameter_lower_case() {
+    List<Expression> arguments = List.of(
+        dsl.namedArgument("field", "t1"),
+        dsl.namedArgument("query", "t2"),
+        dsl.namedArgument("zero_terms_query", "all")
+    );
+    Assertions.assertNotNull(matchPhrasePrefixQuery.build(new MatchPhraseExpression(arguments)));
+  }
 
   @Test
   public void test_boost_parameter() {
