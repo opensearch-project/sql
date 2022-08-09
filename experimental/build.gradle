@@ -1,0 +1,36 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+plugins {
+    id 'java'
+}
+
+repositories {
+    mavenCentral()
+}
+
+version '2.1.0.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation group: 'com.graphql-java', name: 'graphql-java', version: '14.0'
+    implementation group: 'io.javaslang', name: 'javaslang', version: '2.0.6'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.13.2'
+    implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.17.1'
+    implementation group: 'com.google.inject', name: 'guice', version: '4.1.0'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+    testImplementation group: 'org.hamcrest', name: 'hamcrest-core', version: '2.2'
+    testImplementation group: 'org.mockito', name: 'mockito-inline', version: '3.12.4'
+    testImplementation group: 'junit', name: 'junit', version: '4.13.2'
+}
+
+test {
+    useJUnitPlatform()
+}
