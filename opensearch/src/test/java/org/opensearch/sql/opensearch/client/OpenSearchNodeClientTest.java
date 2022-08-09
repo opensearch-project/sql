@@ -73,6 +73,7 @@ import org.opensearch.threadpool.ThreadPool;
 class OpenSearchNodeClientTest {
 
   private static final String TEST_MAPPING_FILE = "mappings/accounts.json";
+  private static final String TEST_MAPPING_SETTINGS_FILE = "mappings/accounts2.json";
 
   @Mock(answer = RETURNS_DEEP_STUBS)
   private NodeClient nodeClient;
@@ -154,6 +155,21 @@ class OpenSearchNodeClientTest {
 
   @Test
   public void getIndexMaxResultWindows() throws IOException {
+    URL url = Resources.getResource(TEST_MAPPING_SETTINGS_FILE);
+    String mappings = Resources.toString(url, Charsets.UTF_8);
+    String indexName = "accounts";
+    ClusterService clusterService = mockClusterServiceForSettings(indexName, mappings);
+    OpenSearchNodeClient client = new OpenSearchNodeClient(clusterService, nodeClient);
+
+    Map<String, Integer> indexMaxResultWindows = client.getIndexMaxResultWindows(indexName);
+    assertEquals(1, indexMaxResultWindows.size());
+
+    Integer indexMaxResultWindow = indexMaxResultWindows.values().iterator().next();
+    assertEquals(100, indexMaxResultWindow);
+  }
+
+  @Test
+  public void getIndexMaxResultWindowsWithDefaultSettings() throws IOException {
     URL url = Resources.getResource(TEST_MAPPING_FILE);
     String mappings = Resources.toString(url, Charsets.UTF_8);
     String indexName = "accounts";
