@@ -27,6 +27,7 @@ import com.google.common.io.Resources;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -149,6 +150,21 @@ class OpenSearchNodeClientTest {
         new OpenSearchNodeClient(mockClusterService("test"), nodeClient);
 
     assertThrows(IndexNotFoundException.class, () -> client.getIndexMappings("non_exist_index"));
+  }
+
+  @Test
+  public void getIndexMaxResultWindows() throws IOException {
+    URL url = Resources.getResource(TEST_MAPPING_FILE);
+    String mappings = Resources.toString(url, Charsets.UTF_8);
+    String indexName = "accounts";
+    ClusterService clusterService = mockClusterServiceForSettings(indexName, mappings);
+    OpenSearchNodeClient client = new OpenSearchNodeClient(clusterService, nodeClient);
+
+    Map<String, Integer> indexMaxResultWindows = client.getIndexMaxResultWindows(indexName);
+    assertEquals(1, indexMaxResultWindows.size());
+
+    Integer indexMaxResultWindow = indexMaxResultWindows.values().iterator().next();
+    assertEquals(10000, indexMaxResultWindow);
   }
 
   /** Jacoco enforce this constant lambda be tested. */
@@ -347,6 +363,33 @@ class OpenSearchNodeClientTest {
       when(mockMetaData.findMappings(any(), any())).thenThrow(t);
       when(mockMetaData.getIndicesLookup())
               .thenReturn(ImmutableSortedMap.of(indexName, mock(IndexAbstraction.class)));
+    } catch (IOException e) {
+      throw new IllegalStateException("Failed to mock cluster service", e);
+    }
+    return mockService;
+  }
+
+  public ClusterService mockClusterServiceForSettings(String indexName, String mappings) {
+    ClusterService mockService = mock(ClusterService.class);
+    ClusterState mockState = mock(ClusterState.class);
+    Metadata mockMetaData = mock(Metadata.class);
+
+    when(mockService.state()).thenReturn(mockState);
+    when(mockState.metadata()).thenReturn(mockMetaData);
+    try {
+      ImmutableOpenMap.Builder<String, IndexMetadata> indexBuilder =
+          ImmutableOpenMap.builder();
+      IndexMetadata indexMetadata = IndexMetadata.fromXContent(createParser(mappings));
+
+      indexBuilder.put(indexName, indexMetadata);
+      when(mockMetaData.getIndices()).thenReturn(indexBuilder.build());
+
+      // IndexNameExpressionResolver use this method to check if index exists. If not,
+      // IndexNotFoundException is thrown.
+      IndexAbstraction indexAbstraction = mock(IndexAbstraction.class);
+      when(indexAbstraction.getIndices()).thenReturn(Collections.singletonList(indexMetadata));
+      when(mockMetaData.getIndicesLookup())
+          .thenReturn(ImmutableSortedMap.of(indexName, indexAbstraction));
     } catch (IOException e) {
       throw new IllegalStateException("Failed to mock cluster service", e);
     }
