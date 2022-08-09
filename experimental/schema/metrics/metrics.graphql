@@ -89,7 +89,7 @@ type Exemplar {
     traceId:String
 }
 
-type DataPoint {
+interface DataPoint {
     #    Attributes includes key-value pairs associated with the data point (AKA dimensions)
     attributes:JSON
     #    time field is set to the end time of the aggregation
@@ -180,6 +180,15 @@ type QuantileValue {
 
 # NumberDataPoint is a single data point in a timeseries that describes the time-varying scalar value of a metric.
 type NumberDataPoint implements DataPoint {
+    #    Attributes includes key-value pairs associated with the data point (AKA dimensions)
+    attributes:JSON
+    #    time field is set to the end time of the aggregation
+    time:Time
+    # StartTimeUnixNano in general allows detecting when a sequence of observations is unbroken.  This field indicates to consumers the
+    # start time for points with cumulative and delta AggregationTemporality, and it should be included whenever possible
+    # to support correct rate calculation.
+    startTime:Time
+
     value:DataPointValue
     # (Optional) List of exemplars collected from
     # measurements that were used to form the data point
@@ -189,10 +198,19 @@ type NumberDataPoint implements DataPoint {
 # SummaryDataPoint is a single data point in a timeseries that describes the
 # time-varying values of a Summary metric.
 type SummaryDataPoint implements DataPoint {
+    #    Attributes includes key-value pairs associated with the data point (AKA dimensions)
+    attributes:JSON
+    #    time field is set to the end time of the aggregation
+    time:Time
+    # StartTimeUnixNano in general allows detecting when a sequence of observations is unbroken.  This field indicates to consumers the
+    # start time for points with cumulative and delta AggregationTemporality, and it should be included whenever possible
+    # to support correct rate calculation.
+    startTime:Time
+
     # sum of the values in the population. If count is zero then this field must be zero.
-    count:GraphQLLong
+    count:Long
     # sum of the values in the population. If count is zero then this field must be zero.
-    sum : GraphQLLong
+    sum : Long
     # (Optional) list of values at different quantiles of the distribution calculated
     # from the current snapshot. The quantiles must be strictly increasing.
     quantileValues:[QuantileValue]
@@ -209,8 +227,17 @@ type SummaryDataPoint implements DataPoint {
 #  "explicit_bounds" and "bucket_counts" must be omitted and only "count" and
 #  "sum" are known.
 type HistogramDataPoint implements DataPoint {
+    #    Attributes includes key-value pairs associated with the data point (AKA dimensions)
+    attributes:JSON
+    #    time field is set to the end time of the aggregation
+    time:Time
+    # StartTimeUnixNano in general allows detecting when a sequence of observations is unbroken.  This field indicates to consumers the
+    # start time for points with cumulative and delta AggregationTemporality, and it should be included whenever possible
+    # to support correct rate calculation.
+    startTime:Time
+
     # sum of the values in the population. If count is zero then this field must be zero.
-    count:GraphQLLong
+    count:Long
     #    bucket_counts is an optional field contains the count values of histogram for each bucket.
     bucketCounts:[Int]
     #  explicit_bounds specifies buckets with explicitly defined bounds for values.
@@ -230,7 +257,7 @@ type HistogramDataPoint implements DataPoint {
     #  sum of the values in the population. If count is zero then this field
     #  must be zero.
     #
-    sum : GraphQLLong
+    sum : Long
 
     # (Optional) List of exemplars collected from
     # measurements that were used to form the data point
@@ -249,7 +276,16 @@ type HistogramDataPoint implements DataPoint {
 #  summary statistics for a population of values, it may optionally contain the
 #  distribution of those values across a set of buckets.
 type ExponentialHistogramDataPoint implements DataPoint {
-    # TODO
+    #    Attributes includes key-value pairs associated with the data point (AKA dimensions)
+    attributes:JSON
+    #    time field is set to the end time of the aggregation
+    time:Time
+    # StartTimeUnixNano in general allows detecting when a sequence of observations is unbroken.  This field indicates to consumers the
+    # start time for points with cumulative and delta AggregationTemporality, and it should be included whenever possible
+    # to support correct rate calculation.
+    startTime:Time
+
+    # TODO - implement content
 }
 
 #  Gauge represents the type of a scalar metric that always exports the

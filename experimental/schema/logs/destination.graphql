@@ -35,7 +35,7 @@ type Destination implements BaseRecord {
     #    Destination network address
     address:String
     #    Bytes sent from the destination to the source.
-    bytes:GraphQLLong
+    bytes:Long
     #The domain name of the destination system.
     domain:String
     #The ip address of the destination system.
@@ -45,11 +45,11 @@ type Destination implements BaseRecord {
     #    Translated IP of source based NAT sessions (e.g. internal client to internet)
     natIpp:IP
     # port of the client
-    port:GraphQLLong
+    port:Long
     #    Translated port of source based NAT sessions
-    natPort:GraphQLLong
+    natPort:Long
     #    Packets sent from the destination to the source.
-    packets:GraphQLLong
+    packets:Long
     #    The highest registered client domain, stripped of the subdomain.
     registeredDomain:String
     #    The subdomain portion of a fully qualified domain name includes

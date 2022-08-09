@@ -1,11 +1,7 @@
 package org.opensearch.graph.ontology;
 
 
-
-
-
-
-
+import java.util.Arrays;
 import java.util.Objects;
 
 public class PrimitiveType {
@@ -37,5 +33,33 @@ public class PrimitiveType {
     @Override
     public int hashCode() {
         return Objects.hash(getType(), getJavaType());
+    }
+
+    /* Array of primitives */
+    public class ArrayOfPrimitives extends PrimitiveType {
+
+        public ArrayOfPrimitives(String type, Class javaType) {
+            super(type, javaType);
+        }
+    }
+
+    /**
+     * default primitive types
+     */
+    public enum Types {
+        ID, BOOLEAN, INT, LONG, STRING, TEXT, FLOAT, TIME, DATE, DATETIME, IP, GEOPOINT, ARRAY, JSON;
+
+        /**
+         * to lower case
+         *
+         * @return
+         */
+        public String tlc() {
+            return this.name().toLowerCase();
+        }
+
+        public static boolean contains(String term) {
+            return Arrays.stream(Types.values()).anyMatch(p -> p.tlc().equalsIgnoreCase(term));
+        }
     }
 }

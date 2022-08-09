@@ -1,11 +1,6 @@
 package org.opensearch.graph.ontology;
 
 
-
-
-
-
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -21,6 +16,7 @@ import static java.util.Collections.singletonList;
 public class EntityType implements BaseElement {
     //region Fields
     private List<String> idField = singletonList(ID);
+    private boolean isAbstract;
     private String eType;
     private String name;
     private List<String> mandatory = new ArrayList<>();
@@ -90,7 +86,7 @@ public class EntityType implements BaseElement {
     }
 
     @Override
-    protected EntityType clone()  {
+    protected EntityType clone() {
         EntityType entityType = new EntityType();
         entityType.eType = this.eType;
         entityType.name = this.name;
@@ -159,7 +155,7 @@ public class EntityType implements BaseElement {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         EntityType that = (EntityType) o;
-        return  idField.equals(that.idField) &&
+        return idField.equals(that.idField) &&
                 eType.equals(that.eType) &&
                 Objects.equals(parentType, that.parentType) &&
                 name.equals(that.name) &&
@@ -170,7 +166,7 @@ public class EntityType implements BaseElement {
 
     @Override
     public int hashCode() {
-        return Objects.hash(idField,eType, parentType, name, properties, metadata, display);
+        return Objects.hash(idField, eType, parentType, name, properties, metadata, display);
     }
 
 
@@ -206,6 +202,8 @@ public class EntityType implements BaseElement {
         private List<String> display = new ArrayList<>();
         private List<String> parentType = new ArrayList<>();
 
+        private boolean isAbstract = false;
+
         private Builder() {
             idField.add(ID);
         }
@@ -216,9 +214,9 @@ public class EntityType implements BaseElement {
         }
 
         @JsonIgnore
-        public Builder withIdField(String ... idField) {
+        public Builder withIdField(String... idField) {
             //only populate if fields are not empty so that the default GlobalConstants.ID would not vanish
-            if(idField.length>0) this.idField = Arrays.asList(idField);
+            if (idField.length > 0) this.idField = Arrays.asList(idField);
             return this;
         }
 
@@ -229,7 +227,7 @@ public class EntityType implements BaseElement {
         }
 
         @JsonIgnore
-        public Builder withParentType(List<String> superTypes) {
+        public Builder withParentTypes(List<String> superTypes) {
             this.parentType = superTypes;
             return this;
         }
@@ -276,6 +274,18 @@ public class EntityType implements BaseElement {
             return this;
         }
 
+        @JsonIgnore
+        public Builder withParentType(String parent) {
+            this.parentType.add(parent);
+            return this;
+        }
+
+        @JsonIgnore
+        public Builder isAbstract(boolean isAbstract) {
+            this.isAbstract = isAbstract;
+            return this;
+        }
+
         public EntityType build() {
             EntityType entityType = new EntityType();
             entityType.setName(name);
@@ -286,6 +296,7 @@ public class EntityType implements BaseElement {
             entityType.setParentType(parentType);
             entityType.eType = this.eType;
             entityType.idField = this.idField;
+            entityType.isAbstract = this.isAbstract;
             return entityType;
         }
     }

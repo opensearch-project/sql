@@ -39,9 +39,9 @@ type Host implements BaseRecord {
     #    Percent CPU used which is normalized by the number of CPU cores and it ranges from 0 to 1.
     cpuUsage:Float
     #    The total number of bytes (gauge) read successfully (aggregated from all disks) since the last metric collection.
-    diskReadBytes:GraphQLLong
+    diskReadBytes:Long
     #    The total number of bytes (gauge) write successfully (aggregated from all disks) since the last metric collection.
-    diskWriteBytes:GraphQLLong
+    diskWriteBytes:Long
     #    Name of the domain of which the host is a member
     domain:String
     #    Hostname of the host.
@@ -53,18 +53,18 @@ type Host implements BaseRecord {
     #    Host max addresses.
     mac:String
     #    The number of bytes sent on all network interfaces  by the host since the last metric collection.
-    networkEgressBytes:GraphQLLong
+    networkEgressBytes:Long
     #    The number of packets (gauge) sent out on all network interfaces  by the host since the last metric collection.
-    networkIngressPackets:GraphQLLong
+    networkIngressPackets:Long
     #    The number of bytes received from all network interfaces  by the host since the last metric collection.
-    networkEgressBytes:GraphQLLong
+    networkEgressBytes:Long
     #    The number of packets (gauge) received  from all network interfaces  by the host since the last metric collection.
-    networkIngressPackets:GraphQLLong
+    networkIngressPackets:Long
     #  Type of host.
     #   For Cloud providers this can be the machine type like t2.medium
     aType:String
     #  Seconds the host has been up.
-    uptime:GraphQLLong
+    uptime:Long
     #  Fields describing a location.
     geo:Geo
     #  OS fields contain information about the operating system.

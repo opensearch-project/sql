@@ -15,6 +15,8 @@ import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static org.opensearch.graph.ontology.PrimitiveType.Types.*;
+
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties({"primitiveTypes"})
 public class Ontology {
@@ -47,15 +49,21 @@ public class Ontology {
     }
 
     private void initPrimitives() {
-        primitiveTypes = new ArrayList<>();
-        primitiveTypes.add(new PrimitiveType("int", Long.class));
-        primitiveTypes.add(new PrimitiveType("string", String.class));
-        primitiveTypes.add(new PrimitiveType("text", String.class));
-        primitiveTypes.add(new PrimitiveType("float", Double.class));
-        primitiveTypes.add(new PrimitiveType("date", Date.class));
-        primitiveTypes.add(new PrimitiveType("datetime", Date.class));
-        primitiveTypes.add(new PrimitiveType("geo_point", Point2D.class));
-        primitiveTypes.add(new PrimitiveType("array", Array.class));
+        primitiveTypes = new HashSet<>();
+        primitiveTypes.add(new PrimitiveType(ID.tlc(), String.class));
+        primitiveTypes.add(new PrimitiveType(BOOLEAN.tlc(), Boolean.class));
+        primitiveTypes.add(new PrimitiveType(INT.tlc(), Integer.class));
+        primitiveTypes.add(new PrimitiveType(LONG.tlc(), Long.class));
+        primitiveTypes.add(new PrimitiveType(STRING.tlc(), String.class));
+        primitiveTypes.add(new PrimitiveType(TEXT.tlc(), String.class));
+        primitiveTypes.add(new PrimitiveType(FLOAT.tlc(), Double.class));
+        primitiveTypes.add(new PrimitiveType(TIME.tlc(), Long.class));
+        primitiveTypes.add(new PrimitiveType(DATE.tlc(), Date.class));
+        primitiveTypes.add(new PrimitiveType(DATETIME.tlc(), Date.class));
+        primitiveTypes.add(new PrimitiveType(IP.tlc(), String.class));
+        primitiveTypes.add(new PrimitiveType(GEOPOINT.tlc(), Point2D.class));
+        primitiveTypes.add(new PrimitiveType(ARRAY.tlc(), Array.class));
+        primitiveTypes.add(new PrimitiveType(JSON.tlc(), Map.class));
     }
 
     //region Getters & Setters
@@ -117,7 +125,7 @@ public class Ontology {
     }
 
     public List<PrimitiveType> getPrimitiveTypes() {
-        return primitiveTypes;
+        return new ArrayList<>(primitiveTypes);
     }
 
 //endregion
@@ -161,7 +169,7 @@ public class Ontology {
     private List<Property> metadata;
     private List<EnumeratedType> enumeratedTypes;
     private List<CompositeType> compositeTypes;
-    private List<PrimitiveType> primitiveTypes;
+    private Set<PrimitiveType> primitiveTypes;
     //endregion
 
     //region Builder
@@ -175,6 +183,8 @@ public class Ontology {
         private List<EnumeratedType> enumeratedTypes;
         private List<CompositeType> compositeTypes;
 
+        private Set<PrimitiveType> primitiveTypes;
+
         private OntologyBuilder() {
             this.directives = new ArrayList<>();
             this.entityTypes = new ArrayList<>();
@@ -182,6 +192,7 @@ public class Ontology {
             this.properties = new LinkedHashSet<>();
             this.enumeratedTypes = new ArrayList<>();
             this.compositeTypes = new ArrayList<>();
+            this.primitiveTypes = new HashSet<>();
         }
 
         public static OntologyBuilder anOntology() {
@@ -267,6 +278,11 @@ public class Ontology {
             return this;
         }
 
+        public OntologyBuilder withPrimitives(Set<PrimitiveType> primitives) {
+            this.primitiveTypes = new LinkedHashSet<>(primitives);
+            return this;
+        }
+
         public OntologyBuilder addProperty(Property property) {
             this.properties.add(property);
             return this;
@@ -294,6 +310,8 @@ public class Ontology {
             ontology.setEnumeratedTypes(enumeratedTypes);
             ontology.setCompositeTypes(compositeTypes);
             ontology.setProperties(properties);
+            //add all primitives to set
+            ontology.primitiveTypes.addAll(this.primitiveTypes);
             return ontology;
         }
 
@@ -378,9 +396,9 @@ public class Ontology {
         }
 
         public Optional<? extends BaseElement> $element(String type) {
-            if(this.entitiesByEtype.get(type)!=null)
+            if (this.entitiesByEtype.get(type) != null)
                 return Optional.of(this.entitiesByEtype.get(type));
-            if(this.relationsByName.get(type)!=null)
+            if (this.relationsByName.get(type) != null)
                 return Optional.of(this.relationsByName.get(type));
             return Optional.empty();
         }

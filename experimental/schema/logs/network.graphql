@@ -54,9 +54,9 @@ type Network implements BaseRecord {
     #    Total bytes transferred in both directions.
     #
     #If source.bytes and destination.bytes are known, network.bytes is their sum.
-    bytes:GraphQLLong
+    bytes:Long
     #Total packets transferred in both directions.
-    networkPackets:GraphQLLong
+    networkPackets:Long
     #    A hash of source and destination IPs and ports, as well as the protocol used in a communication.
     # This is a tool-agnostic standard to identify flows -> Hash[sourceIp:port:destinationIp:Protocol]
     communityId:String
