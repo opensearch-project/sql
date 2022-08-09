@@ -1,9 +1,15 @@
 scalar Time
-scalar Json
-scalar Long
-scalar URL
+scalar DateTime
+scalar JSON
+scalar GraphQLLong
+scalar Url
+
 scalar IP
 scalar GeoPoint
+
+type Query {
+    fetch(name : String) : [String]
+}
 
 # type of supported streams
 enum StreamType {
@@ -13,7 +19,7 @@ enum StreamType {
     synthetics
 }
 # the most common attributes shared by all top level entities
-type BaseRecord {
+interface BaseRecord {
     #'Date/time when the event originated.
     #
     #        This is the date/time extracted from the event, typically representing when
@@ -30,7 +36,7 @@ type BaseRecord {
     #        All values are stored as keyword.
     #
     #        Example: '{"application": "foo-bar", "env": "production"}'
-    labels : Json
+    labels : JSON
     # 'For log events the message field contains the log message, optimized
     #        for viewing in a log viewer.
     #
@@ -42,7 +48,7 @@ type BaseRecord {
     # List of keywords used to tag each event.
     tags: [String]
     # Key-Value pairs representing vendor specific properties
-    attributes: Json
+    attributes: JSON
 }
 # data stream naming scheme uses the value of the data stream fields combine to the name of the actual data stream in the following manner: {data_stream.type}-{data_stream.dataset}-{data_stream.namespace}. This means the fields can only contain characters that are valid as part of names of data streams
 type StreamSet {
@@ -57,14 +63,6 @@ type StreamSet {
     # Examples include nginx.access, prometheus, endpoint etc. For data streams that otherwise fit, but that do not have dataset set we use the value "generic" for the dataset value.
     #    event.dataset should have the same value as data_stream.dataset.
     dataset:String
-}
-
-# top most level structuring an incoming format of any type of log
-type LogRecord {
-    #    The event's common characteristics
-    event: Event!
-    #    A list of top-level observations which describe 'things' that happened, where observed and reported
-    observations: [BaseRecord]
 }
 
 # geographic related fields container
@@ -89,7 +87,7 @@ type Geo {
 #An autonomous system (AS) is a collection of connected Internet Protocol (IP) routing prefixes under the control of one or more network operators on behalf of a single administrative entity or domain that presents a common, clearly defined routing policy to the internet.
 type AutonomousSystem {
     #    Unique number allocated to the autonomous system. The autonomous system number (ASN) uniquely identifies each network on the Internet.
-    number: Long
+    number: GraphQLLong
     #    organization name such as amazon.com
     organizationName:String
 }

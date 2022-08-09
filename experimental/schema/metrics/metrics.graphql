@@ -82,7 +82,7 @@ type MetricsData {
 
 #  List of exemplars collected from measurements that were used to form the data point
 type Exemplar {
-    filteredAttributes:Json
+    filteredAttributes:JSON
     value:DataPointValue
     time:Time
     spanId:String
@@ -91,7 +91,7 @@ type Exemplar {
 
 type DataPoint {
     #    Attributes includes key-value pairs associated with the data point (AKA dimensions)
-    attributes:Json
+    attributes:JSON
     #    time field is set to the end time of the aggregation
     time:Time
     # StartTimeUnixNano in general allows detecting when a sequence of observations is unbroken.  This field indicates to consumers the
@@ -190,9 +190,9 @@ type NumberDataPoint implements DataPoint {
 # time-varying values of a Summary metric.
 type SummaryDataPoint implements DataPoint {
     # sum of the values in the population. If count is zero then this field must be zero.
-    count:Long
+    count:GraphQLLong
     # sum of the values in the population. If count is zero then this field must be zero.
-    sum : Long
+    sum : GraphQLLong
     # (Optional) list of values at different quantiles of the distribution calculated
     # from the current snapshot. The quantiles must be strictly increasing.
     quantileValues:[QuantileValue]
@@ -210,7 +210,7 @@ type SummaryDataPoint implements DataPoint {
 #  "sum" are known.
 type HistogramDataPoint implements DataPoint {
     # sum of the values in the population. If count is zero then this field must be zero.
-    count:Long
+    count:GraphQLLong
     #    bucket_counts is an optional field contains the count values of histogram for each bucket.
     bucketCounts:[Int]
     #  explicit_bounds specifies buckets with explicitly defined bounds for values.
@@ -230,7 +230,7 @@ type HistogramDataPoint implements DataPoint {
     #  sum of the values in the population. If count is zero then this field
     #  must be zero.
     #
-    sum : Long
+    sum : GraphQLLong
 
     # (Optional) List of exemplars collected from
     # measurements that were used to form the data point

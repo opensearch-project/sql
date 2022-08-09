@@ -2,11 +2,9 @@ package org.opensearch.graph.graphql;
 
 
 import graphql.language.*;
+import graphql.scalars.ExtendedScalars;
 import graphql.schema.*;
-import graphql.schema.idl.EchoingWiringFactory;
-import graphql.schema.idl.SchemaGenerator;
-import graphql.schema.idl.SchemaParser;
-import graphql.schema.idl.TypeDefinitionRegistry;
+import graphql.schema.idl.*;
 import javaslang.Tuple2;
 import org.opensearch.graph.ontology.*;
 
@@ -146,7 +144,7 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
         return new GraphQLEnumType.Builder()
                 .name(type.geteType())
                 .values(type.getValues().stream()
-                        .map(v -> new GraphQLEnumValueDefinition(v.getName(), v.getName(), v.getVal()))
+                        .map(v -> GraphQLEnumValueDefinition.newEnumValueDefinition().name(v.getName()).value(v.getVal()).build())
                         .collect(Collectors.toList()))
                 //build definition
                 .definition(EnumTypeDefinition.newEnumTypeDefinition()
@@ -230,10 +228,17 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
             // each registry is merged into the main registry
             Arrays.asList(streams).forEach(s -> typeRegistry.merge(schemaParser.parse(new InputStreamReader(s))));
             //create schema
+            RuntimeWiring.Builder builder = RuntimeWiring.newRuntimeWiring()
+                    .scalar(ExtendedScalars.GraphQLLong)
+                    .scalar(ExtendedScalars.Json)
+                    .scalar(ExtendedScalars.Object)
+                    .scalar(ExtendedScalars.Url)
+                    .scalar(ExtendedScalars.DateTime)
+                    .scalar(ExtendedScalars.Time);
             graphQLSchema = schemaGenerator.makeExecutableSchema(
-                    SchemaGenerator.Options.defaultOptions().enforceSchemaDirectives(false),
+                    SchemaGenerator.Options.defaultOptions(),
                     typeRegistry,
-                    EchoingWiringFactory.newEchoingWiring());
+                    builder.build());
         }
         //create a curated list of names for typed schema elements
         return transform(graphQLSchema);
@@ -504,8 +509,8 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
             //where enum
             builder.additionalType(new GraphQLEnumType.Builder()
                     .name(WHERE_OPERATOR)
-                    .values(Arrays.asList(new GraphQLEnumValueDefinition(OR, OR, OR),
-                            new GraphQLEnumValueDefinition(AND, AND, AND)))
+                    .values(Arrays.asList(GraphQLEnumValueDefinition.newEnumValueDefinition().name(OR).value(OR).build(),
+                            GraphQLEnumValueDefinition.newEnumValueDefinition().name(AND).value(AND).build()))
                     //definition
                     .definition(EnumTypeDefinition.newEnumTypeDefinition()
                             .name(WHERE_OPERATOR)

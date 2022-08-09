@@ -22,7 +22,7 @@ public class GraphQLOntologyTranslatorTest {
 
     @BeforeAll
     public static void setUp() throws Exception {
-        InputStream baseSchemaInput = new FileInputStream( "schema/logs/agent.graphql");
+        InputStream baseSchemaInput = new FileInputStream( "schema/logs/base.graphql");
         InputStream agentSchemaInput = new FileInputStream( "schema/logs/agent.graphql");
         GraphQLToOntologyTransformer transformer = new GraphQLToOntologyTransformer();
 
