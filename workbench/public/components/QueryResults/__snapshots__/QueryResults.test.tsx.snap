@@ -36,7 +36,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
             <span
               class="euiButtonContent euiButton__content"
             >
-              EuiIconMock
+              <svg
+                aria-hidden="true"
+                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonContent__icon"
+                focusable="false"
+                height="16"
+                role="img"
+                viewBox="0 0 16 16"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M13 3v4h-1V4H9V3h4zM3 3h4v1H4v3H3V3zm10 10H9v-1h3V9h1v4zM3 13V9h1v3h3v1H3zM0 1.994C0 .893.895 0 1.994 0h12.012C15.107 0 16 .895 16 1.994v12.012A1.995 1.995 0 0114.006 16H1.994A1.995 1.995 0 010 14.006V1.994zm1 0v12.012c0 .548.446.994.994.994h12.012a.995.995 0 00.994-.994V1.994A.995.995 0 0014.006 1H1.994A.995.995 0 001 1.994z"
+                  fill-rule="evenodd"
+                />
+              </svg>
               <span
                 class="euiButton__text"
               >
@@ -216,7 +230,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
               <div
                 class="euiPopover__anchor"
               >
-                EuiIconMock
+                <svg
+                  aria-hidden="true"
+                  class="euiIcon euiIcon--medium"
+                  focusable="false"
+                  height="16"
+                  role="img"
+                  viewBox="0 0 16 16"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M13.069 5.157L8.384 9.768a.546.546 0 01-.768 0L2.93 5.158a.552.552 0 00-.771 0 .53.53 0 000 .759l4.684 4.61c.641.631 1.672.63 2.312 0l4.684-4.61a.53.53 0 000-.76.552.552 0 00-.771 0z"
+                    fill-rule="non-zero"
+                  />
+                </svg>
               </div>
             </div>
           </div>
@@ -277,7 +305,20 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                         <span
                           class="euiFormControlLayoutCustomIcon"
                         >
-                          EuiIconMock
+                          <svg
+                            aria-hidden="true"
+                            class="euiIcon euiIcon--medium euiFormControlLayoutCustomIcon__icon"
+                            focusable="false"
+                            height="16"
+                            role="img"
+                            viewBox="0 0 16 16"
+                            width="16"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M11.271 11.978l3.872 3.873a.502.502 0 00.708 0 .502.502 0 000-.708l-3.565-3.564c2.38-2.747 2.267-6.923-.342-9.532-2.73-2.73-7.17-2.73-9.898 0-2.728 2.729-2.728 7.17 0 9.9a6.955 6.955 0 004.949 2.05.5.5 0 000-1 5.96 5.96 0 01-4.242-1.757 6.01 6.01 0 010-8.486c2.337-2.34 6.143-2.34 8.484 0a6.01 6.01 0 010 8.486.5.5 0 00.034.738z"
+                            />
+                          </svg>
                         </span>
                       </div>
                     </div>
@@ -307,7 +348,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                   <span
                     class="euiButtonContent euiButtonContent--iconRight euiButton__content"
                   >
-                    EuiIconMock
+                    <svg
+                      aria-hidden="true"
+                      class="euiIcon euiIcon--medium euiIcon--inherit euiButtonContent__icon"
+                      focusable="false"
+                      height="16"
+                      role="img"
+                      viewBox="0 0 16 16"
+                      width="16"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M13.069 5.157L8.384 9.768a.546.546 0 01-.768 0L2.93 5.158a.552.552 0 00-.771 0 .53.53 0 000 .759l4.684 4.61c.641.631 1.672.63 2.312 0l4.684-4.61a.53.53 0 000-.76.552.552 0 00-.771 0z"
+                        fill-rule="non-zero"
+                      />
+                    </svg>
                     <span
                       class="euiButton__text"
                     >
@@ -778,7 +833,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -1146,7 +1215,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -1514,7 +1597,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -1882,7 +1979,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -2250,7 +2361,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -2618,7 +2743,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -2986,7 +3125,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -3354,7 +3507,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -3722,7 +3889,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -4090,7 +4271,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -4468,7 +4663,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                   <span
                     class="euiButtonContent euiButtonContent--iconRight euiButtonEmpty__content"
                   >
-                    EuiIconMock
+                    <svg
+                      aria-hidden="true"
+                      class="euiIcon euiIcon--small euiIcon--inherit euiButtonContent__icon"
+                      focusable="false"
+                      height="16"
+                      role="img"
+                      viewBox="0 0 16 16"
+                      width="16"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M13.069 5.157L8.384 9.768a.546.546 0 01-.768 0L2.93 5.158a.552.552 0 00-.771 0 .53.53 0 000 .759l4.684 4.61c.641.631 1.672.63 2.312 0l4.684-4.61a.53.53 0 000-.76.552.552 0 00-.771 0z"
+                        fill-rule="non-zero"
+                      />
+                    </svg>
                     <span
                       class="euiButtonEmpty__text"
                     >
@@ -4494,7 +4703,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                 disabled=""
                 type="button"
               >
-                EuiIconMock
+                <svg
+                  aria-hidden="true"
+                  class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                  focusable="false"
+                  height="16"
+                  role="img"
+                  viewBox="0 0 16 16"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M10.843 13.069L6.232 8.384a.546.546 0 010-.768l4.61-4.685a.552.552 0 000-.771.53.53 0 00-.759 0l-4.61 4.684a1.65 1.65 0 000 2.312l4.61 4.684a.53.53 0 00.76 0 .552.552 0 000-.771z"
+                    fill-rule="nonzero"
+                  />
+                </svg>
               </button>
               <ul
                 class="euiPagination__list"
@@ -4548,7 +4771,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                 data-test-subj="pagination-button-next"
                 type="button"
               >
-                EuiIconMock
+                <svg
+                  aria-hidden="true"
+                  class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                  focusable="false"
+                  height="16"
+                  role="img"
+                  viewBox="0 0 16 16"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M5.157 13.069l4.611-4.685a.546.546 0 000-.768L5.158 2.93a.552.552 0 010-.771.53.53 0 01.759 0l4.61 4.684c.631.641.63 1.672 0 2.312l-4.61 4.684a.53.53 0 01-.76 0 .552.552 0 010-.771z"
+                    fill-rule="nonzero"
+                  />
+                </svg>
               </button>
             </nav>
           </div>
@@ -4591,7 +4828,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
             <span
               class="euiButtonContent euiButton__content"
             >
-              EuiIconMock
+              <svg
+                aria-hidden="true"
+                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonContent__icon"
+                focusable="false"
+                height="16"
+                role="img"
+                viewBox="0 0 16 16"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M13 3v4h-1V4H9V3h4zM3 3h4v1H4v3H3V3zm10 10H9v-1h3V9h1v4zM3 13V9h1v3h3v1H3zM0 1.994C0 .893.895 0 1.994 0h12.012C15.107 0 16 .895 16 1.994v12.012A1.995 1.995 0 0114.006 16H1.994A1.995 1.995 0 010 14.006V1.994zm1 0v12.012c0 .548.446.994.994.994h12.012a.995.995 0 00.994-.994V1.994A.995.995 0 0014.006 1H1.994A.995.995 0 001 1.994z"
+                  fill-rule="evenodd"
+                />
+              </svg>
               <span
                 class="euiButton__text"
               >
@@ -4771,7 +5022,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
               <div
                 class="euiPopover__anchor"
               >
-                EuiIconMock
+                <svg
+                  aria-hidden="true"
+                  class="euiIcon euiIcon--medium"
+                  focusable="false"
+                  height="16"
+                  role="img"
+                  viewBox="0 0 16 16"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M13.069 5.157L8.384 9.768a.546.546 0 01-.768 0L2.93 5.158a.552.552 0 00-.771 0 .53.53 0 000 .759l4.684 4.61c.641.631 1.672.63 2.312 0l4.684-4.61a.53.53 0 000-.76.552.552 0 00-.771 0z"
+                    fill-rule="non-zero"
+                  />
+                </svg>
               </div>
             </div>
           </div>
@@ -5240,7 +5505,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -5608,7 +5887,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -5976,7 +6269,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -6344,7 +6651,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -6712,7 +7033,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -7080,7 +7415,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -7448,7 +7797,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -7816,7 +8179,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -8184,7 +8561,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -8552,7 +8943,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -8930,7 +9335,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                   <span
                     class="euiButtonContent euiButtonContent--iconRight euiButtonEmpty__content"
                   >
-                    EuiIconMock
+                    <svg
+                      aria-hidden="true"
+                      class="euiIcon euiIcon--small euiIcon--inherit euiButtonContent__icon"
+                      focusable="false"
+                      height="16"
+                      role="img"
+                      viewBox="0 0 16 16"
+                      width="16"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M13.069 5.157L8.384 9.768a.546.546 0 01-.768 0L2.93 5.158a.552.552 0 00-.771 0 .53.53 0 000 .759l4.684 4.61c.641.631 1.672.63 2.312 0l4.684-4.61a.53.53 0 000-.76.552.552 0 00-.771 0z"
+                        fill-rule="non-zero"
+                      />
+                    </svg>
                     <span
                       class="euiButtonEmpty__text"
                     >
@@ -8956,7 +9375,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                 disabled=""
                 type="button"
               >
-                EuiIconMock
+                <svg
+                  aria-hidden="true"
+                  class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                  focusable="false"
+                  height="16"
+                  role="img"
+                  viewBox="0 0 16 16"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M10.843 13.069L6.232 8.384a.546.546 0 010-.768l4.61-4.685a.552.552 0 000-.771.53.53 0 00-.759 0l-4.61 4.684a1.65 1.65 0 000 2.312l4.61 4.684a.53.53 0 00.76 0 .552.552 0 000-.771z"
+                    fill-rule="nonzero"
+                  />
+                </svg>
               </button>
               <ul
                 class="euiPagination__list"
@@ -9010,7 +9443,21 @@ exports[`<QueryResults with data/> spec renders the component to test tabs down 
                 data-test-subj="pagination-button-next"
                 type="button"
               >
-                EuiIconMock
+                <svg
+                  aria-hidden="true"
+                  class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                  focusable="false"
+                  height="16"
+                  role="img"
+                  viewBox="0 0 16 16"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M5.157 13.069l4.611-4.685a.546.546 0 000-.768L5.158 2.93a.552.552 0 010-.771.53.53 0 01.759 0l4.61 4.684c.631.641.63 1.672 0 2.312l-4.61 4.684a.53.53 0 01-.76 0 .552.552 0 010-.771z"
+                    fill-rule="nonzero"
+                  />
+                </svg>
               </button>
             </nav>
           </div>
@@ -9053,7 +9500,16 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
             <span
               class="euiButtonContent euiButton__content"
             >
-              EuiIconMock
+              <svg
+                aria-hidden="true"
+                class="euiIcon euiIcon--medium euiIcon--inherit euiIcon-isLoading euiButtonContent__icon"
+                focusable="false"
+                height="16"
+                role="img"
+                viewBox="0 0 16 16"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              />
               <span
                 class="euiButton__text"
               >
@@ -9233,7 +9689,16 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
               <div
                 class="euiPopover__anchor"
               >
-                EuiIconMock
+                <svg
+                  aria-hidden="true"
+                  class="euiIcon euiIcon--medium euiIcon-isLoading"
+                  focusable="false"
+                  height="16"
+                  role="img"
+                  viewBox="0 0 16 16"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                />
               </div>
             </div>
           </div>
@@ -9294,7 +9759,16 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                         <span
                           class="euiFormControlLayoutCustomIcon"
                         >
-                          EuiIconMock
+                          <svg
+                            aria-hidden="true"
+                            class="euiIcon euiIcon--medium euiIcon-isLoading euiFormControlLayoutCustomIcon__icon"
+                            focusable="false"
+                            height="16"
+                            role="img"
+                            viewBox="0 0 16 16"
+                            width="16"
+                            xmlns="http://www.w3.org/2000/svg"
+                          />
                         </span>
                       </div>
                     </div>
@@ -9324,7 +9798,16 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                   <span
                     class="euiButtonContent euiButtonContent--iconRight euiButton__content"
                   >
-                    EuiIconMock
+                    <svg
+                      aria-hidden="true"
+                      class="euiIcon euiIcon--medium euiIcon--inherit euiIcon-isLoading euiButtonContent__icon"
+                      focusable="false"
+                      height="16"
+                      role="img"
+                      viewBox="0 0 16 16"
+                      width="16"
+                      xmlns="http://www.w3.org/2000/svg"
+                    />
                     <span
                       class="euiButton__text"
                     >
@@ -9795,7 +10278,16 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiIcon-isLoading euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              />
                             </button>
                           </span>
                         </div>
@@ -10163,7 +10655,16 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiIcon-isLoading euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              />
                             </button>
                           </span>
                         </div>
@@ -10531,7 +11032,16 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiIcon-isLoading euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              />
                             </button>
                           </span>
                         </div>
@@ -10899,7 +11409,16 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiIcon-isLoading euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              />
                             </button>
                           </span>
                         </div>
@@ -11267,7 +11786,16 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiIcon-isLoading euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              />
                             </button>
                           </span>
                         </div>
@@ -11635,7 +12163,16 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiIcon-isLoading euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              />
                             </button>
                           </span>
                         </div>
@@ -12003,7 +12540,16 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiIcon-isLoading euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              />
                             </button>
                           </span>
                         </div>
@@ -12371,7 +12917,16 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiIcon-isLoading euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              />
                             </button>
                           </span>
                         </div>
@@ -12739,7 +13294,16 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiIcon-isLoading euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              />
                             </button>
                           </span>
                         </div>
@@ -13107,7 +13671,16 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiIcon-isLoading euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              />
                             </button>
                           </span>
                         </div>
@@ -13485,7 +14058,16 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                   <span
                     class="euiButtonContent euiButtonContent--iconRight euiButtonEmpty__content"
                   >
-                    EuiIconMock
+                    <svg
+                      aria-hidden="true"
+                      class="euiIcon euiIcon--small euiIcon--inherit euiIcon-isLoading euiButtonContent__icon"
+                      focusable="false"
+                      height="16"
+                      role="img"
+                      viewBox="0 0 16 16"
+                      width="16"
+                      xmlns="http://www.w3.org/2000/svg"
+                    />
                     <span
                       class="euiButtonEmpty__text"
                     >
@@ -13511,7 +14093,16 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                 disabled=""
                 type="button"
               >
-                EuiIconMock
+                <svg
+                  aria-hidden="true"
+                  class="euiIcon euiIcon--medium euiIcon--inherit euiIcon-isLoading euiButtonIcon__icon"
+                  focusable="false"
+                  height="16"
+                  role="img"
+                  viewBox="0 0 16 16"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                />
               </button>
               <ul
                 class="euiPagination__list"
@@ -13565,7 +14156,16 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                 data-test-subj="pagination-button-next"
                 type="button"
               >
-                EuiIconMock
+                <svg
+                  aria-hidden="true"
+                  class="euiIcon euiIcon--medium euiIcon--inherit euiIcon-isLoading euiButtonIcon__icon"
+                  focusable="false"
+                  height="16"
+                  role="img"
+                  viewBox="0 0 16 16"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                />
               </button>
             </nav>
           </div>
@@ -13608,7 +14208,21 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
             <span
               class="euiButtonContent euiButton__content"
             >
-              EuiIconMock
+              <svg
+                aria-hidden="true"
+                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonContent__icon"
+                focusable="false"
+                height="16"
+                role="img"
+                viewBox="0 0 16 16"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M13 3v4h-1V4H9V3h4zM3 3h4v1H4v3H3V3zm10 10H9v-1h3V9h1v4zM3 13V9h1v3h3v1H3zM0 1.994C0 .893.895 0 1.994 0h12.012C15.107 0 16 .895 16 1.994v12.012A1.995 1.995 0 0114.006 16H1.994A1.995 1.995 0 010 14.006V1.994zm1 0v12.012c0 .548.446.994.994.994h12.012a.995.995 0 00.994-.994V1.994A.995.995 0 0014.006 1H1.994A.995.995 0 001 1.994z"
+                  fill-rule="evenodd"
+                />
+              </svg>
               <span
                 class="euiButton__text"
               >
@@ -13788,7 +14402,21 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
               <div
                 class="euiPopover__anchor"
               >
-                EuiIconMock
+                <svg
+                  aria-hidden="true"
+                  class="euiIcon euiIcon--medium"
+                  focusable="false"
+                  height="16"
+                  role="img"
+                  viewBox="0 0 16 16"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M13.069 5.157L8.384 9.768a.546.546 0 01-.768 0L2.93 5.158a.552.552 0 00-.771 0 .53.53 0 000 .759l4.684 4.61c.641.631 1.672.63 2.312 0l4.684-4.61a.53.53 0 000-.76.552.552 0 00-.771 0z"
+                    fill-rule="non-zero"
+                  />
+                </svg>
               </div>
             </div>
           </div>
@@ -14257,7 +14885,21 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -14625,7 +15267,21 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -14993,7 +15649,21 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -15361,7 +16031,21 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -15729,7 +16413,21 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -16097,7 +16795,21 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -16465,7 +17177,21 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -16833,7 +17559,21 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -17201,7 +17941,21 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -17569,7 +18323,21 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                               style="margin-left: -4px;"
                               type="button"
                             >
-                              EuiIconMock
+                              <svg
+                                aria-hidden="true"
+                                class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                                focusable="false"
+                                height="16"
+                                role="img"
+                                viewBox="0 0 16 16"
+                                width="16"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M8 7h3.5a.5.5 0 110 1H8v3.5a.5.5 0 11-1 0V8H3.5a.5.5 0 010-1H7V3.5a.5.5 0 011 0V7zm-.5-7C11.636 0 15 3.364 15 7.5S11.636 15 7.5 15 0 11.636 0 7.5 3.364 0 7.5 0zm0 .882a6.618 6.618 0 100 13.236A6.618 6.618 0 007.5.882z"
+                                  fill-rule="evenodd"
+                                />
+                              </svg>
                             </button>
                           </span>
                         </div>
@@ -17947,7 +18715,21 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                   <span
                     class="euiButtonContent euiButtonContent--iconRight euiButtonEmpty__content"
                   >
-                    EuiIconMock
+                    <svg
+                      aria-hidden="true"
+                      class="euiIcon euiIcon--small euiIcon--inherit euiButtonContent__icon"
+                      focusable="false"
+                      height="16"
+                      role="img"
+                      viewBox="0 0 16 16"
+                      width="16"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M13.069 5.157L8.384 9.768a.546.546 0 01-.768 0L2.93 5.158a.552.552 0 00-.771 0 .53.53 0 000 .759l4.684 4.61c.641.631 1.672.63 2.312 0l4.684-4.61a.53.53 0 000-.76.552.552 0 00-.771 0z"
+                        fill-rule="non-zero"
+                      />
+                    </svg>
                     <span
                       class="euiButtonEmpty__text"
                     >
@@ -17973,7 +18755,21 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                 disabled=""
                 type="button"
               >
-                EuiIconMock
+                <svg
+                  aria-hidden="true"
+                  class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                  focusable="false"
+                  height="16"
+                  role="img"
+                  viewBox="0 0 16 16"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M10.843 13.069L6.232 8.384a.546.546 0 010-.768l4.61-4.685a.552.552 0 000-.771.53.53 0 00-.759 0l-4.61 4.684a1.65 1.65 0 000 2.312l4.61 4.684a.53.53 0 00.76 0 .552.552 0 000-.771z"
+                    fill-rule="nonzero"
+                  />
+                </svg>
               </button>
               <ul
                 class="euiPagination__list"
@@ -18027,7 +18823,21 @@ exports[`<QueryResults with data/> spec renders the component with mock query re
                 data-test-subj="pagination-button-next"
                 type="button"
               >
-                EuiIconMock
+                <svg
+                  aria-hidden="true"
+                  class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
+                  focusable="false"
+                  height="16"
+                  role="img"
+                  viewBox="0 0 16 16"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M5.157 13.069l4.611-4.685a.546.546 0 000-.768L5.158 2.93a.552.552 0 010-.771.53.53 0 01.759 0l4.61 4.684c.631.641.63 1.672 0 2.312l-4.61 4.684a.53.53 0 01-.76 0 .552.552 0 010-.771z"
+                    fill-rule="nonzero"
+                  />
+                </svg>
               </button>
             </nav>
           </div>
