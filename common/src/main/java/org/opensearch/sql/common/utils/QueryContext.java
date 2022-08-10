@@ -30,8 +30,10 @@ public class QueryContext {
    * call this method twice on the same thread within the lifetime of the request.
    * </p>
    */
-  public static void addRequestId() {
-    ThreadContext.put(REQUEST_ID_KEY, UUID.randomUUID().toString());
+  public static String addRequestId() {
+    var id = UUID.randomUUID().toString();
+    ThreadContext.put(REQUEST_ID_KEY, id);
+    return id;
   }
 
   /**
@@ -39,10 +41,11 @@ public class QueryContext {
    * @return the current request id from {@link ThreadContext}.
    */
   public static String getRequestId() {
-    if (null == ThreadContext.get(REQUEST_ID_KEY)) {
-      addRequestId();
+    var id = ThreadContext.get(REQUEST_ID_KEY);
+    if (null == id) {
+      id = addRequestId();
     }
-    return ThreadContext.get(REQUEST_ID_KEY);
+    return id;
   }
 
   /**
