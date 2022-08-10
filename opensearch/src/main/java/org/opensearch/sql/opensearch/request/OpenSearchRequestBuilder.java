@@ -61,7 +61,7 @@ public class OpenSearchRequestBuilder {
   private final SearchSourceBuilder sourceBuilder;
 
   /**
-   * ElasticsearchExprValueFactory.
+   * OpenSearchExprValueFactory.
    */
   @EqualsAndHashCode.Exclude
   @ToString.Exclude
