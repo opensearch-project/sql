@@ -82,7 +82,7 @@ type Network implements BaseRecord {
     #    In the OSI Model this would be the Network Layer. ipv4, ipv6, ipsec, pim, etc
     aType:String
     #Fields to describe observed VLAN information.
-    vlan:Vlan
+    vlan:Vlan @relation(mappingType: "embedded")
     #Fields to describe observed VLAN information. - flattened inner.vlan
-    innerVlan:Vlan
+    innerVlan:Vlan @relation(mappingType: "embedded")
 }

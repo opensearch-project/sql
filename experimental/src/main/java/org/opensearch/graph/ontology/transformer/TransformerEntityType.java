@@ -1,11 +1,6 @@
 package org.opensearch.graph.ontology.transformer;
 
 
-
-
-
-
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.util.List;
@@ -17,7 +12,7 @@ public class TransformerEntityType {
     public TransformerEntityType() {
     }
 
-    public TransformerEntityType(String id,String label,String type, String name, List<Map<String,String>> metadataProperties) {
+    public TransformerEntityType(String id, String label, String type, String name, List<Map<String, String>> metadataProperties) {
         this.id = id;
         this.label = label;
         this.eType = type;
@@ -65,11 +60,11 @@ public class TransformerEntityType {
         this.properties = properties;
     }
 
-    public List<Map<String,String>> getMetadataProperties() {
+    public List<Map<String, String>> getMetadataProperties() {
         return metadataProperties;
     }
 
-    public void setMetadataProperties(List<Map<String,String>> metadataProperties) {
+    public void setMetadataProperties(List<Map<String, String>> metadataProperties) {
         this.metadataProperties = metadataProperties;
     }
 
@@ -82,9 +77,8 @@ public class TransformerEntityType {
     }
 
     @Override
-    public String toString()
-    {
-        return "EntityType [id = "+id+",eType = "+eType+", name = "+ pattern +", label = "+ label +", properties = "+ metadataProperties +"]";
+    public String toString() {
+        return "EntityType [id = " + id + ",eType = " + eType + ", name = " + pattern + ", label = " + label + ", properties = " + metadataProperties + "]";
     }
 
     private String label;
@@ -92,7 +86,7 @@ public class TransformerEntityType {
     private String eType;
     private String id;
     private String pattern;
-    private List<Map<String,String>> metadataProperties;
+    private List<Map<String, String>> metadataProperties;
     private TransformerProperties properties;
 
     //endregion

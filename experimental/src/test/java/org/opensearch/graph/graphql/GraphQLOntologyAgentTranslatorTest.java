@@ -1,11 +1,13 @@
 package org.opensearch.graph.graphql;
 
 import graphql.schema.GraphQLSchema;
-import org.junit.Ignore;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.opensearch.graph.ontology.*;
+import org.opensearch.graph.ontology.EnumeratedType;
+import org.opensearch.graph.ontology.Ontology;
+import org.opensearch.graph.ontology.Property;
+import org.opensearch.graph.ontology.Value;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -33,56 +35,28 @@ public class GraphQLOntologyAgentTranslatorTest {
 
     @Test
     public void testEnumTranslation() {
-        Assertions.assertEquals(ontologyAccessor.enumeratedType$("StreamType"),
-                new EnumeratedType("StreamType",
-                        Arrays.asList(new Value(0, "logs"),
-                                new Value(1, "metrics"),
-                                new Value(2, "traces"),
-                                new Value(3, "synthetics"))));
-    }
-
-    @Test
-    @Ignore("todo - express graph ql scalar in java meaningfull manner")
-    public void testSamplePrimitivesTranslation() {
-        Assertions.assertEquals(ontologyAccessor.primitiveType$("url"),
-                new PrimitiveType("url", String.class));
+        Assertions.assertEquals(ontologyAccessor.enumeratedType$("AgentIdStatus"),
+                new EnumeratedType("AgentIdStatus",
+                        Arrays.asList(new Value(0, "verified"),
+                                new Value(1, "mismatch"),
+                                new Value(2, "missing"),
+                                new Value(3, "auth_metadata_missing"))));
     }
 
     @Test
     public void testSamplePropertiesTranslation() {
         Assertions.assertTrue(equal(ontologyAccessor.property$("id"), new Property.MandatoryProperty(new Property("id", "id", "ID"))));
         Assertions.assertTrue(equal(ontologyAccessor.property$("name"), new Property.MandatoryProperty(new Property("name", "name", "String"))));
-        Assertions.assertTrue(equal(ontologyAccessor.property$("timestamp"), new Property("timestamp", "timestamp", "Time")));
-        Assertions.assertTrue(equal(ontologyAccessor.property$("labels"), new Property("labels", "labels", "JSON")));
-        Assertions.assertTrue(equal(ontologyAccessor.property$("location"), new Property("location", "location", "GeoPoint")));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("aType"), new Property("aType", "aType", "String")));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("version"), new Property("version", "version", "String")));
     }
 
     @Test
-    @Ignore
     public void testAgentEntityTranslation() {
 
-        Assertions.assertEquals(ontologyAccessor.entity$("Droid").geteType(), "Droid");
-        Assertions.assertEquals(ontologyAccessor.entity$("Droid").getProperties().size(), 5);
-        Assertions.assertEquals(ontologyAccessor.entity$("Droid").getMandatory().size(), 3);
-
-        Assertions.assertEquals(ontologyAccessor.entity$("Human").geteType(), "Human");
-        Assertions.assertEquals(ontologyAccessor.entity$("Human").getProperties().size(), 5);
-        Assertions.assertEquals(ontologyAccessor.entity$("Human").getMandatory().size(), 3);
-
-        Assertions.assertEquals(ontologyAccessor.entity$("Character").geteType(), "Character");
-        Assertions.assertEquals(ontologyAccessor.entity$("Character").getProperties().size(), 4);
-        Assertions.assertEquals(ontologyAccessor.entity$("Character").getMandatory().size(), 3);
-
-    }
-
-    @Test
-    @Ignore
-    public void testRelationsTranslation() {
-        Assertions.assertEquals(ontologyAccessor.relation$("owns").getrType(), "owns");
-        Assertions.assertEquals(ontologyAccessor.relation$("owns").getePairs().size(), 1);
-
-        Assertions.assertEquals(ontologyAccessor.relation$("friends").getrType(), "friends");
-        Assertions.assertEquals(ontologyAccessor.relation$("friends").getePairs().size(), 2);
+        Assertions.assertEquals(ontologyAccessor.entity$("Agent").geteType(), "Agent");
+        Assertions.assertEquals(ontologyAccessor.entity$("Agent").getProperties().size(), 11);
+        Assertions.assertEquals(ontologyAccessor.entity$("Agent").getMandatory().size(), 2);
 
     }
 }

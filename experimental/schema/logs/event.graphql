@@ -281,7 +281,7 @@ type Event implements BaseRecord{
     ## this type represents the full qualified classification of the event according to the 4 levels of categorization
     category:[Categorization!]
     # data stream naming scheme uses the value of the data stream fields combine to the name of the actual data stream in the following manner: {data_stream.type}-{data_stream.dataset}-{data_stream.namespace}. This means the fields can only contain characters that are valid as part of names of data streams
-    stream: StreamSet
+    stream: StreamSet @relation(mappingType: "embedded")
     # 'Name of the module this data is coming from.
     #
     #        If your monitoring agent supports the concept of modules or plugins to process
@@ -446,7 +446,7 @@ type Event implements BaseRecord{
 # top most level structuring an incoming format of any type of log
 type LogRecord {
     #    The event's common characteristics
-    event: Event!
+    event: Event! @relation
     #    A list of top-level observations which describe 'things' that happened, where observed and reported
-    observations: [BaseRecord]
+    observations: [BaseRecord] @relation(mappingType: "nested")
 }

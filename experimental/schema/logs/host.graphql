@@ -68,5 +68,5 @@ type Host implements BaseRecord {
     #  Fields describing a location.
     geo:Geo
     #  OS fields contain information about the operating system.
-    os:OS
+    os:OS @relation(mappingType: "embedded")
 }

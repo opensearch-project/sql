@@ -17,6 +17,7 @@ public class RelationshipType implements BaseElement {
     public RelationshipType() {
         properties = new ArrayList<>();
         metadata = new ArrayList<>();
+        metadata = new ArrayList<>();
         ePairs = new ArrayList<>();
     }
 
@@ -55,13 +56,13 @@ public class RelationshipType implements BaseElement {
     }
 
     @JsonProperty("DBrName")
-    public String getDBrName() {
-        return DBrName;
+    public String getDbRelationName() {
+        return dbRelationName;
     }
 
     @JsonProperty("DBrName")
-    public void setDBrName(String DBrName) {
-        this.DBrName = DBrName;
+    public void setDbRelationName(String dbRelationName) {
+        this.dbRelationName = dbRelationName;
     }
 
     public void setePairs(List<EPair> ePairs) {
@@ -102,7 +103,7 @@ public class RelationshipType implements BaseElement {
     protected RelationshipType clone() {
         RelationshipType relationshipType = new RelationshipType();
         relationshipType.directional = this.directional;
-        relationshipType.DBrName = this.DBrName;
+        relationshipType.dbRelationName = this.dbRelationName;
         relationshipType.rType = this.rType;
         relationshipType.name = this.name;
         relationshipType.properties = new ArrayList<>(this.properties);
@@ -221,15 +222,21 @@ public class RelationshipType implements BaseElement {
     private String rType;
     private String name;
     private boolean directional;
-    private String DBrName;
+    private String dbRelationName;
+    private List<String> directives = new ArrayList<>();
     private List<String> mandatory = new ArrayList<>();
-    private List<EPair> ePairs = new ArrayList<>();
-    private List<String> properties = new ArrayList<>();
-    private List<String> metadata = new ArrayList<>();
+    private List<EPair> ePairs;
+    private List<String> properties;
+    private List<String> metadata;
 
     @JsonIgnore
     public boolean containsMetadata(String key) {
         return metadata.contains(key);
+    }
+
+    @JsonIgnore
+    public void directive(String value) {
+        directives.add(value);
     }
 
     @JsonIgnore
@@ -252,8 +259,12 @@ public class RelationshipType implements BaseElement {
         return ePairs.stream().anyMatch(ep -> ep.geteTypeB().equals(eType));
     }
 
+    @JsonIgnore
+    public List<String> getDirectives() {
+        return directives;
+    }
 
-    //endregion
+//endregion
 
     //region Builder
     public static final class Builder {
@@ -267,6 +278,8 @@ public class RelationshipType implements BaseElement {
         private List<String> properties = new ArrayList<>();
         private List<String> metatada = new ArrayList<>();
 
+        private List<String> directives = new ArrayList<>();
+
         private Builder() {
             idField.add(ID);
         }
@@ -277,6 +290,11 @@ public class RelationshipType implements BaseElement {
 
         public Builder withRType(String rType) {
             this.rType = rType;
+            return this;
+        }
+
+        public Builder withDirective(String value) {
+            this.directives.add(value);
             return this;
         }
 
@@ -343,11 +361,12 @@ public class RelationshipType implements BaseElement {
             relationshipType.setIdField(idField);
             relationshipType.setName(name);
             relationshipType.setDirectional(directional);
-            relationshipType.setDBrName(DBrName);
+            relationshipType.setDbRelationName(DBrName);
             relationshipType.setProperties(properties);
             relationshipType.setMetadata(metatada);
             relationshipType.setMandatory(mandatory);
             relationshipType.setePairs(ePairs);
+            relationshipType.directives.addAll(this.directives);
             return relationshipType;
         }
     }

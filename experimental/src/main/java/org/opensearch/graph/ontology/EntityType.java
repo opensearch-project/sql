@@ -53,6 +53,14 @@ public class EntityType implements BaseElement {
         this.metadata = metadata;
     }
 
+    public boolean isAbstract() {
+        return isAbstract;
+    }
+
+    public void setAbstract(boolean anAbstract) {
+        isAbstract = anAbstract;
+    }
+
     @JsonIgnore
     public EntityType withMetadata(List<String> metadata) {
         this.metadata.addAll(metadata);
@@ -90,6 +98,7 @@ public class EntityType implements BaseElement {
         EntityType entityType = new EntityType();
         entityType.eType = this.eType;
         entityType.name = this.name;
+        entityType.isAbstract = this.isAbstract;
         entityType.properties = new ArrayList<>(this.properties);
         entityType.mandatory = new ArrayList<>(this.mandatory);
         entityType.metadata = new ArrayList<>(this.metadata);
@@ -137,7 +146,7 @@ public class EntityType implements BaseElement {
 
     @Override
     public String toString() {
-        return "EntityType [idField = " + idField + ",eType = " + eType + ", name = " + name + ", display = " + display + ", properties = " + properties + ", metadata = " + metadata + ", mandatory = " + mandatory + "]";
+        return "EntityType [idField = " + idField + ",eType = " + eType + ",abstract = " + isAbstract + ", name = " + name + ", display = " + display + ", properties = " + properties + ", metadata = " + metadata + ", mandatory = " + mandatory + "]";
     }
 
     @JsonIgnore
@@ -156,6 +165,7 @@ public class EntityType implements BaseElement {
         if (o == null || getClass() != o.getClass()) return false;
         EntityType that = (EntityType) o;
         return idField.equals(that.idField) &&
+                isAbstract == that.isAbstract &&
                 eType.equals(that.eType) &&
                 Objects.equals(parentType, that.parentType) &&
                 name.equals(that.name) &&
@@ -166,7 +176,7 @@ public class EntityType implements BaseElement {
 
     @Override
     public int hashCode() {
-        return Objects.hash(idField, eType, parentType, name, properties, metadata, display);
+        return Objects.hash(idField, eType, isAbstract, parentType, name, properties, metadata, display);
     }
 
 

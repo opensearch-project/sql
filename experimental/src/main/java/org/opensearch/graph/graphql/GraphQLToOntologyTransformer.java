@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static graphql.Scalars.GraphQLString;
+import static java.util.Collections.singletonList;
 import static org.opensearch.graph.graphql.GraphQLSchemaUtils.filter;
 
 public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<String, Ontology>, GraphQLSchemaUtils {
@@ -227,8 +228,9 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
     }
 
     private PrimitiveType createPrimitive(GraphQLScalarType scalar) {
-        return new PrimitiveType(scalar.getName().toLowerCase(),scalar.getDefinition().getClass());
+        return new PrimitiveType(scalar.getName().toLowerCase(), scalar.getDefinition().getClass());
     }
+
     /**
      * generate interface entity types
      *
@@ -282,6 +284,7 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
     private EntityType createEntity(GraphQLObjectType object, Ontology.OntologyBuilder context) {
         List<Property> properties = populateProperties(object.getFieldDefinitions());
         EntityType.Builder builder = EntityType.Builder.get();
+        builder.withIdField(GraphQLSchemaUtils.getIDFieldName(object).orElse(null));
         builder.withName(object.getName()).withEType(object.getName());
         builder.withParentTypes(object.getInterfaces().stream()
                 .filter(p -> context.getEntityType(p.getName()).isPresent())
@@ -298,7 +301,7 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
                 .filter(p -> GraphQLObjectType.class.isAssignableFrom(p.getClass()))
                 .filter(p -> !languageTypes.contains(p.getName()))
                 .filter(p -> !p.getName().startsWith("__"))
-                .map(ifc -> createRelation(ifc.getName(), ((GraphQLObjectType) ifc).getFieldDefinitions()))
+                .map(ifc -> createRelation(ifc.getName(), ((GraphQLObjectType) ifc).getFieldDefinitions(), context))
                 .flatMap(p -> p.stream())
                 .collect(Collectors.groupingBy(RelationshipType::getrType));
 
@@ -318,7 +321,7 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
      * @param fieldDefinitions
      * @return
      */
-    private List<RelationshipType> createRelation(String name, List<GraphQLFieldDefinition> fieldDefinitions) {
+    private List<RelationshipType> createRelation(String name, List<GraphQLFieldDefinition> fieldDefinitions, Ontology.OntologyBuilder context) {
         Set<Tuple2<String, TypeName>> typeNames = fieldDefinitions.stream()
                 .filter(p -> Type.class.isAssignableFrom(p.getDefinition().getType().getClass()))
                 .map(p -> filter(p.getDefinition().getType(), p.getName(), type -> objectTypes.contains(type.getName())))
@@ -327,16 +330,28 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
                 .collect(Collectors.toSet());
         //relationships for each entity
         List<RelationshipType> collect = typeNames.stream()
-                .map(type -> RelationshipType.Builder.get()
+                //t is a tuple<fieldName,fieldType>
+                .map(t -> new Tuple2<>(t._1, context.getEntityType(t._2.getName())))
+                .filter(t -> t._2.isPresent())
+                .map(t -> new Tuple2<>(t._1, t._2.get()))
+                .map(t -> RelationshipType.Builder.get()
+                        //todo get the directives for the relationships
+                        // .withDirective("")
                         //nested objects are directional by nature (nesting dictates the direction)
                         .withDirectional(true)
-                        .withName(type._1())
-                        .withRType(type._1())
-                        .withEPairs(Collections.singletonList(new EPair(name, type._2().getName())))
+                        .withName(t._1)//field name
+                        .withRType(t._1)//field name is the relation type
+                        .withEPairs(singletonList(createEPair(name, t, context)))
                         .build())
                 .collect(Collectors.toList());
 
         return collect;
+    }
+
+    private EPair createEPair(String name, Tuple2<String, EntityType> t, Ontology.OntologyBuilder context) {
+        EntityType sideA = context.getEntityType(name).get();
+        EntityType sideB = t._2;
+        return new EPair(sideA.geteType(), sideA.idFieldName(), sideB.geteType(), sideB.idFieldName());
     }
 
     private Ontology.OntologyBuilder properties(GraphQLSchema graphQLSchema, Ontology.OntologyBuilder context) {

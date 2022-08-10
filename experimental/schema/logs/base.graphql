@@ -7,6 +7,8 @@ scalar Url
 scalar IP
 scalar GeoPoint
 
+directive @relation(mappingType: String) on FIELD_DEFINITION
+
 type Query {
     fetch(name : String) : [String]
 }
@@ -112,8 +114,8 @@ type User {
     email:String
     #  Array of user roles at the time of the event
     roles:[String]
-    #    Unique user hash to correlate information for a user in anonymized form.
+    #    Unique user hash to correlate information for a user in anonymize form.
     hash:String
     #    the group in which the client is a member of
-    group:Group
+    group:Group @relation(mappingType:"embedded")
 }

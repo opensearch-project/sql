@@ -20,6 +20,15 @@ public interface GraphQLSchemaUtils {
 
     TypeDefinitionRegistry getTypeRegistry();
 
+    static Optional<String> getIDFieldName(GraphQLObjectType object) {
+        return getFieldByType(object, new FieldDefinition("id", TypeName.newTypeName(GraphQLID.getName()).build()))
+                .map(GraphQLFieldDefinition::getName);
+    }
+
+    static Optional<GraphQLFieldDefinition> getFieldByType(GraphQLObjectType object, FieldDefinition definition) {
+        return object.getFieldDefinitions().stream().filter(p -> p.getDefinition().isEqualTo(definition)).findAny();
+    }
+
     /**
      * filter entity type according to predicate
      *

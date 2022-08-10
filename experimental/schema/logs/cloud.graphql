@@ -63,7 +63,7 @@ type Cloud implements BaseRecord {
     serviceName:String
 
     #Provides the cloud information of the origin entity in case of an incoming request or event.
-    origin:Cloud
+    origin:Cloud @relation
     #Provides the cloud information of the target entity in case of an outgoing request or event.
-    target:Cloud
+    target:Cloud @relation
 }
