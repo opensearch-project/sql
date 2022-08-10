@@ -186,6 +186,7 @@ CEILING:                            'CEILING';
 CONCAT:                             'CONCAT';
 CONCAT_WS:                          'CONCAT_WS';
 CONV:                               'CONV';
+CONVERT_TZ:                         'CONVERT_TZ';
 COS:                                'COS';
 COSH:                               'COSH';
 COT:                                'COT';
