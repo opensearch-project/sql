@@ -67,6 +67,9 @@ public class OpenSearchRequestBuilder {
   @ToString.Exclude
   private final OpenSearchExprValueFactory exprValueFactory;
 
+  /**
+   * Query size of the request.
+   */
   private Integer querySize;
 
   public OpenSearchRequestBuilder(String indexName,
