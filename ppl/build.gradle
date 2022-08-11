@@ -48,8 +48,8 @@ dependencies {
     compile group: 'com.google.guava', name: 'guava', version: '31.0.1-jre'
     compile group: 'org.opensearch', name: 'opensearch-x-content', version: "${opensearch_version}"
     compile group: 'org.json', name: 'json', version: '20180813'
-    compile group: 'org.springframework', name: 'spring-context', version: '5.2.20.RELEASE'
-    compile group: 'org.springframework', name: 'spring-beans', version: '5.2.20.RELEASE'
+    compile group: 'org.springframework', name: 'spring-context', version: "${spring_version}"
+    compile group: 'org.springframework', name: 'spring-beans', version: "${spring_version}"
     compile group: 'org.apache.logging.log4j', name: 'log4j-core', version:'2.17.1'
     compile project(':common')
     compile project(':core')
