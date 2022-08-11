@@ -1,10 +1,7 @@
 package org.opensearch.graph.graphql;
 
 
-import graphql.language.ListType;
-import graphql.language.NonNullType;
-import graphql.language.Type;
-import graphql.language.TypeName;
+import graphql.language.*;
 import graphql.scalars.ExtendedScalars;
 import graphql.schema.*;
 import graphql.schema.idl.*;
@@ -25,6 +22,8 @@ import static graphql.Scalars.GraphQLString;
 import static java.util.Collections.singletonList;
 import static org.opensearch.graph.graphql.GraphQLSchemaUtils.*;
 import static org.opensearch.graph.graphql.GraphQLSchemaUtils.filter;
+import static org.opensearch.graph.ontology.PrimitiveType.Types.*;
+import static org.opensearch.graph.ontology.Property.MandatoryProperty.of;
 
 public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<String, Ontology>, GraphQLSchemaUtils {
 
@@ -188,29 +187,43 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
         //scalar type property
         if ((type instanceof TypeName) &&
                 (!objectTypes.contains(((TypeName) type).getName()))) {
-            return Optional.of(new Property(fieldName, fieldName, ((TypeName) type).getName()));
+            return Optional.of(new Property(fieldName, fieldName, resolvePrimitiveType(type)));
         }
 
         //list type
         if (type instanceof ListType) {
-            return createProperty(((ListType) type).getType(), fieldName);
+            return Optional.of(new Property(fieldName, fieldName, resolvePrimitiveType(type)));
         }
-        //non null type - may contain all sub-types (wrapper)
+        //non-null type - may contain all sub-types (wrapper)
         if (type instanceof NonNullType) {
             Type rawType = ((NonNullType) type).getType();
 
             //validate only scalars are registered as properties
             if ((rawType instanceof TypeName) &&
                     (!objectTypes.contains(((TypeName) rawType).getName()))) {
-                return Property.MandatoryProperty.of(Optional.of(new Property(fieldName, fieldName, ((TypeName) rawType).getName())));
+                return of(Optional.of(new Property(fieldName, fieldName, resolvePrimitiveType(rawType))));
             }
 
             if (rawType instanceof ListType) {
-                return Property.MandatoryProperty.of(createProperty(((ListType) rawType).getType(), fieldName));
+                return of(Optional.of(new Property(fieldName, fieldName, resolvePrimitiveType(rawType))));
             }
         }
 
         return Optional.empty();
+    }
+
+    private String resolvePrimitiveType(Type type) {
+        if (TypeName.class.equals(type.getClass())) {
+            return find(((TypeName) type).getName())
+                    //string is default
+                    .orElse(Types.STRING).tlc();
+        } else if (ListType.class.equals(type.getClass())) {
+            return listOf(find(((TypeName) ((ListType) type).getType()).getName())
+                    //string is default
+                    .orElse(STRING).tlc())
+                    .tlc();
+        }
+        return STRING.tlc();
     }
 
     /**
@@ -229,7 +242,15 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
     }
 
     private PrimitiveType createPrimitive(GraphQLScalarType scalar) {
-        return new PrimitiveType(scalar.getName().toLowerCase(), scalar.getDefinition().getClass());
+        return new PrimitiveType(scalar.getName().toLowerCase(), resolvePrimitive(scalar));
+    }
+
+    private Class resolvePrimitive(GraphQLScalarType scalar) {
+        try {
+            return scalar.getCoercing().getClass().getDeclaredMethod("parseValue",Object.class).getReturnType();
+        } catch (NoSuchMethodException e) {
+            return Object.class;
+        }
     }
 
     /**
@@ -338,7 +359,7 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
                 .map(t -> new Tuple2<>(t._1, t._2.get()))
                 .map(t -> RelationshipType.Builder.get()
                         //get the directives for the relationships
-                        .withDirectives(formatDirective(getFieldByType(fieldDefinitions,t._1)))
+                        .withDirectives(formatDirective(getFieldByType(fieldDefinitions, t._1)))
                         //nested objects are directional by nature (nesting dictates the direction)
                         .withDirectional(true)
                         .withName(t._1)//field name

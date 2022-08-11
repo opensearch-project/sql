@@ -7,6 +7,7 @@ import javaslang.Tuple;
 import javaslang.Tuple2;
 import javaslang.collection.Stream;
 import org.opensearch.graph.GraphError;
+import org.opensearch.graph.ontology.PrimitiveType.ArrayOfPrimitives;
 
 import java.awt.geom.Point2D;
 import java.lang.reflect.Array;
@@ -52,18 +53,29 @@ public class Ontology {
         primitiveTypes = new HashSet<>();
         primitiveTypes.add(new PrimitiveType(ID.tlc(), String.class));
         primitiveTypes.add(new PrimitiveType(BOOLEAN.tlc(), Boolean.class));
+        primitiveTypes.add(new ArrayOfPrimitives(LIST_OF_BOOLEAN.tlc(), Boolean.class));
         primitiveTypes.add(new PrimitiveType(INT.tlc(), Integer.class));
+        primitiveTypes.add(new ArrayOfPrimitives(LIST_OF_INT.tlc(), Integer.class));
         primitiveTypes.add(new PrimitiveType(LONG.tlc(), Long.class));
+        primitiveTypes.add(new ArrayOfPrimitives(LIST_OF_LONG.tlc(), Long.class));
         primitiveTypes.add(new PrimitiveType(STRING.tlc(), String.class));
+        primitiveTypes.add(new ArrayOfPrimitives(LIST_OF_STRING.tlc(), String.class));
         primitiveTypes.add(new PrimitiveType(TEXT.tlc(), String.class));
         primitiveTypes.add(new PrimitiveType(FLOAT.tlc(), Double.class));
+        primitiveTypes.add(new ArrayOfPrimitives(LIST_OF_FLOAT.tlc(), Double.class));
         primitiveTypes.add(new PrimitiveType(TIME.tlc(), Long.class));
+        primitiveTypes.add(new ArrayOfPrimitives(LIST_OF_TIME.tlc(), Long.class));
         primitiveTypes.add(new PrimitiveType(DATE.tlc(), Date.class));
+        primitiveTypes.add(new ArrayOfPrimitives(LIST_OF_DATE.tlc(), Date.class));
         primitiveTypes.add(new PrimitiveType(DATETIME.tlc(), Date.class));
+        primitiveTypes.add(new ArrayOfPrimitives(LIST_OF_DATETIME.tlc(), Date.class));
         primitiveTypes.add(new PrimitiveType(IP.tlc(), String.class));
+        primitiveTypes.add(new ArrayOfPrimitives(LIST_OF_IP.tlc(), String.class));
         primitiveTypes.add(new PrimitiveType(GEOPOINT.tlc(), Point2D.class));
-        primitiveTypes.add(new PrimitiveType(ARRAY.tlc(), Array.class));
+        primitiveTypes.add(new ArrayOfPrimitives(LIST_OF_GEOPOINT.tlc(), Point2D.class));
         primitiveTypes.add(new PrimitiveType(JSON.tlc(), Map.class));
+        primitiveTypes.add(new ArrayOfPrimitives(LIST_OF_JSON.tlc(), Map.class));
+        primitiveTypes.add(new PrimitiveType(ARRAY.tlc(), Array.class));
     }
 
     //region Getters & Setters

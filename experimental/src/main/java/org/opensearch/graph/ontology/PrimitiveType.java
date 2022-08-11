@@ -3,6 +3,7 @@ package org.opensearch.graph.ontology;
 
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.Optional;
 
 public class PrimitiveType {
     private String type;
@@ -36,7 +37,7 @@ public class PrimitiveType {
     }
 
     /* Array of primitives */
-    public class ArrayOfPrimitives extends PrimitiveType {
+    public static class ArrayOfPrimitives extends PrimitiveType {
 
         public ArrayOfPrimitives(String type, Class javaType) {
             super(type, javaType);
@@ -47,7 +48,9 @@ public class PrimitiveType {
      * default primitive types
      */
     public enum Types {
-        ID, BOOLEAN, INT, LONG, STRING, TEXT, FLOAT, TIME, DATE, DATETIME, IP, GEOPOINT, ARRAY, JSON;
+        ID, BOOLEAN, LIST_OF_BOOLEAN, INT, LIST_OF_INT, LONG, LIST_OF_LONG, STRING, LIST_OF_STRING, TEXT, FLOAT,
+        LIST_OF_FLOAT, TIME, LIST_OF_TIME, DATE, LIST_OF_DATE, DATETIME, LIST_OF_DATETIME, IP, LIST_OF_IP,
+        GEOPOINT, LIST_OF_GEOPOINT, JSON, LIST_OF_JSON, ARRAY;
 
         /**
          * to lower case
@@ -60,6 +63,14 @@ public class PrimitiveType {
 
         public static boolean contains(String term) {
             return Arrays.stream(Types.values()).anyMatch(p -> p.tlc().equalsIgnoreCase(term));
+        }
+
+        public static Types listOf(String type) {
+            return find("LIST_OF_" + find(type).orElse(STRING)).orElse(LIST_OF_STRING);
+        }
+
+        public static Optional<Types> find(String term) {
+            return Arrays.stream(Types.values()).filter(p -> p.tlc().equalsIgnoreCase(term)).findAny();
         }
     }
 }

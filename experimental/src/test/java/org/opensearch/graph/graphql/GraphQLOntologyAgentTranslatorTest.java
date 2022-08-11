@@ -14,6 +14,7 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Arrays;
 
+import static org.opensearch.graph.ontology.PrimitiveType.Types.*;
 import static org.opensearch.graph.ontology.Property.equal;
 
 
@@ -59,10 +60,24 @@ public class GraphQLOntologyAgentTranslatorTest {
 
     @Test
     public void testSamplePropertiesTranslation() {
-        Assertions.assertTrue(equal(ontologyAccessor.property$("id"), new Property.MandatoryProperty(new Property("id", "id", "ID"))));
-        Assertions.assertTrue(equal(ontologyAccessor.property$("name"), new Property.MandatoryProperty(new Property("name", "name", "String"))));
-        Assertions.assertTrue(equal(ontologyAccessor.property$("aType"), new Property("aType", "aType", "String")));
-        Assertions.assertTrue(equal(ontologyAccessor.property$("version"), new Property("version", "version", "String")));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("id"),
+                new Property.MandatoryProperty(new Property("id", "id", ID.tlc()))));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("name"),
+                new Property.MandatoryProperty(new Property("name", "name", STRING.tlc()))));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("labels"),
+                new Property.MandatoryProperty(new Property("labels", "labels", JSON.tlc()))));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("tags"),
+                new Property.MandatoryProperty(new Property("tags", "tags", LIST_OF_STRING.tlc()))));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("aType"),
+                new Property("aType", "aType", STRING.tlc())));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("version"),
+                new Property("version", "version", STRING.tlc())));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("number"),
+                new Property("number", "number", LONG.tlc())));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("timestamp"),
+                new Property("timestamp", "timestamp", TIME.tlc())));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("location"),
+                new Property("location", "location", GEOPOINT.tlc())));
     }
 
     @Test
