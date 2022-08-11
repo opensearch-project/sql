@@ -1,5 +1,6 @@
 package org.opensearch.graph.graphql;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.schema.GraphQLSchema;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -28,7 +29,6 @@ public class GraphQLOntologyBaseTranslatorTest {
 
         ontology = transformer.transform(baseSchemaInput);
         ontologyAccessor = new Ontology.Accessor(ontology);
-        graphQLSchema = transformer.getGraphQLSchema();
         Assertions.assertNotNull(ontology);
     }
 
@@ -53,22 +53,9 @@ public class GraphQLOntologyBaseTranslatorTest {
 
     @Test
     public void testEntityTranslation() {
-
         Assertions.assertEquals(ontologyAccessor.entity$("BaseRecord").isAbstract(), true);
         Assertions.assertEquals(ontologyAccessor.entity$("BaseRecord").geteType(), "BaseRecord");
         Assertions.assertEquals(ontologyAccessor.entity$("BaseRecord").getProperties().size(), 5);
         Assertions.assertEquals(ontologyAccessor.entity$("BaseRecord").getMandatory().size(), 1);
-    }
-
-    @Test
-    public void testRelationsTranslation() {
-        Assertions.assertEquals(ontologyAccessor.relation$("group").getrType(), "group");
-        Assertions.assertEquals(ontologyAccessor.relation$("group").getePairs().size(), 1);
-        Assertions.assertEquals(ontologyAccessor.relation$("group").getePairs().get(0).geteTypeA(), "User");
-        Assertions.assertEquals(ontologyAccessor.relation$("group").getePairs().get(0).getSideAIdField(), "id");
-        Assertions.assertEquals(ontologyAccessor.relation$("group").getePairs().get(0).geteTypeB(), "Group");
-        Assertions.assertEquals(ontologyAccessor.relation$("group").getePairs().get(0).getSideBIdField(), "id");
-
-
     }
 }

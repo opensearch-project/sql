@@ -19,6 +19,7 @@ public interface BaseElement {
 
     List<String> getProperties();
 
+    List<DirectiveType> getDirectives();
 
     @JsonIgnore
     static String idFieldName(List<String> values) {

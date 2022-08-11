@@ -15,10 +15,11 @@ import static java.util.Collections.singletonList;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class EntityType implements BaseElement {
     //region Fields
-    private List<String> idField = singletonList(ID);
+    private List<String> idField = new ArrayList<>();
     private boolean isAbstract;
     private String eType;
     private String name;
+    private List<DirectiveType> directives = new ArrayList<>();
     private List<String> mandatory = new ArrayList<>();
     private List<String> properties = new ArrayList<>();
     private List<String> metadata = new ArrayList<>();
@@ -59,6 +60,15 @@ public class EntityType implements BaseElement {
 
     public void setAbstract(boolean anAbstract) {
         isAbstract = anAbstract;
+    }
+
+    public List<DirectiveType> getDirectives() {
+        return directives;
+    }
+
+    @JsonIgnore
+    public void directive(DirectiveType value) {
+        directives.add(value);
     }
 
     @JsonIgnore
@@ -105,6 +115,7 @@ public class EntityType implements BaseElement {
         entityType.idField = new ArrayList<>(this.idField);
         entityType.display = new ArrayList<>(this.display);
         entityType.parentType = new ArrayList<>(this.parentType);
+        entityType.directives = new ArrayList<>(this.directives);
         return entityType;
     }
 
@@ -146,7 +157,7 @@ public class EntityType implements BaseElement {
 
     @Override
     public String toString() {
-        return "EntityType [idField = " + idField + ",eType = " + eType + ",abstract = " + isAbstract + ", name = " + name + ", display = " + display + ", properties = " + properties + ", metadata = " + metadata + ", mandatory = " + mandatory + "]";
+        return "EntityType [idField = " + idField + ",eType = " + eType + ",abstract = " + isAbstract + ", name = " + name + ", display = " + display + ", properties = " + properties + ", metadata = " + metadata + ", mandatory = " + mandatory + ", directives = " + directives + "]";
     }
 
     @JsonIgnore
@@ -171,6 +182,7 @@ public class EntityType implements BaseElement {
                 name.equals(that.name) &&
                 properties.equals(that.properties) &&
                 Objects.equals(metadata, that.metadata) &&
+                Objects.equals(directives, that.directives) &&
                 display.equals(that.display);
     }
 
@@ -211,11 +223,14 @@ public class EntityType implements BaseElement {
         private List<String> metadata = new ArrayList<>();
         private List<String> display = new ArrayList<>();
         private List<String> parentType = new ArrayList<>();
+        private List<DirectiveType> directives = new ArrayList<>();
 
         private boolean isAbstract = false;
 
         private Builder() {
-            idField.add(ID);
+            // id field is no longer a default
+            //  - if no id field defined for root level entities -> an error should be thrown.
+            /* idField.add(ID); */
         }
 
 
@@ -295,6 +310,16 @@ public class EntityType implements BaseElement {
             this.isAbstract = isAbstract;
             return this;
         }
+        @JsonIgnore
+        public Builder withDirective(DirectiveType value) {
+            this.directives.add(value);
+            return this;
+        }
+        @JsonIgnore
+        public Builder withDirectives(Collection<DirectiveType> values) {
+            this.directives.addAll(values);
+            return this;
+        }
 
         public EntityType build() {
             EntityType entityType = new EntityType();
@@ -307,6 +332,7 @@ public class EntityType implements BaseElement {
             entityType.eType = this.eType;
             entityType.idField = this.idField;
             entityType.isAbstract = this.isAbstract;
+            entityType.directives.addAll(this.directives);
             return entityType;
         }
     }

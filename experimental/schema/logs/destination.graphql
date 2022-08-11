@@ -64,5 +64,5 @@ type Destination implements BaseRecord{
     #    Fields describing a location.
     geo:Geo
     #Fields to describe the user relevant to the event.
-    user:User @relation
+    user:User @relation(mappingType:"foreign")
 }

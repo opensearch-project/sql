@@ -87,7 +87,7 @@ type Service implements BaseRecord {
     version:String
 
     #Describes the origin service in case of an incoming request or event.
-    origin: Service @relation
+    origin: Service @relation(mappingType: "foreign")
     #Describes the target service in case of an outgoing request or event
-    target: Service @relation
+    target: Service @relation(mappingType: "foreign")
 }

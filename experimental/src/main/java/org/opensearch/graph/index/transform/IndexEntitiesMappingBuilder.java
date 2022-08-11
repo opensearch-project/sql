@@ -22,7 +22,7 @@ import static org.opensearch.graph.index.transform.OntologyIndexGenerator.IndexS
 import static org.opensearch.graph.index.transform.IndexMappingUtils.getDefaultSettings;
 import static org.opensearch.graph.index.transform.IndexMappingUtils.populateProperty;
 
-public class IndexEntitiesMappingBuilder implements TemplateMapping<EntityType,Entity> {
+public class IndexEntitiesMappingBuilder implements TemplateMapping<EntityType, Entity> {
     private IndexProvider indexProvider;
 
     public IndexEntitiesMappingBuilder(IndexProvider indexProvider) {
@@ -37,6 +37,10 @@ public class IndexEntitiesMappingBuilder implements TemplateMapping<EntityType,E
      */
     public Collection<PutIndexTemplateRequestBuilder> map(Ontology.Accessor ontology, Client client, Map<String, PutIndexTemplateRequestBuilder> requests) {
         StreamSupport.stream(ontology.entities().spliterator(), false)
+                //ignore abstract entities
+                .filter(e -> !e.isAbstract())
+                // ignor non top level entities (only top level element will appear in the index provider config file)
+                .filter(e->this.indexProvider.getEntity(e.getName()).isPresent())
                 .forEach(e -> {
                     String mapping = this.indexProvider.getEntity(e.getName()).orElseThrow(
                                     () -> new GraphError.GraphErrorException(new GraphError("Mapping generation exception", "No entity with name " + e + " found in ontology")))

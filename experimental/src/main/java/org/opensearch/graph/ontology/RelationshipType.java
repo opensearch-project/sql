@@ -110,6 +110,7 @@ public class RelationshipType implements BaseElement {
         relationshipType.mandatory = new ArrayList<>(this.mandatory);
         relationshipType.metadata = new ArrayList<>(this.metadata);
         relationshipType.idField = new ArrayList<>(this.idField);
+        relationshipType.directives = new ArrayList<>(this.directives);
         relationshipType.ePairs = this.ePairs.stream().map(EPair::clone).collect(Collectors.toList());
         return relationshipType;
     }
@@ -223,7 +224,7 @@ public class RelationshipType implements BaseElement {
     private String name;
     private boolean directional;
     private String dbRelationName;
-    private List<String> directives = new ArrayList<>();
+    private List<DirectiveType> directives = new ArrayList<>();
     private List<String> mandatory = new ArrayList<>();
     private List<EPair> ePairs;
     private List<String> properties;
@@ -235,7 +236,7 @@ public class RelationshipType implements BaseElement {
     }
 
     @JsonIgnore
-    public void directive(String value) {
+    public void directive(DirectiveType value) {
         directives.add(value);
     }
 
@@ -260,7 +261,7 @@ public class RelationshipType implements BaseElement {
     }
 
     @JsonIgnore
-    public List<String> getDirectives() {
+    public List<DirectiveType> getDirectives() {
         return directives;
     }
 
@@ -278,7 +279,7 @@ public class RelationshipType implements BaseElement {
         private List<String> properties = new ArrayList<>();
         private List<String> metatada = new ArrayList<>();
 
-        private List<String> directives = new ArrayList<>();
+        private List<DirectiveType> directives = new ArrayList<>();
 
         private Builder() {
             idField.add(ID);
@@ -293,8 +294,13 @@ public class RelationshipType implements BaseElement {
             return this;
         }
 
-        public Builder withDirective(String value) {
+        public Builder withDirective(DirectiveType value) {
             this.directives.add(value);
+            return this;
+        }
+
+        public Builder withDirectives(Collection<DirectiveType> values) {
+            this.directives.addAll(values);
             return this;
         }
 

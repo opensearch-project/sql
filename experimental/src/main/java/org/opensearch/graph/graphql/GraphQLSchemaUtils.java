@@ -4,14 +4,16 @@ import graphql.language.*;
 import graphql.schema.*;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import javaslang.Tuple2;
+import org.opensearch.graph.ontology.DirectiveType;
 
-import java.util.Arrays;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static graphql.Scalars.GraphQLID;
 import static graphql.Scalars.GraphQLString;
 import static graphql.schema.GraphQLTypeReference.typeRef;
+import static org.opensearch.graph.ontology.DirectiveType.Argument.of;
 
 public interface GraphQLSchemaUtils {
     String QUERY = "Query";
@@ -26,7 +28,25 @@ public interface GraphQLSchemaUtils {
     }
 
     static Optional<GraphQLFieldDefinition> getFieldByType(GraphQLObjectType object, FieldDefinition definition) {
-        return object.getFieldDefinitions().stream().filter(p -> p.getDefinition().isEqualTo(definition)).findAny();
+        return object.getFieldDefinitions().stream()
+                .filter(p -> p.getDefinition().isEqualTo(definition)).findAny();
+    }
+
+    static Optional<GraphQLFieldDefinition> getFieldByType(List<GraphQLFieldDefinition> fieldDefinitions, String type) {
+        return fieldDefinitions.stream()
+                .filter(p -> p.getDefinition().getName().equals(type))
+                .findAny();
+    }
+
+    static Collection<DirectiveType> formatDirective(Optional<? extends GraphQLDirectiveContainer> element) {
+        return (element.isEmpty() ? Collections.emptyList() :
+                element.get().getAppliedDirectives().stream()
+                        .map(d -> new DirectiveType(d.getName(),
+                                DirectiveType.DirectiveClasses.DATATYPE,
+                                d.getArguments().stream()
+                                        .map(arg -> of(arg.getName(), arg.getValue()))
+                                        .collect(Collectors.toList())))
+                        .collect(Collectors.toList()));
     }
 
     /**

@@ -3,9 +3,6 @@
   "directives": [],
   "entityTypes": [
     {
-      "idField": [
-        "id"
-      ],
       "eType": "BaseRecord",
       "name": "BaseRecord",
       "mandatory": [
@@ -21,39 +18,29 @@
       "abstract": true
     },
     {
-      "idField": [
-        "id"
-      ],
-      "eType": "Agent",
-      "name": "Agent",
-      "mandatory": [
-        "id",
-        "timestamp"
-      ],
-      "properties": [
-        "message",
-        "id",
-        "timestamp",
-        "ephemeralId",
-        "attributes",
-        "version",
-        "buildOriginal",
-        "labels",
-        "name",
-        "tags",
-        "aType"
-      ],
-      "parentType": [
-        "BaseRecord"
-      ],
-      "abstract": false
-    },
-    {
-      "idField": [
-        null
-      ],
       "eType": "AutonomousSystem",
       "name": "AutonomousSystem",
+      "directives": [
+        {
+          "type": "DATATYPE",
+          "name": "key",
+          "arguments": [
+            {
+              "name": "fields",
+              "value": [
+                "number"
+              ]
+            },
+            {
+              "name": "name",
+              "value": "number"
+            }
+          ]
+        }
+      ],
+      "mandatory": [
+        "number"
+      ],
       "properties": [
         "number",
         "organizationName"
@@ -61,9 +48,6 @@
       "abstract": false
     },
     {
-      "idField": [
-        null
-      ],
       "eType": "Geo",
       "name": "Geo",
       "properties": [
@@ -97,9 +81,6 @@
       "abstract": false
     },
     {
-      "idField": [
-        null
-      ],
       "eType": "StreamSet",
       "name": "StreamSet",
       "properties": [
@@ -115,6 +96,12 @@
       ],
       "eType": "User",
       "name": "User",
+      "directives": [
+        {
+          "type": "DATATYPE",
+          "name": "model"
+        }
+      ],
       "mandatory": [
         "id"
       ],
@@ -201,14 +188,14 @@
       "type": "String"
     },
     {
-      "pType": "id",
-      "name": "id",
-      "type": "ID"
-    },
-    {
       "pType": "timezone",
       "name": "timezone",
       "type": "String"
+    },
+    {
+      "pType": "id",
+      "name": "id",
+      "type": "ID"
     },
     {
       "pType": "namespace",
@@ -271,11 +258,6 @@
       "type": "String"
     },
     {
-      "pType": "aType",
-      "name": "aType",
-      "type": "String"
-    },
-    {
       "pType": "countryIsoCode",
       "name": "countryIsoCode",
       "type": "String"
@@ -286,48 +268,12 @@
       "type": "Time"
     },
     {
-      "pType": "ephemeralId",
-      "name": "ephemeralId",
-      "type": "String"
-    },
-    {
       "pType": "location",
       "name": "location",
       "type": "GeoPoint"
-    },
-    {
-      "pType": "version",
-      "name": "version",
-      "type": "String"
-    },
-    {
-      "pType": "buildOriginal",
-      "name": "buildOriginal",
-      "type": "String"
     }
   ],
   "enumeratedTypes": [
-    {
-      "eType": "AgentIdStatus",
-      "values": [
-        {
-          "val": 0,
-          "name": "verified"
-        },
-        {
-          "val": 1,
-          "name": "mismatch"
-        },
-        {
-          "val": 2,
-          "name": "missing"
-        },
-        {
-          "val": 3,
-          "name": "auth_metadata_missing"
-        }
-      ]
-    },
     {
       "eType": "StreamType",
       "values": [

@@ -29,79 +29,80 @@ public class IndexRelationsMappingBuilder implements TemplateMapping<Relationshi
     }
 
     public Collection<PutIndexTemplateRequestBuilder> map(Ontology.Accessor ontology, Client client, Map<String, PutIndexTemplateRequestBuilder> requests) {
-        ontology.relations().forEach(r -> {
-            String mapping = indexProvider.getRelation(r.getName()).orElseThrow(
-                            () -> new GraphError.GraphErrorException(new GraphError("Mapping generation exception", "No entity with name " + r + " found in ontology")))
-                    .getPartition();
+        ontology.relations()
+                .forEach(r -> {
+                    String mapping = indexProvider.getRelation(r.getName()).orElseThrow(
+                                    () -> new GraphError.GraphErrorException(new GraphError("Mapping generation exception", "No entity with name " + r + " found in ontology")))
+                            .getPartition();
 
-            Relation relation = indexProvider.getRelation(r.getName()).get();
-            MappingIndexType type = MappingIndexType.valueOf(mapping.toUpperCase());
-            switch (type) {
-                case NESTED:
-                    //this is implement in the populateNested() method
-                    break;
-                case UNIFIED:
-                    //common general index - unifies all entities under the same physical index
-                    relation.getProps().getValues().forEach(v -> {
-                        String label = r.getrType();
-                        String unifiedName = relation.getProps().getValues().isEmpty() ? label : relation.getProps().getValues().get(0);
-                        PutIndexTemplateRequestBuilder request = requests.computeIfAbsent(unifiedName, s -> new PutIndexTemplateRequestBuilder(client, PutIndexTemplateAction.INSTANCE, unifiedName));
+                    Relation relation = indexProvider.getRelation(r.getName()).get();
+                    MappingIndexType type = MappingIndexType.valueOf(mapping.toUpperCase());
+                    switch (type) {
+                        case NESTED:
+                            //this is implement in the populateNested() method
+                            break;
+                        case UNIFIED:
+                            //common general index - unifies all entities under the same physical index
+                            relation.getProps().getValues().forEach(v -> {
+                                String label = r.getrType();
+                                String unifiedName = relation.getProps().getValues().isEmpty() ? label : relation.getProps().getValues().get(0);
+                                PutIndexTemplateRequestBuilder request = requests.computeIfAbsent(unifiedName, s -> new PutIndexTemplateRequestBuilder(client, PutIndexTemplateAction.INSTANCE, unifiedName));
 
-                        List<String> patterns = new ArrayList<>(Arrays.asList(r.getName().toLowerCase(), label, r.getName(), String.format("%s%s", v, "*")));
-                        if (Objects.isNull(request.request().patterns())) {
-                            request.setPatterns(new ArrayList<>(patterns));
-                        } else {
-                            request.request().patterns().addAll(patterns);
-                        }
-                        //dedup patterns
-                        request.setPatterns(request.request().patterns().stream().distinct().collect(Collectors.toList()));
+                                List<String> patterns = new ArrayList<>(Arrays.asList(r.getName().toLowerCase(), label, r.getName(), String.format("%s%s", v, "*")));
+                                if (Objects.isNull(request.request().patterns())) {
+                                    request.setPatterns(new ArrayList<>(patterns));
+                                } else {
+                                    request.request().patterns().addAll(patterns);
+                                }
+                                //dedup patterns
+                                request.setPatterns(request.request().patterns().stream().distinct().collect(Collectors.toList()));
 
-                        //no specific index sort order since it contains multiple entity types -
-                        if (request.request().settings().isEmpty()) {
-                            request.setSettings(getDefaultSettings().build());
-                        }
-                        //create new mapping only when no prior entity set this mapping before
-                        if (request.request().mappings().isEmpty()) {
-                            request.addMapping(unifiedName, generateElementMapping(ontology, r, relation, unifiedName));
-                        } else {
-                            populateProperty(ontology, relation, request.getMappingsProperties(unifiedName), r);
-                        }
-                    });
-                    break;
-                case STATIC:
-                    //static index
-                    relation.getProps().getValues().forEach(v -> {
-                        String label = r.getrType();
-                        PutIndexTemplateRequestBuilder request = new PutIndexTemplateRequestBuilder(client, PutIndexTemplateAction.INSTANCE, label.toLowerCase());
-                        request.setPatterns(new ArrayList<>(Arrays.asList(r.getName().toLowerCase(), label, r.getName(), String.format("%s%s", v, "*"))))
-                                .setSettings(generateSettings(ontology, r, relation, label))
-                                .addMapping(label, generateElementMapping(ontology, r, relation, label));
-                        //dedup patterns -
-                        request.setPatterns(request.request().patterns().stream().distinct().collect(Collectors.toList()));
-                        //add response to list of responses
-                        requests.put(label.toLowerCase(), request);
-                    });
-                    break;
-                case TIME:
-                    String label = r.getrType();
-                    PutIndexTemplateRequestBuilder request = new PutIndexTemplateRequestBuilder(client, PutIndexTemplateAction.INSTANCE, relation.getType().toLowerCase());
-                    //todo - Only the time based partition will have a template suffix with astrix added to allow numbering and dates as part of the naming convention
-                    request.setPatterns(new ArrayList<>(Arrays.asList(r.getName().toLowerCase(), label, r.getName(), String.format(relation.getProps().getIndexFormat(), "*"))))
-                            .setSettings(generateSettings(ontology, r, relation, label))
-                            .addMapping(label, generateElementMapping(ontology, r, relation, label));
-                    //add response to list of responses
+                                //no specific index sort order since it contains multiple entity types -
+                                if (request.request().settings().isEmpty()) {
+                                    request.setSettings(getDefaultSettings().build());
+                                }
+                                //create new mapping only when no prior entity set this mapping before
+                                if (request.request().mappings().isEmpty()) {
+                                    request.addMapping(unifiedName, generateElementMapping(ontology, r, relation, unifiedName));
+                                } else {
+                                    populateProperty(ontology, relation, request.getMappingsProperties(unifiedName), r);
+                                }
+                            });
+                            break;
+                        case STATIC:
+                            //static index
+                            relation.getProps().getValues().forEach(v -> {
+                                String label = r.getrType();
+                                PutIndexTemplateRequestBuilder request = new PutIndexTemplateRequestBuilder(client, PutIndexTemplateAction.INSTANCE, label.toLowerCase());
+                                request.setPatterns(new ArrayList<>(Arrays.asList(r.getName().toLowerCase(), label, r.getName(), String.format("%s%s", v, "*"))))
+                                        .setSettings(generateSettings(ontology, r, relation, label))
+                                        .addMapping(label, generateElementMapping(ontology, r, relation, label));
+                                //dedup patterns -
+                                request.setPatterns(request.request().patterns().stream().distinct().collect(Collectors.toList()));
+                                //add response to list of responses
+                                requests.put(label.toLowerCase(), request);
+                            });
+                            break;
+                        case TIME:
+                            String label = r.getrType();
+                            PutIndexTemplateRequestBuilder request = new PutIndexTemplateRequestBuilder(client, PutIndexTemplateAction.INSTANCE, relation.getType().toLowerCase());
+                            //todo - Only the time based partition will have a template suffix with astrix added to allow numbering and dates as part of the naming convention
+                            request.setPatterns(new ArrayList<>(Arrays.asList(r.getName().toLowerCase(), label, r.getName(), String.format(relation.getProps().getIndexFormat(), "*"))))
+                                    .setSettings(generateSettings(ontology, r, relation, label))
+                                    .addMapping(label, generateElementMapping(ontology, r, relation, label));
+                            //add response to list of responses
 
-                    //dedup patterns -
-                    request.setPatterns(request.request().patterns().stream().distinct().collect(Collectors.toList()));
+                            //dedup patterns -
+                            request.setPatterns(request.request().patterns().stream().distinct().collect(Collectors.toList()));
 
-                    //add the request
-                    requests.put(relation.getType(), request);
-                    break;
-                default:
-                    String result = "No mapping found";
-                    break;
-            }
-        });
+                            //add the request
+                            requests.put(relation.getType(), request);
+                            break;
+                        default:
+                            String result = "No mapping found";
+                            break;
+                    }
+                });
         return requests.values();
     }
 

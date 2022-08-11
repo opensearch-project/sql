@@ -3,9 +3,12 @@ package org.opensearch.graph.index.schema;
 
 import com.fasterxml.jackson.annotation.*;
 import com.google.common.collect.ImmutableList;
+import org.opensearch.graph.ontology.EntityType;
 import org.opensearch.graph.ontology.Ontology;
+import org.opensearch.graph.ontology.RelationshipType;
 
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -118,25 +121,33 @@ public class IndexProvider {
 
     public static class Builder {
 
-        /**
-         * creates default index provider according to the given ontology - simple static index strategy
-         *
-         * @param ontology
-         * @return
-         */
         public static IndexProvider generate(Ontology ontology) {
+            return generate(ontology,e->true,r->true);
+        }
+
+            /**
+             * creates default index provider according to the given ontology - simple static index strategy
+             *
+             * @param ontology
+             * @return
+             */
+        public static IndexProvider generate(Ontology ontology, Predicate<EntityType> entityPredicate, Predicate<RelationshipType> relationPredicate) {
             IndexProvider provider = new IndexProvider();
             provider.ontology = ontology.getOnt();
             //generate entities
-            provider.entities = ontology.getEntityTypes().stream().map(e ->
+            provider.entities = ontology.getEntityTypes().stream()
+                    .filter(entityPredicate)
+                    .map(e ->
                             new Entity(e.getName(), MappingIndexType.STATIC.name(), PartitionType.INDEX.name(),
-                                    //E/S indices need to be lower cased
+                                    // indices need to be lower cased
                                     new Props(ImmutableList.of(e.getName().toLowerCase())), Collections.emptyList(), Collections.emptyMap()))
                     .collect(Collectors.toList());
             //generate relations
-            provider.relations = ontology.getRelationshipTypes().stream().map(e ->
+            provider.relations = ontology.getRelationshipTypes().stream()
+                    .filter(relationPredicate)
+                    .map(e ->
                             new Relation(e.getName(), MappingIndexType.STATIC.name(), PartitionType.INDEX.name(), false, Collections.emptyList(),
-                                    //E/S indices need to be lower cased
+                                    // indices need to be lower cased
                                     new Props(ImmutableList.of(e.getName().toLowerCase())), Collections.emptyList(), Collections.emptyMap()))
                     .collect(Collectors.toList());
 

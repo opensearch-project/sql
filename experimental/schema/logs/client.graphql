@@ -13,7 +13,7 @@
 #    is helpful to visualize the data in certain situations. If your context falls
 #    in that category, you should still ensure that source and destination are filled
 #    appropriately.
-type Client implements BaseRecord @model {
+type Client implements BaseRecord @model{
     #'Date/time when the event originated.
     #
     #        This is the date/time extracted from the event, typically representing when
@@ -47,7 +47,7 @@ type Client implements BaseRecord @model {
     #    Client network address
     address: String
     #
-    as:AutonomousSystem @relation
+    as:AutonomousSystem @relation(mappingType: "embedded")
     #    The domain name of the client system.
     domain:String
     #    Bytes sent from the client to the server
@@ -75,5 +75,5 @@ type Client implements BaseRecord @model {
     #        suffix, is the last part of the domain name.
     topLevelDomain:String
     #    Fields about the client side of a network connection, used with server
-    user:User @relation
+    user:User @relation(mappingType: "foreign")
 }

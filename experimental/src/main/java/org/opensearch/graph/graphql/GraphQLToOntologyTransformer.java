@@ -23,6 +23,7 @@ import java.util.stream.Stream;
 
 import static graphql.Scalars.GraphQLString;
 import static java.util.Collections.singletonList;
+import static org.opensearch.graph.graphql.GraphQLSchemaUtils.*;
 import static org.opensearch.graph.graphql.GraphQLSchemaUtils.filter;
 
 public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<String, Ontology>, GraphQLSchemaUtils {
@@ -284,7 +285,7 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
     private EntityType createEntity(GraphQLObjectType object, Ontology.OntologyBuilder context) {
         List<Property> properties = populateProperties(object.getFieldDefinitions());
         EntityType.Builder builder = EntityType.Builder.get();
-        builder.withIdField(GraphQLSchemaUtils.getIDFieldName(object).orElse(null));
+        getIDFieldName(object).ifPresent(builder::withIdField);
         builder.withName(object.getName()).withEType(object.getName());
         builder.withParentTypes(object.getInterfaces().stream()
                 .filter(p -> context.getEntityType(p.getName()).isPresent())
@@ -292,7 +293,8 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
         builder.withProperties(properties.stream().map(Property::getName).collect(Collectors.toList()));
         builder.withMandatory(properties.stream()
                 .filter(p -> p instanceof Property.MandatoryProperty).map(Property::getName).collect(Collectors.toList()));
-
+        //populate directives
+        builder.withDirectives(formatDirective(Optional.of(object)));
         return builder.build();
     }
 
@@ -302,7 +304,7 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
                 .filter(p -> !languageTypes.contains(p.getName()))
                 .filter(p -> !p.getName().startsWith("__"))
                 .map(ifc -> createRelation(ifc.getName(), ((GraphQLObjectType) ifc).getFieldDefinitions(), context))
-                .flatMap(p -> p.stream())
+                .flatMap(Collection::stream)
                 .collect(Collectors.groupingBy(RelationshipType::getrType));
 
         //merge e-pairs
@@ -335,8 +337,8 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
                 .filter(t -> t._2.isPresent())
                 .map(t -> new Tuple2<>(t._1, t._2.get()))
                 .map(t -> RelationshipType.Builder.get()
-                        //todo get the directives for the relationships
-                        // .withDirective("")
+                        //get the directives for the relationships
+                        .withDirectives(formatDirective(getFieldByType(fieldDefinitions,t._1)))
                         //nested objects are directional by nature (nesting dictates the direction)
                         .withDirectional(true)
                         .withName(t._1)//field name

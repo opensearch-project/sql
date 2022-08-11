@@ -8,7 +8,7 @@ scalar IP
 scalar GeoPoint
 
 directive @relation(mappingType: String) on FIELD_DEFINITION
-
+directive @key(fields: [String!]!, name: String) on OBJECT
 directive @model on OBJECT
 
 type Query {
@@ -89,9 +89,10 @@ type Geo {
 }
 
 #An autonomous system (AS) is a collection of connected Internet Protocol (IP) routing prefixes under the control of one or more network operators on behalf of a single administrative entity or domain that presents a common, clearly defined routing policy to the internet.
-type AutonomousSystem {
+type AutonomousSystem @key(fields: ["number"],name: "number" ){
+
     #    Unique number allocated to the autonomous system. The autonomous system number (ASN) uniquely identifies each network on the Internet.
-    number: Long
+    number: Long!
     #    organization name such as amazon.com
     organizationName:String
 }

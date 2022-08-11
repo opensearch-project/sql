@@ -446,7 +446,7 @@ type Event implements BaseRecord {
 # top most level structuring an incoming format of any type of log
 type LogRecord {
     #    The event's common characteristics
-    event: Event! @relation
+    event: Event! @relation(mappingType: "embedded")
     #    A list of top-level observations which describe 'things' that happened, where observed and reported
     observations: [BaseRecord] @relation(mappingType: "nested")
 }

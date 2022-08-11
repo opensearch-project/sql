@@ -4,6 +4,7 @@ import graphql.schema.GraphQLSchema;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.opensearch.graph.index.schema.IndexProvider;
 import org.opensearch.graph.ontology.EnumeratedType;
 import org.opensearch.graph.ontology.Ontology;
 import org.opensearch.graph.ontology.Property;
@@ -28,9 +29,22 @@ public class GraphQLOntologyAgentTranslatorTest {
         GraphQLToOntologyTransformer transformer = new GraphQLToOntologyTransformer();
 
         ontology = transformer.transform(baseSchemaInput, agentSchemaInput);
-        ontologyAccessor = new Ontology.Accessor(ontology);
-        graphQLSchema = transformer.getGraphQLSchema();
         Assertions.assertNotNull(ontology);
+        ontologyAccessor = new Ontology.Accessor(ontology);
+    }
+
+    /**
+     * test creation of an index provider using the predicate conditions for top level entity will be created an index
+     */
+    @Test
+    public void testIndexProviderBuilder() {
+        IndexProvider provider = IndexProvider.Builder.generate(ontology
+                , e -> e.getDirectives().stream().anyMatch(d -> d.getName().equals("model"))
+                , r -> r.getDirectives().stream()
+                        .anyMatch(d -> d.getName().equals("relation") && d.containsArgVal("foreign")));
+
+        Assertions.assertEquals(provider.getEntities().size(),1);
+        Assertions.assertEquals(provider.getRelations().size(),0);
     }
 
     @Test
@@ -53,10 +67,8 @@ public class GraphQLOntologyAgentTranslatorTest {
 
     @Test
     public void testAgentEntityTranslation() {
-
         Assertions.assertEquals(ontologyAccessor.entity$("Agent").geteType(), "Agent");
         Assertions.assertEquals(ontologyAccessor.entity$("Agent").getProperties().size(), 11);
         Assertions.assertEquals(ontologyAccessor.entity$("Agent").getMandatory().size(), 2);
-
     }
 }
