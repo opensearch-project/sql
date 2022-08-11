@@ -14,6 +14,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 
 public class HeadCommandIT extends PPLIntegTestCase {
@@ -61,6 +62,7 @@ public class HeadCommandIT extends PPLIntegTestCase {
         rows("Nanette", 28));
   }
 
+  @Ignore("Fix https://github.com/opensearch-project/sql/issues/703#issuecomment-1211422130")
   @Test
   public void testHeadWithNumberLargerThanQuerySizeLimit() throws IOException {
     setQuerySizeLimit(5);
@@ -104,6 +106,7 @@ public class HeadCommandIT extends PPLIntegTestCase {
         rows("Deidre", 33));
   }
 
+  @Ignore("Fix https://github.com/opensearch-project/sql/issues/703#issuecomment-1211422130")
   @Test
   public void testHeadWithLargeNumber() throws IOException {
     setQuerySizeLimit(5);
