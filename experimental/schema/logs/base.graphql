@@ -9,6 +9,8 @@ scalar GeoPoint
 
 directive @relation(mappingType: String) on FIELD_DEFINITION
 
+directive @model on OBJECT
+
 type Query {
     fetch(name : String) : [String]
 }
@@ -99,23 +101,4 @@ type Group {
     id:ID!
     #    Name of the directory the group is a member of
     domain:String
-}
-
-type User {
-    #    Unique identifier of the user.
-    id:ID!
-    #    Short name or login of the user
-    name:String
-    #    User full name
-    fullName:String
-    #   Name of the directory the user is a member of
-    domain:String
-    #    User email address
-    email:String
-    #  Array of user roles at the time of the event
-    roles:[String]
-    #    Unique user hash to correlate information for a user in anonymize form.
-    hash:String
-    #    the group in which the client is a member of
-    group:Group @relation(mappingType:"embedded")
 }

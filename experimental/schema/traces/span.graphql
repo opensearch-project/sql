@@ -47,7 +47,7 @@ type SpanContext {
 
 # reference https://opentelemetry.io/docs/reference/specification/overview/#spancontext
 # reference https://lightstep.com/opentelemetry/spans
-type Span {
+type Span @model{
     # the identification details of the span (trace & span id)
     id:SpanContext!
     # The context (reference) of this span's parent span. If this is a root span, then this field must be empty.

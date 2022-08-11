@@ -1,4 +1,5 @@
-type Cloud implements BaseRecord {
+# Fields related to the cloud or infrastructure the events are coming from.
+type Cloud implements BaseRecord @model{
     #'Date/time when the event originated.
     #
     #        This is the date/time extracted from the event, typically representing when

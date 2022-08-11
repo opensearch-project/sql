@@ -238,7 +238,7 @@ type Categorization {
 #    events include memory pressure measured on a host and device temperature. See
 #    the `event.kind` definition in this section for additional details about metric
 #    and state events.'
-type Event implements BaseRecord{
+type Event implements BaseRecord {
     #'Date/time when the event originated.
     #
     #        This is the date/time extracted from the event, typically representing when

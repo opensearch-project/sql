@@ -64,7 +64,7 @@ enum AggType {
 #  - TimeUnixNano is required, set to the end time of the aggregation
 #  - StartTimeUnixNano is optional, but strongly encouraged for DataPoints having an AggregationTemporality field, as discussed below.
 #
-type Metrics {
+type Metrics @model{
     name:String
     description:String
     # unit in which the metric value is reported. Follows the format

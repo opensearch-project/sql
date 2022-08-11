@@ -1,0 +1,354 @@
+{
+  "ont": "Generic",
+  "directives": [],
+  "entityTypes": [
+    {
+      "idField": [
+        "id"
+      ],
+      "eType": "BaseRecord",
+      "name": "BaseRecord",
+      "mandatory": [
+        "timestamp"
+      ],
+      "properties": [
+        "message",
+        "timestamp",
+        "attributes",
+        "labels",
+        "tags"
+      ],
+      "abstract": true
+    },
+    {
+      "idField": [
+        "id"
+      ],
+      "eType": "Agent",
+      "name": "Agent",
+      "mandatory": [
+        "id",
+        "timestamp"
+      ],
+      "properties": [
+        "message",
+        "id",
+        "timestamp",
+        "ephemeralId",
+        "attributes",
+        "version",
+        "buildOriginal",
+        "labels",
+        "name",
+        "tags",
+        "aType"
+      ],
+      "parentType": [
+        "BaseRecord"
+      ],
+      "abstract": false
+    },
+    {
+      "idField": [
+        null
+      ],
+      "eType": "AutonomousSystem",
+      "name": "AutonomousSystem",
+      "properties": [
+        "number",
+        "organizationName"
+      ],
+      "abstract": false
+    },
+    {
+      "idField": [
+        null
+      ],
+      "eType": "Geo",
+      "name": "Geo",
+      "properties": [
+        "countryIsoCode",
+        "timezone",
+        "regionIsoCode",
+        "countryName",
+        "location",
+        "postalCode",
+        "continentCode",
+        "name",
+        "regionName",
+        "continentName",
+        "cityName"
+      ],
+      "abstract": false
+    },
+    {
+      "idField": [
+        "id"
+      ],
+      "eType": "Group",
+      "name": "Group",
+      "mandatory": [
+        "id"
+      ],
+      "properties": [
+        "id",
+        "domain"
+      ],
+      "abstract": false
+    },
+    {
+      "idField": [
+        null
+      ],
+      "eType": "StreamSet",
+      "name": "StreamSet",
+      "properties": [
+        "streamType",
+        "namespace",
+        "dataset"
+      ],
+      "abstract": false
+    },
+    {
+      "idField": [
+        "id"
+      ],
+      "eType": "User",
+      "name": "User",
+      "mandatory": [
+        "id"
+      ],
+      "properties": [
+        "id",
+        "domain",
+        "fullName",
+        "hash",
+        "email",
+        "roles",
+        "name"
+      ],
+      "abstract": false
+    }
+  ],
+  "relationshipTypes": [
+    {
+      "idField": [
+        "id"
+      ],
+      "rType": "group",
+      "name": "group",
+      "directional": true,
+      "ePairs": [
+        {
+          "name": "User->Group",
+          "eTypeA": "User",
+          "sideAIdField": "id",
+          "eTypeB": "Group",
+          "sideBIdField": "id"
+        }
+      ]
+    }
+  ],
+  "properties": [
+    {
+      "pType": "regionIsoCode",
+      "name": "regionIsoCode",
+      "type": "String"
+    },
+    {
+      "pType": "hash",
+      "name": "hash",
+      "type": "String"
+    },
+    {
+      "pType": "roles",
+      "name": "roles",
+      "type": "String"
+    },
+    {
+      "pType": "postalCode",
+      "name": "postalCode",
+      "type": "String"
+    },
+    {
+      "pType": "organizationName",
+      "name": "organizationName",
+      "type": "String"
+    },
+    {
+      "pType": "continentCode",
+      "name": "continentCode",
+      "type": "String"
+    },
+    {
+      "pType": "regionName",
+      "name": "regionName",
+      "type": "String"
+    },
+    {
+      "pType": "continentName",
+      "name": "continentName",
+      "type": "String"
+    },
+    {
+      "pType": "number",
+      "name": "number",
+      "type": "Long"
+    },
+    {
+      "pType": "message",
+      "name": "message",
+      "type": "String"
+    },
+    {
+      "pType": "id",
+      "name": "id",
+      "type": "ID"
+    },
+    {
+      "pType": "timezone",
+      "name": "timezone",
+      "type": "String"
+    },
+    {
+      "pType": "namespace",
+      "name": "namespace",
+      "type": "String"
+    },
+    {
+      "pType": "dataset",
+      "name": "dataset",
+      "type": "String"
+    },
+    {
+      "pType": "tags",
+      "name": "tags",
+      "type": "String"
+    },
+    {
+      "pType": "cityName",
+      "name": "cityName",
+      "type": "String"
+    },
+    {
+      "pType": "streamType",
+      "name": "streamType",
+      "type": "StreamType"
+    },
+    {
+      "pType": "domain",
+      "name": "domain",
+      "type": "String"
+    },
+    {
+      "pType": "fullName",
+      "name": "fullName",
+      "type": "String"
+    },
+    {
+      "pType": "countryName",
+      "name": "countryName",
+      "type": "String"
+    },
+    {
+      "pType": "email",
+      "name": "email",
+      "type": "String"
+    },
+    {
+      "pType": "attributes",
+      "name": "attributes",
+      "type": "JSON"
+    },
+    {
+      "pType": "labels",
+      "name": "labels",
+      "type": "JSON"
+    },
+    {
+      "pType": "name",
+      "name": "name",
+      "type": "String"
+    },
+    {
+      "pType": "aType",
+      "name": "aType",
+      "type": "String"
+    },
+    {
+      "pType": "countryIsoCode",
+      "name": "countryIsoCode",
+      "type": "String"
+    },
+    {
+      "pType": "timestamp",
+      "name": "timestamp",
+      "type": "Time"
+    },
+    {
+      "pType": "ephemeralId",
+      "name": "ephemeralId",
+      "type": "String"
+    },
+    {
+      "pType": "location",
+      "name": "location",
+      "type": "GeoPoint"
+    },
+    {
+      "pType": "version",
+      "name": "version",
+      "type": "String"
+    },
+    {
+      "pType": "buildOriginal",
+      "name": "buildOriginal",
+      "type": "String"
+    }
+  ],
+  "enumeratedTypes": [
+    {
+      "eType": "AgentIdStatus",
+      "values": [
+        {
+          "val": 0,
+          "name": "verified"
+        },
+        {
+          "val": 1,
+          "name": "mismatch"
+        },
+        {
+          "val": 2,
+          "name": "missing"
+        },
+        {
+          "val": 3,
+          "name": "auth_metadata_missing"
+        }
+      ]
+    },
+    {
+      "eType": "StreamType",
+      "values": [
+        {
+          "val": 0,
+          "name": "logs"
+        },
+        {
+          "val": 1,
+          "name": "metrics"
+        },
+        {
+          "val": 2,
+          "name": "traces"
+        },
+        {
+          "val": 3,
+          "name": "synthetics"
+        }
+      ]
+    }
+  ],
+  "compositeTypes": []
+}

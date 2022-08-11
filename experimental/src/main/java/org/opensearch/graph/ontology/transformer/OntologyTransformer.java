@@ -11,8 +11,7 @@ public class OntologyTransformer {
     private List<TransformerEntityType> entityTypes;
     private List<TransformerRelationType> relationTypes;
 
-    public OntologyTransformer() {
-    }
+    public OntologyTransformer() {}
 
     public OntologyTransformer(String ont, List<TransformerEntityType> entityTypes, List<TransformerRelationType> relationTypes) {
         this.ont = ont;
