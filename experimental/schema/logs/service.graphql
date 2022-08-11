@@ -2,7 +2,7 @@
 #    was collected.
 #
 #    These fields help you find and correlate logs for a specific service and version.'
-type Service implements BaseRecord {
+type Service implements BaseRecord,Endpoint {
     #'Date/time when the event originated.
     #
     #        This is the date/time extracted from the event, typically representing when
@@ -32,6 +32,7 @@ type Service implements BaseRecord {
     tags: [String]
     # Key-Value pairs representing vendor specific properties
     attributes: JSON
+    description:String
 
     #    Unique identifier of the running service. If the service is comprised of many nodes, the service.id should be the same for all nodes.
     #

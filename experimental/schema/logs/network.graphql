@@ -15,7 +15,7 @@ type Vlan {
     name:String
 }
 
-type Network implements BaseRecord {
+type Network implements BaseRecord,Networking {
     #'Date/time when the event originated.
     #
     #        This is the date/time extracted from the event, typically representing when
@@ -85,4 +85,5 @@ type Network implements BaseRecord {
     vlan:Vlan @relation(mappingType: "embedded")
     #Fields to describe observed VLAN information. - flattened inner.vlan
     innerVlan:Vlan @relation(mappingType: "embedded")
+    description:String
 }

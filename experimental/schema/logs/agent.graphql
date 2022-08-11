@@ -11,7 +11,7 @@ enum AgentIdStatus {
 #    Examples include Beats. Agents may also run on observers. ECS agent.* fields shall
 #    be populated with details of the agent running on the host or observer where the
 #    event happened or the measurement was taken.'
-type Agent implements BaseRecord @model {
+type Agent implements BaseRecord,Endpoint @model {
     #'Date/time when the event originated.
     #
     #        This is the date/time extracted from the event, typically representing when
@@ -52,6 +52,8 @@ type Agent implements BaseRecord @model {
     #        two Filebeat instances are running on the same host but a human readable separation
     #        is needed on which Filebeat instance data is coming from.'
     name :String
+    description:String
+
     #    'Type of the agent.
     #
     #        The agent type always stays the same and should be given by the agent used.

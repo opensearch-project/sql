@@ -1,4 +1,4 @@
-type Process implements BaseRecord {
+type Process implements BaseRecord,Endpoint {
     #'Date/time when the event originated.
     #
     #        This is the date/time extracted from the event, typically representing when
@@ -28,6 +28,7 @@ type Process implements BaseRecord {
     tags: [String]
     # Key-Value pairs representing vendor specific properties
     attributes: JSON
+    description:String
 
     # TODO - add fields
 }

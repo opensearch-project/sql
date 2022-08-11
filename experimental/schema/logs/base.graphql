@@ -65,7 +65,7 @@ type StreamSet {
     namespace:String
     #    The field can contain anything that makes sense to signify the source of the data.
     # Examples include nginx.access, prometheus, endpoint etc. For data streams that otherwise fit, but that do not have dataset set we use the value "generic" for the dataset value.
-    #    event.dataset should have the same value as data_stream.dataset.
+    #    event.dataset should have the same value as data_astream.dataset.
     dataset:String
 }
 

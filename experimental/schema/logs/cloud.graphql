@@ -1,5 +1,5 @@
 # Fields related to the cloud or infrastructure the events are coming from.
-type Cloud implements BaseRecord @model{
+type Cloud implements BaseRecord,Endpoint @model{
     #'Date/time when the event originated.
     #
     #        This is the date/time extracted from the event, typically representing when
@@ -62,6 +62,8 @@ type Cloud implements BaseRecord @model{
     #
     #Examples: app engine, app service, cloud run, fargate, lambda.
     serviceName:String
+
+    description:String
 
     #Provides the cloud information of the origin entity in case of an incoming request or event.
     origin:Cloud @relation(mappingType: "foreign")
