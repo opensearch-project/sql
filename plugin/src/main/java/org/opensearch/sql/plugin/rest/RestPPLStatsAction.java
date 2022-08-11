@@ -22,9 +22,9 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
+import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.legacy.executor.format.ErrorMessageFactory;
 import org.opensearch.sql.legacy.metrics.Metrics;
-import org.opensearch.sql.legacy.utils.LogUtils;
 
 /**
  * PPL Node level status.
@@ -67,7 +67,7 @@ public class RestPPLStatsAction extends BaseRestHandler {
   @Override
   protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
 
-    LogUtils.addRequestId();
+    QueryContext.addRequestId();
 
     try {
       return channel -> channel.sendResponse(new BytesRestResponse(RestStatus.OK,

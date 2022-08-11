@@ -16,7 +16,7 @@ import org.opensearch.sql.analysis.AnalysisContext;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
-import org.opensearch.sql.common.utils.LogUtils;
+import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.expression.DSL;
@@ -84,7 +84,8 @@ public class PPLService {
     UnresolvedPlan ast = cst.accept(
         new AstBuilder(new AstExpressionBuilder(), request.getRequest()));
 
-    LOG.info("[{}] Incoming request {}", LogUtils.getRequestId(), anonymizer.anonymizeData(ast));
+    LOG.info("[{}] Incoming request {}", QueryContext.getRequestId(),
+        anonymizer.anonymizeData(ast));
 
     // 2.Analyze abstract syntax to generate logical plan
     LogicalPlan logicalPlan = analyzer.analyze(UnresolvedPlanHelper.addSelectAll(ast),

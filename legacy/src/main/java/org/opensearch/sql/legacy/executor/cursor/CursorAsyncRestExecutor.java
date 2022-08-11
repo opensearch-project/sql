@@ -17,11 +17,11 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestStatus;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.query.join.BackOffRetryStrategy;
-import org.opensearch.sql.legacy.utils.LogUtils;
 import org.opensearch.threadpool.ThreadPool;
 
 public class CursorAsyncRestExecutor {
@@ -57,20 +57,20 @@ public class CursorAsyncRestExecutor {
                 doExecuteWithTimeMeasured(client, params, channel);
             } catch (IOException e) {
                 Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-                LOG.warn("[{}] [MCB] async task got an IO/SQL exception: {}", LogUtils.getRequestId(),
+                LOG.warn("[{}] [MCB] async task got an IO/SQL exception: {}", QueryContext.getRequestId(),
                         e.getMessage());
                 e.printStackTrace();
                 channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
             } catch (IllegalStateException e) {
                 Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-                LOG.warn("[{}] [MCB] async task got a runtime exception: {}", LogUtils.getRequestId(),
+                LOG.warn("[{}] [MCB] async task got a runtime exception: {}", QueryContext.getRequestId(),
                         e.getMessage());
                 e.printStackTrace();
                 channel.sendResponse(new BytesRestResponse(RestStatus.INSUFFICIENT_STORAGE,
                         "Memory circuit is broken."));
             } catch (Throwable t) {
                 Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-                LOG.warn("[{}] [MCB] async task got an unknown throwable: {}", LogUtils.getRequestId(),
+                LOG.warn("[{}] [MCB] async task got an unknown throwable: {}", QueryContext.getRequestId(),
                         t.getMessage());
                 t.printStackTrace();
                 channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR,
@@ -82,7 +82,7 @@ public class CursorAsyncRestExecutor {
 
         // Preserve context of calling thread to ensure headers of requests are forwarded when running blocking actions
         threadPool.schedule(
-                LogUtils.withCurrentContext(runnable),
+                QueryContext.withCurrentContext(runnable),
                 new TimeValue(0L),
                 SQL_WORKER_THREAD_POOL_NAME
         );
@@ -101,7 +101,7 @@ public class CursorAsyncRestExecutor {
             Duration elapsed = Duration.ofNanos(System.nanoTime() - startTime);
             int slowLogThreshold = LocalClusterState.state().getSettingValue(Settings.Key.SQL_SLOWLOG);
             if (elapsed.getSeconds() >= slowLogThreshold) {
-                LOG.warn("[{}] Slow query: elapsed={} (ms)", LogUtils.getRequestId(), elapsed.toMillis());
+                LOG.warn("[{}] Slow query: elapsed={} (ms)", QueryContext.getRequestId(), elapsed.toMillis());
             }
         }
     }
