@@ -15,6 +15,7 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Arrays;
 
+import static org.opensearch.graph.ontology.PrimitiveType.Types.*;
 import static org.opensearch.graph.ontology.Property.equal;
 
 
@@ -38,11 +39,11 @@ public class GraphQLOntologyUserTranslatorTest {
 
     @Test
     public void testSamplePropertiesTranslation() {
-        Assertions.assertTrue(equal(ontologyAccessor.property$("id"), new Property.MandatoryProperty(new Property("id", "id", "ID"))));
-        Assertions.assertTrue(equal(ontologyAccessor.property$("name"), new Property.MandatoryProperty(new Property("name", "name", "String"))));
-        Assertions.assertTrue(equal(ontologyAccessor.property$("email"), new Property("email", "email", "String")));
-        Assertions.assertTrue(equal(ontologyAccessor.property$("fullName"), new Property("fullName", "fullName", "String")));
-        Assertions.assertTrue(equal(ontologyAccessor.property$("roles"), new Property("roles", "roles", "String")));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("id"), new Property.MandatoryProperty(new Property("id", "id", ID.tlc()))));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("name"), new Property.MandatoryProperty(new Property("name", "name", STRING.tlc()))));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("email"), new Property("email", "email", STRING.tlc())));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("fullName"), new Property("fullName", "fullName", STRING.tlc())));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("roles"), new Property("roles", "roles", LIST_OF_STRING.tlc())));
     }
 
     @Test

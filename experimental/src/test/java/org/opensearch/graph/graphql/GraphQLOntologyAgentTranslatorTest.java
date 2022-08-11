@@ -86,4 +86,6 @@ public class GraphQLOntologyAgentTranslatorTest {
         Assertions.assertEquals(ontologyAccessor.entity$("Agent").getProperties().size(), 11);
         Assertions.assertEquals(ontologyAccessor.entity$("Agent").getMandatory().size(), 2);
     }
+
+
 }

@@ -14,6 +14,7 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Arrays;
 
+import static org.opensearch.graph.ontology.PrimitiveType.Types.*;
 import static org.opensearch.graph.ontology.Property.equal;
 
 
@@ -44,11 +45,11 @@ public class GraphQLOntologyBaseTranslatorTest {
 
     @Test
     public void testSamplePropertiesTranslation() {
-        Assertions.assertTrue(equal(ontologyAccessor.property$("id"), new Property.MandatoryProperty(new Property("id", "id", "ID"))));
-        Assertions.assertTrue(equal(ontologyAccessor.property$("name"), new Property.MandatoryProperty(new Property("name", "name", "String"))));
-        Assertions.assertTrue(equal(ontologyAccessor.property$("timestamp"), new Property("timestamp", "timestamp", "Time")));
-        Assertions.assertTrue(equal(ontologyAccessor.property$("labels"), new Property("labels", "labels", "JSON")));
-        Assertions.assertTrue(equal(ontologyAccessor.property$("location"), new Property("location", "location", "GeoPoint")));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("id"), new Property.MandatoryProperty(new Property("id", "id", ID.tlc()))));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("name"), new Property.MandatoryProperty(new Property("name", "name", STRING.tlc()))));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("timestamp"), new Property("timestamp", "timestamp", TIME.tlc())));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("labels"), new Property("labels", "labels", JSON.tlc())));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("location"), new Property("location", "location", GEOPOINT.tlc())));
     }
 
     @Test
