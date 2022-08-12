@@ -17,11 +17,13 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CompareExp
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ConvertedDataTypeContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CountAllFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DataTypeFunctionCallContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DatetimeConstantLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DistinctCountFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldExpressionContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FunctionArgsContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsQualifiedNameContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsWildcardQualifiedNameContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.InExprContext;
@@ -216,14 +218,8 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitBooleanFunctionCall(BooleanFunctionCallContext ctx) {
     final String functionName = ctx.conditionFunctionBase().getText();
-
-    return new Function(
-        FUNCTION_NAME_MAPPING.getOrDefault(functionName, functionName),
-        ctx.functionArgs()
-            .functionArg()
-            .stream()
-            .map(this::visitFunctionArg)
-            .collect(Collectors.toList()));
+    return visitFunction(FUNCTION_NAME_MAPPING.getOrDefault(functionName, functionName),
+        ctx.functionArgs());
   }
 
   /**
@@ -231,13 +227,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
    */
   @Override
   public UnresolvedExpression visitEvalFunctionCall(EvalFunctionCallContext ctx) {
-    return new Function(
-        ctx.evalFunctionName().getText(),
-        ctx.functionArgs()
-            .functionArg()
-            .stream()
-            .map(this::visitFunctionArg)
-            .collect(Collectors.toList()));
+    return visitFunction(ctx.evalFunctionName().getText(), ctx.functionArgs());
   }
 
   /**
@@ -251,6 +241,23 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitConvertedDataType(ConvertedDataTypeContext ctx) {
     return AstDSL.stringLiteral(ctx.getText());
+  }
+
+  @Override
+  public UnresolvedExpression visitDatetimeConstantLiteral(DatetimeConstantLiteralContext ctx) {
+    return visitFunction(ctx.getText(), null);
+  }
+
+  private Function visitFunction(String functionName, FunctionArgsContext args) {
+    return new Function(
+        functionName,
+        args == null
+        ? Collections.emptyList()
+        : args.functionArg()
+            .stream()
+            .map(this::visitFunctionArg)
+            .collect(Collectors.toList())
+    );
   }
 
   @Override

@@ -225,6 +225,7 @@ datetimeLiteral
     : dateLiteral
     | timeLiteral
     | timestampLiteral
+    | datetimeConstantLiteral
     ;
 
 dateLiteral
@@ -237,6 +238,11 @@ timeLiteral
 
 timestampLiteral
     : TIMESTAMP timestamp=stringLiteral
+    ;
+
+// Actually, these constants are shortcuts to the corresponding functions
+datetimeConstantLiteral
+    : CURRENT_DATE | CURRENT_TIME | CURRENT_TIMESTAMP | LOCALTIME | LOCALTIMESTAMP | UTC_TIMESTAMP | UTC_DATE | UTC_TIME
     ;
 
 intervalLiteral
@@ -385,7 +391,9 @@ trigonometricFunctionName
 dateTimeFunctionName
     : ADDDATE | DATE | DATE_ADD | DATE_SUB | DAY | DAYNAME | DAYOFMONTH | DAYOFWEEK | DAYOFYEAR | FROM_DAYS
     | HOUR | MICROSECOND | MINUTE | MONTH | MONTHNAME | QUARTER | SECOND | SUBDATE | TIME | TIME_TO_SEC
-    | TIMESTAMP | TO_DAYS | YEAR | WEEK | DATE_FORMAT | MAKETIME | MAKEDATE
+    | TIMESTAMP | TO_DAYS | YEAR | WEEK | DATE_FORMAT | NOW | CURDATE | CURRENT_DATE | CURTIME | CURRENT_TIME
+    | LOCALTIME | CURRENT_TIMESTAMP | LOCALTIMESTAMP | SYSDATE | UTC_TIMESTAMP | UTC_DATE | UTC_TIME
+    | MAKETIME | MAKEDATE
     ;
 
 textFunctionName

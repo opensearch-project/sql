@@ -552,9 +552,210 @@ NOW
 Description
 >>>>>>>>>>>
 
+Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss.nnnnnn' format. The value is expressed in the cluster time zone.
+`NOW()` returns a constant time that indicates the time at which the statement began to execute. This differs from the behavior for `SYSDATE() <#sysdate>`_, which returns the exact time at which it executes.
+If the argument is given, it specifies a fractional seconds precision from 0 to 6, the return value includes a fractional seconds part of that many digits.
+
+Argument type: (optional) INTEGER
+
+Return type: DATETIME
+
 Specifications:
 
-1. NOW() -> DATE
+1. NOW() -> DATETIME
+2. NOW(INTEGER) -> DATETIME
+
+Example::
+
+    > source=people | eval `NOW()` = NOW(), `NOW(0)` = NOW(0) | fields `NOW()`, `NOW(0)`
+    fetched rows / total rows = 1/1
+    +----------------------------+---------------------+
+    | NOW()                      | NOW(0)              |
+    |----------------------------+---------------------|
+    | 2022-08-02 15:39:05.173069 | 2022-08-02 15:39:05 |
+    +----------------------------+---------------------+
+
+
+CURRENT_TIMESTAMP
+-----------------
+
+Description
+>>>>>>>>>>>
+
+`CURRENT_TIMESTAMP` and `CURRENT_TIMESTAMP()` are synonyms for `NOW() <#now>`_.
+
+Example::
+
+    > source=people | eval `CURRENT_TIMESTAMP()` = CURRENT_TIMESTAMP(), `CURRENT_TIMESTAMP(0)` = CURRENT_TIMESTAMP(0), `CURRENT_TIMESTAMP` = CURRENT_TIMESTAMP | fields `CURRENT_TIMESTAMP()`, `CURRENT_TIMESTAMP(0)`, `CURRENT_TIMESTAMP`
+    fetched rows / total rows = 1/1
+    +----------------------------+------------------------+----------------------------+
+    | CURRENT_TIMESTAMP()        | CURRENT_TIMESTAMP(0)   | CURRENT_TIMESTAMP          |
+    |----------------------------+------------------------+----------------------------|
+    | 2022-08-02 15:54:19.209361 | 2022-08-02 15:54:19    | 2022-08-02 15:54:19.209361 |
+    +----------------------------+------------------------+----------------------------+
+
+
+LOCALTIMESTAMP
+--------------
+
+Description
+>>>>>>>>>>>
+
+`LOCALTIMESTAMP` and `LOCALTIMESTAMP()` are synonyms for `NOW() <#now>`_.
+
+Example::
+
+    > source=people | eval `LOCALTIMESTAMP()` = LOCALTIMESTAMP(), `LOCALTIMESTAMP(0)` = LOCALTIMESTAMP(0), `LOCALTIMESTAMP` = LOCALTIMESTAMP | fields `LOCALTIMESTAMP()`, `LOCALTIMESTAMP(0)`, `LOCALTIMESTAMP`
+    fetched rows / total rows = 1/1
+    +----------------------------+---------------------+----------------------------+
+    | LOCALTIMESTAMP()           | LOCALTIMESTAMP(0)   | LOCALTIMESTAMP             |
+    |----------------------------+---------------------+----------------------------|
+    | 2022-08-02 15:54:19.209361 | 2022-08-02 15:54:19 | 2022-08-02 15:54:19.209361 |
+    +----------------------------+---------------------+----------------------------+
+
+
+LOCALTIME
+---------
+
+Description
+>>>>>>>>>>>
+
+`LOCALTIME` and `LOCALTIME()` are synonyms for `NOW() <#now>`_.
+
+Example::
+
+    > source=people | eval `LOCALTIME()` = LOCALTIME(), `LOCALTIME(0)` = LOCALTIME(0), `LOCALTIME` = LOCALTIME | fields `LOCALTIME()`, `LOCALTIME(0)`, `LOCALTIME`
+    fetched rows / total rows = 1/1
+    +----------------------------+---------------------+----------------------------+
+    | LOCALTIME()                | LOCALTIME(0)        | LOCALTIME                  |
+    |----------------------------+---------------------+----------------------------|
+    | 2022-08-02 15:54:19.209361 | 2022-08-02 15:54:19 | 2022-08-02 15:54:19.209361 |
+    +----------------------------+---------------------+----------------------------+
+
+
+SYSDATE
+-------
+
+Description
+>>>>>>>>>>>
+
+Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss.nnnnnn'.
+SYSDATE() returns the time at which it executes. This differs from the behavior for `NOW() <#now>`_, which returns a constant time that indicates the time at which the statement began to execute.
+If the argument is given, it specifies a fractional seconds precision from 0 to 6, the return value includes a fractional seconds part of that many digits.
+
+Argument type: (optional) INTEGER
+
+Return type: DATETIME
+
+Specifications:
+
+1. SYSDATE() -> DATETIME
+2. SYSDATE(INTEGER) -> DATETIME
+
+Example::
+
+    > source=people | eval `SYSDATE()` = SYSDATE(), `SYSDATE(0)` = SYSDATE(0) | fields `SYSDATE()`, `SYSDATE(0)`
+    fetched rows / total rows = 1/1
+    +----------------------------+---------------------+
+    | SYSDATE()                  | SYSDATE(0)          |
+    |----------------------------+---------------------|
+    | 2022-08-02 15:39:05.173069 | 2022-08-02 15:39:05 |
+    +----------------------------+---------------------+
+
+
+CURTIME
+-------
+
+Description
+>>>>>>>>>>>
+
+Returns the current time as a value in 'hh:mm:ss.nnnnnn'.
+CURTIME() returns the time at which it executes as `SYSDATE() <#sysdate>`_ does.
+If the argument is given, it specifies a fractional seconds precision from 0 to 6, the return value includes a fractional seconds part of that many digits.
+
+Argument type: (optional) INTEGER
+
+Return type: TIME
+
+Specifications:
+
+1. CURTIME() -> TIME
+2. CURTIME(INTEGER) -> TIME
+
+Example::
+
+    > source=people | eval `CURTIME()` = CURTIME(), `CURTIME(0)` = CURTIME(0) | fields `CURTIME()`, `CURTIME(0)`
+    fetched rows / total rows = 1/1
+    +-----------------+--------------+
+    | CURTIME()       | CURTIME(0)   |
+    |-----------------+--------------|
+    | 15:39:05.173069 | 15:39:05     |
+    +-----------------+--------------+
+
+
+CURRENT_TIME
+------------
+
+Description
+>>>>>>>>>>>
+
+`CURRENT_TIME` and `CURRENT_TIME()` are synonyms for `CURTIME() <#curtime>`_.
+
+Example::
+
+    > source=people | eval `CURRENT_TIME()` = CURRENT_TIME(), `CURRENT_TIME(0)` = CURRENT_TIME(0), `CURRENT_TIME` = CURRENT_TIME | fields `CURRENT_TIME()`, `CURRENT_TIME(0)`, `CURRENT_TIME`
+    fetched rows / total rows = 1/1
+    +------------------+-------------------+-----------------+
+    | CURRENT_TIME()   | CURRENT_TIME(0)   | CURRENT_TIME    |
+    |------------------+-------------------+-----------------|
+    | 15:39:05.173069  | 15:39:05          | 15:39:05.173069 |
+    +------------------+-------------------+-----------------+
+
+
+CURDATE
+-------
+
+Description
+>>>>>>>>>>>
+
+Returns the current time as a value in 'YYYY-MM-DD'.
+CURDATE() returns the time at which it executes as `SYSDATE() <#sysdate>`_ does.
+If the argument is given, it specifies a fractional seconds precision from 0 to 6, the return value includes a fractional seconds part of that many digits.
+
+Return type: DATE
+
+Specifications:
+
+CURDATE() -> DATE
+
+Example::
+
+    > source=people | eval `CURDATE()` = CURDATE() | fields `CURDATE()`
+    fetched rows / total rows = 1/1
+    +-------------+
+    | CURDATE()   |
+    |-------------|
+    | 2022-08-02  |
+    +-------------+
+
+
+CURRENT_DATE
+------------
+
+Description
+>>>>>>>>>>>
+
+`CURRENT_DATE` and `CURRENT_DATE()` are synonyms for `CURDATE() <#curdate>`_.
+
+Example::
+
+    > source=people | eval `CURRENT_DATE()` = CURRENT_DATE(), `CURRENT_DATE` = CURRENT_DATE | fields `CURRENT_DATE()`, `CURRENT_DATE`
+    fetched rows / total rows = 1/1
+    +------------------+----------------+
+    | CURRENT_DATE()   | CURRENT_DATE   |
+    |------------------+----------------|
+    | 2022-08-02       | 2022-08-02     |
+    +------------------+----------------+
 
 
 QUARTER

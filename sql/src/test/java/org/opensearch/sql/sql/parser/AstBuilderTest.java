@@ -32,8 +32,13 @@ import static org.opensearch.sql.utils.SystemIndexUtils.TABLE_INFO;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableList;
+import java.util.List;
+import java.util.stream.Stream;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -669,6 +674,58 @@ class AstBuilderTest {
         buildAST("SELECT name FROM test LIMIT 5, 10"));
   }
 
+  private static Stream<Arguments> nowLikeFunctionsData() {
+    return Stream.of(
+        Arguments.of("now", true, false),
+        Arguments.of("current_timestamp", true, true),
+        Arguments.of("localtimestamp", true, true),
+        Arguments.of("localtime", true, true),
+        Arguments.of("sysdate", true, false),
+        Arguments.of("curtime", true, false),
+        Arguments.of("current_time", true, true),
+        Arguments.of("curdate", false, false),
+        Arguments.of("current_date", false, true)
+    );
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("nowLikeFunctionsData")
+  public void test_now_like_functions(String name, Boolean hasFsp, Boolean hasShortcut) {
+    for (var call : hasShortcut ? List.of(name, name + "()") : List.of(name + "()")) {
+      assertEquals(
+          project(
+              values(emptyList()),
+              alias(call, function(name))
+          ),
+          buildAST("SELECT " + call)
+      );
+
+      assertEquals(
+          project(
+              filter(
+                  relation("test"),
+                  function(
+                      "=",
+                      qualifiedName("data"),
+                      function(name))
+              ),
+              AllFields.of()
+          ),
+          buildAST("SELECT * FROM test WHERE data = " + call)
+      );
+    }
+
+    if (hasFsp) {
+      assertEquals(
+          project(
+              values(emptyList()),
+              alias(name + "(0)", function(name, intLiteral(0)))
+          ),
+          buildAST("SELECT " + name + "(0)")
+      );
+    }
+  }
+
   @Test
   public void can_build_qualified_name_highlight() {
     assertEquals(
@@ -691,5 +748,4 @@ class AstBuilderTest {
     ParseTree parseTree = parser.parse(query);
     return parseTree.accept(new AstBuilder(query));
   }
-
 }

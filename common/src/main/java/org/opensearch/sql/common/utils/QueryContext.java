@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.common.utils;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -13,6 +14,8 @@ import org.apache.logging.log4j.ThreadContext;
 
 /**
  * Utility class for recording and accessing context for the query being executed.
+ * Implementation Details: context variables is being persisted statically in the thread context
+ * @see: @ThreadContext
  */
 public class QueryContext {
 
@@ -20,6 +23,11 @@ public class QueryContext {
    * The key of the request id in the context map.
    */
   private static final String REQUEST_ID_KEY = "request_id";
+
+  /**
+   * Timestamp when SQL plugin started to process current request.
+   */
+  private static final String REQUEST_PROCESSING_STARTED = "request_processing_started";
 
   /**
    * Generates a random UUID and adds to the {@link ThreadContext} as the request id.
@@ -46,6 +54,22 @@ public class QueryContext {
       id = addRequestId();
     }
     return id;
+  }
+
+  public static void recordProcessingStarted() {
+    ThreadContext.put(REQUEST_PROCESSING_STARTED, LocalDateTime.now().toString());
+  }
+
+  /**
+   * Get recorded previously time indicating when processing started for the current query.
+   * @return A LocalDateTime object
+   */
+  public static LocalDateTime getProcessingStartedTime() {
+    if (ThreadContext.containsKey(REQUEST_PROCESSING_STARTED)) {
+      return LocalDateTime.parse(ThreadContext.get(REQUEST_PROCESSING_STARTED));
+    }
+    // This shouldn't happen outside of unit tests
+    return LocalDateTime.now();
   }
 
   /**

@@ -28,8 +28,13 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.dsl.AstDSL;
@@ -46,6 +51,7 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.window.aggregation.AggregateWindowFunction;
@@ -544,6 +550,49 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
           unresolvedArg("zero_terms_query", stringLiteral("NONE"))
           )
     );
+  }
+
+  private static Stream<Arguments> functionNames() {
+    var dsl = new DSL(new ExpressionConfig().functionRepository());
+    return Stream.of(
+        Arguments.of((Function<Expression[], FunctionExpression>)dsl::now,
+            "now", true),
+        Arguments.of((Function<Expression[], FunctionExpression>)dsl::current_timestamp,
+            "current_timestamp", true),
+        Arguments.of((Function<Expression[], FunctionExpression>)dsl::localtimestamp,
+            "localtimestamp", true),
+        Arguments.of((Function<Expression[], FunctionExpression>)dsl::localtime,
+            "localtime", true),
+        Arguments.of((Function<Expression[], FunctionExpression>)dsl::sysdate,
+            "sysdate", true),
+        Arguments.of((Function<Expression[], FunctionExpression>)dsl::curtime,
+            "curtime", true),
+        Arguments.of((Function<Expression[], FunctionExpression>)dsl::current_time,
+            "current_time", true),
+        Arguments.of((Function<Expression[], FunctionExpression>)dsl::curdate,
+            "curdate", false),
+        Arguments.of((Function<Expression[], FunctionExpression>)dsl::current_date,
+            "current_date", false));
+  }
+
+  @ParameterizedTest(name = "{1}")
+  @MethodSource("functionNames")
+  public void now_like_functions(Function<Expression[], FunctionExpression> function,
+                                 String name,
+                                 Boolean hasFsp) {
+    assertAnalyzeEqual(
+        function.apply(new Expression[]{}),
+        AstDSL.function(name));
+
+    if (hasFsp) {
+      assertAnalyzeEqual(
+          function.apply(new Expression[]{DSL.ref("integer_value", INTEGER)}),
+          AstDSL.function(name, field("integer_value")));
+
+      assertAnalyzeEqual(
+          function.apply(new Expression[]{DSL.literal(3)}),
+          AstDSL.function(name, intLiteral(3)));
+    }
   }
 
   @Test
