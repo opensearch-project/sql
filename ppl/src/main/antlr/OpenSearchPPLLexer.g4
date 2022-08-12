@@ -231,6 +231,8 @@ DAYOFWEEK:                          'DAYOFWEEK';
 DAYOFYEAR:                          'DAYOFYEAR';
 DAYNAME:                            'DAYNAME';
 FROM_DAYS:                          'FROM_DAYS';
+MAKEDATE:                           'MAKEDATE';
+MAKETIME:                           'MAKETIME';
 MONTHNAME:                          'MONTHNAME';
 SUBDATE:                            'SUBDATE';
 TIME:                               'TIME';

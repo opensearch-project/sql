@@ -7,11 +7,13 @@
 package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
+import static org.opensearch.sql.util.MatcherUtils.verifySome;
 import static org.opensearch.sql.util.TestUtils.getResponseBody;
 
 import java.io.IOException;
@@ -450,6 +452,23 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     String dateFormat = "%U %u %V %v %W %w %X %x %Y %y";
     String dateFormatted = "4 4 4 4 Saturday 6 1998 1998 1998 98";
     verifyDateFormat(date, "date", dateFormat, dateFormatted);
+  }
+
+
+  @Test
+  public void testMakeTime() throws IOException {
+    var result = executeQuery(String.format(
+            "select MAKETIME(20, 30, 40) as f1, MAKETIME(20.2, 49.5, 42.100502) as f2", TEST_INDEX_DATE));
+    verifySchema(result, schema("MAKETIME(20, 30, 40)", "f1", "time"), schema("MAKETIME(20.2, 49.5, 42.100502)", "f2", "time"));
+    verifySome(result.getJSONArray("datarows"), rows("20:30:40", "20:50:42.100502"));
+  }
+
+  @Test
+  public void testMakeDate() throws IOException {
+    var result = executeQuery(String.format(
+            "select MAKEDATE(1945, 5.9) as f1, MAKEDATE(1984, 1984) as f2", TEST_INDEX_DATE));
+    verifySchema(result, schema("MAKEDATE(1945, 5.9)", "f1", "date"), schema("MAKEDATE(1984, 1984)", "f2", "date"));
+    verifySome(result.getJSONArray("datarows"), rows("1945-01-06", "1989-06-06"));
   }
 
   protected JSONObject executeQuery(String query) throws IOException {
