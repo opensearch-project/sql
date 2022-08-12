@@ -5,6 +5,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class ObjectType extends PrimitiveType{
 
+    public static ObjectType of(String name) {
+        return new ObjectType(name);
+    }
+
     ObjectType() {
         super();
     }

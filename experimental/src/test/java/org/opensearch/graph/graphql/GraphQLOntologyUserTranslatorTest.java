@@ -6,10 +6,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.opensearch.graph.index.schema.IndexProvider;
-import org.opensearch.graph.ontology.EnumeratedType;
-import org.opensearch.graph.ontology.Ontology;
-import org.opensearch.graph.ontology.Property;
-import org.opensearch.graph.ontology.Value;
+import org.opensearch.graph.ontology.*;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -41,6 +38,7 @@ public class GraphQLOntologyUserTranslatorTest {
     public void testSamplePropertiesTranslation() {
         Assertions.assertTrue(equal(ontologyAccessor.property$("id"), new Property.MandatoryProperty(new Property("id", "id", ID.asType()))));
         Assertions.assertTrue(equal(ontologyAccessor.property$("name"), new Property.MandatoryProperty(new Property("name", "name", STRING.asType()))));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("group"), new Property.MandatoryProperty(new Property("group", "Group", ObjectType.of("Group")))));
         Assertions.assertTrue(equal(ontologyAccessor.property$("email"), new Property("email", "email", STRING.asType())));
         Assertions.assertTrue(equal(ontologyAccessor.property$("fullName"), new Property("fullName", "fullName", STRING.asType())));
         Assertions.assertTrue(equal(ontologyAccessor.property$("roles"), new Property("roles", "roles", STRING.asListType())));
