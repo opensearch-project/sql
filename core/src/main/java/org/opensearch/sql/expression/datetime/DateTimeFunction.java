@@ -20,9 +20,11 @@ import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 
 import java.time.LocalDate;
+import java.time.ZonedDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
+import java.time.ZoneId;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import lombok.experimental.UtilityClass;
@@ -59,6 +61,7 @@ public class DateTimeFunction {
    */
   public void register(BuiltinFunctionRepository repository) {
     repository.register(adddate());
+    repository.register(convert_tz());
     repository.register(date());
     repository.register(date_add());
     repository.register(date_sub());
@@ -113,6 +116,12 @@ public class DateTimeFunction {
 
   private DefaultFunctionResolver adddate() {
     return add_date(BuiltinFunctionName.ADDDATE.getName());
+  }
+
+  private FunctionResolver convert_tz() {
+    return define(BuiltinFunctionName.CONVERT_TZ.getName(),
+        impl(nullMissingHandling(DateTimeFunction::exprConvert_TZ), DATETIME, DATETIME, STRING, STRING)
+    );
   }
 
   /**
@@ -452,6 +461,20 @@ public class DateTimeFunction {
     ExprValue exprValue = new ExprDatetimeValue(date.datetimeValue().plusDays(days.longValue()));
     return (exprValue.timeValue().toSecondOfDay() == 0 ? new ExprDateValue(exprValue.dateValue())
         : exprValue);
+  }
+
+  /**
+   * CONVERT_TZ function implementation for ExprValue.
+   *
+   * @param dT ExprValue of DateTime that is being converted from
+   * @param from_tz ExprValue of time zone offset(string), representing the desired time to convert from.
+   * @param to_tz ExprValue of time zone offset(string), representing the desired time to convert to.
+   * @return DateTime that has been converted to the to_tz timezone.
+   */
+  public ExprValue exprConvert_TZ(ExprValue dT, ExprValue from_tz, ExprValue to_tz) {
+    ZonedDateTime zDT = (dT.datetimeValue().atZone(ZoneId.of(from_tz.stringValue())));
+    return new ExprDatetimeValue(
+        zDT.withZoneSameInstant(ZoneId.of(to_tz.stringValue())).toLocalDateTime());
   }
 
   /**
