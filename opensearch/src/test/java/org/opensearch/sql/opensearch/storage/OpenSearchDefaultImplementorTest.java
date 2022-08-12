@@ -20,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
@@ -76,10 +77,12 @@ public class OpenSearchDefaultImplementorTest {
     LogicalHighlight node = Mockito.mock(LogicalHighlight.class,
         Answers.RETURNS_DEEP_STUBS);
     Mockito.when(node.getChild().get(0)).thenReturn(Mockito.mock(LogicalPlan.class));
+    OpenSearchRequestBuilder requestBuilder = Mockito.mock(OpenSearchRequestBuilder.class);
+    Mockito.when(indexScan.getRequestBuilder()).thenReturn(requestBuilder);
     OpenSearchIndex.OpenSearchDefaultImplementor implementor =
         new OpenSearchIndex.OpenSearchDefaultImplementor(indexScan, client);
 
     implementor.visitHighlight(node, indexScan);
-    verify(indexScan).pushDownHighlight(any());
+    verify(requestBuilder).pushDownHighlight(any());
   }
 }

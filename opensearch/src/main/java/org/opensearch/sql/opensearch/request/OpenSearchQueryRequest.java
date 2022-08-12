@@ -49,7 +49,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
 
 
   /**
-   * ElasticsearchExprValueFactory.
+   * OpenSearchExprValueFactory.
    */
   @EqualsAndHashCode.Exclude
   @ToString.Exclude
@@ -61,7 +61,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   private boolean searchDone = false;
 
   /**
-   * Constructor of ElasticsearchQueryRequest.
+   * Constructor of OpenSearchQueryRequest.
    */
   public OpenSearchQueryRequest(String indexName, int size,
                                 OpenSearchExprValueFactory factory) {
@@ -69,7 +69,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   }
 
   /**
-   * Constructor of ElasticsearchQueryRequest.
+   * Constructor of OpenSearchQueryRequest.
    */
   public OpenSearchQueryRequest(IndexName indexName, int size,
       OpenSearchExprValueFactory factory) {
@@ -78,6 +78,16 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     sourceBuilder.from(0);
     sourceBuilder.size(size);
     sourceBuilder.timeout(DEFAULT_QUERY_TIMEOUT);
+    this.exprValueFactory = factory;
+  }
+
+  /**
+   * Constructor of OpenSearchQueryRequest.
+   */
+  public OpenSearchQueryRequest(IndexName indexName, SearchSourceBuilder sourceBuilder,
+                                OpenSearchExprValueFactory factory) {
+    this.indexName = indexName;
+    this.sourceBuilder = sourceBuilder;
     this.exprValueFactory = factory;
   }
 

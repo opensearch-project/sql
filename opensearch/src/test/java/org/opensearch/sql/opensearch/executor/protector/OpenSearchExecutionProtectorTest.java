@@ -88,6 +88,7 @@ class OpenSearchExecutionProtectorTest {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
 
     String indexName = "test";
+    Integer maxResultWindow = 10000;
     NamedExpression include = named("age", ref("age", INTEGER));
     ReferenceExpression exclude = ref("name", STRING);
     ReferenceExpression dedupeField = ref("name", STRING);
@@ -124,7 +125,7 @@ class OpenSearchExecutionProtectorTest {
                                                     resourceMonitor(
                                                         new OpenSearchIndexScan(
                                                             client, settings, indexName,
-                                                            exprValueFactory)),
+                                                            maxResultWindow, exprValueFactory)),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),
@@ -152,7 +153,7 @@ class OpenSearchExecutionProtectorTest {
                                                 filter(
                                                     new OpenSearchIndexScan(
                                                         client, settings, indexName,
-                                                        exprValueFactory),
+                                                        maxResultWindow, exprValueFactory),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),
