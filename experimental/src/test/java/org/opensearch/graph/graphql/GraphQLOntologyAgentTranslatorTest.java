@@ -21,7 +21,6 @@ import static org.opensearch.graph.ontology.Property.equal;
 public class GraphQLOntologyAgentTranslatorTest {
     public static Ontology ontology;
     public static Ontology.Accessor ontologyAccessor;
-    public static GraphQLSchema graphQLSchema;
 
     @BeforeAll
     public static void setUp() throws Exception {
@@ -29,7 +28,7 @@ public class GraphQLOntologyAgentTranslatorTest {
         InputStream agentSchemaInput = new FileInputStream("schema/logs/agent.graphql");
         GraphQLToOntologyTransformer transformer = new GraphQLToOntologyTransformer();
 
-        ontology = transformer.transform(baseSchemaInput, agentSchemaInput);
+        ontology = transformer.transform("agents", baseSchemaInput, agentSchemaInput);
         Assertions.assertNotNull(ontology);
         ontologyAccessor = new Ontology.Accessor(ontology);
     }
@@ -44,8 +43,8 @@ public class GraphQLOntologyAgentTranslatorTest {
                 , r -> r.getDirectives().stream()
                         .anyMatch(d -> d.getName().equals("relation") && d.containsArgVal("foreign")));
 
-        Assertions.assertEquals(provider.getEntities().size(),1);
-        Assertions.assertEquals(provider.getRelations().size(),0);
+        Assertions.assertEquals(provider.getEntities().size(), 1);
+        Assertions.assertEquals(provider.getRelations().size(), 0);
     }
 
     @Test
@@ -61,29 +60,29 @@ public class GraphQLOntologyAgentTranslatorTest {
     @Test
     public void testSamplePropertiesTranslation() {
         Assertions.assertTrue(equal(ontologyAccessor.property$("id"),
-                new Property.MandatoryProperty(new Property("id", "id", ID.tlc()))));
+                new Property.MandatoryProperty(new Property("id", "id", ID.asType()))));
         Assertions.assertTrue(equal(ontologyAccessor.property$("name"),
-                new Property.MandatoryProperty(new Property("name", "name", STRING.tlc()))));
+                new Property.MandatoryProperty(new Property("name", "name", STRING.asType()))));
         Assertions.assertTrue(equal(ontologyAccessor.property$("labels"),
-                new Property.MandatoryProperty(new Property("labels", "labels", JSON.tlc()))));
+                new Property.MandatoryProperty(new Property("labels", "labels", JSON.asType()))));
         Assertions.assertTrue(equal(ontologyAccessor.property$("tags"),
-                new Property.MandatoryProperty(new Property("tags", "tags", LIST_OF_STRING.tlc()))));
+                new Property.MandatoryProperty(new Property("tags", "tags", STRING.asListType()))));
         Assertions.assertTrue(equal(ontologyAccessor.property$("aType"),
-                new Property("aType", "aType", STRING.tlc())));
+                new Property("aType", "aType", STRING.asType())));
         Assertions.assertTrue(equal(ontologyAccessor.property$("version"),
-                new Property("version", "version", STRING.tlc())));
+                new Property("version", "version", STRING.asType())));
         Assertions.assertTrue(equal(ontologyAccessor.property$("number"),
-                new Property("number", "number", LONG.tlc())));
+                new Property("number", "number", LONG.asType())));
         Assertions.assertTrue(equal(ontologyAccessor.property$("timestamp"),
-                new Property("timestamp", "timestamp", TIME.tlc())));
+                new Property("timestamp", "timestamp", TIME.asType())));
         Assertions.assertTrue(equal(ontologyAccessor.property$("location"),
-                new Property("location", "location", GEOPOINT.tlc())));
+                new Property("location", "location", GEOPOINT.asType())));
     }
 
     @Test
     public void testAgentEntityTranslation() {
         Assertions.assertEquals(ontologyAccessor.entity$("Agent").geteType(), "Agent");
-        Assertions.assertEquals(ontologyAccessor.entity$("Agent").getProperties().size(), 11);
+        Assertions.assertEquals(ontologyAccessor.entity$("Agent").getProperties().size(), 12);
         Assertions.assertEquals(ontologyAccessor.entity$("Agent").getMandatory().size(), 2);
     }
 

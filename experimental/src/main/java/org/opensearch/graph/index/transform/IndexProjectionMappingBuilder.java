@@ -19,6 +19,8 @@ import static org.opensearch.graph.index.transform.OntologyIndexGenerator.IndexS
 import static org.opensearch.graph.index.transform.OntologyIndexGenerator.IndexSchemaConfig.PROPERTIES;
 import static org.opensearch.graph.index.transform.OntologyIndexGenerator.ProjectionConfigs.*;
 import static org.opensearch.graph.index.transform.IndexMappingUtils.*;
+import static org.opensearch.graph.ontology.PrimitiveType.Types.DATE;
+import static org.opensearch.graph.ontology.PrimitiveType.Types.STRING;
 
 public class IndexProjectionMappingBuilder {
 
@@ -45,9 +47,9 @@ public class IndexProjectionMappingBuilder {
         clone.getRelationshipTypes().forEach(r -> r.withMetadata(Collections.singletonList(DEST_TYPE)));
         clone.getRelationshipTypes().forEach(r -> r.withMetadata(Collections.singletonList(DEST_ID)));
 
-        clone.getProperties().add(new Property("tag", "tag", "string"));
-        clone.getProperties().add(new Property(DEST_TYPE, DEST_TYPE, "string"));
-        clone.getProperties().add(new Property(DEST_ID, DEST_ID, "string"));
+        clone.getProperties().add(new Property("tag", "tag", STRING.asType()));
+        clone.getProperties().add(new Property(DEST_TYPE, DEST_TYPE, STRING.asType()));
+        clone.getProperties().add(new Property(DEST_ID, DEST_ID, STRING.asType()));
         return new Ontology.Accessor(clone);
     }
 
@@ -112,9 +114,9 @@ public class IndexProjectionMappingBuilder {
         rootMapping.put(PROPERTIES, rootProperties);
 
         //populate the query id
-        rootProperties.put(QUERY_ID, parseType(ontology, "string"));
-        rootProperties.put(CURSOR_ID, parseType(ontology, "string"));
-        rootProperties.put(EXECUTION_TIME, parseType(ontology, "date"));
+        rootProperties.put(QUERY_ID, parseType(ontology, STRING.asType()));
+        rootProperties.put(CURSOR_ID, parseType(ontology, STRING.asType()));
+        rootProperties.put(EXECUTION_TIME, parseType(ontology, DATE.asType()));
         //populate index fields
         jsonMap.put(PROJECTION, rootMapping);
 

@@ -7,6 +7,8 @@ import graphql.schema.*;
 import graphql.schema.idl.*;
 import javaslang.Tuple2;
 import org.opensearch.graph.ontology.*;
+import org.opensearch.graph.ontology.ObjectType.ArrayOfObjects;
+import org.opensearch.graph.ontology.PrimitiveType.ArrayOfPrimitives;
 import org.opensearch.graph.ontology.PrimitiveType.Types;
 
 import java.io.FileInputStream;
@@ -66,7 +68,7 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
      */
     public Ontology transform(String ontologyName, String source) throws RuntimeException {
         try {
-            Ontology ontology = transform(new FileInputStream(source));
+            Ontology ontology = transform(ontologyName, new FileInputStream(source));
             ontology.setOnt(ontologyName);
             return ontology;
         } catch (FileNotFoundException e) {
@@ -88,7 +90,7 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
      * @param streams
      * @return
      */
-    public Ontology transform(InputStream... streams) {
+    public Ontology transform(String ontologyName, InputStream... streams) {
         if (graphQLSchema == null) {
             // each registry is merged into the main registry
             Arrays.asList(streams).forEach(s -> typeRegistry.merge(schemaParser.parse(new InputStreamReader(s))));
@@ -165,7 +167,7 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
     private List<Property> populateProperties(List<GraphQLFieldDefinition> fieldDefinitions) {
         Set<Property> collect = fieldDefinitions.stream()
                 .filter(p -> Type.class.isAssignableFrom(p.getDefinition().getType().getClass()))
-                .map(p -> createProperty(p.getDefinition().getType(), p.getName()))
+                .map(p -> createProperty(p, p.getName()))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .collect(Collectors.toSet());
@@ -177,30 +179,48 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
 
 
     /**
-     * populate property type according to entities
+     * populate primitive property type according to entities
      *
      * @param type
      * @param fieldName
      * @return
      */
-    private Optional<Property> createProperty(Type type, String fieldName) {
+    private Optional<Property> createProperty(GraphQLFieldDefinition type, String fieldName) {
+        //in case of nested object field
+        if (type.getType() instanceof GraphQLObjectType) {
+            String objTypeName = ((GraphQLObjectType) type.getType()).getName();
+            return Optional.of(new Property(fieldName, objTypeName, new ObjectType(objTypeName)));
+        }
+
         //scalar type property
-        if ((type instanceof TypeName) &&
-                (!objectTypes.contains(((TypeName) type).getName()))) {
-            return Optional.of(new Property(fieldName, fieldName, resolvePrimitiveType(type)));
+        Type definitionType = type.getDefinition().getType();
+        if ((definitionType instanceof TypeName) && (!objectTypes.contains(((TypeName) definitionType).getName()))) {
+            return Optional.of(new Property(fieldName, fieldName, resolvePrimitiveType(definitionType)));
         }
 
         //list type
-        if (type instanceof ListType) {
-            return Optional.of(new Property(fieldName, fieldName, resolvePrimitiveType(type)));
+        if (definitionType instanceof ListType) {
+            //in case of list with nested object field
+            if (((GraphQLList)type.getType()).getWrappedType() instanceof GraphQLObjectType) {
+                GraphQLObjectType wrappedType = (GraphQLObjectType) ((GraphQLList) type.getType()).getWrappedType();
+                return Optional.of(new Property(fieldName, wrappedType.getName(),new ArrayOfObjects(wrappedType.getName())));
+            }
+
+            //case for list of primitives
+            return Optional.of(new Property(fieldName, fieldName, resolvePrimitiveType(definitionType)));
         }
         //non-null type - may contain all sub-types (wrapper)
-        if (type instanceof NonNullType) {
-            Type rawType = ((NonNullType) type).getType();
+        if (definitionType instanceof NonNullType) {
+            Type rawType = ((NonNullType) definitionType).getType();
+
+            //in case of non-null with nested object field
+            if (((GraphQLNonNull)type.getType()).getWrappedType() instanceof GraphQLObjectType) {
+                GraphQLObjectType wrappedType = (GraphQLObjectType) ((GraphQLNonNull) type.getType()).getWrappedType();
+                return of(Optional.of(new Property(fieldName, wrappedType.getName(),new ObjectType(wrappedType.getName()))));
+            }
 
             //validate only scalars are registered as properties
-            if ((rawType instanceof TypeName) &&
-                    (!objectTypes.contains(((TypeName) rawType).getName()))) {
+            if ((rawType instanceof TypeName) && (!objectTypes.contains(((TypeName) rawType).getName()))) {
                 return of(Optional.of(new Property(fieldName, fieldName, resolvePrimitiveType(rawType))));
             }
 
@@ -212,18 +232,19 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
         return Optional.empty();
     }
 
-    private String resolvePrimitiveType(Type type) {
+    private PropertyType resolvePrimitiveType(Type type) {
         if (TypeName.class.equals(type.getClass())) {
             return find(((TypeName) type).getName())
                     //string is default
-                    .orElse(Types.STRING).tlc();
+                    .orElse(Types.STRING).asType();
         } else if (ListType.class.equals(type.getClass())) {
-            return listOf(find(((TypeName) ((ListType) type).getType()).getName())
+            PropertyType propertyType = find(((TypeName) ((ListType) type).getType()).getName())
                     //string is default
-                    .orElse(STRING).tlc())
-                    .tlc();
+                    .orElse(STRING).asType();
+            return new ArrayOfPrimitives(propertyType);
+
         }
-        return STRING.tlc();
+        return STRING.asType();
     }
 
     /**
@@ -247,7 +268,7 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
 
     private Class resolvePrimitive(GraphQLScalarType scalar) {
         try {
-            return scalar.getCoercing().getClass().getDeclaredMethod("parseValue",Object.class).getReturnType();
+            return scalar.getCoercing().getClass().getDeclaredMethod("parseValue", Object.class).getReturnType();
         } catch (NoSuchMethodException e) {
             return Object.class;
         }
@@ -306,6 +327,7 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
     private EntityType createEntity(GraphQLObjectType object, Ontology.OntologyBuilder context) {
         List<Property> properties = populateProperties(object.getFieldDefinitions());
         EntityType.Builder builder = EntityType.Builder.get();
+        //populate id field if present
         getIDFieldName(object).ifPresent(builder::withIdField);
         builder.withName(object.getName()).withEType(object.getName());
         builder.withParentTypes(object.getInterfaces().stream()

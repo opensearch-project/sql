@@ -28,7 +28,7 @@ public class GraphQLOntologyBaseTranslatorTest {
         InputStream baseSchemaInput = new FileInputStream("schema/logs/base.graphql");
         GraphQLToOntologyTransformer transformer = new GraphQLToOntologyTransformer();
 
-        ontology = transformer.transform(baseSchemaInput);
+        ontology = transformer.transform("base",baseSchemaInput);
         ontologyAccessor = new Ontology.Accessor(ontology);
         Assertions.assertNotNull(ontology);
     }
@@ -45,11 +45,11 @@ public class GraphQLOntologyBaseTranslatorTest {
 
     @Test
     public void testSamplePropertiesTranslation() {
-        Assertions.assertTrue(equal(ontologyAccessor.property$("id"), new Property.MandatoryProperty(new Property("id", "id", ID.tlc()))));
-        Assertions.assertTrue(equal(ontologyAccessor.property$("name"), new Property.MandatoryProperty(new Property("name", "name", STRING.tlc()))));
-        Assertions.assertTrue(equal(ontologyAccessor.property$("timestamp"), new Property("timestamp", "timestamp", TIME.tlc())));
-        Assertions.assertTrue(equal(ontologyAccessor.property$("labels"), new Property("labels", "labels", JSON.tlc())));
-        Assertions.assertTrue(equal(ontologyAccessor.property$("location"), new Property("location", "location", GEOPOINT.tlc())));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("id"), new Property.MandatoryProperty(new Property("id", "id", ID.asType()))));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("name"), new Property.MandatoryProperty(new Property("name", "name", STRING.asType()))));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("timestamp"), new Property("timestamp", "timestamp", TIME.asType())));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("labels"), new Property("labels", "labels", JSON.asType())));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("location"), new Property("location", "location", GEOPOINT.asType())));
     }
 
     @Test

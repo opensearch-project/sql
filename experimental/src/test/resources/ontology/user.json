@@ -10,9 +10,9 @@
       ],
       "properties": [
         "message",
-        "timestamp",
-        "attributes",
         "labels",
+        "attributes",
+        "timestamp",
         "tags"
       ],
       "abstract": true
@@ -55,13 +55,13 @@
         "timezone",
         "regionIsoCode",
         "countryName",
-        "location",
         "postalCode",
         "continentCode",
+        "location",
         "name",
-        "regionName",
         "continentName",
-        "cityName"
+        "cityName",
+        "regionName"
       ],
       "abstract": false
     },
@@ -75,8 +75,8 @@
         "id"
       ],
       "properties": [
-        "id",
-        "domain"
+        "domain",
+        "id"
       ],
       "abstract": false
     },
@@ -106,12 +106,13 @@
         "id"
       ],
       "properties": [
-        "id",
-        "domain",
         "fullName",
+        "group",
+        "domain",
         "hash",
         "email",
         "roles",
+        "id",
         "name"
       ],
       "abstract": false
@@ -138,139 +139,228 @@
   ],
   "properties": [
     {
-      "pType": "regionIsoCode",
-      "name": "regionIsoCode",
-      "type": "String"
-    },
-    {
       "pType": "hash",
       "name": "hash",
-      "type": "String"
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
     },
     {
-      "pType": "roles",
-      "name": "roles",
-      "type": "String"
+      "pType": "regionIsoCode",
+      "name": "regionIsoCode",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
     },
     {
       "pType": "postalCode",
       "name": "postalCode",
-      "type": "String"
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
     },
     {
-      "pType": "organizationName",
-      "name": "organizationName",
-      "type": "String"
-    },
-    {
-      "pType": "continentCode",
-      "name": "continentCode",
-      "type": "String"
-    },
-    {
-      "pType": "regionName",
-      "name": "regionName",
-      "type": "String"
-    },
-    {
-      "pType": "continentName",
-      "name": "continentName",
-      "type": "String"
-    },
-    {
-      "pType": "number",
-      "name": "number",
-      "type": "Long"
-    },
-    {
-      "pType": "message",
-      "name": "message",
-      "type": "String"
-    },
-    {
-      "pType": "timezone",
-      "name": "timezone",
-      "type": "String"
-    },
-    {
-      "pType": "id",
-      "name": "id",
-      "type": "ID"
+      "pType": "roles",
+      "name": "roles",
+      "type": {
+        "pType": "PrimitiveList",
+        "type": "STRING"
+      }
     },
     {
       "pType": "namespace",
       "name": "namespace",
-      "type": "String"
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
     },
     {
       "pType": "dataset",
       "name": "dataset",
-      "type": "String"
-    },
-    {
-      "pType": "tags",
-      "name": "tags",
-      "type": "String"
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
     },
     {
       "pType": "cityName",
       "name": "cityName",
-      "type": "String"
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "tags",
+      "name": "tags",
+      "type": {
+        "pType": "PrimitiveList",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "message",
+      "name": "message",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "timezone",
+      "name": "timezone",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
     },
     {
       "pType": "streamType",
       "name": "streamType",
-      "type": "StreamType"
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
     },
     {
-      "pType": "domain",
-      "name": "domain",
-      "type": "String"
-    },
-    {
-      "pType": "fullName",
-      "name": "fullName",
-      "type": "String"
-    },
-    {
-      "pType": "countryName",
-      "name": "countryName",
-      "type": "String"
-    },
-    {
-      "pType": "email",
-      "name": "email",
-      "type": "String"
-    },
-    {
-      "pType": "attributes",
-      "name": "attributes",
-      "type": "JSON"
-    },
-    {
-      "pType": "labels",
-      "name": "labels",
-      "type": "JSON"
-    },
-    {
-      "pType": "name",
-      "name": "name",
-      "type": "String"
-    },
-    {
-      "pType": "countryIsoCode",
-      "name": "countryIsoCode",
-      "type": "String"
+      "pType": "number",
+      "name": "number",
+      "type": {
+        "pType": "Primitive",
+        "type": "LONG"
+      }
     },
     {
       "pType": "timestamp",
       "name": "timestamp",
-      "type": "Time"
+      "type": {
+        "pType": "Primitive",
+        "type": "TIME"
+      }
+    },
+    {
+      "pType": "name",
+      "name": "name",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "fullName",
+      "name": "fullName",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "Group",
+      "name": "group",
+      "type": {
+        "pType": "Object",
+        "type": "Group"
+      }
+    },
+    {
+      "pType": "domain",
+      "name": "domain",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "labels",
+      "name": "labels",
+      "type": {
+        "pType": "Primitive",
+        "type": "JSON"
+      }
+    },
+    {
+      "pType": "countryName",
+      "name": "countryName",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "email",
+      "name": "email",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "id",
+      "name": "id",
+      "type": {
+        "pType": "Primitive",
+        "type": "ID"
+      }
     },
     {
       "pType": "location",
       "name": "location",
-      "type": "GeoPoint"
+      "type": {
+        "pType": "Primitive",
+        "type": "GEOPOINT"
+      }
+    },
+    {
+      "pType": "countryIsoCode",
+      "name": "countryIsoCode",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "organizationName",
+      "name": "organizationName",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "continentCode",
+      "name": "continentCode",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "attributes",
+      "name": "attributes",
+      "type": {
+        "pType": "Primitive",
+        "type": "JSON"
+      }
+    },
+    {
+      "pType": "continentName",
+      "name": "continentName",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "regionName",
+      "name": "regionName",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
     }
   ],
   "enumeratedTypes": [

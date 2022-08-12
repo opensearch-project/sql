@@ -13,7 +13,7 @@
 #    is helpful to visualize the data in certain situations. If your context falls
 #    in that category, you should still ensure that source and destination are filled
 #    appropriately.
-type Client implements BaseRecord,Networking @model{
+type Client implements BaseRecord @model{
     #'Date/time when the event originated.
     #
     #        This is the date/time extracted from the event, typically representing when

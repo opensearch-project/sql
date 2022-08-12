@@ -26,13 +26,13 @@ public class Property {
         this.type = clone.type;
     }
 
-    public Property(String name, String pType, String type) {
+    public Property(String name, String pType, PropertyType type) {
         this.pType = pType;
         this.name = name;
         this.type = type;
     }
 
-    public Property(String name, String pType, String type, SearchType... searchType) {
+    public Property(String name, String pType, PropertyType type, SearchType... searchType) {
         this.pType = pType;
         this.name = name;
         this.type = type;
@@ -57,7 +57,7 @@ public class Property {
         this.name = name;
     }
 
-    public String getType() {
+    public PropertyType getType() {
         return type;
     }
 
@@ -65,7 +65,7 @@ public class Property {
         this.searchType = searchType;
     }
 
-    public void setType(String type) {
+    public void setType(PropertyType type) {
         this.type = type;
     }
 
@@ -119,7 +119,7 @@ public class Property {
     //region Fields
     private String pType;
     private String name;
-    private String type;
+    private PropertyType type;
     private List<SearchType> searchType = Collections.emptyList();
     //endregion
 
@@ -128,7 +128,7 @@ public class Property {
         private List<SearchType> searchTypes = new ArrayList<>();
         private String pType;
         private String name;
-        private String type;
+        private PropertyType type;
 
         private Builder() {
         }
@@ -152,12 +152,12 @@ public class Property {
             return this;
         }
 
-        public Builder withType(String type) {
+        public Builder withType(PropertyType type) {
             this.type = type;
             return this;
         }
 
-        public Property build(String pType, String name, String type) {
+        public Property build(String pType, String name, PropertyType type) {
             Property property = new Property();
             property.setName(name);
             property.setType(type);

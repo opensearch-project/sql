@@ -1,13 +1,22 @@
 package org.opensearch.graph.ontology;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 
-public class PrimitiveType {
+@JsonInclude(JsonInclude.Include.NON_EMPTY)
+public class PrimitiveType implements PropertyType {
     private String type;
+    @JsonIgnore
     private Class javaType;
+
+    PrimitiveType() {
+    }
 
     public PrimitiveType(String type, Class javaType) {
         this.type = type;
@@ -18,6 +27,7 @@ public class PrimitiveType {
         return type;
     }
 
+    @JsonIgnore
     public Class getJavaType() {
         return javaType;
     }
@@ -36,11 +46,28 @@ public class PrimitiveType {
         return Objects.hash(getType(), getJavaType());
     }
 
+    @Override
+    public String toString() {
+        return "PrimitiveType{" +
+                "type='" + type + '\'' +
+                ", javaType=" + javaType +
+                '}';
+    }
+
     /* Array of primitives */
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public static class ArrayOfPrimitives extends PrimitiveType {
+
+        ArrayOfPrimitives() {
+            super();
+        }
 
         public ArrayOfPrimitives(String type, Class javaType) {
             super(type, javaType);
+        }
+
+        public ArrayOfPrimitives(PropertyType type) {
+            super(((PrimitiveType) type).type, ((PrimitiveType) type).javaType);
         }
     }
 
@@ -48,9 +75,9 @@ public class PrimitiveType {
      * default primitive types
      */
     public enum Types {
-        ID, BOOLEAN, LIST_OF_BOOLEAN, INT, LIST_OF_INT, LONG, LIST_OF_LONG, STRING, LIST_OF_STRING, TEXT, FLOAT,
-        LIST_OF_FLOAT, TIME, LIST_OF_TIME, DATE, LIST_OF_DATE, DATETIME, LIST_OF_DATETIME, IP, LIST_OF_IP,
-        GEOPOINT, LIST_OF_GEOPOINT, JSON, LIST_OF_JSON, ARRAY;
+        ID, BOOLEAN, INT, LONG, STRING, TEXT, FLOAT,
+        TIME, DATE, DATETIME, IP,
+        GEOPOINT, JSON, ARRAY;
 
         /**
          * to lower case
@@ -61,12 +88,16 @@ public class PrimitiveType {
             return this.name().toLowerCase();
         }
 
-        public static boolean contains(String term) {
-            return Arrays.stream(Types.values()).anyMatch(p -> p.tlc().equalsIgnoreCase(term));
+        public PropertyType asType() {
+            return new PrimitiveType(this.name(), this.getClass());
         }
 
-        public static Types listOf(String type) {
-            return find("LIST_OF_" + find(type).orElse(STRING)).orElse(LIST_OF_STRING);
+        public PropertyType asListType() {
+            return new ArrayOfPrimitives(this.name(), this.getClass());
+        }
+
+        public static boolean contains(String term) {
+            return Arrays.stream(Types.values()).anyMatch(p -> p.tlc().equalsIgnoreCase(term));
         }
 
         public static Optional<Types> find(String term) {

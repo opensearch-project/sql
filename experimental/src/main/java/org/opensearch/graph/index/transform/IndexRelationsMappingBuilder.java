@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 import static org.opensearch.graph.index.transform.IndexMappingUtils.*;
 import static org.opensearch.graph.index.transform.OntologyIndexGenerator.EdgeSchemaConfig.*;
 import static org.opensearch.graph.index.transform.OntologyIndexGenerator.IndexSchemaConfig.*;
+import static org.opensearch.graph.ontology.PrimitiveType.Types.STRING;
 
 public class IndexRelationsMappingBuilder implements TemplateMapping<RelationshipType, Relation> {
     private IndexProvider indexProvider;
@@ -134,7 +135,7 @@ public class IndexRelationsMappingBuilder implements TemplateMapping<Relationshi
         relation.get().getMetadata().forEach(v -> properties.put(v, parseType(ontology, ontology.property$(v).getType())));
         relation.get().getProperties().forEach(v -> properties.put(v, parseType(ontology, ontology.property$(v).getType())));
         //set direction
-        properties.put(DIRECTION, parseType(ontology, "string"));
+        properties.put(DIRECTION, parseType(ontology, STRING.asType()));
         //populate  sideA (entityA)
         populateRedundant(ontology, SOURCE, relationshipType.getName(), properties);
         //populate  sideB (entityB)

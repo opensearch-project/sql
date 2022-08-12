@@ -30,7 +30,7 @@ public class GraphQLOntologyUserTranslatorTest {
         InputStream userSchemaInput = new FileInputStream("schema/logs/user.graphql");
         GraphQLToOntologyTransformer transformer = new GraphQLToOntologyTransformer();
 
-        ontology = transformer.transform(baseSchemaInput,userSchemaInput);
+        ontology = transformer.transform("user",baseSchemaInput,userSchemaInput);
         ontologyAccessor = new Ontology.Accessor(ontology);
         Assertions.assertNotNull(ontology);
         String valueAsString = new ObjectMapper().writeValueAsString(ontology);
@@ -39,18 +39,18 @@ public class GraphQLOntologyUserTranslatorTest {
 
     @Test
     public void testSamplePropertiesTranslation() {
-        Assertions.assertTrue(equal(ontologyAccessor.property$("id"), new Property.MandatoryProperty(new Property("id", "id", ID.tlc()))));
-        Assertions.assertTrue(equal(ontologyAccessor.property$("name"), new Property.MandatoryProperty(new Property("name", "name", STRING.tlc()))));
-        Assertions.assertTrue(equal(ontologyAccessor.property$("email"), new Property("email", "email", STRING.tlc())));
-        Assertions.assertTrue(equal(ontologyAccessor.property$("fullName"), new Property("fullName", "fullName", STRING.tlc())));
-        Assertions.assertTrue(equal(ontologyAccessor.property$("roles"), new Property("roles", "roles", LIST_OF_STRING.tlc())));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("id"), new Property.MandatoryProperty(new Property("id", "id", ID.asType()))));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("name"), new Property.MandatoryProperty(new Property("name", "name", STRING.asType()))));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("email"), new Property("email", "email", STRING.asType())));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("fullName"), new Property("fullName", "fullName", STRING.asType())));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("roles"), new Property("roles", "roles", STRING.asListType())));
     }
 
     @Test
     public void testEntityTranslation() {
         Assertions.assertEquals(ontologyAccessor.entity$("User").isAbstract(), false);
         Assertions.assertEquals(ontologyAccessor.entity$("User").geteType(), "User");
-        Assertions.assertEquals(ontologyAccessor.entity$("User").getProperties().size(), 7);
+        Assertions.assertEquals(ontologyAccessor.entity$("User").getProperties().size(), 8);
         Assertions.assertEquals(ontologyAccessor.entity$("User").getMandatory().size(), 1);
     }
 

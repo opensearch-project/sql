@@ -1,7 +1,7 @@
 #Container fields are used for meta information about the specific container that is the source of information.
 #
 #These fields help correlate data based containers from any runtime.
-type Container implements BaseRecord,Endpoint @model{
+type Container implements BaseRecord @model{
     #'Date/time when the event originated.
     #
     #        This is the date/time extracted from the event, typically representing when

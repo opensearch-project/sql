@@ -4,10 +4,7 @@ import javaslang.Tuple2;
 import org.opensearch.graph.GraphError;
 import org.opensearch.graph.index.schema.BaseTypeElement;
 import org.opensearch.graph.index.template.SettingBuilder;
-import org.opensearch.graph.ontology.BaseElement;
-import org.opensearch.graph.ontology.EntityType;
-import org.opensearch.graph.ontology.Ontology;
-import org.opensearch.graph.ontology.Property;
+import org.opensearch.graph.ontology.*;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -30,10 +27,10 @@ public abstract class IndexMappingUtils {
      * @param nameType
      * @return
      */
-    public static Map<String, Object> parseType(Ontology.Accessor ontology, String nameType) {
+    public static Map<String, Object> parseType(Ontology.Accessor ontology, PropertyType nameType) {
         Map<String, Object> map = new HashMap<>();
         try {
-            Ontology.OntologyPrimitiveType type = Ontology.OntologyPrimitiveType.valueOf(nameType.toUpperCase());
+            Ontology.OntologyPrimitiveType type = Ontology.OntologyPrimitiveType.valueOf(nameType.getType());
             switch (type) {
                 case STRING:
                     map.put("type", "keyword");
@@ -64,7 +61,7 @@ public abstract class IndexMappingUtils {
             }
         } catch (Throwable typeNotFound) {
             // manage non-primitive type such as enum or nested typed
-            Optional<Tuple2<Ontology.Accessor.NodeType, String>> type = ontology.matchNameToType(nameType);
+            Optional<Tuple2<Ontology.Accessor.NodeType, String>> type = ontology.matchNameToType(nameType.getType());
             if (type.isPresent()) {
                 switch (type.get()._1()) {
                     case ENTITY:

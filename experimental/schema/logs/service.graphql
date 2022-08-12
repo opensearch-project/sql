@@ -2,7 +2,7 @@
 #    was collected.
 #
 #    These fields help you find and correlate logs for a specific service and version.'
-type Service implements BaseRecord,Endpoint {
+type Service implements BaseRecord {
     #'Date/time when the event originated.
     #
     #        This is the date/time extracted from the event, typically representing when

@@ -105,8 +105,8 @@ public class OntologyToGraphQLTransformer {
         e.getProperties().forEach(p -> builder.field(
                 GraphQLFieldDefinition.newFieldDefinition()
                         .name(p)
-                        .type(type(accessor.property$(p).getType(), accessor))
-                        .definition(new FieldDefinition(p, new TypeName(accessor.property$(p).getType())))
+                        .type(type(accessor.property$(p).getType().getType(), accessor))
+                        .definition(new FieldDefinition(p, new TypeName(accessor.property$(p).getType().getType())))
                         .build()
         ));
 

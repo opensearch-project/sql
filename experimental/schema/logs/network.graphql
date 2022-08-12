@@ -15,7 +15,7 @@ type Vlan {
     name:String
 }
 
-type Network implements BaseRecord,Networking {
+type Network implements BaseRecord {
     #'Date/time when the event originated.
     #
     #        This is the date/time extracted from the event, typically representing when

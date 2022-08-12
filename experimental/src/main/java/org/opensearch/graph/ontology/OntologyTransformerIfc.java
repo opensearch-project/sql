@@ -21,10 +21,11 @@ package org.opensearch.graph.ontology;
  */
 
 
-
-
+import java.io.InputStream;
+import java.util.List;
 
 public interface OntologyTransformerIfc<OntIn,OntOut> {
     OntOut transform(String ontologyName, OntIn source);
+    OntOut transform(String ontologyName, InputStream ... source);
     OntIn translate(OntOut source);
 }
