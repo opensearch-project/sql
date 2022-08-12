@@ -20,7 +20,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
-import org.opensearch.sql.common.utils.LogUtils;
+import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
@@ -77,7 +77,7 @@ public class TransportPPLQueryAction
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_TOTAL).increment();
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_COUNT_TOTAL).increment();
 
-    LogUtils.addRequestId();
+    QueryContext.addRequestId();
 
     PPLService pplService = createPPLService(client);
     TransportPPLQueryRequest transportRequest = TransportPPLQueryRequest.fromActionRequest(request);
