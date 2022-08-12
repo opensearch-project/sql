@@ -7,13 +7,14 @@
 package org.opensearch.sql.common.utils;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.apache.logging.log4j.ThreadContext;
 
 /**
- * Utility class for generating/accessing the request id from logging context.
+ * Utility class for recording and accessing context for the query being executed.
  */
-public class LogUtils {
+public class QueryContext {
 
   /**
    * The key of the request id in the context map.
@@ -29,8 +30,10 @@ public class LogUtils {
    * call this method twice on the same thread within the lifetime of the request.
    * </p>
    */
-  public static void addRequestId() {
-    ThreadContext.put(REQUEST_ID_KEY, UUID.randomUUID().toString());
+  public static String addRequestId() {
+    var id = UUID.randomUUID().toString();
+    ThreadContext.put(REQUEST_ID_KEY, id);
+    return id;
   }
 
   /**
@@ -38,8 +41,11 @@ public class LogUtils {
    * @return the current request id from {@link ThreadContext}.
    */
   public static String getRequestId() {
-    final String requestId = ThreadContext.get(REQUEST_ID_KEY);
-    return requestId;
+    var id = ThreadContext.get(REQUEST_ID_KEY);
+    if (null == id) {
+      id = addRequestId();
+    }
+    return id;
   }
 
   /**
@@ -57,7 +63,7 @@ public class LogUtils {
     };
   }
 
-  private LogUtils() {
+  private QueryContext() {
     throw new AssertionError(
         getClass().getCanonicalName() + " is a utility class and must not be initialized");
   }

@@ -28,8 +28,8 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.action.RestToXContentListener;
+import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.legacy.executor.format.ErrorMessageFactory;
-import org.opensearch.sql.legacy.utils.LogUtils;
 
 public class RestQuerySettingsAction extends BaseRestHandler {
   private static final Logger LOG = LogManager.getLogger(RestQuerySettingsAction.class);
@@ -74,7 +74,7 @@ public class RestQuerySettingsAction extends BaseRestHandler {
   @Override
   protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
       throws IOException {
-    LogUtils.addRequestId();
+    QueryContext.addRequestId();
     final ClusterUpdateSettingsRequest clusterUpdateSettingsRequest =
         Requests.clusterUpdateSettingsRequest();
     clusterUpdateSettingsRequest.timeout(request.paramAsTime(
