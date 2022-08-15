@@ -32,9 +32,9 @@ public interface GraphQLSchemaUtils {
                 .filter(p -> p.getDefinition().isEqualTo(definition)).findAny();
     }
 
-    static Optional<GraphQLFieldDefinition> getFieldByType(List<GraphQLFieldDefinition> fieldDefinitions, String type) {
+    static Optional<GraphQLFieldDefinition> getFieldByName(List<GraphQLFieldDefinition> fieldDefinitions, String name) {
         return fieldDefinitions.stream()
-                .filter(p -> p.getDefinition().getName().equals(type))
+                .filter(p -> p.getDefinition().getName().equals(name))
                 .findAny();
     }
 

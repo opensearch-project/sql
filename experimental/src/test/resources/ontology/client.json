@@ -1,0 +1,605 @@
+{
+  "ont": "client",
+  "directives": [],
+  "entityTypes": [
+    {
+      "eType": "BaseRecord",
+      "name": "BaseRecord",
+      "mandatory": [
+        "timestamp"
+      ],
+      "properties": [
+        "labels",
+        "timestamp",
+        "attributes",
+        "message",
+        "tags"
+      ],
+      "abstract": true
+    },
+    {
+      "eType": "AutonomousSystem",
+      "name": "AutonomousSystem",
+      "directives": [
+        {
+          "type": "DATATYPE",
+          "name": "key",
+          "arguments": [
+            {
+              "name": "fields",
+              "value": [
+                "number"
+              ]
+            },
+            {
+              "name": "name",
+              "value": "number"
+            }
+          ]
+        }
+      ],
+      "mandatory": [
+        "number"
+      ],
+      "properties": [
+        "organizationName",
+        "number"
+      ],
+      "abstract": false
+    },
+    {
+      "eType": "Client",
+      "name": "Client",
+      "directives": [
+        {
+          "type": "DATATYPE",
+          "name": "model"
+        }
+      ],
+      "mandatory": [
+        "timestamp"
+      ],
+      "properties": [
+        "description",
+        "labels",
+        "address",
+        "port",
+        "natIpp",
+        "timestamp",
+        "attributes",
+        "subdomain",
+        "user",
+        "message",
+        "bytes",
+        "ip",
+        "as",
+        "natPort",
+        "topLevelDomain",
+        "geo",
+        "domain",
+        "packets",
+        "registeredDomain",
+        "tags",
+        "mac"
+      ],
+      "parentType": [
+        "BaseRecord"
+      ],
+      "abstract": false
+    },
+    {
+      "eType": "Geo",
+      "name": "Geo",
+      "properties": [
+        "name",
+        "continentCode",
+        "postalCode",
+        "regionIsoCode",
+        "countryName",
+        "location",
+        "timezone",
+        "countryIsoCode",
+        "regionName",
+        "cityName",
+        "continentName"
+      ],
+      "abstract": false
+    },
+    {
+      "idField": [
+        "id"
+      ],
+      "eType": "Group",
+      "name": "Group",
+      "mandatory": [
+        "id"
+      ],
+      "properties": [
+        "domain",
+        "id"
+      ],
+      "abstract": false
+    },
+    {
+      "eType": "StreamSet",
+      "name": "StreamSet",
+      "properties": [
+        "dataset",
+        "namespace",
+        "streamType"
+      ],
+      "abstract": false
+    },
+    {
+      "idField": [
+        "id"
+      ],
+      "eType": "User",
+      "name": "User",
+      "directives": [
+        {
+          "type": "DATATYPE",
+          "name": "model"
+        }
+      ],
+      "mandatory": [
+        "id"
+      ],
+      "properties": [
+        "name",
+        "group",
+        "email",
+        "roles",
+        "hash",
+        "domain",
+        "fullName",
+        "id"
+      ],
+      "abstract": false
+    }
+  ],
+  "relationshipTypes": [
+    {
+      "idField": [
+        "@id"
+      ],
+      "rType": "has_Geo",
+      "name": "has_Geo",
+      "directional": true,
+      "ePairs": [
+        {
+          "name": "Client->Geo",
+          "eTypeA": "Client",
+          "sideAFieldName": "geo",
+          "sideAIdField": "@id",
+          "eTypeB": "Geo",
+          "sideBIdField": "@id"
+        }
+      ]
+    },
+    {
+      "idField": [
+        "@id"
+      ],
+      "rType": "has_AutonomousSystem",
+      "name": "has_AutonomousSystem",
+      "directional": true,
+      "ePairs": [
+        {
+          "name": "Client->AutonomousSystem",
+          "eTypeA": "Client",
+          "sideAFieldName": "as",
+          "sideAIdField": "@id",
+          "eTypeB": "AutonomousSystem",
+          "sideBIdField": "@id"
+        }
+      ]
+    },
+    {
+      "idField": [
+        "@id"
+      ],
+      "rType": "has_User",
+      "name": "has_User",
+      "directional": true,
+      "ePairs": [
+        {
+          "name": "Client->User",
+          "eTypeA": "Client",
+          "sideAFieldName": "user",
+          "sideAIdField": "@id",
+          "eTypeB": "User",
+          "sideBIdField": "id"
+        }
+      ]
+    },
+    {
+      "idField": [
+        "@id"
+      ],
+      "rType": "has_Group",
+      "name": "has_Group",
+      "directional": true,
+      "ePairs": [
+        {
+          "name": "User->Group",
+          "eTypeA": "User",
+          "sideAFieldName": "group",
+          "sideAIdField": "id",
+          "eTypeB": "Group",
+          "sideBIdField": "id"
+        }
+      ]
+    }
+  ],
+  "properties": [
+    {
+      "pType": "description",
+      "name": "description",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "dataset",
+      "name": "dataset",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "address",
+      "name": "address",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "port",
+      "name": "port",
+      "type": {
+        "pType": "Primitive",
+        "type": "LONG"
+      }
+    },
+    {
+      "pType": "namespace",
+      "name": "namespace",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "natIpp",
+      "name": "natIpp",
+      "type": {
+        "pType": "Primitive",
+        "type": "IP"
+      }
+    },
+    {
+      "pType": "streamType",
+      "name": "streamType",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "timestamp",
+      "name": "timestamp",
+      "type": {
+        "pType": "Primitive",
+        "type": "TIME"
+      }
+    },
+    {
+      "pType": "timezone",
+      "name": "timezone",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "User",
+      "name": "user",
+      "type": {
+        "pType": "Object",
+        "type": "User"
+      }
+    },
+    {
+      "pType": "message",
+      "name": "message",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "name",
+      "name": "name",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "natPort",
+      "name": "natPort",
+      "type": {
+        "pType": "Primitive",
+        "type": "LONG"
+      }
+    },
+    {
+      "pType": "topLevelDomain",
+      "name": "topLevelDomain",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "number",
+      "name": "number",
+      "type": {
+        "pType": "Primitive",
+        "type": "LONG"
+      }
+    },
+    {
+      "pType": "Geo",
+      "name": "geo",
+      "type": {
+        "pType": "Object",
+        "type": "Geo"
+      }
+    },
+    {
+      "pType": "email",
+      "name": "email",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "countryName",
+      "name": "countryName",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "domain",
+      "name": "domain",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "fullName",
+      "name": "fullName",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "registeredDomain",
+      "name": "registeredDomain",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "labels",
+      "name": "labels",
+      "type": {
+        "pType": "Primitive",
+        "type": "JSON"
+      }
+    },
+    {
+      "pType": "Group",
+      "name": "group",
+      "type": {
+        "pType": "Object",
+        "type": "Group"
+      }
+    },
+    {
+      "pType": "attributes",
+      "name": "attributes",
+      "type": {
+        "pType": "Primitive",
+        "type": "JSON"
+      }
+    },
+    {
+      "pType": "subdomain",
+      "name": "subdomain",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "countryIsoCode",
+      "name": "countryIsoCode",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "bytes",
+      "name": "bytes",
+      "type": {
+        "pType": "Primitive",
+        "type": "LONG"
+      }
+    },
+    {
+      "pType": "regionName",
+      "name": "regionName",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "ip",
+      "name": "ip",
+      "type": {
+        "pType": "Primitive",
+        "type": "IP"
+      }
+    },
+    {
+      "pType": "continentName",
+      "name": "continentName",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "AutonomousSystem",
+      "name": "as",
+      "type": {
+        "pType": "Object",
+        "type": "AutonomousSystem"
+      }
+    },
+    {
+      "pType": "organizationName",
+      "name": "organizationName",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "continentCode",
+      "name": "continentCode",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "roles",
+      "name": "roles",
+      "type": {
+        "pType": "PrimitiveList",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "postalCode",
+      "name": "postalCode",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "regionIsoCode",
+      "name": "regionIsoCode",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "location",
+      "name": "location",
+      "type": {
+        "pType": "Primitive",
+        "type": "GEOPOINT"
+      }
+    },
+    {
+      "pType": "hash",
+      "name": "hash",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "packets",
+      "name": "packets",
+      "type": {
+        "pType": "Primitive",
+        "type": "LONG"
+      }
+    },
+    {
+      "pType": "id",
+      "name": "id",
+      "type": {
+        "pType": "Primitive",
+        "type": "ID"
+      }
+    },
+    {
+      "pType": "tags",
+      "name": "tags",
+      "type": {
+        "pType": "PrimitiveList",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "mac",
+      "name": "mac",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "cityName",
+      "name": "cityName",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    }
+  ],
+  "enumeratedTypes": [
+    {
+      "eType": "StreamType",
+      "values": [
+        {
+          "val": 0,
+          "name": "logs"
+        },
+        {
+          "val": 1,
+          "name": "metrics"
+        },
+        {
+          "val": 2,
+          "name": "traces"
+        },
+        {
+          "val": 3,
+          "name": "synthetics"
+        }
+      ]
+    }
+  ],
+  "compositeTypes": []
+}

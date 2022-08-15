@@ -28,7 +28,7 @@ public class GraphQLOntologyClientTranslatorTest {
         InputStream clientSchemaInput = new FileInputStream("schema/logs/client.graphql");
         GraphQLToOntologyTransformer transformer = new GraphQLToOntologyTransformer();
 
-        ontology = transformer.transform("user",baseSchemaInput,userSchemaInput,clientSchemaInput);
+        ontology = transformer.transform("client",baseSchemaInput,userSchemaInput,clientSchemaInput);
         ontologyAccessor = new Ontology.Accessor(ontology);
         Assertions.assertNotNull(ontology);
         String valueAsString = new ObjectMapper().writeValueAsString(ontology);
@@ -61,7 +61,25 @@ public class GraphQLOntologyClientTranslatorTest {
     @Test
     public void testRelationTranslation() {
         Assertions.assertEquals(ontologyAccessor.relation$("has_User").getrType(), "has_User");
+        Assertions.assertEquals(ontologyAccessor.relation$("has_User").getDirectives().size(), 1);
+        Assertions.assertEquals(ontologyAccessor.relation$("has_User").getDirectives().get(0).getName(), "relation");
+        Assertions.assertEquals(ontologyAccessor.relation$("has_User").getDirectives().get(0).getArguments().size(), 1);
+        Assertions.assertEquals(ontologyAccessor.relation$("has_User").getDirectives().get(0).getArguments().get(0).value, "foreign");
+
         Assertions.assertEquals(ontologyAccessor.relation$("has_User").getePairs().get(0).getSideAFieldName(), "user");
+
+        Assertions.assertEquals(ontologyAccessor.relation$("has_AutonomousSystem").getrType(), "has_AutonomousSystem");
+        Assertions.assertEquals(ontologyAccessor.relation$("has_AutonomousSystem").getePairs().get(0).getSideAFieldName(), "as");
+        Assertions.assertEquals(ontologyAccessor.relation$("has_AutonomousSystem").getDirectives().size(), 1);
+        Assertions.assertEquals(ontologyAccessor.relation$("has_AutonomousSystem").getDirectives().get(0).getName(), "relation");
+        Assertions.assertEquals(ontologyAccessor.relation$("has_AutonomousSystem").getDirectives().get(0).getArguments().size(), 1);
+        Assertions.assertEquals(ontologyAccessor.relation$("has_AutonomousSystem").getDirectives().get(0).getArguments().get(0).value, "embedded");
+
+        Assertions.assertEquals(ontologyAccessor.entity$("AutonomousSystem").isAbstract(), false);
+        Assertions.assertEquals(ontologyAccessor.entity$("AutonomousSystem").geteType(), "AutonomousSystem");
+        Assertions.assertEquals(ontologyAccessor.entity$("AutonomousSystem").getIdField().size(), 0);//todo - fix according to the @Key directive
+        Assertions.assertEquals(ontologyAccessor.entity$("AutonomousSystem").getProperties().size(), 2);
+        Assertions.assertEquals(ontologyAccessor.entity$("AutonomousSystem").getMandatory().size(), 1);
 
         Assertions.assertEquals(ontologyAccessor.entity$("User").geteType(), "User");
         Assertions.assertEquals(ontologyAccessor.entity$("User").getIdField().size(), 1);
@@ -90,7 +108,9 @@ public class GraphQLOntologyClientTranslatorTest {
         Assertions.assertEquals(provider.getRootEntities().get(0).getNested().get(0).getType(),"User");
         Assertions.assertEquals(provider.getRootEntities().get(0).getNested().get(1).getType(),"AutonomousSystem");
         Assertions.assertEquals(provider.getRootEntities().get(0).getNested().get(2).getType(),"Geo");
-        Assertions.assertEquals(provider.getRelations().size(),0);
+
+        Assertions.assertEquals(provider.getRelations().size(),1);
+        Assertions.assertEquals(provider.getRelations().get(0).getType(),"has_User");
     }
 
 }

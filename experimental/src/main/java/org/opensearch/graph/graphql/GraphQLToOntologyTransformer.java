@@ -383,7 +383,7 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
                 .map(t -> new Tuple2<>(t._1, t._2.get()))
                 .map(t -> RelationshipType.Builder.get()
                         //get the directives for the relationships
-                        .withDirectives(formatDirective(getFieldByType(fieldDefinitions, getRelationName(t._1))))
+                        .withDirectives(formatDirective(getFieldByName(fieldDefinitions, t._1)))
                         //nested objects are directional by nature (nesting dictates the direction)
                         .withDirectional(true)
                         .withName(getRelationName(t._2.geteType()))//field name
