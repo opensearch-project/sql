@@ -120,6 +120,11 @@ class MultiMatchTest {
             dsl.namedArgument("fields", fields_value),
             dsl.namedArgument("query", query_value),
             dsl.namedArgument("zero_terms_query", DSL.literal("ALL"))
+        ),
+        List.of(
+            dsl.namedArgument("fields", fields_value),
+            dsl.namedArgument("query", query_value),
+            dsl.namedArgument("zero_terms_query", DSL.literal("all"))
         )
       );
   }

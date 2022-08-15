@@ -41,7 +41,7 @@ public class MultiMatchQuery extends RelevanceQuery<MultiMatchQueryBuilder> {
         .put("type", (b, v) -> b.type(v.stringValue()))
         .put("slop", (b, v) -> b.slop(Integer.parseInt(v.stringValue())))
         .put("zero_terms_query", (b, v) -> b.zeroTermsQuery(
-            org.opensearch.index.search.MatchQuery.ZeroTermsQuery.valueOf(v.stringValue())))
+            org.opensearch.index.search.MatchQuery.ZeroTermsQuery.valueOf(valueOfToUpper(v))))
         .build());
   }
 
@@ -67,14 +67,15 @@ public class MultiMatchQuery extends RelevanceQuery<MultiMatchQueryBuilder> {
         .fields(fieldsAndWeights);
     while (iterator.hasNext()) {
       NamedArgumentExpression arg = (NamedArgumentExpression) iterator.next();
-      if (!queryBuildActions.containsKey(arg.getArgName())) {
+      String argNormalized = arg.getArgName().toLowerCase();
+      if (!queryBuildActions.containsKey(argNormalized)) {
         throw new SemanticCheckException(
             String.format("Parameter %s is invalid for %s function.",
-                arg.getArgName(), queryBuilder.getWriteableName()));
+                argNormalized, queryBuilder.getWriteableName()));
       }
       (Objects.requireNonNull(
           queryBuildActions
-              .get(arg.getArgName())))
+              .get(argNormalized)))
           .apply(queryBuilder, arg.getValue().valueOf(null));
     }
     return queryBuilder;

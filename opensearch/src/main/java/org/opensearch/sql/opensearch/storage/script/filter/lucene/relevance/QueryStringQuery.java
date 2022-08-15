@@ -59,7 +59,7 @@ public class QueryStringQuery extends RelevanceQuery<QueryStringQueryBuilder> {
         .put("phrase_slop", (b, v) -> b.phraseSlop(Integer.parseInt(v.stringValue())))
         .put("quote_field_suffix", (b, v) -> b.quoteFieldSuffix(v.stringValue()))
         .put("rewrite", (b, v) -> b.rewrite(v.stringValue()))
-        .put("type", (b, v) -> b.type(MultiMatchQueryBuilder.Type.parse(v.stringValue(),
+        .put("type", (b, v) -> b.type(MultiMatchQueryBuilder.Type.parse(valueOfToLower(v),
             LoggingDeprecationHandler.INSTANCE)))
         .put("tie_breaker", (b, v) -> b.tieBreaker(Float.parseFloat(v.stringValue())))
         .put("time_zone", (b, v) -> b.timeZone(v.stringValue()))
@@ -93,14 +93,15 @@ public class QueryStringQuery extends RelevanceQuery<QueryStringQueryBuilder> {
         .fields(fieldsAndWeights);
     while (iterator.hasNext()) {
       NamedArgumentExpression arg = (NamedArgumentExpression) iterator.next();
-      if (!queryBuildActions.containsKey(arg.getArgName())) {
+      String argNormalized = arg.getArgName().toLowerCase();
+      if (!queryBuildActions.containsKey(argNormalized)) {
         throw new SemanticCheckException(
             String.format("Parameter %s is invalid for %s function.",
-                arg.getArgName(), queryBuilder.getWriteableName()));
+                argNormalized, queryBuilder.getWriteableName()));
       }
       (Objects.requireNonNull(
           queryBuildActions
-              .get(arg.getArgName())))
+              .get(argNormalized)))
           .apply(queryBuilder, arg.getValue().valueOf(null));
     }
     return queryBuilder;

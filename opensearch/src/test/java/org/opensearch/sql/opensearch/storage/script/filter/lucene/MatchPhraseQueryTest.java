@@ -99,6 +99,16 @@ public class MatchPhraseQueryTest {
     Assertions.assertNotNull(matchPhraseQuery.build(new MatchPhraseExpression(arguments)));
   }
 
+  @Test
+  public void test_zero_terms_query_parameter_lower_case() {
+    List<Expression> arguments = List.of(
+        namedArgument("field", "t1"),
+        namedArgument("query", "t2"),
+        namedArgument("zero_terms_query", "all")
+    );
+    Assertions.assertNotNull(matchPhraseQuery.build(new MatchPhraseExpression(arguments)));
+  }
+
   private class MatchPhraseExpression extends FunctionExpression {
     public MatchPhraseExpression(List<Expression> arguments) {
       super(MatchPhraseQueryTest.this.matchPhrase, arguments);
