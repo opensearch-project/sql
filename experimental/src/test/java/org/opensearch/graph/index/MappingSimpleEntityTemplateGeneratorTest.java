@@ -39,6 +39,6 @@ public class MappingSimpleEntityTemplateGeneratorTest {
         Assert.assertEquals(1, requests.get("user").getMappings().size());
         Assert.assertNotNull(requests.get("user").getMappings().get("User"));
         Assert.assertNotNull(((Map) requests.get("user").getMappings().get("User")).get("properties"));
-        Assert.assertEquals(7, ((Map) ((Map) requests.get("user").getMappings().get("User")).get("properties")).size());
+        Assert.assertEquals(8, ((Map) ((Map) requests.get("user").getMappings().get("User")).get("properties")).size());
     }
 }

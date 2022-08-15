@@ -5,6 +5,7 @@ import com.google.inject.Inject;
 import javaslang.Tuple2;
 import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
+import org.opensearch.cluster.metadata.ComponentTemplate;
 import org.opensearch.graph.GraphError;
 import org.opensearch.graph.index.schema.IndexProvider;
 import org.opensearch.graph.index.template.PutIndexTemplateRequestBuilder;

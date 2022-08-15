@@ -50,9 +50,9 @@ type Host implements BaseRecord @model{
     #    Name of the host.
     name:String
     #    Host ip addresses.
-    ip:IP
+    ip:[IP]
     #    Host max addresses.
-    mac:String
+    mac:[String]
     #    The number of bytes sent on all network interfaces  by the host since the last metric collection.
     networkEgressBytes:Long
     #    The number of packets (gauge) sent out on all network interfaces  by the host since the last metric collection.
@@ -69,5 +69,5 @@ type Host implements BaseRecord @model{
     #  Fields describing a location.
     geo:Geo
     #  OS fields contain information about the operating system.
-    os:OS @relation(mappingType: "embedded")
+    os:[OS]
 }

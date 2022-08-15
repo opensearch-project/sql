@@ -1,24 +1,23 @@
 package org.opensearch.graph.graphql;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.Assert;
-import graphql.schema.GraphQLSchema;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.opensearch.graph.index.schema.IndexProvider;
-import org.opensearch.graph.ontology.*;
+import org.opensearch.graph.ontology.ObjectType;
+import org.opensearch.graph.ontology.Ontology;
+import org.opensearch.graph.ontology.Property;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.util.Arrays;
 
 import static org.opensearch.graph.ontology.PrimitiveType.Types.*;
 import static org.opensearch.graph.ontology.Property.equal;
 
 
-public class GraphQLOntologyUserTranslatorTest {
+public class GraphQLOntologyClientTranslatorTest {
     public static Ontology ontology;
     public static Ontology.Accessor ontologyAccessor;
 
@@ -26,9 +25,10 @@ public class GraphQLOntologyUserTranslatorTest {
     public static void setUp() throws Exception {
         InputStream baseSchemaInput = new FileInputStream("schema/logs/base.graphql");
         InputStream userSchemaInput = new FileInputStream("schema/logs/user.graphql");
+        InputStream clientSchemaInput = new FileInputStream("schema/logs/client.graphql");
         GraphQLToOntologyTransformer transformer = new GraphQLToOntologyTransformer();
 
-        ontology = transformer.transform("user",baseSchemaInput,userSchemaInput);
+        ontology = transformer.transform("user",baseSchemaInput,userSchemaInput,clientSchemaInput);
         ontologyAccessor = new Ontology.Accessor(ontology);
         Assertions.assertNotNull(ontology);
         String valueAsString = new ObjectMapper().writeValueAsString(ontology);
@@ -43,28 +43,33 @@ public class GraphQLOntologyUserTranslatorTest {
         Assertions.assertTrue(equal(ontologyAccessor.property$("email"), new Property("email", "email", STRING.asType())));
         Assertions.assertTrue(equal(ontologyAccessor.property$("fullName"), new Property("fullName", "fullName", STRING.asType())));
         Assertions.assertTrue(equal(ontologyAccessor.property$("roles"), new Property("roles", "roles", STRING.asListType())));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("location"), new Property("location", "location", GEOPOINT.asType())));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("geo"), new Property("geo", "Geo", ObjectType.of("Geo"))));
+        //implemented as nested object
+        Assertions.assertTrue(equal(ontologyAccessor.property$("user"), new Property("user", "User", ObjectType.of("User"))));
     }
 
     @Test
     public void testEntityTranslation() {
-        Assertions.assertEquals(ontologyAccessor.entity$("User").isAbstract(), false);
-        Assertions.assertEquals(ontologyAccessor.entity$("User").getIdField().size(), 1);
-        Assertions.assertEquals(ontologyAccessor.entity$("User").getIdField().get(0), "id");
-        Assertions.assertEquals(ontologyAccessor.entity$("User").geteType(), "User");
-        Assertions.assertEquals(ontologyAccessor.entity$("User").getProperties().size(), 8);
-        Assertions.assertEquals(ontologyAccessor.entity$("User").getMandatory().size(), 1);
-        //implemented as nested object
-        Assertions.assertTrue(equal(ontologyAccessor.property$("group"), new Property("group", "Group", ObjectType.of("Group"))));
+        Assertions.assertEquals(ontologyAccessor.entity$("Client").isAbstract(), false);
+        Assertions.assertEquals(ontologyAccessor.entity$("Client").geteType(), "Client");
+        Assertions.assertEquals(ontologyAccessor.entity$("Client").getIdField().size(), 0);//todo - fix according to @Key directive
+        Assertions.assertEquals(ontologyAccessor.entity$("Client").getProperties().size(), 21);
+        Assertions.assertEquals(ontologyAccessor.entity$("Client").getMandatory().size(), 1);
     }
 
     @Test
     public void testRelationTranslation() {
-        Assertions.assertEquals(ontologyAccessor.relations().size(), 1);
-        Assertions.assertEquals(ontologyAccessor.entity$("Group").geteType(), "Group");
-        Assertions.assertEquals(ontologyAccessor.entity$("Group").getIdField().size(), 1);
-        Assertions.assertEquals(ontologyAccessor.entity$("Group").getIdField().get(0), "id");
-        Assertions.assertEquals(ontologyAccessor.entity$("Group").getProperties().size(), 2);
-        Assertions.assertEquals(ontologyAccessor.entity$("Group").getMandatory().size(), 1);
+        Assertions.assertEquals(ontologyAccessor.relation$("has_User").getrType(), "has_User");
+        Assertions.assertEquals(ontologyAccessor.relation$("has_User").getePairs().get(0).getSideAFieldName(), "user");
+
+        Assertions.assertEquals(ontologyAccessor.entity$("User").geteType(), "User");
+        Assertions.assertEquals(ontologyAccessor.entity$("User").getIdField().size(), 1);
+        Assertions.assertEquals(ontologyAccessor.entity$("User").getIdField().get(0), "id");
+        Assertions.assertEquals(ontologyAccessor.entity$("User").getProperties().size(), 8);
+        Assertions.assertEquals(ontologyAccessor.entity$("User").getMandatory().size(), 1);
+
+
     }
 
      /**
@@ -79,10 +84,12 @@ public class GraphQLOntologyUserTranslatorTest {
 
         String valueAsString = new ObjectMapper().writeValueAsString(provider);
         Assert.assertNotNull(valueAsString);
-        Assertions.assertEquals(provider.getRootEntities().size(),1);
-        Assertions.assertEquals(provider.getRootEntities().get(0).getType(),"User");
-        Assertions.assertEquals(provider.getRootEntities().get(0).getNested().size(),1);
-        Assertions.assertEquals(provider.getRootEntities().get(0).getNested().get(0).getType(),"Group");
+        Assertions.assertEquals(provider.getRootEntities().size(),2);
+        Assertions.assertEquals(provider.getRootEntities().get(0).getType(),"Client");
+        Assertions.assertEquals(provider.getRootEntities().get(0).getNested().size(),3);
+        Assertions.assertEquals(provider.getRootEntities().get(0).getNested().get(0).getType(),"User");
+        Assertions.assertEquals(provider.getRootEntities().get(0).getNested().get(1).getType(),"AutonomousSystem");
+        Assertions.assertEquals(provider.getRootEntities().get(0).getNested().get(2).getType(),"Geo");
         Assertions.assertEquals(provider.getRelations().size(),0);
     }
 

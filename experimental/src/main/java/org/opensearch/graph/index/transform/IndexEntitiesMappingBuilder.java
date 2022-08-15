@@ -3,6 +3,7 @@ package org.opensearch.graph.index.transform;
 
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateAction;
 import org.opensearch.client.Client;
+import org.opensearch.cluster.metadata.ComponentTemplate;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.graph.GraphError;
 import org.opensearch.graph.index.template.PutIndexTemplateRequestBuilder;

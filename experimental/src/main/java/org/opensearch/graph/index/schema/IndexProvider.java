@@ -3,6 +3,7 @@ package org.opensearch.graph.index.schema;
 
 import com.fasterxml.jackson.annotation.*;
 import com.google.common.collect.ImmutableList;
+import org.opensearch.graph.ontology.BaseElement;
 import org.opensearch.graph.ontology.EntityType;
 import org.opensearch.graph.ontology.Ontology;
 import org.opensearch.graph.ontology.RelationshipType;
@@ -28,7 +29,8 @@ public class IndexProvider {
     @JsonIgnore
     private Map<String, Object> additionalProperties = new HashMap<>();
 
-    public IndexProvider() {}
+    public IndexProvider() {
+    }
 
     public IndexProvider(IndexProvider source) {
         this.ontology = source.ontology;
@@ -45,9 +47,19 @@ public class IndexProvider {
                 .collect(Collectors.toList());
     }
 
-    @JsonProperty("entities")
+    @JsonProperty("rootEntities")
+    public List<Entity> getRootEntities() {
+        return entities;
+    }
+
+    @JsonProperty("rootEntities")
     public void setEntities(List<Entity> entities) {
         this.entities = entities;
+    }
+
+    @JsonProperty("rootRelations")
+    public List<Relation> getRootRelations() {
+        return relations;
     }
 
     @JsonProperty("relations")
@@ -58,7 +70,7 @@ public class IndexProvider {
                 .collect(Collectors.toList());
     }
 
-    @JsonProperty("relations")
+    @JsonProperty("rootRelations")
     public void setRelations(List<Relation> relations) {
         this.relations = relations;
     }
@@ -122,36 +134,66 @@ public class IndexProvider {
     public static class Builder {
 
         public static IndexProvider generate(Ontology ontology) {
-            return generate(ontology,e->true,r->true);
+            return generate(ontology, e -> true, r -> true);
         }
 
-            /**
-             * creates default index provider according to the given ontology - simple static index strategy
-             *
-             * @param ontology
-             * @return
-             */
+        /**
+         * creates default index provider according to the given ontology - simple static index strategy
+         *
+         * @param ontology
+         * @return
+         */
         public static IndexProvider generate(Ontology ontology, Predicate<EntityType> entityPredicate, Predicate<RelationshipType> relationPredicate) {
+            Ontology.Accessor accessor = new Ontology.Accessor(ontology);
             IndexProvider provider = new IndexProvider();
             provider.ontology = ontology.getOnt();
             //generate entities
             provider.entities = ontology.getEntityTypes().stream()
                     .filter(entityPredicate)
-                    .map(e ->
-                            new Entity(e.getName(), MappingIndexType.STATIC.name(), PartitionType.INDEX.name(),
-                                    // indices need to be lower cased
-                                    new Props(ImmutableList.of(e.getName().toLowerCase())), Collections.emptyList(), Collections.emptyMap()))
+                    .map(e -> createEntity(e,false, accessor))
                     .collect(Collectors.toList());
             //generate relations
             provider.relations = ontology.getRelationshipTypes().stream()
                     .filter(relationPredicate)
-                    .map(e ->
-                            new Relation(e.getName(), MappingIndexType.STATIC.name(), PartitionType.INDEX.name(), false, Collections.emptyList(),
-                                    // indices need to be lower cased
-                                    new Props(ImmutableList.of(e.getName().toLowerCase())), Collections.emptyList(), Collections.emptyMap()))
+                    .map(e -> createRelation(e,false, accessor))
                     .collect(Collectors.toList());
 
             return provider;
+        }
+
+        private static Relation createRelation(RelationshipType r,boolean nested, Ontology.Accessor accessor) {
+            return new Relation(r.getName(), nested ? MappingIndexType.NESTED.name() : MappingIndexType.STATIC.name(), PartitionType.INDEX.name(), false,
+                    createNestedRelation(r, accessor),
+                    // indices need to be lower cased
+                    createProperties(r, accessor),
+                    Collections.emptyList(), Collections.emptyMap());
+        }
+
+        private static Entity createEntity(EntityType e,boolean nested, Ontology.Accessor accessor) {
+            return new Entity(e.getName(), nested ? MappingIndexType.NESTED.name() : MappingIndexType.STATIC.name(), PartitionType.INDEX.name(),
+                    // indices need to be lower cased
+                    createProperties(e, accessor),
+                    createNestedEntity(e, accessor),
+                    Collections.emptyMap());
+        }
+
+        private static List<Relation> createNestedRelation(RelationshipType r, Ontology.Accessor accessor) {
+            return r.getProperties().stream()
+                    .filter(p -> accessor.getNestedRelationByPropertyName(p).isPresent())
+                    .map(p -> createRelation(accessor.getNestedRelationByPropertyName(p).get(),true, accessor))
+                    .collect(Collectors.toList());
+        }
+
+        private static List<Entity> createNestedEntity(EntityType e, Ontology.Accessor accessor) {
+            //filter nested entities only
+            return e.getProperties().stream()
+                    .filter(p -> accessor.getNestedEntityByPropertyName(p).isPresent())
+                    .map(p -> createEntity(accessor.getNestedEntityByPropertyName(p).get(),true, accessor))
+                    .collect(Collectors.toList());
+        }
+
+        private static <I extends BaseElement> Props createProperties(I e, Ontology.Accessor accessor) {
+            return new Props(ImmutableList.of(e.getName()));
         }
     }
 }

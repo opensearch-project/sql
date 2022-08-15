@@ -14,5 +14,5 @@ type User @model {
     #    Unique user hash to correlate information for a user in anonymize form.
     hash:String
     #    the group in which the client is a member of
-    group:Group @relation(mappingType:"foreign")
+    group:Group
 }

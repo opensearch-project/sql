@@ -1,0 +1,66 @@
+{
+  "entities": [
+    {
+      "type": "Group",
+      "partition": "NESTED",
+      "props": {
+        "values": [
+          "Group"
+        ]
+      },
+      "nested": [],
+      "mapping": "INDEX"
+    },
+    {
+      "type": "User",
+      "partition": "STATIC",
+      "props": {
+        "values": [
+          "User"
+        ]
+      },
+      "nested": [
+        {
+          "type": "Group",
+          "partition": "NESTED",
+          "props": {
+            "values": [
+              "Group"
+            ]
+          },
+          "nested": [],
+          "mapping": "INDEX"
+        }
+      ],
+      "mapping": "INDEX"
+    }
+  ],
+  "relations": [],
+  "ontology": "user",
+  "rootEntities": [
+    {
+      "type": "User",
+      "partition": "STATIC",
+      "props": {
+        "values": [
+          "User"
+        ]
+      },
+      "nested": [
+        {
+          "type": "Group",
+          "partition": "NESTED",
+          "props": {
+            "values": [
+              "Group"
+            ]
+          },
+          "nested": [],
+          "mapping": "INDEX"
+        }
+      ],
+      "mapping": "INDEX"
+    }
+  ],
+  "rootRelations": []
+}

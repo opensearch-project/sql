@@ -58,5 +58,13 @@ public class GraphQLOntologyBaseTranslatorTest {
         Assertions.assertEquals(ontologyAccessor.entity$("BaseRecord").geteType(), "BaseRecord");
         Assertions.assertEquals(ontologyAccessor.entity$("BaseRecord").getProperties().size(), 5);
         Assertions.assertEquals(ontologyAccessor.entity$("BaseRecord").getMandatory().size(), 1);
+
+        Assertions.assertEquals(ontologyAccessor.entity$("AutonomousSystem").isAbstract(), false);
+        Assertions.assertEquals(ontologyAccessor.entity$("AutonomousSystem").geteType(), "AutonomousSystem");
+        Assertions.assertEquals(ontologyAccessor.entity$("AutonomousSystem").getIdField().size(), 0);//todo - fix according to the @Key directive
+        Assertions.assertEquals(ontologyAccessor.entity$("AutonomousSystem").getProperties().size(), 2);
+        Assertions.assertEquals(ontologyAccessor.entity$("AutonomousSystem").getMandatory().size(), 1);
+
+
     }
 }

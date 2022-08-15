@@ -24,12 +24,14 @@ import static graphql.Scalars.GraphQLString;
 import static java.util.Collections.singletonList;
 import static org.opensearch.graph.graphql.GraphQLSchemaUtils.*;
 import static org.opensearch.graph.graphql.GraphQLSchemaUtils.filter;
+import static org.opensearch.graph.ontology.Ontology.OntologyBuilder.anOntology;
 import static org.opensearch.graph.ontology.PrimitiveType.Types.*;
 import static org.opensearch.graph.ontology.Property.MandatoryProperty.of;
 
 public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<String, Ontology>, GraphQLSchemaUtils {
 
 
+    public static final String HAS = "has_";
     //graph QL reader and schema parts
     private GraphQLSchema graphQLSchema;
     private SchemaParser schemaParser = new SchemaParser();
@@ -117,7 +119,7 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
                     builder.build());
         }
         //create a curated list of names for typed schema elements
-        return transform(graphQLSchema);
+        return transform(ontologyName,graphQLSchema);
 
     }
 
@@ -125,12 +127,12 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
      * @param graphQLSchema
      * @return
      */
-    public Ontology transform(GraphQLSchema graphQLSchema) {
+    public Ontology transform(String ontologyName,GraphQLSchema graphQLSchema) {
         validateLanguageType(graphQLSchema);
         populateObjectTypes(graphQLSchema);
 
         //transform
-        Ontology.OntologyBuilder builder = Ontology.OntologyBuilder.anOntology();
+        Ontology.OntologyBuilder builder = anOntology(ontologyName);
         primitives(graphQLSchema, builder);
         interfaces(graphQLSchema, builder);
         entities(graphQLSchema, builder);
@@ -381,11 +383,11 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
                 .map(t -> new Tuple2<>(t._1, t._2.get()))
                 .map(t -> RelationshipType.Builder.get()
                         //get the directives for the relationships
-                        .withDirectives(formatDirective(getFieldByType(fieldDefinitions, t._1)))
+                        .withDirectives(formatDirective(getFieldByType(fieldDefinitions, getRelationName(t._1))))
                         //nested objects are directional by nature (nesting dictates the direction)
                         .withDirectional(true)
-                        .withName(t._1)//field name
-                        .withRType(t._1)//field name is the relation type
+                        .withName(getRelationName(t._2.geteType()))//field name
+                        .withRType(getRelationName(t._2.geteType()))//field name is the relation type
                         .withEPairs(singletonList(createEPair(name, t, context)))
                         .build())
                 .collect(Collectors.toList());
@@ -393,10 +395,15 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
         return collect;
     }
 
+    private String getRelationName(String name) {
+        return name.startsWith(HAS)?name: HAS +name;
+    }
+
     private EPair createEPair(String name, Tuple2<String, EntityType> t, Ontology.OntologyBuilder context) {
         EntityType sideA = context.getEntityType(name).get();
+        String sideAFieldName = t._1;
         EntityType sideB = t._2;
-        return new EPair(sideA.geteType(), sideA.idFieldName(), sideB.geteType(), sideB.idFieldName());
+        return new EPair(sideA.geteType(), sideAFieldName,sideA.idFieldName(), sideB.geteType(), sideB.idFieldName());
     }
 
     private Ontology.OntologyBuilder properties(GraphQLSchema graphQLSchema, Ontology.OntologyBuilder context) {

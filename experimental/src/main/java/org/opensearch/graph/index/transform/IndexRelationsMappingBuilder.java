@@ -2,7 +2,14 @@ package org.opensearch.graph.index.transform;
 
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateAction;
 import org.opensearch.client.Client;
+import org.opensearch.cluster.metadata.ComponentTemplate;
+import org.opensearch.cluster.metadata.Template;
+import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.common.compress.CompressedXContent;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.ToXContent;
+import org.opensearch.common.xcontent.XContentBuilder;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.graph.GraphError;
 import org.opensearch.graph.index.schema.BaseTypeElement;
 import org.opensearch.graph.index.schema.IndexProvider;
@@ -14,6 +21,8 @@ import org.opensearch.graph.index.template.TemplateMapping;
 import org.opensearch.graph.ontology.Ontology;
 import org.opensearch.graph.ontology.RelationshipType;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.*;
 import java.util.stream.Collectors;
 

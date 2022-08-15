@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.StringJoiner;
 
 public interface BaseElement {
-    String ID = "id";
+    String ID = "@id";
 
     String getName();
 

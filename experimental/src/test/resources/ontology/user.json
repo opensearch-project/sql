@@ -1,5 +1,5 @@
 {
-  "ont": "Generic",
+  "ont": "user",
   "directives": [],
   "entityTypes": [
     {
@@ -10,10 +10,10 @@
       ],
       "properties": [
         "message",
-        "labels",
+        "tags",
         "attributes",
-        "timestamp",
-        "tags"
+        "labels",
+        "timestamp"
       ],
       "abstract": true
     },
@@ -51,17 +51,17 @@
       "eType": "Geo",
       "name": "Geo",
       "properties": [
-        "countryIsoCode",
         "timezone",
+        "countryIsoCode",
         "regionIsoCode",
         "countryName",
         "postalCode",
         "continentCode",
         "location",
-        "name",
-        "continentName",
+        "regionName",
         "cityName",
-        "regionName"
+        "name",
+        "continentName"
       ],
       "abstract": false
     },
@@ -110,9 +110,9 @@
         "group",
         "domain",
         "hash",
+        "id",
         "email",
         "roles",
-        "id",
         "name"
       ],
       "abstract": false
@@ -139,147 +139,11 @@
   ],
   "properties": [
     {
-      "pType": "hash",
-      "name": "hash",
-      "type": {
-        "pType": "Primitive",
-        "type": "STRING"
-      }
-    },
-    {
-      "pType": "regionIsoCode",
-      "name": "regionIsoCode",
-      "type": {
-        "pType": "Primitive",
-        "type": "STRING"
-      }
-    },
-    {
-      "pType": "postalCode",
-      "name": "postalCode",
-      "type": {
-        "pType": "Primitive",
-        "type": "STRING"
-      }
-    },
-    {
-      "pType": "roles",
-      "name": "roles",
-      "type": {
-        "pType": "PrimitiveList",
-        "type": "STRING"
-      }
-    },
-    {
-      "pType": "namespace",
-      "name": "namespace",
-      "type": {
-        "pType": "Primitive",
-        "type": "STRING"
-      }
-    },
-    {
-      "pType": "dataset",
-      "name": "dataset",
-      "type": {
-        "pType": "Primitive",
-        "type": "STRING"
-      }
-    },
-    {
-      "pType": "cityName",
-      "name": "cityName",
-      "type": {
-        "pType": "Primitive",
-        "type": "STRING"
-      }
-    },
-    {
-      "pType": "tags",
-      "name": "tags",
-      "type": {
-        "pType": "PrimitiveList",
-        "type": "STRING"
-      }
-    },
-    {
-      "pType": "message",
-      "name": "message",
-      "type": {
-        "pType": "Primitive",
-        "type": "STRING"
-      }
-    },
-    {
-      "pType": "timezone",
-      "name": "timezone",
-      "type": {
-        "pType": "Primitive",
-        "type": "STRING"
-      }
-    },
-    {
-      "pType": "streamType",
-      "name": "streamType",
-      "type": {
-        "pType": "Primitive",
-        "type": "STRING"
-      }
-    },
-    {
-      "pType": "number",
-      "name": "number",
-      "type": {
-        "pType": "Primitive",
-        "type": "LONG"
-      }
-    },
-    {
-      "pType": "timestamp",
-      "name": "timestamp",
-      "type": {
-        "pType": "Primitive",
-        "type": "TIME"
-      }
-    },
-    {
-      "pType": "name",
-      "name": "name",
-      "type": {
-        "pType": "Primitive",
-        "type": "STRING"
-      }
-    },
-    {
       "pType": "fullName",
       "name": "fullName",
       "type": {
         "pType": "Primitive",
         "type": "STRING"
-      }
-    },
-    {
-      "pType": "Group",
-      "name": "group",
-      "type": {
-        "pType": "Object",
-        "type": "Group"
-      }
-    },
-    {
-      "pType": "domain",
-      "name": "domain",
-      "type": {
-        "pType": "Primitive",
-        "type": "STRING"
-      }
-    },
-    {
-      "pType": "labels",
-      "name": "labels",
-      "type": {
-        "pType": "Primitive",
-        "type": "JSON"
       }
     },
     {
@@ -291,8 +155,16 @@
       }
     },
     {
-      "pType": "email",
-      "name": "email",
+      "pType": "attributes",
+      "name": "attributes",
+      "type": {
+        "pType": "Primitive",
+        "type": "JSON"
+      }
+    },
+    {
+      "pType": "domain",
+      "name": "domain",
       "type": {
         "pType": "Primitive",
         "type": "STRING"
@@ -323,6 +195,14 @@
       }
     },
     {
+      "pType": "roles",
+      "name": "roles",
+      "type": {
+        "pType": "PrimitiveList",
+        "type": "STRING"
+      }
+    },
+    {
       "pType": "organizationName",
       "name": "organizationName",
       "type": {
@@ -339,11 +219,19 @@
       }
     },
     {
-      "pType": "attributes",
-      "name": "attributes",
+      "pType": "labels",
+      "name": "labels",
       "type": {
         "pType": "Primitive",
         "type": "JSON"
+      }
+    },
+    {
+      "pType": "regionName",
+      "name": "regionName",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
       }
     },
     {
@@ -355,8 +243,120 @@
       }
     },
     {
-      "pType": "regionName",
-      "name": "regionName",
+      "pType": "tags",
+      "name": "tags",
+      "type": {
+        "pType": "PrimitiveList",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "Group",
+      "name": "group",
+      "type": {
+        "pType": "Object",
+        "type": "Group"
+      }
+    },
+    {
+      "pType": "regionIsoCode",
+      "name": "regionIsoCode",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "hash",
+      "name": "hash",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "postalCode",
+      "name": "postalCode",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "namespace",
+      "name": "namespace",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "dataset",
+      "name": "dataset",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "cityName",
+      "name": "cityName",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "message",
+      "name": "message",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "number",
+      "name": "number",
+      "type": {
+        "pType": "Primitive",
+        "type": "LONG"
+      }
+    },
+    {
+      "pType": "timezone",
+      "name": "timezone",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "streamType",
+      "name": "streamType",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "email",
+      "name": "email",
+      "type": {
+        "pType": "Primitive",
+        "type": "STRING"
+      }
+    },
+    {
+      "pType": "timestamp",
+      "name": "timestamp",
+      "type": {
+        "pType": "Primitive",
+        "type": "TIME"
+      }
+    },
+    {
+      "pType": "name",
+      "name": "name",
       "type": {
         "pType": "Primitive",
         "type": "STRING"

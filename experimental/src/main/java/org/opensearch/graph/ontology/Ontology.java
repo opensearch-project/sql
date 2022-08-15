@@ -7,6 +7,7 @@ import javaslang.Tuple;
 import javaslang.Tuple2;
 import javaslang.collection.Stream;
 import org.opensearch.graph.GraphError;
+import org.opensearch.graph.index.schema.Entity;
 import org.opensearch.graph.ontology.PrimitiveType.ArrayOfPrimitives;
 
 import java.awt.geom.Point2D;
@@ -187,7 +188,7 @@ public class Ontology {
     //region Builder
 
     public static final class OntologyBuilder {
-        private String ont = "Generic";
+        private String name = "Generic";
         private List<DirectiveType> directives;
         private List<EntityType> entityTypes;
         private List<RelationshipType> relationshipTypes;
@@ -211,8 +212,12 @@ public class Ontology {
             return new OntologyBuilder();
         }
 
-        public OntologyBuilder withOnt(String ont) {
-            this.ont = ont;
+        public static OntologyBuilder anOntology(String ontologyName) {
+            return anOntology().withName(ontologyName);
+        }
+
+        public OntologyBuilder withName(String name) {
+            this.name = name;
             return this;
         }
 
@@ -315,7 +320,7 @@ public class Ontology {
 
         public Ontology build() {
             Ontology ontology = new Ontology();
-            ontology.setOnt(ont);
+            ontology.setOnt(name);
             ontology.setDirectives(directives);
             ontology.setEntityTypes(entityTypes);
             ontology.setRelationshipTypes(relationshipTypes);
@@ -537,6 +542,15 @@ public class Ontology {
             if (!entity(eType).isPresent()) return false;
 
             return entity$(eType).fields().stream().anyMatch(p -> $entity(p).isPresent());
+        }
+
+        public Optional<EntityType> getNestedEntityByPropertyName(String prop) {
+            if (property(prop).isEmpty()) return Optional.empty();
+            return $entity(property$(prop).getpType());
+        }
+        public Optional<RelationshipType> getNestedRelationByPropertyName(String prop) {
+            if (property(prop).isEmpty()) return Optional.empty();
+            return $relation(property$(prop).getpType());
         }
 
         public Iterable<String> eNames() {
