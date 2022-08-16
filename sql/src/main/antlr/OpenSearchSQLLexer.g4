@@ -216,6 +216,7 @@ LOG10:                              'LOG10';
 LOG2:                               'LOG2';
 LOWER:                              'LOWER';
 LTRIM:                              'LTRIM';
+MAKEDATE:                           'MAKEDATE';
 MAKETIME:                           'MAKETIME';
 MODULUS:                            'MODULUS';
 MONTHNAME:                          'MONTHNAME';
