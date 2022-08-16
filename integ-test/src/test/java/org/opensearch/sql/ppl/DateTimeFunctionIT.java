@@ -9,6 +9,7 @@ package org.opensearch.sql.ppl;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.MatcherUtils.verifySome;
 
@@ -47,10 +48,62 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
 
     result =
         executeQuery(String.format(
-            "source=%s | eval f = adddate('2020-09-16 17:30:00', interval 1 day) | fields f", TEST_INDEX_DATE));
+            "source=%s | eval f = adddate('2020-09-16 17:30:00', interval 1 day) | fields f",
+            TEST_INDEX_DATE));
     verifySchema(result,
         schema("f", null, "datetime"));
     verifySome(result.getJSONArray("datarows"), rows("2020-09-17 17:30:00"));
+  }
+
+  @Test
+  public void testConvertTZ() throws IOException {
+    JSONObject result =
+        executeQuery(String.format(
+            "source=%s | eval f = convert_tz('2008-05-15 12:00:00','+00:00','+10:00') | fields f",
+            TEST_INDEX_DATE));
+    verifySchema(result,
+        schema("f", null, "datetime"));
+    verifySome(result.getJSONArray("datarows"), rows("2008-05-15 22:00:00"));
+
+    result =
+        executeQuery(String.format(
+            "source=%s | eval f = convert_tz('2021-05-12 00:00:00','-00:00','+00:00') | fields f",
+            TEST_INDEX_DATE));
+    verifySchema(result,
+        schema("f", null, "datetime"));
+    verifySome(result.getJSONArray("datarows"), rows("2021-05-12 00:00:00"));
+
+    result =
+        executeQuery(String.format(
+            "source=%s | eval f = convert_tz('2021-05-12 00:00:00','+10:00','+11:00') | fields f",
+            TEST_INDEX_DATE));
+    verifySchema(result,
+        schema("f", null, "datetime"));
+    verifySome(result.getJSONArray("datarows"), rows("2021-05-12 01:00:00"));
+
+    result =
+        executeQuery(String.format(
+            "source=%s | eval f = convert_tz('2021-05-12 11:34:50','-08:00','+09:00') | fields f",
+            TEST_INDEX_DATE));
+    verifySchema(result,
+        schema("f", null, "datetime"));
+    verifySome(result.getJSONArray("datarows"), rows("2021-05-13 04:34:50"));
+
+    result =
+        executeQuery(String.format(
+            "source=%s | eval f = convert_tz('2021-05-30 11:34:50','-17:00','+08:00') | fields f",
+            TEST_INDEX_DATE));
+    verifySchema(result,
+        schema("f", null, "datetime"));
+    verifySome(result.getJSONArray("datarows"), rows("null"));
+
+    result =
+        executeQuery(String.format(
+            "source=%s | eval f = convert_tz('2021-05-12 11:34:50','-12:00','+14:00') | fields f",
+            TEST_INDEX_DATE));
+    verifySchema(result,
+        schema("f", null, "datetime"));
+    verifySome(result.getJSONArray("datarows"), rows("null"));
   }
 
   @Test
