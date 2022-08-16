@@ -53,9 +53,9 @@ configurations.all {
     // enforce 1.1.3, https://www.whitesourcesoftware.com/vulnerability-database/WS-2019-0379
     resolutionStrategy.force 'commons-codec:commons-codec:1.13'
     resolutionStrategy.force 'com.google.guava:guava:31.0.1-jre'
-    resolutionStrategy.force 'com.fasterxml.jackson.core:jackson-core:2.13.2'
-    resolutionStrategy.force 'com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.13.2'
-    resolutionStrategy.force 'com.fasterxml.jackson.core:jackson-databind:2.13.2.2'
+    resolutionStrategy.force "com.fasterxml.jackson.core:jackson-core:${jackson_version}"
+    resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${jackson_version}"
+    resolutionStrategy.force "com.fasterxml.jackson.core:jackson-databind:${jackson_databind_version}"
 }
 
 dependencies {
@@ -187,6 +187,10 @@ task compileJdbc(type: Exec) {
     }
 }
 
+/*
+BWC test suite was running on OpenDistro which was discontinued and no available anymore for testing.
+Test suite is not removed, because it could be reused later between different OpenSearch versions.
+*/
 String bwcVersion = "1.13.2.0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
