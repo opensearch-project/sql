@@ -1,8 +1,6 @@
-# SpanKind describes the relationship between the Span, its parents, and its children in a Trace. SpanKind describes two independent properties that benefit tracing systems during analysis.
+# SpanKind describes the relationship between the Span, its parents, and its children in a Trace.
 #
-#The first property described by SpanKind reflects whether the Span is a "logical" remote child or parent. By "logical", we mean that the span is logically a remote child or parent, from the point of view of the library that is being instrumented. Spans with a remote parent are interesting because they are sources of external load. Spans with a remote child are interesting because they reflect a non-local system dependency.
-#
-#The second property described by SpanKind reflects whether a child Span represents a synchronous call. When a child span is synchronous, the parent is expected to wait for it to complete under ordinary circumstances. It can be useful for tracing systems to know this property, since synchronous Spans may contribute to the overall trace latency. Asynchronous scenarios can be remote or local.
+# SpanKind category reflects whether the Span is a "logical" remote child or parent. By "logical", we mean that the span is logically a remote child or parent, from the point of view of the library that is being instrumented. Spans with a remote parent are interesting because they are sources of external load. Spans with a remote child are interesting because they reflect a non-local system dependency.
 #
 # In order for SpanKind to be meaningful, callers SHOULD arrange that a single Span does not serve more than one purpose. For example, a server-side span SHOULD NOT be used directly as the parent of another remote span. As a simple guideline, instrumentation should create a new Span prior to extracting and serializing the SpanContext for a remote call.
 # reference https://github.com/elastic/apm/blob/main/tests/agents/json-specs/span_types.json
@@ -18,7 +16,6 @@ enum SpanKind{
     CONSUMER
     #     Default value. Indicates that the span represents an internal operation within an application, as opposed to an operations with remote parents or children.
     INTERNAL
-
 }
 
 # Represents all the information that identifies Span in the Trace and MUST be propagated to child Spans and across process boundaries.

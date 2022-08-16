@@ -75,7 +75,7 @@ type Metrics @model{
     data:MetricsData
 }
 
-type MetricsData {
+interface MetricsData {
     points:[DataPoint]
     aType:AggType
 }
@@ -297,13 +297,16 @@ type ExponentialHistogramDataPoint implements DataPoint {
 #  aggregation, regardless of aggregation temporalities. Therefore,
 #  AggregationTemporality is not included. Consequently, this also means
 #  "StartTimeUnixNano" is ignored for all data points.
-type Gauge {
+type Gauge implements MetricsData{
     points:[NumberDataPoint]
+    aType:AggType
 }
 
 # Sum represents the type of a scalar metric that is calculated as a sum of all reported measurements over a time interval.
-type Sum {
+type Sum implements MetricsData{
     points:[SummaryDataPoint]
+    aType:AggType
+
     # aggregation_temporality describes if the aggregator reports delta changes
     # since last report time, or cumulative changes since a fixed start time.
     temporality:AggregationTemporality
@@ -314,8 +317,10 @@ type Sum {
 #  These data points cannot always be merged in a meaningful way.
 #  While they can be useful in some applications, histogram data points are
 #  recommended for new applications.
-type Summary {
+type Summary implements MetricsData{
     points:[SummaryDataPoint]
+    aType:AggType
+
     # aggregation_temporality describes if the aggregator reports delta changes
     # since last report time, or cumulative changes since a fixed start time.
     temporality:AggregationTemporality
@@ -323,8 +328,10 @@ type Summary {
 
 # Histogram represents the type of a metric that is calculated by aggregating
 # as a Histogram of all reported measurements over a time interval.
-type Histogram {
+type Histogram implements MetricsData{
     points:[HistogramDataPoint]
+    aType:AggType
+
     # aggregation_temporality describes if the aggregator reports delta changes
     # since last report time, or cumulative changes since a fixed start time.
     temporality:AggregationTemporality
@@ -332,8 +339,10 @@ type Histogram {
 
 # ExponentialHistogram represents the type of a metric that is calculated by aggregating
 # as a ExponentialHistogram of all reported double measurements over a time interval.
-type ExponentialHistogram {
+type ExponentialHistogram implements MetricsData{
     points:[ExponentialHistogramDataPoint]
+    aType:AggType
+
     # aggregation_temporality describes if the aggregator reports delta changes
     # since last report time, or cumulative changes since a fixed start time.
     temporality:AggregationTemporality

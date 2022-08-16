@@ -1,6 +1,51 @@
 {
   "entities": [
     {
+      "type": "User",
+      "partition": "NESTED",
+      "props": {
+        "values": [
+          "User"
+        ]
+      },
+      "nested": [
+        {
+          "type": "Group",
+          "partition": "NESTED",
+          "props": {
+            "values": [
+              "Group"
+            ]
+          },
+          "nested": [],
+          "mapping": "INDEX"
+        }
+      ],
+      "mapping": "INDEX"
+    },
+    {
+      "type": "AutonomousSystem",
+      "partition": "NESTED",
+      "props": {
+        "values": [
+          "AutonomousSystem"
+        ]
+      },
+      "nested": [],
+      "mapping": "INDEX"
+    },
+    {
+      "type": "Geo",
+      "partition": "NESTED",
+      "props": {
+        "values": [
+          "Geo"
+        ]
+      },
+      "nested": [],
+      "mapping": "INDEX"
+    },
+    {
       "type": "Group",
       "partition": "NESTED",
       "props": {
@@ -9,6 +54,63 @@
         ]
       },
       "nested": [],
+      "mapping": "INDEX"
+    },
+    {
+      "type": "Client",
+      "partition": "STATIC",
+      "props": {
+        "values": [
+          "Client"
+        ]
+      },
+      "nested": [
+        {
+          "type": "User",
+          "partition": "NESTED",
+          "props": {
+            "values": [
+              "User"
+            ]
+          },
+          "nested": [
+            {
+              "type": "Group",
+              "partition": "NESTED",
+              "props": {
+                "values": [
+                  "Group"
+                ]
+              },
+              "nested": [],
+              "mapping": "INDEX"
+            }
+          ],
+          "mapping": "INDEX"
+        },
+        {
+          "type": "AutonomousSystem",
+          "partition": "NESTED",
+          "props": {
+            "values": [
+              "AutonomousSystem"
+            ]
+          },
+          "nested": [],
+          "mapping": "INDEX"
+        },
+        {
+          "type": "Geo",
+          "partition": "NESTED",
+          "props": {
+            "values": [
+              "Geo"
+            ]
+          },
+          "nested": [],
+          "mapping": "INDEX"
+        }
+      ],
       "mapping": "INDEX"
     },
     {
@@ -35,9 +137,80 @@
       "mapping": "INDEX"
     }
   ],
-  "relations": [],
-  "ontology": "user",
+  "relations": [
+    {
+      "type": "has_User",
+      "partition": "STATIC",
+      "symmetric": false,
+      "props": {
+        "values": [
+          "has_User"
+        ]
+      },
+      "nested": [],
+      "redundant": [],
+      "mapping": "INDEX"
+    }
+  ],
+  "ontology": "client",
   "rootEntities": [
+    {
+      "type": "Client",
+      "partition": "STATIC",
+      "props": {
+        "values": [
+          "Client"
+        ]
+      },
+      "nested": [
+        {
+          "type": "User",
+          "partition": "NESTED",
+          "props": {
+            "values": [
+              "User"
+            ]
+          },
+          "nested": [
+            {
+              "type": "Group",
+              "partition": "NESTED",
+              "props": {
+                "values": [
+                  "Group"
+                ]
+              },
+              "nested": [],
+              "mapping": "INDEX"
+            }
+          ],
+          "mapping": "INDEX"
+        },
+        {
+          "type": "AutonomousSystem",
+          "partition": "NESTED",
+          "props": {
+            "values": [
+              "AutonomousSystem"
+            ]
+          },
+          "nested": [],
+          "mapping": "INDEX"
+        },
+        {
+          "type": "Geo",
+          "partition": "NESTED",
+          "props": {
+            "values": [
+              "Geo"
+            ]
+          },
+          "nested": [],
+          "mapping": "INDEX"
+        }
+      ],
+      "mapping": "INDEX"
+    },
     {
       "type": "User",
       "partition": "STATIC",
@@ -62,5 +235,19 @@
       "mapping": "INDEX"
     }
   ],
-  "rootRelations": []
+  "rootRelations": [
+    {
+      "type": "has_User",
+      "partition": "STATIC",
+      "symmetric": false,
+      "props": {
+        "values": [
+          "has_User"
+        ]
+      },
+      "nested": [],
+      "redundant": [],
+      "mapping": "INDEX"
+    }
+  ]
 }
