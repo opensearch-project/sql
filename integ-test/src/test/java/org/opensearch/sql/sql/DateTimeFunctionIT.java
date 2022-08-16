@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.sql;
 
+import static org.opensearch.sql.data.model.ExprValueUtils.nullValue;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_PEOPLE2;
@@ -38,6 +39,7 @@ import com.google.common.collect.ImmutableMap;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestTemplate;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
@@ -103,6 +105,45 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifySchema(result,
         schema("adddate('2020-09-16', interval 1 day)", null, "datetime"));
     verifyDataRows(result, rows("2020-09-17"));
+  }
+
+  @Test
+  public void testConvert_TZ() throws IOException {
+    var result = executeQuery(String.format(
+        "SELECT convert_tz('2008-05-15 12:00:00','+00:00','+10:00')"));
+    verifySchema(result,
+        schema("convert_tz('2008-05-15 12:00:00','+00:00','+10:00')", null, "datetime"));
+    verifyDataRows(result, rows("2008-05-15 22:00:00"));
+
+    result = executeQuery(String.format(
+        "SELECT convert_tz('2021-05-12 00:00:00','-00:00','+00:00')"));
+    verifySchema(result,
+        schema("convert_tz('2021-05-12 00:00:00','-00:00','+00:00')", null, "datetime"));
+    verifyDataRows(result, rows("2021-05-12 00:00:00"));
+
+    result = executeQuery(String.format(
+        "SELECT convert_tz('2021-05-12 00:00:00','+10:00','+11:00')"));
+    verifySchema(result,
+        schema("convert_tz('2021-05-12 00:00:00','+10:00','+11:00')", null, "datetime"));
+    verifyDataRows(result, rows("2021-05-12 01:00:00"));
+
+    result = executeQuery(String.format(
+        "SELECT convert_tz('2021-05-12 11:34:50','-08:00','+09:00')"));
+    verifySchema(result,
+        schema("convert_tz('2021-05-12 11:34:50','-08:00','+09:00')", null, "datetime"));
+    verifyDataRows(result, rows("2021-05-13 04:34:50"));
+
+    result = executeQuery(String.format(
+        "SELECT convert_tz('2021-05-30 11:34:50','-17:00','+08:00')"));
+    verifySchema(result,
+        schema("convert_tz('2021-05-30 11:34:50','-17:00','+08:00')", null, "datetime"));
+    verifyDataRows(result, rows("null"));
+
+    result = executeQuery(String.format(
+        "SELECT convert_tz('2021-05-12 11:34:50','-12:00','+14:00')"));
+    verifySchema(result,
+        schema("convert_tz('2021-05-12 11:34:50','-12:00','+14:00')", null, "datetime"));
+    verifyDataRows(result, rows("null"));
   }
 
   @Test
