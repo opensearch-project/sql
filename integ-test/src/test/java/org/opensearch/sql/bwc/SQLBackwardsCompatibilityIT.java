@@ -96,7 +96,7 @@ public class SQLBackwardsCompatibilityIT extends SQLIntegTestCase {
             Set<Object> pluginNames = plugins.stream().map(map -> map.get("name")).collect(Collectors.toSet());
             switch (CLUSTER_TYPE) {
                 case OLD:
-                    Assert.assertTrue(pluginNames.contains("opendistro-sql"));
+                    Assert.assertTrue(pluginNames.contains("opensearch-sql"));
                     updateLegacySQLSettings();
                     loadIndex(Index.ACCOUNT);
                     verifySQLQueries(LEGACY_QUERY_API_ENDPOINT);
