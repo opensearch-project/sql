@@ -1219,15 +1219,70 @@ Example::
     +---------------------------+
 
 
+MAKEDATE
+--------
+
+Description
+>>>>>>>>>>>
+
+Returns a date, given `year` and `day-of-year` values. `dayofyear` must be greater than 0 or the result is `NULL`. The result is also `NULL` if either argument is `NULL`.
+Arguments are rounded to an integer.
+
+Limitations:
+- Zero `year` interpreted as 2000;
+- Negative `year` is not accepted;
+- `day-of-year` should be greater than zero;
+- `day-of-year` could be greater than 365/366, calculation switches to the next year(s) (see example).
+
+Specifications:
+
+1. MAKEDATE(DOUBLE, DOUBLE) -> DATE
+
+Argument type: DOUBLE
+
+Return type: DATE
+
+Example::
+
+    os> select MAKEDATE(1945, 5.9), MAKEDATE(1984, 1984)
+    fetched rows / total rows = 1/1
+    +-----------------------+------------------------+
+    | MAKEDATE(1945, 5.9)   | MAKEDATE(1984, 1984)   |
+    |-----------------------+------------------------|
+    | 1945-01-06            | 1989-06-06             |
+    +-----------------------+------------------------+
+
+
 MAKETIME
 --------
 
 Description
 >>>>>>>>>>>
 
+Returns a time value calculated from the hour, minute, and second arguments. Returns `NULL` if any of its arguments are `NULL`.
+The second argument can have a fractional part, rest arguments are rounded to an integer.
+
+Limitations:
+- 24-hour clock is used, available time range is [00:00:00.0 - 23:59:59.(9)];
+- Up to 9 digits of second fraction part is taken (nanosecond precision).
+
 Specifications:
 
-1. MAKETIME(INTEGER, INTEGER, INTEGER) -> DATE
+1. MAKETIME(DOUBLE, DOUBLE, DOUBLE) -> TIME
+
+Argument type: DOUBLE
+
+Return type: TIME
+
+Example::
+
+    os> select MAKETIME(20, 30, 40), MAKETIME(20.2, 49.5, 42.100502)
+    fetched rows / total rows = 1/1
+    +------------------------+-----------------------------------+
+    | MAKETIME(20, 30, 40)   | MAKETIME(20.2, 49.5, 42.100502)   |
+    |------------------------+-----------------------------------|
+    | 20:30:40               | 20:50:42.100502                   |
+    +------------------------+-----------------------------------+
 
 
 MICROSECOND
@@ -2479,3 +2534,29 @@ Another example to show how to set custom values for the optional parameters::
     |------+--------------------------+----------------------|
     | 1    | The House at Pooh Corner | Alan Alexander Milne |
     +------+--------------------------+----------------------+
+
+
+HIGHLIGHT
+------------
+
+Description
+>>>>>>>>>>>
+
+``highlight(field_expression)``
+
+The highlight function maps to the highlight function used in search engine to return highlight fields for the given search.
+The syntax allows to specify the field in double quotes or single quotes or without any wrap.
+Please refer to examples below:
+
+| ``highlight(title)``
+
+Example searching for field Tags::
+
+    os> select highlight(title) from books where query_string(['title'], 'Pooh House');
+    fetched rows / total rows = 2/2
+    +----------------------------------------------+
+    | highlight(title)                             |
+    |----------------------------------------------|
+    | [The <em>House</em> at <em>Pooh</em> Corner] |
+    | [Winnie-the-<em>Pooh</em>]                   |
+    +----------------------------------------------+

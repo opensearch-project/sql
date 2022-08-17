@@ -33,6 +33,7 @@ import org.opensearch.sql.opensearch.storage.script.sort.SortQueryBuilder;
 import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
 import org.opensearch.sql.planner.DefaultImplementor;
 import org.opensearch.sql.planner.logical.LogicalAD;
+import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalRelation;
@@ -58,6 +59,11 @@ public class OpenSearchIndex implements Table {
   private Map<String, ExprType> cachedFieldTypes = null;
 
   /**
+   * The cached max result window setting of index.
+   */
+  private Integer cachedMaxResultWindow = null;
+
+  /**
    * Constructor.
    */
   public OpenSearchIndex(OpenSearchClient client, Settings settings, String indexName) {
@@ -80,12 +86,23 @@ public class OpenSearchIndex implements Table {
   }
 
   /**
+   * Get the max result window setting of the table.
+   */
+  public Integer getMaxResultWindow() {
+    if (cachedMaxResultWindow == null) {
+      cachedMaxResultWindow =
+          new OpenSearchDescribeIndexRequest(client, indexName).getMaxResultWindow();
+    }
+    return cachedMaxResultWindow;
+  }
+
+  /**
    * TODO: Push down operations to index scan operator as much as possible in future.
    */
   @Override
   public PhysicalPlan implement(LogicalPlan plan) {
     OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings, indexName,
-        new OpenSearchExprValueFactory(getFieldTypes()));
+        getMaxResultWindow(), new OpenSearchExprValueFactory(getFieldTypes()));
 
     /*
      * Visit logical plan with index scan as context so logical operators visited, such as
@@ -127,7 +144,7 @@ public class OpenSearchIndex implements Table {
                                        OpenSearchIndexScan context) {
       if (null != node.getSortList()) {
         final SortQueryBuilder builder = new SortQueryBuilder();
-        context.pushDownSort(node.getSortList().stream()
+        context.getRequestBuilder().pushDownSort(node.getSortList().stream()
             .map(sort -> builder.build(sort.getValue(), sort.getKey()))
             .collect(Collectors.toList()));
       }
@@ -135,15 +152,15 @@ public class OpenSearchIndex implements Table {
       if (null != node.getFilter()) {
         FilterQueryBuilder queryBuilder = new FilterQueryBuilder(new DefaultExpressionSerializer());
         QueryBuilder query = queryBuilder.build(node.getFilter());
-        context.pushDown(query);
+        context.getRequestBuilder().pushDown(query);
       }
 
       if (node.getLimit() != null) {
-        context.pushDownLimit(node.getLimit(), node.getOffset());
+        context.getRequestBuilder().pushDownLimit(node.getLimit(), node.getOffset());
       }
 
       if (node.hasProjects()) {
-        context.pushDownProjects(node.getProjectList());
+        context.getRequestBuilder().pushDownProjects(node.getProjectList());
       }
       return indexScan;
     }
@@ -157,15 +174,15 @@ public class OpenSearchIndex implements Table {
         FilterQueryBuilder queryBuilder = new FilterQueryBuilder(
             new DefaultExpressionSerializer());
         QueryBuilder query = queryBuilder.build(node.getFilter());
-        context.pushDown(query);
+        context.getRequestBuilder().pushDown(query);
       }
       AggregationQueryBuilder builder =
           new AggregationQueryBuilder(new DefaultExpressionSerializer());
       Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
           builder.buildAggregationBuilder(node.getAggregatorList(),
               node.getGroupByList(), node.getSortList());
-      context.pushDownAggregation(aggregationBuilder);
-      context.pushTypeMapping(
+      context.getRequestBuilder().pushDownAggregation(aggregationBuilder);
+      context.getRequestBuilder().pushTypeMapping(
           builder.buildTypeMapping(node.getAggregatorList(),
               node.getGroupByList()));
       return indexScan;
@@ -186,6 +203,12 @@ public class OpenSearchIndex implements Table {
     public PhysicalPlan visitAD(LogicalAD node, OpenSearchIndexScan context) {
       return new ADOperator(visitChild(node, context),
               node.getArguments(), client.getNodeClient());
+    }
+
+    @Override
+    public PhysicalPlan visitHighlight(LogicalHighlight node, OpenSearchIndexScan context) {
+      context.getRequestBuilder().pushDownHighlight(node.getHighlightField().toString());
+      return visitChild(node, context);
     }
   }
 }

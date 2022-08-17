@@ -72,7 +72,7 @@ class RelevanceQueryBuildTest {
 
     SemanticCheckException exception =
         assertThrows(SemanticCheckException.class, () -> query.build(expr));
-    assertEquals("Parameter wrongArg is invalid for mock_query function.", exception.getMessage());
+    assertEquals("Parameter wrongarg is invalid for mock_query function.", exception.getMessage());
   }
 
   @Test

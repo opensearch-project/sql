@@ -300,6 +300,11 @@ functionCall
     | aggregateFunction                                             #aggregateFunctionCall
     | aggregateFunction (orderByClause)? filterClause               #filteredAggregationFunctionCall
     | relevanceFunction                                             #relevanceFunctionCall
+    | highlightFunction                                             #highlightFunctionCall
+    ;
+
+highlightFunction
+    : HIGHLIGHT LR_BRACKET relevanceField RR_BRACKET
     ;
 
 scalarFunctionName
@@ -380,7 +385,7 @@ trigonometricFunctionName
 dateTimeFunctionName
     : ADDDATE | DATE | DATE_ADD | DATE_SUB | DAY | DAYNAME | DAYOFMONTH | DAYOFWEEK | DAYOFYEAR | FROM_DAYS
     | HOUR | MICROSECOND | MINUTE | MONTH | MONTHNAME | QUARTER | SECOND | SUBDATE | TIME | TIME_TO_SEC
-    | TIMESTAMP | TO_DAYS | YEAR | WEEK | DATE_FORMAT
+    | TIMESTAMP | TO_DAYS | YEAR | WEEK | DATE_FORMAT | MAKETIME | MAKEDATE
     ;
 
 textFunctionName
