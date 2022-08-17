@@ -71,7 +71,7 @@ public class ExpressionScript {
    * Evaluate on the doc generate by the doc provider.
    * @param docProvider doc provider.
    * @param evaluator evaluator
-   * @return
+   * @return expr value
    */
   public ExprValue execute(Supplier<Map<String, ScriptDocValues<?>>> docProvider,
                          BiFunction<Expression,
