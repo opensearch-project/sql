@@ -7,6 +7,9 @@
 buildscript {
     ext {
         opensearch_version = System.getProperty("opensearch.version", "2.1.0-SNAPSHOT")
+        spring_version = "5.3.22"
+        jackson_version = "2.13.3"
+        jackson_databind_version = "2.13.3"
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
         version_tokens = opensearch_version.tokenize('-')
@@ -133,6 +136,11 @@ subprojects {
         configProperties = [
                 "org.checkstyle.google.suppressionfilter.config": rootProject.file("config/checkstyle/suppressions.xml")]
         ignoreFailures = false
+    }
+
+    configurations.all {
+        resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-smile:${jackson_version}"
+        resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${jackson_version}"
     }
 }
 checkstyle {
