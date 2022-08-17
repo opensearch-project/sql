@@ -148,21 +148,6 @@ public class RestSqlAction extends BaseRestHandler {
 
             Format format = SqlRequestParam.getFormat(request.params());
 
-<<<<<<< HEAD
-            // Route request to new query engine if it's supported already
-            SQLQueryRequest newSqlRequest = new SQLQueryRequest(sqlRequest.getJsonContent(),
-                sqlRequest.getSql(), request.path(), request.params());
-            RestChannelConsumer result = newSqlQueryHandler.prepareRequest(newSqlRequest, client);
-            if (result != RestSQLQueryAction.NOT_SUPPORTED_YET) {
-                LOG.info("[{}] Request is handled by new SQL query engine", QueryContext.getRequestId());
-                return result;
-            }
-            LOG.debug("[{}] Request {} is not supported and falling back to old SQL engine",
-                QueryContext.getRequestId(), newSqlRequest);
-
-            final QueryAction queryAction = explainRequest(client, sqlRequest, format);
-            return channel -> executeSqlRequest(request, queryAction, client, channel);
-=======
             return channel -> schedule(client, () -> {
                 try {
                     // Route request to new query engine if it's supported already
@@ -184,7 +169,6 @@ public class RestSqlAction extends BaseRestHandler {
                     reportError(channel, e, isClientError(e) ? BAD_REQUEST : SERVICE_UNAVAILABLE);
                 }
             });
->>>>>>> main
         } catch (Exception e) {
             logAndPublishMetrics(e);
             return channel -> reportError(channel, e, isClientError(e) ? BAD_REQUEST : SERVICE_UNAVAILABLE);
