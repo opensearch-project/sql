@@ -32,7 +32,7 @@ public class SimpleQueryStringQuery extends RelevanceQuery<SimpleQueryStringBuil
             b.autoGenerateSynonymsPhraseQuery(Boolean.parseBoolean(v.stringValue())))
         .put("boost", (b, v) -> b.boost(Float.parseFloat(v.stringValue())))
         .put("default_operator", (b, v) -> b.defaultOperator(Operator.fromString(v.stringValue())))
-        .put("flags", (b, v) -> b.flags(Arrays.stream(v.stringValue().split("\\|"))
+        .put("flags", (b, v) -> b.flags(Arrays.stream(valueOfToUpper(v).split("\\|"))
             .map(SimpleQueryStringFlag::valueOf)
             .toArray(SimpleQueryStringFlag[]::new)))
         .put("fuzzy_max_expansions", (b, v) ->
@@ -69,14 +69,15 @@ public class SimpleQueryStringQuery extends RelevanceQuery<SimpleQueryStringBuil
         .fields(fieldsAndWeights);
     while (iterator.hasNext()) {
       NamedArgumentExpression arg = (NamedArgumentExpression) iterator.next();
-      if (!queryBuildActions.containsKey(arg.getArgName())) {
+      String argNormalized = arg.getArgName().toLowerCase();
+      if (!queryBuildActions.containsKey(argNormalized)) {
         throw new SemanticCheckException(
             String.format("Parameter %s is invalid for %s function.",
-                arg.getArgName(), queryBuilder.getWriteableName()));
+                argNormalized, queryBuilder.getWriteableName()));
       }
       (Objects.requireNonNull(
           queryBuildActions
-              .get(arg.getArgName())))
+              .get(argNormalized)))
           .apply(queryBuilder, arg.getValue().valueOf(null));
     }
     return queryBuilder;

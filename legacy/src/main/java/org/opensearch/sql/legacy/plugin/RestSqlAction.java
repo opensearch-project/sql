@@ -9,6 +9,7 @@ package org.opensearch.sql.legacy.plugin;
 import static org.opensearch.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.rest.RestStatus.OK;
 import static org.opensearch.rest.RestStatus.SERVICE_UNAVAILABLE;
+import static org.opensearch.sql.opensearch.executor.Scheduler.schedule;
 
 import com.alibaba.druid.sql.parser.ParserException;
 import com.google.common.collect.ImmutableList;
@@ -147,6 +148,7 @@ public class RestSqlAction extends BaseRestHandler {
 
             Format format = SqlRequestParam.getFormat(request.params());
 
+<<<<<<< HEAD
             // Route request to new query engine if it's supported already
             SQLQueryRequest newSqlRequest = new SQLQueryRequest(sqlRequest.getJsonContent(),
                 sqlRequest.getSql(), request.path(), request.params());
@@ -160,6 +162,29 @@ public class RestSqlAction extends BaseRestHandler {
 
             final QueryAction queryAction = explainRequest(client, sqlRequest, format);
             return channel -> executeSqlRequest(request, queryAction, client, channel);
+=======
+            return channel -> schedule(client, () -> {
+                try {
+                    // Route request to new query engine if it's supported already
+                    SQLQueryRequest newSqlRequest = new SQLQueryRequest(sqlRequest.getJsonContent(),
+                        sqlRequest.getSql(), request.path(), request.params());
+                    RestChannelConsumer result = newSqlQueryHandler.prepareRequest(newSqlRequest, client);
+                    if (result != RestSQLQueryAction.NOT_SUPPORTED_YET) {
+                        LOG.info("[{}] Request is handled by new SQL query engine",
+                            QueryContext.getRequestId());
+                        result.accept(channel);
+                    } else {
+                        LOG.debug("[{}] Request {} is not supported and falling back to old SQL engine",
+                            QueryContext.getRequestId(), newSqlRequest);
+                        QueryAction queryAction = explainRequest(client, sqlRequest, format);
+                        executeSqlRequest(request, queryAction, client, channel);
+                    }
+                } catch (Exception e) {
+                    logAndPublishMetrics(e);
+                    reportError(channel, e, isClientError(e) ? BAD_REQUEST : SERVICE_UNAVAILABLE);
+                }
+            });
+>>>>>>> main
         } catch (Exception e) {
             logAndPublishMetrics(e);
             return channel -> reportError(channel, e, isClientError(e) ? BAD_REQUEST : SERVICE_UNAVAILABLE);

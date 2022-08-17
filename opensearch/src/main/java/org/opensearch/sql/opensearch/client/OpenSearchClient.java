@@ -31,6 +31,14 @@ public interface OpenSearchClient {
   Map<String, IndexMapping> getIndexMappings(String... indexExpression);
 
   /**
+   * Fetch index.max_result_window settings according to index expression given.
+   *
+   * @param indexExpression index expression
+   * @return map from index name to its max result window
+   */
+  Map<String, Integer> getIndexMaxResultWindows(String... indexExpression);
+
+  /**
    * Perform search query in the search request.
    *
    * @param request search request

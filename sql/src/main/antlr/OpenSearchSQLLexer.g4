@@ -216,6 +216,7 @@ LOG10:                              'LOG10';
 LOG2:                               'LOG2';
 LOWER:                              'LOWER';
 LTRIM:                              'LTRIM';
+MAKEDATE:                           'MAKEDATE';
 MAKETIME:                           'MAKETIME';
 MODULUS:                            'MODULUS';
 MONTHNAME:                          'MONTHNAME';
@@ -346,6 +347,7 @@ TIE_BREAKER:                        'TIE_BREAKER';
 TIME_ZONE:                          'TIME_ZONE';
 TYPE:                               'TYPE';
 ZERO_TERMS_QUERY:                   'ZERO_TERMS_QUERY';
+HIGHLIGHT:                          'HIGHLIGHT';
 
 // RELEVANCE FUNCTIONS
 MATCH_BOOL_PREFIX:                  'MATCH_BOOL_PREFIX';

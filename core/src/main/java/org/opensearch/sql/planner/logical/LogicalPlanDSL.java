@@ -18,7 +18,6 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.NamedExpression;
-import org.opensearch.sql.expression.ParseExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
@@ -60,6 +59,10 @@ public class LogicalPlanDSL {
                             NamedExpression windowFunction,
                             WindowDefinition windowDefinition) {
     return new LogicalWindow(input, windowFunction, windowDefinition);
+  }
+
+  public LogicalPlan highlight(LogicalPlan input, Expression field) {
+    return new LogicalHighlight(input, field);
   }
 
   public static LogicalPlan remove(LogicalPlan input, ReferenceExpression... fields) {

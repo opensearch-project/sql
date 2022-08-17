@@ -13,6 +13,8 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.MatcherUtils.verifySome;
 
 import java.io.IOException;
+import java.time.LocalTime;
+
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -463,4 +465,19 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifyDateFormat(date, "date", dateFormat, dateFormatted);
   }
 
+  @Test
+  public void testMakeTime() throws IOException {
+    var result = executeQuery(String.format(
+            "source=%s | eval f1 = MAKETIME(20, 30, 40), f2 = MAKETIME(20.2, 49.5, 42.100502) | fields f1, f2", TEST_INDEX_DATE));
+    verifySchema(result, schema("f1", null, "time"), schema("f2", null, "time"));
+    verifySome(result.getJSONArray("datarows"), rows("20:30:40", "20:50:42.100502"));
+  }
+
+  @Test
+  public void testMakeDate() throws IOException {
+    var result = executeQuery(String.format(
+            "source=%s | eval f1 = MAKEDATE(1945, 5.9), f2 = MAKEDATE(1984, 1984) | fields f1, f2", TEST_INDEX_DATE));
+    verifySchema(result, schema("f1", null, "date"), schema("f2", null, "date"));
+    verifySome(result.getJSONArray("datarows"), rows("1945-01-06", "1989-06-06"));
+  }
 }

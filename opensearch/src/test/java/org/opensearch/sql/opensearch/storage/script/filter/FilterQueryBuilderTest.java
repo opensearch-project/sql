@@ -851,7 +851,7 @@ class FilterQueryBuilderTest {
         dsl.namedArgument("query", literal("search query")),
         dsl.namedArgument("zero_terms_query", literal("meow")));
     var msg = assertThrows(IllegalArgumentException.class, () -> buildQuery(expr)).getMessage();
-    assertEquals("No enum constant org.opensearch.index.search.MatchQuery.ZeroTermsQuery.meow",
+    assertEquals("No enum constant org.opensearch.index.search.MatchQuery.ZeroTermsQuery.MEOW",
           msg);
   }
 

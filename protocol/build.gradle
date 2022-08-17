@@ -31,7 +31,11 @@ plugins {
 dependencies {
     implementation group: 'com.google.guava', name: 'guava', version: '31.0.1-jre'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${jackson_version}"
+<<<<<<< HEAD
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${jackson_databind_version}"
+=======
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${jackson_version}"
+>>>>>>> main
     implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: "${jackson_version}"
     implementation 'com.google.code.gson:gson:2.8.9'
     implementation project(':core')
@@ -44,7 +48,11 @@ dependencies {
 }
 
 configurations.all {
+<<<<<<< HEAD
     resolutionStrategy.force "com.fasterxml.jackson.core:jackson-databind:${jackson_databind_version}"
+=======
+    resolutionStrategy.force "com.fasterxml.jackson.core:jackson-databind:${jackson_version}"
+>>>>>>> main
 }
 
 test {

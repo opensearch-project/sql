@@ -31,7 +31,9 @@ public class Utils {
    * Build ElasticsearchLogicalIndexScan.
    */
   public static LogicalPlan indexScan(String tableName, Expression filter) {
-    return OpenSearchLogicalIndexScan.builder().relationName(tableName).filter(filter).build();
+    return OpenSearchLogicalIndexScan.builder().relationName(tableName)
+        .filter(filter)
+        .build();
   }
 
   /**

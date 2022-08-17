@@ -99,6 +99,11 @@ public class MatchQueryTest {
         List.of(
             dsl.namedArgument("field", DSL.literal("field_value")),
             dsl.namedArgument("query", DSL.literal("query_value")),
+            dsl.namedArgument("zero_terms_query", DSL.literal("none"))
+        ),
+        List.of(
+            dsl.namedArgument("field", DSL.literal("field_value")),
+            dsl.namedArgument("query", DSL.literal("query_value")),
             dsl.namedArgument("boost", DSL.literal("1"))
         )
     );

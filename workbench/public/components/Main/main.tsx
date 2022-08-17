@@ -640,7 +640,7 @@ export class Main extends React.Component<MainProps, MainState> {
           updatePPLQueries={this.updatePPLQueries}
         />
       );
-      link = 'https://opensearch.org/docs/latest/observability/ppl/index/';
+      link = 'https://opensearch.org/docs/latest/observability-plugin/ppl/index/';
       linkTitle = 'PPL documentation';
     }
 

@@ -68,6 +68,8 @@ public enum BuiltinFunctionName {
   DAYOFYEAR(FunctionName.of("dayofyear")),
   FROM_DAYS(FunctionName.of("from_days")),
   HOUR(FunctionName.of("hour")),
+  MAKEDATE(FunctionName.of("makedate")),
+  MAKETIME(FunctionName.of("maketime")),
   MICROSECOND(FunctionName.of("microsecond")),
   MINUTE(FunctionName.of("minute")),
   MONTH(FunctionName.of("month")),
@@ -192,6 +194,7 @@ public enum BuiltinFunctionName {
   MATCHPHRASE(FunctionName.of("matchphrase")),
   QUERY_STRING(FunctionName.of("query_string")),
   MATCH_BOOL_PREFIX(FunctionName.of("match_bool_prefix")),
+  HIGHLIGHT(FunctionName.of("highlight")),
   MATCH_PHRASE_PREFIX(FunctionName.of("match_phrase_prefix")),
   /**
    * Legacy Relevance Function.

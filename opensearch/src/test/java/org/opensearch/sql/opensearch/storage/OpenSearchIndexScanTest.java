@@ -31,6 +31,7 @@ import org.opensearch.common.bytes.BytesArray;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
+import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -61,7 +62,7 @@ class OpenSearchIndexScanTest {
   void queryEmptyResult() {
     mockResponse();
     try (OpenSearchIndexScan indexScan =
-             new OpenSearchIndexScan(client, settings, "test", exprValueFactory)) {
+             new OpenSearchIndexScan(client, settings, "test", 3, exprValueFactory)) {
       indexScan.open();
       assertFalse(indexScan.hasNext());
     }
@@ -69,13 +70,90 @@ class OpenSearchIndexScanTest {
   }
 
   @Test
-  void queryAllResults() {
+  void queryAllResultsWithQuery() {
+    mockResponse(new ExprValue[]{
+        employee(1, "John", "IT"),
+        employee(2, "Smith", "HR"),
+        employee(3, "Allen", "IT")});
+
+    try (OpenSearchIndexScan indexScan =
+             new OpenSearchIndexScan(client, settings, "employees", 10, exprValueFactory)) {
+      indexScan.open();
+
+      assertTrue(indexScan.hasNext());
+      assertEquals(employee(1, "John", "IT"), indexScan.next());
+
+      assertTrue(indexScan.hasNext());
+      assertEquals(employee(2, "Smith", "HR"), indexScan.next());
+
+      assertTrue(indexScan.hasNext());
+      assertEquals(employee(3, "Allen", "IT"), indexScan.next());
+
+      assertFalse(indexScan.hasNext());
+    }
+    verify(client).cleanup(any());
+  }
+
+  @Test
+  void queryAllResultsWithScroll() {
     mockResponse(
         new ExprValue[]{employee(1, "John", "IT"), employee(2, "Smith", "HR")},
         new ExprValue[]{employee(3, "Allen", "IT")});
 
     try (OpenSearchIndexScan indexScan =
-             new OpenSearchIndexScan(client, settings, "employees", exprValueFactory)) {
+             new OpenSearchIndexScan(client, settings, "employees", 2, exprValueFactory)) {
+      indexScan.open();
+
+      assertTrue(indexScan.hasNext());
+      assertEquals(employee(1, "John", "IT"), indexScan.next());
+
+      assertTrue(indexScan.hasNext());
+      assertEquals(employee(2, "Smith", "HR"), indexScan.next());
+
+      assertTrue(indexScan.hasNext());
+      assertEquals(employee(3, "Allen", "IT"), indexScan.next());
+
+      assertFalse(indexScan.hasNext());
+    }
+    verify(client).cleanup(any());
+  }
+
+  @Test
+  void querySomeResultsWithQuery() {
+    mockResponse(new ExprValue[]{
+        employee(1, "John", "IT"),
+        employee(2, "Smith", "HR"),
+        employee(3, "Allen", "IT"),
+        employee(4, "Bob", "HR")});
+
+    try (OpenSearchIndexScan indexScan =
+             new OpenSearchIndexScan(client, settings, "employees", 10, exprValueFactory)) {
+      indexScan.getRequestBuilder().pushDownLimit(3, 0);
+      indexScan.open();
+
+      assertTrue(indexScan.hasNext());
+      assertEquals(employee(1, "John", "IT"), indexScan.next());
+
+      assertTrue(indexScan.hasNext());
+      assertEquals(employee(2, "Smith", "HR"), indexScan.next());
+
+      assertTrue(indexScan.hasNext());
+      assertEquals(employee(3, "Allen", "IT"), indexScan.next());
+
+      assertFalse(indexScan.hasNext());
+    }
+    verify(client).cleanup(any());
+  }
+
+  @Test
+  void querySomeResultsWithScroll() {
+    mockResponse(
+        new ExprValue[]{employee(1, "John", "IT"), employee(2, "Smith", "HR")},
+        new ExprValue[]{employee(3, "Allen", "IT"), employee(4, "Bob", "HR")});
+
+    try (OpenSearchIndexScan indexScan =
+             new OpenSearchIndexScan(client, settings, "employees", 2, exprValueFactory)) {
+      indexScan.getRequestBuilder().pushDownLimit(3, 0);
       indexScan.open();
 
       assertTrue(indexScan.hasNext());
@@ -110,6 +188,16 @@ class OpenSearchIndexScanTest {
                 .filter(QueryBuilders.rangeQuery("balance").gte(10000)));
   }
 
+  @Test
+  void pushDownHighlight() {
+    assertThat()
+        .pushDown(QueryBuilders.termQuery("name", "John"))
+        .pushDownHighlight("Title")
+        .pushDownHighlight("Body")
+        .shouldQueryHighlight(QueryBuilders.termQuery("name", "John"),
+            new HighlightBuilder().field("Title").field("Body"));
+  }
+
   private PushDownAssertion assertThat() {
     return new PushDownAssertion(client, exprValueFactory, settings);
   }
@@ -124,14 +212,30 @@ class OpenSearchIndexScanTest {
                              OpenSearchExprValueFactory valueFactory,
                              Settings settings) {
       this.client = client;
-      this.indexScan = new OpenSearchIndexScan(client, settings, "test", valueFactory);
+      this.indexScan = new OpenSearchIndexScan(client, settings, "test", 10000, valueFactory);
       this.response = mock(OpenSearchResponse.class);
       this.factory = valueFactory;
       when(response.isEmpty()).thenReturn(true);
     }
 
     PushDownAssertion pushDown(QueryBuilder query) {
-      indexScan.pushDown(query);
+      indexScan.getRequestBuilder().pushDown(query);
+      return this;
+    }
+
+    PushDownAssertion pushDownHighlight(String query) {
+      indexScan.getRequestBuilder().pushDownHighlight(query);
+      return this;
+    }
+
+    PushDownAssertion shouldQueryHighlight(QueryBuilder query, HighlightBuilder highlight) {
+      OpenSearchRequest request = new OpenSearchQueryRequest("test", 200, factory);
+      request.getSourceBuilder()
+          .query(query)
+          .highlighter(highlight)
+          .sort(DOC_FIELD_NAME, ASC);
+      when(client.search(request)).thenReturn(response);
+      indexScan.open();
       return this;
     }
 
@@ -160,10 +264,8 @@ class OpenSearchIndexScanTest {
                   when(response.isEmpty()).thenReturn(false);
                   ExprValue[] searchHit = searchHitBatches[batchNum];
                   when(response.iterator()).thenReturn(Arrays.asList(searchHit).iterator());
-                } else if (batchNum == totalBatch) {
-                  when(response.isEmpty()).thenReturn(true);
                 } else {
-                  fail("Search request after empty response returned already");
+                  when(response.isEmpty()).thenReturn(true);
                 }
 
                 batchNum++;
