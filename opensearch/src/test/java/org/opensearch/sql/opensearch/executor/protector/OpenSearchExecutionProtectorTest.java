@@ -263,12 +263,13 @@ class OpenSearchExecutionProtectorTest {
     MLCommonsOperator mlCommonsOperator =
             new MLCommonsOperator(
               values(emptyList()), "kmeans",
-                    new HashMap<String, Literal>() {{
-          put("centroids", new Literal(3, DataType.INTEGER));
-          put("iterations", new Literal(2, DataType.INTEGER));
-          put("distance_type", new Literal(null, DataType.STRING));
-        }
-      }, nodeClient);
+                new HashMap<String, Literal>() {{
+                  put("centroids", new Literal(3, DataType.INTEGER));
+                  put("iterations", new Literal(2, DataType.INTEGER));
+                  put("distance_type", new Literal(null, DataType.STRING));
+                }},
+                nodeClient
+            );
 
     assertEquals(executionProtector.doProtect(mlCommonsOperator),
             executionProtector.visitMLCommons(mlCommonsOperator, null));
@@ -279,13 +280,14 @@ class OpenSearchExecutionProtectorTest {
     NodeClient nodeClient = mock(NodeClient.class);
     ADOperator adOperator =
             new ADOperator(
-                    values(emptyList()),
-                    new HashMap<String, Literal>() {{
-          put("shingle_size", new Literal(8, DataType.INTEGER));
-          put("time_decay", new Literal(0.0001, DataType.DOUBLE));
-          put("time_field", new Literal(null, DataType.STRING));
-        }
-      }, nodeClient);
+                values(emptyList()),
+                new HashMap<String, Literal>() {{
+                  put("shingle_size", new Literal(8, DataType.INTEGER));
+                  put("time_decay", new Literal(0.0001, DataType.DOUBLE));
+                  put("time_field", new Literal(null, DataType.STRING));
+                }},
+                nodeClient
+            );
 
     assertEquals(executionProtector.doProtect(adOperator),
             executionProtector.visitAD(adOperator, null));

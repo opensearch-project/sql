@@ -736,11 +736,11 @@ class AnalyzerTest extends AnalyzerTestBase {
   public void ad_batchRCF_relation() {
     Map<String, Literal> argumentMap =
             new HashMap<String, Literal>() {{
-        put("shingle_size", new Literal(8, DataType.INTEGER));
-      }};
+                put("shingle_size", new Literal(8, DataType.INTEGER));
+            }};
     assertAnalyzeEqual(
-            new LogicalAD(LogicalPlanDSL.relation("schema"), argumentMap),
-            new AD(AstDSL.relation("schema"), argumentMap)
+        new LogicalAD(LogicalPlanDSL.relation("schema"), argumentMap),
+        new AD(AstDSL.relation("schema"), argumentMap)
     );
   }
 

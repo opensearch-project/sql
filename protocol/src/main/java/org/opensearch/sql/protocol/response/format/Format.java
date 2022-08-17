@@ -24,6 +24,7 @@ public enum Format {
   private final String formatName;
 
   private static final Map<String, Format> ALL_FORMATS;
+
   static {
     ImmutableMap.Builder<String, Format> builder = new ImmutableMap.Builder<>();
     for (Format format : Format.values()) {
