@@ -38,6 +38,29 @@ Example::
     | 2020-08-26 01:00:00                            | 2020-08-27                       | 2020-08-27 01:01:01                            |
     +------------------------------------------------+----------------------------------+------------------------------------------------+
 
+CONVERT_TZ
+----
+
+Description
+>>>>>>>>>>>
+
+Usage: convert_tz(datetime, from_timezone, to_timezone) constructs a local datetime converted from the from_timezone to the to_timezone.
+
+Argument type: DATETIME, STRING, STRING
+
+Return type: DATETIME
+
+Example::
+
+    >od source=people | eval f = "convert_tz('2008-05-15 12:00:00','+00:00','+10:00')" | fields f
+    fetched rows / total rows = 1/1
+    +----------------------+--------------------------------+
+    | convert_tz('2008-05-15 12:00:00','+00:00','+10:00')   |
+    |----------------------+--------------------------------|
+    |                    2008-05-15 22:00:00                |
+    +----------------------+--------------------------------+
+
+
 
 DATE
 ----
