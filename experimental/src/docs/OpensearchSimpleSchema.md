@@ -1,5 +1,6 @@
 # Observability Schema Draft & Components
-The purpose of this POC is to propose a unified schema structure to the observability domain.
+
+The purpose of this RFC is to propose a unified schema structure to the observability domain.
 This schema is largely based on former work done both by OpenTelemetry project and ElasticCommonSchema project.
 
 Additional important aspect of this work
@@ -7,6 +8,10 @@ Additional important aspect of this work
 - demonstrate the capability of using a High Level Schema Definition Language for description of the search domain.
 - utilize the graphQL SDL tool to generate API according to the pre-defined views
 
+Links:
+- https://github.com/opensearch-project/sql/issues/724
+- https://github.com/opensearch-project/sql/pull/734
+-
 
 ## Introduction
 
@@ -29,16 +34,16 @@ In order to actually understand the root cause of some misbehaving functionality
 It is also necessary to be able to infer the fate of a system as a whole (measured over a duration that is orders of magnitudes longer than the lifecycle of a single request).
 
 **_Traces and metrics_** are abstractions built on top of logs that pre-process and encode information along two orthogonal axes,
- - Request-centric - **_trace_**
- - System-centric - **_metric_**
+- Request-centric - **_trace_**
+- System-centric - **_metric_**
 
 #### Data Ingestion
 
 During Ingestion, raw logs are almost always normalized, filtered, and processed by a tool like Logstash, fluentd, Scribe, or Heka before they’re persisted in a data store
 Interesting observation is that logs arrive as a stream of data and can be analyzed using the streaming data analysis tool and concepts, these concepts include:
- - data enrichment
- - on flight filtering and aggregation
- - events transformation & normalization
+- data enrichment
+- on flight filtering and aggregation
+- events transformation & normalization
 
 
 ### Metrics
@@ -67,7 +72,7 @@ Using high cardinality values like UIDs as metric labels can overwhelm time-seri
 
 When used optimally, logs and metrics give us complete omniscience into a silo, but not much more.
 
-**Distributed tracing** is a technique that addresses the problem of bringing visibility into the lifetime of a request across several systems. 
+**Distributed tracing** is a technique that addresses the problem of bringing visibility into the lifetime of a request across several systems.
 
 A trace is a representation of a series of causally related distributed events that encode the end-to-end request flow through a distributed system.
 Traces are a representation of logs; A single trace can provide visibility into both the path traversed by a request and the structure of a request. The path of a request allow the understanding the different services involved in that path.
@@ -85,24 +90,24 @@ Each hop along the flow is represented as a span, when the execution flow reache
 
 These records are usually logged to disk before being submitted to a collector, which then can reconstruct the flow of execution based on different records emitted by different parts of the system.
 
-Traces are primarily for 
- - inter service dependency analysis
- - distributed profiling, and debugging
- - chargeback and capacity planning.
+Traces are primarily for
+- inter service dependency analysis
+- distributed profiling, and debugging
+- chargeback and capacity planning.
 
-Zipkin and Jaeger are two of the most popular OpenTracing-compliant open source distributed tracing solutions. 
+Zipkin and Jaeger are two of the most popular OpenTracing-compliant open source distributed tracing solutions.
 
 For tracing to be truly effective, every component in the path of a request needs to be modified to propagate tracing information - directly or using augmentation based libraries.
 
-## Observability Schema 
+## Observability Schema
 
 In many regards, observability and security event share many common aspects and features that are an important concern for similar or event the same stakeholders.
 
 Many attempts at a common data format for security/observability - type events have been created over the years:
- - CEF (Common Event Format) from ArcSight
- - LEEF (Log Event Extended Format) from IBM,
- - XML-based Common Information Model (CIM)
- 
+- CEF (Common Event Format) from ArcSight
+- LEEF (Log Event Extended Format) from IBM,
+- XML-based Common Information Model (CIM)
+
 None of these formats has become the true industry standard, and while many observability tools and appliances support export into one of these data formats, it is just as common to see data being emitted by logging tools using Syslog or CSV formats.
 At the same time, the rise of SaaS tools and APIs means that more and more data is being shared in JSON format, which often doesn’t translate well to older, less-extensible formats.
 
@@ -112,10 +117,10 @@ At the same time, the rise of SaaS tools and APIs means that more and more data 
 In order to maintain a higher level of abstraction and to provide a general capability for multi-purpose usability, the popular and highly supported graphQL language is selected.
 GraphQL provides a complete description of the data & gives clients the power to ask for exact & specific structured information in a simple manner. GraphQL stack offers a rich echo-system of polyglot support for code generation and endpoint libraries.
 
-Selection to represent the Observability domain using graphQL semantics will help in all these capabilities and more 
- - Using a structured and dedicated API
- - Using standard tools for data transformation
- - Allowing Ingestion by any GraphQL compliant system
+Selection to represent the Observability domain using graphQL semantics will help in all these capabilities and more
+- Using a structured and dedicated API
+- Using standard tools for data transformation
+- Allowing Ingestion by any GraphQL compliant system
 
 #### Example
 
@@ -123,39 +128,39 @@ Let's review the schema of a 'network' type of log:
 
 ```graphql
 enum NetworkDirection {
-    ingress
-    egress
-    inbound
-    outbound
-    internal
-    external
-    unknown
+   ingress
+   egress
+   inbound
+   outbound
+   internal
+   external
+   unknown
 }
 
 type Vlan {
-    #   VLAN ID as reported by the observer.
-    id:String
-    #    Optional VLAN name as reported by the observer.
-    name:String
+   #   VLAN ID as reported by the observer.
+   id:String
+   #    Optional VLAN name as reported by the observer.
+   name:String
 }
 
 type Network implements BaseRecord {
-    name:String
-    application:String
-    bytes:Long
-    networkPackets:Long
-    communityId:String
-    direction:NetworkDirection
-    forwardedIp:IP
-    ianaNumber:String
-    transport:String
-    inner:JSON
-    protocol:String
-    aType:String
- 
-    vlan:Vlan @relation(mappingType: "embedded")
-    innerVlan:Vlan @relation(mappingType: "embedded")
-    description:String
+   name:String
+   application:String
+   bytes:Long
+   networkPackets:Long
+   communityId:String
+   direction:NetworkDirection
+   forwardedIp:IP
+   ianaNumber:String
+   transport:String
+   inner:JSON
+   protocol:String
+   aType:String
+
+   vlan:Vlan @relation(mappingType: "embedded")
+   innerVlan:Vlan @relation(mappingType: "embedded")
+   description:String
 }
 ```
 
@@ -171,13 +176,13 @@ Directives are an aspect based instruction to the model, they are intended to be
 a proactive manner that will best reflect their meaning to the specific role.
 
 In the **_@relation_** case - we can interpret this relational structure directive for multiple purposes:
- 
+
 - create a dedicated query by relation type API
 - implement a specific physical optimal index in the storage layer
 - understand relationships between different domain entities
 
 Additional supported directives:
- 
+
 - @model: describing the top level log entities
 - @key: describing the uniqueness and indexing field for an entity
 
@@ -191,70 +196,70 @@ As states in the introduction, the 3 pillars of the observability are the Logs, 
 The log's schema mostly follows ECS (Elastic Common Schema) methodology regarding the entities and their fields.
 
 The base entity holds the common fields for the top level events - these include:
- - timestamp - Date/time when the event originated.
- - labels - Custom key/value pairs, can be used to add meta information to events
- - tags - List of keywords used to tag each event.
+- timestamp - Date/time when the event originated.
+- labels - Custom key/value pairs, can be used to add meta information to events
+- tags - List of keywords used to tag each event.
 
 All the deriving events share these fields and add additional related content.
 
 #### Log static classification
 At a high level, the log classification technique provides fields to classify events in two different ways:
- - "Where it’s from" (e.g., event.module, event.dataset, agent.type, observer.type, etc.)
- - "What it is." The categorization fields hold the "What it is" information, independent of the source of the events.
+- "Where it’s from" (e.g., event.module, event.dataset, agent.type, observer.type, etc.)
+- "What it is." The categorization fields hold the "What it is" information, independent of the source of the events.
 
 The entity that construct the classifications:
- 
+
 ```graphql
 type Categorization {
-    #'This value indicates an event such as an alert or notable event,
-    #          triggered by a detection rule executing externally to the Elastic Stack.
-    #
-    #          `event.kind:alert` is often populated for events coming from firewalls,
-    #          intrusion detection systems, endpoint detection and response systems, and
-    #          so on.
-    #
-    #          This value is not used by Elastic solutions for alert documents that are
-    #          created by rules executing within the Kibana alerting framework.'
-    kind: EventKind!
-    #'This is one of four ECS Categorization Fields, and indicates the
-    #        second level in the ECS category hierarchy.
-    #
-    #        `event.category` represents the "big buckets" of ECS categories. For example,
-    #        filtering on `event.category:process` yields all events relating to process
-    #        activity. This field is closely related to `event.subCategory`
-    #
-    #        This field is an array. This will allow proper categorization of some events
-    #        that fall in multiple categories.'
-    category: Categories
-    #  'This is one of four ECS Categorization Fields, and indicates the
-    #        third level in the ECS category hierarchy.
-    #
-    #        `event.subCategory` represents a categorization "sub-bucket" that, when used along
-    #        with the `event.category` field values, enables filtering events down to a
-    #        level appropriate for single visualization.
-    #
-    #        This field is an array. This will allow proper categorization of some events
-    #        that fall in multiple event types.'
-    subCategory: SubCategories
-    #    'This is one of four ECS Categorization Fields, and indicates the
-    #        lowest level in the ECS category hierarchy.
-    #
-    #        `event.outcome` simply denotes whether the event represents a success or a
-    #        failure from the perspective of the entity that produced the event.
-    #
-    #        Note that when a single transaction is described in multiple events, each
-    #        event may populate different values of `event.outcome`, according to their
-    #        perspective.
-    #
-    #        Also note that in the case of a compound event (a single event that contains
-    #        multiple logical events), this field should be populated with the value that
-    #        best captures the overall success or failure from the perspective of the event
-    #        producer.
-    #
-    #        Further note that not all events will have an associated outcome. For example,
-    #        this field is generally not populated for metric events, events with `event.type:info`,
-    #        or any events for which an outcome does not make logical sense.'
-    outcome: EventOutcome
+   #'This value indicates an event such as an alert or notable event,
+   #          triggered by a detection rule executing externally to the Elastic Stack.
+   #
+   #          `event.kind:alert` is often populated for events coming from firewalls,
+   #          intrusion detection systems, endpoint detection and response systems, and
+   #          so on.
+   #
+   #          This value is not used by Elastic solutions for alert documents that are
+   #          created by rules executing within the Kibana alerting framework.'
+   kind: EventKind!
+   #'This is one of four ECS Categorization Fields, and indicates the
+   #        second level in the ECS category hierarchy.
+   #
+   #        `event.category` represents the "big buckets" of ECS categories. For example,
+   #        filtering on `event.category:process` yields all events relating to process
+   #        activity. This field is closely related to `event.subCategory`
+   #
+   #        This field is an array. This will allow proper categorization of some events
+   #        that fall in multiple categories.'
+   category: Categories
+   #  'This is one of four ECS Categorization Fields, and indicates the
+   #        third level in the ECS category hierarchy.
+   #
+   #        `event.subCategory` represents a categorization "sub-bucket" that, when used along
+   #        with the `event.category` field values, enables filtering events down to a
+   #        level appropriate for single visualization.
+   #
+   #        This field is an array. This will allow proper categorization of some events
+   #        that fall in multiple event types.'
+   subCategory: SubCategories
+   #    'This is one of four ECS Categorization Fields, and indicates the
+   #        lowest level in the ECS category hierarchy.
+   #
+   #        `event.outcome` simply denotes whether the event represents a success or a
+   #        failure from the perspective of the entity that produced the event.
+   #
+   #        Note that when a single transaction is described in multiple events, each
+   #        event may populate different values of `event.outcome`, according to their
+   #        perspective.
+   #
+   #        Also note that in the case of a compound event (a single event that contains
+   #        multiple logical events), this field should be populated with the value that
+   #        best captures the overall success or failure from the perspective of the event
+   #        producer.
+   #
+   #        Further note that not all events will have an associated outcome. For example,
+   #        this field is generally not populated for metric events, events with `event.type:info`,
+   #        or any events for which an outcome does not make logical sense.'
+   outcome: EventOutcome
 }
 ```
 
@@ -263,37 +268,37 @@ As shown in the concrete schema, the Categorization is composed of 4 fields whic
 Each event entity contains this classification element.
 
 #### Log dynamic classification
-Data stream naming scheme uses the value of the data stream fields combine to the name of the actual data stream in the following manner: {dataStream.type}-{dataStream.dataset}-{dataStream.namespace}. 
+Data stream naming scheme uses the value of the data stream fields combine to the name of the actual data stream in the following manner: {dataStream.type}-{dataStream.dataset}-{dataStream.namespace}.
 
 This means the fields can only contain characters that are valid as part of names of data streams
 
 ```graphql
 # data stream naming scheme uses the value of the data stream fields combine to the name of the actual data stream in the following manner: {data_stream.type}-{data_stream.dataset}-{data_stream.namespace}. This means the fields can only contain characters that are valid as part of names of data streams
 type StreamSet {
-    #An overarching type for the data stream - 
-    streamType: StreamType
-    #    A user defined namespace. Namespaces are useful to allow grouping of data.
-    #
-    # Many users already organize their indices this way, and the data stream naming scheme now provides this best practice as a default. Many users will populate this field with default.
-    #    If no value is used, it falls back to default.
-    namespace:String
-    #    The field can contain anything that makes sense to signify the source of the data.
-    # Examples include nginx.access, prometheus, endpoint etc. For data streams that otherwise fit, but that do not have dataset set we use the value "generic" for the dataset value.
-    #    event.dataset should have the same value as data_astream.dataset.
-    dataset:String
+   #An overarching type for the data stream - 
+   streamType: StreamType
+   #    A user defined namespace. Namespaces are useful to allow grouping of data.
+   #
+   # Many users already organize their indices this way, and the data stream naming scheme now provides this best practice as a default. Many users will populate this field with default.
+   #    If no value is used, it falls back to default.
+   namespace:String
+   #    The field can contain anything that makes sense to signify the source of the data.
+   # Examples include nginx.access, prometheus, endpoint etc. For data streams that otherwise fit, but that do not have dataset set we use the value "generic" for the dataset value.
+   #    event.dataset should have the same value as data_astream.dataset.
+   dataset:String
 }
 ```
 
-This additional dynamic customizable classification field simplify the distinctions of logs arriving for specific customer-meaningfull sources. 
+This additional dynamic customizable classification field simplify the distinctions of logs arriving for specific customer-meaningfull sources.
 The classification of the streams is divided into 3 categories:
- - stream type - the distinction of the logs   
-   - logs
-   - metrics
-   - traces
-   - synthetics
+- stream type - the distinction of the logs
+    - logs
+    - metrics
+    - traces
+    - synthetics
 
- - stream name - identifies the name of the stream - for example its purpose, service component, region 
- - stream custom name - identifies some customer distinction - for example environment type (dev,test,prod)
+- stream name - identifies the name of the stream - for example its purpose, service component, region
+- stream custom name - identifies some customer distinction - for example environment type (dev,test,prod)
 
 As the log data is split up per data set across multiple data streams, each data stream contains a minimal set of fields. This leads to better space efficiency and faster queries.
 More granular control of the data, having the data split up by data set and namespace allows granular control over retention and security .
@@ -307,28 +312,26 @@ has the following basic composition:
 ```graphql
 # top most level structuring an incoming format of any type of log
 type LogRecord @model {
-    #    The event's common characteristics
-    event: Event! @relation(mappingType: "embedded")
-    #    A list of top-level observations which describe 'things' that happened, where observed and reported
-    observations: [BaseRecord] @relation(mappingType: "nested")
+   #    The event's common characteristics
+   event: Event! @relation(mappingType: "embedded")
+   #    A list of top-level observations which describe 'things' that happened, where observed and reported
+   observations: [BaseRecord] @relation(mappingType: "nested")
 }
 ```
 
 This general purpose log container reflects the possible different observations that are reported. The Event entity represents metadata related
 concerns of the log itself such as:
- - classification - as described above
- - module -  Name of the module this data is coming from.
- - action -  The action captured by the event
- - time   -  Additional time aspect of the event (created,ingested,start,end)
- - stream -  as described above
+- classification - as described above
+- module -  Name of the module this data is coming from.
+- action -  The action captured by the event
+- time   -  Additional time aspect of the event (created,ingested,start,end)
+- stream -  as described above
 
 **Examples**
 
 TODO - add examples
 ```json
- {
-    
-  }
+ {}
 ```
 
 ### Traces
@@ -347,16 +350,16 @@ A Trace is made of one or more Spans - yhe first Span represents the Root Span. 
 
 ```graphql
 enum SpanKind{
-    #Indicates that the span covers server-side handling of a synchronous RPC or other remote request. This span is often the child of a remote CLIENT span that was expected to wait for a response.
-    SERVER
-    #     Indicates that the span describes a request to some remote service. This span is usually the parent of a remote SERVER span and does not end until the response is received.
-    CLIENT
-    #    Indicates that the span describes the initiators of an asynchronous request. This parent span will often end before the corresponding child CONSUMER span, possibly even before the child span starts. In messaging scenarios with batching, tracing individual messages requires a new PRODUCER span per message to be created.
-    PRODUCER
-    #     Indicates that the span describes a child of an asynchronous PRODUCER request.
-    CONSUMER
-    #     Default value. Indicates that the span represents an internal operation within an application, as opposed to an operations with remote parents or children.
-    INTERNAL
+   #Indicates that the span covers server-side handling of a synchronous RPC or other remote request. This span is often the child of a remote CLIENT span that was expected to wait for a response.
+   SERVER
+   #     Indicates that the span describes a request to some remote service. This span is usually the parent of a remote SERVER span and does not end until the response is received.
+   CLIENT
+   #    Indicates that the span describes the initiators of an asynchronous request. This parent span will often end before the corresponding child CONSUMER span, possibly even before the child span starts. In messaging scenarios with batching, tracing individual messages requires a new PRODUCER span per message to be created.
+   PRODUCER
+   #     Indicates that the span describes a child of an asynchronous PRODUCER request.
+   CONSUMER
+   #     Default value. Indicates that the span represents an internal operation within an application, as opposed to an operations with remote parents or children.
+   INTERNAL
 }
 ```
 Span's Context represents all the information that identifies Span in the Trace and MUST be propagated to child Spans and across process boundaries.
@@ -366,39 +369,39 @@ Span's Context represents all the information that identifies Span in the Trace 
 # A SpanContext contains the tracing identifiers and the options that are propagated from parent to child Spans.
 # In ECS AKA - https://github.com/elastic/ecs/blob/main/schemas/tracing.yml
 type SpanContext {
-    # A unique identifier for a trace. All spans from the same trace share
-    # the same `trace_id`.
-    traceId: String!
-    # A unique identifier for a span within a trace, assigned when the span
-    # is created.
-    spanId:ID!
-    # Carries tracing-system specific context in a list of key value pairs.
-    # Tracestate allows different vendors propagate additional information and inter-operate with their legacy Id formats
-    tracestate:JSON
+   # A unique identifier for a trace. All spans from the same trace share
+   # the same `trace_id`.
+   traceId: String!
+   # A unique identifier for a span within a trace, assigned when the span
+   # is created.
+   spanId:ID!
+   # Carries tracing-system specific context in a list of key value pairs.
+   # Tracestate allows different vendors propagate additional information and inter-operate with their legacy Id formats
+   tracestate:JSON
 
 }
 ```
 
 A span represents a single operation within a trace. Spans can be nested to form a trace tree. Spans may also be linked to other spans from the same or different trace.
-And form graphs. Often, a trace contains a root span that describes the end-to-end latency, and one or more subspans for its sub-operations. 
+And form graphs. Often, a trace contains a root span that describes the end-to-end latency, and one or more subspans for its sub-operations.
 A trace can also contain multiple root spans, or none at all. Spans do not need to be contiguous - there may be gaps or overlaps between spans in a trace.
 ```graphql
 type Span @model{
-    id:SpanContext!
-    parentId:SpanContext
-    name: String
-    # timestamp of the span
-    start: Time
-    end: Time
-    #
-    events:[Event]
-    spanKind:SpanKind
-    # A Span may be linked to zero or more other Spans (defined by SpanContext) that are causally related.
-    links:[SpanContext]
-    # Span status is mapped to outcome
-    outcome:EventOutcome
-    # Key-Value pairs representing vendor specific properties
-    attributes:JSON
+   id:SpanContext!
+   parentId:SpanContext
+   name: String
+   # timestamp of the span
+   start: Time
+   end: Time
+   #
+   events:[Event]
+   spanKind:SpanKind
+   # A Span may be linked to zero or more other Spans (defined by SpanContext) that are causally related.
+   links:[SpanContext]
+   # Span status is mapped to outcome
+   outcome:EventOutcome
+   # Key-Value pairs representing vendor specific properties
+   attributes:JSON
 
 }
 ```
@@ -410,11 +413,11 @@ As described in the introduction section, a metrics comprises a set of dimension
 A metrics can originate from an agent sampling some features on the observed machine or by actually performing a statistical action on top of the raw logs.
 
 The possible types of metrics are
- - **Gauge** - Gauge represents the type of a scalar metric that always exports the "current value" for every data point.
- - **Sum**   - Sum represents the type of a scalar metric that is calculated as a sum of all reported measurements over a time interval.
- - **Histogram**  - Histogram represents the type of a metric that is calculated by aggregating as a Histogram of all reported measurements over a time interval.
- - **ExponentialHistogram** -ExponentialHistogram represents the type of a metric that is calculated by aggregating as a ExponentialHistogram of all reported double measurements over a time interval.
- - **Summary**  - Summary metric data are used to convey quantile summaries data type
+- **Gauge** - Gauge represents the type of a scalar metric that always exports the "current value" for every data point.
+- **Sum**   - Sum represents the type of a scalar metric that is calculated as a sum of all reported measurements over a time interval.
+- **Histogram**  - Histogram represents the type of a metric that is calculated by aggregating as a Histogram of all reported measurements over a time interval.
+- **ExponentialHistogram** -ExponentialHistogram represents the type of a metric that is calculated by aggregating as a ExponentialHistogram of all reported double measurements over a time interval.
+- **Summary**  - Summary metric data are used to convey quantile summaries data type
 
 As stated before, every metrics has a name, type, a list of data-points:
 
@@ -467,19 +470,19 @@ This is the graphQL schematic representations:
 
 ```graphql
 type Metrics @model{
-    name:String
-    description:String
-    # unit in which the metric value is reported. Follows the format
-    # described by http://unitsofmeasure.org/ucum.html.
-    unit:String
-    # Data determines the aggregation type (if any) of the metric, what is the
-    #   reported value type for the data points, as well as the relatationship to the time interval over which they are reported.
-    data:MetricsData
+   name:String
+   description:String
+   # unit in which the metric value is reported. Follows the format
+   # described by http://unitsofmeasure.org/ucum.html.
+   unit:String
+   # Data determines the aggregation type (if any) of the metric, what is the
+   #   reported value type for the data points, as well as the relatationship to the time interval over which they are reported.
+   data:MetricsData
 }
 
 type MetricsData {
-    points:[DataPoint]
-    aType:AggType
+   points:[DataPoint]
+   aType:AggType
 }
 
 interface DataPoint {
@@ -513,7 +516,7 @@ type Gauge implements MetricsData{
 In order for the observability analytics dashboards to take the full power of this schema, we need to support it using structured indices.
 Utilizing the code generation capabilities of graphQL based schema we will create a template generator which is based on these definitions.
 
-Each type of generator will be activated using a CLI. 
+Each type of generator will be activated using a CLI.
 
 The template generator engine will work in the following steps:
 
@@ -526,29 +529,32 @@ The template generator engine will work in the following steps:
 #  
 ```
 1) First Step will create two intermediate file representation of each graphQL schema elements:
-   - {entity_name}.json file representing the element's ontology ( enumerations, fields, relationships ...) 
-   - {entity_name}-index.json file representing the element's physical index configuration ( Index type, inner objects nesting, index sorting ...)
+    - {entity_name}.json file representing the element's ontology ( enumerations, fields, relationships ...)
+    - {entity_name}-index.json file representing the element's physical index configuration ( Index type, inner objects nesting, index sorting ...)
 
 2) Second Step will generate a set of index templates which are composable template mappings that can be used together in a composite template.
-For additional information check Appendix A,B 
+   For additional information check Appendix A,B
 
 ### Index Template Mapping Composition
 In Order to fully utilize the composable nature of the Observability building blocks, we are using the composable index template mapping capability.
 
 Observability schema comes with a defined set of entities, these entities can be used as building block with the idex-template-mapping generator to
 create in advanced a structured index containing specific type of entities (logs) that can be used for many purposes:
- - Observability dashboard
- - Statistics and aggregations
- - Build for reports
+- Observability dashboard
+- Statistics and aggregations
+- Build for reports
 
 # Example
 Let's use the next log type entities to compose a specific index for a particular aggregation purpose:
 
- TODO - 
+TODO - show final result here
 
 
 ## Conclusion
-// TODO
+* In this RFC we reviewed the first concrete draft for opensearch observability schema.
+* We discussed the advantages of using graphQL SDL and the prior work done in the community for creating a common format for log events.
+* We saw the different pillars of observability and how they are represented on the graphQL SDL.
+* Finally, we reviewed the code generator and how it will help to utilize the power of the semantic structure of the observability common schema.
 
 --------------
 
@@ -584,40 +590,40 @@ Let's review the a 'Client' event entity - once in the GraphQL schema format and
 #    in that category, you should still ensure that source and destination are filled
 #    appropriately.
 type Client implements BaseRecord @model{
-    # ... Skipping the implemented base record fields for readability sake...
-    
-    #    Client network address
-    address: String
-    #
-    as:AutonomousSystem @relation(mappingType: "embedded")
-    #    The domain name of the client system.
-    domain:String
-    #    Bytes sent from the client to the server
-    bytes:Long
-    #    geographic related fields deriving from client's location
-    geo:Geo
-    #    Translated IP of source based NAT sessions (e.g. internal client to internet)
-    natIpp:IP
-    #    IP address of the client (IPv4 or IPv6).
-    ip:IP
-    # mac address of the client
-    mac:String
-    # port of the client
-    port:Long
-    #    Translated port of source based NAT sessions
-    natPort:Long
-    #    Packets sent from the client to the server
-    packets:Long
-    #    The highest registered client domain, stripped of the subdomain.
-    registeredDomain:String
-    #    The subdomain portion of a fully qualified domain name includes
-    #        all of the names except the host name under the registered_domain
-    subdomain:String
-    #    he effective top level domain (eTLD), also known as the domain
-    #        suffix, is the last part of the domain name.
-    topLevelDomain:String
-    #    Fields about the client side of a network connection, used with server
-    user:User @relation(mappingType: "foreign")
+   # ... Skipping the implemented base record fields for readability sake...
+
+   #    Client network address
+   address: String
+   #
+   as:AutonomousSystem @relation(mappingType: "embedded")
+   #    The domain name of the client system.
+   domain:String
+   #    Bytes sent from the client to the server
+   bytes:Long
+   #    geographic related fields deriving from client's location
+   geo:Geo
+   #    Translated IP of source based NAT sessions (e.g. internal client to internet)
+   natIpp:IP
+   #    IP address of the client (IPv4 or IPv6).
+   ip:IP
+   # mac address of the client
+   mac:String
+   # port of the client
+   port:Long
+   #    Translated port of source based NAT sessions
+   natPort:Long
+   #    Packets sent from the client to the server
+   packets:Long
+   #    The highest registered client domain, stripped of the subdomain.
+   registeredDomain:String
+   #    The subdomain portion of a fully qualified domain name includes
+   #        all of the names except the host name under the registered_domain
+   subdomain:String
+   #    he effective top level domain (eTLD), also known as the domain
+   #        suffix, is the last part of the domain name.
+   topLevelDomain:String
+   #    Fields about the client side of a network connection, used with server
+   user:User @relation(mappingType: "foreign")
 }
 ```
 
@@ -629,122 +635,122 @@ The client.json generated ontology file represents these implicit concerns in a 
 
 ```json
 {
-  "ont": "user",
-  "directives": [],
-  "entityTypes": [
-    {
-      "eType": "AutonomousSystem",
-      "name": "AutonomousSystem",
-      "directives": [
-        {
-          "type": "DATATYPE",
-          "name": "key",
-          "arguments": [
+   "ont": "user",
+   "directives": [],
+   "entityTypes": [
+      {
+         "eType": "AutonomousSystem",
+         "name": "AutonomousSystem",
+         "directives": [
             {
-              "name": "fields",
-              "value": [
-                "number"
-              ]
-            },
-            {
-              "name": "name",
-              "value": "number"
+               "type": "DATATYPE",
+               "name": "key",
+               "arguments": [
+                  {
+                     "name": "fields",
+                     "value": [
+                        "number"
+                     ]
+                  },
+                  {
+                     "name": "name",
+                     "value": "number"
+                  }
+               ]
             }
-          ]
-        }
-      ],
-      "mandatory": [
-        "number"
-      ],
-      "properties": [
-        "number",
-        "organizationName"
-      ],
-      "abstract": false
-    },
-    {
-      "eType": "Geo",
-      "name": "Geo",
-      "properties": [
-        "timezone",
-        "countryIsoCode",
-        "regionIsoCode",
-        "countryName",
-        "postalCode",
-        "continentCode",
-        "location",
-        "regionName",
-        "cityName",
-        "name",
-        "continentName"
-      ],
-      "abstract": false
-    },
-    {
-      "idField": [
-        "id"
-      ],
-      "eType": "Group",
-      "name": "Group",
-      "mandatory": [
-        "id"
-      ],
-      "properties": [
-        "domain",
-        "id"
-      ],
-      "abstract": false
-    },
-    {
-      "idField": [
-        "id"
-      ],
-      "eType": "User",
-      "name": "User",
-      "directives": [
-        {
-          "type": "DATATYPE",
-          "name": "model"
-        }
-      ],
-      "mandatory": [
-        "id"
-      ],
-      "properties": [
-        "fullName",
-        "group",
-        "domain",
-        "hash",
-        "id",
-        "email",
-        "roles",
-        "name"
-      ],
-      "abstract": false
-    }
-  ],
-  "relationshipTypes": [
-    {
-      "idField": [
-        "id"
-      ],
-      "rType": "group",
-      "name": "group",
-      "directional": true,
-      "ePairs": [
-        {
-          "name": "User->Group",
-          "eTypeA": "User",
-          "sideAIdField": "id",
-          "eTypeB": "Group",
-          "sideBIdField": "id"
-        }
-      ]
-    }
-  ],
-  "properties": [{ "": "Skipping the properties for readability sake..."}],
-  "enumeratedTypes": [ { "": "Skipping the enumerated types for readability sake..."}],
-  "compositeTypes": []
+         ],
+         "mandatory": [
+            "number"
+         ],
+         "properties": [
+            "number",
+            "organizationName"
+         ],
+         "abstract": false
+      },
+      {
+         "eType": "Geo",
+         "name": "Geo",
+         "properties": [
+            "timezone",
+            "countryIsoCode",
+            "regionIsoCode",
+            "countryName",
+            "postalCode",
+            "continentCode",
+            "location",
+            "regionName",
+            "cityName",
+            "name",
+            "continentName"
+         ],
+         "abstract": false
+      },
+      {
+         "idField": [
+            "id"
+         ],
+         "eType": "Group",
+         "name": "Group",
+         "mandatory": [
+            "id"
+         ],
+         "properties": [
+            "domain",
+            "id"
+         ],
+         "abstract": false
+      },
+      {
+         "idField": [
+            "id"
+         ],
+         "eType": "User",
+         "name": "User",
+         "directives": [
+            {
+               "type": "DATATYPE",
+               "name": "model"
+            }
+         ],
+         "mandatory": [
+            "id"
+         ],
+         "properties": [
+            "fullName",
+            "group",
+            "domain",
+            "hash",
+            "id",
+            "email",
+            "roles",
+            "name"
+         ],
+         "abstract": false
+      }
+   ],
+   "relationshipTypes": [
+      {
+         "idField": [
+            "id"
+         ],
+         "rType": "group",
+         "name": "group",
+         "directional": true,
+         "ePairs": [
+            {
+               "name": "User->Group",
+               "eTypeA": "User",
+               "sideAIdField": "id",
+               "eTypeB": "Group",
+               "sideBIdField": "id"
+            }
+         ]
+      }
+   ],
+   "properties": [{ "": "Skipping the properties for readability sake..."}],
+   "enumeratedTypes": [ { "": "Skipping the enumerated types for readability sake..."}],
+   "compositeTypes": []
 }
 ```
 
@@ -759,262 +765,262 @@ Let's review the file to understand the instructions:
 
 ```json
 {
-  "entities": [
-    {
-      "type": "User",
-      "partition": "NESTED",
-      "props": {
-        "values": [
-          "User"
-        ]
-      },
-      "nested": [
-        {
-          "type": "Group",
-          "partition": "NESTED",
-          "props": {
+   "entities": [
+      {
+         "type": "User",
+         "partition": "NESTED",
+         "props": {
             "values": [
-              "Group"
+               "User"
             ]
-          },
-          "nested": [],
-          "mapping": "INDEX"
-        }
-      ],
-      "mapping": "INDEX"
-    },
-    {
-      "type": "AutonomousSystem",
-      "partition": "NESTED",
-      "props": {
-        "values": [
-          "AutonomousSystem"
-        ]
-      },
-      "nested": [],
-      "mapping": "INDEX"
-    },
-    {
-      "type": "Geo",
-      "partition": "NESTED",
-      "props": {
-        "values": [
-          "Geo"
-        ]
-      },
-      "nested": [],
-      "mapping": "INDEX"
-    },
-    {
-      "type": "Group",
-      "partition": "NESTED",
-      "props": {
-        "values": [
-          "Group"
-        ]
-      },
-      "nested": [],
-      "mapping": "INDEX"
-    },
-    {
-      "type": "Client",
-      "partition": "STATIC",
-      "props": {
-        "values": [
-          "Client"
-        ]
-      },
-      "nested": [
-        {
-          "type": "User",
-          "partition": "NESTED",
-          "props": {
-            "values": [
-              "User"
-            ]
-          },
-          "nested": [
+         },
+         "nested": [
             {
-              "type": "Group",
-              "partition": "NESTED",
-              "props": {
-                "values": [
-                  "Group"
-                ]
-              },
-              "nested": [],
-              "mapping": "INDEX"
+               "type": "Group",
+               "partition": "NESTED",
+               "props": {
+                  "values": [
+                     "Group"
+                  ]
+               },
+               "nested": [],
+               "mapping": "INDEX"
             }
-          ],
-          "mapping": "INDEX"
-        },
-        {
-          "type": "AutonomousSystem",
-          "partition": "NESTED",
-          "props": {
-            "values": [
-              "AutonomousSystem"
-            ]
-          },
-          "nested": [],
-          "mapping": "INDEX"
-        },
-        {
-          "type": "Geo",
-          "partition": "NESTED",
-          "props": {
-            "values": [
-              "Geo"
-            ]
-          },
-          "nested": [],
-          "mapping": "INDEX"
-        }
-      ],
-      "mapping": "INDEX"
-    },
-    {
-      "type": "User",
-      "partition": "STATIC",
-      "props": {
-        "values": [
-          "User"
-        ]
+         ],
+         "mapping": "INDEX"
       },
-      "nested": [
-        {
-          "type": "Group",
-          "partition": "NESTED",
-          "props": {
+      {
+         "type": "AutonomousSystem",
+         "partition": "NESTED",
+         "props": {
             "values": [
-              "Group"
+               "AutonomousSystem"
             ]
-          },
-          "nested": [],
-          "mapping": "INDEX"
-        }
-      ],
-      "mapping": "INDEX"
-    }
-  ],
-  "relations": [
-    {
-      "type": "has_User",
-      "partition": "STATIC",
-      "symmetric": false,
-      "props": {
-        "values": [
-          "has_User"
-        ]
+         },
+         "nested": [],
+         "mapping": "INDEX"
       },
-      "nested": [],
-      "redundant": [],
-      "mapping": "INDEX"
-    }
-  ],
-  "ontology": "client",
-  "rootEntities": [
-    {
-      "type": "Client",
-      "partition": "STATIC",
-      "props": {
-        "values": [
-          "Client"
-        ]
-      },
-      "nested": [
-        {
-          "type": "User",
-          "partition": "NESTED",
-          "props": {
+      {
+         "type": "Geo",
+         "partition": "NESTED",
+         "props": {
             "values": [
-              "User"
+               "Geo"
             ]
-          },
-          "nested": [
+         },
+         "nested": [],
+         "mapping": "INDEX"
+      },
+      {
+         "type": "Group",
+         "partition": "NESTED",
+         "props": {
+            "values": [
+               "Group"
+            ]
+         },
+         "nested": [],
+         "mapping": "INDEX"
+      },
+      {
+         "type": "Client",
+         "partition": "STATIC",
+         "props": {
+            "values": [
+               "Client"
+            ]
+         },
+         "nested": [
             {
-              "type": "Group",
-              "partition": "NESTED",
-              "props": {
-                "values": [
-                  "Group"
-                ]
-              },
-              "nested": [],
-              "mapping": "INDEX"
+               "type": "User",
+               "partition": "NESTED",
+               "props": {
+                  "values": [
+                     "User"
+                  ]
+               },
+               "nested": [
+                  {
+                     "type": "Group",
+                     "partition": "NESTED",
+                     "props": {
+                        "values": [
+                           "Group"
+                        ]
+                     },
+                     "nested": [],
+                     "mapping": "INDEX"
+                  }
+               ],
+               "mapping": "INDEX"
+            },
+            {
+               "type": "AutonomousSystem",
+               "partition": "NESTED",
+               "props": {
+                  "values": [
+                     "AutonomousSystem"
+                  ]
+               },
+               "nested": [],
+               "mapping": "INDEX"
+            },
+            {
+               "type": "Geo",
+               "partition": "NESTED",
+               "props": {
+                  "values": [
+                     "Geo"
+                  ]
+               },
+               "nested": [],
+               "mapping": "INDEX"
             }
-          ],
-          "mapping": "INDEX"
-        },
-        {
-          "type": "AutonomousSystem",
-          "partition": "NESTED",
-          "props": {
-            "values": [
-              "AutonomousSystem"
-            ]
-          },
-          "nested": [],
-          "mapping": "INDEX"
-        },
-        {
-          "type": "Geo",
-          "partition": "NESTED",
-          "props": {
-            "values": [
-              "Geo"
-            ]
-          },
-          "nested": [],
-          "mapping": "INDEX"
-        }
-      ],
-      "mapping": "INDEX"
-    },
-    {
-      "type": "User",
-      "partition": "STATIC",
-      "props": {
-        "values": [
-          "User"
-        ]
+         ],
+         "mapping": "INDEX"
       },
-      "nested": [
-        {
-          "type": "Group",
-          "partition": "NESTED",
-          "props": {
+      {
+         "type": "User",
+         "partition": "STATIC",
+         "props": {
             "values": [
-              "Group"
+               "User"
             ]
-          },
-          "nested": [],
-          "mapping": "INDEX"
-        }
-      ],
-      "mapping": "INDEX"
-    }
-  ],
-  "rootRelations": [
-    {
-      "type": "has_User",
-      "partition": "STATIC",
-      "symmetric": false,
-      "props": {
-        "values": [
-          "has_User"
-        ]
+         },
+         "nested": [
+            {
+               "type": "Group",
+               "partition": "NESTED",
+               "props": {
+                  "values": [
+                     "Group"
+                  ]
+               },
+               "nested": [],
+               "mapping": "INDEX"
+            }
+         ],
+         "mapping": "INDEX"
+      }
+   ],
+   "relations": [
+      {
+         "type": "has_User",
+         "partition": "STATIC",
+         "symmetric": false,
+         "props": {
+            "values": [
+               "has_User"
+            ]
+         },
+         "nested": [],
+         "redundant": [],
+         "mapping": "INDEX"
+      }
+   ],
+   "ontology": "client",
+   "rootEntities": [
+      {
+         "type": "Client",
+         "partition": "STATIC",
+         "props": {
+            "values": [
+               "Client"
+            ]
+         },
+         "nested": [
+            {
+               "type": "User",
+               "partition": "NESTED",
+               "props": {
+                  "values": [
+                     "User"
+                  ]
+               },
+               "nested": [
+                  {
+                     "type": "Group",
+                     "partition": "NESTED",
+                     "props": {
+                        "values": [
+                           "Group"
+                        ]
+                     },
+                     "nested": [],
+                     "mapping": "INDEX"
+                  }
+               ],
+               "mapping": "INDEX"
+            },
+            {
+               "type": "AutonomousSystem",
+               "partition": "NESTED",
+               "props": {
+                  "values": [
+                     "AutonomousSystem"
+                  ]
+               },
+               "nested": [],
+               "mapping": "INDEX"
+            },
+            {
+               "type": "Geo",
+               "partition": "NESTED",
+               "props": {
+                  "values": [
+                     "Geo"
+                  ]
+               },
+               "nested": [],
+               "mapping": "INDEX"
+            }
+         ],
+         "mapping": "INDEX"
       },
-      "nested": [],
-      "redundant": [],
-      "mapping": "INDEX"
-    }
-  ]
+      {
+         "type": "User",
+         "partition": "STATIC",
+         "props": {
+            "values": [
+               "User"
+            ]
+         },
+         "nested": [
+            {
+               "type": "Group",
+               "partition": "NESTED",
+               "props": {
+                  "values": [
+                     "Group"
+                  ]
+               },
+               "nested": [],
+               "mapping": "INDEX"
+            }
+         ],
+         "mapping": "INDEX"
+      }
+   ],
+   "rootRelations": [
+      {
+         "type": "has_User",
+         "partition": "STATIC",
+         "symmetric": false,
+         "props": {
+            "values": [
+               "has_User"
+            ]
+         },
+         "nested": [],
+         "redundant": [],
+         "mapping": "INDEX"
+      }
+   ]
 }
 ```
 
 ## Appendix C: Logs Index Implementation Considerations
-// TODO
+// TODO - add different log-index size, access-pattern, terms cardinality, compaction aspects
 
-## Appendix D: Metrics Index Implementation Considerations 
-// TODO
+## Appendix D: Metrics Index Implementation Considerations
+// TODO - add different metrics-index size, dimensions cardinality, aggregations aspects
