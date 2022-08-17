@@ -8,15 +8,15 @@ package org.opensearch.sql.legacy.unittest.utils;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import org.apache.logging.log4j.ThreadContext;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
-import org.opensearch.sql.legacy.utils.LogUtils;
+import org.opensearch.sql.common.utils.QueryContext;
 
-public class LogUtilsTest {
+public class QueryContextTest {
 
     private static final String REQUEST_ID_KEY = "request_id";
 
@@ -30,7 +30,7 @@ public class LogUtilsTest {
     public void addRequestId() {
 
         Assert.assertNull(ThreadContext.get(REQUEST_ID_KEY));
-        LogUtils.addRequestId();
+        QueryContext.addRequestId();
         final String requestId = ThreadContext.get(REQUEST_ID_KEY);
         Assert.assertNotNull(requestId);
     }
@@ -38,16 +38,16 @@ public class LogUtilsTest {
     @Test
     public void addRequestId_alreadyExists() {
 
-        LogUtils.addRequestId();
+        QueryContext.addRequestId();
         final String requestId = ThreadContext.get(REQUEST_ID_KEY);
-        LogUtils.addRequestId();
+        QueryContext.addRequestId();
         final String requestId2 = ThreadContext.get(REQUEST_ID_KEY);
         Assert.assertThat(requestId2, not(equalTo(requestId)));
     }
 
     @Test
     public void getRequestId_doesNotExist() {
-        assertEquals("ID", LogUtils.getRequestId());
+        assertNotNull(QueryContext.getRequestId());
     }
 
     @Test
@@ -55,7 +55,7 @@ public class LogUtilsTest {
 
         final String test_request_id = "test_id_111";
         ThreadContext.put(REQUEST_ID_KEY, test_request_id);
-        final String requestId = LogUtils.getRequestId();
+        final String requestId = QueryContext.getRequestId();
         Assert.assertThat(requestId, equalTo(test_request_id));
     }
 
@@ -68,6 +68,6 @@ public class LogUtilsTest {
         };
         ThreadContext.put("test11", "value11");
         ThreadContext.put("test22", "value11");
-        new Thread(LogUtils.withCurrentContext(task)).join();
+        new Thread(QueryContext.withCurrentContext(task)).join();
     }
 }

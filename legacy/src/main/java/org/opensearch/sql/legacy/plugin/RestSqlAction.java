@@ -35,6 +35,7 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.legacy.antlr.OpenSearchLegacySqlAnalyzer;
@@ -60,7 +61,6 @@ import org.opensearch.sql.legacy.request.SqlRequestFactory;
 import org.opensearch.sql.legacy.request.SqlRequestParam;
 import org.opensearch.sql.legacy.rewriter.matchtoterm.VerificationException;
 import org.opensearch.sql.legacy.utils.JsonPrettyFormatter;
-import org.opensearch.sql.legacy.utils.LogUtils;
 import org.opensearch.sql.legacy.utils.QueryDataAnonymizer;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
 
@@ -123,7 +123,7 @@ public class RestSqlAction extends BaseRestHandler {
         Metrics.getInstance().getNumericalMetric(MetricName.REQ_TOTAL).increment();
         Metrics.getInstance().getNumericalMetric(MetricName.REQ_COUNT_TOTAL).increment();
 
-        LogUtils.addRequestId();
+        QueryContext.addRequestId();
 
         try {
             if (!isSQLFeatureEnabled()) {
@@ -137,12 +137,12 @@ public class RestSqlAction extends BaseRestHandler {
                 if (isExplainRequest(request)) {
                     throw new IllegalArgumentException("Invalid request. Cannot explain cursor");
                 } else {
-                    LOG.info("[{}] Cursor request {}: {}", LogUtils.getRequestId(), request.uri(), sqlRequest.cursor());
+                    LOG.info("[{}] Cursor request {}: {}", QueryContext.getRequestId(), request.uri(), sqlRequest.cursor());
                     return channel -> handleCursorRequest(request, sqlRequest.cursor(), client, channel);
                 }
             }
 
-            LOG.info("[{}] Incoming request {}: {}", LogUtils.getRequestId(), request.uri(),
+            LOG.info("[{}] Incoming request {}: {}", QueryContext.getRequestId(), request.uri(),
                     QueryDataAnonymizer.anonymizeData(sqlRequest.getSql()));
 
             Format format = SqlRequestParam.getFormat(request.params());
@@ -152,11 +152,11 @@ public class RestSqlAction extends BaseRestHandler {
                 sqlRequest.getSql(), request.path(), request.params());
             RestChannelConsumer result = newSqlQueryHandler.prepareRequest(newSqlRequest, client);
             if (result != RestSQLQueryAction.NOT_SUPPORTED_YET) {
-                LOG.info("[{}] Request is handled by new SQL query engine", LogUtils.getRequestId());
+                LOG.info("[{}] Request is handled by new SQL query engine", QueryContext.getRequestId());
                 return result;
             }
             LOG.debug("[{}] Request {} is not supported and falling back to old SQL engine",
-                LogUtils.getRequestId(), newSqlRequest);
+                QueryContext.getRequestId(), newSqlRequest);
 
             final QueryAction queryAction = explainRequest(client, sqlRequest, format);
             return channel -> executeSqlRequest(request, queryAction, client, channel);
@@ -182,10 +182,10 @@ public class RestSqlAction extends BaseRestHandler {
 
     private static void logAndPublishMetrics(final Exception e) {
         if (isClientError(e)) {
-            LOG.error(LogUtils.getRequestId() + " Client side error during query execution", e);
+            LOG.error(QueryContext.getRequestId() + " Client side error during query execution", e);
             Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_CUS).increment();
         } else {
-            LOG.error(LogUtils.getRequestId() + " Server side error during query execution", e);
+            LOG.error(QueryContext.getRequestId() + " Server side error during query execution", e);
             Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
         }
     }
