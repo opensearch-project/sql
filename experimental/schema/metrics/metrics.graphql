@@ -77,7 +77,7 @@ type Metrics @model{
 
 interface MetricsData {
     points:[DataPoint]
-    aType:AggType
+    type:AggType
 }
 
 #  List of exemplars collected from measurements that were used to form the data point
@@ -299,13 +299,13 @@ type ExponentialHistogramDataPoint implements DataPoint {
 #  "StartTimeUnixNano" is ignored for all data points.
 type Gauge implements MetricsData{
     points:[NumberDataPoint]
-    aType:AggType
+    type:AggType
 }
 
 # Sum represents the type of a scalar metric that is calculated as a sum of all reported measurements over a time interval.
 type Sum implements MetricsData{
     points:[SummaryDataPoint]
-    aType:AggType
+    type:AggType
 
     # aggregation_temporality describes if the aggregator reports delta changes
     # since last report time, or cumulative changes since a fixed start time.
@@ -319,7 +319,7 @@ type Sum implements MetricsData{
 #  recommended for new applications.
 type Summary implements MetricsData{
     points:[SummaryDataPoint]
-    aType:AggType
+    type:AggType
 
     # aggregation_temporality describes if the aggregator reports delta changes
     # since last report time, or cumulative changes since a fixed start time.
@@ -330,7 +330,7 @@ type Summary implements MetricsData{
 # as a Histogram of all reported measurements over a time interval.
 type Histogram implements MetricsData{
     points:[HistogramDataPoint]
-    aType:AggType
+    type:AggType
 
     # aggregation_temporality describes if the aggregator reports delta changes
     # since last report time, or cumulative changes since a fixed start time.
@@ -341,7 +341,7 @@ type Histogram implements MetricsData{
 # as a ExponentialHistogram of all reported double measurements over a time interval.
 type ExponentialHistogram implements MetricsData{
     points:[ExponentialHistogramDataPoint]
-    aType:AggType
+    type:AggType
 
     # aggregation_temporality describes if the aggregator reports delta changes
     # since last report time, or cumulative changes since a fixed start time.

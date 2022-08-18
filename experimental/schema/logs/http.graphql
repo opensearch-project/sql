@@ -1,0 +1,35 @@
+# Fields related to HTTP activity. Use the url field set to store the url of the request.
+type Http {
+    #    Size in bytes of the request body
+    requestBodyBytes:Long
+    #    The full HTTP request body
+    requestBodyContent:JSON
+    #    Size in bytes of the request
+    requestBytes:Long
+    # A unique identifier for each HTTP request to correlate logs between clients and servers in transactions.
+    # The id may be contained in a non-standard HTTP header, such as X-Request-ID or X-Correlation-ID.
+    requestId:ID
+    # HTTP request method.
+    #The value should retain its casing from the original event. For example, GET, get, and GeT are all considered valid values for this field.
+    requestMethod:String
+    #    Mime type of the body of the request.
+    # This value must only be populated based on the content of the request body, not on the Content-Type header.
+    requestMimeType:String
+    #    Referrer for this HTTP request.
+    requestReferrer:String
+
+    #    Size in bytes of the response body
+    responseBodyBytes:Long
+    #    The full HTTP response body
+    responseBodyContent:JSON
+    #    Size in bytes of the request
+    responseBytes:Long
+    #    Mime type of the body of the response.
+    # This value must only be populated based on the content of the response body, not on the Content-Type header.
+    responseMimeType:String
+    #    HTTP response status code
+    responseStatusCode:Long
+    #    http version
+    version:String
+
+}

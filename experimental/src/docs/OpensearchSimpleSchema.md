@@ -156,7 +156,7 @@ type Network implements BaseRecord {
    transport:String
    inner:JSON
    protocol:String
-   aType:String
+   type:String
 
    vlan:Vlan @relation(mappingType: "embedded")
    innerVlan:Vlan @relation(mappingType: "embedded")
@@ -482,7 +482,7 @@ type Metrics @model{
 
 type MetricsData {
    points:[DataPoint]
-   aType:AggType
+   type:AggType
 }
 
 interface DataPoint {
@@ -506,7 +506,7 @@ type NumberDataPoint implements DataPoint {
 #  aggregation.
 type Gauge implements MetricsData{
    points:[NumberDataPoint]
-   aType:AggType
+   type:AggType
 }
 ```
 

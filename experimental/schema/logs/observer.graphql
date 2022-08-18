@@ -1,6 +1,12 @@
+#The interface fields are used to record ingress and egress interface information when reported by an observer (e.g. firewall, router, load balancer) in the context of the observer handling a network connection. In the case of a single observer interface (e.g. network sensor on a span port) only the observer.ingress information should be populated.
 type Interface {
-#    todo - add content
-    id: ID!
+    #    Interface ID as reported by an observer (typically SNMP interface ID).
+    id:ID
+    #    Interface alias as reported by the system, typically used in firewall implementations for e.g. inside, outside, or dmz logical interface naming.
+    alias:String
+    #Interface name as reported by the system
+    name:String
+
 }
 
 #An observer is defined as a special network, security, or application device used to detect, observe, or create network, security, or application-related events and metrics.
@@ -63,17 +69,17 @@ type Observer implements BaseRecord @model{
     serialNumber:String
     #    The type of the observer the data is coming from.
     #There is no predefined list of observer types. Some examples are forwarder, firewall, ids, ips, proxy, poller, sensor, APM server.
-    aType:String
+    type:String
     #    Vendor name of the observer.
     vendor:String
     #OS fields contain information about the operating system.
-    os:OS @relation(mappingType: "embedded")
+    os:OS
     #    Observer version.
     version:String
     #Fields describing the observer's location.
     geo:Geo
     #Fields to describe observer interface information.
-    egressInterface:Interface @relation(mappingType: "embedded")
+    egressInterface:Interface
     #    Fields to describe observed VLAN information.
-    egressVlan:Vlan @relation(mappingType: "embedded")
+    egressVlan:Vlan
 }

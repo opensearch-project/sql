@@ -100,6 +100,9 @@ public class GraphQLToOntologyTransformer implements OntologyTransformerIfc<Stri
             //create schema
             RuntimeWiring.Builder builder = RuntimeWiring.newRuntimeWiring()
                     .wiringFactory(new EchoingWiringFactory())
+                    .scalar(ExtendedScalars.newAliasedScalar("Text")
+                            .aliasedScalar(GraphQLString)
+                            .build())
                     .scalar(ExtendedScalars.newAliasedScalar("IP")
                             .aliasedScalar(GraphQLString)
                             .build())

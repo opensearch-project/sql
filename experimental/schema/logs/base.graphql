@@ -1,4 +1,5 @@
 scalar Time
+scalar Text
 scalar DateTime
 scalar JSON
 scalar Long
@@ -98,8 +99,18 @@ type AutonomousSystem @key(fields: ["number"],name: "number" ){
 }
 
 type Group {
+    #    Name of the directory the group is a member of.
+    #
+    #For example, an LDAP or Active Directory domain name.
+    name:String
     #    Unique identifier for the group on the system/platform.
     id:ID!
     #    Name of the directory the group is a member of
     domain:String
+}
+
+#The organization fields enrich data with information about the company or entity the data is associated with
+type Organization {
+    id:ID!
+    name:String
 }

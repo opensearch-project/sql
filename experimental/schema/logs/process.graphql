@@ -1,4 +1,4 @@
-type Process implements BaseRecord {
+type Process implements BaseRecord @model{
     #'Date/time when the event originated.
     #
     #        This is the date/time extracted from the event, typically representing when
@@ -30,5 +30,81 @@ type Process implements BaseRecord {
     attributes: JSON
     description:String
 
-    # TODO - add fields
+    #    Array of process arguments, starting with the absolute path to the executable.
+    args: [String]
+    #    Length of the process.args array.
+    argsCount: Long
+    # Full command line that started the process, including the absolute path to the executable, and all arguments.
+    commandLine:String
+    # The working directory of the process.
+    workingDirectory:String
+
+    # The time the process started.
+    start:Time
+    # The time the process ended.
+    end:Time
+    # Seconds the process has been up.
+    upTime:Long
+
+    #    Thread ID.
+    threadId:Long
+    #    Thread Name
+    threadName:String
+    # Information about the controlling TTY device. If set, the process belongs to an interactive session
+    tty:Long
+
+    # Unique identifier for the process.
+    # The implementation of this is specified by the data source, but some examples of what could be used here are a process-generated UUID, Sysmon Process GUIDs, or a hash of some uniquely identifying components of a process.
+    # Constructing a globally unique identifier is a common practice to mitigate PID reuse as well as to identify a specific process over time, across multiple monitored hosts.
+    entityId:String
+
+    #    Environment variables (env_vars) set at the time of the event. May be filtered to protect sensitive information.
+    envVars:JSON
+    #    Absolute path to the process executable
+    executable:String
+    #   The exit code of the process, if this is a termination event - The field should be absent if there is no exit code for the event (e.g. process start).
+    exitCode:Long
+    #    Whether the process is connected to an interactive shell.
+    #    Process interactivity is inferred from the processes file descriptors. If the character device for the controlling tty is the same as stdin and stderr for the process, the process is considered interactive.
+    interactive:Boolean
+
+    #    The proctitle, some times the same as process name. Can also be different: for example a browser setting its title to the web page currently opened.
+    title:String
+    #    Process name, sometimes called program name or similar.
+    name:String
+    #    Process id.
+    pid:Long
+
+    #    Remote client information such as ip, port and geo location.
+    source:Source
+    #    The real group (rgid).
+    group:Group
+    #    An array of supplemental groups.
+    supplementalGroups:[Group]
+    # The real user (ruid). Identifies the real owner of the process.
+    user:User
+    #    The saved group (sgid).
+    savedGroup:Group
+    # The saved user (suid). Identifies the saved owner of the process.
+    savedUser:User
+
+    #These fields contain Linux Executable Linkable Format (ELF) metadata.
+    elf:ELF
+    # These fields contain Windows Portable Executable (PE) metadata.
+    pe:PE
+    #    Hashes, usually file hashes.
+    hash:Hash
+    # These fields contain information about binary code signatures.
+    codeSignature: CodeSignature
+
+    # An array of previous executions for the process, including the initial fork. Only executable and args are set.
+    previous:[Process]
+    # Often the same as entry_leader. When it differs, it represents a session started within another session. e.g. using tmux
+    leader:Process
+    # Often the same as entry_leader. When it differs, it represents a session started within another session. e.g. using tmux
+    sessionLeader:Process
+    #    Information about the parent’s process group leader. Only pid, start and entity_id fields are set.
+    groupLeader:Process
+    #    Information about the parent process.
+    parent:Process
 }

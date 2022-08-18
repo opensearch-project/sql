@@ -2,7 +2,7 @@
 #    was collected.
 #
 #    These fields help you find and correlate logs for a specific service and version.'
-type Service implements BaseRecord {
+type Service implements BaseRecord @model {
     #'Date/time when the event originated.
     #
     #        This is the date/time extracted from the event, typically representing when
@@ -79,7 +79,7 @@ type Service implements BaseRecord {
     #The type can be used to group and correlate logs and metrics from one service type.
     #
     #Example: If logs or metrics are collected from Elasticsearch, service.type would be elasticsearch.
-    aType: String
+    type: String
     #Current state of the service
     state:String
     #    Version of the service the data was collected from.

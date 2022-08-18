@@ -80,7 +80,7 @@ type Network implements BaseRecord {
     #    In the OSI Model this would be the Application Layer protocol. For example, http, dns, or ssh.
     protocol:String
     #    In the OSI Model this would be the Network Layer. ipv4, ipv6, ipsec, pim, etc
-    aType:String
+    type:String
     #Fields to describe observed VLAN information.
     vlan:Vlan @relation(mappingType: "embedded")
     #Fields to describe observed VLAN information. - flattened inner.vlan

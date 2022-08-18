@@ -63,7 +63,7 @@ public class GraphQLOntologyUserTranslatorTest {
         Assertions.assertEquals(ontologyAccessor.entity$("Group").geteType(), "Group");
         Assertions.assertEquals(ontologyAccessor.entity$("Group").getIdField().size(), 1);
         Assertions.assertEquals(ontologyAccessor.entity$("Group").getIdField().get(0), "id");
-        Assertions.assertEquals(ontologyAccessor.entity$("Group").getProperties().size(), 2);
+        Assertions.assertEquals(ontologyAccessor.entity$("Group").getProperties().size(), 3);
         Assertions.assertEquals(ontologyAccessor.entity$("Group").getMandatory().size(), 1);
     }
 

@@ -1,0 +1,7 @@
+type TLS {
+#    TODO
+}
+
+type X509 {
+#    TODO
+}

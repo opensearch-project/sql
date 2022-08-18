@@ -25,7 +25,7 @@ public class GraphQLOntologyClientTranslatorTest {
     public static void setUp() throws Exception {
         InputStream baseSchemaInput = new FileInputStream("schema/logs/base.graphql");
         InputStream userSchemaInput = new FileInputStream("schema/logs/user.graphql");
-        InputStream clientSchemaInput = new FileInputStream("schema/logs/client.graphql");
+        InputStream clientSchemaInput = new FileInputStream("schema/logs/communication.graphql");
         GraphQLToOntologyTransformer transformer = new GraphQLToOntologyTransformer();
 
         ontology = transformer.transform("client",baseSchemaInput,userSchemaInput,clientSchemaInput);
@@ -102,7 +102,7 @@ public class GraphQLOntologyClientTranslatorTest {
 
         String valueAsString = new ObjectMapper().writeValueAsString(provider);
         Assert.assertNotNull(valueAsString);
-        Assertions.assertEquals(provider.getRootEntities().size(),2);
+        Assertions.assertEquals(provider.getRootEntities().size(),3);
         Assertions.assertEquals(provider.getRootEntities().get(0).getType(),"Client");
         Assertions.assertEquals(provider.getRootEntities().get(0).getNested().size(),3);
         Assertions.assertEquals(provider.getRootEntities().get(0).getNested().get(0).getType(),"User");

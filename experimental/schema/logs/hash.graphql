@@ -1,0 +1,18 @@
+#The hash fields represent different bitwise hash algorithms and their values.
+#Field names for common hashes (e.g. MD5, SHA1) are predefined. Add fields for other hashes by lowercasing the hash algorithm name and using underscore separators as appropriate (snake case, e.g. sha3_512).
+type Hash{
+    #    md5 hash
+    md5:String
+    #    sha1 hash
+    sha1:String
+    #    sha256 hash
+    sha256:String
+    #    sha382 hash
+    sha382:String
+    #    sha512 hash
+    sha512:String
+    #    shadeep hash
+    ssdeep:String
+    #    tlsh hash
+    tlsh:String
+}

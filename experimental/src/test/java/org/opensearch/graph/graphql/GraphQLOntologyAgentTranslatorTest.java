@@ -67,8 +67,8 @@ public class GraphQLOntologyAgentTranslatorTest {
                 new Property.MandatoryProperty(new Property("labels", "labels", JSON.asType()))));
         Assertions.assertTrue(equal(ontologyAccessor.property$("tags"),
                 new Property.MandatoryProperty(new Property("tags", "tags", STRING.asListType()))));
-        Assertions.assertTrue(equal(ontologyAccessor.property$("aType"),
-                new Property("aType", "aType", STRING.asType())));
+        Assertions.assertTrue(equal(ontologyAccessor.property$("type"),
+                new Property("type", "type", STRING.asType())));
         Assertions.assertTrue(equal(ontologyAccessor.property$("version"),
                 new Property("version", "version", STRING.asType())));
         Assertions.assertTrue(equal(ontologyAccessor.property$("number"),

@@ -445,6 +445,8 @@ type Event implements BaseRecord {
 
 # top most level structuring an incoming format of any type of log
 type LogRecord @model {
+    # A SpanContext contains the tracing identifiers and the options that are propagated from parent to child Spans.
+    spanContext:SpanContext
     #    The event's common characteristics
     event: Event! @relation(mappingType: "embedded")
     #    A list of top-level observations which describe 'things' that happened, where observed and reported

@@ -1,0 +1,13 @@
+#The user_agent fields normally come from a browser request.
+type UserAgent {
+    #    Unparsed user_agent string.
+    original:String
+    #    user agent name
+    name:String
+    #    Name of the device.
+    deviceName:String
+    #    user agent version
+    version:String
+    # OS fields contain information about the operating system.
+    os:OS
+}

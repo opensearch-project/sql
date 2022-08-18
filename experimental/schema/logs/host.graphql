@@ -63,11 +63,11 @@ type Host implements BaseRecord @model{
     networkIngressPackets:Long
     #  Type of host.
     #   For Cloud providers this can be the machine type like t2.medium
-    aType:String
+    type:String
     #  Seconds the host has been up.
     uptime:Long
     #  Fields describing a location.
     geo:Geo
     #  OS fields contain information about the operating system.
-    os:[OS]
+    os:OS
 }

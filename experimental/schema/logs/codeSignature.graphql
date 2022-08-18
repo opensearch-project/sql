@@ -1,0 +1,25 @@
+# These fields contain information about binary code signatures.
+type CodeSignature {
+    # The hashing algorithm used to sign the process.
+    # This value can distinguish signatures when a file is signed multiple times by the same signer but with a different digest algorithm.
+    digestAlgorithm:String
+    # Boolean to capture if a signature is present.
+    exists:Boolean
+    # The identifier used to sign the process.
+    signingId:String
+    # Additional information about the certificate status.
+    # This is useful for logging cryptographic errors with the certificate validity or trust status. Leave unpopulated if the validity or trust of the certificate was unchecked.
+    status:String
+    # Subject name of the code signer
+    subjectName:String
+    #  The team identifier used to sign the process.
+    teamId:String
+    #Date and time when the code signature was generated and signed.
+    timestamp:DateTime
+    #Stores the trust status of the certificate chain.
+    #Validating the trust of the certificate chain may be complicated, and this field should only be populated by tools that actively check the status.
+    trusted:Boolean
+    # Boolean to capture if the digital signature is verified against the binary content.
+    # Leave unpopulated if a certificate was unchecked.
+    valid:Boolean
+}

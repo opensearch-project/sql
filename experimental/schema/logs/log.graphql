@@ -1,0 +1,44 @@
+# Details about the event’s logging mechanism or logging transport.
+# The log.* fields are typically populated with details about the logging mechanism used to create and/or transport the event. For example, syslog details belong under log.syslog.*.
+type Log {
+    # Full path to the log file this event came from, including the file name. It should include the drive letter, when appropriate.
+    filePath:String
+    #   Original log level of the log event.
+    # If the source of the event provides a log level or textual severity, this is the one that goes in log.level. If your source doesn’t specify one, you may put your event transport’s severity here (e.g. Syslog severity).
+    level:String
+    #    The name of the logger inside an application. This is usually the name of the class which initialized the logger, or can be a custom name.
+    logger:String
+    # The line number of the file containing the source code which originated the log event.
+    originFileLine:Long
+    # The name of the file containing the source code which originated the log event.
+    # Note that this field is not meant to capture the log file. The correct field to capture the log file is log.file.path
+    originFileName:String
+    #    The name of the function or me
+    originFunction:String
+    #    The Syslog metadata of the event, if the event was transmitted via Syslog
+    syslog:Syslog
+
+}
+
+type Syslog {
+    #    The device or application that originated the Syslog message, if available.
+    appname:String
+    #  The Syslog numeric facility of the log event, if available.
+    facilityCode:Long
+    #  The Syslog text-based facility of the log event, if available.
+    facilityName:String
+    #    The hostname, FQDN, or IP of the machine that originally sent the Syslog message. This is sourced from the hostname field of the syslog header. Depending on the environment, this value may be different from the host that handled the event, especially if the host handling the events is acting as a collector.
+    hostName:String
+    # An identifier for the type of Syslog message, if available.
+    msgId:ID
+    # Syslog numeric priority of the event, if available
+    priority:Long
+    # The process name or ID that originated the Syslog message, if available
+    procId:ID
+    #    The Syslog numeric severity of the log event, if available.
+    severityCode:Long
+    #    The Syslog numeric severity of the log event, if available.
+    severityName:String
+    # These are key-value pairs formed from the structured data portion of the syslog message
+    structuredData:JSON
+}
