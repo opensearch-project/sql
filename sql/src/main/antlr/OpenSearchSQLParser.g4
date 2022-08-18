@@ -44,13 +44,16 @@ root
 
 //    Only SELECT
 sqlStatement
-    : dmlStatement | adminStatement
+    : dmlStatement | ddlStatement | adminStatement
     ;
 
 dmlStatement
     : selectStatement
     ;
 
+ddlStatement
+    : createMaterializedView
+    ;
 
 // Data Manipulation Language
 
@@ -87,6 +90,30 @@ showDescribePattern
 
 compatibleID
     : (MODULE | ID)+?
+    ;
+
+// Data Definition Language
+
+//    Create statements
+
+createMaterializedView
+    : CREATE MATERIALIZED VIEW
+       tableName createDefinitions
+       AS selectStatement
+    ;
+
+createDefinitions
+    : LR_BRACKET createDefinition (COMMA createDefinition)* RR_BRACKET
+    ;
+
+createDefinition
+    : columnName dataType
+    ;
+
+dataType
+    : typeName=STRING
+    | typeName=INTEGER
+    | typeName=DOUBLE
     ;
 
 //    Select Statement's Details
