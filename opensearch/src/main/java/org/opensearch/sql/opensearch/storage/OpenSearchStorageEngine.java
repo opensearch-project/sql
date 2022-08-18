@@ -10,6 +10,7 @@ import static org.opensearch.sql.utils.SystemIndexUtils.isSystemIndex;
 
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.ddl.table.Schema;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.storage.system.OpenSearchSystemIndex;
 import org.opensearch.sql.storage.StorageEngine;
@@ -31,5 +32,11 @@ public class OpenSearchStorageEngine implements StorageEngine {
     } else {
       return new OpenSearchIndex(client, settings, name);
     }
+  }
+
+  @Override
+  public boolean addTable(Schema schema) {
+    client.createIndex(schema);
+    return true;
   }
 }

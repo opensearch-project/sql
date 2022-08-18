@@ -10,8 +10,10 @@ import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.analysis.AnalysisContext;
 import org.opensearch.sql.analysis.Analyzer;
+import org.opensearch.sql.ast.tree.DataDefinitionPlan;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.ddl.QueryService;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
@@ -24,6 +26,7 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
 import org.opensearch.sql.sql.parser.AstBuilder;
+import org.opensearch.sql.sql.parser.DataDefinitionTaskFactory;
 import org.opensearch.sql.storage.StorageEngine;
 
 /**
@@ -89,6 +92,15 @@ public class SQLService {
    */
   public UnresolvedPlan parse(String query) {
     ParseTree cst = parser.parse(query);
+    QueryService queryService = new QueryService(
+        analyzer, storageEngine, executionEngine, repository);
+    DataDefinitionTaskFactory ddlFactory = new DataDefinitionTaskFactory(
+        queryService, storageEngine);
+
+    DataDefinitionPlan ast = ddlFactory.build(cst);
+    if (ast != null) {
+      return ast;
+    }
     return cst.accept(new AstBuilder(query));
   }
 

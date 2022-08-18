@@ -9,6 +9,7 @@ package org.opensearch.sql.opensearch.client;
 import java.util.List;
 import java.util.Map;
 import org.opensearch.client.node.NodeClient;
+import org.opensearch.sql.ddl.table.Schema;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
@@ -21,6 +22,10 @@ import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 public interface OpenSearchClient {
 
   String META_CLUSTER_NAME = "CLUSTER_NAME";
+
+  void bulkInsert();
+
+  void createIndex(Schema schema);
 
   /**
    * Fetch index mapping(s) according to index expression given.

@@ -9,6 +9,8 @@ import java.util.Collections;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
+import org.opensearch.sql.ddl.view.ViewConfig;
+import org.opensearch.sql.ddl.view.ViewDefinition;
 
 /**
  * Logical operator for create materialized view.
@@ -20,6 +22,9 @@ public class LogicalCreateMaterializedView extends LogicalPlan {
 
   //private final Expression viewName; // TODO: table/view name type is missing?
   private final String viewName;
+
+  private ViewDefinition viewDefinition;
+  private ViewConfig viewConfig;
 
   public LogicalCreateMaterializedView(String viewName, LogicalPlan child) {
     super(Collections.singletonList(child));

@@ -41,6 +41,7 @@ import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Insert;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Parse;
@@ -51,6 +52,7 @@ import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.ast.tree.DataDefinitionPlan;
 
 /**
  * AST nodes visitor Defines the traverse path.
@@ -83,6 +85,14 @@ public abstract class AbstractNodeVisitor<T, C> {
 
   private T aggregateResult(T aggregate, T nextResult) {
     return nextResult;
+  }
+
+  public T visitInsert(Insert node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitDataDefinitionPlan(DataDefinitionPlan node, C context) {
+    return visitChildren(node, context);
   }
 
   public T visitCreateTable(CreateTable node, C context) {

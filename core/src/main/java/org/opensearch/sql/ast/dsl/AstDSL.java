@@ -45,6 +45,7 @@ import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Insert;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
@@ -64,9 +65,9 @@ import org.opensearch.sql.ast.tree.Values;
 @UtilityClass
 public class AstDSL {
 
-  public static UnresolvedPlan createTable(UnresolvedExpression viewName,
+  public static UnresolvedPlan createTable(QualifiedName tableName,
                                            UnresolvedPlan query) {
-    return new CreateTable(viewName).attach(query);
+    return new CreateTable(tableName).attach(query);
   }
 
   public static UnresolvedPlan createMaterializedView(UnresolvedExpression viewName,
@@ -74,11 +75,17 @@ public class AstDSL {
     return new CreateMaterializedView(viewName).attach(query);
   }
 
+  public static UnresolvedPlan insert(UnresolvedPlan input,
+                                      QualifiedName tableName,
+                                      List<QualifiedName> columnNames) {
+    return new Insert(tableName, columnNames).attach(input);
+  }
+
   public static UnresolvedPlan filter(UnresolvedPlan input, UnresolvedExpression expression) {
     return new Filter(expression).attach(input);
   }
 
-  public UnresolvedPlan relation(String tableName) {
+  public Relation relation(String tableName) {
     return new Relation(qualifiedName(tableName));
   }
 
@@ -128,7 +135,7 @@ public class AstDSL {
    * @return        Values node
    */
   @SafeVarargs
-  public UnresolvedPlan values(List<Literal>... values) {
+  public Values values(List<Literal>... values) {
     return new Values(Arrays.asList(values));
   }
 

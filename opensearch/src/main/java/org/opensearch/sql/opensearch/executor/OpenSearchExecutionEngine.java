@@ -51,6 +51,19 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
   }
 
   @Override
+  public QueryResponse execute(PhysicalPlan physicalPlan) {
+    try (PhysicalPlan plan = executionProtector.protect(physicalPlan)) {
+      List<ExprValue> result = new ArrayList<>();
+      plan.open();
+
+      while (plan.hasNext()) {
+        result.add(plan.next());
+      }
+      return new QueryResponse(plan.schema(), result);
+    }
+  }
+
+  @Override
   public void explain(PhysicalPlan plan, ResponseListener<ExplainResponse> listener) {
     client.schedule(() -> {
       try {

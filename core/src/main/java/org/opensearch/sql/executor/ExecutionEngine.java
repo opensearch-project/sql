@@ -30,6 +30,11 @@ public interface ExecutionEngine {
   void execute(PhysicalPlan plan, ResponseListener<QueryResponse> listener);
 
   /**
+   * Sync execute.
+   */
+  QueryResponse execute(PhysicalPlan plan);
+
+  /**
    * Explain physical plan and call back response listener. The reason why this has to
    * be part of execution engine interface is that the physical plan probably needs to
    * be executed to get more info for profiling, such as actual execution time, rows fetched etc.

@@ -26,8 +26,8 @@ public class CreateTable extends UnresolvedPlan {
 
   private UnresolvedPlan child;
 
-  public CreateTable(UnresolvedExpression viewName) {
-    this.tableName = viewName;
+  public CreateTable(UnresolvedExpression tableName) {
+    this.tableName = tableName;
   }
 
   @Override

@@ -19,7 +19,9 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.logging.log4j.ThreadContext;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
+import org.opensearch.action.index.IndexRequestBuilder;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.ClusterState;
@@ -29,9 +31,11 @@ import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.collect.ImmutableOpenMap;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.sql.ddl.table.Schema;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
+import org.opensearch.sql.utils.SystemIndexUtils;
 import org.opensearch.threadpool.ThreadPool;
 
 /** OpenSearch connection by node client. */
@@ -59,6 +63,19 @@ public class OpenSearchNodeClient implements OpenSearchClient {
     this.clusterService = clusterService;
     this.client = client;
     this.resolver = new IndexNameExpressionResolver(client.threadPool().getThreadContext());
+  }
+
+  @Override
+  public void bulkInsert() {
+    String tableName = SystemIndexUtils.systemTable("sql-views").getTableName();
+    client.prepareBulk(tableName)
+        .add(client.prepareIndex().setSource(ImmutableMap.of("name", "test-mv")).request())
+        .get();
+  }
+
+  @Override
+  public void createIndex(Schema schema) {
+    client.prepareIndex(schema.getTableName()).get();
   }
 
   /**
