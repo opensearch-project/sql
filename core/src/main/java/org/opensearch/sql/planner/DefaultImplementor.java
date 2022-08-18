@@ -7,6 +7,7 @@
 package org.opensearch.sql.planner;
 
 import org.opensearch.sql.planner.logical.LogicalAggregation;
+import org.opensearch.sql.planner.logical.LogicalDataDefinitionPlan;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
 import org.opensearch.sql.planner.logical.LogicalEval;
 import org.opensearch.sql.planner.logical.LogicalFilter;
@@ -22,6 +23,7 @@ import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.planner.logical.LogicalValues;
 import org.opensearch.sql.planner.logical.LogicalWindow;
 import org.opensearch.sql.planner.physical.AggregationOperator;
+import org.opensearch.sql.planner.physical.DataDefinitionOperator;
 import org.opensearch.sql.planner.physical.DedupeOperator;
 import org.opensearch.sql.planner.physical.EvalOperator;
 import org.opensearch.sql.planner.physical.FilterOperator;
@@ -46,6 +48,10 @@ import org.opensearch.sql.planner.physical.WindowOperator;
  * @param <C>   context type
  */
 public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, C> {
+  @Override
+  public PhysicalPlan visitDataDefinitionPlan(LogicalDataDefinitionPlan plan, C context) {
+    return new DataDefinitionOperator(plan.getTask());
+  }
 
   @Override
   public PhysicalPlan visitRareTopN(LogicalRareTopN node, C context) {

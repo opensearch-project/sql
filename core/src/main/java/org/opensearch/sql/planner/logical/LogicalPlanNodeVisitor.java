@@ -18,6 +18,10 @@ public abstract class LogicalPlanNodeVisitor<R, C> {
     return null;
   }
 
+  public R visitDataDefinitionPlan(LogicalDataDefinitionPlan plan, C context) {
+    return visitNode(plan, context);
+  }
+
   public R visitRelation(LogicalRelation plan, C context) {
     return visitNode(plan, context);
   }

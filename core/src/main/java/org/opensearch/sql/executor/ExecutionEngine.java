@@ -22,6 +22,13 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 public interface ExecutionEngine {
 
   /**
+   * Serial execution.
+   */
+  default QueryResponse execute(PhysicalPlan plan) {
+    return null;
+  }
+
+  /**
    * Execute physical plan and call back response listener.
    *
    * @param plan     executable physical plan

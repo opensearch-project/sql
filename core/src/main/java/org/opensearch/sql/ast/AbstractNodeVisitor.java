@@ -40,6 +40,7 @@ import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.DataDefinitionPlan;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
@@ -82,6 +83,10 @@ public abstract class AbstractNodeVisitor<T, C> {
 
   private T defaultResult() {
     return null;
+  }
+
+  public T visitDataDefinitionPlan(DataDefinitionPlan node, C context) {
+    return visitChildren(node, context);
   }
 
   private T aggregateResult(T aggregate, T nextResult) {
