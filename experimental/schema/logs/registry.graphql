@@ -1,0 +1,18 @@
+#Fields related to Windows Registry operations.
+type Registry {
+    #    Original bytes written with base64 encoding.
+    dataBytes:String
+    #    content written as string types
+    dataString:String
+    # Standard registry type for encoding contents
+    dataType:String
+    # Abbreviated name for the hive.
+    hive:String
+    #  Hive-relative path of keys.
+    key:String
+    # Full path, including hive, key and value
+    path:String
+    #  Name of the value written
+    value:String
+
+}

@@ -1,0 +1,13 @@
+#These fields can represent errors of any kind.
+type ErrorField {
+    #       Unique identifier for the error.
+    id:ID!
+    #    Error code describing the error
+    code:String
+    #     error message
+    message:String
+    #    The stack trace of this error in plain text.
+    stackTrace:[String]
+    # The type of the error, for example the class name of the exception
+    type:String
+}

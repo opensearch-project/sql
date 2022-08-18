@@ -1,0 +1,106 @@
+#These fields contain Linux Executable Linkable Format (ELF) metadata.
+type ELF {
+    #     CPU architecture target for the file.
+    architecture:String
+    # Byte sequence of ELF file.
+    byteOrder:String
+    #    CPU type of the ELF file
+    cpuType:String
+    #    Extracted when possible from the file’s metadata. Indicates when it was built or compiled. It can also be faked by malware creators.
+    creationDate:DateTime
+    #    An array containing an object for each section of the ELF file
+    selections:[ELFSelection]
+    #    An array containing an object for each segment of the ELF file.
+    segment:[ELFSegment]
+    #    List of exported element names and types.
+    exports:[String]
+    #    List of imports element names and types.
+    imports:[String]
+    #Version of the ELF Application Binary Interface (ABI).
+    headerABI_Version:String
+    #    Header class of the ELF file.
+    headerClass:String
+    #    Data table of the ELF header.
+    headerData:String
+    #    Header entrypoint of the ELF file.
+    headerEntryPoint:Long
+    #    "0x1" for original ELF files.
+    headerObjVersion:String
+    #    Application Binary Interface (ABI) of the Linux OS.
+    headerOS_Abi:String
+    #    Header type of the ELF file.
+    headerType:String
+    #   version of the ELF file.
+    headerVersion:String
+    #List of shared libraries used by this ELF object.
+    sharedLibraries:[String]
+    #telfhash symbol hash for ELF file
+    telfhash:String
+}
+
+type ELFSelection {
+    #    Chi-square probability distribution of the section.
+    chi2:Long
+    # Shannon entropy calculation from the section.
+    entropy:Long
+    #   ELF Section List flags.
+    flags:String
+    #   ELF Section List name.
+    name:String
+    #   ELF Section List offset.
+    physicalOffset:String
+    #    ELF Section List type.
+    physicalSize:String
+    #   ELF Section List virtual address
+    virtualAddress:Long
+    #   ELF Section List virtual Size
+    virtualSize:Long
+}
+
+type ELFSegment {
+    #ELF object segment sections
+    sections:String
+    #    ELF object segment type
+    type:String
+}
+
+#These fields contain Windows Portable Executable (PE) metadata.
+type PE {
+    #     CPU architecture target for the file.
+    architecture:String
+    #Internal company name of the file, provided at compile-time.
+    company:String
+    # Internal description of the file, provided at compile-time.
+    description:String
+    #    Internal version of the file, provided at compile-time
+    fileVersion:String
+    #      A hash of the imports in a PE file. An imphash — or import hash — can be used to fingerprint binaries even after recompilation or other code-level transformations have occurred, which would change more traditional hash values.
+    importHash:String
+    #    Internal name of the file, provided at compile-time.
+    originalFileName:String
+    #  A hash of the PE header and data from one or more PE sections. An pehash can be used to cluster files by transforming structural information about a file into a hash value.
+    peHash:String
+    #    Internal product name of the file, provided at compile-time.
+    product:String
+}
+
+#These fields contain information about code libraries dynamically loaded into processes.
+#
+#Many operating systems refer to "shared code libraries" with different names, but this field set refers to all of the following:
+#
+#    Dynamic-link library (.dll) commonly used on Windows
+#    Shared Object (.so) commonly used on Unix-like operating systems
+#    Dynamic library (.dylib) commonly used on macOS
+type DLL {
+    #Name of the library.
+    #This generally maps to the name of the file on disk.
+    name:String
+    #    Full file path of the library
+    path:String
+    # These fields contain information about binary code signatures.
+    codeSignature:[CodeSignature]
+    # Hashes, usually file hashes.
+    hash:[CodeSignature]
+    #    These fields contain Windows Portable Executable (PE) metadata.
+    pe:PE
+}

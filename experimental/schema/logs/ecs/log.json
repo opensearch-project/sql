@@ -1,0 +1,27 @@
+{
+  "@timestamp": "2020-12-23T10:17:35.902Z",
+  "log.level": "debug",
+  "log.logger": "processors",
+  "log.origin": {
+    "file.name": "processing/processors.go",
+    "file.line": 203
+  },
+  "message": "Hello world ECS",
+  "input": {
+    "type": "log"
+  },
+  "event": {
+    "dataset": "elastic_agent.metricbeat"
+  },
+  "log": {
+    "file": {
+      "path": "/opt/Elastic/Agent/data/elastic-agent-1da173/logs/default/metricbeat-json.log"
+    },
+    "offset": 685026
+  },
+  "data_stream": {
+    "dataset": "elastic_agent.metricbeat",
+    "namespace": "default",
+    "type": "logs"
+  }
+}

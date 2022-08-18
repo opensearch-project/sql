@@ -1,0 +1,8 @@
+#marker interface for all network related logs
+interface Networking {
+    description:String
+}
+#marker interface for all endpoint related logs
+interface Endpoint {
+    description:String
+}

@@ -1,0 +1,66 @@
+enum FileType {
+    file, dir, or symlink
+}
+#A file is defined as a set of information that has been created on, or has existed on a filesystem.
+#File objects can be associated with host events, network events, and/or file events (e.g., those produced by File Integrity Monitoring [FIM] products or services). File fields provide details about the affected file associated with the event or metric.
+type File {
+    #Last time the file was accessed.
+    accessed:DateTime
+    #   Array of file attributes.
+    #Attributes names will vary by platform. Here’s a non-exhaustive list of values that are expected in this field: archive, compressed, directory, encrypted, execute, hidden, read, readonly, system, write.
+    attributes:[String]
+    # time the file was created.
+    created:DateTime
+    # Last time the file attributes or metadata changed.
+    # Note that changes to the file content will update mtime. This implies ctime will be adjusted at the same time, since mtime is an attribute of the file.
+    ctime:DateTime
+    # Last time the file content was modified
+    mtime:DateTime
+    # Device that is the source of the file
+    device:String
+    # Directory where the file is located. It should include the drive letter, when appropriate
+    directory:String
+    # Drive letter where the file is located. This field is only relevant on Windows.
+    driveLetter:String
+    #    File extension, excluding the leading dot.
+    # Note that when the file name has multiple extensions (example.tar.gz), only the last one should be captured ("gz", not "tar.gz").
+    extension:String
+    #    A fork is additional data associated with a filesystem object.
+    # On Linux, a resource fork is used to store additional data with a filesystem object. A file always has at least one fork for the data portion, and additional forks may exist.
+    # On NTFS, this is analogous to an Alternate Data Stream (ADS), and the default data stream for a file is just called $DATA. Zone.Identifier is commonly used by Windows to track contents downloaded from the Internet. An ADS is typically of the form: C:\path\to\filename.extension:some_fork_name, and some_fork_name is the value that should populate fork_name. filename.extension should populate file.name, and extension should populate file.extension. The full path, file.path, will include the fork name.
+    forkName:String
+    #    Primary group ID (GID) of the file
+    gis:String
+    #    Primary group name for the file
+    group:String
+    #    Inode representing the file in the filesystem
+    inode:String
+    #    MIME type should identify the format of the file or stream of bytes using IANA official types, where possible. When more than one type is applicable, the most specific type should be used.
+    mimeType:String
+    # Mode of the file in octal representation
+    mode:String
+    #Name of the file including the extension, without the directory
+    name:String
+    #    file owner's username
+    owner:String
+    #    Full path to the file, including the file name. It should include the drive letter, when appropriate
+    path:String
+    #    size in bytes
+    size:Long
+    #    arget path for symlinks
+    targetPath:String
+    #    File type (file, dir, or symlink).
+    type:[FileType]
+    #    The user ID (UID) or security identifier (SID) of the file owner.
+    uid:String
+
+    #    These fields contain information about binary code signatures
+    codeSignature:CodeSignature
+    #    These fields contain Linux Executable Linkable Format (ELF) metadata.
+    elf:ELF
+    #    Hashes, usually file hashes
+    hash:Hash
+    #    These fields contain Windows Portable Executable (PE) metadata.
+    pe:PE
+    #    x509:X509 - TODO
+}

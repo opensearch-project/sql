@@ -1,0 +1,32 @@
+#These fields contain information about an installed software package. It contains general information about a package, such as name, version or size. It also contains installation details, such as time or location.
+type Package {
+    #   package architecture
+    architecture:String
+    #   Additional information about the build version of the installed package
+    buildVersion:String
+    #   Checksum of the installed package for verification
+    checksum:String
+    # Description of the package.
+    description:String
+    # Indicating how the package was installed, e.g. user-local, global
+    installScope:String
+    # Time when package was installed.
+    installed:DateTime
+    #  License under which the package was released.
+    license:String
+    #    package name
+    name:String
+    #    Path where the package is installed.
+    path:String
+    #    Home page or reference URL of the software in this package, if available
+    reference :Url
+    #    package size in bytes
+    size:Long
+    #   Type of package.
+    #   This should contain the package file type, rather than the package manager name. Examples: rpm, dpkg, brew, npm, gem, nupkg, jar.
+    type:String
+    #    package version
+    version:String
+
+
+}
