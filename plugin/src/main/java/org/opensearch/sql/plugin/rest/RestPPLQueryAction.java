@@ -10,6 +10,7 @@ import static org.opensearch.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
 import static org.opensearch.rest.RestStatus.OK;
 import static org.opensearch.rest.RestStatus.SERVICE_UNAVAILABLE;
+import static org.opensearch.sql.opensearch.executor.Scheduler.schedule;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
 import com.google.common.collect.ImmutableList;
@@ -136,10 +137,13 @@ public class RestPPLQueryAction extends BaseRestHandler {
     PPLService pplService = createPPLService(nodeClient);
     PPLQueryRequest pplRequest = PPLQueryRequestFactory.getPPLRequest(request);
 
-    if (pplRequest.isExplainRequest()) {
-      return channel -> pplService.explain(pplRequest, createExplainResponseListener(channel));
-    }
-    return channel -> pplService.execute(pplRequest, createListener(channel, pplRequest));
+    return channel -> schedule(nodeClient, () -> {
+      if (pplRequest.isExplainRequest()) {
+        pplService.explain(pplRequest, createExplainResponseListener(channel));
+      } else {
+        pplService.execute(pplRequest, createListener(channel, pplRequest));
+      }
+    });
   }
 
   /**
