@@ -27,7 +27,7 @@ public class Redundant {
     @JsonProperty("side")
     private List<String> side = new ArrayList<>();
     @JsonIgnore
-    private Map<String, Object> additionalProperties = new HashMap<String, Object>();
+    private Map<String, Object> additionalProperties = new HashMap<>();
 
     public Redundant() {}
 

@@ -1,0 +1,267 @@
+{
+  "entities": [
+    {
+      "type": "User",
+      "partition": "NESTED",
+      "props": {
+        "values": [
+          "User"
+        ]
+      },
+      "nested": [
+        {
+          "type": "Group",
+          "partition": "NESTED",
+          "props": {
+            "values": [
+              "Group"
+            ]
+          },
+          "nested": [],
+          "mapping": "INDEX"
+        }
+      ],
+      "mapping": "INDEX"
+    },
+    {
+      "type": "AutonomousSystem",
+      "partition": "NESTED",
+      "props": {
+        "values": [
+          "AutonomousSystem"
+        ]
+      },
+      "nested": [],
+      "mapping": "INDEX"
+    },
+    {
+      "type": "Geo",
+      "partition": "NESTED",
+      "props": {
+        "values": [
+          "Geo"
+        ]
+      },
+      "nested": [],
+      "mapping": "INDEX"
+    },
+    {
+      "type": "Group",
+      "partition": "NESTED",
+      "props": {
+        "values": [
+          "Group"
+        ]
+      },
+      "nested": [],
+      "mapping": "INDEX"
+    },
+    {
+      "type": "Client",
+      "partition": "STATIC",
+      "props": {
+        "values": [
+          "Client"
+        ]
+      },
+      "nested": [
+        {
+          "type": "User",
+          "partition": "NESTED",
+          "props": {
+            "values": [
+              "User"
+            ]
+          },
+          "nested": [
+            {
+              "type": "Group",
+              "partition": "NESTED",
+              "props": {
+                "values": [
+                  "Group"
+                ]
+              },
+              "nested": [],
+              "mapping": "INDEX"
+            }
+          ],
+          "mapping": "INDEX"
+        },
+        {
+          "type": "AutonomousSystem",
+          "partition": "NESTED",
+          "props": {
+            "values": [
+              "AutonomousSystem"
+            ]
+          },
+          "nested": [],
+          "mapping": "INDEX"
+        },
+        {
+          "type": "Geo",
+          "partition": "NESTED",
+          "props": {
+            "values": [
+              "Geo"
+            ]
+          },
+          "nested": [],
+          "mapping": "INDEX"
+        }
+      ],
+      "mapping": "INDEX"
+    },
+    {
+      "type": "User",
+      "partition": "STATIC",
+      "props": {
+        "values": [
+          "User"
+        ]
+      },
+      "nested": [
+        {
+          "type": "Group",
+          "partition": "NESTED",
+          "props": {
+            "values": [
+              "Group"
+            ]
+          },
+          "nested": [],
+          "mapping": "INDEX"
+        }
+      ],
+      "mapping": "INDEX"
+    }
+  ],
+  "relations": [
+    {
+      "type": "has_User",
+      "partition": "STATIC",
+      "symmetric": false,
+      "props": {
+        "values": [
+          "has_User"
+        ]
+      },
+      "nested": [],
+      "redundant": [],
+      "mapping": "INDEX"
+    }
+  ],
+  "ontology": "client",
+  "rootEntities": [
+    {
+      "type": "Client",
+      "partition": "STATIC",
+      "props": {
+        "values": [
+          "Client"
+        ]
+      },
+      "nested": [
+        {
+          "type": "User",
+          "partition": "NESTED",
+          "props": {
+            "values": [
+              "User"
+            ]
+          },
+          "nested": [
+            {
+              "type": "Group",
+              "partition": "NESTED",
+              "props": {
+                "values": [
+                  "Group"
+                ]
+              },
+              "nested": [],
+              "mapping": "INDEX"
+            }
+          ],
+          "mapping": "INDEX"
+        },
+        {
+          "type": "AutonomousSystem",
+          "partition": "NESTED",
+          "props": {
+            "values": [
+              "AutonomousSystem"
+            ]
+          },
+          "nested": [],
+          "mapping": "INDEX"
+        },
+        {
+          "type": "Geo",
+          "partition": "NESTED",
+          "props": {
+            "values": [
+              "Geo"
+            ]
+          },
+          "nested": [],
+          "mapping": "INDEX"
+        }
+      ],
+      "mapping": "INDEX"
+    },
+    {
+      "type": "User",
+      "partition": "STATIC",
+      "props": {
+        "values": [
+          "User"
+        ]
+      },
+      "nested": [
+        {
+          "type": "Group",
+          "partition": "NESTED",
+          "props": {
+            "values": [
+              "Group"
+            ]
+          },
+          "nested": [],
+          "mapping": "INDEX"
+        }
+      ],
+      "mapping": "INDEX"
+    }
+  ],
+  "rootRelations": [
+    {
+      "type": "has_User",
+      "partition": "STATIC",
+      "symmetric": false,
+      "redundant": [
+        {
+          "side":["entityA","entityB"],
+          "redundant_name": "name",
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "side":["entityA","entityB"],
+          "redundant_name": "number",
+          "name": "number",
+          "type": "string"
+        }
+      ],
+      "props": {
+        "values": [
+          "has_User"
+        ]
+      },
+      "nested": [],
+      "redundant": [],
+      "mapping": "INDEX"
+    }
+  ]
+}
