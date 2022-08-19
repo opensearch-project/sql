@@ -21,6 +21,7 @@ import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.LocalTime;
@@ -64,7 +65,7 @@ public class DateTimeFunction {
     repository.register(adddate());
     repository.register(convert_tz());
     repository.register(date());
-    repository.register(datetime());
+    repository.register(datetime());;
     repository.register(date_add());
     repository.register(date_sub());
     repository.register(day());
@@ -149,8 +150,10 @@ public class DateTimeFunction {
   private FunctionResolver datetime() {
     return define(BuiltinFunctionName.DATETIME.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprDateTime),
-            DATETIME, STRING, STRING)
-    );
+            DATETIME, STRING, STRING),
+        impl(nullMissingHandling(DateTimeFunction::exprDateTimeNoTimezone),
+            DATETIME, STRING)
+        );
   }
 
   private FunctionResolver date_add() {
@@ -491,7 +494,7 @@ public class DateTimeFunction {
     ZoneId convertedFromTz = ZoneId.of(fromTz.stringValue());
     ZoneId convertedToTz = ZoneId.of(toTz.stringValue());
 
-    ZoneId maxTz = ZoneId.of("+13:00");
+    ZoneId maxTz = ZoneId.of("+14:00");
     ZoneId minTz = ZoneId.of("-12:00");
     ZoneId defaultTz = ZoneId.of("+00:00");
 
@@ -513,7 +516,7 @@ public class DateTimeFunction {
         || fromTzValidator.isAfter(maxTzValidator)
         || toTzValidator.isBefore(minTzValidator)
         || fromTzValidator.isBefore(minTzValidator)) {
-      return new ExprStringValue("null");
+      return ExprNullValue.of();
     }
 
     ZonedDateTime zonedDateTime =
@@ -542,15 +545,32 @@ public class DateTimeFunction {
    * @return ExprValue of date type.
    */
   private ExprValue exprDateTime(ExprValue dateTime, ExprValue timeZone) {
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ssz");
+    DateTimeFormatter formatDT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss[xxx]");
 
-    ZoneId zTz = ZoneId.of(timeZone.stringValue());
+    // Used by exprDateTimeNoTZ function
+    if (timeZone.isNull()) {
+      LocalDateTime ldtFormatted = LocalDateTime.parse(dateTime.stringValue(), formatDT);
+      return new ExprDatetimeValue(ldtFormatted);
+    }
 
-    ZonedDateTime zdtWithZoneOffset = ZonedDateTime
-        .parse(dateTime.stringValue(), formatter);
+    ZoneId convertToTZ = ZoneId.of(timeZone.stringValue());
+    ZonedDateTime zdtWithZoneOffset;
 
-    return new ExprDatetimeValue(
-        zdtWithZoneOffset.withZoneSameInstant(zTz).toLocalDateTime());
+    try {
+      zdtWithZoneOffset = ZonedDateTime
+          .parse(dateTime.stringValue(), formatDT);
+    } catch (Exception e) {
+      LocalDateTime dateTime2 = LocalDateTime.parse(dateTime.stringValue(), formatDT);
+
+      zdtWithZoneOffset = dateTime2.atZone(ZoneId.of("UTC"));
+    }
+    ZonedDateTime convertedddd = zdtWithZoneOffset.withZoneSameInstant(convertToTZ);
+
+    return new ExprDatetimeValue(convertedddd.toLocalDateTime());
+  }
+
+  private ExprValue exprDateTimeNoTimezone(ExprValue dateTime) {
+    return exprDateTime(dateTime, ExprNullValue.of());
   }
 
 
