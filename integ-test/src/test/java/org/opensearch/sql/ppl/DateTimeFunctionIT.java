@@ -114,15 +114,28 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             TEST_INDEX_DATE));
     verifySchema(result,
         schema("f", null, "datetime"));
-    verifySome(result.getJSONArray("datarows"), rows("null"));
+    verifySome(result.getJSONArray("datarows"), rows(new Object[]{null}));
 
     result =
         executeQuery(String.format(
-            "source=%s | eval f = convert_tz('2021-05-12 11:34:50','-12:00','+14:00') | fields f",
+            "source=%s | eval f = convert_tz('2021-05-12 11:34:50','-12:00','+15:00') | fields f",
             TEST_INDEX_DATE));
     verifySchema(result,
         schema("f", null, "datetime"));
-    verifySome(result.getJSONArray("datarows"), rows("null"));
+    verifySome(result.getJSONArray("datarows"), rows(new Object[]{null}));
+
+
+    result = executeQuery(String.format(
+        "SELECT DATETIME('2008-01-01 02:00:00+10:00')"));
+    verifySchema(result,
+        schema("DATETIME('2008-01-01 02:00:00+10:00')", null, "datetime"));
+    verifyDataRows(result, rows("2008-01-01 02:00:00"));
+
+    result = executeQuery(String.format(
+        "SELECT DATETIME('2008-01-01 02:00:00')"));
+    verifySchema(result,
+        schema("DATETIME('2008-01-01 02:00:00')", null, "datetime"));
+    verifyDataRows(result, rows("2008-01-01 02:00:00"));
   }
 
   @Test
@@ -209,6 +222,22 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySchema(result,
         schema("f", null, "datetime"));
     verifySome(result.getJSONArray("datarows"), rows("2007-12-31 06:00:00"));
+
+    result =
+        executeQuery(String.format(
+            "source=%s | eval f = DATETIME('2008-01-01 02:00:00+10:00') | fields f",
+            TEST_INDEX_DATE));
+    verifySchema(result,
+        schema("f", null, "datetime"));
+    verifySome(result.getJSONArray("datarows"), rows("2008-01-01 02:00:00"));
+
+    result =
+        executeQuery(String.format(
+            "source=%s | eval f = DATETIME('2008-01-01 02:00:00') | fields f",
+            TEST_INDEX_DATE));
+    verifySchema(result,
+        schema("f", null, "datetime"));
+    verifySome(result.getJSONArray("datarows"), rows("2008-01-01 02:00:00"));
   }
 
   @Test

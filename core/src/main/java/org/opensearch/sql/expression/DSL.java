@@ -271,8 +271,16 @@ public class DSL {
     return function(BuiltinFunctionName.ADDDATE, expressions);
   }
 
+  public FunctionExpression convert_tz(Expression... expressions) {
+    return function(BuiltinFunctionName.CONVERT_TZ, expressions);
+  }
+
   public FunctionExpression date(Expression... expressions) {
     return function(BuiltinFunctionName.DATE, expressions);
+  }
+
+  public FunctionExpression datetime(Expression... expressions) {
+    return function(BuiltinFunctionName.DATETIME, expressions);
   }
 
   public FunctionExpression date_add(Expression... expressions) {

@@ -34,6 +34,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprLongValue;
+import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -158,70 +159,59 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   }
 
   @Test
-  public void adddate() {
+  public void add_date() {
+    when(nullRef.type()).thenReturn(DATETIME);
+    when(missingRef.type()).thenReturn(DATETIME);
+    assertEquals(nullValue(), eval(dsl.date(nullRef)));
+    assertEquals(missingValue(), eval(dsl.date(missingRef)));
+
     FunctionExpression expr = dsl.adddate(dsl.date(DSL.literal("2020-08-26")), DSL.literal(7));
     assertEquals(DATE, expr.type());
     assertEquals(new ExprDateValue("2020-09-02"), expr.valueOf(env));
     assertEquals("adddate(date(\"2020-08-26\"), 7)", expr.toString());
+  }
 
-    expr = dsl.adddate(dsl.timestamp(DSL.literal("2020-08-26 12:05:00")), DSL.literal(7));
+  @Test
+  public void convert_tz() {
+    when(nullRef.type()).thenReturn(DATETIME);
+    when(missingRef.type()).thenReturn(DATETIME);
+    assertEquals(nullValue(), eval(dsl.date(nullRef)));
+    assertEquals(missingValue(), eval(dsl.date(missingRef)));
+
+    FunctionExpression expr = dsl.convert_tz(dsl.datetime(
+        DSL.literal("2008-05-15 22:00:00")),
+        DSL.literal("+00:00"),
+        DSL.literal("+10:00"));
     assertEquals(DATETIME, expr.type());
-    assertEquals(new ExprDatetimeValue("2020-09-02 12:05:00"), expr.valueOf(env));
-    assertEquals("adddate(timestamp(\"2020-08-26 12:05:00\"), 7)", expr.toString());
+    assertEquals(new ExprDatetimeValue("2008-05-16 08:00:00"), expr.valueOf(env));
 
-    expr = dsl.adddate(
-        dsl.date(DSL.literal("2020-08-26")), dsl.interval(DSL.literal(1), DSL.literal("hour")));
+    expr = dsl.convert_tz(dsl.datetime(
+        DSL.literal("2008-05-15 22:00:00")),
+        DSL.literal("+00:00"),
+        DSL.literal("+16:00"));
     assertEquals(DATETIME, expr.type());
-    assertEquals(new ExprDatetimeValue("2020-08-26 01:00:00"), expr.valueOf(env));
-    assertEquals("adddate(date(\"2020-08-26\"), interval(1, \"hour\"))", expr.toString());
+    assertEquals(nullValue(), expr.valueOf(env));
 
-    expr = dsl.adddate(DSL.literal("2020-08-26"), DSL.literal(7));
+    expr = dsl.convert_tz(dsl.datetime(
+            DSL.literal("2008-05-15 22:00:00")),
+        DSL.literal("+00:00"),
+        DSL.literal("-16:00"));
     assertEquals(DATETIME, expr.type());
-    assertEquals(new ExprDateValue("2020-09-02"), expr.valueOf(env));
-    assertEquals("adddate(\"2020-08-26\", 7)", expr.toString());
+    assertEquals(nullValue(), expr.valueOf(env));
 
-    expr = dsl.adddate(DSL.literal("2020-08-26 12:05:00"), DSL.literal(7));
+    expr = dsl.convert_tz(dsl.datetime(
+            DSL.literal("2008-05-15 22:00:00")),
+        DSL.literal("+15:00"),
+        DSL.literal("+01:00"));
     assertEquals(DATETIME, expr.type());
-    assertEquals(new ExprDatetimeValue("2020-09-02 12:05:00"), expr.valueOf(env));
-    assertEquals("adddate(\"2020-08-26 12:05:00\", 7)", expr.toString());
+    assertEquals(nullValue(), expr.valueOf(env));
 
-    expr = dsl
-        .adddate(DSL.literal("2020-08-26"), dsl.interval(DSL.literal(1), DSL.literal("hour")));
+    expr = dsl.convert_tz(dsl.datetime(
+            DSL.literal("2008-05-15 22:00:00")),
+        DSL.literal("-15:00"),
+        DSL.literal("+01:00"));
     assertEquals(DATETIME, expr.type());
-    assertEquals(new ExprDatetimeValue("2020-08-26 01:00:00"), expr.valueOf(env));
-    assertEquals("adddate(\"2020-08-26\", interval(1, \"hour\"))", expr.toString());
-
-    expr = dsl
-        .adddate(DSL.literal("2020-08-26"), dsl.interval(DSL.literal(1), DSL.literal("day")));
-    assertEquals(DATETIME, expr.type());
-    assertEquals(new ExprDateValue("2020-08-27"), expr.valueOf(env));
-    assertEquals("adddate(\"2020-08-26\", interval(1, \"day\"))", expr.toString());
-
-    when(nullRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(dsl.adddate(nullRef, DSL.literal(1L))));
-    assertEquals(nullValue(),
-        eval(dsl.adddate(nullRef, dsl.interval(DSL.literal(1), DSL.literal("month")))));
-
-    when(missingRef.type()).thenReturn(DATE);
-    assertEquals(missingValue(), eval(dsl.adddate(missingRef, DSL.literal(1L))));
-    assertEquals(missingValue(),
-        eval(dsl.adddate(missingRef, dsl.interval(DSL.literal(1), DSL.literal("month")))));
-
-    when(nullRef.type()).thenReturn(LONG);
-    when(missingRef.type()).thenReturn(LONG);
-    assertEquals(nullValue(), eval(dsl.adddate(dsl.date(DSL.literal("2020-08-26")), nullRef)));
-    assertEquals(missingValue(),
-        eval(dsl.adddate(dsl.date(DSL.literal("2020-08-26")), missingRef)));
-
-    when(nullRef.type()).thenReturn(INTERVAL);
-    when(missingRef.type()).thenReturn(INTERVAL);
-    assertEquals(nullValue(), eval(dsl.adddate(dsl.date(DSL.literal("2020-08-26")), nullRef)));
-    assertEquals(missingValue(),
-        eval(dsl.adddate(dsl.date(DSL.literal("2020-08-26")), missingRef)));
-
-    when(nullRef.type()).thenReturn(DATE);
-    when(missingRef.type()).thenReturn(INTERVAL);
-    assertEquals(missingValue(), eval(dsl.adddate(nullRef, missingRef)));
+    assertEquals(nullValue(), expr.valueOf(env));
   }
 
   @Test
@@ -270,6 +260,12 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue("2020-08-26 01:00:00"), expr.valueOf(env));
     assertEquals("date_add(\"2020-08-26\", interval(1, \"hour\"))", expr.toString());
+
+    expr = dsl
+        .date_add(DSL.literal("2020-08-26"), dsl.interval(DSL.literal(0), DSL.literal("hour")));
+    assertEquals(DATETIME, expr.type());
+    assertEquals(new ExprDatetimeValue("2020-08-26 00:00:00"), expr.valueOf(env));
+    assertEquals("date_add(\"2020-08-26\", interval(0, \"hour\"))", expr.toString());
 
     when(nullRef.type()).thenReturn(DATE);
     assertEquals(nullValue(), eval(dsl.date_add(nullRef, DSL.literal(1L))));
@@ -359,6 +355,42 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     when(nullRef.type()).thenReturn(DATE);
     when(missingRef.type()).thenReturn(INTERVAL);
     assertEquals(missingValue(), eval(dsl.date_sub(nullRef, missingRef)));
+  }
+
+  @Test
+  public void date_time() {
+    when(nullRef.type()).thenReturn(DATETIME);
+    when(missingRef.type()).thenReturn(DATETIME);
+    assertEquals(nullValue(), eval(dsl.date(nullRef)));
+    assertEquals(missingValue(), eval(dsl.date(missingRef)));
+
+    FunctionExpression expr = dsl.datetime(DSL.literal("2008-05-15 22:00:00"));
+    assertEquals(DATETIME, expr.type());
+    assertEquals(new ExprDatetimeValue("2008-05-15 22:00:00"), expr.valueOf(env));
+
+    expr = dsl.datetime(DSL.literal("2008-05-15 22:00:00+01:00"));
+    assertEquals(DATETIME, expr.type());
+    assertEquals(new ExprDatetimeValue("2008-05-15 22:00:00"), expr.valueOf(env));
+
+    expr = dsl.datetime(DSL.literal("2008-05-15 22:00:00+01:00"),
+        DSL.literal("America/Los_Angeles"));
+    assertEquals(DATETIME, expr.type());
+    assertEquals(new ExprDatetimeValue("2008-05-15 14:00:00"), expr.valueOf(env));
+
+    expr = dsl.datetime(DSL.literal("2008-05-15 22:00:00"),
+        DSL.literal("America/Los_Angeles"));
+    assertEquals(DATETIME, expr.type());
+    assertEquals(new ExprDatetimeValue("2008-05-15 15:00:00"), expr.valueOf(env));
+
+    expr = dsl.datetime(DSL.literal("2008-05-15 22:00:00-11:00"),
+        DSL.literal("America/Los_Angeles"));
+    assertEquals(DATETIME, expr.type());
+    assertEquals(new ExprDatetimeValue("2008-05-16 02:00:00"), expr.valueOf(env));
+
+    expr = dsl.datetime(DSL.literal("2008-05-15 22:00:00-11:00"),
+        DSL.literal(nullValue()));
+    assertEquals(DATETIME, expr.type());
+    assertEquals(nullValue(), expr.valueOf(env));
   }
 
   @Test
