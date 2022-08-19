@@ -9,11 +9,16 @@ import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.executor.ExecutionEngine;
+import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.WriteOperator;
 
@@ -22,8 +27,40 @@ import org.opensearch.sql.planner.physical.WriteOperator;
  */
 public class OpenSearchIndexWrite extends WriteOperator {
 
-  public OpenSearchIndexWrite(PhysicalPlan input, String tableName, List<String> columns) {
+  private final OpenSearchClient client;
+
+  private int count;
+
+  public OpenSearchIndexWrite(OpenSearchClient client, PhysicalPlan input,
+                              String tableName, List<String> columns) {
     super(input, tableName, columns);
+    this.client = client;
+  }
+
+  @Override
+  public void open() {
+    super.open();
+
+    List<Map<String, Object>> data = new ArrayList<>();
+    while (input.hasNext()) {
+      count++;
+
+      ExprValue row = input.next();
+      if (row.type() == ExprCoreType.ARRAY) { // from ValuesOperator
+        Map<String, Object> colValues = new HashMap<>();
+        List<ExprValue> values = row.collectionValue();
+        for (int i = 0; i < values.size(); i++) {
+          colValues.put(columns.get(i), values.get(i).value());
+        }
+        data.add(colValues);
+      } else { // from normal ProjectOperator
+        data.add(row.tupleValue().entrySet().stream()
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                e -> e.getValue().value())));
+      }
+    }
+    client.bulk(tableName, data);
   }
 
   @Override
@@ -34,17 +71,14 @@ public class OpenSearchIndexWrite extends WriteOperator {
 
   @Override
   public boolean hasNext() {
-    return false;
+    return (count > 0);
   }
 
   @Override
   public ExprValue next() {
-    int count = 0;
-    while (input.hasNext()) {
-      count++;
-      input.next();
-    }
-    return tupleValue(
+    ExprValue result = tupleValue(
         ImmutableMap.of("message", stringValue(count + " row(s) impacted")));
+    count = 0;
+    return result;
   }
 }

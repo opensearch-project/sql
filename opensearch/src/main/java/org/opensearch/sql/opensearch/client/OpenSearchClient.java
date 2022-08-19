@@ -22,9 +22,12 @@ public interface OpenSearchClient {
 
   String META_CLUSTER_NAME = "CLUSTER_NAME";
 
-  default boolean createIndex(String name, Map<String, Object> mapping) {
+  default boolean createIndex(String indexName, Map<String, Object> mapping) {
     return false;
   }
+
+  default void bulk(String indexName, List<Map<String, Object>> data) {
+  };
 
   /**
    * Fetch index mapping(s) according to index expression given.

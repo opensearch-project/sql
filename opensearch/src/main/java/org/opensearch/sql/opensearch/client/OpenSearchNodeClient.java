@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.logging.log4j.ThreadContext;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
+import org.opensearch.action.bulk.BulkRequestBuilder;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.client.node.NodeClient;
@@ -67,10 +68,19 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   }
 
   @Override
-  public boolean createIndex(String name, Map<String, Object> mapping) {
-    IndexResponse response = client.prepareIndex(name)
+  public boolean createIndex(String indexName, Map<String, Object> mapping) {
+    IndexResponse response = client.prepareIndex(indexName)
         .setSource(mapping).get();
     return true;
+  }
+
+  @Override
+  public void bulk(String indexName, List<Map<String, Object>> data) {
+    BulkRequestBuilder builder = client.prepareBulk(indexName);
+    for (Map<String, Object> row : data) {
+      builder.add(client.prepareIndex().setSource(row).request());
+    }
+    builder.get();
   }
 
   /**

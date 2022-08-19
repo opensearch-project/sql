@@ -30,6 +30,9 @@ import org.opensearch.sql.utils.SystemIndexUtils;
  * OpenSearch System Index Table Implementation.
  */
 public class OpenSearchSystemIndex implements Table {
+
+  private final OpenSearchClient client;
+
   /**
    * System Index Name.
    */
@@ -37,6 +40,7 @@ public class OpenSearchSystemIndex implements Table {
 
   public OpenSearchSystemIndex(
       OpenSearchClient client, String indexName) {
+    this.client = client;
     this.systemIndexBundle = buildIndexBundle(client, indexName);
   }
 
@@ -62,7 +66,7 @@ public class OpenSearchSystemIndex implements Table {
 
     @Override
     public PhysicalPlan visitWrite(LogicalWrite node, Object context) {
-      return new OpenSearchIndexWrite(visitChild(node, context),
+      return new OpenSearchIndexWrite(client, visitChild(node, context),
           node.getTableName(), node.getColumnNames());
     }
   }

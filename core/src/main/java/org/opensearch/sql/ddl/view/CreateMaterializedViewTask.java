@@ -47,7 +47,8 @@ public class CreateMaterializedViewTask extends DataDefinitionTask {
                     stringLiteral(definition.getViewName()),
                     stringLiteral(definition.getViewType().toString()),
                     stringLiteral(definition.getQuery().toString()))),
-            qualifiedName("_ODFE_SYS_TABLE_META.views"),
+            //qualifiedName("_ODFE_SYS_TABLE_META.views"),
+            qualifiedName(".matviews"),
             Arrays.asList(
                 qualifiedName("viewName"),
                 qualifiedName("viewType"),
