@@ -10,13 +10,18 @@ import static org.opensearch.sql.ddl.view.ViewConfig.RefreshMode;
 import static org.opensearch.sql.ddl.view.ViewDefinition.ViewType;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CreateMaterializedViewContext;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.tree.DataDefinitionPlan;
+import org.opensearch.sql.ddl.Column;
 import org.opensearch.sql.ddl.DataDefinitionTask;
 import org.opensearch.sql.ddl.view.CreateMaterializedViewTask;
 import org.opensearch.sql.ddl.view.ViewConfig;
 import org.opensearch.sql.ddl.view.ViewDefinition;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
+
 
 /**
  * Build AST for data definition plan.
@@ -29,8 +34,14 @@ public class AstDDLBuilder extends OpenSearchSQLParserBaseVisitor<DataDefinition
 
   @Override
   public DataDefinitionTask visitCreateMaterializedView(CreateMaterializedViewContext ctx) {
+    String viewName = ctx.tableName().getText();
+    List<Column> columns = ctx.createDefinitions().createDefinition().stream()
+        .map(def -> new Column(
+            def.columnName().getText(),
+            def.dataType().getText())
+        ).collect(Collectors.toList());
     return new CreateMaterializedViewTask(
-        new ViewDefinition(ctx.tableName().getText(), ViewType.MATERIALIZED_VIEW),
+        new ViewDefinition(viewName, columns, ViewType.MATERIALIZED_VIEW),
         new ViewConfig(RefreshMode.MANUAL, DistributeOption.EVEN)
     );
   }

@@ -5,21 +5,19 @@
 
 package org.opensearch.sql.ddl.view;
 
-import java.util.Arrays;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import org.opensearch.sql.ast.tree.UnresolvedPlan;
-import org.opensearch.sql.ddl.DataDefinitionTask;
-import org.opensearch.sql.ddl.QueryService;
-import org.opensearch.sql.storage.StorageEngine;
-import org.opensearch.sql.utils.SystemIndexUtils;
-
 import static org.opensearch.sql.ast.dsl.AstDSL.createTable;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
+
+import lombok.RequiredArgsConstructor;
+import lombok.ToString;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ddl.Column;
+import org.opensearch.sql.ddl.DataDefinitionTask;
 
 /**
  * Create materialized view task.
  */
+@RequiredArgsConstructor
 @ToString
 public class CreateMaterializedViewTask extends DataDefinitionTask {
 
@@ -27,18 +25,13 @@ public class CreateMaterializedViewTask extends DataDefinitionTask {
 
   private final ViewConfig config;
 
-  public CreateMaterializedViewTask(ViewDefinition definition,
-                                    ViewConfig config) {
-    this.definition = definition;
-    this.config = config;
-  }
-
   @Override
   public void execute() {
     // 1.Create mv index
     UnresolvedPlan createViewTable =
         createTable(
-            qualifiedName(definition.getViewName())
+            qualifiedName(definition.getViewName()),
+            definition.getColumns().toArray(new Column[0])
         );
     queryService.execute(createViewTable);
 
