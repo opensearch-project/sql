@@ -8,6 +8,7 @@ package org.opensearch.sql.ddl;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.analysis.AnalysisContext;
 import org.opensearch.sql.analysis.Analyzer;
+import org.opensearch.sql.ast.tree.DataDefinitionPlan;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -35,14 +36,26 @@ public class QueryService {
   private final BuiltinFunctionRepository repository;
 
   /**
-   * Sync call.
+   * Generate optimal physical plan from logical plan.
    */
-  public QueryResponse execute(UnresolvedPlan ast) {
+  public PhysicalPlan plan(UnresolvedPlan ast) {
+    if (ast instanceof DataDefinitionPlan) {
+      DataDefinitionPlan ddl = (DataDefinitionPlan) ast;
+      ddl.getTask().setQueryService(this);
+      ddl.getTask().setSystemCatalog(storageEngine);
+    }
+
     LogicalPlan analyzed = analyzer.analyze(ast, new AnalysisContext());
     Planner planner = new Planner(storageEngine,
         LogicalPlanOptimizer.create(new DSL(repository)));
-    PhysicalPlan plan = planner.plan(analyzed);
-    return executionEngine.execute(plan);
+    return planner.plan(analyzed);
+  }
+
+  /**
+   * Sync call.
+   */
+  public QueryResponse execute(UnresolvedPlan ast) {
+    return executionEngine.execute(plan(ast));
   }
 
   /**
@@ -51,10 +64,7 @@ public class QueryService {
   public void execute(UnresolvedPlan ast,
                       ResponseListener<QueryResponse> listener) {
     try {
-      LogicalPlan analyzed = analyzer.analyze(ast, new AnalysisContext());
-      Planner planner = new Planner(storageEngine,
-          LogicalPlanOptimizer.create(new DSL(repository)));
-      PhysicalPlan plan = planner.plan(analyzed);
+      PhysicalPlan plan = plan(ast);
       executionEngine.execute(plan, listener);
     } catch (Exception e) {
       listener.onFailure(e);

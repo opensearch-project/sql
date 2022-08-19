@@ -8,7 +8,6 @@ package org.opensearch.sql.sql;
 
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.tree.ParseTree;
-import org.opensearch.sql.analysis.AnalysisContext;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.ast.tree.DataDefinitionPlan;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -17,11 +16,7 @@ import org.opensearch.sql.ddl.QueryService;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
-import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
-import org.opensearch.sql.planner.Planner;
-import org.opensearch.sql.planner.logical.LogicalPlan;
-import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
@@ -48,19 +43,19 @@ public class SQLService {
   private final QueryService queryService;
 
   /**
+   * Parse, analyze and plan the SQL query.
+   */
+  public PhysicalPlan plan(SQLQueryRequest request) {
+    return queryService.plan(parse(request.getQuery()));
+  }
+
+  /**
    * Parse, analyze, plan and execute the query.
    * @param request       SQL query request
    * @param listener      callback listener
    */
   public void execute(SQLQueryRequest request, ResponseListener<QueryResponse> listener) {
-    try {
-      executionEngine.execute(
-                        plan(
-                            analyze(
-                                parse(request.getQuery()))), listener);
-    } catch (Exception e) {
-      listener.onFailure(e);
-    }
+    queryService.execute(parse(request.getQuery()), listener);
   }
 
   /**
@@ -94,27 +89,10 @@ public class SQLService {
    */
   public UnresolvedPlan parse(String query) {
     ParseTree cst = parser.parse(query);
-    AstDDLBuilder ddlBuilder = new AstDDLBuilder(queryService, storageEngine);
-    DataDefinitionPlan ddl = ddlBuilder.build(cst);
+    DataDefinitionPlan ddl = new AstDDLBuilder().build(cst);
     if (ddl != null) {
       return ddl;
     }
     return cst.accept(new AstBuilder(query));
   }
-
-  /**
-   * Analyze abstract syntax to generate logical plan.
-   */
-  public LogicalPlan analyze(UnresolvedPlan ast) {
-    return analyzer.analyze(ast, new AnalysisContext());
-  }
-
-  /**
-   * Generate optimal physical plan from logical plan.
-   */
-  public PhysicalPlan plan(LogicalPlan logicalPlan) {
-    return new Planner(storageEngine, LogicalPlanOptimizer.create(new DSL(repository)))
-        .plan(logicalPlan);
-  }
-
 }
