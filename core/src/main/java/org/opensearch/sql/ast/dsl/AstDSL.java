@@ -60,6 +60,7 @@ import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Write;
 import org.opensearch.sql.ddl.Column;
 import org.opensearch.sql.ddl.table.CreateTableTask;
+import org.opensearch.sql.ddl.view.RefreshMaterializedViewTask;
 
 /**
  * Class of static methods to create specific node instances.
@@ -74,6 +75,12 @@ public class AstDSL {
   public static UnresolvedPlan createTable(QualifiedName tableName,
                                            Column... columns) {
     return new DataDefinitionPlan(new CreateTableTask(tableName, Arrays.asList(columns)));
+  }
+
+  public static UnresolvedPlan refreshMaterializedView(UnresolvedPlan input,
+                                                       QualifiedName viewName,
+                                                       List<QualifiedName> columns) {
+    return new DataDefinitionPlan(new RefreshMaterializedViewTask(viewName, columns, input));
   }
 
   public static UnresolvedPlan write(UnresolvedPlan input,

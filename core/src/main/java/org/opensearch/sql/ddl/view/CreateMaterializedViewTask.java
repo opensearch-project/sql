@@ -7,11 +7,13 @@ package org.opensearch.sql.ddl.view;
 
 import static org.opensearch.sql.ast.dsl.AstDSL.createTable;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
+import static org.opensearch.sql.ast.dsl.AstDSL.refreshMaterializedView;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.values;
 import static org.opensearch.sql.ast.dsl.AstDSL.write;
 
 import java.util.Arrays;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -56,6 +58,12 @@ public class CreateMaterializedViewTask extends DataDefinitionTask {
     queryService.execute(insertViewMeta);
 
     // 3.Trigger view refresh
-    //queryService.execute(definition.getQuery());
+    queryService.execute(
+        refreshMaterializedView(
+            definition.getQuery(),
+            qualifiedName(definition.getViewName()),
+            definition.getColumns().stream()
+                .map(col -> qualifiedName(col.getName()))
+                .collect(Collectors.toList())));
   }
 }
