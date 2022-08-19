@@ -5,22 +5,18 @@
 
 package org.opensearch.sql.ddl;
 
+import lombok.Setter;
 import org.opensearch.sql.storage.StorageEngine;
 
 /**
  * Data definition task interface.
  */
+@Setter
 public abstract class DataDefinitionTask {
 
-  protected final QueryService queryService;
+  protected QueryService queryService;
 
-  protected final StorageEngine systemCatalog;
-
-  protected DataDefinitionTask(QueryService queryService,
-                              StorageEngine systemCatalog) {
-    this.queryService = queryService;
-    this.systemCatalog = systemCatalog;
-  }
+  protected StorageEngine systemCatalog;
 
   /**
    * Execute DDL statement.

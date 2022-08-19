@@ -21,7 +21,6 @@ import org.opensearch.sql.utils.SystemIndexUtils;
 /**
  * Create materialized view task.
  */
-@EqualsAndHashCode(callSuper = false)
 @ToString
 public class CreateMaterializedViewTask extends DataDefinitionTask {
 
@@ -29,11 +28,8 @@ public class CreateMaterializedViewTask extends DataDefinitionTask {
 
   private final ViewConfig config;
 
-  public CreateMaterializedViewTask(QueryService queryService,
-                                    StorageEngine systemCatalog,
-                                    ViewDefinition definition,
+  public CreateMaterializedViewTask(ViewDefinition definition,
                                     ViewConfig config) {
-    super(queryService, systemCatalog);
     this.definition = definition;
     this.config = config;
   }
