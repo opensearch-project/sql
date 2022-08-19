@@ -104,19 +104,6 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySchema(result,
         schema("f", null, "datetime"));
     verifySome(result.getJSONArray("datarows"), rows(new Object[]{null}));
-
-
-    result = executeQuery(String.format(
-        "SELECT DATETIME('2008-01-01 02:00:00+10:00')"));
-    verifySchema(result,
-        schema("DATETIME('2008-01-01 02:00:00+10:00')", null, "datetime"));
-    verifyDataRows(result, rows("2008-01-01 02:00:00"));
-
-    result = executeQuery(String.format(
-        "SELECT DATETIME('2008-01-01 02:00:00')"));
-    verifySchema(result,
-        schema("DATETIME('2008-01-01 02:00:00')", null, "datetime"));
-    verifyDataRows(result, rows("2008-01-01 02:00:00"));
   }
 
   @Test
