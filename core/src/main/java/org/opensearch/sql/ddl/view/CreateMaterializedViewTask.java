@@ -5,10 +5,6 @@
 
 package org.opensearch.sql.ddl.view;
 
-import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
-import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
-import static org.opensearch.sql.ast.dsl.AstDSL.values;
-
 import java.util.Arrays;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;

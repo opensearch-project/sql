@@ -11,6 +11,7 @@ import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.planner.physical.AggregationOperator;
+import org.opensearch.sql.planner.physical.DataDefinitionOperator;
 import org.opensearch.sql.planner.physical.DedupeOperator;
 import org.opensearch.sql.planner.physical.EvalOperator;
 import org.opensearch.sql.planner.physical.FilterOperator;
@@ -38,6 +39,11 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
 
   public PhysicalPlan protect(PhysicalPlan physicalPlan) {
     return physicalPlan.accept(this, null);
+  }
+
+  @Override
+  public PhysicalPlan visitDDL(DataDefinitionOperator node, Object context) {
+    return new DataDefinitionOperator(node.getTask());
   }
 
   @Override

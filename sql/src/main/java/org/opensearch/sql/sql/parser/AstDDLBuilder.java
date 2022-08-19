@@ -47,4 +47,10 @@ public class AstDDLBuilder extends OpenSearchSQLParserBaseVisitor<DataDefinition
         new ViewConfig(RefreshMode.MANUAL, DistributeOption.EVEN)
     );
   }
+
+  @Override
+  protected DataDefinitionTask aggregateResult(DataDefinitionTask aggregate,
+                                           DataDefinitionTask nextResult) {
+    return nextResult != null ? nextResult : aggregate;
+  }
 }

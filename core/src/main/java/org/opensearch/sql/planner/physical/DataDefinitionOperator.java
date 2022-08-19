@@ -5,16 +5,24 @@
 
 package org.opensearch.sql.planner.physical;
 
+import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
+import static org.opensearch.sql.executor.ExecutionEngine.Schema;
+
+import com.google.common.collect.ImmutableMap;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.ddl.DataDefinitionTask;
 
 /**
  * Data definition physical plan that wraps DDL executable task.
  */
+@Getter
 @RequiredArgsConstructor
 public class DataDefinitionOperator extends PhysicalPlan {
 
@@ -28,6 +36,12 @@ public class DataDefinitionOperator extends PhysicalPlan {
   }
 
   @Override
+  public Schema schema() {
+    return new Schema(Arrays.asList(
+        new Schema.Column("message", "message", ExprCoreType.STRING)));
+  }
+
+  @Override
   public boolean hasNext() {
     return (counter == 1);
   }
@@ -37,7 +51,8 @@ public class DataDefinitionOperator extends PhysicalPlan {
     try {
       counter++;
       task.execute();
-      return ExprValueUtils.stringValue("1 row impacted");
+      return tupleValue(
+          ImmutableMap.of("message", stringValue("1 row impacted")));
     } catch (Exception e) {
       throw new RuntimeException(e); // Throw execution exception?
     }
