@@ -32,4 +32,9 @@ public class OpenSearchStorageEngine implements StorageEngine {
       return new OpenSearchIndex(client, settings, name);
     }
   }
+
+  @Override
+  public boolean addTable(String name) {
+    return client.createIndex(name);
+  }
 }

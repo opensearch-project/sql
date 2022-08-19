@@ -22,6 +22,10 @@ public interface OpenSearchClient {
 
   String META_CLUSTER_NAME = "CLUSTER_NAME";
 
+  default boolean createIndex(String name) {
+    return false;
+  }
+
   /**
    * Fetch index mapping(s) according to index expression given.
    *

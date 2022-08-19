@@ -25,5 +25,9 @@ public class CreateTableTask extends DataDefinitionTask {
 
   @Override
   public void execute() {
+    // 1.Check if any conflicting view/table
+
+    // 2.Create table
+    systemCatalog.addTable(tableName.toString());
   }
 }

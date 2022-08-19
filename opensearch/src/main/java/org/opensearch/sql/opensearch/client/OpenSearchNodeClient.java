@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.logging.log4j.ThreadContext;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.ClusterState;
@@ -62,6 +63,12 @@ public class OpenSearchNodeClient implements OpenSearchClient {
     this.clusterService = clusterService;
     this.client = client;
     this.resolver = new IndexNameExpressionResolver(client.threadPool().getThreadContext());
+  }
+
+  @Override
+  public boolean createIndex(String name) {
+    IndexResponse response = client.prepareIndex(name).get();
+    return true;
   }
 
   /**
