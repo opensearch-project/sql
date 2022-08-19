@@ -55,6 +55,7 @@ import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.ast.tree.Write;
 
 /**
  * AST nodes visitor Defines the traverse path.
@@ -85,12 +86,16 @@ public abstract class AbstractNodeVisitor<T, C> {
     return null;
   }
 
+  private T aggregateResult(T aggregate, T nextResult) {
+    return nextResult;
+  }
+
   public T visitDataDefinitionPlan(DataDefinitionPlan node, C context) {
     return visitChildren(node, context);
   }
 
-  private T aggregateResult(T aggregate, T nextResult) {
-    return nextResult;
+  public T visitWrite(Write node, C context) {
+    return visitChildren(node, context);
   }
 
   public T visitRelation(Relation node, C context) {

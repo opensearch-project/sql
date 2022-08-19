@@ -58,6 +58,7 @@ import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.ast.tree.Write;
 import org.opensearch.sql.ddl.Column;
 import org.opensearch.sql.ddl.table.CreateTableTask;
 
@@ -74,6 +75,12 @@ public class AstDSL {
   public static UnresolvedPlan createTable(QualifiedName tableName,
                                            Column... columns) {
     return new DataDefinitionPlan(new CreateTableTask(tableName, Arrays.asList(columns)));
+  }
+
+  public static UnresolvedPlan write(UnresolvedPlan input,
+                                      QualifiedName tableName,
+                                      List<QualifiedName> columnNames) {
+    return new Write(tableName, columnNames).attach(input);
   }
 
   public UnresolvedPlan relation(String tableName) {
@@ -130,7 +137,7 @@ public class AstDSL {
    * @return       Values node
    */
   @SafeVarargs
-  public UnresolvedPlan values(List<Literal>... values) {
+  public static UnresolvedPlan values(List<Literal>... values) {
     return new Values(Arrays.asList(values));
   }
 

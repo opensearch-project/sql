@@ -37,6 +37,7 @@ import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.logical.LogicalWrite;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.Table;
 
@@ -191,6 +192,12 @@ public class OpenSearchIndex implements Table {
     @Override
     public PhysicalPlan visitRelation(LogicalRelation node, OpenSearchIndexScan context) {
       return indexScan;
+    }
+
+    @Override
+    public PhysicalPlan visitWrite(LogicalWrite node, OpenSearchIndexScan context) {
+      return new OpenSearchIndexWrite(visitChild(node, context),
+          node.getTableName(), node.getColumnNames());
     }
 
     @Override
