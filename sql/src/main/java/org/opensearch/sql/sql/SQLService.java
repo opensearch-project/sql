@@ -89,10 +89,13 @@ public class SQLService {
    */
   public UnresolvedPlan parse(String query) {
     ParseTree cst = parser.parse(query);
-    DataDefinitionPlan ddl = new AstDDLBuilder().build(cst);
+    AstBuilder astBuilder = new AstBuilder(query);
+    AstDDLBuilder astDdlBuilder = new AstDDLBuilder(astBuilder);
+
+    DataDefinitionPlan ddl = astDdlBuilder.build(cst);
     if (ddl != null) {
       return ddl;
     }
-    return cst.accept(new AstBuilder(query));
+    return cst.accept(astBuilder);
   }
 }

@@ -22,6 +22,7 @@ import org.opensearch.sql.planner.logical.LogicalRename;
 import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.planner.logical.LogicalValues;
 import org.opensearch.sql.planner.logical.LogicalWindow;
+import org.opensearch.sql.planner.logical.LogicalWrite;
 import org.opensearch.sql.planner.physical.AggregationOperator;
 import org.opensearch.sql.planner.physical.DataDefinitionOperator;
 import org.opensearch.sql.planner.physical.DedupeOperator;
@@ -131,6 +132,12 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
 
   @Override
   public PhysicalPlan visitRelation(LogicalRelation node, C context) {
+    throw new UnsupportedOperationException("Storage engine is responsible for "
+        + "implementing and optimizing logical plan with relation involved");
+  }
+
+  @Override
+  public PhysicalPlan visitWrite(LogicalWrite node, C context) {
     throw new UnsupportedOperationException("Storage engine is responsible for "
         + "implementing and optimizing logical plan with relation involved");
   }

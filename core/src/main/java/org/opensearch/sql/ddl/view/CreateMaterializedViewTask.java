@@ -7,7 +7,11 @@ package org.opensearch.sql.ddl.view;
 
 import static org.opensearch.sql.ast.dsl.AstDSL.createTable;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
+import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.values;
+import static org.opensearch.sql.ast.dsl.AstDSL.write;
 
+import java.util.Arrays;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -36,16 +40,14 @@ public class CreateMaterializedViewTask extends DataDefinitionTask {
     queryService.execute(createViewTable);
 
     // 2.Add mv info to system metadata if not exist
-    /*
-    String viewMetaTable = SystemIndexUtils.systemTable("sql-views").getTableName();
     UnresolvedPlan insertViewMeta =
-        insert(
+        write(
             values(
                 Arrays.asList(
                     stringLiteral(definition.getViewName()),
                     stringLiteral(definition.getViewType().toString()),
                     stringLiteral(definition.getQuery().toString()))),
-            qualifiedName(viewMetaTable),
+            qualifiedName("_ODFE_SYS_TABLE_META.views"),
             Arrays.asList(
                 qualifiedName("viewName"),
                 qualifiedName("viewType"),
@@ -53,7 +55,6 @@ public class CreateMaterializedViewTask extends DataDefinitionTask {
     queryService.execute(insertViewMeta);
 
     // 3.Trigger view refresh
-    queryService.execute(definition.getQuery());
-    */
+    //queryService.execute(definition.getQuery());
   }
 }

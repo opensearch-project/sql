@@ -17,9 +17,11 @@ import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.request.system.OpenSearchCatIndicesRequest;
 import org.opensearch.sql.opensearch.request.system.OpenSearchDescribeIndexRequest;
 import org.opensearch.sql.opensearch.request.system.OpenSearchSystemRequest;
+import org.opensearch.sql.opensearch.storage.OpenSearchIndexWrite;
 import org.opensearch.sql.planner.DefaultImplementor;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.logical.LogicalWrite;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.utils.SystemIndexUtils;
@@ -56,6 +58,12 @@ public class OpenSearchSystemIndex implements Table {
     @Override
     public PhysicalPlan visitRelation(LogicalRelation node, Object context) {
       return new OpenSearchSystemIndexScan(systemIndexBundle.getRight());
+    }
+
+    @Override
+    public PhysicalPlan visitWrite(LogicalWrite node, Object context) {
+      return new OpenSearchIndexWrite(visitChild(node, context),
+          node.getTableName(), node.getColumnNames());
     }
   }
 

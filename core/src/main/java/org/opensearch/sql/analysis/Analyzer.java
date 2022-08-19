@@ -36,6 +36,7 @@ import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
+import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
@@ -56,6 +57,7 @@ import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.ast.tree.Write;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -83,6 +85,7 @@ import org.opensearch.sql.planner.logical.LogicalRemove;
 import org.opensearch.sql.planner.logical.LogicalRename;
 import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.planner.logical.LogicalValues;
+import org.opensearch.sql.planner.logical.LogicalWrite;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.utils.ParseUtils;
@@ -120,6 +123,15 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitDataDefinitionPlan(DataDefinitionPlan node, AnalysisContext context) {
     return new LogicalDataDefinitionPlan(node.getTask());
+  }
+
+  @Override
+  public LogicalPlan visitWrite(Write node, AnalysisContext context) {
+    String tableName = node.getTableName().toString();
+    List<String> columnNames = node.getColumns().stream()
+        .map(QualifiedName::toString).collect(Collectors.toList());
+    LogicalPlan child = node.getChild().get(0).accept(this, context);
+    return new LogicalWrite(child, tableName, columnNames);
   }
 
   @Override

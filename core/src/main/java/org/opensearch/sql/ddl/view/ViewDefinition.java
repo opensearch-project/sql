@@ -8,6 +8,7 @@ package org.opensearch.sql.ddl.view;
 import java.util.List;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.ToString;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ddl.Column;
@@ -35,6 +36,7 @@ public class ViewDefinition {
 
   private final ViewType viewType;
 
+  @Setter
   private UnresolvedPlan query;
 
 }

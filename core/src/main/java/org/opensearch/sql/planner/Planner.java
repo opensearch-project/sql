@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
 import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.logical.LogicalWrite;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.StorageEngine;
@@ -52,6 +53,11 @@ public class Planner {
 
   private String findTableName(LogicalPlan plan) {
     return plan.accept(new LogicalPlanNodeVisitor<String, Object>() {
+
+      @Override
+      public String visitWrite(LogicalWrite plan, Object context) {
+        return plan.getTableName();
+      }
 
       @Override
       public String visitNode(LogicalPlan node, Object context) {

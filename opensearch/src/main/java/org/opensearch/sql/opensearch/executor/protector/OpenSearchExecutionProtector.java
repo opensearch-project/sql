@@ -24,6 +24,7 @@ import org.opensearch.sql.planner.physical.RenameOperator;
 import org.opensearch.sql.planner.physical.SortOperator;
 import org.opensearch.sql.planner.physical.ValuesOperator;
 import org.opensearch.sql.planner.physical.WindowOperator;
+import org.opensearch.sql.planner.physical.WriteOperator;
 import org.opensearch.sql.storage.TableScanOperator;
 
 /**
@@ -44,6 +45,11 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
   @Override
   public PhysicalPlan visitDDL(DataDefinitionOperator node, Object context) {
     return new DataDefinitionOperator(node.getTask());
+  }
+
+  @Override
+  public PhysicalPlan visitWrite(WriteOperator node, Object context) {
+    return node; // TODO: clone node.input
   }
 
   @Override

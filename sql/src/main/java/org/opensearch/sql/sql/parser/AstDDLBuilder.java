@@ -13,6 +13,7 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CreateMate
 import java.util.List;
 import java.util.stream.Collectors;
 
+import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.tree.DataDefinitionPlan;
 import org.opensearch.sql.ddl.Column;
@@ -26,7 +27,10 @@ import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
 /**
  * Build AST for data definition plan.
  */
+@RequiredArgsConstructor
 public class AstDDLBuilder extends OpenSearchSQLParserBaseVisitor<DataDefinitionTask> {
+
+  private final AstBuilder astBuilder;
 
   public DataDefinitionPlan build(ParseTree tree) {
     return new DataDefinitionPlan(tree.accept(this));
@@ -40,8 +44,12 @@ public class AstDDLBuilder extends OpenSearchSQLParserBaseVisitor<DataDefinition
             def.columnName().getText(),
             def.dataType().getText())
         ).collect(Collectors.toList());
+
+    ViewDefinition definition = new ViewDefinition(viewName, columns, ViewType.MATERIALIZED_VIEW);
+    definition.setQuery(astBuilder.visit(ctx.selectStatement()));
+
     return new CreateMaterializedViewTask(
-        new ViewDefinition(viewName, columns, ViewType.MATERIALIZED_VIEW),
+        definition,
         new ViewConfig(RefreshMode.MANUAL, DistributeOption.EVEN)
     );
   }
