@@ -28,6 +28,19 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
   private final ExecutionProtector executionProtector;
 
   @Override
+  public QueryResponse execute(PhysicalPlan physicalPlan) {
+    try (PhysicalPlan plan = executionProtector.protect(physicalPlan)) {
+      List<ExprValue> result = new ArrayList<>();
+      plan.open();
+
+      while (plan.hasNext()) {
+        result.add(plan.next());
+      }
+      return new QueryResponse(physicalPlan.schema(), result);
+    }
+  }
+
+  @Override
   public void execute(PhysicalPlan physicalPlan, ResponseListener<QueryResponse> listener) {
     PhysicalPlan plan = executionProtector.protect(physicalPlan);
     client.schedule(

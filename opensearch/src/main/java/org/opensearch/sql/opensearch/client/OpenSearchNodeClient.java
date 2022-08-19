@@ -21,6 +21,7 @@ import java.util.stream.Stream;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -48,6 +49,12 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   public OpenSearchNodeClient(NodeClient client) {
     this.client = client;
     this.resolver = new IndexNameExpressionResolver(client.threadPool().getThreadContext());
+  }
+
+  @Override
+  public boolean createIndex(String name) {
+    IndexResponse response = client.prepareIndex(name).get();
+    return true;
   }
 
   /**

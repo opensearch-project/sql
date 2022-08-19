@@ -15,4 +15,11 @@ public interface StorageEngine {
    * Get {@link Table} from storage engine.
    */
   Table getTable(String name);
+
+  /**
+   * Create table.
+   */
+  default boolean addTable(String name) {
+    return false;
+  }
 }

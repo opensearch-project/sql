@@ -18,6 +18,9 @@ import org.opensearch.sql.ddl.QueryService;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.utils.SystemIndexUtils;
 
+import static org.opensearch.sql.ast.dsl.AstDSL.createTable;
+import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
+
 /**
  * Create materialized view task.
  */
@@ -37,14 +40,14 @@ public class CreateMaterializedViewTask extends DataDefinitionTask {
   @Override
   public void execute() {
     // 1.Create mv index
-    /*
     UnresolvedPlan createViewTable =
         createTable(
-            qualifiedName(definition.getViewName()),
-            null);
+            qualifiedName(definition.getViewName())
+        );
     queryService.execute(createViewTable);
 
     // 2.Add mv info to system metadata if not exist
+    /*
     String viewMetaTable = SystemIndexUtils.systemTable("sql-views").getTableName();
     UnresolvedPlan insertViewMeta =
         insert(
