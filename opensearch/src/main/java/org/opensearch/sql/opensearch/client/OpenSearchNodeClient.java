@@ -27,6 +27,7 @@ import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.index.IndexSettings;
+import org.opensearch.sql.ddl.Column;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
@@ -52,8 +53,9 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   }
 
   @Override
-  public boolean createIndex(String name) {
-    IndexResponse response = client.prepareIndex(name).get();
+  public boolean createIndex(String name, Map<String, Object> mapping) {
+    IndexResponse response = client.prepareIndex(name)
+        .setSource(mapping).get();
     return true;
   }
 

@@ -22,7 +22,7 @@ public interface OpenSearchClient {
 
   String META_CLUSTER_NAME = "CLUSTER_NAME";
 
-  default boolean createIndex(String name) {
+  default boolean createIndex(String name, Map<String, Object> mapping) {
     return false;
   }
 

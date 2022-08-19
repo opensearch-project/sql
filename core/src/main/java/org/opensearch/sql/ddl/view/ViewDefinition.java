@@ -5,10 +5,12 @@
 
 package org.opensearch.sql.ddl.view;
 
+import java.util.List;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ddl.Column;
 
 /**
  * View definition.
@@ -28,6 +30,8 @@ public class ViewDefinition {
   }
 
   private final String viewName;
+
+  private final List<Column> columns;
 
   private final ViewType viewType;
 

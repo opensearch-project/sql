@@ -8,8 +8,12 @@ package org.opensearch.sql.opensearch.storage;
 
 import static org.opensearch.sql.utils.SystemIndexUtils.isSystemIndex;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.ddl.Column;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.storage.system.OpenSearchSystemIndex;
 import org.opensearch.sql.storage.StorageEngine;
@@ -34,7 +38,11 @@ public class OpenSearchStorageEngine implements StorageEngine {
   }
 
   @Override
-  public boolean addTable(String name) {
-    return client.createIndex(name);
+  public boolean addTable(String name, List<Column> columns) {
+    Map<String, Object> mapping = new HashMap<>();
+    for (Column column : columns) {
+      mapping.put(column.getName(), column.getType()); // TODO: convert SQL type to ES type in analyzer
+    }
+    return client.createIndex(name, mapping);
   }
 }
