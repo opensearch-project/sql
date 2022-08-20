@@ -139,7 +139,7 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
   @Override
   public PhysicalPlan visitWrite(LogicalWrite node, C context) {
     throw new UnsupportedOperationException("Storage engine is responsible for "
-        + "implementing and optimizing logical plan with relation involved");
+        + "implementing and optimizing logical plan with write involved");
   }
 
   protected PhysicalPlan visitChild(LogicalPlan node, C context) {

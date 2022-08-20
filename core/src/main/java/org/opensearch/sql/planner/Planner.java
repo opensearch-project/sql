@@ -55,17 +55,21 @@ public class Planner {
     return plan.accept(new LogicalPlanNodeVisitor<String, Object>() {
 
       @Override
-      public String visitWrite(LogicalWrite plan, Object context) {
-        return plan.getTableName();
-      }
-
-      @Override
       public String visitNode(LogicalPlan node, Object context) {
         List<LogicalPlan> children = node.getChild();
         if (children.isEmpty()) {
           return "";
         }
         return children.get(0).accept(this, context);
+      }
+
+      @Override
+      public String visitWrite(LogicalWrite plan, Object context) {
+        String tableName = plan.getChild().get(0).accept(this, context);
+
+        // Use tableName in write for Write(Values())
+        // Use tableName in relation otherwise, ex. Write(Proj...(Relation))
+        return (tableName == null || tableName.isEmpty()) ? plan.getTableName() : tableName;
       }
 
       @Override

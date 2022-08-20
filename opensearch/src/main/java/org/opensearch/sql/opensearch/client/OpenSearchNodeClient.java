@@ -19,9 +19,9 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.logging.log4j.ThreadContext;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.action.bulk.BulkRequestBuilder;
-import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.ClusterState;
@@ -69,8 +69,9 @@ public class OpenSearchNodeClient implements OpenSearchClient {
 
   @Override
   public boolean createIndex(String indexName, Map<String, Object> mapping) {
-    IndexResponse response = client.prepareIndex(indexName)
-        .setSource(mapping).get();
+    CreateIndexRequest request = new CreateIndexRequest(indexName);
+    request.mapping(mapping);
+    client.admin().indices().create(request).actionGet();
     return true;
   }
 

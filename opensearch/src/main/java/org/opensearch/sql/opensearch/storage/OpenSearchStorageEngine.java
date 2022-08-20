@@ -39,10 +39,15 @@ public class OpenSearchStorageEngine implements StorageEngine {
 
   @Override
   public boolean addTable(String name, List<Column> columns) {
-    Map<String, Object> mapping = new HashMap<>();
+    Map<String, Object> properties = new HashMap<>();
     for (Column column : columns) {
-      mapping.put(column.getName(), column.getType()); // TODO: convert SQL type to ES type in analyzer
+      Map<String, Object> field = new HashMap<>();
+      field.put("type", column.getType().equals("string") ? "keyword" : column.getType());
+      properties.put(column.getName(), field); // TODO: convert SQL type to ES type in analyzer
     }
+
+    Map<String, Object> mapping = new HashMap<>();
+    mapping.put("properties", properties);
     return client.createIndex(name, mapping);
   }
 }
