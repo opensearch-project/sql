@@ -115,6 +115,30 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result, rows("2021-05-13 04:34:50"));
 
     result = executeQuery(
+        "SELECT convert_tz('2021-05-12 11:34:50','+09:00','+09:00')");
+    verifySchema(result,
+        schema("convert_tz('2021-05-12 11:34:50','+09:00','+09:00')", null, "datetime"));
+    verifyDataRows(result, rows("2021-05-12 11:34:50"));
+
+    result = executeQuery(
+        "SELECT convert_tz('2021-05-12 11:34:50','-12:00','+12:00')");
+    verifySchema(result,
+        schema("convert_tz('2021-05-12 11:34:50','-12:00','+12:00')", null, "datetime"));
+    verifyDataRows(result, rows("2021-05-13 11:34:50"));
+
+    result = executeQuery(
+        "SELECT convert_tz('2021-05-12 13:00:00','+09:30','+05:45')");
+    verifySchema(result,
+        schema("convert_tz('2021-05-12 13:00:00','+09:30','+05:45')", null, "datetime"));
+    verifyDataRows(result, rows("2021-05-12 09:15:00"));
+
+    result = executeQuery(
+        "SELECT convert_tz('2021-05-12 13:00:00','+09:31','+05:11')");
+    verifySchema(result,
+        schema("convert_tz('2021-05-12 13:00:00','+09:31','+05:11')", null, "datetime"));
+    verifyDataRows(result, rows("2021-05-12 08:40:00"));
+
+    result = executeQuery(
         "SELECT convert_tz('2021-05-30 11:34:50','-17:00','+08:00')");
     verifySchema(result,
         schema("convert_tz('2021-05-30 11:34:50','-17:00','+08:00')", null, "datetime"));
@@ -249,6 +273,18 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifySchema(result,
         schema("DATETIME('2008-01-01 02:00:00')", null, "datetime"));
     verifyDataRows(result, rows("2008-01-01 02:00:00"));
+
+    result = executeQuery(
+        "SELECT DATETIME('2008-01-01 02:00:00+12:00', '-12:00')");
+    verifySchema(result,
+        schema("DATETIME('2008-01-01 02:00:00+12:00', '-12:00')", null, "datetime"));
+    verifyDataRows(result, rows("2007-12-31 02:00:00"));
+
+    result = executeQuery(
+        "SELECT DATETIME('2008-01-01 02:00:00+12:00', '-12:00')");
+    verifySchema(result,
+        schema("DATETIME('2008-01-01 02:00:00+12:00', '-12:00')", null, "datetime"));
+    verifyDataRows(result, rows("2007-12-31 02:00:00"));
   }
 
   @Test
