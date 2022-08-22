@@ -76,7 +76,7 @@ Return type: DATE
 
 Example::
 
-    os> source=people | eval `DATE('2020-08-26')` = DATE('2020-08-26'), `DATE(TIMESTAMP('2020-08-26 13:49:00'))` = DATE(TIMESTAMP('2020-08-26 13:49:00')) | fields `DATE('2020-08-26')`, `DATE(TIMESTAMP('2020-08-26 13:49:00'))`
+    >od source=people | eval `DATE('2020-08-26')` = DATE('2020-08-26'), `DATE(TIMESTAMP('2020-08-26 13:49:00'))` = DATE(TIMESTAMP('2020-08-26 13:49:00')) | fields `DATE('2020-08-26')`, `DATE(TIMESTAMP('2020-08-26 13:49:00'))`
     fetched rows / total rows = 1/1
     +----------------------+------------------------------------------+
     | DATE('2020-08-26')   | DATE(TIMESTAMP('2020-08-26 13:49:00'))   |
