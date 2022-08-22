@@ -110,6 +110,30 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
 
     result =
         executeQuery(String.format(
+            "source=%s | eval f = convert_tz('2021-05-12 11:34:50','+09:00','+09:00') | fields f",
+            TEST_INDEX_DATE));
+    verifySchema(result,
+        schema("f", null, "datetime"));
+    verifySome(result.getJSONArray("datarows"), rows("2021-05-12 11:34:50"));
+
+    result =
+        executeQuery(String.format(
+            "source=%s | eval f = convert_tz('2021-05-12 11:34:50','-12:00','+12:00') | fields f",
+            TEST_INDEX_DATE));
+    verifySchema(result,
+        schema("f", null, "datetime"));
+    verifySome(result.getJSONArray("datarows"), rows("2021-05-13 11:34:50"));
+
+    result =
+        executeQuery(String.format(
+            "source=%s | eval f = convert_tz('2021-05-12 13:00:00','+09:30','+05:45') | fields f",
+            TEST_INDEX_DATE));
+    verifySchema(result,
+        schema("f", null, "datetime"));
+    verifySome(result.getJSONArray("datarows"), rows("2021-05-12 09:15:00"));
+
+    result =
+        executeQuery(String.format(
             "source=%s | eval f = convert_tz('2021-05-30 11:34:50','-17:00','+08:00') | fields f",
             TEST_INDEX_DATE));
     verifySchema(result,
