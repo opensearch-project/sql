@@ -52,7 +52,7 @@ Return type: DATETIME
 
 Example::
 
-    >od source=people | eval f = "convert_tz('2008-05-15 12:00:00','+00:00','+10:00')" | fields f
+    os> source=people | eval f = "convert_tz('2008-05-15 12:00:00','+00:00','+10:00')" | fields f
     fetched rows / total rows = 1/1
     +----------------------+--------------------------------+
     | convert_tz('2008-05-15 12:00:00','+00:00','+10:00')   |
@@ -76,7 +76,7 @@ Return type: DATE
 
 Example::
 
-    >od source=people | eval `DATE('2020-08-26')` = DATE('2020-08-26'), `DATE(TIMESTAMP('2020-08-26 13:49:00'))` = DATE(TIMESTAMP('2020-08-26 13:49:00')) | fields `DATE('2020-08-26')`, `DATE(TIMESTAMP('2020-08-26 13:49:00'))`
+    os> source=people | eval `DATE('2020-08-26')` = DATE('2020-08-26'), `DATE(TIMESTAMP('2020-08-26 13:49:00'))` = DATE(TIMESTAMP('2020-08-26 13:49:00')) | fields `DATE('2020-08-26')`, `DATE(TIMESTAMP('2020-08-26 13:49:00'))`
     fetched rows / total rows = 1/1
     +----------------------+------------------------------------------+
     | DATE('2020-08-26')   | DATE(TIMESTAMP('2020-08-26 13:49:00'))   |
