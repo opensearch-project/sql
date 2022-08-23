@@ -42,7 +42,15 @@ public class OpenSearchStorageEngine implements StorageEngine {
     Map<String, Object> properties = new HashMap<>();
     for (Column column : columns) {
       Map<String, Object> field = new HashMap<>();
-      field.put("type", column.getType().equals("string") ? "keyword" : column.getType());
+      String fieldType = column.getType();
+      if (fieldType.equals("string")) {
+        field.put("type", "keyword");
+      } else if (fieldType.equals("date")) {
+        field.put("format",  "strict_date_optional_time||epoch_second");
+        field.put("type", fieldType);
+      } else {
+        field.put("type", fieldType);
+      }
       properties.put(column.getName(), field); // TODO: convert SQL type to ES type in analyzer
     }
 

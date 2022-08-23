@@ -114,6 +114,7 @@ dataType
     : typeName=STRING
     | typeName=INTEGER
     | typeName=DOUBLE
+    | typeName=DATE
     ;
 
 //    Select Statement's Details
