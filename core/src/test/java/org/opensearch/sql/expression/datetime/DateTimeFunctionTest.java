@@ -266,6 +266,20 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         DSL.literal("+01:00"));
     assertEquals(DATETIME, expr.type());
     assertEquals(nullValue(), expr.valueOf(env));
+
+    expr = dsl.convert_tz(dsl.datetime(
+            DSL.literal("2008-05-15 22:00:00")),
+        DSL.literal("-12:00"),
+        DSL.literal("+15:00"));
+    assertEquals(DATETIME, expr.type());
+    assertEquals(nullValue(), expr.valueOf(env));
+
+    expr = dsl.convert_tz(dsl.datetime(
+            DSL.literal("2008-05-15 22:00:00")),
+        DSL.literal("+00:00"),
+        DSL.literal("+14:00"));
+    assertEquals(DATETIME, expr.type());
+    assertEquals(new ExprDatetimeValue("2008-05-16 12:00:00"), expr.valueOf(env));
   }
 
   @Test
@@ -440,6 +454,16 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         DSL.literal("America/Los_Angeles"));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue("2008-05-16 02:00:00"), expr.valueOf(env));
+
+    expr = dsl.datetime(DSL.literal("2008-05-15 22:00:00-12:00"),
+        DSL.literal("+15:00"));
+    assertEquals(DATETIME, expr.type());
+    assertEquals(nullValue(), expr.valueOf(env));
+
+    expr = dsl.datetime(DSL.literal("2008-05-15 22:00:00-13:00"),
+        DSL.literal("+10:00"));
+    assertEquals(DATETIME, expr.type());
+    assertEquals(nullValue(), expr.valueOf(env));
 
     expr = dsl.datetime(DSL.literal("2008-05-15 22:00:00-11:00"),
         DSL.literal(nullValue()));
