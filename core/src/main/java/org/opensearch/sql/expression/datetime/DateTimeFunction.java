@@ -65,7 +65,7 @@ public class DateTimeFunction {
     repository.register(adddate());
     repository.register(convert_tz());
     repository.register(date());
-    repository.register(datetime());;
+    repository.register(datetime());
     repository.register(date_add());
     repository.register(date_sub());
     repository.register(day());
@@ -494,28 +494,8 @@ public class DateTimeFunction {
     ZoneId convertedFromTz = ZoneId.of(fromTz.stringValue());
     ZoneId convertedToTz = ZoneId.of(toTz.stringValue());
 
-    ZoneId maxTz = ZoneId.of("+14:00");
-    ZoneId minTz = ZoneId.of("-12:00");
-    ZoneId defaultTz = ZoneId.of("+00:00");
-
-    ZonedDateTime maxTzValidator =
-        startingDateTime.datetimeValue()
-            .atZone(defaultTz).withZoneSameInstant(maxTz).withZoneSameLocal(defaultTz);
-    ZonedDateTime minTzValidator =
-        startingDateTime.datetimeValue()
-            .atZone(defaultTz).withZoneSameInstant(minTz).withZoneSameLocal(defaultTz);
-
-    ZonedDateTime toTzValidator =
-        startingDateTime.datetimeValue()
-            .atZone(defaultTz).withZoneSameInstant(convertedToTz).withZoneSameLocal(defaultTz);
-    ZonedDateTime fromTzValidator =
-        startingDateTime.datetimeValue()
-            .atZone(defaultTz).withZoneSameInstant(convertedFromTz).withZoneSameLocal(defaultTz);
-
-    if (toTzValidator.isAfter(maxTzValidator)
-        || fromTzValidator.isAfter(maxTzValidator)
-        || toTzValidator.isBefore(minTzValidator)
-        || fromTzValidator.isBefore(minTzValidator)) {
+    if (!isTimeZoneValid(convertedFromTz)
+          || !isTimeZoneValid(convertedToTz)) {
       return ExprNullValue.of();
     }
 
@@ -559,14 +539,21 @@ public class DateTimeFunction {
     try {
       zdtWithZoneOffset = ZonedDateTime
           .parse(dateTime.stringValue(), formatDT);
+
+      ZoneId zone = zdtWithZoneOffset.getZone();
+
+      if (!isTimeZoneValid(zone) || !isTimeZoneValid(convertToTZ)) {
+        return ExprNullValue.of();
+      }
+
     } catch (Exception e) {
       LocalDateTime dateTime2 = LocalDateTime.parse(dateTime.stringValue(), formatDT);
 
       zdtWithZoneOffset = dateTime2.atZone(ZoneId.of("UTC"));
     }
-    ZonedDateTime convertedddd = zdtWithZoneOffset.withZoneSameInstant(convertToTZ);
+    ZonedDateTime convertedZDT = zdtWithZoneOffset.withZoneSameInstant(convertToTZ);
 
-    return new ExprDatetimeValue(convertedddd.toLocalDateTime());
+    return new ExprDatetimeValue(convertedZDT.toLocalDateTime());
   }
 
   private ExprValue exprDateTimeNoTimezone(ExprValue dateTime) {
@@ -846,6 +833,31 @@ public class DateTimeFunction {
    */
   private ExprValue exprYear(ExprValue date) {
     return new ExprIntegerValue(date.dateValue().getYear());
+  }
+
+  private Boolean isTimeZoneValid(ZoneId zone) {
+    ZoneId maxTz = ZoneId.of("+14:00");
+    ZoneId minTz = ZoneId.of("-12:00");
+    ZoneId defaultTz = ZoneId.of("+00:00");
+
+    LocalDateTime defaultDateTime = LocalDateTime.of(2000, 1, 2, 12, 0);
+
+    ZonedDateTime maxTzValidator =
+        defaultDateTime.atZone(defaultTz).withZoneSameInstant(maxTz).withZoneSameLocal(defaultTz);
+    ZonedDateTime minTzValidator =
+        defaultDateTime.atZone(defaultTz).withZoneSameInstant(minTz).withZoneSameLocal(defaultTz);
+
+    ZonedDateTime passedTzValidator =
+        defaultDateTime.atZone(defaultTz).withZoneSameInstant(zone).withZoneSameLocal(defaultTz);
+
+    if ((passedTzValidator.isBefore(maxTzValidator)
+        || passedTzValidator.isEqual(maxTzValidator))
+        && (passedTzValidator.isAfter(minTzValidator)
+        || passedTzValidator.isEqual(minTzValidator))) {
+      return true;
+    }
+
+    return false;
   }
 
 }
