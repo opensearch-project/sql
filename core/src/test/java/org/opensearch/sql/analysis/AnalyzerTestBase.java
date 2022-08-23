@@ -99,7 +99,7 @@ public class AnalyzerTestBase {
 
   @Bean
   protected Analyzer analyzer(ExpressionAnalyzer expressionAnalyzer, StorageEngine engine) {
-    return new Analyzer(expressionAnalyzer, engine);
+    return new Analyzer(expressionAnalyzer, null);
   }
 
   @Bean

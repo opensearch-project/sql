@@ -13,6 +13,7 @@ import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.ppl.PPLService;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
+import org.opensearch.sql.storage.CatalogService;
 import org.opensearch.sql.storage.StorageEngine;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -32,9 +33,12 @@ public class PPLServiceConfig {
   @Autowired
   private BuiltinFunctionRepository functionRepository;
 
+  @Autowired
+  private CatalogService catalogService;
+
   @Bean
   public Analyzer analyzer() {
-    return new Analyzer(new ExpressionAnalyzer(functionRepository), storageEngine);
+    return new Analyzer(new ExpressionAnalyzer(functionRepository), catalogService);
   }
 
   @Bean

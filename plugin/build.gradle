@@ -88,6 +88,15 @@ configurations.all {
     resolutionStrategy.force 'com.google.guava:guava:31.0.1-jre'
     resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${jackson_version}"
     resolutionStrategy.force "com.fasterxml.jackson.core:jackson-databind:${jackson_version}"
+    resolutionStrategy.force "com.fasterxml.jackson.core:jackson-annotations:${jackson_version}"
+
+    // conflict with S3
+    resolutionStrategy.force 'org.apache.httpcomponents:httpclient:4.5.10'
+    resolutionStrategy.force 'org.apache.httpcomponents:httpcore:4.4.12'
+    resolutionStrategy.force 'org.reactivestreams:reactive-streams:1.0.3'
+    resolutionStrategy.force 'org.slf4j:slf4j-api:1.7.30'
+    resolutionStrategy.force 'io.netty:netty-codec-http:4.1.46.Final'
+    resolutionStrategy.force 'io.netty:netty-handler:4.1.46.Final'
 }
 compileJava {
     options.compilerArgs.addAll(["-processor", 'lombok.launch.AnnotationProcessorHider$AnnotationProcessor'])
@@ -102,6 +111,7 @@ dependencies {
     api project(":ppl")
     api project(':legacy')
     api project(':opensearch')
+    api project(':objectstorage')
 }
 
 test {

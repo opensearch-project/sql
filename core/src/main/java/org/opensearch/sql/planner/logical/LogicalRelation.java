@@ -10,6 +10,7 @@ import com.google.common.collect.ImmutableList;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
+import org.opensearch.sql.storage.Table;
 
 /**
  * Logical Relation represent the data source.
@@ -20,12 +21,16 @@ public class LogicalRelation extends LogicalPlan {
   @Getter
   private final String relationName;
 
+  @Getter
+  private final Table table;
+
   /**
    * Constructor of LogicalRelation.
    */
-  public LogicalRelation(String relationName) {
+  public LogicalRelation(String relationName, Table table) {
     super(ImmutableList.of());
     this.relationName = relationName;
+    this.table = table;
   }
 
   @Override

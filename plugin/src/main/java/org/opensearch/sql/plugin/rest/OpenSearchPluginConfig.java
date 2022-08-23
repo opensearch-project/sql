@@ -19,6 +19,8 @@ import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProte
 import org.opensearch.sql.opensearch.monitor.OpenSearchMemoryHealthy;
 import org.opensearch.sql.opensearch.monitor.OpenSearchResourceMonitor;
 import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
+import org.opensearch.sql.s3.storage.S3StorageEngine;
+import org.opensearch.sql.storage.CatalogService;
 import org.opensearch.sql.storage.StorageEngine;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -63,5 +65,19 @@ public class OpenSearchPluginConfig {
   @Bean
   public ExecutionProtector protector() {
     return new OpenSearchExecutionProtector(resourceMonitor());
+  }
+
+  /**
+   * Todo.
+   */
+  @Bean
+  public CatalogService catalogService() {
+    return new CatalogService(tableName -> {
+      if (tableName.startsWith("s3")) {
+        return new S3StorageEngine();
+      } else {
+        return storageEngine();
+      }
+    });
   }
 }

@@ -21,6 +21,7 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
+import org.opensearch.sql.storage.Table;
 
 /**
  * Logical Plan DSL.
@@ -37,8 +38,13 @@ public class LogicalPlanDSL {
     return new LogicalFilter(input, expression);
   }
 
+  // used by Test class only.
   public static LogicalPlan relation(String tableName) {
-    return new LogicalRelation(tableName);
+    return new LogicalRelation(tableName, null);
+  }
+
+  public static LogicalPlan relation(String tableName, Table table) {
+    return new LogicalRelation(tableName, table);
   }
 
   public static LogicalPlan rename(

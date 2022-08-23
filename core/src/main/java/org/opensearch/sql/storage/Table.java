@@ -29,6 +29,11 @@ public interface Table {
    */
   PhysicalPlan implement(LogicalPlan plan);
 
+  // todo. need improve
+  default PhysicalPlan implement(LogicalPlan plan, PhysicalPlan child) {
+    return child;
+  }
+
   /**
    * Optimize the {@link LogicalPlan} by storage engine rule.
    * The default optimize solution is no optimization.

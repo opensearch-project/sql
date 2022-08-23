@@ -17,4 +17,5 @@ include 'protocol'
 include 'doctest'
 include 'legacy'
 include 'sql'
+include 'objectstorage'
 

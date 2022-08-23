@@ -12,8 +12,10 @@ import org.opensearch.sql.ddl.QueryService;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.s3.storage.S3StorageEngine;
 import org.opensearch.sql.sql.SQLService;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
+import org.opensearch.sql.storage.CatalogService;
 import org.opensearch.sql.storage.StorageEngine;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -41,13 +43,27 @@ public class SQLServiceConfig {
 
   @Bean
   public Analyzer analyzer() {
-    return new Analyzer(new ExpressionAnalyzer(functionRepository), storageEngine);
+    return new Analyzer(new ExpressionAnalyzer(functionRepository), catalogService());
   }
 
   @Bean
   public SQLService sqlService() {
     return new SQLService(new SQLSyntaxParser(), analyzer(), storageEngine, executionEngine,
         functionRepository, queryService);
+  }
+
+  /**
+   * Todo.
+   */
+  @Bean
+  public CatalogService catalogService() {
+    return new CatalogService(tableName -> {
+      if (tableName.startsWith("s3")) {
+        return new S3StorageEngine();
+      } else {
+        return storageEngine;
+      }
+    });
   }
 
 }
