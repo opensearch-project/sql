@@ -10,14 +10,12 @@ package org.opensearch.sql.planner;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.opensearch.sql.planner.logical.LogicalDelete;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
 import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.logical.LogicalWrite;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
-import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
 
 /**
@@ -25,11 +23,6 @@ import org.opensearch.sql.storage.Table;
  */
 @RequiredArgsConstructor
 public class Planner {
-
-  /**
-   * Storage engine. (openSearch for now)
-   */
-  private final StorageEngine storageEngine;
 
   private final LogicalPlanOptimizer logicalOptimizer;
 

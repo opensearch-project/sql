@@ -105,3 +105,6 @@ jacocoTestCoverageVerification {
     }
 }
 check.dependsOn jacocoTestCoverageVerification
+
+checkstyleMain.ignoreFailures = true
+checkstyleTest.ignoreFailures = true

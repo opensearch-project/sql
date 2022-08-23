@@ -113,10 +113,32 @@ public class OpenSearchIndex implements Table {
     return plan.accept(new OpenSearchDefaultImplementor(indexScan, client), indexScan);
   }
 
+  /**
+   * Todo. Find better implementation
+   */
+  @Override
+  public PhysicalPlan implement(LogicalPlan plan, PhysicalPlan child) {
+    return plan.accept(new OpenSearchWriteImplementor(child, client), null);
+  }
+
   @Override
   public LogicalPlan optimize(LogicalPlan plan) {
     return OpenSearchLogicalPlanOptimizerFactory.create().optimize(plan);
   }
+
+  @VisibleForTesting
+  @RequiredArgsConstructor
+  public static class OpenSearchWriteImplementor extends DefaultImplementor<Void> {
+    private final PhysicalPlan child;
+
+    private final OpenSearchClient client;
+
+    @Override
+    public PhysicalPlan visitWrite(LogicalWrite node, Void context) {
+      return new OpenSearchIndexWrite(child, node.getTableName(), node.getColumnNames());
+    }
+  }
+
 
   @VisibleForTesting
   @RequiredArgsConstructor

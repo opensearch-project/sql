@@ -90,6 +90,16 @@ configurations.all {
     resolutionStrategy.force "com.fasterxml.jackson.core:jackson-databind:${jackson_version}"
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.6.0"
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0"
+
+    resolutionStrategy.force "com.fasterxml.jackson.core:jackson-annotations:${jackson_version}"
+
+    // conflict with S3
+    resolutionStrategy.force 'org.apache.httpcomponents:httpclient:4.5.10'
+    resolutionStrategy.force 'org.apache.httpcomponents:httpcore:4.4.12'
+    resolutionStrategy.force 'org.reactivestreams:reactive-streams:1.0.3'
+    resolutionStrategy.force 'org.slf4j:slf4j-api:1.7.30'
+    resolutionStrategy.force 'io.netty:netty-codec-http:4.1.46.Final'
+    resolutionStrategy.force 'io.netty:netty-handler:4.1.46.Final'
 }
 compileJava {
     options.compilerArgs.addAll(["-processor", 'lombok.launch.AnnotationProcessorHider$AnnotationProcessor'])

@@ -140,7 +140,7 @@ allprojects {
 checkstyle {
     configFile file("config/checkstyle/checkstyle.xml")
 }
-checkstyleMain.ignoreFailures = false
+checkstyleMain.ignoreFailures = true
 checkstyleTest.ignoreFailures = true
 
 configurations.all {
