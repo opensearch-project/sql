@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.ast;
 
+import java.io.Serializable;
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -15,7 +16,7 @@ import lombok.ToString;
  */
 @EqualsAndHashCode
 @ToString
-public abstract class Node {
+public abstract class Node implements Serializable {
 
   public <R, C> R accept(AbstractNodeVisitor<R, C> visitor, C context) {
     return visitor.visitChildren(this, context);

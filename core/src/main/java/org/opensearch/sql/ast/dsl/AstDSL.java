@@ -79,9 +79,8 @@ public class AstDSL {
     return new DataDefinitionPlan(new CreateTableTask(tableName, Arrays.asList(columns)));
   }
 
-  public static UnresolvedPlan refreshMaterializedView(QualifiedName viewName,
-                                                       List<QualifiedName> columns) {
-    return new DataDefinitionPlan(new RefreshMaterializedViewTask(viewName, columns));
+  public static UnresolvedPlan refreshMaterializedView(QualifiedName viewName) {
+    return new DataDefinitionPlan(new RefreshMaterializedViewTask(viewName));
   }
 
   public static UnresolvedPlan write(UnresolvedPlan input,

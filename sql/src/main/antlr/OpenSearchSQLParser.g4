@@ -53,6 +53,7 @@ dmlStatement
 
 ddlStatement
     : createMaterializedView
+    | refreshMaterializedView
     ;
 
 // Data Manipulation Language
@@ -100,6 +101,11 @@ createMaterializedView
     : CREATE MATERIALIZED VIEW
        tableName createDefinitions
        AS selectStatement
+    ;
+
+refreshMaterializedView
+    : REFRESH MATERIALIZED VIEW
+       tableName
     ;
 
 createDefinitions

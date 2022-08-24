@@ -23,6 +23,7 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.action.bulk.BulkRequestBuilder;
 import org.opensearch.action.support.IndicesOptions;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.AliasMetadata;
@@ -81,6 +82,7 @@ public class OpenSearchNodeClient implements OpenSearchClient {
     for (Map<String, Object> row : data) {
       builder.add(client.prepareIndex().setSource(row).request());
     }
+    builder.setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL);
     builder.get();
   }
 

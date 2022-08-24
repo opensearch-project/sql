@@ -38,6 +38,7 @@ import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.DataDefinitionPlan;
 import org.opensearch.sql.ast.tree.Dedupe;
+import org.opensearch.sql.ast.tree.Delete;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
@@ -91,6 +92,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitWrite(Write node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitDelete(Delete node, C context) {
     return visitChildren(node, context);
   }
 

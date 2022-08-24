@@ -17,6 +17,12 @@ import org.opensearch.sql.ast.Node;
 @EqualsAndHashCode(callSuper = false)
 @ToString
 public abstract class UnresolvedPlan extends Node {
+
+  // todo for jackson
+  public UnresolvedPlan() {
+
+  }
+
   @Override
   public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {
     return nodeVisitor.visitChildren(this, context);

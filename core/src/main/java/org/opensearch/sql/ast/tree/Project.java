@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -23,6 +24,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @ToString
 @Getter
 @EqualsAndHashCode(callSuper = false)
+@NoArgsConstructor
 public class Project extends UnresolvedPlan {
   @Setter
   private List<UnresolvedExpression> projectList;

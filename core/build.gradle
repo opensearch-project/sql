@@ -45,6 +45,9 @@ dependencies {
     api group: 'org.apache.commons', name: 'commons-lang3', version: '3.10'
     api group: 'com.facebook.presto', name: 'presto-matching', version: '0.240'
     api group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
+    api group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${jackson_version}"
+    api group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${jackson_version}"
+    api group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: "${jackson_version}"
     api project(':common')
 
     testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')
