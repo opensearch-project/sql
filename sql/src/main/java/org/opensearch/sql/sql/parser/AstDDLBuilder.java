@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.sql.parser;
 
+import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ddl.view.ViewConfig.DistributeOption;
 import static org.opensearch.sql.ddl.view.ViewConfig.RefreshMode;
 import static org.opensearch.sql.ddl.view.ViewDefinition.ViewType;
@@ -19,8 +20,10 @@ import org.opensearch.sql.ast.tree.DataDefinitionPlan;
 import org.opensearch.sql.ddl.Column;
 import org.opensearch.sql.ddl.DataDefinitionTask;
 import org.opensearch.sql.ddl.view.CreateMaterializedViewTask;
+import org.opensearch.sql.ddl.view.RefreshMaterializedViewTask;
 import org.opensearch.sql.ddl.view.ViewConfig;
 import org.opensearch.sql.ddl.view.ViewDefinition;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
 
 
@@ -52,6 +55,14 @@ public class AstDDLBuilder extends OpenSearchSQLParserBaseVisitor<DataDefinition
         definition,
         new ViewConfig(RefreshMode.MANUAL, DistributeOption.EVEN)
     );
+  }
+
+  @Override
+  public DataDefinitionTask visitRefreshMaterializedView(
+      OpenSearchSQLParser.RefreshMaterializedViewContext ctx) {
+    String viewName = ctx.tableName().getText();
+
+    return new RefreshMaterializedViewTask(qualifiedName(viewName));
   }
 
   @Override

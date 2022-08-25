@@ -7,12 +7,14 @@
 package org.opensearch.sql.opensearch.executor.protector;
 
 import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.ast.tree.Delete;
 import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.planner.physical.AggregationOperator;
 import org.opensearch.sql.planner.physical.DataDefinitionOperator;
 import org.opensearch.sql.planner.physical.DedupeOperator;
+import org.opensearch.sql.planner.physical.DeleteOperator;
 import org.opensearch.sql.planner.physical.EvalOperator;
 import org.opensearch.sql.planner.physical.FilterOperator;
 import org.opensearch.sql.planner.physical.LimitOperator;
@@ -49,6 +51,11 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
 
   @Override
   public PhysicalPlan visitWrite(WriteOperator node, Object context) {
+    return node; // TODO: clone node.input
+  }
+
+  @Override
+  public PhysicalPlan visitDelete(DeleteOperator node, Object context) {
     return node; // TODO: clone node.input
   }
 

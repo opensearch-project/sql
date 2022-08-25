@@ -19,11 +19,14 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.logging.log4j.ThreadContext;
+import org.opensearch.action.ActionFuture;
+import org.opensearch.action.ActionListener;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.action.bulk.BulkRequestBuilder;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.action.support.WriteRequest;
+import org.opensearch.client.Response;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.AliasMetadata;
@@ -35,10 +38,17 @@ import org.opensearch.common.collect.ImmutableOpenMap;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.IndexSettings;
+import org.opensearch.index.query.MatchAllQueryBuilder;
+import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.reindex.BulkByScrollResponse;
+import org.opensearch.index.reindex.DeleteByQueryAction;
+import org.opensearch.index.reindex.DeleteByQueryRequest;
 import org.opensearch.sql.ddl.Column;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
+import org.opensearch.tasks.Task;
+import org.opensearch.tasks.TaskListener;
 import org.opensearch.threadpool.ThreadPool;
 
 /** OpenSearch connection by node client. */
@@ -198,6 +208,17 @@ public class OpenSearchNodeClient implements OpenSearchClient {
 
   private String[] resolveIndexExpression(ClusterState state, String[] indices) {
     return resolver.concreteIndexNames(state, IndicesOptions.strictExpandOpen(), true, indices);
+  }
+
+  @Override
+  public void delete(String indexName) {
+    DeleteByQueryRequest deleteByQueryRequest = new DeleteByQueryRequest();
+    deleteByQueryRequest.indices(indexName);
+    deleteByQueryRequest.setQuery(new MatchAllQueryBuilder());
+
+    ActionFuture<BulkByScrollResponse> ret =
+        client.execute(DeleteByQueryAction.INSTANCE, deleteByQueryRequest);
+    BulkByScrollResponse response = ret.actionGet();
   }
 
   private Map<String, IndexMapping> populateIndexMappings(

@@ -109,6 +109,7 @@ USING:                              'USING';
 VIEW:                               'VIEW';
 WHEN:                               'WHEN';
 WHERE:                              'WHERE';
+REFRESH:                            'REFRESH';
 
 
 // OD SQL special keyword

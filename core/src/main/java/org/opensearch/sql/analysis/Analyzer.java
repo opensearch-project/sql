@@ -42,6 +42,7 @@ import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.DataDefinitionPlan;
 import org.opensearch.sql.ast.tree.Dedupe;
+import org.opensearch.sql.ast.tree.Delete;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
@@ -73,6 +74,7 @@ import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalDataDefinitionPlan;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
+import org.opensearch.sql.planner.logical.LogicalDelete;
 import org.opensearch.sql.planner.logical.LogicalEval;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalLimit;
@@ -136,6 +138,16 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
         .map(QualifiedName::toString).collect(Collectors.toList());
     LogicalPlan child = node.getChild().get(0).accept(this, context);
     return new LogicalWrite(child, tableName, columnNames, table);
+  }
+
+  @Override
+  public LogicalPlan visitDelete(Delete node, AnalysisContext context) {
+    String tableName = node.getTableName().toString();
+    Table table = catalogService
+        .getStorageEngine(tableName)
+        .getTable(tableName);
+
+    return new LogicalDelete(null, tableName, table);
   }
 
   @Override

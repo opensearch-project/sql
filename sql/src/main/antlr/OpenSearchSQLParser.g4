@@ -104,8 +104,7 @@ createMaterializedView
     ;
 
 refreshMaterializedView
-    : REFRESH MATERIALIZED VIEW
-       tableName
+    : REFRESH MATERIALIZED VIEW tableName
     ;
 
 createDefinitions

@@ -9,6 +9,7 @@ package org.opensearch.sql.planner;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalDataDefinitionPlan;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
+import org.opensearch.sql.planner.logical.LogicalDelete;
 import org.opensearch.sql.planner.logical.LogicalEval;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalLimit;
@@ -140,6 +141,12 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
   public PhysicalPlan visitWrite(LogicalWrite node, C context) {
     throw new UnsupportedOperationException("Storage engine is responsible for "
         + "implementing and optimizing logical plan with write involved");
+  }
+
+  @Override
+  public PhysicalPlan visitDelete(LogicalDelete node, C context) {
+    throw new UnsupportedOperationException("Storage engine is responsible for "
+        + "implementing and optimizing logical plan with delete involved");
   }
 
   protected PhysicalPlan visitChild(LogicalPlan node, C context) {

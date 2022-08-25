@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.expression.QualifiedName;
-import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -49,7 +48,7 @@ public class RefreshMaterializedViewTask extends DataDefinitionTask {
               ),
               field("query"), field("columns")));
 
-//      queryService.execute(deleteAll(viewName));
+      queryService.execute(deleteAll(viewName));
 
       ExprTupleValue value = (ExprTupleValue) resp.getResults().get(0);
       ExprValue queryString = value.tupleValue().get("query");

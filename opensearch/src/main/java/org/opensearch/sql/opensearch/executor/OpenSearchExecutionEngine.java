@@ -32,17 +32,15 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
 
   @Override
   public QueryResponse execute(PhysicalPlan physicalPlan) {
-    return doPrivileged(() -> {
-      try (PhysicalPlan plan = executionProtector.protect(physicalPlan)) {
-        List<ExprValue> result = new ArrayList<>();
-        plan.open();
+    try (PhysicalPlan plan = executionProtector.protect(physicalPlan)) {
+      List<ExprValue> result = new ArrayList<>();
+      plan.open();
 
-        while (plan.hasNext()) {
-          result.add(plan.next());
-        }
-        return new QueryResponse(physicalPlan.schema(), result);
+      while (plan.hasNext()) {
+        result.add(plan.next());
       }
-    });
+      return new QueryResponse(physicalPlan.schema(), result);
+    }
   }
 
   @Override

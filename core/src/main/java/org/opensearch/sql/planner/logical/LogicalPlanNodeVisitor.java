@@ -26,6 +26,10 @@ public abstract class LogicalPlanNodeVisitor<R, C> {
     return visitNode(plan, context);
   }
 
+  public R visitDelete(LogicalDelete plan, C context) {
+    return visitNode(plan, context);
+  }
+
   public R visitRelation(LogicalRelation plan, C context) {
     return visitNode(plan, context);
   }

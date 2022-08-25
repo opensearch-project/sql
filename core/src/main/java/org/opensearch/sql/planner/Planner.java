@@ -11,6 +11,7 @@ package org.opensearch.sql.planner;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.planner.logical.LogicalDelete;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
 import org.opensearch.sql.planner.logical.LogicalRelation;
@@ -87,6 +88,12 @@ public class Planner {
 
       @Override
       public Void visitRelation(LogicalRelation plan, List<Table> context) {
+        context.set(0, plan.getTable());
+        return null;
+      }
+
+      @Override
+      public Void visitDelete(LogicalDelete plan, List<Table> context) {
         context.set(0, plan.getTable());
         return null;
       }

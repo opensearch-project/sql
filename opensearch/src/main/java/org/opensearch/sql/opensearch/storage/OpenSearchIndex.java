@@ -33,6 +33,7 @@ import org.opensearch.sql.opensearch.storage.script.sort.SortQueryBuilder;
 import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
 import org.opensearch.sql.planner.DefaultImplementor;
 import org.opensearch.sql.planner.logical.LogicalAD;
+import org.opensearch.sql.planner.logical.LogicalDelete;
 import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
@@ -220,6 +221,11 @@ public class OpenSearchIndex implements Table {
     public PhysicalPlan visitWrite(LogicalWrite node, OpenSearchIndexScan context) {
       return new OpenSearchIndexWrite(client, visitChild(node, context),
           node.getTableName(), node.getColumnNames());
+    }
+
+    @Override
+    public PhysicalPlan visitDelete(LogicalDelete node, OpenSearchIndexScan context) {
+      return new OpenSearchIndexDelete(client, null, node.getTableName());
     }
 
     @Override
