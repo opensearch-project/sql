@@ -30,6 +30,7 @@ import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.DataDefinitionPlan;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
@@ -71,6 +72,12 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
    */
   public String anonymizeData(UnresolvedPlan plan) {
     return plan.accept(this, null);
+  }
+
+  @Override
+  public String visitDataDefinitionPlan(DataDefinitionPlan node, String context) {
+    // todo.
+    return StringUtils.format("view");
   }
 
   @Override

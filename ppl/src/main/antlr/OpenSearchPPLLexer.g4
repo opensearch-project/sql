@@ -312,6 +312,12 @@ TIE_BREAKER:                        'TIE_BREAKER';
 TYPE:                               'TYPE';
 ZERO_TERMS_QUERY:                   'ZERO_TERMS_QUERY';
 
+CREATE:                             'CREATE';
+MATERIALIZED:                       'MATERIALIZED';
+VIEW:                               'VIEW';
+REFRESH:                            'REFRESH';
+
+
 // SPAN KEYWORDS
 SPAN:                               'SPAN';
 MS:                                 'MS';

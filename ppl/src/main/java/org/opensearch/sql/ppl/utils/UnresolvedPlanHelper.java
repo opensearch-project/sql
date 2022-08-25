@@ -9,6 +9,7 @@ package org.opensearch.sql.ppl.utils;
 import com.google.common.collect.ImmutableList;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.tree.DataDefinitionPlan;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 
@@ -22,7 +23,7 @@ public class UnresolvedPlanHelper {
    * Attach Select All to PPL commands if required.
    */
   public UnresolvedPlan addSelectAll(UnresolvedPlan plan) {
-    if ((plan instanceof Project) && !((Project) plan).isExcluded()) {
+    if ((plan instanceof Project) && !((Project) plan).isExcluded() || (plan instanceof DataDefinitionPlan)) {
       return plan;
     } else {
       return new Project(ImmutableList.of(AllFields.of())).attach(plan);

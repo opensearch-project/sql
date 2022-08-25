@@ -24,6 +24,7 @@ import org.opensearch.action.ActionListener;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.action.bulk.BulkRequestBuilder;
+import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.Response;
@@ -93,7 +94,9 @@ public class OpenSearchNodeClient implements OpenSearchClient {
       builder.add(client.prepareIndex().setSource(row).request());
     }
     builder.setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL);
-    builder.get();
+    final BulkResponse bulkItemResponses = builder.get();
+
+    String resp = bulkItemResponses.buildFailureMessage();
   }
 
   /**

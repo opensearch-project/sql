@@ -14,7 +14,49 @@ root
 
 /** statement */
 pplStatement
+    : dmlStatement | ddlStatement
+    ;
+
+dmlStatement
     : pplCommands (PIPE commands)*
+    ;
+
+ddlStatement
+    : createMaterializedView
+    | refreshMaterializedView
+    ;
+
+createMaterializedView
+    : CREATE MATERIALIZED VIEW
+       tableName createDefinitions
+       AS dmlStatement
+    ;
+
+refreshMaterializedView
+    : REFRESH MATERIALIZED VIEW tableName
+    ;
+
+createDefinitions
+    : LT_PRTHS createDefinition (COMMA createDefinition)* RT_PRTHS
+    ;
+
+createDefinition
+    : columnName dataType
+    ;
+
+dataType
+    : typeName=STRING
+    | typeName=INTEGER
+    | typeName=DOUBLE
+    | typeName=DATE
+    ;
+
+tableName
+    : qualifiedName
+    ;
+
+columnName
+    : qualifiedName
     ;
 
 /** commands */

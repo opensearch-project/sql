@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
-import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ddl.Column;
 import org.opensearch.sql.ddl.DataDefinitionTask;
@@ -77,7 +76,7 @@ public class CreateMaterializedViewTask extends DataDefinitionTask {
 
       // 3.Trigger view refresh
       queryService.execute(refreshMaterializedView(qualifiedName(definition.getViewName())));
-    } catch (Exception e) {
+    } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }
   }

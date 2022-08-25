@@ -21,6 +21,7 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
+import org.opensearch.sql.ddl.QueryService;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
@@ -100,6 +101,7 @@ public class TransportPPLQueryAction
           context.registerBean(Settings.class, () -> pluginSettings);
           context.register(OpenSearchPluginConfig.class);
           context.register(PPLServiceConfig.class);
+          context.register(QueryService.class);
           context.refresh();
           return context.getBean(PPLService.class);
         });

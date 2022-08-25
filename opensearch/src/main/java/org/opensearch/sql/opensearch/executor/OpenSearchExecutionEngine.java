@@ -85,13 +85,4 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       }
     });
   }
-
-  private <T> T doPrivileged(PrivilegedExceptionAction<T> action) {
-    try {
-      return SecurityAccess.doPrivileged(action);
-    } catch (IOException e) {
-      throw new IllegalStateException("Failed to perform privileged action", e);
-    }
-  }
-
 }

@@ -82,7 +82,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   private final String query;
 
   @Override
-  public UnresolvedPlan visitPplStatement(PplStatementContext ctx) {
+  public UnresolvedPlan visitDmlStatement(OpenSearchPPLParser.DmlStatementContext ctx) {
     UnresolvedPlan pplCommand = visit(ctx.pplCommands());
     return ctx.commands()
         .stream()
