@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.data.model;
 
+import java.time.Instant;
 import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -66,8 +67,16 @@ public class ExprValueUtils {
    */
   public static ExprValue tupleValue(Map<String, Object> map) {
     LinkedHashMap<String, ExprValue> valueMap = new LinkedHashMap<>();
-    map.forEach((k, v) -> valueMap
-        .put(k, v instanceof ExprValue ? (ExprValue) v : fromObjectValue(v)));
+    map.forEach((k, v) -> {
+      // todo. add format.
+      if (k.startsWith("@timestamp")) {
+        valueMap.put(k, v instanceof ExprValue ? (ExprValue) v :
+            longValue(Integer.valueOf((int) v).longValue() * 1000));
+      } else {
+        valueMap.put(k, v instanceof ExprValue ? (ExprValue) v : fromObjectValue(v));
+      }
+
+    });
     return new ExprTupleValue(valueMap);
   }
 

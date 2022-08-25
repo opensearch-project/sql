@@ -46,7 +46,7 @@ public class OpenSearchStorageEngine implements StorageEngine {
       if (fieldType.equals("string")) {
         field.put("type", "keyword");
       } else if (fieldType.equals("date")) {
-        field.put("format",  "yyyy-MM-dd HH:mm:ss||strict_date_optional_time||epoch_second");
+        field.put("format",  "yyyy-MM-dd HH:mm:ss||strict_date_optional_time||epoch_millis");
         field.put("type", fieldType);
       } else {
         field.put("type", fieldType);

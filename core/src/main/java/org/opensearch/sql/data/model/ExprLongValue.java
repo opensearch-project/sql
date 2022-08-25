@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.data.model;
 
+import java.time.Instant;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 
@@ -41,5 +42,10 @@ public class ExprLongValue extends AbstractExprNumberValue {
   @Override
   public boolean equal(ExprValue other) {
     return longValue().equals(other.longValue());
+  }
+
+  @Override
+  public Instant timestampValue() {
+    return Instant.ofEpochMilli(longValue());
   }
 }
