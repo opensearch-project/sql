@@ -285,6 +285,24 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifySchema(result,
         schema("DATETIME('2008-01-01 02:00:00+12:00', '-12:00')", null, "datetime"));
     verifyDataRows(result, rows("2007-12-31 02:00:00"));
+
+    result = executeQuery(
+        "SELECT DATETIME('2008-01-01 02:00:00+15:00', '-12:00')");
+    verifySchema(result,
+        schema("DATETIME('2008-01-01 02:00:00+15:00', '-12:00')", null, "datetime"));
+    verifyDataRows(result, rows(new Object[]{null}));
+
+    result = executeQuery(
+        "SELECT DATETIME('2008-01-01 02:00:00+10:00', '-13:00')");
+    verifySchema(result,
+        schema("DATETIME('2008-01-01 02:00:00+10:00', '-13:00')", null, "datetime"));
+    verifyDataRows(result, rows(new Object[]{null}));
+
+    result = executeQuery(
+        "SELECT DATETIME('2008-01-01 02:00:00', '-13:00')");
+    verifySchema(result,
+        schema("DATETIME('2008-01-01 02:00:00', '-13:00')", null, "datetime"));
+    verifyDataRows(result, rows(new Object[]{null}));
   }
 
   @Test

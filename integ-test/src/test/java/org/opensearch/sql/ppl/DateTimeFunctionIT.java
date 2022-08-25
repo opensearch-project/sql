@@ -230,6 +230,30 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySchema(result,
         schema("f", null, "datetime"));
     verifySome(result.getJSONArray("datarows"), rows("2008-01-01 02:00:00"));
+
+    result =
+        executeQuery(String.format(
+            "source=%s | eval f = DATETIME('2008-01-01 02:00:00+15:00', '-12:00') | fields f",
+            TEST_INDEX_DATE));
+    verifySchema(result,
+        schema("f", null, "datetime"));
+    verifySome(result.getJSONArray("datarows"), rows(new Object[]{null}));
+
+    result =
+        executeQuery(String.format(
+            "source=%s | eval f = DATETIME('2008-01-01 02:00:00+10:00', '-13:00') | fields f",
+            TEST_INDEX_DATE));
+    verifySchema(result,
+        schema("f", null, "datetime"));
+    verifySome(result.getJSONArray("datarows"), rows(new Object[]{null}));
+
+    result =
+        executeQuery(String.format(
+            "source=%s | eval f = DATETIME('2008-01-01 02:00:00', '-13:00') | fields f",
+            TEST_INDEX_DATE));
+    verifySchema(result,
+        schema("f", null, "datetime"));
+    verifySome(result.getJSONArray("datarows"), rows(new Object[]{null}));
   }
 
   @Test
