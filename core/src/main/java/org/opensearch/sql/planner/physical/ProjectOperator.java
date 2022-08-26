@@ -20,7 +20,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.NamedExpression;
-import org.opensearch.sql.expression.ParseExpression;
+import org.opensearch.sql.expression.parse.ParseExpression;
 
 /**
  * Project the fields specified in {@link ProjectOperator#projectList} from input.

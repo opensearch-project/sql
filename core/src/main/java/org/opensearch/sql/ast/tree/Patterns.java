@@ -16,7 +16,6 @@ import lombok.Setter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Literal;
-import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 /**
@@ -28,21 +27,11 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
 @AllArgsConstructor
-public class Parse extends UnresolvedPlan {
+public class Patterns extends UnresolvedPlan {
   /**
-   * Method used to parse a field.
-   */
-  private final ParseMethod parseMethod;
-
-  /**
-   * Field.
+   * Function call (e.g. punct()).
    */
   private final UnresolvedExpression expression;
-
-  /**
-   * Pattern.
-   */
-  private final Literal pattern;
 
   /**
    * Child Plan.
@@ -50,7 +39,7 @@ public class Parse extends UnresolvedPlan {
   private UnresolvedPlan child;
 
   @Override
-  public Parse attach(UnresolvedPlan child) {
+  public Patterns attach(UnresolvedPlan child) {
     this.child = child;
     return this;
   }
@@ -62,6 +51,6 @@ public class Parse extends UnresolvedPlan {
 
   @Override
   public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {
-    return nodeVisitor.visitParse(this, context);
+    return nodeVisitor.visitPatterns(this, context);
   }
 }

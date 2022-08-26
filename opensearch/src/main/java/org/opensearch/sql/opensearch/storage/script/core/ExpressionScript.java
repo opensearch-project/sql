@@ -25,7 +25,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
-import org.opensearch.sql.expression.ParseExpression;
+import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;

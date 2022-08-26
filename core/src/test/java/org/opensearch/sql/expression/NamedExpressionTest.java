@@ -13,6 +13,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)

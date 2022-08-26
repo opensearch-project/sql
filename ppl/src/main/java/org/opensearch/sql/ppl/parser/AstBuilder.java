@@ -41,6 +41,7 @@ import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
+import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
@@ -274,9 +275,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitParseCommand(OpenSearchPPLParser.ParseCommandContext ctx) {
     UnresolvedExpression expression = internalVisitExpression(ctx.expression());
+    ParseMethod parseMethod = ctx.parseMethod() == null ? ParseMethod.REGEX :
+        ParseMethod.valueOf(ctx.parseMethod().children.get(0).toString().toUpperCase());
     Literal pattern = (Literal) internalVisitExpression(ctx.pattern());
 
-    return new Parse(expression, pattern);
+    return new Parse(parseMethod, expression, pattern);
   }
 
   /**

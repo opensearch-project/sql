@@ -35,7 +35,7 @@ import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.NamedExpression;
-import org.opensearch.sql.expression.ParseExpression;
+import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)

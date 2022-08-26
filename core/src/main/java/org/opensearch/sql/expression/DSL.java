@@ -9,6 +9,7 @@ package org.opensearch.sql.expression;
 import java.util.Arrays;
 import java.util.Collections;
 import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.data.model.ExprShortValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -20,8 +21,10 @@ import org.opensearch.sql.expression.conditional.cases.CaseClause;
 import org.opensearch.sql.expression.conditional.cases.WhenClause;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.expression.window.ranking.RankingWindowFunction;
+import org.opensearch.sql.utils.ParseUtils;
 
 @RequiredArgsConstructor
 public class DSL {
@@ -122,9 +125,9 @@ public class DSL {
     return namedArgument(name, literal(value));
   }
 
-  public static ParseExpression parsed(Expression expression, Expression pattern,
-                                       Expression identifier) {
-    return new ParseExpression(expression, pattern, identifier);
+  public static ParseExpression parsed(ParseMethod parseMethod, Expression expression,
+                                       Expression pattern, Expression identifier) {
+    return ParseUtils.getParseExpression(parseMethod, expression, pattern, identifier);
   }
 
   public static SpanExpression span(Expression field, Expression value, String unit) {

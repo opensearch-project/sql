@@ -7,47 +7,38 @@
 package org.opensearch.sql.utils;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Map;
 import lombok.experimental.UtilityClass;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.opensearch.sql.data.model.ExprStringValue;
-import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.model.ExprValueUtils;
-import org.opensearch.sql.exception.ExpressionEvaluationException;
-import org.opensearch.sql.expression.ParseExpression;
+import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.parse.ParseExpression;
+import org.opensearch.sql.expression.parse.PunctExpression;
+import org.opensearch.sql.expression.parse.RegexExpression;
 
 /**
  * Utils for {@link ParseExpression}.
  */
 @UtilityClass
 public class ParseUtils {
-  private static final Logger log = LogManager.getLogger(ParseUtils.class);
-  private static final Pattern GROUP_PATTERN = Pattern.compile("\\(\\?<([a-zA-Z][a-zA-Z0-9]*)>");
+  private static final Map<ParseMethod, ParseExpressionFactory> FACTORY_MAP = ImmutableMap.of(
+      ParseMethod.REGEX, RegexExpression::new,
+      ParseMethod.PUNCT, PunctExpression::new
+  );
 
   /**
-   * Get matched group value, throws ExpressionEvaluationException if value type is not string.
+   * Construct corresponding ParseExpression by {@link ParseMethod}.
    *
-   * @param value      text field
-   * @param pattern    regex pattern
-   * @param identifier named capture group
-   * @return matched group value, empty string if pattern does not match
+   * @param parseMethod
+   * @param expression
+   * @param rawPattern
+   * @param identifier
+   * @return
    */
-  public static ExprValue parseValue(ExprValue value, Pattern pattern, String identifier)
-      throws ExpressionEvaluationException {
-    if (value.isNull() || value.isMissing()) {
-      return ExprValueUtils.nullValue();
-    }
-
-    String rawString = value.stringValue();
-    Matcher matcher = pattern.matcher(rawString);
-    if (matcher.matches()) {
-      return new ExprStringValue(matcher.group(identifier));
-    }
-    log.warn("failed to extract pattern {} from input {}", pattern.pattern(), rawString);
-    return new ExprStringValue("");
+  public static ParseExpression getParseExpression(ParseMethod parseMethod, Expression expression,
+                                                   Expression rawPattern, Expression identifier) {
+    return FACTORY_MAP.get(parseMethod).initialize(parseMethod, expression, rawPattern, identifier);
   }
 
   /**
@@ -56,12 +47,19 @@ public class ParseUtils {
    * @param pattern regex pattern
    * @return list of named capture groups in regex pattern
    */
-  public static List<String> getNamedGroupCandidates(String pattern) {
-    ImmutableList.Builder<String> namedGroups = ImmutableList.builder();
-    Matcher m = GROUP_PATTERN.matcher(pattern);
-    while (m.find()) {
-      namedGroups.add(m.group(1));
+  public static List<String> getNamedGroupCandidates(ParseMethod parseMethod, String pattern) {
+    switch (parseMethod) {
+      case REGEX:
+        return RegexExpression.getNamedGroupCandidates(pattern);
+      case PUNCT:
+        return PunctExpression.getNamedGroupCandidates(pattern);
+      default:
+        return ImmutableList.of();
     }
-    return namedGroups.build();
+  }
+
+  private interface ParseExpressionFactory {
+    ParseExpression initialize(ParseMethod parseMethod, Expression expression,
+                               Expression rawPattern, Expression identifier);
   }
 }

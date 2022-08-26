@@ -94,8 +94,12 @@ rareCommand
     (byClause)?
     ;
 
+parseMethod
+    : REGEX | PUNCT
+    ;
+
 parseCommand
-    : PARSE expression pattern
+    : PARSE (METHOD EQUAL parseMethod)? expression pattern
     ;
     
 kmeansCommand

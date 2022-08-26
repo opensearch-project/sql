@@ -52,7 +52,7 @@ import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
 import org.opensearch.sql.expression.NamedExpression;
-import org.opensearch.sql.expression.ParseExpression;
+import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.AggregationState;
 import org.opensearch.sql.expression.aggregation.Aggregator;
