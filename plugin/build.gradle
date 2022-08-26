@@ -88,6 +88,8 @@ configurations.all {
     resolutionStrategy.force 'com.google.guava:guava:31.0.1-jre'
     resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${jackson_version}"
     resolutionStrategy.force "com.fasterxml.jackson.core:jackson-databind:${jackson_version}"
+    // resolve conflict with java-grok
+    resolutionStrategy.force 'org.apache.commons:commons-lang3:3.10'
 }
 compileJava {
     options.compilerArgs.addAll(["-processor", 'lombok.launch.AnnotationProcessorHider$AnnotationProcessor'])

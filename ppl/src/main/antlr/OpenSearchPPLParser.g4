@@ -95,7 +95,7 @@ rareCommand
     ;
 
 parseMethod
-    : REGEX | PUNCT
+    : REGEX | PUNCT | GROK
     ;
 
 parseCommand

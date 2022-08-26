@@ -26,6 +26,7 @@ public abstract class ParseExpression extends FunctionExpression {
   protected final Expression rawPattern;
   @Getter
   protected final Expression identifier;
+  protected final String identifierStr;
   @Getter
   protected final ParseMethod method;
 
@@ -44,5 +45,6 @@ public abstract class ParseExpression extends FunctionExpression {
     this.expression = expression;
     this.rawPattern = rawPattern;
     this.identifier = identifier;
+    this.identifierStr = identifier.valueOf(null).stringValue();
   }
 }

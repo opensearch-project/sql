@@ -5,12 +5,13 @@
 
 package org.opensearch.sql.expression.parse;
 
-import com.google.common.collect.ImmutableList;
+import io.krakens.grok.api.Grok;
+import io.krakens.grok.api.GrokCompiler;
+import io.krakens.grok.api.Match;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
 import lombok.ToString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -31,25 +32,28 @@ import org.opensearch.sql.expression.env.Environment;
  */
 @EqualsAndHashCode
 @ToString
-public class RegexExpression extends ParseExpression {
-  private static final Logger log = LogManager.getLogger(RegexExpression.class);
-  private static final Pattern GROUP_PATTERN = Pattern.compile("\\(\\?<([a-zA-Z][a-zA-Z0-9]*)>");
-  @Getter
-  @EqualsAndHashCode.Exclude
-  private final Pattern pattern;
+public class GrokExpression extends ParseExpression {
+  private static final Logger log = LogManager.getLogger(GrokExpression.class);
+  private static final GrokCompiler grokCompiler = GrokCompiler.newInstance();
+
+  static {
+    grokCompiler.registerDefaultPatterns();
+  }
+
+  private final Grok grok;
 
   /**
-   * RegexExpression.
+   * PunctExpression.
    *
    * @param method     method used to parse
    * @param expression text field
    * @param rawPattern pattern
    * @param identifier named capture group to extract
    */
-  public RegexExpression(ParseMethod method, Expression expression, Expression rawPattern,
-                         Expression identifier) {
+  public GrokExpression(ParseMethod method, Expression expression, Expression rawPattern,
+                        Expression identifier) {
     super(method, expression, rawPattern, identifier);
-    this.pattern = Pattern.compile(rawPattern.valueOf(null).stringValue());
+    this.grok = grokCompiler.compile(rawPattern.valueOf(null).stringValue());
   }
 
   @Override
@@ -59,12 +63,15 @@ public class RegexExpression extends ParseExpression {
       return ExprValueUtils.nullValue();
     }
     String rawString = value.stringValue();
+    Match grokMatch = grok.match(rawString);
+    Map<String, Object> capture = grokMatch.capture();
     try {
-      Matcher matcher = pattern.matcher(rawString);
-      if (matcher.matches()) {
-        return new ExprStringValue(matcher.group(identifierStr));
+      Object match = capture.get(identifierStr);
+      if (match != null) {
+        return new ExprStringValue(match.toString());
       }
-      log.warn("failed to extract pattern {} from input {}", pattern.pattern(), rawString);
+      log.warn("failed to extract pattern {} from input {}", grok.getOriginalGrokPattern(),
+          rawString);
       return new ExprStringValue("");
     } catch (ExpressionEvaluationException e) {
       throw new SemanticCheckException(
@@ -83,11 +90,8 @@ public class RegexExpression extends ParseExpression {
   }
 
   public static List<String> getNamedGroupCandidates(String pattern) {
-    ImmutableList.Builder<String> namedGroups = ImmutableList.builder();
-    Matcher m = GROUP_PATTERN.matcher(pattern);
-    while (m.find()) {
-      namedGroups.add(m.group(1));
-    }
-    return namedGroups.build();
+    Grok grok = grokCompiler.compile(pattern);
+    return grok.namedGroups.stream().map(grok::getNamedRegexCollectionById)
+        .filter(group -> !group.equals("UNWANTED")).collect(Collectors.toUnmodifiableList());
   }
 }

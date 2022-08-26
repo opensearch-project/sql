@@ -25,8 +25,9 @@ TOP:                                'TOP';
 RARE:                               'RARE';
 PARSE:                              'PARSE';
 METHOD:                             'METHOD';
-PUNCT:                              'PUNCT';
 REGEX:                              'REGEX';
+PUNCT:                              'PUNCT';
+GROK:                               'GROK';
 KMEANS:                             'KMEANS';
 AD:                                 'AD';
 

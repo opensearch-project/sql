@@ -13,6 +13,7 @@ import java.util.Map;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.parse.GrokExpression;
 import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.expression.parse.PunctExpression;
 import org.opensearch.sql.expression.parse.RegexExpression;
@@ -24,7 +25,8 @@ import org.opensearch.sql.expression.parse.RegexExpression;
 public class ParseUtils {
   private static final Map<ParseMethod, ParseExpressionFactory> FACTORY_MAP = ImmutableMap.of(
       ParseMethod.REGEX, RegexExpression::new,
-      ParseMethod.PUNCT, PunctExpression::new
+      ParseMethod.PUNCT, PunctExpression::new,
+      ParseMethod.GROK, GrokExpression::new
   );
 
   /**
@@ -53,6 +55,8 @@ public class ParseUtils {
         return RegexExpression.getNamedGroupCandidates(pattern);
       case PUNCT:
         return PunctExpression.getNamedGroupCandidates(pattern);
+      case GROK:
+        return GrokExpression.getNamedGroupCandidates(pattern);
       default:
         return ImmutableList.of();
     }
