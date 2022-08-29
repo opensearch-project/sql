@@ -55,7 +55,7 @@ class NamedExpressionTest extends ExpressionTestBase {
   @Test
   void name_a_parse_expression() {
     ParseExpression parse =
-        DSL.parsed(DSL.ref("string_value", STRING), DSL.literal("(?<group>\\w{2})\\w"),
+        DSL.regex(DSL.ref("string_value", STRING), DSL.literal("(?<group>\\w{2})\\w"),
             DSL.literal("group"));
     NamedExpression named = DSL.named(parse);
     assertEquals(parse, named.getDelegated());

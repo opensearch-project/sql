@@ -112,10 +112,10 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         project(inputPlan, ImmutableList.of(DSL.named("action", DSL.ref("action", STRING))),
             ImmutableList.of(DSL.named("action",
-                DSL.parsed(DSL.ref("response", STRING),
+                DSL.regex(DSL.ref("response", STRING),
                     DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
                     DSL.literal("action"))), DSL.named("response",
-                DSL.parsed(DSL.ref("response", STRING),
+                DSL.regex(DSL.ref("response", STRING),
                     DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
                     DSL.literal("response"))))
         );
@@ -139,10 +139,10 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         project(inputPlan, ImmutableList.of(DSL.named("action", DSL.ref("action", STRING))),
             ImmutableList.of(DSL.named("action",
-                DSL.parsed(DSL.ref("response", STRING),
+                DSL.regex(DSL.ref("response", STRING),
                     DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
                     DSL.literal("action"))), DSL.named("response",
-                DSL.parsed(DSL.ref("response", STRING),
+                DSL.regex(DSL.ref("response", STRING),
                     DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
                     DSL.literal("response"))))
         );

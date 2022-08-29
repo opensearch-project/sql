@@ -32,22 +32,22 @@ public class ParseUtils {
   /**
    * Construct corresponding ParseExpression by {@link ParseMethod}.
    *
-   * @param parseMethod
-   * @param expression
-   * @param rawPattern
-   * @param identifier
-   * @return
+   * @param parseMethod method used to parse
+   * @param sourceField source text field
+   * @param pattern     pattern used for parsing
+   * @param identifier  derived field
+   * @return {@link ParseExpression}
    */
-  public static ParseExpression getParseExpression(ParseMethod parseMethod, Expression expression,
-                                                   Expression rawPattern, Expression identifier) {
-    return FACTORY_MAP.get(parseMethod).initialize(parseMethod, expression, rawPattern, identifier);
+  public static ParseExpression getParseExpression(ParseMethod parseMethod, Expression sourceField,
+                                                   Expression pattern, Expression identifier) {
+    return FACTORY_MAP.get(parseMethod).initialize(sourceField, pattern, identifier);
   }
 
   /**
    * Get capture groups from regex pattern.
    *
-   * @param pattern regex pattern
-   * @return list of named capture groups in regex pattern
+   * @param pattern pattern used for parsing
+   * @return list of names of the derived fields
    */
   public static List<String> getNamedGroupCandidates(ParseMethod parseMethod, String pattern) {
     switch (parseMethod) {
@@ -63,7 +63,7 @@ public class ParseUtils {
   }
 
   private interface ParseExpressionFactory {
-    ParseExpression initialize(ParseMethod parseMethod, Expression expression,
-                               Expression rawPattern, Expression identifier);
+    ParseExpression initialize(Expression sourceField, Expression expression,
+                               Expression identifier);
   }
 }

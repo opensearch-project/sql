@@ -21,7 +21,10 @@ import org.opensearch.sql.expression.conditional.cases.CaseClause;
 import org.opensearch.sql.expression.conditional.cases.WhenClause;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.parse.GrokExpression;
 import org.opensearch.sql.expression.parse.ParseExpression;
+import org.opensearch.sql.expression.parse.PunctExpression;
+import org.opensearch.sql.expression.parse.RegexExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.expression.window.ranking.RankingWindowFunction;
 import org.opensearch.sql.utils.ParseUtils;
@@ -125,9 +128,19 @@ public class DSL {
     return namedArgument(name, literal(value));
   }
 
-  public static ParseExpression parsed(ParseMethod parseMethod, Expression expression,
-                                       Expression pattern, Expression identifier) {
-    return ParseUtils.getParseExpression(parseMethod, expression, pattern, identifier);
+  public static RegexExpression regex(Expression expression, Expression pattern,
+                                      Expression identifier) {
+    return new RegexExpression(expression, pattern, identifier);
+  }
+
+  public static PunctExpression punct(Expression expression, Expression pattern,
+                                      Expression identifier) {
+    return new PunctExpression(expression, pattern, identifier);
+  }
+
+  public static GrokExpression grok(Expression expression, Expression pattern,
+                                      Expression identifier) {
+    return new GrokExpression(expression, pattern, identifier);
   }
 
   public static SpanExpression span(Expression field, Expression value, String unit) {

@@ -21,20 +21,20 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.sql.exception.SemanticCheckException;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-class ParseExpressionTest extends ExpressionTestBase {
+class RegexExpressionTest extends ExpressionTestBase {
 
   @Test
   public void resolve_value() {
     assertEquals(stringValue("st"),
-        DSL.parsed(DSL.ref("string_value", STRING), DSL.literal("(?<group>\\w{2})\\w"),
+        DSL.regex(DSL.ref("string_value", STRING), DSL.literal("(?<group>\\w{2})\\w"),
                 DSL.literal("group"))
             .valueOf(valueEnv()));
     assertEquals(LITERAL_NULL,
-        DSL.parsed(DSL.ref(STRING_TYPE_NULL_VALUE_FIELD, STRING),
+        DSL.regex(DSL.ref(STRING_TYPE_NULL_VALUE_FIELD, STRING),
                 DSL.literal("(?<group>\\w{2})\\w"), DSL.literal("group"))
             .valueOf(valueEnv()));
     assertEquals(LITERAL_NULL,
-        DSL.parsed(DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING),
+        DSL.regex(DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING),
                 DSL.literal("(?<group>\\w{2})\\w"), DSL.literal("group"))
             .valueOf(valueEnv()));
   }
@@ -42,7 +42,7 @@ class ParseExpressionTest extends ExpressionTestBase {
   @Test
   public void resolve_type() {
     assertEquals(STRING,
-        DSL.parsed(DSL.ref("string_value", STRING), DSL.literal("(?<group>\\w{2})\\w"),
+        DSL.regex(DSL.ref("string_value", STRING), DSL.literal("(?<group>\\w{2})\\w"),
             DSL.literal("group")).type());
   }
 
@@ -50,7 +50,7 @@ class ParseExpressionTest extends ExpressionTestBase {
   public void throws_semantic_exception_if_value_type_is_not_string() {
     assertThrows(
         SemanticCheckException.class,
-        () -> DSL.parsed(DSL.ref("boolean_value", BOOLEAN), DSL.literal("(?<group>\\w{2})\\w"),
+        () -> DSL.regex(DSL.ref("boolean_value", BOOLEAN), DSL.literal("(?<group>\\w{2})\\w"),
                 DSL.literal("group"))
             .valueOf(valueEnv()));
   }

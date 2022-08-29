@@ -277,7 +277,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     UnresolvedExpression expression = internalVisitExpression(ctx.expression());
     ParseMethod parseMethod = ctx.parseMethod() == null ? ParseMethod.REGEX :
         ParseMethod.valueOf(ctx.parseMethod().children.get(0).toString().toUpperCase());
-    Literal pattern = (Literal) internalVisitExpression(ctx.pattern());
+    Literal pattern = (Literal) internalVisitExpression(ctx.pattern);
 
     return new Parse(parseMethod, expression, pattern);
   }

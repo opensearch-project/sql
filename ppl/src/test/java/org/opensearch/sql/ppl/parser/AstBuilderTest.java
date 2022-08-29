@@ -50,6 +50,7 @@ import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -602,6 +603,28 @@ public class AstBuilderTest {
     assertEqual("source=t | parse raw \"pattern\"",
         parse(
             relation("t"),
+            ParseMethod.REGEX,
+            field("raw"),
+            stringLiteral("pattern")
+        ));
+    assertEqual("source=t | parse method=regex raw \"pattern\"",
+        parse(
+            relation("t"),
+            ParseMethod.REGEX,
+            field("raw"),
+            stringLiteral("pattern")
+        ));
+    assertEqual("source=t | parse method=punct raw \"pattern\"",
+        parse(
+            relation("t"),
+            ParseMethod.PUNCT,
+            field("raw"),
+            stringLiteral("pattern")
+        ));
+    assertEqual("source=t | parse method=grok raw \"pattern\"",
+        parse(
+            relation("t"),
+            ParseMethod.GROK,
             field("raw"),
             stringLiteral("pattern")
         ));

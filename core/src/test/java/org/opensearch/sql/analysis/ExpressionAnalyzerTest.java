@@ -327,10 +327,10 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
     analysisContext.peek().define(new Symbol(Namespace.FIELD_NAME, "string_field"), STRING);
     analysisContext.getNamedParseExpressions()
         .add(DSL.named("group",
-            DSL.parsed(ref("string_field", STRING), DSL.literal("(?<group>\\d+)"),
+            DSL.regex(ref("string_field", STRING), DSL.literal("(?<group>\\d+)"),
             DSL.literal("group"))));
     assertAnalyzeEqual(
-        DSL.parsed(ref("string_field", STRING), DSL.literal("(?<group>\\d+)"),
+        DSL.regex(ref("string_field", STRING), DSL.literal("(?<group>\\d+)"),
             DSL.literal("group")),
         qualifiedName("group")
     );

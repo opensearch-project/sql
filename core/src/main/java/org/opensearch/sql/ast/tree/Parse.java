@@ -37,7 +37,7 @@ public class Parse extends UnresolvedPlan {
   /**
    * Field.
    */
-  private final UnresolvedExpression expression;
+  private final UnresolvedExpression sourceField;
 
   /**
    * Pattern.

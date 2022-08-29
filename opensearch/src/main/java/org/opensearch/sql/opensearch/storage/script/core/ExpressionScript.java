@@ -96,7 +96,7 @@ public class ExpressionScript {
 
       @Override
       public Object visitParse(ParseExpression node, Set<ReferenceExpression> context) {
-        node.getExpression().accept(this, context);
+        node.getSourceField().accept(this, context);
         return null;
       }
     }, fields);

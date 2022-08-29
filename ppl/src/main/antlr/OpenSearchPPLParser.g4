@@ -94,14 +94,14 @@ rareCommand
     (byClause)?
     ;
 
+parseCommand
+    : PARSE (METHOD EQUAL parseMethod)? (source_field=expression) (pattern=stringLiteral)
+    ;
+
 parseMethod
     : REGEX | PUNCT | GROK
     ;
 
-parseCommand
-    : PARSE (METHOD EQUAL parseMethod)? expression pattern
-    ;
-    
 kmeansCommand
     : KMEANS (kmeansParameter)*
     ;
@@ -443,10 +443,6 @@ decimalLiteral
 
 booleanLiteral
     : TRUE | FALSE
-    ;
-
-pattern
-    : stringLiteral
     ;
 
 intervalUnit

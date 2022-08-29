@@ -47,14 +47,14 @@ class ExpressionNodeVisitorTest {
     assertNull(new WhenClause(literal("test"), literal(10)).accept(visitor, null));
     assertNull(dsl.namedArgument("field", literal("message")).accept(visitor, null));
     assertNull(DSL.span(ref("age", INTEGER), literal(1), "").accept(visitor, null));
-    assertNull(DSL.parsed(ref("name", STRING), DSL.literal("(?<group>\\d+)"), DSL.literal("group"))
+    assertNull(DSL.regex(ref("name", STRING), DSL.literal("(?<group>\\d+)"), DSL.literal("group"))
         .accept(visitor, null));
   }
 
   @Test
   void can_visit_all_types_of_expression_node() {
     Expression expr =
-        DSL.parsed(
+        DSL.regex(
             dsl.castString(
                 dsl.sum(
                     dsl.add(

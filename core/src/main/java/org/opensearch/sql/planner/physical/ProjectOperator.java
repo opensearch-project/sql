@@ -66,7 +66,7 @@ public class ProjectOperator extends PhysicalPlan {
     // TODO needs a better implementation, see https://github.com/opensearch-project/sql/issues/458
     for (NamedExpression expr : namedParseExpressions) {
       ExprValue value = inputValue.bindingTuples()
-          .resolve(((ParseExpression) expr.getDelegated()).getExpression());
+          .resolve(((ParseExpression) expr.getDelegated()).getSourceField());
       if (value.isMissing()) {
         // value will be missing after stats command, read from inputValue if it exists
         // otherwise do nothing since it should not appear as a field

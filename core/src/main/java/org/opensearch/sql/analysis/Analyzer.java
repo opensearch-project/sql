@@ -337,7 +337,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   public LogicalPlan visitParse(Parse node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
     ParseMethod parseMethod = node.getParseMethod();
-    Expression expression = expressionAnalyzer.analyze(node.getExpression(), context);
+    Expression expression = expressionAnalyzer.analyze(node.getSourceField(), context);
     String pattern = (String) node.getPattern().getValue();
     Expression patternExpression = DSL.literal(pattern);
 

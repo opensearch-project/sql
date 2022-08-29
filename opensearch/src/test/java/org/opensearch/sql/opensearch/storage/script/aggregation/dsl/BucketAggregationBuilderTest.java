@@ -87,7 +87,7 @@ class BucketAggregationBuilderTest {
   @Test
   void should_build_bucket_with_parse_expression() {
     ParseExpression parseExpression =
-        DSL.parsed(ref("name.keyword", STRING), DSL.literal("(?<name>\\w+)"), DSL.literal("name"));
+        DSL.regex(ref("name.keyword", STRING), DSL.literal("(?<name>\\w+)"), DSL.literal("name"));
     when(serializer.serialize(parseExpression)).thenReturn("mock-serialize");
     assertEquals(
         "{\n"
