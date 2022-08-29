@@ -6,6 +6,7 @@
 package org.opensearch.sql.ddl;
 
 import lombok.Setter;
+import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.storage.StorageEngine;
 
 /**
@@ -21,6 +22,6 @@ public abstract class DataDefinitionTask {
   /**
    * Execute DDL statement.
    */
-  public abstract void execute();
+  public abstract ExprValue execute();
 
 }

@@ -6,24 +6,22 @@
 package org.opensearch.sql.ddl.view;
 
 import static org.opensearch.sql.ast.dsl.AstDSL.createTable;
+import static org.opensearch.sql.ast.dsl.AstDSL.longLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
-import static org.opensearch.sql.ast.dsl.AstDSL.refreshMaterializedView;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.values;
 import static org.opensearch.sql.ast.dsl.AstDSL.write;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
-import java.security.AccessController;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.ddl.Column;
 import org.opensearch.sql.ddl.DataDefinitionTask;
 
@@ -39,7 +37,7 @@ public class CreateMaterializedViewTask extends DataDefinitionTask {
   private final ViewConfig config;
 
   @Override
-  public void execute() {
+  public ExprValue execute() {
     try {
       // 1.Create mv index
       UnresolvedPlan createViewTable =
@@ -74,19 +72,23 @@ public class CreateMaterializedViewTask extends DataDefinitionTask {
                   qualifiedName("columns")));
       queryService.execute(insertViewMeta);
 
-      // 3.Trigger view refresh
-      queryService.execute(refreshMaterializedView(qualifiedName(definition.getViewName())));
+      // 3.Refresh state views
+      UnresolvedPlan insertStateView =
+          write(
+              values(
+                  Arrays.asList(
+                      stringLiteral(definition.getViewName()),
+                      stringLiteral("view is empty"),
+                      longLiteral(System.currentTimeMillis()))),
+              qualifiedName(".stateviews"),
+              Arrays.asList(
+                  qualifiedName("viewName"),
+                  qualifiedName("viewstatus"),
+                  qualifiedName("timestamp")));
+      queryService.execute(insertStateView);
+      return ExprValueUtils.missingValue();
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
-    }
-  }
-
-  public static <T> T doPrivileged(final PrivilegedExceptionAction<T> operation)
-      throws IOException {
-    try {
-      return AccessController.doPrivileged(operation);
-    } catch (final PrivilegedActionException e) {
-      throw (IOException) e.getCause();
     }
   }
 }

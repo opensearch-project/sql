@@ -5,12 +5,20 @@
 
 package org.opensearch.sql.ddl;
 
+import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
+
+import com.google.common.collect.ImmutableMap;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.analysis.AnalysisContext;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.ast.tree.DataDefinitionPlan;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprTupleValue;
+import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.expression.DSL;
@@ -56,6 +64,21 @@ public class QueryService {
    */
   public QueryResponse execute(UnresolvedPlan ast) {
     return executionEngine.execute(plan(ast));
+  }
+
+  /**
+   * Async call
+   */
+  public ExprValue executeAsync(UnresolvedPlan ast) {
+    // create query Id.
+    String queryId = UUID.randomUUID().toString();
+
+    executionEngine.executeAsync(plan(ast));
+
+    // todo, update query execution table.
+
+    // return queryId.
+    return tupleValue(ImmutableMap.of("message", stringValue(queryId)));
   }
 
   /**

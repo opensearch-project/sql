@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.ddl.DataDefinitionTask;
+import org.opensearch.sql.executor.ExecutionEngine;
 
 /**
  * Data definition physical plan that wraps DDL executable task.
@@ -50,9 +51,9 @@ public class DataDefinitionOperator extends PhysicalPlan {
   public ExprValue next() {
     try {
       counter++;
-      task.execute();
-      return tupleValue(
-          ImmutableMap.of("message", stringValue("1 row impacted")));
+      ExprValue response = task.execute();
+      return response.isMissing() ? tupleValue(
+          ImmutableMap.of("message", stringValue("1 row impacted"))) : response;
     } catch (Exception e) {
       throw new RuntimeException(e); // Throw execution exception?
     }

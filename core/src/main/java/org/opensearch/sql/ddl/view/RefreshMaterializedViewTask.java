@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ddl.view;
 
+import static org.opensearch.sql.ast.dsl.AstDSL.asyncRefreshMaterializedView;
 import static org.opensearch.sql.ast.dsl.AstDSL.deleteAll;
 import static org.opensearch.sql.ast.dsl.AstDSL.equalTo;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
@@ -37,7 +38,7 @@ public class RefreshMaterializedViewTask extends DataDefinitionTask {
   private final QualifiedName viewName;
 
   @Override
-  public void execute() {
+  public ExprValue execute() {
     try {
       // Read from system table to find refresh query
       ExecutionEngine.QueryResponse resp = queryService.execute(
@@ -56,16 +57,17 @@ public class RefreshMaterializedViewTask extends DataDefinitionTask {
 
       NodeSerializer serializer = new NodeSerializer();
       ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-//      UnresolvedPlan query = OBJECT_MAPPER.readValue(queryString.stringValue(),
-//          Project.class);
 
       UnresolvedPlan query = (UnresolvedPlan) serializer.deserializeNode(queryString.stringValue());
       List<String> columns = OBJECT_MAPPER.readValue(columnsString.stringValue(),
           List.class);
-      queryService.execute(write(query, viewName,
-          columns.stream().map(QualifiedName::new).collect(Collectors.toList())));
+
+      // submit async task
+      return queryService.executeAsync(asyncRefreshMaterializedView(write(query, viewName,
+          columns.stream().map(QualifiedName::new).collect(Collectors.toList())),
+          viewName.toString()));
     } catch (JsonProcessingException e) {
-      e.printStackTrace();
+      throw new RuntimeException(e);
     }
   }
 }

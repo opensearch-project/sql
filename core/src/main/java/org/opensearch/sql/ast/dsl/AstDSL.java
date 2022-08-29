@@ -60,6 +60,7 @@ import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Write;
 import org.opensearch.sql.ddl.Column;
 import org.opensearch.sql.ddl.table.CreateTableTask;
+import org.opensearch.sql.ddl.view.AsyncRefreshMaterializedViewTask;
 import org.opensearch.sql.ddl.view.RefreshMaterializedViewTask;
 
 /**
@@ -83,6 +84,11 @@ public class AstDSL {
     return new DataDefinitionPlan(new RefreshMaterializedViewTask(viewName));
   }
 
+  public static UnresolvedPlan asyncRefreshMaterializedView(UnresolvedPlan writePlan,
+                                                            String viewName) {
+    return new DataDefinitionPlan(new AsyncRefreshMaterializedViewTask(writePlan, viewName));
+  }
+
   public static UnresolvedPlan write(UnresolvedPlan input,
                                       QualifiedName tableName,
                                       List<QualifiedName> columnNames) {
@@ -92,6 +98,11 @@ public class AstDSL {
   public static UnresolvedPlan deleteAll(QualifiedName tableName) {
     return new Delete(tableName);
   }
+
+  public static UnresolvedPlan update(QualifiedName tableName) {
+    return new Delete(tableName);
+  }
+
 
   public static UnresolvedPlan relation(String tableName) {
     return new Relation(qualifiedName(tableName));

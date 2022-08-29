@@ -28,6 +28,10 @@ public interface ExecutionEngine {
     return null;
   }
 
+  default void executeAsync(PhysicalPlan plan) {
+    return;
+  }
+
   /**
    * Execute physical plan and call back response listener.
    *

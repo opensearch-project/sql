@@ -66,6 +66,20 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         });
   }
 
+  // execute plan async.
+  @Override
+  public void executeAsync(PhysicalPlan physicalPlan) {
+    try (PhysicalPlan plan = executionProtector.protect(physicalPlan)) {
+      client.schedule(
+          () -> {
+            plan.open();
+            while (plan.hasNext()) {
+              plan.next();
+            }
+          });
+    }
+  }
+
   @Override
   public void explain(PhysicalPlan plan, ResponseListener<ExplainResponse> listener) {
     client.schedule(() -> {
