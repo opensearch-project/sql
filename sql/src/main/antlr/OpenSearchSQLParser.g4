@@ -67,6 +67,7 @@ selectStatement
 adminStatement
     : showStatement
     | describeStatement
+    | describeMaterializedView
     ;
 
 showStatement
@@ -105,6 +106,10 @@ createMaterializedView
 
 refreshMaterializedView
     : REFRESH MATERIALIZED VIEW tableName
+    ;
+
+describeMaterializedView
+    : DESCRIBE MATERIALIZED VIEW tableName
     ;
 
 createDefinitions

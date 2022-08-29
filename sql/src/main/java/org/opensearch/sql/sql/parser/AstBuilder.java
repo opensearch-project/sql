@@ -7,7 +7,17 @@
 package org.opensearch.sql.sql.parser;
 
 import static java.util.Collections.emptyList;
+import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.equalTo;
+import static org.opensearch.sql.ast.dsl.AstDSL.field;
+import static org.opensearch.sql.ast.dsl.AstDSL.filter;
+import static org.opensearch.sql.ast.dsl.AstDSL.limit;
+import static org.opensearch.sql.ast.dsl.AstDSL.project;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
+import static org.opensearch.sql.ast.dsl.AstDSL.relation;
+import static org.opensearch.sql.ast.dsl.AstDSL.sort;
+import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
+import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.FromClauseContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.HavingClauseContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.SelectClauseContext;
@@ -20,12 +30,14 @@ import static org.opensearch.sql.utils.SystemIndexUtils.TABLE_INFO;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.Filter;
@@ -33,6 +45,7 @@ import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
+import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
@@ -79,6 +92,21 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
       return new Project(Collections.singletonList(AllFields.of()))
           .attach(new Filter(visitAstExpression(ctx.columnFilter())).attach(table));
     }
+  }
+
+  @Override
+  public UnresolvedPlan visitDescribeMaterializedView(
+      OpenSearchSQLParser.DescribeMaterializedViewContext ctx) {
+    String tableName = ctx.tableName().getText();
+    return project(
+        limit(
+            sort(
+                filter(
+                    relation(".stateviews"), equalTo(field("viewName"), stringLiteral(tableName))),
+                field("timestamp", new Argument("asc", booleanLiteral(false)))),
+            1,
+            0),
+        AllFields.of());
   }
 
   @Override

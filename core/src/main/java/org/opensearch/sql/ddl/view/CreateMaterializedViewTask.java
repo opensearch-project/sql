@@ -83,7 +83,7 @@ public class CreateMaterializedViewTask extends DataDefinitionTask {
               qualifiedName(".stateviews"),
               Arrays.asList(
                   qualifiedName("viewName"),
-                  qualifiedName("viewstatus"),
+                  qualifiedName("viewStatus"),
                   qualifiedName("timestamp")));
       queryService.execute(insertStateView);
       return ExprValueUtils.missingValue();

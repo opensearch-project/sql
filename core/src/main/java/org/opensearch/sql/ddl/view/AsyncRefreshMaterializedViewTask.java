@@ -45,7 +45,7 @@ public class AsyncRefreshMaterializedViewTask extends DataDefinitionTask {
               qualifiedName(".stateviews"),
               Arrays.asList(
                   qualifiedName("viewName"),
-                  qualifiedName("viewstatus"),
+                  qualifiedName("viewStatus"),
                   qualifiedName("timestamp")));
       queryService.execute(insertStateView);
       return ExprValueUtils.missingValue();
@@ -61,7 +61,7 @@ public class AsyncRefreshMaterializedViewTask extends DataDefinitionTask {
               qualifiedName(".stateviews"),
               Arrays.asList(
                   qualifiedName("viewName"),
-                  qualifiedName("viewstatus"),
+                  qualifiedName("viewStatus"),
                   qualifiedName("timestamp")));
       queryService.execute(insertStateView);
       return ExprValueUtils.missingValue();

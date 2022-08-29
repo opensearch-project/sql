@@ -93,7 +93,7 @@ public class SQLService {
     AstDDLBuilder astDdlBuilder = new AstDDLBuilder(astBuilder);
 
     DataDefinitionPlan ddl = astDdlBuilder.build(cst);
-    if (ddl != null) {
+    if (ddl.getTask() != null) {
       return ddl;
     }
     return cst.accept(astBuilder);
