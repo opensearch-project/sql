@@ -700,7 +700,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void parse_relation() {
+  public void parse_relation_with_regex_expression() {
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
             LogicalPlanDSL.relation("schema"),
@@ -718,7 +718,47 @@ class AnalyzerTest extends AnalyzerTestBase {
             AstDSL.alias("string_value", qualifiedName("string_value"))
         ));
   }
-  
+
+  @Test
+  public void parse_relation_with_punct_expression() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.relation("schema"),
+            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
+            ImmutableList.of(DSL.named("punct_field",
+                DSL.punct(DSL.ref("string_value", STRING), DSL.literal("punct_field"),
+                    DSL.literal("punct_field"))))
+        ),
+        AstDSL.project(
+            AstDSL.parse(
+                AstDSL.relation("schema"),
+                ParseMethod.PUNCT,
+                AstDSL.field("string_value"),
+                AstDSL.stringLiteral("punct_field")),
+            AstDSL.alias("string_value", qualifiedName("string_value"))
+        ));
+  }
+
+  @Test
+  public void parse_relation_with_grok_expression() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.relation("schema"),
+            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
+            ImmutableList.of(DSL.named("grok_field",
+                DSL.grok(DSL.ref("string_value", STRING), DSL.literal("%{IPV4:grok_field}"),
+                    DSL.literal("grok_field"))))
+        ),
+        AstDSL.project(
+            AstDSL.parse(
+                AstDSL.relation("schema"),
+                ParseMethod.GROK,
+                AstDSL.field("string_value"),
+                AstDSL.stringLiteral("%{IPV4:grok_field}")),
+            AstDSL.alias("string_value", qualifiedName("string_value"))
+        ));
+  }
+
   @Test
   public void kmeanns_relation() {
     Map<String, Literal> argumentMap = new HashMap<String, Literal>() {{

@@ -52,7 +52,6 @@ import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
 import org.opensearch.sql.expression.NamedExpression;
-import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.AggregationState;
 import org.opensearch.sql.expression.aggregation.Aggregator;
@@ -61,6 +60,7 @@ import org.opensearch.sql.expression.conditional.cases.WhenClause;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.expression.window.aggregation.AggregateWindowFunction;
 

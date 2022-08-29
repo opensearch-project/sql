@@ -44,21 +44,19 @@ public class ParseUtils {
   }
 
   /**
-   * Get capture groups from regex pattern.
+   * Get list of derived fields based on parse pattern.
    *
    * @param pattern pattern used for parsing
    * @return list of names of the derived fields
    */
   public static List<String> getNamedGroupCandidates(ParseMethod parseMethod, String pattern) {
     switch (parseMethod) {
-      case REGEX:
-        return RegexExpression.getNamedGroupCandidates(pattern);
       case PUNCT:
         return PunctExpression.getNamedGroupCandidates(pattern);
       case GROK:
         return GrokExpression.getNamedGroupCandidates(pattern);
       default:
-        return ImmutableList.of();
+        return RegexExpression.getNamedGroupCandidates(pattern);
     }
   }
 

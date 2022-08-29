@@ -23,7 +23,7 @@ import org.opensearch.sql.expression.Expression;
 /**
  * ParseExpression with regex and named capture group.
  */
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = true)
 @ToString
 public class GrokExpression extends ParseExpression {
   private static final Logger log = LogManager.getLogger(GrokExpression.class);
@@ -33,6 +33,7 @@ public class GrokExpression extends ParseExpression {
     grokCompiler.registerDefaultPatterns();
   }
 
+  @EqualsAndHashCode.Exclude
   private final Grok grok;
 
   /**
@@ -61,6 +62,12 @@ public class GrokExpression extends ParseExpression {
     return new ExprStringValue("");
   }
 
+  /**
+   * Get list of derived fields based on parse pattern.
+   *
+   * @param pattern pattern used for parsing
+   * @return list of names of the derived fields
+   */
   public static List<String> getNamedGroupCandidates(String pattern) {
     Grok grok = grokCompiler.compile(pattern);
     return grok.namedGroups.stream().map(grok::getNamedRegexCollectionById)

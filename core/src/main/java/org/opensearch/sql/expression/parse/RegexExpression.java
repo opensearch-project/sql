@@ -22,7 +22,7 @@ import org.opensearch.sql.expression.Expression;
 /**
  * ParseExpression with regex and named capture group.
  */
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = true)
 @ToString
 public class RegexExpression extends ParseExpression {
   private static final Logger log = LogManager.getLogger(RegexExpression.class);
@@ -54,6 +54,12 @@ public class RegexExpression extends ParseExpression {
     return new ExprStringValue("");
   }
 
+  /**
+   * Get list of derived fields based on parse pattern.
+   *
+   * @param pattern pattern used for parsing
+   * @return list of names of the derived fields
+   */
   public static List<String> getNamedGroupCandidates(String pattern) {
     ImmutableList.Builder<String> namedGroups = ImmutableList.builder();
     Matcher m = GROUP_PATTERN.matcher(pattern);
