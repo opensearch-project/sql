@@ -78,7 +78,7 @@ class GrokExpressionTest extends ExpressionTestBase {
 
   @Test
   public void resolve_null_and_empty_values() {
-    Assertions.assertEquals(stringValue(""),
+    assertEquals(stringValue(""),
         DSL.grok(DSL.ref("string_value", STRING), DSL.literal("%{COMMONAPACHELOG}"),
             DSL.literal("request")).valueOf(valueEnv()));
     assertEquals(LITERAL_NULL,

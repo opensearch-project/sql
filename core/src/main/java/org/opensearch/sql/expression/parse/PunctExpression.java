@@ -24,7 +24,7 @@ import org.opensearch.sql.expression.Expression;
 @ToString
 public class PunctExpression extends ParseExpression {
   private static final Logger log = LogManager.getLogger(PunctExpression.class);
-  private static final Pattern DEFAULT_IGNORED_CHARS = Pattern.compile("[a-zA-Z\\d\\s]");
+  private static final Pattern DEFAULT_IGNORED_CHARS = Pattern.compile("[a-zA-Z\\d]");
 
   /**
    * PunctExpression.
