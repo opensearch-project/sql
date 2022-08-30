@@ -28,6 +28,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.Locale;
+import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprDateValue;
@@ -124,6 +125,11 @@ public class DateTimeFunction {
     return add_date(BuiltinFunctionName.ADDDATE.getName());
   }
 
+  /**
+   * Converts date/time from a specified timezone to another specified timezone.
+   * The supported signatures:
+   * (DATETIME, STRING, STRING) -> DATETIME
+   */
   private FunctionResolver convert_tz() {
     return define(BuiltinFunctionName.CONVERT_TZ.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprConvertTZ),
@@ -148,7 +154,6 @@ public class DateTimeFunction {
    * Specify a datetime with time zone field and a time zone to convert to.
    * Returns a local date time.
    * (STRING, STRING) -> DATETIME
-
    */
   private FunctionResolver datetime() {
     return define(BuiltinFunctionName.DATETIME.getName(),
@@ -529,7 +534,7 @@ public class DateTimeFunction {
    * @return ExprValue of date type.
    */
   private ExprValue exprDateTime(ExprValue dateTime, ExprValue timeZone) {
-    String defaultTimeZone = "+00:00";
+    String defaultTimeZone = TimeZone.getDefault().getID();
     DateTimeFormatter formatDT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss[xxx]");
 
     // Used by exprDateTimeNoTZ function
@@ -842,7 +847,7 @@ public class DateTimeFunction {
 
   private Boolean isTimeZoneValid(ZoneId zone) {
     ZoneId maxTz = ZoneId.of("+14:00");
-    ZoneId minTz = ZoneId.of("-12:00");
+    ZoneId minTz = ZoneId.of("-13:59");
     ZoneId defaultTz = ZoneId.of("+00:00");
 
     LocalDateTime defaultDateTime = LocalDateTime.of(2000, 1, 2, 12, 0);

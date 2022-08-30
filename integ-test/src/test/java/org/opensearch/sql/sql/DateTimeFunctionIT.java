@@ -6,7 +6,6 @@
 
 package org.opensearch.sql.sql;
 
-import static org.opensearch.sql.data.model.ExprValueUtils.nullValue;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
@@ -21,7 +20,6 @@ import java.io.IOException;
 import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestTemplate;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
@@ -139,15 +137,15 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result, rows("2021-05-12 08:40:00"));
 
     result = executeQuery(
-        "SELECT convert_tz('2021-05-30 11:34:50','-17:00','+08:00')");
+        "SELECT convert_tz('2021-05-30 11:34:50','-14:00','+08:00')");
     verifySchema(result,
-        schema("convert_tz('2021-05-30 11:34:50','-17:00','+08:00')", null, "datetime"));
+        schema("convert_tz('2021-05-30 11:34:50','-14:00','+08:00')", null, "datetime"));
     verifyDataRows(result, rows(new Object[]{null}));
 
     result = executeQuery(
-        "SELECT convert_tz('2021-05-12 11:34:50','-12:00','+15:00')");
+        "SELECT convert_tz('2021-05-12 11:34:50','-12:00','+14:01')");
     verifySchema(result,
-        schema("convert_tz('2021-05-12 11:34:50','-12:00','+15:00')", null, "datetime"));
+        schema("convert_tz('2021-05-12 11:34:50','-12:00','+14:01')", null, "datetime"));
     verifyDataRows(result, rows(new Object[]{null}));
   }
 
@@ -287,21 +285,27 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result, rows("2007-12-31 02:00:00"));
 
     result = executeQuery(
-        "SELECT DATETIME('2008-01-01 02:00:00+15:00', '-12:00')");
+        "SELECT DATETIME('2008-01-01 02:00:00+10:00', '-13:59')");
     verifySchema(result,
-        schema("DATETIME('2008-01-01 02:00:00+15:00', '-12:00')", null, "datetime"));
+        schema("DATETIME('2008-01-01 02:00:00+10:00', '-13:59')", null, "datetime"));
+    verifyDataRows(result, rows("2007-12-31 02:01:00"));
+
+    result = executeQuery(
+        "SELECT DATETIME('2008-01-01 02:00:00+14:00', '-10:00')");
+    verifySchema(result,
+        schema("DATETIME('2008-01-01 02:00:00+14:00', '-10:00')", null, "datetime"));
+    verifyDataRows(result, rows("2007-12-31 02:00:00"));
+
+    result = executeQuery(
+        "SELECT DATETIME('2008-01-01 02:00:00+10:00', '-14:01')");
+    verifySchema(result,
+        schema("DATETIME('2008-01-01 02:00:00+10:00', '-14:01')", null, "datetime"));
     verifyDataRows(result, rows(new Object[]{null}));
 
     result = executeQuery(
-        "SELECT DATETIME('2008-01-01 02:00:00+10:00', '-13:00')");
+        "SELECT DATETIME('2008-01-01 02:00:00+14:01', '-10:00')");
     verifySchema(result,
-        schema("DATETIME('2008-01-01 02:00:00+10:00', '-13:00')", null, "datetime"));
-    verifyDataRows(result, rows(new Object[]{null}));
-
-    result = executeQuery(
-        "SELECT DATETIME('2008-01-01 02:00:00', '-13:00')");
-    verifySchema(result,
-        schema("DATETIME('2008-01-01 02:00:00', '-13:00')", null, "datetime"));
+        schema("DATETIME('2008-01-01 02:00:00+14:01', '-10:00')", null, "datetime"));
     verifyDataRows(result, rows(new Object[]{null}));
   }
 
