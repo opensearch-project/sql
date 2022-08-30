@@ -25,9 +25,9 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
-import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.storage.script.ScriptUtils;
 
@@ -69,14 +69,15 @@ public class ExpressionScript {
 
   /**
    * Evaluate on the doc generate by the doc provider.
+   *
    * @param docProvider doc provider.
-   * @param evaluator evaluator
+   * @param evaluator   evaluator
    * @return expr value
    */
   public ExprValue execute(Supplier<Map<String, ScriptDocValues<?>>> docProvider,
-                         BiFunction<Expression,
-                             Environment<Expression,
-                                 ExprValue>, ExprValue> evaluator) {
+                           BiFunction<Expression,
+                               Environment<Expression,
+                                   ExprValue>, ExprValue> evaluator) {
     return AccessController.doPrivileged((PrivilegedAction<ExprValue>) () -> {
       Environment<Expression, ExprValue> valueEnv =
           buildValueEnv(fields, valueFactory, docProvider);
