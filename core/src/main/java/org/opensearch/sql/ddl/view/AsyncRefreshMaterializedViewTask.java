@@ -31,10 +31,25 @@ public class AsyncRefreshMaterializedViewTask extends DataDefinitionTask {
   @Override
   public ExprValue execute() {
     try {
+      // 0. Refresh state views
+      UnresolvedPlan updateView =
+          write(
+              values(
+                  Arrays.asList(
+                      stringLiteral(viewName),
+                      stringLiteral("refresh view in progress"),
+                      longLiteral(System.currentTimeMillis()))),
+              qualifiedName(".stateviews"),
+              Arrays.asList(
+                  qualifiedName("viewName"),
+                  qualifiedName("viewStatus"),
+                  qualifiedName("timestamp")));
+      queryService.execute(updateView);
+
       // 1. execute write plan
       queryService.execute(writePlan);
 
-      // 2. Refresh stateviews
+      // 2. Refresh state views
       UnresolvedPlan insertStateView =
           write(
               values(
@@ -56,7 +71,7 @@ public class AsyncRefreshMaterializedViewTask extends DataDefinitionTask {
               values(
                   Arrays.asList(
                       stringLiteral(viewName),
-                      stringLiteral("refresh view failed"),
+                      stringLiteral("refresh view failed" + e.getMessage()),
                       longLiteral(System.currentTimeMillis()))),
               qualifiedName(".stateviews"),
               Arrays.asList(
@@ -64,7 +79,7 @@ public class AsyncRefreshMaterializedViewTask extends DataDefinitionTask {
                   qualifiedName("viewStatus"),
                   qualifiedName("timestamp")));
       queryService.execute(insertStateView);
-      return ExprValueUtils.missingValue();
+      throw new RuntimeException(e);
     }
   }
 }
