@@ -11,20 +11,34 @@ parse
 
 Description
 ============
-| The ``parse`` command parses a text field using a regular expression and append the result to the search result.
+| The ``parse`` command parses a text field using a specified method and appends the results to the search result.
 
 
 Syntax
 ============
-parse <field> <regular-expression>
+parse [method=<parse-method>] <field> <pattern>
 
+* parse-method: optional. Possible values are ``regex``, ``punct``, ``grok``, default value is ``regex``.
 * field: mandatory. The field must be a text field.
-* regular-expression: mandatory. The regular expression used to extract new fields from given text field. If a new field name already exists, it will replace the original field.
+* pattern: mandatory string. The pattern used by parse method to extract new fields from the given text field. If a new field name already exists, it will replace the original field.
 
-Regular Expression
-==================
+Parse Methods
+=============
 
-The regular expression is used to match the whole text field of each document with Java regex engine. Each named capture group in the expression will become a new ``STRING`` field.
+regex
+-----
+
+Use Java regex engine to match the whole text field of each document with the regular expression defined by ``pattern``. Each named capture group in the expression will become a new ``STRING`` field.
+
+punct
+-----
+
+Remove alphanumeric and whitespace characters (``[a-zA-Z\d\s]``) in the text field of each document to form a new field. The name of the new field is defined by ``pattern``.
+
+grok
+-----
+
+Use grok patterns to match the text field of each document to extract new fields.
 
 Example 1: Create the new field
 ===============================
@@ -80,6 +94,24 @@ PPL query::
     | 880            | Holmes Lane    |
     +----------------+----------------+
 
+Example 4: Filter out punctuations with punct
+=============================================
+
+The example shows how to use ``punct`` as parse method to 
+
+PPL query::
+
+    os> source=accounts | parse method=punct email 'email_puncts' | fields email, email_puncts ;
+    fetched rows / total rows = 4/4
+    +-----------------------+----------------+
+    | email                 | email_puncts   |
+    |-----------------------+----------------|
+    | amberduke@pyrami.com  | @.             |
+    | hattiebond@netagy.com | @.             |
+    | null                  |                |
+    | daleadams@boink.com   | @.             |
+    +-----------------------+----------------+
+
 Limitation
 ==========
 
@@ -107,4 +139,4 @@ There are a few limitations with parse command:
 
   ``where`` in the following command will not work::
 
-    source=accounts | parse email '.+@(?<host>.+)' | stats avg(age) by host | where host=pyrami.com ;
+    source=accounts | parse email '.+@(?<host>.+)' | stats avg(age) by host | where host='pyrami.com' ;
