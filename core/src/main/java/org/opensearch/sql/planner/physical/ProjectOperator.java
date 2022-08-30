@@ -65,10 +65,14 @@ public class ProjectOperator extends PhysicalPlan {
     // ParseExpression will always override NamedExpression when identifier conflicts
     // TODO needs a better implementation, see https://github.com/opensearch-project/sql/issues/458
     for (NamedExpression expr : namedParseExpressions) {
-      ExprValue value = inputValue.bindingTuples()
+      if (projectList.stream()
+          .noneMatch(field -> field.getNameOrAlias().equals(expr.getNameOrAlias()))) {
+        continue;
+      }
+      ExprValue sourceFieldValue = inputValue.bindingTuples()
           .resolve(((ParseExpression) expr.getDelegated()).getSourceField());
-      if (value.isMissing()) {
-        // value will be missing after stats command, read from inputValue if it exists
+      if (sourceFieldValue.isMissing()) {
+        // source field will be missing after stats command, read from inputValue if it exists
         // otherwise do nothing since it should not appear as a field
         ExprValue exprValue = ExprValueUtils.getTupleValue(inputValue).get(expr.getNameOrAlias());
         if (exprValue != null) {

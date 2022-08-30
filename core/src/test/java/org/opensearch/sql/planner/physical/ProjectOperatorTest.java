@@ -110,14 +110,18 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
     when(inputPlan.next())
         .thenReturn(ExprValueUtils.tupleValue(ImmutableMap.of("response", "GET 200")));
     PhysicalPlan plan =
-        project(inputPlan, ImmutableList.of(DSL.named("action", DSL.ref("action", STRING))),
+        project(inputPlan, ImmutableList.of(DSL.named("action", DSL.ref("action", STRING)),
+                DSL.named("response", DSL.ref("response", STRING))),
             ImmutableList.of(DSL.named("action",
                 DSL.regex(DSL.ref("response", STRING),
                     DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
                     DSL.literal("action"))), DSL.named("response",
                 DSL.regex(DSL.ref("response", STRING),
                     DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
-                    DSL.literal("response"))))
+                    DSL.literal("response"))), DSL.named("ignored",
+                DSL.regex(DSL.ref("response", STRING),
+                    DSL.literal("(?<action>\\w+) (?<ignored>\\d+)"),
+                    DSL.literal("ignored"))))
         );
     List<ExprValue> result = execute(plan);
 
@@ -137,7 +141,8 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
             ExprValueUtils.tupleValue(ImmutableMap.of("action", "GET", "response", "GET 200")))
         .thenReturn(ExprValueUtils.tupleValue(ImmutableMap.of("action", "POST")));
     PhysicalPlan plan =
-        project(inputPlan, ImmutableList.of(DSL.named("action", DSL.ref("action", STRING))),
+        project(inputPlan, ImmutableList.of(DSL.named("action", DSL.ref("action", STRING)),
+                DSL.named("response", DSL.ref("response", STRING))),
             ImmutableList.of(DSL.named("action",
                 DSL.regex(DSL.ref("response", STRING),
                     DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
