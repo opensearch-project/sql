@@ -80,7 +80,7 @@ public class RestQuerySettingsAction extends BaseRestHandler {
     clusterUpdateSettingsRequest.timeout(request.paramAsTime(
         "timeout", clusterUpdateSettingsRequest.timeout()));
     clusterUpdateSettingsRequest.clusterManagerNodeTimeout(request.paramAsTime(
-        "master_timeout", clusterUpdateSettingsRequest.clusterManagerNodeTimeout()));
+        "cluster_manager_timeout", clusterUpdateSettingsRequest.clusterManagerNodeTimeout()));
     Map<String, Object> source;
     try (XContentParser parser = request.contentParser()) {
       source = parser.map();
