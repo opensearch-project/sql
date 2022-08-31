@@ -41,8 +41,8 @@ public class S3ScanOperator extends TableScanOperator {
 
   private final String tableName;
 
-  public S3ScanOperator(String tableName) {
-    this.tableName = tableName;
+  public S3ScanOperator(String location) {
+    this.tableName = location;
     this.s3Reader = new S3Reader();
   }
 

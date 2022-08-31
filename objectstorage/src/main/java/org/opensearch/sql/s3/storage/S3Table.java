@@ -24,19 +24,10 @@ import org.opensearch.sql.storage.Table;
 @RequiredArgsConstructor
 public class S3Table implements Table {
 
-  /** Todo. Return fixed schema. Create External Table will define the schema. */
-  static Map<String, String> S3_DATA_MAPPING =
-      new ImmutableMap.Builder<String, String>()
-          .put("@timestamp", "date")
-          .put("clientip", "keyword")
-          .put("request", "text")
-          .put("size", "integer")
-          .put("status", "integer")
-          .build();
-
   private static final Map<String, ExprType> S3_TYPE_TO_EXPR_TYPE_MAPPING =
       ImmutableMap.<String, ExprType>builder()
           .put("text", OpenSearchDataType.OPENSEARCH_TEXT)
+          .put("string", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)
           .put("text_keyword", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)
           .put("keyword", ExprCoreType.STRING)
           .put("byte", ExprCoreType.BYTE)
@@ -59,12 +50,16 @@ public class S3Table implements Table {
 
   private final String tableName;
 
-  private static final String indexName = "maximus-test-00001";
+  private final Map<String, String> colNameTypes;
+
+  private final String fileFormat;
+
+  private final String location;
 
   @Override
   public Map<String, ExprType> getFieldTypes() {
     Map<String, ExprType> fieldTypes = new HashMap<>();
-    for (Map.Entry<String, String> entry : S3_DATA_MAPPING.entrySet()) {
+    for (Map.Entry<String, String> entry : colNameTypes.entrySet()) {
       fieldTypes.put(
           entry.getKey(), S3_TYPE_TO_EXPR_TYPE_MAPPING.getOrDefault(entry.getValue(), UNKNOWN));
     }
@@ -81,7 +76,7 @@ public class S3Table implements Table {
   public class S3PlanImplementor extends DefaultImplementor<Void> {
     @Override
     public PhysicalPlan visitRelation(LogicalRelation node, Void context) {
-      return new S3ScanOperator(node.getRelationName());
+      return new S3ScanOperator(location);
     }
   }
 }

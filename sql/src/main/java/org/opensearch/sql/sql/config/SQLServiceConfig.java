@@ -59,7 +59,7 @@ public class SQLServiceConfig {
   public CatalogService catalogService() {
     return new CatalogService(tableName -> {
       if (tableName.startsWith("s3")) {
-        return new S3StorageEngine();
+        return new S3StorageEngine(queryService);
       } else {
         return storageEngine;
       }
