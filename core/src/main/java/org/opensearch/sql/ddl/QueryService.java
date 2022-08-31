@@ -39,16 +39,17 @@ public class QueryService {
    * Generate optimal physical plan from logical plan.
    */
   public PhysicalPlan plan(UnresolvedPlan ast) {
-    if (ast instanceof DataDefinitionPlan) {
-      DataDefinitionPlan ddl = (DataDefinitionPlan) ast;
-      ddl.getTask().setQueryService(this);
-      ddl.getTask().setSystemCatalog(storageEngine);
-    }
-
-    LogicalPlan analyzed = analyzer.analyze(ast, new AnalysisContext());
-    Planner planner = new Planner(storageEngine,
-        LogicalPlanOptimizer.create(new DSL(repository)));
-    return planner.plan(analyzed);
+//    if (ast instanceof DataDefinitionPlan) {
+//      DataDefinitionPlan ddl = (DataDefinitionPlan) ast;
+//      ddl.getTask().setQueryService(this);
+//      ddl.getTask().setSystemCatalog(storageEngine);
+//    }
+//
+//    LogicalPlan analyzed = analyzer.analyze(ast, new AnalysisContext());
+//    Planner planner = new Planner(storageEngine,
+//        LogicalPlanOptimizer.create(new DSL(repository)));
+//    return planner.plan(analyzed);
+    return null;
   }
 
   /**

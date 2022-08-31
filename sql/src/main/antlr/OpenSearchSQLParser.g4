@@ -52,7 +52,7 @@ dmlStatement
     ;
 
 ddlStatement
-    : createMaterializedView
+    : createTable
     ;
 
 // Data Manipulation Language
@@ -66,6 +66,7 @@ selectStatement
 adminStatement
     : showStatement
     | describeStatement
+    | describeMaterializedView
     ;
 
 showStatement
@@ -96,10 +97,11 @@ compatibleID
 
 //    Create statements
 
-createMaterializedView
-    : CREATE MATERIALIZED VIEW
-       tableName createDefinitions
-       AS selectStatement
+createTable
+    : CREATE EXTERNAL? TABLE
+        tableName createDefinitions
+        STORED AS fileFormat=stringLiteral
+        LOCATION location=stringLiteral
     ;
 
 createDefinitions
@@ -114,6 +116,7 @@ dataType
     : typeName=STRING
     | typeName=INTEGER
     | typeName=DOUBLE
+    | typeName=DATE
     ;
 
 //    Select Statement's Details
