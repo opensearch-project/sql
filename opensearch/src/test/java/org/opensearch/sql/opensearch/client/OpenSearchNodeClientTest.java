@@ -12,8 +12,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Answers.RETURNS_DEEP_STUBS;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -22,12 +23,10 @@ import static org.opensearch.sql.opensearch.client.OpenSearchClient.META_CLUSTER
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.io.Resources;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -40,24 +39,21 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
+import org.opensearch.action.admin.indices.mapping.get.GetMappingsResponse;
+import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.opensearch.action.search.ClearScrollRequestBuilder;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.cluster.ClusterName;
-import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.AliasMetadata;
-import org.opensearch.cluster.metadata.IndexAbstraction;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.MappingMetadata;
-import org.opensearch.cluster.metadata.Metadata;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.collect.ImmutableOpenMap;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.DeprecationHandler;
 import org.opensearch.common.xcontent.NamedXContentRegistry;
 import org.opensearch.common.xcontent.XContentParser;
 import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.sql.data.model.ExprIntegerValue;
@@ -67,7 +63,6 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
-import org.opensearch.threadpool.ThreadPool;
 
 @ExtendWith(MockitoExtension.class)
 class OpenSearchNodeClientTest {
@@ -139,8 +134,8 @@ class OpenSearchNodeClientTest {
   @Test
   public void getIndexMappingsWithIOException() {
     String indexName = "test";
-    ClusterService clusterService = mockClusterService(indexName, new IOException());
-    OpenSearchNodeClient client = new OpenSearchNodeClient(clusterService, nodeClient);
+    when(nodeClient.admin().indices()).thenThrow(RuntimeException.class);
+    OpenSearchNodeClient client = new OpenSearchNodeClient(nodeClient);
 
     assertThrows(IllegalStateException.class, () -> client.getIndexMappings(indexName));
   }
@@ -148,18 +143,17 @@ class OpenSearchNodeClientTest {
   @Test
   public void getIndexMappingsWithNonExistIndex() {
     OpenSearchNodeClient client =
-        new OpenSearchNodeClient(mockClusterService("test"), nodeClient);
-
-    assertThrows(IndexNotFoundException.class, () -> client.getIndexMappings("non_exist_index"));
+        new OpenSearchNodeClient(mockNodeClient("test"));
+    assertTrue(client.getIndexMappings("non_exist_index").isEmpty());
   }
 
   @Test
   public void getIndexMaxResultWindows() throws IOException {
     URL url = Resources.getResource(TEST_MAPPING_SETTINGS_FILE);
-    String mappings = Resources.toString(url, Charsets.UTF_8);
+    String indexMetadata = Resources.toString(url, Charsets.UTF_8);
     String indexName = "accounts";
-    ClusterService clusterService = mockClusterServiceForSettings(indexName, mappings);
-    OpenSearchNodeClient client = new OpenSearchNodeClient(clusterService, nodeClient);
+    OpenSearchNodeClient client =
+        new OpenSearchNodeClient(mockNodeClientSettings(indexName, indexMetadata));
 
     Map<String, Integer> indexMaxResultWindows = client.getIndexMaxResultWindows(indexName);
     assertEquals(1, indexMaxResultWindows.size());
@@ -171,16 +165,25 @@ class OpenSearchNodeClientTest {
   @Test
   public void getIndexMaxResultWindowsWithDefaultSettings() throws IOException {
     URL url = Resources.getResource(TEST_MAPPING_FILE);
-    String mappings = Resources.toString(url, Charsets.UTF_8);
+    String indexMetadata = Resources.toString(url, Charsets.UTF_8);
     String indexName = "accounts";
-    ClusterService clusterService = mockClusterServiceForSettings(indexName, mappings);
-    OpenSearchNodeClient client = new OpenSearchNodeClient(clusterService, nodeClient);
+    OpenSearchNodeClient client =
+        new OpenSearchNodeClient(mockNodeClientSettings(indexName, indexMetadata));
 
     Map<String, Integer> indexMaxResultWindows = client.getIndexMaxResultWindows(indexName);
     assertEquals(1, indexMaxResultWindows.size());
 
     Integer indexMaxResultWindow = indexMaxResultWindows.values().iterator().next();
     assertEquals(10000, indexMaxResultWindow);
+  }
+
+  @Test
+  public void getIndexMaxResultWindowsWithIOException() {
+    String indexName = "test";
+    when(nodeClient.admin().indices()).thenThrow(RuntimeException.class);
+    OpenSearchNodeClient client = new OpenSearchNodeClient(nodeClient);
+
+    assertThrows(IllegalStateException.class, () -> client.getIndexMaxResultWindows(indexName));
   }
 
   /** Jacoco enforce this constant lambda be tested. */
@@ -192,7 +195,7 @@ class OpenSearchNodeClientTest {
   @Test
   public void search() {
     OpenSearchNodeClient client =
-        new OpenSearchNodeClient(mock(ClusterService.class), nodeClient);
+        new OpenSearchNodeClient(nodeClient);
 
     // Mock first scroll request
     SearchResponse searchResponse = mock(SearchResponse.class);
@@ -230,23 +233,12 @@ class OpenSearchNodeClientTest {
 
   @Test
   void schedule() {
-    ThreadPool threadPool = mock(ThreadPool.class);
-    when(nodeClient.threadPool()).thenReturn(threadPool);
-    when(threadPool.getThreadContext()).thenReturn(threadContext);
-
-    doAnswer(
-        invocation -> {
-          Runnable task = invocation.getArgument(0);
-          task.run();
-          return null;
-        })
-        .when(threadPool)
-        .schedule(any(), any(), any());
-
-    OpenSearchNodeClient client =
-        new OpenSearchNodeClient(mock(ClusterService.class), nodeClient);
+    OpenSearchNodeClient client = new OpenSearchNodeClient(nodeClient);
     AtomicBoolean isRun = new AtomicBoolean(false);
-    client.schedule(() -> isRun.set(true));
+    client.schedule(
+        () -> {
+          isRun.set(true);
+        });
     assertTrue(isRun.get());
   }
 
@@ -257,8 +249,7 @@ class OpenSearchNodeClientTest {
     when(requestBuilder.addScrollId(any())).thenReturn(requestBuilder);
     when(requestBuilder.get()).thenReturn(null);
 
-    OpenSearchNodeClient client =
-        new OpenSearchNodeClient(mock(ClusterService.class), nodeClient);
+    OpenSearchNodeClient client = new OpenSearchNodeClient(nodeClient);
     OpenSearchScrollRequest request = new OpenSearchScrollRequest("test", factory);
     request.setScrollId("scroll123");
     client.cleanup(request);
@@ -272,8 +263,7 @@ class OpenSearchNodeClientTest {
 
   @Test
   void cleanupWithoutScrollId() {
-    OpenSearchNodeClient client =
-        new OpenSearchNodeClient(mock(ClusterService.class), nodeClient);
+    OpenSearchNodeClient client = new OpenSearchNodeClient(nodeClient);
 
     OpenSearchScrollRequest request = new OpenSearchScrollRequest("test", factory);
     client.cleanup(request);
@@ -294,122 +284,80 @@ class OpenSearchNodeClientTest {
     when(indexResponse.getIndices()).thenReturn(new String[] {"index"});
     when(indexResponse.aliases()).thenReturn(openMap);
 
-    OpenSearchNodeClient client =
-        new OpenSearchNodeClient(mock(ClusterService.class), nodeClient);
+    OpenSearchNodeClient client = new OpenSearchNodeClient(nodeClient);
     final List<String> indices = client.indices();
     assertEquals(2, indices.size());
   }
 
   @Test
   void meta() {
-    ClusterName clusterName = mock(ClusterName.class);
-    ClusterService mockService = mock(ClusterService.class);
-    when(clusterName.value()).thenReturn("cluster-name");
-    when(mockService.getClusterName()).thenReturn(clusterName);
+    Settings settings = mock(Settings.class);
+    when(nodeClient.settings()).thenReturn(settings);
+    when(settings.get(anyString(), anyString())).thenReturn("cluster-name");
 
-    OpenSearchNodeClient client =
-        new OpenSearchNodeClient(mockService, nodeClient);
+    OpenSearchNodeClient client = new OpenSearchNodeClient(nodeClient);
     final Map<String, String> meta = client.meta();
     assertEquals("cluster-name", meta.get(META_CLUSTER_NAME));
   }
 
   @Test
   void ml() {
-    OpenSearchNodeClient client = new OpenSearchNodeClient(mock(ClusterService.class), nodeClient);
+    OpenSearchNodeClient client = new OpenSearchNodeClient(nodeClient);
     assertNotNull(client.getNodeClient());
   }
 
   private OpenSearchNodeClient mockClient(String indexName, String mappings) {
-    ClusterService clusterService = mockClusterService(indexName, mappings);
-    return new OpenSearchNodeClient(clusterService, nodeClient);
+    mockNodeClientIndicesMappings(indexName, mappings);
+    return new OpenSearchNodeClient(nodeClient);
   }
 
-  /** Mock getAliasAndIndexLookup() only for index name resolve test. */
-  public ClusterService mockClusterService(String indexName) {
-    ClusterService mockService = mock(ClusterService.class);
-    ClusterState mockState = mock(ClusterState.class);
-    Metadata mockMetaData = mock(Metadata.class);
-
-    when(mockService.state()).thenReturn(mockState);
-    when(mockState.metadata()).thenReturn(mockMetaData);
-    when(mockMetaData.getIndicesLookup())
-            .thenReturn(ImmutableSortedMap.of(indexName, mock(IndexAbstraction.class)));
-    return mockService;
-  }
-
-  public ClusterService mockClusterService(String indexName, String mappings) {
-    ClusterService mockService = mock(ClusterService.class);
-    ClusterState mockState = mock(ClusterState.class);
-    Metadata mockMetaData = mock(Metadata.class);
-
-    when(mockService.state()).thenReturn(mockState);
-    when(mockState.metadata()).thenReturn(mockMetaData);
+  public void mockNodeClientIndicesMappings(String indexName, String mappings) {
+    GetMappingsResponse mockResponse = mock(GetMappingsResponse.class);
+    MappingMetadata emptyMapping = mock(MappingMetadata.class);
+    when(nodeClient.admin().indices()
+        .prepareGetMappings(any())
+        .setLocal(anyBoolean())
+        .get()).thenReturn(mockResponse);
     try {
-      ImmutableOpenMap.Builder<String, MappingMetadata> builder =
-          ImmutableOpenMap.builder();
-      MappingMetadata metadata;
+      ImmutableOpenMap<String, MappingMetadata> metadata;
       if (mappings.isEmpty()) {
-        metadata = MappingMetadata.EMPTY_MAPPINGS;
+        when(emptyMapping.getSourceAsMap()).thenReturn(ImmutableMap.of());
+        metadata =
+            new ImmutableOpenMap.Builder<String, MappingMetadata>()
+                .fPut(indexName, emptyMapping)
+                .build();
       } else {
-        metadata = IndexMetadata.fromXContent(createParser(mappings)).mapping();
+        metadata = new ImmutableOpenMap.Builder<String, MappingMetadata>().fPut(indexName,
+            IndexMetadata.fromXContent(createParser(mappings)).mapping()).build();
       }
-
-
-      builder.put(indexName, metadata);
-      when(mockMetaData.findMappings(any(),  any())).thenReturn(builder.build());
-
-      // IndexNameExpressionResolver use this method to check if index exists. If not,
-      // IndexNotFoundException is thrown.
-      when(mockMetaData.getIndicesLookup())
-              .thenReturn(ImmutableSortedMap.of(indexName, mock(IndexAbstraction.class)));
+      when(mockResponse.mappings()).thenReturn(metadata);
     } catch (IOException e) {
-      throw new IllegalStateException("Failed to mock cluster service", e);
+      throw new IllegalStateException("Failed to mock node client", e);
     }
-    return mockService;
   }
 
-  public ClusterService mockClusterService(String indexName, Throwable t) {
-    ClusterService mockService = mock(ClusterService.class);
-    ClusterState mockState = mock(ClusterState.class);
-    Metadata mockMetaData = mock(Metadata.class);
-
-    when(mockService.state()).thenReturn(mockState);
-    when(mockState.metadata()).thenReturn(mockMetaData);
-    try {
-      when(mockMetaData.findMappings(any(), any())).thenThrow(t);
-      when(mockMetaData.getIndicesLookup())
-              .thenReturn(ImmutableSortedMap.of(indexName, mock(IndexAbstraction.class)));
-    } catch (IOException e) {
-      throw new IllegalStateException("Failed to mock cluster service", e);
-    }
-    return mockService;
+  public NodeClient mockNodeClient(String indexName) {
+    GetMappingsResponse mockResponse = mock(GetMappingsResponse.class);
+    when(nodeClient.admin().indices()
+        .prepareGetMappings(any())
+        .setLocal(anyBoolean())
+        .get()).thenReturn(mockResponse);
+    when(mockResponse.mappings()).thenReturn(ImmutableOpenMap.of());
+    return nodeClient;
   }
 
-  public ClusterService mockClusterServiceForSettings(String indexName, String mappings) {
-    ClusterService mockService = mock(ClusterService.class);
-    ClusterState mockState = mock(ClusterState.class);
-    Metadata mockMetaData = mock(Metadata.class);
+  private NodeClient mockNodeClientSettings(String indexName, String indexMetadata)
+      throws IOException {
+    GetSettingsResponse mockResponse = mock(GetSettingsResponse.class);
+    when(nodeClient.admin().indices().prepareGetSettings(any()).setLocal(anyBoolean()).get())
+        .thenReturn(mockResponse);
+    ImmutableOpenMap<String, Settings> metadata =
+        new ImmutableOpenMap.Builder<String, Settings>()
+            .fPut(indexName, IndexMetadata.fromXContent(createParser(indexMetadata)).getSettings())
+            .build();
 
-    when(mockService.state()).thenReturn(mockState);
-    when(mockState.metadata()).thenReturn(mockMetaData);
-    try {
-      ImmutableOpenMap.Builder<String, IndexMetadata> indexBuilder =
-          ImmutableOpenMap.builder();
-      IndexMetadata indexMetadata = IndexMetadata.fromXContent(createParser(mappings));
-
-      indexBuilder.put(indexName, indexMetadata);
-      when(mockMetaData.getIndices()).thenReturn(indexBuilder.build());
-
-      // IndexNameExpressionResolver use this method to check if index exists. If not,
-      // IndexNotFoundException is thrown.
-      IndexAbstraction indexAbstraction = mock(IndexAbstraction.class);
-      when(indexAbstraction.getIndices()).thenReturn(Collections.singletonList(indexMetadata));
-      when(mockMetaData.getIndicesLookup())
-          .thenReturn(ImmutableSortedMap.of(indexName, indexAbstraction));
-    } catch (IOException e) {
-      throw new IllegalStateException("Failed to mock cluster service", e);
-    }
-    return mockService;
+    when(mockResponse.getIndexToSettings()).thenReturn(metadata);
+    return nodeClient;
   }
 
   private XContentParser createParser(String mappings) throws IOException {
