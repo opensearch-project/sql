@@ -52,7 +52,8 @@ dmlStatement
     ;
 
 ddlStatement
-    : createMaterializedView
+    : createTable
+    | createMaterializedView
     | refreshMaterializedView
     ;
 
@@ -97,6 +98,13 @@ compatibleID
 // Data Definition Language
 
 //    Create statements
+
+createTable
+    : CREATE EXTERNAL? TABLE
+        tableName createDefinitions
+        STORED AS fileFormat=stringLiteral
+        LOCATION location=stringLiteral
+    ;
 
 createMaterializedView
     : CREATE MATERIALIZED VIEW
