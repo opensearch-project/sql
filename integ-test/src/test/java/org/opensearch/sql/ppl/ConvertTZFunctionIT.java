@@ -126,4 +126,26 @@ package org.opensearch.sql.ppl;
       verifySome(result.getJSONArray("datarows"), rows(new Object[]{null}));
     }
 
+    @Test
+    public void nullFromGarbageInput1() throws IOException {
+      JSONObject result =
+          executeQuery(String.format(
+              "source=%s | eval f = convert_tz('2021-05-12 11:34:50','-12:00','test') | fields f",
+              TEST_INDEX_DATE));
+      verifySchema(result,
+          schema("f", null, "datetime"));
+      verifySome(result.getJSONArray("datarows"), rows(new Object[]{null}));
+    }
+
+    @Test
+    public void nullFromGarbageInput2() throws IOException {
+      JSONObject result =
+          executeQuery(String.format(
+              "source=%s | eval f = convert_tz('2021test','-12:00','+00:00') | fields f",
+              TEST_INDEX_DATE));
+      verifySchema(result,
+          schema("f", null, "datetime"));
+      verifySome(result.getJSONArray("datarows"), rows(new Object[]{null}));
+    }
+
   }
