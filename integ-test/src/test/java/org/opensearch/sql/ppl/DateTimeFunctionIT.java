@@ -339,7 +339,6 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySome(result.getJSONArray("datarows"), rows(16));
   }
 
-
   @Test
   public void testDayOfWeek() throws IOException {
     JSONObject result = executeQuery(String.format(
