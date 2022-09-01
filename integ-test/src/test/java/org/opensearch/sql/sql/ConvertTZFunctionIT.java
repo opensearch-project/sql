@@ -112,4 +112,31 @@ public class ConvertTZFunctionIT extends SQLIntegTestCase {
         schema("convert_tz('2021-05-12 11:34:50','-12:00','+14:01')", null, "datetime"));
     verifyDataRows(result, rows(new Object[]{null}));
   }
+
+  @Test
+  public void inRangeMinOnPoint() throws IOException {
+    var result = executeJdbcRequest(
+        "SELECT convert_tz('2021-05-12 15:00:00','-13:59','-13:59')");
+    verifySchema(result,
+        schema("convert_tz('2021-05-12 15:00:00','-13:59','-13:59')", null, "datetime"));
+    verifyDataRows(result, rows("2021-05-12 15:00:00"));
+  }
+
+  @Test
+  public void nullFromGarbageInput() throws IOException {
+    var result = executeJdbcRequest(
+        "SELECT convert_tz('2021-05-12 11:34:50','****','+14:01')");
+    verifySchema(result,
+        schema("convert_tz('2021-05-12 11:34:50','****','+14:01')", null, "datetime"));
+    verifyDataRows(result, rows(new Object[]{null}));
+  }
+
+  @Test
+  public void nullFromGarbageInput2() throws IOException {
+    var result = executeJdbcRequest(
+        "SELECT convert_tz('2021-05-12 11:34:50','+14:01','****')");
+    verifySchema(result,
+        schema("convert_tz('2021-05-12 11:34:50','+14:01','****')", null, "datetime"));
+    verifyDataRows(result, rows(new Object[]{null}));
+  }
 }

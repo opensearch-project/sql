@@ -28,6 +28,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.time.Instant;
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -38,6 +39,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.TextStyle;
 import java.util.Locale;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
@@ -613,19 +615,23 @@ public class DateTimeFunction {
    * @return DateTime that has been converted to the to_tz timezone.
    */
   private ExprValue exprConvertTZ(ExprValue startingDateTime, ExprValue fromTz, ExprValue toTz) {
-    ZoneId convertedFromTz = ZoneId.of(fromTz.stringValue());
-    ZoneId convertedToTz = ZoneId.of(toTz.stringValue());
+    try {
+      ZoneId convertedFromTz = ZoneId.of(fromTz.stringValue());
+      ZoneId convertedToTz = ZoneId.of(toTz.stringValue());
 
-    if (!isTimeZoneValid(convertedFromTz)
+      if (!isTimeZoneValid(convertedFromTz)
           || !isTimeZoneValid(convertedToTz)) {
+        return ExprNullValue.of();
+      }
+
+      ZonedDateTime zonedDateTime =
+          startingDateTime.datetimeValue().atZone(convertedFromTz);
+
+      return new ExprDatetimeValue(
+          zonedDateTime.withZoneSameInstant(convertedToTz).toLocalDateTime());
+    } catch (DateTimeException e) {
       return ExprNullValue.of();
     }
-
-    ZonedDateTime zonedDateTime =
-        startingDateTime.datetimeValue().atZone(convertedFromTz);
-
-    return new ExprDatetimeValue(
-        zonedDateTime.withZoneSameInstant(convertedToTz).toLocalDateTime());
   }
 
   /**
@@ -668,7 +674,7 @@ public class DateTimeFunction {
           new ExprDatetimeValue(zdtWithZoneOffset.toLocalDateTime()),
           new ExprStringValue(String.valueOf(fromTZ)),
           new ExprStringValue(String.valueOf(ZoneId.of(timeZone.stringValue()))));
-    } catch (Exception e) {
+    } catch (DateTimeParseException e) {
       LocalDateTime ldtFormatted = LocalDateTime.parse(dateTime.stringValue(), formatDT);
 
       convertTZResult = exprConvertTZ(
@@ -1076,14 +1082,10 @@ public class DateTimeFunction {
     ZonedDateTime passedTzValidator =
         defaultDateTime.atZone(defaultTz).withZoneSameInstant(zone).withZoneSameLocal(defaultTz);
 
-    if ((passedTzValidator.isBefore(maxTzValidator)
+    return (passedTzValidator.isBefore(maxTzValidator)
         || passedTzValidator.isEqual(maxTzValidator))
         && (passedTzValidator.isAfter(minTzValidator)
-        || passedTzValidator.isEqual(minTzValidator))) {
-      return true;
-    }
-
-    return false;
+        || passedTzValidator.isEqual(minTzValidator));
   }
 
   /**
