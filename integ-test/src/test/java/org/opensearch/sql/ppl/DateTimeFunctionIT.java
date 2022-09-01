@@ -45,8 +45,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
 
     result =
         executeQuery(String.format(
-            "source=%s | eval f = adddate('2020-09-16 17:30:00', interval 1 day) | fields f",
-            TEST_INDEX_DATE));
+            "source=%s | eval f = adddate('2020-09-16 17:30:00', interval 1 day) | fields f", TEST_INDEX_DATE));
     verifySchema(result,
         schema("f", null, "datetime"));
     verifySome(result.getJSONArray("datarows"), rows("2020-09-17 17:30:00"));
@@ -319,15 +318,16 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySome(result.getJSONArray("datarows"), rows(16));
   }
 
+
   @Test
   public void testDayOfWeek() throws IOException {
     JSONObject result = executeQuery(String.format(
-            "source=%s | eval f =  dayofweek(date('2020-09-16')) | fields f", TEST_INDEX_DATE));
+        "source=%s | eval f =  dayofweek(date('2020-09-16')) | fields f", TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "integer"));
     verifySome(result.getJSONArray("datarows"), rows(4));
 
     result = executeQuery(String.format(
-            "source=%s | eval f =  dayofweek('2020-09-16') | fields f", TEST_INDEX_DATE));
+        "source=%s | eval f =  dayofweek('2020-09-16') | fields f", TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "integer"));
     verifySome(result.getJSONArray("datarows"), rows(4));
   }
@@ -518,7 +518,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySome(result.getJSONArray("datarows"), rows("2020-09-15 17:30:00"));
 
     result = executeQuery(String.format(
-            "source=%s | eval f =  subdate(date('2020-09-16'), 1) | fields f", TEST_INDEX_DATE));
+        "source=%s | eval f =  subdate(date('2020-09-16'), 1) | fields f", TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "date"));
     verifySome(result.getJSONArray("datarows"), rows("2020-09-15"));
 
@@ -530,7 +530,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySome(result.getJSONArray("datarows"), rows("2020-09-15 17:30:00"));
 
     result = executeQuery(String.format(
-            "source=%s | eval f =  subdate('2020-09-16', 1) | fields f", TEST_INDEX_DATE));
+        "source=%s | eval f =  subdate('2020-09-16', 1) | fields f", TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "datetime"));
     verifySome(result.getJSONArray("datarows"), rows("2020-09-15"));
   }
@@ -538,12 +538,12 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
   @Test
   public void testTimeToSec() throws IOException {
     JSONObject result = executeQuery(String.format(
-            "source=%s | eval f =  time_to_sec(time('17:30:00')) | fields f", TEST_INDEX_DATE));
+        "source=%s | eval f =  time_to_sec(time('17:30:00')) | fields f", TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "long"));
     verifySome(result.getJSONArray("datarows"), rows(63000));
 
     result = executeQuery(String.format(
-            "source=%s | eval f =  time_to_sec('17:30:00') | fields f", TEST_INDEX_DATE));
+        "source=%s | eval f =  time_to_sec('17:30:00') | fields f", TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "long"));
     verifySome(result.getJSONArray("datarows"), rows(63000));
   }
@@ -551,12 +551,12 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
   @Test
   public void testToDays() throws IOException {
     JSONObject result = executeQuery(String.format(
-            "source=%s | eval f =  to_days(date('2020-09-16')) | fields f", TEST_INDEX_DATE));
+        "source=%s | eval f =  to_days(date('2020-09-16')) | fields f", TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "long"));
     verifySome(result.getJSONArray("datarows"), rows(738049));
 
     result = executeQuery(String.format(
-            "source=%s | eval f =  to_days('2020-09-16') | fields f", TEST_INDEX_DATE));
+        "source=%s | eval f =  to_days('2020-09-16') | fields f", TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "long"));
     verifySome(result.getJSONArray("datarows"), rows(738049));
   }
@@ -585,26 +585,26 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
   @Test
   public void testYear() throws IOException {
     JSONObject result = executeQuery(String.format(
-            "source=%s | eval f =  year(date('2020-09-16')) | fields f", TEST_INDEX_DATE));
+        "source=%s | eval f =  year(date('2020-09-16')) | fields f", TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "integer"));
     verifySome(result.getJSONArray("datarows"), rows(2020));
 
     result = executeQuery(String.format(
-            "source=%s | eval f =  year('2020-09-16') | fields f", TEST_INDEX_DATE));
+        "source=%s | eval f =  year('2020-09-16') | fields f", TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "integer"));
     verifySome(result.getJSONArray("datarows"), rows(2020));
   }
 
   void verifyDateFormat(String date, String type, String format, String formatted) throws IOException {
     JSONObject result = executeQuery(String.format(
-            "source=%s | eval f =  date_format(%s('%s'), '%s') | fields f",
-            TEST_INDEX_DATE, type, date, format));
+        "source=%s | eval f =  date_format(%s('%s'), '%s') | fields f",
+        TEST_INDEX_DATE, type, date, format));
     verifySchema(result, schema("f", null, "string"));
     verifySome(result.getJSONArray("datarows"), rows(formatted));
 
     result = executeQuery(String.format(
-            "source=%s | eval f =  date_format('%s', '%s') | fields f",
-            TEST_INDEX_DATE, date, format));
+        "source=%s | eval f =  date_format('%s', '%s') | fields f",
+        TEST_INDEX_DATE, date, format));
     verifySchema(result, schema("f", null, "string"));
     verifySome(result.getJSONArray("datarows"), rows(formatted));
   }
