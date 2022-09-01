@@ -139,4 +139,13 @@ public class ConvertTZFunctionIT extends SQLIntegTestCase {
         schema("convert_tz('2021-05-12 11:34:50','+14:01','****')", null, "datetime"));
     verifyDataRows(result, rows(new Object[]{null}));
   }
+
+  @Test
+  public void nullFromGarbageInput3() throws IOException {
+    var result = executeJdbcRequest(
+        "SELECT convert_tz('2021----','+00:00','+00:00')");
+    verifySchema(result,
+        schema("convert_tz('2021----','+00:00','+00:00')", null, "datetime"));
+    verifyDataRows(result, rows(new Object[]{null}));
+  }
 }

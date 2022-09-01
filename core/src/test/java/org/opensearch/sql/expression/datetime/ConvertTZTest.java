@@ -68,58 +68,71 @@ class ConvertTZTest extends ExpressionTestBase {
     assertEquals(nullValue(), expr.valueOf(env));
 
     expr = dsl.convert_tz(dsl.datetime(
-            DSL.literal("2008-05-15 22:00:00")),
+        DSL.literal("2008-05-15 22:00:00")),
+        DSL.literal("+00:00"),
+        DSL.literal("-16:00"));
+    assertEquals(DATETIME, expr.type());
+    assertEquals(nullValue(), expr.valueOf(env));
+
+    expr = dsl.convert_tz(DSL.literal("2008-05-15 22:00:00"),
         DSL.literal("+00:00"),
         DSL.literal("-16:00"));
     assertEquals(DATETIME, expr.type());
     assertEquals(nullValue(), expr.valueOf(env));
 
     expr = dsl.convert_tz(dsl.datetime(
-            DSL.literal("2008-05-15 22:00:00")),
+        DSL.literal("2008-05-15 22:00:00")),
         DSL.literal("+15:00"),
         DSL.literal("+01:00"));
     assertEquals(DATETIME, expr.type());
     assertEquals(nullValue(), expr.valueOf(env));
 
     expr = dsl.convert_tz(dsl.datetime(
-            DSL.literal("2008-05-15 22:00:00")),
+        DSL.literal("2008-05-15 22:00:00")),
         DSL.literal("-15:00"),
         DSL.literal("+01:00"));
     assertEquals(DATETIME, expr.type());
     assertEquals(nullValue(), expr.valueOf(env));
 
     expr = dsl.convert_tz(dsl.datetime(
-            DSL.literal("2008-05-15 22:00:00")),
+        DSL.literal("2008-05-15 22:00:00")),
         DSL.literal("-12:00"),
         DSL.literal("+15:00"));
     assertEquals(DATETIME, expr.type());
     assertEquals(nullValue(), expr.valueOf(env));
 
     expr = dsl.convert_tz(dsl.datetime(
-            DSL.literal("2008-05-15 22:00:00")),
+        DSL.literal("2008-05-15 22:00:00")),
         DSL.literal("+00:00"),
         DSL.literal("+14:00"));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue("2008-05-16 12:00:00"), expr.valueOf(env));
 
     expr = dsl.convert_tz(dsl.datetime(
-            DSL.literal("2008-05-15 22:00:00")),
+        DSL.literal("2008-05-15 22:00:00")),
         DSL.literal("+00:01"),
         DSL.literal("-13:59"));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue("2008-05-15 08:00:00"), expr.valueOf(env));
 
     expr = dsl.convert_tz(dsl.datetime(
-            DSL.literal("2008-05-15 22:00:00")),
+        DSL.literal("2008-05-15 22:00:00")),
         DSL.literal("+)()"),
         DSL.literal("+12:00"));
     assertEquals(DATETIME, expr.type());
     assertEquals(nullValue(), expr.valueOf(env));
 
     expr = dsl.convert_tz(dsl.datetime(
-            DSL.literal("2008-05-15 22:00:00")),
+        DSL.literal("2008-05-15 22:00:00")),
         DSL.literal("+00:00"),
-        DSL.literal("fesasgrsgr"));
+        DSL.literal("test"));
+    assertEquals(DATETIME, expr.type());
+    assertEquals(nullValue(), expr.valueOf(env));
+
+    expr = dsl.convert_tz(
+        DSL.literal("test"),
+        DSL.literal("+00:00"),
+        DSL.literal("+00:00"));
     assertEquals(DATETIME, expr.type());
     assertEquals(nullValue(), expr.valueOf(env));
   }
