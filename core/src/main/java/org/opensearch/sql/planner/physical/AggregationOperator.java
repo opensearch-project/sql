@@ -55,14 +55,16 @@ public class AggregationOperator extends PhysicalPlan {
                              List<NamedExpression> groupByExprList) {
     this.input = input;
     this.aggregatorList = aggregatorList;
+    this.groupByExprList = groupByExprList;
+    List<NamedExpression> tempGroupByExprList;
     if (hasSpan(groupByExprList)) {
       this.span = groupByExprList.get(0);
-      this.groupByExprList = groupByExprList.subList(1, groupByExprList.size());
+      tempGroupByExprList = groupByExprList.subList(1, groupByExprList.size());
     } else {
       this.span = null;
-      this.groupByExprList = groupByExprList;
+      tempGroupByExprList = groupByExprList;
     }
-    this.collector = Collector.Builder.build(this.span, this.groupByExprList, this.aggregatorList);
+    this.collector = Collector.Builder.build(this.span, tempGroupByExprList, this.aggregatorList);
   }
 
   @Override
