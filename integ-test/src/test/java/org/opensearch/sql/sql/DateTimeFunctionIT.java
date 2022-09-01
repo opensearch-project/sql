@@ -56,25 +56,25 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   @Test
   public void testDateInGroupBy() throws IOException{
     JSONObject result =
-            executeQuery(String.format("SELECT DATE(birthdate) FROM %s GROUP BY DATE(birthdate)",TEST_INDEX_BANK) );
+        executeQuery(String.format("SELECT DATE(birthdate) FROM %s GROUP BY DATE(birthdate)",TEST_INDEX_BANK) );
     verifySchema(result,
-            schema("DATE(birthdate)", null, "date"));
+        schema("DATE(birthdate)", null, "date"));
     verifyDataRows(result,
-            rows("2017-10-23"),
-            rows("2017-11-20"),
-            rows("2018-06-23"),
-            rows("2018-11-13"),
-            rows("2018-06-27"),
-            rows("2018-08-19"),
-            rows("2018-08-11"));
+        rows("2017-10-23"),
+        rows("2017-11-20"),
+        rows("2018-06-23"),
+        rows("2018-11-13"),
+        rows("2018-06-27"),
+        rows("2018-08-19"),
+        rows("2018-08-11"));
   }
 
   @Test
   public void testDateWithHavingClauseOnly() throws IOException {
     JSONObject result =
-            executeQuery(String.format("SELECT (TO_DAYS(DATE('2050-01-01')) - 693961) FROM %s HAVING (COUNT(1) > 0)",TEST_INDEX_BANK) );
+        executeQuery(String.format("SELECT (TO_DAYS(DATE('2050-01-01')) - 693961) FROM %s HAVING (COUNT(1) > 0)",TEST_INDEX_BANK) );
     verifySchema(result,
-            schema("(TO_DAYS(DATE('2050-01-01')) - 693961)", null, "long"));
+        schema("(TO_DAYS(DATE('2050-01-01')) - 693961)", null, "long"));
     verifyDataRows(result, rows(54787));
   }
 
@@ -106,69 +106,6 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
-  public void testConvert_TZ() throws IOException {
-    var result = executeQuery(
-        "SELECT convert_tz('2008-05-15 12:00:00','+00:00','+10:00')");
-    verifySchema(result,
-        schema("convert_tz('2008-05-15 12:00:00','+00:00','+10:00')", null, "datetime"));
-    verifyDataRows(result, rows("2008-05-15 22:00:00"));
-
-    result = executeQuery(
-        "SELECT convert_tz('2021-05-12 00:00:00','-00:00','+00:00')");
-    verifySchema(result,
-        schema("convert_tz('2021-05-12 00:00:00','-00:00','+00:00')", null, "datetime"));
-    verifyDataRows(result, rows("2021-05-12 00:00:00"));
-
-    result = executeQuery(
-        "SELECT convert_tz('2021-05-12 00:00:00','+10:00','+11:00')");
-    verifySchema(result,
-        schema("convert_tz('2021-05-12 00:00:00','+10:00','+11:00')", null, "datetime"));
-    verifyDataRows(result, rows("2021-05-12 01:00:00"));
-
-    result = executeQuery(
-        "SELECT convert_tz('2021-05-12 11:34:50','-08:00','+09:00')");
-    verifySchema(result,
-        schema("convert_tz('2021-05-12 11:34:50','-08:00','+09:00')", null, "datetime"));
-    verifyDataRows(result, rows("2021-05-13 04:34:50"));
-
-    result = executeQuery(
-        "SELECT convert_tz('2021-05-12 11:34:50','+09:00','+09:00')");
-    verifySchema(result,
-        schema("convert_tz('2021-05-12 11:34:50','+09:00','+09:00')", null, "datetime"));
-    verifyDataRows(result, rows("2021-05-12 11:34:50"));
-
-    result = executeQuery(
-        "SELECT convert_tz('2021-05-12 11:34:50','-12:00','+12:00')");
-    verifySchema(result,
-        schema("convert_tz('2021-05-12 11:34:50','-12:00','+12:00')", null, "datetime"));
-    verifyDataRows(result, rows("2021-05-13 11:34:50"));
-
-    result = executeQuery(
-        "SELECT convert_tz('2021-05-12 13:00:00','+09:30','+05:45')");
-    verifySchema(result,
-        schema("convert_tz('2021-05-12 13:00:00','+09:30','+05:45')", null, "datetime"));
-    verifyDataRows(result, rows("2021-05-12 09:15:00"));
-
-    result = executeQuery(
-        "SELECT convert_tz('2021-05-12 13:00:00','+09:31','+05:11')");
-    verifySchema(result,
-        schema("convert_tz('2021-05-12 13:00:00','+09:31','+05:11')", null, "datetime"));
-    verifyDataRows(result, rows("2021-05-12 08:40:00"));
-
-    result = executeQuery(
-        "SELECT convert_tz('2021-05-30 11:34:50','-14:00','+08:00')");
-    verifySchema(result,
-        schema("convert_tz('2021-05-30 11:34:50','-14:00','+08:00')", null, "datetime"));
-    verifyDataRows(result, rows(new Object[]{null}));
-
-    result = executeQuery(
-        "SELECT convert_tz('2021-05-12 11:34:50','-12:00','+14:01')");
-    verifySchema(result,
-        schema("convert_tz('2021-05-12 11:34:50','-12:00','+14:01')", null, "datetime"));
-    verifyDataRows(result, rows(new Object[]{null}));
-  }
-
-  @Test
   public void testDateAdd() throws IOException {
     JSONObject result =
         executeQuery("select date_add(timestamp('2020-09-16 17:30:00'), interval 1 day)");
@@ -195,17 +132,17 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result, rows("2020-09-17"));
 
     result =
-            executeQuery(String.format("SELECT DATE_ADD(birthdate, INTERVAL 1 YEAR) FROM %s GROUP BY 1",TEST_INDEX_BANK) );
+        executeQuery(String.format("SELECT DATE_ADD(birthdate, INTERVAL 1 YEAR) FROM %s GROUP BY 1",TEST_INDEX_BANK) );
     verifySchema(result,
-            schema("DATE_ADD(birthdate, INTERVAL 1 YEAR)", null, "datetime"));
+        schema("DATE_ADD(birthdate, INTERVAL 1 YEAR)", null, "datetime"));
     verifyDataRows(result,
-            rows("2018-10-23 00:00:00"),
-            rows("2018-11-20 00:00:00"),
-            rows("2019-06-23 00:00:00"),
-            rows("2019-11-13 23:33:20"),
-            rows("2019-06-27 00:00:00"),
-            rows("2019-08-19 00:00:00"),
-            rows("2019-08-11 00:00:00"));
+        rows("2018-10-23 00:00:00"),
+        rows("2018-11-20 00:00:00"),
+        rows("2019-06-23 00:00:00"),
+        rows("2019-11-13 23:33:20"),
+        rows("2019-06-27 00:00:00"),
+        rows("2019-08-19 00:00:00"),
+        rows("2019-08-11 00:00:00"));
   }
 
   @Test
@@ -233,99 +170,6 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifySchema(result,
         schema("date_sub('2020-09-16', interval 1 day)", null, "datetime"));
     verifyDataRows(result, rows("2020-09-15"));
-  }
-
-  @Test
-  public void testDateTime() throws IOException {
-    var result = executeQuery(
-        "SELECT DATETIME('2008-12-25 05:30:00+00:00', 'America/Los_Angeles')");
-    verifySchema(result,
-        schema("DATETIME('2008-12-25 05:30:00+00:00', 'America/Los_Angeles')", null, "datetime"));
-    verifyDataRows(result, rows("2008-12-24 21:30:00"));
-
-    result = executeQuery(
-        "SELECT DATETIME('2008-12-25 05:30:00+00:00', '+01:00')");
-    verifySchema(result,
-        schema("DATETIME('2008-12-25 05:30:00+00:00', '+01:00')", null, "datetime"));
-    verifyDataRows(result, rows("2008-12-25 06:30:00"));
-
-    result = executeQuery(
-        "SELECT DATETIME('2008-12-25 05:30:00-05:00', '+05:00')");
-    verifySchema(result,
-        schema("DATETIME('2008-12-25 05:30:00-05:00', '+05:00')", null, "datetime"));
-    verifyDataRows(result, rows("2008-12-25 15:30:00"));
-
-    result = executeQuery(
-        "SELECT DATETIME('2004-02-28 23:00:00-10:00', '+10:00')");
-    verifySchema(result,
-        schema("DATETIME('2004-02-28 23:00:00-10:00', '+10:00')", null, "datetime"));
-    verifyDataRows(result, rows("2004-02-29 19:00:00"));
-
-    result = executeQuery(
-        "SELECT DATETIME('2003-02-28 23:00:00-10:00', '+10:00')");
-    verifySchema(result,
-        schema("DATETIME('2003-02-28 23:00:00-10:00', '+10:00')", null, "datetime"));
-    verifyDataRows(result, rows("2003-03-01 19:00:00"));
-
-    result = executeQuery(
-        "SELECT DATETIME('2008-12-25 05:30:00+00:00', '+14:00')");
-    verifySchema(result,
-        schema("DATETIME('2008-12-25 05:30:00+00:00', '+14:00')", null, "datetime"));
-    verifyDataRows(result, rows("2008-12-25 19:30:00"));
-
-    result = executeQuery(
-        "SELECT DATETIME('2008-01-01 02:00:00+10:00', '-10:00')");
-    verifySchema(result,
-        schema("DATETIME('2008-01-01 02:00:00+10:00', '-10:00')", null, "datetime"));
-    verifyDataRows(result, rows("2007-12-31 06:00:00"));
-
-    result = executeQuery(
-        "SELECT DATETIME('2008-01-01 02:00:00+10:00')");
-    verifySchema(result,
-        schema("DATETIME('2008-01-01 02:00:00+10:00')", null, "datetime"));
-    verifyDataRows(result, rows("2008-01-01 02:00:00"));
-
-    result = executeQuery(
-        "SELECT DATETIME('2008-01-01 02:00:00')");
-    verifySchema(result,
-        schema("DATETIME('2008-01-01 02:00:00')", null, "datetime"));
-    verifyDataRows(result, rows("2008-01-01 02:00:00"));
-
-    result = executeQuery(
-        "SELECT DATETIME('2008-01-01 02:00:00+12:00', '-12:00')");
-    verifySchema(result,
-        schema("DATETIME('2008-01-01 02:00:00+12:00', '-12:00')", null, "datetime"));
-    verifyDataRows(result, rows("2007-12-31 02:00:00"));
-
-    result = executeQuery(
-        "SELECT DATETIME('2008-01-01 02:00:00+12:00', '-12:00')");
-    verifySchema(result,
-        schema("DATETIME('2008-01-01 02:00:00+12:00', '-12:00')", null, "datetime"));
-    verifyDataRows(result, rows("2007-12-31 02:00:00"));
-
-    result = executeQuery(
-        "SELECT DATETIME('2008-01-01 02:00:00+10:00', '-13:59')");
-    verifySchema(result,
-        schema("DATETIME('2008-01-01 02:00:00+10:00', '-13:59')", null, "datetime"));
-    verifyDataRows(result, rows("2007-12-31 02:01:00"));
-
-    result = executeQuery(
-        "SELECT DATETIME('2008-01-01 02:00:00+14:00', '-10:00')");
-    verifySchema(result,
-        schema("DATETIME('2008-01-01 02:00:00+14:00', '-10:00')", null, "datetime"));
-    verifyDataRows(result, rows("2007-12-31 02:00:00"));
-
-    result = executeQuery(
-        "SELECT DATETIME('2008-01-01 02:00:00+10:00', '-14:01')");
-    verifySchema(result,
-        schema("DATETIME('2008-01-01 02:00:00+10:00', '-14:01')", null, "datetime"));
-    verifyDataRows(result, rows(new Object[]{null}));
-
-    result = executeQuery(
-        "SELECT DATETIME('2008-01-01 02:00:00+14:01', '-10:00')");
-    verifySchema(result,
-        schema("DATETIME('2008-01-01 02:00:00+14:01', '-10:00')", null, "datetime"));
-    verifyDataRows(result, rows(new Object[]{null}));
   }
 
   @Test
