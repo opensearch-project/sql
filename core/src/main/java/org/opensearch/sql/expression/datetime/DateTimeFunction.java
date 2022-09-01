@@ -670,12 +670,10 @@ public class DateTimeFunction {
       LocalDateTime ldtFormatted = LocalDateTime.parse(dateTime.stringValue(), formatDT);
       return new ExprDatetimeValue(ldtFormatted);
     }
-
     ExprValue convertTZResult;
 
     try {
       ZonedDateTime zdtWithZoneOffset = ZonedDateTime.parse(dateTime.stringValue(), formatDT);
-
       ZoneId fromTZ = zdtWithZoneOffset.getZone();
 
       convertTZResult = exprConvertTZ(
@@ -684,20 +682,17 @@ public class DateTimeFunction {
           new ExprStringValue(String.valueOf(ZoneId.of(timeZone.stringValue()))));
     } catch (DateTimeParseException e) {
       LocalDateTime ldtFormatted = LocalDateTime.parse(dateTime.stringValue(), formatDT);
-
       convertTZResult = exprConvertTZ(
           new ExprDatetimeValue(ldtFormatted),
           new ExprStringValue(defaultTimeZone),
           new ExprStringValue(String.valueOf(ZoneId.of(timeZone.stringValue()))));
     }
-
     return convertTZResult;
   }
 
   private ExprValue exprDateTimeNoTimezone(ExprValue dateTime) {
     return exprDateTime(dateTime, ExprNullValue.of());
   }
-
 
   /**
    * Name of the Weekday implementation for ExprValue.
@@ -972,7 +967,6 @@ public class DateTimeFunction {
 
   /**
    * Week for date implementation for ExprValue.
-   *
    * @param date ExprValue of Date/Datetime/Timestamp/String type.
    * @param mode ExprValue of Integer type.
    */
@@ -1057,7 +1051,6 @@ public class DateTimeFunction {
   /**
    * Week for date implementation for ExprValue.
    * When mode is not specified default value mode 0 is used for default_week_format.
-   *
    * @param date ExprValue of Date/Datetime/Timestamp/String type.
    * @return ExprValue.
    */
