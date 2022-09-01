@@ -75,7 +75,8 @@ class DateTimeTest extends ExpressionTestBase {
     String dt = "2008-05-15 22:00:00";
     String timeZone = "America/Los_Angeles";
     LocalDateTime timeConverted = LocalDateTime.parse(dt, formatter);
-    ZonedDateTime timeZoneLocal = timeConverted.atZone(ZoneId.of(TimeZone.getDefault().getID()));
+    ZonedDateTime timeZoneLocal = timeConverted.atZone(ZoneId.of(TimeZone.getDefault().getID()))
+        .withZoneSameInstant(ZoneId.of(timeZone));
     expr = dsl.datetime(DSL.literal(dt),
         DSL.literal(timeZone));
     assertEquals(DATETIME, expr.type());
