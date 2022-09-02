@@ -115,7 +115,7 @@ public class DateTimeImplementationIT extends SQLIntegTestCase {
   }
 
   @Test
-  public void nullToFieldUnder() throws IOException {
+  public void nullField3Under() throws IOException {
     var result = executeJdbcRequest(
         "SELECT DATETIME('2008-01-01 02:00:00+10:00', '-14:01')");
     verifySchema(result,
@@ -124,7 +124,7 @@ public class DateTimeImplementationIT extends SQLIntegTestCase {
   }
 
   @Test
-  public void nullFromFieldOver() throws IOException {
+  public void nullField1Over() throws IOException {
     var result = executeJdbcRequest(
         "SELECT DATETIME('2008-01-01 02:00:00+14:01', '-10:00')");
     verifySchema(result,

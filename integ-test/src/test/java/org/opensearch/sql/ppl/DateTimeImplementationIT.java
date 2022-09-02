@@ -98,7 +98,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void nullFromFieldOver() throws IOException {
+  public void nullField3Over() throws IOException {
     JSONObject result = executeQuery(
         String.format("source=%s | eval f = DATETIME('2008-01-01 02:00:00+15:00', '-12:00') | fields f",
             TEST_INDEX_DATE));
@@ -107,7 +107,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void nullToFieldUnder() throws IOException {
+  public void nullField2Under() throws IOException {
     JSONObject result = executeQuery(
         String.format("source=%s | eval f = DATETIME('2008-01-01 02:00:00+10:00', '-14:00') | fields f",
             TEST_INDEX_DATE));
@@ -116,7 +116,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void nullToFieldOver() throws IOException {
+  public void nullTField3Over() throws IOException {
     JSONObject result = executeQuery(
         String.format("source=%s | eval f = DATETIME('2008-01-01 02:00:00', '+15:00') | fields f", TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "datetime"));

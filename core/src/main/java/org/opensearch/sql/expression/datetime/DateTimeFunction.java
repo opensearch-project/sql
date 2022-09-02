@@ -661,6 +661,7 @@ public class DateTimeFunction {
    * DateTime implementation for ExprValue.
    *
    * @param dateTime ExprValue of String type.
+   * @param timeZone ExprValue of String type.
    * @return ExprValue of date type.
    */
   private ExprValue exprDateTime(ExprValue dateTime, ExprValue timeZone) {
@@ -692,6 +693,12 @@ public class DateTimeFunction {
     return convertTZResult;
   }
 
+  /**
+   * DateTime implementation for ExprValue without a timezone to convert to.
+   *
+   * @param dateTime ExprValue of String type.
+   * @return ExprValue of date type.
+   */
   private ExprValue exprDateTimeNoTimezone(ExprValue dateTime) {
     return exprDateTime(dateTime, ExprNullValue.of());
   }
@@ -1070,6 +1077,12 @@ public class DateTimeFunction {
     return new ExprIntegerValue(date.dateValue().getYear());
   }
 
+  /**
+   * isTimeZoneValid for timezones which match timezone the range set by MySQL.
+   *
+   * @param zone ZoneId of ZoneId type.
+   * @return Boolean.
+   */
   private Boolean isTimeZoneValid(ZoneId zone) {
     ZoneId maxTz = ZoneId.of("+14:00");
     ZoneId minTz = ZoneId.of("-13:59");

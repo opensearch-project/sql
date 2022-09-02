@@ -96,7 +96,7 @@ public class ConvertTZFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
-  public void nullToFieldUnder() throws IOException {
+  public void nullField2Under() throws IOException {
     var result = executeJdbcRequest(
         "SELECT convert_tz('2021-05-30 11:34:50','-14:00','+08:00')");
     verifySchema(result,
@@ -105,7 +105,7 @@ public class ConvertTZFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
-  public void nullFromFieldOver() throws IOException {
+  public void nullField3Over() throws IOException {
     var result = executeJdbcRequest(
         "SELECT convert_tz('2021-05-12 11:34:50','-12:00','+14:01')");
     verifySchema(result,
@@ -127,7 +127,7 @@ public class ConvertTZFunctionIT extends SQLIntegTestCase {
   // value on the end to make it `HH:mm` timezone.
   // Invalid input returns null.
   @Test
-  public void nullFromInvalidInput() throws IOException {
+  public void nullField3InvalidInput() throws IOException {
     var result = executeJdbcRequest(
         "SELECT convert_tz('2021-05-12 11:34:50','+10:0','+14:01')");
     verifySchema(result,
@@ -136,7 +136,7 @@ public class ConvertTZFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
-  public void nullToInvalidInput() throws IOException {
+  public void nullField2InvalidInput() throws IOException {
     var result = executeJdbcRequest(
         "SELECT convert_tz('2021-05-12 11:34:50','+14:01','****')");
     verifySchema(result,
