@@ -122,17 +122,21 @@ public class ConvertTZFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result, rows("2021-05-12 15:00:00"));
   }
 
+  // Invalid is any invalid input in a field. In the timezone fields it also includes all
+  // non-timezone characters including `****` as well as `+10:0` which is missing an extra
+  // value on the end to make it `HH:mm` timezone.
+  // Invalid input returns null.
   @Test
-  public void nullFromGarbageInput() throws IOException {
+  public void nullFromInvalidInput() throws IOException {
     var result = executeJdbcRequest(
-        "SELECT convert_tz('2021-05-12 11:34:50','****','+14:01')");
+        "SELECT convert_tz('2021-05-12 11:34:50','+10:0','+14:01')");
     verifySchema(result,
-        schema("convert_tz('2021-05-12 11:34:50','****','+14:01')", null, "datetime"));
+        schema("convert_tz('2021-05-12 11:34:50','+10:0','+14:01')", null, "datetime"));
     verifyDataRows(result, rows(new Object[]{null}));
   }
 
   @Test
-  public void nullFromGarbageInput2() throws IOException {
+  public void nullToInvalidInput() throws IOException {
     var result = executeJdbcRequest(
         "SELECT convert_tz('2021-05-12 11:34:50','+14:01','****')");
     verifySchema(result,
@@ -140,8 +144,10 @@ public class ConvertTZFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result, rows(new Object[]{null}));
   }
 
+  // Invalid input in the datetime field of CONVERT_TZ results in a null field. It is any input
+  // which is not of the format `yyyy-MM-dd HH:mm:ss`
   @Test
-  public void nullFromGarbageInput3() throws IOException {
+  public void nullDateTimeInvalidInput() throws IOException {
     var result = executeJdbcRequest(
         "SELECT convert_tz('2021----','+00:00','+00:00')");
     verifySchema(result,

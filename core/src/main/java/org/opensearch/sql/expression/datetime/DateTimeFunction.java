@@ -131,6 +131,7 @@ public class DateTimeFunction {
    * Converts date/time from a specified timezone to another specified timezone.
    * The supported signatures:
    * (DATETIME, STRING, STRING) -> DATETIME
+   * (STRING, STRING, STRING) -> DATETIME
    */
   private FunctionResolver convert_tz() {
     return define(BuiltinFunctionName.CONVERT_TZ.getName(),
@@ -158,6 +159,7 @@ public class DateTimeFunction {
    * Specify a datetime with time zone field and a time zone to convert to.
    * Returns a local date time.
    * (STRING, STRING) -> DATETIME
+   * (STRING) -> DATETIME
    */
   private FunctionResolver datetime() {
     return define(BuiltinFunctionName.DATETIME.getName(),
