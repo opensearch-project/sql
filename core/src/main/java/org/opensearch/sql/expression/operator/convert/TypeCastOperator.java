@@ -39,8 +39,8 @@ import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.DefaultFunctionResolver;
 import org.opensearch.sql.expression.function.FunctionDSL;
-import org.opensearch.sql.expression.function.FunctionResolver;
 
 @UtilityClass
 public class TypeCastOperator {
@@ -63,7 +63,7 @@ public class TypeCastOperator {
   }
 
 
-  private static FunctionResolver castToString() {
+  private static DefaultFunctionResolver castToString() {
     return FunctionDSL.define(BuiltinFunctionName.CAST_TO_STRING.getName(),
         Stream.concat(
             Arrays.asList(BYTE, SHORT, INTEGER, LONG, FLOAT, DOUBLE, BOOLEAN, TIME, DATE,
@@ -76,7 +76,7 @@ public class TypeCastOperator {
     );
   }
 
-  private static FunctionResolver castToByte() {
+  private static DefaultFunctionResolver castToByte() {
     return FunctionDSL.define(BuiltinFunctionName.CAST_TO_BYTE.getName(),
         impl(nullMissingHandling(
             (v) -> new ExprByteValue(Byte.valueOf(v.stringValue()))), BYTE, STRING),
@@ -87,7 +87,7 @@ public class TypeCastOperator {
     );
   }
 
-  private static FunctionResolver castToShort() {
+  private static DefaultFunctionResolver castToShort() {
     return FunctionDSL.define(BuiltinFunctionName.CAST_TO_SHORT.getName(),
         impl(nullMissingHandling(
             (v) -> new ExprShortValue(Short.valueOf(v.stringValue()))), SHORT, STRING),
@@ -98,7 +98,7 @@ public class TypeCastOperator {
     );
   }
 
-  private static FunctionResolver castToInt() {
+  private static DefaultFunctionResolver castToInt() {
     return FunctionDSL.define(BuiltinFunctionName.CAST_TO_INT.getName(),
         impl(nullMissingHandling(
             (v) -> new ExprIntegerValue(Integer.valueOf(v.stringValue()))), INTEGER, STRING),
@@ -109,7 +109,7 @@ public class TypeCastOperator {
     );
   }
 
-  private static FunctionResolver castToLong() {
+  private static DefaultFunctionResolver castToLong() {
     return FunctionDSL.define(BuiltinFunctionName.CAST_TO_LONG.getName(),
         impl(nullMissingHandling(
             (v) -> new ExprLongValue(Long.valueOf(v.stringValue()))), LONG, STRING),
@@ -120,7 +120,7 @@ public class TypeCastOperator {
     );
   }
 
-  private static FunctionResolver castToFloat() {
+  private static DefaultFunctionResolver castToFloat() {
     return FunctionDSL.define(BuiltinFunctionName.CAST_TO_FLOAT.getName(),
         impl(nullMissingHandling(
             (v) -> new ExprFloatValue(Float.valueOf(v.stringValue()))), FLOAT, STRING),
@@ -131,7 +131,7 @@ public class TypeCastOperator {
     );
   }
 
-  private static FunctionResolver castToDouble() {
+  private static DefaultFunctionResolver castToDouble() {
     return FunctionDSL.define(BuiltinFunctionName.CAST_TO_DOUBLE.getName(),
         impl(nullMissingHandling(
             (v) -> new ExprDoubleValue(Double.valueOf(v.stringValue()))), DOUBLE, STRING),
@@ -142,7 +142,7 @@ public class TypeCastOperator {
     );
   }
 
-  private static FunctionResolver castToBoolean() {
+  private static DefaultFunctionResolver castToBoolean() {
     return FunctionDSL.define(BuiltinFunctionName.CAST_TO_BOOLEAN.getName(),
         impl(nullMissingHandling(
             (v) -> ExprBooleanValue.of(Boolean.valueOf(v.stringValue()))), BOOLEAN, STRING),
@@ -152,7 +152,7 @@ public class TypeCastOperator {
     );
   }
 
-  private static FunctionResolver castToDate() {
+  private static DefaultFunctionResolver castToDate() {
     return FunctionDSL.define(BuiltinFunctionName.CAST_TO_DATE.getName(),
         impl(nullMissingHandling(
             (v) -> new ExprDateValue(v.stringValue())), DATE, STRING),
@@ -164,7 +164,7 @@ public class TypeCastOperator {
     );
   }
 
-  private static FunctionResolver castToTime() {
+  private static DefaultFunctionResolver castToTime() {
     return FunctionDSL.define(BuiltinFunctionName.CAST_TO_TIME.getName(),
         impl(nullMissingHandling(
             (v) -> new ExprTimeValue(v.stringValue())), TIME, STRING),
@@ -176,7 +176,7 @@ public class TypeCastOperator {
     );
   }
 
-  private static FunctionResolver castToTimestamp() {
+  private static DefaultFunctionResolver castToTimestamp() {
     return FunctionDSL.define(BuiltinFunctionName.CAST_TO_TIMESTAMP.getName(),
         impl(nullMissingHandling(
             (v) -> new ExprTimestampValue(v.stringValue())), TIMESTAMP, STRING),
@@ -186,7 +186,7 @@ public class TypeCastOperator {
     );
   }
 
-  private static FunctionResolver castToDatetime() {
+  private static DefaultFunctionResolver castToDatetime() {
     return FunctionDSL.define(BuiltinFunctionName.CAST_TO_DATETIME.getName(),
         impl(nullMissingHandling(
             (v) -> new ExprDatetimeValue(v.stringValue())), DATETIME, STRING),

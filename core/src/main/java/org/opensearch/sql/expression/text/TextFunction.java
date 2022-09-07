@@ -18,8 +18,8 @@ import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.DefaultFunctionResolver;
 import org.opensearch.sql.expression.function.FunctionName;
-import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.expression.function.SerializableBiFunction;
 import org.opensearch.sql.expression.function.SerializableTriFunction;
 
@@ -63,7 +63,7 @@ public class TextFunction {
    * Supports following signatures:
    * (STRING, INTEGER)/(STRING, INTEGER, INTEGER) -> STRING
    */
-  private FunctionResolver substringSubstr(FunctionName functionName) {
+  private DefaultFunctionResolver substringSubstr(FunctionName functionName) {
     return define(functionName,
             impl(nullMissingHandling(TextFunction::exprSubstrStart),
                     STRING, STRING, INTEGER),
@@ -71,11 +71,11 @@ public class TextFunction {
                     STRING, STRING, INTEGER, INTEGER));
   }
 
-  private FunctionResolver substring() {
+  private DefaultFunctionResolver substring() {
     return substringSubstr(BuiltinFunctionName.SUBSTRING.getName());
   }
 
-  private FunctionResolver substr() {
+  private DefaultFunctionResolver substr() {
     return substringSubstr(BuiltinFunctionName.SUBSTR.getName());
   }
 
@@ -84,7 +84,7 @@ public class TextFunction {
    * Supports following signatures:
    * STRING -> STRING
    */
-  private FunctionResolver ltrim() {
+  private DefaultFunctionResolver ltrim() {
     return define(BuiltinFunctionName.LTRIM.getName(),
         impl(nullMissingHandling((v) -> new ExprStringValue(v.stringValue().stripLeading())),
             STRING, STRING));
@@ -95,7 +95,7 @@ public class TextFunction {
    * Supports following signatures:
    * STRING -> STRING
    */
-  private FunctionResolver rtrim() {
+  private DefaultFunctionResolver rtrim() {
     return define(BuiltinFunctionName.RTRIM.getName(),
         impl(nullMissingHandling((v) -> new ExprStringValue(v.stringValue().stripTrailing())),
                 STRING, STRING));
@@ -108,7 +108,7 @@ public class TextFunction {
    * Supports following signatures:
    * STRING -> STRING
    */
-  private FunctionResolver trim() {
+  private DefaultFunctionResolver trim() {
     return define(BuiltinFunctionName.TRIM.getName(),
         impl(nullMissingHandling((v) -> new ExprStringValue(v.stringValue().trim())),
             STRING, STRING));
@@ -119,7 +119,7 @@ public class TextFunction {
    * Supports following signatures:
    * STRING -> STRING
    */
-  private FunctionResolver lower() {
+  private DefaultFunctionResolver lower() {
     return define(BuiltinFunctionName.LOWER.getName(),
         impl(nullMissingHandling((v) -> new ExprStringValue((v.stringValue().toLowerCase()))),
             STRING, STRING)
@@ -131,7 +131,7 @@ public class TextFunction {
    * Supports following signatures:
    * STRING -> STRING
    */
-  private FunctionResolver upper() {
+  private DefaultFunctionResolver upper() {
     return define(BuiltinFunctionName.UPPER.getName(),
         impl(nullMissingHandling((v) -> new ExprStringValue((v.stringValue().toUpperCase()))),
             STRING, STRING)
@@ -145,7 +145,7 @@ public class TextFunction {
    * Supports following signatures:
    * (STRING, STRING) -> STRING
    */
-  private FunctionResolver concat() {
+  private DefaultFunctionResolver concat() {
     return define(BuiltinFunctionName.CONCAT.getName(),
         impl(nullMissingHandling((str1, str2) ->
             new ExprStringValue(str1.stringValue() + str2.stringValue())), STRING, STRING, STRING));
@@ -158,7 +158,7 @@ public class TextFunction {
    * Supports following signatures:
    * (STRING, STRING, STRING) -> STRING
    */
-  private FunctionResolver concat_ws() {
+  private DefaultFunctionResolver concat_ws() {
     return define(BuiltinFunctionName.CONCAT_WS.getName(),
         impl(nullMissingHandling((sep, str1, str2) ->
             new ExprStringValue(str1.stringValue() + sep.stringValue() + str2.stringValue())),
@@ -170,7 +170,7 @@ public class TextFunction {
    * Supports following signatures:
    * STRING -> INTEGER
    */
-  private FunctionResolver length() {
+  private DefaultFunctionResolver length() {
     return define(BuiltinFunctionName.LENGTH.getName(),
         impl(nullMissingHandling((str) ->
             new ExprIntegerValue(str.stringValue().getBytes().length)), INTEGER, STRING));
@@ -181,7 +181,7 @@ public class TextFunction {
    * Supports following signatures:
    * (STRING, STRING) -> INTEGER
    */
-  private FunctionResolver strcmp() {
+  private DefaultFunctionResolver strcmp() {
     return define(BuiltinFunctionName.STRCMP.getName(),
         impl(nullMissingHandling((str1, str2) ->
             new ExprIntegerValue(Integer.compare(
@@ -194,7 +194,7 @@ public class TextFunction {
    * Supports following signatures:
    * (STRING, INTEGER) -> STRING
    */
-  private FunctionResolver right() {
+  private DefaultFunctionResolver right() {
     return define(BuiltinFunctionName.RIGHT.getName(),
             impl(nullMissingHandling(TextFunction::exprRight), STRING, STRING, INTEGER));
   }
@@ -204,7 +204,7 @@ public class TextFunction {
    * Supports following signature:
    * (STRING, INTEGER) -> STRING
    */
-  private FunctionResolver left() {
+  private DefaultFunctionResolver left() {
     return define(BuiltinFunctionName.LEFT.getName(),
         impl(nullMissingHandling(TextFunction::exprLeft), STRING, STRING, INTEGER));
   }
@@ -216,7 +216,7 @@ public class TextFunction {
    * Supports following signature:
    * STRING -> INTEGER
    */
-  private FunctionResolver ascii() {
+  private DefaultFunctionResolver ascii() {
     return define(BuiltinFunctionName.ASCII.getName(),
         impl(nullMissingHandling(TextFunction::exprAscii), INTEGER, STRING));
   }
@@ -231,7 +231,7 @@ public class TextFunction {
    * (STRING, STRING) -> INTEGER
    * (STRING, STRING, INTEGER) -> INTEGER
    */
-  private FunctionResolver locate() {
+  private DefaultFunctionResolver locate() {
     return define(BuiltinFunctionName.LOCATE.getName(),
         impl(nullMissingHandling(
             (SerializableBiFunction<ExprValue, ExprValue, ExprValue>)
@@ -248,7 +248,7 @@ public class TextFunction {
    * Supports following signature:
    * (STRING, STRING, STRING) -> STRING
    */
-  private FunctionResolver replace() {
+  private DefaultFunctionResolver replace() {
     return define(BuiltinFunctionName.REPLACE.getName(),
         impl(nullMissingHandling(TextFunction::exprReplace), STRING, STRING, STRING, STRING));
   }

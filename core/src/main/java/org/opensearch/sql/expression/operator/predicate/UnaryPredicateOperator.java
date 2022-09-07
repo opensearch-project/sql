@@ -20,10 +20,10 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.DefaultFunctionResolver;
 import org.opensearch.sql.expression.function.FunctionBuilder;
 import org.opensearch.sql.expression.function.FunctionDSL;
 import org.opensearch.sql.expression.function.FunctionName;
-import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.expression.function.FunctionSignature;
 import org.opensearch.sql.expression.function.SerializableFunction;
 
@@ -46,7 +46,7 @@ public class UnaryPredicateOperator {
     repository.register(ifFunction());
   }
 
-  private static FunctionResolver not() {
+  private static DefaultFunctionResolver not() {
     return FunctionDSL.define(BuiltinFunctionName.NOT.getName(), FunctionDSL
         .impl(UnaryPredicateOperator::not, BOOLEAN, BOOLEAN));
   }
@@ -67,7 +67,7 @@ public class UnaryPredicateOperator {
     }
   }
 
-  private static FunctionResolver isNull(BuiltinFunctionName funcName) {
+  private static DefaultFunctionResolver isNull(BuiltinFunctionName funcName) {
     return FunctionDSL
         .define(funcName.getName(), Arrays.stream(ExprCoreType.values())
             .map(type -> FunctionDSL
@@ -76,7 +76,7 @@ public class UnaryPredicateOperator {
                 Collectors.toList()));
   }
 
-  private static FunctionResolver isNotNull() {
+  private static DefaultFunctionResolver isNotNull() {
     return FunctionDSL
         .define(BuiltinFunctionName.IS_NOT_NULL.getName(), Arrays.stream(ExprCoreType.values())
             .map(type -> FunctionDSL
@@ -85,7 +85,7 @@ public class UnaryPredicateOperator {
                 Collectors.toList()));
   }
 
-  private static FunctionResolver ifFunction() {
+  private static DefaultFunctionResolver ifFunction() {
     FunctionName functionName = BuiltinFunctionName.IF.getName();
     List<ExprCoreType> typeList = ExprCoreType.coreTypes();
 
@@ -94,11 +94,11 @@ public class UnaryPredicateOperator {
             impl((UnaryPredicateOperator::exprIf), v, BOOLEAN, v, v))
             .collect(Collectors.toList());
 
-    FunctionResolver functionResolver = FunctionDSL.define(functionName, functionsOne);
+    DefaultFunctionResolver functionResolver = FunctionDSL.define(functionName, functionsOne);
     return functionResolver;
   }
 
-  private static FunctionResolver ifNull() {
+  private static DefaultFunctionResolver ifNull() {
     FunctionName functionName = BuiltinFunctionName.IFNULL.getName();
     List<ExprCoreType> typeList = ExprCoreType.coreTypes();
 
@@ -107,15 +107,15 @@ public class UnaryPredicateOperator {
             impl((UnaryPredicateOperator::exprIfNull), v, v, v))
             .collect(Collectors.toList());
 
-    FunctionResolver functionResolver = FunctionDSL.define(functionName, functionsOne);
+    DefaultFunctionResolver functionResolver = FunctionDSL.define(functionName, functionsOne);
     return functionResolver;
   }
 
-  private static FunctionResolver nullIf() {
+  private static DefaultFunctionResolver nullIf() {
     FunctionName functionName = BuiltinFunctionName.NULLIF.getName();
     List<ExprCoreType> typeList = ExprCoreType.coreTypes();
 
-    FunctionResolver functionResolver =
+    DefaultFunctionResolver functionResolver =
         FunctionDSL.define(functionName,
             typeList.stream().map(v ->
               impl((UnaryPredicateOperator::exprNullIf), v, v, v))
@@ -124,6 +124,7 @@ public class UnaryPredicateOperator {
   }
 
   /** v2 if v1 is null.
+   *
    * @param v1 varable 1
    * @param v2 varable 2
    * @return v2 if v1 is null
@@ -133,6 +134,7 @@ public class UnaryPredicateOperator {
   }
 
   /** return null if v1 equls to v2.
+   *
    * @param v1 varable 1
    * @param v2 varable 2
    * @return null if v1 equls to v2

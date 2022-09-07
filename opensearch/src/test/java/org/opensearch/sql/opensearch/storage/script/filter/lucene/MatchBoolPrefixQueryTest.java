@@ -61,8 +61,8 @@ public class MatchBoolPrefixQueryTest {
   @Test
   public void test_valid_when_two_arguments() {
     List<Expression> arguments = List.of(
-        namedArgument("field", "field_value"),
-        namedArgument("query", "query_value"));
+        dsl.namedArgument("field", "field_value"),
+        dsl.namedArgument("query", "query_value"));
     Assertions.assertNotNull(matchBoolPrefixQuery.build(new MatchExpression(arguments)));
   }
 
@@ -75,7 +75,7 @@ public class MatchBoolPrefixQueryTest {
 
   @Test
   public void test_SyntaxCheckException_when_one_argument() {
-    List<Expression> arguments = List.of(namedArgument("field", "field_value"));
+    List<Expression> arguments = List.of(dsl.namedArgument("field", "field_value"));
     assertThrows(SyntaxCheckException.class,
         () -> matchBoolPrefixQuery.build(new MatchExpression(arguments)));
   }
@@ -83,15 +83,11 @@ public class MatchBoolPrefixQueryTest {
   @Test
   public void test_SemanticCheckException_when_invalid_argument() {
     List<Expression> arguments = List.of(
-        namedArgument("field", "field_value"),
-        namedArgument("query", "query_value"),
-        namedArgument("unsupported", "unsupported_value"));
+        dsl.namedArgument("field", "field_value"),
+        dsl.namedArgument("query", "query_value"),
+        dsl.namedArgument("unsupported", "unsupported_value"));
     Assertions.assertThrows(SemanticCheckException.class,
         () -> matchBoolPrefixQuery.build(new MatchExpression(arguments)));
-  }
-
-  private NamedArgumentExpression namedArgument(String name, String value) {
-    return dsl.namedArgument(name, DSL.literal(value));
   }
 
   private class MatchExpression extends FunctionExpression {

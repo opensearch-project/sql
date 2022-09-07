@@ -14,7 +14,7 @@ import org.opensearch.index.query.QueryBuilders;
  * Initializes MatchBoolPrefixQueryBuilder from a FunctionExpression.
  */
 public class MatchBoolPrefixQuery
-    extends RelevanceQuery<MatchBoolPrefixQueryBuilder> {
+    extends SingleFieldQuery<MatchBoolPrefixQueryBuilder> {
   /**
    * Constructor for MatchBoolPrefixQuery to configure RelevanceQuery
    * with support of optional parameters.
@@ -41,7 +41,12 @@ public class MatchBoolPrefixQuery
    * @return  Object of executed query
    */
   @Override
-  protected MatchBoolPrefixQueryBuilder createQueryBuilder(String field, String query) {
+  protected MatchBoolPrefixQueryBuilder createBuilder(String field, String query) {
     return QueryBuilders.matchBoolPrefixQuery(field, query);
+  }
+
+  @Override
+  protected String getQueryName() {
+    return MatchBoolPrefixQueryBuilder.NAME;
   }
 }
