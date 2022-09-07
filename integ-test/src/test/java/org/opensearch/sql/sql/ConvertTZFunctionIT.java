@@ -154,4 +154,31 @@ public class ConvertTZFunctionIT extends SQLIntegTestCase {
         schema("convert_tz('2021----','+00:00','+00:00')", null, "datetime"));
     verifyDataRows(result, rows(new Object[]{null}));
   }
+
+  @Test
+  public void nullDateTimeInvalidDateValueFebruary() throws IOException {
+    var result = executeJdbcRequest(
+        "SELECT convert_tz('2021-02-30 10:00:00','+00:00','+00:00')");
+    verifySchema(result,
+        schema("convert_tz('2021-02-30 10:00:00','+00:00','+00:00')", null, "datetime"));
+    verifyDataRows(result, rows(new Object[]{null}));
+  }
+
+  @Test
+  public void nullDateTimeInvalidDateValueApril() throws IOException {
+    var result = executeJdbcRequest(
+        "SELECT convert_tz('2021-04-31 10:00:00','+00:00','+00:00')");
+    verifySchema(result,
+        schema("convert_tz('2021-04-31 10:00:00','+00:00','+00:00')", null, "datetime"));
+    verifyDataRows(result, rows(new Object[]{null}));
+  }
+
+  @Test
+  public void nullDateTimeInvalidDateValueMonth() throws IOException {
+    var result = executeJdbcRequest(
+        "SELECT convert_tz('2021-13-03 10:00:00','+00:00','+00:00')");
+    verifySchema(result,
+        schema("convert_tz('2021-13-03 10:00:00','+00:00','+00:00')", null, "datetime"));
+    verifyDataRows(result, rows(new Object[]{null}));
+  }
 }

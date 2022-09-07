@@ -148,4 +148,37 @@ package org.opensearch.sql.ppl;
       verifySome(result.getJSONArray("datarows"), rows(new Object[]{null}));
     }
 
+    @Test
+    public void nullDateTimeInvalidDateValueFebruary() throws IOException {
+      JSONObject result =
+          executeQuery(String.format(
+              "source=%s | eval f = convert_tz('2021-02-30 10:00:00','+00:00','+00:00') | fields f",
+              TEST_INDEX_DATE));
+      verifySchema(result,
+          schema("f", null, "datetime"));
+      verifySome(result.getJSONArray("datarows"), rows(new Object[]{null}));
+    }
+
+    @Test
+    public void nullDateTimeInvalidDateValueApril() throws IOException {
+      JSONObject result =
+          executeQuery(String.format(
+              "source=%s | eval f = convert_tz('2021-04-31 10:00:00','+00:00','+00:00') | fields f",
+              TEST_INDEX_DATE));
+      verifySchema(result,
+          schema("f", null, "datetime"));
+      verifySome(result.getJSONArray("datarows"), rows(new Object[]{null}));
+    }
+
+    @Test
+    public void nullDateTimeInvalidDateValueMonth() throws IOException {
+      JSONObject result =
+          executeQuery(String.format(
+              "source=%s | eval f = convert_tz('2021-13-03 10:00:00','+00:00','+00:00') | fields f",
+              TEST_INDEX_DATE));
+      verifySchema(result,
+          schema("f", null, "datetime"));
+      verifySome(result.getJSONArray("datarows"), rows(new Object[]{null}));
+    }
+
   }
