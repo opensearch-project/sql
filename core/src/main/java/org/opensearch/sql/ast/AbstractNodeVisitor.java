@@ -39,10 +39,12 @@ import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Grok;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
@@ -184,7 +186,15 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(node, context);
   }
 
+  public T visitGrok(Grok node, C context) {
+    return visitChildren(node, context);
+  }
+
   public T visitParse(Parse node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitPatterns(Patterns node, C context) {
     return visitChildren(node, context);
   }
 

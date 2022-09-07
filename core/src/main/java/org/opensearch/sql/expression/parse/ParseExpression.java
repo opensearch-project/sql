@@ -9,7 +9,6 @@ import com.google.common.collect.ImmutableList;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
-import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -29,8 +28,6 @@ import org.opensearch.sql.expression.function.FunctionName;
 @ToString
 public abstract class ParseExpression extends FunctionExpression {
   @Getter
-  protected final ParseMethod method;
-  @Getter
   protected final Expression sourceField;
   protected final Expression pattern;
   @Getter
@@ -40,15 +37,14 @@ public abstract class ParseExpression extends FunctionExpression {
   /**
    * ParseExpression.
    *
-   * @param method      method used to parse
-   * @param sourceField source text field
-   * @param pattern     pattern used for parsing
-   * @param identifier  derived field
+   * @param functionName method used to parse
+   * @param sourceField  source text field
+   * @param pattern      pattern used for parsing
+   * @param identifier   derived field
    */
-  public ParseExpression(ParseMethod method, Expression sourceField, Expression pattern,
+  public ParseExpression(String functionName, Expression sourceField, Expression pattern,
                          Expression identifier) {
-    super(FunctionName.of(method.getName()), ImmutableList.of(sourceField, pattern, identifier));
-    this.method = method;
+    super(FunctionName.of(functionName), ImmutableList.of(sourceField, pattern, identifier));
     this.sourceField = sourceField;
     this.pattern = pattern;
     this.identifier = identifier;

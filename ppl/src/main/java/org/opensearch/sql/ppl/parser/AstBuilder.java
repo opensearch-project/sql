@@ -42,15 +42,18 @@ import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.PatternsMethod;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Grok;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -273,13 +276,34 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   @Override
-  public UnresolvedPlan visitParseCommand(OpenSearchPPLParser.ParseCommandContext ctx) {
-    UnresolvedExpression expression = internalVisitExpression(ctx.expression());
-    ParseMethod parseMethod = ctx.parseMethod() == null ? ParseMethod.REGEX :
-        ParseMethod.valueOf(ctx.parseMethod().children.get(0).toString().toUpperCase());
+  public UnresolvedPlan visitGrokCommand(OpenSearchPPLParser.GrokCommandContext ctx) {
+    UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
     Literal pattern = (Literal) internalVisitExpression(ctx.pattern);
 
-    return new Parse(parseMethod, expression, pattern);
+    return new Grok(sourceField, pattern);
+  }
+
+  @Override
+  public UnresolvedPlan visitParseCommand(OpenSearchPPLParser.ParseCommandContext ctx) {
+    UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
+    Literal pattern = (Literal) internalVisitExpression(ctx.pattern);
+
+    return new Parse(sourceField, pattern);
+  }
+
+  @Override
+  public UnresolvedPlan visitPatternsCommand(OpenSearchPPLParser.PatternsCommandContext ctx) {
+    UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
+    PatternsMethod patternsMethod = ctx.patternsMethod() == null ? PatternsMethod.PUNCT :
+        PatternsMethod.valueOf(ctx.patternsMethod().children.get(0).toString().toUpperCase());
+    ImmutableMap.Builder<String, Literal> builder = ImmutableMap.builder();
+    ctx.patternsParameter()
+        .forEach(x -> {
+          builder.put(x.children.get(0).toString(),
+              (Literal) internalVisitExpression(x.children.get(2)));
+        });
+
+    return new Patterns(patternsMethod, sourceField, builder.build());
   }
 
   /**

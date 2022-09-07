@@ -9,7 +9,7 @@ package org.opensearch.sql.expression;
 import java.util.Arrays;
 import java.util.Collections;
 import lombok.RequiredArgsConstructor;
-import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.PatternsMethod;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.data.model.ExprShortValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -23,11 +23,10 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.parse.GrokExpression;
 import org.opensearch.sql.expression.parse.ParseExpression;
-import org.opensearch.sql.expression.parse.PunctExpression;
+import org.opensearch.sql.expression.parse.PatternsExpression;
 import org.opensearch.sql.expression.parse.RegexExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.expression.window.ranking.RankingWindowFunction;
-import org.opensearch.sql.utils.ParseUtils;
 
 @RequiredArgsConstructor
 public class DSL {
@@ -133,9 +132,9 @@ public class DSL {
     return new RegexExpression(expression, pattern, identifier);
   }
 
-  public static PunctExpression punct(Expression expression, Expression pattern,
-                                      Expression identifier) {
-    return new PunctExpression(expression, pattern, identifier);
+  public static PatternsExpression patterns(PatternsMethod method, Expression expression,
+                                            Expression pattern, Expression identifier) {
+    return new PatternsExpression(method, expression, pattern, identifier);
   }
 
   public static GrokExpression grok(Expression expression, Expression pattern,

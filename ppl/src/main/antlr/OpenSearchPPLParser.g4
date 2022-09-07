@@ -25,7 +25,7 @@ pplCommands
 
 commands
     : whereCommand | fieldsCommand | renameCommand | statsCommand | dedupCommand | sortCommand | evalCommand | headCommand
-    | topCommand | rareCommand | parseCommand | kmeansCommand | adCommand;
+    | topCommand | rareCommand | grokCommand | parseCommand | patternsCommand | kmeansCommand | adCommand;
 
 searchCommand
     : (SEARCH)? fromClause                                          #searchFrom
@@ -94,12 +94,25 @@ rareCommand
     (byClause)?
     ;
 
-parseCommand
-    : PARSE (METHOD EQUAL parseMethod)? (source_field=expression) (pattern=stringLiteral)
+grokCommand
+    : GROK (source_field=expression) (pattern=stringLiteral)
     ;
 
-parseMethod
-    : REGEX | PUNCT | GROK
+parseCommand
+    : PARSE (source_field=expression) (pattern=stringLiteral)
+    ;
+
+patternsCommand
+    : PATTERNS (METHOD EQUAL patternsMethod)? (patternsParameter)* (source_field=expression)
+    ;
+
+patternsParameter
+    : (NEW_FIELD EQUAL new_field=stringLiteral)
+    | (PATTERN EQUAL pattern=stringLiteral)
+    ;
+
+patternsMethod
+    : PUNCT | REGEX
     ;
 
 kmeansCommand

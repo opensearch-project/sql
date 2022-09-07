@@ -44,7 +44,7 @@ public class GrokExpression extends ParseExpression {
    * @param identifier  derived field
    */
   public GrokExpression(Expression sourceField, Expression pattern, Expression identifier) {
-    super(ParseMethod.GROK, sourceField, pattern, identifier);
+    super("grok", sourceField, pattern, identifier);
     this.grok = grokCompiler.compile(pattern.valueOf(null).stringValue());
   }
 

@@ -423,8 +423,7 @@ public class AstDSL {
     return new Limit(limit, offset).attach(input);
   }
 
-  public static Parse parse(UnresolvedPlan input, ParseMethod parseMethod,
-                            UnresolvedExpression expression, Literal pattern) {
-    return new Parse(parseMethod, expression, pattern, input);
+  public static Parse parse(UnresolvedPlan input, UnresolvedExpression expression, Literal pattern) {
+    return new Parse(expression, pattern, input);
   }
 }

@@ -20,7 +20,7 @@ import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 /**
- * AST node represent Parse with regex operation.
+ * AST node represent Parse with Grok operation.
  */
 @Getter
 @Setter
@@ -28,7 +28,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
 @AllArgsConstructor
-public class Parse extends UnresolvedPlan {
+public class Grok extends UnresolvedPlan {
   /**
    * Field.
    */
@@ -45,7 +45,7 @@ public class Parse extends UnresolvedPlan {
   private UnresolvedPlan child;
 
   @Override
-  public Parse attach(UnresolvedPlan child) {
+  public Grok attach(UnresolvedPlan child) {
     this.child = child;
     return this;
   }
@@ -57,6 +57,6 @@ public class Parse extends UnresolvedPlan {
 
   @Override
   public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {
-    return nodeVisitor.visitParse(this, context);
+    return nodeVisitor.visitGrok(this, context);
   }
 }

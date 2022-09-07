@@ -39,7 +39,7 @@ public class RegexExpression extends ParseExpression {
    * @param identifier  derived field
    */
   public RegexExpression(Expression sourceField, Expression pattern, Expression identifier) {
-    super(ParseMethod.REGEX, sourceField, pattern, identifier);
+    super("regex", sourceField, pattern, identifier);
     this.regexPattern = Pattern.compile(pattern.valueOf(null).stringValue());
   }
 

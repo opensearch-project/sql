@@ -8,6 +8,7 @@ package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -16,11 +17,11 @@ import lombok.Setter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Literal;
-import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.PatternsMethod;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 /**
- * AST node represent Parse with regex operation.
+ * AST node represent extracting log patterns operation.
  */
 @Getter
 @Setter
@@ -28,16 +29,14 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
 @AllArgsConstructor
-public class Parse extends UnresolvedPlan {
+public class Patterns extends UnresolvedPlan {
+  private final PatternsMethod patternsMethod;
   /**
    * Field.
    */
   private final UnresolvedExpression sourceField;
 
-  /**
-   * Pattern.
-   */
-  private final Literal pattern;
+  private final Map<String, Literal> arguments;
 
   /**
    * Child Plan.
@@ -45,7 +44,7 @@ public class Parse extends UnresolvedPlan {
   private UnresolvedPlan child;
 
   @Override
-  public Parse attach(UnresolvedPlan child) {
+  public Patterns attach(UnresolvedPlan child) {
     this.child = child;
     return this;
   }
@@ -57,6 +56,6 @@ public class Parse extends UnresolvedPlan {
 
   @Override
   public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {
-    return nodeVisitor.visitParse(this, context);
+    return nodeVisitor.visitPatterns(this, context);
   }
 }

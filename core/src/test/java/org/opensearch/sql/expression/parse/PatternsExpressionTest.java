@@ -32,7 +32,7 @@ import org.opensearch.sql.expression.env.Environment;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-class PunctExpressionTest extends ExpressionTestBase {
+class PatternsExpressionTest extends ExpressionTestBase {
 
   @Mock
   Environment<Expression, ExprValue> env;
