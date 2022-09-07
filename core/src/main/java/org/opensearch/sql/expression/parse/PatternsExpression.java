@@ -38,6 +38,7 @@ public class PatternsExpression extends ParseExpression {
 
   private static final Pattern DEFAULT_IGNORED_CHARS = Pattern.compile("[a-zA-Z\\d]");
   private final PatternsMethod patternsMethod;
+  @EqualsAndHashCode.Exclude
   private final Pattern pattern;
 
   /**
@@ -75,9 +76,9 @@ public class PatternsExpression extends ParseExpression {
    * @return list of names of the derived fields
    */
   public static List<String> getNamedGroupCandidates(Map<String, Literal> arguments) {
-    String identifier = arguments.containsKey(PatternsExpression.NEW_FIELD_KEY) ?
-        (String) arguments.get(PatternsExpression.NEW_FIELD_KEY).getValue() :
-        PatternsExpression.DEFAULT_NEW_FIELD;
+    String identifier = arguments.containsKey(PatternsExpression.NEW_FIELD_KEY)
+        ? (String) arguments.get(PatternsExpression.NEW_FIELD_KEY).getValue()
+        : PatternsExpression.DEFAULT_NEW_FIELD;
     return ImmutableList.of(identifier);
   }
 }

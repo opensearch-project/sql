@@ -30,7 +30,7 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
-import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.PatternsMethod;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.SpanUnit;
@@ -44,9 +44,11 @@ import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Grok;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -423,7 +425,19 @@ public class AstDSL {
     return new Limit(limit, offset).attach(input);
   }
 
-  public static Parse parse(UnresolvedPlan input, UnresolvedExpression expression, Literal pattern) {
-    return new Parse(expression, pattern, input);
+  public static Grok grok(UnresolvedPlan input, UnresolvedExpression sourceField,
+                            Literal pattern) {
+    return new Grok(sourceField, pattern, input);
+  }
+
+  public static Parse parse(UnresolvedPlan input, UnresolvedExpression sourceField,
+                            Literal pattern) {
+    return new Parse(sourceField, pattern, input);
+  }
+
+  public static Patterns patterns(UnresolvedPlan input, PatternsMethod patternsMethod,
+                                  UnresolvedExpression sourceField,
+                                  java.util.Map<String, Literal> arguments) {
+    return new Patterns(patternsMethod, sourceField, arguments, input);
   }
 }

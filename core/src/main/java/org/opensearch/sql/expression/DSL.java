@@ -127,19 +127,19 @@ public class DSL {
     return namedArgument(name, literal(value));
   }
 
-  public static RegexExpression regex(Expression expression, Expression pattern,
-                                      Expression identifier) {
-    return new RegexExpression(expression, pattern, identifier);
+  public static GrokExpression grok(Expression sourceField, Expression pattern,
+                                    Expression identifier) {
+    return new GrokExpression(sourceField, pattern, identifier);
   }
 
-  public static PatternsExpression patterns(PatternsMethod method, Expression expression,
+  public static RegexExpression regex(Expression sourceField, Expression pattern,
+                                      Expression identifier) {
+    return new RegexExpression(sourceField, pattern, identifier);
+  }
+
+  public static PatternsExpression patterns(PatternsMethod method, Expression sourceField,
                                             Expression pattern, Expression identifier) {
-    return new PatternsExpression(method, expression, pattern, identifier);
-  }
-
-  public static GrokExpression grok(Expression expression, Expression pattern,
-                                      Expression identifier) {
-    return new GrokExpression(expression, pattern, identifier);
+    return new PatternsExpression(method, sourceField, pattern, identifier);
   }
 
   public static SpanExpression span(Expression field, Expression value, String unit) {

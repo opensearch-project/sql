@@ -382,10 +382,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     Expression sourceField = expressionAnalyzer.analyze(node.getSourceField(), context);
     PatternsMethod patternsMethod = node.getPatternsMethod();
     java.util.Map<String, Literal> arguments = node.getArguments();
-    Expression pattern =
-        arguments.containsKey(PatternsExpression.PATTERN_KEY) ?
-            DSL.literal((String) arguments.get(PatternsExpression.PATTERN_KEY).getValue()) :
-            DSL.literal(ExprValueUtils.nullValue());
+    Expression pattern = arguments.containsKey(PatternsExpression.PATTERN_KEY)
+            ? DSL.literal((String) arguments.get(PatternsExpression.PATTERN_KEY).getValue())
+            : DSL.literal(ExprValueUtils.stringValue(""));
 
     TypeEnvironment curEnv = context.peek();
     PatternsExpression.getNamedGroupCandidates(arguments).forEach(group -> {
