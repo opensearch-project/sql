@@ -27,6 +27,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.time.Instant;
+import java.sql.Date;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -36,6 +40,7 @@ import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.time.format.TextStyle;
 import java.util.Locale;
 import java.util.TimeZone;
@@ -629,7 +634,8 @@ public class DateTimeFunction {
       ZoneId convertedToTz = ZoneId.of(toTz.stringValue());
 
       if (!isTimeZoneValid(convertedFromTz)
-          || !isTimeZoneValid(convertedToTz)) {
+          || !isTimeZoneValid(convertedToTz)
+          || !isDateValid(startingDateTime)) {
         return ExprNullValue.of();
       }
 
@@ -1102,6 +1108,21 @@ public class DateTimeFunction {
         || passedTzValidator.isEqual(maxTzValidator))
         && (passedTzValidator.isAfter(minTzValidator)
         || passedTzValidator.isEqual(minTzValidator));
+  }
+
+  private Boolean isDateValid(ExprValue startingDateTime) {
+    String dateString = String.valueOf(startingDateTime.datetimeValue());
+    String dateFormat = "dd/MMM/uuuu HH:mm:ss";
+    DateTimeFormatter dateTimeFormatter = DateTimeFormatter
+        .ofPattern(dateFormat, Locale.US)
+        .withResolverStyle(ResolverStyle.STRICT);
+
+    try {
+      LocalDateTime.parse(dateString, dateTimeFormatter);
+      return true;
+    } catch (DateTimeParseException e) {
+      return false;
+    }
   }
 
   /**

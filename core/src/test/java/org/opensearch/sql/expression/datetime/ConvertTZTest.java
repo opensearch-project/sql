@@ -135,6 +135,27 @@ class ConvertTZTest extends ExpressionTestBase {
         DSL.literal("+00:00"));
     assertEquals(DATETIME, expr.type());
     assertEquals(nullValue(), expr.valueOf(env));
+
+    expr = dsl.convert_tz(dsl.datetime(
+            DSL.literal("2021-02-30 10:00:00")),
+        DSL.literal("+00:00"),
+        DSL.literal("+00:00"));
+    assertEquals(DATETIME, expr.type());
+    assertEquals(nullValue(), expr.valueOf(env));
+
+    expr = dsl.convert_tz(dsl.datetime(
+            DSL.literal("2021-04-31 10:00:00")),
+        DSL.literal("+00:00"),
+        DSL.literal("+00:00"));
+    assertEquals(DATETIME, expr.type());
+    assertEquals(nullValue(), expr.valueOf(env));
+
+    expr = dsl.convert_tz(dsl.datetime(
+            DSL.literal("2021-13-03 10:00:00")),
+        DSL.literal("+00:00"),
+        DSL.literal("+00:00"));
+    assertEquals(DATETIME, expr.type());
+    assertEquals(nullValue(), expr.valueOf(env));
   }
 
   private ExprValue eval(Expression expression) {
