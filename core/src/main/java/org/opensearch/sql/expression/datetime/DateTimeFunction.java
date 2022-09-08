@@ -512,19 +512,16 @@ public class DateTimeFunction {
    */
   private ExprValue exprConvertTZ(ExprValue startingDateTime, ExprValue fromTz, ExprValue toTz) {
     if (startingDateTime.type() == ExprCoreType.STRING) {
-      try {
-        startingDateTime = exprDateTimeNoTimezone(startingDateTime);
-      } catch (DateTimeParseException e) {
-        return ExprNullValue.of();
-      }
+      //try {
+      startingDateTime = exprDateTimeNoTimezone(startingDateTime);
+      //} catch (DateTimeParseException e) {
+      //  return ExprNullValue.of();
+      //}
     }
     try {
       ZoneId convertedFromTz = ZoneId.of(fromTz.stringValue());
       ZoneId convertedToTz = ZoneId.of(toTz.stringValue());
 
-//      if (!isTimeZoneValid(convertedFromTz)
-//          || !isTimeZoneValid(convertedToTz)
-//          || !isDateValidDateTime(startingDateTime)) {
       if (!isTimeZoneValid(convertedFromTz)
           || !isTimeZoneValid(convertedToTz)) {
         return ExprNullValue.of();
@@ -568,7 +565,8 @@ public class DateTimeFunction {
    */
   private ExprValue exprDateTime(ExprValue dateTime, ExprValue timeZone) {
     String defaultTimeZone = TimeZone.getDefault().getID();
-    DateTimeFormatter formatDT = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss[xxx]").withResolverStyle(ResolverStyle.STRICT);
+    DateTimeFormatter formatDT = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss[xxx]")
+        .withResolverStyle(ResolverStyle.STRICT);
 
     try {
       LocalDateTime ldtFormatted = LocalDateTime.parse(dateTime.stringValue(), formatDT);
@@ -908,33 +906,4 @@ public class DateTimeFunction {
         && (passedTzValidator.isAfter(minTzValidator)
         || passedTzValidator.isEqual(minTzValidator));
   }
-
-  private Boolean isDateValidDateTime(ExprValue startingDateTime) {
-    //String dateString = String.valueOf(startingDateTime.datetimeValue());
-    String dateFormat = "uuuu-MM-dd'T'HH:mm:ss";
-    String dateString = startingDateTime.datetimeValue().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-    DateTimeFormatter dateTimeFormatter = DateTimeFormatter
-        .ofPattern(dateFormat, Locale.US)
-        .withResolverStyle(ResolverStyle.STRICT);
-
-    try {
-      LocalDateTime.parse(dateString, dateTimeFormatter);
-      return true;
-    } catch (DateTimeParseException e) {
-      return false;
-    }
-  }
-
-//  private Boolean isDateValidString(ExprValue startingDateTime) {
-//    String dateFormat = "uuuu-MM-dd HH:mm:ss";
-//    try {
-//      String dateString = startingDateTime.datetimeValue().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-//      DateTimeFormatter dateTimeFormatter = DateTimeFormatter
-//          .ofPattern(dateFormat, Locale.US)
-//          .withResolverStyle(ResolverStyle.STRICT);
-//      isDateValidDateTime(DSL.literal(dateTimeFormatter));
-//    } catch (Exception e) {
-//      return ExprNullValue.of();
-//    }
-//  }
 }
