@@ -25,6 +25,7 @@ import org.opensearch.common.xcontent.NamedXContentRegistry;
 import org.opensearch.common.xcontent.XContentParser;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.common.xcontent.json.JsonXContentParser;
+import org.opensearch.geo.search.aggregations.bucket.geogrid.GeoHashGridAggregationBuilder;
 import org.opensearch.join.aggregations.JoinAggregationBuilders;
 import org.opensearch.script.Script;
 import org.opensearch.script.ScriptType;
@@ -34,7 +35,7 @@ import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.BucketOrder;
 import org.opensearch.search.aggregations.InternalOrder;
 import org.opensearch.search.aggregations.bucket.filter.FilterAggregationBuilder;
-import org.opensearch.search.aggregations.bucket.geogrid.GeoGridAggregationBuilder;
+import org.opensearch.geo.search.aggregations.bucket.geogrid.GeoGridAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.histogram.DateHistogramAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.histogram.DateHistogramInterval;
 import org.opensearch.search.aggregations.bucket.histogram.HistogramAggregationBuilder;
@@ -44,7 +45,7 @@ import org.opensearch.search.aggregations.bucket.range.DateRangeAggregationBuild
 import org.opensearch.search.aggregations.bucket.range.RangeAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.terms.IncludeExclude;
 import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
-import org.opensearch.search.aggregations.metrics.GeoBoundsAggregationBuilder;
+import org.opensearch.geo.search.aggregations.metrics.GeoBoundsAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.PercentilesAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.ScriptedMetricAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder;
@@ -285,7 +286,7 @@ public class AggMaker {
 
     private AggregationBuilder geoBounds(MethodField field) throws SqlParseException {
         String aggName = gettAggNameFromParamsOrAlias(field);
-        GeoBoundsAggregationBuilder boundsBuilder = AggregationBuilders.geoBounds(aggName);
+        GeoBoundsAggregationBuilder boundsBuilder = new GeoBoundsAggregationBuilder(aggName);
         String value;
         for (KVValue kv : field.getParams()) {
             value = kv.value.toString();
@@ -472,7 +473,7 @@ public class AggMaker {
 
     private AggregationBuilder geohashGrid(MethodField field) throws SqlParseException {
         String aggName = gettAggNameFromParamsOrAlias(field);
-        GeoGridAggregationBuilder geoHashGrid = AggregationBuilders.geohashGrid(aggName);
+        GeoGridAggregationBuilder geoHashGrid = new GeoHashGridAggregationBuilder(aggName);
         String value;
         for (KVValue kv : field.getParams()) {
             value = kv.value.toString();
