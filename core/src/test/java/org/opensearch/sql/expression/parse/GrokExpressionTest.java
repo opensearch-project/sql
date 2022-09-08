@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
@@ -49,7 +48,7 @@ class GrokExpressionTest extends ExpressionTestBase {
     String rawPattern = "%{COMMONAPACHELOG}";
     Map<String, String> expected = ImmutableMap.<String, String>builder()
         .put("COMMONAPACHELOG", "145.128.75.121 - - [29/Aug/2022:13:26:44 -0700] "
-                + "\"GET /deliverables HTTP/2.0\" 501 2721")
+            + "\"GET /deliverables HTTP/2.0\" 501 2721")
         .put("clientip", "145.128.75.121")
         .put("ident", "-")
         .put("auth", "-")

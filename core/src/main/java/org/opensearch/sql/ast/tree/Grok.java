@@ -19,7 +19,7 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 /**
- * AST node represent Parse with Grok operation.
+ * AST node represent Grok operation.
  */
 @Getter
 @Setter

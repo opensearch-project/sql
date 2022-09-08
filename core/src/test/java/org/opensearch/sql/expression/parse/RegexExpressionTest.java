@@ -66,7 +66,7 @@ class RegexExpressionTest extends ExpressionTestBase {
   public void resolve_not_parsable_inputs_as_empty_string() {
     assertEquals(stringValue(""),
         DSL.regex(DSL.ref("string_value", STRING), DSL.literal("(?<group>not-matching)"),
-                DSL.literal("group")).valueOf(valueEnv()));
+            DSL.literal("group")).valueOf(valueEnv()));
   }
 
   @Test

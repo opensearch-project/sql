@@ -19,7 +19,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.Expression;
 
 /**
- * ParseExpression with regex and named capture group.
+ * RegexExpression with regex and named capture group.
  */
 @EqualsAndHashCode(callSuper = true)
 @ToString

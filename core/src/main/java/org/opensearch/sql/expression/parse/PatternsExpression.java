@@ -7,18 +7,17 @@ package org.opensearch.sql.expression.parse;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Pattern;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.PatternsMethod;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.Expression;
 
 /**
- * ParseExpression with regex and named capture group.
+ * PatternsExpression with regex filter.
  */
 @EqualsAndHashCode(callSuper = true)
 @ToString
@@ -72,13 +71,10 @@ public class PatternsExpression extends ParseExpression {
   /**
    * Get list of derived fields.
    *
-   * @param arguments patterns arguments used for parsing
+   * @param identifier identifier used to generate the field name
    * @return list of names of the derived fields
    */
-  public static List<String> getNamedGroupCandidates(Map<String, Literal> arguments) {
-    String identifier = arguments.containsKey(PatternsExpression.NEW_FIELD_KEY)
-        ? (String) arguments.get(PatternsExpression.NEW_FIELD_KEY).getValue()
-        : PatternsExpression.DEFAULT_NEW_FIELD;
-    return ImmutableList.of(identifier);
+  public static List<String> getNamedGroupCandidates(String identifier) {
+    return ImmutableList.of(Objects.requireNonNullElse(identifier, DEFAULT_NEW_FIELD));
   }
 }

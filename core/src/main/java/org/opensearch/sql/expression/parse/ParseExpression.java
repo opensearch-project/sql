@@ -22,7 +22,7 @@ import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.FunctionName;
 
 /**
- * ParseExpression with regex and named capture group.
+ * ParseExpression.
  */
 @EqualsAndHashCode
 @ToString
@@ -37,7 +37,7 @@ public abstract class ParseExpression extends FunctionExpression {
   /**
    * ParseExpression.
    *
-   * @param functionName method used to parse
+   * @param functionName name of function expression
    * @param sourceField  source text field
    * @param pattern      pattern used for parsing
    * @param identifier   derived field
