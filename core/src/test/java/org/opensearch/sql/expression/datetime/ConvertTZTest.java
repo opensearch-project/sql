@@ -31,13 +31,6 @@ class ConvertTZTest extends ExpressionTestBase {
   @Mock
   Environment<Expression, ExprValue> env;
 
-  @Mock
-  Expression nullRef;
-
-  @Mock
-  Expression missingRef;
-
-
   @Test
   public void invalidDate() {
     FunctionExpression expr = dsl.convert_tz(dsl.datetime(
@@ -186,9 +179,5 @@ class ConvertTZTest extends ExpressionTestBase {
         DSL.literal("+00:00"));
     assertEquals(DATETIME, expr.type());
     assertEquals(nullValue(), expr.valueOf(env));
-  }
-
-  private ExprValue eval(Expression expression) {
-    return expression.valueOf(env);
   }
 }
