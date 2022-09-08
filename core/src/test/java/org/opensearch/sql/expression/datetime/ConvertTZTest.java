@@ -39,7 +39,7 @@ class ConvertTZTest extends ExpressionTestBase {
 
 
   @Test
-  public void invalidDate(){
+  public void invalidDate() {
     FunctionExpression expr = dsl.convert_tz(dsl.datetime(
             DSL.literal("2021-04-31 10:00:00")),
         DSL.literal("+00:00"),
@@ -49,7 +49,7 @@ class ConvertTZTest extends ExpressionTestBase {
   }
 
   @Test
-  public void conversionFromNoOffset(){
+  public void conversionFromNoOffset() {
     FunctionExpression expr = dsl.convert_tz(dsl.datetime(
             DSL.literal("2008-05-15 22:00:00")),
         DSL.literal("+00:00"),

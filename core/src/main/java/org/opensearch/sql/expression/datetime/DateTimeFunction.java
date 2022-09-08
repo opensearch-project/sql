@@ -624,11 +624,11 @@ public class DateTimeFunction {
    */
   private ExprValue exprConvertTZ(ExprValue startingDateTime, ExprValue fromTz, ExprValue toTz) {
     if (startingDateTime.type() == ExprCoreType.STRING) {
-      try {
-        startingDateTime = exprDateTimeNoTimezone(startingDateTime);
-      } catch (DateTimeParseException e) {
-        return ExprNullValue.of();
-      }
+      //try {
+      startingDateTime = exprDateTimeNoTimezone(startingDateTime);
+      //} catch (DateTimeParseException e) {
+      //  return ExprNullValue.of();
+      //}
     }
     try {
       ZoneId convertedFromTz = ZoneId.of(fromTz.stringValue());
@@ -677,7 +677,8 @@ public class DateTimeFunction {
    */
   private ExprValue exprDateTime(ExprValue dateTime, ExprValue timeZone) {
     String defaultTimeZone = TimeZone.getDefault().getID();
-    DateTimeFormatter formatDT = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss[xxx]").withResolverStyle(ResolverStyle.STRICT);
+    DateTimeFormatter formatDT = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss[xxx]")
+        .withResolverStyle(ResolverStyle.STRICT);
 
     try {
       LocalDateTime ldtFormatted = LocalDateTime.parse(dateTime.stringValue(), formatDT);
