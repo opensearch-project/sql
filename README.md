@@ -123,9 +123,11 @@ Besides basic filtering and aggregation, OpenSearch SQL also supports complex qu
 
 Recently we have been actively improving our query engine primarily for better correctness and extensibility. Behind the scene, the new enhanced engine has already supported both SQL and Piped Processing Language. Please find more details in [SQL Engine V2 - Release Notes](./docs/dev/NewSQLEngine.md).
 
-## Documentation & Forum
+## Documentation
 
 Please refer to the [SQL Language Reference Manual](./docs/user/index.rst), [Piped Processing Language (PPL) Reference Manual](./docs/user/ppl/index.rst) and [Technical Documentation](https://opensearch.org/docs/latest/search-plugins/sql/index/) for detailed information on installing and configuring plugin.
+
+## Forum
 
 For additional help with the plugin, including questions about opening an issue, try the OpenSearch [Forum](https://forum.opensearch.org/c/plugins/sql/8).
 
