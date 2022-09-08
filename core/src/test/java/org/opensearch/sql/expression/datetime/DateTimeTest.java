@@ -41,6 +41,7 @@ class DateTimeTest extends ExpressionTestBase {
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue("2008-05-15 22:00:00"), expr.valueOf(env));
   }
+
   @Test
   public void positiveTimeZoneNoField2() {
     FunctionExpression expr = dsl.datetime(DSL.literal("2008-05-15 22:00:00+01:00"));
