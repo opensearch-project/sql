@@ -59,6 +59,7 @@ import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
@@ -634,16 +635,20 @@ public class DateTimeFunction {
       ZoneId convertedToTz = ZoneId.of(toTz.stringValue());
 
       if (!isTimeZoneValid(convertedFromTz)
-          || !isTimeZoneValid(convertedToTz)
-          || !isDateValid(startingDateTime)) {
+          || !isTimeZoneValid(convertedToTz)) {
         return ExprNullValue.of();
       }
 
-      ZonedDateTime zonedDateTime =
-          startingDateTime.datetimeValue().atZone(convertedFromTz);
+      try {
+        ZonedDateTime zonedDateTime =
+            startingDateTime.datetimeValue().atZone(convertedFromTz);
+        return new ExprDatetimeValue(
+            zonedDateTime.withZoneSameInstant(convertedToTz).toLocalDateTime());
+      } catch (ExpressionEvaluationException e) {
+        return ExprNullValue.of();
+      }
 
-      return new ExprDatetimeValue(
-          zonedDateTime.withZoneSameInstant(convertedToTz).toLocalDateTime());
+
     } catch (DateTimeException e) {
       return ExprNullValue.of();
     }
@@ -672,13 +677,18 @@ public class DateTimeFunction {
    */
   private ExprValue exprDateTime(ExprValue dateTime, ExprValue timeZone) {
     String defaultTimeZone = TimeZone.getDefault().getID();
-    DateTimeFormatter formatDT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss[xxx]");
+    DateTimeFormatter formatDT = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss[xxx]").withResolverStyle(ResolverStyle.STRICT);
 
-    // Used by exprDateTimeNoTZ function
-    if (timeZone.isNull()) {
+    try {
       LocalDateTime ldtFormatted = LocalDateTime.parse(dateTime.stringValue(), formatDT);
-      return new ExprDatetimeValue(ldtFormatted);
+      if (timeZone.isNull()) {
+        return new ExprDatetimeValue(ldtFormatted);
+      }
+    } catch (DateTimeParseException e) {
+      return ExprNullValue.of();
     }
+    // Used by exprDateTimeNoTZ function
+
     ExprValue convertTZResult;
 
     try {
@@ -1110,9 +1120,10 @@ public class DateTimeFunction {
         || passedTzValidator.isEqual(minTzValidator));
   }
 
-  private Boolean isDateValid(ExprValue startingDateTime) {
-    String dateString = String.valueOf(startingDateTime.datetimeValue());
-    String dateFormat = "dd/MMM/uuuu HH:mm:ss";
+  private Boolean isDateValidDateTime(ExprValue startingDateTime) {
+    //String dateString = String.valueOf(startingDateTime.datetimeValue());
+    String dateFormat = "uuuu-MM-dd'T'HH:mm:ss";
+    String dateString = startingDateTime.datetimeValue().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
     DateTimeFormatter dateTimeFormatter = DateTimeFormatter
         .ofPattern(dateFormat, Locale.US)
         .withResolverStyle(ResolverStyle.STRICT);
@@ -1145,4 +1156,16 @@ public class DateTimeFunction {
         .setScale(fsp - defaultPrecision, RoundingMode.DOWN).intValue();
     return res.withNano(nano);
   }
+//  private Boolean isDateValidString(ExprValue startingDateTime) {
+//    String dateFormat = "uuuu-MM-dd HH:mm:ss";
+//    try {
+//      String dateString = startingDateTime.datetimeValue().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+//      DateTimeFormatter dateTimeFormatter = DateTimeFormatter
+//          .ofPattern(dateFormat, Locale.US)
+//          .withResolverStyle(ResolverStyle.STRICT);
+//      isDateValidDateTime(DSL.literal(dateTimeFormatter));
+//    } catch (Exception e) {
+//      return ExprNullValue.of();
+//    }
+//  }
 }
