@@ -9,12 +9,16 @@ import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
 
 import com.google.common.collect.ImmutableMap;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -26,6 +30,8 @@ import org.opensearch.sql.planner.physical.WriteOperator;
  * OpenSearch index write operator.
  */
 public class OpenSearchIndexWrite extends WriteOperator {
+
+  private static final Logger LOG = LogManager.getLogger();
 
   private final OpenSearchClient client;
 
@@ -42,6 +48,8 @@ public class OpenSearchIndexWrite extends WriteOperator {
     super.open();
 
     List<Map<String, Object>> data = new ArrayList<>();
+
+    Instant startS3 = Instant.now();
     while (input.hasNext()) {
       count++;
 
@@ -60,7 +68,13 @@ public class OpenSearchIndexWrite extends WriteOperator {
                 e -> e.getValue().value())));
       }
     }
+    LOG.info("S3 Read, size:{}, took:{} mills", data.size(), Duration.between(startS3,
+        Instant.now()).toMillis());
+
+    Instant startOS = Instant.now();
     client.bulk(tableName, data);
+    LOG.info("Index Write, size:{}, took:{} mills", data.size(), Duration.between(startOS,
+          Instant.now()).toMillis());
   }
 
   @Override
