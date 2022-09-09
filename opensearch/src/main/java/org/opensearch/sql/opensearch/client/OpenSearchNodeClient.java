@@ -6,28 +6,34 @@
 
 package org.opensearch.sql.opensearch.client;
 
+import static java.lang.Math.min;
+
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 import org.opensearch.action.ActionFuture;
-import org.opensearch.action.ActionListener;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.action.bulk.BulkRequestBuilder;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.action.support.WriteRequest;
-import org.opensearch.client.Response;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.AliasMetadata;
@@ -40,20 +46,19 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.IndexSettings;
 import org.opensearch.index.query.MatchAllQueryBuilder;
-import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.reindex.BulkByScrollResponse;
 import org.opensearch.index.reindex.DeleteByQueryAction;
 import org.opensearch.index.reindex.DeleteByQueryRequest;
-import org.opensearch.sql.ddl.Column;
+import org.opensearch.sql.opensearch.executor.Scheduler;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
-import org.opensearch.tasks.Task;
-import org.opensearch.tasks.TaskListener;
 import org.opensearch.threadpool.ThreadPool;
 
 /** OpenSearch connection by node client. */
 public class OpenSearchNodeClient implements OpenSearchClient {
+
+  private static final Logger LOG = LogManager.getLogger();
 
   public static final Function<String, Predicate<String>> ALL_FIELDS =
       (anyIndex -> (anyField -> true));
@@ -94,12 +99,39 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   }
 
   @Override
-  public void bulk(String indexName, List<Map<String, Object>> data) {
-    BulkRequestBuilder builder = client.prepareBulk(indexName);
-    for (Map<String, Object> row : data) {
-      builder.add(client.prepareIndex().setSource(row).request());
+  public void bulk(final String indexName, List<Map<String, Object>> data) {
+    final int bulkSize = 50000;
+    int index = 0;
+    List<CompletableFuture<Boolean>> futures = new ArrayList<>();
+
+    while (index < data.size()) {
+      int end = min(index + bulkSize, data.size());
+      final int start = index;
+      final CompletableFuture<Boolean> future = new CompletableFuture<>();
+      Scheduler.schedule(client, () -> {
+        bulk(indexName, data, start, end);
+        future.complete(true);
+      });
+      futures.add(future);
+      index = end;
     }
-    builder.setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL);
+    try {
+      CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
+    } catch (InterruptedException e) {
+      LOG.error("InterruptedException");
+    } catch (ExecutionException e) {
+      LOG.error("ExecutionException");
+    }
+    LOG.info("bulk finish");
+  }
+
+  private void bulk(String indexName, List<Map<String, Object>> data, int start, int end) {
+    BulkRequestBuilder builder = client.prepareBulk(indexName);
+
+    for (int i = start; i < end; i++) {
+      builder.add(client.prepareIndex().setSource(data.get(i)).request());
+    }
+//    builder.setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL);
     final BulkResponse bulkItemResponses = builder.get();
 
     String resp = bulkItemResponses.buildFailureMessage();
