@@ -624,16 +624,13 @@ public class DateTimeFunction {
    */
   private ExprValue exprConvertTZ(ExprValue startingDateTime, ExprValue fromTz, ExprValue toTz) {
     if (startingDateTime.type() == ExprCoreType.STRING) {
-      //try {
       startingDateTime = exprDateTimeNoTimezone(startingDateTime);
-      //} catch (DateTimeParseException e) {
-      //  return ExprNullValue.of();
-      //}
     }
     try {
       ZoneId convertedFromTz = ZoneId.of(fromTz.stringValue());
       ZoneId convertedToTz = ZoneId.of(toTz.stringValue());
 
+      // isTimeZoneValid checks if the timezone is within the range accepted by MySQL standard.
       if (!isTimeZoneValid(convertedFromTz)
           || !isTimeZoneValid(convertedToTz)) {
         return ExprNullValue.of();
@@ -644,11 +641,15 @@ public class DateTimeFunction {
             startingDateTime.datetimeValue().atZone(convertedFromTz);
         return new ExprDatetimeValue(
             zonedDateTime.withZoneSameInstant(convertedToTz).toLocalDateTime());
+
+        // Used to catch invalid datetime fields.
+        // Datetime fields need to be in the format of
       } catch (ExpressionEvaluationException e) {
         return ExprNullValue.of();
       }
 
-
+      // Catches exception for invalid timezones.
+      // ex. "+0:00" is an invalid timezone and would result in this exception being thrown.
     } catch (DateTimeException e) {
       return ExprNullValue.of();
     }
@@ -685,10 +686,11 @@ public class DateTimeFunction {
       if (timeZone.isNull()) {
         return new ExprDatetimeValue(ldtFormatted);
       }
+
+      // Used if datetime field is invalid format.
     } catch (DateTimeParseException e) {
       return ExprNullValue.of();
     }
-    // Used by exprDateTimeNoTZ function
 
     ExprValue convertTZResult;
 
