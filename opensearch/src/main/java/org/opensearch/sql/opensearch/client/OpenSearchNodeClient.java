@@ -81,7 +81,13 @@ public class OpenSearchNodeClient implements OpenSearchClient {
 
   @Override
   public boolean createIndex(String indexName, Map<String, Object> mapping) {
-    CreateIndexRequest request = new CreateIndexRequest(indexName);
+    CreateIndexRequest request = new CreateIndexRequest(indexName)
+        .settings(
+            Settings.builder()
+                .put("index.number_of_shards", 5)
+                .put("index.number_of_replicas", 0)
+                .put("index.translog.durability", "async")
+                .build());
     request.mapping(mapping);
     client.admin().indices().create(request).actionGet();
     return true;
