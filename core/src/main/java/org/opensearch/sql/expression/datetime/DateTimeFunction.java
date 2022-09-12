@@ -578,11 +578,11 @@ public class DateTimeFunction {
 
       ldt = zdtWithZoneOffset.toLocalDateTime();
       toTz = String.valueOf(fromTZ);
-      fromTz = String.valueOf(ZoneId.of(timeZone.stringValue()));
+      fromTz = timeZone.stringValue();
     } catch (DateTimeParseException e) {
       ldt = LocalDateTime.parse(dateTime.stringValue(), formatDT);
       toTz = defaultTimeZone;
-      fromTz = String.valueOf(ZoneId.of(timeZone.stringValue()));
+      fromTz = timeZone.stringValue();
     }
     convertTZResult = exprConvertTZ(
         new ExprDatetimeValue(ldt),
