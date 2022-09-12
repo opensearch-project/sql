@@ -865,7 +865,7 @@ CONVERT_TZ
 Description
 >>>>>>>>>>>
 
-Usage: convert_tz(datetime, from_timezone, to_timezone) constructs a local datetime converted from the from_timezone to the to_timezone.
+Usage: convert_tz(datetime, from_timezone, to_timezone) constructs a datetime object converted from the from_timezone to the to_timezone.
 
 Argument type: DATETIME, STRING, STRING
 
