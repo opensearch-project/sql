@@ -54,6 +54,7 @@ import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
+import org.opensearch.sql.storage.Table;
 
 @ExtendWith(MockitoExtension.class)
 class DefaultImplementorTest {
@@ -66,6 +67,9 @@ class DefaultImplementorTest {
 
   @Mock
   private NamedExpression groupBy;
+
+  @Mock
+  private Table table;
 
   private final DefaultImplementor<Object> implementor = new DefaultImplementor<>();
 
@@ -150,7 +154,7 @@ class DefaultImplementorTest {
   @Test
   public void visitRelationShouldThrowException() {
     assertThrows(UnsupportedOperationException.class,
-        () -> new LogicalRelation("test").accept(implementor, null));
+        () -> new LogicalRelation("test", table).accept(implementor, null));
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})
