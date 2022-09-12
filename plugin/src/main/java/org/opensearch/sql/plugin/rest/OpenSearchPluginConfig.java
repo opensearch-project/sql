@@ -42,11 +42,6 @@ public class OpenSearchPluginConfig {
   }
 
   @Bean
-  public StorageEngine storageEngine() {
-    return new OpenSearchStorageEngine(client(), settings);
-  }
-
-  @Bean
   public ExecutionEngine executionEngine() {
     return new OpenSearchExecutionEngine(client(), protector());
   }

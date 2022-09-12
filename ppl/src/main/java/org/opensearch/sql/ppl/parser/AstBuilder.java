@@ -177,10 +177,10 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         Optional.ofNullable(ctx.statsByClause())
             .map(OpenSearchPPLParser.StatsByClauseContext::fieldList)
             .map(expr -> expr.fieldExpression().stream()
-                        .map(groupCtx ->
-                            (UnresolvedExpression) new Alias(getTextInQuery(groupCtx),
-                                internalVisitExpression(groupCtx)))
-                        .collect(Collectors.toList()))
+                .map(groupCtx ->
+                    (UnresolvedExpression) new Alias(getTextInQuery(groupCtx),
+                        internalVisitExpression(groupCtx)))
+                .collect(Collectors.toList()))
             .orElse(Collections.emptyList());
 
     UnresolvedExpression span =
@@ -360,10 +360,10 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitKmeansCommand(KmeansCommandContext ctx) {
     ImmutableMap.Builder<String, Literal> builder = ImmutableMap.builder();
     ctx.kmeansParameter()
-            .forEach(x -> {
-              builder.put(x.children.get(0).toString(),
-                      (Literal) internalVisitExpression(x.children.get(2)));
-            });
+        .forEach(x -> {
+          builder.put(x.children.get(0).toString(),
+              (Literal) internalVisitExpression(x.children.get(2)));
+        });
     return new Kmeans(builder.build());
   }
 
@@ -374,10 +374,10 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitAdCommand(AdCommandContext ctx) {
     ImmutableMap.Builder<String, Literal> builder = ImmutableMap.builder();
     ctx.adParameter()
-            .forEach(x -> {
-              builder.put(x.children.get(0).toString(),
-                      (Literal) internalVisitExpression(x.children.get(2)));
-            });
+        .forEach(x -> {
+          builder.put(x.children.get(0).toString(),
+              (Literal) internalVisitExpression(x.children.get(2)));
+        });
 
     return new AD(builder.build());
   }

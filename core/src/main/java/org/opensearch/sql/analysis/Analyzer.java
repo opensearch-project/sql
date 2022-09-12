@@ -58,6 +58,7 @@ import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -87,7 +88,6 @@ import org.opensearch.sql.planner.logical.LogicalRemove;
 import org.opensearch.sql.planner.logical.LogicalRename;
 import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.planner.logical.LogicalValues;
-import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
 
 /**
@@ -102,16 +102,16 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   private final NamedExpressionAnalyzer namedExpressionAnalyzer;
 
-  private final StorageEngine storageEngine;
+  private final CatalogService catalogService;
 
   /**
    * Constructor.
    */
   public Analyzer(
       ExpressionAnalyzer expressionAnalyzer,
-      StorageEngine storageEngine) {
+      CatalogService catalogService) {
     this.expressionAnalyzer = expressionAnalyzer;
-    this.storageEngine = storageEngine;
+    this.catalogService = catalogService;
     this.selectExpressionAnalyzer = new SelectExpressionAnalyzer(expressionAnalyzer);
     this.namedExpressionAnalyzer = new NamedExpressionAnalyzer(expressionAnalyzer);
   }
@@ -124,15 +124,32 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   public LogicalPlan visitRelation(Relation node, AnalysisContext context) {
     context.push();
     TypeEnvironment curEnv = context.peek();
-    Table table = storageEngine.getTable(node.getTableName());
+    String catalogName = getCatalogName(node);
+    String tableName = getTableName(node);
+    if (catalogName != null && !catalogService.getCatalogs().contains(catalogName)) {
+      tableName = catalogName + "." + tableName;
+      catalogName = null;
+    }
+    Table table = catalogService
+        .getStorageEngine(catalogName)
+        .getTable(tableName);
     table.getFieldTypes().forEach((k, v) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));
 
     // Put index name or its alias in index namespace on type environment so qualifier
     // can be removed when analyzing qualified name. The value (expr type) here doesn't matter.
     curEnv.define(new Symbol(Namespace.INDEX_NAME, node.getTableNameOrAlias()), STRUCT);
 
-    return new LogicalRelation(node.getTableName());
+    return new LogicalRelation(tableName, table);
   }
+
+  private String getTableName(Relation node) {
+    return node.getTableName();
+  }
+
+  private String getCatalogName(Relation node) {
+    return node.getCatalogName();
+  }
+
 
   @Override
   public LogicalPlan visitRelationSubquery(RelationSubquery node, AnalysisContext context) {

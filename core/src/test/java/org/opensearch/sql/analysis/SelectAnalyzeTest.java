@@ -47,7 +47,7 @@ public class SelectAnalyzeTest extends AnalyzerTestBase {
   public void project_all_from_source() {
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
-            LogicalPlanDSL.relation("schema"),
+            LogicalPlanDSL.relation("schema", table),
             DSL.named("integer_value", DSL.ref("integer_value", INTEGER)),
             DSL.named("double_value", DSL.ref("double_value", DOUBLE)),
             DSL.named("integer_value", DSL.ref("integer_value", INTEGER)),
@@ -67,7 +67,7 @@ public class SelectAnalyzeTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
             LogicalPlanDSL.project(
-                LogicalPlanDSL.relation("schema"),
+                LogicalPlanDSL.relation("schema", table),
                 DSL.named("integer_value", DSL.ref("integer_value", INTEGER)),
                 DSL.named("double_value", DSL.ref("double_value", DOUBLE))
             ),
@@ -90,7 +90,7 @@ public class SelectAnalyzeTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
             LogicalPlanDSL.remove(
-                LogicalPlanDSL.relation("schema"),
+                LogicalPlanDSL.relation("schema", table),
                 DSL.ref("integer_value", INTEGER),
                 DSL.ref("double_value", DOUBLE)
             ),
@@ -112,7 +112,7 @@ public class SelectAnalyzeTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
             LogicalPlanDSL.aggregation(
-                LogicalPlanDSL.relation("schema"),
+                LogicalPlanDSL.relation("schema", table),
                 ImmutableList.of(DSL
                     .named("avg(integer_value)", dsl.avg(DSL.ref("integer_value", INTEGER)))),
                 ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING)))),
@@ -135,7 +135,7 @@ public class SelectAnalyzeTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
             LogicalPlanDSL.rename(
-                LogicalPlanDSL.relation("schema"),
+                LogicalPlanDSL.relation("schema", table),
                 ImmutableMap.of(DSL.ref("integer_value", INTEGER), DSL.ref("ivalue", INTEGER))),
             DSL.named("double_value", DSL.ref("double_value", DOUBLE)),
             DSL.named("string_value", DSL.ref("string_value", STRING)),

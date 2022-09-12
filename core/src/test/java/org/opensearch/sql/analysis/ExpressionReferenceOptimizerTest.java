@@ -72,7 +72,7 @@ class ExpressionReferenceOptimizerTest extends AnalyzerTestBase {
 
     LogicalPlan logicalPlan =
         LogicalPlanDSL.aggregation(
-            LogicalPlanDSL.relation("test"),
+            LogicalPlanDSL.relation("test", table),
             emptyList(),
             ImmutableList.of(DSL.named(
                 "CaseClause(whenClauses=[WhenClause(condition==(age, 30), result=\"true\")],"
@@ -96,7 +96,7 @@ class ExpressionReferenceOptimizerTest extends AnalyzerTestBase {
 
     LogicalPlan logicalPlan =
         LogicalPlanDSL.aggregation(
-            LogicalPlanDSL.relation("test"),
+            LogicalPlanDSL.relation("test", table),
             ImmutableList.of(DSL.named("AVG(age)", dsl.avg(DSL.ref("age", INTEGER)))),
             ImmutableList.of(DSL.named("name", DSL.ref("name", STRING))));
 
@@ -119,7 +119,7 @@ class ExpressionReferenceOptimizerTest extends AnalyzerTestBase {
 
     LogicalPlan logicalPlan =
         LogicalPlanDSL.aggregation(
-            LogicalPlanDSL.relation("test"),
+            LogicalPlanDSL.relation("test", table),
             ImmutableList.of(DSL.named("AVG(age)", dsl.avg(DSL.ref("age", INTEGER)))),
             ImmutableList.of(DSL.named("name", DSL.ref("name", STRING))));
 
@@ -137,7 +137,7 @@ class ExpressionReferenceOptimizerTest extends AnalyzerTestBase {
     LogicalPlan logicalPlan =
         LogicalPlanDSL.window(
             LogicalPlanDSL.window(
-                LogicalPlanDSL.relation("test"),
+                LogicalPlanDSL.relation("test", table),
                 DSL.named(dsl.rank()),
                 new WindowDefinition(emptyList(), emptyList())),
             DSL.named(dsl.denseRank()),
@@ -163,7 +163,7 @@ class ExpressionReferenceOptimizerTest extends AnalyzerTestBase {
 
   LogicalPlan logicalPlan() {
     return LogicalPlanDSL.aggregation(
-        LogicalPlanDSL.relation("schema"),
+        LogicalPlanDSL.relation("schema", table),
         ImmutableList
             .of(DSL.named("AVG(age)", dsl.avg(DSL.ref("age", INTEGER))),
                 DSL.named("SUM(age)", dsl.sum(DSL.ref("age", INTEGER)))),

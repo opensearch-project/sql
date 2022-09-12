@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.expression.Expression;
@@ -21,6 +22,7 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
+import org.opensearch.sql.storage.Table;
 
 /**
  * Logical Plan DSL.
@@ -37,8 +39,8 @@ public class LogicalPlanDSL {
     return new LogicalFilter(input, expression);
   }
 
-  public static LogicalPlan relation(String tableName) {
-    return new LogicalRelation(tableName);
+  public static LogicalPlan relation(String tableName, Table table) {
+    return new LogicalRelation(tableName, table);
   }
 
   public static LogicalPlan rename(
