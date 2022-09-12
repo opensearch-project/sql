@@ -1046,7 +1046,7 @@ DATETIME(datetime) examples
 DATETIME with no timezone specified does no conversion.
 Example::
 
-    os> SELECT DATETIME('2008-02-30 02:00:00')
+    os> SELECT DATETIME('2008-02-10 02:00:00')
     fetched rows / total rows = 1/1
     +-----------------------------------+
     | DATETIME('2008-02-10 02:00:00')   |
@@ -1059,16 +1059,16 @@ Example::
 
     os> SELECT DATETIME('2008-02-30 02:00:00')
     fetched rows / total rows = 1/1
-    +----------------------------------+
-    | DATETIME('2008-02-30 02:00:00'   |
-    |----------------------------------|
-    | null                             |
-    +----------------------------------+
+    +-----------------------------------+
+    | DATETIME('2008-02-30 02:00:00')   |
+    |-----------------------------------|
+    | null                              |
+    +-----------------------------------+
 
 DATETIME with a datetime and no seperate timezone to convert to returns the datetime object without a timezone.
 Example::
 
-    os> SELECT DATETIME('2008-02-30 02:00:00+04:00')
+    os> SELECT DATETIME('2008-02-10 02:00:00+04:00')
     fetched rows / total rows = 1/1
     +-----------------------------------------+
     | DATETIME('2008-02-10 02:00:00+04:00')   |
