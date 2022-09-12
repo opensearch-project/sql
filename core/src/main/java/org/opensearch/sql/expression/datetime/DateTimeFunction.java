@@ -557,9 +557,9 @@ public class DateTimeFunction {
         .withResolverStyle(ResolverStyle.STRICT);
 
     try {
-      ExprDatetimeValue ldtFormatted = new ExprDatetimeValue(dateTime.stringValue());
+      LocalDateTime ldtFormatted = LocalDateTime.parse(dateTime.stringValue(), formatDT);
       if (timeZone.isNull()) {
-        return ldtFormatted;
+        return new ExprDatetimeValue(ldtFormatted);
       }
 
       // Used if datetime field is invalid format.
