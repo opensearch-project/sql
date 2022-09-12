@@ -4,6 +4,7 @@
 - [Code Summary](#code-summary)
 - [Highlights](#highlights)
 - [Documentation](#documentation)
+- [OpenSearch Forum](#forum)
 - [Contributing](#contributing)
 - [Attribution](#attribution)
 - [Code of Conduct](#code-of-conduct)
@@ -129,7 +130,7 @@ Please refer to the [SQL Language Reference Manual](./docs/user/index.rst), [Pip
 
 ## Forum
 
-For additional help with the plugin, including questions about opening an issue, try the OpenSearch [Forum](https://forum.opensearch.org/c/plugins/sql/8).
+For additional help with the plugin, including questions about opening an issue, visit the OpenSearch [Forum](https://forum.opensearch.org/c/plugins/sql/8).
 
 ## Contributing
 
