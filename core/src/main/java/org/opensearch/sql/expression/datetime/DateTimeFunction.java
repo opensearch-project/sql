@@ -504,6 +504,7 @@ public class DateTimeFunction {
 
   /**
    * CONVERT_TZ function implementation for ExprValue.
+   * Returns null for time zones outside of +13:00 and -12:00.
    *
    * @param startingDateTime ExprValue of DateTime that is being converted from
    * @param fromTz           ExprValue of time zone, representing the time to convert from.
@@ -523,22 +524,15 @@ public class DateTimeFunction {
           || !isTimeZoneValid(convertedToTz)) {
         return ExprNullValue.of();
       }
+      ZonedDateTime zonedDateTime =
+          startingDateTime.datetimeValue().atZone(convertedFromTz);
+      return new ExprDatetimeValue(
+          zonedDateTime.withZoneSameInstant(convertedToTz).toLocalDateTime());
 
-      try {
-        ZonedDateTime zonedDateTime =
-            startingDateTime.datetimeValue().atZone(convertedFromTz);
-        return new ExprDatetimeValue(
-            zonedDateTime.withZoneSameInstant(convertedToTz).toLocalDateTime());
-
-        // Used to catch invalid datetime fields.
-        // Datetime fields need to be in the format of
-      } catch (ExpressionEvaluationException e) {
-        return ExprNullValue.of();
-      }
 
       // Catches exception for invalid timezones.
       // ex. "+0:00" is an invalid timezone and would result in this exception being thrown.
-    } catch (DateTimeException e) {
+    } catch (ExpressionEvaluationException | DateTimeException e) {
       return ExprNullValue.of();
     }
   }
@@ -669,50 +663,6 @@ public class DateTimeFunction {
    */
   private ExprValue exprHour(ExprValue time) {
     return new ExprIntegerValue(time.timeValue().getHour());
-  }
-
-  /**
-   * Following MySQL, function receives arguments of type double and rounds them before use.
-   * Furthermore:
-   *  - zero year interpreted as 2000
-   *  - negative year is not accepted
-   *  - @dayOfYear should be greater than 1
-   *  - if @dayOfYear is greater than 365/366, calculation goes to the next year(s)
-   *
-   * @param yearExpr year
-   * @param dayOfYearExp day of the @year, starting from 1
-   * @return Date - ExprDateValue object with LocalDate
-   */
-  private ExprValue exprMakeDate(ExprValue yearExpr, ExprValue dayOfYearExp) {
-    var year = Math.round(yearExpr.doubleValue());
-    var dayOfYear = Math.round(dayOfYearExp.doubleValue());
-    // We need to do this to comply with MySQL
-    if (0 >= dayOfYear || 0 > year) {
-      return ExprNullValue.of();
-    }
-    if (0 == year) {
-      year = 2000;
-    }
-    return new ExprDateValue(LocalDate.ofYearDay((int)year, 1).plusDays(dayOfYear - 1));
-  }
-
-  /**
-   * Following MySQL, function receives arguments of type double. @hour and @minute are rounded,
-   * while @second used as is, including fraction part.
-   * @param hourExpr hour
-   * @param minuteExpr minute
-   * @param secondExpr second
-   * @return Time - ExprTimeValue object with LocalTime
-   */
-  private ExprValue exprMakeTime(ExprValue hourExpr, ExprValue minuteExpr, ExprValue secondExpr) {
-    var hour = Math.round(hourExpr.doubleValue());
-    var minute = Math.round(minuteExpr.doubleValue());
-    var second = secondExpr.doubleValue();
-    if (0 > hour || 0 > minute || 0 > second) {
-      return ExprNullValue.of();
-    }
-    return new ExprTimeValue(LocalTime.parse(String.format("%02d:%02d:%012.9f",
-        hour, minute, second), DateTimeFormatter.ISO_TIME));
   }
 
   /**
