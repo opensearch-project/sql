@@ -19,10 +19,6 @@ import static org.opensearch.sql.expression.function.FunctionDSL.define;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 
-import java.sql.Date;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -47,10 +43,7 @@ import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
-import org.opensearch.sql.expression.DSL;
-import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
@@ -564,9 +557,9 @@ public class DateTimeFunction {
         .withResolverStyle(ResolverStyle.STRICT);
 
     try {
-      LocalDateTime ldtFormatted = LocalDateTime.parse(dateTime.stringValue(), formatDT);
+      ExprDatetimeValue ldtFormatted = new ExprDatetimeValue(dateTime.stringValue());
       if (timeZone.isNull()) {
-        return new ExprDatetimeValue(ldtFormatted);
+        return ldtFormatted;
       }
 
       // Used if datetime field is invalid format.
@@ -575,22 +568,27 @@ public class DateTimeFunction {
     }
 
     ExprValue convertTZResult;
+    LocalDateTime ldt;
+    String toTz;
+    String fromTz;
 
     try {
       ZonedDateTime zdtWithZoneOffset = ZonedDateTime.parse(dateTime.stringValue(), formatDT);
       ZoneId fromTZ = zdtWithZoneOffset.getZone();
 
-      convertTZResult = exprConvertTZ(
-          new ExprDatetimeValue(zdtWithZoneOffset.toLocalDateTime()),
-          new ExprStringValue(String.valueOf(fromTZ)),
-          new ExprStringValue(String.valueOf(ZoneId.of(timeZone.stringValue()))));
+      ldt = zdtWithZoneOffset.toLocalDateTime();
+      toTz = String.valueOf(fromTZ);
+      fromTz = String.valueOf(ZoneId.of(timeZone.stringValue()));
     } catch (DateTimeParseException e) {
-      LocalDateTime ldtFormatted = LocalDateTime.parse(dateTime.stringValue(), formatDT);
-      convertTZResult = exprConvertTZ(
-          new ExprDatetimeValue(ldtFormatted),
-          new ExprStringValue(defaultTimeZone),
-          new ExprStringValue(String.valueOf(ZoneId.of(timeZone.stringValue()))));
+      ldt = LocalDateTime.parse(dateTime.stringValue(), formatDT);
+      toTz = defaultTimeZone;
+      fromTz = String.valueOf(ZoneId.of(timeZone.stringValue()));
     }
+    convertTZResult = exprConvertTZ(
+        new ExprDatetimeValue(ldt),
+        new ExprStringValue(toTz),
+        new ExprStringValue(fromTz));
+
     return convertTZResult;
   }
 
