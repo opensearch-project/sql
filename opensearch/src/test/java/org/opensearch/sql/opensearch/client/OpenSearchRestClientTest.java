@@ -39,6 +39,7 @@ import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.client.indices.CreateIndexResponse;
 import org.opensearch.client.indices.GetIndexRequest;
 import org.opensearch.client.indices.GetIndexResponse;
 import org.opensearch.client.indices.GetMappingsRequest;
@@ -86,6 +87,37 @@ class OpenSearchRestClientTest {
   @BeforeEach
   void setUp() {
     client = new OpenSearchRestClient(restClient);
+  }
+
+  @Test
+  void createIndex() throws IOException {
+    String indexName = "test";
+    Map<String, Object> mappings = ImmutableMap.of(
+        "properties",
+        ImmutableMap.of("name", "text"));
+    when(restClient.indices()
+        .exists(any(), any())) // use any() because missing equals() in GetIndexRequest
+        .thenReturn(false);
+    when(restClient.indices()
+        .create(any(), any()))
+        .thenReturn(new CreateIndexResponse(true, true, indexName));
+
+    assertTrue(client.createIndex(indexName, mappings));
+  }
+
+  @Test
+  void createIndexIfAlreadyExist() throws IOException {
+    String indexName = "test";
+    when(restClient.indices().exists(any(), any())).thenReturn(true);
+    assertFalse(client.createIndex(indexName, ImmutableMap.of()));
+  }
+
+  @Test
+  void createIndexWithIOException() throws IOException {
+    String indexName = "test";
+    when(restClient.indices().exists(any(), any())).thenThrow(IOException.class);
+    assertThrows(IllegalStateException.class,
+        () -> client.createIndex(indexName, ImmutableMap.of()));
   }
 
   @Test
