@@ -628,9 +628,9 @@ public class DateTimeFunction {
       ZoneId convertedFromTz = ZoneId.of(fromTz.stringValue());
       ZoneId convertedToTz = ZoneId.of(toTz.stringValue());
 
-      // isTimeZoneValid checks if the timezone is within the range accepted by MySQL standard.
-      if (!isTimeZoneValid(convertedFromTz)
-          || !isTimeZoneValid(convertedToTz)) {
+      // isValidMySqlTimeZoneId checks if the timezone is within the range accepted by MySQL standard.
+      if (!isValidMySqlTimeZoneId(convertedFromTz)
+          || !isValidMySqlTimeZoneId(convertedToTz)) {
         return ExprNullValue.of();
       }
       ZonedDateTime zonedDateTime =
@@ -1049,12 +1049,12 @@ public class DateTimeFunction {
   }
 
   /**
-   * isTimeZoneValid for timezones which match timezone the range set by MySQL.
+   * isValidMySqlTimeZoneId for timezones which match timezone the range set by MySQL.
    *
    * @param zone ZoneId of ZoneId type.
    * @return Boolean.
    */
-  private Boolean isTimeZoneValid(ZoneId zone) {
+  private Boolean isValidMySqlTimeZoneId(ZoneId zone) {
     ZoneId maxTz = ZoneId.of("+14:00");
     ZoneId minTz = ZoneId.of("-13:59");
     ZoneId defaultTz = ZoneId.of("+00:00");
