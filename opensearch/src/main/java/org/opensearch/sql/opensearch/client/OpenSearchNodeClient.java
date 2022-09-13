@@ -12,12 +12,17 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
@@ -48,6 +53,28 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   public OpenSearchNodeClient(NodeClient client) {
     this.client = client;
     this.resolver = new IndexNameExpressionResolver(client.threadPool().getThreadContext());
+  }
+
+  @Override
+  public boolean createIndex(String indexName, Map<String, Object> mappings) {
+    Map<String, Object> mapping = new HashMap<>();
+    Map<String, Object> properties = new HashMap<>();
+    mapping.put("properties", properties);
+
+    try {
+      IndicesExistsResponse checkExistResponse = client.admin().indices()
+          .exists(new IndicesExistsRequest(indexName)).actionGet();
+      if (checkExistResponse.isExists()) {
+        return false;
+      }
+
+      // TODO: pass index settings (the number of primary shards, etc)
+      CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName).mapping(mapping);
+      client.admin().indices().create(createIndexRequest).actionGet();
+      return true;
+    } catch (Exception e) {
+      throw new IllegalStateException("Failed to create index [" + indexName + "]", e);
+    }
   }
 
   /**

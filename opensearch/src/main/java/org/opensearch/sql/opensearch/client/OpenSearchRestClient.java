@@ -47,6 +47,11 @@ public class OpenSearchRestClient implements OpenSearchClient {
   private final RestHighLevelClient client;
 
   @Override
+  public boolean createIndex(String indexName, Map<String, Object> mappings) {
+    return true;
+  }
+
+  @Override
   public Map<String, IndexMapping> getIndexMappings(String... indexExpression) {
     GetMappingsRequest request = new GetMappingsRequest().indices(indexExpression);
     try {

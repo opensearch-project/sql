@@ -38,6 +38,10 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
@@ -87,6 +91,43 @@ class OpenSearchNodeClientTest {
 
   private ExprTupleValue exprTupleValue = ExprTupleValue.fromExprValueMap(ImmutableMap.of("id",
       new ExprIntegerValue(1)));
+
+  @Test
+  public void createIndex() {
+    String indexName = "test";
+    Map<String, Object> mappings = ImmutableMap.of(
+        "properties",
+        ImmutableMap.of("name", "text"));
+    when(nodeClient.admin().indices()
+        .exists(new IndicesExistsRequest(indexName)).actionGet())
+        .thenReturn(new IndicesExistsResponse(false));
+    when(nodeClient.admin().indices()
+        .create(new CreateIndexRequest(indexName).mapping(mappings)).actionGet())
+        .thenReturn(new CreateIndexResponse(true, true, indexName));
+    OpenSearchNodeClient client = new OpenSearchNodeClient(nodeClient);
+
+    assertTrue(client.createIndex(indexName, mappings));
+  }
+
+  @Test
+  public void createIndexWithException() {
+    when(nodeClient.admin().indices()).thenThrow(RuntimeException.class);
+    OpenSearchNodeClient client = new OpenSearchNodeClient(nodeClient);
+    String indexName = "test";
+
+    assertThrows(IllegalStateException.class,
+        () -> client.createIndex(indexName, ImmutableMap.of()));
+  }
+
+  @Test
+  public void createIndexIfAlreadyExist() {
+    when(nodeClient.admin().indices().exists(any()).actionGet())
+        .thenReturn(new IndicesExistsResponse(true));
+    OpenSearchNodeClient client = new OpenSearchNodeClient(nodeClient);
+    String indexName = "test";
+
+    assertFalse(client.createIndex(indexName, ImmutableMap.of()));
+  }
 
   @Test
   public void getIndexMappings() throws IOException {
