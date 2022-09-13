@@ -21,9 +21,8 @@ $BUILD_DIR = "${WORKING_DIR}\build"
 # $BUILD_DIR = "${WORKING_DIR}\build\${CONFIGURATION}${BITNESS}"
 New-Item -Path $BUILD_DIR -ItemType Directory -Force | Out-Null
 
-$VCPKG_DIR = "${WORKING_DIR}/src/vcpkg"
-
-.\scripts\build_libcurl-vcpkg.ps1 $VCPKG_DIR $LIBCURL_WIN_ARCH
+$VCPKG_DIR = $Env:VCPKG_ROOT
+vcpkg.exe install curl[tool]:${LIBCURL_WIN_ARCH}-windows
 
 Set-Location $CURRENT_DIR
 
