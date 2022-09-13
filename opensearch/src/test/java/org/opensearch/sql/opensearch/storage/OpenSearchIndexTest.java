@@ -21,6 +21,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.expression.DSL.ref;
+import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
 import static org.opensearch.sql.opensearch.utils.Utils.indexScan;
 import static org.opensearch.sql.opensearch.utils.Utils.indexScanAgg;
 import static org.opensearch.sql.opensearch.utils.Utils.noProjects;
@@ -37,6 +38,7 @@ import static org.opensearch.sql.planner.logical.LogicalPlanDSL.sort;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -88,6 +90,23 @@ class OpenSearchIndexTest {
 
   @Mock
   private Table table;
+
+  @Test
+  void createIndex() {
+    String indexName = "test";
+    Map<String, Object> mappings = ImmutableMap.of(
+        "properties",
+        ImmutableMap.of(
+            "name", "text_keyword",
+            "age", "integer"));
+    when(client.createIndex(indexName, mappings)).thenReturn(true);
+
+    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
+    Map<String, ExprType> schema = new HashMap<>();
+    schema.put("name", OPENSEARCH_TEXT_KEYWORD);
+    schema.put("age", INTEGER);
+    assertTrue(index.create(schema));
+  }
 
   @Test
   void getFieldTypes() {
