@@ -26,6 +26,7 @@ RARE:                               'RARE';
 PARSE:                              'PARSE';
 KMEANS:                             'KMEANS';
 AD:                                 'AD';
+NATIVEQUERY:                        'NATIVEQUERY';
 
 // COMMAND ASSIST KEYWORDS
 AS:                                 'AS';
@@ -311,6 +312,9 @@ SLOP:                               'SLOP';
 TIE_BREAKER:                        'TIE_BREAKER';
 TYPE:                               'TYPE';
 ZERO_TERMS_QUERY:                   'ZERO_TERMS_QUERY';
+STARTTIME:                          'STARTTIME';
+ENDTIME:                            'ENDTIME';
+STEP:                               'STEP';
 
 // SPAN KEYWORDS
 SPAN:                               'SPAN';
