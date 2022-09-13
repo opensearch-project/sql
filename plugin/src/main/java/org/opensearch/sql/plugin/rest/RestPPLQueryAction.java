@@ -39,7 +39,6 @@ import org.opensearch.sql.plugin.request.PPLQueryRequestFactory;
 import org.opensearch.sql.plugin.transport.PPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryRequest;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
-import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 
 public class RestPPLQueryAction extends BaseRestHandler {
   public static final String QUERY_API_ENDPOINT = "/_plugins/_ppl";

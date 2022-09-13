@@ -8,7 +8,6 @@ package org.opensearch.sql.legacy.plugin;
 
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
-import static org.mockito.Mockito.when;
 import static org.opensearch.sql.legacy.plugin.RestSQLQueryAction.NOT_SUPPORTED_YET;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.EXPLAIN_API_ENDPOINT;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
@@ -18,36 +17,38 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.sql.catalog.CatalogService;
-import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.executor.ExecutionEngine;
+import org.opensearch.sql.sql.config.SQLServiceConfig;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
+import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.threadpool.ThreadPool;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 @RunWith(MockitoJUnitRunner.class)
 public class RestSQLQueryActionTest {
-
-  @Mock
-  private ClusterService clusterService;
 
   private NodeClient nodeClient;
 
   @Mock
   private ThreadPool threadPool;
 
-  @Mock
-  private Settings settings;
-
-  @Mock
-  private CatalogService catalogService;
+  private AnnotationConfigApplicationContext context;
 
   @Before
   public void setup() {
     nodeClient = new NodeClient(org.opensearch.common.settings.Settings.EMPTY, threadPool);
-    when(threadPool.getThreadContext())
+    context = new AnnotationConfigApplicationContext();
+    context.registerBean(StorageEngine.class, () -> Mockito.mock(StorageEngine.class));
+    context.registerBean(ExecutionEngine.class, () -> Mockito.mock(ExecutionEngine.class));
+    context.registerBean(CatalogService.class, () -> Mockito.mock(CatalogService.class));
+    context.register(SQLServiceConfig.class);
+    context.refresh();
+    Mockito.lenient().when(threadPool.getThreadContext())
         .thenReturn(new ThreadContext(org.opensearch.common.settings.Settings.EMPTY));
   }
 
@@ -59,7 +60,7 @@ public class RestSQLQueryActionTest {
         QUERY_API_ENDPOINT,
         "");
 
-    RestSQLQueryAction queryAction = new RestSQLQueryAction(clusterService, settings, catalogService);
+    RestSQLQueryAction queryAction = new RestSQLQueryAction(context);
     assertNotSame(NOT_SUPPORTED_YET, queryAction.prepareRequest(request, nodeClient));
   }
 
@@ -71,7 +72,7 @@ public class RestSQLQueryActionTest {
         EXPLAIN_API_ENDPOINT,
         "");
 
-    RestSQLQueryAction queryAction = new RestSQLQueryAction(clusterService, settings, catalogService);
+    RestSQLQueryAction queryAction = new RestSQLQueryAction(context);
     assertNotSame(NOT_SUPPORTED_YET, queryAction.prepareRequest(request, nodeClient));
   }
 
@@ -84,7 +85,7 @@ public class RestSQLQueryActionTest {
         QUERY_API_ENDPOINT,
         "");
 
-    RestSQLQueryAction queryAction = new RestSQLQueryAction(clusterService, settings, catalogService);
+    RestSQLQueryAction queryAction = new RestSQLQueryAction(context);
     assertSame(NOT_SUPPORTED_YET, queryAction.prepareRequest(request, nodeClient));
   }
 
