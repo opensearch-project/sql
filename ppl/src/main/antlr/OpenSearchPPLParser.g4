@@ -253,7 +253,33 @@ multiFieldRelevanceFunction
 /** tables */
 tableSource
     : qualifiedName
+    | catalogName DOT nativeQueryFunction
     | ID_DATE_SUFFIX
+    ;
+
+nativeQueryFunction
+    : nativeQueryFunctionName LT_PRTHS
+        field = nativeQuery (COMMA nativeQueryArg)* RT_PRTHS
+    ;
+
+nativeQueryFunctionName
+    : NATIVEQUERY
+    ;
+
+nativeQuery
+    : BQUOTA_STRING
+    ;
+
+nativeQueryArg
+    : nativeQueryArgName EQUAL nativeQueryArgValue
+    ;
+
+nativeQueryArgName
+    : STARTTIME | ENDTIME | STEP
+    ;
+
+nativeQueryArgValue
+    : INTEGER_LITERAL
     ;
 
 /** fields */
@@ -505,6 +531,10 @@ qualifiedName
 
 wcQualifiedName
     : wildcard (DOT wildcard)*                       #identsAsWildcardQualifiedName
+    ;
+
+catalogName
+    : ident                                         #identAsCatalogName
     ;
 
 ident
