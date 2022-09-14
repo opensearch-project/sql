@@ -628,7 +628,8 @@ public class DateTimeFunction {
       ZoneId convertedFromTz = ZoneId.of(fromTz.stringValue());
       ZoneId convertedToTz = ZoneId.of(toTz.stringValue());
 
-      // isValidMySqlTimeZoneId checks if the timezone is within the range accepted by MySQL standard.
+      // isValidMySqlTimeZoneId checks if the timezone is within the range accepted by
+      // MySQL standard.
       if (!isValidMySqlTimeZoneId(convertedFromTz)
           || !isValidMySqlTimeZoneId(convertedToTz)) {
         return ExprNullValue.of();
@@ -684,7 +685,7 @@ public class DateTimeFunction {
     }
 
     ExprValue convertTZResult;
-    LocalDateTime ldt;
+    ExprDatetimeValue ldt;
     String toTz;
     String fromTz;
 
@@ -692,18 +693,16 @@ public class DateTimeFunction {
       ZonedDateTime zdtWithZoneOffset = ZonedDateTime.parse(dateTime.stringValue(), formatDT);
       ZoneId fromTZ = zdtWithZoneOffset.getZone();
 
-      ldt = zdtWithZoneOffset.toLocalDateTime();
+      ldt = new ExprDatetimeValue(zdtWithZoneOffset.toLocalDateTime());
       toTz = String.valueOf(fromTZ);
-      fromTz = timeZone.stringValue();
     } catch (DateTimeParseException e) {
-      ldt = LocalDateTime.parse(dateTime.stringValue(), formatDT);
+      ldt = new ExprDatetimeValue(dateTime.stringValue());
       toTz = defaultTimeZone;
-      fromTz = timeZone.stringValue();
     }
     convertTZResult = exprConvertTZ(
-        new ExprDatetimeValue(ldt),
+        ldt,
         new ExprStringValue(toTz),
-        new ExprStringValue(fromTz));
+        timeZone);
 
     return convertTZResult;
   }
