@@ -687,7 +687,6 @@ public class DateTimeFunction {
     ExprValue convertTZResult;
     ExprDatetimeValue ldt;
     String toTz;
-    String fromTz;
 
     try {
       ZonedDateTime zdtWithZoneOffset = ZonedDateTime.parse(dateTime.stringValue(), formatDT);
