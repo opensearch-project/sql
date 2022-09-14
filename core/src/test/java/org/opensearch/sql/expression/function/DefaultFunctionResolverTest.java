@@ -22,7 +22,7 @@ import org.opensearch.sql.exception.ExpressionEvaluationException;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
-class FunctionResolverTest {
+class DefaultFunctionResolverTest {
   @Mock
   private FunctionSignature exactlyMatchFS;
   @Mock
@@ -47,7 +47,7 @@ class FunctionResolverTest {
   @Test
   void resolve_function_signature_exactly_match() {
     when(functionSignature.match(exactlyMatchFS)).thenReturn(WideningTypeRule.TYPE_EQUAL);
-    FunctionResolver resolver = new FunctionResolver(functionName,
+    DefaultFunctionResolver resolver = new DefaultFunctionResolver(functionName,
         ImmutableMap.of(exactlyMatchFS, exactlyMatchBuilder));
 
     assertEquals(exactlyMatchBuilder, resolver.resolve(functionSignature).getValue());
@@ -57,7 +57,7 @@ class FunctionResolverTest {
   void resolve_function_signature_best_match() {
     when(functionSignature.match(bestMatchFS)).thenReturn(1);
     when(functionSignature.match(leastMatchFS)).thenReturn(2);
-    FunctionResolver resolver = new FunctionResolver(functionName,
+    DefaultFunctionResolver resolver = new DefaultFunctionResolver(functionName,
         ImmutableMap.of(bestMatchFS, bestMatchBuilder, leastMatchFS, leastMatchBuilder));
 
     assertEquals(bestMatchBuilder, resolver.resolve(functionSignature).getValue());
@@ -68,7 +68,7 @@ class FunctionResolverTest {
     when(functionSignature.match(notMatchFS)).thenReturn(WideningTypeRule.IMPOSSIBLE_WIDENING);
     when(notMatchFS.formatTypes()).thenReturn("[INTEGER,INTEGER]");
     when(functionSignature.formatTypes()).thenReturn("[BOOLEAN,BOOLEAN]");
-    FunctionResolver resolver = new FunctionResolver(functionName,
+    DefaultFunctionResolver resolver = new DefaultFunctionResolver(functionName,
         ImmutableMap.of(notMatchFS, notMatchBuilder));
 
     ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,

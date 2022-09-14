@@ -47,7 +47,7 @@ import org.opensearch.sql.expression.env.Environment;
 @ExtendWith(MockitoExtension.class)
 class BuiltinFunctionRepositoryTest {
   @Mock
-  private FunctionResolver mockfunctionResolver;
+  private DefaultFunctionResolver mockfunctionResolver;
   @Mock
   private Map<FunctionName, FunctionResolver> mockMap;
   @Mock
@@ -182,7 +182,7 @@ class BuiltinFunctionRepositoryTest {
     FunctionSignature resolvedSignature = new FunctionSignature(
         funcName, ImmutableList.of(targetType));
 
-    FunctionResolver funcResolver = mock(FunctionResolver.class);
+    DefaultFunctionResolver funcResolver = mock(DefaultFunctionResolver.class);
     FunctionBuilder funcBuilder = mock(FunctionBuilder.class);
 
     when(mockMap.containsKey(eq(funcName))).thenReturn(true);

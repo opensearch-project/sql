@@ -10,6 +10,7 @@ import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
+import static org.opensearch.sql.ast.dsl.AstDSL.floatLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
@@ -353,6 +354,14 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
         AstDSL.function("match_bool_prefix",
             AstDSL.unresolvedArg("field", stringLiteral("fieldA")),
             AstDSL.unresolvedArg("query", stringLiteral("sample query"))));
+  }
+
+  @Test
+  void match_bool_prefix_wrong_expression() {
+    assertThrows(SemanticCheckException.class,
+        () -> analyze(AstDSL.function("match_bool_prefix",
+            AstDSL.unresolvedArg("field", stringLiteral("fieldA")),
+            AstDSL.unresolvedArg("query", floatLiteral(1.2f)))));
   }
 
   @Test

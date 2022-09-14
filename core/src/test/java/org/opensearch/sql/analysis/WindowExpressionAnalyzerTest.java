@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -45,12 +46,13 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class WindowExpressionAnalyzerTest extends AnalyzerTestBase {
 
-  private final LogicalPlan child = new LogicalRelation("test");
+  private LogicalPlan child;
 
   private WindowExpressionAnalyzer analyzer;
 
   @BeforeEach
   void setUp() {
+    child = new LogicalRelation("test", table);
     analyzer = new WindowExpressionAnalyzer(expressionAnalyzer, child);
   }
 
@@ -60,7 +62,7 @@ class WindowExpressionAnalyzerTest extends AnalyzerTestBase {
     assertEquals(
         LogicalPlanDSL.window(
             LogicalPlanDSL.sort(
-                LogicalPlanDSL.relation("test"),
+                LogicalPlanDSL.relation("test", table),
                 ImmutablePair.of(DEFAULT_ASC, DSL.ref("string_value", STRING)),
                 ImmutablePair.of(DEFAULT_DESC, DSL.ref("integer_value", INTEGER))),
             DSL.named("row_number", dsl.rowNumber()),
@@ -83,7 +85,7 @@ class WindowExpressionAnalyzerTest extends AnalyzerTestBase {
   void should_not_generate_sort_operator_if_no_partition_by_and_order_by_list() {
     assertEquals(
         LogicalPlanDSL.window(
-            LogicalPlanDSL.relation("test"),
+            LogicalPlanDSL.relation("test", table),
             DSL.named("row_number", dsl.rowNumber()),
             new WindowDefinition(
                 ImmutableList.of(),

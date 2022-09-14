@@ -28,17 +28,24 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.opensearch.utils.Utils;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
+import org.opensearch.sql.storage.Table;
 
-
+@ExtendWith(MockitoExtension.class)
 class OpenSearchLogicOptimizerTest {
 
   private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
+
+  @Mock
+  private Table table;
 
   /**
    * SELECT intV as i FROM schema WHERE intV = 1.
@@ -55,7 +62,7 @@ class OpenSearchLogicOptimizerTest {
         optimize(
             project(
                 filter(
-                    relation("schema"),
+                    relation("schema", table),
                     dsl.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
                 ),
                 DSL.named("i", DSL.ref("intV", INTEGER)))
@@ -79,7 +86,7 @@ class OpenSearchLogicOptimizerTest {
         optimize(
             project(
                 aggregation(
-                    relation("schema"),
+                    relation("schema", table),
                     ImmutableList
                         .of(DSL.named("AVG(intV)",
                             dsl.avg(DSL.ref("intV", INTEGER)))),
@@ -109,7 +116,7 @@ class OpenSearchLogicOptimizerTest {
             project(
                 aggregation(
                     filter(
-                        relation("schema"),
+                        relation("schema", table),
                         dsl.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
                     ),
                     ImmutableList
@@ -160,7 +167,7 @@ class OpenSearchLogicOptimizerTest {
         indexScan("schema", Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("intV", INTEGER))),
         optimize(
             sort(
-                relation("schema"),
+                relation("schema", table),
                 Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("intV", INTEGER))
             )
         )
@@ -198,7 +205,7 @@ class OpenSearchLogicOptimizerTest {
         optimize(
             sort(
                 filter(
-                    relation("schema"),
+                    relation("schema", table),
                     dsl.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
                 ),
                 Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))
@@ -211,12 +218,12 @@ class OpenSearchLogicOptimizerTest {
   void sort_with_expression_cannot_merge_with_relation() {
     assertEquals(
         sort(
-            relation("schema"),
+            relation("schema", table),
             Pair.of(Sort.SortOption.DEFAULT_ASC, dsl.abs(DSL.ref("intV", INTEGER)))
         ),
         optimize(
             sort(
-                relation("schema"),
+                relation("schema", table),
                 Pair.of(Sort.SortOption.DEFAULT_ASC, dsl.abs(DSL.ref("intV", INTEGER)))
             )
         )
@@ -240,7 +247,7 @@ class OpenSearchLogicOptimizerTest {
             project(
                 sort(
                     aggregation(
-                        relation("schema"),
+                        relation("schema", table),
                         ImmutableList
                             .of(DSL.named("AVG(intV)", dsl.avg(DSL.ref("intV", INTEGER)))),
                         ImmutableList.of(DSL.named("stringV", DSL.ref("stringV", STRING)))),
@@ -268,7 +275,7 @@ class OpenSearchLogicOptimizerTest {
             project(
                 sort(
                     aggregation(
-                        relation("schema"),
+                        relation("schema", table),
                         ImmutableList
                             .of(DSL.named("AVG(intV)", dsl.avg(DSL.ref("intV", INTEGER)))),
                         ImmutableList.of(DSL.named("stringV", DSL.ref("stringV", STRING)))),
@@ -339,7 +346,7 @@ class OpenSearchLogicOptimizerTest {
         optimize(
             project(
                 limit(
-                    relation("schema"),
+                    relation("schema", table),
                     1, 1
                 ),
                 DSL.named("intV", DSL.ref("intV", INTEGER))
@@ -363,7 +370,7 @@ class OpenSearchLogicOptimizerTest {
             project(
                 limit(
                     filter(
-                        relation("schema"),
+                        relation("schema", table),
                         dsl.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
                     ), 1, 1
                 ),
@@ -389,7 +396,7 @@ class OpenSearchLogicOptimizerTest {
                 limit(
                     sort(
                         filter(
-                            relation("schema"),
+                            relation("schema", table),
                             dsl.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
                         ),
                         Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))
@@ -434,7 +441,7 @@ class OpenSearchLogicOptimizerTest {
         ),
         optimize(
             project(
-                relation("schema"),
+                relation("schema", table),
                 DSL.named("i", DSL.ref("intV", INTEGER)))
         )
     );
@@ -455,7 +462,7 @@ class OpenSearchLogicOptimizerTest {
         ),
         optimize(
             project(
-                relation("schema"),
+                relation("schema", table),
                 DSL.named("i", DSL.ref("intV", INTEGER)),
                 DSL.named("absi", dsl.abs(DSL.ref("intV", INTEGER))))
         )
@@ -483,7 +490,7 @@ class OpenSearchLogicOptimizerTest {
         optimize(
             project(
                 project(
-                    relation("schema"),
+                    relation("schema", table),
                     DSL.named("i", DSL.ref("intV", INTEGER)),
                     DSL.named("s", DSL.ref("stringV", STRING))
                 ),
@@ -497,12 +504,12 @@ class OpenSearchLogicOptimizerTest {
   void project_literal_no_push() {
     assertEquals(
         project(
-            relation("schema"),
+            relation("schema", table),
             DSL.named("i", DSL.literal("str"))
         ),
         optimize(
             project(
-                relation("schema"),
+                relation("schema", table),
                 DSL.named("i", DSL.literal("str"))
             )
         )
@@ -524,7 +531,7 @@ class OpenSearchLogicOptimizerTest {
         optimize(
             project(
                 aggregation(
-                    relation("schema"),
+                    relation("schema", table),
                     ImmutableList.of(DSL.named("AVG(intV)",
                         dsl.avg(DSL.ref("intV", INTEGER))
                             .condition(dsl.greater(DSL.ref("intV", INTEGER), DSL.literal(1))))),
@@ -552,7 +559,7 @@ class OpenSearchLogicOptimizerTest {
             project(
                 aggregation(
                     filter(
-                        relation("schema"),
+                        relation("schema", table),
                         dsl.less(DSL.ref("longV", LONG), DSL.literal(1))
                     ),
                     ImmutableList.of(DSL.named("avg(intV)",

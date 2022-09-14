@@ -7,7 +7,6 @@
 package org.opensearch.sql.plugin.rest;
 
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.monitor.ResourceMonitor;
@@ -32,9 +31,6 @@ import org.springframework.context.annotation.Configuration;
 public class OpenSearchPluginConfig {
 
   @Autowired
-  private ClusterService clusterService;
-
-  @Autowired
   private NodeClient nodeClient;
 
   @Autowired
@@ -42,12 +38,7 @@ public class OpenSearchPluginConfig {
 
   @Bean
   public OpenSearchClient client() {
-    return new OpenSearchNodeClient(clusterService, nodeClient);
-  }
-
-  @Bean
-  public StorageEngine storageEngine() {
-    return new OpenSearchStorageEngine(client(), settings);
+    return new OpenSearchNodeClient(nodeClient);
   }
 
   @Bean

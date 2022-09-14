@@ -32,9 +32,9 @@ public class FunctionDSL {
    * @param functions    a list of function implementation.
    * @return FunctionResolver.
    */
-  public static FunctionResolver define(FunctionName functionName,
-                                 SerializableFunction<FunctionName, Pair<FunctionSignature,
-                                     FunctionBuilder>>... functions) {
+  public static DefaultFunctionResolver define(FunctionName functionName,
+               SerializableFunction<FunctionName, Pair<FunctionSignature,
+                FunctionBuilder>>... functions) {
     return define(functionName, Arrays.asList(functions));
   }
 
@@ -45,11 +45,11 @@ public class FunctionDSL {
    * @param functions    a list of function implementation.
    * @return FunctionResolver.
    */
-  public static FunctionResolver define(FunctionName functionName,
-                                 List<SerializableFunction<FunctionName, Pair<FunctionSignature,
-                                     FunctionBuilder>>> functions) {
+  public static DefaultFunctionResolver define(FunctionName functionName, List<
+      SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>> functions) {
 
-    FunctionResolver.FunctionResolverBuilder builder = FunctionResolver.builder();
+    DefaultFunctionResolver.DefaultFunctionResolverBuilder builder
+        = DefaultFunctionResolver.builder();
     builder.functionName(functionName);
     for (Function<FunctionName, Pair<FunctionSignature, FunctionBuilder>> func : functions) {
       Pair<FunctionSignature, FunctionBuilder> functionBuilder = func.apply(functionName);

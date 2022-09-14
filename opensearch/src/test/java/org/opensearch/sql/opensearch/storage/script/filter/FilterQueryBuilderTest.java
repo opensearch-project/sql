@@ -855,41 +855,6 @@ class FilterQueryBuilderTest {
           msg);
   }
 
-  @Test
-  void match_phrase_missing_field() {
-    var msg = assertThrows(ExpressionEvaluationException.class, () ->
-        dsl.match_phrase(
-            dsl.namedArgument("query", literal("search query")))).getMessage();
-    assertEquals("match_phrase function expected {[STRING,STRING],[STRING,STRING,STRING],"
-          + "[STRING,STRING,STRING,STRING],[STRING,STRING,STRING,STRING,STRING]}, but get [STRING]",
-          msg);
-  }
-
-  @Test
-  void match_phrase_missing_query() {
-    var msg = assertThrows(ExpressionEvaluationException.class, () ->
-        dsl.match_phrase(
-            dsl.namedArgument("field", literal("message")))).getMessage();
-    assertEquals("match_phrase function expected {[STRING,STRING],[STRING,STRING,STRING],"
-          + "[STRING,STRING,STRING,STRING],[STRING,STRING,STRING,STRING,STRING]}, but get [STRING]",
-          msg);
-  }
-
-  @Test
-  void match_phrase_too_many_args() {
-    var msg = assertThrows(ExpressionEvaluationException.class, () ->
-        dsl.match_phrase(
-            dsl.namedArgument("one", literal("1")),
-            dsl.namedArgument("two", literal("2")),
-            dsl.namedArgument("three", literal("3")),
-            dsl.namedArgument("four", literal("4")),
-            dsl.namedArgument("fix", literal("5")),
-            dsl.namedArgument("six", literal("6"))
-                )).getMessage();
-    assertEquals("match_phrase function expected {[STRING,STRING],[STRING,STRING,STRING],"
-          + "[STRING,STRING,STRING,STRING],[STRING,STRING,STRING,STRING,STRING]}, but get "
-          + "[STRING,STRING,STRING,STRING,STRING,STRING]", msg);
-  }
 
 
   @Test
@@ -911,55 +876,6 @@ class FilterQueryBuilderTest {
             dsl.match_bool_prefix(
                 dsl.namedArgument("field", literal("message")),
                 dsl.namedArgument("query", literal("search query")))));
-  }
-
-  @Test
-  void multi_match_missing_fields() {
-    var msg = assertThrows(ExpressionEvaluationException.class, () ->
-        dsl.multi_match(
-            dsl.namedArgument("query", literal("search query")))).getMessage();
-    assertEquals("multi_match function expected {[STRUCT,STRING],[STRUCT,STRING,STRING],"
-          + "[STRUCT,STRING,STRING,STRING],[STRUCT,STRING,STRING,STRING,STRING],[STRUCT,STRING,"
-          + "STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,STRING,STRING,STRING,STRING],"
-          + "[STRUCT,STRING,STRING,STRING,STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,"
-          + "STRING,STRING,STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,STRING,STRING,"
-          + "STRING,STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,STRING,STRING,STRING,"
-          + "STRING,STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,STRING,STRING,STRING,"
-          + "STRING,STRING,STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,STRING,STRING,"
-          + "STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,"
-          + "STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING],"
-          + "[STRUCT,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,"
-          + "STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,STRING,STRING,STRING,STRING,"
-          + "STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING],[STRUCT,STRING,"
-          + "STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,"
-          + "STRING,STRING,STRING,STRING]}, but get [STRING]",
-          msg);
-  }
-
-  @Test
-  void multi_match_missing_query() {
-    var msg = assertThrows(ExpressionEvaluationException.class, () ->
-        dsl.multi_match(
-            dsl.namedArgument("fields", DSL.literal(
-                new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                    "field1", ExprValueUtils.floatValue(1.F),
-                    "field2", ExprValueUtils.floatValue(.3F)))))))).getMessage();
-    assertEquals("multi_match function expected {[STRUCT,STRING],[STRUCT,STRING,STRING],"
-          + "[STRUCT,STRING,STRING,STRING],[STRUCT,STRING,STRING,STRING,STRING],[STRUCT,STRING,"
-          + "STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,STRING,STRING,STRING,STRING],"
-          + "[STRUCT,STRING,STRING,STRING,STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,"
-          + "STRING,STRING,STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,STRING,STRING,"
-          + "STRING,STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,STRING,STRING,STRING,"
-          + "STRING,STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,STRING,STRING,STRING,"
-          + "STRING,STRING,STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,STRING,STRING,"
-          + "STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,"
-          + "STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING],"
-          + "[STRUCT,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,"
-          + "STRING,STRING,STRING,STRING],[STRUCT,STRING,STRING,STRING,STRING,STRING,STRING,"
-          + "STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING],[STRUCT,STRING,"
-          + "STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,"
-          + "STRING,STRING,STRING,STRING]}, but get [STRUCT]",
-          msg);
   }
 
   @Test

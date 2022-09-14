@@ -7,6 +7,7 @@
 package org.opensearch.sql.ast.dsl;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.tuple.Pair;
@@ -71,6 +72,10 @@ public class AstDSL {
     return new Relation(qualifiedName(tableName));
   }
 
+  public UnresolvedPlan relation(QualifiedName tableName) {
+    return new Relation(tableName);
+  }
+
   public UnresolvedPlan relation(String tableName, String alias) {
     return new Relation(qualifiedName(tableName), alias);
   }
@@ -114,7 +119,7 @@ public class AstDSL {
   /**
    * Initialize Values node by rows of literals.
    * @param values  rows in which each row is a list of literal values
-   * @return        Values node
+   * @return       Values node
    */
   @SafeVarargs
   public UnresolvedPlan values(List<Literal>... values) {
@@ -413,7 +418,8 @@ public class AstDSL {
   }
 
   public static RareTopN rareTopN(UnresolvedPlan input, CommandType commandType,
-      List<Argument> noOfResults, List<UnresolvedExpression> groupList, Field... fields) {
+                                  List<Argument> noOfResults, List<UnresolvedExpression> groupList,
+                                  Field... fields) {
     return new RareTopN(input, commandType, noOfResults, Arrays.asList(fields), groupList)
         .attach(input);
   }

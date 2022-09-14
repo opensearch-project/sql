@@ -495,4 +495,17 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
             "span", new ExprDateValue("2021-01-07"), "region","iad", "host", "h2", "max", 8))
     ));
   }
+
+  @Test
+  public void copyOfAggregationOperatorShouldSame() {
+    AggregationOperator plan = new AggregationOperator(testScan(datetimeInputs),
+        Collections.singletonList(DSL
+            .named("count", dsl.count(DSL.ref("second", TIMESTAMP)))),
+        Collections.singletonList(DSL
+            .named("span", DSL.span(DSL.ref("second", TIMESTAMP), DSL.literal(6 * 1000), "ms"))));
+    AggregationOperator copy = new AggregationOperator(plan.getInput(), plan.getAggregatorList(),
+        plan.getGroupByExprList());
+
+    assertEquals(plan, copy);
+  }
 }

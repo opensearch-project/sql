@@ -70,6 +70,7 @@ import org.opensearch.sql.planner.physical.LimitOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
 import org.opensearch.sql.planner.physical.ProjectOperator;
+import org.opensearch.sql.storage.Table;
 
 @ExtendWith(MockitoExtension.class)
 class OpenSearchIndexTest {
@@ -84,6 +85,9 @@ class OpenSearchIndexTest {
 
   @Mock
   private Settings settings;
+
+  @Mock
+  private Table table;
 
   @Test
   void getFieldTypes() {
@@ -136,7 +140,7 @@ class OpenSearchIndexTest {
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
 
     String indexName = "test";
-    LogicalPlan plan = relation(indexName);
+    LogicalPlan plan = relation(indexName, table);
     OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
     Integer maxResultWindow = index.getMaxResultWindow();
     assertEquals(
@@ -150,7 +154,7 @@ class OpenSearchIndexTest {
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
 
     String indexName = "test";
-    LogicalPlan plan = relation(indexName);
+    LogicalPlan plan = relation(indexName, table);
     OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
     Integer maxResultWindow = index.getMaxResultWindow();
     assertEquals(
@@ -187,7 +191,7 @@ class OpenSearchIndexTest {
                     eval(
                         remove(
                             rename(
-                                relation(indexName),
+                                relation(indexName, table),
                                 mappings),
                             exclude),
                         newEvalField),
@@ -255,7 +259,7 @@ class OpenSearchIndexTest {
     PhysicalPlan plan = index.implement(
         filter(
             aggregation(
-                relation(indexName),
+                relation(indexName, table),
                 aggregators,
                 groupByExprs
             ),
@@ -319,7 +323,7 @@ class OpenSearchIndexTest {
     PhysicalPlan plan = index.implement(
         aggregation(
             filter(filter(
-                relation(indexName),
+                relation(indexName, table),
                 filterExpr), filterExpr),
             aggregators,
             groupByExprs));
@@ -407,7 +411,7 @@ class OpenSearchIndexTest {
         project(
             limit(
                 sort(
-                    relation("test"),
+                    relation("test", table),
                     Pair.of(Sort.SortOption.DEFAULT_ASC,
                         dsl.abs(named("intV", ref("intV", INTEGER))))
                 ),

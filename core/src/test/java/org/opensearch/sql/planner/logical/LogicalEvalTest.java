@@ -31,7 +31,7 @@ public class LogicalEvalTest extends AnalyzerTestBase {
   public void analyze_eval_with_one_field() {
     assertAnalyzeEqual(
         LogicalPlanDSL.eval(
-            LogicalPlanDSL.relation("schema"),
+            LogicalPlanDSL.relation("schema", table),
             ImmutablePair
                 .of(DSL.ref("absValue", INTEGER), dsl.abs(DSL.ref("integer_value", INTEGER)))),
         AstDSL.eval(
@@ -43,7 +43,7 @@ public class LogicalEvalTest extends AnalyzerTestBase {
   public void analyze_eval_with_two_field() {
     assertAnalyzeEqual(
         LogicalPlanDSL.eval(
-            LogicalPlanDSL.relation("schema"),
+            LogicalPlanDSL.relation("schema", table),
             ImmutablePair
                 .of(DSL.ref("absValue", INTEGER), dsl.abs(DSL.ref("integer_value", INTEGER))),
             ImmutablePair.of(DSL.ref("iValue", INTEGER), dsl.abs(DSL.ref("absValue", INTEGER)))),
