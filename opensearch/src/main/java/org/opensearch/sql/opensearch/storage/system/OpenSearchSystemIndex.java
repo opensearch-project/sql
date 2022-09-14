@@ -39,6 +39,11 @@ public class OpenSearchSystemIndex implements Table {
   }
 
   @Override
+  public boolean isExist() {
+    return false;
+  }
+
+  @Override
   public Map<String, ExprType> getFieldTypes() {
     return systemIndexBundle.getLeft().getMapping();
   }

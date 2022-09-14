@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -80,6 +81,8 @@ class OpenSearchIndexTest {
 
   private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
 
+  private final String indexName = "test";
+
   @Mock
   private OpenSearchClient client;
 
@@ -92,9 +95,22 @@ class OpenSearchIndexTest {
   @Mock
   private Table table;
 
+  private OpenSearchIndex index;
+  
+  @BeforeEach
+  void setUp() {
+    this.index = new OpenSearchIndex(client, settings, indexName);
+  }
+
+  @Test
+  void isExist() {
+    when(client.isExist(indexName)).thenReturn(true);
+
+    assertTrue(index.isExist());
+  }
+
   @Test
   void createIndex() {
-    String indexName = "test";
     Map<String, Object> mappings = ImmutableMap.of(
         "properties",
         ImmutableMap.of(
@@ -102,11 +118,10 @@ class OpenSearchIndexTest {
             "age", "integer"));
     doNothing().when(client).createIndex(indexName, mappings);
 
-    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
     Map<String, ExprType> schema = new HashMap<>();
     schema.put("name", OPENSEARCH_TEXT_KEYWORD);
     schema.put("age", INTEGER);
-    assertTrue(index.create(schema));
+    index.create(schema);
   }
 
   @Test
@@ -132,7 +147,6 @@ class OpenSearchIndexTest {
                         .put("blob", "binary")
                         .build())));
 
-    OpenSearchIndex index = new OpenSearchIndex(client, settings, "test");
     Map<String, ExprType> fieldTypes = index.getFieldTypes();
     assertThat(
         fieldTypes,
@@ -159,9 +173,7 @@ class OpenSearchIndexTest {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
 
-    String indexName = "test";
     LogicalPlan plan = relation(indexName, table);
-    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
     Integer maxResultWindow = index.getMaxResultWindow();
     assertEquals(
         new OpenSearchIndexScan(client, settings, indexName, maxResultWindow, exprValueFactory),
@@ -173,9 +185,7 @@ class OpenSearchIndexTest {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
 
-    String indexName = "test";
     LogicalPlan plan = relation(indexName, table);
-    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
     Integer maxResultWindow = index.getMaxResultWindow();
     assertEquals(
         new OpenSearchIndexScan(client, settings, indexName, maxResultWindow, exprValueFactory),
@@ -187,7 +197,6 @@ class OpenSearchIndexTest {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
 
-    String indexName = "test";
     NamedExpression include = named("age", ref("age", INTEGER));
     ReferenceExpression exclude = ref("name", STRING);
     ReferenceExpression dedupeField = ref("name", STRING);
@@ -219,7 +228,6 @@ class OpenSearchIndexTest {
                 dedupeField),
             include);
 
-    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
     Integer maxResultWindow = index.getMaxResultWindow();
     assertEquals(
         PhysicalPlanDSL.project(
@@ -248,8 +256,6 @@ class OpenSearchIndexTest {
     NamedExpression named = named("n", field);
     Expression filterExpr = dsl.equal(field, literal("John"));
 
-    String indexName = "test";
-    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
     PhysicalPlan plan = index.implement(
         project(
             indexScan(
@@ -274,8 +280,6 @@ class OpenSearchIndexTest {
         Arrays.asList(named("avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)),
             DOUBLE)));
 
-    String indexName = "test";
-    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
     PhysicalPlan plan = index.implement(
         filter(
             aggregation(
@@ -299,9 +303,6 @@ class OpenSearchIndexTest {
     List<NamedAggregator> aggregators =
         Arrays.asList(named("avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)),
             DOUBLE)));
-
-    String indexName = "test";
-    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
 
     // IndexScanAgg without Filter
     PhysicalPlan plan = index.implement(
@@ -337,9 +338,6 @@ class OpenSearchIndexTest {
         Arrays.asList(named("avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)),
             DOUBLE)));
 
-    String indexName = "test";
-    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
-
     PhysicalPlan plan = index.implement(
         aggregation(
             filter(filter(
@@ -359,8 +357,6 @@ class OpenSearchIndexTest {
     NamedExpression named = named("n", field);
     Expression sortExpr = ref("name", STRING);
 
-    String indexName = "test";
-    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
     PhysicalPlan plan = index.implement(
         project(
             indexScan(
@@ -381,8 +377,6 @@ class OpenSearchIndexTest {
     ReferenceExpression field = ref("name", STRING);
     NamedExpression named = named("n", field);
 
-    String indexName = "test";
-    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
     PhysicalPlan plan = index.implement(
         project(
             indexScan(
@@ -404,8 +398,6 @@ class OpenSearchIndexTest {
     NamedExpression named = named("n", field);
     Expression sortExpr = ref("name", STRING);
 
-    String indexName = "test";
-    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
     PhysicalPlan plan = index.implement(
         project(
             indexScan(
@@ -425,8 +417,6 @@ class OpenSearchIndexTest {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
 
-    String indexName = "test";
-    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
     PhysicalPlan plan = index.implement(index.optimize(
         project(
             limit(
@@ -450,8 +440,6 @@ class OpenSearchIndexTest {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
 
-    String indexName = "test";
-    OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
     PhysicalPlan plan = index.implement(
         project(
             indexScan(

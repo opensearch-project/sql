@@ -75,7 +75,12 @@ public class OpenSearchIndex implements Table {
   }
 
   @Override
-  public boolean create(Map<String, ExprType> schema) {
+  public boolean isExist() {
+    return client.isExist(indexName.toString());
+  }
+
+  @Override
+  public void create(Map<String, ExprType> schema) {
     Map<String, Object> mappings = new HashMap<>();
     Map<String, Object> properties = new HashMap<>();
     mappings.put("properties", properties);
@@ -84,7 +89,6 @@ public class OpenSearchIndex implements Table {
       properties.put(colType.getKey(), OpenSearchDataType.getOpenSearchType(colType.getValue()));
     }
     client.createIndex(indexName.toString(), mappings);
-    return true;
   }
 
   /*

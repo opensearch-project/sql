@@ -17,11 +17,17 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 public interface Table {
 
   /**
+   * Check if current table exists.
+   * @return true if exists, otherwise false
+   */
+  boolean isExist();
+
+  /**
    * Create table given table schema.
    * @param schema table schema
    * @return true if created successfully, otherwise false
    */
-  default boolean create(Map<String, ExprType> schema) {
+  default void create(Map<String, ExprType> schema) {
     throw new UnsupportedOperationException(
         "Create table is not supported in the storage engine");
   }
