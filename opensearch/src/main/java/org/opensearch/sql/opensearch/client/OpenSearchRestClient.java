@@ -24,7 +24,6 @@ import org.opensearch.action.search.ClearScrollRequest;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.client.indices.CreateIndexRequest;
-import org.opensearch.client.indices.CreateIndexResponse;
 import org.opensearch.client.indices.GetIndexRequest;
 import org.opensearch.client.indices.GetIndexResponse;
 import org.opensearch.client.indices.GetMappingsRequest;
@@ -49,17 +48,20 @@ public class OpenSearchRestClient implements OpenSearchClient {
   private final RestHighLevelClient client;
 
   @Override
-  public boolean createIndex(String indexName, Map<String, Object> mappings) {
+  public boolean isExist(String indexName) {
     try {
-      boolean isExist = client.indices().exists(
+      return client.indices().exists(
           new GetIndexRequest(indexName), RequestOptions.DEFAULT);
-      if (isExist) {
-        return false;
-      }
+    } catch (IOException e) {
+      throw new IllegalStateException("Failed to check if index [" + indexName + "] exist", e);
+    }
+  }
 
+  @Override
+  public void createIndex(String indexName, Map<String, Object> mappings) {
+    try {
       client.indices().create(
           new CreateIndexRequest(indexName).mapping(mappings), RequestOptions.DEFAULT);
-      return true;
     } catch (IOException e) {
       throw new IllegalStateException("Failed to create index [" + indexName + "]", e);
     }

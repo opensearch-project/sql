@@ -23,12 +23,18 @@ public interface OpenSearchClient {
   String META_CLUSTER_NAME = "CLUSTER_NAME";
 
   /**
+   * Check if the given index exists.
+   * @param indexName index name
+   * @return true if exists, otherwise false
+   */
+  boolean isExist(String indexName);
+
+  /**
    * Create OpenSearch index based on the given mappings.
    * @param indexName index name
    * @param mappings  index mappings
-   * @return true if not exist and created successfully, otherwise return false
    */
-  boolean createIndex(String indexName, Map<String, Object> mappings);
+  void createIndex(String indexName, Map<String, Object> mappings);
 
   /**
    * Fetch index mapping(s) according to index expression given.

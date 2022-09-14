@@ -14,6 +14,7 @@ import static org.hamcrest.Matchers.emptyArray;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -99,7 +100,7 @@ class OpenSearchIndexTest {
         ImmutableMap.of(
             "name", "text_keyword",
             "age", "integer"));
-    when(client.createIndex(indexName, mappings)).thenReturn(true);
+    doNothing().when(client).createIndex(indexName, mappings);
 
     OpenSearchIndex index = new OpenSearchIndex(client, settings, indexName);
     Map<String, ExprType> schema = new HashMap<>();

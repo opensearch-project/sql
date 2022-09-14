@@ -54,18 +54,22 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   }
 
   @Override
-  public boolean createIndex(String indexName, Map<String, Object> mappings) {
+  public boolean isExist(String indexName) {
     try {
       IndicesExistsResponse checkExistResponse = client.admin().indices()
           .exists(new IndicesExistsRequest(indexName)).actionGet();
-      if (checkExistResponse.isExists()) {
-        return false;
-      }
+      return checkExistResponse.isExists();
+    } catch (Exception e) {
+      throw new IllegalStateException("Failed to check if index [" + indexName + "] exists", e);
+    }
+  }
 
+  @Override
+  public void createIndex(String indexName, Map<String, Object> mappings) {
+    try {
       // TODO: 1.pass index settings (the number of primary shards, etc); 2.check response?
       CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName).mapping(mappings);
       client.admin().indices().create(createIndexRequest).actionGet();
-      return true;
     } catch (Exception e) {
       throw new IllegalStateException("Failed to create index [" + indexName + "]", e);
     }

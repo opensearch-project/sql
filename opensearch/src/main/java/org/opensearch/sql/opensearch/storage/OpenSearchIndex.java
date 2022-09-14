@@ -83,7 +83,8 @@ public class OpenSearchIndex implements Table {
     for (Map.Entry<String, ExprType> colType : schema.entrySet()) {
       properties.put(colType.getKey(), OpenSearchDataType.getOpenSearchType(colType.getValue()));
     }
-    return client.createIndex(indexName.toString(), mappings);
+    client.createIndex(indexName.toString(), mappings);
+    return true;
   }
 
   /*
