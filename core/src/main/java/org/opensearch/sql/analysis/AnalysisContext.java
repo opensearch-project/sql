@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import lombok.Getter;
+import lombok.Setter;
+import org.opensearch.sql.catalog.model.ConnectorType;
 import org.opensearch.sql.expression.NamedExpression;
 
 /**
@@ -22,6 +24,15 @@ public class AnalysisContext {
   private TypeEnvironment environment;
   @Getter
   private final List<NamedExpression> namedParseExpressions;
+
+  @Getter
+  @Setter
+  private String catalogName;
+
+  @Getter
+  @Setter
+  private ConnectorType connectorType;
+
 
   public AnalysisContext() {
     this(new TypeEnvironment(null));

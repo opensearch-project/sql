@@ -13,6 +13,7 @@ import org.opensearch.sql.expression.datetime.DateTimeFunction;
 import org.opensearch.sql.expression.datetime.IntervalClause;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.OpenSearchFunctions;
+import org.opensearch.sql.expression.function.PrometheusFunctions;
 import org.opensearch.sql.expression.operator.arthmetic.ArithmeticFunction;
 import org.opensearch.sql.expression.operator.arthmetic.MathematicalFunction;
 import org.opensearch.sql.expression.operator.convert.TypeCastOperator;
@@ -46,6 +47,7 @@ public class ExpressionConfig {
     TextFunction.register(builtinFunctionRepository);
     TypeCastOperator.register(builtinFunctionRepository);
     OpenSearchFunctions.register(builtinFunctionRepository);
+    PrometheusFunctions.register(builtinFunctionRepository);
     return builtinFunctionRepository;
   }
 

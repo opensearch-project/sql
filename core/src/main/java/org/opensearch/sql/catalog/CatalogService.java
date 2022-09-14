@@ -5,7 +5,9 @@
 
 package org.opensearch.sql.catalog;
 
+import com.sun.jdi.connect.Connector;
 import java.util.Set;
+import org.opensearch.sql.catalog.model.ConnectorType;
 import org.opensearch.sql.storage.StorageEngine;
 
 /**
@@ -17,6 +19,8 @@ import org.opensearch.sql.storage.StorageEngine;
 public interface CatalogService {
 
   StorageEngine getStorageEngine(String catalog);
+
+  ConnectorType getConnectorType(String catalog);
 
   Set<String> getCatalogs();
 

@@ -33,6 +33,7 @@ import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
@@ -53,9 +54,11 @@ import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.catalog.CatalogService;
+import org.opensearch.sql.catalog.model.ConnectorType;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -81,6 +84,7 @@ import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.logical.LogicalRemove;
 import org.opensearch.sql.planner.logical.LogicalRename;
 import org.opensearch.sql.planner.logical.LogicalSort;
+import org.opensearch.sql.planner.logical.LogicalTableFunction;
 import org.opensearch.sql.planner.logical.LogicalValues;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.utils.ParseUtils;
@@ -125,6 +129,10 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       tableName = catalogName + "." + tableName;
       catalogName = null;
     }
+    if(catalogName != null){
+      context.setCatalogName(catalogName);
+      context.setConnectorType(catalogService.getConnectorType(catalogName));
+    }
     Table table = catalogService
         .getStorageEngine(catalogName)
         .getTable(tableName);
@@ -157,6 +165,26 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     curEnv.define(new Symbol(Namespace.INDEX_NAME, node.getAliasAsTableName()), STRUCT);
     return subquery;
   }
+
+  @Override
+  public LogicalPlan visitTableFunction(TableFunction node, AnalysisContext context) {
+    Function function = (Function) node.getTableFunction();
+    String qualifiedFunctionName = function.getFuncName();
+    int firstDotIndex = qualifiedFunctionName.indexOf('.');
+    if(firstDotIndex > 0 && catalogService.getCatalogs()
+        .contains(qualifiedFunctionName.substring(0, firstDotIndex))) {
+      String catalogName = qualifiedFunctionName.substring(0, firstDotIndex);
+      ConnectorType connector = catalogService.getConnectorType(catalogName);
+      context.setCatalogName(catalogName);
+      context.setConnectorType(connector);
+      Expression tableFunction = expressionAnalyzer.analyze(function, context);
+      return new LogicalTableFunction(tableFunction, catalogService.getStorageEngine(catalogName).getTable(null));
+    }
+    else {
+      throw new SemanticCheckException(String.format("Table function %s doesn't exist", qualifiedFunctionName));
+    }
+  }
+
 
   @Override
   public LogicalPlan visitLimit(Limit node, AnalysisContext context) {
