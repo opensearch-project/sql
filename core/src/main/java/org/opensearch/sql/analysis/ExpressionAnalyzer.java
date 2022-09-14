@@ -153,7 +153,7 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     if (builtinFunctionName.isPresent()) {
       Expression arg = node.getField().accept(this, context);
       Aggregator aggregator = (Aggregator) repository.compile(
-              builtinFunctionName.get().getName(), Collections.singletonList(arg));
+          builtinFunctionName.get().getName(), Collections.singletonList(arg));
       aggregator.distinct(node.getDistinct());
       if (node.condition() != null) {
         aggregator.condition(analyze(node.condition(), context));
@@ -185,11 +185,16 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
 
   @Override
   public Expression visitFunction(Function node, AnalysisContext context) {
-    FunctionName functionName = FunctionName.of(node.getFuncName());
-    List<Expression> arguments =
-        node.getFuncArgs().stream()
-            .map(unresolvedExpression -> analyze(unresolvedExpression, context))
-            .collect(Collectors.toList());
+    FunctionName functionName;
+    if (node.getIsTableFunction()) {
+      functionName =
+          FunctionName.of(node.getFuncName().substring(node.getFuncName().indexOf(".") + 1));
+    } else {
+      functionName = FunctionName.of(node.getFuncName());
+    }
+    List<Expression> arguments = node.getFuncArgs().stream()
+        .map(unresolvedExpression -> analyze(unresolvedExpression, context))
+        .collect(Collectors.toList());
     return (Expression) repository.compile(functionName, arguments);
   }
 

@@ -43,6 +43,10 @@ public class LogicalPlanDSL {
     return new LogicalRelation(tableName, table);
   }
 
+  public static LogicalPlan tableFunction(Expression functionExpression, Table table) {
+    return new LogicalTableFunction(functionExpression, table);
+  }
+
   public static LogicalPlan rename(
       LogicalPlan input, Map<ReferenceExpression, ReferenceExpression> renameMap) {
     return new LogicalRename(input, renameMap);

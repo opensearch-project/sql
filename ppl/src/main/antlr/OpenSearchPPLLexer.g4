@@ -327,9 +327,6 @@ SLOP:                               'SLOP';
 TIE_BREAKER:                        'TIE_BREAKER';
 TYPE:                               'TYPE';
 ZERO_TERMS_QUERY:                   'ZERO_TERMS_QUERY';
-STARTTIME:                          'STARTTIME';
-ENDTIME:                            'ENDTIME';
-STEP:                               'STEP';
 
 // SPAN KEYWORDS
 SPAN:                               'SPAN';
@@ -354,6 +351,7 @@ ID_DATE_SUFFIX:                     ID_LITERAL DATE_SUFFIX;
 DQUOTA_STRING:                      '"' ( '\\'. | '""' | ~('"'| '\\') )* '"';
 SQUOTA_STRING:                      '\'' ('\\'. | '\'\'' | ~('\'' | '\\'))* '\'';
 BQUOTA_STRING:                      '`' ( '\\'. | '``' | ~('`'|'\\'))* '`';
+RAWQUERY:                           '$' ( '\\'. | '$$' | ~('$'| '\\') )* '$';
 fragment DEC_DIGIT:                 [0-9];
 
 

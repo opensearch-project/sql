@@ -111,4 +111,18 @@ public class StringUtils {
   private static boolean isQuoted(String text, String mark) {
     return !Strings.isNullOrEmpty(text) && text.startsWith(mark) && text.endsWith(mark);
   }
+
+  /**
+   * Unquote query which has $ as mark.
+   * @param rawQuery querystring that possibly enclosed by '$'.
+   * @return An unquoted string whose outer pair of '$' quotes have been
+   *     removed
+   */
+  public static String getQueryText(String rawQuery) {
+    if (isQuoted(rawQuery, "$")) {
+      return rawQuery.substring(1, rawQuery.length() - 1);
+    } else {
+      return rawQuery;
+    }
+  }
 }

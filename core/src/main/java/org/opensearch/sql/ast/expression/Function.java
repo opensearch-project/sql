@@ -23,8 +23,22 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
 public class Function extends UnresolvedExpression {
+
   private final String funcName;
   private final List<UnresolvedExpression> funcArgs;
+  private final Boolean isTableFunction;
+
+  /**
+   * Constructor support with only funcName and funcArgs.
+   *
+   * @param funcName FunctionName.
+   * @param funcArgs FunctionArguments.
+   */
+  public Function(String funcName, List<UnresolvedExpression> funcArgs) {
+    this.funcName = funcName;
+    this.funcArgs = funcArgs;
+    this.isTableFunction = false;
+  }
 
   @Override
   public List<UnresolvedExpression> getChild() {

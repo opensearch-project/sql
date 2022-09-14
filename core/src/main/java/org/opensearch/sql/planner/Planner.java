@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
 import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.logical.LogicalTableFunction;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.Table;
@@ -55,6 +56,11 @@ public class Planner {
 
       @Override
       public Table visitRelation(LogicalRelation node, Object context) {
+        return node.getTable();
+      }
+
+      @Override
+      public Table visitTableFunction(LogicalTableFunction node, Object context) {
         return node.getTable();
       }
 

@@ -56,6 +56,7 @@ import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
@@ -299,7 +300,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    */
   @Override
   public UnresolvedPlan visitFromClause(FromClauseContext ctx) {
-    return visitTableSourceClause(ctx.tableSourceClause());
+    if (ctx.tableFunction() != null) {
+      return visitTableFunction(ctx.tableFunction());
+    } else {
+      return visitTableSourceClause(ctx.tableSourceClause());
+    }
   }
 
   @Override
@@ -307,6 +312,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return new Relation(ctx.tableSource()
         .stream().map(this::internalVisitExpression)
         .collect(Collectors.toList()));
+  }
+
+  @Override
+  public UnresolvedPlan visitTableFunction(OpenSearchPPLParser.TableFunctionContext ctx) {
+    return new TableFunction(internalVisitExpression(ctx));
   }
 
   /**

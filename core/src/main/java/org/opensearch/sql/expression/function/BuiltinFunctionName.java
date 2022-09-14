@@ -215,7 +215,12 @@ public enum BuiltinFunctionName {
   QUERY(FunctionName.of("query")),
   MATCH_QUERY(FunctionName.of("match_query")),
   MATCHQUERY(FunctionName.of("matchquery")),
-  MULTI_MATCH(FunctionName.of("multi_match"));
+  MULTI_MATCH(FunctionName.of("multi_match")),
+
+  /**
+   * Prometheus Table Function.
+   */
+  QUERY_RANGE(FunctionName.of("query_range"));
 
   private final FunctionName name;
 

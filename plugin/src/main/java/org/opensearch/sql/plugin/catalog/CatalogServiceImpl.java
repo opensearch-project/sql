@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.PrivilegedExceptionAction;
 import java.util.HashMap;
@@ -17,6 +18,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import okhttp3.OkHttpClient;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,7 +26,12 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.catalog.model.CatalogMetadata;
 import org.opensearch.sql.catalog.model.ConnectorType;
+import org.opensearch.sql.catalog.model.PrometheusCatalogMetadata;
 import org.opensearch.sql.opensearch.security.SecurityAccess;
+import org.opensearch.sql.prometheus.client.PrometheusClient;
+import org.opensearch.sql.prometheus.client.PrometheusClientImpl;
+import org.opensearch.sql.prometheus.config.PrometheusConfig;
+import org.opensearch.sql.prometheus.storage.PrometheusStorageEngine;
 import org.opensearch.sql.storage.StorageEngine;
 
 /**
@@ -109,7 +116,16 @@ public class CatalogServiceImpl implements CatalogService {
     ConnectorType connector = catalog.getConnector();
     switch (connector) {
       case PROMETHEUS:
-        storageEngine = null;
+        PrometheusCatalogMetadata prometheusCatalogMetadata = (PrometheusCatalogMetadata) catalog;
+        PrometheusClient
+            prometheusClient =
+            new PrometheusClientImpl(new OkHttpClient(),
+                new URI(prometheusCatalogMetadata.getUri()));
+        PrometheusConfig prometheusConfig = new PrometheusConfig();
+        if (prometheusCatalogMetadata.getDefaultTimeRange() != null) {
+          prometheusConfig.setDefaultTimeRange(prometheusCatalogMetadata.getDefaultTimeRange());
+        }
+        storageEngine = new PrometheusStorageEngine(prometheusClient, prometheusConfig);
         break;
       default:
         LOG.info(
@@ -146,6 +162,12 @@ public class CatalogServiceImpl implements CatalogService {
         LOG.error("Found a catalog with no name. {}", catalog.toString());
         throw new IllegalArgumentException(
             "Missing Name Field from a catalog. Name is a required parameter.");
+      }
+
+      if (catalog.getName().contains(".")) {
+        LOG.error("Character .[DOT] is not allowed in catalog name: {}", catalog.toString());
+        throw new IllegalArgumentException(
+            "Character .[DOT] is not allowed in catalog name");
       }
 
       if (StringUtils.isEmpty(catalog.getUri())) {

@@ -22,6 +22,8 @@ import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.ast.dsl.AstDSL.span;
+import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder;
 import static org.opensearch.sql.ast.tree.Sort.SortOption;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
@@ -52,6 +54,7 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.HighlightExpression;
@@ -770,9 +773,9 @@ class AnalyzerTest extends AnalyzerTestBase {
   @Test
   public void ad_batchRCF_relation() {
     Map<String, Literal> argumentMap =
-            new HashMap<String, Literal>() {{
-                put("shingle_size", new Literal(8, DataType.INTEGER));
-            }};
+        new HashMap<String, Literal>() {{
+            put("shingle_size", new Literal(8, DataType.INTEGER));
+          }};
     assertAnalyzeEqual(
         new LogicalAD(LogicalPlanDSL.relation("schema", table), argumentMap),
         new AD(AstDSL.relation("schema"), argumentMap)
@@ -792,4 +795,82 @@ class AnalyzerTest extends AnalyzerTestBase {
         new AD(AstDSL.relation("schema"), argumentMap)
     );
   }
+
+  @Test
+  public void table_function_with_named_parameters() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.tableFunction(dsl.query_range_function(
+            dsl.namedArgument("query", DSL.literal("http_latency")),
+            dsl.namedArgument("starttime", DSL.literal(12345)),
+            dsl.namedArgument("endtime", DSL.literal(12345)),
+            dsl.namedArgument("step", DSL.literal(14))), table),
+        AstDSL.tableFunction("prometheus.query_range",
+            unresolvedArg("query", stringLiteral("http_latency")),
+            unresolvedArg("starttime", intLiteral(12345)),
+            unresolvedArg("endtime", intLiteral(12345)),
+            unresolvedArg("step", intLiteral(14))));
+  }
+
+
+  @Test
+  public void table_function_with_position_parameters() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.tableFunction(dsl.query_range_function(
+            dsl.namedArgument("query", DSL.literal("http_latency")),
+            dsl.namedArgument("starttime", DSL.literal(12345)),
+            dsl.namedArgument("endtime", DSL.literal(12345)),
+            dsl.namedArgument("step", DSL.literal(14))), table),
+        AstDSL.tableFunction("prometheus.query_range",
+            unresolvedArg("", stringLiteral("http_latency")),
+            unresolvedArg("", intLiteral(12345)),
+            unresolvedArg("", intLiteral(12345)),
+            unresolvedArg(null, intLiteral(14))));
+  }
+
+  @Test
+  public void table_function_with_position_and_named_parameters() {
+    SemanticCheckException exception = assertThrows(SemanticCheckException.class,
+        () -> analyze(AstDSL.tableFunction("prometheus.query_range",
+            unresolvedArg("query", stringLiteral("http_latency")),
+            unresolvedArg("", intLiteral(12345)),
+            unresolvedArg("", intLiteral(12345)),
+            unresolvedArg(null, intLiteral(14)))));
+    assertEquals("Arguments should be either passed by name or position", exception.getMessage());
+  }
+
+  @Test
+  public void table_function_with_no_catalog() {
+    SemanticCheckException exception = assertThrows(SemanticCheckException.class,
+        () -> analyze(AstDSL.tableFunction("query_range",
+            unresolvedArg("query", stringLiteral("http_latency")),
+            unresolvedArg("", intLiteral(12345)),
+            unresolvedArg("", intLiteral(12345)),
+            unresolvedArg(null, intLiteral(14)))));
+    assertEquals("Catalog not specified along with table function: query_range",
+        exception.getMessage());
+  }
+
+  @Test
+  public void table_function_with_wrong_catalog() {
+    SemanticCheckException exception = assertThrows(SemanticCheckException.class,
+        () -> analyze(AstDSL.tableFunction("prome.query_range",
+            unresolvedArg("query", stringLiteral("http_latency")),
+            unresolvedArg("", intLiteral(12345)),
+            unresolvedArg("", intLiteral(12345)),
+            unresolvedArg(null, intLiteral(14)))));
+    assertEquals("Catalog: prome not found", exception.getMessage());
+  }
+
+  @Test
+  public void table_function_with_wrong_table_function() {
+    ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
+        () -> analyze(AstDSL.tableFunction("prometheus.queryrange",
+            unresolvedArg("query", stringLiteral("http_latency")),
+            unresolvedArg("", intLiteral(12345)),
+            unresolvedArg("", intLiteral(12345)),
+            unresolvedArg(null, intLiteral(14)))));
+    assertEquals("unsupported function name: queryrange", exception.getMessage());
+  }
+
+
 }

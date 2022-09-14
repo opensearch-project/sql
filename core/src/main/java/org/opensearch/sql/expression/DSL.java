@@ -726,6 +726,10 @@ public class DSL {
     return compile(BuiltinFunctionName.CURRENT_DATE, args);
   }
 
+  public FunctionExpression query_range_function(Expression... args) {
+    return compile(BuiltinFunctionName.QUERY_RANGE, args);
+  }
+
   private FunctionExpression compile(BuiltinFunctionName bfn, Expression... args) {
     return (FunctionExpression) repository.compile(bfn.getName(), Arrays.asList(args.clone()));
   }

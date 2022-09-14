@@ -402,4 +402,29 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return builder.build();
   }
 
+  /**
+   * Table Function.
+   */
+  @Override
+  public UnresolvedExpression visitTableFunction(OpenSearchPPLParser.TableFunctionContext ctx) {
+    ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
+    ctx.tableFunctionArgument().forEach(arg
+        -> {
+      String argName = (arg.ident() != null) ? arg.ident().getText() : null;
+      if (arg.tableFunctionArgValue().RAWQUERY() != null) {
+        builder.add(
+            new UnresolvedArgument(argName,
+                new Literal(StringUtils.getQueryText(arg.tableFunctionArgValue().getText()),
+                    DataType.STRING)));
+      } else {
+        builder.add(
+            new UnresolvedArgument(argName,
+                this.visitTableFunctionArgValue(arg.tableFunctionArgValue())));
+      }
+    });
+    return new Function(ctx.qualifiedName().getText(), builder.build(), true);
+  }
+
+
+
 }
