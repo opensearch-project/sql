@@ -15,6 +15,7 @@ import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 /**
@@ -46,9 +47,40 @@ public class Relation extends UnresolvedPlan {
   /**
    * Get original table name. Unwrap and get name if table name expression
    * is actually an Alias.
-   * @return    table name
+   * In case of federated queries we are assuming single table.
+   *
+   * @return table name
    */
   public String getTableName() {
+    if (tableName.size() == 1 && ((QualifiedName) tableName.get(0)).first().isPresent()) {
+      return ((QualifiedName) tableName.get(0)).rest().toString();
+    }
+    return tableName.stream()
+        .map(UnresolvedExpression::toString)
+        .collect(Collectors.joining(COMMA));
+  }
+
+  /**
+   * Get Catalog Name if present. Since in the initial phase we would be supporting single table
+   * federation queries, we are making an assumption of one table.
+   *
+   * @return catalog name
+   */
+  public String getCatalogName() {
+    if (tableName.size() == 1) {
+      if (tableName.get(0) instanceof QualifiedName) {
+        return ((QualifiedName) tableName.get(0)).first().orElse(null);
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Return full qualified table name with catalog.
+   *
+   * @return fully qualified table name with catalog.
+   */
+  public String getFullyQualifiedTableNameWithCatalog() {
     return tableName.stream()
         .map(UnresolvedExpression::toString)
         .collect(Collectors.joining(COMMA));
@@ -56,7 +88,8 @@ public class Relation extends UnresolvedPlan {
 
   /**
    * Get original table name or its alias if present in Alias.
-   * @return    table name or its alias
+   *
+   * @return table name or its alias
    */
   public String getTableNameOrAlias() {
     return (alias == null) ? getTableName() : alias;

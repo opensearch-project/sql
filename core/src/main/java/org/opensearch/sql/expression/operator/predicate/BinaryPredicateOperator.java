@@ -23,8 +23,8 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.DefaultFunctionResolver;
 import org.opensearch.sql.expression.function.FunctionDSL;
-import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.utils.OperatorUtils;
 
 /**
@@ -140,25 +140,25 @@ public class BinaryPredicateOperator {
           .put(LITERAL_MISSING, LITERAL_MISSING, LITERAL_MISSING)
           .build();
 
-  private static FunctionResolver and() {
+  private static DefaultFunctionResolver and() {
     return FunctionDSL.define(BuiltinFunctionName.AND.getName(), FunctionDSL
         .impl((v1, v2) -> lookupTableFunction(v1, v2, andTable), BOOLEAN, BOOLEAN,
             BOOLEAN));
   }
 
-  private static FunctionResolver or() {
+  private static DefaultFunctionResolver or() {
     return FunctionDSL.define(BuiltinFunctionName.OR.getName(), FunctionDSL
         .impl((v1, v2) -> lookupTableFunction(v1, v2, orTable), BOOLEAN, BOOLEAN,
             BOOLEAN));
   }
 
-  private static FunctionResolver xor() {
+  private static DefaultFunctionResolver xor() {
     return FunctionDSL.define(BuiltinFunctionName.XOR.getName(), FunctionDSL
         .impl((v1, v2) -> lookupTableFunction(v1, v2, xorTable), BOOLEAN, BOOLEAN,
             BOOLEAN));
   }
 
-  private static FunctionResolver equal() {
+  private static DefaultFunctionResolver equal() {
     return FunctionDSL.define(BuiltinFunctionName.EQUAL.getName(),
         ExprCoreType.coreTypes().stream()
             .map(type -> FunctionDSL.impl(
@@ -168,7 +168,7 @@ public class BinaryPredicateOperator {
                 Collectors.toList()));
   }
 
-  private static FunctionResolver notEqual() {
+  private static DefaultFunctionResolver notEqual() {
     return FunctionDSL
         .define(BuiltinFunctionName.NOTEQUAL.getName(), ExprCoreType.coreTypes().stream()
             .map(type -> FunctionDSL
@@ -182,7 +182,7 @@ public class BinaryPredicateOperator {
                 Collectors.toList()));
   }
 
-  private static FunctionResolver less() {
+  private static DefaultFunctionResolver less() {
     return FunctionDSL
         .define(BuiltinFunctionName.LESS.getName(), ExprCoreType.coreTypes().stream()
             .map(type -> FunctionDSL
@@ -194,7 +194,7 @@ public class BinaryPredicateOperator {
                 Collectors.toList()));
   }
 
-  private static FunctionResolver lte() {
+  private static DefaultFunctionResolver lte() {
     return FunctionDSL
         .define(BuiltinFunctionName.LTE.getName(), ExprCoreType.coreTypes().stream()
             .map(type -> FunctionDSL
@@ -208,7 +208,7 @@ public class BinaryPredicateOperator {
                 Collectors.toList()));
   }
 
-  private static FunctionResolver greater() {
+  private static DefaultFunctionResolver greater() {
     return FunctionDSL
         .define(BuiltinFunctionName.GREATER.getName(), ExprCoreType.coreTypes().stream()
             .map(type -> FunctionDSL
@@ -219,7 +219,7 @@ public class BinaryPredicateOperator {
                 Collectors.toList()));
   }
 
-  private static FunctionResolver gte() {
+  private static DefaultFunctionResolver gte() {
     return FunctionDSL
         .define(BuiltinFunctionName.GTE.getName(), ExprCoreType.coreTypes().stream()
             .map(type -> FunctionDSL
@@ -232,19 +232,19 @@ public class BinaryPredicateOperator {
                 Collectors.toList()));
   }
 
-  private static FunctionResolver like() {
+  private static DefaultFunctionResolver like() {
     return FunctionDSL.define(BuiltinFunctionName.LIKE.getName(), FunctionDSL
         .impl(FunctionDSL.nullMissingHandling(OperatorUtils::matches), BOOLEAN, STRING,
             STRING));
   }
 
-  private static FunctionResolver regexp() {
+  private static DefaultFunctionResolver regexp() {
     return FunctionDSL.define(BuiltinFunctionName.REGEXP.getName(), FunctionDSL
         .impl(FunctionDSL.nullMissingHandling(OperatorUtils::matchesRegexp),
             INTEGER, STRING, STRING));
   }
 
-  private static FunctionResolver notLike() {
+  private static DefaultFunctionResolver notLike() {
     return FunctionDSL.define(BuiltinFunctionName.NOT_LIKE.getName(), FunctionDSL
         .impl(FunctionDSL.nullMissingHandling(
             (v1, v2) -> UnaryPredicateOperator.not(OperatorUtils.matches(v1, v2))),

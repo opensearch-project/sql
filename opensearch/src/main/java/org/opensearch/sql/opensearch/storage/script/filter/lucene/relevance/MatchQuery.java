@@ -6,7 +6,6 @@
 package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.Map;
 import org.opensearch.index.query.MatchQueryBuilder;
 import org.opensearch.index.query.Operator;
 import org.opensearch.index.query.QueryBuilders;
@@ -14,7 +13,7 @@ import org.opensearch.index.query.QueryBuilders;
 /**
  * Initializes MatchQueryBuilder from a FunctionExpression.
  */
-public class MatchQuery extends RelevanceQuery<MatchQueryBuilder> {
+public class MatchQuery extends SingleFieldQuery<MatchQueryBuilder> {
   /**
    *  Default constructor for MatchQuery configures how RelevanceQuery.build() handles
    * named arguments.
@@ -40,7 +39,12 @@ public class MatchQuery extends RelevanceQuery<MatchQueryBuilder> {
   }
 
   @Override
-  protected MatchQueryBuilder createQueryBuilder(String field, String query) {
+  protected MatchQueryBuilder createBuilder(String field, String query) {
     return QueryBuilders.matchQuery(field, query);
+  }
+
+  @Override
+  protected String getQueryName() {
+    return MatchQueryBuilder.NAME;
   }
 }

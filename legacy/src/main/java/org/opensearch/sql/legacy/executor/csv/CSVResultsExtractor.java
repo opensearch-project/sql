@@ -21,7 +21,7 @@ import org.opensearch.search.aggregations.Aggregations;
 import org.opensearch.search.aggregations.bucket.MultiBucketsAggregation;
 import org.opensearch.search.aggregations.bucket.SingleBucketAggregation;
 import org.opensearch.search.aggregations.metrics.ExtendedStats;
-import org.opensearch.search.aggregations.metrics.GeoBounds;
+import org.opensearch.geo.search.aggregations.metrics.GeoBounds;
 import org.opensearch.search.aggregations.metrics.NumericMetricsAggregation;
 import org.opensearch.search.aggregations.metrics.Percentile;
 import org.opensearch.search.aggregations.metrics.Percentiles;

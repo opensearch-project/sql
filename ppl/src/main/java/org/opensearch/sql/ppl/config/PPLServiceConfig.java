@@ -6,14 +6,12 @@
 
 package org.opensearch.sql.ppl.config;
 
-import org.opensearch.sql.analysis.Analyzer;
-import org.opensearch.sql.analysis.ExpressionAnalyzer;
+import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.ppl.PPLService;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
-import org.opensearch.sql.storage.StorageEngine;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,23 +22,24 @@ import org.springframework.context.annotation.Import;
 public class PPLServiceConfig {
 
   @Autowired
-  private StorageEngine storageEngine;
+  private ExecutionEngine executionEngine;
 
   @Autowired
-  private ExecutionEngine executionEngine;
+  private CatalogService catalogService;
 
   @Autowired
   private BuiltinFunctionRepository functionRepository;
 
-  @Bean
-  public Analyzer analyzer() {
-    return new Analyzer(new ExpressionAnalyzer(functionRepository), storageEngine);
-  }
-
+  /**
+   * The registration of OpenSearch storage engine happens here because
+   * OpenSearchStorageEngine is dependent on NodeClient.
+   *
+   * @return PPLService.
+   */
   @Bean
   public PPLService pplService() {
-    return new PPLService(new PPLSyntaxParser(), analyzer(), storageEngine, executionEngine,
-        functionRepository);
+    return new PPLService(new PPLSyntaxParser(), executionEngine,
+            functionRepository, catalogService);
   }
 
 }

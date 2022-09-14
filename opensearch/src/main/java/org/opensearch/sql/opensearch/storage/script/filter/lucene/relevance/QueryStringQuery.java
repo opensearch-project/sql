@@ -23,7 +23,7 @@ import org.opensearch.sql.expression.NamedArgumentExpression;
 /**
  * Class for Lucene query that builds the query_string query.
  */
-public class QueryStringQuery extends RelevanceQuery<QueryStringQueryBuilder> {
+public class QueryStringQuery extends MultiFieldQuery<QueryStringQueryBuilder> {
   /**
    *  Default constructor for QueryString configures how RelevanceQuery.build() handles
    * named arguments.
@@ -66,55 +66,22 @@ public class QueryStringQuery extends RelevanceQuery<QueryStringQueryBuilder> {
         .build());
   }
 
-  /**
-   * Override base build function for multi-field query support.
-   * @param func  function : 'query_string' function
-   * @return : QueryBuilder for query_string query
-   */
-  @Override
-  public QueryBuilder build(FunctionExpression func) {
-    Iterator<Expression> iterator = func.getArguments().iterator();
-    if (func.getArguments().size() < 2) {
-      throw new SemanticCheckException("'query_string' must have at least two arguments");
-    }
-    NamedArgumentExpression fields = (NamedArgumentExpression) iterator.next();
-    NamedArgumentExpression query = (NamedArgumentExpression) iterator.next();
-    // Fields is a map already, but we need to convert types.
-    var fieldsAndWeights = fields
-        .getValue()
-        .valueOf(null)
-        .tupleValue()
-        .entrySet()
-        .stream()
-        .collect(ImmutableMap.toImmutableMap(e -> e.getKey(), e -> e.getValue().floatValue()));
-
-    QueryStringQueryBuilder queryBuilder = createQueryBuilder(null,
-        query.getValue().valueOf(null).stringValue())
-        .fields(fieldsAndWeights);
-    while (iterator.hasNext()) {
-      NamedArgumentExpression arg = (NamedArgumentExpression) iterator.next();
-      String argNormalized = arg.getArgName().toLowerCase();
-      if (!queryBuildActions.containsKey(argNormalized)) {
-        throw new SemanticCheckException(
-            String.format("Parameter %s is invalid for %s function.",
-                argNormalized, queryBuilder.getWriteableName()));
-      }
-      (Objects.requireNonNull(
-          queryBuildActions
-              .get(argNormalized)))
-          .apply(queryBuilder, arg.getValue().valueOf(null));
-    }
-    return queryBuilder;
-  }
 
   /**
    * Builds QueryBuilder with query value and other default parameter values set.
-   * @param field : Field value in query_string query
+   *
+   * @param fields : A map of field names and their boost values
    * @param query : Query value for query_string query
    * @return : Builder for query_string query
    */
   @Override
-  protected QueryStringQueryBuilder createQueryBuilder(String field, String query) {
-    return QueryBuilders.queryStringQuery(query);
+  protected QueryStringQueryBuilder createBuilder(ImmutableMap<String, Float> fields,
+                                                  String query) {
+    return QueryBuilders.queryStringQuery(query).fields(fields);
+  }
+
+  @Override
+  protected String getQueryName() {
+    return QueryStringQueryBuilder.NAME;
   }
 }

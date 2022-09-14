@@ -25,7 +25,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
-import org.opensearch.sql.expression.function.FunctionResolver;
+import org.opensearch.sql.expression.function.DefaultFunctionResolver;
 
 @UtilityClass
 public class IntervalClause {
@@ -44,7 +44,7 @@ public class IntervalClause {
     repository.register(interval());
   }
 
-  private FunctionResolver interval() {
+  private DefaultFunctionResolver interval() {
     return define(BuiltinFunctionName.INTERVAL.getName(),
         impl(nullMissingHandling(IntervalClause::interval), INTERVAL, INTEGER, STRING),
         impl(nullMissingHandling(IntervalClause::interval), INTERVAL, LONG, STRING));

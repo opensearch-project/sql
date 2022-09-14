@@ -36,10 +36,10 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.DefaultFunctionResolver;
 import org.opensearch.sql.expression.function.FunctionBuilder;
 import org.opensearch.sql.expression.function.FunctionDSL;
 import org.opensearch.sql.expression.function.FunctionName;
-import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.expression.function.FunctionSignature;
 import org.opensearch.sql.expression.function.SerializableFunction;
 
@@ -88,7 +88,7 @@ public class MathematicalFunction {
    * Definition of abs() function. The supported signature of abs() function are INT -> INT LONG ->
    * LONG FLOAT -> FLOAT DOUBLE -> DOUBLE
    */
-  private static FunctionResolver abs() {
+  private static DefaultFunctionResolver abs() {
     return FunctionDSL.define(BuiltinFunctionName.ABS.getName(),
         FunctionDSL.impl(
             FunctionDSL.nullMissingHandling(v -> new ExprByteValue(Math.abs(v.byteValue()))),
@@ -115,7 +115,7 @@ public class MathematicalFunction {
    * Definition of ceil(x)/ceiling(x) function. Calculate the next highest integer that x rounds up
    * to The supported signature of ceil/ceiling function is DOUBLE -> INTEGER
    */
-  private static FunctionResolver ceil() {
+  private static DefaultFunctionResolver ceil() {
     return FunctionDSL.define(BuiltinFunctionName.CEIL.getName(),
         FunctionDSL.impl(
             FunctionDSL.nullMissingHandling(v -> new ExprIntegerValue(Math.ceil(v.doubleValue()))),
@@ -123,7 +123,7 @@ public class MathematicalFunction {
     );
   }
 
-  private static FunctionResolver ceiling() {
+  private static DefaultFunctionResolver ceiling() {
     return FunctionDSL.define(BuiltinFunctionName.CEILING.getName(),
         FunctionDSL.impl(
             FunctionDSL.nullMissingHandling(v -> new ExprIntegerValue(Math.ceil(v.doubleValue()))),
@@ -138,7 +138,7 @@ public class MathematicalFunction {
    * (STRING, INTEGER, INTEGER) -> STRING
    * (INTEGER, INTEGER, INTEGER) -> STRING
    */
-  private static FunctionResolver conv() {
+  private static DefaultFunctionResolver conv() {
     return FunctionDSL.define(BuiltinFunctionName.CONV.getName(),
         FunctionDSL.impl(
             FunctionDSL.nullMissingHandling((x, a, b) -> new ExprStringValue(
@@ -161,7 +161,7 @@ public class MathematicalFunction {
    * The supported signature of crc32 function is
    * STRING -> LONG
    */
-  private static FunctionResolver crc32() {
+  private static DefaultFunctionResolver crc32() {
     return FunctionDSL.define(BuiltinFunctionName.CRC32.getName(),
         FunctionDSL.impl(
             FunctionDSL.nullMissingHandling(v -> {
@@ -178,7 +178,7 @@ public class MathematicalFunction {
    * Get the Euler's number.
    * () -> DOUBLE
    */
-  private static FunctionResolver euler() {
+  private static DefaultFunctionResolver euler() {
     return FunctionDSL.define(BuiltinFunctionName.E.getName(),
         FunctionDSL.impl(() -> new ExprDoubleValue(Math.E), DOUBLE)
     );
@@ -188,7 +188,7 @@ public class MathematicalFunction {
    * Definition of exp(x) function. Calculate exponent function e to the x The supported signature
    * of exp function is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
-  private static FunctionResolver exp() {
+  private static DefaultFunctionResolver exp() {
     return FunctionDSL.define(BuiltinFunctionName.EXP.getName(),
         ExprCoreType.numberTypes().stream()
             .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
@@ -200,7 +200,7 @@ public class MathematicalFunction {
    * Definition of floor(x) function. Calculate the next nearest whole integer that x rounds down to
    * The supported signature of floor function is DOUBLE -> INTEGER
    */
-  private static FunctionResolver floor() {
+  private static DefaultFunctionResolver floor() {
     return FunctionDSL.define(BuiltinFunctionName.FLOOR.getName(),
         FunctionDSL.impl(
             FunctionDSL.nullMissingHandling(v -> new ExprIntegerValue(Math.floor(v.doubleValue()))),
@@ -212,7 +212,7 @@ public class MathematicalFunction {
    * Definition of ln(x) function. Calculate the natural logarithm of x The supported signature of
    * ln function is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
-  private static FunctionResolver ln() {
+  private static DefaultFunctionResolver ln() {
     return FunctionDSL.define(BuiltinFunctionName.LN.getName(),
         ExprCoreType.numberTypes().stream()
             .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
@@ -225,7 +225,7 @@ public class MathematicalFunction {
    * supported signature of log function is (b: INTEGER/LONG/FLOAT/DOUBLE, x:
    * INTEGER/LONG/FLOAT/DOUBLE]) -> DOUBLE
    */
-  private static FunctionResolver log() {
+  private static DefaultFunctionResolver log() {
     ImmutableList.Builder<SerializableFunction<FunctionName, Pair<FunctionSignature,
         FunctionBuilder>>> builder = new ImmutableList.Builder<>();
 
@@ -253,7 +253,7 @@ public class MathematicalFunction {
    * Definition of log10(x) function. Calculate base-10 logarithm of x The supported signature of
    * log function is SHORT/INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
-  private static FunctionResolver log10() {
+  private static DefaultFunctionResolver log10() {
     return FunctionDSL.define(BuiltinFunctionName.LOG10.getName(),
         ExprCoreType.numberTypes().stream()
             .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
@@ -265,7 +265,7 @@ public class MathematicalFunction {
    * Definition of log2(x) function. Calculate base-2 logarithm of x The supported signature of log
    * function is SHORT/INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
-  private static FunctionResolver log2() {
+  private static DefaultFunctionResolver log2() {
     return FunctionDSL.define(BuiltinFunctionName.LOG2.getName(),
         ExprCoreType.numberTypes().stream()
             .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
@@ -280,7 +280,7 @@ public class MathematicalFunction {
    * (x: INTEGER/LONG/FLOAT/DOUBLE, y: INTEGER/LONG/FLOAT/DOUBLE)
    * -> wider type between types of x and y
    */
-  private static FunctionResolver mod() {
+  private static DefaultFunctionResolver mod() {
     return FunctionDSL.define(BuiltinFunctionName.MOD.getName(),
         FunctionDSL.impl(
             FunctionDSL.nullMissingHandling(
@@ -321,7 +321,7 @@ public class MathematicalFunction {
    * Get the value of pi.
    * () -> DOUBLE
    */
-  private static FunctionResolver pi() {
+  private static DefaultFunctionResolver pi() {
     return FunctionDSL.define(BuiltinFunctionName.PI.getName(),
         FunctionDSL.impl(() -> new ExprDoubleValue(Math.PI), DOUBLE)
     );
@@ -336,11 +336,11 @@ public class MathematicalFunction {
    * (FLOAT, FLOAT) -> DOUBLE
    * (DOUBLE, DOUBLE) -> DOUBLE
    */
-  private static FunctionResolver pow() {
+  private static DefaultFunctionResolver pow() {
     return FunctionDSL.define(BuiltinFunctionName.POW.getName(), powerFunctionImpl());
   }
 
-  private static FunctionResolver power() {
+  private static DefaultFunctionResolver power() {
     return FunctionDSL.define(BuiltinFunctionName.POWER.getName(), powerFunctionImpl());
   }
 
@@ -378,7 +378,7 @@ public class MathematicalFunction {
    * The supported signature of rand function is
    * ([INTEGER]) -> FLOAT
    */
-  private static FunctionResolver rand() {
+  private static DefaultFunctionResolver rand() {
     return FunctionDSL.define(BuiltinFunctionName.RAND.getName(),
         FunctionDSL.impl(() -> new ExprFloatValue(new Random().nextFloat()), FLOAT),
         FunctionDSL.impl(
@@ -396,7 +396,7 @@ public class MathematicalFunction {
    * (x: FLOAT [, y: INTEGER]) -> FLOAT
    * (x: DOUBLE [, y: INTEGER]) -> DOUBLE
    */
-  private static FunctionResolver round() {
+  private static DefaultFunctionResolver round() {
     return FunctionDSL.define(BuiltinFunctionName.ROUND.getName(),
         // rand(x)
         FunctionDSL.impl(
@@ -448,7 +448,7 @@ public class MathematicalFunction {
    * The supported signature is
    * SHORT/INTEGER/LONG/FLOAT/DOUBLE -> INTEGER
    */
-  private static FunctionResolver sign() {
+  private static DefaultFunctionResolver sign() {
     return FunctionDSL.define(BuiltinFunctionName.SIGN.getName(),
         ExprCoreType.numberTypes().stream()
             .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
@@ -462,7 +462,7 @@ public class MathematicalFunction {
    * The supported signature is
    * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
-  private static FunctionResolver sqrt() {
+  private static DefaultFunctionResolver sqrt() {
     return FunctionDSL.define(BuiltinFunctionName.SQRT.getName(),
         ExprCoreType.numberTypes().stream()
             .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
@@ -480,7 +480,7 @@ public class MathematicalFunction {
    * (x: FLOAT, y: INTEGER) -> DOUBLE
    * (x: DOUBLE, y: INTEGER) -> DOUBLE
    */
-  private static FunctionResolver truncate() {
+  private static DefaultFunctionResolver truncate() {
     return FunctionDSL.define(BuiltinFunctionName.TRUNCATE.getName(),
         FunctionDSL.impl(
             FunctionDSL.nullMissingHandling(
@@ -515,7 +515,7 @@ public class MathematicalFunction {
    * The supported signature of acos function is
    * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
-  private static FunctionResolver acos() {
+  private static DefaultFunctionResolver acos() {
     return FunctionDSL.define(BuiltinFunctionName.ACOS.getName(),
         ExprCoreType.numberTypes().stream()
             .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
@@ -531,7 +531,7 @@ public class MathematicalFunction {
    * The supported signature of asin function is
    * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
-  private static FunctionResolver asin() {
+  private static DefaultFunctionResolver asin() {
     return FunctionDSL.define(BuiltinFunctionName.ASIN.getName(),
         ExprCoreType.numberTypes().stream()
             .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
@@ -548,7 +548,7 @@ public class MathematicalFunction {
    * The supported signature of atan function is
    * (x: INTEGER/LONG/FLOAT/DOUBLE, y: INTEGER/LONG/FLOAT/DOUBLE) -> DOUBLE
    */
-  private static FunctionResolver atan() {
+  private static DefaultFunctionResolver atan() {
     ImmutableList.Builder<SerializableFunction<FunctionName, Pair<FunctionSignature,
         FunctionBuilder>>> builder = new ImmutableList.Builder<>();
 
@@ -571,7 +571,7 @@ public class MathematicalFunction {
    * The supported signature of atan2 function is
    * (x: INTEGER/LONG/FLOAT/DOUBLE, y: INTEGER/LONG/FLOAT/DOUBLE) -> DOUBLE
    */
-  private static FunctionResolver atan2() {
+  private static DefaultFunctionResolver atan2() {
     ImmutableList.Builder<SerializableFunction<FunctionName, Pair<FunctionSignature,
         FunctionBuilder>>> builder = new ImmutableList.Builder<>();
 
@@ -590,7 +590,7 @@ public class MathematicalFunction {
    * The supported signature of cos function is
    * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
-  private static FunctionResolver cos() {
+  private static DefaultFunctionResolver cos() {
     return FunctionDSL.define(BuiltinFunctionName.COS.getName(),
         ExprCoreType.numberTypes().stream()
             .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
@@ -604,7 +604,7 @@ public class MathematicalFunction {
    * The supported signature of cot function is
    * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
-  private static FunctionResolver cot() {
+  private static DefaultFunctionResolver cot() {
     return FunctionDSL.define(BuiltinFunctionName.COT.getName(),
         ExprCoreType.numberTypes().stream()
             .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
@@ -625,7 +625,7 @@ public class MathematicalFunction {
    * The supported signature of degrees function is
    * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
-  private static FunctionResolver degrees() {
+  private static DefaultFunctionResolver degrees() {
     return FunctionDSL.define(BuiltinFunctionName.DEGREES.getName(),
         ExprCoreType.numberTypes().stream()
             .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
@@ -639,7 +639,7 @@ public class MathematicalFunction {
    * The supported signature of radians function is
    * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
-  private static FunctionResolver radians() {
+  private static DefaultFunctionResolver radians() {
     return FunctionDSL.define(BuiltinFunctionName.RADIANS.getName(),
         ExprCoreType.numberTypes().stream()
             .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
@@ -653,7 +653,7 @@ public class MathematicalFunction {
    * The supported signature of sin function is
    * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
-  private static FunctionResolver sin() {
+  private static DefaultFunctionResolver sin() {
     return FunctionDSL.define(BuiltinFunctionName.SIN.getName(),
         ExprCoreType.numberTypes().stream()
             .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
@@ -667,7 +667,7 @@ public class MathematicalFunction {
    * The supported signature of tan function is
    * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
-  private static FunctionResolver tan() {
+  private static DefaultFunctionResolver tan() {
     return FunctionDSL.define(BuiltinFunctionName.TAN.getName(),
         ExprCoreType.numberTypes().stream()
             .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(

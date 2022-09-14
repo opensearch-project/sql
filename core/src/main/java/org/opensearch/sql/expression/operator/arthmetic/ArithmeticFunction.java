@@ -23,8 +23,8 @@ import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprShortValue;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.DefaultFunctionResolver;
 import org.opensearch.sql.expression.function.FunctionDSL;
-import org.opensearch.sql.expression.function.FunctionResolver;
 
 /**
  * The definition of arithmetic function
@@ -49,7 +49,7 @@ public class ArithmeticFunction {
     repository.register(modules());
   }
 
-  private static FunctionResolver add() {
+  private static DefaultFunctionResolver add() {
     return FunctionDSL.define(BuiltinFunctionName.ADD.getName(),
         FunctionDSL.impl(
             FunctionDSL.nullMissingHandling(
@@ -79,7 +79,7 @@ public class ArithmeticFunction {
     );
   }
 
-  private static FunctionResolver subtract() {
+  private static DefaultFunctionResolver subtract() {
     return FunctionDSL.define(BuiltinFunctionName.SUBTRACT.getName(),
         FunctionDSL.impl(
             FunctionDSL.nullMissingHandling(
@@ -109,7 +109,7 @@ public class ArithmeticFunction {
     );
   }
 
-  private static FunctionResolver multiply() {
+  private static DefaultFunctionResolver multiply() {
     return FunctionDSL.define(BuiltinFunctionName.MULTIPLY.getName(),
         FunctionDSL.impl(
             FunctionDSL.nullMissingHandling(
@@ -139,7 +139,7 @@ public class ArithmeticFunction {
     );
   }
 
-  private static FunctionResolver divide() {
+  private static DefaultFunctionResolver divide() {
     return FunctionDSL.define(BuiltinFunctionName.DIVIDE.getName(),
         FunctionDSL.impl(
             FunctionDSL.nullMissingHandling(
@@ -174,7 +174,7 @@ public class ArithmeticFunction {
   }
 
 
-  private static FunctionResolver modules() {
+  private static DefaultFunctionResolver modules() {
     return FunctionDSL.define(BuiltinFunctionName.MODULES.getName(),
         FunctionDSL.impl(
             FunctionDSL.nullMissingHandling(

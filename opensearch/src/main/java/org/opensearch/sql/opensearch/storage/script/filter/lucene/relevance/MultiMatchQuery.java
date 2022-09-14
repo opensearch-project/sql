@@ -6,18 +6,11 @@
 package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.Iterator;
-import java.util.Objects;
 import org.opensearch.index.query.MultiMatchQueryBuilder;
 import org.opensearch.index.query.Operator;
-import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
-import org.opensearch.sql.exception.SemanticCheckException;
-import org.opensearch.sql.expression.Expression;
-import org.opensearch.sql.expression.FunctionExpression;
-import org.opensearch.sql.expression.NamedArgumentExpression;
 
-public class MultiMatchQuery extends RelevanceQuery<MultiMatchQueryBuilder> {
+public class MultiMatchQuery extends MultiFieldQuery<MultiMatchQueryBuilder> {
   /**
    *  Default constructor for MultiMatch configures how RelevanceQuery.build() handles
    * named arguments.
@@ -46,43 +39,12 @@ public class MultiMatchQuery extends RelevanceQuery<MultiMatchQueryBuilder> {
   }
 
   @Override
-  public QueryBuilder build(FunctionExpression func) {
-    if (func.getArguments().size() < 2) {
-      throw new SemanticCheckException("'multi_match' must have at least two arguments");
-    }
-    Iterator<Expression> iterator = func.getArguments().iterator();
-    var fields = (NamedArgumentExpression) iterator.next();
-    var query = (NamedArgumentExpression) iterator.next();
-    // Fields is a map already, but we need to convert types.
-    var fieldsAndWeights = fields
-        .getValue()
-        .valueOf(null)
-        .tupleValue()
-        .entrySet()
-        .stream()
-        .collect(ImmutableMap.toImmutableMap(e -> e.getKey(), e -> e.getValue().floatValue()));
-
-    MultiMatchQueryBuilder queryBuilder = createQueryBuilder(null,
-            query.getValue().valueOf(null).stringValue())
-        .fields(fieldsAndWeights);
-    while (iterator.hasNext()) {
-      NamedArgumentExpression arg = (NamedArgumentExpression) iterator.next();
-      String argNormalized = arg.getArgName().toLowerCase();
-      if (!queryBuildActions.containsKey(argNormalized)) {
-        throw new SemanticCheckException(
-            String.format("Parameter %s is invalid for %s function.",
-                argNormalized, queryBuilder.getWriteableName()));
-      }
-      (Objects.requireNonNull(
-          queryBuildActions
-              .get(argNormalized)))
-          .apply(queryBuilder, arg.getValue().valueOf(null));
-    }
-    return queryBuilder;
+  protected MultiMatchQueryBuilder createBuilder(ImmutableMap<String, Float> fields, String query) {
+    return QueryBuilders.multiMatchQuery(query).fields(fields);
   }
 
   @Override
-  protected MultiMatchQueryBuilder createQueryBuilder(String field, String query) {
-    return QueryBuilders.multiMatchQuery(query);
+  protected String getQueryName() {
+    return MultiMatchQueryBuilder.NAME;
   }
 }

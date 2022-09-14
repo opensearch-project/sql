@@ -7,7 +7,6 @@
 package org.opensearch.sql.legacy.plugin;
 
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.config.ExpressionConfig;
@@ -34,8 +33,6 @@ import org.springframework.context.annotation.Import;
 @Configuration
 @Import({ExpressionConfig.class})
 public class OpenSearchSQLPluginConfig {
-  @Autowired
-  private ClusterService clusterService;
 
   @Autowired
   private NodeClient nodeClient;
@@ -48,7 +45,7 @@ public class OpenSearchSQLPluginConfig {
 
   @Bean
   public OpenSearchClient client() {
-    return new OpenSearchNodeClient(clusterService, nodeClient);
+    return new OpenSearchNodeClient(nodeClient);
   }
 
   @Bean

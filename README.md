@@ -4,6 +4,7 @@
 - [Code Summary](#code-summary)
 - [Highlights](#highlights)
 - [Documentation](#documentation)
+- [OpenSearch Forum](#forum)
 - [Contributing](#contributing)
 - [Attribution](#attribution)
 - [Code of Conduct](#code-of-conduct)
@@ -126,6 +127,10 @@ Recently we have been actively improving our query engine primarily for better c
 ## Documentation
 
 Please refer to the [SQL Language Reference Manual](./docs/user/index.rst), [Piped Processing Language (PPL) Reference Manual](./docs/user/ppl/index.rst) and [Technical Documentation](https://opensearch.org/docs/latest/search-plugins/sql/index/) for detailed information on installing and configuring plugin.
+
+## Forum
+
+For additional help with the plugin, including questions about opening an issue, visit the OpenSearch [Forum](https://forum.opensearch.org/c/plugins/sql/8).
 
 ## Contributing
 

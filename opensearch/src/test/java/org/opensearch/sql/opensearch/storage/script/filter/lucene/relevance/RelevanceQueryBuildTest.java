@@ -30,7 +30,6 @@ import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
-import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
@@ -55,14 +54,20 @@ class RelevanceQueryBuildTest {
         .defaultAnswer(Mockito.CALLS_REAL_METHODS));
     queryBuilder = mock(QueryBuilder.class);
     when(query.createQueryBuilder(any(), any())).thenReturn(queryBuilder);
-    when(queryBuilder.queryName()).thenReturn("mocked_query");
-    when(queryBuilder.getWriteableName()).thenReturn("mock_query");
+    String queryName = "mock_query";
+    when(queryBuilder.queryName()).thenReturn(queryName);
+    when(queryBuilder.getWriteableName()).thenReturn(queryName);
+    when(query.getQueryName()).thenReturn(queryName);
   }
 
   @Test
-  void first_arg_field_second_arg_query_test() {
-    query.build(createCall(List.of(FIELD_ARG, QUERY_ARG)));
-    verify(query, times(1)).createQueryBuilder("field_A", "find me");
+  void throws_SemanticCheckException_when_same_argument_twice() {
+    FunctionExpression expr = createCall(List.of(FIELD_ARG, QUERY_ARG,
+        namedArgument("boost", "2.3"),
+        namedArgument("boost", "2.4")));
+    SemanticCheckException exception =
+        assertThrows(SemanticCheckException.class, () -> query.build(expr));
+    assertEquals("Parameter 'boost' can only be specified once.", exception.getMessage());
   }
 
   @Test
@@ -72,7 +77,8 @@ class RelevanceQueryBuildTest {
 
     SemanticCheckException exception =
         assertThrows(SemanticCheckException.class, () -> query.build(expr));
-    assertEquals("Parameter wrongarg is invalid for mock_query function.", exception.getMessage());
+    assertEquals("Parameter wrongarg is invalid for mock_query function.",
+        exception.getMessage());
   }
 
   @Test

@@ -28,12 +28,16 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.ProjectOperator;
+import org.opensearch.sql.storage.Table;
 
 @ExtendWith(MockitoExtension.class)
 class OpenSearchSystemIndexTest {
 
   @Mock
   private OpenSearchClient client;
+
+  @Mock
+  private Table table;
 
   @Test
   void testGetFieldTypesOfMetaTable() {
@@ -61,7 +65,7 @@ class OpenSearchSystemIndexTest {
 
     final PhysicalPlan plan = systemIndex.implement(
         project(
-            relation(TABLE_INFO),
+            relation(TABLE_INFO, table),
             projectExpr
         ));
     assertTrue(plan instanceof ProjectOperator);
