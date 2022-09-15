@@ -55,6 +55,9 @@ public enum OpenSearchDataType implements ExprType {
 
   OPENSEARCH_BINARY(Arrays.asList(UNKNOWN), "binary");
 
+  /**
+   * Bidirectional mapping between OpenSearch type name and ExprType.
+   */
   private static final BiMap<String, ExprType> OPENSEARCH_TYPE_TO_EXPR_TYPE_MAPPING =
       ImmutableBiMap.<String, ExprType>builder()
           .put("text", OPENSEARCH_TEXT)
@@ -75,6 +78,9 @@ public enum OpenSearchDataType implements ExprType {
           .put("binary", OPENSEARCH_BINARY)
           .build();
 
+  /**
+   * Mapping from extra OpenSearch type name which may map to same ExprType as above.
+   */
   private static final Map<String, ExprType> EXTRA_OPENSEARCH_TYPE_TO_EXPR_TYPE_MAPPING =
       ImmutableMap.<String, ExprType>builder()
           .put("half_float", ExprCoreType.FLOAT)
