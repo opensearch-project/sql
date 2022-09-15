@@ -668,7 +668,7 @@ public class DateTimeFunction {
    * DateTime implementation for ExprValue.
    *
    * @param dateTime ExprValue of String type.
-   * @param timeZone ExprValue of String type.
+   * @param timeZone ExprValue of String type (or null).
    * @return ExprValue of date type.
    */
   private ExprValue exprDateTime(ExprValue dateTime, ExprValue timeZone) {
