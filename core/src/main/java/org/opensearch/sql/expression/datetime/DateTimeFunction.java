@@ -72,6 +72,9 @@ import org.opensearch.sql.expression.function.FunctionResolver;
  */
 @UtilityClass
 public class DateTimeFunction {
+  String timeZoneMax = "+14:00";
+  String timeZoneMin = "-13:59";
+  String timeZoneZero = "+00:00";
 
   // The number of days from year zero to year 1970.
   private static final Long DAYS_0000_TO_1970 = (146097 * 5L) - (30L * 365L + 7L);
@@ -1053,19 +1056,18 @@ public class DateTimeFunction {
    * @return Boolean.
    */
   private Boolean isValidMySqlTimeZoneId(ZoneId zone) {
-    ZoneId maxTz = ZoneId.of("+14:00");
-    ZoneId minTz = ZoneId.of("-13:59");
-    ZoneId defaultTz = ZoneId.of("+00:00");
+    ZoneId maxTz = ZoneId.of(timeZoneMax);
+    ZoneId minTz = ZoneId.of(timeZoneMin);
+    ZoneId defaultTz = ZoneId.of(timeZoneZero);
 
-    LocalDateTime defaultDateTime = LocalDateTime.of(2000, 1, 2, 12, 0);
+    ZonedDateTime defaultDateTime = LocalDateTime.of(2000, 1, 2, 12, 0).atZone(defaultTz);
 
     ZonedDateTime maxTzValidator =
-        defaultDateTime.atZone(defaultTz).withZoneSameInstant(maxTz).withZoneSameLocal(defaultTz);
+        defaultDateTime.withZoneSameInstant(maxTz).withZoneSameLocal(defaultTz);
     ZonedDateTime minTzValidator =
-        defaultDateTime.atZone(defaultTz).withZoneSameInstant(minTz).withZoneSameLocal(defaultTz);
-
+        defaultDateTime.withZoneSameInstant(minTz).withZoneSameLocal(defaultTz);
     ZonedDateTime passedTzValidator =
-        defaultDateTime.atZone(defaultTz).withZoneSameInstant(zone).withZoneSameLocal(defaultTz);
+        defaultDateTime.withZoneSameInstant(zone).withZoneSameLocal(defaultTz);
 
     return (passedTzValidator.isBefore(maxTzValidator)
         || passedTzValidator.isEqual(maxTzValidator))
