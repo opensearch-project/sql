@@ -137,9 +137,9 @@ public class DSL {
     return new RegexExpression(sourceField, pattern, identifier);
   }
 
-  public static PatternsExpression patterns(PatternsMethod method, Expression sourceField,
-                                            Expression pattern, Expression identifier) {
-    return new PatternsExpression(method, sourceField, pattern, identifier);
+  public static PatternsExpression patterns(Expression sourceField, Expression pattern,
+                                            Expression identifier) {
+    return new PatternsExpression(sourceField, pattern, identifier);
   }
 
   public static SpanExpression span(Expression field, Expression value, String unit) {

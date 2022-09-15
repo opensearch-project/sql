@@ -24,14 +24,12 @@ import static org.opensearch.sql.ast.dsl.AstDSL.exprList;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
-import static org.opensearch.sql.ast.dsl.AstDSL.grok;
 import static org.opensearch.sql.ast.dsl.AstDSL.head;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.let;
 import static org.opensearch.sql.ast.dsl.AstDSL.map;
 import static org.opensearch.sql.ast.dsl.AstDSL.nullLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.parse;
-import static org.opensearch.sql.ast.dsl.AstDSL.patterns;
 import static org.opensearch.sql.ast.dsl.AstDSL.projectWithArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.rareTopN;
@@ -50,6 +48,7 @@ import org.junit.rules.ExpectedException;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternsMethod;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
@@ -622,10 +621,12 @@ public class AstBuilderTest {
   @Test
   public void testGrokCommand() {
     assertEqual("source=t | grok raw \"pattern\"",
-        grok(
+        parse(
             relation("t"),
+            ParseMethod.GROK,
             field("raw"),
-            stringLiteral("pattern")
+            stringLiteral("pattern"),
+            ImmutableMap.of()
         ));
   }
 
@@ -634,19 +635,22 @@ public class AstBuilderTest {
     assertEqual("source=t | parse raw \"pattern\"",
         parse(
             relation("t"),
+            ParseMethod.REGEX,
             field("raw"),
-            stringLiteral("pattern")
+            stringLiteral("pattern"),
+            ImmutableMap.of()
         ));
   }
 
   @Test
   public void testPatternsCommand() {
-    assertEqual("source=t | patterns method=regex new_field=\"custom_field\" "
+    assertEqual("source=t | patterns new_field=\"custom_field\" "
             + "pattern=\"custom_pattern\" raw",
-        patterns(
+        parse(
             relation("t"),
-            PatternsMethod.REGEX,
+            ParseMethod.PATTERNS,
             field("raw"),
+            stringLiteral("custom_pattern"),
             ImmutableMap.<String, Literal>builder()
                 .put("new_field", stringLiteral("custom_field"))
                 .put("pattern", stringLiteral("custom_pattern"))
@@ -658,10 +662,11 @@ public class AstBuilderTest {
   public void testPatternsCommandWithoutArguments() {
     assertEqual(
         "source=t | patterns raw",
-        patterns(
+        parse(
             relation("t"),
-            PatternsMethod.PUNCT,
+            ParseMethod.PATTERNS,
             field("raw"),
+            stringLiteral(""),
             ImmutableMap.of()));
   }
 

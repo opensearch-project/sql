@@ -103,7 +103,7 @@ parseCommand
     ;
 
 patternsCommand
-    : PATTERNS (METHOD EQUAL patternsMethod)? (patternsParameter)* (source_field=expression)
+    : PATTERNS (patternsParameter)* (source_field=expression)
     ;
 
 patternsParameter

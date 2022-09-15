@@ -36,19 +36,17 @@ import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
-import org.opensearch.sql.ast.expression.PatternsMethod;
+import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
-import org.opensearch.sql.ast.tree.Grok;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Parse;
-import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
@@ -60,7 +58,6 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.data.model.ExprMissingValue;
-import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
@@ -70,9 +67,7 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
-import org.opensearch.sql.expression.parse.GrokExpression;
-import org.opensearch.sql.expression.parse.PatternsExpression;
-import org.opensearch.sql.expression.parse.RegexExpression;
+import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
@@ -89,6 +84,7 @@ import org.opensearch.sql.planner.logical.LogicalRename;
 import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.planner.logical.LogicalValues;
 import org.opensearch.sql.storage.Table;
+import org.opensearch.sql.utils.ParseUtils;
 
 /**
  * Analyze the {@link UnresolvedPlan} in the {@link AnalysisContext} to construct the {@link
@@ -352,63 +348,21 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   /**
-   * Build {@link GrokExpression} to context and skip to child nodes.
-   */
-  @Override
-  public LogicalPlan visitGrok(Grok node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().get(0).accept(this, context);
-    Expression sourceField = expressionAnalyzer.analyze(node.getSourceField(), context);
-    String pattern = (String) node.getPattern().getValue();
-    Expression patternExpression = DSL.literal(pattern);
-
-    TypeEnvironment curEnv = context.peek();
-    GrokExpression.getNamedGroupCandidates(pattern).forEach(group -> {
-      GrokExpression expr = new GrokExpression(sourceField, patternExpression, DSL.literal(group));
-      curEnv.define(new Symbol(Namespace.FIELD_NAME, group), expr.type());
-      context.getNamedParseExpressions().add(new NamedExpression(group, expr));
-    });
-    return child;
-  }
-
-  /**
-   * Build {@link RegexExpression} to context and skip to child nodes.
+   * Build {@link ParseExpression} to context and skip to child nodes.
    */
   @Override
   public LogicalPlan visitParse(Parse node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
     Expression sourceField = expressionAnalyzer.analyze(node.getSourceField(), context);
+    ParseMethod parseMethod = node.getParseMethod();
+    java.util.Map<String, Literal> arguments = node.getArguments();
     String pattern = (String) node.getPattern().getValue();
     Expression patternExpression = DSL.literal(pattern);
 
     TypeEnvironment curEnv = context.peek();
-    RegexExpression.getNamedGroupCandidates(pattern).forEach(group -> {
-      RegexExpression expr =
-          new RegexExpression(sourceField, patternExpression, DSL.literal(group));
-      curEnv.define(new Symbol(Namespace.FIELD_NAME, group), expr.type());
-      context.getNamedParseExpressions().add(new NamedExpression(group, expr));
-    });
-    return child;
-  }
-
-  /**
-   * Build {@link PatternsExpression} to context and skip to child nodes.
-   */
-  @Override
-  public LogicalPlan visitPatterns(Patterns node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().get(0).accept(this, context);
-    Expression sourceField = expressionAnalyzer.analyze(node.getSourceField(), context);
-    PatternsMethod patternsMethod = node.getPatternsMethod();
-    java.util.Map<String, Literal> arguments = node.getArguments();
-    Expression pattern = arguments.containsKey(PatternsExpression.PATTERN_KEY)
-        ? DSL.literal((String) arguments.get(PatternsExpression.PATTERN_KEY).getValue())
-        : DSL.literal(ExprValueUtils.stringValue(""));
-    String identifier = arguments.containsKey(PatternsExpression.NEW_FIELD_KEY)
-        ? (String) arguments.get(PatternsExpression.NEW_FIELD_KEY).getValue() : null;
-
-    TypeEnvironment curEnv = context.peek();
-    PatternsExpression.getNamedGroupCandidates(identifier).forEach(group -> {
-      PatternsExpression expr =
-          new PatternsExpression(patternsMethod, sourceField, pattern, DSL.literal(group));
+    ParseUtils.getNamedGroupCandidates(parseMethod, pattern, arguments).forEach(group -> {
+      ParseExpression expr = ParseUtils.createParseExpression(parseMethod, sourceField,
+          patternExpression, DSL.literal(group));
       curEnv.define(new Symbol(Namespace.FIELD_NAME, group), expr.type());
       context.getNamedParseExpressions().add(new NamedExpression(group, expr));
     });

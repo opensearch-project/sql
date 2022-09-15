@@ -8,6 +8,7 @@ package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -16,6 +17,7 @@ import lombok.Setter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 /**
@@ -29,6 +31,11 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @AllArgsConstructor
 public class Parse extends UnresolvedPlan {
   /**
+   * Method used to parse a field.
+   */
+  private final ParseMethod parseMethod;
+
+  /**
    * Field.
    */
   private final UnresolvedExpression sourceField;
@@ -37,6 +44,11 @@ public class Parse extends UnresolvedPlan {
    * Pattern.
    */
   private final Literal pattern;
+
+  /**
+   * Optional arguments.
+   */
+  private final Map<String, Literal> arguments;
 
   /**
    * Child Plan.

@@ -17,6 +17,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.Expression;
 
 /**
@@ -48,7 +49,7 @@ public class GrokExpression extends ParseExpression {
   }
 
   @Override
-  ExprValue parseValue(ExprValue value) {
+  ExprValue parseValue(ExprValue value) throws ExpressionEvaluationException {
     String rawString = value.stringValue();
     Match grokMatch = grok.match(rawString);
     Map<String, Object> capture = grokMatch.capture();
@@ -56,7 +57,7 @@ public class GrokExpression extends ParseExpression {
     if (match != null) {
       return new ExprStringValue(match.toString());
     }
-    log.warn("failed to extract pattern {} from input {}", grok.getOriginalGrokPattern(),
+    log.debug("failed to extract pattern {} from input {}", grok.getOriginalGrokPattern(),
         rawString);
     return new ExprStringValue("");
   }

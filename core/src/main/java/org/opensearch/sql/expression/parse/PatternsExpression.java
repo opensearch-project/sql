@@ -14,6 +14,7 @@ import lombok.ToString;
 import org.opensearch.sql.ast.expression.PatternsMethod;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.Expression;
 
 /**
@@ -23,47 +24,29 @@ import org.opensearch.sql.expression.Expression;
 @ToString
 public class PatternsExpression extends ParseExpression {
   /**
-   * Key of the derived field name.
-   */
-  public static final String NEW_FIELD_KEY = "new_field";
-  /**
-   * Key of the pattern used to extract fields.
-   */
-  public static final String PATTERN_KEY = "pattern";
-  /**
    * Default name of the derived field.
    */
   public static final String DEFAULT_NEW_FIELD = "patterns_field";
 
   private static final Pattern DEFAULT_IGNORED_CHARS = Pattern.compile("[a-zA-Z\\d]");
-  private final PatternsMethod patternsMethod;
   @EqualsAndHashCode.Exclude
   private final Pattern pattern;
 
   /**
    * PatternsExpression.
    *
-   * @param patternsMethod method used to extract patterns
    * @param sourceField    source text field
    * @param pattern        pattern used for parsing
    * @param identifier     derived field
    */
-  public PatternsExpression(PatternsMethod patternsMethod, Expression sourceField,
-                            Expression pattern, Expression identifier) {
+  public PatternsExpression(Expression sourceField, Expression pattern, Expression identifier) {
     super("patterns", sourceField, pattern, identifier);
-    this.patternsMethod = patternsMethod;
-    switch (patternsMethod) {
-      case REGEX:
-        this.pattern = Pattern.compile(pattern.valueOf(null).stringValue());
-        break;
-      default:
-        this.pattern = DEFAULT_IGNORED_CHARS;
-        break;
-    }
+    String patternStr = pattern.valueOf(null).stringValue();
+    this.pattern = patternStr.isEmpty() ? DEFAULT_IGNORED_CHARS : Pattern.compile(patternStr);
   }
 
   @Override
-  ExprValue parseValue(ExprValue value) {
+  ExprValue parseValue(ExprValue value) throws ExpressionEvaluationException {
     String rawString = value.stringValue();
     return new ExprStringValue(pattern.matcher(rawString).replaceAll(""));
   }

@@ -1,5 +1,5 @@
 =============
-parse
+patterns
 =============
 
 .. rubric:: Table of contents
@@ -16,25 +16,11 @@ Description
 
 Syntax
 ============
-patterns [method=<method>] [new_field=<new-field-name>] [pattern=<pattern>] <field>
+patterns [new_field=<new-field-name>] [pattern=<pattern>] <field>
 
-* method: optional. Possible values are ``punct``, ``regex``, default value is ``punct``.
 * new-field-name: optional string. The name of the new field for extracted patterns, default is ``patterns_field``. If the name already exists, it will replace the original field.
-* pattern: if ``method`` is ``regex``, ``pattern`` defines the regex pattern of characters that should be filtered out from the text field.
+* pattern: optional string. The regex pattern of characters that should be filtered out from the text field. If absent, the default pattern is alphanumeric characters (``[a-zA-Z\d]``).
 * field: mandatory. The field must be a text field.
-
-Patterns Methods
-================
-
-punct
------
-
-Remove alphanumeric characters (``[a-zA-Z\d]``) in the text field of each document to form a new field.
-
-regex
------
-
-Remove characters defined by ``pattern`` in the text field of each document to form a new field.
 
 Example 1: Create the new field
 ===============================
@@ -54,29 +40,10 @@ PPL query::
     | daleadams@boink.com   | @.               |
     +-----------------------+------------------+
 
+Example 2: Extract log patterns
+===============================
 
-Example 2: Override the existing field
-======================================
-
-The example shows how to override the existing ``address`` field with street number removed using a custom regex filter.
-
-PPL query::
-
-    os> source=accounts | patterns method=regex new_field='address' pattern='\d+ ' address | fields address ;
-    fetched rows / total rows = 4/4
-    +------------------+
-    | address          |
-    |------------------|
-    | Holmes Lane      |
-    | Bristol Street   |
-    | Madison Street   |
-    | Hutchinson Court |
-    +------------------+
-
-Example 3: Using punct to extract log patterns
-==============================================
-
-The example shows how to extract punctuations from a raw log field using the ``punct`` method.
+The example shows how to extract punctuations from a raw log field using the default patterns.
 
 PPL query::
 
@@ -87,6 +54,21 @@ PPL query::
     |-----------------------------------------------------------------------------------------+-------------------------------|
     | 145.128.75.121 - - [29/Aug/2022:13:26:44 -0700] \"GET /deliverables HTTP/2.0\" 501 2721 | ... - - [//::: -] \" / /.\"   |
     +-----------------------------------------------------------------------------------------+-------------------------------+
+
+Example 3: Extract log patterns with custom regex pattern
+=========================================================
+
+The example shows how to extract punctuations from a raw log field using user defined patterns.
+
+PPL query::
+
+    os> source=accounts | eval raw='145.128.75.121 - - [29/Aug/2022:13:26:44 -0700] \"GET /deliverables HTTP/2.0\" 501 2721' | patterns new_field='no_numbers' pattern='[0-9]' raw | head 1 | fields raw, no_numbers ;
+    fetched rows / total rows = 1/1
+    +-----------------------------------------------------------------------------------------+-----------------------------------------------------+
+    | raw                                                                                     | no_numbers                                          |
+    |-----------------------------------------------------------------------------------------+-----------------------------------------------------|
+    | 145.128.75.121 - - [29/Aug/2022:13:26:44 -0700] \"GET /deliverables HTTP/2.0\" 501 2721 | ... - - [/Aug/::: -] \"GET /deliverables HTTP/.\"   |
+    +-----------------------------------------------------------------------------------------+-----------------------------------------------------+
 
 Limitation
 ==========

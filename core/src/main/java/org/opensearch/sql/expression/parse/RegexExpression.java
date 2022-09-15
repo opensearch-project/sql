@@ -16,6 +16,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.Expression;
 
 /**
@@ -43,13 +44,13 @@ public class RegexExpression extends ParseExpression {
   }
 
   @Override
-  ExprValue parseValue(ExprValue value) {
+  ExprValue parseValue(ExprValue value) throws ExpressionEvaluationException {
     String rawString = value.stringValue();
     Matcher matcher = regexPattern.matcher(rawString);
     if (matcher.matches()) {
       return new ExprStringValue(matcher.group(identifierStr));
     }
-    log.warn("failed to extract pattern {} from input {}", regexPattern.pattern(), rawString);
+    log.debug("failed to extract pattern {} from input {}", regexPattern.pattern(), rawString);
     return new ExprStringValue("");
   }
 

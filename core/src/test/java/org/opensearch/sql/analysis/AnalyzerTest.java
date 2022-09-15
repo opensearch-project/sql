@@ -47,6 +47,7 @@ import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternsMethod;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.SpanUnit;
@@ -746,10 +747,12 @@ class AnalyzerTest extends AnalyzerTestBase {
                     DSL.literal("grok_field"))))
         ),
         AstDSL.project(
-            AstDSL.grok(
+            AstDSL.parse(
                 AstDSL.relation("schema"),
+                ParseMethod.GROK,
                 AstDSL.field("string_value"),
-                AstDSL.stringLiteral("%{IPV4:grok_field}")),
+                AstDSL.stringLiteral("%{IPV4:grok_field}"),
+                ImmutableMap.of()),
             AstDSL.alias("string_value", qualifiedName("string_value"))
         ));
   }
@@ -767,34 +770,16 @@ class AnalyzerTest extends AnalyzerTestBase {
         AstDSL.project(
             AstDSL.parse(
                 AstDSL.relation("schema"),
+                ParseMethod.REGEX,
                 AstDSL.field("string_value"),
-                AstDSL.stringLiteral("(?<group>.*)")),
-            AstDSL.alias("string_value", qualifiedName("string_value"))
-        ));
-  }
-
-  @Test
-  public void parse_relation_with_patterns_expression_punct() {
-    assertAnalyzeEqual(
-        LogicalPlanDSL.project(
-            LogicalPlanDSL.relation("schema", table),
-            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
-            ImmutableList.of(DSL.named("patterns_field",
-                DSL.patterns(PatternsMethod.PUNCT, DSL.ref("string_value", STRING),
-                    DSL.literal(""), DSL.literal("patterns_field"))))
-        ),
-        AstDSL.project(
-            AstDSL.patterns(
-                AstDSL.relation("schema"),
-                PatternsMethod.PUNCT,
-                AstDSL.field("string_value"),
+                AstDSL.stringLiteral("(?<group>.*)"),
                 ImmutableMap.of()),
             AstDSL.alias("string_value", qualifiedName("string_value"))
         ));
   }
 
   @Test
-  public void parse_relation_with_patterns_expression_regex() {
+  public void parse_relation_with_patterns_expression() {
     Map<String, Literal> arguments = ImmutableMap.<String, Literal>builder()
         .put("new_field", AstDSL.stringLiteral("custom_field"))
         .put("pattern", AstDSL.stringLiteral("custom_pattern"))
@@ -805,15 +790,37 @@ class AnalyzerTest extends AnalyzerTestBase {
             LogicalPlanDSL.relation("schema", table),
             ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
             ImmutableList.of(DSL.named("custom_field",
-                DSL.patterns(PatternsMethod.REGEX, DSL.ref("string_value", STRING),
-                    DSL.literal("custom_pattern"), DSL.literal("custom_field"))))
+                DSL.patterns(DSL.ref("string_value", STRING), DSL.literal("custom_pattern"),
+                    DSL.literal("custom_field"))))
         ),
         AstDSL.project(
-            AstDSL.patterns(
+            AstDSL.parse(
                 AstDSL.relation("schema"),
-                PatternsMethod.REGEX,
+                ParseMethod.PATTERNS,
                 AstDSL.field("string_value"),
+                AstDSL.stringLiteral("custom_pattern"),
                 arguments),
+            AstDSL.alias("string_value", qualifiedName("string_value"))
+        ));
+  }
+
+  @Test
+  public void parse_relation_with_patterns_expression_no_args() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.relation("schema", table),
+            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
+            ImmutableList.of(DSL.named("patterns_field",
+                DSL.patterns(DSL.ref("string_value", STRING), DSL.literal(""),
+                    DSL.literal("patterns_field"))))
+        ),
+        AstDSL.project(
+            AstDSL.parse(
+                AstDSL.relation("schema"),
+                ParseMethod.PATTERNS,
+                AstDSL.field("string_value"),
+                AstDSL.stringLiteral(""),
+                ImmutableMap.of()),
             AstDSL.alias("string_value", qualifiedName("string_value"))
         ));
   }
