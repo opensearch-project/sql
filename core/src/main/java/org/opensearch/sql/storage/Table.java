@@ -26,10 +26,7 @@ public interface Table {
    * Create table given table schema.
    * @param schema table schema
    */
-  default void create(Map<String, ExprType> schema) {
-    throw new UnsupportedOperationException(
-        "Create table operation is not supported on current table");
-  }
+  void create(Map<String, ExprType> schema);
 
   /**
    * Get the {@link ExprType} for each field in the table.

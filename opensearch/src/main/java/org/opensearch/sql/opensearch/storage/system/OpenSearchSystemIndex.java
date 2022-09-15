@@ -44,6 +44,12 @@ public class OpenSearchSystemIndex implements Table {
   }
 
   @Override
+  public void create(Map<String, ExprType> schema) {
+    throw new UnsupportedOperationException(
+        "OpenSearch system index is predefined and cannot be created");
+  }
+
+  @Override
   public Map<String, ExprType> getFieldTypes() {
     return systemIndexBundle.getLeft().getMapping();
   }
