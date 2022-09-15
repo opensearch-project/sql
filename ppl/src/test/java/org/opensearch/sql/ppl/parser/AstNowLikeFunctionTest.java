@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl.parser;
 
 import static org.junit.Assert.assertEquals;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
+import static org.opensearch.sql.ast.dsl.AstDSL.constantFunction;
 import static org.opensearch.sql.ast.dsl.AstDSL.eval;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
@@ -33,11 +34,14 @@ public class AstNowLikeFunctionTest {
    * @param name Function name
    * @param hasFsp Whether function has fsp argument
    * @param hasShortcut Whether function has shortcut (call without `()`)
+   * @param isConstantFunction Whether function has constant value
    */
-  public AstNowLikeFunctionTest(String name, Boolean hasFsp, Boolean hasShortcut) {
+  public AstNowLikeFunctionTest(String name, Boolean hasFsp, Boolean hasShortcut,
+                                Boolean isConstantFunction) {
     this.name = name;
     this.hasFsp = hasFsp;
     this.hasShortcut = hasShortcut;
+    this.isConstantFunction = isConstantFunction;
   }
 
   /**
@@ -47,21 +51,22 @@ public class AstNowLikeFunctionTest {
   @Parameterized.Parameters(name = "{0}")
   public static Iterable<Object> functionNames() {
     return List.of(new Object[][]{
-        {"now", true, false},
-        {"current_timestamp", true, true},
-        {"localtimestamp", true, true},
-        {"localtime", true, true},
-        {"sysdate", true, false},
-        {"curtime", true, false},
-        {"current_time", true, true},
-        {"curdate", false, false},
-        {"current_date", false, true}
+        {"now", false, false, true},
+        {"current_timestamp", false, true, true},
+        {"localtimestamp", false, true, true},
+        {"localtime", false, true, true},
+        {"sysdate", true, false, false},
+        {"curtime", false, false, true},
+        {"current_time", false, true, true},
+        {"curdate", false, false, true},
+        {"current_date", false, true, true}
     });
   }
 
   private final String name;
   private final Boolean hasFsp;
   private final Boolean hasShortcut;
+  private final Boolean isConstantFunction;
 
   @Test
   public void test_now_like_functions() {
@@ -71,17 +76,19 @@ public class AstNowLikeFunctionTest {
               relation("t"),
               let(
                   field("r"),
-                  function(name)
+                  (isConstantFunction ? constantFunction(name) : function(name))
               )
           ));
 
       assertEqual("search source=t | where a=" + call,
           filter(
               relation("t"),
-              compare("=", field("a"), function(name))
+              compare("=", field("a"),
+                  (isConstantFunction ? constantFunction(name) : function(name)))
           )
       );
     }
+    // Unfortunately, only real functions (not ConstantFunction) might have `fsp` now.
     if (hasFsp) {
       assertEqual("search source=t | where a=" + name + "(0)",
           filter(

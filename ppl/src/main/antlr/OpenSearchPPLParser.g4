@@ -221,6 +221,11 @@ primaryExpression
     | dataTypeFunctionCall
     | fieldExpression
     | literalValue
+    | constantFunction
+    ;
+
+constantFunction
+    : constantFunctionName LT_PRTHS functionArgs? RT_PRTHS
     ;
 
 booleanExpression
@@ -373,11 +378,14 @@ trigonometricFunctionName
     ;
 
 dateAndTimeFunctionBase
-    : ADDDATE | DATE | DATE_ADD | DATE_SUB | DAY | DAYNAME | DAYOFMONTH | DAYOFWEEK | DAYOFYEAR | FROM_DAYS
-    | HOUR | MICROSECOND | MINUTE | MONTH | MONTHNAME | QUARTER | SECOND | SUBDATE | TIME | TIME_TO_SEC
-    | TIMESTAMP | TO_DAYS | YEAR | WEEK | DATE_FORMAT | NOW | CURDATE | CURRENT_DATE | CURTIME | CURRENT_TIME
-    | LOCALTIME | CURRENT_TIMESTAMP | LOCALTIMESTAMP | SYSDATE | UTC_TIMESTAMP | UTC_DATE | UTC_TIME
-    | MAKETIME | MAKEDATE
+    : ADDDATE | DATE | DATE_ADD | DATE_FORMAT | DATE_SUB | DAY | DAYNAME | DAYOFMONTH | DAYOFWEEK
+    | DAYOFYEAR | FROM_DAYS | HOUR | MAKEDATE | MAKETIME | MICROSECOND | MINUTE | MONTH | MONTHNAME
+    | QUARTER | SECOND | SUBDATE | SYSDATE | TIME | TIME_TO_SEC| TIMESTAMP | TO_DAYS | WEEK | YEAR
+    ;
+
+constantFunctionName
+    : datetimeConstantLiteral
+    | CURDATE | CURTIME | NOW
     ;
 
 /** condition function return boolean value */

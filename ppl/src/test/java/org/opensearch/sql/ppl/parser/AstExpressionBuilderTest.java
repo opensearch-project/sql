@@ -7,6 +7,7 @@
 package org.opensearch.sql.ppl.parser;
 
 import static java.util.Collections.emptyList;
+import static org.junit.Assert.assertEquals;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
@@ -47,11 +48,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
+import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 
 public class AstExpressionBuilderTest extends AstBuilderTest {
 
@@ -164,6 +167,18 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             let(
                 field("f"),
                 function("abs", field("a"))
+            )
+        ));
+  }
+
+  @Test
+  public void testEvalFunctionExprNoArgs() {
+    assertEqual("source=t | eval f=PI()",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function("PI")
             )
         ));
   }
@@ -714,5 +729,10 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             )
         )
     );
+  }
+
+  private Node buildExprAst(String query) {
+    AstBuilder astBuilder = new AstBuilder(new AstExpressionBuilder(), query);
+    return astBuilder.visit(new PPLSyntaxParser().parse(query));
   }
 }

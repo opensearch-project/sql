@@ -25,11 +25,6 @@ public class QueryContext {
   private static final String REQUEST_ID_KEY = "request_id";
 
   /**
-   * Timestamp when SQL plugin started to process current request.
-   */
-  private static final String REQUEST_PROCESSING_STARTED = "request_processing_started";
-
-  /**
    * Generates a random UUID and adds to the {@link ThreadContext} as the request id.
    * <p>
    * Note: If a request id already present, this method will overwrite it with a new
@@ -54,22 +49,6 @@ public class QueryContext {
       id = addRequestId();
     }
     return id;
-  }
-
-  public static void recordProcessingStarted() {
-    ThreadContext.put(REQUEST_PROCESSING_STARTED, LocalDateTime.now().toString());
-  }
-
-  /**
-   * Get recorded previously time indicating when processing started for the current query.
-   * @return A LocalDateTime object
-   */
-  public static LocalDateTime getProcessingStartedTime() {
-    if (ThreadContext.containsKey(REQUEST_PROCESSING_STARTED)) {
-      return LocalDateTime.parse(ThreadContext.get(REQUEST_PROCESSING_STARTED));
-    }
-    // This shouldn't happen outside of unit tests
-    return LocalDateTime.now();
   }
 
   /**

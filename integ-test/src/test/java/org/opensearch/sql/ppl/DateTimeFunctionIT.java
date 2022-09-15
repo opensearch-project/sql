@@ -504,7 +504,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     return List.of(
       ImmutableMap.builder()
               .put("name", "now")
-              .put("hasFsp", true)
+              .put("hasFsp", false)
               .put("hasShortcut", false)
               .put("constValue", true)
               .put("referenceGetter", (Supplier<Temporal>) LocalDateTime::now)
@@ -513,7 +513,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
               .build(),
       ImmutableMap.builder()
               .put("name", "current_timestamp")
-              .put("hasFsp", true)
+              .put("hasFsp", false)
               .put("hasShortcut", true)
               .put("constValue", true)
               .put("referenceGetter", (Supplier<Temporal>) LocalDateTime::now)
@@ -522,7 +522,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
               .build(),
       ImmutableMap.builder()
               .put("name", "localtimestamp")
-              .put("hasFsp", true)
+              .put("hasFsp", false)
               .put("hasShortcut", true)
               .put("constValue", true)
               .put("referenceGetter", (Supplier<Temporal>) LocalDateTime::now)
@@ -531,7 +531,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
               .build(),
       ImmutableMap.builder()
               .put("name", "localtime")
-              .put("hasFsp", true)
+              .put("hasFsp", false)
               .put("hasShortcut", true)
               .put("constValue", true)
               .put("referenceGetter", (Supplier<Temporal>) LocalDateTime::now)
@@ -549,7 +549,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
               .build(),
       ImmutableMap.builder()
               .put("name", "curtime")
-              .put("hasFsp", true)
+              .put("hasFsp", false)
               .put("hasShortcut", false)
               .put("constValue", false)
               .put("referenceGetter", (Supplier<Temporal>) LocalTime::now)
@@ -558,7 +558,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
               .build(),
       ImmutableMap.builder()
               .put("name", "current_time")
-              .put("hasFsp", true)
+              .put("hasFsp", false)
               .put("hasShortcut", true)
               .put("constValue", false)
               .put("referenceGetter", (Supplier<Temporal>) LocalTime::now)

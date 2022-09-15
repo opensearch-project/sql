@@ -127,7 +127,6 @@ public class RestSqlAction extends BaseRestHandler {
         Metrics.getInstance().getNumericalMetric(MetricName.REQ_COUNT_TOTAL).increment();
 
         QueryContext.addRequestId();
-        QueryContext.recordProcessingStarted();
 
         try {
             if (!isSQLFeatureEnabled()) {

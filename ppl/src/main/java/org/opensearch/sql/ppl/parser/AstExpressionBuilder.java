@@ -14,6 +14,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanFun
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BySpanClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CompareExprContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ConstantFunctionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ConvertedDataTypeContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CountAllFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DataTypeFunctionCallContext;
@@ -61,6 +62,7 @@ import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
+import org.opensearch.sql.ast.expression.ConstantFunction;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
@@ -245,15 +247,29 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitDatetimeConstantLiteral(DatetimeConstantLiteralContext ctx) {
-    return visitFunction(ctx.getText(), null);
+    return visitConstantFunction(ctx.getText(), null);
+  }
+
+  public UnresolvedExpression visitConstantFunction(ConstantFunctionContext ctx) {
+    return visitConstantFunction(ctx.constantFunctionName().getText(),
+        ctx.functionArgs());
+  }
+
+  private UnresolvedExpression visitConstantFunction(String functionName,
+                                                     FunctionArgsContext args) {
+    return new ConstantFunction(functionName,
+        args == null
+        ? Collections.emptyList()
+        : args.functionArg()
+            .stream()
+            .map(this::visitFunctionArg)
+            .collect(Collectors.toList()));
   }
 
   private Function visitFunction(String functionName, FunctionArgsContext args) {
     return new Function(
         functionName,
-        args == null
-        ? Collections.emptyList()
-        : args.functionArg()
+        args.functionArg()
             .stream()
             .map(this::visitFunctionArg)
             .collect(Collectors.toList())
