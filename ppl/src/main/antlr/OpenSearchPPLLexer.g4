@@ -239,6 +239,7 @@ DAYNAME:                            'DAYNAME';
 FROM_DAYS:                          'FROM_DAYS';
 LOCALTIME:                          'LOCALTIME';
 LOCALTIMESTAMP:                     'LOCALTIMESTAMP';
+FROM_UNIXTIME:                      'FROM_UNIXTIME';
 MAKEDATE:                           'MAKEDATE';
 MAKETIME:                           'MAKETIME';
 MONTHNAME:                          'MONTHNAME';
@@ -252,7 +253,7 @@ TO_DAYS:                            'TO_DAYS';
 UTC_DATE:                           'UTC_DATE';
 UTC_TIME:                           'UTC_TIME';
 UTC_TIMESTAMP:                      'UTC_TIMESTAMP';
-
+UNIX_TIMESTAMP:                     'UNIX_TIMESTAMP';
 
 // TEXT FUNCTIONS
 SUBSTR:                             'SUBSTR';

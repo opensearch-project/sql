@@ -11,53 +11,18 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.missingValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.nullValue;
-import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 
 import java.time.Duration;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
-import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.DSL;
-import org.opensearch.sql.expression.Expression;
-import org.opensearch.sql.expression.ExpressionTestBase;
-import org.opensearch.sql.expression.FunctionExpression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
-import org.opensearch.sql.expression.env.Environment;
-import org.opensearch.sql.expression.function.FunctionName;
-import org.opensearch.sql.expression.function.FunctionSignature;
 
-@ExtendWith(MockitoExtension.class)
-public class MakeTimeTest extends ExpressionTestBase {
-
-  @Mock
-  Environment<Expression, ExprValue> env;
-
-  @Mock
-  Expression nullRef;
-
-  @Mock
-  Expression missingRef;
-
-  private FunctionExpression maketime(Expression hour, Expression minute, Expression second) {
-    var repo = new ExpressionConfig().functionRepository();
-    var func = repo.resolve(new FunctionSignature(new FunctionName("maketime"),
-        List.of(DOUBLE, DOUBLE, DOUBLE)));
-    return (FunctionExpression)func.apply(List.of(hour, minute, second));
-  }
-
-  private LocalTime maketime(Double hour, Double minute, Double second) {
-    return maketime(DSL.literal(hour), DSL.literal(minute), DSL.literal(second))
-        .valueOf(null).timeValue();
-  }
+public class MakeTimeTest extends DateTimeTestBase {
 
   @Test
   public void checkEdgeCases() {
@@ -164,9 +129,5 @@ public class MakeTimeTest extends ExpressionTestBase {
     var delta = Duration.between(expected, maketime(hour, minute, second)).getNano();
     assertEquals(0, delta, 1,
         String.format("hour = %f, minute = %f, second = %f", hour, minute, second));
-  }
-
-  private ExprValue eval(Expression expression) {
-    return expression.valueOf(env);
   }
 }

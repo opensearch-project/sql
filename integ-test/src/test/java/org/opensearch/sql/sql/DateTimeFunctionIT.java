@@ -648,6 +648,32 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     TimeZone.setDefault(testTz);
   }
 
+  @Test
+  public void testFromUnixTime() throws IOException {
+    var result = executeQuery(
+        "select FROM_UNIXTIME(200300400) f1, FROM_UNIXTIME(12224.12) f2, "
+        + "FROM_UNIXTIME(1662601316, '%T') f3");
+    verifySchema(result,
+        schema("FROM_UNIXTIME(200300400)", "f1",  "datetime"),
+        schema("FROM_UNIXTIME(12224.12)", "f2", "datetime"),
+        schema("FROM_UNIXTIME(1662601316, '%T')", "f3", "keyword"));
+    verifySome(result.getJSONArray("datarows"),
+        rows("1976-05-07 07:00:00", "1970-01-01 03:23:44.12", "01:41:56"));
+  }
+
+  @Test
+  public void testUnixTimeStamp() throws IOException {
+    var result = executeQuery(
+        "select UNIX_TIMESTAMP(MAKEDATE(1984, 1984)) f1, "
+        + "UNIX_TIMESTAMP(TIMESTAMP('2003-12-31 12:00:00')) f2, "
+        + "UNIX_TIMESTAMP(20771122143845) f3");
+    verifySchema(result,
+        schema("UNIX_TIMESTAMP(MAKEDATE(1984, 1984))", "f1", "double"),
+        schema("UNIX_TIMESTAMP(TIMESTAMP('2003-12-31 12:00:00'))", "f2", "double"),
+        schema("UNIX_TIMESTAMP(20771122143845)", "f3", "double"));
+    verifySome(result.getJSONArray("datarows"), rows(613094400d, 1072872000d, 3404817525d));
+  }
+
   protected JSONObject executeQuery(String query) throws IOException {
     Request request = new Request("POST", QUERY_API_ENDPOINT);
     request.setJsonEntity(String.format(Locale.ROOT, "{\n" + "  \"query\": \"%s\"\n" + "}", query));

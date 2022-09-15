@@ -67,6 +67,7 @@ public enum BuiltinFunctionName {
   DAYOFWEEK(FunctionName.of("dayofweek")),
   DAYOFYEAR(FunctionName.of("dayofyear")),
   FROM_DAYS(FunctionName.of("from_days")),
+  FROM_UNIXTIME(FunctionName.of("from_unixtime")),
   HOUR(FunctionName.of("hour")),
   MAKEDATE(FunctionName.of("makedate")),
   MAKETIME(FunctionName.of("maketime")),
@@ -82,6 +83,7 @@ public enum BuiltinFunctionName {
   TIMESTAMP(FunctionName.of("timestamp")),
   DATE_FORMAT(FunctionName.of("date_format")),
   TO_DAYS(FunctionName.of("to_days")),
+  UNIX_TIMESTAMP(FunctionName.of("unix_timestamp")),
   WEEK(FunctionName.of("week")),
   YEAR(FunctionName.of("year")),
   // `now`-like functions
