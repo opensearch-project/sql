@@ -11,7 +11,6 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-import org.opensearch.sql.ast.expression.PatternsMethod;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -35,9 +34,9 @@ public class PatternsExpression extends ParseExpression {
   /**
    * PatternsExpression.
    *
-   * @param sourceField    source text field
-   * @param pattern        pattern used for parsing
-   * @param identifier     derived field
+   * @param sourceField source text field
+   * @param pattern     pattern used for parsing
+   * @param identifier  derived field
    */
   public PatternsExpression(Expression sourceField, Expression pattern, Expression identifier) {
     super("patterns", sourceField, pattern, identifier);

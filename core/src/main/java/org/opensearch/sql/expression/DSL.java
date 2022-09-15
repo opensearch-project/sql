@@ -9,7 +9,6 @@ package org.opensearch.sql.expression;
 import java.util.Arrays;
 import java.util.Collections;
 import lombok.RequiredArgsConstructor;
-import org.opensearch.sql.ast.expression.PatternsMethod;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.data.model.ExprShortValue;
 import org.opensearch.sql.data.model.ExprValue;
