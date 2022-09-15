@@ -96,7 +96,7 @@ class OpenSearchIndexTest {
   private Table table;
 
   private OpenSearchIndex index;
-  
+
   @BeforeEach
   void setUp() {
     this.index = new OpenSearchIndex(client, settings, indexName);

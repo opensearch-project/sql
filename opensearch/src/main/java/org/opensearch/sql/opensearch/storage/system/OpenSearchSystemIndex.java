@@ -40,7 +40,7 @@ public class OpenSearchSystemIndex implements Table {
 
   @Override
   public boolean isExist() {
-    return false;
+    return true; // TODO: implement for system index later
   }
 
   @Override

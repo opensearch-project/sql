@@ -25,11 +25,10 @@ public interface Table {
   /**
    * Create table given table schema.
    * @param schema table schema
-   * @return true if created successfully, otherwise false
    */
   default void create(Map<String, ExprType> schema) {
     throw new UnsupportedOperationException(
-        "Create table is not supported in the storage engine");
+        "Create table operation is not supported on current table");
   }
 
   /**
