@@ -13,9 +13,11 @@ import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.ppl.PPLService;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Scope;
 
 @Configuration
 @Import({ExpressionConfig.class})
@@ -37,6 +39,7 @@ public class PPLServiceConfig {
    * @return PPLService.
    */
   @Bean
+  @Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
   public PPLService pplService() {
     return new PPLService(new PPLSyntaxParser(), executionEngine,
             functionRepository, catalogService);

@@ -11,7 +11,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
-import java.security.PrivilegedExceptionAction;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -54,7 +53,7 @@ public class CatalogServiceImpl implements CatalogService {
    * @param settings settings.
    */
   public void loadConnectors(Settings settings) {
-    doPrivileged(() -> {
+    SecurityAccess.doPrivileged(() -> {
       InputStream inputStream = CatalogSettings.CATALOG_CONFIG.get(settings);
       if (inputStream != null) {
         ObjectMapper objectMapper = new ObjectMapper();
@@ -94,14 +93,6 @@ public class CatalogServiceImpl implements CatalogService {
   @Override
   public void registerOpenSearchStorageEngine(StorageEngine storageEngine) {
     storageEngineMap.put(OPEN_SEARCH, storageEngine);
-  }
-
-  private <T> T doPrivileged(PrivilegedExceptionAction<T> action) {
-    try {
-      return SecurityAccess.doPrivileged(action);
-    } catch (IOException e) {
-      throw new IllegalStateException("Failed to perform privileged action", e);
-    }
   }
 
   private StorageEngine createStorageEngine(CatalogMetadata catalog) throws URISyntaxException {
