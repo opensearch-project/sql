@@ -11,23 +11,17 @@ import static org.opensearch.rest.RestStatus.OK;
 import static org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
-import java.io.IOException;
-import java.security.PrivilegedExceptionAction;
 import java.util.List;
-import javax.xml.catalog.Catalog;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
-import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.response.ResponseListener;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
@@ -41,7 +35,6 @@ import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.RawResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.sql.SQLService;
-import org.opensearch.sql.sql.config.SQLServiceConfig;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
@@ -56,23 +49,14 @@ public class RestSQLQueryAction extends BaseRestHandler {
 
   public static final RestChannelConsumer NOT_SUPPORTED_YET = null;
 
-  private final ClusterService clusterService;
-
-  /**
-   * Settings required by been initialization.
-   */
-  private final Settings pluginSettings;
-
-  private final CatalogService catalogService;
+  private final AnnotationConfigApplicationContext applicationContext;
 
   /**
    * Constructor of RestSQLQueryAction.
    */
-  public RestSQLQueryAction(ClusterService clusterService, Settings pluginSettings, CatalogService catalogService) {
+  public RestSQLQueryAction(AnnotationConfigApplicationContext applicationContext) {
     super();
-    this.clusterService = clusterService;
-    this.pluginSettings = pluginSettings;
-    this.catalogService = catalogService;
+    this.applicationContext = applicationContext;
   }
 
   @Override
@@ -101,7 +85,8 @@ public class RestSQLQueryAction extends BaseRestHandler {
       return NOT_SUPPORTED_YET;
     }
 
-    SQLService sqlService = createSQLService(nodeClient);
+    SQLService sqlService =
+        SecurityAccess.doPrivileged(() -> applicationContext.getBean(SQLService.class));
     PhysicalPlan plan;
     try {
       // For now analyzing and planning stage may throw syntax exception as well
@@ -121,20 +106,6 @@ public class RestSQLQueryAction extends BaseRestHandler {
       return channel -> sqlService.explain(plan, createExplainResponseListener(channel));
     }
     return channel -> sqlService.execute(plan, createQueryResponseListener(channel, request));
-  }
-
-  private SQLService createSQLService(NodeClient client) {
-    return doPrivileged(() -> {
-      AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
-      context.registerBean(ClusterService.class, () -> clusterService);
-      context.registerBean(NodeClient.class, () -> client);
-      context.registerBean(Settings.class, () -> pluginSettings);
-      context.registerBean(CatalogService.class, () -> catalogService);
-      context.register(OpenSearchSQLPluginConfig.class);
-      context.register(SQLServiceConfig.class);
-      context.refresh();
-      return context.getBean(SQLService.class);
-    });
   }
 
   private ResponseListener<ExplainResponse> createExplainResponseListener(RestChannel channel) {
@@ -183,14 +154,6 @@ public class RestSQLQueryAction extends BaseRestHandler {
         sendResponse(channel, INTERNAL_SERVER_ERROR, formatter.format(e));
       }
     };
-  }
-
-  private <T> T doPrivileged(PrivilegedExceptionAction<T> action) {
-    try {
-      return SecurityAccess.doPrivileged(action);
-    } catch (IOException e) {
-      throw new IllegalStateException("Failed to perform privileged action", e);
-    }
   }
 
   private void sendResponse(RestChannel channel, RestStatus status, String content) {
