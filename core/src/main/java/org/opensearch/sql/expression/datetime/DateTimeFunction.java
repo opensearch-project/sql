@@ -810,6 +810,50 @@ public class DateTimeFunction {
   }
 
   /**
+   * Following MySQL, function receives arguments of type double and rounds them before use.
+   * Furthermore:
+   *  - zero year interpreted as 2000
+   *  - negative year is not accepted
+   *  - @dayOfYear should be greater than 1
+   *  - if @dayOfYear is greater than 365/366, calculation goes to the next year(s)
+   *
+   * @param yearExpr year
+   * @param dayOfYearExp day of the @year, starting from 1
+   * @return Date - ExprDateValue object with LocalDate
+   */
+  private ExprValue exprMakeDate(ExprValue yearExpr, ExprValue dayOfYearExp) {
+    var year = Math.round(yearExpr.doubleValue());
+    var dayOfYear = Math.round(dayOfYearExp.doubleValue());
+    // We need to do this to comply with MySQL
+    if (0 >= dayOfYear || 0 > year) {
+      return ExprNullValue.of();
+    }
+    if (0 == year) {
+      year = 2000;
+    }
+    return new ExprDateValue(LocalDate.ofYearDay((int)year, 1).plusDays(dayOfYear - 1));
+  }
+
+  /**
+   * Following MySQL, function receives arguments of type double. @hour and @minute are rounded,
+   * while @second used as is, including fraction part.
+   * @param hourExpr hour
+   * @param minuteExpr minute
+   * @param secondExpr second
+   * @return Time - ExprTimeValue object with LocalTime
+   */
+  private ExprValue exprMakeTime(ExprValue hourExpr, ExprValue minuteExpr, ExprValue secondExpr) {
+    var hour = Math.round(hourExpr.doubleValue());
+    var minute = Math.round(minuteExpr.doubleValue());
+    var second = secondExpr.doubleValue();
+    if (0 > hour || 0 > minute || 0 > second) {
+      return ExprNullValue.of();
+    }
+    return new ExprTimeValue(LocalTime.parse(String.format("%02d:%02d:%012.9f",
+        hour, minute, second), DateTimeFormatter.ISO_TIME));
+  }
+
+  /**
    * Microsecond implementation for ExprValue.
    *
    * @param time ExprValue of Time/String type.
