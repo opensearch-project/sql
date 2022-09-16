@@ -106,7 +106,7 @@ class OpenSearchNodeClientTest {
         .exists(any(IndicesExistsRequest.class)).actionGet())
         .thenReturn(new IndicesExistsResponse(true));
 
-    assertTrue(client.isExist("test"));
+    assertTrue(client.exists("test"));
   }
 
   @Test
@@ -116,14 +116,14 @@ class OpenSearchNodeClientTest {
         .exists(any(IndicesExistsRequest.class)).actionGet())
         .thenReturn(new IndicesExistsResponse(false));
 
-    assertFalse(client.isExist(indexName));
+    assertFalse(client.exists(indexName));
   }
 
   @Test
   void isIndexExistWithException() {
     when(nodeClient.admin().indices().exists(any())).thenThrow(RuntimeException.class);
 
-    assertThrows(IllegalStateException.class, () -> client.isExist("test"));
+    assertThrows(IllegalStateException.class, () -> client.exists("test"));
   }
 
   @Test

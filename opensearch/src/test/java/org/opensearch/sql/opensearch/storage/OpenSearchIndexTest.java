@@ -104,9 +104,9 @@ class OpenSearchIndexTest {
 
   @Test
   void isExist() {
-    when(client.isExist(indexName)).thenReturn(true);
+    when(client.exists(indexName)).thenReturn(true);
 
-    assertTrue(index.isExist());
+    assertTrue(index.exists());
   }
 
   @Test

@@ -52,7 +52,7 @@ public class AnalyzerTestBase {
   protected Table table() {
     return new Table() {
       @Override
-      public boolean isExist() {
+      public boolean exists() {
         return true;
       }
 

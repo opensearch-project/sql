@@ -27,7 +27,7 @@ public interface OpenSearchClient {
    * @param indexName index name
    * @return true if exists, otherwise false
    */
-  boolean isExist(String indexName);
+  boolean exists(String indexName);
 
   /**
    * Create OpenSearch index based on the given mappings.

@@ -120,7 +120,7 @@ public class PlannerTest extends PhysicalPlanTestBase {
   protected class MockTable extends LogicalPlanNodeVisitor<PhysicalPlan, Object> implements Table {
 
     @Override
-    public boolean isExist() {
+    public boolean exists() {
       return true;
     }
 

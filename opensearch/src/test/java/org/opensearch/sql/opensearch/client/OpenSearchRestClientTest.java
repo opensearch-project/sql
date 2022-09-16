@@ -95,7 +95,7 @@ class OpenSearchRestClientTest {
         .exists(any(), any())) // use any() because missing equals() in GetIndexRequest
         .thenReturn(true);
 
-    assertTrue(client.isExist("test"));
+    assertTrue(client.exists("test"));
   }
 
   @Test
@@ -104,14 +104,14 @@ class OpenSearchRestClientTest {
         .exists(any(), any())) // use any() because missing equals() in GetIndexRequest
         .thenReturn(false);
 
-    assertFalse(client.isExist("test"));
+    assertFalse(client.exists("test"));
   }
 
   @Test
   void isIndexExistWithException() throws IOException {
     when(restClient.indices().exists(any(), any())).thenThrow(IOException.class);
 
-    assertThrows(IllegalStateException.class, () -> client.isExist("test"));
+    assertThrows(IllegalStateException.class, () -> client.exists("test"));
   }
 
   @Test

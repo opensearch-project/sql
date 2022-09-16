@@ -63,7 +63,7 @@ class OpenSearchSystemIndexTest {
   @Test
   void testIsExist() {
     Table systemIndex = new OpenSearchSystemIndex(client, TABLE_INFO);
-    assertTrue(systemIndex.isExist());
+    assertTrue(systemIndex.exists());
   }
 
   @Test

@@ -64,7 +64,7 @@ public class TestConfig {
       public Table getTable(String name) {
         return new Table() {
           @Override
-          public boolean isExist() {
+          public boolean exists() {
             return true;
           }
 

@@ -54,7 +54,7 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   }
 
   @Override
-  public boolean isExist(String indexName) {
+  public boolean exists(String indexName) {
     try {
       IndicesExistsResponse checkExistResponse = client.admin().indices()
           .exists(new IndicesExistsRequest(indexName)).actionGet();

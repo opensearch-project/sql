@@ -20,7 +20,7 @@ public interface Table {
    * Check if current table exists.
    * @return true if exists, otherwise false
    */
-  boolean isExist();
+  boolean exists();
 
   /**
    * Create table given table schema.

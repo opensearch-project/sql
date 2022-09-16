@@ -75,8 +75,8 @@ public class OpenSearchIndex implements Table {
   }
 
   @Override
-  public boolean isExist() {
-    return client.isExist(indexName.toString());
+  public boolean exists() {
+    return client.exists(indexName.toString());
   }
 
   @Override

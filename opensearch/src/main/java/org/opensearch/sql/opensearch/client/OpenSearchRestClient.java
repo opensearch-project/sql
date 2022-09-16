@@ -48,7 +48,7 @@ public class OpenSearchRestClient implements OpenSearchClient {
   private final RestHighLevelClient client;
 
   @Override
-  public boolean isExist(String indexName) {
+  public boolean exists(String indexName) {
     try {
       return client.indices().exists(
           new GetIndexRequest(indexName), RequestOptions.DEFAULT);
