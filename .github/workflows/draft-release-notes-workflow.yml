@@ -1,14 +1,18 @@
 name: Release Drafter
 
 on:
+  pull_request:
+    types: [opened, reopened]
   push:
     branches:
-      - main
+      - 'main'
+      - '[1-9]+.[0-9x]+'
+      - '[1-9]+.[0-9x]+.[0-9x]+'
 
 jobs:
   update_release_draft:
     name: Update draft release notes
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       # Drafts your next Release notes as Pull Requests are merged into "develop"
       - name: Update draft release notes

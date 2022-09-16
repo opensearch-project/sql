@@ -1,6 +1,8 @@
 name: Build connectors for BI tools
 
 on:
+  pull_request:
+    types: [opened, reopened]
   push:
     paths:
       - 'bi-connectors/PowerBIConnector/**'
@@ -9,7 +11,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
     - name: Pack Tableau JDBC connector

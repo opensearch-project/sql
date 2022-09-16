@@ -1,14 +1,26 @@
 name: Link Checker
+
 on:
-  push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
+    types: [opened, reopened]
+  push:
+    branches:
+      - 'main'
+      - '[1-9]+.[0-9x]+'
+      - '[1-9]+.[0-9x]+.[0-9x]+'
+    paths:
+      - '**/*.pdf'
+      - '**/*.pnj'
+      - '**/*.jpg'
+      - '**/*.json'
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.rst'
 
 jobs:
   linkchecker:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
       - uses: actions/checkout@v2
