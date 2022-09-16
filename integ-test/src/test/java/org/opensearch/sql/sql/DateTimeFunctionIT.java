@@ -214,6 +214,51 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testDateTime() throws IOException {
+    var result = executeQuery(String.format(
+        "SELECT DATETIME('2008-12-25 05:30:00+00:00', 'America/Los_Angeles')"));
+    verifySchema(result,
+        schema("DATETIME('2008-12-25 05:30:00+00:00', 'America/Los_Angeles')", null, "datetime"));
+    verifyDataRows(result, rows("2008-12-24 21:30:00"));
+
+    result = executeQuery(String.format(
+        "SELECT DATETIME('2008-12-25 05:30:00+00:00', '+01:00')"));
+    verifySchema(result,
+        schema("DATETIME('2008-12-25 05:30:00+00:00', '+01:00')", null, "datetime"));
+    verifyDataRows(result, rows("2008-12-25 06:30:00"));
+
+    result = executeQuery(String.format(
+        "SELECT DATETIME('2008-12-25 05:30:00-05:00', '+05:00')"));
+    verifySchema(result,
+        schema("DATETIME('2008-12-25 05:30:00-05:00', '+05:00')", null, "datetime"));
+    verifyDataRows(result, rows("2008-12-25 15:30:00"));
+
+    result = executeQuery(String.format(
+        "SELECT DATETIME('2004-02-28 23:00:00-10:00', '+10:00')"));
+    verifySchema(result,
+        schema("DATETIME('2004-02-28 23:00:00-10:00', '+10:00')", null, "datetime"));
+    verifyDataRows(result, rows("2004-02-29 19:00:00"));
+
+    result = executeQuery(String.format(
+        "SELECT DATETIME('2003-02-28 23:00:00-10:00', '+10:00')"));
+    verifySchema(result,
+        schema("DATETIME('2003-02-28 23:00:00-10:00', '+10:00')", null, "datetime"));
+    verifyDataRows(result, rows("2003-03-01 19:00:00"));
+
+    result = executeQuery(String.format(
+        "SELECT DATETIME('2008-12-25 05:30:00+00:00', '+14:00')"));
+    verifySchema(result,
+        schema("DATETIME('2008-12-25 05:30:00+00:00', '+14:00')", null, "datetime"));
+    verifyDataRows(result, rows("2008-12-25 19:30:00"));
+
+    result = executeQuery(String.format(
+        "SELECT DATETIME('2008-01-01 02:00:00+10:00', '-10:00')"));
+    verifySchema(result,
+        schema("DATETIME('2008-01-01 02:00:00+10:00', '-10:00')", null, "datetime"));
+    verifyDataRows(result, rows("2007-12-31 06:00:00"));
+  }
+
+  @Test
   public void testDay() throws IOException {
     JSONObject result = executeQuery("select day(date('2020-09-16'))");
     verifySchema(result, schema("day(date('2020-09-16'))", null, "integer"));
