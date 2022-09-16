@@ -64,6 +64,7 @@ public class DateTimeFunction {
     repository.register(adddate());
     repository.register(convert_tz());
     repository.register(date());
+    repository.register(datetime());
     repository.register(date_add());
     repository.register(date_sub());
     repository.register(day());
@@ -99,7 +100,7 @@ public class DateTimeFunction {
    * (STRING/DATETIME/TIMESTAMP, LONG) -> DATETIME
    */
 
-  private DefaultFunctionResolver add_date(FunctionName functionName) {
+  private FunctionResolver add_date(FunctionName functionName) {
     return define(functionName,
         impl(nullMissingHandling(DateTimeFunction::exprAddDateInterval),
             DATETIME, STRING, INTERVAL),
@@ -115,7 +116,7 @@ public class DateTimeFunction {
     );
   }
 
-  private DefaultFunctionResolver adddate() {
+  private FunctionResolver adddate() {
     return add_date(BuiltinFunctionName.ADDDATE.getName());
   }
 
@@ -131,7 +132,7 @@ public class DateTimeFunction {
    * Also to construct a date type. The supported signatures:
    * STRING/DATE/DATETIME/TIMESTAMP -> DATE
    */
-  private DefaultFunctionResolver date() {
+  private FunctionResolver date() {
     return define(BuiltinFunctionName.DATE.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprDate), DATE, STRING),
         impl(nullMissingHandling(DateTimeFunction::exprDate), DATE, DATE),
@@ -139,7 +140,20 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprDate), DATE, TIMESTAMP));
   }
 
-  private DefaultFunctionResolver date_add() {
+  /**
+   * Specify a datetime with time zone field and a time zone to convert to.
+   * Returns a local date time.
+   * (STRING, STRING) -> DATETIME
+
+   */
+  private FunctionResolver datetime() {
+    return define(BuiltinFunctionName.DATETIME.getName(),
+        impl(nullMissingHandling(DateTimeFunction::exprDateTime),
+            DATETIME, STRING, STRING)
+    );
+  }
+
+  private FunctionResolver date_add() {
     return add_date(BuiltinFunctionName.DATE_ADD.getName());
   }
 
@@ -150,7 +164,7 @@ public class DateTimeFunction {
    * (DATE, LONG) -> DATE
    * (STRING/DATETIME/TIMESTAMP, LONG) -> DATETIME
    */
-  private DefaultFunctionResolver sub_date(FunctionName functionName) {
+  private FunctionResolver sub_date(FunctionName functionName) {
     return define(functionName,
         impl(nullMissingHandling(DateTimeFunction::exprSubDateInterval),
             DATETIME, STRING, INTERVAL),
@@ -166,14 +180,14 @@ public class DateTimeFunction {
     );
   }
 
-  private DefaultFunctionResolver date_sub() {
+  private FunctionResolver date_sub() {
     return sub_date(BuiltinFunctionName.DATE_SUB.getName());
   }
 
   /**
    * DAY(STRING/DATE/DATETIME/TIMESTAMP). return the day of the month (1-31).
    */
-  private DefaultFunctionResolver day() {
+  private FunctionResolver day() {
     return define(BuiltinFunctionName.DAY.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfMonth), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfMonth), INTEGER, DATETIME),
@@ -187,7 +201,7 @@ public class DateTimeFunction {
    * return the name of the weekday for date, including Monday, Tuesday, Wednesday,
    * Thursday, Friday, Saturday and Sunday.
    */
-  private DefaultFunctionResolver dayName() {
+  private FunctionResolver dayName() {
     return define(BuiltinFunctionName.DAYNAME.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprDayName), STRING, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprDayName), STRING, DATETIME),
@@ -199,7 +213,7 @@ public class DateTimeFunction {
   /**
    * DAYOFMONTH(STRING/DATE/DATETIME/TIMESTAMP). return the day of the month (1-31).
    */
-  private DefaultFunctionResolver dayOfMonth() {
+  private FunctionResolver dayOfMonth() {
     return define(BuiltinFunctionName.DAYOFMONTH.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfMonth), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfMonth), INTEGER, DATETIME),
@@ -212,7 +226,7 @@ public class DateTimeFunction {
    * DAYOFWEEK(STRING/DATE/DATETIME/TIMESTAMP).
    * return the weekday index for date (1 = Sunday, 2 = Monday, …, 7 = Saturday).
    */
-  private DefaultFunctionResolver dayOfWeek() {
+  private FunctionResolver dayOfWeek() {
     return define(BuiltinFunctionName.DAYOFWEEK.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfWeek), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfWeek), INTEGER, DATETIME),
@@ -225,7 +239,7 @@ public class DateTimeFunction {
    * DAYOFYEAR(STRING/DATE/DATETIME/TIMESTAMP).
    * return the day of the year for date (1-366).
    */
-  private DefaultFunctionResolver dayOfYear() {
+  private FunctionResolver dayOfYear() {
     return define(BuiltinFunctionName.DAYOFYEAR.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfYear), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfYear), INTEGER, DATETIME),
@@ -237,7 +251,7 @@ public class DateTimeFunction {
   /**
    * FROM_DAYS(LONG). return the date value given the day number N.
    */
-  private DefaultFunctionResolver from_days() {
+  private FunctionResolver from_days() {
     return define(BuiltinFunctionName.FROM_DAYS.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprFromDays), DATE, LONG));
   }
@@ -245,7 +259,7 @@ public class DateTimeFunction {
   /**
    * HOUR(STRING/TIME/DATETIME/TIMESTAMP). return the hour value for time.
    */
-  private DefaultFunctionResolver hour() {
+  private FunctionResolver hour() {
     return define(BuiltinFunctionName.HOUR.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprHour), INTEGER, STRING),
         impl(nullMissingHandling(DateTimeFunction::exprHour), INTEGER, TIME),
@@ -267,7 +281,7 @@ public class DateTimeFunction {
   /**
    * MICROSECOND(STRING/TIME/DATETIME/TIMESTAMP). return the microsecond value for time.
    */
-  private DefaultFunctionResolver microsecond() {
+  private FunctionResolver microsecond() {
     return define(BuiltinFunctionName.MICROSECOND.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprMicrosecond), INTEGER, STRING),
         impl(nullMissingHandling(DateTimeFunction::exprMicrosecond), INTEGER, TIME),
@@ -279,7 +293,7 @@ public class DateTimeFunction {
   /**
    * MINUTE(STRING/TIME/DATETIME/TIMESTAMP). return the minute value for time.
    */
-  private DefaultFunctionResolver minute() {
+  private FunctionResolver minute() {
     return define(BuiltinFunctionName.MINUTE.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprMinute), INTEGER, STRING),
         impl(nullMissingHandling(DateTimeFunction::exprMinute), INTEGER, TIME),
@@ -291,7 +305,7 @@ public class DateTimeFunction {
   /**
    * MONTH(STRING/DATE/DATETIME/TIMESTAMP). return the month for date (1-12).
    */
-  private DefaultFunctionResolver month() {
+  private FunctionResolver month() {
     return define(BuiltinFunctionName.MONTH.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprMonth), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprMonth), INTEGER, DATETIME),
@@ -303,7 +317,7 @@ public class DateTimeFunction {
   /**
    * MONTHNAME(STRING/DATE/DATETIME/TIMESTAMP). return the full name of the month for date.
    */
-  private DefaultFunctionResolver monthName() {
+  private FunctionResolver monthName() {
     return define(BuiltinFunctionName.MONTHNAME.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprMonthName), STRING, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprMonthName), STRING, DATETIME),
@@ -315,7 +329,7 @@ public class DateTimeFunction {
   /**
    * QUARTER(STRING/DATE/DATETIME/TIMESTAMP). return the month for date (1-4).
    */
-  private DefaultFunctionResolver quarter() {
+  private FunctionResolver quarter() {
     return define(BuiltinFunctionName.QUARTER.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprQuarter), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprQuarter), INTEGER, DATETIME),
@@ -327,7 +341,7 @@ public class DateTimeFunction {
   /**
    * SECOND(STRING/TIME/DATETIME/TIMESTAMP). return the second value for time.
    */
-  private DefaultFunctionResolver second() {
+  private FunctionResolver second() {
     return define(BuiltinFunctionName.SECOND.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprSecond), INTEGER, STRING),
         impl(nullMissingHandling(DateTimeFunction::exprSecond), INTEGER, TIME),
@@ -336,7 +350,7 @@ public class DateTimeFunction {
     );
   }
 
-  private DefaultFunctionResolver subdate() {
+  private FunctionResolver subdate() {
     return sub_date(BuiltinFunctionName.SUBDATE.getName());
   }
 
@@ -345,7 +359,7 @@ public class DateTimeFunction {
    * Also to construct a time type. The supported signatures:
    * STRING/DATE/DATETIME/TIME/TIMESTAMP -> TIME
    */
-  private DefaultFunctionResolver time() {
+  private FunctionResolver time() {
     return define(BuiltinFunctionName.TIME.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprTime), TIME, STRING),
         impl(nullMissingHandling(DateTimeFunction::exprTime), TIME, DATE),
@@ -357,7 +371,7 @@ public class DateTimeFunction {
   /**
    * TIME_TO_SEC(STRING/TIME/DATETIME/TIMESTAMP). return the time argument, converted to seconds.
    */
-  private DefaultFunctionResolver time_to_sec() {
+  private FunctionResolver time_to_sec() {
     return define(BuiltinFunctionName.TIME_TO_SEC.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprTimeToSec), LONG, STRING),
         impl(nullMissingHandling(DateTimeFunction::exprTimeToSec), LONG, TIME),
@@ -371,7 +385,7 @@ public class DateTimeFunction {
    * Also to construct a date type. The supported signatures:
    * STRING/DATE/DATETIME/TIMESTAMP -> DATE
    */
-  private DefaultFunctionResolver timestamp() {
+  private FunctionResolver timestamp() {
     return define(BuiltinFunctionName.TIMESTAMP.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprTimestamp), TIMESTAMP, STRING),
         impl(nullMissingHandling(DateTimeFunction::exprTimestamp), TIMESTAMP, DATE),
@@ -382,7 +396,7 @@ public class DateTimeFunction {
   /**
    * TO_DAYS(STRING/DATE/DATETIME/TIMESTAMP). return the day number of the given date.
    */
-  private DefaultFunctionResolver to_days() {
+  private FunctionResolver to_days() {
     return define(BuiltinFunctionName.TO_DAYS.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprToDays), LONG, STRING),
         impl(nullMissingHandling(DateTimeFunction::exprToDays), LONG, TIMESTAMP),
@@ -393,7 +407,7 @@ public class DateTimeFunction {
   /**
    * WEEK(DATE[,mode]). return the week number for date.
    */
-  private DefaultFunctionResolver week() {
+  private FunctionResolver week() {
     return define(BuiltinFunctionName.WEEK.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprWeekWithoutMode), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprWeekWithoutMode), INTEGER, DATETIME),
@@ -409,7 +423,7 @@ public class DateTimeFunction {
   /**
    * YEAR(STRING/DATE/DATETIME/TIMESTAMP). return the year for date (1000-9999).
    */
-  private DefaultFunctionResolver year() {
+  private FunctionResolver year() {
     return define(BuiltinFunctionName.YEAR.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprYear), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprYear), INTEGER, DATETIME),
@@ -426,7 +440,7 @@ public class DateTimeFunction {
    * (DATETIME, STRING) -> STRING
    * (TIMESTAMP, STRING) -> STRING
    */
-  private DefaultFunctionResolver date_format() {
+  private FunctionResolver date_format() {
     return define(BuiltinFunctionName.DATE_FORMAT.getName(),
         impl(nullMissingHandling(DateTimeFormatterUtil::getFormattedDate),
             STRING, STRING, STRING),
@@ -521,6 +535,24 @@ public class DateTimeFunction {
       return new ExprDateValue(exprValue.dateValue());
     }
   }
+
+  /**
+   * DateTime implementation for ExprValue.
+   * @param dateTime ExprValue of String type.
+   * @return ExprValue of date type.
+   */
+  private ExprValue exprDateTime(ExprValue dateTime, ExprValue timeZone) {
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ssz");
+
+    ZoneId zTz = ZoneId.of(timeZone.stringValue());
+
+    ZonedDateTime zdtWithZoneOffset = ZonedDateTime
+        .parse(dateTime.stringValue(), formatter);
+
+    return new ExprDatetimeValue(
+        zdtWithZoneOffset.withZoneSameInstant(zTz).toLocalDateTime());
+  }
+
 
   /**
    * Name of the Weekday implementation for ExprValue.
