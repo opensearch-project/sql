@@ -9,7 +9,6 @@ import static org.opensearch.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
 import static org.opensearch.rest.RestStatus.OK;
 import static org.opensearch.rest.RestStatus.SERVICE_UNAVAILABLE;
-import static org.opensearch.sql.opensearch.executor.Scheduler.schedule;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
@@ -112,43 +111,42 @@ public class RestPPLQueryAction extends BaseRestHandler {
             PPLQueryRequestFactory.getPPLRequest(request)
     );
 
-    return channel -> schedule(nodeClient, () ->
-      nodeClient.execute(
-          PPLQueryAction.INSTANCE,
-          transportPPLQueryRequest,
-          new ActionListener<>() {
-            @Override
-            public void onResponse(TransportPPLQueryResponse response) {
-              sendResponse(channel, OK, response.getResult());
-            }
+    return channel ->
+        nodeClient.execute(
+            PPLQueryAction.INSTANCE,
+            transportPPLQueryRequest,
+            new ActionListener<>() {
+              @Override
+              public void onResponse(TransportPPLQueryResponse response) {
+                sendResponse(channel, OK, response.getResult());
+              }
 
-            @Override
-            public void onFailure(Exception e) {
-              if (transportPPLQueryRequest.isExplainRequest()) {
-                LOG.error("Error happened during explain", e);
-                sendResponse(
-                    channel,
-                    INTERNAL_SERVER_ERROR,
-                    "Failed to explain the query due to error: " + e.getMessage());
-              } else if (e instanceof IllegalAccessException) {
-                reportError(channel, e, BAD_REQUEST);
-              } else {
-                LOG.error("Error happened during query handling", e);
-                if (isClientError(e)) {
-                  Metrics.getInstance()
-                      .getNumericalMetric(MetricName.PPL_FAILED_REQ_COUNT_CUS)
-                      .increment();
+              @Override
+              public void onFailure(Exception e) {
+                if (transportPPLQueryRequest.isExplainRequest()) {
+                  LOG.error("Error happened during explain", e);
+                  sendResponse(
+                      channel,
+                      INTERNAL_SERVER_ERROR,
+                      "Failed to explain the query due to error: " + e.getMessage());
+                } else if (e instanceof IllegalAccessException) {
                   reportError(channel, e, BAD_REQUEST);
                 } else {
-                  Metrics.getInstance()
-                      .getNumericalMetric(MetricName.PPL_FAILED_REQ_COUNT_SYS)
-                      .increment();
-                  reportError(channel, e, SERVICE_UNAVAILABLE);
+                  LOG.error("Error happened during query handling", e);
+                  if (isClientError(e)) {
+                    Metrics.getInstance()
+                        .getNumericalMetric(MetricName.PPL_FAILED_REQ_COUNT_CUS)
+                        .increment();
+                    reportError(channel, e, BAD_REQUEST);
+                  } else {
+                    Metrics.getInstance()
+                        .getNumericalMetric(MetricName.PPL_FAILED_REQ_COUNT_SYS)
+                        .increment();
+                    reportError(channel, e, SERVICE_UNAVAILABLE);
+                  }
                 }
               }
-            }
-          }
-      ));
+            });
   }
 
   private void sendResponse(RestChannel channel, RestStatus status, String content) {
