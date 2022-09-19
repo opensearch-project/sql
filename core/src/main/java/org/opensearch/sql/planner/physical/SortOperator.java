@@ -32,7 +32,7 @@ import org.opensearch.sql.planner.physical.SortOperator.Sorter.SorterBuilder;
  * The count indicate how many sorted result should been return.
  */
 @ToString
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 public class SortOperator extends PhysicalPlan {
   @Getter
   private final PhysicalPlan input;

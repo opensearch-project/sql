@@ -26,7 +26,7 @@ import org.opensearch.sql.storage.bindingtuple.BindingTuple;
  * DedupeOperator#dedupeList} The result order follow the input order.
  */
 @Getter
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 public class DedupeOperator extends PhysicalPlan {
   @Getter
   private final PhysicalPlan input;

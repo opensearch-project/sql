@@ -28,7 +28,7 @@ import org.opensearch.sql.data.model.ExprValue;
 @RequiredArgsConstructor
 @Getter
 @ToString
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 public class LimitOperator extends PhysicalPlan {
   private final PhysicalPlan input;
   private final Integer limit;
