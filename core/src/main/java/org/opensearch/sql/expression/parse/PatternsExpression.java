@@ -6,6 +6,7 @@
 package org.opensearch.sql.expression.parse;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -27,9 +28,12 @@ public class PatternsExpression extends ParseExpression {
    */
   public static final String DEFAULT_NEW_FIELD = "patterns_field";
 
-  private static final Pattern DEFAULT_IGNORED_CHARS = Pattern.compile("[a-zA-Z\\d]");
+  private static final ImmutableSet<Character> DEFAULT_IGNORED_CHARS = ImmutableSet.copyOf(
+      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".chars()
+          .mapToObj(c -> (char) c).toArray(Character[]::new));
+  private final boolean useCustomPattern;
   @EqualsAndHashCode.Exclude
-  private final Pattern pattern;
+  private Pattern pattern;
 
   /**
    * PatternsExpression.
@@ -41,13 +45,28 @@ public class PatternsExpression extends ParseExpression {
   public PatternsExpression(Expression sourceField, Expression pattern, Expression identifier) {
     super("patterns", sourceField, pattern, identifier);
     String patternStr = pattern.valueOf(null).stringValue();
-    this.pattern = patternStr.isEmpty() ? DEFAULT_IGNORED_CHARS : Pattern.compile(patternStr);
+    useCustomPattern = !patternStr.isEmpty();
+    if (useCustomPattern) {
+      this.pattern = Pattern.compile(patternStr);
+    }
   }
 
   @Override
   ExprValue parseValue(ExprValue value) throws ExpressionEvaluationException {
     String rawString = value.stringValue();
-    return new ExprStringValue(pattern.matcher(rawString).replaceAll(""));
+    if (useCustomPattern) {
+      return new ExprStringValue(pattern.matcher(rawString).replaceAll(""));
+    }
+
+    int length = rawString.length();
+    StringBuilder sb = new StringBuilder(length);
+    for (int i = 0; i < length; i++) {
+      char c = rawString.charAt(i);
+      if (!DEFAULT_IGNORED_CHARS.contains(c)) {
+        sb.append(c);
+      }
+    }
+    return new ExprStringValue(sb.toString());
   }
 
   /**
