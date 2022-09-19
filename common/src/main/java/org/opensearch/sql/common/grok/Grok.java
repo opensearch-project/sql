@@ -55,11 +55,6 @@ public class Grok implements Serializable {
   public final Map<String, IConverter<? extends Object>> converters;
 
   /**
-   * {@code Grok} discovery.
-   */
-  private Discovery disco;
-
-  /**
    * only use in grok discovery.
    */
   private String savedPattern = "";
@@ -183,20 +178,5 @@ public class Grok implements Serializable {
     }
 
     return Match.EMPTY;
-  }
-
-  /**
-   * {@code Grok} will try to find the best expression that will match your input.
-   * {@link Discovery}
-   *
-   * @param input : Single line of log
-   * @return the Grok pattern
-   */
-  public String discover(String input) {
-
-    if (disco == null) {
-      disco = new Discovery(this);
-    }
-    return disco.discover(input);
   }
 }
