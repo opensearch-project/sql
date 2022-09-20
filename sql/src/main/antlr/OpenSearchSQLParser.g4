@@ -300,7 +300,7 @@ nullNotnull
     ;
 
 functionCall
-    : scalarFunctionName LR_BRACKET functionArgs? RR_BRACKET        #scalarFunctionCall
+    : scalarFunctionName LR_BRACKET functionArgs RR_BRACKET         #scalarFunctionCall
     | specificFunction                                              #specificFunctionCall
     | windowFunctionClause                                          #windowFunctionCall
     | aggregateFunction                                             #aggregateFunctionCall
@@ -311,7 +311,7 @@ functionCall
     ;
 
 constantFunction
-    : constantFunctionName LR_BRACKET functionArgs? RR_BRACKET
+    : constantFunctionName LR_BRACKET functionArgs RR_BRACKET
     ;
 
 highlightFunction
