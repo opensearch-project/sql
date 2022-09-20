@@ -662,6 +662,11 @@ public class DSL {
         .compile(BuiltinFunctionName.CAST_TO_DATETIME.getName(), Arrays.asList(value));
   }
 
+  public FunctionExpression typeof(Expression value) {
+    return (FunctionExpression) repository
+        .compile(BuiltinFunctionName.TYPEOF.getName(), Arrays.asList(value));
+  }
+
   public FunctionExpression match(Expression... args) {
     return compile(BuiltinFunctionName.MATCH, args);
   }

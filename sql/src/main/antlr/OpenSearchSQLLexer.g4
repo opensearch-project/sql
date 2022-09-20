@@ -315,6 +315,7 @@ STATS:                              'STATS';
 TERM:                               'TERM';
 TERMS:                              'TERMS';
 TOPHITS:                            'TOPHITS';
+TYPEOF:                             'TYPEOF';
 WEEK_OF_YEAR:                       'WEEK_OF_YEAR';
 WILDCARDQUERY:                      'WILDCARDQUERY';
 WILDCARD_QUERY:                     'WILDCARD_QUERY';

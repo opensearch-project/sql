@@ -394,6 +394,7 @@ constantFunctionName
 conditionFunctionBase
     : LIKE
     | IF | ISNULL | ISNOTNULL | IFNULL | NULLIF
+    | TYPEOF
     ;
 
 textFunctionBase

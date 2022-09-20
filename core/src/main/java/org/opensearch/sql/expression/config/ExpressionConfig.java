@@ -16,6 +16,7 @@ import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.expression.operator.arthmetic.ArithmeticFunction;
 import org.opensearch.sql.expression.operator.arthmetic.MathematicalFunction;
 import org.opensearch.sql.expression.operator.convert.TypeCastOperator;
+import org.opensearch.sql.expression.operator.convert.TypeOfOperator;
 import org.opensearch.sql.expression.operator.predicate.BinaryPredicateOperator;
 import org.opensearch.sql.expression.operator.predicate.UnaryPredicateOperator;
 import org.opensearch.sql.expression.text.TextFunction;
@@ -45,6 +46,7 @@ public class ExpressionConfig {
     WindowFunctions.register(builtinFunctionRepository);
     TextFunction.register(builtinFunctionRepository);
     TypeCastOperator.register(builtinFunctionRepository);
+    TypeOfOperator.register(builtinFunctionRepository);
     OpenSearchFunctions.register(builtinFunctionRepository);
     return builtinFunctionRepository;
   }

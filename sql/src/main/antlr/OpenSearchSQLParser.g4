@@ -413,7 +413,7 @@ textFunctionName
     ;
 
 flowControlFunctionName
-    : IF | IFNULL | NULLIF | ISNULL
+    : IF | IFNULL | NULLIF | ISNULL | TYPEOF
     ;
 
 singleFieldRelevanceFunctionName
