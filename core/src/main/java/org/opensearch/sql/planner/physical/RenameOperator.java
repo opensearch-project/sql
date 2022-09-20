@@ -28,7 +28,7 @@ import org.opensearch.sql.storage.bindingtuple.BindingTuple;
  * The mapping maintain the relation between source and target.
  * it means BindingTuple.resolve(target) = BindingTuple.resolve(source).
  */
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 @ToString
 public class RenameOperator extends PhysicalPlan {
   @Getter
