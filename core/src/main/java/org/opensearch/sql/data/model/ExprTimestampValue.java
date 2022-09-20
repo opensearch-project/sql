@@ -6,15 +6,15 @@
 
 package org.opensearch.sql.data.model;
 
+import static org.opensearch.sql.utils.DateFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS;
+import static org.opensearch.sql.utils.DateFormatters.DATE_TIME_FORMATTER_WITHOUT_NANO;
+
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
-import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
@@ -31,34 +31,15 @@ public class ExprTimestampValue extends AbstractExprValue {
    * todo. only support UTC now.
    */
   private static final ZoneId ZONE = ZoneId.of("UTC");
-  /**
-   * todo. only support timestamp in format yyyy-MM-dd HH:mm:ss.
-   */
-  private static final DateTimeFormatter FORMATTER_WITHOUT_NANO = DateTimeFormatter
-      .ofPattern("yyyy-MM-dd HH:mm:ss");
+
   private final Instant timestamp;
-
-  private static final DateTimeFormatter FORMATTER_VARIABLE_NANOS;
-  private static final int MIN_FRACTION_SECONDS = 0;
-  private static final int MAX_FRACTION_SECONDS = 9;
-
-  static {
-    FORMATTER_VARIABLE_NANOS = new DateTimeFormatterBuilder()
-        .appendPattern("yyyy-MM-dd HH:mm:ss")
-        .appendFraction(
-                ChronoField.NANO_OF_SECOND,
-                MIN_FRACTION_SECONDS,
-                MAX_FRACTION_SECONDS,
-                true)
-        .toFormatter();
-  }
 
   /**
    * Constructor.
    */
   public ExprTimestampValue(String timestamp) {
     try {
-      this.timestamp = LocalDateTime.parse(timestamp, FORMATTER_VARIABLE_NANOS)
+      this.timestamp = LocalDateTime.parse(timestamp, DATE_TIME_FORMATTER_VARIABLE_NANOS)
           .atZone(ZONE)
           .toInstant();
     } catch (DateTimeParseException e) {
@@ -70,9 +51,9 @@ public class ExprTimestampValue extends AbstractExprValue {
 
   @Override
   public String value() {
-    return timestamp.getNano() == 0 ? FORMATTER_WITHOUT_NANO.withZone(ZONE)
+    return timestamp.getNano() == 0 ? DATE_TIME_FORMATTER_WITHOUT_NANO.withZone(ZONE)
         .format(timestamp.truncatedTo(ChronoUnit.SECONDS))
-        : FORMATTER_VARIABLE_NANOS.withZone(ZONE).format(timestamp);
+        : DATE_TIME_FORMATTER_VARIABLE_NANOS.withZone(ZONE).format(timestamp);
   }
 
   @Override

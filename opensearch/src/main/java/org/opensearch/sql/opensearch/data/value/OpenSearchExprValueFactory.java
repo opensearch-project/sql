@@ -25,16 +25,12 @@ import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEA
 import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_IP;
 import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT;
 import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
-import static org.opensearch.sql.opensearch.data.value.OpenSearchDateFormatters.SQL_LITERAL_DATE_TIME_FORMAT;
-import static org.opensearch.sql.opensearch.data.value.OpenSearchDateFormatters.STRICT_DATE_OPTIONAL_TIME_FORMATTER;
-import static org.opensearch.sql.opensearch.data.value.OpenSearchDateFormatters.STRICT_HOUR_MINUTE_SECOND_FORMATTER;
+import static org.opensearch.sql.utils.DateFormatters.DATE_TIME_FORMATTER;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -80,13 +76,6 @@ public class OpenSearchExprValueFactory {
   @Getter
   @Setter
   private OpenSearchAggregationResponseParser parser;
-
-  private static final DateTimeFormatter DATE_TIME_FORMATTER =
-      new DateTimeFormatterBuilder()
-          .appendOptional(SQL_LITERAL_DATE_TIME_FORMAT)
-          .appendOptional(STRICT_DATE_OPTIONAL_TIME_FORMATTER)
-          .appendOptional(STRICT_HOUR_MINUTE_SECOND_FORMATTER)
-          .toFormatter();
 
   private static final String TOP_PATH = "";
 

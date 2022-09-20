@@ -6,7 +6,6 @@
 
 package org.opensearch.sql.expression.datetime;
 
-import static java.time.temporal.ChronoField.YEAR;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
@@ -19,6 +18,10 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.expression.function.FunctionDSL.define;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
+import static org.opensearch.sql.utils.DateFormatters.DATE_FORMATTER_LONG_YEAR;
+import static org.opensearch.sql.utils.DateFormatters.DATE_FORMATTER_SHORT_YEAR;
+import static org.opensearch.sql.utils.DateFormatters.DATE_TIME_FORMATTER_LONG_YEAR;
+import static org.opensearch.sql.utils.DateFormatters.DATE_TIME_FORMATTER_SHORT_YEAR;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -30,9 +33,7 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
-import java.time.format.ResolverStyle;
 import java.time.format.TextStyle;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
@@ -899,30 +900,6 @@ public class DateTimeFunction {
         //     If the argument includes a time part, it may optionally include a fractional
         //     seconds part.
 
-        var dateFormatShortYear = new DateTimeFormatterBuilder()
-            .appendValueReduced(YEAR, 2, 2, 1970)
-            .appendPattern("MMdd")
-            .toFormatter()
-            .withResolverStyle(ResolverStyle.STRICT);
-
-        var dateFormatLongYear = new DateTimeFormatterBuilder()
-            .appendValue(YEAR, 4)
-            .appendPattern("MMdd")
-            .toFormatter()
-            .withResolverStyle(ResolverStyle.STRICT);
-
-        var dateTimeFormatShortYear = new DateTimeFormatterBuilder()
-            .appendValueReduced(YEAR, 2, 2, 1970)
-            .appendPattern("MMddHHmmss")
-            .toFormatter()
-            .withResolverStyle(ResolverStyle.STRICT);
-
-        var dateTimeFormatLongYear = new DateTimeFormatterBuilder()
-            .appendValue(YEAR,4)
-            .appendPattern("MMddHHmmss")
-            .toFormatter()
-            .withResolverStyle(ResolverStyle.STRICT);
-
         var format = new DecimalFormat("0.#");
         format.setMinimumFractionDigits(0);
         format.setMaximumFractionDigits(6);
@@ -936,25 +913,25 @@ public class DateTimeFunction {
           input = input.substring(0, input.indexOf('.'));
         }
         try {
-          var res = LocalDateTime.parse(input, dateTimeFormatShortYear);
+          var res = LocalDateTime.parse(input, DATE_TIME_FORMATTER_SHORT_YEAR);
           return res.toEpochSecond(ZoneOffset.UTC) + fraction;
         } catch (DateTimeParseException ignored) {
           // nothing to do, try another format
         }
         try {
-          var res = LocalDateTime.parse(input, dateTimeFormatLongYear);
+          var res = LocalDateTime.parse(input, DATE_TIME_FORMATTER_LONG_YEAR);
           return res.toEpochSecond(ZoneOffset.UTC) + fraction;
         } catch (DateTimeParseException ignored) {
           // nothing to do, try another format
         }
         try {
-          var res = LocalDate.parse(input, dateFormatShortYear);
+          var res = LocalDate.parse(input, DATE_FORMATTER_SHORT_YEAR);
           return res.toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;
         } catch (DateTimeParseException ignored) {
           // nothing to do, try another format
         }
         try {
-          var res = LocalDate.parse(input, dateFormatLongYear);
+          var res = LocalDate.parse(input, DATE_FORMATTER_LONG_YEAR);
           return res.toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;
         } catch (DateTimeParseException ignored) {
           return null;
