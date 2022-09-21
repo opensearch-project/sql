@@ -27,7 +27,7 @@ import lombok.experimental.UtilityClass;
  * Reference org.opensearch.common.time.DateFormatters.
  */
 @UtilityClass
-public class DateFormatters {
+public class DateTimeFormatters {
 
   public static final DateTimeFormatter TIME_ZONE_FORMATTER_NO_COLON =
       new DateTimeFormatterBuilder()

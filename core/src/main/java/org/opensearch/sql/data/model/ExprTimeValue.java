@@ -6,7 +6,7 @@
 
 package org.opensearch.sql.data.model;
 
-import static org.opensearch.sql.utils.DateFormatters.TIME_FORMATTER_VARIABLE_NANOS;
+import static org.opensearch.sql.utils.DateTimeFormatters.TIME_FORMATTER_VARIABLE_NANOS;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;

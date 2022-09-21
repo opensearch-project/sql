@@ -25,7 +25,7 @@ import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEA
 import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_IP;
 import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT;
 import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
-import static org.opensearch.sql.utils.DateFormatters.DATE_TIME_FORMATTER;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

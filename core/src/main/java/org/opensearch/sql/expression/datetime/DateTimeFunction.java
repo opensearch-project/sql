@@ -18,10 +18,10 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.expression.function.FunctionDSL.define;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
-import static org.opensearch.sql.utils.DateFormatters.DATE_FORMATTER_LONG_YEAR;
-import static org.opensearch.sql.utils.DateFormatters.DATE_FORMATTER_SHORT_YEAR;
-import static org.opensearch.sql.utils.DateFormatters.DATE_TIME_FORMATTER_LONG_YEAR;
-import static org.opensearch.sql.utils.DateFormatters.DATE_TIME_FORMATTER_SHORT_YEAR;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_LONG_YEAR;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_SHORT_YEAR;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_LONG_YEAR;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_SHORT_YEAR;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
