@@ -52,6 +52,16 @@ public class AnalyzerTestBase {
   protected Table table() {
     return new Table() {
       @Override
+      public boolean exists() {
+        return true;
+      }
+
+      @Override
+      public void create(Map<String, ExprType> schema) {
+        throw new UnsupportedOperationException("Create table is not supported");
+      }
+
+      @Override
       public Map<String, ExprType> getFieldTypes() {
         return typeMapping();
       }

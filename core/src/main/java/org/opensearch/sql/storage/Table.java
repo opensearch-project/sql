@@ -17,6 +17,18 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 public interface Table {
 
   /**
+   * Check if current table exists.
+   * @return true if exists, otherwise false
+   */
+  boolean exists();
+
+  /**
+   * Create table given table schema.
+   * @param schema table schema
+   */
+  void create(Map<String, ExprType> schema);
+
+  /**
    * Get the {@link ExprType} for each field in the table.
    */
   Map<String, ExprType> getFieldTypes();
