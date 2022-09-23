@@ -75,3 +75,4 @@ jobs:
           integ-test/build/reports/**
           protocol/build/reports/**
           legacy/build/reports/**
+          plugin/build/reports/**
