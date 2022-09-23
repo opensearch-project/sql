@@ -1383,9 +1383,189 @@ NOW
 Description
 >>>>>>>>>>>
 
-Specifications:
+Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss.nnnnnn' format. The value is expressed in the cluster time zone.
+`NOW()` returns a constant time that indicates the time at which the statement began to execute. This differs from the behavior for `SYSDATE() <#sysdate>`_, which returns the exact time at which it executes.
 
-1. NOW() -> DATE
+Return type: DATETIME
+
+Specification: NOW() -> DATETIME
+
+Example::
+
+    > SELECT NOW() as value_1, NOW() as value_2;
+    fetched rows / total rows = 1/1
+    +----------------------------+----------------------------+
+    | value_1                    | value_2                    |
+    |----------------------------+----------------------------|
+    | 2022-08-02 15:39:05.173069 | 2022-08-02 15:39:05.173069 |
+    +----------------------------+----------------------------+
+
+
+CURRENT_TIMESTAMP
+-----------------
+
+Description
+>>>>>>>>>>>
+
+`CURRENT_TIMESTAMP` and `CURRENT_TIMESTAMP()` are synonyms for `NOW() <#now>`_.
+
+Example::
+
+    > SELECT CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP;
+    fetched rows / total rows = 1/1
+    +----------------------------+----------------------------+
+    | CURRENT_TIMESTAMP()        | CURRENT_TIMESTAMP          |
+    |----------------------------+----------------------------|
+    | 2022-08-02 15:54:19.209361 | 2022-08-02 15:54:19.209361 |
+    +----------------------------+----------------------------+
+
+
+LOCALTIMESTAMP
+--------------
+
+Description
+>>>>>>>>>>>
+
+`LOCALTIMESTAMP` and `LOCALTIMESTAMP()` are synonyms for `NOW() <#now>`_.
+
+Example::
+
+    > SELECT LOCALTIMESTAMP(), LOCALTIMESTAMP;
+    fetched rows / total rows = 1/1
+    +----------------------------+----------------------------+
+    | LOCALTIMESTAMP()           | LOCALTIMESTAMP             |
+    |----------------------------+----------------------------|
+    | 2022-08-02 15:54:19.209361 | 2022-08-02 15:54:19.209361 |
+    +----------------------------+----------------------------+
+
+
+LOCALTIME
+---------
+
+Description
+>>>>>>>>>>>
+
+`LOCALTIME` and `LOCALTIME()` are synonyms for `NOW() <#now>`_.
+
+Example::
+
+    > SELECT LOCALTIME(), LOCALTIME;
+    fetched rows / total rows = 1/1
+    +----------------------------+----------------------------+
+    | LOCALTIME()                | LOCALTIME                  |
+    |----------------------------+----------------------------|
+    | 2022-08-02 15:54:19.209361 | 2022-08-02 15:54:19.209361 |
+    +----------------------------+----------------------------+
+
+
+SYSDATE
+-------
+
+Description
+>>>>>>>>>>>
+
+Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss.nnnnnn'.
+SYSDATE() returns the time at which it executes. This differs from the behavior for `NOW() <#now>`_, which returns a constant time that indicates the time at which the statement began to execute.
+
+Return type: DATETIME
+
+Specification: SYSDATE() -> DATETIME
+
+Example::
+
+    > SELECT SYSDATE() as value_1, SYSDATE() as value_2;
+    fetched rows / total rows = 1/1
+    +----------------------------+----------------------------+
+    | value_1                    | value_2                    |
+    |----------------------------+----------------------------|
+    | 2022-08-02 15:39:05.173069 | 2022-08-02 15:39:05.173142 |
+    +----------------------------+----------------------------+
+
+
+CURTIME
+-------
+
+Description
+>>>>>>>>>>>
+
+Returns the current time as a value in 'hh:mm:ss.nnnnnn'.
+CURTIME() returns the time at which the statement began to execute as `NOW() <#now>`_ does.
+
+Return type: TIME
+
+Specification: CURTIME() -> TIME
+
+Example::
+
+    > SELECT CURTIME() as value_1, CURTIME()  as value_2;
+    fetched rows / total rows = 1/1
+    +-----------------+-----------------+
+    | value_1         | value_2         |
+    |-----------------+-----------------|
+    | 15:39:05.173069 | 15:39:05.173069 |
+    +-----------------+-----------------+
+
+
+CURRENT_TIME
+------------
+
+Description
+>>>>>>>>>>>
+
+`CURRENT_TIME` and `CURRENT_TIME()` are synonyms for `CURTIME() <#curtime>`_.
+
+Example::
+
+    > SELECT CURRENT_TIME(), CURRENT_TIME;
+    fetched rows / total rows = 1/1
+    +-----------------+-----------------+
+    | CURRENT_TIME()  | CURRENT_TIME    |
+    |-----------------+-----------------|
+    | 15:39:05.173069 | 15:39:05.173069 |
+    +-----------------+-----------------+
+
+
+CURDATE
+-------
+
+Description
+>>>>>>>>>>>
+
+Returns the current time as a value in 'YYYY-MM-DD'.
+CURDATE() returns the time at which it executes as `SYSDATE() <#sysdate>`_ does.
+
+Return type: DATE
+
+Specification: CURDATE() -> DATE
+
+Example::
+
+    > SELECT CURDATE();
+    fetched rows / total rows = 1/1
+    +-------------+
+    | CURDATE()   |
+    |-------------|
+    | 2022-08-02  |
+    +-------------+
+
+
+CURRENT_DATE
+------------
+
+Description
+>>>>>>>>>>>
+
+`CURRENT_DATE` and `CURRENT_DATE()` are synonyms for `CURDATE() <#curdate>`_.
+
+Example::
+
+    > SELECT CURRENT_DATE(), CURRENT_DATE;
+    fetched rows / total rows = 1/1
+    +------------------+----------------+
+    | CURRENT_DATE()   | CURRENT_DATE   |
+    |------------------+----------------|
+    | 2022-08-02       | 2022-08-02     |
+    +------------------+----------------+
 
 
 QUARTER

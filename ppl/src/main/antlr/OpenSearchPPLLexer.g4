@@ -223,23 +223,36 @@ TAN:                                'TAN';
 
 // DATE AND TIME FUNCTIONS
 ADDDATE:                            'ADDDATE';
+CURDATE:                            'CURDATE';
+CURRENT_DATE:                       'CURRENT_DATE';
+CURRENT_TIME:                       'CURRENT_TIME';
+CURRENT_TIMESTAMP:                  'CURRENT_TIMESTAMP';
+CURTIME:                            'CURTIME';
 DATE:                               'DATE';
 DATE_ADD:                           'DATE_ADD';
+DATE_FORMAT:                        'DATE_FORMAT';
 DATE_SUB:                           'DATE_SUB';
 DAYOFMONTH:                         'DAYOFMONTH';
 DAYOFWEEK:                          'DAYOFWEEK';
 DAYOFYEAR:                          'DAYOFYEAR';
 DAYNAME:                            'DAYNAME';
 FROM_DAYS:                          'FROM_DAYS';
+LOCALTIME:                          'LOCALTIME';
+LOCALTIMESTAMP:                     'LOCALTIMESTAMP';
 MAKEDATE:                           'MAKEDATE';
 MAKETIME:                           'MAKETIME';
 MONTHNAME:                          'MONTHNAME';
+NOW:                                'NOW';
 SUBDATE:                            'SUBDATE';
+SYSDATE:                            'SYSDATE';
 TIME:                               'TIME';
 TIME_TO_SEC:                        'TIME_TO_SEC';
 TIMESTAMP:                          'TIMESTAMP';
-DATE_FORMAT:                        'DATE_FORMAT';
 TO_DAYS:                            'TO_DAYS';
+UTC_DATE:                           'UTC_DATE';
+UTC_TIME:                           'UTC_TIME';
+UTC_TIMESTAMP:                      'UTC_TIMESTAMP';
+
 
 // TEXT FUNCTIONS
 SUBSTR:                             'SUBSTR';

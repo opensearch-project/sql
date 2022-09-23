@@ -18,10 +18,12 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BooleanCon
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CaseFuncAlternativeContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CaseFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ColumnFilterContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ConstantFunctionContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ConvertedDataTypeContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CountStarFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DataTypeFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DateLiteralContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DatetimeConstantLiteralContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DistinctCountFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.IsNullPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.LikePredicateContext;
@@ -61,6 +63,7 @@ import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
+import org.opensearch.sql.ast.expression.ConstantFunction;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.HighlightFunction;
@@ -386,9 +389,6 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   }
 
   private Function visitFunction(String functionName, FunctionArgsContext args) {
-    if (args == null) {
-      return new Function(functionName, Collections.emptyList());
-    }
     return new Function(
         functionName,
         args.functionArg()
@@ -396,6 +396,28 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
             .map(this::visitFunctionArg)
             .collect(Collectors.toList())
     );
+  }
+
+  @Override
+  public UnresolvedExpression visitDatetimeConstantLiteral(DatetimeConstantLiteralContext ctx) {
+    return visitConstantFunction(ctx.getText(), null);
+  }
+
+  @Override
+  public UnresolvedExpression visitConstantFunction(ConstantFunctionContext ctx) {
+    return visitConstantFunction(ctx.constantFunctionName().getText(),
+        ctx.functionArgs());
+  }
+
+  private UnresolvedExpression visitConstantFunction(String functionName,
+                                                     FunctionArgsContext args) {
+    return new ConstantFunction(functionName,
+        args == null
+        ? Collections.emptyList()
+        : args.functionArg()
+            .stream()
+            .map(this::visitFunctionArg)
+            .collect(Collectors.toList()));
   }
 
   private QualifiedName visitIdentifiers(List<IdentContext> identifiers) {
