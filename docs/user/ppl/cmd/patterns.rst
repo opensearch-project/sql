@@ -25,7 +25,7 @@ patterns [new_field=<new-field-name>] [pattern=<pattern>] <field>
 Example 1: Create the new field
 ===============================
 
-The example shows how to use ``punct`` method to extract punctuations in ``email`` for each document. Parsing a null field will return an empty string.
+The example shows how to use extract punctuations in ``email`` for each document. Parsing a null field will return an empty string.
 
 PPL query::
 
