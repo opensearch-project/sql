@@ -696,6 +696,42 @@ public class DSL {
     return compile(BuiltinFunctionName.MATCH_BOOL_PREFIX, args);
   }
 
+  public FunctionExpression now(Expression... args) {
+    return compile(BuiltinFunctionName.NOW, args);
+  }
+
+  public FunctionExpression current_timestamp(Expression... args) {
+    return compile(BuiltinFunctionName.CURRENT_TIMESTAMP, args);
+  }
+
+  public FunctionExpression localtimestamp(Expression... args) {
+    return compile(BuiltinFunctionName.LOCALTIMESTAMP, args);
+  }
+
+  public FunctionExpression localtime(Expression... args) {
+    return compile(BuiltinFunctionName.LOCALTIME, args);
+  }
+
+  public FunctionExpression sysdate(Expression... args) {
+    return compile(BuiltinFunctionName.SYSDATE, args);
+  }
+
+  public FunctionExpression curtime(Expression... args) {
+    return compile(BuiltinFunctionName.CURTIME, args);
+  }
+
+  public FunctionExpression current_time(Expression... args) {
+    return compile(BuiltinFunctionName.CURRENT_TIME, args);
+  }
+
+  public FunctionExpression curdate(Expression... args) {
+    return compile(BuiltinFunctionName.CURDATE, args);
+  }
+
+  public FunctionExpression current_date(Expression... args) {
+    return compile(BuiltinFunctionName.CURRENT_DATE, args);
+  }
+
   private FunctionExpression compile(BuiltinFunctionName bfn, Expression... args) {
     return (FunctionExpression) repository.compile(bfn.getName(), Arrays.asList(args.clone()));
   }

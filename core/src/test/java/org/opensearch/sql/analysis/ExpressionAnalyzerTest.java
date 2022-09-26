@@ -8,7 +8,9 @@ package org.opensearch.sql.analysis;
 
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.floatLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
@@ -27,6 +29,7 @@ import static org.opensearch.sql.expression.DSL.ref;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,7 +49,9 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.HighlightExpression;
+import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.window.aggregation.AggregateWindowFunction;
 import org.springframework.context.annotation.Configuration;
@@ -544,6 +549,47 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
           unresolvedArg("zero_terms_query", stringLiteral("NONE"))
           )
     );
+  }
+
+  @Test
+  public void constant_function_is_calculated_on_analyze() {
+    // Actually, we can call any function as ConstantFunction to be calculated on analyze stage
+    assertTrue(analyze(AstDSL.constantFunction("now")) instanceof LiteralExpression);
+    assertTrue(analyze(AstDSL.constantFunction("localtime")) instanceof LiteralExpression);
+  }
+
+  @Test
+  public void function_isnt_calculated_on_analyze() {
+    assertTrue(analyze(function("now")) instanceof FunctionExpression);
+    assertTrue(analyze(AstDSL.function("localtime")) instanceof FunctionExpression);
+  }
+
+  @Test
+  public void constant_function_returns_constant_cached_value() {
+    var values = List.of(analyze(AstDSL.constantFunction("now")),
+        analyze(AstDSL.constantFunction("now")), analyze(AstDSL.constantFunction("now")));
+    assertTrue(values.stream().allMatch(v ->
+        v.valueOf(null) == analyze(AstDSL.constantFunction("now")).valueOf(null)));
+  }
+
+  @Test
+  public void function_returns_non_constant_value() {
+    // Even a function returns the same values - they are calculated on each call
+    // `sysdate()` which returns `LocalDateTime.now()` shouldn't be cached and should return always
+    // different values
+    var values = List.of(analyze(function("sysdate")), analyze(function("sysdate")),
+        analyze(function("sysdate")), analyze(function("sysdate")));
+    var referenceValue = analyze(function("sysdate")).valueOf(null);
+    assertTrue(values.stream().noneMatch(v -> v.valueOf(null) == referenceValue));
+  }
+
+  @Test
+  public void now_as_a_function_not_cached() {
+    // // We can call `now()` as a function, in that case nothing should be cached
+    var values = List.of(analyze(function("now")), analyze(function("now")),
+        analyze(function("now")), analyze(function("now")));
+    var referenceValue = analyze(function("now")).valueOf(null);
+    assertTrue(values.stream().noneMatch(v -> v.valueOf(null) == referenceValue));
   }
 
   @Test

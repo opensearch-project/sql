@@ -25,7 +25,7 @@ import org.opensearch.sql.storage.bindingtuple.BindingTuple;
  * Group the all the input {@link BindingTuple} by {@link AggregationOperator#groupByExprList},
  * calculate the aggregation result by using {@link AggregationOperator#aggregatorList}.
  */
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 @ToString
 public class AggregationOperator extends PhysicalPlan {
   @Getter

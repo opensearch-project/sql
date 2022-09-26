@@ -26,7 +26,7 @@ import org.opensearch.sql.expression.parse.ParseExpression;
  * Project the fields specified in {@link ProjectOperator#projectList} from input.
  */
 @ToString
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
 public class ProjectOperator extends PhysicalPlan {
   @Getter
