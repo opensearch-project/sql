@@ -65,6 +65,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.FunctionResolver;
+import org.opensearch.sql.utils.DateTimeUtils;
 
 /**
  * The definition of date and time functions.
@@ -73,10 +74,6 @@ import org.opensearch.sql.expression.function.FunctionResolver;
  */
 @UtilityClass
 public class DateTimeFunction {
-  String timeZoneMax = "+14:00";
-  String timeZoneMin = "-13:59";
-  String timeZoneZero = "+00:00";
-
   // The number of days from year zero to year 1970.
   private static final Long DAYS_0000_TO_1970 = (146097 * 5L) - (30L * 365L + 7L);
 
@@ -634,8 +631,8 @@ public class DateTimeFunction {
 
       // isValidMySqlTimeZoneId checks if the timezone is within the range accepted by
       // MySQL standard.
-      if (!isValidMySqlTimeZoneId(convertedFromTz)
-          || !isValidMySqlTimeZoneId(convertedToTz)) {
+      if (!DateTimeUtils.isValidMySqlTimeZoneId(convertedFromTz)
+          || !DateTimeUtils.isValidMySqlTimeZoneId(convertedToTz)) {
         return ExprNullValue.of();
       }
       ZonedDateTime zonedDateTime =
