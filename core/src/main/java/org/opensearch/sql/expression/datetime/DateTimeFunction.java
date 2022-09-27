@@ -18,13 +18,22 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.expression.function.FunctionDSL.define;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_LONG_YEAR;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_SHORT_YEAR;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_LONG_YEAR;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_SHORT_YEAR;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.DecimalFormat;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.format.TextStyle;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
@@ -32,6 +41,7 @@ import javax.annotation.Nullable;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
+import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprNullValue;
@@ -39,6 +49,7 @@ import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
@@ -56,6 +67,10 @@ public class DateTimeFunction {
   // The number of days from year zero to year 1970.
   private static final Long DAYS_0000_TO_1970 = (146097 * 5L) - (30L * 365L + 7L);
 
+  // MySQL doesn't process any datetime/timestamp values which are greater than
+  // 32536771199.999999, or equivalent '3001-01-18 23:59:59.999999' UTC
+  private static final Double MYSQL_MAX_TIMESTAMP = 32536771200d;
+
   /**
    * Register Date and Time Functions.
    *
@@ -72,6 +87,7 @@ public class DateTimeFunction {
     repository.register(dayOfWeek());
     repository.register(dayOfYear());
     repository.register(from_days());
+    repository.register(from_unixtime());
     repository.register(hour());
     repository.register(makedate());
     repository.register(maketime());
@@ -87,6 +103,7 @@ public class DateTimeFunction {
     repository.register(timestamp());
     repository.register(date_format());
     repository.register(to_days());
+    repository.register(unix_timestamp());
     repository.register(week());
     repository.register(year());
 
@@ -313,6 +330,13 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprFromDays), DATE, LONG));
   }
 
+  private FunctionResolver from_unixtime() {
+    return define(BuiltinFunctionName.FROM_UNIXTIME.getName(),
+        impl(nullMissingHandling(DateTimeFunction::exprFromUnixTime), DATETIME, DOUBLE),
+        impl(nullMissingHandling(DateTimeFunction::exprFromUnixTimeFormat),
+            STRING, DOUBLE, STRING));
+  }
+
   /**
    * HOUR(STRING/TIME/DATETIME/TIMESTAMP). return the hour value for time.
    */
@@ -461,6 +485,16 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprToDays), LONG, DATETIME));
   }
 
+  private FunctionResolver unix_timestamp() {
+    return define(BuiltinFunctionName.UNIX_TIMESTAMP.getName(),
+        impl(DateTimeFunction::unixTimeStamp, LONG),
+        impl(nullMissingHandling(DateTimeFunction::unixTimeStampOf), DOUBLE, DATE),
+        impl(nullMissingHandling(DateTimeFunction::unixTimeStampOf), DOUBLE, DATETIME),
+        impl(nullMissingHandling(DateTimeFunction::unixTimeStampOf), DOUBLE, TIMESTAMP),
+        impl(nullMissingHandling(DateTimeFunction::unixTimeStampOf), DOUBLE, DOUBLE)
+    );
+  }
+
   /**
    * WEEK(DATE[,mode]). return the week number for date.
    */
@@ -599,6 +633,35 @@ public class DateTimeFunction {
    */
   private ExprValue exprFromDays(ExprValue exprValue) {
     return new ExprDateValue(LocalDate.ofEpochDay(exprValue.longValue() - DAYS_0000_TO_1970));
+  }
+
+  private ExprValue exprFromUnixTime(ExprValue time) {
+    if (0 > time.doubleValue()) {
+      return ExprNullValue.of();
+    }
+    // According to MySQL documentation:
+    //     effective maximum is 32536771199.999999, which returns '3001-01-18 23:59:59.999999' UTC.
+    //     Regardless of platform or version, a greater value for first argument than the effective
+    //     maximum returns 0.
+    if (MYSQL_MAX_TIMESTAMP <= time.doubleValue()) {
+      return ExprNullValue.of();
+    }
+    return new ExprDatetimeValue(exprFromUnixTimeImpl(time));
+  }
+
+  private LocalDateTime exprFromUnixTimeImpl(ExprValue time) {
+    return LocalDateTime.ofInstant(
+            Instant.ofEpochSecond((long)Math.floor(time.doubleValue())),
+            ZoneId.of("UTC"))
+        .withNano((int)((time.doubleValue() % 1) * 1E9));
+  }
+
+  private ExprValue exprFromUnixTimeFormat(ExprValue time, ExprValue format) {
+    var value = exprFromUnixTime(time);
+    if (value.equals(ExprNullValue.of())) {
+      return ExprNullValue.of();
+    }
+    return DateTimeFormatterUtil.getFormattedDate(value, format);
   }
 
   /**
@@ -801,6 +864,79 @@ public class DateTimeFunction {
   private ExprValue exprWeek(ExprValue date, ExprValue mode) {
     return new ExprIntegerValue(
         CalendarLookup.getWeekNumber(mode.integerValue(), date.dateValue()));
+  }
+
+  private ExprValue unixTimeStamp() {
+    return new ExprLongValue(Instant.now().getEpochSecond());
+  }
+
+  private ExprValue unixTimeStampOf(ExprValue value) {
+    var res = unixTimeStampOfImpl(value);
+    if (res == null) {
+      return ExprNullValue.of();
+    }
+    if (res < 0) {
+      // According to MySQL returns 0 if year < 1970, don't return negative values as java does.
+      return new ExprDoubleValue(0);
+    }
+    if (res >= MYSQL_MAX_TIMESTAMP) {
+      // Return 0 also for dates > '3001-01-19 03:14:07.999999' UTC (32536771199.999999 sec)
+      return new ExprDoubleValue(0);
+    }
+    return new ExprDoubleValue(res);
+  }
+
+  private Double unixTimeStampOfImpl(ExprValue value) {
+    // Also, according to MySQL documentation:
+    //    The date argument may be a DATE, DATETIME, or TIMESTAMP ...
+    switch ((ExprCoreType)value.type()) {
+      case DATE: return value.dateValue().toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;
+      case DATETIME: return value.datetimeValue().toEpochSecond(ZoneOffset.UTC)
+          + value.datetimeValue().getNano() / 1E9;
+      case TIMESTAMP: return value.timestampValue().getEpochSecond()
+          + value.timestampValue().getNano() / 1E9;
+      default:
+        //     ... or a number in YYMMDD, YYMMDDhhmmss, YYYYMMDD, or YYYYMMDDhhmmss format.
+        //     If the argument includes a time part, it may optionally include a fractional
+        //     seconds part.
+
+        var format = new DecimalFormat("0.#");
+        format.setMinimumFractionDigits(0);
+        format.setMaximumFractionDigits(6);
+        String input = format.format(value.doubleValue());
+        double fraction = 0;
+        if (input.contains(".")) {
+          // Keeping fraction second part and adding it to the result, don't parse it
+          // Because `toEpochSecond` returns only `long`
+          // input = 12345.6789 becomes input = 12345 and fraction = 0.6789
+          fraction = value.doubleValue() - Math.round(Math.ceil(value.doubleValue()));
+          input = input.substring(0, input.indexOf('.'));
+        }
+        try {
+          var res = LocalDateTime.parse(input, DATE_TIME_FORMATTER_SHORT_YEAR);
+          return res.toEpochSecond(ZoneOffset.UTC) + fraction;
+        } catch (DateTimeParseException ignored) {
+          // nothing to do, try another format
+        }
+        try {
+          var res = LocalDateTime.parse(input, DATE_TIME_FORMATTER_LONG_YEAR);
+          return res.toEpochSecond(ZoneOffset.UTC) + fraction;
+        } catch (DateTimeParseException ignored) {
+          // nothing to do, try another format
+        }
+        try {
+          var res = LocalDate.parse(input, DATE_FORMATTER_SHORT_YEAR);
+          return res.toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;
+        } catch (DateTimeParseException ignored) {
+          // nothing to do, try another format
+        }
+        try {
+          var res = LocalDate.parse(input, DATE_FORMATTER_LONG_YEAR);
+          return res.toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;
+        } catch (DateTimeParseException ignored) {
+          return null;
+        }
+    }
   }
 
   /**

@@ -1196,6 +1196,43 @@ Example::
     +---------------------+
 
 
+FROM_UNIXTIME
+-------------
+
+Description
+>>>>>>>>>>>
+
+Usage: Returns a representation of the argument given as a datetime or character string value. Perform reverse conversion for `UNIX_TIMESTAMP`_ function.
+If second argument is provided, it is used to format the result in the same way as the format string used for the `DATE_FORMAT`_ function.
+If timestamp is outside of range 1970-01-01 00:00:00 - 3001-01-18 23:59:59.999999 (0 to 32536771199.999999 epoch time), function returns NULL.
+
+Argument type: DOUBLE, STRING
+
+Return type map:
+
+DOUBLE -> DATETIME
+
+DOUBLE, STRING -> STRING
+
+Examples::
+
+    os> select FROM_UNIXTIME(1220249547)
+    fetched rows / total rows = 1/1
+    +-----------------------------+
+    | FROM_UNIXTIME(1220249547)   |
+    |-----------------------------|
+    | 2008-09-01 06:12:27         |
+    +-----------------------------+
+
+    os> select FROM_UNIXTIME(1220249547, '%T')
+    fetched rows / total rows = 1/1
+    +-----------------------------------+
+    | FROM_UNIXTIME(1220249547, '%T')   |
+    |-----------------------------------|
+    | 06:12:27                          |
+    +-----------------------------------+
+
+
 HOUR
 ----
 
@@ -1735,6 +1772,40 @@ Example::
     |------------------------------|
     | 733687                       |
     +------------------------------+
+
+
+UNIX_TIMESTAMP
+--------------
+
+Description
+>>>>>>>>>>>
+
+Usage: Converts given argument to Unix time (seconds since January 1st, 1970 at 00:00:00 UTC). If no argument given, it returns current Unix time.
+The date argument may be a DATE, DATETIME, or TIMESTAMP string, or a number in YYMMDD, YYMMDDhhmmss, YYYYMMDD, or YYYYMMDDhhmmss format. If the argument includes a time part, it may optionally include a fractional seconds part.
+If argument is in invalid format or outside of range 1970-01-01 00:00:00 - 3001-01-18 23:59:59.999999 (0 to 32536771199.999999 epoch time), function returns NULL.
+You can use `FROM_UNIXTIME`_ to do reverse conversion.
+
+Argument type: <NONE>/DOUBLE/DATE/DATETIME/TIMESTAMP
+
+Return type: DOUBLE
+
+Examples::
+
+    os> select UNIX_TIMESTAMP(20771122143845)
+    fetched rows / total rows = 1/1
+    +----------------------------------+
+    | UNIX_TIMESTAMP(20771122143845)   |
+    |----------------------------------|
+    | 3404817525.0                     |
+    +----------------------------------+
+
+    os> select UNIX_TIMESTAMP(TIMESTAMP('1996-11-15 17:05:42'))
+    fetched rows / total rows = 1/1
+    +----------------------------------------------------+
+    | UNIX_TIMESTAMP(TIMESTAMP('1996-11-15 17:05:42'))   |
+    |----------------------------------------------------|
+    | 848077542.0                                        |
+    +----------------------------------------------------+
 
 
 WEEK

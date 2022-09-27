@@ -662,4 +662,30 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     }
     TimeZone.setDefault(testTz);
   }
+
+  @Test
+  public void testFromUnixTime() throws IOException {
+    var result = executeQuery(String.format(
+        "source=%s | eval f1 = FROM_UNIXTIME(200300400), f2 = FROM_UNIXTIME(12224.12), "
+        + "f3 = FROM_UNIXTIME(1662601316, '%%T') | fields f1, f2, f3", TEST_INDEX_DATE));
+    verifySchema(result,
+        schema("f1", null, "datetime"),
+        schema("f2", null, "datetime"),
+        schema("f3", null, "string"));
+    verifySome(result.getJSONArray("datarows"),
+        rows("1976-05-07 07:00:00", "1970-01-01 03:23:44.12", "01:41:56"));
+  }
+
+  @Test
+  public void testUnixTimeStamp() throws IOException {
+    var result = executeQuery(String.format(
+        "source=%s | eval f1 = UNIX_TIMESTAMP(MAKEDATE(1984, 1984)), "
+        + "f2 = UNIX_TIMESTAMP(TIMESTAMP('2003-12-31 12:00:00')), "
+        + "f3 = UNIX_TIMESTAMP(20771122143845) | fields f1, f2, f3", TEST_INDEX_DATE));
+    verifySchema(result,
+        schema("f1", null, "double"),
+        schema("f2", null, "double"),
+        schema("f3", null, "double"));
+    verifySome(result.getJSONArray("datarows"), rows(613094400d, 1072872000d, 3404817525d));
+  }
 }
