@@ -25,9 +25,11 @@ import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.opensearch.search.sort.SortBuilder;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
@@ -173,13 +175,32 @@ public class OpenSearchRequestBuilder {
    * Add highlight to DSL requests.
    * @param field name of the field to highlight
    */
-  public void pushDownHighlight(String field) {
+  public void pushDownHighlight(String field, Map<String, Literal> arguments) {
+    String unquotedField = StringUtils.unquoteText(field);
     if (sourceBuilder.highlighter() != null) {
-      sourceBuilder.highlighter().field(StringUtils.unquoteText(field));
+      // OS does not allow duplicates of highlight fields
+      if (sourceBuilder.highlighter().fields().stream()
+          .anyMatch(f -> f.name().equals(unquotedField))) {
+        throw new SemanticCheckException(String.format(
+            "Duplicate field %s in highlight", field));
+      }
+
+      sourceBuilder.highlighter().field(unquotedField);
     } else {
       HighlightBuilder highlightBuilder =
-          new HighlightBuilder().field(StringUtils.unquoteText(field));
+          new HighlightBuilder().field(unquotedField);
       sourceBuilder.highlighter(highlightBuilder);
+    }
+
+    // lastFieldIndex denotes previously set highlighter with field parameter
+    int lastFieldIndex = sourceBuilder.highlighter().fields().size() - 1;
+    if (arguments.containsKey("pre_tags")) {
+      sourceBuilder.highlighter().fields().get(lastFieldIndex)
+          .preTags(arguments.get("pre_tags").toString());
+    }
+    if (arguments.containsKey("post_tags")) {
+      sourceBuilder.highlighter().fields().get(lastFieldIndex)
+          .postTags(arguments.get("post_tags").toString());
     }
   }
 

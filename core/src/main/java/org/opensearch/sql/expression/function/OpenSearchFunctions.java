@@ -17,7 +17,6 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
-import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
 import org.opensearch.sql.expression.env.Environment;
 
@@ -37,15 +36,6 @@ public class OpenSearchFunctions {
     repository.register(match_phrase(BuiltinFunctionName.MATCH_PHRASE));
     repository.register(match_phrase(BuiltinFunctionName.MATCHPHRASE));
     repository.register(match_phrase_prefix());
-    repository.register(highlight());
-  }
-
-  private static FunctionResolver highlight() {
-    FunctionName functionName = BuiltinFunctionName.HIGHLIGHT.getName();
-    FunctionSignature functionSignature = new FunctionSignature(functionName, List.of(STRING));
-    FunctionBuilder functionBuilder = arguments -> new HighlightExpression(arguments.get(0));
-    return new DefaultFunctionResolver(functionName,
-        ImmutableMap.of(functionSignature, functionBuilder));
   }
 
   private static FunctionResolver match_bool_prefix() {
