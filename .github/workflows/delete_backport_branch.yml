@@ -6,7 +6,7 @@ on:
   
 jobs:
   delete-branch:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     if: startsWith(github.event.pull_request.head.ref,'backport/')
     steps:
       - name: Delete merged branch

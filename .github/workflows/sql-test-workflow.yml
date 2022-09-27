@@ -2,22 +2,6 @@ name: SQL Plugin Tests
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - 'dev-*'
-    paths:
-      - '**/*.java'
-      - '**/*.g4'
-      - '!sql-jdbc/**'
-      - '**gradle*'
-      - '**lombok*'
-      - '**checkstyle*'
-      - 'integ-test/**'
-      - 'docs/**'
-      - 'doctest/**'
-      - '**/*.jar'
-      - '**/*.pom'
-      - '.github/workflows/sql-test-workflow.yml'
 
 jobs:
   build:
@@ -26,7 +10,7 @@ jobs:
         java:
           - 11
           - 17
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3

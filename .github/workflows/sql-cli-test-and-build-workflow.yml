@@ -12,15 +12,14 @@ on:
 
 jobs:
   build:
-
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: sql-cli
     strategy:
       matrix:
         python-version: [3.8]
-        opensearch-version: [ 2.2.1, latest ]
+        opensearch-version: [ latest ]
 
     steps:
       - name: Checkout SQL CLI
