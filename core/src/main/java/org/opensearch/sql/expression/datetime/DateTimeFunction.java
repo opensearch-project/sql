@@ -26,19 +26,14 @@ import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_SH
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
-import java.time.Instant;
-import java.sql.Date;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.DateTimeException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.LocalTime;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
@@ -62,7 +57,6 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
-import org.opensearch.sql.expression.function.DefaultFunctionResolver;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.utils.DateTimeUtils;
@@ -1096,48 +1090,6 @@ public class DateTimeFunction {
   }
 
   /**
-   * isValidMySqlTimeZoneId for timezones which match timezone the range set by MySQL.
-   *
-   * @param zone ZoneId of ZoneId type.
-   * @return Boolean.
-   */
-  private Boolean isValidMySqlTimeZoneId(ZoneId zone) {
-    ZoneId maxTz = ZoneId.of(timeZoneMax);
-    ZoneId minTz = ZoneId.of(timeZoneMin);
-    ZoneId defaultTz = ZoneId.of(timeZoneZero);
-
-    ZonedDateTime defaultDateTime = LocalDateTime.of(2000, 1, 2, 12, 0).atZone(defaultTz);
-
-    ZonedDateTime maxTzValidator =
-        defaultDateTime.withZoneSameInstant(maxTz).withZoneSameLocal(defaultTz);
-    ZonedDateTime minTzValidator =
-        defaultDateTime.withZoneSameInstant(minTz).withZoneSameLocal(defaultTz);
-    ZonedDateTime passedTzValidator =
-        defaultDateTime.withZoneSameInstant(zone).withZoneSameLocal(defaultTz);
-
-    return (passedTzValidator.isBefore(maxTzValidator)
-        || passedTzValidator.isEqual(maxTzValidator))
-        && (passedTzValidator.isAfter(minTzValidator)
-        || passedTzValidator.isEqual(minTzValidator));
-  }
-
-  private Boolean isDateValidDateTime(ExprValue startingDateTime) {
-    //String dateString = String.valueOf(startingDateTime.datetimeValue());
-    String dateFormat = "uuuu-MM-dd'T'HH:mm:ss";
-    String dateString = startingDateTime.datetimeValue().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-    DateTimeFormatter dateTimeFormatter = DateTimeFormatter
-        .ofPattern(dateFormat, Locale.US)
-        .withResolverStyle(ResolverStyle.STRICT);
-
-    try {
-      LocalDateTime.parse(dateString, dateTimeFormatter);
-      return true;
-    } catch (DateTimeParseException e) {
-      return false;
-    }
-  }
-
-  /**
    * Prepare LocalDateTime value. Truncate fractional second part according to the argument.
    * @param fsp argument is given to specify a fractional seconds precision from 0 to 6,
    *            the return value includes a fractional seconds part of that many digits.
@@ -1157,16 +1109,4 @@ public class DateTimeFunction {
         .setScale(fsp - defaultPrecision, RoundingMode.DOWN).intValue();
     return res.withNano(nano);
   }
-//  private Boolean isDateValidString(ExprValue startingDateTime) {
-//    String dateFormat = "uuuu-MM-dd HH:mm:ss";
-//    try {
-//      String dateString = startingDateTime.datetimeValue().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-//      DateTimeFormatter dateTimeFormatter = DateTimeFormatter
-//          .ofPattern(dateFormat, Locale.US)
-//          .withResolverStyle(ResolverStyle.STRICT);
-//      isDateValidDateTime(DSL.literal(dateTimeFormatter));
-//    } catch (Exception e) {
-//      return ExprNullValue.of();
-//    }
-//  }
 }
