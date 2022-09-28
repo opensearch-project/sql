@@ -39,6 +39,7 @@ class TestExecutor:
         )
 
     @estest
+    @pytest.mark.skip(reason="Test is not compatible with OpenSearch >= 2.3.0, it returns HTTP/503 instead of HTTP/400")
     def test_query_nonexistent_index(self, connection):
         self.load_data_to_es(connection)
 
