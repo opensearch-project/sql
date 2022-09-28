@@ -74,6 +74,10 @@ import org.opensearch.sql.utils.DateTimeUtils;
  */
 @UtilityClass
 public class DateTimeFunction {
+  String timeZoneMax = "+14:00";
+  String timeZoneMin = "-13:59";
+  String timeZoneZero = "+00:00";
+
   // The number of days from year zero to year 1970.
   private static final Long DAYS_0000_TO_1970 = (146097 * 5L) - (30L * 365L + 7L);
 
