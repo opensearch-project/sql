@@ -22,6 +22,7 @@ import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_LONG_YE
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_SHORT_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_LONG_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_SHORT_YEAR;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_STRICT_WITH_TZ;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -669,11 +670,11 @@ public class DateTimeFunction {
    */
   private ExprValue exprDateTime(ExprValue dateTime, ExprValue timeZone) {
     String defaultTimeZone = TimeZone.getDefault().getID();
-    DateTimeFormatter formatDT = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss[xxx]")
-        .withResolverStyle(ResolverStyle.STRICT);
+
 
     try {
-      LocalDateTime ldtFormatted = LocalDateTime.parse(dateTime.stringValue(), formatDT);
+      LocalDateTime ldtFormatted =
+          LocalDateTime.parse(dateTime.stringValue(), DATE_TIME_FORMATTER_STRICT_WITH_TZ);
       if (timeZone.isNull()) {
         return new ExprDatetimeValue(ldtFormatted);
       }
@@ -688,7 +689,8 @@ public class DateTimeFunction {
     String toTz;
 
     try {
-      ZonedDateTime zdtWithZoneOffset = ZonedDateTime.parse(dateTime.stringValue(), formatDT);
+      ZonedDateTime zdtWithZoneOffset =
+          ZonedDateTime.parse(dateTime.stringValue(), DATE_TIME_FORMATTER_STRICT_WITH_TZ);
       ZoneId fromTZ = zdtWithZoneOffset.getZone();
 
       ldt = new ExprDatetimeValue(zdtWithZoneOffset.toLocalDateTime());

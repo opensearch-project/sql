@@ -162,4 +162,10 @@ public class DateTimeFormatters {
           .appendPattern("MMddHHmmss")
           .toFormatter()
           .withResolverStyle(ResolverStyle.STRICT);
+
+  public static final DateTimeFormatter DATE_TIME_FORMATTER_STRICT_WITH_TZ =
+      new DateTimeFormatterBuilder()
+          .appendPattern("uuuu-MM-dd HH:mm:ss[xxx]")
+          .toFormatter()
+          .withResolverStyle(ResolverStyle.STRICT);
 }
