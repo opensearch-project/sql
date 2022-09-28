@@ -50,7 +50,7 @@ public class RegexExpression extends ParseExpression {
     if (matcher.matches()) {
       return new ExprStringValue(matcher.group(identifierStr));
     }
-    log.debug("failed to extract pattern {} from input {}", regexPattern.pattern(), rawString);
+    log.debug("failed to extract pattern {} from input ***", regexPattern.pattern());
     return new ExprStringValue("");
   }
 

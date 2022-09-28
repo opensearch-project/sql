@@ -57,8 +57,7 @@ public class GrokExpression extends ParseExpression {
     if (match != null) {
       return new ExprStringValue(match.toString());
     }
-    log.debug("failed to extract pattern {} from input {}", grok.getOriginalGrokPattern(),
-        rawString);
+    log.debug("failed to extract pattern {} from input ***", grok.getOriginalGrokPattern());
     return new ExprStringValue("");
   }
 
