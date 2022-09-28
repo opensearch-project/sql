@@ -11,7 +11,7 @@ patterns
 
 Description
 ============
-| The ``patterns`` command extracts log patterns from a text field and appends the results to the search result.
+| The ``patterns`` command extracts log patterns from a text field and appends the results to the search result. Grouping logs by their patterns makes it easier to aggregate stats from large volumes of log data for analysis and troubleshooting.
 
 
 Syntax
