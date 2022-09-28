@@ -102,6 +102,7 @@ DAY_SECOND:                         'DAY_SECOND';
 DAY_MINUTE:                         'DAY_MINUTE';
 DAY_HOUR:                           'DAY_HOUR';
 YEAR_MONTH:                         'YEAR_MONTH';
+CONVERT_TZ:                         'CONVERT_TZ';
 
 // DATASET TYPES
 DATAMODEL:                          'DATAMODEL';

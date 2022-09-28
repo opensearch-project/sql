@@ -56,25 +56,25 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   @Test
   public void testDateInGroupBy() throws IOException{
     JSONObject result =
-            executeQuery(String.format("SELECT DATE(birthdate) FROM %s GROUP BY DATE(birthdate)",TEST_INDEX_BANK) );
+        executeQuery(String.format("SELECT DATE(birthdate) FROM %s GROUP BY DATE(birthdate)",TEST_INDEX_BANK) );
     verifySchema(result,
-            schema("DATE(birthdate)", null, "date"));
+        schema("DATE(birthdate)", null, "date"));
     verifyDataRows(result,
-            rows("2017-10-23"),
-            rows("2017-11-20"),
-            rows("2018-06-23"),
-            rows("2018-11-13"),
-            rows("2018-06-27"),
-            rows("2018-08-19"),
-            rows("2018-08-11"));
+        rows("2017-10-23"),
+        rows("2017-11-20"),
+        rows("2018-06-23"),
+        rows("2018-11-13"),
+        rows("2018-06-27"),
+        rows("2018-08-19"),
+        rows("2018-08-11"));
   }
 
   @Test
   public void testDateWithHavingClauseOnly() throws IOException {
     JSONObject result =
-            executeQuery(String.format("SELECT (TO_DAYS(DATE('2050-01-01')) - 693961) FROM %s HAVING (COUNT(1) > 0)",TEST_INDEX_BANK) );
+        executeQuery(String.format("SELECT (TO_DAYS(DATE('2050-01-01')) - 693961) FROM %s HAVING (COUNT(1) > 0)",TEST_INDEX_BANK) );
     verifySchema(result,
-            schema("(TO_DAYS(DATE('2050-01-01')) - 693961)", null, "long"));
+        schema("(TO_DAYS(DATE('2050-01-01')) - 693961)", null, "long"));
     verifyDataRows(result, rows(54787));
   }
 
@@ -132,17 +132,17 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result, rows("2020-09-17"));
 
     result =
-            executeQuery(String.format("SELECT DATE_ADD(birthdate, INTERVAL 1 YEAR) FROM %s GROUP BY 1",TEST_INDEX_BANK) );
+        executeQuery(String.format("SELECT DATE_ADD(birthdate, INTERVAL 1 YEAR) FROM %s GROUP BY 1",TEST_INDEX_BANK) );
     verifySchema(result,
-            schema("DATE_ADD(birthdate, INTERVAL 1 YEAR)", null, "datetime"));
+        schema("DATE_ADD(birthdate, INTERVAL 1 YEAR)", null, "datetime"));
     verifyDataRows(result,
-            rows("2018-10-23 00:00:00"),
-            rows("2018-11-20 00:00:00"),
-            rows("2019-06-23 00:00:00"),
-            rows("2019-11-13 23:33:20"),
-            rows("2019-06-27 00:00:00"),
-            rows("2019-08-19 00:00:00"),
-            rows("2019-08-11 00:00:00"));
+        rows("2018-10-23 00:00:00"),
+        rows("2018-11-20 00:00:00"),
+        rows("2019-06-23 00:00:00"),
+        rows("2019-11-13 23:33:20"),
+        rows("2019-06-27 00:00:00"),
+        rows("2019-08-19 00:00:00"),
+        rows("2019-08-11 00:00:00"));
   }
 
   @Test

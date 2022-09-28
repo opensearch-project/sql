@@ -58,7 +58,9 @@ public enum BuiltinFunctionName {
    * Date and Time Functions.
    */
   ADDDATE(FunctionName.of("adddate")),
+  CONVERT_TZ(FunctionName.of("convert_tz")),
   DATE(FunctionName.of("date")),
+  DATETIME(FunctionName.of("datetime")),
   DATE_ADD(FunctionName.of("date_add")),
   DATE_SUB(FunctionName.of("date_sub")),
   DAY(FunctionName.of("day")),

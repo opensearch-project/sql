@@ -859,6 +859,104 @@ Example::
     +------------------------------------------------+----------------------------------+------------------------------------------------+
 
 
+CONVERT_TZ
+----------
+
+Description
+>>>>>>>>>>>
+
+Usage: convert_tz(datetime, from_timezone, to_timezone) constructs a datetime object converted from the from_timezone to the to_timezone.
+
+Argument type: DATETIME, STRING, STRING
+
+Return type: DATETIME
+
+Example::
+
+  os> SELECT CONVERT_TZ('2008-12-25 05:30:00', '+00:00', 'America/Los_Angeles')
+    fetched rows / total rows = 1/1
+    +----------------------------------------------------------------------+
+    | CONVERT_TZ('2008-12-25 05:30:00', '+00:00', 'America/Los_Angeles')   |
+    |----------------------------------------------------------------------|
+    | 2008-12-24 21:30:00                                                  |
+    +----------------------------------------------------------------------+
+
+
+  os> SELECT CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "-10:00")
+    fetched rows / total rows = 1/1
+    +---------------------------------------------------------+
+    | CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "-10:00")   |
+    |---------------------------------------------------------|
+    | 2010-10-09 23:10:10                                     |
+    +---------------------------------------------------------+
+
+When the datedate, or either of the two time zone fields are invalid format, then the result is null. In this example any datetime that is not <yyyy-MM-dd HH:mm:ss> will result in null.
+Example::
+
+  os> SELECT CONVERT_TZ("test", "+01:00", "-10:00")
+      fetched rows / total rows = 1/1
+      +------------------------------------------+
+      | CONVERT_TZ("test", "+01:00", "-10:00")   |
+      |------------------------------------------|
+      | null                                     |
+      +------------------------------------------+
+
+When the datetime, or either of the two time zone fields are invalid format, then the result is null. In this example any timezone that is not <+HH:mm> or <-HH:mm> will result in null.
+Example::
+
+  os> SELECT CONVERT_TZ("2010-10-10 10:10:10", "test", "-10:00")
+      fetched rows / total rows = 1/1
+      +-------------------------------------------------------+
+      | CONVERT_TZ("2010-10-10 10:10:10", "test", "-10:00")   |
+      |-------------------------------------------------------|
+      | null                                                  |
+      +-------------------------------------------------------+
+
+The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range will result in null.
+Example::
+
+  os> SELECT CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "+14:00")
+    fetched rows / total rows = 1/1
+    +---------------------------------------------------------+
+    | CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "+14:00")   |
+    |---------------------------------------------------------|
+    | 2010-10-10 23:10:10                                     |
+    +---------------------------------------------------------+
+
+The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range will result in null.
+Example::
+
+  os> SELECT CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "+14:01")
+    fetched rows / total rows = 1/1
+    +---------------------------------------------------------+
+    | CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "+14:01")   |
+    |---------------------------------------------------------|
+    | null                                                    | 
+    +---------------------------------------------------------+
+
+The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range will result in null.
+Example::
+
+  os> SELECT CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "-13:59")
+    fetched rows / total rows = 1/1
+    +---------------------------------------------------------+
+    | CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "-13:59")   |
+    |---------------------------------------------------------|
+    | 2010-10-09 19:11:10                                     |
+    +---------------------------------------------------------+
+
+The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range will result in null.
+Example::
+
+  os> SELECT CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "-14:00")
+    fetched rows / total rows = 1/1
+    +---------------------------------------------------------+
+    | CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "-14:00")   |
+    |---------------------------------------------------------|
+    | null                                                    | 
+    +---------------------------------------------------------+
+
+
 CURDATE
 -------
 
@@ -892,6 +990,100 @@ Example::
     | DATE '2020-08-26'    | DATE '2020-08-26'                        |
     +----------------------+------------------------------------------+
 
+
+DATETIME
+--------
+
+Description
+>>>>>>>>>>>
+
+Usage: datetime(datetime)/ datetime(date, to_timezone) Converts the datetime to a new timezone
+
+Argument type: DATETIME/STRING
+
+Return type map:
+
+DATETIME, STRING -> DATETIME
+
+DATETIME -> DATETIME
+
+Example::
+
+    os> SELECT DATETIME('2008-12-25 05:30:00+00:00', 'America/Los_Angeles')
+    fetched rows / total rows = 1/1
+    +----------------------------------------------------------------+
+    | DATETIME('2008-12-25 05:30:00+00:00', 'America/Los_Angeles')   |
+    |----------------------------------------------------------------|
+    | 2008-12-24 21:30:00                                            |
+    +----------------------------------------------------------------+
+
+This example converts from -10:00 timezone to +10:00 timezone.
+Example::
+
+    os> SELECT DATETIME('2004-02-28 23:00:00-10:00', '+10:00')
+    fetched rows / total rows = 1/1
+    +---------------------------------------------------+
+    | DATETIME('2004-02-28 23:00:00-10:00', '+10:00')   |
+    |---------------------------------------------------|
+    | 2004-02-29 19:00:00                               |
+    +---------------------------------------------------+
+
+This example uses the timezone -14:00, which is outside of the range -13:59 and +14:00. This results in a null value.
+Example::
+
+    os> SELECT DATETIME('2008-01-01 02:00:00', '-14:00')
+    fetched rows / total rows = 1/1
+    +---------------------------------------------+
+    | DATETIME('2008-01-01 02:00:00', '-14:00')   |
+    |---------------------------------------------|
+    | null                                        |
+    +---------------------------------------------+
+
+February 30th is not a day, so it returns null.
+Example::
+
+    os> SELECT DATETIME('2008-02-30 02:00:00', '-00:00')
+    fetched rows / total rows = 1/1
+    +---------------------------------------------+
+    | DATETIME('2008-02-30 02:00:00', '-00:00')   |
+    |---------------------------------------------|
+    | null                                        |
+    +---------------------------------------------+
+
+DATETIME(datetime) examples
+
+DATETIME with no timezone specified does no conversion.
+Example::
+
+    os> SELECT DATETIME('2008-02-10 02:00:00')
+    fetched rows / total rows = 1/1
+    +-----------------------------------+
+    | DATETIME('2008-02-10 02:00:00')   |
+    |-----------------------------------|
+    | 2008-02-10 02:00:00               |
+    +-----------------------------------+
+
+February 30th is not a day, so it returns null.
+Example::
+
+    os> SELECT DATETIME('2008-02-30 02:00:00')
+    fetched rows / total rows = 1/1
+    +-----------------------------------+
+    | DATETIME('2008-02-30 02:00:00')   |
+    |-----------------------------------|
+    | null                              |
+    +-----------------------------------+
+
+DATETIME with a datetime and no seperate timezone to convert to returns the datetime object without a timezone.
+Example::
+
+    os> SELECT DATETIME('2008-02-10 02:00:00+04:00')
+    fetched rows / total rows = 1/1
+    +-----------------------------------------+
+    | DATETIME('2008-02-10 02:00:00+04:00')   |
+    |-----------------------------------------|
+    | 2008-02-10 02:00:00                     |
+    +-----------------------------------------+
 
 DATE_ADD
 --------
@@ -2811,3 +3003,4 @@ Example searching for field Tags::
     | [The <em>House</em> at <em>Pooh</em> Corner] |
     | [Winnie-the-<em>Pooh</em>]                   |
     +----------------------------------------------+
+

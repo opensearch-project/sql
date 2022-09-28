@@ -38,6 +38,138 @@ Example::
     | 2020-08-26 01:00:00                            | 2020-08-27                       | 2020-08-27 01:01:01                            |
     +------------------------------------------------+----------------------------------+------------------------------------------------+
 
+CONVERT_TZ
+----
+
+Description
+>>>>>>>>>>>
+
+Usage: convert_tz(datetime, from_timezone, to_timezone) constructs a local datetime converted from the from_timezone to the to_timezone. CONVERT_TZ returns null when any of the three function arguments are invalid, i.e. datetime is not in the format yyyy-MM-dd HH:mm:ss or the timeszone is not in (+/-)HH:mm. It also is invalid for invalid dates, such as February 30th and invalid timezones, which are ones outside of -13:59 and +14:00.
+
+Argument type: DATETIME, STRING, STRING
+
+Return type: DATETIME
+
+Conversion from +00:00 timezone to +10:00 timezone. Returns the datetime argument converted from +00:00 to +10:00
+Example::
+
+    os> source=people | eval `convert_tz('2008-05-15 12:00:00','+00:00','+10:00')` = convert_tz('2008-05-15 12:00:00','+00:00','+10:00') | fields `convert_tz('2008-05-15 12:00:00','+00:00','+10:00')`
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------------+
+    | convert_tz('2008-05-15 12:00:00','+00:00','+10:00')   |
+    |-------------------------------------------------------|
+    | 2008-05-15 22:00:00                                   |
+    +-------------------------------------------------------+
+
+The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range, such as +15:00 in this example will return null.
+Example::
+
+    os> source=people | eval `convert_tz('2008-05-15 12:00:00','+00:00','+15:00')` = convert_tz('2008-05-15 12:00:00','+00:00','+15:00')| fields `convert_tz('2008-05-15 12:00:00','+00:00','+15:00')`
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------------+
+    | convert_tz('2008-05-15 12:00:00','+00:00','+15:00')   |
+    |-------------------------------------------------------|
+    | null                                                  |
+    +-------------------------------------------------------+
+
+Conversion from a positive timezone to a negative timezone that goes over date line.
+Example::
+
+    os> source=people | eval `convert_tz('2008-05-15 12:00:00','+03:30','-10:00')` = convert_tz('2008-05-15 12:00:00','+03:30','-10:00') | fields `convert_tz('2008-05-15 12:00:00','+03:30','-10:00')`
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------------+
+    | convert_tz('2008-05-15 12:00:00','+03:30','-10:00')   |
+    |-------------------------------------------------------|
+    | 2008-05-14 22:30:00                                   |
+    +-------------------------------------------------------+
+
+Valid dates are required in convert_tz, invalid dates such as April 31st (not a date in the Gregorian calendar) will result in null.
+Example::
+
+    os> source=people | eval `convert_tz('2008-04-31 12:00:00','+03:30','-10:00')` = convert_tz('2008-04-31 12:00:00','+03:30','-10:00') | fields `convert_tz('2008-04-31 12:00:00','+03:30','-10:00')`
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------------+
+    | convert_tz('2008-04-31 12:00:00','+03:30','-10:00')   |
+    |-------------------------------------------------------|
+    | null                                                  |
+    +-------------------------------------------------------+
+
+Valid dates are required in convert_tz, invalid dates such as February 30th (not a date in the Gregorian calendar) will result in null.
+Example::
+
+    os> source=people | eval `convert_tz('2008-02-30 12:00:00','+03:30','-10:00')` = convert_tz('2008-02-30 12:00:00','+03:30','-10:00') | fields `convert_tz('2008-02-30 12:00:00','+03:30','-10:00')`
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------------+
+    | convert_tz('2008-02-30 12:00:00','+03:30','-10:00')   |
+    |-------------------------------------------------------|
+    | null                                                  |
+    +-------------------------------------------------------+
+
+February 29th 2008 is a valid date because it is a leap year.
+Example::
+
+    os> source=people | eval `convert_tz('2008-02-29 12:00:00','+03:30','-10:00')` = convert_tz('2008-02-29 12:00:00','+03:30','-10:00') | fields `convert_tz('2008-02-29 12:00:00','+03:30','-10:00')`
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------------+
+    | convert_tz('2008-02-29 12:00:00','+03:30','-10:00')   |
+    |-------------------------------------------------------|
+    | 2008-02-28 22:30:00                                   |
+    +-------------------------------------------------------+
+
+Valid dates are required in convert_tz, invalid dates such as February 29th 2007 (2007 is not a leap year) will result in null.
+Example::
+
+    os> source=people | eval `convert_tz('2007-02-29 12:00:00','+03:30','-10:00')` = convert_tz('2007-02-29 12:00:00','+03:30','-10:00') | fields `convert_tz('2007-02-29 12:00:00','+03:30','-10:00')`
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------------+
+    | convert_tz('2007-02-29 12:00:00','+03:30','-10:00')   |
+    |-------------------------------------------------------|
+    | null                                                  |
+    +-------------------------------------------------------+
+
+The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range, such as +14:01 in this example will return null.
+Example::
+
+    os> source=people | eval `convert_tz('2008-02-01 12:00:00','+14:01','+00:00')` = convert_tz('2008-02-01 12:00:00','+14:01','+00:00') | fields `convert_tz('2008-02-01 12:00:00','+14:01','+00:00')`
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------------+
+    | convert_tz('2008-02-01 12:00:00','+14:01','+00:00')   |
+    |-------------------------------------------------------|
+    | null                                                  |
+    +-------------------------------------------------------+
+
+The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range, such as +14:00 in this example will return a correctly converted date time object.
+Example::
+
+    os> source=people | eval `convert_tz('2008-02-01 12:00:00','+14:00','+00:00')` = convert_tz('2008-02-01 12:00:00','+14:00','+00:00') | fields `convert_tz('2008-02-01 12:00:00','+14:00','+00:00')`
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------------+
+    | convert_tz('2008-02-01 12:00:00','+14:00','+00:00')   |
+    |-------------------------------------------------------|
+    | 2008-01-31 22:00:00                                   |
+    +-------------------------------------------------------+
+
+The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range, such as -14:00 will result in null
+Example::
+
+    os> source=people | eval `convert_tz('2008-02-01 12:00:00','-14:00','+00:00')` = convert_tz('2008-02-01 12:00:00','-14:00','+00:00') | fields `convert_tz('2008-02-01 12:00:00','-14:00','+00:00')`
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------------+
+    | convert_tz('2008-02-01 12:00:00','-14:00','+00:00')   |
+    |-------------------------------------------------------|
+    | null                                                  |
+    +-------------------------------------------------------+
+
+The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. This timezone is within range so it is valid and will convert the time.
+Example::
+
+    os> source=people | eval `convert_tz('2008-02-01 12:00:00','-13:59','+00:00')` = convert_tz('2008-02-01 12:00:00','-13:59','+00:00') | fields `convert_tz('2008-02-01 12:00:00','-13:59','+00:00')`
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------------+
+    | convert_tz('2008-02-01 12:00:00','-13:59','+00:00')   |
+    |-------------------------------------------------------|
+    | 2008-02-02 01:59:00                                   |
+    +-------------------------------------------------------+
 
 DATE
 ----
@@ -190,6 +322,58 @@ Example::
     | '13:14:15.012345'                             | '1998-Jan-31st 01:14:15 PM'                                    |
     +-----------------------------------------------+----------------------------------------------------------------+
 
+
+
+DATETIME
+--------
+
+Description
+>>>>>>>>>>>
+
+Usage: DATETIME(datetime)/ DATETIME(date, to_timezone) Converts the datetime to a new timezone
+
+Argument type: DATETIME/STRING
+
+Return type map:
+
+DATETIME, STRING -> DATETIME
+
+DATETIME -> DATETIME
+
+
+Converting datetime with timezone to the second argument timezone.
+Example::
+
+    os> source=people | eval `DATETIME('2004-02-28 23:00:00-10:00', '+10:00')` = DATETIME('2004-02-28 23:00:00-10:00', '+10:00') | fields `DATETIME('2004-02-28 23:00:00-10:00', '+10:00')`
+    fetched rows / total rows = 1/1
+    +---------------------------------------------------+
+    | DATETIME('2004-02-28 23:00:00-10:00', '+10:00')   |
+    |---------------------------------------------------|
+    | 2004-02-29 19:00:00                               |
+    +---------------------------------------------------+
+
+
+ The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range will result in null.
+Example::
+
+    os> source=people | eval  `DATETIME('2008-01-01 02:00:00', '-14:00')` = DATETIME('2008-01-01 02:00:00', '-14:00') | fields `DATETIME('2008-01-01 02:00:00', '-14:00')`
+    fetched rows / total rows = 1/1
+    +---------------------------------------------+
+    | DATETIME('2008-01-01 02:00:00', '-14:00')   |
+    |---------------------------------------------|
+    | null                                        |
+    +---------------------------------------------+
+
+The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range will result in null.
+Example::
+
+    os> source=people | eval  `DATETIME('2008-02-30 02:00:00', '-00:00')` = DATETIME('2008-02-30 02:00:00', '-00:00') | fields `DATETIME('2008-02-30 02:00:00', '-00:00')`
+    fetched rows / total rows = 1/1
+    +---------------------------------------------+
+    | DATETIME('2008-02-30 02:00:00', '-00:00')   |
+    |---------------------------------------------|
+    | null                                        |
+    +---------------------------------------------+
 
 DATE_SUB
 --------
