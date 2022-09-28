@@ -58,15 +58,14 @@ public class PatternsExpression extends ParseExpression {
       return new ExprStringValue(pattern.matcher(rawString).replaceAll(""));
     }
 
-    int length = rawString.length();
-    StringBuilder sb = new StringBuilder(length);
-    for (int i = 0; i < length; i++) {
-      char c = rawString.charAt(i);
-      if (!DEFAULT_IGNORED_CHARS.contains(c)) {
-        sb.append(c);
+    char[] chars = rawString.toCharArray();
+    int pos = 0;
+    for (int i = 0; i < chars.length; i++) {
+      if (!DEFAULT_IGNORED_CHARS.contains(chars[i])) {
+        chars[pos++] = chars[i];
       }
     }
-    return new ExprStringValue(sb.toString());
+    return new ExprStringValue(new String(chars, 0, pos));
   }
 
   /**
