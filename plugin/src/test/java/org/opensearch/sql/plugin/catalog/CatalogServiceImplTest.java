@@ -15,15 +15,21 @@ import java.util.Set;
 import lombok.SneakyThrows;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.common.settings.MockSecureSettings;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.sql.storage.StorageEngine;
 
-
+@RunWith(MockitoJUnitRunner.class)
 public class CatalogServiceImplTest {
 
   public static final String CATALOG_SETTING_METADATA_KEY =
       "plugins.query.federation.catalog.config";
 
+  @Mock
+  private StorageEngine storageEngine;
 
   @SneakyThrows
   @Test
@@ -71,6 +77,19 @@ public class CatalogServiceImplTest {
     Settings settings = getCatalogSettings("malformed_catalogs.json");
     Assert.assertThrows(IllegalArgumentException.class,
         () -> CatalogServiceImpl.getInstance().loadConnectors(settings));
+  }
+
+  @SneakyThrows
+  @Test
+  public void testGetStorageEngineAfterGetCatalogs() {
+    Settings settings = getCatalogSettings("empty_catalog.json");
+    CatalogServiceImpl.getInstance().registerOpenSearchStorageEngine(storageEngine);
+    CatalogServiceImpl.getInstance().loadConnectors(settings);
+    Set<String> expected = new HashSet<>();
+    Assert.assertEquals(expected, CatalogServiceImpl.getInstance().getCatalogs());
+    Assert.assertEquals(storageEngine, CatalogServiceImpl.getInstance().getStorageEngine(null));
+    Assert.assertEquals(expected, CatalogServiceImpl.getInstance().getCatalogs());
+    Assert.assertEquals(storageEngine, CatalogServiceImpl.getInstance().getStorageEngine(null));
   }
 
 

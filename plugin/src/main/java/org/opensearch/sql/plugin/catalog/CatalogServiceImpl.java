@@ -8,10 +8,12 @@ package org.opensearch.sql.plugin.catalog;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -37,7 +39,7 @@ public class CatalogServiceImpl implements CatalogService {
 
   private static final Logger LOG = LogManager.getLogger();
 
-  public static final String OPEN_SEARCH = "opensearch";
+  public static StorageEngine defaultOpenSearchStorageEngine;
 
   private Map<String, StorageEngine> storageEngineMap = new HashMap<>();
 
@@ -80,21 +82,22 @@ public class CatalogServiceImpl implements CatalogService {
   @Override
   public StorageEngine getStorageEngine(String catalog) {
     if (catalog == null || !storageEngineMap.containsKey(catalog)) {
-      return storageEngineMap.get(OPEN_SEARCH);
+      return defaultOpenSearchStorageEngine;
     }
     return storageEngineMap.get(catalog);
   }
 
   @Override
   public Set<String> getCatalogs() {
-    return storageEngineMap.keySet()
-        .stream().filter(catalog -> !catalog.equals(OPEN_SEARCH))
-        .collect(Collectors.toSet());
+    return Collections.unmodifiableSet(storageEngineMap.keySet());
   }
 
   @Override
   public void registerOpenSearchStorageEngine(StorageEngine storageEngine) {
-    storageEngineMap.put(OPEN_SEARCH, storageEngine);
+    if (storageEngine == null) {
+      throw new IllegalArgumentException("Default storage engine can't be null");
+    }
+    defaultOpenSearchStorageEngine = storageEngine;
   }
 
   private <T> T doPrivileged(PrivilegedExceptionAction<T> action) {
