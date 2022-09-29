@@ -20,9 +20,9 @@ import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.ServletException;
 import java.io.IOException;
 
 public class TLSServer {
@@ -70,7 +70,7 @@ public class TLSServer {
         ServerConnector httpsConnector = null;
 
         // setup ssl
-        SslContextFactory sslContextFactory = new SslContextFactory();
+        SslContextFactory.Server sslContextFactory = new SslContextFactory.Server();
         sslContextFactory.setKeyStorePath(keyStorePath);
         sslContextFactory.setKeyStorePassword(keyStorePassword);
         sslContextFactory.setKeyStoreType(keyStoreType);
@@ -132,8 +132,6 @@ public class TLSServer {
                 connectionFactories
         );
         connector.setPort(port);
-        connector.setStopTimeout(0);
-        connector.getSelectorManager().setStopTimeout(0);
         connector.setHost(bindAddress);
 
         return connector;
