@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.plugin.catalog;
 
+import static org.opensearch.sql.plugin.catalog.CatalogServiceImpl.OPEN_SEARCH;
+
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -17,7 +19,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.opensearch.common.settings.MockSecureSettings;
 import org.opensearch.common.settings.Settings;
-
+import org.opensearch.sql.storage.StorageEngine;
 
 public class CatalogServiceImplTest {
 
@@ -47,6 +49,20 @@ public class CatalogServiceImplTest {
         add("prometheus-1");
       }};
     Assert.assertEquals(expected, CatalogServiceImpl.getInstance().getCatalogs());
+  }
+
+  @SneakyThrows
+  @Test
+  public void testGetOpenSearchAfterGetCatalogs() {
+    Settings settings = getCatalogSettings("multiple_catalogs.json");
+    StorageEngine mockOpenSearch = name -> null;
+    CatalogServiceImpl.getInstance().loadConnectors(settings);
+    CatalogServiceImpl.getInstance().registerOpenSearchStorageEngine(mockOpenSearch);
+
+    Set<String> expected = Set.of("prometheus", "prometheus-1");
+    Assert.assertEquals(expected, CatalogServiceImpl.getInstance().getCatalogs());
+    Assert.assertEquals(mockOpenSearch,
+        CatalogServiceImpl.getInstance().getStorageEngine(OPEN_SEARCH));
   }
 
   @SneakyThrows
