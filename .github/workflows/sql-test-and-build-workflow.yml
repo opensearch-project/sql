@@ -2,7 +2,6 @@ name: SQL Java CI
 
 on:
   pull_request:
-    types: [opened, reopened]
   push:
     branches-ignore:
       - 'dependabot/**'
