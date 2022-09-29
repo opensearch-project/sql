@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -86,9 +87,9 @@ public class CatalogServiceImpl implements CatalogService {
 
   @Override
   public Set<String> getCatalogs() {
-    Set<String> catalogs = storageEngineMap.keySet();
-    catalogs.remove(OPEN_SEARCH);
-    return catalogs;
+    return storageEngineMap.keySet()
+        .stream().filter(catalog -> !catalog.equals(OPEN_SEARCH))
+        .collect(Collectors.toSet());
   }
 
   @Override
