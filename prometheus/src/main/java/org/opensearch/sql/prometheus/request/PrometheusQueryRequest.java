@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.prometheus.request;
 
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,6 +19,7 @@ import org.opensearch.common.unit.TimeValue;
 @EqualsAndHashCode
 @Getter
 @ToString
+@AllArgsConstructor
 public class PrometheusQueryRequest {
 
   public static final TimeValue DEFAULT_QUERY_TIMEOUT = TimeValue.timeValueMinutes(1L);

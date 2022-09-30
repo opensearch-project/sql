@@ -147,6 +147,8 @@ adParameter
 fromClause
     : SOURCE EQUAL tableSourceClause
     | INDEX EQUAL tableSourceClause
+    | SOURCE EQUAL tableFunction
+    | INDEX EQUAL tableFunction
     ;
 
 tableSourceClause
@@ -273,6 +275,10 @@ tableSource
     | ID_DATE_SUFFIX
     ;
 
+tableFunction
+    : qualifiedName LT_PRTHS functionArgs RT_PRTHS
+    ;
+
 /** fields */
 fieldList
     : fieldExpression (COMMA fieldExpression)*
@@ -342,7 +348,7 @@ functionArgs
     ;
 
 functionArg
-    : valueExpression
+    : (ident EQUAL)? valueExpression
     ;
 
 relevanceArg

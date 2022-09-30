@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collections;
@@ -18,6 +19,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import okhttp3.OkHttpClient;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -26,6 +28,9 @@ import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.catalog.model.CatalogMetadata;
 import org.opensearch.sql.catalog.model.ConnectorType;
 import org.opensearch.sql.opensearch.security.SecurityAccess;
+import org.opensearch.sql.prometheus.client.PrometheusClient;
+import org.opensearch.sql.prometheus.client.PrometheusClientImpl;
+import org.opensearch.sql.prometheus.storage.PrometheusStorageEngine;
 import org.opensearch.sql.storage.StorageEngine;
 
 /**
@@ -113,7 +118,11 @@ public class CatalogServiceImpl implements CatalogService {
     ConnectorType connector = catalog.getConnector();
     switch (connector) {
       case PROMETHEUS:
-        storageEngine = null;
+        PrometheusClient
+            prometheusClient =
+            new PrometheusClientImpl(new OkHttpClient(),
+                new URI(catalog.getUri()));
+        storageEngine = new PrometheusStorageEngine(prometheusClient);
         break;
       default:
         LOG.info(

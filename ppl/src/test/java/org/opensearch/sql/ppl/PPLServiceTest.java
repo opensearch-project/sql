@@ -8,11 +8,14 @@ package org.opensearch.sql.ppl;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
+import java.util.Set;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,6 +30,12 @@ import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponseNode;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
+import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.FunctionBuilder;
+import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.function.FunctionResolver;
+import org.opensearch.sql.expression.function.FunctionSignature;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.ppl.config.PPLServiceConfig;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
@@ -50,6 +59,12 @@ public class PPLServiceTest {
   private CatalogService catalogService;
 
   @Mock
+  private BuiltinFunctionRepository functionRepository;
+
+  @Mock
+  private DSL dsl;
+
+  @Mock
   private Table table;
 
   @Mock
@@ -57,6 +72,9 @@ public class PPLServiceTest {
 
   @Mock
   private ExecutionEngine.Schema schema;
+
+  @Mock
+  private FunctionResolver functionResolver;
 
   /**
    * Setup the test context.
@@ -66,6 +84,9 @@ public class PPLServiceTest {
     when(table.getFieldTypes()).thenReturn(ImmutableMap.of("a", ExprCoreType.INTEGER));
     when(table.implement(any())).thenReturn(plan);
     when(storageEngine.getTable(any())).thenReturn(table);
+    when(catalogService.getCatalogs()).thenReturn(Set.of("prometheus"));
+    when(catalogService.getStorageEngine("prometheus")).thenReturn(storageEngine);
+    when(storageEngine.getFunctions()).thenReturn(Collections.singleton(functionResolver));
 
     context.registerBean(StorageEngine.class, () -> storageEngine);
     context.registerBean(ExecutionEngine.class, () -> executionEngine);

@@ -6,6 +6,10 @@
 
 package org.opensearch.sql.storage;
 
+import java.util.Collection;
+import java.util.Collections;
+import org.opensearch.sql.expression.function.FunctionResolver;
+
 /**
  * Storage engine for different storage to provide data access API implementation.
  */
@@ -15,4 +19,14 @@ public interface StorageEngine {
    * Get {@link Table} from storage engine.
    */
   Table getTable(String name);
+
+  /**
+   * Get list of catalog related functions.
+   *
+   * @return FunctionResolvers of catalog functions.
+   */
+  default Collection<FunctionResolver> getFunctions() {
+    return Collections.emptyList();
+  }
+
 }
