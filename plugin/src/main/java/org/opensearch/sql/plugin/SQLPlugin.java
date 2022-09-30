@@ -181,7 +181,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
 
   @Override
   public void reload(Settings settings) {
-    CatalogServiceImpl.getInstance().loadConnectors(clusterService.getSettings());
+    CatalogServiceImpl.getInstance().loadConnectors(settings);
     CatalogServiceImpl.getInstance().registerOpenSearchStorageEngine(openSearchStorageEngine());
   }
 

@@ -39,6 +39,7 @@ import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
@@ -76,6 +77,16 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   @Override
   public String visitRelation(Relation node, String context) {
     return StringUtils.format("source=%s", node.getTableName());
+  }
+
+  @Override
+  public String visitTableFunction(TableFunction node, String context) {
+    String arguments =
+        node.getArguments().stream()
+            .map(unresolvedExpression
+                -> this.expressionAnalyzer.analyze(unresolvedExpression, context))
+            .collect(Collectors.joining(","));
+    return StringUtils.format("source=%s(%s)", node.getFunctionName().toString(), arguments);
   }
 
   @Override

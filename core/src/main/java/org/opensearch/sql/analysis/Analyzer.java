@@ -6,7 +6,6 @@
 
 package org.opensearch.sql.analysis;
 
-import static org.opensearch.sql.analysis.model.CatalogName.DEFAULT_CATALOG_NAME;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
@@ -57,6 +56,7 @@ import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.catalog.CatalogService;
@@ -70,6 +70,9 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.function.TableFunctionImplementation;
 import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
@@ -103,16 +106,20 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   private final CatalogService catalogService;
 
+  private final BuiltinFunctionRepository repository;
+
   /**
    * Constructor.
    */
   public Analyzer(
       ExpressionAnalyzer expressionAnalyzer,
-      CatalogService catalogService) {
+      CatalogService catalogService,
+      BuiltinFunctionRepository repository) {
     this.expressionAnalyzer = expressionAnalyzer;
     this.catalogService = catalogService;
     this.selectExpressionAnalyzer = new SelectExpressionAnalyzer(expressionAnalyzer);
     this.namedExpressionAnalyzer = new NamedExpressionAnalyzer(expressionAnalyzer);
+    this.repository = repository;
   }
 
   public LogicalPlan analyze(UnresolvedPlan unresolved, AnalysisContext context) {
@@ -152,6 +159,24 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     curEnv.define(new Symbol(Namespace.INDEX_NAME, node.getAliasAsTableName()), STRUCT);
     return subquery;
   }
+
+  @Override
+  public LogicalPlan visitTableFunction(TableFunction node, AnalysisContext context) {
+    QualifiedName qualifiedName = node.getFunctionName();
+    CatalogSchemaIdentifierName catalogSchemaIdentifierName
+        = new CatalogSchemaIdentifierName(qualifiedName.getParts(), catalogService.getCatalogs());
+
+    FunctionName functionName = FunctionName.of(catalogSchemaIdentifierName.getIdentifierName());
+    List<Expression> arguments = node.getArguments().stream()
+        .map(unresolvedExpression -> this.expressionAnalyzer.analyze(unresolvedExpression, context))
+        .collect(Collectors.toList());
+    TableFunctionImplementation tableFunctionImplementation
+        = (TableFunctionImplementation) repository.compile(
+        catalogSchemaIdentifierName.getCatalogName(), functionName, arguments);
+    return new LogicalRelation(catalogSchemaIdentifierName.getIdentifierName(),
+        tableFunctionImplementation.applyArguments());
+  }
+
 
   @Override
   public LogicalPlan visitLimit(Limit node, AnalysisContext context) {

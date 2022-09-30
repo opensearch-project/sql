@@ -11,6 +11,7 @@ import java.security.PrivilegedAction;
 import java.util.Iterator;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -32,8 +33,9 @@ public class PrometheusMetricScan extends TableScanOperator {
 
   @EqualsAndHashCode.Include
   @Getter
+  @Setter
   @ToString.Include
-  private final PrometheusQueryRequest request;
+  private PrometheusQueryRequest request;
 
   private Iterator<ExprValue> iterator;
 
