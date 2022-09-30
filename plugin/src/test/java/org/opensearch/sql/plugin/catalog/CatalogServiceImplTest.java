@@ -59,16 +59,20 @@ public class CatalogServiceImplTest {
   @Test
   public void testLoadConnectorsWithMissingName() {
     Settings settings = getCatalogSettings("catalog_missing_name.json");
-    Assert.assertThrows(IllegalArgumentException.class,
+    IllegalArgumentException exception = Assert.assertThrows(IllegalArgumentException.class,
         () -> CatalogServiceImpl.getInstance().loadConnectors(settings));
+    Assert.assertEquals("Missing Name Field from a catalog. Name is a required parameter.",
+        exception.getMessage());
   }
 
   @SneakyThrows
   @Test
   public void testLoadConnectorsWithDuplicateCatalogNames() {
     Settings settings = getCatalogSettings("duplicate_catalog_names.json");
-    Assert.assertThrows(IllegalArgumentException.class,
+    IllegalArgumentException exception = Assert.assertThrows(IllegalArgumentException.class,
         () -> CatalogServiceImpl.getInstance().loadConnectors(settings));
+    Assert.assertEquals("Catalogs with same name are not allowed.",
+        exception.getMessage());
   }
 
   @SneakyThrows
@@ -92,6 +96,15 @@ public class CatalogServiceImplTest {
     Assert.assertEquals(storageEngine, CatalogServiceImpl.getInstance().getStorageEngine(null));
   }
 
+  @SneakyThrows
+  @Test
+  public void testLoadConnectorsWithIllegalCatalogNames() {
+    Settings settings = getCatalogSettings("illegal_catalog_name.json");
+    IllegalArgumentException exception = Assert.assertThrows(IllegalArgumentException.class,
+        () -> CatalogServiceImpl.getInstance().loadConnectors(settings));
+    Assert.assertEquals("Catalog Name: prometheus.test contains illegal characters."
+        + " Allowed characters: a-zA-Z0-9_-*@ ", exception.getMessage());
+  }
 
   private Settings getCatalogSettings(String filename) throws URISyntaxException, IOException {
     MockSecureSettings mockSecureSettings = new MockSecureSettings();

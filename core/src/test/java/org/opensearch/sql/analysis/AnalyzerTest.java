@@ -34,6 +34,8 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -83,6 +85,17 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
+  public void filter_relation_with_alias() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("schema", table),
+            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+        AstDSL.filter(
+            AstDSL.relation("schema", "alias"),
+            AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
+  }
+
+  @Test
   public void filter_relation_with_catalog() {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
@@ -105,6 +118,28 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
+  public void filter_relation_with_information_schema_and_catalog() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("tables", table),
+            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+        AstDSL.filter(
+            AstDSL.relation(AstDSL.qualifiedName("prometheus","default","tables")),
+            AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
+  }
+
+  @Test
+  public void filter_relation_with_information_schema() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("tables.test", table),
+            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+        AstDSL.filter(
+            AstDSL.relation(AstDSL.qualifiedName("information_schema","tables", "test")),
+            AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
+  }
+
+  @Test
   public void filter_relation_with_non_existing_catalog() {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
@@ -112,6 +147,29 @@ class AnalyzerTest extends AnalyzerTestBase {
             dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
         AstDSL.filter(
             AstDSL.relation(AstDSL.qualifiedName("test", "http_total_requests")),
+            AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
+  }
+
+  @Test
+  public void filter_relation_with_non_existing_catalog_with_three_parts() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("test.nonexisting_schema.http_total_requests", table),
+            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+        AstDSL.filter(
+            AstDSL.relation(AstDSL.qualifiedName("test",
+                "nonexisting_schema", "http_total_requests")),
+            AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
+  }
+
+  @Test
+  public void filter_relation_with_multiple_tables() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("test.1,test.2", table),
+            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+        AstDSL.filter(
+            AstDSL.relation(Arrays.asList("test.1", "test.2")),
             AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
   }
 

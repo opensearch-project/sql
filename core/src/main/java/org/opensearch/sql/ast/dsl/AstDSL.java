@@ -8,6 +8,7 @@ package org.opensearch.sql.ast.dsl;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.expression.AggregateFunction;
@@ -71,6 +72,11 @@ public class AstDSL {
 
   public UnresolvedPlan relation(String tableName) {
     return new Relation(qualifiedName(tableName));
+  }
+
+  public UnresolvedPlan relation(List<String> tableNames) {
+    return new Relation(
+        tableNames.stream().map(AstDSL::qualifiedName).collect(Collectors.toList()));
   }
 
   public UnresolvedPlan relation(QualifiedName tableName) {

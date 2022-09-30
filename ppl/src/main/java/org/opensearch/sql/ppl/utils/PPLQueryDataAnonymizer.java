@@ -75,7 +75,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitRelation(Relation node, String context) {
-    return StringUtils.format("source=%s", node.getFullyQualifiedTableNameWithCatalog());
+    return StringUtils.format("source=%s", node.getTableName());
   }
 
   @Override
