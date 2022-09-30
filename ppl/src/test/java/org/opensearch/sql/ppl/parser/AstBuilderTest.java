@@ -75,7 +75,7 @@ public class AstBuilderTest {
   @Test
   public void testPrometheusSearchCommand() {
     assertEqual("search source = prometheus.http_requests_total",
-        relation(qualifiedName("http_requests_total"))
+        relation(qualifiedName("prometheus", "http_requests_total"))
     );
   }
 
@@ -89,7 +89,7 @@ public class AstBuilderTest {
   @Test
   public void testSearchCommandWithDotInIndexName() {
     assertEqual("search source = http_requests_total.test",
-        relation("test")
+        relation(qualifiedName("http_requests_total","test"))
     );
   }
 

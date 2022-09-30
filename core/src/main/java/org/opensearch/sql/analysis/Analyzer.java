@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.analysis;
 
+import static org.opensearch.sql.analysis.model.CatalogName.DEFAULT_CATALOG_NAME;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
@@ -28,6 +29,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.analysis.model.CatalogSchemaIdentifierName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -37,6 +39,7 @@ import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
@@ -118,32 +121,23 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitRelation(Relation node, AnalysisContext context) {
+    QualifiedName qualifiedName = node.getTableQualifiedName();
+    CatalogSchemaIdentifierName catalogSchemaIdentifierName
+        = new CatalogSchemaIdentifierName(qualifiedName.getParts(), catalogService.getCatalogs());
+    String tableName = catalogSchemaIdentifierName.getIdentifierName();
     context.push();
     TypeEnvironment curEnv = context.peek();
-    String catalogName = getCatalogName(node);
-    String tableName = getTableName(node);
-    if (catalogName != null && !catalogService.getCatalogs().contains(catalogName)) {
-      tableName = catalogName + "." + tableName;
-      catalogName = null;
-    }
     Table table = catalogService
-        .getStorageEngine(catalogName)
-        .getTable(tableName);
+        .getStorageEngine(catalogSchemaIdentifierName.getCatalogName())
+        .getTable(catalogSchemaIdentifierName.getIdentifierName());
     table.getFieldTypes().forEach((k, v) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));
 
     // Put index name or its alias in index namespace on type environment so qualifier
     // can be removed when analyzing qualified name. The value (expr type) here doesn't matter.
-    curEnv.define(new Symbol(Namespace.INDEX_NAME, node.getTableNameOrAlias()), STRUCT);
+    curEnv.define(new Symbol(Namespace.INDEX_NAME,
+        (node.getAlias() == null) ? tableName : node.getAlias()), STRUCT);
 
     return new LogicalRelation(tableName, table);
-  }
-
-  private String getTableName(Relation node) {
-    return node.getTableName();
-  }
-
-  private String getCatalogName(Relation node) {
-    return node.getCatalogName();
   }
 
 
