@@ -1,6 +1,22 @@
 name: SQL Java CI
 
-on: [push, pull_request]
+on:
+  pull_request:
+    types: [opened, reopened]
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+    paths:
+      - '**/*.java'
+      - '**/*.g4'
+      - '!sql-jdbc/**'
+      - '**gradle*'
+      - '**lombok*'
+      - '**checkstyle*'
+      - 'integ-test/**'
+      - '**/*.jar'
+      - '**/*.pom'
+      - '.github/workflows/sql-test-and-build-workflow.yml'
 
 jobs:
   build:
@@ -12,15 +28,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
     
     - name: Set up JDK ${{ matrix.java }}
-      uses: actions/setup-java@v1
+      uses: actions/setup-java@v3
       with:
+        distribution: 'temurin'
         java-version: ${{ matrix.java }}
     
     - name: Build with Gradle
-      run: ./gradlew build assemble
+      run: ./gradlew --continue build assemble
 
     - name: Run backward compatibility tests
       run: ./scripts/bwctest.sh
@@ -32,13 +49,30 @@ jobs:
 
     # This step uses the codecov-action Github action: https://github.com/codecov/codecov-action
     - name: Upload SQL Coverage Report
-      uses: codecov/codecov-action@v1
+      if: always()
+      uses: codecov/codecov-action@v3
       with:
         flags: sql-engine
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Upload Artifacts
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v2
       with:
         name: opensearch-sql
         path: opensearch-sql-builds
+
+    - name: Upload test reports
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: test-reports
+        path: |
+          sql/build/reports/**
+          ppl/build/reports/**
+          core/build/reports/**
+          common/build/reports/**
+          opensearch/build/reports/**
+          integ-test/build/reports/**
+          protocol/build/reports/**
+          legacy/build/reports/**
+          plugin/build/reports/**

@@ -1,9 +1,12 @@
 name: Release Drafter
 
 on:
+  pull_request:
+    types: [opened, reopened]
   push:
     branches:
-      - main
+      - 'main'
+      - '[1-9]+.[0-9x]+'
 
 jobs:
   update_release_draft:
