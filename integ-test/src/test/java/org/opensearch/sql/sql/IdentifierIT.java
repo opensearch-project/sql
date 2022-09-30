@@ -57,6 +57,13 @@ public class IdentifierIT extends SQLIntegTestCase {
     verifyDataRows(result, rows(10, 30));
   }
 
+  @Test
+  public void testMultipleQueriesWithSpecialIndexNames() throws IOException {
+    createIndexWithOneDoc("test.one", "test.two");
+    queryAndAssertTheDoc("SELECT * FROM test.one");
+    queryAndAssertTheDoc("SELECT * FROM test.two");
+  }
+
   private void createIndexWithOneDoc(String... indexNames) throws IOException {
     for (String indexName : indexNames) {
       new Index(indexName).addDoc("{\"age\": 30}");
