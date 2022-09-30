@@ -189,17 +189,18 @@ task compileJdbc(type: Exec) {
     }
 }
 
-String bwcVersion = "1.1.0.0";
+String baseVersion = "2.3.0"
+String bwcVersion = baseVersion + ".0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
 String bwcSqlPlugin = "opensearch-sql-" + bwcVersion + ".zip"
-String bwcRemoteFile = "https://ci.opensearch.org/ci/dbc/bundle-build/1.1.0/20210930/linux/x64/builds/opensearch/plugins/" + bwcSqlPlugin
+String bwcRemoteFile = "https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${baseVersion}/6039/linux/x64/tar/builds/opensearch/plugins/" + bwcSqlPlugin
 
 2.times { i ->
     testClusters {
         "${baseName}$i" {
             testDistribution = "ARCHIVE"
-            versions = ["1.1.0", opensearch_version]
+            versions = [baseVersion, opensearch_version]
             numberOfNodes = 3
             plugin(provider(new Callable<RegularFile>() {
                 @Override
