@@ -20,7 +20,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.NamedExpression;
-import org.opensearch.sql.expression.ParseExpression;
+import org.opensearch.sql.expression.parse.ParseExpression;
 
 /**
  * Project the fields specified in {@link ProjectOperator#projectList} from input.
@@ -65,10 +65,14 @@ public class ProjectOperator extends PhysicalPlan {
     // ParseExpression will always override NamedExpression when identifier conflicts
     // TODO needs a better implementation, see https://github.com/opensearch-project/sql/issues/458
     for (NamedExpression expr : namedParseExpressions) {
-      ExprValue value = inputValue.bindingTuples()
-          .resolve(((ParseExpression) expr.getDelegated()).getExpression());
-      if (value.isMissing()) {
-        // value will be missing after stats command, read from inputValue if it exists
+      if (projectList.stream()
+          .noneMatch(field -> field.getNameOrAlias().equals(expr.getNameOrAlias()))) {
+        continue;
+      }
+      ExprValue sourceFieldValue = inputValue.bindingTuples()
+          .resolve(((ParseExpression) expr.getDelegated()).getSourceField());
+      if (sourceFieldValue.isMissing()) {
+        // source field will be missing after stats command, read from inputValue if it exists
         // otherwise do nothing since it should not appear as a field
         ExprValue exprValue = ExprValueUtils.getTupleValue(inputValue).get(expr.getNameOrAlias());
         if (exprValue != null) {

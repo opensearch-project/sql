@@ -7,7 +7,6 @@
 package org.opensearch.sql.ast.dsl;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.tuple.Pair;
@@ -32,6 +31,7 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
+import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.SpanUnit;
@@ -433,8 +433,11 @@ public class AstDSL {
     return new Limit(limit, offset).attach(input);
   }
 
-  public static Parse parse(UnresolvedPlan input, UnresolvedExpression expression,
-                            Literal pattern) {
-    return new Parse(expression, pattern, input);
+  public static Parse parse(UnresolvedPlan input, ParseMethod parseMethod,
+                                  UnresolvedExpression sourceField,
+                                  Literal pattern,
+                                  java.util.Map<String, Literal> arguments) {
+    return new Parse(parseMethod, sourceField, pattern, arguments, input);
   }
+
 }

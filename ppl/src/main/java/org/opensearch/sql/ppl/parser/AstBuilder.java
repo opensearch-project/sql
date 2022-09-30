@@ -36,11 +36,13 @@ import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
+import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
@@ -272,11 +274,34 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   @Override
-  public UnresolvedPlan visitParseCommand(OpenSearchPPLParser.ParseCommandContext ctx) {
-    UnresolvedExpression expression = internalVisitExpression(ctx.expression());
-    Literal pattern = (Literal) internalVisitExpression(ctx.pattern());
+  public UnresolvedPlan visitGrokCommand(OpenSearchPPLParser.GrokCommandContext ctx) {
+    UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
+    Literal pattern = (Literal) internalVisitExpression(ctx.pattern);
 
-    return new Parse(expression, pattern);
+    return new Parse(ParseMethod.GROK, sourceField, pattern, ImmutableMap.of());
+  }
+
+  @Override
+  public UnresolvedPlan visitParseCommand(OpenSearchPPLParser.ParseCommandContext ctx) {
+    UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
+    Literal pattern = (Literal) internalVisitExpression(ctx.pattern);
+
+    return new Parse(ParseMethod.REGEX, sourceField, pattern, ImmutableMap.of());
+  }
+
+  @Override
+  public UnresolvedPlan visitPatternsCommand(OpenSearchPPLParser.PatternsCommandContext ctx) {
+    UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
+    ImmutableMap.Builder<String, Literal> builder = ImmutableMap.builder();
+    ctx.patternsParameter()
+        .forEach(x -> {
+          builder.put(x.children.get(0).toString(),
+              (Literal) internalVisitExpression(x.children.get(2)));
+        });
+    java.util.Map<String, Literal> arguments = builder.build();
+    Literal pattern = arguments.getOrDefault("pattern", AstDSL.stringLiteral(""));
+
+    return new Parse(ParseMethod.PATTERNS, sourceField, pattern, arguments);
   }
 
   /**

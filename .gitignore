@@ -42,3 +42,4 @@ gen
 .DS_Store
 
 /artifacts/
+/.pid.lock

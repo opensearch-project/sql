@@ -36,6 +36,7 @@ import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
+import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
@@ -63,10 +64,10 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.NamedExpression;
-import org.opensearch.sql.expression.ParseExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
@@ -352,15 +353,18 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitParse(Parse node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
-    Expression expression = expressionAnalyzer.analyze(node.getExpression(), context);
+    Expression sourceField = expressionAnalyzer.analyze(node.getSourceField(), context);
+    ParseMethod parseMethod = node.getParseMethod();
+    java.util.Map<String, Literal> arguments = node.getArguments();
     String pattern = (String) node.getPattern().getValue();
     Expression patternExpression = DSL.literal(pattern);
 
     TypeEnvironment curEnv = context.peek();
-    ParseUtils.getNamedGroupCandidates(pattern).forEach(group -> {
-      curEnv.define(new Symbol(Namespace.FIELD_NAME, group), ExprCoreType.STRING);
-      context.getNamedParseExpressions().add(new NamedExpression(group,
-          new ParseExpression(expression, patternExpression, DSL.literal(group))));
+    ParseUtils.getNamedGroupCandidates(parseMethod, pattern, arguments).forEach(group -> {
+      ParseExpression expr = ParseUtils.createParseExpression(parseMethod, sourceField,
+          patternExpression, DSL.literal(group));
+      curEnv.define(new Symbol(Namespace.FIELD_NAME, group), expr.type());
+      context.getNamedParseExpressions().add(new NamedExpression(group, expr));
     });
     return child;
   }

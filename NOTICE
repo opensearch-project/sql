@@ -11,6 +11,9 @@ Foundation (http://www.apache.org/).
 This product includes software developed by
 Joda.org (http://www.joda.org/).
 
+This product includes software developed by
+Kraken (https://github.com/thekrakken/java-grok).
+
 This project is based on the Apache 2.0-licensed elasticsearch-sql project (https://github.com/NLPchina/elasticsearch-sql):
 
 Copyright 2014 omershelef

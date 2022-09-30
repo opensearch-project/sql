@@ -25,7 +25,7 @@ pplCommands
 
 commands
     : whereCommand | fieldsCommand | renameCommand | statsCommand | dedupCommand | sortCommand | evalCommand | headCommand
-    | topCommand | rareCommand | parseCommand | kmeansCommand | adCommand;
+    | topCommand | rareCommand | grokCommand | parseCommand | patternsCommand | kmeansCommand | adCommand;
 
 searchCommand
     : (SEARCH)? fromClause                                          #searchFrom
@@ -94,10 +94,27 @@ rareCommand
     (byClause)?
     ;
 
-parseCommand
-    : PARSE expression pattern
+grokCommand
+    : GROK (source_field=expression) (pattern=stringLiteral)
     ;
-    
+
+parseCommand
+    : PARSE (source_field=expression) (pattern=stringLiteral)
+    ;
+
+patternsCommand
+    : PATTERNS (patternsParameter)* (source_field=expression)
+    ;
+
+patternsParameter
+    : (NEW_FIELD EQUAL new_field=stringLiteral)
+    | (PATTERN EQUAL pattern=stringLiteral)
+    ;
+
+patternsMethod
+    : PUNCT | REGEX
+    ;
+
 kmeansCommand
     : KMEANS (kmeansParameter)*
     ;
@@ -477,10 +494,6 @@ timestampLiteral
 // Actually, these constants are shortcuts to the corresponding functions
 datetimeConstantLiteral
     : CURRENT_DATE | CURRENT_TIME | CURRENT_TIMESTAMP | LOCALTIME | LOCALTIMESTAMP | UTC_TIMESTAMP | UTC_DATE | UTC_TIME
-    ;
-
-pattern
-    : stringLiteral
     ;
 
 intervalUnit

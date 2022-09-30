@@ -24,6 +24,13 @@ HEAD:                               'HEAD';
 TOP:                                'TOP';
 RARE:                               'RARE';
 PARSE:                              'PARSE';
+METHOD:                             'METHOD';
+REGEX:                              'REGEX';
+PUNCT:                              'PUNCT';
+GROK:                               'GROK';
+PATTERN:                            'PATTERN';
+PATTERNS:                           'PATTERNS';
+NEW_FIELD:                          'NEW_FIELD';
 KMEANS:                             'KMEANS';
 AD:                                 'AD';
 
