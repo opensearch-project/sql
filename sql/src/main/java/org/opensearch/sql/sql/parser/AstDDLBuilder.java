@@ -6,12 +6,7 @@
 package org.opensearch.sql.sql.parser;
 
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
-import static org.opensearch.sql.ddl.view.ViewConfig.DistributeOption;
-import static org.opensearch.sql.ddl.view.ViewConfig.RefreshMode;
-import static org.opensearch.sql.ddl.view.ViewDefinition.ViewType;
-import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CreateMaterializedViewContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CreateTableContext;
-import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.RefreshMaterializedViewContext;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,10 +19,6 @@ import org.opensearch.sql.ddl.Column;
 import org.opensearch.sql.ddl.DataDefinitionTask;
 import org.opensearch.sql.ddl.table.CreateExternalTableTask;
 import org.opensearch.sql.ddl.table.CreateTableTask;
-import org.opensearch.sql.ddl.view.CreateMaterializedViewTask;
-import org.opensearch.sql.ddl.view.RefreshMaterializedViewTask;
-import org.opensearch.sql.ddl.view.ViewConfig;
-import org.opensearch.sql.ddl.view.ViewDefinition;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
 
 /**
@@ -57,32 +48,6 @@ public class AstDDLBuilder extends OpenSearchSQLParserBaseVisitor<DataDefinition
       return new CreateTableTask(tableName, columns);
     }
     return new CreateExternalTableTask(tableName, columns, fileFormat, location);
-  }
-
-  @Override
-  public DataDefinitionTask visitCreateMaterializedView(CreateMaterializedViewContext ctx) {
-    String viewName = ctx.tableName().getText();
-    List<Column> columns = ctx.createDefinitions().createDefinition().stream()
-        .map(def -> new Column(
-            def.columnName().getText(),
-            def.dataType().getText())
-        ).collect(Collectors.toList());
-
-    ViewDefinition definition = new ViewDefinition(viewName, columns, ViewType.MATERIALIZED_VIEW);
-    definition.setQuery(astBuilder.visit(ctx.selectStatement()));
-
-    return new CreateMaterializedViewTask(
-        definition,
-        new ViewConfig(RefreshMode.MANUAL, DistributeOption.EVEN)
-    );
-  }
-
-  @Override
-  public DataDefinitionTask visitRefreshMaterializedView(
-      RefreshMaterializedViewContext ctx) {
-    String viewName = ctx.tableName().getText();
-
-    return new RefreshMaterializedViewTask(qualifiedName(viewName));
   }
 
   @Override

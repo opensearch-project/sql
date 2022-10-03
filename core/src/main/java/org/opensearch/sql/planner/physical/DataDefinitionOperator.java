@@ -7,6 +7,7 @@ package org.opensearch.sql.planner.physical;
 
 import java.util.Collections;
 import java.util.List;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -15,6 +16,7 @@ import org.opensearch.sql.ddl.DataDefinitionTask;
 /**
  * Data definition physical plan that wraps DDL executable task.
  */
+@Getter
 @RequiredArgsConstructor
 public class DataDefinitionOperator extends PhysicalPlan {
 

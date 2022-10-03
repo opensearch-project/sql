@@ -18,8 +18,6 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
-import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.ddl.Column;
 import org.opensearch.sql.ddl.DataDefinitionTask;
 

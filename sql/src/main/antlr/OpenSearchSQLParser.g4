@@ -66,7 +66,6 @@ selectStatement
 adminStatement
     : showStatement
     | describeStatement
-    | describeMaterializedView
     ;
 
 showStatement
