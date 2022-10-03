@@ -194,7 +194,7 @@ String bwcVersion = baseVersion + ".0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
 String bwcSqlPlugin = "opensearch-sql-" + bwcVersion + ".zip"
-String bwcRemoteFile = "https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${baseVersion}/6039/linux/x64/tar/builds/opensearch/plugins/" + bwcSqlPlugin
+String bwcRemoteFile = "https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${baseVersion}/latest/linux/x64/tar/builds/opensearch/plugins/" + bwcSqlPlugin
 
 2.times { i ->
     testClusters {
