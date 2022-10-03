@@ -47,7 +47,7 @@ The example shows how to extract punctuations from a raw log field using the def
 
 PPL query::
 
-os> source=apache | patterns message | fields message, patterns_field ;
+    os> source=apache | patterns message | fields message, patterns_field ;
     fetched rows / total rows = 4/4
     +-----------------------------------------------------------------------------------------------------------------------------+---------------------------------+
     | message                                                                                                                     | patterns_field                  |
