@@ -6,14 +6,19 @@
 
 package org.opensearch.sql.opensearch.client;
 
+import static java.lang.Math.min;
+
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -21,6 +26,8 @@ import java.util.stream.Stream;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
+import org.opensearch.action.bulk.BulkRequestBuilder;
+import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.metadata.AliasMetadata;
@@ -31,6 +38,7 @@ import org.opensearch.sql.ddl.Column;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
+import org.opensearch.threadpool.Scheduler;
 
 /** OpenSearch connection by node client. */
 public class OpenSearchNodeClient implements OpenSearchClient {
@@ -57,6 +65,15 @@ public class OpenSearchNodeClient implements OpenSearchClient {
     IndexResponse response = client.prepareIndex(name)
         .setSource(mapping).get();
     return true;
+  }
+
+  @Override
+  public void bulk(final String indexName, List<Map<String, Object>> data) {
+    BulkRequestBuilder builder = client.prepareBulk(indexName);
+    for (Map<String, Object> row : data) {
+      builder.add(client.prepareIndex().setSource(row).request());
+    }
+    builder.get();
   }
 
   /**

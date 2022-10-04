@@ -7,7 +7,6 @@
 package org.opensearch.sql.ast.dsl;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.tuple.Pair;
@@ -41,7 +40,6 @@ import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.tree.Aggregation;
-import org.opensearch.sql.ast.tree.DataDefinitionPlan;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
@@ -59,8 +57,6 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Write;
-import org.opensearch.sql.ddl.Column;
-import org.opensearch.sql.ddl.table.CreateTableTask;
 
 /**
  * Class of static methods to create specific node instances.
@@ -70,11 +66,6 @@ public class AstDSL {
 
   public static UnresolvedPlan filter(UnresolvedPlan input, UnresolvedExpression expression) {
     return new Filter(expression).attach(input);
-  }
-
-  public static UnresolvedPlan createTable(QualifiedName tableName,
-                                           Column... columns) {
-    return new DataDefinitionPlan(new CreateTableTask(tableName, Arrays.asList(columns)));
   }
 
   public static UnresolvedPlan write(UnresolvedPlan input,

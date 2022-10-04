@@ -135,7 +135,7 @@ public class OpenSearchIndex implements Table {
 
     @Override
     public PhysicalPlan visitWrite(LogicalWrite node, Void context) {
-      return new OpenSearchIndexWrite(child, node.getTableName(), node.getColumnNames());
+      return new OpenSearchIndexWrite(client, child, node.getTableName(), node.getColumnNames());
     }
   }
 
@@ -218,7 +218,7 @@ public class OpenSearchIndex implements Table {
 
     @Override
     public PhysicalPlan visitWrite(LogicalWrite node, OpenSearchIndexScan context) {
-      return new OpenSearchIndexWrite(visitChild(node, context),
+      return new OpenSearchIndexWrite(client, visitChild(node, context),
           node.getTableName(), node.getColumnNames());
     }
 

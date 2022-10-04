@@ -10,25 +10,20 @@ package org.opensearch.sql.executor.execution;
 
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.statement.CreateTable;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
 
-/**
- * QueryExecution Factory.
- */
+/** QueryExecution Factory. */
 @RequiredArgsConstructor
 public class QueryExecutionFactory extends AbstractNodeVisitor<QueryExecution, Void> {
-  /**
-   * Query Service.
-   */
+  /** Query Service. */
   private final QueryService queryService;
 
-  /**
-   * Create QueryExecution from Statement.
-   */
+  /** Create QueryExecution from Statement. */
   public QueryExecution create(Statement statement) {
     return statement.accept(this, null);
   }
@@ -41,5 +36,11 @@ public class QueryExecutionFactory extends AbstractNodeVisitor<QueryExecution, V
   @Override
   public QueryExecution visitExplain(Explain node, Void context) {
     return new DMLQueryExecution(QueryId.queryId(), node.getPlan(), true, queryService);
+  }
+
+  @Override
+  public QueryExecution visitCreateTable(CreateTable node, Void context) {
+    return new DDLQueryExecution(
+        QueryId.queryId(), node.getDataDefinitionTask(), false, queryService);
   }
 }

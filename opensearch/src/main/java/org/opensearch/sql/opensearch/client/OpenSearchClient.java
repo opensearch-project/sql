@@ -26,6 +26,10 @@ public interface OpenSearchClient {
     return false;
   }
 
+  default void bulk(String indexName, List<Map<String, Object>> data) {
+
+  }
+
   /**
    * Fetch index mapping(s) according to index expression given.
    *

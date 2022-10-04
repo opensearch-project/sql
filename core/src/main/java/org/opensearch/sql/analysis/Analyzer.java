@@ -40,7 +40,6 @@ import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
-import org.opensearch.sql.ast.tree.DataDefinitionPlan;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
@@ -72,7 +71,6 @@ import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
-import org.opensearch.sql.planner.logical.LogicalDataDefinitionPlan;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
 import org.opensearch.sql.planner.logical.LogicalEval;
 import org.opensearch.sql.planner.logical.LogicalFilter;
@@ -118,11 +116,6 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   public LogicalPlan analyze(UnresolvedPlan unresolved, AnalysisContext context) {
     return unresolved.accept(this, context);
-  }
-
-  @Override
-  public LogicalPlan visitDataDefinitionPlan(DataDefinitionPlan node, AnalysisContext context) {
-    return new LogicalDataDefinitionPlan(node.getTask());
   }
 
   @Override

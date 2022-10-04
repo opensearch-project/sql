@@ -59,12 +59,6 @@ public class OpenSearchSystemIndex implements Table {
     public PhysicalPlan visitRelation(LogicalRelation node, Object context) {
       return new OpenSearchSystemIndexScan(systemIndexBundle.getRight());
     }
-
-    @Override
-    public PhysicalPlan visitWrite(LogicalWrite node, Object context) {
-      return new OpenSearchIndexWrite(visitChild(node, context),
-          node.getTableName(), node.getColumnNames());
-    }
   }
 
   /**

@@ -11,14 +11,11 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CreateTabl
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.expression.QualifiedName;
-import org.opensearch.sql.ast.tree.DataDefinitionPlan;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ddl.Column;
 import org.opensearch.sql.ddl.DataDefinitionTask;
 import org.opensearch.sql.ddl.table.CreateExternalTableTask;
-import org.opensearch.sql.ddl.table.CreateTableTask;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
 
 /**
@@ -28,10 +25,6 @@ import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
 public class AstDDLBuilder extends OpenSearchSQLParserBaseVisitor<DataDefinitionTask> {
 
   private final AstBuilder astBuilder;
-
-  public DataDefinitionPlan build(ParseTree tree) {
-    return new DataDefinitionPlan(tree.accept(this));
-  }
 
   @Override
   public DataDefinitionTask visitCreateTable(CreateTableContext ctx) {
@@ -44,9 +37,6 @@ public class AstDDLBuilder extends OpenSearchSQLParserBaseVisitor<DataDefinition
     String fileFormat = StringUtils.unquoteText(ctx.fileFormat.getText());
     String location = StringUtils.unquoteText(ctx.location.getText());
 
-    if (ctx.EXTERNAL() == null) {
-      return new CreateTableTask(tableName, columns);
-    }
     return new CreateExternalTableTask(tableName, columns, fileFormat, location);
   }
 

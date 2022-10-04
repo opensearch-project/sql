@@ -11,6 +11,7 @@ package org.opensearch.sql.sql.parser;
 import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.ast.statement.CreateTable;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
@@ -24,16 +25,27 @@ public class AstStatementBuilder extends OpenSearchSQLParserBaseVisitor<Statemen
 
   private final StatementBuilderContext context;
 
-  /**
-   * Todo. Visit DML/DDL statement
-   */
   @Override
-  public Statement visitSqlStatement(OpenSearchSQLParser.SqlStatementContext ctx) {
+  public Statement visitDmlStatement(OpenSearchSQLParser.DmlStatementContext ctx) {
     if (context.isExplain) {
       return new Explain(astBuilder.visit(ctx));
     } else {
       return new Query(astBuilder.visit(ctx));
     }
+  }
+
+  @Override
+  public Statement visitAdminStatement(OpenSearchSQLParser.AdminStatementContext ctx) {
+    if (context.isExplain) {
+      return new Explain(astBuilder.visit(ctx));
+    } else {
+      return new Query(astBuilder.visit(ctx));
+    }
+  }
+
+  @Override
+  public Statement visitDdlStatement(OpenSearchSQLParser.DdlStatementContext ctx) {
+    return new CreateTable(new AstDDLBuilder(astBuilder).visit(ctx));
   }
 
   @Override

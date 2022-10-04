@@ -6,7 +6,6 @@
 
 package org.opensearch.sql.ast;
 
-import org.apache.commons.math3.analysis.function.Exp;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
@@ -35,12 +34,12 @@ import org.opensearch.sql.ast.expression.UnresolvedAttribute;
 import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
+import org.opensearch.sql.ast.statement.CreateTable;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
-import org.opensearch.sql.ast.tree.DataDefinitionPlan;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
@@ -88,10 +87,6 @@ public abstract class AbstractNodeVisitor<T, C> {
 
   private T aggregateResult(T aggregate, T nextResult) {
     return nextResult;
-  }
-
-  public T visitDataDefinitionPlan(DataDefinitionPlan node, C context) {
-    return visitChildren(node, context);
   }
 
   public T visitWrite(Write node, C context) {
@@ -283,6 +278,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitExplain(Explain node, C context) {
+    return visitStatement(node, context);
+  }
+
+  public T visitCreateTable(CreateTable node, C context) {
     return visitStatement(node, context);
   }
 }
