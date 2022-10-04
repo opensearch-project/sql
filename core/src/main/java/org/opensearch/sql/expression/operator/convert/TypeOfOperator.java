@@ -65,6 +65,6 @@ public class TypeOfOperator {
   }
 
   private static ExprValue exprTypeOf(ExprValue input) {
-    return new ExprStringValue(input.type().typeName());
+    return new ExprStringValue(input.type().typeName().toUpperCase());
   }
 }

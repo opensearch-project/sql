@@ -75,7 +75,7 @@ public class DataTypeIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void typeof() throws IOException {
+  public void typeof_sql_types() throws IOException {
     JSONObject response = executeQuery(String.format("source=%s | eval "
         + "`str` = typeof('pewpew'), `null` = typeof(1/0), `double` = typeof(1.0),"
         + "`int` = typeof(12345), `long` = typeof(1234567891011), `interval` = typeof(INTERVAL 2 DAY)"
@@ -93,5 +93,29 @@ public class DataTypeIT extends PPLIntegTestCase {
             TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(response,
         rows("TIMESTAMP", "TIME", "DATE", "DATETIME"));
+  }
+
+  @Test
+  public void typeof_opensearch_types() throws IOException {
+    JSONObject response = executeQuery(String.format("source=%s | eval "
+        + "`double` = typeof(double_number), `long` = typeof(long_number),"
+        + "`integer` = typeof(integer_number), `byte` = typeof(byte_number),"
+        + "`short` = typeof(short_number), `float` = typeof(float_number),"
+        + "`half_float` = typeof(half_float_number), `scaled_float` = typeof(scaled_float_number)"
+        + " | fields `double`, `long`, `integer`, `byte`, `short`, `float`, `half_float`, `scaled_float`",
+            TEST_INDEX_DATATYPE_NUMERIC));
+    verifyDataRows(response,
+        rows("DOUBLE", "LONG", "INTEGER", "BYTE", "SHORT", "FLOAT", "FLOAT", "DOUBLE"));
+
+    response = executeQuery(String.format("source=%s | eval "
+        + "`text` = typeof(text_value), `date` = typeof(date_value),"
+        + "`boolean` = typeof(boolean_value), `object` = typeof(object_value),"
+        + "`keyword` = typeof(keyword_value)"
+        // TODO activate these tests once `typeof` fixed to recognize `OpenSearchDataType`
+        //+ "`ip` = typeof(ip_value), `nested` = typeof(nested_value), `binary` = typeof(binary_value)"
+        + " | fields `text`, `date`, `boolean`, `object`, `keyword`",
+            TEST_INDEX_DATATYPE_NONNUMERIC));
+    verifyDataRows(response,
+        rows("STRING", "TIMESTAMP", "BOOLEAN", "STRUCT", "STRING"));
   }
 }

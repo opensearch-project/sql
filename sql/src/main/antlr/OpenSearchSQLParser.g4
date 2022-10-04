@@ -323,6 +323,7 @@ scalarFunctionName
     | dateTimeFunctionName
     | textFunctionName
     | flowControlFunctionName
+    | systemFunctionName
     ;
 
 specificFunction
@@ -413,7 +414,11 @@ textFunctionName
     ;
 
 flowControlFunctionName
-    : IF | IFNULL | NULLIF | ISNULL | TYPEOF
+    : IF | IFNULL | NULLIF | ISNULL
+    ;
+
+systemFunctionName
+    : TYPEOF
     ;
 
 singleFieldRelevanceFunctionName

@@ -13,8 +13,9 @@
       "binary_value": {
         "type": "binary"
       },
-      "date_value": {
-        "type": "date"
+      "date_value":  {
+		"type" : "date",
+		"format": "yyyy-MM-dd HH:mm:ss"
       },
       "ip_value": {
         "type": "ip"
