@@ -85,7 +85,7 @@ public class CatalogServiceImpl implements CatalogService {
 
   @Override
   public Set<String> getCatalogs() {
-    Set<String> catalogs = storageEngineMap.keySet();
+    Set<String> catalogs = new HashSet<>(storageEngineMap.keySet());
     catalogs.remove(OPEN_SEARCH);
     return catalogs;
   }
@@ -93,6 +93,11 @@ public class CatalogServiceImpl implements CatalogService {
   @Override
   public void registerOpenSearchStorageEngine(StorageEngine storageEngine) {
     storageEngineMap.put(OPEN_SEARCH, storageEngine);
+  }
+
+  @Override
+  public void registerStorageEngine(String name, StorageEngine storageEngine) {
+    storageEngineMap.put(name, storageEngine);
   }
 
   private StorageEngine createStorageEngine(CatalogMetadata catalog) throws URISyntaxException {

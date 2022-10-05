@@ -35,12 +35,16 @@ import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
+import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.statement.Statement;
+import org.opensearch.sql.ast.statement.WriteToStream;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
@@ -87,6 +91,13 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         .stream()
         .map(this::visit)
         .reduce(pplCommand, (r, e) -> e.attach(r));
+  }
+
+  @Override
+  public UnresolvedPlan visitInsertStatement(OpenSearchPPLParser.InsertStatementContext ctx) {
+    UnresolvedPlan queryPlan = visit(ctx.queryStatement());
+    QualifiedName name = (QualifiedName) expressionBuilder.visit(ctx.tableName().qualifiedName());
+    return AstDSL.write(queryPlan, name, Collections.emptyList());
   }
 
   /**

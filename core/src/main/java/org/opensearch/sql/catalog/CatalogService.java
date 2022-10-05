@@ -22,4 +22,5 @@ public interface CatalogService {
 
   void registerOpenSearchStorageEngine(StorageEngine storageEngine);
 
+  void registerStorageEngine(String name, StorageEngine storageEngine);
 }

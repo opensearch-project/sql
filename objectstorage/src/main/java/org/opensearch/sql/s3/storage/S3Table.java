@@ -11,18 +11,23 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.executor.stream.StreamSource;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.planner.DefaultImplementor;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.sql.s3.stream.S3StreamSource;
+import org.opensearch.sql.storage.StreamTable;
 import org.opensearch.sql.storage.Table;
 
+@Getter
 @RequiredArgsConstructor
-public class S3Table implements Table {
+public class S3Table implements Table, StreamTable {
 
   /** Todo. Return fixed schema. Create External Table will define the schema. */
   static Map<String, String> S3_DATA_MAPPING =
@@ -59,12 +64,16 @@ public class S3Table implements Table {
 
   private final String tableName;
 
-  private static final String indexName = "maximus-test-00001";
+  private final Map<String, String> colNameTypes;
+
+  private final String fileFormat;
+
+  private final String location;
 
   @Override
   public Map<String, ExprType> getFieldTypes() {
     Map<String, ExprType> fieldTypes = new HashMap<>();
-    for (Map.Entry<String, String> entry : S3_DATA_MAPPING.entrySet()) {
+    for (Map.Entry<String, String> entry : colNameTypes.entrySet()) {
       fieldTypes.put(
           entry.getKey(), S3_TYPE_TO_EXPR_TYPE_MAPPING.getOrDefault(entry.getValue(), UNKNOWN));
     }
@@ -76,12 +85,22 @@ public class S3Table implements Table {
     return plan.accept(new S3PlanImplementor(), null);
   }
 
+  @Override
+  public StreamSource toStreamSource() {
+    return new S3StreamSource(this);
+  }
+
+  @Override
+  public String toString() {
+    return "S3Table{" + "tableName='" + tableName + '\'' + ", location='" + location + '\'' + '}';
+  }
+
   @VisibleForTesting
   @RequiredArgsConstructor
   public class S3PlanImplementor extends DefaultImplementor<Void> {
     @Override
     public PhysicalPlan visitRelation(LogicalRelation node, Void context) {
-      return new S3ScanOperator(node.getRelationName());
+      return new S3ScanOperator(location);
     }
   }
 }

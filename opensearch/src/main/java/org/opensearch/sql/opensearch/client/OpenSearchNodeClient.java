@@ -73,7 +73,7 @@ public class OpenSearchNodeClient implements OpenSearchClient {
     for (Map<String, Object> row : data) {
       builder.add(client.prepareIndex().setSource(row).request());
     }
-    builder.get();
+    BulkResponse bulkItemResponses = builder.get();
   }
 
   /**

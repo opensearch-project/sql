@@ -38,6 +38,7 @@ import org.opensearch.sql.ast.statement.CreateTable;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
+import org.opensearch.sql.ast.statement.WriteToStream;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
@@ -282,6 +283,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitCreateTable(CreateTable node, C context) {
+    return visitStatement(node, context);
+  }
+
+  public T visitWriteToStream(WriteToStream node, C context) {
     return visitStatement(node, context);
   }
 }

@@ -18,6 +18,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import java.util.Optional;
+import java.util.Set;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.apache.logging.log4j.LogManager;
@@ -35,6 +37,8 @@ public class S3ScanOperator extends TableScanOperator {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+  private Optional<Iterator<OSS3Object>> objects;
+
   private Iterator<OSS3Object> partitions;
 
   private final S3Reader s3Reader;
@@ -44,6 +48,13 @@ public class S3ScanOperator extends TableScanOperator {
   public S3ScanOperator(String tableName) {
     this.tableName = tableName;
     this.s3Reader = new S3Reader();
+    this.objects = Optional.empty();
+  }
+
+  public S3ScanOperator(String tableName, Set<OSS3Object> objects) {
+    this.tableName = tableName;
+    this.s3Reader = new S3Reader();
+    this.objects = Optional.of(objects.iterator());
   }
 
   @Override
@@ -78,21 +89,23 @@ public class S3ScanOperator extends TableScanOperator {
 
   @Override
   public void open() {
-    try {
-      S3Lister s3Lister = new S3Lister(new URI(tableName));
-      Iterable<List<OSS3Object>> partition = s3Lister.partition(PARTITION);
-      List<OSS3Object> result = new ArrayList<>();
-      for (List<OSS3Object> oss3Objects : partition) {
-        result.addAll(oss3Objects);
+    this.partitions = objects.orElseGet(() -> {
+      try {
+        S3Lister s3Lister = new S3Lister(new URI(tableName));
+        Iterable<List<OSS3Object>> partition = s3Lister.partition(PARTITION);
+        List<OSS3Object> result = new ArrayList<>();
+        for (List<OSS3Object> oss3Objects : partition) {
+          result.addAll(oss3Objects);
+        }
+        return result.iterator();
+      } catch (URISyntaxException e) {
+        throw new RuntimeException(e);
       }
-      this.partitions = result.iterator();
-      OSS3Object next = this.partitions.next();
+    });
 
-      log.info("next file {}", next);
-      s3Reader.open(next);
-    } catch (URISyntaxException e) {
-      throw new RuntimeException(e);
-    }
+    OSS3Object next = this.partitions.next();
+    log.info("next file {}", next);
+    s3Reader.open(next);
   }
 
   @Override

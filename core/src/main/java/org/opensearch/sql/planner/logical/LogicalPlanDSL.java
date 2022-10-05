@@ -26,7 +26,6 @@ import org.opensearch.sql.storage.Table;
 /**
  * Logical Plan DSL.
  */
-@UtilityClass
 public class LogicalPlanDSL {
 
   public static LogicalPlan aggregation(
@@ -61,13 +60,13 @@ public class LogicalPlanDSL {
     return new LogicalProject(input, fields, namedParseExpressions);
   }
 
-  public LogicalPlan window(LogicalPlan input,
+  public static LogicalPlan window(LogicalPlan input,
                             NamedExpression windowFunction,
                             WindowDefinition windowDefinition) {
     return new LogicalWindow(input, windowFunction, windowDefinition);
   }
 
-  public LogicalPlan highlight(LogicalPlan input, Expression field) {
+  public static LogicalPlan highlight(LogicalPlan input, Expression field) {
     return new LogicalHighlight(input, field);
   }
 
@@ -109,7 +108,7 @@ public class LogicalPlanDSL {
   }
 
   @SafeVarargs
-  public LogicalPlan values(List<LiteralExpression>... values) {
+  public static LogicalPlan values(List<LiteralExpression>... values) {
     return new LogicalValues(Arrays.asList(values));
   }
 

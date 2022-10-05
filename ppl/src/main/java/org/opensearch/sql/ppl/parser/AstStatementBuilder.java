@@ -8,14 +8,19 @@
 
 package org.opensearch.sql.ppl.parser;
 
+import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
+
 import com.google.common.collect.ImmutableList;
+import java.util.Collections;
 import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
+import org.opensearch.sql.ast.statement.WriteToStream;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
@@ -32,13 +37,18 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
   private final StatementBuilderContext context;
 
   @Override
-  public Statement visitDmlStatement(OpenSearchPPLParser.DmlStatementContext ctx) {
+  public Statement visitQueryStatement(OpenSearchPPLParser.QueryStatementContext ctx) {
     UnresolvedPlan plan = addSelectAll(astBuilder.visit(ctx));
     if (context.isExplain) {
       return new Explain(plan);
     } else {
       return new Query(plan);
     }
+  }
+
+  @Override
+  public Statement visitInsertStatement(OpenSearchPPLParser.InsertStatementContext ctx) {
+    return new WriteToStream(astBuilder.visitInsertStatement(ctx));
   }
 
   @Override

@@ -8,6 +8,8 @@
 
 package org.opensearch.sql.executor;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.analysis.AnalysisContext;
 import org.opensearch.sql.analysis.Analyzer;
@@ -29,6 +31,28 @@ public class QueryService {
 
   private final Planner planner;
 
+  public ExecutionEngine.QueryResponse execute(UnresolvedPlan plan) {
+    CompletableFuture<ExecutionEngine.QueryResponse> futureResponse = new CompletableFuture<>();
+    execute(plan, new ResponseListener<>() {
+      @Override
+      public void onResponse(ExecutionEngine.QueryResponse response) {
+        futureResponse.complete(response);
+      }
+
+      @Override
+      public void onFailure(Exception e) {
+        futureResponse.completeExceptionally(e);
+      }
+    });
+
+    try {
+      return futureResponse.get();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+
   /**
    * Execute the {@link UnresolvedPlan}, using {@link ResponseListener} to get response.
    *
@@ -37,6 +61,15 @@ public class QueryService {
    */
   public void execute(UnresolvedPlan plan,
                       ResponseListener<ExecutionEngine.QueryResponse> listener) {
+    try {
+      executionEngine.execute(plan(analyze(plan)), listener);
+    } catch (Exception e) {
+      listener.onFailure(e);
+    }
+  }
+
+  public void executePlan(LogicalPlan plan,
+                          ResponseListener<ExecutionEngine.QueryResponse> listener) {
     try {
       executionEngine.execute(plan(plan), listener);
     } catch (Exception e) {
@@ -54,17 +87,17 @@ public class QueryService {
   public void explain(UnresolvedPlan plan,
                       ResponseListener<ExecutionEngine.ExplainResponse> listener) {
     try {
-      executionEngine.explain(plan(plan), listener);
+      executionEngine.explain(plan(analyze(plan)), listener);
     } catch (Exception e) {
       listener.onFailure(e);
     }
   }
 
-  private PhysicalPlan plan(UnresolvedPlan plan) {
-    // 1.Analyze abstract syntax to generate logical plan
-    LogicalPlan logicalPlan = analyzer.analyze(plan, new AnalysisContext());
+  public LogicalPlan analyze(UnresolvedPlan plan) {
+    return analyzer.analyze(plan, new AnalysisContext());
+  }
 
-    // 2.Generate optimal physical plan from logical plan
-    return planner.plan(logicalPlan);
+  public PhysicalPlan plan(LogicalPlan plan) {
+    return planner.plan(plan);
   }
 }

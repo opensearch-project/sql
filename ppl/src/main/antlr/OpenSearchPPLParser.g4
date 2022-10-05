@@ -18,11 +18,20 @@ pplStatement
     ;
 
 dmlStatement
-    : queryStatement
+    : queryStatement | insertStatement
     ;
 
 queryStatement
     : pplCommands (PIPE commands)*
+    ;
+
+insertStatement
+    : INSERT INTO tableName
+      AS STREAM queryStatement
+    ;
+
+tableName
+    : qualifiedName
     ;
 
 /** commands */

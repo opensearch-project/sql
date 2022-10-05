@@ -13,7 +13,9 @@ import java.io.IOException;
 import java.net.URI;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.opensearch.security.SecurityAccess;
@@ -46,6 +48,25 @@ public class S3Lister {
                     .region(Region.US_WEST_2)
                     .credentialsProvider(ProfileCredentialsProvider.create())
                     .build());
+  }
+
+  public Set<OSS3Object> listAllObjects() {
+    ListObjectsV2Request request =
+        ListObjectsV2Request.builder().bucket(bucket).prefix(prefix).build();
+
+    return doPrivileged(
+        () -> {
+          ListObjectsV2Iterable responseIterable = s3.listObjectsV2Paginator(request);
+          Set<OSS3Object> objects = new HashSet<>();
+
+          for (ListObjectsV2Response response : responseIterable) {
+            for (S3Object content : response.contents()) {
+              log.info("s3 object {}", content.key());
+              objects.add(new OSS3Object(bucket, content.key(), content.lastModified()));
+            }
+          }
+          return objects;
+        });
   }
 
   public Iterable<List<OSS3Object>> partition(int N) {

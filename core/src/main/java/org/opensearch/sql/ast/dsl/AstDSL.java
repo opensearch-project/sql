@@ -61,7 +61,6 @@ import org.opensearch.sql.ast.tree.Write;
 /**
  * Class of static methods to create specific node instances.
  */
-@UtilityClass
 public class AstDSL {
 
   public static UnresolvedPlan filter(UnresolvedPlan input, UnresolvedExpression expression) {
@@ -74,15 +73,15 @@ public class AstDSL {
     return new Write(tableName, columnNames).attach(input);
   }
 
-  public UnresolvedPlan relation(String tableName) {
+  public static UnresolvedPlan relation(String tableName) {
     return new Relation(qualifiedName(tableName));
   }
 
-  public UnresolvedPlan relation(QualifiedName tableName) {
+  public static UnresolvedPlan relation(QualifiedName tableName) {
     return new Relation(tableName);
   }
 
-  public UnresolvedPlan relation(String tableName, String alias) {
+  public static UnresolvedPlan relation(String tableName, String alias) {
     return new Relation(qualifiedName(tableName), alias);
   }
 
@@ -247,7 +246,7 @@ public class AstDSL {
    *     [ELSE result_expr]
    * END
    */
-  public UnresolvedExpression caseWhen(UnresolvedExpression elseClause,
+  public static UnresolvedExpression caseWhen(UnresolvedExpression elseClause,
                                        When... whenClauses) {
     return caseWhen(null, elseClause, whenClauses);
   }
@@ -259,25 +258,25 @@ public class AstDSL {
    *     [ELSE result_expr]
    * END
    */
-  public UnresolvedExpression caseWhen(UnresolvedExpression caseValueExpr,
+  public static UnresolvedExpression caseWhen(UnresolvedExpression caseValueExpr,
                                        UnresolvedExpression elseClause,
                                        When... whenClauses) {
     return new Case(caseValueExpr, Arrays.asList(whenClauses), elseClause);
   }
 
-  public UnresolvedExpression cast(UnresolvedExpression expr, Literal type) {
+  public static UnresolvedExpression cast(UnresolvedExpression expr, Literal type) {
     return new Cast(expr, type);
   }
 
-  public When when(UnresolvedExpression condition, UnresolvedExpression result) {
+  public static When when(UnresolvedExpression condition, UnresolvedExpression result) {
     return new When(condition, result);
   }
 
-  public UnresolvedExpression highlight(UnresolvedExpression fieldName) {
+  public static UnresolvedExpression highlight(UnresolvedExpression fieldName) {
     return new HighlightFunction(fieldName);
   }
 
-  public UnresolvedExpression window(UnresolvedExpression function,
+  public static UnresolvedExpression window(UnresolvedExpression function,
                                      List<UnresolvedExpression> partitionByList,
                                      List<Pair<SortOption, UnresolvedExpression>> sortList) {
     return new WindowFunction(function, partitionByList, sortList);
@@ -322,39 +321,39 @@ public class AstDSL {
     return new UnresolvedArgument(argName, argValue);
   }
 
-  public AllFields allFields() {
+  public static AllFields allFields() {
     return AllFields.of();
   }
 
-  public Field field(UnresolvedExpression field) {
+  public static Field field(UnresolvedExpression field) {
     return new Field(field);
   }
 
-  public Field field(UnresolvedExpression field, Argument... fieldArgs) {
+  public static Field field(UnresolvedExpression field, Argument... fieldArgs) {
     return field(field, Arrays.asList(fieldArgs));
   }
 
-  public Field field(String field) {
+  public static Field field(String field) {
     return field(qualifiedName(field));
   }
 
-  public Field field(String field, Argument... fieldArgs) {
+  public static Field field(String field, Argument... fieldArgs) {
     return field(field, Arrays.asList(fieldArgs));
   }
 
-  public Field field(UnresolvedExpression field, List<Argument> fieldArgs) {
+  public static Field field(UnresolvedExpression field, List<Argument> fieldArgs) {
     return new Field(field, fieldArgs);
   }
 
-  public Field field(String field, List<Argument> fieldArgs) {
+  public static Field field(String field, List<Argument> fieldArgs) {
     return field(qualifiedName(field), fieldArgs);
   }
 
-  public Alias alias(String name, UnresolvedExpression expr) {
+  public static Alias alias(String name, UnresolvedExpression expr) {
     return new Alias(name, expr);
   }
 
-  public Alias alias(String name, UnresolvedExpression expr, String alias) {
+  public static Alias alias(String name, UnresolvedExpression expr, String alias) {
     return new Alias(name, expr, alias);
   }
 

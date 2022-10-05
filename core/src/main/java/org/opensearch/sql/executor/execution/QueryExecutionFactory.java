@@ -14,6 +14,7 @@ import org.opensearch.sql.ast.statement.CreateTable;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
+import org.opensearch.sql.ast.statement.WriteToStream;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
 
@@ -42,5 +43,11 @@ public class QueryExecutionFactory extends AbstractNodeVisitor<QueryExecution, V
   public QueryExecution visitCreateTable(CreateTable node, Void context) {
     return new DDLQueryExecution(
         QueryId.queryId(), node.getDataDefinitionTask(), false, queryService);
+  }
+
+  @Override
+  public QueryExecution visitWriteToStream(WriteToStream node, Void context) {
+    return new StreamQueryExecution(
+        QueryId.queryId(), node.getPlan(), false, queryService);
   }
 }

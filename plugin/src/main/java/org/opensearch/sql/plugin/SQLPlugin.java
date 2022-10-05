@@ -41,6 +41,7 @@ import org.opensearch.script.ScriptContext;
 import org.opensearch.script.ScriptEngine;
 import org.opensearch.script.ScriptService;
 import org.opensearch.sql.catalog.CatalogService;
+import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.executor.AsyncRestExecutor;
 import org.opensearch.sql.legacy.metrics.Metrics;
@@ -62,6 +63,7 @@ import org.opensearch.sql.plugin.transport.PPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.ppl.config.PPLServiceConfig;
+import org.opensearch.sql.s3.storage.S3StorageEngine;
 import org.opensearch.sql.sql.config.SQLServiceConfig;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.threadpool.ExecutorBuilder;
@@ -163,6 +165,11 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
     LocalClusterState.state().setClusterService(clusterService);
     LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
 
+    CatalogServiceImpl.getInstance()
+        .registerStorageEngine(
+            "s3",
+            new S3StorageEngine(
+                SecurityAccess.doPrivileged(() -> applicationContext.getBean(QueryService.class))));
     // return objects used by Guice to inject dependencies for e.g.,
     // transport action handler constructors
     return ImmutableList.of(applicationContext);
