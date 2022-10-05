@@ -6,6 +6,7 @@
 package org.opensearch.sql.expression.operator.convert;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -44,6 +45,8 @@ public class TypeOfOperatorTest {
 
   @Test
   void typeof() {
+    assertEquals(STRING, dsl.typeof(DSL.literal(1)).type());
+
     assertEquals("ARRAY", typeofGetValue(new ExprCollectionValue(List.of())));
     assertEquals("BOOLEAN", typeofGetValue(ExprBooleanValue.of(false)));
     assertEquals("BYTE", typeofGetValue(new ExprByteValue(0)));

@@ -32,6 +32,9 @@
       },
       "nested_value": {
         "type": "nested"
+      },
+      "geo_point_value": {
+        "type": "geo_point"
       }
     }
   }

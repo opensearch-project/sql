@@ -48,11 +48,13 @@ public class SystemFunctionIT extends SQLIntegTestCase {
         rows("DOUBLE", "LONG", "INTEGER", "BYTE", "SHORT", "FLOAT", "FLOAT", "DOUBLE"));
 
     response = executeJdbcRequest(String.format("SELECT typeof(text_value),"
-        + "typeof(date_value), typeof(boolean_value), typeof(object_value), typeof(keyword_value)"
-        // TODO activate these tests once `typeof` fixed to recognize `OpenSearchDataType`
-        //+ "typeof(ip_value), typeof(nested_value), typeof(binary_value)"
+        + "typeof(date_value), typeof(boolean_value), typeof(object_value), typeof(keyword_value),"
+        + "typeof(ip_value), typeof(binary_value), typeof(geo_point_value)"
+        // TODO activate this test once `ARRAY` type supported, see ExpressionAnalyzer::isTypeNotSupported
+        //+ ", typeof(nested_value)"
         + " from %s;", TEST_INDEX_DATATYPE_NONNUMERIC));
     verifyDataRows(response,
-        rows("STRING", "TIMESTAMP", "BOOLEAN", "STRUCT", "STRING"));
+        rows("OPENSEARCH_TEXT", "TIMESTAMP", "BOOLEAN", "STRUCT", "STRING",
+                "OPENSEARCH_IP", "OPENSEARCH_BINARY", "OPENSEARCH_GEO_POINT"));
   }
 }

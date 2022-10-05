@@ -54,7 +54,8 @@ public class DataTypeIT extends PPLIntegTestCase {
         schema("date_value", "timestamp"),
         schema("ip_value", "ip"),
         schema("object_value", "struct"),
-        schema("nested_value", "array"));
+        schema("nested_value", "array"),
+        schema("geo_point_value", "geo_point"));
   }
 
   @Test
@@ -77,12 +78,13 @@ public class DataTypeIT extends PPLIntegTestCase {
   @Test
   public void typeof_sql_types() throws IOException {
     JSONObject response = executeQuery(String.format("source=%s | eval "
-        + "`str` = typeof('pewpew'), `null` = typeof(1/0), `double` = typeof(1.0),"
+        + "`str` = typeof('pewpew'), `double` = typeof(1.0),"
         + "`int` = typeof(12345), `long` = typeof(1234567891011), `interval` = typeof(INTERVAL 2 DAY)"
-        + " | fields `str`, `null`, `double`, `int`, `long`, `interval`",
+        + " | fields `str`, `double`, `int`, `long`, `interval`",
             TEST_INDEX_DATATYPE_NUMERIC));
+    // TODO: test null in PPL
     verifyDataRows(response,
-        rows("STRING", "UNDEFINED", "DOUBLE", "INTEGER", "LONG", "INTERVAL"));
+        rows("STRING", "DOUBLE", "INTEGER", "LONG", "INTERVAL"));
 
     response = executeQuery(String.format("source=%s | eval "
         + "`timestamp` = typeof(CAST('1961-04-12 09:07:00' AS TIMESTAMP)),"
@@ -110,12 +112,14 @@ public class DataTypeIT extends PPLIntegTestCase {
     response = executeQuery(String.format("source=%s | eval "
         + "`text` = typeof(text_value), `date` = typeof(date_value),"
         + "`boolean` = typeof(boolean_value), `object` = typeof(object_value),"
-        + "`keyword` = typeof(keyword_value)"
-        // TODO activate these tests once `typeof` fixed to recognize `OpenSearchDataType`
-        //+ "`ip` = typeof(ip_value), `nested` = typeof(nested_value), `binary` = typeof(binary_value)"
-        + " | fields `text`, `date`, `boolean`, `object`, `keyword`",
+        + "`keyword` = typeof(keyword_value), `ip` = typeof(ip_value),"
+        + "`binary` = typeof(binary_value), `geo_point` = typeof(geo_point_value)"
+        // TODO activate this test once `ARRAY` type supported, see ExpressionAnalyzer::isTypeNotSupported
+        //+ ", `nested` = typeof(nested_value)"
+        + " | fields `text`, `date`, `boolean`, `object`, `keyword`, `ip`, `binary`, `geo_point`",
             TEST_INDEX_DATATYPE_NONNUMERIC));
     verifyDataRows(response,
-        rows("STRING", "TIMESTAMP", "BOOLEAN", "STRUCT", "STRING"));
+        rows("OPENSEARCH_TEXT", "TIMESTAMP", "BOOLEAN", "STRUCT", "STRING",
+                "OPENSEARCH_IP", "OPENSEARCH_BINARY", "OPENSEARCH_GEO_POINT"));
   }
 }
