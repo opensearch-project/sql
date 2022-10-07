@@ -934,6 +934,52 @@ Example::
     +---------------------+---------------------+
 
 
+PERIOD_ADD
+----------
+
+Description
+>>>>>>>>>>>
+
+Usage: period_add(P, N) add N months to period P (in the format YYMM or YYYYMM). Returns a value in the format YYYYMM.
+
+Argument type: LONG, LONG
+
+Return type: LONG
+
+Example::
+
+    os> source=people | eval `PERIOD_ADD(200801, 2)` = PERIOD_ADD(200801, 2), `PERIOD_ADD(200801, -12)` = PERIOD_ADD(200801, -12) | fields `PERIOD_ADD(200801, 2)`, `PERIOD_ADD(200801, -12)`
+    fetched rows / total rows = 1/1
+    +-------------------------+---------------------------+
+    | PERIOD_ADD(200801, 2)   | PERIOD_ADD(200801, -12)   |
+    |-------------------------+---------------------------|
+    | 200803                  | 200701                    |
+    +-------------------------+---------------------------+
+
+
+PERIOD_DIFF
+-----------
+
+Description
+>>>>>>>>>>>
+
+Usage: period_diff(P1, P2) returns the number of months between periods P1 and P2 given in the format YYMM or YYYYMM.
+
+Argument type: LONG, LONG
+
+Return type: LONG
+
+Example::
+
+    os> source=people | eval `PERIOD_DIFF(200802, 200703)` = PERIOD_DIFF(200802, 200703), `PERIOD_DIFF(200802, 201003)` = PERIOD_DIFF(200802, 201003) | fields `PERIOD_DIFF(200802, 200703)`, `PERIOD_DIFF(200802, 201003)`
+    fetched rows / total rows = 1/1
+    +-------------------------------+-------------------------------+
+    | PERIOD_DIFF(200802, 200703)   | PERIOD_DIFF(200802, 201003)   |
+    |-------------------------------+-------------------------------|
+    | 11                            | -25                           |
+    +-------------------------------+-------------------------------+
+
+
 QUARTER
 -------
 

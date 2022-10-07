@@ -6,6 +6,7 @@
 package org.opensearch.sql.expression.datetime;
 
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
+import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.expression.function.BuiltinFunctionRepository.DEFAULT_NAMESPACE;
 
 import java.time.Instant;
@@ -46,6 +47,51 @@ public class DateTimeTestBase extends ExpressionTestBase {
   @Autowired
   protected BuiltinFunctionRepository functionRepository;
 
+  protected ExprValue eval(Expression expression) {
+    return expression.valueOf(env);
+  }
+
+  protected FunctionExpression fromUnixTime(Expression value) {
+    var func = functionRepository.resolve(Collections.singletonList(DEFAULT_NAMESPACE),
+        new FunctionSignature(new FunctionName("from_unixtime"),
+        List.of(value.type())));
+    return (FunctionExpression)func.apply(List.of(value));
+  }
+
+  protected FunctionExpression fromUnixTime(Expression value, Expression format) {
+    var func = functionRepository.resolve(Collections.singletonList(DEFAULT_NAMESPACE),
+        new FunctionSignature(new FunctionName("from_unixtime"),
+        List.of(value.type(), format.type())));
+    return (FunctionExpression)func.apply(List.of(value, format));
+  }
+
+  protected LocalDateTime fromUnixTime(Long value) {
+    return fromUnixTime(DSL.literal(value)).valueOf(null).datetimeValue();
+  }
+
+  protected LocalDateTime fromUnixTime(Double value) {
+    return fromUnixTime(DSL.literal(value)).valueOf(null).datetimeValue();
+  }
+
+  protected String fromUnixTime(Long value, String format) {
+    return fromUnixTime(DSL.literal(value), DSL.literal(format)).valueOf(null).stringValue();
+  }
+
+  protected String fromUnixTime(Double value, String format) {
+    return fromUnixTime(DSL.literal(value), DSL.literal(format)).valueOf(null).stringValue();
+  }
+
+  protected FunctionExpression makedate(Expression year, Expression dayOfYear) {
+    var func = functionRepository.resolve(Collections.singletonList(DEFAULT_NAMESPACE),
+        new FunctionSignature(new FunctionName("makedate"),
+        List.of(DOUBLE, DOUBLE)));
+    return (FunctionExpression)func.apply(List.of(year, dayOfYear));
+  }
+
+  protected LocalDate makedate(Double year, Double dayOfYear) {
+    return makedate(DSL.literal(year), DSL.literal(dayOfYear)).valueOf(null).dateValue();
+  }
+
   protected FunctionExpression maketime(Expression hour, Expression minute, Expression second) {
     var func = functionRepository.resolve(Collections.singletonList(DEFAULT_NAMESPACE),
         new FunctionSignature(new FunctionName("maketime"),
@@ -58,15 +104,26 @@ public class DateTimeTestBase extends ExpressionTestBase {
         .valueOf(null).timeValue();
   }
 
-  protected FunctionExpression makedate(Expression year, Expression dayOfYear) {
+  protected FunctionExpression period_add(Expression period, Expression months) {
     var func = functionRepository.resolve(Collections.singletonList(DEFAULT_NAMESPACE),
-        new FunctionSignature(new FunctionName("makedate"),
-        List.of(DOUBLE, DOUBLE)));
-    return (FunctionExpression)func.apply(List.of(year, dayOfYear));
+        new FunctionSignature(new FunctionName("period_add"),
+        List.of(LONG, LONG)));
+    return (FunctionExpression)func.apply(List.of(period, months));
   }
 
-  protected LocalDate makedate(Double year, Double dayOfYear) {
-    return makedate(DSL.literal(year), DSL.literal(dayOfYear)).valueOf(null).dateValue();
+  protected Long period_add(Long period, Long months) {
+    return period_add(DSL.literal(period), DSL.literal(months)).valueOf(null).longValue();
+  }
+
+  protected FunctionExpression period_diff(Expression first, Expression second) {
+    var func = functionRepository.resolve(Collections.singletonList(DEFAULT_NAMESPACE),
+        new FunctionSignature(new FunctionName("period_diff"),
+        List.of(LONG, LONG)));
+    return (FunctionExpression)func.apply(List.of(first, second));
+  }
+
+  protected Long period_diff(Long first, Long second) {
+    return period_diff(DSL.literal(first), DSL.literal(second)).valueOf(null).longValue();
   }
 
   protected FunctionExpression unixTimeStampExpr() {
@@ -100,39 +157,5 @@ public class DateTimeTestBase extends ExpressionTestBase {
 
   protected Double unixTimeStampOf(Instant value) {
     return unixTimeStampOf(DSL.literal(new ExprTimestampValue(value))).valueOf(null).doubleValue();
-  }
-
-  protected FunctionExpression fromUnixTime(Expression value) {
-    var func = functionRepository.resolve(Collections.singletonList(DEFAULT_NAMESPACE),
-        new FunctionSignature(new FunctionName("from_unixtime"),
-        List.of(value.type())));
-    return (FunctionExpression)func.apply(List.of(value));
-  }
-
-  protected FunctionExpression fromUnixTime(Expression value, Expression format) {
-    var func = functionRepository.resolve(Collections.singletonList(DEFAULT_NAMESPACE),
-        new FunctionSignature(new FunctionName("from_unixtime"),
-        List.of(value.type(), format.type())));
-    return (FunctionExpression)func.apply(List.of(value, format));
-  }
-
-  protected LocalDateTime fromUnixTime(Long value) {
-    return fromUnixTime(DSL.literal(value)).valueOf(null).datetimeValue();
-  }
-
-  protected LocalDateTime fromUnixTime(Double value) {
-    return fromUnixTime(DSL.literal(value)).valueOf(null).datetimeValue();
-  }
-
-  protected String fromUnixTime(Long value, String format) {
-    return fromUnixTime(DSL.literal(value), DSL.literal(format)).valueOf(null).stringValue();
-  }
-
-  protected String fromUnixTime(Double value, String format) {
-    return fromUnixTime(DSL.literal(value), DSL.literal(format)).valueOf(null).stringValue();
-  }
-
-  protected ExprValue eval(Expression expression) {
-    return expression.valueOf(env);
   }
 }

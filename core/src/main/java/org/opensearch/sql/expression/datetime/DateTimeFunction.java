@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.expression.datetime;
 
+import static java.time.temporal.ChronoUnit.MONTHS;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
@@ -68,6 +69,7 @@ import org.opensearch.sql.utils.DateTimeUtils;
  * 2) the implementation should rely on ExprValue.
  */
 @UtilityClass
+@SuppressWarnings("unchecked")
 public class DateTimeFunction {
   // The number of days from year zero to year 1970.
   private static final Long DAYS_0000_TO_1970 = (146097 * 5L) - (30L * 365L + 7L);
@@ -84,6 +86,11 @@ public class DateTimeFunction {
   public void register(BuiltinFunctionRepository repository) {
     repository.register(adddate());
     repository.register(convert_tz());
+    repository.register(curtime());
+    repository.register(curdate());
+    repository.register(current_date());
+    repository.register(current_time());
+    repository.register(current_timestamp());
     repository.register(date());
     repository.register(datetime());
     repository.register(date_add());
@@ -96,15 +103,21 @@ public class DateTimeFunction {
     repository.register(from_days());
     repository.register(from_unixtime());
     repository.register(hour());
+    repository.register(localtime());
+    repository.register(localtimestamp());
     repository.register(makedate());
     repository.register(maketime());
     repository.register(microsecond());
     repository.register(minute());
     repository.register(month());
     repository.register(monthName());
+    repository.register(now());
+    repository.register(period_add());
+    repository.register(period_diff());
     repository.register(quarter());
     repository.register(second());
     repository.register(subdate());
+    repository.register(sysdate());
     repository.register(time());
     repository.register(time_to_sec());
     repository.register(timestamp());
@@ -113,84 +126,6 @@ public class DateTimeFunction {
     repository.register(unix_timestamp());
     repository.register(week());
     repository.register(year());
-
-    repository.register(now());
-    repository.register(current_timestamp());
-    repository.register(localtimestamp());
-    repository.register(localtime());
-    repository.register(sysdate());
-    repository.register(curtime());
-    repository.register(current_time());
-    repository.register(curdate());
-    repository.register(current_date());
-  }
-
-  /**
-   * NOW() returns a constant time that indicates the time at which the statement began to execute.
-   * `fsp` argument support is removed until refactoring to avoid bug where `now()`, `now(x)` and
-   * `now(y) return different values.
-   */
-  private FunctionResolver now(FunctionName functionName) {
-    return define(functionName,
-        impl(() -> new ExprDatetimeValue(formatNow(null)), DATETIME)
-    );
-  }
-
-  private FunctionResolver now() {
-    return now(BuiltinFunctionName.NOW.getName());
-  }
-
-  private FunctionResolver current_timestamp() {
-    return now(BuiltinFunctionName.CURRENT_TIMESTAMP.getName());
-  }
-
-  private FunctionResolver localtimestamp() {
-    return now(BuiltinFunctionName.LOCALTIMESTAMP.getName());
-  }
-
-  private FunctionResolver localtime() {
-    return now(BuiltinFunctionName.LOCALTIME.getName());
-  }
-
-  /**
-   * SYSDATE() returns the time at which it executes.
-   */
-  private FunctionResolver sysdate() {
-    return define(BuiltinFunctionName.SYSDATE.getName(),
-        impl(() -> new ExprDatetimeValue(formatNow(null)), DATETIME),
-        impl((v) -> new ExprDatetimeValue(formatNow(v.integerValue())), DATETIME, INTEGER)
-    );
-  }
-
-  /**
-   * Synonym for @see `now`.
-   */
-  private FunctionResolver curtime(FunctionName functionName) {
-    return define(functionName,
-        impl(() -> new ExprTimeValue(formatNow(null).toLocalTime()), TIME)
-    );
-  }
-
-  private FunctionResolver curtime() {
-    return curtime(BuiltinFunctionName.CURTIME.getName());
-  }
-
-  private FunctionResolver current_time() {
-    return curtime(BuiltinFunctionName.CURRENT_TIME.getName());
-  }
-
-  private FunctionResolver curdate(FunctionName functionName) {
-    return define(functionName,
-        impl(() -> new ExprDateValue(formatNow(null).toLocalDate()), DATE)
-    );
-  }
-
-  private FunctionResolver curdate() {
-    return curdate(BuiltinFunctionName.CURDATE.getName());
-  }
-
-  private FunctionResolver current_date() {
-    return curdate(BuiltinFunctionName.CURRENT_DATE.getName());
   }
 
   /**
@@ -234,6 +169,41 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprConvertTZ),
             DATETIME, STRING, STRING, STRING)
     );
+  }
+
+  private FunctionResolver curdate(FunctionName functionName) {
+    return define(functionName,
+        impl(() -> new ExprDateValue(formatNow(null).toLocalDate()), DATE)
+    );
+  }
+
+  private FunctionResolver curdate() {
+    return curdate(BuiltinFunctionName.CURDATE.getName());
+  }
+
+  /**
+   * Synonym for @see `now`.
+   */
+  private FunctionResolver curtime(FunctionName functionName) {
+    return define(functionName,
+        impl(() -> new ExprTimeValue(formatNow(null).toLocalTime()), TIME)
+    );
+  }
+
+  private FunctionResolver curtime() {
+    return curtime(BuiltinFunctionName.CURTIME.getName());
+  }
+
+  private FunctionResolver current_date() {
+    return curdate(BuiltinFunctionName.CURRENT_DATE.getName());
+  }
+
+  private FunctionResolver current_time() {
+    return curtime(BuiltinFunctionName.CURRENT_TIME.getName());
+  }
+
+  private FunctionResolver current_timestamp() {
+    return now(BuiltinFunctionName.CURRENT_TIMESTAMP.getName());
   }
 
   /**
@@ -386,6 +356,29 @@ public class DateTimeFunction {
     );
   }
 
+  private FunctionResolver localtime() {
+    return now(BuiltinFunctionName.LOCALTIME.getName());
+  }
+
+  private FunctionResolver localtimestamp() {
+    return now(BuiltinFunctionName.LOCALTIMESTAMP.getName());
+  }
+
+  /**
+   * NOW() returns a constant time that indicates the time at which the statement began to execute.
+   * `fsp` argument support is removed until refactoring to avoid bug where `now()`, `now(x)` and
+   * `now(y) return different values.
+   */
+  private FunctionResolver now(FunctionName functionName) {
+    return define(functionName,
+        impl(() -> new ExprDatetimeValue(formatNow(null)), DATETIME)
+    );
+  }
+
+  private FunctionResolver now() {
+    return now(BuiltinFunctionName.NOW.getName());
+  }
+
   private FunctionResolver makedate() {
     return define(BuiltinFunctionName.MAKEDATE.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprMakeDate), DATE, DOUBLE, DOUBLE));
@@ -441,6 +434,27 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprMonthName), STRING, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::exprMonthName), STRING, TIMESTAMP),
         impl(nullMissingHandling(DateTimeFunction::exprMonthName), STRING, STRING)
+    );
+  }
+
+  /**
+   * Add N months to period P (in the format YYMM or YYYYMM). Returns a value in the format YYYYMM.
+   * (LONG, LONG) -> LONG
+   */
+  private DefaultFunctionResolver period_add() {
+    return define(BuiltinFunctionName.PERIOD_ADD.getName(),
+        impl(nullMissingHandling(DateTimeFunction::exprPeriodAdd), LONG, LONG, LONG)
+    );
+  }
+
+  /**
+   * Returns the number of months between periods P1 and P2.
+   * P1 and P2 should be in the format YYMM or YYYYMM.
+   * (LONG, LONG) -> LONG
+   */
+  private DefaultFunctionResolver period_diff() {
+    return define(BuiltinFunctionName.PERIOD_DIFF.getName(),
+        impl(nullMissingHandling(DateTimeFunction::exprPeriodDiff), LONG, LONG, LONG)
     );
   }
 
@@ -889,6 +903,61 @@ public class DateTimeFunction {
         date.dateValue().getMonth().getDisplayName(TextStyle.FULL, Locale.getDefault()));
   }
 
+  private LocalDate parseDatePeriod(Long period) {
+    var input = period.toString();
+    // MySQL undocumented: if year is not specified or has 1 digit - 2000/200x is assumed
+    if (input.length() <= 5) {
+      input = String.format("200%05d", period);
+    }
+    try {
+      return LocalDate.parse(input, DATE_FORMATTER_SHORT_YEAR);
+    } catch (DateTimeParseException ignored) {
+      // nothing to do, try another format
+    }
+    try {
+      return LocalDate.parse(input, DATE_FORMATTER_LONG_YEAR);
+    } catch (DateTimeParseException ignored) {
+      return null;
+    }
+  }
+
+  /**
+   * Adds N months to period P (in the format YYMM or YYYYMM).
+   * Returns a value in the format YYYYMM.
+   *
+   * @param period Period in the format YYMM or YYYYMM.
+   * @param months Amount of months to add.
+   * @return ExprLongValue.
+   */
+  private ExprValue exprPeriodAdd(ExprValue period, ExprValue months) {
+    // We should add a day to make string parsable and remove it afterwards
+    var input =  period.longValue() * 100 + 1; // adds 01 to end of the string
+    var parsedDate = parseDatePeriod(input);
+    if (parsedDate == null) {
+      return ExprNullValue.of();
+    }
+    var res = DATE_FORMATTER_LONG_YEAR.format(parsedDate.plusMonths(months.longValue()));
+    return new ExprLongValue(Long.parseLong(
+        res.substring(0, res.length() - 2))); // Remove the day part, .eg. 20070101 -> 200701
+  }
+
+  /**
+   * Returns the number of months between periods P1 and P2.
+   * P1 and P2 should be in the format YYMM or YYYYMM.
+   *
+   * @param period1 Period in the format YYMM or YYYYMM.
+   * @param period2 Period in the format YYMM or YYYYMM.
+   * @return ExprLongValue.
+   */
+  private ExprValue exprPeriodDiff(ExprValue period1, ExprValue period2) {
+    var parsedDate1 = parseDatePeriod(period1.longValue() * 100 + 1);
+    var parsedDate2 = parseDatePeriod(period2.longValue() * 100 + 1);
+    if (parsedDate1 == null || parsedDate2 == null) {
+      return ExprNullValue.of();
+    }
+    return new ExprLongValue(MONTHS.between(parsedDate2, parsedDate1));
+  }
+
   /**
    * Quarter for date implementation for ExprValue.
    *
@@ -934,6 +1003,16 @@ public class DateTimeFunction {
     ExprValue exprValue = new ExprDatetimeValue(date.datetimeValue().minus(expr.intervalValue()));
     return (exprValue.timeValue().toSecondOfDay() == 0 ? new ExprDateValue(exprValue.dateValue())
         : exprValue);
+  }
+
+  /**
+   * SYSDATE() returns the time at which it executes.
+   */
+  private FunctionResolver sysdate() {
+    return define(BuiltinFunctionName.SYSDATE.getName(),
+        impl(() -> new ExprDatetimeValue(formatNow(null)), DATETIME),
+        impl((v) -> new ExprDatetimeValue(formatNow(v.integerValue())), DATETIME, INTEGER)
+    );
   }
 
   /**
