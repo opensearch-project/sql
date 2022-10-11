@@ -27,10 +27,12 @@ import static org.opensearch.sql.ast.tree.Sort.SortOption;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -328,16 +330,41 @@ class AnalyzerTest extends AnalyzerTestBase {
 
   @Test
   public void project_highlight() {
+    Map<String, Literal> args = new HashMap<>();
+    args.put("pre_tags", new Literal("<mark>", DataType.STRING));
+    args.put("post_tags", new Literal("</mark>", DataType.STRING));
+
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
             LogicalPlanDSL.highlight(LogicalPlanDSL.relation("schema", table),
-                DSL.literal("fieldA")),
-            DSL.named("highlight(fieldA)", new HighlightExpression(DSL.literal("fieldA")))
+                DSL.literal("fieldA"), args),
+            DSL.named("highlight(fieldA, pre_tags='<mark>', post_tags='</mark>')",
+                new HighlightExpression(DSL.literal("fieldA")))
         ),
         AstDSL.projectWithArg(
             AstDSL.relation("schema"),
             AstDSL.defaultFieldsArgs(),
-            AstDSL.alias("highlight(fieldA)", new HighlightFunction(AstDSL.stringLiteral("fieldA")))
+            AstDSL.alias("highlight(fieldA, pre_tags='<mark>', post_tags='</mark>')",
+                new HighlightFunction(AstDSL.stringLiteral("fieldA"), args))
+        )
+    );
+  }
+
+  @Test
+  public void project_highlight_wildcard() {
+    Map<String, Literal> args = new HashMap<>();
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.highlight(LogicalPlanDSL.relation("schema", table),
+                DSL.literal("*"), args),
+            DSL.named("highlight(*)",
+                new HighlightExpression(DSL.literal("*")))
+        ),
+        AstDSL.projectWithArg(
+            AstDSL.relation("schema"),
+            AstDSL.defaultFieldsArgs(),
+            AstDSL.alias("highlight(*)",
+                new HighlightFunction(AstDSL.stringLiteral("*"), args))
         )
     );
   }

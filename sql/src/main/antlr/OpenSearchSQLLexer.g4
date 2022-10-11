@@ -361,6 +361,8 @@ TIME_ZONE:                          'TIME_ZONE';
 TYPE:                               'TYPE';
 ZERO_TERMS_QUERY:                   'ZERO_TERMS_QUERY';
 HIGHLIGHT:                          'HIGHLIGHT';
+HIGHLIGHT_PRE_TAGS:                 'PRE_TAGS';
+HIGHLIGHT_POST_TAGS:                'POST_TAGS';
 
 // RELEVANCE FUNCTIONS
 MATCH_BOOL_PREFIX:                  'MATCH_BOOL_PREFIX';

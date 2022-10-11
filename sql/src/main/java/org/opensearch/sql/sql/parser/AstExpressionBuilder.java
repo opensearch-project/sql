@@ -50,6 +50,7 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.WindowFunc
 import static org.opensearch.sql.sql.parser.ParserUtils.createSortOption;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -137,7 +138,15 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitHighlightFunctionCall(
       OpenSearchSQLParser.HighlightFunctionCallContext ctx) {
-    return new HighlightFunction(visit(ctx.highlightFunction().relevanceField()));
+    ImmutableMap.Builder<String, Literal> builder = ImmutableMap.builder();
+    ctx.highlightFunction().highlightArg().forEach(v -> builder.put(
+        v.highlightArgName().getText().toLowerCase(),
+        new Literal(StringUtils.unquoteText(v.highlightArgValue().getText()),
+            DataType.STRING))
+    );
+
+    return new HighlightFunction(visit(ctx.highlightFunction().relevanceField()),
+        builder.build());
   }
 
   @Override

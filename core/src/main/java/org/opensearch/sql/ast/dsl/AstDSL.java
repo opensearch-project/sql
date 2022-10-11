@@ -278,8 +278,9 @@ public class AstDSL {
     return new When(condition, result);
   }
 
-  public UnresolvedExpression highlight(UnresolvedExpression fieldName) {
-    return new HighlightFunction(fieldName);
+  public UnresolvedExpression highlight(UnresolvedExpression fieldName,
+      java.util.Map<String, Literal> arguments) {
+    return new HighlightFunction(fieldName, arguments);
   }
 
   public UnresolvedExpression window(UnresolvedExpression function,
