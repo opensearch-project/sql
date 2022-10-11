@@ -7,9 +7,11 @@
 package org.opensearch.sql.planner.physical;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsInRelativeOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_MISSING;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
@@ -21,6 +23,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.Collections;
@@ -33,6 +36,8 @@ import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.planner.streaming.time.RecordTimestampAssigner;
+import org.opensearch.sql.planner.streaming.watermark.BoundedOutOfOrderWatermarkGenerator;
 
 class AggregationOperatorTest extends PhysicalPlanTestBase {
 
@@ -494,6 +499,65 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
         ExprValueUtils.tupleValue(ImmutableMap.of(
             "span", new ExprDateValue("2021-01-07"), "region","iad", "host", "h2", "max", 8))
     ));
+  }
+
+  @Test
+  public void minute_span_windowing() {
+    List<ExprValue> httpLogs = new ImmutableList.Builder<ExprValue>()
+        .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+            "timestamp", new ExprTimestampValue("2021-01-01 00:02:00"),
+            "region", "iad",
+            "host", "h1",
+            "errors", 2)))
+        .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+            "timestamp", new ExprTimestampValue("2021-01-01 00:06:00"),
+            "region", "iad",
+            "host", "h1",
+            "errors", 1)))
+        .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+            "timestamp", new ExprTimestampValue("2021-01-01 00:01:00"), // disordered event allowed
+            "region", "iad",
+            "host", "h2",
+            "errors", 3)))
+        .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+            "timestamp", new ExprTimestampValue("2021-01-01 00:08:00"),
+            "region", "iad",
+            "host", "h2",
+            "errors", 10)))
+        .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+            "timestamp", new ExprTimestampValue("2021-01-01 00:03:00"), // late event discarded
+            "region", "iad",
+            "host", "h1",
+            "errors", 6)))
+        .add(ExprValueUtils.tupleValue(ImmutableMap.of(
+            "timestamp", new ExprTimestampValue("2021-01-01 00:12:30"),
+            "region", "iad",
+            "host", "h2",
+            "errors", 8)))
+        .build();
+
+    PhysicalPlan input = testScan(httpLogs);
+    PhysicalPlan watermarkGenerator = new BoundedOutOfOrderWatermarkGenerator(input,
+        new RecordTimestampAssigner(DSL.ref("timestamp", DATETIME)));
+    PhysicalPlan plan = new AggregationOperator(watermarkGenerator,
+        Collections.singletonList(DSL
+            .named("count", dsl.count(DSL.ref("timestamp", DATETIME)))),
+        Collections.singletonList(DSL
+            .named("span", DSL.span(DSL.ref("timestamp", DATETIME), DSL.literal(5), "m"))));
+
+    plan.open();
+    assertTrue(plan.hasNext());
+    assertEquals(ExprValueUtils.tupleValue(ImmutableMap.of(
+        "span", new ExprDatetimeValue("2021-01-01 00:00:00"),
+        "count", 2)),
+        plan.next());
+
+    assertTrue(plan.hasNext());
+    assertEquals(ExprValueUtils.tupleValue(ImmutableMap.of(
+        "span", new ExprDatetimeValue("2021-01-01 00:05:00"),
+        "count", 2)),
+        plan.next());
+    plan.close();
   }
 
   @Test

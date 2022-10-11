@@ -6,6 +6,7 @@
 package org.opensearch.sql.planner.physical.collector;
 
 import java.util.function.Supplier;
+import lombok.Getter;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
@@ -19,6 +20,7 @@ public class SpanCollector extends BucketCollector {
   /**
    * Span Expression.
    */
+  @Getter
   private final SpanExpression spanExpr;
 
   /**
@@ -33,6 +35,11 @@ public class SpanCollector extends BucketCollector {
     super(bucketExpr, supplier);
     this.spanExpr = (SpanExpression) bucketExpr.getDelegated();
     this.rounding = Rounding.createRounding(spanExpr);
+  }
+
+  @Override
+  public void remove(ExprValue bucket) {
+    collectorMap.remove(bucket);
   }
 
   /**

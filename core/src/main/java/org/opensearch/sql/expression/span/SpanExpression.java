@@ -30,6 +30,29 @@ public class SpanExpression implements Expression {
     return value.valueOf(valueEnv);
   }
 
+  public long windowSize() {
+    long unitValue = convertUnitToMs();
+    return value.valueOf(null).longValue() * unitValue;
+  }
+
+  private long convertUnitToMs() {
+    switch (unit) {
+      case S:
+      case SECOND:
+        return 1000;
+      case m:
+      case MINUTE:
+        return 60 * 1000;
+      case H:
+      case HOUR: return 60 * 60 * 1000;
+      case D:
+      case DAY:
+        return 24 * 60 * 60 * 1000;
+      default:
+        throw new UnsupportedOperationException("not implement");
+    }
+  }
+
   /**
    * Return type follows the following table.
    *  FIELD         VALUE     RETURN_TYPE

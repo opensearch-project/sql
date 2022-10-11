@@ -7,6 +7,7 @@ package org.opensearch.sql.planner.physical.collector;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -40,7 +41,7 @@ public class BucketCollector implements Collector {
   /**
    * Map between bucketKey and collector in the bucket.
    */
-  private final Map<ExprValue, Collector> collectorMap = new HashMap<>();
+  protected final Map<ExprValue, Collector> collectorMap = new HashMap<>();
 
   /**
    * Bucket Index.
@@ -77,6 +78,10 @@ public class BucketCollector implements Collector {
    */
   @Override
   public List<ExprValue> results() {
+    if (collectorMap.isEmpty()) {
+      return Collections.emptyList();
+    }
+
     ExprValue[] buckets = allocateBuckets();
     for (Map.Entry<ExprValue, Collector> entry : collectorMap.entrySet()) {
       ImmutableList.Builder<ExprValue> builder = new ImmutableList.Builder<>();

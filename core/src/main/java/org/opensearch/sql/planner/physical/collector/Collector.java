@@ -33,6 +33,14 @@ public interface Collector {
   List<ExprValue> results();
 
   /**
+   * Purge bucket and value associated.
+   *
+   * @param bucket name
+   */
+  default void remove(ExprValue bucket) {
+  }
+
+  /**
    * {@link Collector} tree builder.
    */
   @UtilityClass

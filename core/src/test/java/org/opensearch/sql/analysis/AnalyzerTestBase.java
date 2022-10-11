@@ -161,5 +161,9 @@ public class AnalyzerTestBase {
     public void registerOpenSearchStorageEngine(StorageEngine storageEngine) {
       this.storageEngine = storageEngine;
     }
+
+    @Override
+    public void registerStorageEngine(String name, StorageEngine storageEngine) {
+    }
   }
 }
