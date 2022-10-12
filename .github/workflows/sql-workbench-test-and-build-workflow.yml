@@ -15,7 +15,7 @@ env:
   OPENSEARCH_PLUGIN_VERSION: 2.4.0.0
 
 jobs:
-  build:
+  linux-build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Plugin
@@ -57,6 +57,105 @@ jobs:
           flags: query-workbench
           directory: ../OpenSearch-Dashboards/plugins/workbench
           token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Build Artifact
+        run: |
+          cd ../OpenSearch-Dashboards/plugins/workbench
+          yarn build
+          mv ./build/*.zip ./build/${{ env.PLUGIN_NAME }}-${{ env.OPENSEARCH_PLUGIN_VERSION }}.zip
+
+      - name: Upload Artifact
+        if: always()
+        uses: actions/upload-artifact@v1 # can't update to v3 because upload fails
+        with:
+          name: workbench
+          path: ../OpenSearch-Dashboards/plugins/workbench/build
+
+  windows-build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Plugin
+        uses: actions/checkout@v3
+      # Enable longer filenames for windows
+      - name: Enable longer filenames
+        run: git config --system core.longpaths true
+
+      - name: Checkout OpenSearch Dashboards
+        uses: actions/checkout@v1 # can't update to v3 because `setup-node` fails
+        with:
+          repository: opensearch-project/Opensearch-Dashboards
+          ref: ${{ env.OPENSEARCH_VERSION }}
+          path: OpenSearch-Dashboards
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: "../OpenSearch-Dashboards/.nvmrc"
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Move Workbench to Plugins Dir
+        run: |
+          mv workbench ../OpenSearch-Dashboards/plugins
+
+      - name: OpenSearch Dashboards Plugin Bootstrap
+        uses: nick-fields/retry@v2
+        with:
+          timeout_minutes: 60
+          max_attempts: 3
+          command: cd ../OpenSearch-Dashboards/plugins/workbench; yarn osd bootstrap
+
+      - name: Test
+        run: |
+          cd ../OpenSearch-Dashboards/plugins/workbench
+          yarn test:jest
+
+      - name: Build Artifact
+        run: |
+          cd ../OpenSearch-Dashboards/plugins/workbench
+          yarn build
+          mv ./build/*.zip ./build/${{ env.PLUGIN_NAME }}-${{ env.OPENSEARCH_PLUGIN_VERSION }}.zip
+
+      - name: Upload Artifact
+        if: always()
+        uses: actions/upload-artifact@v1 # can't update to v3 because upload fails
+        with:
+          name: workbench
+          path: ../OpenSearch-Dashboards/plugins/workbench/build
+
+  macos-build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Plugin
+        uses: actions/checkout@v3
+
+      - name: Checkout OpenSearch Dashboards
+        uses: actions/checkout@v1 # can't update to v3 because `setup-node` fails
+        with:
+          repository: opensearch-project/Opensearch-Dashboards
+          ref: ${{ env.OPENSEARCH_VERSION }}
+          path: OpenSearch-Dashboards
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: "../OpenSearch-Dashboards/.nvmrc"
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Move Workbench to Plugins Dir
+        run: |
+          mv workbench ../OpenSearch-Dashboards/plugins
+
+      - name: OpenSearch Dashboards Plugin Bootstrap
+        uses: nick-fields/retry@v2
+        with:
+          timeout_minutes: 60
+          max_attempts: 3
+          command: cd ../OpenSearch-Dashboards/plugins/workbench; yarn osd bootstrap
+
+      - name: Test
+        run: |
+          cd ../OpenSearch-Dashboards/plugins/workbench
+          yarn test:jest
 
       - name: Build Artifact
         run: |
