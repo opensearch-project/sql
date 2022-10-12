@@ -55,6 +55,7 @@ publishing {
             pom {
                 name = 'opensearch-sql'
                 description = 'OpenSearch SQL'
+                group = "org.opensearch.plugin"
                 licenses {
                     license {
                         name = 'The Apache License, Version 2.0'
