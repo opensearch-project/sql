@@ -68,7 +68,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v1 # can't update to v3 because upload fails
         with:
-          name: workbench
+          name: workbench-linux
           path: ../OpenSearch-Dashboards/plugins/workbench/build
 
   windows-build:
@@ -119,7 +119,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v1 # can't update to v3 because upload fails
         with:
-          name: workbench
+          name: workbench-windows
           path: ../OpenSearch-Dashboards/plugins/workbench/build
 
   macos-build:
@@ -167,5 +167,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v1 # can't update to v3 because upload fails
         with:
-          name: workbench
+          name: workbench-macos
           path: ../OpenSearch-Dashboards/plugins/workbench/build
