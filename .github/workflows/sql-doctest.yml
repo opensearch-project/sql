@@ -1,0 +1,27 @@
+name: SQL Doctest CI
+
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+    paths:
+      - '**/*.java'
+      - '**/*.g4'
+      - '!sql-jdbc/**'
+      - '**gradle*'
+      - '**/*.jar'
+      - '**/*.pom'
+      - 'doctest/**'
+      - 'docs/**'
+      - '.github/workflows/sql-doctest.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Build with Gradle
+      run: ./gradlew :doctest:doctest

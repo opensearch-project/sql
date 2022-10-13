@@ -45,7 +45,9 @@ task stopOpenSearch(type: KillProcessTask)
 doctest.dependsOn startOpenSearch
 doctest.finalizedBy stopOpenSearch
 
-//build.dependsOn doctest
+// Deactivate doctest in the main gradle workflow (./gradlew build), because doctest depends
+// on ML plugin and it ruins SQL plugin build if ML plugin is not available (not released)
+// build.dependsOn doctest
 clean.dependsOn(cleanBootstrap)
 
 // 2.0.0-alpha1-SNAPSHOT -> 2.0.0.0-alpha1-SNAPSHOT
