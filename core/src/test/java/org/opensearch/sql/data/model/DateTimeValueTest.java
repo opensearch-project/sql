@@ -31,6 +31,10 @@ public class DateTimeValueTest {
 
     assertEquals(TIME, timeValue.type());
     assertEquals(LocalTime.parse("01:01:01"), timeValue.timeValue());
+    assertEquals(LocalDate.now(), timeValue.dateValue());
+    assertEquals(LocalDate.now().atTime(1, 1, 1), timeValue.datetimeValue());
+    assertEquals(ZonedDateTime.of(LocalTime.parse("01:01:01").atDate(LocalDate.now()),
+        ZoneId.systemDefault()).toInstant(), timeValue.timestampValue());
     assertEquals("01:01:01", timeValue.value());
     assertEquals("TIME '01:01:01'", timeValue.toString());
     assertThrows(ExpressionEvaluationException.class, () -> integerValue(1).timeValue(),
