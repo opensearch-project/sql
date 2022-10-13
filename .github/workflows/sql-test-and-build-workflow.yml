@@ -21,10 +21,9 @@ jobs:
   build:
     strategy:
       matrix:
-        java:
-          - 11
-          - 17
-    runs-on: ubuntu-latest
+        java: [11, 17]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v3
@@ -39,6 +38,7 @@ jobs:
       run: ./gradlew --continue build assemble
 
     - name: Run backward compatibility tests
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       run: ./scripts/bwctest.sh
 
     - name: Create Artifact Path
@@ -48,7 +48,7 @@ jobs:
 
     # This step uses the codecov-action Github action: https://github.com/codecov/codecov-action
     - name: Upload SQL Coverage Report
-      if: always()
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       uses: codecov/codecov-action@v3
       with:
         flags: sql-engine
@@ -61,7 +61,7 @@ jobs:
         path: opensearch-sql-builds
 
     - name: Upload test reports
-      if: always()
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       uses: actions/upload-artifact@v2
       with:
         name: test-reports
