@@ -113,13 +113,25 @@ public class DateTimeFormatters {
 
   public static final DateTimeFormatter DATE_TIME_FORMATTER_VARIABLE_NANOS =
       new DateTimeFormatterBuilder()
-          .appendPattern("yyyy-MM-dd HH:mm:ss")
+          .appendPattern("uuuu-MM-dd HH:mm:ss")
           .appendFraction(
               ChronoField.NANO_OF_SECOND,
               MIN_FRACTION_SECONDS,
               MAX_FRACTION_SECONDS,
               true)
-          .toFormatter(Locale.ROOT);
+          .toFormatter(Locale.ROOT)
+          .withResolverStyle(ResolverStyle.STRICT);
+
+  public static final DateTimeFormatter DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL =
+      new DateTimeFormatterBuilder()
+          .appendPattern("[uuuu-MM-dd HH:mm:ss][HH:mm:ss][uuuu-MM-dd]")
+          .appendFraction(
+              ChronoField.NANO_OF_SECOND,
+              MIN_FRACTION_SECONDS,
+              MAX_FRACTION_SECONDS,
+              true)
+          .toFormatter(Locale.ROOT)
+          .withResolverStyle(ResolverStyle.STRICT);
 
   public static final DateTimeFormatter TIME_FORMATTER_VARIABLE_NANOS =
       new DateTimeFormatterBuilder()

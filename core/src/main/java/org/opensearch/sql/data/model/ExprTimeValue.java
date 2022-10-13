@@ -6,7 +6,7 @@
 
 package org.opensearch.sql.data.model;
 
-import static org.opensearch.sql.utils.DateTimeFormatters.TIME_FORMATTER_VARIABLE_NANOS;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -22,14 +22,15 @@ import org.opensearch.sql.exception.SemanticCheckException;
  */
 @RequiredArgsConstructor
 public class ExprTimeValue extends AbstractExprValue {
+
   private final LocalTime time;
 
   /**
-   * Constructor.
+   * Constructor of ExprTimeValue.
    */
   public ExprTimeValue(String time) {
     try {
-      this.time = LocalTime.parse(time, TIME_FORMATTER_VARIABLE_NANOS);
+      this.time = LocalTime.parse(time, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
     } catch (DateTimeParseException e) {
       throw new SemanticCheckException(String.format("time:%s in unsupported format, please use "
           + "HH:mm:ss[.SSSSSSSSS]", time));
