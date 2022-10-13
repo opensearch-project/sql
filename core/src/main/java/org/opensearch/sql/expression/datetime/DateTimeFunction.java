@@ -55,6 +55,7 @@ import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
@@ -651,7 +652,11 @@ public class DateTimeFunction {
    */
   private ExprValue exprDate(ExprValue exprValue) {
     if (exprValue instanceof ExprStringValue) {
-      return new ExprDateValue(exprValue.stringValue());
+      try {
+        return new ExprDateValue(exprValue.stringValue());
+      } catch (SemanticCheckException e) {
+        return ExprNullValue.of();
+      }
     } else {
       return new ExprDateValue(exprValue.dateValue());
     }
@@ -944,6 +949,7 @@ public class DateTimeFunction {
    */
   private ExprValue exprTime(ExprValue exprValue) {
     if (exprValue instanceof ExprStringValue) {
+      //try catch
       return new ExprTimeValue(exprValue.stringValue());
     } else {
       return new ExprTimeValue(exprValue.timeValue());
