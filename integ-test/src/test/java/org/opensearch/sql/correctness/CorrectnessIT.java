@@ -11,6 +11,7 @@ import static org.opensearch.sql.util.TestUtils.getResourceFilePath;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.google.common.collect.Maps;
 
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -18,7 +19,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
 import java.util.TimeZone;
-import org.apache.http.HttpHost;
+import org.apache.hc.core5.http.HttpHost;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
@@ -43,7 +44,7 @@ public class CorrectnessIT extends OpenSearchIntegTestCase {
   private static final Logger LOG = LogManager.getLogger();
 
   @Test
-  public void performComparisonTest() {
+  public void performComparisonTest() throws URISyntaxException {
     TestConfig config = new TestConfig(getCmdLineArgs());
     LOG.info("Starting comparison test {}", config);
 
@@ -73,7 +74,7 @@ public class CorrectnessIT extends OpenSearchIntegTestCase {
     return Maps.fromProperties(System.getProperties());
   }
 
-  private DBConnection getThisDBConnection(TestConfig config) {
+  private DBConnection getThisDBConnection(TestConfig config) throws URISyntaxException {
     String dbUrl = config.getDbConnectionUrl();
     if (dbUrl.isEmpty()) {
       return getOpenSearchConnection(config);
@@ -84,7 +85,7 @@ public class CorrectnessIT extends OpenSearchIntegTestCase {
   /**
    * Use OpenSearch cluster given on CLI arg or internal embedded in SQLIntegTestCase
    */
-  private DBConnection getOpenSearchConnection(TestConfig config) {
+  private DBConnection getOpenSearchConnection(TestConfig config) throws URISyntaxException {
     RestClient client;
     String openSearchHost = config.getOpenSearchHostUrl();
     if (openSearchHost.isEmpty()) {
