@@ -46,7 +46,7 @@ public class S3StreamTable extends S3Table {
   public class S3PlanImplementor extends DefaultImplementor<Void> {
     @Override
     public PhysicalPlan visitRelation(LogicalRelation node, Void context) {
-      return new S3ScanOperator(location, files);
+      return new S3ScanOperator(location, files, new S3ExprValueFactory(getFieldTypes()));
     }
   }
 }

@@ -6,10 +6,8 @@
 package org.opensearch.sql.planner.streaming;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.TimeZone;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
@@ -34,7 +32,8 @@ public class WindowAccumulator implements Iterable<Window> {
   public ExprValue get(Window window) {
     for (ExprValue bucket : collector.results()) {
       Map<String, ExprValue> data = bucket.tupleValue();
-      if (data.get("span").timestampValue().toEpochMilli() == window.startTimestamp()) {
+      if (data.get(collector.bucketKeyName())
+          .timestampValue().toEpochMilli() == window.startTimestamp()) {
         return bucket;
       }
     }
@@ -42,9 +41,8 @@ public class WindowAccumulator implements Iterable<Window> {
   }
 
   public void purge(Window window) {
-    ExprDatetimeValue bucket = new ExprDatetimeValue(
-        new ExprTimestampValue(
-            Instant.ofEpochMilli(window.startTimestamp())).datetimeValue());
+    ExprTimestampValue bucket =
+        new ExprTimestampValue(Instant.ofEpochMilli(window.startTimestamp()));
     collector.remove(bucket);
   }
 
@@ -52,7 +50,8 @@ public class WindowAccumulator implements Iterable<Window> {
   public Iterator<Window> iterator() {
     return collector.results().stream()
         .map(value -> {
-          long startTime = value.tupleValue().get("span").timestampValue().toEpochMilli();
+          long startTime = value.tupleValue().get(collector.bucketKeyName())
+              .timestampValue().toEpochMilli();
           long endTime = startTime + collector.getSpanExpr().windowSize();
           return new TimeWindow(startTime, endTime);
         })

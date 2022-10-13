@@ -5,19 +5,15 @@
 
 package org.opensearch.sql.s3.storage;
 
-import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
 import java.util.Optional;
 import java.util.Set;
 import lombok.EqualsAndHashCode;
@@ -25,6 +21,7 @@ import lombok.ToString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.s3.storage.S3Table.S3ExprValueFactory;
 import org.opensearch.sql.storage.TableScanOperator;
 
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
@@ -45,16 +42,21 @@ public class S3ScanOperator extends TableScanOperator {
 
   private final String tableName;
 
-  public S3ScanOperator(String tableName) {
+  private final S3ExprValueFactory exprValueFactory;
+
+  public S3ScanOperator(String tableName, S3ExprValueFactory exprValueFactory) {
     this.tableName = tableName;
     this.s3Reader = new S3Reader();
     this.objects = Optional.empty();
+    this.exprValueFactory = exprValueFactory;
   }
 
-  public S3ScanOperator(String tableName, Set<OSS3Object> objects) {
+  public S3ScanOperator(String tableName, Set<OSS3Object> objects,
+                        S3ExprValueFactory exprValueFactory) {
     this.tableName = tableName;
     this.s3Reader = new S3Reader();
     this.objects = Optional.of(objects.iterator());
+    this.exprValueFactory = exprValueFactory;
   }
 
   @Override
@@ -81,7 +83,7 @@ public class S3ScanOperator extends TableScanOperator {
   public ExprValue next() {
     TypeReference<Map<String, Object>> typeRef = new TypeReference<>() {};
     try {
-      return tupleValue(OBJECT_MAPPER.readValue(s3Reader.next(), typeRef));
+      return exprValueFactory.construct(OBJECT_MAPPER.readValue(s3Reader.next(), typeRef));
     } catch (JsonProcessingException e) {
       throw new RuntimeException("S3ScanOperator exception", e);
     }

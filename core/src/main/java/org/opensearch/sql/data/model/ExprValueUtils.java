@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.data.model;
 
+import java.time.Instant;
 import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -126,6 +127,9 @@ public class ExprValueUtils {
   public static ExprValue fromObjectValue(Object o, ExprCoreType type) {
     switch (type) {
       case TIMESTAMP:
+        if (o instanceof Integer) { // @timestamp is an integer returned by S3 reader
+          return new ExprTimestampValue(Instant.ofEpochMilli((Integer) o));
+        }
         return new ExprTimestampValue((String)o);
       case DATE:
         return new ExprDateValue((String)o);

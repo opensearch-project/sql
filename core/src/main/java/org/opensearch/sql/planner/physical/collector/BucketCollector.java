@@ -31,7 +31,7 @@ public class BucketCollector implements Collector {
   /**
    * Bucket Expression.
    */
-  private final NamedExpression bucketExpr;
+  protected final NamedExpression bucketExpr;
 
   /**
    * Collector Constructor.

@@ -9,13 +9,20 @@ package org.opensearch.sql.planner;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.span.SpanExpression;
+import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
 import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.logical.LogicalWrite;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
+import org.opensearch.sql.planner.physical.AggregationOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.sql.planner.streaming.time.RecordTimestampAssigner;
+import org.opensearch.sql.planner.streaming.watermark.BoundedOutOfOrderWatermarkGenerator;
 import org.opensearch.sql.storage.Table;
 
 /**
@@ -52,7 +59,7 @@ public class Planner {
     } else {
       // DML
       return sourceTable.optimize(plan).accept(new WriteReadImplementor(writeTable, sourceTable),
-          null);
+          Optional.empty());
     }
   }
 
@@ -120,20 +127,37 @@ public class Planner {
   }
 
   @RequiredArgsConstructor
-  private static class WriteReadImplementor extends DefaultImplementor<Void> {
+  private static class WriteReadImplementor extends DefaultImplementor<Optional<SpanExpression>> {
 
     private final Table writeTable;
     private final Table sourceTable;
 
     @Override
-    public PhysicalPlan visitWrite(LogicalWrite node, Void ctx) {
+    public PhysicalPlan visitAggregation(LogicalAggregation node, Optional<SpanExpression> ctx) {
+      List<NamedExpression> groupByList = node.getGroupByList();
+      if (!groupByList.isEmpty()
+          && groupByList.get(0).getDelegated() instanceof SpanExpression) {
+        ctx = Optional.of((SpanExpression) groupByList.get(0).getDelegated());
+      }
+
+      final PhysicalPlan child = node.getChild().get(0).accept(this, ctx);
+      return new AggregationOperator(child, node.getAggregatorList(), groupByList);
+    }
+
+    @Override
+    public PhysicalPlan visitWrite(LogicalWrite node, Optional<SpanExpression> ctx) {
       final PhysicalPlan child = node.getChild().get(0).accept(this, ctx);
       return writeTable.implement(node, child);
     }
 
     @Override
-    public PhysicalPlan visitRelation(LogicalRelation plan, Void ctx) {
-      return sourceTable.implement(plan);
+    public PhysicalPlan visitRelation(LogicalRelation plan, Optional<SpanExpression> ctx) {
+      PhysicalPlan source = sourceTable.implement(plan);
+      if (ctx.isPresent()) {
+        source = new BoundedOutOfOrderWatermarkGenerator(
+            source, new RecordTimestampAssigner(ctx.get().getField()));
+      }
+      return source;
     }
   }
 }

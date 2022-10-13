@@ -5,14 +5,19 @@
 
 package org.opensearch.sql.s3.storage;
 
+import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
 import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.data.model.ExprTupleValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.executor.stream.StreamSource;
@@ -100,7 +105,29 @@ public class S3Table implements Table, StreamTable {
   public class S3PlanImplementor extends DefaultImplementor<Void> {
     @Override
     public PhysicalPlan visitRelation(LogicalRelation node, Void context) {
-      return new S3ScanOperator(location);
+      return new S3ScanOperator(location, new S3ExprValueFactory(getFieldTypes()));
+    }
+  }
+
+  /**
+   * Expr value factory for S3 data.
+   */
+  @RequiredArgsConstructor
+  public static class S3ExprValueFactory {
+    private final Map<String, ExprType> fieldTypes;
+
+    public ExprValue construct(Map<String, Object> data) {
+      LinkedHashMap<String, ExprValue> valueMap = new LinkedHashMap<>();
+      data.forEach((k, v) -> valueMap.put(k, construct(k, v)));
+      return new ExprTupleValue(valueMap);
+    }
+
+    private ExprValue construct(String fieldName, Object value) {
+      ExprType type = fieldTypes.getOrDefault(fieldName, UNKNOWN);
+      if (type == UNKNOWN) {
+        return ExprValueUtils.nullValue();
+      }
+      return ExprValueUtils.fromObjectValue(value, (ExprCoreType) type);
     }
   }
 }

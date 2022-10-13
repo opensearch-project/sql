@@ -13,6 +13,8 @@ import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedExpression;
@@ -21,9 +23,9 @@ import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.planner.physical.collector.Collector;
 import org.opensearch.sql.planner.physical.collector.SpanCollector;
-import org.opensearch.sql.planner.streaming.event.StreamContext;
 import org.opensearch.sql.planner.streaming.WindowAccumulator;
 import org.opensearch.sql.planner.streaming.event.RecordEvent;
+import org.opensearch.sql.planner.streaming.event.StreamContext;
 import org.opensearch.sql.planner.streaming.watermark.WatermarkEvent;
 import org.opensearch.sql.planner.streaming.windowing.WindowingStrategy;
 import org.opensearch.sql.planner.streaming.windowing.assigner.TumblingEventTimeWindowAssigner;
@@ -40,6 +42,8 @@ import org.opensearch.sql.storage.bindingtuple.BindingTuple;
 @ToString
 public class AggregationOperator extends PhysicalPlan {
 
+  private static final Logger LOG = LogManager.getLogger(AggregationOperator.class);
+
   @Getter
   private final PhysicalPlan input;
   @Getter
@@ -54,7 +58,7 @@ public class AggregationOperator extends PhysicalPlan {
   @EqualsAndHashCode.Exclude
   private final Collector collector;
 
-  private final StreamContext streamContext = new StreamContext();
+  private StreamContext streamContext = new StreamContext();
 
   private WindowingStrategy windowingStrategy;
 
@@ -106,32 +110,44 @@ public class AggregationOperator extends PhysicalPlan {
 
   @Override
   public boolean hasNext() {
-    return true;
+    if (!nextRowBuffer.hasNext()) {
+      reloadBuffer();
+    }
+    return nextRowBuffer.hasNext();
   }
 
   @Override
   public ExprValue next() {
-    if (nextRowBuffer.hasNext()) {
-      return nextRowBuffer.next();
-    }
+    return nextRowBuffer.next();
+  }
 
+  private void reloadBuffer() {
     do {
-      ExprValue next = input.next();
-      System.out.println("Next event: " + next);
+      // For batch/micro-batch, input is bounded, so we fire all windows finally
+      if (!input.hasNext()) {
+        nextRowBuffer = processWatermarkEvent(
+            new WatermarkEvent(Long.MAX_VALUE)).iterator();
+        break;
+      }
 
+      // Continue processing if upstream is not exhausted
+      ExprValue next = input.next();
       if (next instanceof WatermarkEvent) {
         nextRowBuffer = processWatermarkEvent((WatermarkEvent) next).iterator();
       } else {
         processRecordEvent(next);
       }
-    } while (!nextRowBuffer.hasNext() && input.hasNext());
-
-    return nextRowBuffer.hasNext() ? nextRowBuffer.next() : null;
+    } while (!nextRowBuffer.hasNext());
   }
 
   @Override
   public void open() {
     super.open();
+  }
+
+  public void restore(StreamContext streamContext) {
+    this.streamContext = streamContext;
+    LOG.info("Restored stream context: {}", streamContext);
   }
 
   private List<ExprValue> processWatermarkEvent(WatermarkEvent watermark) {
@@ -145,7 +161,6 @@ public class AggregationOperator extends PhysicalPlan {
         triggerWindows.add(window);
       }
     }
-    System.out.println("Triggering window: " + triggerWindows);
 
     // Collect and purge window (assume window should be purged once triggered)
     List<ExprValue> results = new ArrayList<>();
@@ -154,7 +169,10 @@ public class AggregationOperator extends PhysicalPlan {
       windowingStrategy.getWindowAccumulator().purge(window);
     }
 
-    System.out.println("Collected results: " + results);
+    if (!triggerWindows.isEmpty()) {
+      LOG.info("Triggered window: {}", triggerWindows);
+      LOG.info("Collected result: {}", results);
+    }
     return results;
   }
 
@@ -166,11 +184,10 @@ public class AggregationOperator extends PhysicalPlan {
     //  and window type (tumbling, sliding, session, custom etc)
     RecordEvent event = new RecordEvent(timestamp, next, streamContext);
     Window window = windowingStrategy.getWindowAssigner().assign(event);
-    System.out.println("Assigned window: " + window);
 
     // Discard late event if the window below watermark
     if (window.maxTimestamp() < streamContext.getCurrentWatermark()) {
-      System.out.println("Event is late and discarded!");
+      LOG.warn("Event is late and discarded: {}", next);
       return;
     }
 

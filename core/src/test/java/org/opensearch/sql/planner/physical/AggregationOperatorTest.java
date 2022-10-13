@@ -36,6 +36,7 @@ import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.planner.streaming.time.RecordTimestampAssigner;
 import org.opensearch.sql.planner.streaming.watermark.BoundedOutOfOrderWatermarkGenerator;
 
@@ -537,13 +538,14 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
         .build();
 
     PhysicalPlan input = testScan(httpLogs);
+    ReferenceExpression timestampRef = DSL.ref("timestamp", TIMESTAMP);
     PhysicalPlan watermarkGenerator = new BoundedOutOfOrderWatermarkGenerator(input,
-        new RecordTimestampAssigner(DSL.ref("timestamp", DATETIME)));
+        new RecordTimestampAssigner(timestampRef));
     PhysicalPlan plan = new AggregationOperator(watermarkGenerator,
         Collections.singletonList(DSL
-            .named("count", dsl.count(DSL.ref("timestamp", DATETIME)))),
+            .named("count", dsl.count(timestampRef))),
         Collections.singletonList(DSL
-            .named("span", DSL.span(DSL.ref("timestamp", DATETIME), DSL.literal(5), "m"))));
+            .named("span", DSL.span(timestampRef, DSL.literal(5), "m"))));
 
     plan.open();
     assertTrue(plan.hasNext());

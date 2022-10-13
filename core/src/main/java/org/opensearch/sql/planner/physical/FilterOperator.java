@@ -14,6 +14,7 @@ import lombok.ToString;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.operator.predicate.BinaryPredicateOperator;
+import org.opensearch.sql.planner.streaming.watermark.WatermarkEvent;
 import org.opensearch.sql.storage.bindingtuple.BindingTuple;
 
 /**
@@ -46,7 +47,8 @@ public class FilterOperator extends PhysicalPlan {
     while (input.hasNext()) {
       ExprValue inputValue = input.next();
       ExprValue exprValue = conditions.valueOf(inputValue.bindingTuples());
-      if (!(exprValue.isNull() || exprValue.isMissing()) && (exprValue.booleanValue())) {
+      if (inputValue instanceof WatermarkEvent
+          || !(exprValue.isNull() || exprValue.isMissing()) && (exprValue.booleanValue())) {
         next = inputValue;
         return true;
       }

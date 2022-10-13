@@ -19,6 +19,10 @@ import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.physical.AggregationOperator;
+import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
+import org.opensearch.sql.planner.streaming.event.StreamContext;
 
 public class MicroBatchTask {
 
@@ -33,6 +37,8 @@ public class MicroBatchTask {
   private final MetadataLog<Offset> offsetLog;
 
   private final MetadataLog<Offset> committedLog;
+
+  private final StreamContext streamContext = new StreamContext();
 
   public MicroBatchTask(StreamSource source, LogicalPlan batchPlan,
                         QueryService queryService) {
@@ -66,7 +72,17 @@ public class MicroBatchTask {
     if (hasNewData(availableOffsets, committedOffset)) {
       Batch batch = source.getBatch(committedOffset, availableOffsets.get());
       offsetLog.add(currentBatchId.get(), availableOffsets.get());
-      LogicalPlan newPlan = rewriteRelation(batchPlan, batch);
+      PhysicalPlan newPlan = queryService.plan(rewriteRelation(batchPlan, batch));
+
+      // Restore stream context
+      newPlan.accept(new PhysicalPlanNodeVisitor<Void, Object>() {
+        @Override
+        public Void visitAggregation(AggregationOperator node, Object context) {
+          node.restore(streamContext);
+          return null;
+        }
+      }, null);
+
       queryService.executePlan(newPlan, new ResponseListener<>() {
         @Override
         public void onResponse(ExecutionEngine.QueryResponse response) {

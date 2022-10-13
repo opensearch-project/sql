@@ -6,7 +6,6 @@
 package org.opensearch.sql.planner.streaming.windowing.trigger;
 
 import lombok.RequiredArgsConstructor;
-import org.opensearch.sql.planner.streaming.event.RecordEvent;
 import org.opensearch.sql.planner.streaming.event.StreamContext;
 import org.opensearch.sql.planner.streaming.windowing.window.Window;
 

@@ -37,6 +37,10 @@ public class SpanCollector extends BucketCollector {
     this.rounding = Rounding.createRounding(spanExpr);
   }
 
+  public String bucketKeyName() {
+    return bucketExpr.getNameOrAlias();
+  }
+
   @Override
   public void remove(ExprValue bucket) {
     collectorMap.remove(bucket);

@@ -68,10 +68,10 @@ public class QueryService {
     }
   }
 
-  public void executePlan(LogicalPlan plan,
+  public void executePlan(PhysicalPlan plan,
                           ResponseListener<ExecutionEngine.QueryResponse> listener) {
     try {
-      executionEngine.execute(plan(plan), listener);
+      executionEngine.execute(plan, listener);
     } catch (Exception e) {
       listener.onFailure(e);
     }
