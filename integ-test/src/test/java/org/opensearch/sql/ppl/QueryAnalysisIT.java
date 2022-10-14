@@ -41,7 +41,6 @@ public class QueryAnalysisIT extends PPLIntegTestCase {
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
-  @Ignore("Can't resolve target field yet")
   @Test
   public void renameCommandShouldPassSemanticCheck() {
     String query =
