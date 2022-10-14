@@ -157,6 +157,7 @@ BIT_AND_OP:                         '&';
 BIT_XOR_OP:                         '^';
 
 // AGGREGATIONS
+TAKE:                               'TAKE';
 AVG:                                'AVG';
 COUNT:                              'COUNT';
 DISTINCT_COUNT:                     'DISTINCT_COUNT';

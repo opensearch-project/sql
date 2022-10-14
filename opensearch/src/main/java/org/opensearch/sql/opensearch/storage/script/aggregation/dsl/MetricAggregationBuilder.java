@@ -18,6 +18,7 @@ import org.opensearch.search.aggregations.AggregatorFactories;
 import org.opensearch.search.aggregations.bucket.filter.FilterAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.CardinalityAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.ExtendedStats;
+import org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
@@ -25,9 +26,11 @@ import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.opensearch.response.agg.FilterParser;
+import org.opensearch.sql.opensearch.response.agg.HitsParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
 import org.opensearch.sql.opensearch.response.agg.StatsParser;
+import org.opensearch.sql.opensearch.storage.script.ScriptUtils;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
@@ -91,6 +94,21 @@ public class MetricAggregationBuilder
     }
 
     switch (functionName) {
+      case "take":
+
+        TopHitsAggregationBuilder builder = AggregationBuilders.topHits(name);
+        String fieldName = ((ReferenceExpression) expression).getAttr();
+        builder.fetchSource(fieldName, null);
+        builder.size(1);
+        return Pair.of(builder, new HitsParser(name));
+
+        // return make(
+        //     AggregationBuilders.count(name),
+        //     expression,
+        //     condition,
+        //     name,
+        //     new SingleValueParser(name));
+
       case "avg":
         return make(
             AggregationBuilders.avg(name),

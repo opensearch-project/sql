@@ -131,6 +131,7 @@ public enum BuiltinFunctionName {
   /**
    * Aggregation Function.
    */
+  TAKE(FunctionName.of("take")),
   AVG(FunctionName.of("avg")),
   SUM(FunctionName.of("sum")),
   COUNT(FunctionName.of("count")),
@@ -231,6 +232,7 @@ public enum BuiltinFunctionName {
 
   private static final Map<String, BuiltinFunctionName> AGGREGATION_FUNC_MAPPING =
       new ImmutableMap.Builder<String, BuiltinFunctionName>()
+          .put("take", BuiltinFunctionName.TAKE)
           .put("max", BuiltinFunctionName.MAX)
           .put("min", BuiltinFunctionName.MIN)
           .put("avg", BuiltinFunctionName.AVG)
