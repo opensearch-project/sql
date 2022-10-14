@@ -1172,9 +1172,9 @@ Argument type: DATETIME/STRING
 
 Return type map:
 
-DATETIME, STRING -> DATETIME
+(DATETIME, STRING) -> DATETIME
 
-DATETIME -> DATETIME
+(DATETIME) -> DATETIME
 
 Example::
 
@@ -2243,21 +2243,26 @@ TIMESTAMP
 Description
 >>>>>>>>>>>
 
-Usage: timestamp(expr) construct a timestamp type with the input string expr as an timestamp. If the argument is of date/datetime/timestamp type, cast expr to timestamp type with default timezone UTC.
+Usage: timestamp(expr) constructs a timestamp type with the input string `expr` as an timestamp. If the argument is not a string, it casts `expr` to timestamp type with default timezone UTC. If argument is a time, it applies today's date before cast.
+With two arguments `timestamp(expr1, expr2)` adds the time expression `expr2` to the date or datetime expression `expr1` and returns the result as a timestamp value.
 
-Argument type: STRING/DATE/DATETIME/TIMESTAMP
+Argument type: STRING/DATE/TIME/DATETIME/TIMESTAMP
 
-Return type: TIMESTAMP
+Return type map:
+
+(STRING/DATE/TIME/DATETIME/TIMESTAMP) -> TIMESTAMP
+
+(STRING/DATE/TIME/DATETIME/TIMESTAMP, STRING/DATE/TIME/DATETIME/TIMESTAMP) -> TIMESTAMP
 
 Example::
 
-    >od SELECT TIMESTAMP('2020-08-26 13:49:00')
+    os> SELECT TIMESTAMP('2020-08-26 13:49:00'), TIMESTAMP('2020-08-26 13:49:00', TIME('12:15:42'))
     fetched rows / total rows = 1/1
-    +------------------------------------+
-    | TIMESTAMP('2020-08-26 13:49:00')   |
-    |------------------------------------|
-    | TIMESTAMP '2020-08-26 13:49:00     |
-    +------------------------------------+
+    +------------------------------------+------------------------------------------------------+
+    | TIMESTAMP('2020-08-26 13:49:00')   | TIMESTAMP('2020-08-26 13:49:00', TIME('12:15:42'))   |
+    |------------------------------------+------------------------------------------------------|
+    | 2020-08-26 13:49:00                | 2020-08-27 02:04:42                                  |
+    +------------------------------------+------------------------------------------------------+
 
 
 TO_DAYS

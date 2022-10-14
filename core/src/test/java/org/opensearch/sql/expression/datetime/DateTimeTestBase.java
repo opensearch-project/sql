@@ -6,7 +6,6 @@
 package org.opensearch.sql.expression.datetime;
 
 import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
-import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 
 import java.time.Instant;
 import java.time.LocalDate;

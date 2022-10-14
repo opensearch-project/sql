@@ -718,15 +718,72 @@ public class DateTimeFunction {
 
   /**
    * Extracts the timestamp of a date and time value.
-   * Also to construct a date type. The supported signatures:
-   * STRING/DATE/DATETIME/TIMESTAMP -> DATE
+   * Input strings may contain a timestamp only in format 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'
+   * STRING/DATE/TIME/DATETIME/TIMESTAMP -> TIMESTAMP
+   * STRING/DATE/TIME/DATETIME/TIMESTAMP, STRING/DATE/TIME/DATETIME/TIMESTAMP -> TIMESTAMP
    */
   private DefaultFunctionResolver timestamp() {
     return define(BuiltinFunctionName.TIMESTAMP.getName(),
-        impl(nullMissingHandling(DateTimeFunction::exprTimestamp), TIMESTAMP, STRING),
-        impl(nullMissingHandling(DateTimeFunction::exprTimestamp), TIMESTAMP, DATE),
-        impl(nullMissingHandling(DateTimeFunction::exprTimestamp), TIMESTAMP, DATETIME),
-        impl(nullMissingHandling(DateTimeFunction::exprTimestamp), TIMESTAMP, TIMESTAMP));
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestamp),
+            TIMESTAMP, STRING),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestamp),
+            TIMESTAMP, DATE),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestamp),
+            TIMESTAMP, TIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestamp),
+            TIMESTAMP, DATETIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestamp),
+            TIMESTAMP, TIMESTAMP),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestampEx),
+            TIMESTAMP, STRING, STRING),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestampEx),
+            TIMESTAMP, STRING, DATE),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestampEx),
+            TIMESTAMP, STRING, TIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestampEx),
+            TIMESTAMP, STRING, DATETIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestampEx),
+            TIMESTAMP, STRING, TIMESTAMP),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestampEx),
+            TIMESTAMP, DATE, STRING),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestampEx),
+            TIMESTAMP, DATE, DATE),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestampEx),
+            TIMESTAMP, DATE, TIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestampEx),
+            TIMESTAMP, DATE, DATETIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestampEx),
+            TIMESTAMP, DATE, TIMESTAMP),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestampEx),
+            TIMESTAMP, TIME, STRING),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestampEx),
+            TIMESTAMP, TIME, DATE),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestampEx),
+            TIMESTAMP, TIME, TIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestampEx),
+            TIMESTAMP, TIME, DATETIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestampEx),
+            TIMESTAMP, TIME, TIMESTAMP),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestampEx),
+            TIMESTAMP, DATETIME, STRING),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestampEx),
+            TIMESTAMP, DATETIME, DATE),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestampEx),
+            TIMESTAMP, DATETIME, TIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestampEx),
+            TIMESTAMP, DATETIME, DATETIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestampEx),
+            TIMESTAMP, DATETIME, TIMESTAMP),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestampEx),
+            TIMESTAMP, TIMESTAMP, STRING),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestampEx),
+            TIMESTAMP, TIMESTAMP, DATE),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestampEx),
+            TIMESTAMP, TIMESTAMP, TIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestampEx),
+            TIMESTAMP, TIMESTAMP, DATETIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprTimestampEx),
+            TIMESTAMP, TIMESTAMP, TIMESTAMP));
   }
 
   /**
@@ -1351,15 +1408,29 @@ public class DateTimeFunction {
   /**
    * Timestamp implementation for ExprValue.
    *
-   * @param exprValue ExprValue of Timestamp type or String type.
+   * @param exprValue ExprValue of Timestamp.
    * @return ExprValue.
    */
-  private ExprValue exprTimestamp(ExprValue exprValue) {
+  private ExprValue exprTimestamp(FunctionProperties functionProperties, ExprValue exprValue) {
     if (exprValue instanceof ExprStringValue) {
       return new ExprTimestampValue(exprValue.stringValue());
-    } else {
-      return new ExprTimestampValue(exprValue.timestampValue());
     }
+    return new ExprTimestampValue(DateTimeUtils.extractTimestamp(exprValue, functionProperties));
+  }
+
+  /**
+   * Timestamp implementation for two arguments. It extracts time expression from exprValue2
+   * and adds it to the expression exprValue1 and returns the result as a timestamp value.
+   *
+   * @param exprValue1 ExprValue of Timestamp type or String type.
+   * @param exprValue2 ExprValue of Timestamp type or String type.
+   * @return ExprValue.
+   */
+  private ExprValue exprTimestampEx(FunctionProperties functionProperties,
+                                    ExprValue exprValue1, ExprValue exprValue2) {
+    return exprAddTime(functionProperties,
+        exprTimestamp(functionProperties, exprValue1),
+        exprTimestamp(functionProperties, exprValue2));
   }
 
   /**

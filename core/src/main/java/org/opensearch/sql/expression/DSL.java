@@ -405,7 +405,12 @@ public class DSL {
   }
 
   public static FunctionExpression timestamp(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.TIMESTAMP, expressions);
+    return timestamp(FunctionProperties.None, expressions);
+  }
+
+  public static FunctionExpression timestamp(FunctionProperties functionProperties,
+                                             Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.TIMESTAMP, expressions);
   }
 
   public static FunctionExpression date_format(Expression... expressions) {
