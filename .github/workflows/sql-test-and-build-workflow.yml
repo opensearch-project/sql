@@ -19,12 +19,17 @@ on:
 
 jobs:
   build:
+    env:
+      BUILD_ARGS: ${{ matrix.os_build_args }}
     strategy:
       # Run all jobs
       fail-fast: false
       matrix:
         java: [11, 17]
         os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: windows-latest
+            os_build_args: -x doctest -x integTest -x jacocoTestReport
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -41,7 +46,7 @@ jobs:
         java-version: ${{ matrix.java }}
     
     - name: Build with Gradle
-      run: ./gradlew --continue build assemble
+      run: ./gradlew --continue build assemble ${{ env.BUILD_ARGS }}
 
     - name: Run backward compatibility tests
       if: ${{ matrix.os == 'ubuntu-latest' }}
