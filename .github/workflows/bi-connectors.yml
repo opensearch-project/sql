@@ -1,6 +1,7 @@
 name: Build connectors for BI tools
 
 on:
+  pull_request:
   push:
     paths:
       - 'bi-connectors/PowerBIConnector/**'

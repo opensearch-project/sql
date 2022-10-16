@@ -20,6 +20,10 @@ import org.opensearch.sql.expression.conditional.cases.CaseClause;
 import org.opensearch.sql.expression.conditional.cases.WhenClause;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.parse.GrokExpression;
+import org.opensearch.sql.expression.parse.ParseExpression;
+import org.opensearch.sql.expression.parse.PatternsExpression;
+import org.opensearch.sql.expression.parse.RegexExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.expression.window.ranking.RankingWindowFunction;
 
@@ -122,9 +126,19 @@ public class DSL {
     return namedArgument(name, literal(value));
   }
 
-  public static ParseExpression parsed(Expression expression, Expression pattern,
-                                       Expression identifier) {
-    return new ParseExpression(expression, pattern, identifier);
+  public static GrokExpression grok(Expression sourceField, Expression pattern,
+                                    Expression identifier) {
+    return new GrokExpression(sourceField, pattern, identifier);
+  }
+
+  public static RegexExpression regex(Expression sourceField, Expression pattern,
+                                      Expression identifier) {
+    return new RegexExpression(sourceField, pattern, identifier);
+  }
+
+  public static PatternsExpression patterns(Expression sourceField, Expression pattern,
+                                            Expression identifier) {
+    return new PatternsExpression(sourceField, pattern, identifier);
   }
 
   public static SpanExpression span(Expression field, Expression value, String unit) {
@@ -271,8 +285,16 @@ public class DSL {
     return function(BuiltinFunctionName.ADDDATE, expressions);
   }
 
+  public FunctionExpression convert_tz(Expression... expressions) {
+    return function(BuiltinFunctionName.CONVERT_TZ, expressions);
+  }
+
   public FunctionExpression date(Expression... expressions) {
     return function(BuiltinFunctionName.DATE, expressions);
+  }
+
+  public FunctionExpression datetime(Expression... expressions) {
+    return function(BuiltinFunctionName.DATETIME, expressions);
   }
 
   public FunctionExpression date_add(Expression... expressions) {
@@ -680,6 +702,42 @@ public class DSL {
 
   public FunctionExpression match_bool_prefix(Expression... args) {
     return compile(BuiltinFunctionName.MATCH_BOOL_PREFIX, args);
+  }
+
+  public FunctionExpression now(Expression... args) {
+    return compile(BuiltinFunctionName.NOW, args);
+  }
+
+  public FunctionExpression current_timestamp(Expression... args) {
+    return compile(BuiltinFunctionName.CURRENT_TIMESTAMP, args);
+  }
+
+  public FunctionExpression localtimestamp(Expression... args) {
+    return compile(BuiltinFunctionName.LOCALTIMESTAMP, args);
+  }
+
+  public FunctionExpression localtime(Expression... args) {
+    return compile(BuiltinFunctionName.LOCALTIME, args);
+  }
+
+  public FunctionExpression sysdate(Expression... args) {
+    return compile(BuiltinFunctionName.SYSDATE, args);
+  }
+
+  public FunctionExpression curtime(Expression... args) {
+    return compile(BuiltinFunctionName.CURTIME, args);
+  }
+
+  public FunctionExpression current_time(Expression... args) {
+    return compile(BuiltinFunctionName.CURRENT_TIME, args);
+  }
+
+  public FunctionExpression curdate(Expression... args) {
+    return compile(BuiltinFunctionName.CURDATE, args);
+  }
+
+  public FunctionExpression current_date(Expression... args) {
+    return compile(BuiltinFunctionName.CURRENT_DATE, args);
   }
 
   private FunctionExpression compile(BuiltinFunctionName bfn, Expression... args) {

@@ -138,7 +138,7 @@ class ExpressionFilterScriptTest {
     assertThat()
         .docValues("age_string", "age: 30")
         .filterBy(dsl.equal(
-            DSL.parsed(DSL.ref("age_string", STRING), literal("age: (?<age>\\d+)"), literal("age")),
+            DSL.regex(DSL.ref("age_string", STRING), literal("age: (?<age>\\d+)"), literal("age")),
             literal("30")))
         .shouldMatch();
   }

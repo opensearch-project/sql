@@ -27,13 +27,17 @@ import static org.opensearch.sql.ast.tree.Sort.SortOption;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -47,7 +51,7 @@ import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.Literal;
-import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -83,6 +87,17 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
+  public void filter_relation_with_alias() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("schema", table),
+            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+        AstDSL.filter(
+            AstDSL.relation("schema", "alias"),
+            AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
+  }
+
+  @Test
   public void filter_relation_with_catalog() {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
@@ -105,6 +120,28 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
+  public void filter_relation_with_information_schema_and_catalog() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("tables", table),
+            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+        AstDSL.filter(
+            AstDSL.relation(AstDSL.qualifiedName("prometheus","default","tables")),
+            AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
+  }
+
+  @Test
+  public void filter_relation_with_information_schema() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("tables.test", table),
+            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+        AstDSL.filter(
+            AstDSL.relation(AstDSL.qualifiedName("information_schema","tables", "test")),
+            AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
+  }
+
+  @Test
   public void filter_relation_with_non_existing_catalog() {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
@@ -112,6 +149,29 @@ class AnalyzerTest extends AnalyzerTestBase {
             dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
         AstDSL.filter(
             AstDSL.relation(AstDSL.qualifiedName("test", "http_total_requests")),
+            AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
+  }
+
+  @Test
+  public void filter_relation_with_non_existing_catalog_with_three_parts() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("test.nonexisting_schema.http_total_requests", table),
+            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+        AstDSL.filter(
+            AstDSL.relation(AstDSL.qualifiedName("test",
+                "nonexisting_schema", "http_total_requests")),
+            AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
+  }
+
+  @Test
+  public void filter_relation_with_multiple_tables() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("test.1,test.2", table),
+            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+        AstDSL.filter(
+            AstDSL.relation(Arrays.asList("test.1", "test.2")),
             AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
   }
 
@@ -270,16 +330,41 @@ class AnalyzerTest extends AnalyzerTestBase {
 
   @Test
   public void project_highlight() {
+    Map<String, Literal> args = new HashMap<>();
+    args.put("pre_tags", new Literal("<mark>", DataType.STRING));
+    args.put("post_tags", new Literal("</mark>", DataType.STRING));
+
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
             LogicalPlanDSL.highlight(LogicalPlanDSL.relation("schema", table),
-                DSL.literal("fieldA")),
-            DSL.named("highlight(fieldA)", new HighlightExpression(DSL.literal("fieldA")))
+                DSL.literal("fieldA"), args),
+            DSL.named("highlight(fieldA, pre_tags='<mark>', post_tags='</mark>')",
+                new HighlightExpression(DSL.literal("fieldA")))
         ),
         AstDSL.projectWithArg(
             AstDSL.relation("schema"),
             AstDSL.defaultFieldsArgs(),
-            AstDSL.alias("highlight(fieldA)", new HighlightFunction(AstDSL.stringLiteral("fieldA")))
+            AstDSL.alias("highlight(fieldA, pre_tags='<mark>', post_tags='</mark>')",
+                new HighlightFunction(AstDSL.stringLiteral("fieldA"), args))
+        )
+    );
+  }
+
+  @Test
+  public void project_highlight_wildcard() {
+    Map<String, Literal> args = new HashMap<>();
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.highlight(LogicalPlanDSL.relation("schema", table),
+                DSL.literal("*"), args),
+            DSL.named("highlight(*)",
+                new HighlightExpression(DSL.literal("*")))
+        ),
+        AstDSL.projectWithArg(
+            AstDSL.relation("schema"),
+            AstDSL.defaultFieldsArgs(),
+            AstDSL.alias("highlight(*)",
+                new HighlightFunction(AstDSL.stringLiteral("*"), args))
         )
     );
   }
@@ -735,20 +820,90 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void parse_relation() {
+  public void parse_relation_with_grok_expression() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.relation("schema", table),
+            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
+            ImmutableList.of(DSL.named("grok_field",
+                DSL.grok(DSL.ref("string_value", STRING), DSL.literal("%{IPV4:grok_field}"),
+                    DSL.literal("grok_field"))))
+        ),
+        AstDSL.project(
+            AstDSL.parse(
+                AstDSL.relation("schema"),
+                ParseMethod.GROK,
+                AstDSL.field("string_value"),
+                AstDSL.stringLiteral("%{IPV4:grok_field}"),
+                ImmutableMap.of()),
+            AstDSL.alias("string_value", qualifiedName("string_value"))
+        ));
+  }
+
+  @Test
+  public void parse_relation_with_regex_expression() {
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
             LogicalPlanDSL.relation("schema", table),
             ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
             ImmutableList.of(DSL.named("group",
-                DSL.parsed(DSL.ref("string_value", STRING), DSL.literal("(?<group>.*)"),
+                DSL.regex(DSL.ref("string_value", STRING), DSL.literal("(?<group>.*)"),
                     DSL.literal("group"))))
         ),
         AstDSL.project(
             AstDSL.parse(
                 AstDSL.relation("schema"),
+                ParseMethod.REGEX,
                 AstDSL.field("string_value"),
-                AstDSL.stringLiteral("(?<group>.*)")),
+                AstDSL.stringLiteral("(?<group>.*)"),
+                ImmutableMap.of()),
+            AstDSL.alias("string_value", qualifiedName("string_value"))
+        ));
+  }
+
+  @Test
+  public void parse_relation_with_patterns_expression() {
+    Map<String, Literal> arguments = ImmutableMap.<String, Literal>builder()
+        .put("new_field", AstDSL.stringLiteral("custom_field"))
+        .put("pattern", AstDSL.stringLiteral("custom_pattern"))
+        .build();
+
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.relation("schema", table),
+            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
+            ImmutableList.of(DSL.named("custom_field",
+                DSL.patterns(DSL.ref("string_value", STRING), DSL.literal("custom_pattern"),
+                    DSL.literal("custom_field"))))
+        ),
+        AstDSL.project(
+            AstDSL.parse(
+                AstDSL.relation("schema"),
+                ParseMethod.PATTERNS,
+                AstDSL.field("string_value"),
+                AstDSL.stringLiteral("custom_pattern"),
+                arguments),
+            AstDSL.alias("string_value", qualifiedName("string_value"))
+        ));
+  }
+
+  @Test
+  public void parse_relation_with_patterns_expression_no_args() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.relation("schema", table),
+            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
+            ImmutableList.of(DSL.named("patterns_field",
+                DSL.patterns(DSL.ref("string_value", STRING), DSL.literal(""),
+                    DSL.literal("patterns_field"))))
+        ),
+        AstDSL.project(
+            AstDSL.parse(
+                AstDSL.relation("schema"),
+                ParseMethod.PATTERNS,
+                AstDSL.field("string_value"),
+                AstDSL.stringLiteral(""),
+                ImmutableMap.of()),
             AstDSL.alias("string_value", qualifiedName("string_value"))
         ));
   }

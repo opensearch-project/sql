@@ -58,7 +58,9 @@ public enum BuiltinFunctionName {
    * Date and Time Functions.
    */
   ADDDATE(FunctionName.of("adddate")),
+  CONVERT_TZ(FunctionName.of("convert_tz")),
   DATE(FunctionName.of("date")),
+  DATETIME(FunctionName.of("datetime")),
   DATE_ADD(FunctionName.of("date_add")),
   DATE_SUB(FunctionName.of("date_sub")),
   DAY(FunctionName.of("day")),
@@ -67,6 +69,7 @@ public enum BuiltinFunctionName {
   DAYOFWEEK(FunctionName.of("dayofweek")),
   DAYOFYEAR(FunctionName.of("dayofyear")),
   FROM_DAYS(FunctionName.of("from_days")),
+  FROM_UNIXTIME(FunctionName.of("from_unixtime")),
   HOUR(FunctionName.of("hour")),
   MAKEDATE(FunctionName.of("makedate")),
   MAKETIME(FunctionName.of("maketime")),
@@ -82,9 +85,19 @@ public enum BuiltinFunctionName {
   TIMESTAMP(FunctionName.of("timestamp")),
   DATE_FORMAT(FunctionName.of("date_format")),
   TO_DAYS(FunctionName.of("to_days")),
+  UNIX_TIMESTAMP(FunctionName.of("unix_timestamp")),
   WEEK(FunctionName.of("week")),
   YEAR(FunctionName.of("year")),
-
+  // `now`-like functions
+  NOW(FunctionName.of("now")),
+  CURDATE(FunctionName.of("curdate")),
+  CURRENT_DATE(FunctionName.of("current_date")),
+  CURTIME(FunctionName.of("curtime")),
+  CURRENT_TIME(FunctionName.of("current_time")),
+  LOCALTIME(FunctionName.of("localtime")),
+  CURRENT_TIMESTAMP(FunctionName.of("current_timestamp")),
+  LOCALTIMESTAMP(FunctionName.of("localtimestamp")),
+  SYSDATE(FunctionName.of("sysdate")),
   /**
    * Text Functions.
    */

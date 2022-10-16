@@ -1,6 +1,13 @@
 name: SQL Workbench Test and Build
 
-on: [pull_request, push]
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+    paths:
+      - 'workbench/**'
+      - '.github/workflows/sql-workbench-test-and-build-workflow.yml'
 
 env: 
   PLUGIN_NAME: query-workbench-dashboards
@@ -8,24 +15,21 @@ env:
   OPENSEARCH_PLUGIN_VERSION: 2.4.0.0
 
 jobs:
-
   build:
-
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Plugin
-        uses: actions/checkout@v1
+        uses: actions/checkout@v3
 
       - name: Checkout OpenSearch Dashboards
-        uses: actions/checkout@v1
+        uses: actions/checkout@v1 # can't update to v3 because `setup-node` fails
         with:
           repository: opensearch-project/Opensearch-Dashboards
           ref: ${{ env.OPENSEARCH_VERSION }}
           path: OpenSearch-Dashboards
 
       - name: Setup Node
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version-file: "../OpenSearch-Dashboards/.nvmrc"
           registry-url: 'https://registry.npmjs.org'
@@ -35,7 +39,7 @@ jobs:
           mv workbench ../OpenSearch-Dashboards/plugins
 
       - name: OpenSearch Dashboards Plugin Bootstrap
-        uses: nick-invision/retry@v1
+        uses: nick-fields/retry@v2
         with:
           timeout_minutes: 60
           max_attempts: 3
@@ -47,7 +51,8 @@ jobs:
           yarn test:jest --coverage
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v1
+        if: always()
+        uses: codecov/codecov-action@v3
         with:
           flags: query-workbench
           directory: ../OpenSearch-Dashboards/plugins/workbench
@@ -60,7 +65,8 @@ jobs:
           mv ./build/*.zip ./build/${{ env.PLUGIN_NAME }}-${{ env.OPENSEARCH_PLUGIN_VERSION }}.zip
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v1
+        if: always()
+        uses: actions/upload-artifact@v1 # can't update to v3 because upload fails
         with:
           name: workbench
           path: ../OpenSearch-Dashboards/plugins/workbench/build

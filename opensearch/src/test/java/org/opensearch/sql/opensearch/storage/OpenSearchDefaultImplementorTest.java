@@ -88,6 +88,6 @@ public class OpenSearchDefaultImplementorTest {
         new OpenSearchIndex.OpenSearchDefaultImplementor(indexScan, client);
 
     implementor.visitHighlight(node, indexScan);
-    verify(requestBuilder).pushDownHighlight(any());
+    verify(requestBuilder).pushDownHighlight(any(), any());
   }
 }

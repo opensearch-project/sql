@@ -24,6 +24,13 @@ HEAD:                               'HEAD';
 TOP:                                'TOP';
 RARE:                               'RARE';
 PARSE:                              'PARSE';
+METHOD:                             'METHOD';
+REGEX:                              'REGEX';
+PUNCT:                              'PUNCT';
+GROK:                               'GROK';
+PATTERN:                            'PATTERN';
+PATTERNS:                           'PATTERNS';
+NEW_FIELD:                          'NEW_FIELD';
 KMEANS:                             'KMEANS';
 AD:                                 'AD';
 
@@ -102,6 +109,7 @@ DAY_SECOND:                         'DAY_SECOND';
 DAY_MINUTE:                         'DAY_MINUTE';
 DAY_HOUR:                           'DAY_HOUR';
 YEAR_MONTH:                         'YEAR_MONTH';
+CONVERT_TZ:                         'CONVERT_TZ';
 
 // DATASET TYPES
 DATAMODEL:                          'DATAMODEL';
@@ -223,23 +231,37 @@ TAN:                                'TAN';
 
 // DATE AND TIME FUNCTIONS
 ADDDATE:                            'ADDDATE';
+CURDATE:                            'CURDATE';
+CURRENT_DATE:                       'CURRENT_DATE';
+CURRENT_TIME:                       'CURRENT_TIME';
+CURRENT_TIMESTAMP:                  'CURRENT_TIMESTAMP';
+CURTIME:                            'CURTIME';
 DATE:                               'DATE';
 DATE_ADD:                           'DATE_ADD';
+DATE_FORMAT:                        'DATE_FORMAT';
 DATE_SUB:                           'DATE_SUB';
 DAYOFMONTH:                         'DAYOFMONTH';
 DAYOFWEEK:                          'DAYOFWEEK';
 DAYOFYEAR:                          'DAYOFYEAR';
 DAYNAME:                            'DAYNAME';
 FROM_DAYS:                          'FROM_DAYS';
+LOCALTIME:                          'LOCALTIME';
+LOCALTIMESTAMP:                     'LOCALTIMESTAMP';
+FROM_UNIXTIME:                      'FROM_UNIXTIME';
 MAKEDATE:                           'MAKEDATE';
 MAKETIME:                           'MAKETIME';
 MONTHNAME:                          'MONTHNAME';
+NOW:                                'NOW';
 SUBDATE:                            'SUBDATE';
+SYSDATE:                            'SYSDATE';
 TIME:                               'TIME';
 TIME_TO_SEC:                        'TIME_TO_SEC';
 TIMESTAMP:                          'TIMESTAMP';
-DATE_FORMAT:                        'DATE_FORMAT';
 TO_DAYS:                            'TO_DAYS';
+UTC_DATE:                           'UTC_DATE';
+UTC_TIME:                           'UTC_TIME';
+UTC_TIMESTAMP:                      'UTC_TIMESTAMP';
+UNIX_TIMESTAMP:                     'UNIX_TIMESTAMP';
 
 // TEXT FUNCTIONS
 SUBSTR:                             'SUBSTR';
