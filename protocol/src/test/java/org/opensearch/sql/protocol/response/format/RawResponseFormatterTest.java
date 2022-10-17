@@ -93,8 +93,8 @@ public class RawResponseFormatterTest {
   void formatError() {
     Throwable t = new RuntimeException("This is an exception");
     String expected =
-        "{%n  \"type\": \"RuntimeException\",%n  \"reason\": \"This is an exception\"%n}";
-    assertEquals(format(expected), rawFormater.format(t));
+        "{\n  \"type\": \"RuntimeException\",\n  \"reason\": \"This is an exception\"\n}";
+    assertEquals(expected, rawFormater.format(t));
   }
 
   @Test

@@ -17,7 +17,7 @@ class ErrorFormatterTest {
   @Test
   void htmlEscaping_should_disabled() {
     assertEquals(
-        format("{%n" + "  \"request\": \"index=test\"%n" + "}"),
+        format("{\n" + "  \"request\": \"index=test\"\n" + "}"),
         ErrorFormatter.prettyJsonify(ImmutableMap.of("request", "index=test")));
     assertEquals(
         "{\"request\":\"index=test\"}",

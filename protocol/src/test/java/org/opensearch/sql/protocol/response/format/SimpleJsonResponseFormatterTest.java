@@ -166,11 +166,11 @@ class SimpleJsonResponseFormatterTest {
   @Test
   void formatErrorPretty() {
     SimpleJsonResponseFormatter formatter = new SimpleJsonResponseFormatter(PRETTY);
-    assertEquals(format(
-        "{%n"
-            + "  \"type\": \"RuntimeException\",%n"
-            + "  \"reason\": \"This is an exception\"%n"
-            + "}"),
+    assertEquals(
+        "{\n"
+            + "  \"type\": \"RuntimeException\",\n"
+            + "  \"reason\": \"This is an exception\"\n"
+            + "}",
         formatter.format(new RuntimeException("This is an exception")));
   }
 }
