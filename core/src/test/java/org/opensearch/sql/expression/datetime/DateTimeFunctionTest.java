@@ -245,6 +245,9 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     assertEquals(DATE, expr.type());
     assertEquals(new ExprDateValue("2020-08-17 12:12:00"), eval(expr));
     assertEquals("date(DATE '2020-08-17')", expr.toString());
+
+    expr = dsl.date(DSL.literal("2020-02-30"));
+    assertEquals(nullValue(), expr.valueOf(null));
   }
 
   @Test
@@ -805,6 +808,9 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     assertEquals(TIME, expr.type());
     assertEquals(new ExprTimeValue("2020-01-02 01:01:01"), eval(expr));
     assertEquals("time(TIME '01:01:01')", expr.toString());
+
+    expr = dsl.time(DSL.literal("01:01:01:01"));
+    assertEquals(nullValue(), expr.valueOf(null));
   }
 
   @Test
