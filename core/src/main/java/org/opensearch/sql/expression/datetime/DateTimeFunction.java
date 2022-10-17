@@ -949,8 +949,11 @@ public class DateTimeFunction {
    */
   private ExprValue exprTime(ExprValue exprValue) {
     if (exprValue instanceof ExprStringValue) {
-      //try catch
-      return new ExprTimeValue(exprValue.stringValue());
+      try {
+        return new ExprTimeValue(exprValue.stringValue());
+      } catch (SemanticCheckException e) {
+        return ExprNullValue.of();
+      }
     } else {
       return new ExprTimeValue(exprValue.timeValue());
     }
