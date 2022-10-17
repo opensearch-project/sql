@@ -8,12 +8,11 @@ package org.opensearch.sql.expression.aggregation;
 
 import static org.opensearch.sql.utils.ExpressionUtils.format;
 
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
+import org.opensearch.sql.data.model.ExprCollectionValue;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
@@ -26,7 +25,8 @@ public class TakeAggregator extends Aggregator<TakeAggregator.TakeState> {
 
   @Override
   public TakeState create() {
-    return new TakeState();
+    return new TakeState(getArguments().get(1).valueOf(null).integerValue(),
+        getArguments().get(2).valueOf(null).integerValue());
   }
 
   @Override
@@ -44,31 +44,28 @@ public class TakeAggregator extends Aggregator<TakeAggregator.TakeState> {
    * Count State.
    */
   protected static class TakeState implements AggregationState {
-    protected int count;
+    protected int index;
+    protected int size;
+    protected int from;
+    protected List<ExprValue> hits;
 
-    TakeState() {
-      this.count = 0;
+    TakeState(int size, int from) {
+      this.index = 0;
+      this.size = size;
+      this.from = from;
+      this.hits = new ArrayList<>();
     }
 
     public void take(ExprValue value) {
-      count++;
+      if (index >= from && index < from + size) {
+        hits.add(value);
+      }
+      index++;
     }
 
     @Override
     public ExprValue result() {
-      return ExprValueUtils.integerValue(count);
-    }
-  }
-
-  protected static class DistinctTakeState extends TakeState {
-    private final Set<ExprValue> distinctValues = new HashSet<>();
-
-    @Override
-    public void take(ExprValue value) {
-      if (!distinctValues.contains(value)) {
-        distinctValues.add(value);
-        count++;
-      }
+      return new ExprCollectionValue(hits);
     }
   }
 }
