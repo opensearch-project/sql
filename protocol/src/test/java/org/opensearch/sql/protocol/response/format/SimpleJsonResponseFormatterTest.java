@@ -7,6 +7,7 @@
 package org.opensearch.sql.protocol.response.format;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.opensearch.sql.common.utils.StringUtils.format;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_MISSING;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
@@ -54,31 +55,31 @@ class SimpleJsonResponseFormatterTest {
                 tupleValue(ImmutableMap.of("firstname", "John", "age", 20)),
                 tupleValue(ImmutableMap.of("firstname", "Smith", "age", 30))));
     SimpleJsonResponseFormatter formatter = new SimpleJsonResponseFormatter(PRETTY);
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"firstname\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"age\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"John\",\n"
-            + "      20\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Smith\",\n"
-            + "      30\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
+    assertEquals(format(
+        "{%n"
+            + "  \"schema\": [%n"
+            + "    {%n"
+            + "      \"name\": \"firstname\",%n"
+            + "      \"type\": \"string\"%n"
+            + "    },%n"
+            + "    {%n"
+            + "      \"name\": \"age\",%n"
+            + "      \"type\": \"integer\"%n"
+            + "    }%n"
+            + "  ],%n"
+            + "  \"datarows\": [%n"
+            + "    [%n"
+            + "      \"John\",%n"
+            + "      20%n"
+            + "    ],%n"
+            + "    [%n"
+            + "      \"Smith\",%n"
+            + "      30%n"
+            + "    ]%n"
+            + "  ],%n"
+            + "  \"total\": 2,%n"
+            + "  \"size\": 2%n"
+            + "}"),
         formatter.format(response));
   }
 
@@ -165,11 +166,11 @@ class SimpleJsonResponseFormatterTest {
   @Test
   void formatErrorPretty() {
     SimpleJsonResponseFormatter formatter = new SimpleJsonResponseFormatter(PRETTY);
-    assertEquals(
-        "{\n"
-            + "  \"type\": \"RuntimeException\",\n"
-            + "  \"reason\": \"This is an exception\"\n"
-            + "}",
+    assertEquals(format(
+        "{%n"
+            + "  \"type\": \"RuntimeException\",%n"
+            + "  \"reason\": \"This is an exception\"%n"
+            + "}"),
         formatter.format(new RuntimeException("This is an exception")));
   }
 }

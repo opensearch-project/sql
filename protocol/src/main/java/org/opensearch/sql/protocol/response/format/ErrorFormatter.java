@@ -45,12 +45,14 @@ public class ErrorFormatter {
 
   public static String compactJsonify(Object jsonObject) {
     return AccessController.doPrivileged(
-        (PrivilegedAction<String>) () -> GSON.toJson(jsonObject));
+        (PrivilegedAction<String>) () -> GSON.toJson(jsonObject)
+                .replaceAll("\\n|\\r\\n", System.getProperty("line.separator")));
   }
 
   public static String prettyJsonify(Object jsonObject) {
     return AccessController.doPrivileged(
-        (PrivilegedAction<String>) () -> PRETTY_PRINT_GSON.toJson(jsonObject));
+        (PrivilegedAction<String>) () -> PRETTY_PRINT_GSON.toJson(jsonObject)
+            .replaceAll("\\n|\\r\\n", System.getProperty("line.separator")));
   }
 
   @RequiredArgsConstructor

@@ -29,15 +29,13 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
         include:
           - os: windows-latest
-            os_build_args: -x doctest -x integTest -x jacocoTestReport
+            os_build_args: -x doctest -x integTest -x jacocoTestReport -x compileJdbc
+          - os: macos-latest
+            os_build_args: -x doctest -x integTest -x jacocoTestReport -x compileJdbc
     runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v3
-
-    - name: Change line endings for windows
-      if: ${{ matrix.os == 'windows-latest' }}
-      run: git config --global core.autocrlf false
     
     - name: Set up JDK ${{ matrix.java }}
       uses: actions/setup-java@v3
@@ -46,7 +44,7 @@ jobs:
         java-version: ${{ matrix.java }}
     
     - name: Build with Gradle
-      run: ./gradlew --continue build assemble ${{ env.BUILD_ARGS }}
+      run: ./gradlew --continue build ${{ env.BUILD_ARGS }}
 
     - name: Run backward compatibility tests
       if: ${{ matrix.os == 'ubuntu-latest' }}

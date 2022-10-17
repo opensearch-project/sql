@@ -7,6 +7,7 @@
 package org.opensearch.sql.protocol.response.format;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.opensearch.sql.common.utils.StringUtils.format;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_MISSING;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
@@ -37,8 +38,8 @@ public class CsvResponseFormatterTest {
         tupleValue(ImmutableMap.of("name", "John", "age", 20)),
         tupleValue(ImmutableMap.of("name", "Smith", "age", 30))));
     CsvResponseFormatter formatter = new CsvResponseFormatter();
-    String expected = "name,age\nJohn,20\nSmith,30";
-    assertEquals(expected, formatter.format(response));
+    String expected = "name,age%nJohn,20%nSmith,30";
+    assertEquals(format(expected), formatter.format(response));
   }
 
   @Test
@@ -51,9 +52,9 @@ public class CsvResponseFormatterTest {
     QueryResult response = new QueryResult(schema, Arrays.asList(
         tupleValue(ImmutableMap.of(
             "=firstname", "John", "+lastname", "Smith", "-city", "Seattle", "@age", 20))));
-    String expected = "'=firstname,'+lastname,'-city,'@age\n"
+    String expected = "'=firstname,'+lastname,'-city,'@age%n"
         + "John,Smith,Seattle,20";
-    assertEquals(expected, formatter.format(response));
+    assertEquals(format(expected), formatter.format(response));
   }
 
   @Test
@@ -67,14 +68,14 @@ public class CsvResponseFormatterTest {
         tupleValue(ImmutableMap.of("city", "-Seattle")),
         tupleValue(ImmutableMap.of("city", "@Seattle")),
         tupleValue(ImmutableMap.of("city", "Seattle="))));
-    String expected = "city\n"
-        + "Seattle\n"
-        + "'=Seattle\n"
-        + "'+Seattle\n"
-        + "'-Seattle\n"
-        + "'@Seattle\n"
+    String expected = "city%n"
+        + "Seattle%n"
+        + "'=Seattle%n"
+        + "'+Seattle%n"
+        + "'-Seattle%n"
+        + "'@Seattle%n"
         + "Seattle=";
-    assertEquals(expected, formatter.format(response));
+    assertEquals(format(expected), formatter.format(response));
   }
 
   @Test
@@ -84,17 +85,17 @@ public class CsvResponseFormatterTest {
         new ExecutionEngine.Schema.Column(",,age", ",,age", INTEGER)));
     QueryResult response = new QueryResult(schema, Arrays.asList(
         tupleValue(ImmutableMap.of("na,me", "John,Smith", ",,age", "30,,,"))));
-    String expected = "\"na,me\",\",,age\"\n"
+    String expected = "\"na,me\",\",,age\"%n"
         + "\"John,Smith\",\"30,,,\"";
-    assertEquals(expected, formatter.format(response));
+    assertEquals(format(expected), formatter.format(response));
   }
 
   @Test
   void formatError() {
     Throwable t = new RuntimeException("This is an exception");
     String expected =
-        "{\n  \"type\": \"RuntimeException\",\n  \"reason\": \"This is an exception\"\n}";
-    assertEquals(expected, formatter.format(t));
+        "{%n  \"type\": \"RuntimeException\",%n  \"reason\": \"This is an exception\"%n}";
+    assertEquals(format(expected), formatter.format(t));
   }
 
   @Test
@@ -105,10 +106,10 @@ public class CsvResponseFormatterTest {
     QueryResult response = new QueryResult(schema, Arrays.asList(
         tupleValue(ImmutableMap.of("city", "=Seattle")),
         tupleValue(ImmutableMap.of("city", ",,Seattle"))));
-    String expected = "city\n"
-        + "=Seattle\n"
+    String expected = "city%n"
+        + "=Seattle%n"
         + "\",,Seattle\"";
-    assertEquals(expected, escapeFormatter.format(response));
+    assertEquals(format(expected), escapeFormatter.format(response));
   }
 
   @Test
@@ -122,11 +123,11 @@ public class CsvResponseFormatterTest {
             ImmutableMap.of("firstname", LITERAL_NULL, "city", stringValue("Seattle"))),
         ExprTupleValue.fromExprValueMap(
             ImmutableMap.of("firstname", stringValue("John"), "city", LITERAL_MISSING))));
-    String expected = "name,city\n"
-        + "John,Seattle\n"
-        + ",Seattle\n"
+    String expected = "name,city%n"
+        + "John,Seattle%n"
+        + ",Seattle%n"
         + "John,";
-    assertEquals(expected, formatter.format(response));
+    assertEquals(format(expected), formatter.format(response));
   }
 
 }
