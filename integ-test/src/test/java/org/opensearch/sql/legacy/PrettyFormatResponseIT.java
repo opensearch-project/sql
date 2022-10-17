@@ -75,7 +75,6 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
     return sqlRequest;
   }
 
-  @Ignore("Index type is removed in OpenSearch 7+")
   @Test
   public void wrongIndexType() throws IOException {
     String type = "wrongType";
@@ -248,9 +247,6 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
     assertContainsData(getDataRows(response), fields);
   }
 
-  @Ignore("The semantic of this and previous are wrong. The correct semantic is that * will "
-      + "be expanded to all fields of the index. Error should be raise for both due to difference "
-      + "between columns in SELECT and GROUP BY.")
   @Test
   public void groupByMultipleFields() throws IOException {
     JSONObject response = executeQuery(
@@ -398,7 +394,6 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
 //    public void nestedAggregationFunctionInSelect() {
 //        String query = String.format(Locale.ROOT, "SELECT SUM(SQRT(age)) FROM age GROUP BY age", TEST_INDEX_ACCOUNT);
 //    }
-  @Ignore("New engine returns string type")
   @Test
   public void fieldsWithAlias() throws IOException {
     JSONObject response = executeQuery(
