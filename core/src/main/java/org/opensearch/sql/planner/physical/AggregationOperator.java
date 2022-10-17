@@ -58,7 +58,8 @@ public class AggregationOperator extends PhysicalPlan {
   @EqualsAndHashCode.Exclude
   private final Collector collector;
 
-  private StreamContext streamContext = new StreamContext();
+  @Getter
+  private final StreamContext streamContext = new StreamContext();
 
   private WindowingStrategy windowingStrategy;
 
@@ -107,7 +108,6 @@ public class AggregationOperator extends PhysicalPlan {
     return Collections.singletonList(input);
   }
 
-
   @Override
   public boolean hasNext() {
     if (!nextRowBuffer.hasNext()) {
@@ -125,8 +125,10 @@ public class AggregationOperator extends PhysicalPlan {
     do {
       // For batch/micro-batch, input is bounded, so we fire all windows finally
       if (!input.hasNext()) {
+        long latestWatermark = streamContext.getCurrentWatermark();
         nextRowBuffer = processWatermarkEvent(
             new WatermarkEvent(Long.MAX_VALUE)).iterator();
+        streamContext.setCurrentWatermark(latestWatermark);
         break;
       }
 
@@ -143,11 +145,6 @@ public class AggregationOperator extends PhysicalPlan {
   @Override
   public void open() {
     super.open();
-  }
-
-  public void restore(StreamContext streamContext) {
-    this.streamContext = streamContext;
-    LOG.info("Restored stream context: {}", streamContext);
   }
 
   private List<ExprValue> processWatermarkEvent(WatermarkEvent watermark) {

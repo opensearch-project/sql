@@ -18,11 +18,13 @@ public class BoundedOutOfOrderWatermarkGenerator extends WatermarkGenerator {
   private long maxTimestamp;
 
   /** The maximum out-of-order allowed. */
-  private final long maxOutOfOrderAllowed = 2000 * 60; // TODO: hardcoding minute allowed
+  private final long maxOutOfOrderAllowed;
 
   public BoundedOutOfOrderWatermarkGenerator(PhysicalPlan input,
-                                             TimestampAssigner timestampAssigner) {
+                                             TimestampAssigner timestampAssigner,
+                                             long maxOutOfOrderAllowed) {
     super(input, timestampAssigner);
+    this.maxOutOfOrderAllowed = maxOutOfOrderAllowed;
   }
 
   @Override

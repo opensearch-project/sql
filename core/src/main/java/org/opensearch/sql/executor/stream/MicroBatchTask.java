@@ -74,14 +74,10 @@ public class MicroBatchTask {
       offsetLog.add(currentBatchId.get(), availableOffsets.get());
       PhysicalPlan newPlan = queryService.plan(rewriteRelation(batchPlan, batch));
 
-      // Restore stream context
-      newPlan.accept(new PhysicalPlanNodeVisitor<Void, Object>() {
-        @Override
-        public Void visitAggregation(AggregationOperator node, Object context) {
-          node.restore(streamContext);
-          return null;
-        }
-      }, null);
+      // Restore stream context from what's stored by previous batch
+      StreamContextLookup streamContextLookup = new StreamContextLookup();
+      newPlan.accept(streamContextLookup, null).copyFrom(streamContext);
+      log.info("Restored stream context: {}", streamContext);
 
       queryService.executePlan(newPlan, new ResponseListener<>() {
         @Override
@@ -89,6 +85,7 @@ public class MicroBatchTask {
           final long finalBatchId = currentBatchId.get();
           final Offset finalAvailableOffsets = availableOffsets.get();
           committedLog.add(finalBatchId, finalAvailableOffsets);
+          streamContext.copyFrom(newPlan.accept(streamContextLookup, null));
         }
 
         @Override
@@ -119,6 +116,18 @@ public class MicroBatchTask {
       log.info("source: [{}] unexpected status. availableOffsets:{}, committedOffset:{}", source,
           availableOffsets, committedOffset);
       return false;
+    }
+  }
+
+  private static class StreamContextLookup extends PhysicalPlanNodeVisitor<StreamContext, Object> {
+    @Override
+    protected StreamContext visitNode(PhysicalPlan node, Object context) {
+      return node.getChild().get(0).accept(this, context);
+    }
+
+    @Override
+    public StreamContext visitAggregation(AggregationOperator node, Object context) {
+      return node.getStreamContext();
     }
   }
 }

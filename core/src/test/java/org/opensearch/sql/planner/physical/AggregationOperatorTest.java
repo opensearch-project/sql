@@ -511,12 +511,12 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
             "host", "h1",
             "errors", 2)))
         .add(ExprValueUtils.tupleValue(ImmutableMap.of(
-            "timestamp", new ExprTimestampValue("2021-01-01 00:06:00"),
+            "timestamp", new ExprTimestampValue("2021-01-01 00:05:30"),
             "region", "iad",
             "host", "h1",
             "errors", 1)))
         .add(ExprValueUtils.tupleValue(ImmutableMap.of(
-            "timestamp", new ExprTimestampValue("2021-01-01 00:01:00"), // disordered event allowed
+            "timestamp", new ExprTimestampValue("2021-01-01 00:04:40"), // disordered in 1 minute
             "region", "iad",
             "host", "h2",
             "errors", 3)))
@@ -526,21 +526,16 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
             "host", "h2",
             "errors", 10)))
         .add(ExprValueUtils.tupleValue(ImmutableMap.of(
-            "timestamp", new ExprTimestampValue("2021-01-01 00:03:00"), // late event discarded
+            "timestamp", new ExprTimestampValue("2021-01-01 00:03:00"), // too late event discarded
             "region", "iad",
             "host", "h1",
             "errors", 6)))
-        .add(ExprValueUtils.tupleValue(ImmutableMap.of(
-            "timestamp", new ExprTimestampValue("2021-01-01 00:12:30"),
-            "region", "iad",
-            "host", "h2",
-            "errors", 8)))
         .build();
 
     PhysicalPlan input = testScan(httpLogs);
     ReferenceExpression timestampRef = DSL.ref("timestamp", TIMESTAMP);
     PhysicalPlan watermarkGenerator = new BoundedOutOfOrderWatermarkGenerator(input,
-        new RecordTimestampAssigner(timestampRef));
+        new RecordTimestampAssigner(timestampRef), 1000 * 60);
     PhysicalPlan plan = new AggregationOperator(watermarkGenerator,
         Collections.singletonList(DSL
             .named("count", dsl.count(timestampRef))),
@@ -550,13 +545,13 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     plan.open();
     assertTrue(plan.hasNext());
     assertEquals(ExprValueUtils.tupleValue(ImmutableMap.of(
-        "span", new ExprDatetimeValue("2021-01-01 00:00:00"),
+        "span", new ExprTimestampValue("2021-01-01 00:00:00"),
         "count", 2)),
         plan.next());
 
     assertTrue(plan.hasNext());
     assertEquals(ExprValueUtils.tupleValue(ImmutableMap.of(
-        "span", new ExprDatetimeValue("2021-01-01 00:05:00"),
+        "span", new ExprTimestampValue("2021-01-01 00:05:00"),
         "count", 2)),
         plan.next());
     plan.close();

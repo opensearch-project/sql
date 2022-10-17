@@ -155,7 +155,9 @@ public class Planner {
       PhysicalPlan source = sourceTable.implement(plan);
       if (ctx.isPresent()) {
         source = new BoundedOutOfOrderWatermarkGenerator(
-            source, new RecordTimestampAssigner(ctx.get().getField()));
+            source,
+            new RecordTimestampAssigner(ctx.get().getField()),
+            1000); // TODO: hardcoding latency allowed
       }
       return source;
     }
