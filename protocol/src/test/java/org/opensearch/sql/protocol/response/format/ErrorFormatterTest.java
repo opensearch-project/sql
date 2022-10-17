@@ -6,7 +6,6 @@
 package org.opensearch.sql.protocol.response.format;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.opensearch.sql.common.utils.StringUtils.format;
 
 import com.google.common.collect.ImmutableMap;
 import org.junit.jupiter.api.Test;
@@ -17,7 +16,7 @@ class ErrorFormatterTest {
   @Test
   void htmlEscaping_should_disabled() {
     assertEquals(
-        format("{\n" + "  \"request\": \"index=test\"\n" + "}"),
+        "{\n" + "  \"request\": \"index=test\"\n" + "}",
         ErrorFormatter.prettyJsonify(ImmutableMap.of("request", "index=test")));
     assertEquals(
         "{\"request\":\"index=test\"}",
