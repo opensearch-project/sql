@@ -31,15 +31,13 @@ public class TakeAggregator extends Aggregator<TakeAggregator.TakeState> {
 
   @Override
   protected TakeState iterate(ExprValue value, TakeState state) {
-    state.count(value);
+    state.take(value);
     return state;
   }
 
   @Override
   public String toString() {
-    return distinct
-        ? String.format(Locale.ROOT, "count(distinct %s)", format(getArguments()))
-        : String.format(Locale.ROOT, "count(%s)", format(getArguments()));
+    return String.format(Locale.ROOT, "take(%s)", format(getArguments()));
   }
 
   /**
@@ -52,7 +50,7 @@ public class TakeAggregator extends Aggregator<TakeAggregator.TakeState> {
       this.count = 0;
     }
 
-    public void count(ExprValue value) {
+    public void take(ExprValue value) {
       count++;
     }
 
@@ -66,7 +64,7 @@ public class TakeAggregator extends Aggregator<TakeAggregator.TakeState> {
     private final Set<ExprValue> distinctValues = new HashSet<>();
 
     @Override
-    public void count(ExprValue value) {
+    public void take(ExprValue value) {
       if (!distinctValues.contains(value)) {
         distinctValues.add(value);
         count++;

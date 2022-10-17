@@ -194,10 +194,15 @@ statsFunction
     | COUNT LT_PRTHS RT_PRTHS                                       #countAllFunctionCall
     | (DISTINCT_COUNT | DC) LT_PRTHS valueExpression RT_PRTHS       #distinctCountFunctionCall
     | percentileAggFunction                                         #percentileAggFunctionCall
+    | takeAggFunction                                               #takeAggFunctionCall
     ;
 
 statsFunctionName
-    : TAKE | AVG | COUNT | SUM | MIN | MAX | VAR_SAMP | VAR_POP | STDDEV_SAMP | STDDEV_POP
+    : AVG | COUNT | SUM | MIN | MAX | VAR_SAMP | VAR_POP | STDDEV_SAMP | STDDEV_POP
+    ;
+
+takeAggFunction
+    : TAKE LT_PRTHS fieldExpression (COMMA size=integerLiteral (COMMA from=integerLiteral)?)? RT_PRTHS
     ;
 
 percentileAggFunction

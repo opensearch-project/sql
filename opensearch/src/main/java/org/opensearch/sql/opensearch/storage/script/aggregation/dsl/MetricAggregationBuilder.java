@@ -26,11 +26,10 @@ import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.opensearch.response.agg.FilterParser;
-import org.opensearch.sql.opensearch.response.agg.HitsParser;
+import org.opensearch.sql.opensearch.response.agg.TopHitsParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
 import org.opensearch.sql.opensearch.response.agg.StatsParser;
-import org.opensearch.sql.opensearch.storage.script.ScriptUtils;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
@@ -95,20 +94,14 @@ public class MetricAggregationBuilder
 
     switch (functionName) {
       case "take":
-
-        TopHitsAggregationBuilder builder = AggregationBuilders.topHits(name);
-        String fieldName = ((ReferenceExpression) expression).getAttr();
-        builder.fetchSource(fieldName, null);
-        builder.size(1);
-        return Pair.of(builder, new HitsParser(name));
-
-        // return make(
-        //     AggregationBuilders.count(name),
-        //     expression,
-        //     condition,
-        //     name,
-        //     new SingleValueParser(name));
-
+        return make(
+            AggregationBuilders.topHits(name),
+            expression,
+            node.getArguments().get(1),
+            node.getArguments().get(2),
+            condition,
+            name,
+            new TopHitsParser(name));
       case "avg":
         return make(
             AggregationBuilders.avg(name),
@@ -210,6 +203,28 @@ public class MetricAggregationBuilder
           FilterParser.builder().name(name).metricsParser(parser).build());
     }
     return Pair.of(aggregationBuilder, parser);
+  }
+
+  /**
+   * Make {@link TopHitsAggregationBuilder} for take aggregations.
+   */
+  private Pair<AggregationBuilder, MetricParser> make(TopHitsAggregationBuilder builder,
+                                                      Expression expression,
+                                                      Expression size,
+                                                      Expression from,
+                                                      Expression condition,
+                                                      String name,
+                                                      MetricParser parser) {
+    String fieldName = ((ReferenceExpression) expression).getAttr();
+    builder.fetchSource(fieldName, null);
+    builder.size(size.valueOf(null).integerValue());
+    builder.from(from.valueOf(null).integerValue());
+    if (condition != null) {
+      return Pair.of(
+          makeFilterAggregation(builder, condition, name),
+          FilterParser.builder().name(name).metricsParser(parser).build());
+    }
+    return Pair.of(builder, parser);
   }
 
   /**

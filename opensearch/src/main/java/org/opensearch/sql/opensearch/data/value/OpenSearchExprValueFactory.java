@@ -213,8 +213,10 @@ public class OpenSearchExprValueFactory {
    * type is nested, but it can only allow a list of objects.
    */
   private ExprValue parseArray(Content content, String prefix) {
+    // TODO(josh) array doesn't seem to work, why are inner elements STRUCT?
     List<ExprValue> result = new ArrayList<>();
-    content.array().forEachRemaining(v -> result.add(parse(v, prefix, Optional.of(STRUCT))));
+    // content.array().forEachRemaining(v -> result.add(parse(v, prefix, Optional.of(STRUCT))));
+    content.array().forEachRemaining(v -> result.add(parse(v, prefix, Optional.of(STRING))));
     return new ExprCollectionValue(result);
   }
 

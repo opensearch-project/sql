@@ -13,8 +13,7 @@
 
 package org.opensearch.sql.opensearch.response.agg;
 
-import static org.opensearch.sql.opensearch.response.agg.Utils.handleNanValue;
-
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import lombok.Getter;
@@ -27,14 +26,16 @@ import org.opensearch.search.aggregations.metrics.NumericMetricsAggregation;
  * {@link NumericMetricsAggregation.SingleValue} metric parser.
  */
 @RequiredArgsConstructor
-public class HitsParser implements MetricParser {
+public class TopHitsParser implements MetricParser {
 
-  @Getter private final String name;
+  @Getter
+  private final String name;
 
   @Override
   public Map<String, Object> parse(Aggregation agg) {
     return Collections.singletonMap(
         agg.getName(),
-        ((InternalTopHits) agg).getHits().getAt(0).getSourceAsMap().values().toArray()[0]);
+        Arrays.stream(((InternalTopHits) agg).getHits().getHits())
+            .flatMap(h -> h.getSourceAsMap().values().stream()));
   }
 }

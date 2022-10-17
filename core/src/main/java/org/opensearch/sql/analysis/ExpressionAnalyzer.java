@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.analysis;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
@@ -21,6 +22,7 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.And;
+import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
@@ -151,9 +153,14 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     Optional<BuiltinFunctionName> builtinFunctionName =
         BuiltinFunctionName.ofAggregation(node.getFuncName());
     if (builtinFunctionName.isPresent()) {
-      Expression arg = node.getField().accept(this, context);
+      Expression field = node.getField().accept(this, context);
+      ImmutableList.Builder<Expression> builder = ImmutableList.builder();
+      builder.add(field);
+      for (UnresolvedExpression arg : node.getArgList()) {
+        builder.add(arg.accept(this, context));
+      }
       Aggregator aggregator = (Aggregator) repository.compile(
-              builtinFunctionName.get().getName(), Collections.singletonList(arg));
+              builtinFunctionName.get().getName(), builder.build());
       aggregator.distinct(node.getDistinct());
       if (node.condition() != null) {
         aggregator.condition(analyze(node.condition(), context));
