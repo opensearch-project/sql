@@ -246,6 +246,7 @@ public class DateTimeFunction {
     return define(BuiltinFunctionName.DATE.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprDate), DATE, STRING),
         impl(nullMissingHandling(DateTimeFunction::exprDate), DATE, DATE),
+        impl(nullMissingHandling(DateTimeFunction::exprDate), DATE, TIME),
         impl(nullMissingHandling(DateTimeFunction::exprDate), DATE, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::exprDate), DATE, TIMESTAMP));
   }
@@ -651,6 +652,9 @@ public class DateTimeFunction {
    * @return ExprValue.
    */
   private ExprValue exprDate(ExprValue exprValue) {
+    if (exprValue.type() == TIME) {
+      return new ExprDateValue(LocalDate.now());
+    }
     if (exprValue instanceof ExprStringValue) {
       try {
         return new ExprDateValue(exprValue.stringValue());
