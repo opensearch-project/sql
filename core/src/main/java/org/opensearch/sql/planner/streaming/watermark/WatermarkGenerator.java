@@ -27,6 +27,8 @@ public abstract class WatermarkGenerator extends PhysicalPlan {
 
   private ExprValue next;
 
+  private long lastCounter = 0;
+
   @Override
   public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
     return null; // TODO
@@ -51,12 +53,26 @@ public abstract class WatermarkGenerator extends PhysicalPlan {
     } else {
       next = input.next();
 
-      long timestamp = timestampAssigner.assign(next);
-      long watermark = onEvent(new RecordEvent(timestamp, next, null));
-      result = new WatermarkEvent(watermark);
+      if (isTimeToEmit()) {
+        long timestamp = timestampAssigner.assign(next);
+        long watermark = onEvent(new RecordEvent(timestamp, next, null));
+        result = new WatermarkEvent(watermark);
+      } else {
+        result = next;
+        next = null;
+      }
     }
     return result;
   }
 
   protected abstract long onEvent(Event event);
+
+  private boolean isTimeToEmit() {
+    long counter = System.currentTimeMillis();
+    if (counter - lastCounter > 100) { // TODO: hardcoding 100 ms
+      lastCounter = counter;
+      return true;
+    }
+    return false;
+  }
 }

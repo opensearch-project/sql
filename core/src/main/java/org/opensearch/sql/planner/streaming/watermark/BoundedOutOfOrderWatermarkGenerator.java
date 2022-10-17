@@ -30,6 +30,6 @@ public class BoundedOutOfOrderWatermarkGenerator extends WatermarkGenerator {
   @Override
   protected long onEvent(Event event) {
     maxTimestamp = Math.max(maxTimestamp, event.getTimestamp());
-    return (maxTimestamp - maxOutOfOrderAllowed - 1); //TODO: emit watermark per record for now
+    return (maxTimestamp - maxOutOfOrderAllowed - 1);
   }
 }
