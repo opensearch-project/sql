@@ -108,7 +108,7 @@ public class RawResponseFormatterTest {
     String expected = "city%n"
             + "=Seattle%n"
             + "\"||Seattle\"";
-    assertEquals(expected, escapeFormatter.format(response));
+    assertEquals(format(expected), escapeFormatter.format(response));
   }
 
   @Test
