@@ -55,31 +55,31 @@ class SimpleJsonResponseFormatterTest {
                 tupleValue(ImmutableMap.of("firstname", "John", "age", 20)),
                 tupleValue(ImmutableMap.of("firstname", "Smith", "age", 30))));
     SimpleJsonResponseFormatter formatter = new SimpleJsonResponseFormatter(PRETTY);
-    assertEquals(format(
-        "{%n"
-            + "  \"schema\": [%n"
-            + "    {%n"
-            + "      \"name\": \"firstname\",%n"
-            + "      \"type\": \"string\"%n"
-            + "    },%n"
-            + "    {%n"
-            + "      \"name\": \"age\",%n"
-            + "      \"type\": \"integer\"%n"
-            + "    }%n"
-            + "  ],%n"
-            + "  \"datarows\": [%n"
-            + "    [%n"
-            + "      \"John\",%n"
-            + "      20%n"
-            + "    ],%n"
-            + "    [%n"
-            + "      \"Smith\",%n"
-            + "      30%n"
-            + "    ]%n"
-            + "  ],%n"
-            + "  \"total\": 2,%n"
-            + "  \"size\": 2%n"
-            + "}"),
+    assertEquals(
+        "{\n"
+            + "  \"schema\": [\n"
+            + "    {\n"
+            + "      \"name\": \"firstname\",\n"
+            + "      \"type\": \"string\"\n"
+            + "    },\n"
+            + "    {\n"
+            + "      \"name\": \"age\",\n"
+            + "      \"type\": \"integer\"\n"
+            + "    }\n"
+            + "  ],\n"
+            + "  \"datarows\": [\n"
+            + "    [\n"
+            + "      \"John\",\n"
+            + "      20\n"
+            + "    ],\n"
+            + "    [\n"
+            + "      \"Smith\",\n"
+            + "      30\n"
+            + "    ]\n"
+            + "  ],\n"
+            + "  \"total\": 2,\n"
+            + "  \"size\": 2\n"
+            + "}",
         formatter.format(response));
   }
 
