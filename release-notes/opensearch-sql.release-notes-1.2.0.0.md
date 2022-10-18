@@ -5,7 +5,7 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 1.2.0
 * Add new protocol for visualization response format ([#251](https://github.com/opensearch-project/sql/pull/251))
 
 ### Enhancements
-* Add conversion support for datetime as per https://github.com/kylepbi… ([#267](https://github.com/opensearch-project/sql/pull/267))
+* Add conversion support for datetime as per https://github.com/kylepbit ([#267](https://github.com/opensearch-project/sql/pull/267))
 * Optimized type converting in DSL filters ([#272](https://github.com/opensearch-project/sql/pull/272))
 
 ### Documentation
