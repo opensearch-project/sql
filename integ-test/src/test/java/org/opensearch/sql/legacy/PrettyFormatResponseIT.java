@@ -75,6 +75,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
     return sqlRequest;
   }
 
+  // This is testing a deprecated feature
   @Test
   public void wrongIndexType() throws IOException {
     String type = "wrongType";
