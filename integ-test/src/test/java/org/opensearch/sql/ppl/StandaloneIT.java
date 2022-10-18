@@ -34,7 +34,6 @@ import org.opensearch.sql.ppl.config.PPLServiceConfig;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
-import org.opensearch.sql.storage.StorageEngine;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 /**
@@ -59,7 +58,7 @@ public class StandaloneIT extends PPLIntegTestCase {
         new OpenSearchExecutionProtector(new AlwaysHealthyMonitor())));
     context.register(PPLServiceConfig.class);
     OpenSearchStorageEngine openSearchStorageEngine = new OpenSearchStorageEngine(client, defaultSettings());
-    CatalogServiceImpl.getInstance().registerOpenSearchStorageEngine(openSearchStorageEngine);
+    CatalogServiceImpl.getInstance().registerDefaultOpenSearchCatalog(openSearchStorageEngine);
     context.registerBean(CatalogService.class, CatalogServiceImpl::getInstance);
     context.refresh();
 

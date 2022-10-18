@@ -24,6 +24,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsComma
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WhereCommandContext;
+import static org.opensearch.sql.utils.SystemIndexUtils.CATALOGS_TABLE_NAME;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableList;
@@ -122,6 +123,16 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     final Relation table = (Relation) visitTableSourceClause(ctx.tableSourceClause());
     return new Relation(qualifiedName(mappingTable(table.getTableName())));
   }
+
+  /**
+   * Show command.
+   */
+  @Override
+  public UnresolvedPlan visitShowCatalogsCommand(
+      OpenSearchPPLParser.ShowCatalogsCommandContext ctx) {
+    return new Relation(qualifiedName(CATALOGS_TABLE_NAME));
+  }
+
 
   /**
    * Where command.
