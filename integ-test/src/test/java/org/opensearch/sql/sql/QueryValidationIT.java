@@ -38,7 +38,8 @@ public class QueryValidationIT extends SQLIntegTestCase {
     loadIndex(Index.ACCOUNT);
   }
 
-  @Ignore("Will add this validation in analyzer later")
+  @Ignore("Will add this validation in analyzer later. This test should be enabled once " +
+          "https://github.com/opensearch-project/sql/issues/910 has been resolved")
   @Test
   public void testNonAggregatedSelectColumnMissingInGroupByClause() throws IOException {
     expectResponseException()

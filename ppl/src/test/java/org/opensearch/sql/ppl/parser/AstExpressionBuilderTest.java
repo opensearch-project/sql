@@ -501,7 +501,6 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         ));
   }
 
-  @Ignore("Nested field is not supported in backend yet")
   @Test
   public void testNestedFieldName() {
     assertEqual("source=t | fields field0.field1.field2",
@@ -526,7 +525,6 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         ));
   }
 
-  @Ignore("Nested field is not supported in backend yet")
   @Test
   public void testNestedFieldNameWithSpecialChars() {
     assertEqual("source=t | fields `field-0`.`field#1`.`field*2`",

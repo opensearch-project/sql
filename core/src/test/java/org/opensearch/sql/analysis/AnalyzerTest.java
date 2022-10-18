@@ -383,7 +383,8 @@ class AnalyzerTest extends AnalyzerTestBase {
             AstDSL.field("double_value")));
   }
 
-  @Disabled("the project/remove command should shrink the type env")
+  @Disabled("the project/remove command should shrink the type env. Should be enabled once "
+          + "https://github.com/opensearch-project/sql/issues/917 is resolved")
   @Test
   public void project_source_change_type_env() {
     SemanticCheckException exception =
