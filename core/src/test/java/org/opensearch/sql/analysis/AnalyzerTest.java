@@ -6,9 +6,11 @@
 
 package org.opensearch.sql.analysis;
 
+import static java.lang.Boolean.TRUE;
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
@@ -29,7 +31,6 @@ import static org.opensearch.sql.ast.tree.Sort.SortOption;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
-import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
@@ -67,8 +68,10 @@ import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
+import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.physical.catalog.CatalogTable;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
@@ -953,7 +956,6 @@ class AnalyzerTest extends AnalyzerTestBase {
     );
   }
 
-
   @Test
   public void table_function() {
     assertAnalyzeEqual(new LogicalRelation("query_range", table),
@@ -998,5 +1000,11 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertEquals("unsupported function name: queryrange", exception.getMessage());
   }
 
+  @Test
+  public void show_catalogs() {
+    assertAnalyzeEqual(new LogicalRelation(".CATALOGS", new CatalogTable(catalogService)),
+        AstDSL.relation(qualifiedName(".CATALOGS")));
+
+  }
 
 }

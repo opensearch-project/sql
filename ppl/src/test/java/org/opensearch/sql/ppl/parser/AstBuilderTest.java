@@ -773,6 +773,12 @@ public class AstBuilderTest {
         new AD(relation("t"), ImmutableMap.of()));
   }
 
+  @Test
+  public void testShowCatalogsCommand() {
+    assertEqual("show catalogs",
+        relation(".CATALOGS"));
+  }
+
   protected void assertEqual(String query, Node expectedPlan) {
     Node actualPlan = plan(query);
     assertEquals(expectedPlan, actualPlan);
