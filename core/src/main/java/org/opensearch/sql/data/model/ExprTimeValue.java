@@ -8,7 +8,6 @@ package org.opensearch.sql.data.model;
 
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_TIME;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
-import static org.opensearch.sql.utils.DateTimeFormatters.TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -16,7 +15,6 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;

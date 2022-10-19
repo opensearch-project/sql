@@ -6,7 +6,6 @@
 
 package org.opensearch.sql.data.model;
 
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_VARIABLE_NANOS_OPTIONAL;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
 
 import com.google.common.base.Objects;
