@@ -46,13 +46,13 @@ jobs:
       uses: actions/setup-java@v3
       with:
         distribution: 'temurin'
-        java-version: ${{ matrix.java }}
+        java-version: ${{ matrix.entry.java }}
     
     - name: Build with Gradle
       run: ./gradlew --continue build ${{ env.BUILD_ARGS }}
 
     - name: Run backward compatibility tests
-      if: ${{ matrix.os == 'ubuntu-latest' }}
+      if: ${{ matrix.entry.os == 'ubuntu-latest' }}
       run: ./scripts/bwctest.sh
 
     - name: Create Artifact Path
@@ -62,7 +62,7 @@ jobs:
 
     # This step uses the codecov-action Github action: https://github.com/codecov/codecov-action
     - name: Upload SQL Coverage Report
-      if: ${{ always() && matrix.os == 'ubuntu-latest' }}
+      if: ${{ always() && matrix.entry.os == 'ubuntu-latest' }}
       uses: codecov/codecov-action@v3
       with:
         flags: sql-engine
@@ -71,11 +71,11 @@ jobs:
     - name: Upload Artifacts
       uses: actions/upload-artifact@v2
       with:
-        name: opensearch-sql-${{ matrix.os }}
+        name: opensearch-sql-${{ matrix.entry.os }}
         path: opensearch-sql-builds
 
     - name: Upload test reports
-      if: ${{ always() && matrix.os == 'ubuntu-latest' }}
+      if: ${{ always() && matrix.entry.os == 'ubuntu-latest' }}
       uses: actions/upload-artifact@v2
       with:
         name: test-reports
