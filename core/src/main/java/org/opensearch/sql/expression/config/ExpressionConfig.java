@@ -16,9 +16,9 @@ import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.expression.operator.arthmetic.ArithmeticFunction;
 import org.opensearch.sql.expression.operator.arthmetic.MathematicalFunction;
 import org.opensearch.sql.expression.operator.convert.TypeCastOperator;
-import org.opensearch.sql.expression.operator.convert.TypeOfOperator;
 import org.opensearch.sql.expression.operator.predicate.BinaryPredicateOperator;
 import org.opensearch.sql.expression.operator.predicate.UnaryPredicateOperator;
+import org.opensearch.sql.expression.system.SystemFunctions;
 import org.opensearch.sql.expression.text.TextFunction;
 import org.opensearch.sql.expression.window.WindowFunctions;
 import org.springframework.context.annotation.Bean;
@@ -46,7 +46,7 @@ public class ExpressionConfig {
     WindowFunctions.register(builtinFunctionRepository);
     TextFunction.register(builtinFunctionRepository);
     TypeCastOperator.register(builtinFunctionRepository);
-    TypeOfOperator.register(builtinFunctionRepository);
+    SystemFunctions.register(builtinFunctionRepository);
     OpenSearchFunctions.register(builtinFunctionRepository);
     return builtinFunctionRepository;
   }

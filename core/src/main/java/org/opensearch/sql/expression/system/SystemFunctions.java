@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.expression.operator.convert;
+package org.opensearch.sql.expression.system;
 
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
@@ -23,7 +23,7 @@ import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.expression.function.FunctionSignature;
 
 @UtilityClass
-public class TypeOfOperator {
+public class SystemFunctions {
   /**
    * Register TypeOf Operator.
    */
