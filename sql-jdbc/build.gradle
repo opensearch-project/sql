@@ -98,6 +98,7 @@ shadowJar {
 }
 
 test {
+    systemProperty("opensearch_jdbc_version", version);
     useJUnitPlatform()
 }
 

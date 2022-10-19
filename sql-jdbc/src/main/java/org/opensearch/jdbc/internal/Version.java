@@ -8,7 +8,7 @@ package org.opensearch.jdbc.internal;
 
 public enum Version {
 
-    // keep this in sync with the gradle version
+    // keep this in sync with the sql-jdbc/build.gradle file
     Current(2, 0, 0, 0);
 
     private int major;
