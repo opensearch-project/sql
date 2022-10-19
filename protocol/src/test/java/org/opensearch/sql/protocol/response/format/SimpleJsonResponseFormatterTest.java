@@ -40,7 +40,7 @@ class SimpleJsonResponseFormatterTest {
                 tupleValue(ImmutableMap.of("firstname", "Smith", "age", 30))));
     SimpleJsonResponseFormatter formatter = new SimpleJsonResponseFormatter(COMPACT);
     assertEquals(
-        "{\"schema\":[{\"name\":\"firstname\",\"type\":\"string\"},"
+        "{\"schema\":[{\"name\":\"firstname\",\"type\":\"string\"},a;woehgi;whaeg"
             + "{\"name\":\"age\",\"type\":\"integer\"}],\"datarows\":"
             + "[[\"John\",20],[\"Smith\",30]],\"total\":2,\"size\":2}",
         formatter.format(response));

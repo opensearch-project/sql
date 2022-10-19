@@ -25,8 +25,13 @@ jobs:
       # Run all jobs
       fail-fast: false
       matrix:
-        java: [11, 17]
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        entry:
+          - { os: ubuntu-latest, java: 11 }
+          - { os: windows-latest, java: 11 }
+          - { os: macos-latest, java: 11 }
+          - { os: ubuntu-latest, java: 17 }
+          - { os: windows-latest, java: 17 }
+          - { os: macos-latest, java: 17 }
         include:
           - os: windows-latest
             os_build_args: -x doctest -x integTest -x jacocoTestReport -x compileJdbc
@@ -57,7 +62,7 @@ jobs:
 
     # This step uses the codecov-action Github action: https://github.com/codecov/codecov-action
     - name: Upload SQL Coverage Report
-      if: ${{ matrix.os == 'ubuntu-latest' }}
+      if: ${{ always() && matrix.os == 'ubuntu-latest' }}
       uses: codecov/codecov-action@v3
       with:
         flags: sql-engine
@@ -70,7 +75,7 @@ jobs:
         path: opensearch-sql-builds
 
     - name: Upload test reports
-      if: ${{ matrix.os == 'ubuntu-latest' }}
+      if: ${{ always() && matrix.os == 'ubuntu-latest' }}
       uses: actions/upload-artifact@v2
       with:
         name: test-reports
