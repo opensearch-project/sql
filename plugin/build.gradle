@@ -39,6 +39,7 @@ ext {
 
 repositories {
     mavenCentral()
+    maven { url 'https://jitpack.io' }
 }
 
 opensearchplugin {
@@ -91,6 +92,7 @@ configurations.all {
     resolutionStrategy.force "com.fasterxml.jackson.core:jackson-databind:${jackson_version}"
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.6.0"
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0"
+    resolutionStrategy.force "com.squareup.okhttp3:okhttp:4.9.3"
 }
 compileJava {
     options.compilerArgs.addAll(["-processor", 'lombok.launch.AnnotationProcessorHider$AnnotationProcessor'])
@@ -105,6 +107,7 @@ dependencies {
     api "com.fasterxml.jackson.core:jackson-core:${jackson_version}"
     api "com.fasterxml.jackson.core:jackson-databind:${jackson_version}"
     api "com.fasterxml.jackson.core:jackson-annotations:${jackson_version}"
+
 
     api project(":ppl")
     api project(':legacy')

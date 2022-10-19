@@ -8,6 +8,7 @@ package org.opensearch.sql.catalog.model;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -20,12 +21,10 @@ public class CatalogMetadata {
   private String name;
 
   @JsonProperty(required = true)
-  private String uri;
-
-  @JsonProperty(required = true)
   @JsonFormat(with = JsonFormat.Feature.ACCEPT_CASE_INSENSITIVE_PROPERTIES)
   private ConnectorType connector;
 
-  private AbstractAuthenticationData authentication;
+  @JsonProperty(required = true)
+  private Map<String, String> properties;
 
 }

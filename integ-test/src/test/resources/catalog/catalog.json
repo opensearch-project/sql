@@ -2,6 +2,8 @@
   {
     "name" : "my_prometheus",
     "connector": "prometheus",
-    "uri" : "http://localhost:9090"
+    "properties" : {
+      "prometheus.uri" : "http://localhost:9090"
+    }
   }
 ]

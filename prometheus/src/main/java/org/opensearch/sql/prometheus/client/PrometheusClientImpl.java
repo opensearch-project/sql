@@ -9,12 +9,13 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -41,7 +42,8 @@ public class PrometheusClientImpl implements PrometheusClient {
   @Override
   public JSONObject queryRange(String query, Long start, Long end, String step) throws IOException {
     String queryUrl = String.format("%s/api/v1/query_range?query=%s&start=%s&end=%s&step=%s",
-        uri.toString().replaceAll("/$", ""), query, start, end, step);
+        uri.toString().replaceAll("/$", ""), URLEncoder.encode(query, StandardCharsets.UTF_8),
+        start, end, step);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder()
         .url(queryUrl)

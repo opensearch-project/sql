@@ -28,7 +28,6 @@ import okhttp3.OkHttpClient;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
-import org.apache.http.HttpStatus;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -86,7 +85,7 @@ public class PrometheusClientImplTest {
   void testQueryRangeWithNon2xxError() {
     MockResponse mockResponse = new MockResponse()
         .addHeader("Content-Type", "application/json; charset=utf-8")
-        .setResponseCode(HttpStatus.SC_BAD_REQUEST);
+        .setResponseCode(400);
     mockWebServer.enqueue(mockResponse);
     RuntimeException runtimeException
         = assertThrows(RuntimeException.class,
