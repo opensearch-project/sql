@@ -69,6 +69,7 @@ SAMPLE_SIZE:                        'SAMPLE_SIZE';
 OUTPUT_AFTER:                       'OUTPUT_AFTER';
 TIME_DECAY:                         'TIME_DECAY';
 ANOMALY_RATE:                       'ANOMALY_RATE';
+AGG_FIELD:                          'AGG_FIELD';
 TIME_FIELD:                         'TIME_FIELD';
 TIME_ZONE:                          'TIME_ZONE';
 TRAINING_DATA_SIZE:                 'TRAINING_DATA_SIZE';

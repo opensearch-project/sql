@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.opensearch.planner.physical;
 
+import static org.opensearch.sql.utils.MLCommonsConstants.AGG_FIELD;
 import static org.opensearch.sql.utils.MLCommonsConstants.ANOMALY_RATE;
 import static org.opensearch.sql.utils.MLCommonsConstants.ANOMALY_SCORE_THRESHOLD;
 import static org.opensearch.sql.utils.MLCommonsConstants.DATE_FORMAT;
@@ -22,9 +23,11 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.ml.common.FunctionName;
 import org.opensearch.ml.common.dataframe.DataFrame;
@@ -63,22 +66,37 @@ public class ADOperator extends MLCommonsOperatorActions {
   @Override
   public void open() {
     super.open();
-    DataFrame inputDataFrame = generateInputDataset(input);
+    String aggField =
+        arguments.containsKey(AGG_FIELD) ? (String) arguments.get(AGG_FIELD).getValue() : null;
+    List<Pair<DataFrame, DataFrame>>
+        inputDataFrames = generateAggregatedInputDataset(input, aggField);
     MLAlgoParams mlAlgoParams = convertArgumentToMLParameter(arguments);
 
-    MLPredictionOutput predictionResult =
-            getMLPredictionResult(rcfType, mlAlgoParams, inputDataFrame, nodeClient);
+    List<MLPredictionOutput> predictionResults = inputDataFrames.stream()
+        .map(pair -> getMLPredictionResult(rcfType, mlAlgoParams, pair.getRight(), nodeClient))
+        .collect(Collectors.toList());
 
-    Iterator<Row> inputRowIter = inputDataFrame.iterator();
-    Iterator<Row> resultRowIter = predictionResult.getPredictionResult().iterator();
+    Iterator<Pair<DataFrame, DataFrame>> inputDataFramesIter = inputDataFrames.iterator();
+    Iterator<MLPredictionOutput> predictionResultIter = predictionResults.iterator();
     iterator = new Iterator<ExprValue>() {
+      private DataFrame inputDataFrame = null;
+      private Iterator<Row> inputRowIter = null;
+      private MLPredictionOutput predictionResult = null;
+      private Iterator<Row> resultRowIter = null;
+
       @Override
       public boolean hasNext() {
-        return inputRowIter.hasNext();
+        return inputRowIter != null && inputRowIter.hasNext() || inputDataFramesIter.hasNext();
       }
 
       @Override
       public ExprValue next() {
+        if (inputRowIter == null || !inputRowIter.hasNext()) {
+          inputDataFrame = inputDataFramesIter.next().getLeft();
+          inputRowIter = inputDataFrame.iterator();
+          predictionResult = predictionResultIter.next();
+          resultRowIter = predictionResult.getPredictionResult().iterator();
+        }
         return buildResult(inputRowIter, inputDataFrame, predictionResult, resultRowIter);
       }
     };
