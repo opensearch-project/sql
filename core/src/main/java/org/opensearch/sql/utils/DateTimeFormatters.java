@@ -135,7 +135,7 @@ public class DateTimeFormatters {
 
   public static final DateTimeFormatter DATE_FORMATTER_VARIABLE_NANOS_OPTIONAL =
       new DateTimeFormatterBuilder()
-          .appendPattern("[uu:MM:dd][uuuu-MM-dd HH:mm:ss][uuuu-MM-dd]")
+          .appendPattern("[uuuu-MM-dd][HH:mm:ss][uuuu-MM-dd HH:mm:ss]")
           .appendFraction(
               ChronoField.NANO_OF_SECOND,
               MIN_FRACTION_SECONDS,
