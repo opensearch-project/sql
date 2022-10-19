@@ -10,6 +10,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
+import org.opensearch.sql.catalog.model.auth.AbstractAuthenticationData;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Getter

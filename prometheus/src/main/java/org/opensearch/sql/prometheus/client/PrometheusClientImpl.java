@@ -35,21 +35,11 @@ public class PrometheusClientImpl implements PrometheusClient {
 
   @Override
   public JSONObject queryRange(String query, Long start, Long end, String step) throws IOException {
-    HttpUrl httpUrl = new HttpUrl.Builder()
-        .scheme(uri.getScheme())
-        .host(uri.getHost())
-        .port(uri.getPort())
-        .addPathSegment("api")
-        .addPathSegment("v1")
-        .addPathSegment("query_range")
-        .addQueryParameter("query", query)
-        .addQueryParameter("start", Long.toString(start))
-        .addQueryParameter("end", Long.toString(end))
-        .addQueryParameter("step", step)
-        .build();
-    logger.debug("queryUrl: " + httpUrl);
+    String queryUrl = String.format("%s/api/v1/query_range?query=%s&start=%s&end=%s&step=%s",
+        uri.toString(), query, start, end, step);
+    logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder()
-        .url(httpUrl)
+        .url(queryUrl)
         .build();
     Response response = this.okHttpClient.newCall(request).execute();
     JSONObject jsonObject = readResponse(response);
@@ -58,7 +48,7 @@ public class PrometheusClientImpl implements PrometheusClient {
 
   @Override
   public List<String> getLabels(String metricName) throws IOException {
-    String queryUrl = String.format("%sapi/v1/labels?match[]=%s", uri.toString(), metricName);
+    String queryUrl = String.format("%s/api/v1/labels?match[]=%s", uri.toString(), metricName);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder()
         .url(queryUrl)

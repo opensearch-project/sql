@@ -39,6 +39,7 @@ ext {
 
 repositories {
     mavenCentral()
+    maven { url 'https://jitpack.io' }
 }
 
 opensearchplugin {
@@ -105,6 +106,7 @@ dependencies {
     api "com.fasterxml.jackson.core:jackson-core:${jackson_version}"
     api "com.fasterxml.jackson.core:jackson-databind:${jackson_version}"
     api "com.fasterxml.jackson.core:jackson-annotations:${jackson_version}"
+    api 'com.github.babbel:okhttp-aws-signer:1.0.2'
 
     api project(":ppl")
     api project(':legacy')

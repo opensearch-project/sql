@@ -1,9 +1,11 @@
 /*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
+ *
+ *  * Copyright OpenSearch Contributors
+ *  * SPDX-License-Identifier: Apache-2.0
+ *
  */
 
-package org.opensearch.sql.catalog.model;
+package org.opensearch.sql.catalog.model.auth;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -21,6 +23,7 @@ import lombok.Setter;
     visible = true)
 @JsonSubTypes({
     @JsonSubTypes.Type(value = BasicAuthenticationData.class, name = "basicauth"),
+    @JsonSubTypes.Type(value = AwsSigV4AuthenticationData.class, name = "sigv4auth"),
 })
 @Getter
 @Setter
