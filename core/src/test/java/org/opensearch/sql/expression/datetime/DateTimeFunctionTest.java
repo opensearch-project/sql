@@ -24,6 +24,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
 import com.google.common.collect.ImmutableList;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
@@ -248,6 +249,8 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
     expr = dsl.date(dsl.time(DSL.literal("12:12:00")));
     assertEquals(DATE, expr.type());
+    assertEquals(new ExprDateValue(LocalDate.now()), expr.valueOf(null));
+
 
     expr = dsl.date(DSL.literal("2020-02-30"));
     assertEquals(nullValue(), expr.valueOf(null));
