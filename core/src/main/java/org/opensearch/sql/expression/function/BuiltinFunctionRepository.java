@@ -37,10 +37,11 @@ import org.opensearch.sql.expression.Expression;
  */
 @RequiredArgsConstructor
 public class BuiltinFunctionRepository {
-
   public static final String DEFAULT_NAMESPACE = "default";
 
   private final Map<String, Map<FunctionName, FunctionResolver>> namespaceFunctionResolverMap;
+
+  private final QueryContext queryContext;
 
 
   /**
@@ -91,7 +92,7 @@ public class BuiltinFunctionRepository {
     FunctionBuilder resolvedFunctionBuilder = resolve(namespaceList,
         new FunctionSignature(functionName, expressions
             .stream().map(expression -> expression.type()).collect(Collectors.toList())));
-    return resolvedFunctionBuilder.apply(expressions);
+    return resolvedFunctionBuilder.apply(queryContext, expressions);
   }
 
   /**
@@ -148,7 +149,7 @@ public class BuiltinFunctionRepository {
   private FunctionBuilder castArguments(List<ExprType> sourceTypes,
                                         List<ExprType> targetTypes,
                                         FunctionBuilder funcBuilder) {
-    return arguments -> {
+    return (queryScope, arguments) -> {
       List<Expression> argsCasted = new ArrayList<>();
       for (int i = 0; i < arguments.size(); i++) {
         Expression arg = arguments.get(i);
@@ -161,7 +162,7 @@ public class BuiltinFunctionRepository {
           argsCasted.add(arg);
         }
       }
-      return funcBuilder.apply(argsCasted);
+      return funcBuilder.apply(queryScope, argsCasted);
     };
   }
 

@@ -21,5 +21,5 @@ public interface FunctionBuilder {
    * @param arguments {@link Expression} list
    * @return {@link FunctionImplementation}
    */
-  FunctionImplementation apply(List<Expression> arguments);
+  FunctionImplementation apply(QueryContext qc, List<Expression> arguments);
 }

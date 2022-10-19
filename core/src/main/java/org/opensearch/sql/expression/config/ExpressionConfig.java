@@ -6,6 +6,9 @@
 
 package org.opensearch.sql.expression.config;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.HashMap;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.aggregation.AggregatorFunction;
@@ -13,6 +16,7 @@ import org.opensearch.sql.expression.datetime.DateTimeFunction;
 import org.opensearch.sql.expression.datetime.IntervalClause;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.OpenSearchFunctions;
+import org.opensearch.sql.expression.function.QueryContext;
 import org.opensearch.sql.expression.operator.arthmetic.ArithmeticFunction;
 import org.opensearch.sql.expression.operator.arthmetic.MathematicalFunction;
 import org.opensearch.sql.expression.operator.convert.TypeCastOperator;
@@ -33,8 +37,17 @@ public class ExpressionConfig {
    */
   @Bean
   public BuiltinFunctionRepository functionRepository() {
+
+    QueryContext queryContext = new QueryContext() {
+      private final Clock currentTime = Clock.fixed(Instant.now(),
+          ZoneId.systemDefault());
+      @Override
+      public Clock getQueryStartTime() {
+        return currentTime;
+      }
+    };
     BuiltinFunctionRepository builtinFunctionRepository =
-        new BuiltinFunctionRepository(new HashMap<>());
+        new BuiltinFunctionRepository(new HashMap<>(), queryContext);
     ArithmeticFunction.register(builtinFunctionRepository);
     BinaryPredicateOperator.register(builtinFunctionRepository);
     MathematicalFunction.register(builtinFunctionRepository);
@@ -53,4 +66,5 @@ public class ExpressionConfig {
   public DSL dsl(BuiltinFunctionRepository repository) {
     return new DSL(repository);
   }
+
 }

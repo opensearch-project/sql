@@ -18,6 +18,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.expression.function.FunctionDSL.define;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
+import static org.opensearch.sql.expression.function.FunctionDSL.queryContextFunction;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_LONG_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_SHORT_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_LONG_YEAR;
@@ -27,6 +28,7 @@ import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_ST
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
+import java.time.Clock;
 import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -41,7 +43,6 @@ import java.time.format.TextStyle;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
-import javax.annotation.Nullable;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
@@ -132,7 +133,9 @@ public class DateTimeFunction {
    */
   private FunctionResolver now(FunctionName functionName) {
     return define(functionName,
-        impl(() -> new ExprDatetimeValue(formatNow(null)), DATETIME)
+        queryContextFunction(
+            queryScope -> new ExprDatetimeValue(
+                formatNow(queryScope.getQueryStartTime())), DATETIME)
     );
   }
 
@@ -157,8 +160,8 @@ public class DateTimeFunction {
    */
   private FunctionResolver sysdate() {
     return define(BuiltinFunctionName.SYSDATE.getName(),
-        impl(() -> new ExprDatetimeValue(formatNow(null)), DATETIME),
-        impl((v) -> new ExprDatetimeValue(formatNow(v.integerValue())), DATETIME, INTEGER)
+        queryContextFunction(qc -> new ExprDatetimeValue(formatNow(Clock.systemDefaultZone())), DATETIME),
+        queryContextFunction((qc, v) -> new ExprDatetimeValue(formatNow(Clock.systemDefaultZone(), v.integerValue())), DATETIME, INTEGER)
     );
   }
 
@@ -167,8 +170,7 @@ public class DateTimeFunction {
    */
   private FunctionResolver curtime(FunctionName functionName) {
     return define(functionName,
-        impl(() -> new ExprTimeValue(formatNow(null).toLocalTime()), TIME)
-    );
+        queryContextFunction(qc -> new ExprTimeValue(formatNow(qc.getQueryStartTime()).toLocalTime()), TIME));
   }
 
   private FunctionResolver curtime() {
@@ -181,8 +183,7 @@ public class DateTimeFunction {
 
   private FunctionResolver curdate(FunctionName functionName) {
     return define(functionName,
-        impl(() -> new ExprDateValue(formatNow(null).toLocalDate()), DATE)
-    );
+        queryContextFunction(qc -> new ExprDateValue(formatNow(qc.getQueryStartTime()).toLocalDate()), DATE));
   }
 
   private FunctionResolver curdate() {
@@ -1089,17 +1090,17 @@ public class DateTimeFunction {
     return new ExprIntegerValue(date.dateValue().getYear());
   }
 
+  private LocalDateTime formatNow(Clock clock) {
+    return formatNow(clock, 0);
+  }
   /**
    * Prepare LocalDateTime value. Truncate fractional second part according to the argument.
    * @param fsp argument is given to specify a fractional seconds precision from 0 to 6,
    *            the return value includes a fractional seconds part of that many digits.
    * @return LocalDateTime object.
    */
-  private LocalDateTime formatNow(@Nullable Integer fsp) {
-    var res = LocalDateTime.now();
-    if (fsp == null) {
-      fsp = 0;
-    }
+  private LocalDateTime formatNow(Clock clock,  Integer fsp) {
+    var res = LocalDateTime.now(clock);
     var defaultPrecision = 9; // There are 10^9 nanoseconds in one second
     if (fsp < 0 || fsp > 6) { // Check that the argument is in the allowed range [0, 6]
       throw new IllegalArgumentException(
