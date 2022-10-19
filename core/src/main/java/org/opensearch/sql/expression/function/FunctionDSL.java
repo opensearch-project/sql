@@ -58,7 +58,17 @@ public class FunctionDSL {
     return builder.build();
   }
 
-  public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>> queryContextFunction(
+  /**
+   * Implementation of a function that takes one argument, returns a value, and
+   * requires QueryContext to complete.
+   *
+   * @param function   {@link ExprValue} based unary function.
+   * @param returnType return type.
+   * @param argsType argument type.
+   * @return Unary Function Implementation.
+   */
+  public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
+      queryContextFunction(
       SerializableBiFunction<QueryContext, ExprValue, ExprValue> function,
       ExprType returnType,
       ExprType argsType) {
@@ -67,11 +77,11 @@ public class FunctionDSL {
       FunctionSignature functionSignature =
           new FunctionSignature(functionName, Collections.singletonList(argsType));
       FunctionBuilder functionBuilder =
-          (qc, arguments) -> new FunctionExpression(functionName, arguments) {
+          (queryContext, arguments) -> new FunctionExpression(functionName, arguments) {
             @Override
             public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
               ExprValue value = arguments.get(0).valueOf(valueEnv);
-              return function.apply(qc, value);
+              return function.apply(queryContext, value);
             }
 
             @Override
@@ -91,16 +101,23 @@ public class FunctionDSL {
     };
   }
 
+  /**
+   * Implementation of no args function that uses QueryContext.
+   * @param function {@link ExprValue} based no args function.
+   * @param returnType function return type.
+   * @return no args function implementation.
+   */
   public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
-  queryContextFunction(SerializableFunction<QueryContext, ExprValue> function, ExprType returnType) {
+      queryContextFunction(SerializableFunction<QueryContext, ExprValue> function,
+                       ExprType returnType) {
     return functionName -> {
       FunctionSignature functionSignature =
           new FunctionSignature(functionName, Collections.emptyList());
       FunctionBuilder functionBuilder =
-          (qc, arguments) -> new FunctionExpression(functionName, Collections.emptyList()) {
+          (queryContext, arguments) -> new FunctionExpression(functionName, Collections.emptyList()) {
             @Override
             public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-              return function.apply(qc);
+              return function.apply(queryContext);
             }
 
             @Override
@@ -116,6 +133,7 @@ public class FunctionDSL {
       return Pair.of(functionSignature, functionBuilder);
     };
   }
+
   /**
    * No Arg Function Implementation.
    *
@@ -131,7 +149,7 @@ public class FunctionDSL {
       FunctionSignature functionSignature =
           new FunctionSignature(functionName, Collections.emptyList());
       FunctionBuilder functionBuilder =
-          (qc, arguments) -> new FunctionExpression(functionName, Collections.emptyList()) {
+          (queryContext, arguments) -> new FunctionExpression(functionName, Collections.emptyList()) {
             @Override
             public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
               return function.get();
@@ -168,7 +186,7 @@ public class FunctionDSL {
       FunctionSignature functionSignature =
           new FunctionSignature(functionName, Collections.singletonList(argsType));
       FunctionBuilder functionBuilder =
-          (qc, arguments) -> new FunctionExpression(functionName, arguments) {
+          (queryContext, arguments) -> new FunctionExpression(functionName, arguments) {
             @Override
             public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
               ExprValue value = arguments.get(0).valueOf(valueEnv);
@@ -211,7 +229,7 @@ public class FunctionDSL {
       FunctionSignature functionSignature =
           new FunctionSignature(functionName, Arrays.asList(args1Type, args2Type));
       FunctionBuilder functionBuilder =
-          (qc, arguments) -> new FunctionExpression(functionName, arguments) {
+          (queryContext, arguments) -> new FunctionExpression(functionName, arguments) {
             @Override
             public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
               ExprValue arg1 = arguments.get(0).valueOf(valueEnv);
@@ -254,7 +272,7 @@ public class FunctionDSL {
       FunctionSignature functionSignature =
           new FunctionSignature(functionName, Arrays.asList(args1Type, args2Type, args3Type));
       FunctionBuilder functionBuilder =
-          (qc, arguments) -> new FunctionExpression(functionName, arguments) {
+          (queryContext, arguments) -> new FunctionExpression(functionName, arguments) {
             @Override
             public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
               ExprValue arg1 = arguments.get(0).valueOf(valueEnv);

@@ -47,7 +47,8 @@ public class DateTimeTestBase extends ExpressionTestBase {
   protected BuiltinFunctionRepository functionRepository;
 
   protected FunctionExpression maketime(Expression hour, Expression minute, Expression second) {
-    return (FunctionExpression) functionRepository.compile(BuiltinFunctionName.MAKETIME, List.of(hour, minute, second));
+    return (FunctionExpression)
+        functionRepository.compile(BuiltinFunctionName.MAKETIME, List.of(hour, minute, second));
   }
 
   protected LocalTime maketime(Double hour, Double minute, Double second) {

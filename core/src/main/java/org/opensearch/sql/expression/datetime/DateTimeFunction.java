@@ -134,8 +134,8 @@ public class DateTimeFunction {
   private FunctionResolver now(FunctionName functionName) {
     return define(functionName,
         queryContextFunction(
-            queryScope -> new ExprDatetimeValue(
-                formatNow(queryScope.getQueryStartTime())), DATETIME)
+            queryContext -> new ExprDatetimeValue(
+                formatNow(queryContext.getQueryStartTime())), DATETIME)
     );
   }
 
@@ -160,8 +160,10 @@ public class DateTimeFunction {
    */
   private FunctionResolver sysdate() {
     return define(BuiltinFunctionName.SYSDATE.getName(),
-        queryContextFunction(qc -> new ExprDatetimeValue(formatNow(Clock.systemDefaultZone())), DATETIME),
-        queryContextFunction((qc, v) -> new ExprDatetimeValue(formatNow(Clock.systemDefaultZone(), v.integerValue())), DATETIME, INTEGER)
+        queryContextFunction(
+            queryContext -> new ExprDatetimeValue(formatNow(Clock.systemDefaultZone())), DATETIME),
+        queryContextFunction((queryContext, v) -> new ExprDatetimeValue(formatNow(Clock.systemDefaultZone(),
+            v.integerValue())), DATETIME, INTEGER)
     );
   }
 
@@ -170,7 +172,8 @@ public class DateTimeFunction {
    */
   private FunctionResolver curtime(FunctionName functionName) {
     return define(functionName,
-        queryContextFunction(qc -> new ExprTimeValue(formatNow(qc.getQueryStartTime()).toLocalTime()), TIME));
+        queryContextFunction(
+            queryContext -> new ExprTimeValue(formatNow(queryContext.getQueryStartTime()).toLocalTime()), TIME));
   }
 
   private FunctionResolver curtime() {
@@ -183,7 +186,8 @@ public class DateTimeFunction {
 
   private FunctionResolver curdate(FunctionName functionName) {
     return define(functionName,
-        queryContextFunction(qc -> new ExprDateValue(formatNow(qc.getQueryStartTime()).toLocalDate()), DATE));
+        queryContextFunction(
+            queryContext -> new ExprDateValue(formatNow(queryContext.getQueryStartTime()).toLocalDate()), DATE));
   }
 
   private FunctionResolver curdate() {
@@ -1093,6 +1097,7 @@ public class DateTimeFunction {
   private LocalDateTime formatNow(Clock clock) {
     return formatNow(clock, 0);
   }
+
   /**
    * Prepare LocalDateTime value. Truncate fractional second part according to the argument.
    * @param fsp argument is given to specify a fractional seconds precision from 0 to 6,

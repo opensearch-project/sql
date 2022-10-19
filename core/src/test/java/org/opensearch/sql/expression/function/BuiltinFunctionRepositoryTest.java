@@ -95,7 +95,7 @@ class BuiltinFunctionRepositoryTest {
     when(mockNamespaceMap.put(eq(TEST_NAMESPACE), any())).thenReturn(null);
     when(mockNamespaceMap.get(TEST_NAMESPACE)).thenReturn(mockMap);
     when(mockfunctionResolver.getFunctionName()).thenReturn(mockFunctionName);
-    BuiltinFunctionRepository repo = new BuiltinFunctionRepository(mockNamespaceMap);
+    BuiltinFunctionRepository repo = new BuiltinFunctionRepository(mockNamespaceMap, queryContext);
     repo.register(TEST_NAMESPACE, mockfunctionResolver);
 
     verify(mockNamespaceMap, times(1)).put(eq(TEST_NAMESPACE), any());
@@ -137,7 +137,7 @@ class BuiltinFunctionRepositoryTest {
     repo.register(TEST_NAMESPACE, mockfunctionResolver);
 
     repo.compile(TEST_NAMESPACE, mockFunctionName, Arrays.asList(mockExpression));
-    verify(functionExpressionBuilder, times(1)).apply(any());
+    verify(functionExpressionBuilder, times(1)).apply(same(queryContext), any());
   }
 
   @Test

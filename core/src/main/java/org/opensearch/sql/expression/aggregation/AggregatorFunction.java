@@ -65,7 +65,7 @@ public class AggregatorFunction {
         functionName,
         new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
             .put(new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
-                (qc, arguments) -> new AvgAggregator(arguments, DOUBLE))
+                (queryContext, arguments) -> new AvgAggregator(arguments, DOUBLE))
             .build()
     );
   }
@@ -75,7 +75,7 @@ public class AggregatorFunction {
     DefaultFunctionResolver functionResolver = new DefaultFunctionResolver(functionName,
         ExprCoreType.coreTypes().stream().collect(Collectors.toMap(
           type -> new FunctionSignature(functionName, Collections.singletonList(type)),
-          type -> (qc, arguments) -> new CountAggregator(arguments, INTEGER))));
+          type -> (queryContext, arguments) -> new CountAggregator(arguments, INTEGER))));
     return functionResolver;
   }
 
@@ -85,13 +85,13 @@ public class AggregatorFunction {
         functionName,
         new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
             .put(new FunctionSignature(functionName, Collections.singletonList(INTEGER)),
-                (qc, arguments) -> new SumAggregator(arguments, INTEGER))
+                (queryContext, arguments) -> new SumAggregator(arguments, INTEGER))
             .put(new FunctionSignature(functionName, Collections.singletonList(LONG)),
-                (qc, arguments) -> new SumAggregator(arguments, LONG))
+                (queryContext, arguments) -> new SumAggregator(arguments, LONG))
             .put(new FunctionSignature(functionName, Collections.singletonList(FLOAT)),
-                (qc, arguments) -> new SumAggregator(arguments, FLOAT))
+                (queryContext, arguments) -> new SumAggregator(arguments, FLOAT))
             .put(new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
-                (qc, arguments) -> new SumAggregator(arguments, DOUBLE))
+                (queryContext, arguments) -> new SumAggregator(arguments, DOUBLE))
             .build()
     );
   }
@@ -102,23 +102,23 @@ public class AggregatorFunction {
         functionName,
         new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
             .put(new FunctionSignature(functionName, Collections.singletonList(INTEGER)),
-                (qc, arguments) -> new MinAggregator(arguments, INTEGER))
+                (queryContext, arguments) -> new MinAggregator(arguments, INTEGER))
             .put(new FunctionSignature(functionName, Collections.singletonList(LONG)),
-                (qc, arguments) -> new MinAggregator(arguments, LONG))
+                (queryContext, arguments) -> new MinAggregator(arguments, LONG))
             .put(new FunctionSignature(functionName, Collections.singletonList(FLOAT)),
-                (qc, arguments) -> new MinAggregator(arguments, FLOAT))
+                (queryContext, arguments) -> new MinAggregator(arguments, FLOAT))
             .put(new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
-                (qc, arguments) -> new MinAggregator(arguments, DOUBLE))
+                (queryContext, arguments) -> new MinAggregator(arguments, DOUBLE))
             .put(new FunctionSignature(functionName, Collections.singletonList(STRING)),
-                (qc, arguments) -> new MinAggregator(arguments, STRING))
+                (queryContext, arguments) -> new MinAggregator(arguments, STRING))
             .put(new FunctionSignature(functionName, Collections.singletonList(DATE)),
-                (qc, arguments) -> new MinAggregator(arguments, DATE))
+                (queryContext, arguments) -> new MinAggregator(arguments, DATE))
             .put(new FunctionSignature(functionName, Collections.singletonList(DATETIME)),
-                (qc, arguments) -> new MinAggregator(arguments, DATETIME))
+                (queryContext, arguments) -> new MinAggregator(arguments, DATETIME))
             .put(new FunctionSignature(functionName, Collections.singletonList(TIME)),
-                (qc, arguments) -> new MinAggregator(arguments, TIME))
+                (queryContext, arguments) -> new MinAggregator(arguments, TIME))
             .put(new FunctionSignature(functionName, Collections.singletonList(TIMESTAMP)),
-                (qc, arguments) -> new MinAggregator(arguments, TIMESTAMP))
+                (queryContext, arguments) -> new MinAggregator(arguments, TIMESTAMP))
             .build());
   }
 
@@ -128,23 +128,23 @@ public class AggregatorFunction {
         functionName,
         new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
             .put(new FunctionSignature(functionName, Collections.singletonList(INTEGER)),
-                (qc, arguments) -> new MaxAggregator(arguments, INTEGER))
+                (queryContext, arguments) -> new MaxAggregator(arguments, INTEGER))
             .put(new FunctionSignature(functionName, Collections.singletonList(LONG)),
-                (qc, arguments) -> new MaxAggregator(arguments, LONG))
+                (queryContext, arguments) -> new MaxAggregator(arguments, LONG))
             .put(new FunctionSignature(functionName, Collections.singletonList(FLOAT)),
-                (qc, arguments) -> new MaxAggregator(arguments, FLOAT))
+                (queryContext, arguments) -> new MaxAggregator(arguments, FLOAT))
             .put(new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
-                (qc, arguments) -> new MaxAggregator(arguments, DOUBLE))
+                (queryContext, arguments) -> new MaxAggregator(arguments, DOUBLE))
             .put(new FunctionSignature(functionName, Collections.singletonList(STRING)),
-                (qc, arguments) -> new MaxAggregator(arguments, STRING))
+                (queryContext, arguments) -> new MaxAggregator(arguments, STRING))
             .put(new FunctionSignature(functionName, Collections.singletonList(DATE)),
-                (qc, arguments) -> new MaxAggregator(arguments, DATE))
+                (queryContext, arguments) -> new MaxAggregator(arguments, DATE))
             .put(new FunctionSignature(functionName, Collections.singletonList(DATETIME)),
-                (qc, arguments) -> new MaxAggregator(arguments, DATETIME))
+                (queryContext, arguments) -> new MaxAggregator(arguments, DATETIME))
             .put(new FunctionSignature(functionName, Collections.singletonList(TIME)),
-                (qc, arguments) -> new MaxAggregator(arguments, TIME))
+                (queryContext, arguments) -> new MaxAggregator(arguments, TIME))
             .put(new FunctionSignature(functionName, Collections.singletonList(TIMESTAMP)),
-                (qc, arguments) -> new MaxAggregator(arguments, TIMESTAMP))
+                (queryContext, arguments) -> new MaxAggregator(arguments, TIMESTAMP))
             .build()
     );
   }
@@ -155,7 +155,7 @@ public class AggregatorFunction {
         functionName,
         new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
             .put(new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
-                (qc, arguments) -> varianceSample(arguments, DOUBLE))
+                (queryContext, arguments) -> varianceSample(arguments, DOUBLE))
             .build()
     );
   }
@@ -166,7 +166,7 @@ public class AggregatorFunction {
         functionName,
         new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
             .put(new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
-                (qc, arguments) -> variancePopulation(arguments, DOUBLE))
+                (queryContext, arguments) -> variancePopulation(arguments, DOUBLE))
             .build()
     );
   }
@@ -177,7 +177,7 @@ public class AggregatorFunction {
         functionName,
         new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
             .put(new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
-                (qc, arguments) -> stddevSample(arguments, DOUBLE))
+                (queryContext, arguments) -> stddevSample(arguments, DOUBLE))
             .build()
     );
   }
@@ -188,7 +188,7 @@ public class AggregatorFunction {
         functionName,
         new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
             .put(new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
-                (qc, arguments) -> stddevPopulation(arguments, DOUBLE))
+                (queryContext, arguments) -> stddevPopulation(arguments, DOUBLE))
             .build()
     );
   }

@@ -27,6 +27,7 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.FunctionExpression;
 
 /**
  * Builtin Function Repository.
@@ -69,6 +70,11 @@ public class BuiltinFunctionRepository {
     namespaceFunctionResolverMap.get(namespace).put(resolver.getFunctionName(), resolver);
   }
 
+
+  public FunctionImplementation compile(BuiltinFunctionName functionName,
+                                        List<Expression> expressions) {
+    return compile(functionName.getName(), expressions);
+  }
 
   /**
    * Compile FunctionExpression under default namespace.
@@ -149,7 +155,7 @@ public class BuiltinFunctionRepository {
   private FunctionBuilder castArguments(List<ExprType> sourceTypes,
                                         List<ExprType> targetTypes,
                                         FunctionBuilder funcBuilder) {
-    return (queryScope, arguments) -> {
+    return (queryContext, arguments) -> {
       List<Expression> argsCasted = new ArrayList<>();
       for (int i = 0; i < arguments.size(); i++) {
         Expression arg = arguments.get(i);
@@ -162,7 +168,7 @@ public class BuiltinFunctionRepository {
           argsCasted.add(arg);
         }
       }
-      return funcBuilder.apply(queryScope, argsCasted);
+      return funcBuilder.apply(queryContext, argsCasted);
     };
   }
 
@@ -183,5 +189,4 @@ public class BuiltinFunctionRepository {
     }
     return (Expression) compile(castFunctionName, ImmutableList.of(arg));
   }
-
 }

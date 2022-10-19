@@ -138,7 +138,7 @@ public class AnalyzerTestBase {
         FunctionSignature functionSignature =
             new FunctionSignature(functionName, List.of(STRING, LONG, LONG, LONG));
         return Pair.of(functionSignature,
-            args -> new TestTableFunctionImplementation(functionName, args, table));
+            (queryContext, args) -> new TestTableFunctionImplementation(functionName, args, table));
       }
 
       @Override
