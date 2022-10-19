@@ -84,6 +84,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `Type Conversion Functions <functions/conversion.rst>`_
 
+  - `System Functions <functions/system.rst>`_
+
 * **Optimization**
 
   - `Optimization <../../user/optimization/optimization.rst>`_
