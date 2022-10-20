@@ -131,7 +131,6 @@ public enum BuiltinFunctionName {
   /**
    * Aggregation Function.
    */
-  TAKE(FunctionName.of("take")),
   AVG(FunctionName.of("avg")),
   SUM(FunctionName.of("sum")),
   COUNT(FunctionName.of("count")),
@@ -145,6 +144,8 @@ public enum BuiltinFunctionName {
   STDDEV_SAMP(FunctionName.of("stddev_samp")),
   // population standard deviation.
   STDDEV_POP(FunctionName.of("stddev_pop")),
+  // take top documents from aggregation bucket.
+  TAKE(FunctionName.of("take")),
 
   /**
    * Text Functions.

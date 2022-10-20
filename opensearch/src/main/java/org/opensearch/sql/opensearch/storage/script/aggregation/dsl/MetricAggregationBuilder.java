@@ -93,15 +93,6 @@ public class MetricAggregationBuilder
     }
 
     switch (functionName) {
-      case "take":
-        return make(
-            AggregationBuilders.topHits(name),
-            expression,
-            node.getArguments().get(1),
-            node.getArguments().get(2),
-            condition,
-            name,
-            new TopHitsParser(name));
       case "avg":
         return make(
             AggregationBuilders.avg(name),
@@ -165,6 +156,15 @@ public class MetricAggregationBuilder
             condition,
             name,
             new StatsParser(ExtendedStats::getStdDeviationPopulation,name));
+      case "take":
+        return make(
+            AggregationBuilders.topHits(name),
+            expression,
+            node.getArguments().get(1),
+            node.getArguments().get(2),
+            condition,
+            name,
+            new TopHitsParser(name));
       default:
         throw new IllegalStateException(
             String.format("unsupported aggregator %s", node.getFunctionName().getFunctionName()));

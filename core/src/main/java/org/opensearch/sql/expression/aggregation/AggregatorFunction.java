@@ -50,7 +50,6 @@ public class AggregatorFunction {
    * @param repository {@link BuiltinFunctionRepository}.
    */
   public static void register(BuiltinFunctionRepository repository) {
-    repository.register(take());
     repository.register(avg());
     repository.register(sum());
     repository.register(count());
@@ -60,15 +59,7 @@ public class AggregatorFunction {
     repository.register(varPop());
     repository.register(stddevSamp());
     repository.register(stddevPop());
-  }
-
-  private static DefaultFunctionResolver take() {
-    FunctionName functionName = BuiltinFunctionName.TAKE.getName();
-    DefaultFunctionResolver functionResolver = new DefaultFunctionResolver(functionName,
-        ExprCoreType.coreTypes().stream().collect(Collectors.toMap(
-            type -> new FunctionSignature(functionName, ImmutableList.of(type, INTEGER, INTEGER)),
-            type -> arguments -> new TakeAggregator(arguments, ARRAY))));
-    return functionResolver;
+    repository.register(take());
   }
 
   private static DefaultFunctionResolver avg() {
@@ -204,4 +195,15 @@ public class AggregatorFunction {
             .build()
     );
   }
+
+  private static DefaultFunctionResolver take() {
+    FunctionName functionName = BuiltinFunctionName.TAKE.getName();
+    DefaultFunctionResolver functionResolver = new DefaultFunctionResolver(functionName,
+        new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
+            .put(new FunctionSignature(functionName, ImmutableList.of(STRING, INTEGER, INTEGER)),
+                arguments -> new TakeAggregator(arguments, ARRAY))
+            .build());
+    return functionResolver;
+  }
+
 }

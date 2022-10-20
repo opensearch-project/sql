@@ -199,20 +199,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   @Override
-  public UnresolvedExpression visitTakeAggFunctionCall(
-      OpenSearchPPLParser.TakeAggFunctionCallContext ctx) {
-    ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
-    builder.add(new UnresolvedArgument("size",
-        ctx.takeAggFunction().size != null ? visit(ctx.takeAggFunction().size) :
-            AstDSL.integerLiteral(10)));
-    builder.add(new UnresolvedArgument("from",
-        ctx.takeAggFunction().from != null ? visit(ctx.takeAggFunction().from) :
-            AstDSL.integerLiteral(0)));
-    return new AggregateFunction("take", visit(ctx.takeAggFunction().fieldExpression()),
-        builder.build());
-  }
-
-  @Override
   public UnresolvedExpression visitCountAllFunctionCall(CountAllFunctionCallContext ctx) {
     return new AggregateFunction("count", AllFields.of());
   }
@@ -226,6 +212,20 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   public UnresolvedExpression visitPercentileAggFunction(PercentileAggFunctionContext ctx) {
     return new AggregateFunction(ctx.PERCENTILE().getText(), visit(ctx.aggField),
         Collections.singletonList(new Argument("rank", (Literal) visit(ctx.value))));
+  }
+
+  @Override
+  public UnresolvedExpression visitTakeAggFunctionCall(
+      OpenSearchPPLParser.TakeAggFunctionCallContext ctx) {
+    ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
+    builder.add(new UnresolvedArgument("size",
+        ctx.takeAggFunction().size != null ? visit(ctx.takeAggFunction().size) :
+            AstDSL.integerLiteral(10)));
+    builder.add(new UnresolvedArgument("from",
+        ctx.takeAggFunction().from != null ? visit(ctx.takeAggFunction().from) :
+            AstDSL.integerLiteral(0)));
+    return new AggregateFunction("take", visit(ctx.takeAggFunction().fieldExpression()),
+        builder.build());
   }
 
   /**
