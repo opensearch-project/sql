@@ -486,7 +486,36 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
 
     List<String> lines = csvResult.getLines();
     Assert.assertEquals(1, lines.size());
-    Assert.assertEquals("32.0,32.0,34.0,36.0,38.0,40.0,40.0", lines.get(0));
+
+    List<Double> result =
+        Arrays.stream(lines.get(0).split(","))
+            .mapToDouble(Double::valueOf)
+            .boxed()
+            .collect(Collectors.toList());
+    assertEquals(7, result.size());
+    assertEquals(32.0, result.get(0), 0.6);
+    assertEquals(32.0, result.get(1), 0.6);
+    assertEquals(34.0, result.get(2), 0.6);
+
+    assertEquals("32.0,32.0,34.0,36.0,38.0,40.0,40.0", lines.get(0), 0.6);
+  }
+
+  private void assertEquals(String expected, String actual, Double delta) {
+    List<Double> actualList =
+        Arrays.stream(actual.split(","))
+            .mapToDouble(Double::valueOf)
+            .boxed()
+            .collect(Collectors.toList());
+    List<Double> expectedList =
+        Arrays.stream(expected.split(","))
+            .mapToDouble(Double::valueOf)
+            .boxed()
+            .collect(Collectors.toList());
+
+    assertEquals(expectedList.size(), actualList.size());
+    for (int i = 0; i < expectedList.size(); i++) {
+      assertEquals(expectedList.get(i), actualList.get(i), delta);
+    }
   }
 
   @Test

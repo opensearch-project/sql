@@ -45,7 +45,9 @@ task stopOpenSearch(type: KillProcessTask)
 doctest.dependsOn startOpenSearch
 doctest.finalizedBy stopOpenSearch
 
-build.dependsOn doctest
+// disable doctest for 3.0 in case no opensearch-ml-3.0 snapshot.
+// https://github.com/opensearch-project/sql/issues/942
+// build.dependsOn doctest
 clean.dependsOn(cleanBootstrap)
 
 // 2.0.0-alpha1-SNAPSHOT -> 2.0.0.0-alpha1-SNAPSHOT

@@ -166,13 +166,13 @@ public class AggregationIT extends SQLIntegTestCase {
             0.6);
     Assert
         .assertEquals(35.0, getDoubleAggregationValue(result, "PERCENTILES(age)", "values", "75.0"),
-            0.001);
+            0.6);
     Assert
         .assertEquals(39.0, getDoubleAggregationValue(result, "PERCENTILES(age)", "values", "95.0"),
-            0.001);
+            0.6);
     Assert
         .assertEquals(40.0, getDoubleAggregationValue(result, "PERCENTILES(age)", "values", "99.0"),
-            0.001);
+            0.6);
   }
 
   @Test
@@ -183,9 +183,9 @@ public class AggregationIT extends SQLIntegTestCase {
 
     Assert.assertThat(getTotalHits(result), equalTo(1000));
     Assert.assertEquals(25.0,
-        getDoubleAggregationValue(result, "PERCENTILES(age,25.0,75.0)", "values", "25.0"), 0.001);
+        getDoubleAggregationValue(result, "PERCENTILES(age,25.0,75.0)", "values", "25.0"), 0.6);
     Assert.assertEquals(35.0,
-        getDoubleAggregationValue(result, "PERCENTILES(age,25.0,75.0)", "values", "75.0"), 0.001);
+        getDoubleAggregationValue(result, "PERCENTILES(age,25.0,75.0)", "values", "75.0"), 0.6);
   }
 
   @Test
