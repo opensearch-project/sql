@@ -35,7 +35,7 @@ public class ExprTimestampValue extends AbstractExprValue {
    * todo. only support timestamp in format yyyy-MM-dd HH:mm:ss.
    */
   private static final DateTimeFormatter FORMATTER_WITHOUT_NANO = DateTimeFormatter
-      .ofPattern("yyyy-MM-dd HH:mm:ss");
+      .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
   private final Instant timestamp;
 
   private static final DateTimeFormatter FORMATTER_VARIABLE_NANOS;

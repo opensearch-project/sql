@@ -56,7 +56,7 @@ public class AggregationOperator extends PhysicalPlan {
    * {@link BindingTuple} Collector.
    */
   @EqualsAndHashCode.Exclude
-  private final Collector collector;
+  private Collector collector;
 
   @Getter
   private final StreamContext streamContext = new StreamContext();
@@ -83,14 +83,6 @@ public class AggregationOperator extends PhysicalPlan {
       this.collector =
           Collector.Builder.build(
               this.span, groupByExprList.subList(1, groupByExprList.size()), this.aggregatorList);
-
-      SpanExpression spanExpr = (SpanExpression) span.getDelegated();
-      this.windowingStrategy = new WindowingStrategy(
-          new TumblingEventTimeWindowAssigner(spanExpr.windowSize()),
-          new WindowAccumulator((SpanCollector) collector),
-          new EventTimeWindowTrigger(streamContext)
-      );
-
     } else {
       this.span = null;
       this.collector =
@@ -123,12 +115,17 @@ public class AggregationOperator extends PhysicalPlan {
 
   private void reloadBuffer() {
     do {
-      // For batch/micro-batch, input is bounded, so we fire all windows finally
+      // ??? For batch/micro-batch, input is bounded, so we fire all windows finally
       if (!input.hasNext()) {
+        /*
         long latestWatermark = streamContext.getCurrentWatermark();
         nextRowBuffer = processWatermarkEvent(
             new WatermarkEvent(Long.MAX_VALUE)).iterator();
         streamContext.setCurrentWatermark(latestWatermark);
+        */
+
+        // Print out all remaining windows for demo purpose
+        LOG.info("Window state to carry over to next micro batch: {}", collector);
         break;
       }
 
@@ -145,6 +142,19 @@ public class AggregationOperator extends PhysicalPlan {
   @Override
   public void open() {
     super.open();
+
+    if (streamContext.getCollector() == null) {
+      streamContext.setCollector(collector);
+    } else {
+      this.collector = streamContext.getCollector();
+    }
+
+    SpanExpression spanExpr = (SpanExpression) span.getDelegated();
+    this.windowingStrategy = new WindowingStrategy(
+        new TumblingEventTimeWindowAssigner(spanExpr.windowSize()),
+        new WindowAccumulator((SpanCollector) collector),
+        new EventTimeWindowTrigger(streamContext)
+    );
   }
 
   private List<ExprValue> processWatermarkEvent(WatermarkEvent watermark) {

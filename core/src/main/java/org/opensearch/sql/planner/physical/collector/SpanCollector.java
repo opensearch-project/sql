@@ -77,4 +77,9 @@ public class SpanCollector extends BucketCollector {
   protected int locateBucket(ExprValue value) {
     return rounding.locate(value);
   }
+
+  @Override
+  public String toString() {
+    return collectorMap.toString();
+  }
 }
