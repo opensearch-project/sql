@@ -103,7 +103,7 @@ compileTestJava {
 dependencies {
     api group: 'org.springframework', name: 'spring-beans', version: "${spring_version}"
     api "com.fasterxml.jackson.core:jackson-core:${jackson_version}"
-    api "com.fasterxml.jackson.core:jackson-databind:2.13.4.2"
+    api "com.fasterxml.jackson.core:jackson-databind:${jackson_version}"
     api "com.fasterxml.jackson.core:jackson-annotations:${jackson_version}"
 
     api project(":ppl")
