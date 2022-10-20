@@ -545,6 +545,10 @@ public class DSL {
     return aggregate(BuiltinFunctionName.STDDEV_POP, expressions);
   }
 
+  public Aggregator take(Expression... expressions) {
+    return aggregate(BuiltinFunctionName.TAKE, expressions);
+  }
+
   public RankingWindowFunction rowNumber() {
     return (RankingWindowFunction) repository.compile(
         BuiltinFunctionName.ROW_NUMBER.getName(), Collections.emptyList());

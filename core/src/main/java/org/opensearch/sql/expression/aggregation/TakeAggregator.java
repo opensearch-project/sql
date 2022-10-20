@@ -50,6 +50,12 @@ public class TakeAggregator extends Aggregator<TakeAggregator.TakeState> {
     protected List<ExprValue> hits;
 
     TakeState(int size, int from) {
+      if (size <= 0) {
+        throw new IllegalArgumentException("size must be greater than 0");
+      }
+      if (from < 0) {
+        throw new IllegalArgumentException("from must be greater than or equal to 0");
+      }
       this.index = 0;
       this.size = size;
       this.from = from;

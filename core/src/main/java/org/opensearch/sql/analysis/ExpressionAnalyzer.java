@@ -153,9 +153,8 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     Optional<BuiltinFunctionName> builtinFunctionName =
         BuiltinFunctionName.ofAggregation(node.getFuncName());
     if (builtinFunctionName.isPresent()) {
-      Expression field = node.getField().accept(this, context);
       ImmutableList.Builder<Expression> builder = ImmutableList.builder();
-      builder.add(field);
+      builder.add(node.getField().accept(this, context));
       for (UnresolvedExpression arg : node.getArgList()) {
         builder.add(arg.accept(this, context));
       }

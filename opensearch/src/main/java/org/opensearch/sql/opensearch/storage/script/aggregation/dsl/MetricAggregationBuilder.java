@@ -26,10 +26,10 @@ import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.opensearch.response.agg.FilterParser;
-import org.opensearch.sql.opensearch.response.agg.TopHitsParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
 import org.opensearch.sql.opensearch.response.agg.StatsParser;
+import org.opensearch.sql.opensearch.response.agg.TopHitsParser;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
@@ -134,28 +134,28 @@ public class MetricAggregationBuilder
             expression,
             condition,
             name,
-            new StatsParser(ExtendedStats::getVarianceSampling,name));
+            new StatsParser(ExtendedStats::getVarianceSampling, name));
       case "var_pop":
         return make(
             AggregationBuilders.extendedStats(name),
             expression,
             condition,
             name,
-            new StatsParser(ExtendedStats::getVariancePopulation,name));
+            new StatsParser(ExtendedStats::getVariancePopulation, name));
       case "stddev_samp":
         return make(
             AggregationBuilders.extendedStats(name),
             expression,
             condition,
             name,
-            new StatsParser(ExtendedStats::getStdDeviationSampling,name));
+            new StatsParser(ExtendedStats::getStdDeviationSampling, name));
       case "stddev_pop":
         return make(
             AggregationBuilders.extendedStats(name),
             expression,
             condition,
             name,
-            new StatsParser(ExtendedStats::getStdDeviationPopulation,name));
+            new StatsParser(ExtendedStats::getStdDeviationPopulation, name));
       case "take":
         return make(
             AggregationBuilders.topHits(name),
@@ -247,8 +247,8 @@ public class MetricAggregationBuilder
    * Make builder to build FilterAggregation for aggregations with filter in the bucket.
    *
    * @param subAggBuilder AggregationBuilder instance which the filter is applied to.
-   * @param condition Condition expression in the filter.
-   * @param name Name of the FilterAggregation instance to build.
+   * @param condition     Condition expression in the filter.
+   * @param name          Name of the FilterAggregation instance to build.
    * @return {@link FilterAggregationBuilder}.
    */
   private FilterAggregationBuilder makeFilterAggregation(
