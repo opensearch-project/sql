@@ -19,8 +19,6 @@ on:
 
 jobs:
   build:
-    env:
-      BUILD_ARGS: ${{ matrix.entry.os_build_args }}
     strategy:
       # Run all jobs
       fail-fast: false
@@ -44,7 +42,7 @@ jobs:
         java-version: ${{ matrix.entry.java }}
 
     - name: Build with Gradle
-      run: ./gradlew --continue build ${{ env.BUILD_ARGS }}
+      run: ./gradlew --continue build ${{ matrix.entry.os_build_args }}
 
     - name: Run backward compatibility tests
       if: ${{ matrix.entry.os == 'ubuntu-latest' }}
