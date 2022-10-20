@@ -24,7 +24,7 @@ plugins {
 group 'org.opensearch.client'
 
 // keep version in sync with version in Driver source
-version '1.1.0.1'
+version '2.0.0.0'
 
 boolean snapshot = "true".equals(System.getProperty("build.snapshot", "false"));
 if (snapshot) {
@@ -98,6 +98,7 @@ shadowJar {
 }
 
 test {
+    systemProperty("opensearch_jdbc_version", version);
     useJUnitPlatform()
 }
 
