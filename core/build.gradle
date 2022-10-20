@@ -46,7 +46,7 @@ dependencies {
     api group: 'com.facebook.presto', name: 'presto-matching', version: '0.240'
     api group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
     api "com.fasterxml.jackson.core:jackson-core:${jackson_version}"
-    api "com.fasterxml.jackson.core:jackson-databind:${jackson_version}"
+    api "com.fasterxml.jackson.core:jackson-databind:2.13.4.2"
     api "com.fasterxml.jackson.core:jackson-annotations:${jackson_version}"
     api project(':common')
 

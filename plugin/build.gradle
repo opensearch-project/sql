@@ -88,7 +88,7 @@ configurations.all {
     resolutionStrategy.force 'commons-codec:commons-codec:1.13'
     resolutionStrategy.force 'com.google.guava:guava:31.0.1-jre'
     resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${jackson_version}"
-    resolutionStrategy.force "com.fasterxml.jackson.core:jackson-databind:${jackson_version}"
+    resolutionStrategy.force "com.fasterxml.jackson.core:jackson-databind:2.13.4.2"
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.6.0"
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0"
 }
@@ -103,7 +103,7 @@ compileTestJava {
 dependencies {
     api group: 'org.springframework', name: 'spring-beans', version: "${spring_version}"
     api "com.fasterxml.jackson.core:jackson-core:${jackson_version}"
-    api "com.fasterxml.jackson.core:jackson-databind:${jackson_version}"
+    api "com.fasterxml.jackson.core:jackson-databind:2.13.4.2"
     api "com.fasterxml.jackson.core:jackson-annotations:${jackson_version}"
 
     api project(":ppl")
