@@ -341,6 +341,7 @@ evalFunctionName
     | dateAndTimeFunctionBase
     | textFunctionBase
     | conditionFunctionBase
+    | systemFunctionBase
     ;
 
 functionArgs
@@ -417,6 +418,10 @@ constantFunctionName
 conditionFunctionBase
     : LIKE
     | IF | ISNULL | ISNOTNULL | IFNULL | NULLIF
+    ;
+
+systemFunctionBase
+    : TYPEOF
     ;
 
 textFunctionBase

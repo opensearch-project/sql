@@ -2996,3 +2996,27 @@ Example searching for field Tags::
     | [Winnie-the-<em>Pooh</em>]                   |
     +----------------------------------------------+
 
+System Functions
+================
+
+TYPEOF
+------
+
+Description
+>>>>>>>>>>>
+
+Usage: typeof(expr) function returns name of the data type of the value that is passed to it. This can be helpful for troubleshooting or dynamically constructing SQL queries.
+
+Argument type: ANY
+
+Return type: STRING
+
+Example::
+
+    os> select typeof(DATE('2008-04-14')) as `typeof(date)`, typeof(1) as `typeof(int)`, typeof(now()) as `typeof(now())`, typeof(accounts) as `typeof(column)` from people
+    fetched rows / total rows = 1/1
+    +----------------+---------------+-----------------+------------------+
+    | typeof(date)   | typeof(int)   | typeof(now())   | typeof(column)   |
+    |----------------+---------------+-----------------+------------------|
+    | DATE           | INTEGER       | DATETIME        | STRUCT           |
+    +----------------+---------------+-----------------+------------------+
