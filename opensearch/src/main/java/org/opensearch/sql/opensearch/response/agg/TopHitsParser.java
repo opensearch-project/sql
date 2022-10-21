@@ -20,8 +20,8 @@ import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.search.aggregations.Aggregation;
-import org.opensearch.search.aggregations.metrics.InternalTopHits;
 import org.opensearch.search.aggregations.metrics.NumericMetricsAggregation;
+import org.opensearch.search.aggregations.metrics.TopHits;
 
 /**
  * {@link NumericMetricsAggregation.SingleValue} metric parser.
@@ -36,7 +36,7 @@ public class TopHitsParser implements MetricParser {
   public Map<String, Object> parse(Aggregation agg) {
     return Collections.singletonMap(
         agg.getName(),
-        Arrays.stream(((InternalTopHits) agg).getHits().getHits())
+        Arrays.stream(((TopHits) agg).getHits().getHits())
             .flatMap(h -> h.getSourceAsMap().values().stream()).collect(Collectors.toList()));
   }
 }

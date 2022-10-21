@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.opensearch.response.AggregationResponseUtils.fromJson;
 import static org.opensearch.sql.opensearch.response.agg.Utils.handleNanValue;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,7 @@ import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
 import org.opensearch.sql.opensearch.response.agg.StatsParser;
+import org.opensearch.sql.opensearch.response.agg.TopHitsParser;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class OpenSearchAggregationResponseParserTest {
@@ -104,6 +106,50 @@ class OpenSearchAggregationResponseParserTest {
     assertThat(parse(parser, response),
         containsInAnyOrder(ImmutableMap.of("type", "cost", "avg", 20d),
             ImmutableMap.of("type", "sale", "avg", 105d)));
+  }
+
+  @Test
+  void take_aggregation_should_pass() {
+    String response = "{\n"
+        + "  \"composite#composite_buckets\": {\n"
+        + "    \"buckets\": [\n"
+        + "      {\n"
+        + "        \"key\": {\n"
+        + "          \"type\": \"take\"\n"
+        + "        },\n"
+        + "        \"doc_count\": 2,\n"
+        + "        \"top_hits#take\": {\n"
+        + "          \"hits\": {\n"
+        + "            \"total\": { \"value\": 2, \"relation\": \"eq\" },\n"
+        + "            \"max_score\": 1.0,\n"
+        + "            \"hits\": [\n"
+        + "              {\n"
+        + "                \"_index\": \"accounts\",\n"
+        + "                \"_id\": \"1\",\n"
+        + "                \"_score\": 1.0,\n"
+        + "                \"_source\": {\n"
+        + "                  \"gender\": \"m\"\n"
+        + "                }\n"
+        + "              },\n"
+        + "              {\n"
+        + "                \"_index\": \"accounts\",\n"
+        + "                \"_id\": \"2\",\n"
+        + "                \"_score\": 1.0,\n"
+        + "                \"_source\": {\n"
+        + "                  \"gender\": \"f\"\n"
+        + "                }\n"
+        + "              }\n"
+        + "            ]\n"
+        + "          }\n"
+        + "        }\n"
+        + "      }\n"
+        + "    ]\n"
+        + "  }\n"
+        + "}";
+    OpenSearchAggregationResponseParser parser =
+        new CompositeAggregationParser(new TopHitsParser("take"));
+    assertThat(parse(parser, response),
+        contains(ImmutableMap.of("type", "take", "take", ImmutableList.of("m", "f"))));
   }
 
   @Test
