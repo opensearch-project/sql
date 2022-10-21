@@ -200,7 +200,7 @@ public class AggregatorFunction {
     FunctionName functionName = BuiltinFunctionName.TAKE.getName();
     DefaultFunctionResolver functionResolver = new DefaultFunctionResolver(functionName,
         new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
-            .put(new FunctionSignature(functionName, ImmutableList.of(STRING, INTEGER, INTEGER)),
+            .put(new FunctionSignature(functionName, ImmutableList.of(STRING, INTEGER)),
                 arguments -> new TakeAggregator(arguments, ARRAY))
             .build());
     return functionResolver;

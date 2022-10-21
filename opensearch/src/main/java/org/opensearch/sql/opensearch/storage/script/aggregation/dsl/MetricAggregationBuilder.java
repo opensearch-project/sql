@@ -161,7 +161,6 @@ public class MetricAggregationBuilder
             AggregationBuilders.topHits(name),
             expression,
             node.getArguments().get(1),
-            node.getArguments().get(2),
             condition,
             name,
             new TopHitsParser(name));
@@ -211,14 +210,13 @@ public class MetricAggregationBuilder
   private Pair<AggregationBuilder, MetricParser> make(TopHitsAggregationBuilder builder,
                                                       Expression expression,
                                                       Expression size,
-                                                      Expression from,
                                                       Expression condition,
                                                       String name,
                                                       MetricParser parser) {
     String fieldName = ((ReferenceExpression) expression).getAttr();
     builder.fetchSource(fieldName, null);
     builder.size(size.valueOf(null).integerValue());
-    builder.from(from.valueOf(null).integerValue());
+    builder.from(0);
     if (condition != null) {
       return Pair.of(
           makeFilterAggregation(builder, condition, name),

@@ -202,7 +202,7 @@ statsFunctionName
     ;
 
 takeAggFunction
-    : TAKE LT_PRTHS fieldExpression (COMMA size=integerLiteral (COMMA from=integerLiteral)?)? RT_PRTHS
+    : TAKE LT_PRTHS fieldExpression (COMMA size=integerLiteral)? RT_PRTHS
     ;
 
 percentileAggFunction

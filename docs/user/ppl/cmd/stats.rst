@@ -244,11 +244,10 @@ TAKE
 Description
 >>>>>>>>>>>
 
-Usage: TAKE(field [, size [, from]]). Return original values of a field.
+Usage: TAKE(field [, size]). Return original values of a field.
 
 * field: mandatory. The field must be a text field.
-* size: optional number. The number of values should be returned. Default is 10.
-* from: optional number. The number of values should be skipped. Default is 0.
+* size: optional integer. The number of values should be returned. Default is 10.
 
 Example::
 

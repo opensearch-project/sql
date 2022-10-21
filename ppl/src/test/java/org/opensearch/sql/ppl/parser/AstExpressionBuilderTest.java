@@ -482,16 +482,8 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
     assertEqual("source=t | stats take(a)",
         agg(
             relation("t"),
-            exprList(
-                alias("take(a)",
-                    aggregate(
-                        "take",
-                        field("a"),
-                        unresolvedArg("size", intLiteral(10)),
-                        unresolvedArg("from", intLiteral(0))
-                    )
-                )
-            ),
+            exprList(alias("take(a)",
+                aggregate("take", field("a"), unresolvedArg("size", intLiteral(10))))),
             emptyList(),
             emptyList(),
             defaultStatsArgs()
@@ -500,19 +492,11 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
 
   @Test
   public void testTakeAggregationWithArgsShouldPass() {
-    assertEqual("source=t | stats take(a, 5, 10)",
+    assertEqual("source=t | stats take(a, 5)",
         agg(
             relation("t"),
-            exprList(
-                alias("take(a, 5, 10)",
-                    aggregate(
-                        "take",
-                        field("a"),
-                        unresolvedArg("size", intLiteral(5)),
-                        unresolvedArg("from", intLiteral(10))
-                    )
-                )
-            ),
+            exprList(alias("take(a, 5)",
+                aggregate("take", field("a"), unresolvedArg("size", intLiteral(5))))),
             emptyList(),
             emptyList(),
             defaultStatsArgs()

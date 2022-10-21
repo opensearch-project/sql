@@ -25,8 +25,7 @@ public class TakeAggregator extends Aggregator<TakeAggregator.TakeState> {
 
   @Override
   public TakeState create() {
-    return new TakeState(getArguments().get(1).valueOf(null).integerValue(),
-        getArguments().get(2).valueOf(null).integerValue());
+    return new TakeState(getArguments().get(1).valueOf(null).integerValue());
   }
 
   @Override
@@ -46,24 +45,19 @@ public class TakeAggregator extends Aggregator<TakeAggregator.TakeState> {
   protected static class TakeState implements AggregationState {
     protected int index;
     protected int size;
-    protected int from;
     protected List<ExprValue> hits;
 
-    TakeState(int size, int from) {
+    TakeState(int size) {
       if (size <= 0) {
         throw new IllegalArgumentException("size must be greater than 0");
       }
-      if (from < 0) {
-        throw new IllegalArgumentException("from must be greater than or equal to 0");
-      }
       this.index = 0;
       this.size = size;
-      this.from = from;
       this.hits = new ArrayList<>();
     }
 
     public void take(ExprValue value) {
-      if (index >= from && index < from + size) {
+      if (index < size) {
         hits.add(value);
       }
       index++;

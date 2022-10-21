@@ -294,7 +294,7 @@ class MetricAggregationBuilderTest {
   void should_build_top_hits_aggregation() {
     assertEquals(
         "{\n"
-            + "  \"take(name, 10, 0)\" : {\n"
+            + "  \"take(name, 10)\" : {\n"
             + "    \"top_hits\" : {\n"
             + "      \"from\" : 0,\n"
             + "      \"size\" : 10,\n"
@@ -309,15 +309,15 @@ class MetricAggregationBuilderTest {
             + "  }\n"
             + "}",
         buildQuery(
-            Collections.singletonList(named("take(name, 10, 0)", new TakeAggregator(
-                ImmutableList.of(ref("name", STRING), literal(10), literal(0)), ARRAY)))));
+            Collections.singletonList(named("take(name, 10)", new TakeAggregator(
+                ImmutableList.of(ref("name", STRING), literal(10)), ARRAY)))));
   }
 
   @Test
   void should_build_filtered_top_hits_aggregation() {
     assertEquals(
         "{\n"
-            + "  \"take(name, 10, 0) filter(where age > 30)\" : {\n"
+            + "  \"take(name, 10) filter(where age > 30)\" : {\n"
             + "    \"filter\" : {\n"
             + "      \"range\" : {\n"
             + "        \"age\" : {\n"
@@ -330,7 +330,7 @@ class MetricAggregationBuilderTest {
             + "      }\n"
             + "    },\n"
             + "    \"aggregations\" : {\n"
-            + "      \"take(name, 10, 0) filter(where age > 30)\" : {\n"
+            + "      \"take(name, 10) filter(where age > 30)\" : {\n"
             + "        \"top_hits\" : {\n"
             + "          \"from\" : 0,\n"
             + "          \"size\" : 10,\n"
@@ -347,9 +347,9 @@ class MetricAggregationBuilderTest {
             + "  }\n"
             + "}",
         buildQuery(Collections.singletonList(named(
-            "take(name, 10, 0) filter(where age > 30)",
+            "take(name, 10) filter(where age > 30)",
             new TakeAggregator(
-                ImmutableList.of(ref("name", STRING), literal(10), literal(0)), ARRAY)
+                ImmutableList.of(ref("name", STRING), literal(10)), ARRAY)
                 .condition(dsl.greater(ref("age", INTEGER), literal(30)))))));
   }
 

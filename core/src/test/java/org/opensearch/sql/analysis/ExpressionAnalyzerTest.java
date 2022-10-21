@@ -318,8 +318,8 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   @Test
   public void take_aggregation() {
     assertAnalyzeEqual(
-        dsl.take(DSL.ref("string_value", STRING), DSL.literal(10), DSL.literal(0)),
-        AstDSL.aggregate("take", qualifiedName("string_value"), intLiteral(10), intLiteral(0))
+        dsl.take(DSL.ref("string_value", STRING), DSL.literal(10)),
+        AstDSL.aggregate("take", qualifiedName("string_value"), intLiteral(10))
     );
   }
 
