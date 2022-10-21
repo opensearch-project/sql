@@ -13,8 +13,10 @@ import lombok.Data;
 @Data
 public class Window {
 
+  /** Start timestamp (inclusive) of the time window. */
   private final long startTime;
 
+  /** End timestamp (exclusive) of the time window. */
   private final long endTime;
 
   /**
