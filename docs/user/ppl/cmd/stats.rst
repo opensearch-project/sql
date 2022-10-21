@@ -238,6 +238,28 @@ Example::
     | 2.8613807855648994 |
     +--------------------+
 
+TAKE
+----------
+
+Description
+>>>>>>>>>>>
+
+Usage: TAKE(field [, size [, from]]). Return original values of a field.
+
+* field: mandatory. The field must be a text field.
+* size: optional number. The number of values should be returned. Default is 10.
+* from: optional number. The number of values should be skipped. Default is 0.
+
+Example::
+
+    os> source=accounts | stats take(firstname);
+    fetched rows / total rows = 1/1
+    +-----------------------------+
+    | take(firstname)             |
+    |-----------------------------|
+    | [Amber,Hattie,Nanette,Dale] |
+    +-----------------------------+
+
 Example 1: Calculate the count of events
 ========================================
 
