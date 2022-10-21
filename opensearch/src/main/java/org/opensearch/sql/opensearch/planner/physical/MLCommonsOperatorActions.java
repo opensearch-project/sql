@@ -13,12 +13,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.client.node.NodeClient;
@@ -78,8 +74,8 @@ public abstract class MLCommonsOperatorActions extends PhysicalPlan {
    * @param categoryField String, the field should be aggregated on
    * @return list of ml-commons dataframe pairs
    */
-  protected List<Pair<DataFrame, DataFrame>> generateAggregatedInputDataset(PhysicalPlan input,
-                                                                      String categoryField) {
+  protected List<Pair<DataFrame, DataFrame>> generateCategorizedInputDataset(PhysicalPlan input,
+                                                                             String categoryField) {
     if (categoryField == null) {
       DataFrame dataFrame = generateInputDataset(input);
       return Collections.singletonList(new ImmutablePair<>(dataFrame, dataFrame));
@@ -102,7 +98,7 @@ public abstract class MLCommonsOperatorActions extends PhysicalPlan {
         .map(inputData -> {
           // categoryField should be excluded for ml-commons predictions
           List<Map<String, Object>> filteredInputData = inputData.stream().map(
-                  row -> row.entrySet().stream().filter(entry -> !entry.getKey().equals(categoryField))
+                  row -> row.entrySet().stream().filter(e -> !e.getKey().equals(categoryField))
                       .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
               .collect(Collectors.toList());
           return new ImmutablePair<>(DataFrameBuilder.load(inputData),
