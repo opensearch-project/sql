@@ -7,6 +7,7 @@ package org.opensearch.sql.prometheus.storage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -19,6 +20,7 @@ import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConsta
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.VALUE;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -125,4 +127,14 @@ class PrometheusMetricTableTest {
     assertEquals(inputPlan, optimizedPlan);
   }
 
+  @Test
+  void testUnsupportedOperation() {
+    PrometheusQueryRequest prometheusQueryRequest = new PrometheusQueryRequest();
+    PrometheusMetricTable prometheusMetricTable =
+        new PrometheusMetricTable(client, prometheusQueryRequest);
+
+    assertThrows(UnsupportedOperationException.class, prometheusMetricTable::exists);
+    assertThrows(UnsupportedOperationException.class,
+        () -> prometheusMetricTable.create(Collections.emptyMap()));
+  }
 }
