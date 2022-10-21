@@ -1,0 +1,78 @@
+lib = library(identifier: 'jenkins@main', retriever: modernSCM([
+    $class: 'GitSCMSource',
+    remote: 'https://github.com/opensearch-project/opensearch-build.git',
+]))
+
+pipeline {
+    agent {
+        docker {
+            label 'Jenkins-Agent-AL2-X64-C54xlarge-Docker-Host'
+            image 'opensearchstaging/ci-runner:ci-runner-centos7-opensearch-build-v2'
+            args '-e JAVA_HOME=/opt/java/openjdk-11'
+            alwaysPull true
+        }
+    }
+    triggers {
+        GenericTrigger(
+            genericVariables: [
+                [key: 'ref', value: '$.ref'],
+                [key: 'VERSION', value: '$.ref', regexpFilter: 'refs/tags/v' ],
+            ],
+            tokenCredentialId: 'jenkins-sql-generic-webhook-token',
+            causeString: 'A tag was cut on opensearch-project/sql repository causing this workflow to run',
+            printContributedVariables: false,
+            printPostContent: false,
+            regexpFilterText: '$ref',
+            regexpFilterExpression: '^refs/tags/.*'
+        )
+    }
+    environment {
+        ARTIFACT_PATH = "$WORKSPACE/build/repository/org/opensearch/client/sql/$VERSION"
+    }
+    stages {
+        stage('Publish to Maven Local') {
+            steps {
+                // checkout the commit
+                checkout([
+                    $class: 'GitSCM', userRemoteConfigs: [[url: 'https://github.com/opensearch-project/sql.git']],
+                    branches: [[name: "$ref"]]
+                        ])
+
+                // publish maven artifacts
+                sh('./gradlew --no-daemon publishPublishMavenPublicationToLocalRepoRepository')
+            }
+        }
+        stage('Sign') {
+            steps {
+                script {
+                    signArtifacts(
+                        artifactPath: "${ARTIFACT_PATH}",
+                        type: 'maven',
+                        platform: 'linux'
+                    )
+                }
+            }
+        }
+        stage('Stage Maven Artifacts') {
+            environment {
+                REPO_URL = 'https://aws.oss.sonatype.org/'
+                STAGING_PROFILE_ID = "${SONATYPE_STAGING_PROFILE_ID}"
+                BUILD_ID = "${BUILD_NUMBER}"
+            }
+            steps {
+                // checkout the build repo
+                git url: 'https://github.com/opensearch-project/opensearch-build.git', branch: 'main'
+
+                // stage artifacts for release with Sonatype
+                withCredentials([usernamePassword(credentialsId: 'jenkins-sonatype-creds', usernameVariable: 'SONATYPE_USERNAME', passwordVariable: 'SONATYPE_PASSWORD')]) {
+                    sh('$WORKSPACE/publish/stage-maven-release.sh $WORKSPACE/build/repository/')
+                }
+            }
+        }
+    }
+    post {
+        always {
+            cleanWs disableDeferredWipeout: true, deleteDirs: true
+        }
+    }
+}
