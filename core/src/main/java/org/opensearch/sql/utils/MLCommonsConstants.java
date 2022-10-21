@@ -9,7 +9,7 @@ public class MLCommonsConstants {
   public static final String OUTPUT_AFTER = "output_after";
   public static final String TIME_DECAY = "time_decay";
   public static final String ANOMALY_RATE = "anomaly_rate";
-  public static final String AGG_FIELD = "agg_field";
+  public static final String CATEGORY_FIELD = "category_field";
   public static final String TIME_FIELD = "time_field";
   public static final String DATE_FORMAT = "date_format";
   public static final String TIME_ZONE = "time_zone";

@@ -14,8 +14,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.client.node.NodeClient;
@@ -66,52 +69,45 @@ public abstract class MLCommonsOperatorActions extends PhysicalPlan {
   }
 
   /**
-   * Generate ml-commons request input dataset per each aggregated value on a given field.
-   * Each aggregated value of aggField will be a {@link DataFrame} pair, where the left one
-   * contains all fields for building response, and the right one contains all fields except
-   * the aggregated field for ml prediction.
-   * This is a temporary solution before ml-commons supports 2 dimensional input.
+   * Generate ml-commons request input dataset per each category based on a given category field.
+   * Each category value will be a {@link DataFrame} pair, where the left one contains all fields
+   * for building response, and the right one contains all fields except the aggregated field for
+   * ml prediction. This is a temporary solution before ml-commons supports 2 dimensional input.
    *
    * @param input physical input
-   * @param aggField String, the field should be aggregated on
+   * @param categoryField String, the field should be aggregated on
    * @return list of ml-commons dataframe pairs
    */
   protected List<Pair<DataFrame, DataFrame>> generateAggregatedInputDataset(PhysicalPlan input,
-                                                                      String aggField) {
-    if (aggField == null) {
+                                                                      String categoryField) {
+    if (categoryField == null) {
       DataFrame dataFrame = generateInputDataset(input);
       return Collections.singletonList(new ImmutablePair<>(dataFrame, dataFrame));
     }
 
-    Map<ExprValue, Pair<List<Map<String, Object>>, List<Map<String, Object>>>> inputMap =
-        new HashMap<>();
+    Map<ExprValue, List<Map<String, Object>>> inputMap = new HashMap<>();
     while (input.hasNext()) {
       Map<String, ExprValue> tupleValue = input.next().tupleValue();
-      ExprValue aggValue = tupleValue.get(aggField);
-      Pair<List<Map<String, Object>>, List<Map<String, Object>>> inputDataPair =
-          inputMap.computeIfAbsent(aggValue,
-              k -> new ImmutablePair<>(new LinkedList<>(), new LinkedList<>()));
-      List<Map<String, Object>> inputData = inputDataPair.getLeft();
-      List<Map<String, Object>> filteredInputData = inputDataPair.getRight();
-
-      ImmutableMap.Builder<String, Object> inputDataBuilder = ImmutableMap.builder();
-      ImmutableMap.Builder<String, Object> filteredInputDataBuilder = ImmutableMap.builder();
-      tupleValue.forEach((key, value) -> {
-        inputDataBuilder.put(key, value.value());
-        // aggField should not be included for ml prediction
-        if (!Objects.equals(aggField, key)) {
-          filteredInputDataBuilder.put(key, value.value());
+      ExprValue categoryValue = tupleValue.get(categoryField);
+      List<Map<String, Object>> inputData =
+          inputMap.computeIfAbsent(categoryValue, k -> new LinkedList<>());
+      inputData.add(new HashMap<String, Object>() {
+        {
+          tupleValue.forEach((key, value) -> put(key, value.value()));
         }
       });
-
-      inputData.add(inputDataBuilder.build());
-      filteredInputData.add(filteredInputDataBuilder.build());
     }
 
     return inputMap.values().stream()
-        .map(inputDataPair -> new ImmutablePair<>(DataFrameBuilder.load(inputDataPair.getLeft()),
-            DataFrameBuilder.load(inputDataPair.getRight())))
-        .collect(Collectors.toList());
+        .map(inputData -> {
+          // categoryField should be excluded for ml-commons predictions
+          List<Map<String, Object>> filteredInputData = inputData.stream().map(
+                  row -> row.entrySet().stream().filter(entry -> !entry.getKey().equals(categoryField))
+                      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
+              .collect(Collectors.toList());
+          return new ImmutablePair<>(DataFrameBuilder.load(inputData),
+              DataFrameBuilder.load(filteredInputData));
+        }).collect(Collectors.toList());
   }
 
   /**

@@ -6,7 +6,7 @@
 
 package org.opensearch.sql.opensearch.planner.physical;
 
-import static org.opensearch.sql.utils.MLCommonsConstants.AGG_FIELD;
+import static org.opensearch.sql.utils.MLCommonsConstants.CATEGORY_FIELD;
 import static org.opensearch.sql.utils.MLCommonsConstants.ANOMALY_RATE;
 import static org.opensearch.sql.utils.MLCommonsConstants.ANOMALY_SCORE_THRESHOLD;
 import static org.opensearch.sql.utils.MLCommonsConstants.DATE_FORMAT;
@@ -66,10 +66,10 @@ public class ADOperator extends MLCommonsOperatorActions {
   @Override
   public void open() {
     super.open();
-    String aggField =
-        arguments.containsKey(AGG_FIELD) ? (String) arguments.get(AGG_FIELD).getValue() : null;
+    String categoryField = arguments.containsKey(CATEGORY_FIELD)
+        ? (String) arguments.get(CATEGORY_FIELD).getValue() : null;
     List<Pair<DataFrame, DataFrame>>
-        inputDataFrames = generateAggregatedInputDataset(input, aggField);
+        inputDataFrames = generateAggregatedInputDataset(input, categoryField);
     MLAlgoParams mlAlgoParams = convertArgumentToMLParameter(arguments);
 
     List<MLPredictionOutput> predictionResults = inputDataFrames.stream()
