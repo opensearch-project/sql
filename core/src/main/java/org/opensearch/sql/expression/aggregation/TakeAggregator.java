@@ -41,7 +41,7 @@ public class TakeAggregator extends Aggregator<TakeAggregator.TakeState> {
   }
 
   /**
-   * Count State.
+   * Take State.
    */
   protected static class TakeState implements AggregationState {
     protected int index;

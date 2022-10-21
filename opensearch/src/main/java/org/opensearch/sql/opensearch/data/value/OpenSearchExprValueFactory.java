@@ -214,7 +214,6 @@ public class OpenSearchExprValueFactory {
    */
   private ExprValue parseArray(Content content, String prefix) {
     List<ExprValue> result = new ArrayList<>();
-    // content.array().forEachRemaining(v -> result.add(parse(v, prefix, Optional.of(STRUCT))));
     content.array().forEachRemaining(v -> {
       if (v.isString()) {
         result.add(parse(v, prefix, Optional.of(STRING)));

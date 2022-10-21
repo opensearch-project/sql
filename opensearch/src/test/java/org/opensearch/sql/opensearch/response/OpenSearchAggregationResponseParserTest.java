@@ -109,50 +109,6 @@ class OpenSearchAggregationResponseParserTest {
   }
 
   @Test
-  void take_aggregation_should_pass() {
-    String response = "{\n"
-        + "  \"composite#composite_buckets\": {\n"
-        + "    \"buckets\": [\n"
-        + "      {\n"
-        + "        \"key\": {\n"
-        + "          \"type\": \"take\"\n"
-        + "        },\n"
-        + "        \"doc_count\": 2,\n"
-        + "        \"top_hits#take\": {\n"
-        + "          \"hits\": {\n"
-        + "            \"total\": { \"value\": 2, \"relation\": \"eq\" },\n"
-        + "            \"max_score\": 1.0,\n"
-        + "            \"hits\": [\n"
-        + "              {\n"
-        + "                \"_index\": \"accounts\",\n"
-        + "                \"_id\": \"1\",\n"
-        + "                \"_score\": 1.0,\n"
-        + "                \"_source\": {\n"
-        + "                  \"gender\": \"m\"\n"
-        + "                }\n"
-        + "              },\n"
-        + "              {\n"
-        + "                \"_index\": \"accounts\",\n"
-        + "                \"_id\": \"2\",\n"
-        + "                \"_score\": 1.0,\n"
-        + "                \"_source\": {\n"
-        + "                  \"gender\": \"f\"\n"
-        + "                }\n"
-        + "              }\n"
-        + "            ]\n"
-        + "          }\n"
-        + "        }\n"
-        + "      }\n"
-        + "    ]\n"
-        + "  }\n"
-        + "}";
-    OpenSearchAggregationResponseParser parser =
-        new CompositeAggregationParser(new TopHitsParser("take"));
-    assertThat(parse(parser, response),
-        contains(ImmutableMap.of("type", "take", "take", ImmutableList.of("m", "f"))));
-  }
-
-  @Test
   void two_bucket_one_metric_should_pass() {
     String response = "{\n"
         + "  \"composite#composite_buckets\": {\n"
@@ -314,6 +270,50 @@ class OpenSearchAggregationResponseParserTest {
     );
     assertThat(parse(parser, response),
         contains(entry("esField", 93.71390409320287, "maxField", 360D)));
+  }
+
+  @Test
+  void top_hits_aggregation_should_pass() {
+    String response = "{\n"
+        + "  \"composite#composite_buckets\": {\n"
+        + "    \"buckets\": [\n"
+        + "      {\n"
+        + "        \"key\": {\n"
+        + "          \"type\": \"take\"\n"
+        + "        },\n"
+        + "        \"doc_count\": 2,\n"
+        + "        \"top_hits#take\": {\n"
+        + "          \"hits\": {\n"
+        + "            \"total\": { \"value\": 2, \"relation\": \"eq\" },\n"
+        + "            \"max_score\": 1.0,\n"
+        + "            \"hits\": [\n"
+        + "              {\n"
+        + "                \"_index\": \"accounts\",\n"
+        + "                \"_id\": \"1\",\n"
+        + "                \"_score\": 1.0,\n"
+        + "                \"_source\": {\n"
+        + "                  \"gender\": \"m\"\n"
+        + "                }\n"
+        + "              },\n"
+        + "              {\n"
+        + "                \"_index\": \"accounts\",\n"
+        + "                \"_id\": \"2\",\n"
+        + "                \"_score\": 1.0,\n"
+        + "                \"_source\": {\n"
+        + "                  \"gender\": \"f\"\n"
+        + "                }\n"
+        + "              }\n"
+        + "            ]\n"
+        + "          }\n"
+        + "        }\n"
+        + "      }\n"
+        + "    ]\n"
+        + "  }\n"
+        + "}";
+    OpenSearchAggregationResponseParser parser =
+        new CompositeAggregationParser(new TopHitsParser("take"));
+    assertThat(parse(parser, response),
+        contains(ImmutableMap.of("type", "take", "take", ImmutableList.of("m", "f"))));
   }
 
   public List<Map<String, Object>> parse(OpenSearchAggregationResponseParser parser, String json) {

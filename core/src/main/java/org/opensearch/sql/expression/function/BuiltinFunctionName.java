@@ -233,7 +233,6 @@ public enum BuiltinFunctionName {
 
   private static final Map<String, BuiltinFunctionName> AGGREGATION_FUNC_MAPPING =
       new ImmutableMap.Builder<String, BuiltinFunctionName>()
-          .put("take", BuiltinFunctionName.TAKE)
           .put("max", BuiltinFunctionName.MAX)
           .put("min", BuiltinFunctionName.MIN)
           .put("avg", BuiltinFunctionName.AVG)
@@ -246,6 +245,7 @@ public enum BuiltinFunctionName {
           .put("stddev", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_pop", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
+          .put("take", BuiltinFunctionName.TAKE)
           .build();
 
   public static Optional<BuiltinFunctionName> of(String str) {

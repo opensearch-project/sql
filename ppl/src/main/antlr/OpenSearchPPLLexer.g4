@@ -157,7 +157,6 @@ BIT_AND_OP:                         '&';
 BIT_XOR_OP:                         '^';
 
 // AGGREGATIONS
-TAKE:                               'TAKE';
 AVG:                                'AVG';
 COUNT:                              'COUNT';
 DISTINCT_COUNT:                     'DISTINCT_COUNT';
@@ -178,6 +177,7 @@ VAR_POP:                            'VAR_POP';
 STDDEV_SAMP:                        'STDDEV_SAMP';
 STDDEV_POP:                         'STDDEV_POP';
 PERCENTILE:                         'PERCENTILE';
+TAKE:                               'TAKE';
 FIRST:                              'FIRST';
 LAST:                               'LAST';
 LIST:                               'LIST';
