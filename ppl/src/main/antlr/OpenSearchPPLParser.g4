@@ -25,7 +25,7 @@ pplCommands
 
 commands
     : whereCommand | fieldsCommand | renameCommand | statsCommand | dedupCommand | sortCommand | evalCommand | headCommand
-    | topCommand | rareCommand | parseCommand | kmeansCommand | adCommand;
+    | topCommand | rareCommand | grokCommand | parseCommand | patternsCommand | kmeansCommand | adCommand;
 
 searchCommand
     : (SEARCH)? fromClause                                          #searchFrom
@@ -94,10 +94,27 @@ rareCommand
     (byClause)?
     ;
 
-parseCommand
-    : PARSE expression pattern
+grokCommand
+    : GROK (source_field=expression) (pattern=stringLiteral)
     ;
-    
+
+parseCommand
+    : PARSE (source_field=expression) (pattern=stringLiteral)
+    ;
+
+patternsCommand
+    : PATTERNS (patternsParameter)* (source_field=expression)
+    ;
+
+patternsParameter
+    : (NEW_FIELD EQUAL new_field=stringLiteral)
+    | (PATTERN EQUAL pattern=stringLiteral)
+    ;
+
+patternsMethod
+    : PUNCT | REGEX
+    ;
+
 kmeansCommand
     : KMEANS (kmeansParameter)*
     ;
@@ -130,6 +147,8 @@ adParameter
 fromClause
     : SOURCE EQUAL tableSourceClause
     | INDEX EQUAL tableSourceClause
+    | SOURCE EQUAL tableFunction
+    | INDEX EQUAL tableFunction
     ;
 
 tableSourceClause
@@ -221,6 +240,11 @@ primaryExpression
     | dataTypeFunctionCall
     | fieldExpression
     | literalValue
+    | constantFunction
+    ;
+
+constantFunction
+    : constantFunctionName LT_PRTHS functionArgs? RT_PRTHS
     ;
 
 booleanExpression
@@ -249,6 +273,10 @@ multiFieldRelevanceFunction
 tableSource
     : qualifiedName
     | ID_DATE_SUFFIX
+    ;
+
+tableFunction
+    : qualifiedName LT_PRTHS functionArgs RT_PRTHS
     ;
 
 /** fields */
@@ -313,6 +341,7 @@ evalFunctionName
     | dateAndTimeFunctionBase
     | textFunctionBase
     | conditionFunctionBase
+    | systemFunctionBase
     ;
 
 functionArgs
@@ -320,7 +349,7 @@ functionArgs
     ;
 
 functionArg
-    : valueExpression
+    : (ident EQUAL)? valueExpression
     ;
 
 relevanceArg
@@ -373,15 +402,26 @@ trigonometricFunctionName
     ;
 
 dateAndTimeFunctionBase
-    : ADDDATE | DATE | DATE_ADD | DATE_SUB | DAY | DAYNAME | DAYOFMONTH | DAYOFWEEK | DAYOFYEAR | FROM_DAYS
-    | HOUR | MICROSECOND | MINUTE | MONTH | MONTHNAME | QUARTER | SECOND | SUBDATE | TIME | TIME_TO_SEC
-    | TIMESTAMP | TO_DAYS | YEAR | WEEK | DATE_FORMAT | MAKETIME | MAKEDATE
+    : ADDDATE | CONVERT_TZ | DATE | DATETIME | DATE_ADD | DATE_FORMAT | DATE_SUB | DAY | DAYNAME | DAYOFMONTH | DAYOFWEEK
+    | DAYOFYEAR | FROM_DAYS | FROM_UNIXTIME | HOUR | MAKEDATE | MAKETIME | MICROSECOND | MINUTE
+    | MONTH | MONTHNAME | QUARTER | SECOND | SUBDATE | SYSDATE | TIME | TIMESTAMP | TIME_TO_SEC
+    | TO_DAYS | UNIX_TIMESTAMP | WEEK | YEAR
+    ;
+
+// Functions which value could be cached in scope of a single query
+constantFunctionName
+    : datetimeConstantLiteral
+    | CURDATE | CURTIME | NOW
     ;
 
 /** condition function return boolean value */
 conditionFunctionBase
     : LIKE
     | IF | ISNULL | ISNOTNULL | IFNULL | NULLIF
+    ;
+
+systemFunctionBase
+    : TYPEOF
     ;
 
 textFunctionBase
@@ -419,6 +459,7 @@ literalValue
     | integerLiteral
     | decimalLiteral
     | booleanLiteral
+    | datetimeLiteral           //#datetime
     ;
 
 intervalLiteral
@@ -441,8 +482,29 @@ booleanLiteral
     : TRUE | FALSE
     ;
 
-pattern
-    : stringLiteral
+// Date and Time Literal, follow ANSI 92
+datetimeLiteral
+    : dateLiteral
+    | timeLiteral
+    | timestampLiteral
+    | datetimeConstantLiteral
+    ;
+
+dateLiteral
+    : DATE date=stringLiteral
+    ;
+
+timeLiteral
+    : TIME time=stringLiteral
+    ;
+
+timestampLiteral
+    : TIMESTAMP timestamp=stringLiteral
+    ;
+
+// Actually, these constants are shortcuts to the corresponding functions
+datetimeConstantLiteral
+    : CURRENT_DATE | CURRENT_TIME | CURRENT_TIMESTAMP | LOCALTIME | LOCALTIMESTAMP | UTC_TIMESTAMP | UTC_DATE | UTC_TIME
     ;
 
 intervalUnit

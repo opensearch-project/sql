@@ -28,6 +28,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.analysis.model.CatalogSchemaIdentifierName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -36,6 +37,8 @@ import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
+import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
@@ -53,6 +56,7 @@ import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.catalog.CatalogService;
@@ -63,10 +67,13 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.NamedExpression;
-import org.opensearch.sql.expression.ParseExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.function.TableFunctionImplementation;
+import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
@@ -99,16 +106,20 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   private final CatalogService catalogService;
 
+  private final BuiltinFunctionRepository repository;
+
   /**
    * Constructor.
    */
   public Analyzer(
       ExpressionAnalyzer expressionAnalyzer,
-      CatalogService catalogService) {
+      CatalogService catalogService,
+      BuiltinFunctionRepository repository) {
     this.expressionAnalyzer = expressionAnalyzer;
     this.catalogService = catalogService;
     this.selectExpressionAnalyzer = new SelectExpressionAnalyzer(expressionAnalyzer);
     this.namedExpressionAnalyzer = new NamedExpressionAnalyzer(expressionAnalyzer);
+    this.repository = repository;
   }
 
   public LogicalPlan analyze(UnresolvedPlan unresolved, AnalysisContext context) {
@@ -117,32 +128,23 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitRelation(Relation node, AnalysisContext context) {
+    QualifiedName qualifiedName = node.getTableQualifiedName();
+    CatalogSchemaIdentifierName catalogSchemaIdentifierName
+        = new CatalogSchemaIdentifierName(qualifiedName.getParts(), catalogService.getCatalogs());
+    String tableName = catalogSchemaIdentifierName.getIdentifierName();
     context.push();
     TypeEnvironment curEnv = context.peek();
-    String catalogName = getCatalogName(node);
-    String tableName = getTableName(node);
-    if (catalogName != null && !catalogService.getCatalogs().contains(catalogName)) {
-      tableName = catalogName + "." + tableName;
-      catalogName = null;
-    }
     Table table = catalogService
-        .getStorageEngine(catalogName)
-        .getTable(tableName);
+        .getStorageEngine(catalogSchemaIdentifierName.getCatalogName())
+        .getTable(catalogSchemaIdentifierName.getIdentifierName());
     table.getFieldTypes().forEach((k, v) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));
 
     // Put index name or its alias in index namespace on type environment so qualifier
     // can be removed when analyzing qualified name. The value (expr type) here doesn't matter.
-    curEnv.define(new Symbol(Namespace.INDEX_NAME, node.getTableNameOrAlias()), STRUCT);
+    curEnv.define(new Symbol(Namespace.INDEX_NAME,
+        (node.getAlias() == null) ? tableName : node.getAlias()), STRUCT);
 
     return new LogicalRelation(tableName, table);
-  }
-
-  private String getTableName(Relation node) {
-    return node.getTableName();
-  }
-
-  private String getCatalogName(Relation node) {
-    return node.getCatalogName();
   }
 
 
@@ -157,6 +159,24 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     curEnv.define(new Symbol(Namespace.INDEX_NAME, node.getAliasAsTableName()), STRUCT);
     return subquery;
   }
+
+  @Override
+  public LogicalPlan visitTableFunction(TableFunction node, AnalysisContext context) {
+    QualifiedName qualifiedName = node.getFunctionName();
+    CatalogSchemaIdentifierName catalogSchemaIdentifierName
+        = new CatalogSchemaIdentifierName(qualifiedName.getParts(), catalogService.getCatalogs());
+
+    FunctionName functionName = FunctionName.of(catalogSchemaIdentifierName.getIdentifierName());
+    List<Expression> arguments = node.getArguments().stream()
+        .map(unresolvedExpression -> this.expressionAnalyzer.analyze(unresolvedExpression, context))
+        .collect(Collectors.toList());
+    TableFunctionImplementation tableFunctionImplementation
+        = (TableFunctionImplementation) repository.compile(
+        catalogSchemaIdentifierName.getCatalogName(), functionName, arguments);
+    return new LogicalRelation(catalogSchemaIdentifierName.getIdentifierName(),
+        tableFunctionImplementation.applyArguments());
+  }
+
 
   @Override
   public LogicalPlan visitLimit(Limit node, AnalysisContext context) {
@@ -312,7 +332,6 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     for (UnresolvedExpression expr : node.getProjectList()) {
       HighlightAnalyzer highlightAnalyzer = new HighlightAnalyzer(expressionAnalyzer, child);
       child = highlightAnalyzer.analyze(expr, context);
-
     }
 
     List<NamedExpression> namedExpressions =
@@ -352,15 +371,18 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitParse(Parse node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
-    Expression expression = expressionAnalyzer.analyze(node.getExpression(), context);
+    Expression sourceField = expressionAnalyzer.analyze(node.getSourceField(), context);
+    ParseMethod parseMethod = node.getParseMethod();
+    java.util.Map<String, Literal> arguments = node.getArguments();
     String pattern = (String) node.getPattern().getValue();
     Expression patternExpression = DSL.literal(pattern);
 
     TypeEnvironment curEnv = context.peek();
-    ParseUtils.getNamedGroupCandidates(pattern).forEach(group -> {
-      curEnv.define(new Symbol(Namespace.FIELD_NAME, group), ExprCoreType.STRING);
-      context.getNamedParseExpressions().add(new NamedExpression(group,
-          new ParseExpression(expression, patternExpression, DSL.literal(group))));
+    ParseUtils.getNamedGroupCandidates(parseMethod, pattern, arguments).forEach(group -> {
+      ParseExpression expr = ParseUtils.createParseExpression(parseMethod, sourceField,
+          patternExpression, DSL.literal(group));
+      curEnv.define(new Symbol(Namespace.FIELD_NAME, group), expr.type());
+      context.getNamedParseExpressions().add(new NamedExpression(group, expr));
     });
     return child;
   }

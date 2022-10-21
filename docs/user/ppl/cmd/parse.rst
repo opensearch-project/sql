@@ -11,25 +11,25 @@ parse
 
 Description
 ============
-| The ``parse`` command parses a text field using a regular expression and append the result to the search result.
+| The ``parse`` command parses a text field with a regular expression and appends the result to the search result.
 
 
 Syntax
 ============
-parse <field> <regular-expression>
+parse <field> <pattern>
 
 * field: mandatory. The field must be a text field.
-* regular-expression: mandatory. The regular expression used to extract new fields from given text field. If a new field name already exists, it will replace the original field.
+* pattern: mandatory string. The regular expression pattern used to extract new fields from the given text field. If a new field name already exists, it will replace the original field.
 
 Regular Expression
 ==================
 
-The regular expression is used to match the whole text field of each document with Java regex engine. Each named capture group in the expression will become a new ``STRING`` field.
+The regular expression pattern is used to match the whole text field of each document with Java regex engine. Each named capture group in the expression will become a new ``STRING`` field.
 
-Example 1: Create the new field
-===============================
+Example 1: Create a new field
+=============================
 
-The example shows how to create new field ``host`` for each document. ``host`` will be the host name after ``@`` in ``email`` field. Parsing a null field will return an empty string.
+The example shows how to create a new field ``host`` for each document. ``host`` will be the host name after ``@`` in ``email`` field. Parsing a null field will return an empty string.
 
 PPL query::
 
@@ -45,8 +45,8 @@ PPL query::
     +-----------------------+------------+
 
 
-Example 2: Override the existing field
-======================================
+Example 2: Override an existing field
+=====================================
 
 The example shows how to override the existing ``address`` field with street number removed.
 
@@ -80,8 +80,8 @@ PPL query::
     | 880            | Holmes Lane    |
     +----------------+----------------+
 
-Limitation
-==========
+Limitations
+===========
 
 There are a few limitations with parse command:
 

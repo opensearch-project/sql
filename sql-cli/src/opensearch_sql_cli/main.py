@@ -61,7 +61,7 @@ click.disable_unicode_literals_warning = True
     "use_aws_authentication",
     is_flag=True,
     default=False,
-    help="Use AWS sigV4 to connect to AWS ELasticsearch domain",
+    help="Use AWS sigV4 to connect to AWS OpenSearch domain",
 )
 @click.option(
     "-l",

@@ -33,7 +33,7 @@ public class ExprDatetimeValue extends AbstractExprValue {
 
   static {
     FORMATTER_VARIABLE_NANOS = new DateTimeFormatterBuilder()
-        .appendPattern("yyyy-MM-dd HH:mm:ss")
+        .appendPattern("uuuu-MM-dd HH:mm:ss[xxx]")
         .appendFraction(
             ChronoField.NANO_OF_SECOND,
             MIN_FRACTION_SECONDS,

@@ -37,6 +37,12 @@ public class SQLServiceConfig {
   @Autowired
   private BuiltinFunctionRepository functionRepository;
 
+  @Bean
+  public Analyzer analyzer() {
+    return new Analyzer(new ExpressionAnalyzer(functionRepository), catalogService,
+        functionRepository);
+  }
+
   /**
    * The registration of OpenSearch storage engine happens here because
    * OpenSearchStorageEngine is dependent on NodeClient.
@@ -48,7 +54,8 @@ public class SQLServiceConfig {
   public SQLService sqlService() {
     return new SQLService(
         new SQLSyntaxParser(),
-        new Analyzer(new ExpressionAnalyzer(functionRepository), catalogService),
+        new Analyzer(new ExpressionAnalyzer(functionRepository),
+            catalogService, functionRepository),
         executionEngine,
         functionRepository);
   }

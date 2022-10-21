@@ -28,7 +28,7 @@ import org.opensearch.sql.expression.ReferenceExpression;
  * Remove the fields specified in {@link RemoveOperator#removeList} from input.
  */
 @ToString
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 public class RemoveOperator extends PhysicalPlan {
   @Getter
   private final PhysicalPlan input;

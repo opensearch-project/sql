@@ -859,15 +859,207 @@ Example::
     +------------------------------------------------+----------------------------------+------------------------------------------------+
 
 
+CONVERT_TZ
+----------
+
+Description
+>>>>>>>>>>>
+
+Usage: convert_tz(datetime, from_timezone, to_timezone) constructs a datetime object converted from the from_timezone to the to_timezone.
+
+Argument type: DATETIME, STRING, STRING
+
+Return type: DATETIME
+
+Example::
+
+  os> SELECT CONVERT_TZ('2008-12-25 05:30:00', '+00:00', 'America/Los_Angeles')
+    fetched rows / total rows = 1/1
+    +----------------------------------------------------------------------+
+    | CONVERT_TZ('2008-12-25 05:30:00', '+00:00', 'America/Los_Angeles')   |
+    |----------------------------------------------------------------------|
+    | 2008-12-24 21:30:00                                                  |
+    +----------------------------------------------------------------------+
+
+
+  os> SELECT CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "-10:00")
+    fetched rows / total rows = 1/1
+    +---------------------------------------------------------+
+    | CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "-10:00")   |
+    |---------------------------------------------------------|
+    | 2010-10-09 23:10:10                                     |
+    +---------------------------------------------------------+
+
+When the datedate, or either of the two time zone fields are invalid format, then the result is null. In this example any datetime that is not <yyyy-MM-dd HH:mm:ss> will result in null.
+Example::
+
+  os> SELECT CONVERT_TZ("test", "+01:00", "-10:00")
+      fetched rows / total rows = 1/1
+      +------------------------------------------+
+      | CONVERT_TZ("test", "+01:00", "-10:00")   |
+      |------------------------------------------|
+      | null                                     |
+      +------------------------------------------+
+
+When the datetime, or either of the two time zone fields are invalid format, then the result is null. In this example any timezone that is not <+HH:mm> or <-HH:mm> will result in null.
+Example::
+
+  os> SELECT CONVERT_TZ("2010-10-10 10:10:10", "test", "-10:00")
+      fetched rows / total rows = 1/1
+      +-------------------------------------------------------+
+      | CONVERT_TZ("2010-10-10 10:10:10", "test", "-10:00")   |
+      |-------------------------------------------------------|
+      | null                                                  |
+      +-------------------------------------------------------+
+
+The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range will result in null.
+Example::
+
+  os> SELECT CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "+14:00")
+    fetched rows / total rows = 1/1
+    +---------------------------------------------------------+
+    | CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "+14:00")   |
+    |---------------------------------------------------------|
+    | 2010-10-10 23:10:10                                     |
+    +---------------------------------------------------------+
+
+The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range will result in null.
+Example::
+
+  os> SELECT CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "+14:01")
+    fetched rows / total rows = 1/1
+    +---------------------------------------------------------+
+    | CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "+14:01")   |
+    |---------------------------------------------------------|
+    | null                                                    | 
+    +---------------------------------------------------------+
+
+The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range will result in null.
+Example::
+
+  os> SELECT CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "-13:59")
+    fetched rows / total rows = 1/1
+    +---------------------------------------------------------+
+    | CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "-13:59")   |
+    |---------------------------------------------------------|
+    | 2010-10-09 19:11:10                                     |
+    +---------------------------------------------------------+
+
+The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range will result in null.
+Example::
+
+  os> SELECT CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "-14:00")
+    fetched rows / total rows = 1/1
+    +---------------------------------------------------------+
+    | CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "-14:00")   |
+    |---------------------------------------------------------|
+    | null                                                    | 
+    +---------------------------------------------------------+
+
+
 CURDATE
 -------
 
 Description
 >>>>>>>>>>>
 
-Specifications:
+Returns the current time as a value in 'YYYY-MM-DD'.
+CURDATE() returns the time at which it executes as `SYSDATE() <#sysdate>`_ does.
 
-1. CURDATE() -> DATE
+Return type: DATE
+
+Specification: CURDATE() -> DATE
+
+Example::
+
+    > SELECT CURDATE();
+    fetched rows / total rows = 1/1
+    +-------------+
+    | CURDATE()   |
+    |-------------|
+    | 2022-08-02  |
+    +-------------+
+
+
+CURRENT_DATE
+------------
+
+Description
+>>>>>>>>>>>
+
+`CURRENT_DATE` and `CURRENT_DATE()` are synonyms for `CURDATE() <#curdate>`_.
+
+Example::
+
+    > SELECT CURRENT_DATE(), CURRENT_DATE;
+    fetched rows / total rows = 1/1
+    +------------------+----------------+
+    | CURRENT_DATE()   | CURRENT_DATE   |
+    |------------------+----------------|
+    | 2022-08-02       | 2022-08-02     |
+    +------------------+----------------+
+
+
+CURRENT_TIME
+------------
+
+Description
+>>>>>>>>>>>
+
+`CURRENT_TIME` and `CURRENT_TIME()` are synonyms for `CURTIME() <#curtime>`_.
+
+Example::
+
+    > SELECT CURRENT_TIME(), CURRENT_TIME;
+    fetched rows / total rows = 1/1
+    +-----------------+----------------+
+    | CURRENT_TIME()  | CURRENT_TIME   |
+    |-----------------+----------------|
+    | 15:39:05        | 15:39:05       |
+    +-----------------+----------------+
+
+
+CURRENT_TIMESTAMP
+-----------------
+
+Description
+>>>>>>>>>>>
+
+`CURRENT_TIMESTAMP` and `CURRENT_TIMESTAMP()` are synonyms for `NOW() <#now>`_.
+
+Example::
+
+    > SELECT CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP;
+    fetched rows / total rows = 1/1
+    +-----------------------+---------------------+
+    | CURRENT_TIMESTAMP()   | CURRENT_TIMESTAMP   |
+    |-----------------------+---------------------|
+    | 2022-08-02 15:54:19   | 2022-08-02 15:54:19 |
+    +-----------------------+---------------------+
+
+
+CURTIME
+-------
+
+Description
+>>>>>>>>>>>
+
+Returns the current time as a value in 'hh:mm:ss'.
+CURTIME() returns the time at which the statement began to execute as `NOW() <#now>`_ does.
+
+Return type: TIME
+
+Specification: CURTIME() -> TIME
+
+Example::
+
+    > SELECT CURTIME() as value_1, CURTIME()  as value_2;
+    fetched rows / total rows = 1/1
+    +-----------+-----------+
+    | value_1   | value_2   |
+    |-----------+-----------|
+    | 15:39:05  | 15:39:05  |
+    +-----------+-----------+
 
 
 DATE
@@ -892,6 +1084,100 @@ Example::
     | DATE '2020-08-26'    | DATE '2020-08-26'                        |
     +----------------------+------------------------------------------+
 
+
+DATETIME
+--------
+
+Description
+>>>>>>>>>>>
+
+Usage: datetime(datetime)/ datetime(date, to_timezone) Converts the datetime to a new timezone
+
+Argument type: DATETIME/STRING
+
+Return type map:
+
+DATETIME, STRING -> DATETIME
+
+DATETIME -> DATETIME
+
+Example::
+
+    os> SELECT DATETIME('2008-12-25 05:30:00+00:00', 'America/Los_Angeles')
+    fetched rows / total rows = 1/1
+    +----------------------------------------------------------------+
+    | DATETIME('2008-12-25 05:30:00+00:00', 'America/Los_Angeles')   |
+    |----------------------------------------------------------------|
+    | 2008-12-24 21:30:00                                            |
+    +----------------------------------------------------------------+
+
+This example converts from -10:00 timezone to +10:00 timezone.
+Example::
+
+    os> SELECT DATETIME('2004-02-28 23:00:00-10:00', '+10:00')
+    fetched rows / total rows = 1/1
+    +---------------------------------------------------+
+    | DATETIME('2004-02-28 23:00:00-10:00', '+10:00')   |
+    |---------------------------------------------------|
+    | 2004-02-29 19:00:00                               |
+    +---------------------------------------------------+
+
+This example uses the timezone -14:00, which is outside of the range -13:59 and +14:00. This results in a null value.
+Example::
+
+    os> SELECT DATETIME('2008-01-01 02:00:00', '-14:00')
+    fetched rows / total rows = 1/1
+    +---------------------------------------------+
+    | DATETIME('2008-01-01 02:00:00', '-14:00')   |
+    |---------------------------------------------|
+    | null                                        |
+    +---------------------------------------------+
+
+February 30th is not a day, so it returns null.
+Example::
+
+    os> SELECT DATETIME('2008-02-30 02:00:00', '-00:00')
+    fetched rows / total rows = 1/1
+    +---------------------------------------------+
+    | DATETIME('2008-02-30 02:00:00', '-00:00')   |
+    |---------------------------------------------|
+    | null                                        |
+    +---------------------------------------------+
+
+DATETIME(datetime) examples
+
+DATETIME with no timezone specified does no conversion.
+Example::
+
+    os> SELECT DATETIME('2008-02-10 02:00:00')
+    fetched rows / total rows = 1/1
+    +-----------------------------------+
+    | DATETIME('2008-02-10 02:00:00')   |
+    |-----------------------------------|
+    | 2008-02-10 02:00:00               |
+    +-----------------------------------+
+
+February 30th is not a day, so it returns null.
+Example::
+
+    os> SELECT DATETIME('2008-02-30 02:00:00')
+    fetched rows / total rows = 1/1
+    +-----------------------------------+
+    | DATETIME('2008-02-30 02:00:00')   |
+    |-----------------------------------|
+    | null                              |
+    +-----------------------------------+
+
+DATETIME with a datetime and no seperate timezone to convert to returns the datetime object without a timezone.
+Example::
+
+    os> SELECT DATETIME('2008-02-10 02:00:00+04:00')
+    fetched rows / total rows = 1/1
+    +-----------------------------------------+
+    | DATETIME('2008-02-10 02:00:00+04:00')   |
+    |-----------------------------------------|
+    | 2008-02-10 02:00:00                     |
+    +-----------------------------------------+
 
 DATE_ADD
 --------
@@ -1196,6 +1482,43 @@ Example::
     +---------------------+
 
 
+FROM_UNIXTIME
+-------------
+
+Description
+>>>>>>>>>>>
+
+Usage: Returns a representation of the argument given as a datetime or character string value. Perform reverse conversion for `UNIX_TIMESTAMP`_ function.
+If second argument is provided, it is used to format the result in the same way as the format string used for the `DATE_FORMAT`_ function.
+If timestamp is outside of range 1970-01-01 00:00:00 - 3001-01-18 23:59:59.999999 (0 to 32536771199.999999 epoch time), function returns NULL.
+
+Argument type: DOUBLE, STRING
+
+Return type map:
+
+DOUBLE -> DATETIME
+
+DOUBLE, STRING -> STRING
+
+Examples::
+
+    os> select FROM_UNIXTIME(1220249547)
+    fetched rows / total rows = 1/1
+    +-----------------------------+
+    | FROM_UNIXTIME(1220249547)   |
+    |-----------------------------|
+    | 2008-09-01 06:12:27         |
+    +-----------------------------+
+
+    os> select FROM_UNIXTIME(1220249547, '%T')
+    fetched rows / total rows = 1/1
+    +-----------------------------------+
+    | FROM_UNIXTIME(1220249547, '%T')   |
+    |-----------------------------------|
+    | 06:12:27                          |
+    +-----------------------------------+
+
+
 HOUR
 ----
 
@@ -1217,6 +1540,44 @@ Example::
     |---------------------------|
     | 1                         |
     +---------------------------+
+
+
+LOCALTIMESTAMP
+--------------
+
+Description
+>>>>>>>>>>>
+
+`LOCALTIMESTAMP` and `LOCALTIMESTAMP()` are synonyms for `NOW() <#now>`_.
+
+Example::
+
+    > SELECT LOCALTIMESTAMP(), LOCALTIMESTAMP;
+    fetched rows / total rows = 1/1
+    +---------------------+---------------------+
+    | LOCALTIMESTAMP()    | LOCALTIMESTAMP      |
+    |---------------------+---------------------|
+    | 2022-08-02 15:54:19 | 2022-08-02 15:54:19 |
+    +---------------------+---------------------+
+
+
+LOCALTIME
+---------
+
+Description
+>>>>>>>>>>>
+
+`LOCALTIME` and `LOCALTIME()` are synonyms for `NOW() <#now>`_.
+
+Example::
+
+    > SELECT LOCALTIME(), LOCALTIME;
+    fetched rows / total rows = 1/1
+    +---------------------+---------------------+
+    | LOCALTIME()         | LOCALTIME           |
+    |---------------------+---------------------|
+    | 2022-08-02 15:54:19 | 2022-08-02 15:54:19 |
+    +---------------------+---------------------+
 
 
 MAKEDATE
@@ -1383,9 +1744,22 @@ NOW
 Description
 >>>>>>>>>>>
 
-Specifications:
+Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss' format. The value is expressed in the cluster time zone.
+`NOW()` returns a constant time that indicates the time at which the statement began to execute. This differs from the behavior for `SYSDATE() <#sysdate>`_, which returns the exact time at which it executes.
 
-1. NOW() -> DATE
+Return type: DATETIME
+
+Specification: NOW() -> DATETIME
+
+Example::
+
+    > SELECT NOW() as value_1, NOW() as value_2;
+    fetched rows / total rows = 1/1
+    +---------------------+---------------------+
+    | value_1             | value_2             |
+    |---------------------+---------------------|
+    | 2022-08-02 15:39:05 | 2022-08-02 15:39:05 |
+    +---------------------+---------------------+
 
 
 QUARTER
@@ -1463,6 +1837,33 @@ Example::
     |------------------------------------------------+----------------------------------+------------------------------------------------|
     | 2007-12-02                                     | 2020-08-25                       | 2020-08-25 01:01:01                            |
     +------------------------------------------------+----------------------------------+------------------------------------------------+
+
+
+SYSDATE
+-------
+
+Description
+>>>>>>>>>>>
+
+Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss[.nnnnnn]'.
+SYSDATE() returns the time at which it executes. This differs from the behavior for `NOW() <#now>`_, which returns a constant time that indicates the time at which the statement began to execute.
+If the argument is given, it specifies a fractional seconds precision from 0 to 6, the return value includes a fractional seconds part of that many digits.
+
+Optional argument type: INTEGER
+
+Return type: DATETIME
+
+Specification: SYSDATE([INTEGER]) -> DATETIME
+
+Example::
+
+    > SELECT SYSDATE() as value_1, SYSDATE(6) as value_2;
+    fetched rows / total rows = 1/1
+    +---------------------+----------------------------+
+    | value_1             | value_2                    |
+    |---------------------+----------------------------|
+    | 2022-08-02 15:39:05 | 2022-08-02 15:39:05.123456 |
+    +---------------------+----------------------------+
 
 
 TIME
@@ -1555,6 +1956,40 @@ Example::
     |------------------------------|
     | 733687                       |
     +------------------------------+
+
+
+UNIX_TIMESTAMP
+--------------
+
+Description
+>>>>>>>>>>>
+
+Usage: Converts given argument to Unix time (seconds since January 1st, 1970 at 00:00:00 UTC). If no argument given, it returns current Unix time.
+The date argument may be a DATE, DATETIME, or TIMESTAMP string, or a number in YYMMDD, YYMMDDhhmmss, YYYYMMDD, or YYYYMMDDhhmmss format. If the argument includes a time part, it may optionally include a fractional seconds part.
+If argument is in invalid format or outside of range 1970-01-01 00:00:00 - 3001-01-18 23:59:59.999999 (0 to 32536771199.999999 epoch time), function returns NULL.
+You can use `FROM_UNIXTIME`_ to do reverse conversion.
+
+Argument type: <NONE>/DOUBLE/DATE/DATETIME/TIMESTAMP
+
+Return type: DOUBLE
+
+Examples::
+
+    os> select UNIX_TIMESTAMP(20771122143845)
+    fetched rows / total rows = 1/1
+    +----------------------------------+
+    | UNIX_TIMESTAMP(20771122143845)   |
+    |----------------------------------|
+    | 3404817525.0                     |
+    +----------------------------------+
+
+    os> select UNIX_TIMESTAMP(TIMESTAMP('1996-11-15 17:05:42'))
+    fetched rows / total rows = 1/1
+    +----------------------------------------------------+
+    | UNIX_TIMESTAMP(TIMESTAMP('1996-11-15 17:05:42'))   |
+    |----------------------------------------------------|
+    | 848077542.0                                        |
+    +----------------------------------------------------+
 
 
 WEEK
@@ -2560,3 +2995,28 @@ Example searching for field Tags::
     | [The <em>House</em> at <em>Pooh</em> Corner] |
     | [Winnie-the-<em>Pooh</em>]                   |
     +----------------------------------------------+
+
+System Functions
+================
+
+TYPEOF
+------
+
+Description
+>>>>>>>>>>>
+
+Usage: typeof(expr) function returns name of the data type of the value that is passed to it. This can be helpful for troubleshooting or dynamically constructing SQL queries.
+
+Argument type: ANY
+
+Return type: STRING
+
+Example::
+
+    os> select typeof(DATE('2008-04-14')) as `typeof(date)`, typeof(1) as `typeof(int)`, typeof(now()) as `typeof(now())`, typeof(accounts) as `typeof(column)` from people
+    fetched rows / total rows = 1/1
+    +----------------+---------------+-----------------+------------------+
+    | typeof(date)   | typeof(int)   | typeof(now())   | typeof(column)   |
+    |----------------+---------------+-----------------+------------------|
+    | DATE           | INTEGER       | DATETIME        | STRUCT           |
+    +----------------+---------------+-----------------+------------------+

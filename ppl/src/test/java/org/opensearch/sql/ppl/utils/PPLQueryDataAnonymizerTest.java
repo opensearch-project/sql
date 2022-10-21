@@ -39,6 +39,13 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testTableFunctionCommand() {
+    assertEquals("source=prometheus.query_range(***,***,***,***)",
+        anonymize("source=prometheus.query_range('afsd',123,123,3)")
+    );
+  }
+
+  @Test
   public void testPrometheusPPLCommand() {
     assertEquals("source=prometheus.http_requests_process",
         anonymize("source=prometheus.http_requests_process")

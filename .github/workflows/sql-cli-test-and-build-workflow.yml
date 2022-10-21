@@ -1,10 +1,16 @@
 name: SQL CLI Test and Build
 
-on: [pull_request, push]
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+    paths:
+      - 'sql-cli/**'
+      - '.github/workflows/sql-cli-test-and-build-workflow.yml'
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -12,13 +18,14 @@ jobs:
     strategy:
       matrix:
         python-version: [3.8]
+        opensearch-version: [ latest ]
 
     steps:
       - name: Checkout SQL CLI
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -28,25 +35,20 @@ jobs:
           pip install -r requirements-dev.txt
           pip install setuptools wheel
       
-      #TODO: will setup CI for IT once we have OpenSearch and sql plugin release. Not it only runs UT
-      # It can also be refactored by launching OpenSearch instance with plugin installed from gradle.
-      
-      # - name: Set up ES and install SQL plugin
-      #   run: |
-      #     sudo add-apt-repository ppa:openjdk-r/ppa
-      #     sudo apt update
-      #     sudo apt install openjdk-14-jdk
-      #     sudo apt install unzip
-      #     wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-oss-7.10.0-amd64.deb
-      #     sudo dpkg -i elasticsearch-oss-7.10.0-amd64.deb
-      #     sudo /usr/share/elasticsearch/bin/elasticsearch-plugin install --batch https://d3g5vo6xdbdb9a.cloudfront.net/downloads/elasticsearch-plugins/opensearch-sql/opensearch_sql-1.12.0.0.zip
-      #     sudo systemctl start elasticsearch.service
+        # tests are designed to run against http://localhost:9200, so we have to disable/remove security plugin
+      - name: Download and run OpenSearch
+        run: |
+          docker run -p 9200:9200 -e "discovery.type=single-node" -e "DISABLE_SECURITY_PLUGIN=true" --name test -d opensearchproject/opensearch:${{ matrix.opensearch-version }}
+
+      - name: Wait for cluster to start
+        uses: nick-fields/retry@v2
+        with:
+          timeout_seconds: 1
+          max_attempts: 30
+          command: curl -q localhost:9200
 
       - name: Run Tox Testing
         run: tox
-
-      # - name: Stop ES
-      #   run: sudo systemctl stop elasticsearch.service
 
       - name: Build Artifact
         run: python setup.py sdist bdist_wheel
@@ -57,7 +59,13 @@ jobs:
           cp -r ./dist/*.tar.gz ./dist/*.whl opensearchsql-builds/
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: opensearchsql
           path: sql-cli/opensearchsql-builds
+
+      - name: Clean up container
+        if: always()
+        run: |
+          docker container stop test
+          docker container rm test

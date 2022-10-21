@@ -48,9 +48,13 @@ The query start with search command and then flowing a set of command delimited 
 
   - `fields command <cmd/fields.rst>`_
 
+  - `grok command <cmd/grok.rst>`_
+
   - `kmeans command <cmd/kmeans.rst>`_
 
   - `parse command <cmd/parse.rst>`_
+
+  - `patterns command <cmd/patterns.rst>`_
 
   - `rename command <cmd/rename.rst>`_
 
@@ -83,6 +87,8 @@ The query start with search command and then flowing a set of command delimited 
   - `Relevance Functions <functions/relevance.rst>`_
 
   - `Type Conversion Functions <functions/conversion.rst>`_
+
+  - `System Functions <functions/system.rst>`_
 
 * **Optimization**
 

@@ -10,12 +10,16 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.net.URISyntaxException;
+import java.security.PrivilegedExceptionAction;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import okhttp3.OkHttpClient;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,6 +28,9 @@ import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.catalog.model.CatalogMetadata;
 import org.opensearch.sql.catalog.model.ConnectorType;
 import org.opensearch.sql.opensearch.security.SecurityAccess;
+import org.opensearch.sql.prometheus.client.PrometheusClient;
+import org.opensearch.sql.prometheus.client.PrometheusClientImpl;
+import org.opensearch.sql.prometheus.storage.PrometheusStorageEngine;
 import org.opensearch.sql.storage.StorageEngine;
 
 /**
@@ -33,9 +40,11 @@ public class CatalogServiceImpl implements CatalogService {
 
   private static final CatalogServiceImpl INSTANCE = new CatalogServiceImpl();
 
+  private static final String CATALOG_NAME_REGEX = "[@*A-Za-z]+?[*a-zA-Z_\\-0-9]*";
+
   private static final Logger LOG = LogManager.getLogger();
 
-  public static final String OPEN_SEARCH = "opensearch";
+  public static StorageEngine defaultOpenSearchStorageEngine;
 
   private Map<String, StorageEngine> storageEngineMap = new HashMap<>();
 
@@ -77,22 +86,23 @@ public class CatalogServiceImpl implements CatalogService {
 
   @Override
   public StorageEngine getStorageEngine(String catalog) {
-    if (catalog == null || !storageEngineMap.containsKey(catalog)) {
-      return storageEngineMap.get(OPEN_SEARCH);
+    if (!storageEngineMap.containsKey(catalog)) {
+      return defaultOpenSearchStorageEngine;
     }
     return storageEngineMap.get(catalog);
   }
 
   @Override
   public Set<String> getCatalogs() {
-    Set<String> catalogs = storageEngineMap.keySet();
-    catalogs.remove(OPEN_SEARCH);
-    return catalogs;
+    return Collections.unmodifiableSet(storageEngineMap.keySet());
   }
 
   @Override
   public void registerOpenSearchStorageEngine(StorageEngine storageEngine) {
-    storageEngineMap.put(OPEN_SEARCH, storageEngine);
+    if (storageEngine == null) {
+      throw new IllegalArgumentException("Default storage engine can't be null");
+    }
+    defaultOpenSearchStorageEngine = storageEngine;
   }
 
   private StorageEngine createStorageEngine(CatalogMetadata catalog) throws URISyntaxException {
@@ -100,7 +110,11 @@ public class CatalogServiceImpl implements CatalogService {
     ConnectorType connector = catalog.getConnector();
     switch (connector) {
       case PROMETHEUS:
-        storageEngine = null;
+        PrometheusClient
+            prometheusClient =
+            new PrometheusClientImpl(new OkHttpClient(),
+                new URI(catalog.getUri()));
+        storageEngine = new PrometheusStorageEngine(prometheusClient);
         break;
       default:
         LOG.info(
@@ -137,6 +151,14 @@ public class CatalogServiceImpl implements CatalogService {
         LOG.error("Found a catalog with no name. {}", catalog.toString());
         throw new IllegalArgumentException(
             "Missing Name Field from a catalog. Name is a required parameter.");
+      }
+
+      if (!catalog.getName().matches(CATALOG_NAME_REGEX)) {
+        LOG.error(String.format("Catalog Name: %s contains illegal characters."
+            + " Allowed characters: a-zA-Z0-9_-*@ ", catalog.getName()));
+        throw new IllegalArgumentException(
+            String.format("Catalog Name: %s contains illegal characters."
+            + " Allowed characters: a-zA-Z0-9_-*@ ", catalog.getName()));
       }
 
       if (StringUtils.isEmpty(catalog.getUri())) {

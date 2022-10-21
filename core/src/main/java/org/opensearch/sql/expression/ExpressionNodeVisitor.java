@@ -11,6 +11,7 @@ import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.conditional.cases.CaseClause;
 import org.opensearch.sql.expression.conditional.cases.WhenClause;
 import org.opensearch.sql.expression.function.FunctionImplementation;
+import org.opensearch.sql.expression.parse.ParseExpression;
 
 /**
  * Abstract visitor for expression tree nodes.

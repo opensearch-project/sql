@@ -1,9 +1,11 @@
 name: Link Checker
+
 on:
-  push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
+  push:
+    branches:
+      - 'main'
+      - '[1-9]+.[0-9x]+'
 
 jobs:
   linkchecker:
