@@ -17,6 +17,10 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
+/**
+ * The take aggregator keeps and returns the original values of a field.
+ * If the field value is NULL or MISSING, then it is skipped.
+ */
 public class TakeAggregator extends Aggregator<TakeAggregator.TakeState> {
 
   public TakeAggregator(List<Expression> arguments, ExprCoreType returnType) {
