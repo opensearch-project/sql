@@ -24,9 +24,10 @@ ad <number_of_trees> <shingle_size> <sample_size> <output_after> <time_decay> <a
 * output_after(integer): optional. The number of points required by stream samplers before results are returned. The default value is 32.
 * time_decay(double): optional. The decay factor used by stream samplers in this forest. The default value is 0.0001.
 * anomaly_rate(double): optional. The anomaly rate. The default value is 0.005.
-* time_field(string): mandatory. It specifies the time filed for RCF to use as time-series data.
+* time_field(string): mandatory. It specifies the time field for RCF to use as time-series data.
 * date_format(string): optional. It's used for formatting time_field field. The default formatting is "yyyy-MM-dd HH:mm:ss".
 * time_zone(string): optional. It's used for setting time zone for time_field filed. The default time zone is UTC.
+* category_field(string): optional. It specifies the category field used to group inputs. Each category will be independently predicted.
 
 
 Batch RCF for Non-time-series Data Command Syntax
@@ -38,6 +39,7 @@ ad <number_of_trees> <sample_size> <output_after> <training_data_size> <anomaly_
 * output_after(integer): optional. The number of points required by stream samplers before results are returned. The default value is 32.
 * training_data_size(integer): optional. The default value is the size of your training data set.
 * anomaly_score_threshold(double): optional. The threshold of anomaly score. The default value is 1.0.
+* category_field(string): optional. It specifies the category field used to group inputs. Each category will be independently predicted.
 
 Example1: Detecting events in New York City from taxi ridership data with time-series data
 ==========================================================================================
