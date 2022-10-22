@@ -118,7 +118,26 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
                     DSL.literal("action"))), DSL.named("response",
                 DSL.regex(DSL.ref("response", STRING),
                     DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
-                    DSL.literal("response"))), DSL.named("ignored",
+                    DSL.literal("response"))))
+        );
+    List<ExprValue> result = execute(plan);
+
+    assertThat(
+        result,
+        allOf(
+            iterableWithSize(1),
+            hasItems(
+                ExprValueUtils.tupleValue(ImmutableMap.of("action", "GET", "response", "200")))));
+  }
+
+  @Test
+  public void project_fields_with_unused_parse_expressions() {
+    when(inputPlan.hasNext()).thenReturn(true, false);
+    when(inputPlan.next())
+        .thenReturn(ExprValueUtils.tupleValue(ImmutableMap.of("response", "GET 200")));
+    PhysicalPlan plan =
+        project(inputPlan, ImmutableList.of(DSL.named("response", DSL.ref("response", STRING))),
+            ImmutableList.of(DSL.named("ignored",
                 DSL.regex(DSL.ref("response", STRING),
                     DSL.literal("(?<action>\\w+) (?<ignored>\\d+)"),
                     DSL.literal("ignored"))))
@@ -130,7 +149,33 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
         allOf(
             iterableWithSize(1),
             hasItems(
-                ExprValueUtils.tupleValue(ImmutableMap.of("action", "GET", "response", "200")))));
+                ExprValueUtils.tupleValue(ImmutableMap.of("response", "GET 200")))));
+  }
+
+  @Test
+  public void project_fields_with_parse_expressions_and_runtime_fields() {
+    when(inputPlan.hasNext()).thenReturn(true, false);
+    when(inputPlan.next())
+        .thenReturn(
+            ExprValueUtils.tupleValue(ImmutableMap.of("response", "GET 200", "eval_field", 1)));
+    PhysicalPlan plan =
+        project(inputPlan, ImmutableList.of(DSL.named("response", DSL.ref("response", STRING)),
+                DSL.named("action", DSL.ref("action", STRING)),
+                DSL.named("eval_field", DSL.ref("eval_field", INTEGER))),
+            ImmutableList.of(DSL.named("action",
+                DSL.regex(DSL.ref("response", STRING),
+                    DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
+                    DSL.literal("action"))))
+        );
+    List<ExprValue> result = execute(plan);
+
+    assertThat(
+        result,
+        allOf(
+            iterableWithSize(1),
+            hasItems(
+                ExprValueUtils.tupleValue(
+                    ImmutableMap.of("response", "GET 200", "action", "GET", "eval_field", 1)))));
   }
 
   @Test
