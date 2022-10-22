@@ -20,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionTestBase;
@@ -67,7 +68,7 @@ public class ConditionalFunctionTest extends ExpressionTestBase {
 
     assertEquals(
         new ExprIntegerValue(expect.call()),
-        cases.valueOf(env));
+        cases.valueOf(env, SessionContext.None));
   }
 
 }

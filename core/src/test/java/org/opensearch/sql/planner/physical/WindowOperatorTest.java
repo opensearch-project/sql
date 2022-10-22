@@ -140,7 +140,7 @@ class WindowOperatorTest extends PhysicalPlanTestBase {
             new SortOperator(new TestScan(), definition.getAllSortItems()),
             windowFunction,
             definition);
-        windowOperator.open();
+        windowOperator.open(SessionContext.None);
       }
 
       assertTrue(windowOperator.hasNext());

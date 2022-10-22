@@ -18,6 +18,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
@@ -51,7 +52,8 @@ public class QueryRangeFunctionImplementation extends FunctionExpression impleme
   }
 
   @Override
-  public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+  public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv,
+                           SessionContext sessionContext) {
     throw new UnsupportedOperationException(String.format(
         "Prometheus defined function [%s] is only "
             + "supported in SOURCE clause with prometheus connector catalog",
@@ -83,7 +85,7 @@ public class QueryRangeFunctionImplementation extends FunctionExpression impleme
     arguments.forEach(arg -> {
       String argName = ((NamedArgumentExpression) arg).getArgName();
       Expression argValue = ((NamedArgumentExpression) arg).getValue();
-      ExprValue literalValue = argValue.valueOf(null);
+      ExprValue literalValue = argValue.valueOf();
       switch (argName) {
         case QUERY:
           prometheusQueryRequest

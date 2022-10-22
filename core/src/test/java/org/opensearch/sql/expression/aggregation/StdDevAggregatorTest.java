@@ -159,13 +159,13 @@ public class StdDevAggregatorTest extends AggregationTest {
   }
 
   private ExprValue stddevSample(ExprValue value, ExprValue... values) {
-    when(expression.valueOf(any())).thenReturn(value, values);
+    when(expression.valueOf(any(), any())).thenReturn(value, values);
     when(expression.type()).thenReturn(DOUBLE);
     return aggregation(dsl.stddevSamp(expression), mockTuples(value, values));
   }
 
   private ExprValue stddevPop(ExprValue value, ExprValue... values) {
-    when(expression.valueOf(any())).thenReturn(value, values);
+    when(expression.valueOf(any(), any())).thenReturn(value, values);
     when(expression.type()).thenReturn(DOUBLE);
     return aggregation(dsl.stddevPop(expression), mockTuples(value, values));
   }

@@ -39,6 +39,7 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
@@ -67,7 +68,7 @@ class OpenSearchIndexScanTest {
     mockResponse();
     try (OpenSearchIndexScan indexScan =
              new OpenSearchIndexScan(client, settings, "test", 3, exprValueFactory)) {
-      indexScan.open();
+      indexScan.open(SessionContext.None);
       assertFalse(indexScan.hasNext());
     }
     verify(client).cleanup(any());
@@ -82,7 +83,7 @@ class OpenSearchIndexScanTest {
 
     try (OpenSearchIndexScan indexScan =
              new OpenSearchIndexScan(client, settings, "employees", 10, exprValueFactory)) {
-      indexScan.open();
+      indexScan.open(SessionContext.None);
 
       assertTrue(indexScan.hasNext());
       assertEquals(employee(1, "John", "IT"), indexScan.next());
@@ -106,7 +107,7 @@ class OpenSearchIndexScanTest {
 
     try (OpenSearchIndexScan indexScan =
              new OpenSearchIndexScan(client, settings, "employees", 2, exprValueFactory)) {
-      indexScan.open();
+      indexScan.open(SessionContext.None);
 
       assertTrue(indexScan.hasNext());
       assertEquals(employee(1, "John", "IT"), indexScan.next());
@@ -133,7 +134,7 @@ class OpenSearchIndexScanTest {
     try (OpenSearchIndexScan indexScan =
              new OpenSearchIndexScan(client, settings, "employees", 10, exprValueFactory)) {
       indexScan.getRequestBuilder().pushDownLimit(3, 0);
-      indexScan.open();
+      indexScan.open(SessionContext.None);
 
       assertTrue(indexScan.hasNext());
       assertEquals(employee(1, "John", "IT"), indexScan.next());
@@ -158,7 +159,7 @@ class OpenSearchIndexScanTest {
     try (OpenSearchIndexScan indexScan =
              new OpenSearchIndexScan(client, settings, "employees", 2, exprValueFactory)) {
       indexScan.getRequestBuilder().pushDownLimit(3, 0);
-      indexScan.open();
+      indexScan.open(SessionContext.None);
 
       assertTrue(indexScan.hasNext());
       assertEquals(employee(1, "John", "IT"), indexScan.next());
@@ -227,7 +228,7 @@ class OpenSearchIndexScanTest {
     try (OpenSearchIndexScan indexScan =
              new OpenSearchIndexScan(client, settings, "test", 2, exprValueFactory)) {
       indexScan.getRequestBuilder().pushDownLimit(3, 0);
-      indexScan.open();
+      indexScan.open(SessionContext.None);
       Map<String, Literal> args = new HashMap<>();
       indexScan.getRequestBuilder().pushDownHighlight("name", args);
       indexScan.getRequestBuilder().pushDownHighlight("name", args);
@@ -274,7 +275,7 @@ class OpenSearchIndexScanTest {
           .highlighter(highlight)
           .sort(DOC_FIELD_NAME, ASC);
       when(client.search(request)).thenReturn(response);
-      indexScan.open();
+      indexScan.open(SessionContext.None);
       return this;
     }
 
@@ -284,7 +285,7 @@ class OpenSearchIndexScanTest {
              .query(expected)
              .sort(DOC_FIELD_NAME, ASC);
       when(client.search(request)).thenReturn(response);
-      indexScan.open();
+      indexScan.open(SessionContext.None);
       return this;
     }
   }

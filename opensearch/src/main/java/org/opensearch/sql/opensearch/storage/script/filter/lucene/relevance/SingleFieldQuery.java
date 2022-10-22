@@ -23,8 +23,8 @@ abstract class SingleFieldQuery<T extends QueryBuilder> extends RelevanceQuery<T
   @Override
   protected T createQueryBuilder(NamedArgumentExpression fields, NamedArgumentExpression query) {
     return createBuilder(
-        fields.getValue().valueOf(null).stringValue(),
-        query.getValue().valueOf(null).stringValue());
+        fields.getValue().valueOf().stringValue(),
+        query.getValue().valueOf().stringValue());
   }
 
   protected abstract T createBuilder(String field, String query);

@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.model.ExprCollectionValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.storage.bindingtuple.BindingTuple;
 
@@ -67,7 +68,7 @@ public class BucketCollector implements Collector {
    * @return Bucket Key.
    */
   protected ExprValue bucketKey(BindingTuple tuple) {
-    return bucketExpr.valueOf(tuple);
+    return bucketExpr.valueOf(tuple, SessionContext.None);
   }
 
   /**

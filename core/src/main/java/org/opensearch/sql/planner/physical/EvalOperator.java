@@ -93,7 +93,7 @@ public class EvalOperator extends PhysicalPlan {
     Map<String, ExprValue> evalResultMap = new LinkedHashMap<>();
     for (Pair<ReferenceExpression, Expression> pair : expressionList) {
       ReferenceExpression var = pair.getKey();
-      ExprValue value = pair.getValue().valueOf(env);
+      ExprValue value = pair.getValue().valueOf(env, sessionContext);
       env = extendEnv(env, var, value);
       evalResultMap.put(var.toString(), value);
     }

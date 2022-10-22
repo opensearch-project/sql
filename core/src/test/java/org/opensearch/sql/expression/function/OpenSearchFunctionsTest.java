@@ -15,6 +15,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.FunctionExpression;
@@ -157,7 +158,7 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
   void match_in_memory() {
     FunctionExpression expr = dsl.match(field, query);
     assertThrows(UnsupportedOperationException.class,
-        () -> expr.valueOf(valueEnv()),
+        () -> expr.valueOf(valueEnv(), SessionContext.None),
         "OpenSearch defined function [match] is only supported in WHERE and HAVING clause.");
   }
 

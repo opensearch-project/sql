@@ -13,6 +13,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 
@@ -26,7 +27,8 @@ class NamedExpressionTest extends ExpressionTestBase {
 
     assertEquals("10", namedExpression.getNameOrAlias());
     assertEquals(delegated.type(), namedExpression.type());
-    assertEquals(delegated.valueOf(valueEnv()), namedExpression.valueOf(valueEnv()));
+    assertEquals(delegated.valueOf(valueEnv(),
+        SessionContext.None), namedExpression.valueOf(valueEnv(), SessionContext.None));
   }
 
   @Test
@@ -59,7 +61,7 @@ class NamedExpressionTest extends ExpressionTestBase {
             DSL.literal("group"));
     NamedExpression named = DSL.named(parse);
     assertEquals(parse, named.getDelegated());
-    assertEquals(parse.getIdentifier().valueOf(null).stringValue(), named.getName());
+    assertEquals(parse.getIdentifier().valueOf().stringValue(), named.getName());
   }
 
 }

@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.env.Environment;
 
 /**
@@ -25,8 +26,9 @@ public class NamedArgumentExpression implements Expression {
   private final Expression value;
 
   @Override
-  public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-    return value.valueOf(valueEnv);
+  public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv,
+                           SessionContext sessionContext) {
+    return value.valueOf(valueEnv, sessionContext);
   }
 
   @Override

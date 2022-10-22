@@ -35,6 +35,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.storage.bindingtuple.BindingTuple;
@@ -139,7 +140,7 @@ public class VarianceAggregatorTest extends AggregationTest {
     ExpressionEvaluationException exception =
         assertThrows(
             ExpressionEvaluationException.class,
-            () -> dsl.avg(ref("double_value", DOUBLE)).valueOf(valueEnv()));
+            () -> dsl.avg(ref("double_value", DOUBLE)).valueOf(valueEnv(), SessionContext.None));
     assertEquals("can't evaluate on aggregator: avg", exception.getMessage());
   }
 
@@ -167,13 +168,13 @@ public class VarianceAggregatorTest extends AggregationTest {
   }
 
   private ExprValue varianceSample(ExprValue value, ExprValue... values) {
-    when(expression.valueOf(any())).thenReturn(value, values);
+    when(expression.valueOf(any(), any())).thenReturn(value, values);
     when(expression.type()).thenReturn(DOUBLE);
     return aggregation(dsl.varSamp(expression), mockTuples(value, values));
   }
 
   private ExprValue variancePop(ExprValue value, ExprValue... values) {
-    when(expression.valueOf(any())).thenReturn(value, values);
+    when(expression.valueOf(any(), any())).thenReturn(value, values);
     when(expression.type()).thenReturn(DOUBLE);
     return aggregation(dsl.varPop(expression), mockTuples(value, values));
   }

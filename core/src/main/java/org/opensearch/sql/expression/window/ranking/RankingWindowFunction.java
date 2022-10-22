@@ -15,6 +15,7 @@ import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.env.Environment;
@@ -52,7 +53,8 @@ public abstract class RankingWindowFunction extends FunctionExpression
   }
 
   @Override
-  public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+  public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv,
+                           SessionContext sessionContext) {
     return new ExprIntegerValue(rank((CurrentRowWindowFrame) valueEnv));
   }
 
@@ -91,7 +93,7 @@ public abstract class RankingWindowFunction extends FunctionExpression
   private List<ExprValue> resolve(WindowFrame frame, List<Expression> expressions, ExprValue row) {
     BindingTuple valueEnv = row.bindingTuples();
     return expressions.stream()
-                      .map(expr -> expr.valueOf(valueEnv))
+                      .map(expr -> expr.valueOf(valueEnv, SessionContext.None))
                       .collect(Collectors.toList());
   }
 

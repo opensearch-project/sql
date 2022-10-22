@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.model.ExprIntegerValue;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.aggregation.Aggregator;
@@ -59,12 +60,12 @@ class AggregateWindowFunctionTest extends ExpressionTestBase {
     when(windowFrame.next()).thenReturn(ImmutableList.of(
         fromExprValueMap(ImmutableMap.of("age", new ExprIntegerValue(10))),
         fromExprValueMap(ImmutableMap.of("age", new ExprIntegerValue(20)))));
-    assertEquals(new ExprIntegerValue(30), windowFunction.valueOf(windowFrame));
+    assertEquals(new ExprIntegerValue(30), windowFunction.valueOf(windowFrame, SessionContext.None));
 
     when(windowFrame.isNewPartition()).thenReturn(false);
     when(windowFrame.next()).thenReturn(ImmutableList.of(
         fromExprValueMap(ImmutableMap.of("age", new ExprIntegerValue(30)))));
-    assertEquals(new ExprIntegerValue(60), windowFunction.valueOf(windowFrame));
+    assertEquals(new ExprIntegerValue(60), windowFunction.valueOf(windowFrame, SessionContext.None));
   }
 
 }

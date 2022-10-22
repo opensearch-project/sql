@@ -41,25 +41,33 @@ import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.planner.physical.SessionContext;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class ReferenceExpressionTest extends ExpressionTestBase {
 
   @Test
   public void resolve_value() {
-    assertEquals(integerValue(1), DSL.ref("integer_value", INTEGER).valueOf(valueEnv()));
-    assertEquals(longValue(1L), DSL.ref("long_value", LONG).valueOf(valueEnv()));
-    assertEquals(floatValue(1f), DSL.ref("float_value", FLOAT).valueOf(valueEnv()));
-    assertEquals(doubleValue(1d), DSL.ref("double_value", DOUBLE).valueOf(valueEnv()));
-    assertEquals(booleanValue(true), DSL.ref("boolean_value", BOOLEAN).valueOf(valueEnv()));
-    assertEquals(stringValue("str"), DSL.ref("string_value", STRING).valueOf(valueEnv()));
+    assertEquals(integerValue(1), DSL.ref("integer_value", INTEGER).valueOf(valueEnv(),
+        SessionContext.None));
+    assertEquals(longValue(1L), DSL.ref("long_value", LONG).valueOf(valueEnv(),
+        SessionContext.None));
+    assertEquals(floatValue(1f), DSL.ref("float_value", FLOAT).valueOf(valueEnv(),
+        SessionContext.None));
+    assertEquals(doubleValue(1d), DSL.ref("double_value", DOUBLE).valueOf(valueEnv(),
+        SessionContext.None));
+    assertEquals(booleanValue(true), DSL.ref("boolean_value", BOOLEAN).valueOf(valueEnv(),
+        SessionContext.None));
+    assertEquals(stringValue("str"), DSL.ref("string_value", STRING).valueOf(valueEnv(),
+        SessionContext.None));
     assertEquals(tupleValue(ImmutableMap.of("str", 1)),
-        DSL.ref("struct_value", STRUCT).valueOf(valueEnv()));
+        DSL.ref("struct_value", STRUCT).valueOf(valueEnv(), SessionContext.None));
     assertEquals(collectionValue(ImmutableList.of(1)),
-        DSL.ref("array_value", ARRAY).valueOf(valueEnv()));
-    assertEquals(LITERAL_NULL, DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN).valueOf(valueEnv()));
+        DSL.ref("array_value", ARRAY).valueOf(valueEnv(), SessionContext.None));
+    assertEquals(LITERAL_NULL, DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN).valueOf(valueEnv(),
+        SessionContext.None));
     assertEquals(LITERAL_MISSING,
-        DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN).valueOf(valueEnv()));
+        DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN).valueOf(valueEnv(), SessionContext.None));
   }
 
   @Test

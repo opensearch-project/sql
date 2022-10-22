@@ -14,6 +14,7 @@ import org.opensearch.search.lookup.SearchLookup;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.opensearch.storage.script.core.ExpressionScript;
@@ -45,7 +46,7 @@ class ExpressionFilterScript extends FilterScript {
 
   private ExprValue evaluateExpression(Expression expression,
                                        Environment<Expression, ExprValue> valueEnv) {
-    ExprValue result = expression.valueOf(valueEnv);
+    ExprValue result = expression.valueOf(valueEnv, SessionContext.None);
     if (result.isNull()) {
       return ExprBooleanValue.of(false);
     }

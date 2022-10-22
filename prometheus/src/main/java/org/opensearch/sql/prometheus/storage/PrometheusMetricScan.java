@@ -17,6 +17,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
 import org.opensearch.sql.prometheus.request.PrometheusQueryRequest;
 import org.opensearch.sql.prometheus.response.PrometheusResponse;
@@ -47,8 +48,8 @@ public class PrometheusMetricScan extends TableScanOperator {
   }
 
   @Override
-  public void open() {
-    super.open();
+  public void open(SessionContext newContext) {
+    super.open(newContext);
     this.iterator = AccessController.doPrivileged((PrivilegedAction<Iterator<ExprValue>>) () -> {
       try {
         JSONObject responseObject = prometheusClient.queryRange(

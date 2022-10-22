@@ -28,6 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionTestBase;
@@ -127,8 +128,8 @@ public class TextFunctionTest extends ExpressionTestBase {
 
   @BeforeEach
   public void setup() {
-    when(nullRef.valueOf(env)).thenReturn(nullValue());
-    when(missingRef.valueOf(env)).thenReturn(missingValue());
+    when(nullRef.valueOf(env, SessionContext.None)).thenReturn(nullValue());
+    when(missingRef.valueOf(env, SessionContext.None)).thenReturn(missingValue());
   }
 
   @Test
@@ -441,6 +442,6 @@ public class TextFunctionTest extends ExpressionTestBase {
   }
 
   private ExprValue eval(Expression expression) {
-    return expression.valueOf(env);
+    return expression.valueOf(env, SessionContext.None);
   }
 }

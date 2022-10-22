@@ -17,6 +17,7 @@ import org.opensearch.sql.planner.PlanNode;
 public abstract class PhysicalPlan implements PlanNode<PhysicalPlan>,
     Iterator<ExprValue>,
     AutoCloseable {
+  SessionContext sessionContext = SessionContext.None;
   /**
    * Accept the {@link PhysicalPlanNodeVisitor}.
    *
@@ -28,9 +29,11 @@ public abstract class PhysicalPlan implements PlanNode<PhysicalPlan>,
    */
   public abstract <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context);
 
-  public void open() {
-    getChild().forEach(PhysicalPlan::open);
+  public void open(SessionContext newContext) {
+    sessionContext = newContext;
+    getChild().forEach(p -> p.open(newContext));
   }
+
 
   public void close() {
     getChild().forEach(PhysicalPlan::close);

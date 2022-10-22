@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionTestBase;
@@ -32,26 +33,26 @@ class WhenClauseTest extends ExpressionTestBase {
   @Test
   void should_not_match_if_condition_evaluated_to_null() {
     Expression condition = mock(Expression.class);
-    when(condition.valueOf(any())).thenReturn(ExprValueUtils.nullValue());
+    when(condition.valueOf(any(), any())).thenReturn(ExprValueUtils.nullValue());
 
     WhenClause whenClause = new WhenClause(condition, DSL.literal(30));
-    assertFalse(whenClause.isTrue(valueEnv()));
+    assertFalse(whenClause.isTrue(valueEnv(), SessionContext.None));
   }
 
   @Test
   void should_not_match_if_condition_evaluated_to_missing() {
     Expression condition = mock(Expression.class);
-    when(condition.valueOf(any())).thenReturn(ExprValueUtils.missingValue());
+    when(condition.valueOf(any(), any())).thenReturn(ExprValueUtils.missingValue());
 
     WhenClause whenClause = new WhenClause(condition, DSL.literal(30));
-    assertFalse(whenClause.isTrue(valueEnv()));
+    assertFalse(whenClause.isTrue(valueEnv(), SessionContext.None));
   }
 
   @Test
   void should_match_and_return_result_if_condition_is_true() {
     WhenClause whenClause = new WhenClause(DSL.literal(true), DSL.literal(30));
-    assertTrue(whenClause.isTrue(valueEnv()));
-    assertEquals(new ExprIntegerValue(30), whenClause.valueOf(valueEnv()));
+    assertTrue(whenClause.isTrue(valueEnv(), SessionContext.None));
+    assertEquals(new ExprIntegerValue(30), whenClause.valueOf(valueEnv(), SessionContext.None));
   }
 
   @Test

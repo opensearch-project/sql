@@ -16,6 +16,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.window.WindowDefinition;
@@ -68,7 +69,7 @@ public class CurrentRowWindowFrame implements WindowFrame {
   private List<ExprValue> resolve(List<Expression> expressions, ExprValue row) {
     Environment<Expression, ExprValue> valueEnv = row.bindingTuples();
     return expressions.stream()
-                      .map(expr -> expr.valueOf(valueEnv))
+                      .map(expr -> expr.valueOf(valueEnv, SessionContext.None))
                       .collect(Collectors.toList());
   }
 

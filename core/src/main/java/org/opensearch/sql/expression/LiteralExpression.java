@@ -10,6 +10,7 @@ import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.env.Environment;
 
 /**
@@ -21,7 +22,7 @@ public class LiteralExpression implements Expression {
   private final ExprValue exprValue;
 
   @Override
-  public ExprValue valueOf(Environment<Expression, ExprValue> env) {
+  public ExprValue valueOf(Environment<Expression, ExprValue> env, SessionContext sessionContext) {
     return exprValue;
   }
 

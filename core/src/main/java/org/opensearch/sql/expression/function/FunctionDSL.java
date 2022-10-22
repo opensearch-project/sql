@@ -16,6 +16,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.env.Environment;
@@ -58,6 +59,70 @@ public class FunctionDSL {
     return builder.build();
   }
 
+  public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
+    implMetaDataFunction(SerializableFunction<SessionContext, ExprValue> function,
+                     ExprType returnType) {
+    return functionName -> {
+      FunctionSignature functionSignature =
+          new FunctionSignature(functionName, Collections.emptyList());
+      FunctionBuilder functionBuilder =
+          arguments -> new FunctionExpression(functionName, Collections.emptyList()) {
+            @Override
+            public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv,
+                                     SessionContext sessionContext) {
+              return function.apply(sessionContext);
+            }
+
+            @Override
+            public ExprType type() {
+              return returnType;
+            }
+
+            @Override
+            public String toString() {
+              return String.format("%s()", functionName);
+            }
+          };
+      return Pair.of(functionSignature, functionBuilder);
+    };
+  }
+
+  /**
+   * Unary Function Implementation.
+   *
+   * @param function   {@link ExprValue} based unary function.
+   * @param returnType return type.
+   * @param argsType   argument type.
+   * @return Unary Function Implementation.
+   */
+  public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
+      implMetaDataFunction(
+      SerializableBiFunction<SessionContext, ExprValue, ExprValue> function,
+      ExprType returnType,
+      ExprType argsType) {
+
+    return functionName -> {
+      FunctionSignature functionSignature =
+          new FunctionSignature(functionName, Collections.singletonList(argsType));
+      FunctionBuilder functionBuilder =
+          arguments -> new FunctionExpression(functionName, arguments) {
+            @Override
+            public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv,
+                                     SessionContext sessionContext) {
+              ExprValue value = arguments.get(0).valueOf(valueEnv, sessionContext);
+              return function.apply(sessionContext, value);
+            }
+
+            @Override
+            public ExprType type() {
+              return returnType;
+            }
+
+          };
+      return Pair.of(functionSignature, functionBuilder);
+    };
+  }
+
   /**
    * No Arg Function Implementation.
    *
@@ -75,7 +140,8 @@ public class FunctionDSL {
       FunctionBuilder functionBuilder =
           arguments -> new FunctionExpression(functionName, Collections.emptyList()) {
             @Override
-            public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+            public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv,
+                                     SessionContext sessionContext) {
               return function.get();
             }
 
@@ -112,8 +178,9 @@ public class FunctionDSL {
       FunctionBuilder functionBuilder =
           arguments -> new FunctionExpression(functionName, arguments) {
             @Override
-            public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-              ExprValue value = arguments.get(0).valueOf(valueEnv);
+            public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv,
+                                     SessionContext sessionContext) {
+              ExprValue value = arguments.get(0).valueOf(valueEnv, sessionContext);
               return function.apply(value);
             }
 
@@ -155,9 +222,10 @@ public class FunctionDSL {
       FunctionBuilder functionBuilder =
           arguments -> new FunctionExpression(functionName, arguments) {
             @Override
-            public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-              ExprValue arg1 = arguments.get(0).valueOf(valueEnv);
-              ExprValue arg2 = arguments.get(1).valueOf(valueEnv);
+            public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv,
+                                     SessionContext sessionContext) {
+              ExprValue arg1 = arguments.get(0).valueOf(valueEnv, sessionContext);
+              ExprValue arg2 = arguments.get(1).valueOf(valueEnv, sessionContext);
               return function.apply(arg1, arg2);
             }
 
@@ -198,10 +266,11 @@ public class FunctionDSL {
       FunctionBuilder functionBuilder =
           arguments -> new FunctionExpression(functionName, arguments) {
             @Override
-            public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-              ExprValue arg1 = arguments.get(0).valueOf(valueEnv);
-              ExprValue arg2 = arguments.get(1).valueOf(valueEnv);
-              ExprValue arg3 = arguments.get(2).valueOf(valueEnv);
+            public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv,
+                                     SessionContext sessionContext) {
+              ExprValue arg1 = arguments.get(0).valueOf(valueEnv, sessionContext);
+              ExprValue arg2 = arguments.get(1).valueOf(valueEnv, sessionContext);
+              ExprValue arg3 = arguments.get(2).valueOf(valueEnv, sessionContext);
               return function.apply(arg1, arg2, arg3);
             }
 

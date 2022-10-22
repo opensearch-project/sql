@@ -18,6 +18,7 @@ import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
@@ -68,7 +69,8 @@ class DefaultExpressionSerializerTest {
     Expression illegalExpr = new Expression() {
       private final Object object = new Object(); // non-serializable
       @Override
-      public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+      public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv,
+                               SessionContext sessionContext) {
         return null;
       }
 

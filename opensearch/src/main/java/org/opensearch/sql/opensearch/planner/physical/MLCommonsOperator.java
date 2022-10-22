@@ -26,6 +26,7 @@ import org.opensearch.ml.common.input.parameter.clustering.KMeansParams;
 import org.opensearch.ml.common.output.MLPredictionOutput;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
 
@@ -52,8 +53,8 @@ public class MLCommonsOperator extends MLCommonsOperatorActions {
   private Iterator<ExprValue> iterator;
 
   @Override
-  public void open() {
-    super.open();
+  public void open(SessionContext newContext) {
+    super.open(newContext);
     DataFrame inputDataFrame = generateInputDataset(input);
     MLAlgoParams mlAlgoParams = convertArgumentToMLParameter(arguments, algorithm);
     MLPredictionOutput predictionResult =

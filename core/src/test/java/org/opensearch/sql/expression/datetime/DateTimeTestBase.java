@@ -21,6 +21,7 @@ import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionTestBase;
@@ -34,6 +35,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 @ExtendWith(MockitoExtension.class)
 public class DateTimeTestBase extends ExpressionTestBase {
 
+  SessionContext sessionContext = new TestSessionContext();
   @Mock
   protected Environment<Expression, ExprValue> env;
 
@@ -55,7 +57,7 @@ public class DateTimeTestBase extends ExpressionTestBase {
 
   protected LocalTime maketime(Double hour, Double minute, Double second) {
     return maketime(DSL.literal(hour), DSL.literal(minute), DSL.literal(second))
-        .valueOf(null).timeValue();
+        .valueOf().timeValue();
   }
 
   protected FunctionExpression makedate(Expression year, Expression dayOfYear) {
@@ -66,7 +68,7 @@ public class DateTimeTestBase extends ExpressionTestBase {
   }
 
   protected LocalDate makedate(Double year, Double dayOfYear) {
-    return makedate(DSL.literal(year), DSL.literal(dayOfYear)).valueOf(null).dateValue();
+    return makedate(DSL.literal(year), DSL.literal(dayOfYear)).valueOf().dateValue();
   }
 
   protected FunctionExpression unixTimeStampExpr() {
@@ -75,8 +77,8 @@ public class DateTimeTestBase extends ExpressionTestBase {
     return (FunctionExpression)func.apply(List.of());
   }
 
-  protected Long unixTimeStamp() {
-    return unixTimeStampExpr().valueOf(null).longValue();
+  protected Long unixTimeStamp(SessionContext sessionContext) {
+    return unixTimeStampExpr().valueOf(null, sessionContext).longValue();
   }
 
   protected FunctionExpression unixTimeStampOf(Expression value) {
@@ -87,19 +89,19 @@ public class DateTimeTestBase extends ExpressionTestBase {
   }
 
   protected Double unixTimeStampOf(Double value) {
-    return unixTimeStampOf(DSL.literal(value)).valueOf(null).doubleValue();
+    return unixTimeStampOf(DSL.literal(value)).valueOf().doubleValue();
   }
 
   protected Double unixTimeStampOf(LocalDate value) {
-    return unixTimeStampOf(DSL.literal(new ExprDateValue(value))).valueOf(null).doubleValue();
+    return unixTimeStampOf(DSL.literal(new ExprDateValue(value))).valueOf().doubleValue();
   }
 
   protected Double unixTimeStampOf(LocalDateTime value) {
-    return unixTimeStampOf(DSL.literal(new ExprDatetimeValue(value))).valueOf(null).doubleValue();
+    return unixTimeStampOf(DSL.literal(new ExprDatetimeValue(value))).valueOf().doubleValue();
   }
 
   protected Double unixTimeStampOf(Instant value) {
-    return unixTimeStampOf(DSL.literal(new ExprTimestampValue(value))).valueOf(null).doubleValue();
+    return unixTimeStampOf(DSL.literal(new ExprTimestampValue(value))).valueOf().doubleValue();
   }
 
   protected FunctionExpression fromUnixTime(Expression value) {
@@ -117,22 +119,22 @@ public class DateTimeTestBase extends ExpressionTestBase {
   }
 
   protected LocalDateTime fromUnixTime(Long value) {
-    return fromUnixTime(DSL.literal(value)).valueOf(null).datetimeValue();
+    return fromUnixTime(DSL.literal(value)).valueOf().datetimeValue();
   }
 
   protected LocalDateTime fromUnixTime(Double value) {
-    return fromUnixTime(DSL.literal(value)).valueOf(null).datetimeValue();
+    return fromUnixTime(DSL.literal(value)).valueOf().datetimeValue();
   }
 
   protected String fromUnixTime(Long value, String format) {
-    return fromUnixTime(DSL.literal(value), DSL.literal(format)).valueOf(null).stringValue();
+    return fromUnixTime(DSL.literal(value), DSL.literal(format)).valueOf().stringValue();
   }
 
   protected String fromUnixTime(Double value, String format) {
-    return fromUnixTime(DSL.literal(value), DSL.literal(format)).valueOf(null).stringValue();
+    return fromUnixTime(DSL.literal(value), DSL.literal(format)).valueOf().stringValue();
   }
 
   protected ExprValue eval(Expression expression) {
-    return expression.valueOf(env);
+    return expression.valueOf(env, sessionContext);
   }
 }

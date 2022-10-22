@@ -11,6 +11,7 @@ import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.opensearch.request.system.OpenSearchSystemRequest;
 import org.opensearch.sql.storage.TableScanOperator;
 
@@ -32,7 +33,7 @@ public class OpenSearchSystemIndexScan extends TableScanOperator {
   private Iterator<ExprValue> iterator;
 
   @Override
-  public void open() {
+  public void open(SessionContext newContext) {
     iterator = request.search().iterator();
   }
 

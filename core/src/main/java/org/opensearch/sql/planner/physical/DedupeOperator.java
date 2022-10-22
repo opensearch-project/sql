@@ -118,7 +118,7 @@ public class DedupeOperator extends PhysicalPlan {
     BindingTuple bindingTuple = value.bindingTuples();
     ImmutableList.Builder<ExprValue> dedupeKeyBuilder = new ImmutableList.Builder<>();
     for (Expression expression : dedupeList) {
-      ExprValue exprValue = expression.valueOf(bindingTuple);
+      ExprValue exprValue = expression.valueOf(bindingTuple, sessionContext);
       if (NULL_OR_MISSING.test(exprValue)) {
         return keepEmpty;
       }

@@ -13,6 +13,7 @@ import org.opensearch.script.AggregationScript;
 import org.opensearch.search.lookup.SearchLookup;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.opensearch.storage.script.core.ExpressionScript;
@@ -47,7 +48,7 @@ public class ExpressionAggregationScript extends AggregationScript {
 
   private ExprValue evaluateExpression(Expression expression, Environment<Expression,
                                        ExprValue> valueEnv) {
-    ExprValue result = expression.valueOf(valueEnv);
+    ExprValue result = expression.valueOf(valueEnv, SessionContext.None);
 
     // The missing value is treated as null value in doc_value, so we can't distinguish with them.
     if (result.isNull()) {

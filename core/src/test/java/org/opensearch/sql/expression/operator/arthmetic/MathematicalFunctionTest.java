@@ -44,6 +44,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.opensearch.sql.data.model.ExprByteValue;
 import org.opensearch.sql.data.model.ExprShortValue;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.FunctionExpression;
@@ -102,7 +103,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   @ValueSource(bytes = {-2, 2})
   public void abs_byte_value(Byte value) {
     FunctionExpression abs = dsl.abs(DSL.literal(value));
-    assertThat(abs.valueOf(valueEnv()), allOf(hasType(BYTE), hasValue(((byte) Math.abs(value)))));
+    assertThat(abs.valueOf(valueEnv(), SessionContext.None), allOf(hasType(BYTE), hasValue(((byte) Math.abs(value)))));
     assertEquals(String.format("abs(%s)", value.toString()), abs.toString());
   }
 
@@ -114,7 +115,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void abs_int_value(Integer value) {
     FunctionExpression abs = dsl.abs(DSL.literal(value));
     assertThat(
-        abs.valueOf(valueEnv()),
+        abs.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(INTEGER), hasValue(Math.abs(value))));
     assertEquals(String.format("abs(%s)", value.toString()), abs.toString());
   }
@@ -127,7 +128,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void abs_long_value(Long value) {
     FunctionExpression abs = dsl.abs(DSL.literal(value));
     assertThat(
-        abs.valueOf(valueEnv()),
+        abs.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(LONG), hasValue(Math.abs(value))));
     assertEquals(String.format("abs(%s)", value.toString()), abs.toString());
   }
@@ -140,7 +141,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void abs_float_value(Float value) {
     FunctionExpression abs = dsl.abs(DSL.literal(value));
     assertThat(
-        abs.valueOf(valueEnv()),
+        abs.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(FLOAT), hasValue(Math.abs(value))));
     assertEquals(String.format("abs(%s)", value.toString()), abs.toString());
   }
@@ -153,7 +154,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void abs_double_value(Double value) {
     FunctionExpression abs = dsl.abs(DSL.literal(value));
     assertThat(
-        abs.valueOf(valueEnv()),
+        abs.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.abs(value))));
     assertEquals(String.format("abs(%s)", value.toString()), abs.toString());
   }
@@ -166,20 +167,22 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void abs_short_value(Short value) {
     FunctionExpression abs = dsl.abs(DSL.literal(new ExprShortValue(value)));
     assertThat(
-        abs.valueOf(valueEnv()),
+        abs.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(SHORT), hasValue(Integer.valueOf(Math.abs(value)).shortValue())));
     assertEquals(String.format("abs(%s)", value.toString()), abs.toString());
   }
 
   @Test
   public void abs_null_value() {
-    assertTrue(dsl.abs(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER)).valueOf(valueEnv()).isNull());
+    assertTrue(dsl.abs(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER)).valueOf(valueEnv(),
+        SessionContext.None).isNull());
   }
 
   @Test
   public void abs_missing_value() {
     assertTrue(
-        dsl.abs(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER)).valueOf(valueEnv()).isMissing());
+        dsl.abs(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER)).valueOf(valueEnv(),
+            SessionContext.None).isMissing());
   }
 
   /**
@@ -190,13 +193,13 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void ceil_int_value(Integer value) {
     FunctionExpression ceil = dsl.ceil(DSL.literal(value));
     assertThat(
-        ceil.valueOf(valueEnv()),
+        ceil.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
     assertEquals(String.format("ceil(%s)", value.toString()), ceil.toString());
 
     FunctionExpression ceiling = dsl.ceiling(DSL.literal(value));
     assertThat(
-        ceiling.valueOf(valueEnv()), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
+        ceiling.valueOf(valueEnv(), SessionContext.None), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
     assertEquals(String.format("ceiling(%s)", value.toString()), ceiling.toString());
   }
 
@@ -208,12 +211,12 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void ceil_long_value(Long value) {
     FunctionExpression ceil = dsl.ceil(DSL.literal(value));
     assertThat(
-        ceil.valueOf(valueEnv()), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
+        ceil.valueOf(valueEnv(), SessionContext.None), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
     assertEquals(String.format("ceil(%s)", value.toString()), ceil.toString());
 
     FunctionExpression ceiling = dsl.ceiling(DSL.literal(value));
     assertThat(
-        ceiling.valueOf(valueEnv()), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
+        ceiling.valueOf(valueEnv(), SessionContext.None), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
     assertEquals(String.format("ceiling(%s)", value.toString()), ceiling.toString());
   }
 
@@ -225,12 +228,12 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void ceil_float_value(Float value) {
     FunctionExpression ceil = dsl.ceil(DSL.literal(value));
     assertThat(
-        ceil.valueOf(valueEnv()), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
+        ceil.valueOf(valueEnv(), SessionContext.None), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
     assertEquals(String.format("ceil(%s)", value.toString()), ceil.toString());
 
     FunctionExpression ceiling = dsl.ceiling(DSL.literal(value));
     assertThat(
-        ceiling.valueOf(valueEnv()), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
+        ceiling.valueOf(valueEnv(), SessionContext.None), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
     assertEquals(String.format("ceiling(%s)", value.toString()), ceiling.toString());
   }
 
@@ -242,12 +245,12 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void ceil_double_value(Double value) {
     FunctionExpression ceil = dsl.ceil(DSL.literal(value));
     assertThat(
-        ceil.valueOf(valueEnv()), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
+        ceil.valueOf(valueEnv(), SessionContext.None), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
     assertEquals(String.format("ceil(%s)", value.toString()), ceil.toString());
 
     FunctionExpression ceiling = dsl.ceiling(DSL.literal(value));
     assertThat(
-        ceiling.valueOf(valueEnv()), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
+        ceiling.valueOf(valueEnv(), SessionContext.None), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
     assertEquals(String.format("ceiling(%s)", value.toString()), ceiling.toString());
   }
 
@@ -258,11 +261,11 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void ceil_null_value() {
     FunctionExpression ceil = dsl.ceil(DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(INTEGER, ceil.type());
-    assertTrue(ceil.valueOf(valueEnv()).isNull());
+    assertTrue(ceil.valueOf(valueEnv(), SessionContext.None).isNull());
 
     FunctionExpression ceiling = dsl.ceiling(DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(INTEGER, ceiling.type());
-    assertTrue(ceiling.valueOf(valueEnv()).isNull());
+    assertTrue(ceiling.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -272,11 +275,11 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void ceil_missing_value() {
     FunctionExpression ceil = dsl.ceil(DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(INTEGER, ceil.type());
-    assertTrue(ceil.valueOf(valueEnv()).isMissing());
+    assertTrue(ceil.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     FunctionExpression ceiling = dsl.ceiling(DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(INTEGER, ceiling.type());
-    assertTrue(ceiling.valueOf(valueEnv()).isMissing());
+    assertTrue(ceiling.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -287,19 +290,19 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void conv_from_decimal(String value) {
     FunctionExpression conv = dsl.conv(DSL.literal(value), DSL.literal(10), DSL.literal(2));
     assertThat(
-        conv.valueOf(valueEnv()),
+        conv.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(STRING), hasValue(Integer.toString(Integer.parseInt(value), 2))));
     assertEquals(String.format("conv(\"%s\", 10, 2)", value), conv.toString());
 
     conv = dsl.conv(DSL.literal(value), DSL.literal(10), DSL.literal(8));
     assertThat(
-        conv.valueOf(valueEnv()),
+        conv.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(STRING), hasValue(Integer.toString(Integer.parseInt(value), 8))));
     assertEquals(String.format("conv(\"%s\", 10, 8)", value), conv.toString());
 
     conv = dsl.conv(DSL.literal(value), DSL.literal(10), DSL.literal(16));
     assertThat(
-        conv.valueOf(valueEnv()),
+        conv.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(STRING), hasValue(Integer.toString(Integer.parseInt(value), 16))));
     assertEquals(String.format("conv(\"%s\", 10, 16)", value), conv.toString());
   }
@@ -312,19 +315,19 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void conv_from_decimal(Integer value) {
     FunctionExpression conv = dsl.conv(DSL.literal(value), DSL.literal(10), DSL.literal(2));
     assertThat(
-        conv.valueOf(valueEnv()),
+        conv.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(STRING), hasValue(Integer.toString(value, 2))));
     assertEquals(String.format("conv(%s, 10, 2)", value), conv.toString());
 
     conv = dsl.conv(DSL.literal(value), DSL.literal(10), DSL.literal(8));
     assertThat(
-        conv.valueOf(valueEnv()),
+        conv.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(STRING), hasValue(Integer.toString(value, 8))));
     assertEquals(String.format("conv(%s, 10, 8)", value), conv.toString());
 
     conv = dsl.conv(DSL.literal(value), DSL.literal(10), DSL.literal(16));
     assertThat(
-        conv.valueOf(valueEnv()),
+        conv.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(STRING), hasValue(Integer.toString(value, 16))));
     assertEquals(String.format("conv(%s, 10, 16)", value), conv.toString());
   }
@@ -337,19 +340,19 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void conv_to_decimal(String value) {
     FunctionExpression conv = dsl.conv(DSL.literal(value), DSL.literal(2), DSL.literal(10));
     assertThat(
-        conv.valueOf(valueEnv()),
+        conv.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(STRING), hasValue(Integer.toString(Integer.parseInt(value, 2)))));
     assertEquals(String.format("conv(\"%s\", 2, 10)", value), conv.toString());
 
     conv = dsl.conv(DSL.literal(value), DSL.literal(8), DSL.literal(10));
     assertThat(
-        conv.valueOf(valueEnv()),
+        conv.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(STRING), hasValue(Integer.toString(Integer.parseInt(value, 8)))));
     assertEquals(String.format("conv(\"%s\", 8, 10)", value), conv.toString());
 
     conv = dsl.conv(DSL.literal(value), DSL.literal(16), DSL.literal(10));
     assertThat(
-        conv.valueOf(valueEnv()),
+        conv.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(STRING), hasValue(Integer.toString(Integer.parseInt(value, 16)))));
     assertEquals(String.format("conv(\"%s\", 16, 10)", value), conv.toString());
   }
@@ -362,19 +365,19 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void conv_to_decimal(Integer value) {
     FunctionExpression conv = dsl.conv(DSL.literal(value), DSL.literal(2), DSL.literal(10));
     assertThat(
-        conv.valueOf(valueEnv()),
+        conv.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(STRING), hasValue(Integer.toString(Integer.parseInt(value.toString(), 2)))));
     assertEquals(String.format("conv(%s, 2, 10)", value), conv.toString());
 
     conv = dsl.conv(DSL.literal(value), DSL.literal(8), DSL.literal(10));
     assertThat(
-        conv.valueOf(valueEnv()),
+        conv.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(STRING), hasValue(Integer.toString(Integer.parseInt(value.toString(), 8)))));
     assertEquals(String.format("conv(%s, 8, 10)", value), conv.toString());
 
     conv = dsl.conv(DSL.literal(value), DSL.literal(16), DSL.literal(10));
     assertThat(
-        conv.valueOf(valueEnv()),
+        conv.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(STRING), hasValue(Integer.toString(Integer.parseInt(value.toString(), 16)))));
     assertEquals(String.format("conv(%s, 16, 10)", value), conv.toString());
   }
@@ -387,17 +390,17 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression conv = dsl.conv(
         DSL.ref(STRING_TYPE_NULL_VALUE_FIELD, STRING), DSL.literal(10), DSL.literal(2));
     assertEquals(STRING, conv.type());
-    assertTrue(conv.valueOf(valueEnv()).isNull());
+    assertTrue(conv.valueOf(valueEnv(), SessionContext.None).isNull());
 
     conv = dsl.conv(
         DSL.literal("1"), DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER), DSL.literal(2));
     assertEquals(STRING, conv.type());
-    assertTrue(conv.valueOf(valueEnv()).isNull());
+    assertTrue(conv.valueOf(valueEnv(), SessionContext.None).isNull());
 
     conv = dsl.conv(
         DSL.literal("1"), DSL.literal(10), DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(STRING, conv.type());
-    assertTrue(conv.valueOf(valueEnv()).isNull());
+    assertTrue(conv.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -408,17 +411,17 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression conv = dsl.conv(
         DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING), DSL.literal(10), DSL.literal(2));
     assertEquals(STRING, conv.type());
-    assertTrue(conv.valueOf(valueEnv()).isMissing());
+    assertTrue(conv.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     conv = dsl.conv(
         DSL.literal("1"), DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER), DSL.literal(2));
     assertEquals(STRING, conv.type());
-    assertTrue(conv.valueOf(valueEnv()).isMissing());
+    assertTrue(conv.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     conv = dsl.conv(
         DSL.literal("1"), DSL.literal(10), DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(STRING, conv.type());
-    assertTrue(conv.valueOf(valueEnv()).isMissing());
+    assertTrue(conv.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -429,7 +432,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression conv = dsl.conv(DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING),
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER), DSL.literal(2));
     assertEquals(STRING, conv.type());
-    assertTrue(conv.valueOf(valueEnv()).isMissing());
+    assertTrue(conv.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -442,7 +445,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     CRC32 crc32 = new CRC32();
     crc32.update(value.getBytes());
     assertThat(
-        crc.valueOf(valueEnv()),
+        crc.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(LONG), hasValue(crc32.getValue())));
     assertEquals(String.format("crc32(\"%s\")", value), crc.toString());
   }
@@ -454,7 +457,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void crc32_null_value() {
     FunctionExpression crc = dsl.crc32(DSL.ref(STRING_TYPE_NULL_VALUE_FIELD, STRING));
     assertEquals(LONG, crc.type());
-    assertTrue(crc.valueOf(valueEnv()).isNull());
+    assertTrue(crc.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -464,7 +467,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void crc32_missing_value() {
     FunctionExpression crc = dsl.crc32(DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING));
     assertEquals(LONG, crc.type());
-    assertTrue(crc.valueOf(valueEnv()).isMissing());
+    assertTrue(crc.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -473,7 +476,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   @Test
   public void test_e() {
     FunctionExpression e = dsl.euler();
-    assertThat(e.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.E)));
+    assertThat(e.valueOf(valueEnv(), SessionContext.None), allOf(hasType(DOUBLE), hasValue(Math.E)));
   }
 
   /**
@@ -484,7 +487,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void exp_int_value(Integer value) {
     FunctionExpression exp = dsl.exp(DSL.literal(value));
     assertThat(
-        exp.valueOf(valueEnv()),
+        exp.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.exp(value))));
     assertEquals(String.format("exp(%s)", value.toString()), exp.toString());
   }
@@ -497,7 +500,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void exp_long_value(Long value) {
     FunctionExpression exp = dsl.exp(DSL.literal(value));
     assertThat(
-        exp.valueOf(valueEnv()),
+        exp.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.exp(value))));
     assertEquals(String.format("exp(%s)", value.toString()), exp.toString());
   }
@@ -510,7 +513,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void exp_float_value(Float value) {
     FunctionExpression exp = dsl.exp(DSL.literal(value));
     assertThat(
-        exp.valueOf(valueEnv()),
+        exp.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.exp(value))));
     assertEquals(String.format("exp(%s)", value.toString()), exp.toString());
   }
@@ -523,7 +526,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void exp_double_value(Double value) {
     FunctionExpression exp = dsl.exp(DSL.literal(value));
     assertThat(
-        exp.valueOf(valueEnv()),
+        exp.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.exp(value))));
     assertEquals(String.format("exp(%s)", value.toString()), exp.toString());
   }
@@ -535,7 +538,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void exp_null_value() {
     FunctionExpression exp =  dsl.exp(DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, exp.type());
-    assertTrue(exp.valueOf(valueEnv()).isNull());
+    assertTrue(exp.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -545,7 +548,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void exp_missing_value() {
     FunctionExpression exp = dsl.exp(DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, exp.type());
-    assertTrue(exp.valueOf(valueEnv()).isMissing());
+    assertTrue(exp.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -556,7 +559,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void floor_int_value(Integer value) {
     FunctionExpression floor = dsl.floor(DSL.literal(value));
     assertThat(
-        floor.valueOf(valueEnv()),
+        floor.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(INTEGER), hasValue((int) Math.floor(value))));
     assertEquals(String.format("floor(%s)", value.toString()), floor.toString());
   }
@@ -569,7 +572,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void floor_long_value(Long value) {
     FunctionExpression floor = dsl.floor(DSL.literal(value));
     assertThat(
-        floor.valueOf(valueEnv()),
+        floor.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(INTEGER), hasValue((int) Math.floor(value))));
     assertEquals(String.format("floor(%s)", value.toString()), floor.toString());
   }
@@ -582,7 +585,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void floor_float_value(Float value) {
     FunctionExpression floor = dsl.floor(DSL.literal(value));
     assertThat(
-        floor.valueOf(valueEnv()),
+        floor.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(INTEGER), hasValue((int) Math.floor(value))));
     assertEquals(String.format("floor(%s)", value.toString()), floor.toString());
   }
@@ -595,7 +598,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void floor_double_value(Double value) {
     FunctionExpression floor = dsl.floor(DSL.literal(value));
     assertThat(
-        floor.valueOf(valueEnv()),
+        floor.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(INTEGER), hasValue((int) Math.floor(value))));
     assertEquals(String.format("floor(%s)", value.toString()), floor.toString());
   }
@@ -607,7 +610,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void floor_null_value() {
     FunctionExpression floor = dsl.floor(DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(INTEGER, floor.type());
-    assertTrue(floor.valueOf(valueEnv()).isNull());
+    assertTrue(floor.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -617,7 +620,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void floor_missing_value() {
     FunctionExpression floor = dsl.floor(DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(INTEGER, floor.type());
-    assertTrue(floor.valueOf(valueEnv()).isMissing());
+    assertTrue(floor.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -628,7 +631,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void ln_int_value(Integer value) {
     FunctionExpression ln = dsl.ln(DSL.literal(value));
     assertThat(
-        ln.valueOf(valueEnv()),
+        ln.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.log(value))));
     assertEquals(String.format("ln(%s)", value.toString()), ln.toString());
   }
@@ -641,7 +644,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void ln_long_value(Long value) {
     FunctionExpression ln = dsl.ln(DSL.literal(value));
     assertThat(
-        ln.valueOf(valueEnv()),
+        ln.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.log(value))));
     assertEquals(String.format("ln(%s)", value.toString()), ln.toString());
   }
@@ -654,7 +657,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void ln_float_value(Float value) {
     FunctionExpression ln = dsl.ln(DSL.literal(value));
     assertThat(
-        ln.valueOf(valueEnv()),
+        ln.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.log(value))));
     assertEquals(String.format("ln(%s)", value.toString()), ln.toString());
   }
@@ -667,7 +670,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void ln_double_value(Double value) {
     FunctionExpression ln = dsl.ln(DSL.literal(value));
     assertThat(
-        ln.valueOf(valueEnv()),
+        ln.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.log(value))));
     assertEquals(String.format("ln(%s)", value.toString()), ln.toString());
   }
@@ -679,7 +682,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void ln_null_value() {
     FunctionExpression ln = dsl.ln(DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, ln.type());
-    assertTrue(ln.valueOf(valueEnv()).isNull());
+    assertTrue(ln.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -689,7 +692,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void ln_missing_value() {
     FunctionExpression ln = dsl.ln(DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, ln.type());
-    assertTrue(ln.valueOf(valueEnv()).isMissing());
+    assertTrue(ln.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -701,7 +704,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression log = dsl.log(DSL.literal(v));
     assertEquals(log.type(), DOUBLE);
     assertThat(
-        getDoubleValue(log.valueOf(valueEnv())),
+        getDoubleValue(log.valueOf(valueEnv(), SessionContext.None)),
         closeTo(Math.log(v), 0.0001)
     );
     assertEquals(String.format("log(%s)", v.toString()), log.toString());
@@ -716,7 +719,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression log = dsl.log(DSL.literal(v));
     assertEquals(log.type(), DOUBLE);
     assertThat(
-        getDoubleValue(log.valueOf(valueEnv())),
+        getDoubleValue(log.valueOf(valueEnv(), SessionContext.None)),
         closeTo(Math.log(v), 0.0001)
     );
     assertEquals(String.format("log(%s)", v.toString()), log.toString());
@@ -731,7 +734,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression log = dsl.log(DSL.literal(v));
     assertEquals(log.type(), DOUBLE);
     assertThat(
-        getDoubleValue(log.valueOf(valueEnv())),
+        getDoubleValue(log.valueOf(valueEnv(), SessionContext.None)),
         closeTo(Math.log(v), 0.0001)
     );
     assertEquals(String.format("log(%s)", v.toString()), log.toString());
@@ -746,7 +749,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression log = dsl.log(DSL.literal(v));
     assertEquals(log.type(), DOUBLE);
     assertThat(
-        getDoubleValue(log.valueOf(valueEnv())),
+        getDoubleValue(log.valueOf(valueEnv(), SessionContext.None)),
         closeTo(Math.log(v), 0.0001)
     );
     assertEquals(String.format("log(%s)", v.toString()), log.toString());
@@ -760,7 +763,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression log = dsl.log(
         DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, log.type());
-    assertTrue(log.valueOf(valueEnv()).isNull());
+    assertTrue(log.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -771,7 +774,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression log = dsl.log(
         DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, log.type());
-    assertTrue(log.valueOf(valueEnv()).isMissing());
+    assertTrue(log.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -783,7 +786,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression log = dsl.log(DSL.literal(v1), DSL.literal(v2));
     assertEquals(log.type(), DOUBLE);
     assertThat(
-        getDoubleValue(log.valueOf(valueEnv())),
+        getDoubleValue(log.valueOf(valueEnv(), SessionContext.None)),
         closeTo(Math.log(v2) / Math.log(v1), 0.0001));
     assertEquals(String.format("log(%s, %s)", v1.toString(), v2.toString()), log.toString());
   }
@@ -797,7 +800,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression log = dsl.log(DSL.literal(v1), DSL.literal(v2));
     assertEquals(log.type(), DOUBLE);
     assertThat(
-        getDoubleValue(log.valueOf(valueEnv())),
+        getDoubleValue(log.valueOf(valueEnv(), SessionContext.None)),
         closeTo(Math.log(v2) / Math.log(v1), 0.0001));
     assertEquals(String.format("log(%s, %s)", v1.toString(), v2.toString()), log.toString());
   }
@@ -811,7 +814,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression log = dsl.log(DSL.literal(v1), DSL.literal(v2));
     assertEquals(log.type(), DOUBLE);
     assertThat(
-        getDoubleValue(log.valueOf(valueEnv())),
+        getDoubleValue(log.valueOf(valueEnv(), SessionContext.None)),
         closeTo(Math.log(v2) / Math.log(v1), 0.0001));
     assertEquals(String.format("log(%s, %s)", v1.toString(), v2.toString()), log.toString());
   }
@@ -825,7 +828,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression log = dsl.log(DSL.literal(v1), DSL.literal(v2));
     assertEquals(log.type(), DOUBLE);
     assertThat(
-        getDoubleValue(log.valueOf(valueEnv())),
+        getDoubleValue(log.valueOf(valueEnv(), SessionContext.None)),
         closeTo(Math.log(v2) / Math.log(v1), 0.0001));
     assertEquals(String.format("log(%s, %s)", v1.toString(), v2.toString()), log.toString());
   }
@@ -838,17 +841,17 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression log = dsl.log(
         DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE), DSL.literal(2D));
     assertEquals(DOUBLE, log.type());
-    assertTrue(log.valueOf(valueEnv()).isNull());
+    assertTrue(log.valueOf(valueEnv(), SessionContext.None).isNull());
 
     log = dsl.log(DSL.literal(2D), DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, log.type());
-    assertTrue(log.valueOf(valueEnv()).isNull());
+    assertTrue(log.valueOf(valueEnv(), SessionContext.None).isNull());
 
     log = dsl.log(
         DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE),
         DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, log.type());
-    assertTrue(log.valueOf(valueEnv()).isNull());
+    assertTrue(log.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -859,17 +862,17 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression log = dsl.log(
         DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE), DSL.literal(2D));
     assertEquals(DOUBLE, log.type());
-    assertTrue(log.valueOf(valueEnv()).isMissing());
+    assertTrue(log.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     log = dsl.log(DSL.literal(2D), DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, log.type());
-    assertTrue(log.valueOf(valueEnv()).isMissing());
+    assertTrue(log.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     log = dsl.log(
         DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE),
         DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, log.type());
-    assertTrue(log.valueOf(valueEnv()).isMissing());
+    assertTrue(log.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -881,13 +884,13 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
         DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE),
         DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, log.type());
-    assertTrue(log.valueOf(valueEnv()).isMissing());
+    assertTrue(log.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     log = dsl.log(
         DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE),
         DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, log.type());
-    assertTrue(log.valueOf(valueEnv()).isMissing());
+    assertTrue(log.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -899,7 +902,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression log = dsl.log10(DSL.literal(v));
     assertEquals(log.type(), DOUBLE);
     assertThat(
-        getDoubleValue(log.valueOf(valueEnv())),
+        getDoubleValue(log.valueOf(valueEnv(), SessionContext.None)),
         closeTo(Math.log10(v), 0.0001)
     );
     assertEquals(String.format("log10(%s)", v.toString()), log.toString());
@@ -914,7 +917,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression log = dsl.log10(DSL.literal(v));
     assertEquals(log.type(), DOUBLE);
     assertThat(
-        getDoubleValue(log.valueOf(valueEnv())),
+        getDoubleValue(log.valueOf(valueEnv(), SessionContext.None)),
         closeTo(Math.log10(v), 0.0001)
     );
     assertEquals(String.format("log10(%s)", v.toString()), log.toString());
@@ -929,7 +932,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression log = dsl.log10(DSL.literal(v));
     assertEquals(log.type(), DOUBLE);
     assertThat(
-        getDoubleValue(log.valueOf(valueEnv())),
+        getDoubleValue(log.valueOf(valueEnv(), SessionContext.None)),
         closeTo(Math.log10(v), 0.0001)
     );
     assertEquals(String.format("log10(%s)", v.toString()), log.toString());
@@ -944,7 +947,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression log = dsl.log10(DSL.literal(v));
     assertEquals(log.type(), DOUBLE);
     assertThat(
-        getDoubleValue(log.valueOf(valueEnv())),
+        getDoubleValue(log.valueOf(valueEnv(), SessionContext.None)),
         closeTo(Math.log10(v), 0.0001)
     );
     assertEquals(String.format("log10(%s)", v.toString()), log.toString());
@@ -958,7 +961,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression log = dsl.log10(
         DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, log.type());
-    assertTrue(log.valueOf(valueEnv()).isNull());
+    assertTrue(log.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -969,7 +972,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression log = dsl.log10(
         DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, log.type());
-    assertTrue(log.valueOf(valueEnv()).isMissing());
+    assertTrue(log.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -981,7 +984,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression log = dsl.log2(DSL.literal(v));
     assertEquals(log.type(), DOUBLE);
     assertThat(
-        getDoubleValue(log.valueOf(valueEnv())),
+        getDoubleValue(log.valueOf(valueEnv(), SessionContext.None)),
         closeTo(Math.log(v) / Math.log(2), 0.0001)
     );
     assertEquals(String.format("log2(%s)", v.toString()), log.toString());
@@ -996,7 +999,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression log = dsl.log2(DSL.literal(v));
     assertEquals(log.type(), DOUBLE);
     assertThat(
-        getDoubleValue(log.valueOf(valueEnv())),
+        getDoubleValue(log.valueOf(valueEnv(), SessionContext.None)),
         closeTo(Math.log(v) / Math.log(2), 0.0001)
     );
     assertEquals(String.format("log2(%s)", v.toString()), log.toString());
@@ -1011,7 +1014,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression log = dsl.log2(DSL.literal(v));
     assertEquals(log.type(), DOUBLE);
     assertThat(
-        getDoubleValue(log.valueOf(valueEnv())),
+        getDoubleValue(log.valueOf(valueEnv(), SessionContext.None)),
         closeTo(Math.log(v) / Math.log(2), 0.0001)
     );
     assertEquals(String.format("log2(%s)", v.toString()), log.toString());
@@ -1026,7 +1029,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression log = dsl.log2(DSL.literal(v));
     assertEquals(log.type(), DOUBLE);
     assertThat(
-        getDoubleValue(log.valueOf(valueEnv())),
+        getDoubleValue(log.valueOf(valueEnv(), SessionContext.None)),
         closeTo(Math.log(v) / Math.log(2), 0.0001)
     );
     assertEquals(String.format("log2(%s)", v.toString()), log.toString());
@@ -1040,7 +1043,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression log = dsl.log2(
         DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, log.type());
-    assertTrue(log.valueOf(valueEnv()).isNull());
+    assertTrue(log.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -1051,7 +1054,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression log = dsl.log2(
         DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, log.type());
-    assertTrue(log.valueOf(valueEnv()).isMissing());
+    assertTrue(log.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -1063,13 +1066,13 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression mod = dsl.mod(DSL.literal(v1), DSL.literal(v2));
 
     assertThat(
-        mod.valueOf(valueEnv()),
+        mod.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(BYTE), hasValue(Integer.valueOf(v1 % v2).byteValue())));
     assertEquals(String.format("mod(%s, %s)", v1, v2), mod.toString());
 
     mod = dsl.mod(DSL.literal(v1), DSL.literal(new ExprByteValue(0)));
     assertEquals(BYTE, mod.type());
-    assertTrue(mod.valueOf(valueEnv()).isNull());
+    assertTrue(mod.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -1081,14 +1084,14 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression mod = dsl.mod(DSL.literal(v1), DSL.literal(v2));
 
     assertThat(
-        mod.valueOf(valueEnv()),
+        mod.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(SHORT),
             hasValue(Integer.valueOf(v1 % v2).shortValue())));
     assertEquals(String.format("mod(%s, %s)", v1, v2), mod.toString());
 
     mod = dsl.mod(DSL.literal(v1), DSL.literal(new ExprShortValue(0)));
     assertEquals(SHORT, mod.type());
-    assertTrue(mod.valueOf(valueEnv()).isNull());
+    assertTrue(mod.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -1099,13 +1102,13 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void mod_int_value(Integer v1, Integer v2) {
     FunctionExpression mod = dsl.mod(DSL.literal(v1), DSL.literal(v2));
     assertThat(
-        mod.valueOf(valueEnv()),
+        mod.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(INTEGER), hasValue(v1 % v2)));
     assertEquals(String.format("mod(%s, %s)", v1, v2), mod.toString());
 
     mod = dsl.mod(DSL.literal(v1), DSL.literal(0));
     assertEquals(INTEGER, mod.type());
-    assertTrue(mod.valueOf(valueEnv()).isNull());
+    assertTrue(mod.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -1116,13 +1119,13 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void mod_long_value(Long v1, Long v2) {
     FunctionExpression mod = dsl.mod(DSL.literal(v1), DSL.literal(v2));
     assertThat(
-        mod.valueOf(valueEnv()),
+        mod.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(LONG), hasValue(v1 % v2)));
     assertEquals(String.format("mod(%s, %s)", v1, v2), mod.toString());
 
     mod = dsl.mod(DSL.literal(v1), DSL.literal(0));
     assertEquals(LONG, mod.type());
-    assertTrue(mod.valueOf(valueEnv()).isNull());
+    assertTrue(mod.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -1133,13 +1136,13 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void mod_float_value(Float v1, Float v2) {
     FunctionExpression mod = dsl.mod(DSL.literal(v1), DSL.literal(v2));
     assertThat(
-        mod.valueOf(valueEnv()),
+        mod.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(FLOAT), hasValue(v1 % v2)));
     assertEquals(String.format("mod(%s, %s)", v1, v2), mod.toString());
 
     mod = dsl.mod(DSL.literal(v1), DSL.literal(0));
     assertEquals(FLOAT, mod.type());
-    assertTrue(mod.valueOf(valueEnv()).isNull());
+    assertTrue(mod.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -1150,13 +1153,13 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void mod_double_value(Double v1, Double v2) {
     FunctionExpression mod = dsl.mod(DSL.literal(v1), DSL.literal(v2));
     assertThat(
-        mod.valueOf(valueEnv()),
+        mod.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(v1 % v2)));
     assertEquals(String.format("mod(%s, %s)", v1, v2), mod.toString());
 
     mod = dsl.mod(DSL.literal(v1), DSL.literal(0));
     assertEquals(DOUBLE, mod.type());
-    assertTrue(mod.valueOf(valueEnv()).isNull());
+    assertTrue(mod.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -1166,16 +1169,16 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void mod_null_value() {
     FunctionExpression mod = dsl.mod(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER), DSL.literal(1));
     assertEquals(INTEGER, mod.type());
-    assertTrue(mod.valueOf(valueEnv()).isNull());
+    assertTrue(mod.valueOf(valueEnv(), SessionContext.None).isNull());
 
     mod = dsl.mod(DSL.literal(1), DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(INTEGER, mod.type());
-    assertTrue(mod.valueOf(valueEnv()).isNull());
+    assertTrue(mod.valueOf(valueEnv(), SessionContext.None).isNull());
 
     mod = dsl.mod(
         DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER), DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(INTEGER, mod.type());
-    assertTrue(mod.valueOf(valueEnv()).isNull());
+    assertTrue(mod.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -1186,17 +1189,17 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression mod =
         dsl.mod(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER), DSL.literal(1));
     assertEquals(INTEGER, mod.type());
-    assertTrue(mod.valueOf(valueEnv()).isMissing());
+    assertTrue(mod.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     mod = dsl.mod(DSL.literal(1), DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(INTEGER, mod.type());
-    assertTrue(mod.valueOf(valueEnv()).isMissing());
+    assertTrue(mod.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     mod = dsl.mod(
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(INTEGER, mod.type());
-    assertTrue(mod.valueOf(valueEnv()).isMissing());
+    assertTrue(mod.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -1207,12 +1210,12 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression mod = dsl.mod(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(INTEGER, mod.type());
-    assertTrue(mod.valueOf(valueEnv()).isMissing());
+    assertTrue(mod.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     mod = dsl.mod(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(INTEGER, mod.type());
-    assertTrue(mod.valueOf(valueEnv()).isMissing());
+    assertTrue(mod.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -1223,14 +1226,14 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void pow_short_value(Short v1, Short v2) {
     FunctionExpression pow = dsl.pow(DSL.literal(v1), DSL.literal(v2));
     assertThat(
-        pow.valueOf(valueEnv()),
+        pow.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.pow(v1, v2))));
     assertEquals(String.format("pow(%s, %s)", v1, v2), pow.toString());
 
     FunctionExpression power =
         dsl.power(DSL.literal(v1), DSL.literal(v2));
     assertThat(
-        power.valueOf(valueEnv()),
+        power.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.pow(v1, v2))));
     assertEquals(String.format("pow(%s, %s)", v1, v2), pow.toString());
   }
@@ -1243,13 +1246,13 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void pow_int_value(Integer v1, Integer v2) {
     FunctionExpression pow = dsl.pow(DSL.literal(v1), DSL.literal(v2));
     assertThat(
-        pow.valueOf(valueEnv()),
+        pow.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.pow(v1, v2))));
     assertEquals(String.format("pow(%s, %s)", v1, v2), pow.toString());
 
     FunctionExpression power = dsl.power(DSL.literal(v1), DSL.literal(v2));
     assertThat(
-        power.valueOf(valueEnv()),
+        power.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.pow(v1, v2))));
     assertEquals(String.format("pow(%s, %s)", v1, v2), pow.toString());
   }
@@ -1262,13 +1265,13 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void pow_long_value(Long v1, Long v2) {
     FunctionExpression pow = dsl.pow(DSL.literal(v1), DSL.literal(v2));
     assertThat(
-        pow.valueOf(valueEnv()),
+        pow.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.pow(v1, v2))));
     assertEquals(String.format("pow(%s, %s)", v1, v2), pow.toString());
 
     FunctionExpression power = dsl.power(DSL.literal(v1), DSL.literal(v2));
     assertThat(
-        power.valueOf(valueEnv()),
+        power.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.pow(v1, v2))));
     assertEquals(String.format("pow(%s, %s)", v1, v2), pow.toString());
   }
@@ -1281,13 +1284,13 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void pow_float_value(Float v1, Float v2) {
     FunctionExpression pow = dsl.pow(DSL.literal(v1), DSL.literal(v2));
     assertThat(
-        pow.valueOf(valueEnv()),
+        pow.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.pow(v1, v2))));
     assertEquals(String.format("pow(%s, %s)", v1, v2), pow.toString());
 
     FunctionExpression power = dsl.power(DSL.literal(v1), DSL.literal(v2));
     assertThat(
-        power.valueOf(valueEnv()),
+        power.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.pow(v1, v2))));
     assertEquals(String.format("pow(%s, %s)", v1, v2), pow.toString());
   }
@@ -1300,13 +1303,13 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void pow_double_value(Double v1, Double v2) {
     FunctionExpression pow = dsl.pow(DSL.literal(v1), DSL.literal(v2));
     assertThat(
-        pow.valueOf(valueEnv()),
+        pow.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.pow(v1, v2))));
     assertEquals(String.format("pow(%s, %s)", v1, v2), pow.toString());
 
     FunctionExpression power = dsl.power(DSL.literal(v1), DSL.literal(v2));
     assertThat(
-        power.valueOf(valueEnv()),
+        power.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.pow(v1, v2))));
     assertEquals(String.format("pow(%s, %s)", v1, v2), pow.toString());
   }
@@ -1318,30 +1321,30 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void pow_null_value() {
     FunctionExpression pow = dsl.pow(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER), DSL.literal(1));
     assertEquals(DOUBLE, pow.type());
-    assertTrue(pow.valueOf(valueEnv()).isNull());
+    assertTrue(pow.valueOf(valueEnv(), SessionContext.None).isNull());
 
     dsl.pow(DSL.literal(1), DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(DOUBLE, pow.type());
-    assertTrue(pow.valueOf(valueEnv()).isNull());
+    assertTrue(pow.valueOf(valueEnv(), SessionContext.None).isNull());
 
     dsl.pow(
         DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER), DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(DOUBLE, pow.type());
-    assertTrue(pow.valueOf(valueEnv()).isNull());
+    assertTrue(pow.valueOf(valueEnv(), SessionContext.None).isNull());
 
     FunctionExpression power =
         dsl.power(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER), DSL.literal(1));
     assertEquals(DOUBLE, power.type());
-    assertTrue(power.valueOf(valueEnv()).isNull());
+    assertTrue(power.valueOf(valueEnv(), SessionContext.None).isNull());
 
     power = dsl.power(DSL.literal(1), DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(DOUBLE, power.type());
-    assertTrue(power.valueOf(valueEnv()).isNull());
+    assertTrue(power.valueOf(valueEnv(), SessionContext.None).isNull());
 
     power = dsl.power(
         DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER), DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(DOUBLE, power.type());
-    assertTrue(power.valueOf(valueEnv()).isNull());
+    assertTrue(power.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -1352,30 +1355,30 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression pow =
         dsl.pow(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER), DSL.literal(1));
     assertEquals(DOUBLE, pow.type());
-    assertTrue(pow.valueOf(valueEnv()).isMissing());
+    assertTrue(pow.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     dsl.pow(DSL.literal(1), DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(DOUBLE, pow.type());
-    assertTrue(pow.valueOf(valueEnv()).isMissing());
+    assertTrue(pow.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     dsl.pow(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(DOUBLE, pow.type());
-    assertTrue(pow.valueOf(valueEnv()).isMissing());
+    assertTrue(pow.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     FunctionExpression power =
         dsl.power(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER), DSL.literal(1));
     assertEquals(DOUBLE, power.type());
-    assertTrue(power.valueOf(valueEnv()).isMissing());
+    assertTrue(power.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     power = dsl.power(DSL.literal(1), DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(DOUBLE, power.type());
-    assertTrue(power.valueOf(valueEnv()).isMissing());
+    assertTrue(power.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     power = dsl.power(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(DOUBLE, power.type());
-    assertTrue(power.valueOf(valueEnv()).isMissing());
+    assertTrue(power.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -1387,25 +1390,25 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
         DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(DOUBLE, pow.type());
-    assertTrue(pow.valueOf(valueEnv()).isMissing());
+    assertTrue(pow.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     pow = dsl.pow(
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(DOUBLE, pow.type());
-    assertTrue(pow.valueOf(valueEnv()).isMissing());
+    assertTrue(pow.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     FunctionExpression power = dsl.power(
         DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(DOUBLE, power.type());
-    assertTrue(power.valueOf(valueEnv()).isMissing());
+    assertTrue(power.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     power = dsl.power(
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(DOUBLE, power.type());
-    assertTrue(power.valueOf(valueEnv()).isMissing());
+    assertTrue(power.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -1416,20 +1419,20 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void round_int_value(Integer value) {
     FunctionExpression round = dsl.round(DSL.literal(value));
     assertThat(
-        round.valueOf(valueEnv()),
+        round.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(LONG), hasValue((long) Math.round(value))));
     assertEquals(String.format("round(%s)", value), round.toString());
 
     round = dsl.round(DSL.literal(value), DSL.literal(1));
     assertThat(
-        round.valueOf(valueEnv()),
+        round.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(LONG), hasValue(
             new BigDecimal(value).setScale(1, RoundingMode.HALF_UP).longValue())));
     assertEquals(String.format("round(%s, 1)", value), round.toString());
 
     round = dsl.round(DSL.literal(value), DSL.literal(-1));
     assertThat(
-        round.valueOf(valueEnv()),
+        round.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(LONG), hasValue(
             new BigDecimal(value).setScale(-1, RoundingMode.HALF_UP).longValue())));
     assertEquals(String.format("round(%s, -1)", value), round.toString());
@@ -1443,20 +1446,20 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void round_long_value(Long value) {
     FunctionExpression round = dsl.round(DSL.literal(value));
     assertThat(
-        round.valueOf(valueEnv()),
+        round.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(LONG), hasValue((long) Math.round(value))));
     assertEquals(String.format("round(%s)", value), round.toString());
 
     round = dsl.round(DSL.literal(value), DSL.literal(1));
     assertThat(
-        round.valueOf(valueEnv()),
+        round.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(LONG), hasValue(
             new BigDecimal(value).setScale(1, RoundingMode.HALF_UP).longValue())));
     assertEquals(String.format("round(%s, 1)", value), round.toString());
 
     round = dsl.round(DSL.literal(value), DSL.literal(-1));
     assertThat(
-        round.valueOf(valueEnv()),
+        round.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(LONG), hasValue(
             new BigDecimal(value).setScale(-1, RoundingMode.HALF_UP).longValue())));
     assertEquals(String.format("round(%s, -1)", value), round.toString());
@@ -1470,20 +1473,20 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void round_float_value(Float value) {
     FunctionExpression round = dsl.round(DSL.literal(value));
     assertThat(
-        round.valueOf(valueEnv()),
+        round.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue((double) Math.round(value))));
     assertEquals(String.format("round(%s)", value), round.toString());
 
     round = dsl.round(DSL.literal(value), DSL.literal(1));
     assertThat(
-        round.valueOf(valueEnv()),
+        round.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(
             new BigDecimal(value).setScale(1, RoundingMode.HALF_UP).doubleValue())));
     assertEquals(String.format("round(%s, 1)", value), round.toString());
 
     round = dsl.round(DSL.literal(value), DSL.literal(-1));
     assertThat(
-        round.valueOf(valueEnv()),
+        round.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(
             new BigDecimal(value).setScale(-1, RoundingMode.HALF_UP).doubleValue())));
     assertEquals(String.format("round(%s, -1)", value), round.toString());
@@ -1497,20 +1500,20 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void round_double_value(Double value) {
     FunctionExpression round = dsl.round(DSL.literal(value));
     assertThat(
-        round.valueOf(valueEnv()),
+        round.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue((double) Math.round(value))));
     assertEquals(String.format("round(%s)", value), round.toString());
 
     round = dsl.round(DSL.literal(value), DSL.literal(1));
     assertThat(
-        round.valueOf(valueEnv()),
+        round.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(
             new BigDecimal(value).setScale(1, RoundingMode.HALF_UP).doubleValue())));
     assertEquals(String.format("round(%s, 1)", value), round.toString());
 
     round = dsl.round(DSL.literal(value), DSL.literal(-1));
     assertThat(
-        round.valueOf(valueEnv()),
+        round.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(
             new BigDecimal(value).setScale(-1, RoundingMode.HALF_UP).doubleValue())));
     assertEquals(String.format("round(%s, -1)", value), round.toString());
@@ -1523,15 +1526,15 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void round_null_value() {
     FunctionExpression round = dsl.round(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(LONG, round.type());
-    assertTrue(round.valueOf(valueEnv()).isNull());
+    assertTrue(round.valueOf(valueEnv(), SessionContext.None).isNull());
 
     round = dsl.round(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER), DSL.literal(1));
     assertEquals(LONG, round.type());
-    assertTrue(round.valueOf(valueEnv()).isNull());
+    assertTrue(round.valueOf(valueEnv(), SessionContext.None).isNull());
 
     round = dsl.round(DSL.literal(1), DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(LONG, round.type());
-    assertTrue(round.valueOf(valueEnv()).isNull());
+    assertTrue(round.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -1541,15 +1544,15 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void round_missing_value() {
     FunctionExpression round = dsl.round(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(LONG, round.type());
-    assertTrue(round.valueOf(valueEnv()).isMissing());
+    assertTrue(round.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     round = dsl.round(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER), DSL.literal(1));
     assertEquals(LONG, round.type());
-    assertTrue(round.valueOf(valueEnv()).isMissing());
+    assertTrue(round.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     round = dsl.round(DSL.literal(1), DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(LONG, round.type());
-    assertTrue(round.valueOf(valueEnv()).isMissing());
+    assertTrue(round.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -1561,13 +1564,13 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
         DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(LONG, round.type());
-    assertTrue(round.valueOf(valueEnv()).isMissing());
+    assertTrue(round.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     round = dsl.round(
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(LONG, round.type());
-    assertTrue(round.valueOf(valueEnv()).isMissing());
+    assertTrue(round.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -1578,7 +1581,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void sign_int_value(Integer value) {
     FunctionExpression sign = dsl.sign(DSL.literal(value));
     assertThat(
-        sign.valueOf(valueEnv()),
+        sign.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(INTEGER), hasValue((int) Math.signum(value))));
     assertEquals(String.format("sign(%s)", value), sign.toString());
   }
@@ -1591,7 +1594,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void sign_long_value(Long value) {
     FunctionExpression sign = dsl.sign(DSL.literal(value));
     assertThat(
-        sign.valueOf(valueEnv()),
+        sign.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(INTEGER), hasValue((int) Math.signum(value))));
     assertEquals(String.format("sign(%s)", value), sign.toString());
   }
@@ -1604,7 +1607,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void sign_float_value(Float value) {
     FunctionExpression sign = dsl.sign(DSL.literal(value));
     assertThat(
-        sign.valueOf(valueEnv()),
+        sign.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(INTEGER), hasValue((int) Math.signum(value))));
     assertEquals(String.format("sign(%s)", value), sign.toString());
   }
@@ -1617,7 +1620,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void sign_double_value(Double value) {
     FunctionExpression sign = dsl.sign(DSL.literal(value));
     assertThat(
-        sign.valueOf(valueEnv()),
+        sign.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(INTEGER), hasValue((int) Math.signum(value))));
     assertEquals(String.format("sign(%s)", value), sign.toString());
   }
@@ -1629,7 +1632,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void sign_null_value() {
     FunctionExpression sign = dsl.sign(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(INTEGER, sign.type());
-    assertTrue(sign.valueOf(valueEnv()).isNull());
+    assertTrue(sign.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -1639,7 +1642,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void sign_missing_value() {
     FunctionExpression sign = dsl.sign(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(INTEGER, sign.type());
-    assertTrue(sign.valueOf(valueEnv()).isMissing());
+    assertTrue(sign.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -1649,7 +1652,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   @ValueSource(ints = {1, 2})
   public void sqrt_int_value(Integer value) {
     FunctionExpression sqrt = dsl.sqrt(DSL.literal(value));
-    assertThat(sqrt.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.sqrt(value))));
+    assertThat(sqrt.valueOf(valueEnv(), SessionContext.None), allOf(hasType(DOUBLE), hasValue(Math.sqrt(value))));
     assertEquals(String.format("sqrt(%s)", value), sqrt.toString());
   }
 
@@ -1660,7 +1663,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   @ValueSource(longs = {1L, 2L})
   public void sqrt_long_value(Long value) {
     FunctionExpression sqrt = dsl.sqrt(DSL.literal(value));
-    assertThat(sqrt.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.sqrt(value))));
+    assertThat(sqrt.valueOf(valueEnv(), SessionContext.None), allOf(hasType(DOUBLE), hasValue(Math.sqrt(value))));
     assertEquals(String.format("sqrt(%s)", value), sqrt.toString());
   }
 
@@ -1671,7 +1674,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   @ValueSource(floats = {1F, 2F})
   public void sqrt_float_value(Float value) {
     FunctionExpression sqrt = dsl.sqrt(DSL.literal(value));
-    assertThat(sqrt.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.sqrt(value))));
+    assertThat(sqrt.valueOf(valueEnv(), SessionContext.None), allOf(hasType(DOUBLE), hasValue(Math.sqrt(value))));
     assertEquals(String.format("sqrt(%s)", value), sqrt.toString());
   }
 
@@ -1682,7 +1685,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   @ValueSource(doubles = {1D, 2D})
   public void sqrt_double_value(Double value) {
     FunctionExpression sqrt = dsl.sqrt(DSL.literal(value));
-    assertThat(sqrt.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.sqrt(value))));
+    assertThat(sqrt.valueOf(valueEnv(), SessionContext.None), allOf(hasType(DOUBLE), hasValue(Math.sqrt(value))));
     assertEquals(String.format("sqrt(%s)", value), sqrt.toString());
   }
 
@@ -1694,7 +1697,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void sqrt_negative_value(Double value) {
     FunctionExpression sqrt = dsl.sqrt(DSL.literal(value));
     assertEquals(DOUBLE, sqrt.type());
-    assertTrue(sqrt.valueOf(valueEnv()).isNull());
+    assertTrue(sqrt.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -1704,7 +1707,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void sqrt_null_value() {
     FunctionExpression sqrt = dsl.sqrt(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(DOUBLE, sqrt.type());
-    assertTrue(sqrt.valueOf(valueEnv()).isNull());
+    assertTrue(sqrt.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -1714,7 +1717,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void sqrt_missing_value() {
     FunctionExpression sqrt = dsl.sqrt(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(DOUBLE, sqrt.type());
-    assertTrue(sqrt.valueOf(valueEnv()).isMissing());
+    assertTrue(sqrt.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -1725,7 +1728,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void truncate_int_value(Integer value) {
     FunctionExpression truncate = dsl.truncate(DSL.literal(value), DSL.literal(1));
     assertThat(
-        truncate.valueOf(valueEnv()), allOf(hasType(LONG),
+        truncate.valueOf(valueEnv(), SessionContext.None), allOf(hasType(LONG),
             hasValue(new BigDecimal(value).setScale(1, RoundingMode.DOWN).longValue())));
     assertEquals(String.format("truncate(%s, 1)", value), truncate.toString());
   }
@@ -1738,7 +1741,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void truncate_long_value(Long value) {
     FunctionExpression truncate = dsl.truncate(DSL.literal(value), DSL.literal(1));
     assertThat(
-        truncate.valueOf(valueEnv()), allOf(hasType(LONG),
+        truncate.valueOf(valueEnv(), SessionContext.None), allOf(hasType(LONG),
             hasValue(new BigDecimal(value).setScale(1, RoundingMode.DOWN).longValue())));
     assertEquals(String.format("truncate(%s, 1)", value), truncate.toString());
   }
@@ -1751,7 +1754,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void truncate_float_value(Float value) {
     FunctionExpression truncate = dsl.truncate(DSL.literal(value), DSL.literal(1));
     assertThat(
-        truncate.valueOf(valueEnv()), allOf(hasType(DOUBLE),
+        truncate.valueOf(valueEnv(), SessionContext.None), allOf(hasType(DOUBLE),
             hasValue(new BigDecimal(value).setScale(1, RoundingMode.DOWN).doubleValue())));
     assertEquals(String.format("truncate(%s, 1)", value), truncate.toString());
   }
@@ -1764,7 +1767,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void truncate_double_value(Double value) {
     FunctionExpression truncate = dsl.truncate(DSL.literal(value), DSL.literal(1));
     assertThat(
-        truncate.valueOf(valueEnv()), allOf(hasType(DOUBLE),
+        truncate.valueOf(valueEnv(), SessionContext.None), allOf(hasType(DOUBLE),
             hasValue(new BigDecimal(value).setScale(1, RoundingMode.DOWN).doubleValue())));
     assertEquals(String.format("truncate(%s, 1)", value), truncate.toString());
   }
@@ -1777,16 +1780,16 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression truncate =
         dsl.truncate(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER), DSL.literal(1));
     assertEquals(LONG, truncate.type());
-    assertTrue(truncate.valueOf(valueEnv()).isNull());
+    assertTrue(truncate.valueOf(valueEnv(), SessionContext.None).isNull());
 
     truncate = dsl.truncate(DSL.literal(1), DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(LONG, truncate.type());
-    assertTrue(truncate.valueOf(valueEnv()).isNull());
+    assertTrue(truncate.valueOf(valueEnv(), SessionContext.None).isNull());
 
     truncate = dsl.truncate(
         DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER), DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(LONG, truncate.type());
-    assertTrue(truncate.valueOf(valueEnv()).isNull());
+    assertTrue(truncate.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -1797,17 +1800,17 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression truncate =
         dsl.truncate(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER), DSL.literal(1));
     assertEquals(LONG, truncate.type());
-    assertTrue(truncate.valueOf(valueEnv()).isMissing());
+    assertTrue(truncate.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     truncate = dsl.truncate(DSL.literal(1), DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(LONG, truncate.type());
-    assertTrue(truncate.valueOf(valueEnv()).isMissing());
+    assertTrue(truncate.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     truncate = dsl.truncate(
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(LONG, truncate.type());
-    assertTrue(truncate.valueOf(valueEnv()).isMissing());
+    assertTrue(truncate.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -1818,12 +1821,12 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression truncate = dsl.truncate(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(LONG, truncate.type());
-    assertTrue(truncate.valueOf(valueEnv()).isMissing());
+    assertTrue(truncate.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     truncate = dsl.truncate(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(LONG, truncate.type());
-    assertTrue(truncate.valueOf(valueEnv()).isMissing());
+    assertTrue(truncate.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -1832,7 +1835,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   @Test
   public void test_pi() {
     FunctionExpression pi = dsl.pi();
-    assertThat(pi.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.PI)));
+    assertThat(pi.valueOf(valueEnv(), SessionContext.None), allOf(hasType(DOUBLE), hasValue(Math.PI)));
   }
 
   /**
@@ -1843,8 +1846,8 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression rand = dsl.rand();
     assertEquals(FLOAT, rand.type());
     assertTrue(
-        getFloatValue(rand.valueOf(valueEnv())) >= 0
-            && getFloatValue(rand.valueOf(valueEnv())) < 1);
+        getFloatValue(rand.valueOf(valueEnv(), SessionContext.None)) >= 0
+            && getFloatValue(rand.valueOf(valueEnv(), SessionContext.None)) < 1);
     assertEquals("rand()", rand.toString());
   }
 
@@ -1857,9 +1860,9 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression rand = dsl.rand(DSL.literal(n));
     assertEquals(FLOAT, rand.type());
     assertTrue(
-        getFloatValue(rand.valueOf(valueEnv())) >= 0
-        && getFloatValue(rand.valueOf(valueEnv())) < 1);
-    assertEquals(getFloatValue(rand.valueOf(valueEnv())), new Random(n).nextFloat());
+        getFloatValue(rand.valueOf(valueEnv(), SessionContext.None)) >= 0
+        && getFloatValue(rand.valueOf(valueEnv(), SessionContext.None)) < 1);
+    assertEquals(getFloatValue(rand.valueOf(valueEnv(), SessionContext.None)), new Random(n).nextFloat());
     assertEquals(String.format("rand(%s)", n), rand.toString());
   }
 
@@ -1867,7 +1870,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void rand_null_value() {
     FunctionExpression rand = dsl.rand(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(FLOAT, rand.type());
-    assertTrue(rand.valueOf(valueEnv()).isNull());
+    assertTrue(rand.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -1878,7 +1881,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void test_acos(Number value) {
     FunctionExpression acos = dsl.acos(DSL.literal(value));
     assertThat(
-        acos.valueOf(valueEnv()),
+        acos.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.acos(value.doubleValue()))));
     assertEquals(String.format("acos(%s)", value), acos.toString());
   }
@@ -1891,7 +1894,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void acos_with_illegal_value(Number value) {
     FunctionExpression acos = dsl.acos(DSL.literal(value));
     assertEquals(DOUBLE, acos.type());
-    assertTrue(acos.valueOf(valueEnv()).isNull());
+    assertTrue(acos.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -1901,7 +1904,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void acos_null_value() {
     FunctionExpression acos = dsl.acos(DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, acos.type());
-    assertTrue(acos.valueOf(valueEnv()).isNull());
+    assertTrue(acos.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -1911,7 +1914,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void acos_missing_value() {
     FunctionExpression acos = dsl.acos(DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, acos.type());
-    assertTrue(acos.valueOf(valueEnv()).isMissing());
+    assertTrue(acos.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -1922,7 +1925,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void test_asin(Number value) {
     FunctionExpression asin = dsl.asin(DSL.literal(value));
     assertThat(
-        asin.valueOf(valueEnv()),
+        asin.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.asin(value.doubleValue()))));
     assertEquals(String.format("asin(%s)", value), asin.toString());
   }
@@ -1935,7 +1938,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void asin_with_illegal_value(Number value) {
     FunctionExpression asin = dsl.asin(DSL.literal(value));
     assertEquals(DOUBLE, asin.type());
-    assertTrue(asin.valueOf(valueEnv()).isNull());
+    assertTrue(asin.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -1945,7 +1948,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void asin_null_value() {
     FunctionExpression asin = dsl.asin(DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, asin.type());
-    assertTrue(asin.valueOf(valueEnv()).isNull());
+    assertTrue(asin.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -1955,7 +1958,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void asin_missing_value() {
     FunctionExpression asin = dsl.asin(DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, asin.type());
-    assertTrue(asin.valueOf(valueEnv()).isMissing());
+    assertTrue(asin.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -1966,7 +1969,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void atan_one_arg(Number value) {
     FunctionExpression atan = dsl.atan(DSL.literal(value));
     assertThat(
-        atan.valueOf(valueEnv()),
+        atan.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.atan(value.doubleValue()))));
     assertEquals(String.format("atan(%s)", value), atan.toString());
   }
@@ -1980,7 +1983,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression atan =
         dsl.atan(DSL.literal(v1), DSL.literal(v2));
     assertThat(
-        atan.valueOf(valueEnv()),
+        atan.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.atan2(v1.doubleValue(), v2.doubleValue()))));
     assertEquals(String.format("atan(%s, %s)", v1, v2), atan.toString());
   }
@@ -1992,20 +1995,20 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void atan_null_value() {
     FunctionExpression atan = dsl.atan(DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, atan.type());
-    assertTrue(atan.valueOf(valueEnv()).isNull());
+    assertTrue(atan.valueOf(valueEnv(), SessionContext.None).isNull());
 
     atan = dsl.atan(DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE), DSL.literal(1));
     assertEquals(DOUBLE, atan.type());
-    assertTrue(atan.valueOf(valueEnv()).isNull());
+    assertTrue(atan.valueOf(valueEnv(), SessionContext.None).isNull());
 
     atan = dsl.atan(DSL.literal(1), DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, atan.type());
-    assertTrue(atan.valueOf(valueEnv()).isNull());
+    assertTrue(atan.valueOf(valueEnv(), SessionContext.None).isNull());
 
     atan = dsl.atan(DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE),
         DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, atan.type());
-    assertTrue(atan.valueOf(valueEnv()).isNull());
+    assertTrue(atan.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -2015,20 +2018,20 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void atan_missing_value() {
     FunctionExpression atan = dsl.atan(DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, atan.type());
-    assertTrue(atan.valueOf(valueEnv()).isMissing());
+    assertTrue(atan.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     atan = dsl.atan(DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE), DSL.literal(1));
     assertEquals(DOUBLE, atan.type());
-    assertTrue(atan.valueOf(valueEnv()).isMissing());
+    assertTrue(atan.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     atan = dsl.atan(DSL.literal(1), DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, atan.type());
-    assertTrue(atan.valueOf(valueEnv()).isMissing());
+    assertTrue(atan.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     atan = dsl.atan(DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE),
         DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, atan.type());
-    assertTrue(atan.valueOf(valueEnv()).isMissing());
+    assertTrue(atan.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -2040,12 +2043,12 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
         DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE),
         DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, atan.type());
-    assertTrue(atan.valueOf(valueEnv()).isMissing());
+    assertTrue(atan.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     atan = dsl.atan(DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE),
         DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, atan.type());
-    assertTrue(atan.valueOf(valueEnv()).isMissing());
+    assertTrue(atan.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -2056,7 +2059,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void test_atan2(Number v1, Number v2) {
     FunctionExpression atan2 = dsl.atan2(DSL.literal(v1), DSL.literal(v2));
     assertThat(
-        atan2.valueOf(valueEnv()),
+        atan2.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.atan2(v1.doubleValue(), v2.doubleValue()))));
     assertEquals(String.format("atan2(%s, %s)", v1, v2), atan2.toString());
   }
@@ -2069,16 +2072,16 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression atan2 = dsl.atan2(
         DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE), DSL.literal(1));
     assertEquals(DOUBLE, atan2.type());
-    assertTrue(atan2.valueOf(valueEnv()).isNull());
+    assertTrue(atan2.valueOf(valueEnv(), SessionContext.None).isNull());
 
     atan2 = dsl.atan2(DSL.literal(1), DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, atan2.type());
-    assertTrue(atan2.valueOf(valueEnv()).isNull());
+    assertTrue(atan2.valueOf(valueEnv(), SessionContext.None).isNull());
 
     atan2 = dsl.atan2(DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE),
         DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, atan2.type());
-    assertTrue(atan2.valueOf(valueEnv()).isNull());
+    assertTrue(atan2.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -2089,16 +2092,16 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression atan2 = dsl.atan2(
         DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE), DSL.literal(1));
     assertEquals(DOUBLE, atan2.type());
-    assertTrue(atan2.valueOf(valueEnv()).isMissing());
+    assertTrue(atan2.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     atan2 = dsl.atan2(DSL.literal(1), DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, atan2.type());
-    assertTrue(atan2.valueOf(valueEnv()).isMissing());
+    assertTrue(atan2.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     atan2 = dsl.atan2(DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE),
         DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, atan2.type());
-    assertTrue(atan2.valueOf(valueEnv()).isMissing());
+    assertTrue(atan2.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -2110,12 +2113,12 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
         DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE),
         DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, atan2.type());
-    assertTrue(atan2.valueOf(valueEnv()).isMissing());
+    assertTrue(atan2.valueOf(valueEnv(), SessionContext.None).isMissing());
 
     atan2 = dsl.atan2(DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE),
         DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, atan2.type());
-    assertTrue(atan2.valueOf(valueEnv()).isMissing());
+    assertTrue(atan2.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -2126,7 +2129,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void test_cos(Number value) {
     FunctionExpression cos = dsl.cos(DSL.literal(value));
     assertThat(
-        cos.valueOf(valueEnv()),
+        cos.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.cos(value.doubleValue()))));
     assertEquals(String.format("cos(%s)", value), cos.toString());
   }
@@ -2138,7 +2141,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void cos_null_value() {
     FunctionExpression cos = dsl.cos(DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, cos.type());
-    assertTrue(cos.valueOf(valueEnv()).isNull());
+    assertTrue(cos.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -2148,7 +2151,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void cos_missing_value() {
     FunctionExpression cos = dsl.cos(DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, cos.type());
-    assertTrue(cos.valueOf(valueEnv()).isMissing());
+    assertTrue(cos.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -2159,7 +2162,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void test_cot(Number value) {
     FunctionExpression cot = dsl.cot(DSL.literal(value));
     assertThat(
-        cot.valueOf(valueEnv()),
+        cot.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(1 / Math.tan(value.doubleValue()))));
     assertEquals(String.format("cot(%s)", value), cot.toString());
   }
@@ -2172,7 +2175,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void cot_with_zero(Number value) {
     FunctionExpression cot = dsl.cot(DSL.literal(value));
     assertThrows(
-        ArithmeticException.class, () -> cot.valueOf(valueEnv()),
+        ArithmeticException.class, () -> cot.valueOf(valueEnv(), SessionContext.None),
         String.format("Out of range value for cot(%s)", value));
   }
 
@@ -2183,7 +2186,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void cot_null_value() {
     FunctionExpression cot = dsl.cot(DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, cot.type());
-    assertTrue(cot.valueOf(valueEnv()).isNull());
+    assertTrue(cot.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -2193,7 +2196,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void cot_missing_value() {
     FunctionExpression cot = dsl.cot(DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, cot.type());
-    assertTrue(cot.valueOf(valueEnv()).isMissing());
+    assertTrue(cot.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -2204,7 +2207,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void test_degrees(Number value) {
     FunctionExpression degrees = dsl.degrees(DSL.literal(value));
     assertThat(
-        degrees.valueOf(valueEnv()),
+        degrees.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.toDegrees(value.doubleValue()))));
     assertEquals(String.format("degrees(%s)", value), degrees.toString());
   }
@@ -2216,7 +2219,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void degrees_null_value() {
     FunctionExpression degrees = dsl.degrees(DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, degrees.type());
-    assertTrue(degrees.valueOf(valueEnv()).isNull());
+    assertTrue(degrees.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -2226,7 +2229,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void degrees_missing_value() {
     FunctionExpression degrees = dsl.degrees(DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, degrees.type());
-    assertTrue(degrees.valueOf(valueEnv()).isMissing());
+    assertTrue(degrees.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -2237,7 +2240,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void test_radians(Number value) {
     FunctionExpression radians = dsl.radians(DSL.literal(value));
     assertThat(
-        radians.valueOf(valueEnv()),
+        radians.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.toRadians(value.doubleValue()))));
     assertEquals(String.format("radians(%s)", value), radians.toString());
   }
@@ -2249,7 +2252,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void radians_null_value() {
     FunctionExpression radians = dsl.radians(DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, radians.type());
-    assertTrue(radians.valueOf(valueEnv()).isNull());
+    assertTrue(radians.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -2259,7 +2262,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void radians_missing_value() {
     FunctionExpression radians = dsl.radians(DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, radians.type());
-    assertTrue(radians.valueOf(valueEnv()).isMissing());
+    assertTrue(radians.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -2270,7 +2273,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void test_sin(Number value) {
     FunctionExpression sin = dsl.sin(DSL.literal(value));
     assertThat(
-        sin.valueOf(valueEnv()),
+        sin.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.sin(value.doubleValue()))));
     assertEquals(String.format("sin(%s)", value), sin.toString());
   }
@@ -2282,7 +2285,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void sin_null_value() {
     FunctionExpression sin = dsl.sin(DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, sin.type());
-    assertTrue(sin.valueOf(valueEnv()).isNull());
+    assertTrue(sin.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -2292,7 +2295,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void sin_missing_value() {
     FunctionExpression sin = dsl.sin(DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, sin.type());
-    assertTrue(sin.valueOf(valueEnv()).isMissing());
+    assertTrue(sin.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 
   /**
@@ -2303,7 +2306,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void test_tan(Number value) {
     FunctionExpression tan = dsl.tan(DSL.literal(value));
     assertThat(
-        tan.valueOf(valueEnv()),
+        tan.valueOf(valueEnv(), SessionContext.None),
         allOf(hasType(DOUBLE), hasValue(Math.tan(value.doubleValue()))));
     assertEquals(String.format("tan(%s)", value), tan.toString());
   }
@@ -2315,7 +2318,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void tan_null_value() {
     FunctionExpression tan = dsl.tan(DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, tan.type());
-    assertTrue(tan.valueOf(valueEnv()).isNull());
+    assertTrue(tan.valueOf(valueEnv(), SessionContext.None).isNull());
   }
 
   /**
@@ -2325,6 +2328,6 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void tan_missing_value() {
     FunctionExpression tan = dsl.tan(DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, tan.type());
-    assertTrue(tan.valueOf(valueEnv()).isMissing());
+    assertTrue(tan.valueOf(valueEnv(), SessionContext.None).isMissing());
   }
 }

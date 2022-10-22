@@ -19,7 +19,9 @@ import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
+import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.parse.ParseExpression;
 
 /**
@@ -53,10 +55,11 @@ public class ProjectOperator extends PhysicalPlan {
 
   @Override
   public ExprValue next() {
-    ExprValue inputValue = input.next();
+    final ExprValue inputValue = input.next();
     ImmutableMap.Builder<String, ExprValue> mapBuilder = new Builder<>();
+    Environment<Expression,  ExprValue> valueEnv = inputValue.bindingTuples();
     for (NamedExpression expr : projectList) {
-      ExprValue exprValue = expr.valueOf(inputValue.bindingTuples());
+      ExprValue exprValue = expr.valueOf(valueEnv, sessionContext);
       if (namedParseExpressions.stream()
           .noneMatch(parsed -> parsed.getNameOrAlias().equals(expr.getNameOrAlias()))) {
         mapBuilder.put(expr.getNameOrAlias(), exprValue);
@@ -69,7 +72,7 @@ public class ProjectOperator extends PhysicalPlan {
           .noneMatch(field -> field.getNameOrAlias().equals(expr.getNameOrAlias()))) {
         continue;
       }
-      ExprValue sourceFieldValue = inputValue.bindingTuples()
+      ExprValue sourceFieldValue = valueEnv
           .resolve(((ParseExpression) expr.getDelegated()).getSourceField());
       if (sourceFieldValue.isMissing()) {
         // source field will be missing after stats command, read from inputValue if it exists
@@ -79,7 +82,7 @@ public class ProjectOperator extends PhysicalPlan {
           mapBuilder.put(expr.getNameOrAlias(), exprValue);
         }
       } else {
-        ExprValue parsedValue = expr.valueOf(inputValue.bindingTuples());
+        ExprValue parsedValue = expr.valueOf(valueEnv, sessionContext);
         mapBuilder.put(expr.getNameOrAlias(), parsedValue);
       }
     }

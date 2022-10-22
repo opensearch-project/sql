@@ -31,6 +31,7 @@ import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.LiteralExpression;
@@ -115,7 +116,8 @@ class RelevanceQueryBuildTest {
   private static FunctionExpression createCall(List<Expression> arguments) {
     return new FunctionExpression(new FunctionName("mock_function"), arguments) {
       @Override
-      public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+      public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv,
+                               SessionContext sessionContext) {
         throw new NotImplementedException("FunctionExpression.valueOf");
       }
 

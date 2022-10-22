@@ -104,7 +104,7 @@ public class WindowOperator extends PhysicalPlan {
   }
 
   private void addWindowFunctionResultColumn(ImmutableMap.Builder<String, ExprValue> mapBuilder) {
-    ExprValue exprValue = windowFunction.valueOf(windowFrame);
+    ExprValue exprValue = windowFunction.valueOf(windowFrame, sessionContext);
     mapBuilder.put(windowFunction.getName(), exprValue);
   }
 

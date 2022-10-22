@@ -24,6 +24,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
@@ -171,7 +172,8 @@ class MultiMatchTest {
     }
 
     @Override
-    public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+    public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv,
+                             SessionContext sessionContext) {
       throw new UnsupportedOperationException("Invalid function call, "
           + "valueOf function need implementation only to support Expression interface");
     }

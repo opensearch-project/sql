@@ -35,6 +35,7 @@ import org.opensearch.ml.common.input.parameter.rcf.FitRCFParams;
 import org.opensearch.ml.common.output.MLPredictionOutput;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
 
@@ -61,8 +62,8 @@ public class ADOperator extends MLCommonsOperatorActions {
   private FunctionName rcfType;
 
   @Override
-  public void open() {
-    super.open();
+  public void open(SessionContext newContext) {
+    super.open(newContext);
     DataFrame inputDataFrame = generateInputDataset(input);
     MLAlgoParams mlAlgoParams = convertArgumentToMLParameter(arguments);
 

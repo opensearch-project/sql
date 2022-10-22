@@ -17,6 +17,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.expression.function.FunctionDSL.define;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
+import static org.opensearch.sql.expression.function.FunctionDSL.implMetaDataFunction;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_LONG_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_SHORT_YEAR;
@@ -27,6 +28,7 @@ import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_ST
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
+import java.time.Clock;
 import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -41,7 +43,7 @@ import java.time.format.TextStyle;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
-import javax.annotation.Nullable;
+import javax.annotation.Nonnull;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
@@ -132,8 +134,8 @@ public class DateTimeFunction {
    */
   private FunctionResolver now(FunctionName functionName) {
     return define(functionName,
-        impl(() -> new ExprDatetimeValue(formatNow(null)), DATETIME)
-    );
+        implMetaDataFunction(
+            e -> new ExprDatetimeValue(formatNow(e.getQueryStartClock())), DATETIME));
   }
 
   private FunctionResolver now() {
@@ -157,8 +159,11 @@ public class DateTimeFunction {
    */
   private FunctionResolver sysdate() {
     return define(BuiltinFunctionName.SYSDATE.getName(),
-        impl(() -> new ExprDatetimeValue(formatNow(null)), DATETIME),
-        impl((v) -> new ExprDatetimeValue(formatNow(v.integerValue())), DATETIME, INTEGER)
+        implMetaDataFunction(
+            sessionContext ->
+                new ExprDatetimeValue(formatNow(sessionContext.getSystemClock())), DATETIME),
+        implMetaDataFunction((sessionContext, v) -> new ExprDatetimeValue(
+                formatNow(v.integerValue(), sessionContext.getSystemClock())), DATETIME, INTEGER)
     );
   }
 
@@ -167,7 +172,9 @@ public class DateTimeFunction {
    */
   private FunctionResolver curtime(FunctionName functionName) {
     return define(functionName,
-        impl(() -> new ExprTimeValue(formatNow(null).toLocalTime()), TIME)
+        implMetaDataFunction(sessionContext
+            -> new ExprTimeValue(formatNow(sessionContext.getQueryStartClock()).toLocalTime()),
+            TIME)
     );
   }
 
@@ -181,7 +188,9 @@ public class DateTimeFunction {
 
   private FunctionResolver curdate(FunctionName functionName) {
     return define(functionName,
-        impl(() -> new ExprDateValue(formatNow(null).toLocalDate()), DATE)
+        implMetaDataFunction(sessionContext
+            -> new ExprDateValue(formatNow(sessionContext.getQueryStartClock() ).toLocalDate()),
+            DATE)
     );
   }
 
@@ -524,7 +533,8 @@ public class DateTimeFunction {
 
   private FunctionResolver unix_timestamp() {
     return define(BuiltinFunctionName.UNIX_TIMESTAMP.getName(),
-        impl(DateTimeFunction::unixTimeStamp, LONG),
+        implMetaDataFunction(sessionContext
+            -> unixTimeStamp(sessionContext.getQueryStartClock()), LONG),
         impl(nullMissingHandling(DateTimeFunction::unixTimeStampOf), DOUBLE, DATE),
         impl(nullMissingHandling(DateTimeFunction::unixTimeStampOf), DOUBLE, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::unixTimeStampOf), DOUBLE, TIMESTAMP),
@@ -995,8 +1005,8 @@ public class DateTimeFunction {
         CalendarLookup.getWeekNumber(mode.integerValue(), date.dateValue()));
   }
 
-  private ExprValue unixTimeStamp() {
-    return new ExprLongValue(Instant.now().getEpochSecond());
+  private ExprValue unixTimeStamp(Clock clock) {
+    return new ExprLongValue(Instant.now(clock).getEpochSecond());
   }
 
   private ExprValue unixTimeStampOf(ExprValue value) {
@@ -1089,17 +1099,20 @@ public class DateTimeFunction {
     return new ExprIntegerValue(date.dateValue().getYear());
   }
 
+  private LocalDateTime formatNow(Clock clock) {
+    return formatNow(0, clock);
+  }
   /**
    * Prepare LocalDateTime value. Truncate fractional second part according to the argument.
-   * @param fsp argument is given to specify a fractional seconds precision from 0 to 6,
-   *            the return value includes a fractional seconds part of that many digits.
+   *
+   * @param fsp            argument is given to specify a fractional seconds precision from 0 to 6,
+   *                       the return value includes a fractional seconds part of that many digits.
+   * @param clock clock to read to get time.
    * @return LocalDateTime object.
    */
-  private LocalDateTime formatNow(@Nullable Integer fsp) {
-    var res = LocalDateTime.now();
-    if (fsp == null) {
-      fsp = 0;
-    }
+  private LocalDateTime formatNow(@Nonnull Integer fsp, Clock clock) {
+    var res = LocalDateTime.now(clock);
+
     var defaultPrecision = 9; // There are 10^9 nanoseconds in one second
     if (fsp < 0 || fsp > 6) { // Check that the argument is in the allowed range [0, 6]
       throw new IllegalArgumentException(

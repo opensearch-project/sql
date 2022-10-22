@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.DSL;
 
 class AvgAggregatorTest extends AggregationTest {
@@ -65,7 +66,7 @@ class AvgAggregatorTest extends AggregationTest {
   @Test
   public void valueOf() {
     ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
-        () -> dsl.avg(DSL.ref("double_value", DOUBLE)).valueOf(valueEnv()));
+        () -> dsl.avg(DSL.ref("double_value", DOUBLE)).valueOf(valueEnv(), SessionContext.None));
     assertEquals("can't evaluate on aggregator: avg", exception.getMessage());
   }
 

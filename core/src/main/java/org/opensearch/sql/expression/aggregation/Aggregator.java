@@ -18,6 +18,7 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.env.Environment;
@@ -72,7 +73,7 @@ public abstract class Aggregator<S extends AggregationState>
    * @return {@link AggregationState}
    */
   public S iterate(BindingTuple tuple, S state) {
-    ExprValue value = getArguments().get(0).valueOf(tuple);
+    ExprValue value = getArguments().get(0).valueOf(tuple, SessionContext.None);
     if (value.isNull() || value.isMissing() || !conditionValue(tuple)) {
       return state;
     }
@@ -80,7 +81,8 @@ public abstract class Aggregator<S extends AggregationState>
   }
 
   @Override
-  public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+  public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv,
+                           SessionContext sessionContext) {
     throw new ExpressionEvaluationException(
         String.format("can't evaluate on aggregator: %s", functionName));
   }
@@ -102,7 +104,7 @@ public abstract class Aggregator<S extends AggregationState>
     if (condition == null) {
       return true;
     }
-    return ExprValueUtils.getBooleanValue(condition.valueOf(tuple));
+    return ExprValueUtils.getBooleanValue(condition.valueOf(tuple, SessionContext.None));
   }
 
 }

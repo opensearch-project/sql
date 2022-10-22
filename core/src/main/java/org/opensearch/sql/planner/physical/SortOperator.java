@@ -74,8 +74,8 @@ public class SortOperator extends PhysicalPlan {
   }
 
   @Override
-  public void open() {
-    super.open();
+  public void open(SessionContext newContext) {
+    super.open(newContext);
     PriorityQueue<ExprValue> sorted = new PriorityQueue<>(1, sorter::compare);
     while (input.hasNext()) {
       sorted.add(input.next());
@@ -112,7 +112,9 @@ public class SortOperator extends PhysicalPlan {
             comparator
                 .getValue()
                 .compare(
-                    expression.valueOf(o1.bindingTuples()), expression.valueOf(o2.bindingTuples()));
+                    expression.valueOf(o1.bindingTuples(),
+                        SessionContext.None), expression.valueOf(o2.bindingTuples(),
+                        SessionContext.None));
         if (result != 0) {
           return result;
         }

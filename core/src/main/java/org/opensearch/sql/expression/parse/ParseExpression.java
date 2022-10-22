@@ -15,6 +15,7 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.FunctionExpression;
@@ -48,11 +49,12 @@ public abstract class ParseExpression extends FunctionExpression {
     this.sourceField = sourceField;
     this.pattern = pattern;
     this.identifier = identifier;
-    this.identifierStr = identifier.valueOf(null).stringValue();
+    this.identifierStr = identifier.valueOf().stringValue();
   }
 
   @Override
-  public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+  public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv,
+                           SessionContext sessionContext) {
     ExprValue value = valueEnv.resolve(sourceField);
     if (value.isNull() || value.isMissing()) {
       return ExprValueUtils.nullValue();

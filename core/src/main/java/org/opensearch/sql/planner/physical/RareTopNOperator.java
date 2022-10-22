@@ -101,8 +101,8 @@ public class RareTopNOperator extends PhysicalPlan {
   }
 
   @Override
-  public void open() {
-    super.open();
+  public void open(SessionContext newContext) {
+    super.open(newContext);
     while (input.hasNext()) {
       group.push(input.next());
     }
@@ -184,7 +184,7 @@ public class RareTopNOperator extends PhysicalPlan {
      */
     public Key(ExprValue value, List<Expression> exprList) {
       this.valueList = exprList.stream()
-          .map(expr -> expr.valueOf(value.bindingTuples())).collect(Collectors.toList());
+          .map(expr -> expr.valueOf(value.bindingTuples(), sessionContext)).collect(Collectors.toList());
     }
 
     /**

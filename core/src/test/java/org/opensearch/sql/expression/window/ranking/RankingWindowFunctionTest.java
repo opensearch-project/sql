@@ -26,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.window.WindowDefinition;
@@ -86,7 +87,7 @@ class RankingWindowFunctionTest extends ExpressionTestBase {
     RankingWindowFunction rowNumber = dsl.rowNumber();
 
     windowFrame1.load(iterator);
-    assertEquals(new ExprIntegerValue(1), rowNumber.valueOf(windowFrame1));
+    assertEquals(new ExprIntegerValue(1), rowNumber.valueOf(windowFrame1, SessionContext.None));
   }
 
   @Test

@@ -10,6 +10,7 @@ import com.google.common.collect.PeekingIterator;
 import java.util.Iterator;
 import java.util.List;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.env.Environment;
 
@@ -26,7 +27,7 @@ public interface WindowFrame extends Environment<Expression, ExprValue>, Iterato
 
   @Override
   default ExprValue resolve(Expression var) {
-    return var.valueOf(current().bindingTuples());
+    return var.valueOf(current().bindingTuples(), SessionContext.None);
   }
 
   /**

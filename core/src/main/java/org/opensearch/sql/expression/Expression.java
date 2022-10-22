@@ -9,6 +9,7 @@ package org.opensearch.sql.expression;
 import java.io.Serializable;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.env.Environment;
 
 /**
@@ -19,8 +20,11 @@ public interface Expression extends Serializable {
   /**
    * Evaluate the value of expression in the value environment.
    */
-  ExprValue valueOf(Environment<Expression, ExprValue> valueEnv);
+  ExprValue valueOf(Environment<Expression, ExprValue> valueEnv, SessionContext sessionContext);
 
+  default ExprValue valueOf() {
+    return valueOf(null, SessionContext.None);
+  }
   /**
    * The type of the expression.
    */
@@ -36,4 +40,5 @@ public interface Expression extends Serializable {
    */
   <T, C> T accept(ExpressionNodeVisitor<T, C> visitor, C context);
 
+  Expression[] EmptyArray = new Expression[]{};
 }

@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.opensearch.request.system.OpenSearchSystemRequest;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,7 +30,7 @@ class OpenSearchSystemIndexScanTest {
     when(request.search()).thenReturn(Collections.singletonList(stringValue("text")));
     final OpenSearchSystemIndexScan systemIndexScan = new OpenSearchSystemIndexScan(request);
 
-    systemIndexScan.open();
+    systemIndexScan.open(SessionContext.None);
     assertTrue(systemIndexScan.hasNext());
     assertEquals(stringValue("text"), systemIndexScan.next());
   }

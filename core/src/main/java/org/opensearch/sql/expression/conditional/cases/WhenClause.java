@@ -12,6 +12,7 @@ import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.FunctionExpression;
@@ -47,11 +48,13 @@ public class WhenClause extends FunctionExpression {
 
   /**
    * Evaluate when condition.
-   * @param valueEnv  value env
-   * @return          is condition satisfied
+   *
+   * @param valueEnv       value env
+   * @param sessionContext
+   * @return is condition satisfied
    */
-  public boolean isTrue(Environment<Expression, ExprValue> valueEnv) {
-    ExprValue result = condition.valueOf(valueEnv);
+  public boolean isTrue(Environment<Expression, ExprValue> valueEnv, SessionContext sessionContext) {
+    ExprValue result = condition.valueOf(valueEnv, sessionContext);
     if (result.isMissing() || result.isNull()) {
       return false;
     }
@@ -59,8 +62,9 @@ public class WhenClause extends FunctionExpression {
   }
 
   @Override
-  public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-    return result.valueOf(valueEnv);
+  public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv,
+                           SessionContext sessionContext) {
+    return result.valueOf(valueEnv, sessionContext);
   }
 
   @Override

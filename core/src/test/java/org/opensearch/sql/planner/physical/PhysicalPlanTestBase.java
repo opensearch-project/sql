@@ -210,7 +210,7 @@ public class PhysicalPlanTestBase {
 
   protected List<ExprValue> execute(PhysicalPlan plan) {
     ImmutableList.Builder<ExprValue> builder = new ImmutableList.Builder<>();
-    plan.open();
+    plan.open(SessionContext.None);
     while (plan.hasNext()) {
       builder.add(plan.next());
     }

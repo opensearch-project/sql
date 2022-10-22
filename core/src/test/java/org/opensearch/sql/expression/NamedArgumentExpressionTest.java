@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.planner.physical.SessionContext;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 public class NamedArgumentExpressionTest extends ExpressionTestBase {
@@ -20,6 +21,7 @@ public class NamedArgumentExpressionTest extends ExpressionTestBase {
 
     assertEquals("query", namedArgument.getArgName());
     assertEquals(value.type(), namedArgument.type());
-    assertEquals(value.valueOf(valueEnv()), namedArgument.valueOf(valueEnv()));
+    assertEquals(value.valueOf(valueEnv(), SessionContext.None), namedArgument.valueOf(valueEnv(),
+        SessionContext.None));
   }
 }

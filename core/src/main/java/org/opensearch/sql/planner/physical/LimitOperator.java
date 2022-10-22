@@ -36,8 +36,8 @@ public class LimitOperator extends PhysicalPlan {
   private Integer count = 0;
 
   @Override
-  public void open() {
-    super.open();
+  public void open(SessionContext newContext) {
+    super.open(newContext);
 
     // skip the leading rows of offset size
     while (input.hasNext() && count < offset) {

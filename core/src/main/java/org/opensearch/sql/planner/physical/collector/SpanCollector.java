@@ -7,6 +7,7 @@ package org.opensearch.sql.planner.physical.collector;
 
 import java.util.function.Supplier;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.storage.bindingtuple.BindingTuple;
@@ -43,7 +44,7 @@ public class SpanCollector extends BucketCollector {
    */
   @Override
   protected ExprValue bucketKey(BindingTuple tuple) {
-    return rounding.round(spanExpr.getField().valueOf(tuple));
+    return rounding.round(spanExpr.getField().valueOf(tuple, SessionContext.None));
   }
 
   /**

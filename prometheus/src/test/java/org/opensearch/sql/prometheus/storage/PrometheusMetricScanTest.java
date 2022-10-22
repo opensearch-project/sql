@@ -29,6 +29,7 @@ import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,7 +49,7 @@ public class PrometheusMetricScanTest {
 
     when(prometheusClient.queryRange(any(), any(), any(), any()))
         .thenReturn(new JSONObject(getJson("query_range_result.json")));
-    prometheusMetricScan.open();
+    prometheusMetricScan.open(SessionContext.None);
     Assertions.assertTrue(prometheusMetricScan.hasNext());
     ExprTupleValue firstRow = new ExprTupleValue(new LinkedHashMap<>() {{
         put("@timestamp", new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)));
@@ -81,7 +82,7 @@ public class PrometheusMetricScanTest {
 
     when(prometheusClient.queryRange(any(), any(), any(), any()))
         .thenReturn(new JSONObject(getJson("empty_query_range_result.json")));
-    prometheusMetricScan.open();
+    prometheusMetricScan.open(SessionContext.None);
     Assertions.assertFalse(prometheusMetricScan.hasNext());
   }
 
@@ -97,7 +98,8 @@ public class PrometheusMetricScanTest {
     when(prometheusClient.queryRange(any(), any(), any(), any()))
         .thenReturn(new JSONObject(getJson("no_matrix_query_range_result.json")));
     RuntimeException runtimeException
-        = Assertions.assertThrows(RuntimeException.class, prometheusMetricScan::open);
+        = Assertions.assertThrows(RuntimeException.class,
+        () -> prometheusMetricScan.open(SessionContext.None));
     assertEquals(
         "Unexpected Result Type: vector during Prometheus Response Parsing. "
             + "'matrix' resultType is expected", runtimeException.getMessage());
@@ -115,7 +117,8 @@ public class PrometheusMetricScanTest {
     when(prometheusClient.queryRange(any(), any(), any(), any()))
         .thenThrow(new IOException("Error Message"));
     RuntimeException runtimeException
-        = assertThrows(RuntimeException.class, prometheusMetricScan::open);
+        = assertThrows(RuntimeException.class,
+        () -> prometheusMetricScan.open(SessionContext.None));
     assertEquals("Error fetching data from prometheus server. Error Message",
         runtimeException.getMessage());
   }

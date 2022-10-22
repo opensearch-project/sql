@@ -44,6 +44,7 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.opensearch.client.MLClient;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
@@ -112,7 +113,7 @@ public class MLCommonsOperatorTest {
   @Disabled
   @Test
   public void testOpen() {
-    mlCommonsOperator.open();
+    mlCommonsOperator.open(SessionContext.None);
     assertTrue(mlCommonsOperator.hasNext());
     assertNotNull(mlCommonsOperator.next());
     assertFalse(mlCommonsOperator.hasNext());

@@ -27,6 +27,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionTestBase;
@@ -38,7 +39,7 @@ class UnaryPredicateOperatorTest extends ExpressionTestBase {
   public void test_not(Boolean v) {
     FunctionExpression not = dsl.not(DSL.literal(booleanValue(v)));
     assertEquals(BOOLEAN, not.type());
-    assertEquals(!v, ExprValueUtils.getBooleanValue(not.valueOf(valueEnv())));
+    assertEquals(!v, ExprValueUtils.getBooleanValue(not.valueOf(valueEnv(), SessionContext.None)));
     assertEquals(String.format("not(%s)", v.toString()), not.toString());
   }
 
@@ -52,8 +53,8 @@ class UnaryPredicateOperatorTest extends ExpressionTestBase {
     return Lists.cartesianProduct(expressions, expressions).stream()
         .map(list -> {
           Expression e1 = list.get(0);
-          if (e1.valueOf(valueEnv()).isNull()
-                  || e1.valueOf(valueEnv()).isMissing()) {
+          if (e1.valueOf(valueEnv(), SessionContext.None).isNull()
+                  || e1.valueOf(valueEnv(), SessionContext.None).isMissing()) {
             return Arguments.of(e1, DSL.literal(LITERAL_TRUE));
           } else {
             return Arguments.of(e1, DSL.literal(LITERAL_FALSE));
@@ -72,8 +73,8 @@ class UnaryPredicateOperatorTest extends ExpressionTestBase {
         .map(list -> {
           Expression e1 = list.get(0);
           Expression e2 = list.get(1);
-          if (e1.valueOf(valueEnv()).value() == LITERAL_NULL.value()
-                  || e1.valueOf(valueEnv()).value() == LITERAL_MISSING) {
+          if (e1.valueOf(valueEnv(), SessionContext.None).value() == LITERAL_NULL.value()
+                  || e1.valueOf(valueEnv(), SessionContext.None).value() == LITERAL_MISSING) {
             return Arguments.of(e1, e2, e2);
           } else {
             return Arguments.of(e1, e2, e1);
@@ -109,7 +110,7 @@ class UnaryPredicateOperatorTest extends ExpressionTestBase {
     return Lists.cartesianProduct(exprValueArrayList, exprValueArrayList).stream()
         .map(list -> {
           Expression e1 = list.get(0);
-          if (e1.valueOf(valueEnv()).value() == LITERAL_TRUE.value()) {
+          if (e1.valueOf(valueEnv(), SessionContext.None).value() == LITERAL_TRUE.value()) {
             return Arguments.of(e1, DSL.literal("123"), DSL.literal("321"), DSL.literal("123"));
           } else {
             return Arguments.of(e1, DSL.literal("123"), DSL.literal("321"), DSL.literal("321"));
@@ -158,60 +159,64 @@ class UnaryPredicateOperatorTest extends ExpressionTestBase {
   public void test_not_null() {
     FunctionExpression expression = dsl.not(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, expression.type());
-    assertEquals(LITERAL_NULL, expression.valueOf(valueEnv()));
+    assertEquals(LITERAL_NULL, expression.valueOf(valueEnv(), SessionContext.None));
   }
 
   @Test
   public void test_not_missing() {
     FunctionExpression expression = dsl.not(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, expression.type());
-    assertEquals(LITERAL_MISSING, expression.valueOf(valueEnv()));
+    assertEquals(LITERAL_MISSING, expression.valueOf(valueEnv(), SessionContext.None));
   }
 
   @Test
   public void test_is_null_predicate() {
     FunctionExpression expression = dsl.is_null(DSL.literal(1));
     assertEquals(BOOLEAN, expression.type());
-    assertEquals(LITERAL_FALSE, expression.valueOf(valueEnv()));
+    assertEquals(LITERAL_FALSE, expression.valueOf(valueEnv(), SessionContext.None));
 
     expression = dsl.is_null(DSL.literal(ExprNullValue.of()));
     assertEquals(BOOLEAN, expression.type());
-    assertEquals(LITERAL_TRUE, expression.valueOf(valueEnv()));
+    assertEquals(LITERAL_TRUE, expression.valueOf(valueEnv(), SessionContext.None));
   }
 
   @Test
   public void test_is_not_null_predicate() {
     FunctionExpression expression = dsl.isnotnull(DSL.literal(1));
     assertEquals(BOOLEAN, expression.type());
-    assertEquals(LITERAL_TRUE, expression.valueOf(valueEnv()));
+    assertEquals(LITERAL_TRUE, expression.valueOf(valueEnv(), SessionContext.None));
 
     expression = dsl.isnotnull(DSL.literal(ExprNullValue.of()));
     assertEquals(BOOLEAN, expression.type());
-    assertEquals(LITERAL_FALSE, expression.valueOf(valueEnv()));
+    assertEquals(LITERAL_FALSE, expression.valueOf(valueEnv(), SessionContext.None));
   }
 
   @ParameterizedTest
   @MethodSource("isNullArguments")
   public void test_isnull_predicate(Expression v1, Expression expected) {
-    assertEquals(expected.valueOf(valueEnv()), dsl.isnull(v1).valueOf(valueEnv()));
+    assertEquals(expected.valueOf(valueEnv(),
+        SessionContext.None), dsl.isnull(v1).valueOf(valueEnv(), SessionContext.None));
   }
 
   @ParameterizedTest
   @MethodSource("ifNullArguments")
   public void test_ifnull_predicate(Expression v1, Expression v2, Expression expected) {
-    assertEquals(expected.valueOf(valueEnv()), dsl.ifnull(v1, v2).valueOf(valueEnv()));
+    assertEquals(expected.valueOf(valueEnv(),
+        SessionContext.None), dsl.ifnull(v1, v2).valueOf(valueEnv(), SessionContext.None));
   }
 
   @ParameterizedTest
   @MethodSource("nullIfArguments")
   public void test_nullif_predicate(Expression v1, Expression v2, Expression expected) {
-    assertEquals(expected.valueOf(valueEnv()), dsl.nullif(v1, v2).valueOf(valueEnv()));
+    assertEquals(expected.valueOf(valueEnv(),
+        SessionContext.None), dsl.nullif(v1, v2).valueOf(valueEnv(), SessionContext.None));
   }
 
   @ParameterizedTest
   @MethodSource("ifArguments")
   public void test_if_predicate(Expression v1, Expression v2, Expression v3, Expression expected) {
-    assertEquals(expected.valueOf(valueEnv()), dsl.iffunction(v1, v2, v3).valueOf(valueEnv()));
+    assertEquals(expected.valueOf(valueEnv(),
+        SessionContext.None), dsl.iffunction(v1, v2, v3).valueOf(valueEnv(), SessionContext.None));
   }
 
   @ParameterizedTest

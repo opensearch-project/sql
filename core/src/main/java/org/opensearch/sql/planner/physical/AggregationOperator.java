@@ -92,8 +92,8 @@ public class AggregationOperator extends PhysicalPlan {
   }
 
   @Override
-  public void open() {
-    super.open();
+  public void open(SessionContext newContext) {
+    super.open(newContext);
     while (input.hasNext()) {
       collector.collect(input.next().bindingTuples());
     }

@@ -17,6 +17,7 @@ import lombok.ToString;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.FunctionExpression;
@@ -52,13 +53,15 @@ public class CaseClause extends FunctionExpression {
   }
 
   @Override
-  public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+  public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv,
+                           SessionContext sessionContext) {
     for (WhenClause when : whenClauses) {
-      if (when.isTrue(valueEnv)) {
-        return when.valueOf(valueEnv);
+      if (when.isTrue(valueEnv, sessionContext)) {
+        return when.valueOf(valueEnv, sessionContext);
       }
     }
-    return (defaultResult == null) ? ExprNullValue.of() : defaultResult.valueOf(valueEnv);
+    return (defaultResult == null) ? ExprNullValue.of() : defaultResult.valueOf(valueEnv,
+        sessionContext);
   }
 
   @Override

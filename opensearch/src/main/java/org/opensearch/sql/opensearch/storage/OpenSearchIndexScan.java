@@ -13,6 +13,7 @@ import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
@@ -74,8 +75,8 @@ public class OpenSearchIndexScan extends TableScanOperator {
   }
 
   @Override
-  public void open() {
-    super.open();
+  public void open(SessionContext newContext) {
+    super.open(newContext);
     querySize = requestBuilder.getQuerySize();
     request = requestBuilder.build();
     iterator = Collections.emptyIterator();

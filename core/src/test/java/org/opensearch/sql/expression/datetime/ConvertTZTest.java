@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionTestBase;
@@ -38,7 +39,7 @@ class ConvertTZTest extends ExpressionTestBase {
         DSL.literal("+00:00"),
         DSL.literal("+00:00"));
     assertEquals(DATETIME, expr.type());
-    assertEquals(nullValue(), expr.valueOf(env));
+    assertEquals(nullValue(), expr.valueOf(env, SessionContext.None));
   }
 
   @Test
@@ -48,7 +49,8 @@ class ConvertTZTest extends ExpressionTestBase {
         DSL.literal("+00:00"),
         DSL.literal("+10:00"));
     assertEquals(DATETIME, expr.type());
-    assertEquals(new ExprDatetimeValue("2008-05-16 08:00:00"), expr.valueOf(env));
+    assertEquals(new ExprDatetimeValue("2008-05-16 08:00:00"), expr.valueOf(env,
+        SessionContext.None));
   }
 
   @Test
@@ -58,7 +60,7 @@ class ConvertTZTest extends ExpressionTestBase {
         DSL.literal("+00:00"),
         DSL.literal("+16:00"));
     assertEquals(DATETIME, expr.type());
-    assertEquals(nullValue(), expr.valueOf(env));
+    assertEquals(nullValue(), expr.valueOf(env, SessionContext.None));
   }
 
   @Test
@@ -68,7 +70,7 @@ class ConvertTZTest extends ExpressionTestBase {
         DSL.literal("+00:00"),
         DSL.literal("-16:00"));
     assertEquals(DATETIME, expr.type());
-    assertEquals(nullValue(), expr.valueOf(env));
+    assertEquals(nullValue(), expr.valueOf(env, SessionContext.None));
   }
 
   @Test
@@ -78,7 +80,7 @@ class ConvertTZTest extends ExpressionTestBase {
         DSL.literal("+15:00"),
         DSL.literal("+01:00"));
     assertEquals(DATETIME, expr.type());
-    assertEquals(nullValue(), expr.valueOf(env));
+    assertEquals(nullValue(), expr.valueOf(env, SessionContext.None));
   }
 
   @Test
@@ -88,7 +90,7 @@ class ConvertTZTest extends ExpressionTestBase {
         DSL.literal("-15:00"),
         DSL.literal("+01:00"));
     assertEquals(DATETIME, expr.type());
-    assertEquals(nullValue(), expr.valueOf(env));
+    assertEquals(nullValue(), expr.valueOf(env, SessionContext.None));
   }
 
   @Test
@@ -98,7 +100,7 @@ class ConvertTZTest extends ExpressionTestBase {
         DSL.literal("-12:00"),
         DSL.literal("+15:00"));
     assertEquals(DATETIME, expr.type());
-    assertEquals(nullValue(), expr.valueOf(env));
+    assertEquals(nullValue(), expr.valueOf(env, SessionContext.None));
   }
 
   @Test
@@ -108,7 +110,8 @@ class ConvertTZTest extends ExpressionTestBase {
         DSL.literal("+00:00"),
         DSL.literal("+14:00"));
     assertEquals(DATETIME, expr.type());
-    assertEquals(new ExprDatetimeValue("2008-05-16 12:00:00"), expr.valueOf(env));
+    assertEquals(new ExprDatetimeValue("2008-05-16 12:00:00"), expr.valueOf(env,
+        SessionContext.None));
   }
 
   @Test
@@ -118,7 +121,8 @@ class ConvertTZTest extends ExpressionTestBase {
         DSL.literal("+00:01"),
         DSL.literal("-13:59"));
     assertEquals(DATETIME, expr.type());
-    assertEquals(new ExprDatetimeValue("2008-05-15 08:00:00"), expr.valueOf(env));
+    assertEquals(new ExprDatetimeValue("2008-05-15 08:00:00"), expr.valueOf(env,
+        SessionContext.None));
   }
 
   @Test
@@ -128,7 +132,7 @@ class ConvertTZTest extends ExpressionTestBase {
         DSL.literal("+)()"),
         DSL.literal("+12:00"));
     assertEquals(DATETIME, expr.type());
-    assertEquals(nullValue(), expr.valueOf(env));
+    assertEquals(nullValue(), expr.valueOf(env, SessionContext.None));
   }
 
   @Test
@@ -138,7 +142,7 @@ class ConvertTZTest extends ExpressionTestBase {
         DSL.literal("+00:00"),
         DSL.literal("test"));
     assertEquals(DATETIME, expr.type());
-    assertEquals(nullValue(), expr.valueOf(env));
+    assertEquals(nullValue(), expr.valueOf(env, SessionContext.None));
   }
 
   @Test
@@ -148,7 +152,7 @@ class ConvertTZTest extends ExpressionTestBase {
         DSL.literal("+00:00"),
         DSL.literal("+00:00"));
     assertEquals(DATETIME, expr.type());
-    assertEquals(nullValue(), expr.valueOf(env));
+    assertEquals(nullValue(), expr.valueOf(env, SessionContext.None));
   }
 
   @Test
@@ -158,7 +162,7 @@ class ConvertTZTest extends ExpressionTestBase {
         DSL.literal("+00:00"),
         DSL.literal("+00:00"));
     assertEquals(DATETIME, expr.type());
-    assertEquals(nullValue(), expr.valueOf(env));
+    assertEquals(nullValue(), expr.valueOf(env, SessionContext.None));
   }
 
   @Test
@@ -168,7 +172,7 @@ class ConvertTZTest extends ExpressionTestBase {
         DSL.literal("+00:00"),
         DSL.literal("+00:00"));
     assertEquals(DATETIME, expr.type());
-    assertEquals(nullValue(), expr.valueOf(env));
+    assertEquals(nullValue(), expr.valueOf(env, SessionContext.None));
   }
 
   @Test
@@ -178,6 +182,6 @@ class ConvertTZTest extends ExpressionTestBase {
         DSL.literal("+00:00"),
         DSL.literal("+00:00"));
     assertEquals(DATETIME, expr.type());
-    assertEquals(nullValue(), expr.valueOf(env));
+    assertEquals(nullValue(), expr.valueOf(env, SessionContext.None));
   }
 }

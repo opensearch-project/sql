@@ -7,6 +7,9 @@
 package org.opensearch.sql.opensearch.executor;
 
 import com.google.common.collect.ImmutableMap;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +17,7 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.Explain;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -33,8 +37,15 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     client.schedule(
         () -> {
           try {
+            /** TODO: Re-implment as  PhysicalPlan.next return a tuple of (ResultSet, Metadata
+             * QueryStart time is introduced by a root now that returns
+             *  (ResultSet.of(), MetaData[QueryStartTime]).
+             *  Then Index scan can add _id and such to meta data.
+             */
             List<ExprValue> result = new ArrayList<>();
-            plan.open();
+            SessionContext currentContext = new ExecutionSessionContext(
+                Clock.fixed(Instant.now(), ZoneId.systemDefault()), Clock.systemDefaultZone());
+            plan.open(currentContext);
 
             while (plan.hasNext()) {
               result.add(plan.next());

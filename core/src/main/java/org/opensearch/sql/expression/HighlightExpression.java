@@ -17,6 +17,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
@@ -41,11 +42,14 @@ public class HighlightExpression extends FunctionExpression {
 
   /**
    * Return collection value matching highlight field.
-   * @param valueEnv : Dataset to parse value from.
+   *
+   * @param valueEnv       : Dataset to parse value from.
+   * @param sessionContext
    * @return : collection value of highlight fields.
    */
   @Override
-  public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+  public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv,
+                           SessionContext sessionContext) {
     String refName = "_highlight";
     // Not a wilcard expression
     if (this.type == ExprCoreType.ARRAY) {

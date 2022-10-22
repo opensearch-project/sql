@@ -7,6 +7,7 @@
 package org.opensearch.sql.expression.datetime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.missingValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.nullValue;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.DSL;
 
 public class MakeDateTest extends DateTimeTestBase {
@@ -51,7 +53,7 @@ public class MakeDateTest extends DateTimeTestBase {
 
   @Test
   public void checkNullValues() {
-    when(nullRef.valueOf(env)).thenReturn(nullValue());
+    when(nullRef.valueOf(env, sessionContext)).thenReturn(nullValue());
 
     assertEquals(nullValue(), eval(makedate(nullRef, DSL.literal(42.))));
     assertEquals(nullValue(), eval(makedate(DSL.literal(42.), nullRef)));
@@ -60,7 +62,7 @@ public class MakeDateTest extends DateTimeTestBase {
 
   @Test
   public void checkMissingValues() {
-    when(missingRef.valueOf(env)).thenReturn(missingValue());
+    when(missingRef.valueOf(env, sessionContext)).thenReturn(missingValue());
 
     assertEquals(missingValue(), eval(makedate(missingRef, DSL.literal(42.))));
     assertEquals(missingValue(), eval(makedate(DSL.literal(42.), missingRef)));

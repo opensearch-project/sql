@@ -8,13 +8,13 @@ package org.opensearch.sql.expression.function;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 
-import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
@@ -89,7 +89,8 @@ public class OpenSearchFunctions {
     }
 
     @Override
-    public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+    public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv,
+                             SessionContext sessionContext) {
       throw new UnsupportedOperationException(String.format(
           "OpenSearch defined function [%s] is only supported in WHERE and HAVING clause.",
           functionName));

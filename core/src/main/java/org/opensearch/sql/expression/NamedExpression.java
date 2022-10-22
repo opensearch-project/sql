@@ -13,6 +13,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.env.Environment;
 
 /**
@@ -42,8 +43,9 @@ public class NamedExpression implements Expression {
   private String alias;
 
   @Override
-  public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-    return delegated.valueOf(valueEnv);
+  public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv,
+                           SessionContext sessionContext) {
+    return delegated.valueOf(valueEnv, sessionContext);
   }
 
   @Override

@@ -24,12 +24,12 @@ abstract class MultiFieldQuery<T extends QueryBuilder> extends RelevanceQuery<T>
   public T createQueryBuilder(NamedArgumentExpression fields, NamedArgumentExpression queryExpr) {
     var fieldsAndWeights = fields
         .getValue()
-        .valueOf(null)
+        .valueOf()
         .tupleValue()
         .entrySet()
         .stream()
         .collect(ImmutableMap.toImmutableMap(e -> e.getKey(), e -> e.getValue().floatValue()));
-    var query = queryExpr.getValue().valueOf(null).stringValue();
+    var query = queryExpr.getValue().valueOf().stringValue();
     return createBuilder(fieldsAndWeights, query);
   }
 

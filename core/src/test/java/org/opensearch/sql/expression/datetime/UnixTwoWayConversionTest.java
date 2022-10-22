@@ -37,7 +37,7 @@ public class UnixTwoWayConversionTest extends DateTimeTestBase {
 
   @Test
   public void checkConvertNow() {
-    assertEquals(LocalDateTime.now(ZoneId.of("UTC")).withNano(0), fromUnixTime(unixTimeStamp()));
+    assertEquals(LocalDateTime.now(ZoneId.of("UTC")).withNano(0), fromUnixTime(unixTimeStamp(sessionContext)));
     assertEquals(LocalDateTime.now(ZoneId.of("UTC")).withNano(0),
         eval(fromUnixTime(unixTimeStampExpr())).datetimeValue());
   }

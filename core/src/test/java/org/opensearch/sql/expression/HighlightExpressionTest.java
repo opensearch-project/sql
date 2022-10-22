@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.env.Environment;
 
 
@@ -26,7 +27,7 @@ public class HighlightExpressionTest extends ExpressionTestBase {
     Environment<Expression, ExprValue> hlTuple = ExprValueUtils.tupleValue(
         ImmutableMap.of("_highlight.Title", "result value")).bindingTuples();
     HighlightExpression expr = new HighlightExpression(DSL.literal("Title"));
-    ExprValue resultVal = expr.valueOf(hlTuple);
+    ExprValue resultVal = expr.valueOf(hlTuple, SessionContext.None);
 
     assertEquals(expr.type(), ARRAY);
     assertEquals("result value", resultVal.stringValue());
@@ -38,7 +39,7 @@ public class HighlightExpressionTest extends ExpressionTestBase {
         ImmutableMap.of("_highlight.Title", "result value")).bindingTuples();
 
     HighlightExpression expr = new HighlightExpression(DSL.literal("invalid"));
-    ExprValue resultVal = expr.valueOf(hlTuple);
+    ExprValue resultVal = expr.valueOf(hlTuple, SessionContext.None);
 
     assertTrue(resultVal.isMissing());
   }
@@ -53,7 +54,7 @@ public class HighlightExpressionTest extends ExpressionTestBase {
 
     HighlightExpression hlExpr = new HighlightExpression(DSL.literal("invalid*"));
     ExprValue resultVal = hlExpr.valueOf(
-        ExprTupleValue.fromExprValueMap(builder.build()).bindingTuples());
+        ExprTupleValue.fromExprValueMap(builder.build()).bindingTuples(), SessionContext.None);
 
     assertTrue(resultVal.isMissing());
   }
@@ -68,7 +69,7 @@ public class HighlightExpressionTest extends ExpressionTestBase {
 
     HighlightExpression hlExpr = new HighlightExpression(DSL.literal("T*"));
     ExprValue resultVal = hlExpr.valueOf(
-        ExprTupleValue.fromExprValueMap(builder.build()).bindingTuples());
+        ExprTupleValue.fromExprValueMap(builder.build()).bindingTuples(), SessionContext.None);
 
     assertEquals(STRUCT, resultVal.type());
     assertTrue(resultVal.tupleValue().containsValue(
@@ -82,7 +83,7 @@ public class HighlightExpressionTest extends ExpressionTestBase {
     Environment<Expression, ExprValue> hlTuple = ExprValueUtils.tupleValue(
         ImmutableMap.of("NonHighlightField", "ResultValue")).bindingTuples();
     HighlightExpression expr = new HighlightExpression(DSL.literal("*"));
-    ExprValue resultVal = expr.valueOf(hlTuple);
+    ExprValue resultVal = expr.valueOf(hlTuple, SessionContext.None);
 
     assertTrue(resultVal.isMissing());
   }
@@ -97,7 +98,7 @@ public class HighlightExpressionTest extends ExpressionTestBase {
 
     HighlightExpression hlExpr = new HighlightExpression(DSL.literal("T*"));
     ExprValue resultVal = hlExpr.valueOf(
-        ExprTupleValue.fromExprValueMap(builder.build()).bindingTuples());
+        ExprTupleValue.fromExprValueMap(builder.build()).bindingTuples(), SessionContext.None);
 
     assertEquals(STRUCT, resultVal.type());
     assertTrue(resultVal.tupleValue().containsValue(

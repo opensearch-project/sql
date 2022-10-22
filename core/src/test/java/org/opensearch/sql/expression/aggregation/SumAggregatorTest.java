@@ -22,6 +22,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.aggregation.SumAggregator.SumState;
 
@@ -104,7 +105,7 @@ class SumAggregatorTest extends AggregationTest {
   @Test
   public void valueOf() {
     ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
-        () -> dsl.sum(DSL.ref("double_value", DOUBLE)).valueOf(valueEnv()));
+        () -> dsl.sum(DSL.ref("double_value", DOUBLE)).valueOf(valueEnv(), SessionContext.None));
     assertEquals("can't evaluate on aggregator: sum", exception.getMessage());
   }
 

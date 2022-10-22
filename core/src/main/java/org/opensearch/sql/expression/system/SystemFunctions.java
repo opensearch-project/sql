@@ -12,6 +12,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.env.Environment;
@@ -40,7 +41,8 @@ public class SystemFunctions {
         return Pair.of(unresolvedSignature,
             arguments -> new FunctionExpression(BuiltinFunctionName.TYPEOF.getName(), arguments) {
               @Override
-              public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+              public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv,
+                                       SessionContext sessionContext) {
                 return new ExprStringValue(getArguments().get(0).type().toString());
               }
 

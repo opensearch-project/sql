@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.env.Environment;
 
 @EqualsAndHashCode
@@ -42,7 +43,7 @@ public class ReferenceExpression implements Expression {
   }
 
   @Override
-  public ExprValue valueOf(Environment<Expression, ExprValue> env) {
+  public ExprValue valueOf(Environment<Expression, ExprValue> env, SessionContext sessionContext) {
     return env.resolve(this);
   }
 

@@ -28,6 +28,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionTestBase;
@@ -42,7 +43,7 @@ class GrokExpressionTest extends ExpressionTestBase {
 
   @Test
   public void resolve_grok_groups_and_parsed_values() {
-    when(DSL.ref("log_value", STRING).valueOf(env)).thenReturn(stringValue(
+    when(DSL.ref("log_value", STRING).valueOf(env, SessionContext.None)).thenReturn(stringValue(
         "145.128.75.121 - - [29/Aug/2022:13:26:44 -0700] \"GET /deliverables HTTP/2.0\" 501 2721"));
 
     String rawPattern = "%{COMMONAPACHELOG}";
@@ -72,20 +73,22 @@ class GrokExpressionTest extends ExpressionTestBase {
     assertEquals(identifiers, GrokExpression.getNamedGroupCandidates(rawPattern));
     identifiers.forEach(identifier -> assertEquals(stringValue(expected.get(identifier)),
         DSL.grok(DSL.ref("log_value", STRING), DSL.literal(rawPattern), DSL.literal(identifier))
-            .valueOf(env)));
+            .valueOf(env, SessionContext.None)));
   }
 
   @Test
   public void resolve_null_and_empty_values() {
     assertEquals(stringValue(""),
         DSL.grok(DSL.ref("string_value", STRING), DSL.literal("%{COMMONAPACHELOG}"),
-            DSL.literal("request")).valueOf(valueEnv()));
+            DSL.literal("request")).valueOf(valueEnv(), SessionContext.None));
     assertEquals(LITERAL_NULL,
         DSL.grok(DSL.ref(STRING_TYPE_NULL_VALUE_FIELD, STRING),
-            DSL.literal("%{COMMONAPACHELOG}"), DSL.literal("request")).valueOf(valueEnv()));
+            DSL.literal("%{COMMONAPACHELOG}"), DSL.literal("request")).valueOf(valueEnv(),
+            SessionContext.None));
     assertEquals(LITERAL_NULL,
         DSL.grok(DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING),
-            DSL.literal("p%{COMMONAPACHELOG}"), DSL.literal("request")).valueOf(valueEnv()));
+            DSL.literal("p%{COMMONAPACHELOG}"), DSL.literal("request")).valueOf(valueEnv(),
+            SessionContext.None));
   }
 
   @Test
@@ -101,6 +104,6 @@ class GrokExpressionTest extends ExpressionTestBase {
         SemanticCheckException.class,
         () -> DSL.grok(DSL.ref("boolean_value", BOOLEAN), DSL.literal("%{COMMONAPACHELOG}"),
                 DSL.literal("request"))
-            .valueOf(valueEnv()));
+            .valueOf(valueEnv(), SessionContext.None));
   }
 }

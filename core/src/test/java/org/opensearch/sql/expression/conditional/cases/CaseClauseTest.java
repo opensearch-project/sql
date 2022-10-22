@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionTestBase;
@@ -34,27 +35,27 @@ class CaseClauseTest extends ExpressionTestBase {
 
   @Test
   void should_return_when_clause_result_if_matched() {
-    when(whenClause.isTrue(any())).thenReturn(true);
-    when(whenClause.valueOf(any())).thenReturn(new ExprIntegerValue(30));
+    when(whenClause.isTrue(any(), any())).thenReturn(true);
+    when(whenClause.valueOf(any(), any())).thenReturn(new ExprIntegerValue(30));
 
     CaseClause caseClause = new CaseClause(ImmutableList.of(whenClause), null);
-    assertEquals(new ExprIntegerValue(30), caseClause.valueOf(valueEnv()));
+    assertEquals(new ExprIntegerValue(30), caseClause.valueOf(valueEnv(), SessionContext.None));
   }
 
   @Test
   void should_return_default_result_if_none_matched() {
-    when(whenClause.isTrue(any())).thenReturn(false);
+    when(whenClause.isTrue(any(), any())).thenReturn(false);
 
     CaseClause caseClause = new CaseClause(ImmutableList.of(whenClause), DSL.literal(50));
-    assertEquals(new ExprIntegerValue(50), caseClause.valueOf(valueEnv()));
+    assertEquals(new ExprIntegerValue(50), caseClause.valueOf(valueEnv(), SessionContext.None));
   }
 
   @Test
   void should_return_default_result_if_none_matched_and_no_default() {
-    when(whenClause.isTrue(any())).thenReturn(false);
+    when(whenClause.isTrue(any(), any())).thenReturn(false);
 
     CaseClause caseClause = new CaseClause(ImmutableList.of(whenClause), null);
-    assertEquals(ExprNullValue.of(), caseClause.valueOf(valueEnv()));
+    assertEquals(ExprNullValue.of(), caseClause.valueOf(valueEnv(), SessionContext.None));
   }
 
   @Test

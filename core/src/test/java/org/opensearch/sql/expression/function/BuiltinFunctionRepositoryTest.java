@@ -42,6 +42,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.env.Environment;
@@ -243,7 +244,7 @@ class BuiltinFunctionRepositoryTest {
     when(mockNamespaceMap.containsKey(DEFAULT_NAMESPACE)).thenReturn(true);
     when(mockMap.containsKey(eq(funcName))).thenReturn(true);
     when(mockMap.get(eq(funcName))).thenReturn(funcResolver);
-    when(funcResolver.resolve(eq(unresolvedSignature))).thenReturn(
+    when(funcResolver.resolve(unresolvedSignature)).thenReturn(
         Pair.of(resolvedSignature, funcBuilder));
     repo.register(funcResolver);
 
@@ -261,7 +262,8 @@ class BuiltinFunctionRepositoryTest {
     }
 
     @Override
-    public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+    public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv,
+                             SessionContext sessionContext) {
       return null;
     }
 

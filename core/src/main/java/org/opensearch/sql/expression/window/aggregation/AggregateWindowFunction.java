@@ -11,6 +11,7 @@ import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.aggregation.AggregationState;
@@ -37,7 +38,8 @@ public class AggregateWindowFunction implements WindowFunctionExpression {
   }
 
   @Override
-  public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+  public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv,
+                           SessionContext sessionContext) {
     PeerRowsWindowFrame frame = (PeerRowsWindowFrame) valueEnv;
     if (frame.isNewPartition()) {
       state = aggregator.create();

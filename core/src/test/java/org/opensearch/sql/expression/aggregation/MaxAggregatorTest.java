@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.DSL;
 
 public class MaxAggregatorTest extends AggregationTest {
@@ -120,7 +121,7 @@ public class MaxAggregatorTest extends AggregationTest {
   @Test
   public void test_value_of() {
     ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
-        () -> dsl.max(DSL.ref("double_value", DOUBLE)).valueOf(valueEnv()));
+        () -> dsl.max(DSL.ref("double_value", DOUBLE)).valueOf(valueEnv(), SessionContext.None));
     assertEquals("can't evaluate on aggregator: max", exception.getMessage());
   }
 

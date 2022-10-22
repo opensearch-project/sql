@@ -11,6 +11,7 @@ import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
@@ -52,11 +53,11 @@ public class ResourceMonitorPlan extends PhysicalPlan {
   }
 
   @Override
-  public void open() {
+  public void open(SessionContext newContext) {
     if (!this.monitor.isHealthy()) {
       throw new IllegalStateException("resource is not enough to run the query, quit.");
     }
-    delegate.open();
+    delegate.open(newContext);
   }
 
   @Override

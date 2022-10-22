@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.executor.protector.ResourceMonitorPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -48,7 +49,7 @@ class ResourceMonitorPlanTest {
     when(resourceMonitor.isHealthy()).thenReturn(false);
 
     IllegalStateException exception =
-        assertThrows(IllegalStateException.class, () -> monitorPlan.open());
+        assertThrows(IllegalStateException.class, () -> monitorPlan.open(SessionContext.None));
     assertEquals("resource is not enough to run the query, quit.", exception.getMessage());
   }
 
@@ -56,8 +57,8 @@ class ResourceMonitorPlanTest {
   void openSuccess() {
     when(resourceMonitor.isHealthy()).thenReturn(true);
 
-    monitorPlan.open();
-    verify(plan, times(1)).open();
+    monitorPlan.open(SessionContext.None);
+    verify(plan, times(1)).open(SessionContext.None);
   }
 
   @Test

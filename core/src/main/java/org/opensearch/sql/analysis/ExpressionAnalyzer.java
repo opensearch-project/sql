@@ -172,15 +172,7 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
 
   @Override
   public Expression visitConstantFunction(ConstantFunction node, AnalysisContext context) {
-    var valueName = node.getFuncName();
-    if (context.getConstantFunctionValues().containsKey(valueName)) {
-      return context.getConstantFunctionValues().get(valueName);
-    }
-
-    var value = visitFunction(node, context);
-    value = DSL.literal(value.valueOf(null));
-    context.getConstantFunctionValues().put(valueName, value);
-    return value;
+    return visitFunction(node, context);
   }
 
   @Override

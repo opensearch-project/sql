@@ -17,6 +17,7 @@ import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.planner.physical.SessionContext;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
@@ -110,7 +111,8 @@ public class MatchPhraseQueryTest {
     }
 
     @Override
-    public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+    public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv,
+                             SessionContext sessionContext) {
       return null;
     }
 

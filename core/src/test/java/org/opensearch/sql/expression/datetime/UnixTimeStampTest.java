@@ -25,12 +25,14 @@ import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.planner.physical.SessionContext;
 
 public class UnixTimeStampTest extends DateTimeTestBase {
 
+  private final SessionContext sessionContext = new TestSessionContext();
   @Test
   public void checkNoArgs() {
-    assertEquals(System.currentTimeMillis() / 1000L, unixTimeStamp());
+    assertEquals(System.currentTimeMillis() / 1000L, unixTimeStamp(sessionContext));
     assertEquals(System.currentTimeMillis() / 1000L, eval(unixTimeStampExpr()).longValue());
   }
 
@@ -137,7 +139,7 @@ public class UnixTimeStampTest extends DateTimeTestBase {
 
   @Test
   public void checkYearLessThan1970() {
-    assertNotEquals(0, unixTimeStamp());
+    assertNotEquals(0, unixTimeStamp(sessionContext));
     assertEquals(0, unixTimeStampOf(LocalDate.of(1961, 4, 12)));
     assertEquals(0, unixTimeStampOf(LocalDateTime.of(1961, 4, 12, 9, 7, 0)));
     assertEquals(0, unixTimeStampOf(Instant.ofEpochMilli(-1)));
@@ -229,7 +231,7 @@ public class UnixTimeStampTest extends DateTimeTestBase {
   @MethodSource("getInvalidDoubleSamples")
   public void checkInvalidDoubleCausesNull(Double value) {
     assertEquals(ExprNullValue.of(),
-        unixTimeStampOf(DSL.literal(new ExprDoubleValue(value))).valueOf(null),
+        unixTimeStampOf(DSL.literal(new ExprDoubleValue(value))).valueOf(),
         new DecimalFormat("0.#").format(value));
   }
 }
