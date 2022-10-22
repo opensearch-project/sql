@@ -148,26 +148,16 @@ publishing {
 
     repositories {
         maven {
-            name = "internal-snapshots"
-            url = "s3://snapshots.opendistroforelasticsearch.amazon.com/maven"
-            authentication {
-                awsIm(AwsImAuthentication) // load from EC2 role or env var
-            }
-        }
-        maven {
-            name = "internal-releases"
-            url = "s3://artifacts.opendistroforelasticsearch.amazon.com/maven"
-            authentication {
-                awsIm(AwsImAuthentication) // load from EC2 role or env var
-            }
-        }
-        maven {
             name = "sonatype-staging"
             url "https://aws.oss.sonatype.org/service/local/staging/deploy/maven2"
             credentials {
                 username project.hasProperty('ossrhUsername') ? project.property('ossrhUsername') : ''
                 password project.hasProperty('ossrhPassword') ? project.property('ossrhPassword') : ''
             }
+        }
+        maven {
+            name = "localRepo"
+            url "${project.buildDir}/repository"
         }
     }
 

@@ -38,8 +38,10 @@ pipeline {
                     branches: [[name: "$ref"]]
                         ])
 
-                // publish maven artifacts
-                sh('./gradlew --no-daemon publishPublishMavenPublicationToLocalRepoRepository')
+                dir('sql-jdbc') {
+                    // publish maven artifacts
+                    sh('./gradlew --no-daemon publishShadowPublicationToLocalRepoRepository')
+                }
             }
         }
         stage('Sign') {
