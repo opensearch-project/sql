@@ -9,6 +9,7 @@ package org.opensearch.sql.prometheus.request;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
@@ -19,12 +20,14 @@ import lombok.ToString;
 @Getter
 @ToString
 @AllArgsConstructor
+@NoArgsConstructor
 public class PrometheusQueryRequest {
 
   /**
    * PromQL.
    */
-  private final StringBuilder promQl;
+  @Setter
+  private String promQl;
 
   /**
    * startTime of the query.
@@ -44,10 +47,4 @@ public class PrometheusQueryRequest {
   @Setter
   private String step;
 
-  /**
-   * Constructor of PrometheusQueryRequest.
-   */
-  public PrometheusQueryRequest() {
-    this.promQl = new StringBuilder();
-  }
 }

@@ -37,6 +37,7 @@ public class Planner {
     if (table == null) {
       return plan.accept(new DefaultImplementor<>(), null);
     }
+    table.validate(plan);
     return table.implement(
         table.optimize(optimize(plan)));
   }

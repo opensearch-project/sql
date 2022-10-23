@@ -45,7 +45,7 @@ public class PrometheusStorageEngine implements StorageEngine {
     } else if (INFORMATION_SCHEMA_NAME.equals(catalogSchemaName.getSchemaName())) {
       return resolveInformationSchemaTable(catalogSchemaName, tableName);
     } else {
-      return null;
+      return new PrometheusMetricTable(prometheusClient, tableName);
     }
   }
 

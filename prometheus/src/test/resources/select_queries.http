@@ -1,0 +1,51 @@
+#####
+POST http://localhost:9200/_plugins/_ppl
+content-type: application/json
+
+{
+  "query" : "source = prometheus.prometheus_http_requests_total | where code='200' handler='/api/v1/labels'  job='prometheus'"
+}
+
+
+#####
+POST http://localhost:9200/_plugins/_ppl
+content-type: application/json
+
+{
+  "query" : "source = prometheus.prometheus_http_requests_total | stats avg( @value) by span(@timestamp, 15s)"
+}
+
+
+
+#####
+POST http://localhost:9200/_plugins/_ppl
+content-type: application/json
+
+{
+  "query": "source=prometheus.prometheus_http_requests_total | where @timestamp >= '2022-10-23 11:48:49' and @timestamp <= '2022-10-23 12:03:49' | stats avg( @value) by span(@timestamp, 15s)"
+}
+
+
+#####
+POST http://localhost:9200/_plugins/_ppl
+content-type: application/json
+
+{
+  "query" : "source = prometheus.prometheus_http_requests_total | stats sum( @value) by span(@timestamp, 10s), handler"
+}
+
+#####
+POST http://localhost:9200/_plugins/_ppl
+content-type: application/json
+
+{
+  "query": "source=prometheus.prometheus_http_requests_total | where @timestamp >= '2022-10-23 11:48:49' and @timestamp <= '2022-10-23 12:03:49' | stats sum( @value) by span(@timestamp, 10s), handler"
+}
+
+#####
+POST http://localhost:9200/_plugins/_ppl
+content-type: application/json
+
+{
+  "query" : "source=prometheus.query_range(query='prometheus_http_total_requests', starttime=1666162468,   endtime=1666166068, step =14)"
+}

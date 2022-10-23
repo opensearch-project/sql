@@ -5,10 +5,6 @@
 
 package org.opensearch.sql.prometheus.response;
 
-import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.LABELS;
-import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.TIMESTAMP;
-import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.VALUE;
-
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -27,8 +23,22 @@ public class PrometheusResponse implements Iterable<ExprValue> {
 
   private final JSONObject responseObject;
 
-  public PrometheusResponse(JSONObject responseObject) {
+  private final String valueFieldName;
+
+  private final String timestampFieldName;
+
+  /**
+   * Constructor.
+   *
+   * @param responseObject Prometheus responseObject.
+   * @param valueFieldName fieldName for values.
+   * @param timestampFieldName fieldName for timestamp values.
+   */
+  public PrometheusResponse(JSONObject responseObject, String valueFieldName,
+                            String timestampFieldName) {
     this.responseObject = responseObject;
+    this.valueFieldName = valueFieldName;
+    this.timestampFieldName = timestampFieldName;
   }
 
   @NonNull
@@ -44,10 +54,10 @@ public class PrometheusResponse implements Iterable<ExprValue> {
         for (int j = 0; j < values.length(); j++) {
           LinkedHashMap<String, ExprValue> linkedHashMap = new LinkedHashMap<>();
           JSONArray val = values.getJSONArray(j);
-          linkedHashMap.put(TIMESTAMP,
+          linkedHashMap.put(timestampFieldName,
               new ExprTimestampValue(Instant.ofEpochMilli((long) (val.getDouble(0) * 1000))));
-          linkedHashMap.put(VALUE, new ExprDoubleValue(val.getDouble(1)));
-          linkedHashMap.put(LABELS, new ExprStringValue(metric.toString()));
+          linkedHashMap.put(valueFieldName, new ExprDoubleValue(val.getDouble(1)));
+          insertLabels(linkedHashMap, metric);
           result.add(new ExprTupleValue(linkedHashMap));
         }
       }
@@ -58,4 +68,11 @@ public class PrometheusResponse implements Iterable<ExprValue> {
     }
     return result.iterator();
   }
+
+  private void insertLabels(LinkedHashMap<String, ExprValue> linkedHashMap, JSONObject metric) {
+    for (String key : metric.keySet()) {
+      linkedHashMap.put(key, new ExprStringValue(metric.getString(key)));
+    }
+  }
+
 }

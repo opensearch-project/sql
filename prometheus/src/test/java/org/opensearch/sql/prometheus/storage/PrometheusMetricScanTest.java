@@ -44,7 +44,7 @@ public class PrometheusMetricScanTest {
   @SneakyThrows
   void testQueryResponseIterator() {
     PrometheusMetricScan prometheusMetricScan = new PrometheusMetricScan(prometheusClient);
-    prometheusMetricScan.getRequest().getPromQl().append(QUERY);
+    prometheusMetricScan.getRequest().setPromQl(QUERY);
     prometheusMetricScan.getRequest().setStartTime(STARTTIME);
     prometheusMetricScan.getRequest().setEndTime(ENDTIME);
     prometheusMetricScan.getRequest().setStep(STEP);
@@ -63,9 +63,9 @@ public class PrometheusMetricScanTest {
     assertEquals(firstRow, prometheusMetricScan.next());
     Assertions.assertTrue(prometheusMetricScan.hasNext());
     ExprTupleValue secondRow = new ExprTupleValue(new LinkedHashMap<>() {{
-        put(TIMESTAMP, new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)));
-        put(VALUE, new ExprDoubleValue(0));
-        put(LABELS, new ExprStringValue(
+        put("@timestamp", new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)));
+        put("@value", new ExprDoubleValue(0));
+        put("@labels", new ExprStringValue(
             "{\"instance\":\"localhost:9091\",\"__name__\":\"up\",\"job\":\"node\"}"));
       }
     });
@@ -77,7 +77,7 @@ public class PrometheusMetricScanTest {
   @SneakyThrows
   void testEmptyQueryResponseIterator() {
     PrometheusMetricScan prometheusMetricScan = new PrometheusMetricScan(prometheusClient);
-    prometheusMetricScan.getRequest().getPromQl().append(QUERY);
+    prometheusMetricScan.getRequest().setPromQl(QUERY);
     prometheusMetricScan.getRequest().setStartTime(STARTTIME);
     prometheusMetricScan.getRequest().setEndTime(ENDTIME);
     prometheusMetricScan.getRequest().setStep(STEP);
@@ -92,7 +92,7 @@ public class PrometheusMetricScanTest {
   @SneakyThrows
   void testEmptyQueryWithNoMatrixKeyInResultJson() {
     PrometheusMetricScan prometheusMetricScan = new PrometheusMetricScan(prometheusClient);
-    prometheusMetricScan.getRequest().getPromQl().append(QUERY);
+    prometheusMetricScan.getRequest().setPromQl(QUERY);
     prometheusMetricScan.getRequest().setStartTime(STARTTIME);
     prometheusMetricScan.getRequest().setEndTime(ENDTIME);
     prometheusMetricScan.getRequest().setStep(STEP);
@@ -110,7 +110,7 @@ public class PrometheusMetricScanTest {
   @SneakyThrows
   void testEmptyQueryWithException() {
     PrometheusMetricScan prometheusMetricScan = new PrometheusMetricScan(prometheusClient);
-    prometheusMetricScan.getRequest().getPromQl().append(QUERY);
+    prometheusMetricScan.getRequest().setPromQl(QUERY);
     prometheusMetricScan.getRequest().setStartTime(STARTTIME);
     prometheusMetricScan.getRequest().setEndTime(ENDTIME);
     prometheusMetricScan.getRequest().setStep(STEP);
@@ -127,7 +127,7 @@ public class PrometheusMetricScanTest {
   @SneakyThrows
   void testExplain() {
     PrometheusMetricScan prometheusMetricScan = new PrometheusMetricScan(prometheusClient);
-    prometheusMetricScan.getRequest().getPromQl().append(QUERY);
+    prometheusMetricScan.getRequest().setPromQl(QUERY);
     prometheusMetricScan.getRequest().setStartTime(STARTTIME);
     prometheusMetricScan.getRequest().setEndTime(ENDTIME);
     prometheusMetricScan.getRequest().setStep(STEP);
