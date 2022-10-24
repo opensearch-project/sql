@@ -40,7 +40,7 @@ pipeline {
 
                 dir('sql-jdbc') {
                     // publish maven artifacts
-                    sh('./gradlew --no-daemon publishShadowPublicationToLocalRepoRepository')
+                    sh('./gradlew --no-daemon publishPublishMavenPublicationToLocalRepoRepository')
                 }
             }
         }

@@ -120,28 +120,54 @@ publishing {
             artifact javadocJar
 
             pom {
-              name = "OpenSearch SQL JDBC Driver"
-              packaging = "jar"
-              url = "https://github.com/opensearch-project/sql"
-              description = "OpenSearch SQL JDBC driver"
-              scm {
-                connection = "scm:git@github.com:opensearch-project/sql.git"
-                developerConnection = "scm:git@github.com:opensearch-project/sql.git"
-                url = "git@github.com:opensearch-project/sql.git"
-              }
-              licenses {
-                license {
-                  name = "The Apache License, Version 2.0"
-                  url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                name = "OpenSearch SQL JDBC Driver"
+                packaging = "jar"
+                url = "https://github.com/opensearch-project/sql/sql-jdbc"
+                description = "OpenSearch SQL JDBC driver"
+                scm {
+                    connection = "scm:git@github.com:opensearch-project/sql.git"
+                    developerConnection = "scm:git@github.com:opensearch-project/sql.git"
+                    url = "git@github.com:opensearch-project/sql.git"
                 }
-              }
-              developers {
-                developer {
-                  id = "amazonwebservices"
-                  organization = "Amazon Web Services"
-                  organizationUrl = "https://aws.amazon.com"
+                licenses {
+                    license {
+                        name = "The Apache License, Version 2.0"
+                        url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                    }
                 }
-              }
+                developers {
+                    developer {
+                        name = 'OpenSearch'
+                        url = 'https://github.com/opensearch-project/sql'
+                    }
+                }
+            }
+        }
+        publishMaven(MavenPublication) { publication ->
+            from components.java
+
+            pom {
+                name = "OpenSearch SQL JDBC Driver"
+                packaging = "jar"
+                url = "https://github.com/opensearch-project/sql/sql-jdbc"
+                description = "OpenSearch SQL JDBC driver"
+                scm {
+                    connection = "scm:git@github.com:opensearch-project/sql.git"
+                    developerConnection = "scm:git@github.com:opensearch-project/sql.git"
+                    url = "git@github.com:opensearch-project/sql.git"
+                }
+                licenses {
+                    license {
+                        name = "The Apache License, Version 2.0"
+                        url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                    }
+                }
+                developers {
+                    developer {
+                        name = 'OpenSearch'
+                        url = 'https://github.com/opensearch-project/sql'
+                    }
+                }
             }
         }
     }
