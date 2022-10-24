@@ -7,13 +7,13 @@
 package org.opensearch.sql.opensearch.planner.physical;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -52,16 +52,12 @@ public abstract class MLCommonsOperatorActions extends PhysicalPlan {
    * @return ml-commons dataframe
    */
   protected DataFrame generateInputDataset(PhysicalPlan input) {
-    List<Map<String, Object>> inputData = new LinkedList<>();
+    MLInputRows inputData = new MLInputRows();
     while (input.hasNext()) {
-      inputData.add(new HashMap<String, Object>() {
-        {
-          input.next().tupleValue().forEach((key, value) -> put(key, value.value()));
-        }
-      });
+      inputData.addTupleValue(input.next().tupleValue());
     }
 
-    return DataFrameBuilder.load(inputData);
+    return inputData.toDataFrame();
   }
 
   /**
@@ -76,34 +72,20 @@ public abstract class MLCommonsOperatorActions extends PhysicalPlan {
    */
   protected List<Pair<DataFrame, DataFrame>> generateCategorizedInputDataset(PhysicalPlan input,
                                                                              String categoryField) {
-    if (categoryField == null) {
-      DataFrame dataFrame = generateInputDataset(input);
-      return Collections.singletonList(new ImmutablePair<>(dataFrame, dataFrame));
-    }
-
-    Map<ExprValue, List<Map<String, Object>>> inputMap = new HashMap<>();
+    Map<ExprValue, MLInputRows> inputMap = new HashMap<>();
     while (input.hasNext()) {
       Map<String, ExprValue> tupleValue = input.next().tupleValue();
-      ExprValue categoryValue = tupleValue.get(categoryField);
-      List<Map<String, Object>> inputData =
-          inputMap.computeIfAbsent(categoryValue, k -> new LinkedList<>());
-      inputData.add(new HashMap<String, Object>() {
-        {
-          tupleValue.forEach((key, value) -> put(key, value.value()));
-        }
-      });
+      ExprValue categoryValue = categoryField == null ? null : tupleValue.get(categoryField);
+      MLInputRows inputData =
+          inputMap.computeIfAbsent(categoryValue, k -> new MLInputRows());
+      inputData.addTupleValue(tupleValue);
     }
 
-    return inputMap.values().stream()
-        .map(inputData -> {
-          // categoryField should be excluded for ml-commons predictions
-          List<Map<String, Object>> filteredInputData = inputData.stream().map(
-                  row -> row.entrySet().stream().filter(e -> !e.getKey().equals(categoryField))
-                      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
-              .collect(Collectors.toList());
-          return new ImmutablePair<>(DataFrameBuilder.load(inputData),
-              DataFrameBuilder.load(filteredInputData));
-        }).collect(Collectors.toList());
+    // categoryField should be excluded for ml-commons predictions
+    return inputMap.values().stream().filter(inputData -> inputData.size() > 0).map(
+            inputData -> new ImmutablePair<>(inputData.toDataFrame(),
+                inputData.toFilteredDataFrame(e -> !e.getKey().equals(categoryField))))
+        .collect(Collectors.toList());
   }
 
   /**
@@ -232,6 +214,40 @@ public abstract class MLCommonsOperatorActions extends PhysicalPlan {
     return (MLPredictionOutput) machineLearningClient
             .trainAndPredict(mlinput)
             .actionGet(30, TimeUnit.SECONDS);
+  }
+
+  private static class MLInputRows extends LinkedList<Map<String, Object>> {
+    /**
+     * Add tuple value to input map, skip if any value is null.
+     * @param tupleValue a row in input data.
+     */
+    public void addTupleValue(Map<String, ExprValue> tupleValue) {
+      if (tupleValue.values().stream().anyMatch(e -> e.isNull() || e.isMissing())) {
+        return;
+      }
+      this.add(tupleValue.entrySet().stream()
+          .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().value())));
+    }
+
+    /**
+     * Convert to DataFrame.
+     * @return DataFrame
+     */
+    public DataFrame toDataFrame() {
+      return DataFrameBuilder.load(this);
+    }
+
+    /**
+     * Filter each row and convert to DataFrame.
+     * @param filter used to filter fields in each row
+     * @return DataFrame
+     */
+    public DataFrame toFilteredDataFrame(Predicate<Map.Entry<String, Object>> filter) {
+      return DataFrameBuilder.load(this.stream().map(
+              row -> row.entrySet().stream().filter(filter)
+                  .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
+          .collect(Collectors.toList()));
+    }
   }
 
 }
