@@ -69,7 +69,7 @@ tasks.withType(JavaCompile) {
 }
 
 static def getShadowPath(String path) {
-    return 'com.amazonaws.opensearch.sql.jdbc.shadow.' + path
+    return 'org.opensearch.sql.jdbc.shadow.' + path
 }
 
 shadowJar {
@@ -87,10 +87,7 @@ shadowJar {
     exclude 'META-INF/NOTICE*'
     exclude 'META-INF/DEPENDENCIES'
 
-    relocate('com.amazonaws', getShadowPath('com.amazonaws')) {
-        exclude 'com.amazonaws.opensearch.*/**'
-    }
-
+    relocate 'com.amazonaws', getShadowPath('com.amazonaws')
     relocate 'org.apache', getShadowPath('org.apache')
     relocate 'org.joda', getShadowPath('org.joda')
     relocate 'com.fasterxml', getShadowPath('com.fasterxml')
