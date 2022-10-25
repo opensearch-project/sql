@@ -7,6 +7,7 @@
 package org.opensearch.sql.ppl.config;
 
 import org.opensearch.sql.catalog.CatalogService;
+import org.opensearch.sql.catalog.model.ConnectorType;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
@@ -38,6 +39,10 @@ public class PPLServiceConfig {
    */
   @Bean
   public PPLService pplService() {
+    catalogService.getCatalogs()
+        .forEach(catalog -> catalog.getStorageEngine().getFunctions()
+            .forEach(functionResolver -> functionRepository
+                .register(catalog.getName(), functionResolver)));
     return new PPLService(new PPLSyntaxParser(), executionEngine,
             functionRepository, catalogService);
   }

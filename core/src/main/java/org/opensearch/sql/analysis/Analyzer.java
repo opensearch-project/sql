@@ -6,7 +6,6 @@
 
 package org.opensearch.sql.analysis;
 
-import static org.opensearch.sql.analysis.model.CatalogName.DEFAULT_CATALOG_NAME;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
@@ -17,6 +16,7 @@ import static org.opensearch.sql.utils.MLCommonsConstants.RCF_ANOMALY_GRADE;
 import static org.opensearch.sql.utils.MLCommonsConstants.RCF_SCORE;
 import static org.opensearch.sql.utils.MLCommonsConstants.RCF_TIMESTAMP;
 import static org.opensearch.sql.utils.MLCommonsConstants.TIME_FIELD;
+import static org.opensearch.sql.utils.SystemIndexUtils.CATALOGS_TABLE_NAME;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -57,9 +58,11 @@ import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.catalog.CatalogService;
+import org.opensearch.sql.catalog.model.Catalog;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -70,6 +73,9 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.function.TableFunctionImplementation;
 import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
@@ -86,6 +92,7 @@ import org.opensearch.sql.planner.logical.LogicalRemove;
 import org.opensearch.sql.planner.logical.LogicalRename;
 import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.planner.logical.LogicalValues;
+import org.opensearch.sql.planner.physical.catalog.CatalogTable;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.utils.ParseUtils;
 
@@ -103,16 +110,20 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   private final CatalogService catalogService;
 
+  private final BuiltinFunctionRepository repository;
+
   /**
    * Constructor.
    */
   public Analyzer(
       ExpressionAnalyzer expressionAnalyzer,
-      CatalogService catalogService) {
+      CatalogService catalogService,
+      BuiltinFunctionRepository repository) {
     this.expressionAnalyzer = expressionAnalyzer;
     this.catalogService = catalogService;
     this.selectExpressionAnalyzer = new SelectExpressionAnalyzer(expressionAnalyzer);
     this.namedExpressionAnalyzer = new NamedExpressionAnalyzer(expressionAnalyzer);
+    this.repository = repository;
   }
 
   public LogicalPlan analyze(UnresolvedPlan unresolved, AnalysisContext context) {
@@ -122,14 +133,24 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitRelation(Relation node, AnalysisContext context) {
     QualifiedName qualifiedName = node.getTableQualifiedName();
+    Set<String> allowedCatalogNames = catalogService.getCatalogs()
+        .stream()
+        .map(Catalog::getName)
+        .collect(Collectors.toSet());
     CatalogSchemaIdentifierName catalogSchemaIdentifierName
-        = new CatalogSchemaIdentifierName(qualifiedName.getParts(), catalogService.getCatalogs());
+        = new CatalogSchemaIdentifierName(qualifiedName.getParts(), allowedCatalogNames);
     String tableName = catalogSchemaIdentifierName.getIdentifierName();
     context.push();
     TypeEnvironment curEnv = context.peek();
-    Table table = catalogService
-        .getStorageEngine(catalogSchemaIdentifierName.getCatalogName())
-        .getTable(catalogSchemaIdentifierName.getIdentifierName());
+    Table table;
+    if (CATALOGS_TABLE_NAME.equals(tableName)) {
+      table = new CatalogTable(catalogService);
+    } else {
+      table = catalogService
+          .getCatalog(catalogSchemaIdentifierName.getCatalogName())
+          .getStorageEngine()
+          .getTable(tableName);
+    }
     table.getFieldTypes().forEach((k, v) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));
 
     // Put index name or its alias in index namespace on type environment so qualifier
@@ -152,6 +173,28 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     curEnv.define(new Symbol(Namespace.INDEX_NAME, node.getAliasAsTableName()), STRUCT);
     return subquery;
   }
+
+  @Override
+  public LogicalPlan visitTableFunction(TableFunction node, AnalysisContext context) {
+    QualifiedName qualifiedName = node.getFunctionName();
+    Set<String> allowedCatalogNames = catalogService.getCatalogs()
+        .stream()
+        .map(Catalog::getName)
+        .collect(Collectors.toSet());
+    CatalogSchemaIdentifierName catalogSchemaIdentifierName
+        = new CatalogSchemaIdentifierName(qualifiedName.getParts(), allowedCatalogNames);
+
+    FunctionName functionName = FunctionName.of(catalogSchemaIdentifierName.getIdentifierName());
+    List<Expression> arguments = node.getArguments().stream()
+        .map(unresolvedExpression -> this.expressionAnalyzer.analyze(unresolvedExpression, context))
+        .collect(Collectors.toList());
+    TableFunctionImplementation tableFunctionImplementation
+        = (TableFunctionImplementation) repository.compile(
+        catalogSchemaIdentifierName.getCatalogName(), functionName, arguments);
+    return new LogicalRelation(catalogSchemaIdentifierName.getIdentifierName(),
+        tableFunctionImplementation.applyArguments());
+  }
+
 
   @Override
   public LogicalPlan visitLimit(Limit node, AnalysisContext context) {

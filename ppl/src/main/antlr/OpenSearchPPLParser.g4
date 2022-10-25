@@ -21,6 +21,7 @@ pplStatement
 pplCommands
     : searchCommand
     | describeCommand
+    | showCatalogsCommand
     ;
 
 commands
@@ -35,6 +36,10 @@ searchCommand
 
 describeCommand
     : DESCRIBE tableSourceClause
+    ;
+
+showCatalogsCommand
+    : SHOW CATALOGS
     ;
 
 whereCommand
@@ -147,6 +152,8 @@ adParameter
 fromClause
     : SOURCE EQUAL tableSourceClause
     | INDEX EQUAL tableSourceClause
+    | SOURCE EQUAL tableFunction
+    | INDEX EQUAL tableFunction
     ;
 
 tableSourceClause
@@ -278,6 +285,10 @@ tableSource
     | ID_DATE_SUFFIX
     ;
 
+tableFunction
+    : qualifiedName LT_PRTHS functionArgs RT_PRTHS
+    ;
+
 /** fields */
 fieldList
     : fieldExpression (COMMA fieldExpression)*
@@ -340,6 +351,7 @@ evalFunctionName
     | dateAndTimeFunctionBase
     | textFunctionBase
     | conditionFunctionBase
+    | systemFunctionBase
     ;
 
 functionArgs
@@ -347,7 +359,7 @@ functionArgs
     ;
 
 functionArg
-    : valueExpression
+    : (ident EQUAL)? valueExpression
     ;
 
 relevanceArg
@@ -416,6 +428,10 @@ constantFunctionName
 conditionFunctionBase
     : LIKE
     | IF | ISNULL | ISNOTNULL | IFNULL | NULLIF
+    ;
+
+systemFunctionBase
+    : TYPEOF
     ;
 
 textFunctionBase

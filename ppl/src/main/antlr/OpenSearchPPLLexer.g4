@@ -12,6 +12,7 @@ channels { WHITESPACE, ERRORCHANNEL }
 // COMMAND KEYWORDS
 SEARCH:                             'SEARCH';
 DESCRIBE:                           'DESCRIBE';
+SHOW:                               'SHOW';
 FROM:                               'FROM';
 WHERE:                              'WHERE';
 FIELDS:                             'FIELDS';
@@ -41,6 +42,7 @@ SOURCE:                             'SOURCE';
 INDEX:                              'INDEX';
 D:                                  'D';
 DESC:                               'DESC';
+CATALOGS:                           'CATALOGS';
 
 // CLAUSE KEYWORDS
 SORTBY:                             'SORTBY';
@@ -293,6 +295,7 @@ ISNOTNULL:                          'ISNOTNULL';
 IFNULL:                             'IFNULL';
 NULLIF:                             'NULLIF';
 IF:                                 'IF';
+TYPEOF:                             'TYPEOF';
 
 // RELEVANCE FUNCTIONS AND PARAMETERS
 MATCH:                              'MATCH';

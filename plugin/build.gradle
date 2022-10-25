@@ -109,6 +109,7 @@ dependencies {
     api project(":ppl")
     api project(':legacy')
     api project(':opensearch')
+    api project(':prometheus')
 }
 
 test {

@@ -14,7 +14,6 @@ import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.sql.SQLService;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
-import org.opensearch.sql.storage.StorageEngine;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -38,7 +37,8 @@ public class SQLServiceConfig {
 
   @Bean
   public Analyzer analyzer() {
-    return new Analyzer(new ExpressionAnalyzer(functionRepository), catalogService);
+    return new Analyzer(new ExpressionAnalyzer(functionRepository), catalogService,
+        functionRepository);
   }
 
   /**
