@@ -90,6 +90,8 @@ import org.opensearch.sql.ppl.utils.ArgumentFactory;
  */
 public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedExpression> {
 
+  private static final int DEFAULT_TAKE_FUNCTION_SIZE_VALUE = 10;
+
   /**
    * The function name mapping between fronted and core engine.
    */
@@ -220,7 +222,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
     builder.add(new UnresolvedArgument("size",
         ctx.takeAggFunction().size != null ? visit(ctx.takeAggFunction().size) :
-            AstDSL.integerLiteral(10)));
+            AstDSL.integerLiteral(DEFAULT_TAKE_FUNCTION_SIZE_VALUE)));
     return new AggregateFunction("take", visit(ctx.takeAggFunction().fieldExpression()),
         builder.build());
   }
