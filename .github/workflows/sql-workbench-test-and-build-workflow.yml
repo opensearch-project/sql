@@ -58,7 +58,7 @@ jobs:
           yarn test:jest --coverage
 
       - name: Upload coverage
-        if: ${{ matrix.os == 'ubuntu-latest' }}
+        if: ${{ always() && matrix.os == 'ubuntu-latest' }}
         uses: codecov/codecov-action@v3
         with:
           flags: query-workbench
