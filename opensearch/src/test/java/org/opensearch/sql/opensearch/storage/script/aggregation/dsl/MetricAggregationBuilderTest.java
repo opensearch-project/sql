@@ -293,22 +293,22 @@ class MetricAggregationBuilderTest {
 
   @Test
   void should_build_top_hits_aggregation() {
-    assertEquals(
-        "{\n"
-            + "  \"take(name, 10)\" : {\n"
-            + "    \"top_hits\" : {\n"
-            + "      \"from\" : 0,\n"
-            + "      \"size\" : 10,\n"
-            + "      \"version\" : false,\n"
-            + "      \"seq_no_primary_term\" : false,\n"
-            + "      \"explain\" : false,\n"
-            + "      \"_source\" : {\n"
-            + "        \"includes\" : [ \"name\" ],\n"
-            + "        \"excludes\" : [ ]\n"
-            + "      }\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+    assertEquals(format(
+        "{%n"
+            + "  \"take(name, 10)\" : {%n"
+            + "    \"top_hits\" : {%n"
+            + "      \"from\" : 0,%n"
+            + "      \"size\" : 10,%n"
+            + "      \"version\" : false,%n"
+            + "      \"seq_no_primary_term\" : false,%n"
+            + "      \"explain\" : false,%n"
+            + "      \"_source\" : {%n"
+            + "        \"includes\" : [ \"name\" ],%n"
+            + "        \"excludes\" : [ ]%n"
+            + "      }%n"
+            + "    }%n"
+            + "  }%n"
+            + "}"),
         buildQuery(
             Collections.singletonList(named("take(name, 10)", new TakeAggregator(
                 ImmutableList.of(ref("name", STRING), literal(10)), ARRAY)))));
@@ -316,37 +316,37 @@ class MetricAggregationBuilderTest {
 
   @Test
   void should_build_filtered_top_hits_aggregation() {
-    assertEquals(
-        "{\n"
-            + "  \"take(name, 10) filter(where age > 30)\" : {\n"
-            + "    \"filter\" : {\n"
-            + "      \"range\" : {\n"
-            + "        \"age\" : {\n"
-            + "          \"from\" : 30,\n"
-            + "          \"to\" : null,\n"
-            + "          \"include_lower\" : false,\n"
-            + "          \"include_upper\" : true,\n"
-            + "          \"boost\" : 1.0\n"
-            + "        }\n"
-            + "      }\n"
-            + "    },\n"
-            + "    \"aggregations\" : {\n"
-            + "      \"take(name, 10) filter(where age > 30)\" : {\n"
-            + "        \"top_hits\" : {\n"
-            + "          \"from\" : 0,\n"
-            + "          \"size\" : 10,\n"
-            + "          \"version\" : false,\n"
-            + "          \"seq_no_primary_term\" : false,\n"
-            + "          \"explain\" : false,\n"
-            + "          \"_source\" : {\n"
-            + "            \"includes\" : [ \"name\" ],\n"
-            + "            \"excludes\" : [ ]\n"
-            + "          }\n"
-            + "        }\n"
-            + "      }\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+    assertEquals(format(
+        "{%n"
+            + "  \"take(name, 10) filter(where age > 30)\" : {%n"
+            + "    \"filter\" : {%n"
+            + "      \"range\" : {%n"
+            + "        \"age\" : {%n"
+            + "          \"from\" : 30,%n"
+            + "          \"to\" : null,%n"
+            + "          \"include_lower\" : false,%n"
+            + "          \"include_upper\" : true,%n"
+            + "          \"boost\" : 1.0%n"
+            + "        }%n"
+            + "      }%n"
+            + "    },%n"
+            + "    \"aggregations\" : {%n"
+            + "      \"take(name, 10) filter(where age > 30)\" : {%n"
+            + "        \"top_hits\" : {%n"
+            + "          \"from\" : 0,%n"
+            + "          \"size\" : 10,%n"
+            + "          \"version\" : false,%n"
+            + "          \"seq_no_primary_term\" : false,%n"
+            + "          \"explain\" : false,%n"
+            + "          \"_source\" : {%n"
+            + "            \"includes\" : [ \"name\" ],%n"
+            + "            \"excludes\" : [ ]%n"
+            + "          }%n"
+            + "        }%n"
+            + "      }%n"
+            + "    }%n"
+            + "  }%n"
+            + "}"),
         buildQuery(Collections.singletonList(named(
             "take(name, 10) filter(where age > 30)",
             new TakeAggregator(
