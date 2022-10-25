@@ -16,7 +16,7 @@
     "start": "plugin-helpers start",
     "test:server": "plugin-helpers test:server",
     "test:browser": "plugin-helpers test:browser",
-    "test:jest": "NODE_PATH=../../node_modules ../../node_modules/.bin/jest --config ./test/jest.config.js",
+    "test:jest": "../../node_modules/.bin/jest --config ./test/jest.config.js",
     "build": "yarn plugin_helpers build",
     "plugin_helpers": "node ../../scripts/plugin_helpers"
   },
