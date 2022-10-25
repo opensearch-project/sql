@@ -20,25 +20,32 @@ on:
 jobs:
   build:
     strategy:
+      # Run all jobs
+      fail-fast: false
       matrix:
-        java:
-          - 11
-          - 17
-    runs-on: ubuntu-latest
+        entry:
+          - { os: ubuntu-latest, java: 11 }
+          - { os: windows-latest, java: 11, os_build_args: -x doctest -x integTest -x jacocoTestReport -x compileJdbc}
+          - { os: macos-latest, java: 11, os_build_args: -x doctest -x integTest -x jacocoTestReport -x compileJdbc }
+          - { os: ubuntu-latest, java: 17 }
+          - { os: windows-latest, java: 17, os_build_args: -x doctest -x integTest -x jacocoTestReport -x compileJdbc }
+          - { os: macos-latest, java: 17, os_build_args: -x doctest -x integTest -x jacocoTestReport -x compileJdbc }
+    runs-on: ${{ matrix.entry.os }}
 
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Set up JDK ${{ matrix.java }}
       uses: actions/setup-java@v3
       with:
         distribution: 'temurin'
-        java-version: ${{ matrix.java }}
-    
+        java-version: ${{ matrix.entry.java }}
+
     - name: Build with Gradle
-      run: ./gradlew --continue build assemble
+      run: ./gradlew --continue build ${{ matrix.entry.os_build_args }}
 
     - name: Run backward compatibility tests
+      if: ${{ matrix.entry.os == 'ubuntu-latest' }}
       run: ./scripts/bwctest.sh
 
     - name: Create Artifact Path
@@ -48,7 +55,7 @@ jobs:
 
     # This step uses the codecov-action Github action: https://github.com/codecov/codecov-action
     - name: Upload SQL Coverage Report
-      if: always()
+      if: ${{ always() && matrix.entry.os == 'ubuntu-latest' }}
       uses: codecov/codecov-action@v3
       with:
         flags: sql-engine
@@ -57,11 +64,11 @@ jobs:
     - name: Upload Artifacts
       uses: actions/upload-artifact@v2
       with:
-        name: opensearch-sql
+        name: opensearch-sql-${{ matrix.entry.os }}
         path: opensearch-sql-builds
 
     - name: Upload test reports
-      if: always()
+      if: ${{ always() && matrix.entry.os == 'ubuntu-latest' }}
       uses: actions/upload-artifact@v2
       with:
         name: test-reports
