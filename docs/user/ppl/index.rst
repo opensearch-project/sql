@@ -34,6 +34,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `Monitoring <admin/monitoring.rst>`_
 
+  - `Catalog Settings <admin/catalog.rst>`_
+
 * **Commands**
 
   - `Syntax <cmd/syntax.rst>`_
