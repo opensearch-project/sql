@@ -6,14 +6,6 @@
  * compatible open source license.
  */
 
-/*
- * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- */
-
 package org.opensearch.sql.executor.streaming;
 
 import com.google.common.base.Preconditions;
@@ -25,9 +17,8 @@ import java.util.TreeMap;
 import org.apache.commons.lang3.tuple.Pair;
 
 /**
- * In memory implementation of {@link MetadataLog}.
- * Todo. Current implementation does not guarantee thread safe. We will re-evaluate it when adding
- * pipeline execution.
+ * In memory implementation of {@link MetadataLog}. Todo. Current implementation does not guarantee
+ * thread safe. We will re-evaluate it when adding pipeline execution.
  *
  * @param <T> type of metadata type.
  */
