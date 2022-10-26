@@ -199,6 +199,9 @@ class OpenSearchExprValueFactoryTest {
         constructFromObject("timestampV", 1420070400001L));
     assertEquals(
         new ExprTimestampValue(Instant.ofEpochMilli(1420070400001L)),
+        constructFromObject("timestampV", "1420070400001"));
+    assertEquals(
+        new ExprTimestampValue(Instant.ofEpochMilli(1420070400001L)),
         constructFromObject("timestampV", Instant.ofEpochMilli(1420070400001L)));
     assertEquals(
         new ExprTimestampValue("2015-01-01 12:10:30"),

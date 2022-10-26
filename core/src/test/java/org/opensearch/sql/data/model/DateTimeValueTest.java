@@ -15,7 +15,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -43,7 +42,7 @@ public class DateTimeValueTest {
 
     assertEquals(TIMESTAMP, timestampValue.type());
     assertEquals(ZonedDateTime.of(LocalDateTime.parse("2020-07-07T01:01:01"),
-        ZoneId.of("UTC")).toInstant(), timestampValue.timestampValue());
+        ExprTimestampValue.ZONE).toInstant(), timestampValue.timestampValue());
     assertEquals("2020-07-07 01:01:01", timestampValue.value());
     assertEquals("TIMESTAMP '2020-07-07 01:01:01'", timestampValue.toString());
     assertEquals(LocalDate.parse("2020-07-07"), timestampValue.dateValue());
@@ -61,7 +60,7 @@ public class DateTimeValueTest {
     assertEquals(LocalTime.parse("00:00:00"), dateValue.timeValue());
     assertEquals(LocalDateTime.parse("2012-07-07T00:00:00"), dateValue.datetimeValue());
     assertEquals(ZonedDateTime.of(LocalDateTime.parse("2012-07-07T00:00:00"),
-        ZoneId.systemDefault()).toInstant(), dateValue.timestampValue());
+        ExprTimestampValue.ZONE).toInstant(), dateValue.timestampValue());
     ExpressionEvaluationException exception =
         assertThrows(ExpressionEvaluationException.class, () -> integerValue(1).dateValue());
     assertEquals("invalid to get dateValue from value of type INTEGER",
@@ -76,7 +75,7 @@ public class DateTimeValueTest {
     assertEquals(LocalDate.parse("2020-08-17"), datetimeValue.dateValue());
     assertEquals(LocalTime.parse("19:44:00"), datetimeValue.timeValue());
     assertEquals(ZonedDateTime.of(LocalDateTime.parse("2020-08-17T19:44:00"),
-        ZoneId.of("UTC")).toInstant(), datetimeValue.timestampValue());
+        ExprTimestampValue.ZONE).toInstant(), datetimeValue.timestampValue());
     assertEquals("DATETIME '2020-08-17 19:44:00'", datetimeValue.toString());
     assertThrows(ExpressionEvaluationException.class, () -> integerValue(1).datetimeValue(),
         "invalid to get datetimeValue from value of type INTEGER");
