@@ -13,13 +13,8 @@ static RETCODE set_statement_option(ConnectionClass *conn, StatementClass *stmt,
                                     SQLUSMALLINT fOption, SQLULEN vParam) {
     CSTR func = "set_statement_option";
     char changed = FALSE;
-    ConnInfo *ci = NULL;
     SQLULEN setval;
 
-    if (conn)
-        ci = &(conn->connInfo);
-    else
-        ci = &(SC_get_conn(stmt)->connInfo);
     switch (fOption) {
         case SQL_ASYNC_ENABLE: /* ignored */
             break;

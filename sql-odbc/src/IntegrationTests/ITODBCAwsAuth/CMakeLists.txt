@@ -12,6 +12,9 @@ include_directories(	${UT_HELPER}
 # Generate executable
 add_executable(itodbc_aws_auth ${SOURCE_FILES})
 
+# Find packages from vcpkg
+find_package(GTest CONFIG REQUIRED)
+
 # Library dependencies
-target_link_libraries(itodbc_aws_auth sqlodbc itodbc_helper ut_helper gtest_main aws-cpp-sdk-core)
+target_link_libraries(itodbc_aws_auth sqlodbc itodbc_helper ut_helper GTest::gtest_main aws-cpp-sdk-core)
 target_compile_definitions(itodbc_aws_auth PUBLIC _UNICODE UNICODE)
