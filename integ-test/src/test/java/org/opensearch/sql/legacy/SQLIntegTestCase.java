@@ -575,7 +575,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     BEER(TestsConstants.TEST_INDEX_BEER,
         "beer",
         null,
-        "src/test/resources/beer.stackexchange.json"),;
+        "src/test/resources/beer.stackexchange.json"),
+    NULL_MISSING(TestsConstants.TEST_INDEX_NULL_MISSING,
+        "null_missing",
+        "src/test/resources/indexDefinitions/null_missing_index_mapping.json",
+        "src/test/resources/null_missing.json"),;
 
     private final String name;
     private final String type;
