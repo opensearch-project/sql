@@ -38,9 +38,12 @@ import static org.opensearch.sql.ast.dsl.AstDSL.rename;
 import static org.opensearch.sql.ast.dsl.AstDSL.sort;
 import static org.opensearch.sql.ast.dsl.AstDSL.span;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.tableFunction;
+import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Arrays;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -91,6 +94,29 @@ public class AstBuilderTest {
     assertEqual("search source = http_requests_total.test",
         relation(qualifiedName("http_requests_total","test"))
     );
+  }
+
+  @Test
+  public void testSearchWithPrometheusQueryRangeWithPositionedArguments() {
+    assertEqual("search source = prometheus.query_range(\"test{code='200'}\",1234, 12345, 3)",
+        tableFunction(Arrays.asList("prometheus", "query_range"),
+            unresolvedArg(null, stringLiteral("test{code='200'}")),
+            unresolvedArg(null, intLiteral(1234)),
+            unresolvedArg(null, intLiteral(12345)),
+            unresolvedArg(null, intLiteral(3))
+    ));
+  }
+
+  @Test
+  public void testSearchWithPrometheusQueryRangeWithNamedArguments() {
+    assertEqual("search source = prometheus.query_range(query = \"test{code='200'}\", "
+            + "starttime = 1234, step=3, endtime=12345)",
+        tableFunction(Arrays.asList("prometheus", "query_range"),
+            unresolvedArg("query", stringLiteral("test{code='200'}")),
+            unresolvedArg("starttime", intLiteral(1234)),
+            unresolvedArg("step", intLiteral(3)),
+            unresolvedArg("endtime", intLiteral(12345))
+        ));
   }
 
   @Test
@@ -745,6 +771,12 @@ public class AstBuilderTest {
   public void test_batchRCFADCommand() {
     assertEqual("source=t | AD",
         new AD(relation("t"), ImmutableMap.of()));
+  }
+
+  @Test
+  public void testShowCatalogsCommand() {
+    assertEqual("show catalogs",
+        relation(".CATALOGS"));
   }
 
   protected void assertEqual(String query, Node expectedPlan) {

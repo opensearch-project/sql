@@ -24,6 +24,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsComma
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WhereCommandContext;
+import static org.opensearch.sql.utils.SystemIndexUtils.CATALOGS_TABLE_NAME;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableList;
@@ -43,6 +44,7 @@ import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
@@ -58,6 +60,7 @@ import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
@@ -120,6 +123,16 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     final Relation table = (Relation) visitTableSourceClause(ctx.tableSourceClause());
     return new Relation(qualifiedName(mappingTable(table.getTableName())));
   }
+
+  /**
+   * Show command.
+   */
+  @Override
+  public UnresolvedPlan visitShowCatalogsCommand(
+      OpenSearchPPLParser.ShowCatalogsCommandContext ctx) {
+    return new Relation(qualifiedName(CATALOGS_TABLE_NAME));
+  }
+
 
   /**
    * Where command.
@@ -324,7 +337,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    */
   @Override
   public UnresolvedPlan visitFromClause(FromClauseContext ctx) {
-    return visitTableSourceClause(ctx.tableSourceClause());
+    if (ctx.tableFunction() != null) {
+      return visitTableFunction(ctx.tableFunction());
+    } else {
+      return visitTableSourceClause(ctx.tableSourceClause());
+    }
   }
 
   @Override
@@ -332,6 +349,19 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return new Relation(ctx.tableSource()
         .stream().map(this::internalVisitExpression)
         .collect(Collectors.toList()));
+  }
+
+  @Override
+  public UnresolvedPlan visitTableFunction(OpenSearchPPLParser.TableFunctionContext ctx) {
+    ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
+    ctx.functionArgs().functionArg().forEach(arg
+        -> {
+      String argName = (arg.ident() != null) ? arg.ident().getText() : null;
+      builder.add(
+          new UnresolvedArgument(argName,
+              this.internalVisitExpression(arg.valueExpression())));
+    });
+    return new TableFunction(this.internalVisitExpression(ctx.qualifiedName()), builder.build());
   }
 
   /**

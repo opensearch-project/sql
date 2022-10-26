@@ -58,7 +58,7 @@ class OpenSearchConnection:
         region = session.region_name
 
         if credentials is not None:
-            self.aws_auth = AWS4Auth(credentials.access_key, credentials.secret_key, region, service)
+            self.aws_auth = AWS4Auth(credentials.access_key, credentials.secret_key, region, service, session_token=credentials.token)
         else:
             click.secho(
                 message="Can not retrieve your AWS credentials, check your AWS config",

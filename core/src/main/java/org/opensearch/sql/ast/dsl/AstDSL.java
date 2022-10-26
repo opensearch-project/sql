@@ -57,6 +57,7 @@ import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 
@@ -85,6 +86,10 @@ public class AstDSL {
 
   public UnresolvedPlan relation(String tableName, String alias) {
     return new Relation(qualifiedName(tableName), alias);
+  }
+
+  public UnresolvedPlan tableFunction(List<String> functionName, UnresolvedExpression... args) {
+    return new TableFunction(new QualifiedName(functionName), Arrays.asList(args));
   }
 
   public static UnresolvedPlan project(UnresolvedPlan input, UnresolvedExpression... projectList) {

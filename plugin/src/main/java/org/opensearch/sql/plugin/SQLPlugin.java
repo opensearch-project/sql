@@ -136,7 +136,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
     this.pluginSettings = new OpenSearchSettings(clusterService.getClusterSettings());
     this.client = (NodeClient) client;
     CatalogServiceImpl.getInstance().loadConnectors(clusterService.getSettings());
-    CatalogServiceImpl.getInstance().registerOpenSearchStorageEngine(openSearchStorageEngine());
+    CatalogServiceImpl.getInstance().registerDefaultOpenSearchCatalog(openSearchStorageEngine());
     LocalClusterState.state().setClusterService(clusterService);
     LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
 
@@ -181,8 +181,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
 
   @Override
   public void reload(Settings settings) {
-    CatalogServiceImpl.getInstance().loadConnectors(clusterService.getSettings());
-    CatalogServiceImpl.getInstance().registerOpenSearchStorageEngine(openSearchStorageEngine());
+    CatalogServiceImpl.getInstance().loadConnectors(settings);
+    CatalogServiceImpl.getInstance().registerDefaultOpenSearchCatalog(openSearchStorageEngine());
   }
 
   private StorageEngine openSearchStorageEngine() {

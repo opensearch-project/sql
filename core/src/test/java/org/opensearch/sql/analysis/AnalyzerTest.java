@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.analysis;
 
+import static java.lang.Boolean.TRUE;
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -23,6 +24,8 @@ import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.ast.dsl.AstDSL.span;
+import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder;
 import static org.opensearch.sql.ast.tree.Sort.SortOption;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
@@ -60,6 +63,7 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.HighlightExpression;
@@ -71,6 +75,8 @@ import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.opensearch.sql.planner.logical.LogicalProject;
+import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.physical.catalog.CatalogTable;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
@@ -932,9 +938,9 @@ class AnalyzerTest extends AnalyzerTestBase {
   @Test
   public void ad_batchRCF_relation() {
     Map<String, Literal> argumentMap =
-            new HashMap<String, Literal>() {{
-                put("shingle_size", new Literal(8, DataType.INTEGER));
-            }};
+        new HashMap<String, Literal>() {{
+            put("shingle_size", new Literal(8, DataType.INTEGER));
+          }};
     assertAnalyzeEqual(
         new LogicalAD(LogicalPlanDSL.relation("schema", table), argumentMap),
         new AD(AstDSL.relation("schema"), argumentMap)
@@ -989,4 +995,56 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertTrue(((LogicalProject) actual).getProjectList()
             .contains(DSL.named("anomalous", DSL.ref("anomalous", BOOLEAN))));
   }
+
+  @Test
+  public void table_function() {
+    assertAnalyzeEqual(new LogicalRelation("query_range", table),
+        AstDSL.tableFunction(List.of("prometheus", "query_range"),
+            unresolvedArg("query", stringLiteral("http_latency")),
+            unresolvedArg("starttime", intLiteral(12345)),
+            unresolvedArg("endtime", intLiteral(12345)),
+            unresolvedArg("step", intLiteral(14))));
+  }
+
+  @Test
+  public void table_function_with_no_catalog() {
+    ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
+        () -> analyze(AstDSL.tableFunction(List.of("query_range"),
+            unresolvedArg("query", stringLiteral("http_latency")),
+            unresolvedArg("", intLiteral(12345)),
+            unresolvedArg("", intLiteral(12345)),
+            unresolvedArg(null, intLiteral(14)))));
+    assertEquals("unsupported function name: query_range",
+        exception.getMessage());
+  }
+
+  @Test
+  public void table_function_with_wrong_catalog() {
+    ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
+        () -> analyze(AstDSL.tableFunction(Arrays.asList("prome", "query_range"),
+            unresolvedArg("query", stringLiteral("http_latency")),
+            unresolvedArg("", intLiteral(12345)),
+            unresolvedArg("", intLiteral(12345)),
+            unresolvedArg(null, intLiteral(14)))));
+    assertEquals("unsupported function name: prome.query_range", exception.getMessage());
+  }
+
+  @Test
+  public void table_function_with_wrong_table_function() {
+    ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
+        () -> analyze(AstDSL.tableFunction(Arrays.asList("prometheus", "queryrange"),
+            unresolvedArg("query", stringLiteral("http_latency")),
+            unresolvedArg("", intLiteral(12345)),
+            unresolvedArg("", intLiteral(12345)),
+            unresolvedArg(null, intLiteral(14)))));
+    assertEquals("unsupported function name: queryrange", exception.getMessage());
+  }
+
+  @Test
+  public void show_catalogs() {
+    assertAnalyzeEqual(new LogicalRelation(".CATALOGS", new CatalogTable(catalogService)),
+        AstDSL.relation(qualifiedName(".CATALOGS")));
+
+  }
+
 }

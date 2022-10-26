@@ -31,11 +31,13 @@ public class PrettyFormatterTest {
     public void assertFormatterOutputsPrettyJson() throws IOException {
         String explainFormattedPrettyFilePath = TestUtils.getResourceFilePath(
                 "/src/test/resources/expectedOutput/explain_format_pretty.json");
-        String explainFormattedPretty = Files.toString(new File(explainFormattedPrettyFilePath), StandardCharsets.UTF_8);
+        String explainFormattedPretty = Files.toString(new File(explainFormattedPrettyFilePath), StandardCharsets.UTF_8)
+                .replaceAll("\r", "");
 
         String explainFormattedOnelineFilePath = TestUtils.getResourceFilePath(
                 "/src/test/resources/explain_format_oneline.json");
-        String explainFormattedOneline = Files.toString(new File(explainFormattedOnelineFilePath), StandardCharsets.UTF_8);
+        String explainFormattedOneline = Files.toString(new File(explainFormattedOnelineFilePath), StandardCharsets.UTF_8)
+                .replaceAll("\r", "");
         String result = JsonPrettyFormatter.format(explainFormattedOneline);
 
         assertThat(result, equalTo(explainFormattedPretty));

@@ -24,7 +24,7 @@ plugins {
 group 'org.opensearch.client'
 
 // keep version in sync with version in Driver source
-version '1.1.0.1'
+version '2.0.0.0'
 
 boolean snapshot = "true".equals(System.getProperty("build.snapshot", "false"));
 if (snapshot) {
@@ -46,7 +46,7 @@ repositories {
 
 dependencies {
     implementation group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.13'
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "2.13.3"
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "2.13.4.2"
     implementation group: 'com.amazonaws', name: 'aws-java-sdk-core', version: '1.11.452'
 
     testImplementation('org.junit.jupiter:junit-jupiter-api:5.3.1')
@@ -98,6 +98,7 @@ shadowJar {
 }
 
 test {
+    systemProperty("opensearch_jdbc_version", version);
     useJUnitPlatform()
 }
 
