@@ -66,7 +66,7 @@ class OpenSearchQueryManagerTest {
         })
         .when(threadPool)
         .schedule(any(), any(), any());
-    new OpenSearchQueryManager(nodeClient).submitQuery(queryPlan);
+    new OpenSearchQueryManager(nodeClient).submit(queryPlan);
 
     assertTrue(isRun.get());
   }

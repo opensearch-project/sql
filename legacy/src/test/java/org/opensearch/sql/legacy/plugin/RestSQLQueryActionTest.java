@@ -139,7 +139,7 @@ public class RestSQLQueryActionTest extends BaseRestHandler {
 
     doThrow(new IllegalStateException("execution exception"))
         .when(queryManager)
-        .submitQuery(any());
+        .submit(any());
 
     AtomicBoolean executionErrorHandler = new AtomicBoolean(false);
     RestSQLQueryAction queryAction = new RestSQLQueryAction(context);

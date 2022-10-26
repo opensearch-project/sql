@@ -50,7 +50,7 @@ class SQLServiceTest {
 
   @BeforeEach
   public void setUp() {
-    context.registerBean(QueryManager.class, new DefaultQueryManager());
+    context.registerBean(QueryManager.class, DefaultQueryManager::new);
     context.registerBean(QueryPlanFactory.class, () -> new QueryPlanFactory(queryService));
     context.register(SQLServiceConfig.class);
     context.refresh();

@@ -24,18 +24,18 @@ import org.opensearch.sql.executor.execution.AbstractPlan;
 class DefaultQueryManagerTest {
 
   @Mock
-  private AbstractPlan queryExecution;
+  private AbstractPlan plan;
 
   @Mock
   private QueryId queryId;
 
   @Test
   public void submitQuery() {
-    when(queryExecution.getQueryId()).thenReturn(queryId);
+    when(plan.getQueryId()).thenReturn(queryId);
 
-    QueryId actualQueryId = new DefaultQueryManager().submitQuery(queryExecution);
+    QueryId actualQueryId = new DefaultQueryManager().submit(plan);
 
     assertEquals(queryId, actualQueryId);
-    verify(queryExecution, times(1)).execute();
+    verify(plan, times(1)).execute();
   }
 }

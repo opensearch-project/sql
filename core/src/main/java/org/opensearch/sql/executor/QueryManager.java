@@ -21,5 +21,5 @@ public interface QueryManager {
    * @param queryPlan {@link AbstractPlan}.
    * @return {@link QueryId}.
    */
-  QueryId submitQuery(AbstractPlan queryPlan);
+  QueryId submit(AbstractPlan queryPlan);
 }

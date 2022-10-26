@@ -50,7 +50,7 @@ public class PPLService {
    */
   public void execute(PPLQueryRequest request, ResponseListener<QueryResponse> listener) {
     try {
-      queryManager.submitQuery(plan(request, Optional.of(listener), Optional.empty()));
+      queryManager.submit(plan(request, Optional.of(listener), Optional.empty()));
     } catch (Exception e) {
       listener.onFailure(e);
     }
@@ -65,7 +65,7 @@ public class PPLService {
    */
   public void explain(PPLQueryRequest request, ResponseListener<ExplainResponse> listener) {
     try {
-      queryManager.submitQuery(plan(request, Optional.empty(), Optional.of(listener)));
+      queryManager.submit(plan(request, Optional.empty(), Optional.of(listener)));
     } catch (Exception e) {
       listener.onFailure(e);
     }

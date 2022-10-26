@@ -51,7 +51,7 @@ public class PPLServiceTest {
    */
   @Before
   public void setUp() {
-    context.registerBean(QueryManager.class, new DefaultQueryManager());
+    context.registerBean(QueryManager.class, DefaultQueryManager::new);
     context.registerBean(QueryPlanFactory.class, () -> new QueryPlanFactory(queryService));
     context.register(PPLServiceConfig.class);
     context.refresh();

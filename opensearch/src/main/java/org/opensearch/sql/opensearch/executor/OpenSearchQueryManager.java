@@ -29,7 +29,7 @@ public class OpenSearchQueryManager implements QueryManager {
   private static final String SQL_WORKER_THREAD_POOL_NAME = "sql-worker";
 
   @Override
-  public QueryId submitQuery(AbstractPlan queryPlan) {
+  public QueryId submit(AbstractPlan queryPlan) {
     schedule(nodeClient, () -> queryPlan.execute());
 
     return queryPlan.getQueryId();

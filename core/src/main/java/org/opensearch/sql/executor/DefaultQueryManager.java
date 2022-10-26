@@ -16,7 +16,7 @@ import org.opensearch.sql.executor.execution.AbstractPlan;
 public class DefaultQueryManager implements QueryManager {
 
   @Override
-  public QueryId submitQuery(AbstractPlan queryExecution) {
+  public QueryId submit(AbstractPlan queryExecution) {
 
     // 2. start query execution.
     queryExecution.execute();
