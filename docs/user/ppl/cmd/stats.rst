@@ -244,7 +244,7 @@ TAKE
 Description
 >>>>>>>>>>>
 
-Usage: TAKE(field [, size]). Return original values of a field.
+Usage: TAKE(field [, size]). Return original values of a field. It does not guarantee on the order of values.
 
 * field: mandatory. The field must be a text field.
 * size: optional integer. The number of values should be returned. Default is 10.
