@@ -199,10 +199,6 @@ public class AstDSL {
     return literal(value, DataType.STRING);
   }
 
-  public static Literal integerLiteral(Integer value) {
-    return literal(value, DataType.INTEGER);
-  }
-
   public static Literal booleanLiteral(Boolean value) {
     return literal(value, DataType.BOOLEAN);
   }

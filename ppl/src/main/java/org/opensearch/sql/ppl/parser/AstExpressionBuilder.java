@@ -222,7 +222,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
     builder.add(new UnresolvedArgument("size",
         ctx.takeAggFunction().size != null ? visit(ctx.takeAggFunction().size) :
-            AstDSL.integerLiteral(DEFAULT_TAKE_FUNCTION_SIZE_VALUE)));
+            AstDSL.intLiteral(DEFAULT_TAKE_FUNCTION_SIZE_VALUE)));
     return new AggregateFunction("take", visit(ctx.takeAggFunction().fieldExpression()),
         builder.build());
   }
