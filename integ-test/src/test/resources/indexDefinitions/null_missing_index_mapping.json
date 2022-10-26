@@ -4,34 +4,34 @@
             "key" : {
                 "type" : "keyword"
             },
-			"int" : {
-				"type" : "integer"
-			},
-			"dbl" : {
+            "int" : {
+                "type" : "integer"
+            },
+            "dbl" : {
                 "type" : "double"
             },
-			"bool" : {
+            "bool" : {
                 "type" : "boolean"
             },
-			"str" : {
+            "str" : {
                 "type" : "text"
             },
-			"date" : {
+            "date" : {
                 "type" : "date",
                 "format": "yyyy-MM-dd"
             },
-			"time" : {
+            "time" : {
                 "type" : "date",
                 "format": "HH:mm:ss"
             },
-			"datetime" : {
+            "datetime" : {
                 "type" : "date",
                 "format": "yyyy-MM-dd HH:mm:ss"
             },
-			"timestamp" : {
+            "timestamp" : {
                 "type" : "date",
                 "format": "yyyy-MM-dd HH:mm:ss"
             }
-		}
-	}
+        }
+    }
 }
