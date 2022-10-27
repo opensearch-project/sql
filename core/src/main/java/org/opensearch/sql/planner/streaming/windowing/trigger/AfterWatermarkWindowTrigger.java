@@ -10,12 +10,14 @@ import org.opensearch.sql.planner.streaming.StreamContext;
 import org.opensearch.sql.planner.streaming.windowing.Window;
 
 /**
- * After watermark window trigger fires window state output once watermark.
+ * After watermark window trigger fires window state output once a window is below watermark.
+ * Precisely speaking, after watermark means the window boundary (max timestamp) is equal to
+ * or less than the current watermark timestamp.
  */
 @RequiredArgsConstructor
 public class AfterWatermarkWindowTrigger implements WindowTrigger {
 
-  /** Stream context. */
+  /** Stream context that contains the current watermark. */
   private final StreamContext context;
 
   @Override
