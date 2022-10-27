@@ -54,6 +54,7 @@ import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 import org.opensearch.sql.opensearch.storage.script.ExpressionScriptEngine;
 import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
 import org.opensearch.sql.plugin.catalog.CatalogServiceImpl;
+import org.opensearch.sql.plugin.catalog.CatalogSettings;
 import org.opensearch.sql.plugin.config.OpenSearchPluginConfig;
 import org.opensearch.sql.plugin.rest.RestPPLQueryAction;
 import org.opensearch.sql.plugin.rest.RestPPLStatsAction;
@@ -142,7 +143,9 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
     this.pluginSettings = new OpenSearchSettings(clusterService.getClusterSettings());
     this.client = (NodeClient) client;
     CatalogServiceImpl.getInstance().loadConnectors(clusterService.getSettings());
-    CatalogServiceImpl.getInstance().registerOpenSearchStorageEngine(openSearchStorageEngine());
+    CatalogServiceImpl.getInstance().registerDefaultOpenSearchCatalog(openSearchStorageEngine());
+    LocalClusterState.state().setClusterService(clusterService);
+    LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
 
     this.applicationContext = new AnnotationConfigApplicationContext();
     SecurityAccess.doPrivileged(
@@ -159,9 +162,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
           applicationContext.refresh();
           return null;
         });
-
-    LocalClusterState.state().setClusterService(clusterService);
-    LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
 
     // return objects used by Guice to inject dependencies for e.g.,
     // transport action handler constructors
@@ -184,6 +184,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
     return new ImmutableList.Builder<Setting<?>>()
         .addAll(LegacyOpenDistroSettings.legacySettings())
         .addAll(OpenSearchSettings.pluginSettings())
+        .add(CatalogSettings.CATALOG_CONFIG)
         .build();
   }
 
@@ -195,7 +196,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
   @Override
   public void reload(Settings settings) {
     CatalogServiceImpl.getInstance().loadConnectors(settings);
-    CatalogServiceImpl.getInstance().registerOpenSearchStorageEngine(openSearchStorageEngine());
+    CatalogServiceImpl.getInstance().registerDefaultOpenSearchCatalog(openSearchStorageEngine());
   }
 
   private StorageEngine openSearchStorageEngine() {
