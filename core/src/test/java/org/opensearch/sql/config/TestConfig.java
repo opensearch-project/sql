@@ -55,6 +55,7 @@ public class TestConfig {
       .put(STRING_TYPE_MISSING_VALUE_FIELD, ExprCoreType.STRING)
       .put("struct_value", ExprCoreType.STRUCT)
       .put("array_value", ExprCoreType.ARRAY)
+      .put("timestamp_value", ExprCoreType.TIMESTAMP)
       .build();
 
   @Bean

@@ -20,6 +20,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.common.settings.MockSecureSettings;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.sql.catalog.model.Catalog;
+import org.opensearch.sql.catalog.model.ConnectorType;
 import org.opensearch.sql.storage.StorageEngine;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -36,8 +38,8 @@ public class CatalogServiceImplTest {
   public void testLoadConnectors() {
     Settings settings = getCatalogSettings("catalogs.json");
     CatalogServiceImpl.getInstance().loadConnectors(settings);
-    Set<String> expected = new HashSet<>() {{
-        add("prometheus");
+    Set<Catalog> expected = new HashSet<>() {{
+        add(new Catalog("prometheus", ConnectorType.PROMETHEUS, storageEngine));
       }};
     Assert.assertEquals(expected, CatalogServiceImpl.getInstance().getCatalogs());
   }
@@ -48,9 +50,9 @@ public class CatalogServiceImplTest {
   public void testLoadConnectorsWithMultipleCatalogs() {
     Settings settings = getCatalogSettings("multiple_catalogs.json");
     CatalogServiceImpl.getInstance().loadConnectors(settings);
-    Set<String> expected = new HashSet<>() {{
-        add("prometheus");
-        add("prometheus-1");
+    Set<Catalog> expected = new HashSet<>() {{
+        add(new Catalog("prometheus", ConnectorType.PROMETHEUS, storageEngine));
+        add(new Catalog("prometheus-1", ConnectorType.PROMETHEUS, storageEngine));
       }};
     Assert.assertEquals(expected, CatalogServiceImpl.getInstance().getCatalogs());
   }
@@ -87,13 +89,33 @@ public class CatalogServiceImplTest {
   @Test
   public void testGetStorageEngineAfterGetCatalogs() {
     Settings settings = getCatalogSettings("empty_catalog.json");
-    CatalogServiceImpl.getInstance().registerOpenSearchStorageEngine(storageEngine);
     CatalogServiceImpl.getInstance().loadConnectors(settings);
-    Set<String> expected = new HashSet<>();
+    CatalogServiceImpl.getInstance().registerDefaultOpenSearchCatalog(storageEngine);
+    Set<Catalog> expected = new HashSet<>();
+    expected.add(new Catalog(".opensearch", ConnectorType.OPENSEARCH, storageEngine));
     Assert.assertEquals(expected, CatalogServiceImpl.getInstance().getCatalogs());
-    Assert.assertEquals(storageEngine, CatalogServiceImpl.getInstance().getStorageEngine(null));
+    Assert.assertEquals(storageEngine,
+        CatalogServiceImpl.getInstance().getCatalog(".opensearch").getStorageEngine());
     Assert.assertEquals(expected, CatalogServiceImpl.getInstance().getCatalogs());
-    Assert.assertEquals(storageEngine, CatalogServiceImpl.getInstance().getStorageEngine(null));
+    Assert.assertEquals(storageEngine,
+        CatalogServiceImpl.getInstance().getCatalog(".opensearch").getStorageEngine());
+    IllegalArgumentException illegalArgumentException
+        = Assert.assertThrows(IllegalArgumentException.class,
+          () -> CatalogServiceImpl.getInstance().getCatalog("test"));
+    Assert.assertEquals("Catalog with name test doesn't exist.",
+        illegalArgumentException.getMessage());
+  }
+
+
+  @SneakyThrows
+  @Test
+  public void testGetStorageEngineAfterLoadingConnectors() {
+    Settings settings = getCatalogSettings("empty_catalog.json");
+    CatalogServiceImpl.getInstance().registerDefaultOpenSearchCatalog(storageEngine);
+    //Load Connectors will empty the catalogMap.So OpenSearch Storage Engine
+    CatalogServiceImpl.getInstance().loadConnectors(settings);
+    Set<Catalog> expected = new HashSet<>();
+    Assert.assertEquals(expected, CatalogServiceImpl.getInstance().getCatalogs());
   }
 
   @SneakyThrows

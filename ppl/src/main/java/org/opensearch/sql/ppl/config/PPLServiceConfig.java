@@ -43,9 +43,9 @@ public class PPLServiceConfig {
   @Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
   public PPLService pplService() {
     catalogService.getCatalogs()
-        .forEach(catalog -> catalogService.getStorageEngine(catalog)
-            .getFunctions()
-            .forEach(functionResolver -> functionRepository.register(catalog, functionResolver)));
+        .forEach(catalog -> catalog.getStorageEngine().getFunctions()
+            .forEach(functionResolver -> functionRepository
+                .register(catalog.getName(), functionResolver)));
     return new PPLService(new PPLSyntaxParser(), executionEngine,
             functionRepository, catalogService);
   }
