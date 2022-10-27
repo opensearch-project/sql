@@ -580,7 +580,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     NULL_MISSING(TestsConstants.TEST_INDEX_NULL_MISSING,
         "null_missing",
         getMappingFile("null_missing_index_mapping.json"),
-        "src/test/resources/null_missing.json"),;
+        "src/test/resources/null_missing.json"),
+    CALCS(TestsConstants.TEST_INDEX_CALCS,
+        "calcs",
+        getMappingFile("calcs_index_mappings.json"),
+        "src/test/resources/calcs.json"),;
 
     private final String name;
     private final String type;
