@@ -66,7 +66,7 @@ public abstract class RelevanceQuery<T extends QueryBuilder> extends LuceneQuery
       (Objects.requireNonNull(
           queryBuildActions
               .get(argNormalized)))
-          .apply(queryBuilder, arg.getValue().valueOf(null));
+          .apply(queryBuilder, arg.getValue().valueOf());
     }
 
     return queryBuilder;

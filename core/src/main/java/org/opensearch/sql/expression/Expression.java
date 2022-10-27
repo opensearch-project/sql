@@ -17,6 +17,13 @@ import org.opensearch.sql.expression.env.Environment;
 public interface Expression extends Serializable {
 
   /**
+   * Evaluate the value of expression that does not depend on value environment.
+   */
+  default ExprValue valueOf() {
+    return valueOf(null);
+  }
+
+  /**
    * Evaluate the value of expression in the value environment.
    */
   ExprValue valueOf(Environment<Expression, ExprValue> valueEnv);

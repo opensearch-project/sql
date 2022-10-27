@@ -102,7 +102,7 @@ public class DSL {
       return (NamedExpression) expression;
     }
     if (expression instanceof ParseExpression) {
-      return named(((ParseExpression) expression).getIdentifier().valueOf(null).stringValue(),
+      return named(((ParseExpression) expression).getIdentifier().valueOf().stringValue(),
           expression);
     }
     return named(expression.toString(), expression);

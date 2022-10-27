@@ -1188,7 +1188,7 @@ class FilterQueryBuilderTest {
             + "      \"boost\" : 1.0\n"
             + "    }\n"
             + "  }\n"
-            + "}", castToInteger(expr.valueOf(null).value())),
+            + "}", castToInteger(expr.valueOf().value())),
         buildQuery(dsl.equal(ref("byte_value", BYTE), dsl.castByte(expr))));
   }
 
@@ -1203,7 +1203,7 @@ class FilterQueryBuilderTest {
             + "      \"boost\" : 1.0\n"
             + "    }\n"
             + "  }\n"
-            + "}", castToInteger(expr.valueOf(null).value())),
+            + "}", castToInteger(expr.valueOf().value())),
         buildQuery(dsl.equal(ref("short_value", SHORT), dsl.castShort(expr))));
   }
 
@@ -1218,7 +1218,7 @@ class FilterQueryBuilderTest {
             + "      \"boost\" : 1.0\n"
             + "    }\n"
             + "  }\n"
-            + "}", castToInteger(expr.valueOf(null).value())),
+            + "}", castToInteger(expr.valueOf().value())),
         buildQuery(dsl.equal(ref("integer_value", INTEGER), dsl.castInt(expr))));
   }
 
@@ -1233,7 +1233,7 @@ class FilterQueryBuilderTest {
             + "      \"boost\" : 1.0\n"
             + "    }\n"
             + "  }\n"
-            + "}", castToInteger(expr.valueOf(null).value())),
+            + "}", castToInteger(expr.valueOf().value())),
         buildQuery(dsl.equal(ref("long_value", LONG), dsl.castLong(expr))));
   }
 
@@ -1248,7 +1248,7 @@ class FilterQueryBuilderTest {
             + "      \"boost\" : 1.0\n"
             + "    }\n"
             + "  }\n"
-            + "}", castToFloat(expr.valueOf(null).value())),
+            + "}", castToFloat(expr.valueOf().value())),
         buildQuery(dsl.equal(ref("float_value", FLOAT), dsl.castFloat(expr))));
   }
 
@@ -1257,8 +1257,8 @@ class FilterQueryBuilderTest {
   void cast_to_double_in_filter(LiteralExpression expr) {
     // double values affected by floating point imprecision, so we can't compare them in json
     // (Double)(Float)3.14 -> 3.14000010490417
-    assertEquals(castToFloat(expr.valueOf(null).value()),
-        dsl.castDouble(expr).valueOf(null).doubleValue(), 0.00001);
+    assertEquals(castToFloat(expr.valueOf().value()),
+        dsl.castDouble(expr).valueOf().doubleValue(), 0.00001);
 
     assertJsonEquals(String.format(
         "{\n"
@@ -1268,7 +1268,7 @@ class FilterQueryBuilderTest {
             + "      \"boost\" : 1.0\n"
             + "    }\n"
             + "  }\n"
-            + "}", dsl.castDouble(expr).valueOf(null).doubleValue()),
+            + "}", dsl.castDouble(expr).valueOf().doubleValue()),
         buildQuery(dsl.equal(ref("double_value", DOUBLE), dsl.castDouble(expr))));
   }
 

@@ -65,7 +65,7 @@ abstract class NoFieldQuery<T extends QueryBuilder> extends RelevanceQuery<T> {
     var query = arguments.stream().filter(a -> a.getArgName().equalsIgnoreCase("query")).findFirst()
         .orElseThrow(() -> new SemanticCheckException("'query' parameter is missing"));
 
-    return createBuilder(query.getValue().valueOf(null).stringValue());
+    return createBuilder(query.getValue().valueOf().stringValue());
   }
 
   protected abstract T createBuilder(String query);
