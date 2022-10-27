@@ -6,10 +6,10 @@
 package org.opensearch.sql.planner.streaming.windowing.assigner;
 
 import com.google.common.base.Preconditions;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import org.opensearch.sql.planner.streaming.windowing.Window;
+import org.opensearch.sql.utils.DateTimeUtils;
 
 /**
  * A sliding window assigner assigns multiple overlapped window per event timestamp.
@@ -24,7 +24,10 @@ public class SlidingWindowAssigner implements WindowAssigner {
   private final long slideSize;
 
   /**
-   * Create sliding window assigner with the given window and slide size.
+   * Create sliding window assigner with the given window and slide size in millisecond.
+   *
+   * @param windowSize window size in millisecond
+   * @param slideSize  slide size in millisecond
    */
   public SlidingWindowAssigner(long windowSize, long slideSize) {
     Preconditions.checkArgument(windowSize > 0,
@@ -37,17 +40,14 @@ public class SlidingWindowAssigner implements WindowAssigner {
 
   @Override
   public List<Window> assign(long timestamp) {
-    List<Window> windows = new ArrayList<>();
+    LinkedList<Window> windows = new LinkedList<>();
 
-    // Assign window from the last start time to first until given timestamp outside current window
-    long startTime = timestamp - timestamp % slideSize;
+    // Assign window from the last start time to the first until timestamp outside current window
+    long startTime = DateTimeUtils.getWindowStartTime(timestamp, slideSize);
     for (Window win = window(startTime); win.maxTimestamp() >= timestamp; win = window(startTime)) {
-      windows.add(win);
+      windows.addFirst(win);
       startTime -= slideSize;
     }
-
-    // Reverse the window list for easy read and test
-    Collections.reverse(windows);
     return windows;
   }
 
