@@ -497,7 +497,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       currentEnv.define(new Symbol(Namespace.FIELD_NAME, RCF_ANOMALOUS), ExprCoreType.BOOLEAN);
     } else {
       currentEnv.define(new Symbol(Namespace.FIELD_NAME, RCF_ANOMALY_GRADE), ExprCoreType.DOUBLE);
-      currentEnv.define(new Symbol(Namespace.FIELD_NAME, RCF_TIMESTAMP), ExprCoreType.TIMESTAMP);
+      currentEnv.define(new Symbol(Namespace.FIELD_NAME,
+              (String) node.getArguments().get(TIME_FIELD).getValue()), ExprCoreType.TIMESTAMP);
     }
     return new LogicalAD(child, options);
   }
