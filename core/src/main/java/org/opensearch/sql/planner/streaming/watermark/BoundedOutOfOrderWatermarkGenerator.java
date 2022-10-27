@@ -8,15 +8,15 @@ package org.opensearch.sql.planner.streaming.watermark;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Watermark generator that generates watermark with bounded out-of-order latency.
+ * Watermark generator that generates watermark with bounded out-of-order delay.
  */
 @RequiredArgsConstructor
 public class BoundedOutOfOrderWatermarkGenerator implements WatermarkGenerator {
 
-  /** The maximum out-of-order allowed. */
+  /** The maximum out-of-order allowed in millisecond. */
   private final long maxOutOfOrderAllowed;
 
-  /** The maximum timestamp seen so far. */
+  /** The maximum timestamp seen so far in millisecond. */
   private long maxTimestamp;
 
   @Override

@@ -12,17 +12,50 @@ import org.junit.jupiter.api.Test;
 class BoundedOutOfOrderWatermarkGeneratorTest {
 
   @Test
-  void shouldAdvanceWatermarkIfLaterEvent() {
-    BoundedOutOfOrderWatermarkGenerator generator = new BoundedOutOfOrderWatermarkGenerator(100);
-    assertEquals(899, generator.generate(1000));
-    assertEquals(1899, generator.generate(2000));
+  void shouldAdvanceWatermarkIfNewerEvent() {
+    assertWatermarkGenerator()
+        .thatAllowMaxDelay(100)
+        .afterSeenEventTime(1000)
+        .shouldGenerateWatermark(899)
+        .afterSeenEventTime(2000)
+        .shouldGenerateWatermark(1899);
   }
 
   @Test
-  void shouldNotChangeWatermarkByLateEvent() {
-    BoundedOutOfOrderWatermarkGenerator generator = new BoundedOutOfOrderWatermarkGenerator(100);
-    assertEquals(899, generator.generate(1000));
-    assertEquals(899, generator.generate(500));
-    assertEquals(899, generator.generate(700));
+  void shouldNotAdvanceWatermarkIfLateEvent() {
+    assertWatermarkGenerator()
+        .thatAllowMaxDelay(100)
+        .afterSeenEventTime(1000)
+        .shouldGenerateWatermark(899)
+        .afterSeenEventTime(500)
+        .shouldGenerateWatermark(899)
+        .afterSeenEventTime(999)
+        .shouldGenerateWatermark(899);
+  }
+
+  private static AssertionHelper assertWatermarkGenerator() {
+    return new AssertionHelper();
+  }
+
+  private static class AssertionHelper {
+
+    private WatermarkGenerator generator;
+
+    private long actualResult;
+
+    public AssertionHelper thatAllowMaxDelay(long delay) {
+      this.generator = new BoundedOutOfOrderWatermarkGenerator(delay);
+      return this;
+    }
+
+    public AssertionHelper afterSeenEventTime(long timestamp) {
+      this.actualResult = generator.generate(timestamp);
+      return this;
+    }
+
+    public AssertionHelper shouldGenerateWatermark(long expected) {
+      assertEquals(expected, actualResult);
+      return this;
+    }
   }
 }
