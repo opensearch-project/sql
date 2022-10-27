@@ -144,6 +144,8 @@ public enum BuiltinFunctionName {
   STDDEV_SAMP(FunctionName.of("stddev_samp")),
   // population standard deviation.
   STDDEV_POP(FunctionName.of("stddev_pop")),
+  // take top documents from aggregation bucket.
+  TAKE(FunctionName.of("take")),
 
   /**
    * Text Functions.
@@ -244,6 +246,7 @@ public enum BuiltinFunctionName {
           .put("stddev", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_pop", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
+          .put("take", BuiltinFunctionName.TAKE)
           .build();
 
   public static Optional<BuiltinFunctionName> of(String str) {
