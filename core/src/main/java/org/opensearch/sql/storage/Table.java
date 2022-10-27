@@ -18,15 +18,21 @@ public interface Table {
 
   /**
    * Check if current table exists.
+   *
    * @return true if exists, otherwise false
    */
-  boolean exists();
+  default boolean exists() {
+    throw new UnsupportedOperationException("Unsupported Operation");
+  }
 
   /**
    * Create table given table schema.
+   *
    * @param schema table schema
    */
-  void create(Map<String, ExprType> schema);
+  default void create(Map<String, ExprType> schema) {
+    throw new UnsupportedOperationException("Unsupported Operation");
+  }
 
   /**
    * Get the {@link ExprType} for each field in the table.
