@@ -71,8 +71,6 @@ public class DefaultMetadataLog<T> implements MetadataLog<T> {
 
   @Override
   public void purge(Long batchId) {
-    for (long i = MIN_ACCEPTABLE_ID; i < batchId; i++) {
-      metadataMap.remove(i);
-    }
+    metadataMap.headMap(batchId).clear();
   }
 }
