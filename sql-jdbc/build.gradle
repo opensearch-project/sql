@@ -21,7 +21,7 @@ plugins {
     id 'signing'
 }
 
-group 'org.opensearch.client'
+group 'org.opensearch.driver'
 
 // keep version in sync with version in Driver source
 version '2.0.0.0'
