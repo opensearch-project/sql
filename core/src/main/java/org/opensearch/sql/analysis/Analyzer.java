@@ -14,7 +14,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.utils.MLCommonsConstants.RCF_ANOMALOUS;
 import static org.opensearch.sql.utils.MLCommonsConstants.RCF_ANOMALY_GRADE;
 import static org.opensearch.sql.utils.MLCommonsConstants.RCF_SCORE;
-import static org.opensearch.sql.utils.MLCommonsConstants.RCF_TIMESTAMP;
 import static org.opensearch.sql.utils.MLCommonsConstants.TIME_FIELD;
 import static org.opensearch.sql.utils.SystemIndexUtils.CATALOGS_TABLE_NAME;
 
@@ -30,7 +29,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.opensearch.sql.analysis.model.CatalogSchemaIdentifierName;
+import org.opensearch.sql.CatalogSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -137,9 +136,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
         .stream()
         .map(Catalog::getName)
         .collect(Collectors.toSet());
-    CatalogSchemaIdentifierName catalogSchemaIdentifierName
-        = new CatalogSchemaIdentifierName(qualifiedName.getParts(), allowedCatalogNames);
-    String tableName = catalogSchemaIdentifierName.getIdentifierName();
+    CatalogSchemaIdentifierNameResolver catalogSchemaIdentifierNameResolver
+        = new CatalogSchemaIdentifierNameResolver(qualifiedName.getParts(), allowedCatalogNames);
+    String tableName = catalogSchemaIdentifierNameResolver.getIdentifierName();
     context.push();
     TypeEnvironment curEnv = context.peek();
     Table table;
@@ -147,9 +146,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       table = new CatalogTable(catalogService);
     } else {
       table = catalogService
-          .getCatalog(catalogSchemaIdentifierName.getCatalogName())
+          .getCatalog(catalogSchemaIdentifierNameResolver.getCatalogName())
           .getStorageEngine()
-          .getTable(tableName);
+          .getTable(new CatalogSchemaName(catalogSchemaIdentifierNameResolver.getCatalogName(),
+                  catalogSchemaIdentifierNameResolver.getSchemaName()),
+              catalogSchemaIdentifierNameResolver.getIdentifierName());
     }
     table.getFieldTypes().forEach((k, v) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));
 
@@ -181,17 +182,18 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
         .stream()
         .map(Catalog::getName)
         .collect(Collectors.toSet());
-    CatalogSchemaIdentifierName catalogSchemaIdentifierName
-        = new CatalogSchemaIdentifierName(qualifiedName.getParts(), allowedCatalogNames);
+    CatalogSchemaIdentifierNameResolver catalogSchemaIdentifierNameResolver
+        = new CatalogSchemaIdentifierNameResolver(qualifiedName.getParts(), allowedCatalogNames);
 
-    FunctionName functionName = FunctionName.of(catalogSchemaIdentifierName.getIdentifierName());
+    FunctionName functionName
+        = FunctionName.of(catalogSchemaIdentifierNameResolver.getIdentifierName());
     List<Expression> arguments = node.getArguments().stream()
         .map(unresolvedExpression -> this.expressionAnalyzer.analyze(unresolvedExpression, context))
         .collect(Collectors.toList());
     TableFunctionImplementation tableFunctionImplementation
         = (TableFunctionImplementation) repository.compile(
-        catalogSchemaIdentifierName.getCatalogName(), functionName, arguments);
-    return new LogicalRelation(catalogSchemaIdentifierName.getIdentifierName(),
+        catalogSchemaIdentifierNameResolver.getCatalogName(), functionName, arguments);
+    return new LogicalRelation(catalogSchemaIdentifierNameResolver.getIdentifierName(),
         tableFunctionImplementation.applyArguments());
   }
 
