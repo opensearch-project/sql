@@ -19,6 +19,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.expression.function.DefaultFunctionResolver.DefaultFunctionResolverBuilder;
 
 /**
  * Function Define Utility.
@@ -35,7 +36,7 @@ public class FunctionDSL {
   public static DefaultFunctionResolver define(FunctionName functionName,
                SerializableFunction<FunctionName, Pair<FunctionSignature,
                 FunctionBuilder>>... functions) {
-    return define(functionName, Arrays.asList(functions));
+    return define(functionName, List.of(functions));
   }
 
   /**
@@ -48,8 +49,7 @@ public class FunctionDSL {
   public static DefaultFunctionResolver define(FunctionName functionName, List<
       SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>> functions) {
 
-    DefaultFunctionResolver.DefaultFunctionResolverBuilder builder
-        = DefaultFunctionResolver.builder();
+    DefaultFunctionResolverBuilder builder = DefaultFunctionResolver.builder();
     builder.functionName(functionName);
     for (Function<FunctionName, Pair<FunctionSignature, FunctionBuilder>> func : functions) {
       Pair<FunctionSignature, FunctionBuilder> functionBuilder = func.apply(functionName);
