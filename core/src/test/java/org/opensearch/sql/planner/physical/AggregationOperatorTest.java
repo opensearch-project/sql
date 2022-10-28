@@ -28,6 +28,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
+import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -494,6 +495,96 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
         ExprValueUtils.tupleValue(ImmutableMap.of(
             "span", new ExprDateValue("2021-01-07"), "region","iad", "host", "h2", "max", 8))
     ));
+  }
+
+  @Test
+  public void aggregate_with_two_groups_with_windowing() {
+    PhysicalPlan plan = new AggregationOperator(testScan(compoundInputs),
+        Collections.singletonList(DSL.named("sum", dsl.sum(DSL.ref("errors", INTEGER)))),
+        Arrays.asList(
+            DSL.named("host", DSL.ref("host", STRING)),
+            DSL.named("span", DSL.span(DSL.ref("day", DATE), DSL.literal(1), "d"))));
+
+    List<ExprValue> result = execute(plan);
+    assertEquals(7, result.size());
+    assertThat(result, containsInRelativeOrder(
+        ExprValueUtils.tupleValue(ImmutableMap.of(
+            "host", new ExprStringValue("h1"),
+            "span", new ExprDateValue("2021-01-03"),
+            "sum", 2)),
+        ExprValueUtils.tupleValue(ImmutableMap.of(
+            "host", new ExprStringValue("h1"),
+            "span", new ExprDateValue("2021-01-04"),
+            "sum", 1)),
+        ExprValueUtils.tupleValue(ImmutableMap.of(
+            "host", new ExprStringValue("h1"),
+            "span", new ExprDateValue("2021-01-06"),
+            "sum", 1)),
+        ExprValueUtils.tupleValue(ImmutableMap.of(
+            "host", new ExprStringValue("h1"),
+            "span", new ExprDateValue("2021-01-07"),
+            "sum", 6)),
+        ExprValueUtils.tupleValue(ImmutableMap.of(
+            "host", new ExprStringValue("h2"),
+            "span", new ExprDateValue("2021-01-03"),
+            "sum", 3)),
+        ExprValueUtils.tupleValue(ImmutableMap.of(
+            "host", new ExprStringValue("h2"),
+            "span", new ExprDateValue("2021-01-04"),
+            "sum", 10)),
+        ExprValueUtils.tupleValue(ImmutableMap.of(
+            "host", new ExprStringValue("h2"),
+            "span", new ExprDateValue("2021-01-07"),
+            "sum", 8))));
+  }
+
+  @Test
+  public void aggregate_with_three_groups_with_windowing() {
+    PhysicalPlan plan = new AggregationOperator(testScan(compoundInputs),
+        Collections.singletonList(DSL.named("sum", dsl.sum(DSL.ref("errors", INTEGER)))),
+        Arrays.asList(
+            DSL.named("host", DSL.ref("host", STRING)),
+            DSL.named("span", DSL.span(DSL.ref("day", DATE), DSL.literal(1), "d")),
+            DSL.named("region", DSL.ref("region", STRING))));
+
+    List<ExprValue> result = execute(plan);
+    assertEquals(7, result.size());
+    assertThat(result, containsInRelativeOrder(
+        ExprValueUtils.tupleValue(ImmutableMap.of(
+            "host", new ExprStringValue("h1"),
+            "span", new ExprDateValue("2021-01-03"),
+            "region", new ExprStringValue("iad"),
+            "sum", 2)),
+        ExprValueUtils.tupleValue(ImmutableMap.of(
+            "host", new ExprStringValue("h1"),
+            "span", new ExprDateValue("2021-01-04"),
+            "region", new ExprStringValue("iad"),
+            "sum", 1)),
+        ExprValueUtils.tupleValue(ImmutableMap.of(
+            "host", new ExprStringValue("h1"),
+            "span", new ExprDateValue("2021-01-06"),
+            "region", new ExprStringValue("iad"),
+            "sum", 1)),
+        ExprValueUtils.tupleValue(ImmutableMap.of(
+            "host", new ExprStringValue("h1"),
+            "span", new ExprDateValue("2021-01-07"),
+            "region", new ExprStringValue("iad"),
+            "sum", 6)),
+        ExprValueUtils.tupleValue(ImmutableMap.of(
+            "host", new ExprStringValue("h2"),
+            "span", new ExprDateValue("2021-01-03"),
+            "region", new ExprStringValue("iad"),
+            "sum", 3)),
+        ExprValueUtils.tupleValue(ImmutableMap.of(
+            "host", new ExprStringValue("h2"),
+            "span", new ExprDateValue("2021-01-04"),
+            "region", new ExprStringValue("iad"),
+            "sum", 10)),
+        ExprValueUtils.tupleValue(ImmutableMap.of(
+            "host", new ExprStringValue("h2"),
+            "span", new ExprDateValue("2021-01-07"),
+            "region", new ExprStringValue("iad"),
+            "sum", 8))));
   }
 
   @Test
