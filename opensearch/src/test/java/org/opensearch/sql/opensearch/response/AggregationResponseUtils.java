@@ -43,8 +43,10 @@ import org.opensearch.search.aggregations.metrics.ParsedExtendedStats;
 import org.opensearch.search.aggregations.metrics.ParsedMax;
 import org.opensearch.search.aggregations.metrics.ParsedMin;
 import org.opensearch.search.aggregations.metrics.ParsedSum;
+import org.opensearch.search.aggregations.metrics.ParsedTopHits;
 import org.opensearch.search.aggregations.metrics.ParsedValueCount;
 import org.opensearch.search.aggregations.metrics.SumAggregationBuilder;
+import org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.ValueCountAggregationBuilder;
 import org.opensearch.search.aggregations.pipeline.ParsedPercentilesBucket;
 import org.opensearch.search.aggregations.pipeline.PercentilesBucketPipelineAggregationBuilder;
@@ -73,6 +75,8 @@ public class AggregationResponseUtils {
               (p, c) -> ParsedComposite.fromXContent(p, (String) c))
           .put(FilterAggregationBuilder.NAME,
               (p, c) -> ParsedFilter.fromXContent(p, (String) c))
+          .put(TopHitsAggregationBuilder.NAME,
+              (p, c) -> ParsedTopHits.fromXContent(p, (String) c))
           .build()
           .entrySet()
           .stream()

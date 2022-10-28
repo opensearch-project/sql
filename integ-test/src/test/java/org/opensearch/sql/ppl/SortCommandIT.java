@@ -33,7 +33,6 @@ public class SortCommandIT extends PPLIntegTestCase {
     verifyOrder(result, rows(28), rows(32), rows(33), rows(34), rows(36), rows(36), rows(39));
   }
 
-  @Ignore("Order with duplicated value")
   @Test
   public void testSortWithNullValue() throws IOException {
     JSONObject result =
@@ -43,9 +42,9 @@ public class SortCommandIT extends PPLIntegTestCase {
                 TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifyOrder(
         result,
-        rows("Hattie"),
-        rows("Elinor"),
-        rows("Virginia"),
+        rows("Hattie", null),
+        rows("Elinor", null),
+        rows("Virginia", null),
         rows("Dale", 4180),
         rows("Nanette", 32838),
         rows("Amber JOHnny", 39225),

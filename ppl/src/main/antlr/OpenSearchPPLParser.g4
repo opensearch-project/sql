@@ -141,6 +141,7 @@ adParameter
     | (OUTPUT_AFTER EQUAL output_after=integerLiteral)
     | (TIME_DECAY EQUAL time_decay=decimalLiteral)
     | (ANOMALY_RATE EQUAL anomaly_rate=decimalLiteral)
+    | (CATEGORY_FIELD EQUAL category_field=stringLiteral)
     | (TIME_FIELD EQUAL time_field=stringLiteral)
     | (DATE_FORMAT EQUAL date_format=stringLiteral)
     | (TIME_ZONE EQUAL time_zone=stringLiteral)
@@ -209,10 +210,15 @@ statsFunction
     | COUNT LT_PRTHS RT_PRTHS                                       #countAllFunctionCall
     | (DISTINCT_COUNT | DC) LT_PRTHS valueExpression RT_PRTHS       #distinctCountFunctionCall
     | percentileAggFunction                                         #percentileAggFunctionCall
+    | takeAggFunction                                               #takeAggFunctionCall
     ;
 
 statsFunctionName
     : AVG | COUNT | SUM | MIN | MAX | VAR_SAMP | VAR_POP | STDDEV_SAMP | STDDEV_POP
+    ;
+
+takeAggFunction
+    : TAKE LT_PRTHS fieldExpression (COMMA size=integerLiteral)? RT_PRTHS
     ;
 
 percentileAggFunction
@@ -415,10 +421,11 @@ trigonometricFunctionName
     ;
 
 dateAndTimeFunctionBase
-    : ADDDATE | CONVERT_TZ | DATE | DATETIME | DATE_ADD | DATE_FORMAT | DATE_SUB | DAY | DAYNAME | DAYOFMONTH | DAYOFWEEK
-    | DAYOFYEAR | FROM_DAYS | FROM_UNIXTIME | HOUR | MAKEDATE | MAKETIME | MICROSECOND | MINUTE
-    | MONTH | MONTHNAME | QUARTER | SECOND | SUBDATE | SYSDATE | TIME | TIMESTAMP | TIME_TO_SEC
-    | TO_DAYS | UNIX_TIMESTAMP | WEEK | YEAR
+    : ADDDATE | CONVERT_TZ | DATE | DATE_ADD | DATE_FORMAT | DATE_SUB
+    | DATETIME | DAY | DAYNAME | DAYOFMONTH | DAYOFWEEK | DAYOFYEAR | FROM_DAYS | FROM_UNIXTIME
+    | HOUR | MAKEDATE | MAKETIME | MICROSECOND | MINUTE | MONTH | MONTHNAME | PERIOD_ADD
+    | PERIOD_DIFF | QUARTER | SECOND | SUBDATE | SYSDATE | TIME | TIME_TO_SEC
+    | TIMESTAMP | TO_DAYS | UNIX_TIMESTAMP | WEEK | YEAR
     ;
 
 // Functions which value could be cached in scope of a single query

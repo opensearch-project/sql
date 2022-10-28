@@ -34,6 +34,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `Monitoring <admin/monitoring.rst>`_
 
+  - `Catalog Settings <admin/catalog.rst>`_
+
 * **Commands**
 
   - `Syntax <cmd/syntax.rst>`_
@@ -43,6 +45,8 @@ The query start with search command and then flowing a set of command delimited 
   - `dedup command <cmd/dedup.rst>`_
 
   - `describe command <cmd/describe.rst>`_
+
+  - `show catalogs command <cmd/showcatalogs.rst>`_
 
   - `eval command <cmd/eval.rst>`_
 
