@@ -6,7 +6,7 @@
 package org.opensearch.sql.expression.datetime;
 
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
-import static org.opensearch.sql.data.type.ExprCoreType.LONG;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionRepository.DEFAULT_NAMESPACE;
 
 import java.time.Instant;
@@ -107,23 +107,23 @@ public class DateTimeTestBase extends ExpressionTestBase {
   protected FunctionExpression period_add(Expression period, Expression months) {
     var func = functionRepository.resolve(Collections.singletonList(DEFAULT_NAMESPACE),
         new FunctionSignature(new FunctionName("period_add"),
-        List.of(LONG, LONG)));
+        List.of(INTEGER, INTEGER)));
     return (FunctionExpression)func.apply(List.of(period, months));
   }
 
-  protected Long period_add(Long period, Long months) {
-    return period_add(DSL.literal(period), DSL.literal(months)).valueOf(null).longValue();
+  protected Integer period_add(Integer period, Integer months) {
+    return period_add(DSL.literal(period), DSL.literal(months)).valueOf(null).integerValue();
   }
 
   protected FunctionExpression period_diff(Expression first, Expression second) {
     var func = functionRepository.resolve(Collections.singletonList(DEFAULT_NAMESPACE),
         new FunctionSignature(new FunctionName("period_diff"),
-        List.of(LONG, LONG)));
+        List.of(INTEGER, INTEGER)));
     return (FunctionExpression)func.apply(List.of(first, second));
   }
 
-  protected Long period_diff(Long first, Long second) {
-    return period_diff(DSL.literal(first), DSL.literal(second)).valueOf(null).longValue();
+  protected Integer period_diff(Integer first, Integer second) {
+    return period_diff(DSL.literal(first), DSL.literal(second)).valueOf(null).integerValue();
   }
 
   protected FunctionExpression unixTimeStampExpr() {

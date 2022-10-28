@@ -1770,9 +1770,9 @@ Description
 
 Usage: period_add(P, N) add N months to period P (in the format YYMM or YYYYMM). Returns a value in the format YYYYMM.
 
-Argument type: LONG, LONG
+Argument type: INTEGER, INTEGER
 
-Return type: LONG
+Return type: INTEGER
 
 Example::
 
@@ -1793,9 +1793,9 @@ Description
 
 Usage: period_diff(P1, P2) returns the number of months between periods P1 and P2 given in the format YYMM or YYYYMM.
 
-Argument type: LONG, LONG
+Argument type: INTEGER, INTEGER
 
-Return type: LONG
+Return type: INTEGER
 
 Example::
 

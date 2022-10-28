@@ -865,7 +865,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
   public void testPeriodAdd() throws IOException {
     var result = executeQuery(String.format(
         "source=%s | eval f1 = PERIOD_ADD(200801, 2), f2 = PERIOD_ADD(200801, -12) | fields f1, f2", TEST_INDEX_DATE));
-    verifySchema(result, schema("f1", null, "long"), schema("f2", null, "long"));
+    verifySchema(result, schema("f1", null, "integer"), schema("f2", null, "integer"));
     verifySome(result.getJSONArray("datarows"), rows(200803, 200701));
   }
 
@@ -873,7 +873,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
   public void testPeriodDiff() throws IOException {
     var result = executeQuery(String.format(
         "source=%s | eval f1 = PERIOD_DIFF(200802, 200703), f2 = PERIOD_DIFF(200802, 201003) | fields f1, f2", TEST_INDEX_DATE));
-    verifySchema(result, schema("f1", null, "long"), schema("f2", null, "long"));
+    verifySchema(result, schema("f1", null, "integer"), schema("f2", null, "integer"));
     verifySome(result.getJSONArray("datarows"), rows(11, -25));
   }
 }

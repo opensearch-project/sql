@@ -681,8 +681,8 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     var result = executeQuery(
         "select PERIOD_ADD(200801, 2) as f1, PERIOD_ADD(200801, -12) as f2");
     verifySchema(result,
-        schema("PERIOD_ADD(200801, 2)", "f1", "long"),
-        schema("PERIOD_ADD(200801, -12)", "f2", "long"));
+        schema("PERIOD_ADD(200801, 2)", "f1", "integer"),
+        schema("PERIOD_ADD(200801, -12)", "f2", "integer"));
     verifyDataRows(result, rows(200803, 200701));
   }
 
@@ -691,8 +691,8 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     var result = executeQuery(
         "select PERIOD_DIFF(200802, 200703) as f1, PERIOD_DIFF(200802, 201003) as f2");
     verifySchema(result,
-        schema("PERIOD_DIFF(200802, 200703)", "f1", "long"),
-        schema("PERIOD_DIFF(200802, 201003)", "f2", "long"));
+        schema("PERIOD_DIFF(200802, 200703)", "f1", "integer"),
+        schema("PERIOD_DIFF(200802, 201003)", "f2", "integer"));
     verifyDataRows(result, rows(11, -25));
   }
 

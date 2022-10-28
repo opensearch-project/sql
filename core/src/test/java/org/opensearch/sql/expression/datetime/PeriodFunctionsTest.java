@@ -33,7 +33,7 @@ public class PeriodFunctionsTest extends DateTimeTestBase {
 
   @ParameterizedTest
   @MethodSource("getTestDataForPeriodAdd")
-  public void period_add_with_different_data(long period, long months, long expected) {
+  public void period_add_with_different_data(int period, int months, int expected) {
     assertEquals(expected, period_add(period, months));
   }
 
@@ -56,13 +56,13 @@ public class PeriodFunctionsTest extends DateTimeTestBase {
 
   @ParameterizedTest
   @MethodSource("getTestDataForPeriodDiff")
-  public void period_diff_with_different_data(long period1, long period2, long expected) {
+  public void period_diff_with_different_data(int period1, int period2, int expected) {
     assertEquals(expected, period_diff(period1, period2));
   }
 
   @ParameterizedTest
   @MethodSource("getTestDataForPeriodDiff")
-  public void two_way_conversion(long period1, long period2, long expected) {
+  public void two_way_conversion(int period1, int period2, int expected) {
     assertEquals(0, period_diff(period_add(period1, -expected), period2));
   }
 
@@ -95,7 +95,7 @@ public class PeriodFunctionsTest extends DateTimeTestBase {
    */
   @ParameterizedTest
   @MethodSource("getInvalidTestData")
-  public void period_add_returns_null_on_invalid_input(long period) {
+  public void period_add_returns_null_on_invalid_input(int period) {
     assertNull(period_add(DSL.literal(period), DSL.literal(1)).valueOf(null).value());
     assertNull(period_diff(DSL.literal(period), DSL.literal(1)).valueOf(null).value());
     assertNull(period_diff(DSL.literal(1), DSL.literal(period)).valueOf(null).value());

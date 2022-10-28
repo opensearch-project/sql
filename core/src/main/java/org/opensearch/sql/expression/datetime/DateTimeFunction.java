@@ -439,22 +439,22 @@ public class DateTimeFunction {
 
   /**
    * Add N months to period P (in the format YYMM or YYYYMM). Returns a value in the format YYYYMM.
-   * (LONG, LONG) -> LONG
+   * (INTEGER, INTEGER) -> INTEGER
    */
   private DefaultFunctionResolver period_add() {
     return define(BuiltinFunctionName.PERIOD_ADD.getName(),
-        impl(nullMissingHandling(DateTimeFunction::exprPeriodAdd), LONG, LONG, LONG)
+        impl(nullMissingHandling(DateTimeFunction::exprPeriodAdd), INTEGER, INTEGER, INTEGER)
     );
   }
 
   /**
    * Returns the number of months between periods P1 and P2.
    * P1 and P2 should be in the format YYMM or YYYYMM.
-   * (LONG, LONG) -> LONG
+   * (INTEGER, INTEGER) -> INTEGER
    */
   private DefaultFunctionResolver period_diff() {
     return define(BuiltinFunctionName.PERIOD_DIFF.getName(),
-        impl(nullMissingHandling(DateTimeFunction::exprPeriodDiff), LONG, LONG, LONG)
+        impl(nullMissingHandling(DateTimeFunction::exprPeriodDiff), INTEGER, INTEGER, INTEGER)
     );
   }
 
@@ -903,7 +903,7 @@ public class DateTimeFunction {
         date.dateValue().getMonth().getDisplayName(TextStyle.FULL, Locale.getDefault()));
   }
 
-  private LocalDate parseDatePeriod(Long period) {
+  private LocalDate parseDatePeriod(Integer period) {
     var input = period.toString();
     // MySQL undocumented: if year is not specified or has 1 digit - 2000/200x is assumed
     if (input.length() <= 5) {
@@ -927,17 +927,17 @@ public class DateTimeFunction {
    *
    * @param period Period in the format YYMM or YYYYMM.
    * @param months Amount of months to add.
-   * @return ExprLongValue.
+   * @return ExprIntegerValue.
    */
   private ExprValue exprPeriodAdd(ExprValue period, ExprValue months) {
     // We should add a day to make string parsable and remove it afterwards
-    var input =  period.longValue() * 100 + 1; // adds 01 to end of the string
+    var input =  period.integerValue() * 100 + 1; // adds 01 to end of the string
     var parsedDate = parseDatePeriod(input);
     if (parsedDate == null) {
       return ExprNullValue.of();
     }
-    var res = DATE_FORMATTER_LONG_YEAR.format(parsedDate.plusMonths(months.longValue()));
-    return new ExprLongValue(Long.parseLong(
+    var res = DATE_FORMATTER_LONG_YEAR.format(parsedDate.plusMonths(months.integerValue()));
+    return new ExprIntegerValue(Integer.parseInt(
         res.substring(0, res.length() - 2))); // Remove the day part, .eg. 20070101 -> 200701
   }
 
@@ -947,15 +947,15 @@ public class DateTimeFunction {
    *
    * @param period1 Period in the format YYMM or YYYYMM.
    * @param period2 Period in the format YYMM or YYYYMM.
-   * @return ExprLongValue.
+   * @return ExprIntegerValue.
    */
   private ExprValue exprPeriodDiff(ExprValue period1, ExprValue period2) {
-    var parsedDate1 = parseDatePeriod(period1.longValue() * 100 + 1);
-    var parsedDate2 = parseDatePeriod(period2.longValue() * 100 + 1);
+    var parsedDate1 = parseDatePeriod(period1.integerValue() * 100 + 1);
+    var parsedDate2 = parseDatePeriod(period2.integerValue() * 100 + 1);
     if (parsedDate1 == null || parsedDate2 == null) {
       return ExprNullValue.of();
     }
-    return new ExprLongValue(MONTHS.between(parsedDate2, parsedDate1));
+    return new ExprIntegerValue(MONTHS.between(parsedDate2, parsedDate1));
   }
 
   /**
