@@ -12,18 +12,30 @@ pipeline {
             alwaysPull true
         }
     }
+    options {
+        timeout(time: 30, unit: 'MINUTES')
+        throttleJobProperty(
+            categories: [],
+            limitOneJobWithMatchingParams: false,
+            maxConcurrentPerNode: 0,
+            maxConcurrentTotal: 1,
+            paramsToUseForLimit: '',
+            throttleEnabled: true,
+            throttleOption: 'project',
+        )
+    }
     triggers {
         GenericTrigger(
             genericVariables: [
                 [key: 'ref', value: '$.ref'],
                 [key: 'VERSION', value: '$.ref', regexpFilter: 'refs/tags/v' ],
             ],
-            tokenCredentialId: 'jenkins-sql-generic-webhook-token',
+            tokenCredentialId: 'jenkins-sql-jdbc-generic-webhook-token',
             causeString: 'A tag was cut on opensearch-project/sql repository causing this workflow to run',
             printContributedVariables: false,
             printPostContent: false,
             regexpFilterText: '$ref',
-            regexpFilterExpression: '^refs/tags/.*'
+            regexpFilterExpression: '^sql-jdbc-release-[0-9\.]*$'
         )
     }
     environment {
