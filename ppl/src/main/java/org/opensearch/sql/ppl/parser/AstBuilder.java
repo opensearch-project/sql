@@ -413,7 +413,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   /**
-   * Kmeans command.
+   * ml command.
    */
   @Override
   public UnresolvedPlan visitMlCommand(OpenSearchPPLParser.MlCommandContext ctx) {
