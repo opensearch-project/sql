@@ -109,6 +109,7 @@ testClusters.integTest {
     keystore 'plugins.query.federation.catalog.config', new File("$projectDir/src/test/resources/catalog/", 'catalog.json')
 }
 task startPrometheus(type: SpawnProcessTask) {
+    mustRunAfter ':doctest:doctest'
     doFirst {
         download.run {
             src 'https://github.com/prometheus/prometheus/releases/download/v2.39.1/prometheus-2.39.1.linux-amd64.tar.gz'

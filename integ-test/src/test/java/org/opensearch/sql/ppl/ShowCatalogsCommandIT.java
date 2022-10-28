@@ -23,7 +23,7 @@ public class ShowCatalogsCommandIT extends PPLIntegTestCase {
     JSONObject result = executeQuery("show catalogs");
     verifyDataRows(result,
         rows("my_prometheus", "PROMETHEUS"),
-        rows(".opensearch", "OPENSEARCH"));
+        rows("@opensearch", "OPENSEARCH"));
     verifyColumn(
         result,
         columnName("CATALOG_NAME"),

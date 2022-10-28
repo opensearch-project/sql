@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.prometheus.response;
 
-import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.METRIC;
+import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.LABELS;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.TIMESTAMP;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.VALUE;
 
@@ -47,7 +47,7 @@ public class PrometheusResponse implements Iterable<ExprValue> {
           linkedHashMap.put(TIMESTAMP,
               new ExprTimestampValue(Instant.ofEpochMilli((long) (val.getDouble(0) * 1000))));
           linkedHashMap.put(VALUE, new ExprDoubleValue(val.getDouble(1)));
-          linkedHashMap.put(METRIC, new ExprStringValue(metric.toString()));
+          linkedHashMap.put(LABELS, new ExprStringValue(metric.toString()));
           result.add(new ExprTupleValue(linkedHashMap));
         }
       }

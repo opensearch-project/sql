@@ -76,6 +76,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `top command <cmd/top.rst>`_
 
+  - `metadata commands <cmd/information_schema.rst>`_
+
 * **Functions**
 
   - `Expressions <functions/expressions.rst>`_

@@ -6,7 +6,6 @@
 
 package org.opensearch.sql.prometheus.storage;
 
-import com.google.common.annotations.VisibleForTesting;
 import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Nonnull;
@@ -15,13 +14,15 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
-import org.opensearch.sql.prometheus.request.PrometheusDescribeMetricRequest;
 import org.opensearch.sql.prometheus.request.PrometheusQueryRequest;
+import org.opensearch.sql.prometheus.request.system.PrometheusDescribeMetricRequest;
 import org.opensearch.sql.prometheus.storage.implementor.PrometheusDefaultImplementor;
 import org.opensearch.sql.storage.Table;
 
 /**
  * Prometheus table (metric) implementation.
+ * This can be constructed from  a metric Name
+ * or from PrometheusQueryRequest In case of query_range table function.
  */
 public class PrometheusMetricTable implements Table {
 
@@ -61,9 +62,13 @@ public class PrometheusMetricTable implements Table {
   @Override
   public Map<String, ExprType> getFieldTypes() {
     if (cachedFieldTypes == null) {
-      cachedFieldTypes =
-          new PrometheusDescribeMetricRequest(prometheusClient,
-              metricName.orElse(null)).getFieldTypes();
+      if (metricName.isPresent()) {
+        cachedFieldTypes =
+            new PrometheusDescribeMetricRequest(prometheusClient, null,
+                metricName.orElse(null)).getFieldTypes();
+      } else {
+        cachedFieldTypes = PrometheusMetricDefaultSchema.DEFAULT_MAPPING.getMapping();
+      }
     }
     return cachedFieldTypes;
   }

@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.plugin.catalog;
 
+import static org.opensearch.sql.analysis.CatalogSchemaIdentifierNameResolver.DEFAULT_CATALOG_NAME;
+
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -92,13 +94,13 @@ public class CatalogServiceImplTest {
     CatalogServiceImpl.getInstance().loadConnectors(settings);
     CatalogServiceImpl.getInstance().registerDefaultOpenSearchCatalog(storageEngine);
     Set<Catalog> expected = new HashSet<>();
-    expected.add(new Catalog(".opensearch", ConnectorType.OPENSEARCH, storageEngine));
+    expected.add(new Catalog(DEFAULT_CATALOG_NAME, ConnectorType.OPENSEARCH, storageEngine));
     Assert.assertEquals(expected, CatalogServiceImpl.getInstance().getCatalogs());
     Assert.assertEquals(storageEngine,
-        CatalogServiceImpl.getInstance().getCatalog(".opensearch").getStorageEngine());
+        CatalogServiceImpl.getInstance().getCatalog(DEFAULT_CATALOG_NAME).getStorageEngine());
     Assert.assertEquals(expected, CatalogServiceImpl.getInstance().getCatalogs());
     Assert.assertEquals(storageEngine,
-        CatalogServiceImpl.getInstance().getCatalog(".opensearch").getStorageEngine());
+        CatalogServiceImpl.getInstance().getCatalog(DEFAULT_CATALOG_NAME).getStorageEngine());
     IllegalArgumentException illegalArgumentException
         = Assert.assertThrows(IllegalArgumentException.class,
           () -> CatalogServiceImpl.getInstance().getCatalog("test"));

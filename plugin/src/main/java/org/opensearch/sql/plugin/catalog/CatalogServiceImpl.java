@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.plugin.catalog;
 
+import static org.opensearch.sql.analysis.CatalogSchemaIdentifierNameResolver.DEFAULT_CATALOG_NAME;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,7 +25,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.sql.analysis.model.CatalogName;
 import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.catalog.model.Catalog;
 import org.opensearch.sql.catalog.model.CatalogMetadata;
@@ -103,8 +104,8 @@ public class CatalogServiceImpl implements CatalogService {
     if (storageEngine == null) {
       throw new IllegalArgumentException("Default storage engine can't be null");
     }
-    catalogMap.put(CatalogName.DEFAULT_CATALOG_NAME,
-        new Catalog(CatalogName.DEFAULT_CATALOG_NAME, ConnectorType.OPENSEARCH, storageEngine));
+    catalogMap.put(DEFAULT_CATALOG_NAME,
+        new Catalog(DEFAULT_CATALOG_NAME, ConnectorType.OPENSEARCH, storageEngine));
   }
 
   private <T> T doPrivileged(PrivilegedExceptionAction<T> action) {
