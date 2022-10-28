@@ -12,6 +12,9 @@ include_directories(	${UT_HELPER}
 # Generate executable
 add_executable(ut_conn ${SOURCE_FILES})
 
+# Find packages from vcpkg
+find_package(GTest CONFIG REQUIRED)
+
 # Library dependencies
-target_link_libraries(ut_conn sqlodbc ut_helper gtest_main)
+target_link_libraries(ut_conn sqlodbc ut_helper GTest::gtest_main)
 target_compile_definitions(ut_conn PUBLIC _UNICODE UNICODE)
