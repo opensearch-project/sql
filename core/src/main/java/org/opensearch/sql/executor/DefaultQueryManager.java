@@ -17,8 +17,6 @@ public class DefaultQueryManager implements QueryManager {
 
   @Override
   public QueryId submit(AbstractPlan queryExecution) {
-
-    // 2. start query execution.
     queryExecution.execute();
 
     return queryExecution.getQueryId();

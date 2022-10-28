@@ -8,21 +8,13 @@
 
 package org.opensearch.sql.ast.statement;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.Data;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 
 /**
  * Explain Statement.
  */
-@Getter
-@Setter
-@ToString
-@EqualsAndHashCode(callSuper = false)
-@RequiredArgsConstructor
+@Data
 public class Explain extends Statement {
 
   private final Statement statement;
