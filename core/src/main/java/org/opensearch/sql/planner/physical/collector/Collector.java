@@ -11,6 +11,7 @@ import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.storage.bindingtuple.BindingTuple;
 
 /**
@@ -40,18 +41,23 @@ public interface Collector {
     /**
      * build {@link Collector}.
      */
-    public static Collector build(
-        NamedExpression span, List<NamedExpression> buckets, List<NamedAggregator> aggregators) {
-      if (span == null && buckets.isEmpty()) {
+    public static Collector build(List<NamedExpression> buckets,
+                                  List<NamedAggregator> aggregators) {
+      if (buckets.isEmpty()) {
         return new MetricCollector(aggregators);
-      } else if (span != null) {
-        return new SpanCollector(span, () -> build(null, buckets, aggregators));
+      } else if (isWindowExpression(buckets.get(0))) {
+        return new SpanCollector(
+            buckets.get(0),
+            () -> build(ImmutableList.copyOf(buckets.subList(1, buckets.size())), aggregators));
       } else {
         return new BucketCollector(
             buckets.get(0),
-            () ->
-                build(null, ImmutableList.copyOf(buckets.subList(1, buckets.size())), aggregators));
+            () -> build(ImmutableList.copyOf(buckets.subList(1, buckets.size())), aggregators));
       }
+    }
+
+    private static boolean isWindowExpression(NamedExpression expr) {
+      return expr.getDelegated() instanceof SpanExpression;
     }
   }
 }
