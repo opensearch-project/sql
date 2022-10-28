@@ -60,7 +60,7 @@ configurations.all {
     resolutionStrategy.force 'com.google.guava:guava:31.0.1-jre'
     resolutionStrategy.force "com.fasterxml.jackson.core:jackson-core:${jackson_version}"
     resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${jackson_version}"
-    resolutionStrategy.force "com.fasterxml.jackson.core:jackson-databind:${jackson_version}"
+    resolutionStrategy.force "com.fasterxml.jackson.core:jackson-databind:${jackson_databind_version}"
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.6.0"
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0"
 }
