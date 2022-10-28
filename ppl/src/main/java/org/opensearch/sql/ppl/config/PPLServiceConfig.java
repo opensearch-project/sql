@@ -36,4 +36,5 @@ public class PPLServiceConfig {
   public PPLService pplService() {
     return new PPLService(new PPLSyntaxParser(), queryManager, queryPlanFactory);
   }
+
 }

@@ -76,7 +76,7 @@ public class StandaloneIT extends PPLIntegTestCase {
     context.registerBean(OpenSearchClient.class, () -> client);
     context.registerBean(Settings.class, () -> defaultSettings());
     OpenSearchStorageEngine openSearchStorageEngine = new OpenSearchStorageEngine(client, defaultSettings());
-    CatalogServiceImpl.getInstance().registerOpenSearchStorageEngine(openSearchStorageEngine);
+    CatalogServiceImpl.getInstance().registerDefaultOpenSearchCatalog(openSearchStorageEngine);
     context.registerBean(CatalogService.class, CatalogServiceImpl::getInstance);
     context.register(StandaloneConfig.class);
     context.register(PPLServiceConfig.class);

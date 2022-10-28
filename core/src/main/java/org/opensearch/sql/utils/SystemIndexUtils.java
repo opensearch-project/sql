@@ -36,6 +36,8 @@ public class SystemIndexUtils {
    */
   public static final String TABLE_INFO = SYS_META_PREFIX + ".ALL";
 
+  public static final String CATALOGS_TABLE_NAME = ".CATALOGS";
+
 
   public static Boolean isSystemIndex(String indexName) {
     return indexName.startsWith(SYS_TABLES_PREFIX);

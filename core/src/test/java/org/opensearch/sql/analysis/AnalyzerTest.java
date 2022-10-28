@@ -6,9 +6,11 @@
 
 package org.opensearch.sql.analysis;
 
+import static java.lang.Boolean.TRUE;
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
@@ -30,11 +32,13 @@ import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
+import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
+import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -63,12 +67,16 @@ import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.HighlightExpression;
+import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
+import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
+import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.physical.catalog.CatalogTable;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
@@ -953,6 +961,40 @@ class AnalyzerTest extends AnalyzerTestBase {
     );
   }
 
+  @Test
+  public void ad_fitRCF_relation_with_time_field() {
+    Map<String, Literal> argumentMap = new HashMap<String, Literal>() {{
+        put("shingle_size", new Literal(8, DataType.INTEGER));
+        put("time_decay", new Literal(0.0001, DataType.DOUBLE));
+        put("time_field", new Literal("ts", DataType.STRING));
+      }};
+
+    LogicalPlan actual = analyze(AstDSL.project(
+            new AD(AstDSL.relation("schema"), argumentMap), AstDSL.allFields()));
+    assertTrue(((LogicalProject) actual).getProjectList().size() >= 3);
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named("score", DSL.ref("score", DOUBLE))));
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named("anomaly_grade", DSL.ref("anomaly_grade", DOUBLE))));
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named("ts", DSL.ref("ts", TIMESTAMP))));
+  }
+
+  @Test
+  public void ad_fitRCF_relation_without_time_field() {
+    Map<String, Literal> argumentMap = new HashMap<>() {{
+        put("shingle_size", new Literal(8, DataType.INTEGER));
+        put("time_decay", new Literal(0.0001, DataType.DOUBLE));
+      }};
+
+    LogicalPlan actual = analyze(AstDSL.project(
+            new AD(AstDSL.relation("schema"), argumentMap), AstDSL.allFields()));
+    assertTrue(((LogicalProject) actual).getProjectList().size() >= 2);
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named("score", DSL.ref("score", DOUBLE))));
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named("anomalous", DSL.ref("anomalous", BOOLEAN))));
+  }
 
   @Test
   public void table_function() {
@@ -998,5 +1040,11 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertEquals("unsupported function name: queryrange", exception.getMessage());
   }
 
+  @Test
+  public void show_catalogs() {
+    assertAnalyzeEqual(new LogicalRelation(".CATALOGS", new CatalogTable(catalogService)),
+        AstDSL.relation(qualifiedName(".CATALOGS")));
+
+  }
 
 }

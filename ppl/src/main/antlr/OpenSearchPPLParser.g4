@@ -29,6 +29,7 @@ queryStatement
 pplCommands
     : searchCommand
     | describeCommand
+    | showCatalogsCommand
     ;
 
 commands
@@ -43,6 +44,10 @@ searchCommand
 
 describeCommand
     : DESCRIBE tableSourceClause
+    ;
+
+showCatalogsCommand
+    : SHOW CATALOGS
     ;
 
 whereCommand
@@ -144,6 +149,7 @@ adParameter
     | (OUTPUT_AFTER EQUAL output_after=integerLiteral)
     | (TIME_DECAY EQUAL time_decay=decimalLiteral)
     | (ANOMALY_RATE EQUAL anomaly_rate=decimalLiteral)
+    | (CATEGORY_FIELD EQUAL category_field=stringLiteral)
     | (TIME_FIELD EQUAL time_field=stringLiteral)
     | (DATE_FORMAT EQUAL date_format=stringLiteral)
     | (TIME_ZONE EQUAL time_zone=stringLiteral)

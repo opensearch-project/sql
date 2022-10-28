@@ -9,6 +9,7 @@ import org.opensearch.gradle.testclusters.RunTask
 plugins {
     id 'base'
     id 'com.wiredforcode.spawn'
+    id "de.undercouch.download" version "5.3.0"
 }
 
 apply plugin: 'opensearch.testclusters'
@@ -25,6 +26,27 @@ task bootstrap(type: Exec) {
     commandLine 'sh', "$projectDir/bootstrap.sh"
 }
 
+task startPrometheus(type: SpawnProcessTask) {
+    doFirst {
+        download.run {
+            src 'https://github.com/prometheus/prometheus/releases/download/v2.39.1/prometheus-2.39.1.linux-amd64.tar.gz'
+            dest new File("$projectDir/bin", 'prometheus.tar.gz')
+        }
+        copy {
+            from tarTree("$projectDir/bin/prometheus.tar.gz")
+            into "$projectDir/bin"
+        }
+        copy {
+            from "$projectDir/bin/prometheus.yml"
+            into "$projectDir/bin/prometheus-2.39.1.linux-amd64/prometheus"
+        }
+    }
+    command "$projectDir/bin/prometheus-2.39.1.linux-amd64/prometheus --storage.tsdb.path=$projectDir/bin/prometheus-2.39.1.linux-amd64/data --config.file=$projectDir/bin/prometheus-2.39.1.linux-amd64/prometheus.yml"
+    ready 'TSDB started'
+    pidLockFileName '.prom.pid.lock'
+}
+
+
 //evaluationDependsOn(':')
 task startOpenSearch(type: SpawnProcessTask) {
     command "${path}/gradlew -p ${plugin_path} runRestTestCluster"
@@ -40,11 +62,30 @@ task doctest(type: Exec, dependsOn: ['bootstrap']) {
     }
 }
 
-task stopOpenSearch(type: KillProcessTask)
+task stopOpenSearch(type: KillProcessTask) {
+
+    finalizedBy {
+        def pidFile = new File(path, ".prom.pid.lock")
+        if(!pidFile.exists()) {
+            logger.quiet "No Prometheus server running!"
+            return
+        }
+
+        def pid = pidFile.text
+        def process = "kill $pid".execute()
+
+        try {
+            process.waitFor()
+        } finally {
+            pidFile.delete()
+        }
+        println("Killed Prometheus")
+    }
+}
 
 doctest.dependsOn startOpenSearch
+startOpenSearch.dependsOn startPrometheus
 doctest.finalizedBy stopOpenSearch
-
 build.dependsOn doctest
 clean.dependsOn(cleanBootstrap)
 
@@ -60,6 +101,7 @@ String mlCommonsPlugin = 'opensearch-ml'
 
 testClusters {
     docTestCluster {
+        keystore 'plugins.query.federation.catalog.config', new File("$projectDir/catalog", 'catalog.json')
         plugin(provider(new Callable<RegularFile>(){
             @Override
             RegularFile call() throws Exception {

@@ -6,20 +6,35 @@
 package org.opensearch.sql.catalog;
 
 import java.util.Set;
+import org.opensearch.sql.catalog.model.Catalog;
 import org.opensearch.sql.storage.StorageEngine;
 
 /**
- * Catalog Service defines api for
- * providing and managing storage engines and execution engines
- * for all the catalogs.
- * The storage and execution indirectly make connections to the underlying datastore catalog.
+ * Catalog Service manages catalogs.
  */
 public interface CatalogService {
 
-  StorageEngine getStorageEngine(String catalog);
+  /**
+   * Returns all catalog objects.
+   *
+   * @return Catalog Catalogs.
+   */
+  Set<Catalog> getCatalogs();
 
-  Set<String> getCatalogs();
+  /**
+   * Returns Catalog with corresponding to the catalog name.
+   *
+   * @param catalogName Name of the catalog.
+   * @return Catalog catalog.
+   */
+  Catalog getCatalog(String catalogName);
 
-  void registerOpenSearchStorageEngine(StorageEngine storageEngine);
+  /**
+   * Default opensearch engine is not defined in catalog.json.
+   * So the registration of default catalog happens separately.
+   *
+   * @param storageEngine StorageEngine.
+   */
+  void registerDefaultOpenSearchCatalog(StorageEngine storageEngine);
 
 }
