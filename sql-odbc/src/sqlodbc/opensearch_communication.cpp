@@ -396,7 +396,7 @@ OpenSearchCommunication::IssueRequest(
 
     // Set header type
     if (!content_type.empty())
-        request->SetHeaderValue(Aws::Http::CONTENT_TYPE_HEADER, ctype);
+        request->SetHeaderValue(Aws::Http::CONTENT_TYPE_HEADER, Aws::String(ctype.c_str(), ctype.size()));
 
     // Set body
     if (!query.empty() || !cursor.empty()) {
@@ -412,7 +412,7 @@ OpenSearchCommunication::IssueRequest(
             Aws::MakeShared< Aws::StringStream >("RabbitStream");
         *aws_ss << std::string(body.str());
         request->AddContentBody(aws_ss);
-        request->SetContentLength(std::to_string(body.str().size()));
+        request->SetContentLength(Aws::Utils::StringUtils::to_string(body.str().size()));
     }
 
     // Handle authentication
@@ -422,7 +422,7 @@ OpenSearchCommunication::IssueRequest(
         Aws::Utils::Array< unsigned char > userpw_arr(
             reinterpret_cast< const unsigned char* >(userpw_str.c_str()),
             userpw_str.length());
-        std::string hashed_userpw =
+        Aws::String hashed_userpw =
             Aws::Utils::HashingUtils::Base64Encode(userpw_arr);
         request->SetAuthorization("Basic " + hashed_userpw);
     } else if (m_rt_opts.auth.auth_type == AUTHTYPE_IAM) {

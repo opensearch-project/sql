@@ -3,6 +3,7 @@
 #include "unit_test_helper.h"
 #include "it_odbc_helper.h"
 #include "chrono"
+#include <algorithm>
 #include <vector>
 #include <numeric>
 // clang-format on
@@ -149,7 +150,6 @@ TEST_F(TestPerformance, Time_BindColumn_FetchSingleRow) {
 }
 
 TEST_F(TestPerformance, Time_BindColumn_Fetch5Rows) {
-    SQLROWSETSIZE row_count = 0;
     SQLSMALLINT total_columns = 0;
     SQLROWSETSIZE rows_fetched = 0;
     SQLUSMALLINT row_status[ROWSET_SIZE_5];
@@ -176,7 +176,6 @@ TEST_F(TestPerformance, Time_BindColumn_Fetch5Rows) {
         while (SQLExtendedFetch(m_hstmt, SQL_FETCH_NEXT, 0, &rows_fetched,
                                 row_status)
                == SQL_SUCCESS) {
-            row_count += rows_fetched;
             if (rows_fetched < ROWSET_SIZE_5)
                 break;
         }
@@ -190,7 +189,6 @@ TEST_F(TestPerformance, Time_BindColumn_Fetch5Rows) {
 }
 
 TEST_F(TestPerformance, Time_BindColumn_Fetch50Rows) {
-    SQLROWSETSIZE row_count = 0;
     SQLSMALLINT total_columns = 0;
     SQLROWSETSIZE rows_fetched = 0;
     SQLUSMALLINT row_status[ROWSET_SIZE_50];
@@ -217,7 +215,6 @@ TEST_F(TestPerformance, Time_BindColumn_Fetch50Rows) {
         while (SQLExtendedFetch(m_hstmt, SQL_FETCH_NEXT, 0, &rows_fetched,
                                 row_status)
                == SQL_SUCCESS) {
-            row_count += rows_fetched;
             if (rows_fetched < ROWSET_SIZE_50)
                 break;
         }

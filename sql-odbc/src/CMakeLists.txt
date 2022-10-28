@@ -74,21 +74,17 @@ set(PERFORMANCE_TESTS "${CMAKE_CURRENT_SOURCE_DIR}/PerformanceTests")
 set(UT_HELPER "${UNIT_TESTS}/UTHelper")
 set(IT_HELPER "${INTEGRATION_TESTS}/ITODBCHelper")
 set(RABBIT_SRC ${LIBRARY_DIRECTORY}/rabbit/include)
-set(RAPIDJSON_SRC ${LIBRARY_DIRECTORY}/rapidjson/include)
 set(VLD_SRC ${LIBRARY_DIRECTORY}/VisualLeakDetector/include)
-
+if(WIN32)
+    set(RAPIDJSON_SRC ${LIBRARY_DIRECTORY}/rapidjson/include)
+endif ()
 # Without this symbols will be exporting to Unix but not Windows
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)	
 
-# Set path for AWS SDK
-set(aws-cpp-sdk-base "${CMAKE_CURRENT_SOURCE_DIR}/aws-sdk-cpp")
-set(aws-cpp-sdk-core_DIR "${PROJECT_ROOT}/sdk-build${BITNESS}/AWSSDK/lib/cmake/aws-cpp-sdk-core")
-set(aws-c-event-stream_DIR "${PROJECT_ROOT}/sdk-build${BITNESS}/AWSSDK/lib/aws-c-event-stream/cmake")
-set(aws-c-common_DIR "${PROJECT_ROOT}/sdk-build${BITNESS}/AWSSDK/lib/aws-c-common/cmake")
-set(aws-checksums_DIR "${PROJECT_ROOT}/sdk-build${BITNESS}/AWSSDK/lib/aws-checksums/cmake")
-
-if (WIN32)
-	find_package(AWSSDK REQUIRED core)
+find_package(aws-cpp-sdk-core CONFIG REQUIRED)
+if(APPLE)
+    find_package(ZLIB REQUIRED)
+    find_package(RapidJSON CONFIG REQUIRED)
 endif()
 
 # General compiler definitions
@@ -134,18 +130,10 @@ endif()
 
 if(BUILD_WITH_TESTS)
 	# GTest import
-	include(gtest/googletest.cmake)
-	fetch_googletest(
-		${PROJECT_SOURCE_DIR}/gtest
-		${PROJECT_BINARY_DIR}/googletest
-		)
 	enable_testing()
 endif()
 
 # Projects to build
-if (APPLE)
-	add_subdirectory(${aws-cpp-sdk-base})
-endif()
 add_subdirectory(${OPENSEARCHODBC_SRC})
 add_subdirectory(${OPENSEARCHENLIST_SRC})
 add_subdirectory(${INSTALL_SRC})

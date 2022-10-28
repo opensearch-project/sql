@@ -19,17 +19,13 @@ RETCODE SQL_API SQLColumnsW(HSTMT StatementHandle, SQLWCHAR *CatalogName,
     char *ctName, *scName, *tbName, *clName;
     SQLLEN nmlen1, nmlen2, nmlen3, nmlen4;
     StatementClass *stmt = (StatementClass *)StatementHandle;
-    ConnectionClass *conn;
     BOOL lower_id;
     UWORD flag = PODBC_SEARCH_PUBLIC_SCHEMA;
-    ConnInfo *ci;
 
     MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
-    conn = SC_get_conn(stmt);
-    ci = &(conn->connInfo);
     lower_id = DEFAULT_LOWERCASEIDENTIFIER;
     ctName = ucs2_to_utf8(CatalogName, NameLength1, &nmlen1, lower_id);
     scName = ucs2_to_utf8(SchemaName, NameLength2, &nmlen2, lower_id);
@@ -426,14 +422,12 @@ RETCODE SQL_API SQLSpecialColumnsW(
     char *ctName, *scName, *tbName;
     SQLLEN nmlen1, nmlen2, nmlen3;
     StatementClass *stmt = (StatementClass *)StatementHandle;
-    ConnectionClass *conn;
     BOOL lower_id;
 
     MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
-    conn = SC_get_conn(stmt);
     lower_id = DEFAULT_LOWERCASEIDENTIFIER;
     ctName = ucs2_to_utf8(CatalogName, NameLength1, &nmlen1, lower_id);
     scName = ucs2_to_utf8(SchemaName, NameLength2, &nmlen2, lower_id);
@@ -467,14 +461,12 @@ RETCODE SQL_API SQLStatisticsW(HSTMT StatementHandle, SQLWCHAR *CatalogName,
     char *ctName, *scName, *tbName;
     SQLLEN nmlen1, nmlen2, nmlen3;
     StatementClass *stmt = (StatementClass *)StatementHandle;
-    ConnectionClass *conn;
     BOOL lower_id;
 
     MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
-    conn = SC_get_conn(stmt);
     lower_id = DEFAULT_LOWERCASEIDENTIFIER;
     ctName = ucs2_to_utf8(CatalogName, NameLength1, &nmlen1, lower_id);
     scName = ucs2_to_utf8(SchemaName, NameLength2, &nmlen2, lower_id);
@@ -508,7 +500,6 @@ RETCODE SQL_API SQLTablesW(HSTMT StatementHandle, SQLWCHAR *CatalogName,
     char *ctName, *scName, *tbName, *tbType;
     SQLLEN nmlen1, nmlen2, nmlen3, nmlen4;
     StatementClass *stmt = (StatementClass *)StatementHandle;
-    ConnectionClass *conn;
     BOOL lower_id;
     UWORD flag = 0;
 
@@ -516,7 +507,6 @@ RETCODE SQL_API SQLTablesW(HSTMT StatementHandle, SQLWCHAR *CatalogName,
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
-    conn = SC_get_conn(stmt);
     lower_id = DEFAULT_LOWERCASEIDENTIFIER;
     ctName = ucs2_to_utf8(CatalogName, NameLength1, &nmlen1, lower_id);
     scName = ucs2_to_utf8(SchemaName, NameLength2, &nmlen2, lower_id);
@@ -554,7 +544,6 @@ RETCODE SQL_API SQLColumnPrivilegesW(
     char *ctName, *scName, *tbName, *clName;
     SQLLEN nmlen1, nmlen2, nmlen3, nmlen4;
     StatementClass *stmt = (StatementClass *)hstmt;
-    ConnectionClass *conn;
     BOOL lower_id;
     UWORD flag = 0;
 
@@ -562,7 +551,6 @@ RETCODE SQL_API SQLColumnPrivilegesW(
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
-    conn = SC_get_conn(stmt);
     lower_id = DEFAULT_LOWERCASEIDENTIFIER;
     ctName = ucs2_to_utf8(szCatalogName, cbCatalogName, &nmlen1, lower_id);
     scName = ucs2_to_utf8(szSchemaName, cbSchemaName, &nmlen2, lower_id);
@@ -603,14 +591,12 @@ RETCODE SQL_API SQLForeignKeysW(
     char *ctName, *scName, *tbName, *fkctName, *fkscName, *fktbName;
     SQLLEN nmlen1, nmlen2, nmlen3, nmlen4, nmlen5, nmlen6;
     StatementClass *stmt = (StatementClass *)hstmt;
-    ConnectionClass *conn;
     BOOL lower_id;
 
     MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
-    conn = SC_get_conn(stmt);
     lower_id = DEFAULT_LOWERCASEIDENTIFIER;
     ctName = ucs2_to_utf8(szPkCatalogName, cbPkCatalogName, &nmlen1, lower_id);
     scName = ucs2_to_utf8(szPkSchemaName, cbPkSchemaName, &nmlen2, lower_id);
@@ -705,14 +691,12 @@ RETCODE SQL_API SQLPrimaryKeysW(HSTMT hstmt, SQLWCHAR *szCatalogName,
     char *ctName, *scName, *tbName;
     SQLLEN nmlen1, nmlen2, nmlen3;
     StatementClass *stmt = (StatementClass *)hstmt;
-    ConnectionClass *conn;
     BOOL lower_id;
 
     MYLOG(OPENSEARCH_TRACE, "entering\n");
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
-    conn = SC_get_conn(stmt);
     lower_id = DEFAULT_LOWERCASEIDENTIFIER;
     ctName = ucs2_to_utf8(szCatalogName, cbCatalogName, &nmlen1, lower_id);
     scName = ucs2_to_utf8(szSchemaName, cbSchemaName, &nmlen2, lower_id);
@@ -744,12 +728,10 @@ RETCODE SQL_API SQLProcedureColumnsW(
     char *ctName, *scName, *prName, *clName;
     SQLLEN nmlen1, nmlen2, nmlen3, nmlen4;
     StatementClass *stmt = (StatementClass *)hstmt;
-    ConnectionClass *conn;
     BOOL lower_id;
     UWORD flag = 0;
 
     MYLOG(OPENSEARCH_TRACE, "entering\n");
-    conn = SC_get_conn(stmt);
     lower_id = DEFAULT_LOWERCASEIDENTIFIER;
     ctName = ucs2_to_utf8(szCatalogName, cbCatalogName, &nmlen1, lower_id);
     scName = ucs2_to_utf8(szSchemaName, cbSchemaName, &nmlen2, lower_id);
@@ -787,7 +769,6 @@ RETCODE SQL_API SQLProceduresW(HSTMT hstmt, SQLWCHAR *szCatalogName,
     char *ctName, *scName, *prName;
     SQLLEN nmlen1, nmlen2, nmlen3;
     StatementClass *stmt = (StatementClass *)hstmt;
-    ConnectionClass *conn;
     BOOL lower_id;
     UWORD flag = 0;
 
@@ -795,7 +776,6 @@ RETCODE SQL_API SQLProceduresW(HSTMT hstmt, SQLWCHAR *szCatalogName,
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
-    conn = SC_get_conn(stmt);
     lower_id = DEFAULT_LOWERCASEIDENTIFIER;
     ctName = ucs2_to_utf8(szCatalogName, cbCatalogName, &nmlen1, lower_id);
     scName = ucs2_to_utf8(szSchemaName, cbSchemaName, &nmlen2, lower_id);
@@ -831,7 +811,6 @@ RETCODE SQL_API SQLTablePrivilegesW(HSTMT hstmt, SQLWCHAR *szCatalogName,
     char *ctName, *scName, *tbName;
     SQLLEN nmlen1, nmlen2, nmlen3;
     StatementClass *stmt = (StatementClass *)hstmt;
-    ConnectionClass *conn;
     BOOL lower_id;
     UWORD flag = 0;
 
@@ -839,7 +818,6 @@ RETCODE SQL_API SQLTablePrivilegesW(HSTMT hstmt, SQLWCHAR *szCatalogName,
     if (SC_connection_lost_check(stmt, __FUNCTION__))
         return SQL_ERROR;
 
-    conn = SC_get_conn(stmt);
     lower_id = DEFAULT_LOWERCASEIDENTIFIER;
     ctName = ucs2_to_utf8(szCatalogName, cbCatalogName, &nmlen1, lower_id);
     scName = ucs2_to_utf8(szSchemaName, cbSchemaName, &nmlen2, lower_id);
