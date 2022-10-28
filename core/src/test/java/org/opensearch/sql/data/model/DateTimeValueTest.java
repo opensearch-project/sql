@@ -31,10 +31,6 @@ public class DateTimeValueTest {
 
     assertEquals(TIME, timeValue.type());
     assertEquals(LocalTime.parse("01:01:01"), timeValue.timeValue());
-    assertEquals(LocalDate.now(), timeValue.dateValue());
-    assertEquals(LocalDate.now().atTime(1, 1, 1), timeValue.datetimeValue());
-    assertEquals(ZonedDateTime.of(LocalTime.parse("01:01:01").atDate(LocalDate.now()),
-        ZoneId.of("UTC")).toInstant(), timeValue.timestampValue());
     assertEquals("01:01:01", timeValue.value());
     assertEquals("TIME '01:01:01'", timeValue.toString());
     assertThrows(ExpressionEvaluationException.class, () -> integerValue(1).timeValue(),
@@ -65,7 +61,7 @@ public class DateTimeValueTest {
     assertEquals(LocalTime.parse("00:00:00"), dateValue.timeValue());
     assertEquals(LocalDateTime.parse("2012-07-07T00:00:00"), dateValue.datetimeValue());
     assertEquals(ZonedDateTime.of(LocalDateTime.parse("2012-07-07T00:00:00"),
-        ZoneId.of("UTC")).toInstant(), dateValue.timestampValue());
+        ZoneId.systemDefault()).toInstant(), dateValue.timestampValue());
     ExpressionEvaluationException exception =
         assertThrows(ExpressionEvaluationException.class, () -> integerValue(1).dateValue());
     assertEquals("invalid to get dateValue from value of type INTEGER",
