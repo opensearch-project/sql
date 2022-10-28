@@ -39,7 +39,7 @@ pipeline {
         )
     }
     environment {
-        ARTIFACT_PATH = "$WORKSPACE/build/repository/org/opensearch/client/sql/$VERSION"
+        ARTIFACT_PATH = "$WORKSPACE/build/repository/org/opensearch/driver/opensearch-sql-jdbc/$VERSION"
     }
     stages {
         stage('Publish to Maven Local') {
