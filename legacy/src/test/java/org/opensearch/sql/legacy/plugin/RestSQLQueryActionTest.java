@@ -6,12 +6,15 @@
 
 package org.opensearch.sql.legacy.plugin;
 
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
-import static org.opensearch.sql.legacy.plugin.RestSQLQueryAction.NOT_SUPPORTED_YET;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.EXPLAIN_API_ENDPOINT;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
 
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
@@ -21,8 +24,14 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.rest.BaseRestHandler;
+import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.catalog.CatalogService;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.executor.ExecutionEngine;
+import org.opensearch.sql.executor.QueryManager;
+import org.opensearch.sql.executor.execution.QueryPlanFactory;
 import org.opensearch.sql.sql.config.SQLServiceConfig;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
 import org.opensearch.sql.storage.StorageEngine;
@@ -30,12 +39,24 @@ import org.opensearch.threadpool.ThreadPool;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 @RunWith(MockitoJUnitRunner.class)
-public class RestSQLQueryActionTest {
+public class RestSQLQueryActionTest extends BaseRestHandler {
 
   private NodeClient nodeClient;
 
   @Mock
   private ThreadPool threadPool;
+
+  @Mock
+  private QueryManager queryManager;
+
+  @Mock
+  private QueryPlanFactory factory;
+
+  @Mock
+  private ExecutionEngine.Schema schema;
+
+  @Mock
+  private RestChannel restChannel;
 
   private AnnotationConfigApplicationContext context;
 
@@ -46,6 +67,8 @@ public class RestSQLQueryActionTest {
     context.registerBean(StorageEngine.class, () -> Mockito.mock(StorageEngine.class));
     context.registerBean(ExecutionEngine.class, () -> Mockito.mock(ExecutionEngine.class));
     context.registerBean(CatalogService.class, () -> Mockito.mock(CatalogService.class));
+    context.registerBean(QueryManager.class, () -> queryManager);
+    context.registerBean(QueryPlanFactory.class, () -> factory);
     context.register(SQLServiceConfig.class);
     context.refresh();
     Mockito.lenient().when(threadPool.getThreadContext())
@@ -53,7 +76,7 @@ public class RestSQLQueryActionTest {
   }
 
   @Test
-  public void handleQueryThatCanSupport() {
+  public void handleQueryThatCanSupport() throws Exception {
     SQLQueryRequest request = new SQLQueryRequest(
         new JSONObject("{\"query\": \"SELECT -123\"}"),
         "SELECT -123",
@@ -61,11 +84,15 @@ public class RestSQLQueryActionTest {
         "");
 
     RestSQLQueryAction queryAction = new RestSQLQueryAction(context);
-    assertNotSame(NOT_SUPPORTED_YET, queryAction.prepareRequest(request, nodeClient));
+    queryAction.prepareRequest(request, (channel, exception) -> {
+      fail();
+    }, (channel, exception) -> {
+      fail();
+    }).accept(restChannel);
   }
 
   @Test
-  public void handleExplainThatCanSupport() {
+  public void handleExplainThatCanSupport() throws Exception {
     SQLQueryRequest request = new SQLQueryRequest(
         new JSONObject("{\"query\": \"SELECT -123\"}"),
         "SELECT -123",
@@ -73,11 +100,15 @@ public class RestSQLQueryActionTest {
         "");
 
     RestSQLQueryAction queryAction = new RestSQLQueryAction(context);
-    assertNotSame(NOT_SUPPORTED_YET, queryAction.prepareRequest(request, nodeClient));
+    queryAction.prepareRequest(request, (channel, exception) -> {
+      fail();
+    }, (channel, exception) -> {
+      fail();
+    }).accept(restChannel);
   }
 
   @Test
-  public void skipQueryThatNotSupport() {
+  public void queryThatNotSupportIsHandledByFallbackHandler() throws Exception {
     SQLQueryRequest request = new SQLQueryRequest(
         new JSONObject(
             "{\"query\": \"SELECT name FROM test1 JOIN test2 ON test1.name = test2.name\"}"),
@@ -85,8 +116,53 @@ public class RestSQLQueryActionTest {
         QUERY_API_ENDPOINT,
         "");
 
+    AtomicBoolean fallback = new AtomicBoolean(false);
     RestSQLQueryAction queryAction = new RestSQLQueryAction(context);
-    assertSame(NOT_SUPPORTED_YET, queryAction.prepareRequest(request, nodeClient));
+    queryAction.prepareRequest(request, (channel, exception) -> {
+      fallback.set(true);
+      assertTrue(exception instanceof SyntaxCheckException);
+    }, (channel, exception) -> {
+      fail();
+    }).accept(restChannel);
+
+    assertTrue(fallback.get());
   }
 
+  @Test
+  public void queryExecutionFailedIsHandledByExecutionErrorHandler() throws Exception {
+    SQLQueryRequest request = new SQLQueryRequest(
+        new JSONObject(
+            "{\"query\": \"SELECT -123\"}"),
+        "SELECT -123",
+        QUERY_API_ENDPOINT,
+        "");
+
+    doThrow(new IllegalStateException("execution exception"))
+        .when(queryManager)
+        .submit(any());
+
+    AtomicBoolean executionErrorHandler = new AtomicBoolean(false);
+    RestSQLQueryAction queryAction = new RestSQLQueryAction(context);
+    queryAction.prepareRequest(request, (channel, exception) -> {
+      assertTrue(exception instanceof SyntaxCheckException);
+    }, (channel, exception) -> {
+      executionErrorHandler.set(true);
+      assertTrue(exception instanceof IllegalStateException);
+    }).accept(restChannel);
+
+    assertTrue(executionErrorHandler.get());
+  }
+
+  @Override
+  public String getName() {
+    // do nothing, RestChannelConsumer is protected which required to extend BaseRestHandler
+    return null;
+  }
+
+  @Override
+  protected RestChannelConsumer prepareRequest(RestRequest restRequest, NodeClient nodeClient)
+      throws IOException {
+    // do nothing, RestChannelConsumer is protected which required to extend BaseRestHandler
+    return null;
+  }
 }

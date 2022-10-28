@@ -14,6 +14,14 @@ root
 
 /** statement */
 pplStatement
+    : dmlStatement
+    ;
+
+dmlStatement
+    : queryStatement
+    ;
+
+queryStatement
     : pplCommands (PIPE commands)*
     ;
 

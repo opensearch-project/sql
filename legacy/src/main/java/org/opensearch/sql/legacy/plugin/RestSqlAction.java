@@ -9,7 +9,6 @@ package org.opensearch.sql.legacy.plugin;
 import static org.opensearch.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.rest.RestStatus.OK;
 import static org.opensearch.rest.RestStatus.SERVICE_UNAVAILABLE;
-import static org.opensearch.sql.opensearch.executor.Scheduler.schedule;
 
 import com.alibaba.druid.sql.parser.ParserException;
 import com.google.common.collect.ImmutableList;
@@ -153,27 +152,29 @@ public class RestSqlAction extends BaseRestHandler {
 
             Format format = SqlRequestParam.getFormat(request.params());
 
-            return channel -> schedule(client, () -> {
-                try {
-                    // Route request to new query engine if it's supported already
-                    SQLQueryRequest newSqlRequest = new SQLQueryRequest(sqlRequest.getJsonContent(),
-                        sqlRequest.getSql(), request.path(), request.params());
-                    RestChannelConsumer result = newSqlQueryHandler.prepareRequest(newSqlRequest, client);
-                    if (result != RestSQLQueryAction.NOT_SUPPORTED_YET) {
-                        LOG.info("[{}] Request is handled by new SQL query engine",
-                            QueryContext.getRequestId());
-                        result.accept(channel);
-                    } else {
-                        LOG.debug("[{}] Request {} is not supported and falling back to old SQL engine",
-                            QueryContext.getRequestId(), newSqlRequest);
-                        QueryAction queryAction = explainRequest(client, sqlRequest, format);
-                        executeSqlRequest(request, queryAction, client, channel);
-                    }
-                } catch (Exception e) {
-                    logAndPublishMetrics(e);
-                    reportError(channel, e, isClientError(e) ? BAD_REQUEST : SERVICE_UNAVAILABLE);
-                }
-            });
+            // Route request to new query engine if it's supported already
+            SQLQueryRequest newSqlRequest = new SQLQueryRequest(sqlRequest.getJsonContent(),
+                sqlRequest.getSql(), request.path(), request.params());
+            return newSqlQueryHandler.prepareRequest(newSqlRequest,
+                    (restChannel, exception) -> {
+                        try{
+                            if (newSqlRequest.isExplainRequest()) {
+                                LOG.info("Request is falling back to old SQL engine due to: " + exception.getMessage());
+                            }
+                            LOG.debug("[{}] Request {} is not supported and falling back to old SQL engine",
+                                QueryContext.getRequestId(), newSqlRequest);
+                            QueryAction queryAction = explainRequest(client, sqlRequest, format);
+                            executeSqlRequest(request, queryAction, client, restChannel);
+                        } catch (Exception e) {
+                            logAndPublishMetrics(e);
+                            reportError(restChannel, e, isClientError(e) ? BAD_REQUEST : SERVICE_UNAVAILABLE);
+                        }
+                    },
+                    (restChannel, exception) -> {
+                        logAndPublishMetrics(exception);
+                        reportError(restChannel, exception, isClientError(exception) ?
+                            BAD_REQUEST : SERVICE_UNAVAILABLE);
+                    });
         } catch (Exception e) {
             logAndPublishMetrics(e);
             return channel -> reportError(channel, e, isClientError(e) ? BAD_REQUEST : SERVICE_UNAVAILABLE);
