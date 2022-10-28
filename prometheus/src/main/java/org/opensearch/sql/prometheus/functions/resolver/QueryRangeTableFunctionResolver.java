@@ -46,7 +46,7 @@ public class QueryRangeTableFunctionResolver implements FunctionResolver {
         new FunctionSignature(functionName, List.of(STRING, LONG, LONG, LONG));
     final List<String> argumentNames = List.of(QUERY, STARTTIME, ENDTIME, STEP);
 
-    FunctionBuilder functionBuilder = (queryContext, arguments) -> {
+    FunctionBuilder functionBuilder = (functionProperties, arguments) -> {
       Boolean argumentsPassedByName = arguments.stream()
           .noneMatch(arg -> StringUtils.isEmpty(((NamedArgumentExpression) arg).getArgName()));
       Boolean argumentsPassedByPosition = arguments.stream()

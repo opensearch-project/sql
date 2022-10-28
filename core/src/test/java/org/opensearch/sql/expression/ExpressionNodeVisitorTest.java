@@ -20,17 +20,25 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.opensearch.sql.analysis.AnalyzerTestBase;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.aggregation.AvgAggregator;
 import org.opensearch.sql.expression.conditional.cases.CaseClause;
 import org.opensearch.sql.expression.conditional.cases.WhenClause;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.parse.ParseExpression;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
+@ExtendWith(SpringExtension.class)
+@ContextConfiguration(classes = {ExpressionConfig.class, AnalyzerTestBase.class})
 class ExpressionNodeVisitorTest {
 
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
+  @Autowired
+  private DSL dsl;
 
   @Test
   void should_return_null_by_default() {

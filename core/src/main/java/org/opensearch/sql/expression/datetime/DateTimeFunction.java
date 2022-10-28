@@ -134,8 +134,8 @@ public class DateTimeFunction {
   private FunctionResolver now(FunctionName functionName) {
     return define(functionName,
         queryContextFunction(
-            queryContext -> new ExprDatetimeValue(
-                formatNow(queryContext.getQueryStartTime())), DATETIME)
+            functionProperties -> new ExprDatetimeValue(
+                formatNow(functionProperties.getQueryStartClock())), DATETIME)
     );
   }
 
@@ -160,10 +160,10 @@ public class DateTimeFunction {
    */
   private FunctionResolver sysdate() {
     return define(BuiltinFunctionName.SYSDATE.getName(),
-        queryContextFunction(
-            queryContext -> new ExprDatetimeValue(formatNow(Clock.systemDefaultZone())), DATETIME),
-        queryContextFunction((queryContext, v) -> new ExprDatetimeValue(formatNow(Clock.systemDefaultZone(),
-            v.integerValue())), DATETIME, INTEGER)
+        queryContextFunction(functionProperties
+            -> new ExprDatetimeValue(formatNow(Clock.systemDefaultZone())), DATETIME),
+        queryContextFunction((functionProperties, v) -> new ExprDatetimeValue(
+            formatNow(Clock.systemDefaultZone(), v.integerValue())), DATETIME, INTEGER)
     );
   }
 
@@ -172,8 +172,8 @@ public class DateTimeFunction {
    */
   private FunctionResolver curtime(FunctionName functionName) {
     return define(functionName,
-        queryContextFunction(
-            queryContext -> new ExprTimeValue(formatNow(queryContext.getQueryStartTime()).toLocalTime()), TIME));
+        queryContextFunction(functionProperties -> new ExprTimeValue(
+            formatNow(functionProperties.getQueryStartClock()).toLocalTime()), TIME));
   }
 
   private FunctionResolver curtime() {
@@ -186,8 +186,8 @@ public class DateTimeFunction {
 
   private FunctionResolver curdate(FunctionName functionName) {
     return define(functionName,
-        queryContextFunction(
-            queryContext -> new ExprDateValue(formatNow(queryContext.getQueryStartTime()).toLocalDate()), DATE));
+        queryContextFunction(functionProperties -> new ExprDateValue(
+            formatNow(functionProperties.getQueryStartClock()).toLocalDate()), DATE));
   }
 
   private FunctionResolver curdate() {

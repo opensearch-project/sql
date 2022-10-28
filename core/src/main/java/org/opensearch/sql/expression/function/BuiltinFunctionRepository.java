@@ -10,16 +10,11 @@ import static org.opensearch.sql.ast.expression.Cast.isCastFunction;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.stream.Collectors;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -27,7 +22,6 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.Expression;
-import org.opensearch.sql.expression.FunctionExpression;
 
 /**
  * Builtin Function Repository.
@@ -42,7 +36,8 @@ public class BuiltinFunctionRepository {
 
   private final Map<String, Map<FunctionName, FunctionResolver>> namespaceFunctionResolverMap;
 
-  private final QueryContext queryContext;
+  @Getter
+  private final FunctionProperties functionProperties;
 
 
   /**
@@ -97,8 +92,8 @@ public class BuiltinFunctionRepository {
     }
     FunctionBuilder resolvedFunctionBuilder = resolve(namespaceList,
         new FunctionSignature(functionName, expressions
-            .stream().map(expression -> expression.type()).collect(Collectors.toList())));
-    return resolvedFunctionBuilder.apply(queryContext, expressions);
+            .stream().map(Expression::type).collect(Collectors.toList())));
+    return resolvedFunctionBuilder.apply(functionProperties, expressions);
   }
 
   /**
@@ -155,7 +150,7 @@ public class BuiltinFunctionRepository {
   private FunctionBuilder castArguments(List<ExprType> sourceTypes,
                                         List<ExprType> targetTypes,
                                         FunctionBuilder funcBuilder) {
-    return (queryContext, arguments) -> {
+    return (functionProperties, arguments) -> {
       List<Expression> argsCasted = new ArrayList<>();
       for (int i = 0; i < arguments.size(); i++) {
         Expression arg = arguments.get(i);
@@ -168,7 +163,7 @@ public class BuiltinFunctionRepository {
           argsCasted.add(arg);
         }
       }
-      return funcBuilder.apply(queryContext, argsCasted);
+      return funcBuilder.apply(functionProperties, argsCasted);
     };
   }
 

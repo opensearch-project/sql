@@ -36,8 +36,6 @@ import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.Simp
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class SimpleQueryStringTest {
-  private static final DSL dsl = new ExpressionConfig()
-      .dsl(new ExpressionConfig().functionRepository());
   private final SimpleQueryStringQuery simpleQueryStringQuery = new SimpleQueryStringQuery();
   private final FunctionName simpleQueryString = FunctionName.of("simple_query_string");
   private static final LiteralExpression fields_value = DSL.literal(
@@ -49,107 +47,107 @@ class SimpleQueryStringTest {
   static Stream<List<Expression>> generateValidData() {
     return Stream.of(
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value)
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value)
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("analyze_wildcard", DSL.literal("true"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("analyze_wildcard", DSL.literal("true"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("analyzer", DSL.literal("standard"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("analyzer", DSL.literal("standard"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("auto_generate_synonyms_phrase_query", DSL.literal("true"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("auto_generate_synonyms_phrase_query", DSL.literal("true"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("flags", DSL.literal("PREFIX"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("flags", DSL.literal("PREFIX"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("flags", DSL.literal("PREFIX|NOT|AND"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("flags", DSL.literal("PREFIX|NOT|AND"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("flags", DSL.literal("NOT|AND"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("flags", DSL.literal("NOT|AND"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("flags", DSL.literal("PREFIX|not|AND"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("flags", DSL.literal("PREFIX|not|AND"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("flags", DSL.literal("not|and"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("flags", DSL.literal("not|and"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("fuzzy_max_expansions", DSL.literal("42"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("fuzzy_max_expansions", DSL.literal("42"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("fuzzy_prefix_length", DSL.literal("42"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("fuzzy_prefix_length", DSL.literal("42"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("fuzzy_transpositions", DSL.literal("42"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("fuzzy_transpositions", DSL.literal("42"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("lenient", DSL.literal("true"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("lenient", DSL.literal("true"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("default_operator", DSL.literal("AND"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("default_operator", DSL.literal("AND"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("default_operator", DSL.literal("and"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("default_operator", DSL.literal("and"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("minimum_should_match", DSL.literal("4"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("minimum_should_match", DSL.literal("4"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("quote_field_suffix", DSL.literal(".exact"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("quote_field_suffix", DSL.literal(".exact"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("boost", DSL.literal("1"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("boost", DSL.literal("1"))
         ),
         List.of(
-            dsl.namedArgument("FIELDS", fields_value),
-            dsl.namedArgument("QUERY", query_value)
+            DSL.namedArgument("FIELDS", fields_value),
+            DSL.namedArgument("QUERY", query_value)
         ),
         List.of(
-            dsl.namedArgument("FIELDS", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("ANALYZE_wildcard", DSL.literal("true"))
+            DSL.namedArgument("FIELDS", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("ANALYZE_wildcard", DSL.literal("true"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("analyZER", DSL.literal("standard"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("analyZER", DSL.literal("standard"))
         )
       );
   }
@@ -170,7 +168,7 @@ class SimpleQueryStringTest {
 
   @Test
   public void test_SyntaxCheckException_when_one_argument() {
-    List<Expression> arguments = List.of(namedArgument("fields", fields_value));
+    List<Expression> arguments = List.of(DSL.namedArgument("fields", fields_value));
     assertThrows(SyntaxCheckException.class,
         () -> simpleQueryStringQuery.build(new SimpleQueryStringExpression(arguments)));
   }
@@ -178,19 +176,11 @@ class SimpleQueryStringTest {
   @Test
   public void test_SemanticCheckException_when_invalid_parameter() {
     List<Expression> arguments = List.of(
-        namedArgument("fields", fields_value),
-        namedArgument("query", query_value),
-        namedArgument("unsupported", "unsupported_value"));
+        DSL.namedArgument("fields", fields_value),
+        DSL.namedArgument("query", query_value),
+        DSL.namedArgument("unsupported", "unsupported_value"));
     Assertions.assertThrows(SemanticCheckException.class,
         () -> simpleQueryStringQuery.build(new SimpleQueryStringExpression(arguments)));
-  }
-
-  private NamedArgumentExpression namedArgument(String name, String value) {
-    return dsl.namedArgument(name, DSL.literal(value));
-  }
-
-  private NamedArgumentExpression namedArgument(String name, LiteralExpression value) {
-    return dsl.namedArgument(name, value);
   }
 
   private class SimpleQueryStringExpression extends FunctionExpression {

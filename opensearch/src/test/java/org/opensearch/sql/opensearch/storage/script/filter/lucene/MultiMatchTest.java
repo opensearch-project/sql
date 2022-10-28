@@ -36,8 +36,6 @@ import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.Mult
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class MultiMatchTest {
-  private static final DSL dsl = new ExpressionConfig()
-      .dsl(new ExpressionConfig().functionRepository());
   private final MultiMatchQuery multiMatchQuery = new MultiMatchQuery();
   private final FunctionName multiMatch = FunctionName.of("multi_match");
   private static final LiteralExpression fields_value = DSL.literal(
@@ -49,83 +47,83 @@ class MultiMatchTest {
   static Stream<List<Expression>> generateValidData() {
     return Stream.of(
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value)
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value)
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("analyzer", DSL.literal("simple"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("analyzer", DSL.literal("simple"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("auto_generate_synonyms_phrase_query", DSL.literal("true"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("auto_generate_synonyms_phrase_query", DSL.literal("true"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("boost", DSL.literal("1.3"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("boost", DSL.literal("1.3"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("cutoff_frequency", DSL.literal("4.2"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("cutoff_frequency", DSL.literal("4.2"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("fuzziness", DSL.literal("AUTO:2,4"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("fuzziness", DSL.literal("AUTO:2,4"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("fuzzy_transpositions", DSL.literal("42"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("fuzzy_transpositions", DSL.literal("42"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("lenient", DSL.literal("true"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("lenient", DSL.literal("true"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("max_expansions", DSL.literal("7"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("max_expansions", DSL.literal("7"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("minimum_should_match", DSL.literal("4"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("minimum_should_match", DSL.literal("4"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("operator", DSL.literal("AND"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("operator", DSL.literal("AND"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("prefix_length", DSL.literal("7"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("prefix_length", DSL.literal("7"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("tie_breaker", DSL.literal("0.3"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("tie_breaker", DSL.literal("0.3"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("type", DSL.literal("cross_fields"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("type", DSL.literal("cross_fields"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("zero_terms_query", DSL.literal("ALL"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("zero_terms_query", DSL.literal("ALL"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("zero_terms_query", DSL.literal("all"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("zero_terms_query", DSL.literal("all"))
         )
       );
   }
@@ -156,13 +154,13 @@ class MultiMatchTest {
     List<Expression> arguments = List.of(
         namedArgument("fields", fields_value),
         namedArgument("query", query_value),
-        dsl.namedArgument("unsupported", "unsupported_value"));
+        DSL.namedArgument("unsupported", "unsupported_value"));
     Assertions.assertThrows(SemanticCheckException.class,
         () -> multiMatchQuery.build(new MultiMatchExpression(arguments)));
   }
 
   private NamedArgumentExpression namedArgument(String name, LiteralExpression value) {
-    return dsl.namedArgument(name, value);
+    return DSL.namedArgument(name, value);
   }
 
   private class MultiMatchExpression extends FunctionExpression {

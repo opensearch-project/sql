@@ -23,8 +23,10 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.opensearch.sql.analysis.AnalyzerTestBase;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.model.ExprByteValue;
 import org.opensearch.sql.data.model.ExprDateValue;
@@ -41,10 +43,16 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.config.ExpressionConfig;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+@ExtendWith(SpringExtension.class)
+@ContextConfiguration(classes = {ExpressionConfig.class, AnalyzerTestBase.class})
 class TypeCastOperatorTest {
 
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
+  @Autowired
+  private DSL dsl;
 
   private static Stream<ExprValue> numberData() {
     return Stream.of(new ExprByteValue(3), new ExprShortValue(3),

@@ -34,15 +34,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.config.ExpressionConfig;
+import org.opensearch.sql.opensearch.OpenSearchTestBase;
 import org.opensearch.sql.opensearch.utils.Utils;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
 import org.opensearch.sql.storage.Table;
 
 @ExtendWith(MockitoExtension.class)
-class OpenSearchLogicOptimizerTest {
-
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
+class OpenSearchLogicOptimizerTest extends OpenSearchTestBase {
 
   @Mock
   private Table table;

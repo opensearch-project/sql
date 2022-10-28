@@ -25,8 +25,8 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.function.FunctionBuilder;
 import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.FunctionSignature;
-import org.opensearch.sql.expression.function.QueryContext;
 import org.opensearch.sql.expression.function.TableFunctionImplementation;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
 import org.opensearch.sql.prometheus.functions.implementation.QueryRangeFunctionImplementation;
@@ -41,7 +41,7 @@ class QueryRangeTableFunctionResolverTest {
   private PrometheusClient client;
 
   @Mock
-  private QueryContext queryContext;
+  private FunctionProperties functionProperties;
 
   @Test
   void testResolve() {
@@ -62,7 +62,7 @@ class QueryRangeTableFunctionResolverTest {
     assertEquals(List.of(STRING, LONG, LONG, LONG), resolution.getKey().getParamTypeList());
     FunctionBuilder functionBuilder = resolution.getValue();
     TableFunctionImplementation functionImplementation
-        = (TableFunctionImplementation) functionBuilder.apply(queryContext, expressions);
+        = (TableFunctionImplementation) functionBuilder.apply(functionProperties, expressions);
     assertTrue(functionImplementation instanceof QueryRangeFunctionImplementation);
     PrometheusMetricTable prometheusMetricTable
         = (PrometheusMetricTable) functionImplementation.applyArguments();
@@ -97,7 +97,7 @@ class QueryRangeTableFunctionResolverTest {
     assertEquals(List.of(STRING, LONG, LONG, LONG), resolution.getKey().getParamTypeList());
     FunctionBuilder functionBuilder = resolution.getValue();
     TableFunctionImplementation functionImplementation
-        = (TableFunctionImplementation) functionBuilder.apply(queryContext, expressions);
+        = (TableFunctionImplementation) functionBuilder.apply(functionProperties, expressions);
     assertTrue(functionImplementation instanceof QueryRangeFunctionImplementation);
     PrometheusMetricTable prometheusMetricTable
         = (PrometheusMetricTable) functionImplementation.applyArguments();
@@ -133,7 +133,7 @@ class QueryRangeTableFunctionResolverTest {
     assertEquals(List.of(STRING, LONG, LONG, LONG), resolution.getKey().getParamTypeList());
     FunctionBuilder functionBuilder = resolution.getValue();
     TableFunctionImplementation functionImplementation
-        = (TableFunctionImplementation) functionBuilder.apply(queryContext, expressions);
+        = (TableFunctionImplementation) functionBuilder.apply(functionProperties, expressions);
     assertTrue(functionImplementation instanceof QueryRangeFunctionImplementation);
     PrometheusMetricTable prometheusMetricTable
         = (PrometheusMetricTable) functionImplementation.applyArguments();
@@ -166,7 +166,7 @@ class QueryRangeTableFunctionResolverTest {
     assertEquals(functionName, queryRangeTableFunctionResolver.getFunctionName());
     assertEquals(List.of(STRING, LONG, LONG, LONG), resolution.getKey().getParamTypeList());
     SemanticCheckException exception = assertThrows(SemanticCheckException.class,
-        () -> resolution.getValue().apply(queryContext, expressions));
+        () -> resolution.getValue().apply(functionProperties, expressions));
 
     assertEquals("Arguments should be either passed by name or position", exception.getMessage());
   }
@@ -188,7 +188,7 @@ class QueryRangeTableFunctionResolverTest {
     assertEquals(functionName, queryRangeTableFunctionResolver.getFunctionName());
     assertEquals(List.of(STRING, LONG, LONG, LONG), resolution.getKey().getParamTypeList());
     SemanticCheckException exception = assertThrows(SemanticCheckException.class,
-        () -> resolution.getValue().apply(queryContext, expressions));
+        () -> resolution.getValue().apply(functionProperties, expressions));
 
     assertEquals("Missing arguments:[endtime,starttime]", exception.getMessage());
   }
@@ -210,7 +210,7 @@ class QueryRangeTableFunctionResolverTest {
     assertEquals(functionName, queryRangeTableFunctionResolver.getFunctionName());
     assertEquals(List.of(STRING, LONG, LONG, LONG), resolution.getKey().getParamTypeList());
     SemanticCheckException exception = assertThrows(SemanticCheckException.class,
-        () -> resolution.getValue().apply(queryContext, expressions));
+        () -> resolution.getValue().apply(functionProperties, expressions));
 
     assertEquals("Missing arguments:[endtime,step]", exception.getMessage());
   }

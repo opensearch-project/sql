@@ -69,7 +69,7 @@ public class FunctionDSL {
    */
   public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
       queryContextFunction(
-      SerializableBiFunction<QueryContext, ExprValue, ExprValue> function,
+      SerializableBiFunction<FunctionProperties, ExprValue, ExprValue> function,
       ExprType returnType,
       ExprType argsType) {
 
@@ -77,11 +77,11 @@ public class FunctionDSL {
       FunctionSignature functionSignature =
           new FunctionSignature(functionName, Collections.singletonList(argsType));
       FunctionBuilder functionBuilder =
-          (queryContext, arguments) -> new FunctionExpression(functionName, arguments) {
+          (functionProperties, arguments) -> new FunctionExpression(functionName, arguments) {
             @Override
             public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
               ExprValue value = arguments.get(0).valueOf(valueEnv);
-              return function.apply(queryContext, value);
+              return function.apply(functionProperties, value);
             }
 
             @Override
@@ -108,16 +108,17 @@ public class FunctionDSL {
    * @return no args function implementation.
    */
   public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
-      queryContextFunction(SerializableFunction<QueryContext, ExprValue> function,
+      queryContextFunction(SerializableFunction<FunctionProperties, ExprValue> function,
                        ExprType returnType) {
     return functionName -> {
       FunctionSignature functionSignature =
           new FunctionSignature(functionName, Collections.emptyList());
       FunctionBuilder functionBuilder =
-          (queryContext, arguments) -> new FunctionExpression(functionName, Collections.emptyList()) {
+          (functionProperties, arguments) ->
+              new FunctionExpression(functionName, Collections.emptyList()) {
             @Override
             public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-              return function.apply(queryContext);
+              return function.apply(functionProperties);
             }
 
             @Override
@@ -149,7 +150,8 @@ public class FunctionDSL {
       FunctionSignature functionSignature =
           new FunctionSignature(functionName, Collections.emptyList());
       FunctionBuilder functionBuilder =
-          (queryContext, arguments) -> new FunctionExpression(functionName, Collections.emptyList()) {
+          (functionProperties, arguments) -> new FunctionExpression(functionName,
+              Collections.emptyList()) {
             @Override
             public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
               return function.get();
@@ -186,7 +188,7 @@ public class FunctionDSL {
       FunctionSignature functionSignature =
           new FunctionSignature(functionName, Collections.singletonList(argsType));
       FunctionBuilder functionBuilder =
-          (queryContext, arguments) -> new FunctionExpression(functionName, arguments) {
+          (functionProperties, arguments) -> new FunctionExpression(functionName, arguments) {
             @Override
             public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
               ExprValue value = arguments.get(0).valueOf(valueEnv);
@@ -229,7 +231,7 @@ public class FunctionDSL {
       FunctionSignature functionSignature =
           new FunctionSignature(functionName, Arrays.asList(args1Type, args2Type));
       FunctionBuilder functionBuilder =
-          (queryContext, arguments) -> new FunctionExpression(functionName, arguments) {
+          (functionProperties, arguments) -> new FunctionExpression(functionName, arguments) {
             @Override
             public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
               ExprValue arg1 = arguments.get(0).valueOf(valueEnv);
@@ -272,7 +274,7 @@ public class FunctionDSL {
       FunctionSignature functionSignature =
           new FunctionSignature(functionName, Arrays.asList(args1Type, args2Type, args3Type));
       FunctionBuilder functionBuilder =
-          (queryContext, arguments) -> new FunctionExpression(functionName, arguments) {
+          (functionProperties, arguments) -> new FunctionExpression(functionName, arguments) {
             @Override
             public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
               ExprValue arg1 = arguments.get(0).valueOf(valueEnv);

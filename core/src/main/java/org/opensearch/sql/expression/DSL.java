@@ -122,7 +122,7 @@ public class DSL {
     return new NamedArgumentExpression(argName, value);
   }
 
-  public NamedArgumentExpression namedArgument(String name, String value) {
+  public static NamedArgumentExpression namedArgument(String name, String value) {
     return namedArgument(name, literal(value));
   }
 

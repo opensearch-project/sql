@@ -26,29 +26,28 @@ import org.opensearch.sql.expression.NamedArgumentExpression;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.opensearch.OpenSearchTestBase;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchBoolPrefixQuery;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-public class MatchBoolPrefixQueryTest {
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
+public class MatchBoolPrefixQueryTest extends OpenSearchTestBase {
   private final MatchBoolPrefixQuery matchBoolPrefixQuery = new MatchBoolPrefixQuery();
   private final FunctionName matchBoolPrefix = FunctionName.of("match_bool_prefix");
 
   static Stream<List<Expression>> generateValidData() {
-    final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
-    NamedArgumentExpression field = dsl.namedArgument("field", DSL.literal("field_value"));
-    NamedArgumentExpression query = dsl.namedArgument("query", DSL.literal("query_value"));
+    NamedArgumentExpression field = DSL.namedArgument("field", DSL.literal("field_value"));
+    NamedArgumentExpression query = DSL.namedArgument("query", DSL.literal("query_value"));
     return List.of(
-            dsl.namedArgument("fuzziness", DSL.literal("AUTO")),
-            dsl.namedArgument("max_expansions", DSL.literal("50")),
-            dsl.namedArgument("prefix_length", DSL.literal("0")),
-            dsl.namedArgument("fuzzy_transpositions", DSL.literal("true")),
-            dsl.namedArgument("fuzzy_rewrite", DSL.literal("constant_score")),
-            dsl.namedArgument("minimum_should_match", DSL.literal("3")),
-            dsl.namedArgument("boost", DSL.literal("1")),
-            dsl.namedArgument("analyzer", DSL.literal("simple")),
-            dsl.namedArgument("operator", DSL.literal("Or")),
-            dsl.namedArgument("operator", DSL.literal("and"))
+            DSL.namedArgument("fuzziness", DSL.literal("AUTO")),
+            DSL.namedArgument("max_expansions", DSL.literal("50")),
+            DSL.namedArgument("prefix_length", DSL.literal("0")),
+            DSL.namedArgument("fuzzy_transpositions", DSL.literal("true")),
+            DSL.namedArgument("fuzzy_rewrite", DSL.literal("constant_score")),
+            DSL.namedArgument("minimum_should_match", DSL.literal("3")),
+            DSL.namedArgument("boost", DSL.literal("1")),
+            DSL.namedArgument("analyzer", DSL.literal("simple")),
+            DSL.namedArgument("operator", DSL.literal("Or")),
+            DSL.namedArgument("operator", DSL.literal("and"))
         ).stream().map(arg -> List.of(field, query, arg));
   }
 
@@ -61,8 +60,8 @@ public class MatchBoolPrefixQueryTest {
   @Test
   public void test_valid_when_two_arguments() {
     List<Expression> arguments = List.of(
-        dsl.namedArgument("field", "field_value"),
-        dsl.namedArgument("query", "query_value"));
+        DSL.namedArgument("field", "field_value"),
+        DSL.namedArgument("query", "query_value"));
     Assertions.assertNotNull(matchBoolPrefixQuery.build(new MatchExpression(arguments)));
   }
 
@@ -75,7 +74,7 @@ public class MatchBoolPrefixQueryTest {
 
   @Test
   public void test_SyntaxCheckException_when_one_argument() {
-    List<Expression> arguments = List.of(dsl.namedArgument("field", "field_value"));
+    List<Expression> arguments = List.of(DSL.namedArgument("field", "field_value"));
     assertThrows(SyntaxCheckException.class,
         () -> matchBoolPrefixQuery.build(new MatchExpression(arguments)));
   }
@@ -83,9 +82,9 @@ public class MatchBoolPrefixQueryTest {
   @Test
   public void test_SemanticCheckException_when_invalid_argument() {
     List<Expression> arguments = List.of(
-        dsl.namedArgument("field", "field_value"),
-        dsl.namedArgument("query", "query_value"),
-        dsl.namedArgument("unsupported", "unsupported_value"));
+        DSL.namedArgument("field", "field_value"),
+        DSL.namedArgument("query", "query_value"),
+        DSL.namedArgument("unsupported", "unsupported_value"));
     Assertions.assertThrows(SemanticCheckException.class,
         () -> matchBoolPrefixQuery.build(new MatchExpression(arguments)));
   }

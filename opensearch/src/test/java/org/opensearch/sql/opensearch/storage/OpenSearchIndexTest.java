@@ -58,6 +58,7 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.AvgAggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.config.ExpressionConfig;
+import org.opensearch.sql.opensearch.OpenSearchTestBase;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
@@ -73,9 +74,7 @@ import org.opensearch.sql.planner.physical.ProjectOperator;
 import org.opensearch.sql.storage.Table;
 
 @ExtendWith(MockitoExtension.class)
-class OpenSearchIndexTest {
-
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
+class OpenSearchIndexTest extends OpenSearchTestBase {
 
   @Mock
   private OpenSearchClient client;

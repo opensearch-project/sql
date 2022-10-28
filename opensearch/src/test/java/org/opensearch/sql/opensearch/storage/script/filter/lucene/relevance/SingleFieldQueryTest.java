@@ -22,7 +22,6 @@ import org.opensearch.sql.expression.config.ExpressionConfig;
 
 class SingleFieldQueryTest {
   SingleFieldQuery query;
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
   private final String testQueryName = "test_query";
   private final Map<String, RelevanceQuery.QueryBuilderStep> actionMap
       = ImmutableMap.of("paramA", (o, v) -> o);
@@ -40,9 +39,9 @@ class SingleFieldQueryTest {
     String sampleQuery = "sample query";
     String sampleField = "fieldA";
 
-    query.createQueryBuilder(dsl.namedArgument("field",
+    query.createQueryBuilder(DSL.namedArgument("field",
             new LiteralExpression(ExprValueUtils.stringValue(sampleField))),
-        dsl.namedArgument("query",
+        DSL.namedArgument("query",
             new LiteralExpression(ExprValueUtils.stringValue(sampleQuery))));
 
     verify(query).createBuilder(eq(sampleField),
