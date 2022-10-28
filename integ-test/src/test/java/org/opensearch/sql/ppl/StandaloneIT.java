@@ -182,10 +182,16 @@ public class StandaloneIT extends PPLIntegTestCase {
     @Bean
     @Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     QueryPlanFactory queryExecutionFactory(BuiltinFunctionRepository functionRepository) {
-      catalogService.getCatalogs()
-          .forEach(catalog -> catalogService.getStorageEngine(catalog)
-              .getFunctions()
-              .forEach(functionResolver -> functionRepository.register(catalog, functionResolver)));
+      catalogService
+          .getCatalogs()
+          .forEach(
+              catalog ->
+                  catalog
+                      .getStorageEngine()
+                      .getFunctions()
+                      .forEach(
+                          functionResolver ->
+                              functionRepository.register(catalog.getName(), functionResolver)));
       Analyzer analyzer = new Analyzer(new ExpressionAnalyzer(functionRepository),
           catalogService, functionRepository);
       Planner planner =
