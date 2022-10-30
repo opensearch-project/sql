@@ -147,30 +147,7 @@ public class FunctionDSL {
   public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>> impl(
       SerializableNoArgFunction<ExprValue> function,
       ExprType returnType) {
-
-    return functionName -> {
-      FunctionSignature functionSignature =
-          new FunctionSignature(functionName, Collections.emptyList());
-      FunctionBuilder functionBuilder =
-          (functionProperties, arguments) -> new FunctionExpression(functionName,
-              Collections.emptyList()) {
-            @Override
-            public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-              return function.get();
-            }
-
-            @Override
-            public ExprType type() {
-              return returnType;
-            }
-
-            @Override
-            public String toString() {
-              return String.format("%s()", functionName);
-            }
-          };
-      return Pair.of(functionSignature, functionBuilder);
-    };
+    return implWithProperties(fp -> function.get(), returnType);
   }
 
   /**
@@ -186,32 +163,7 @@ public class FunctionDSL {
       ExprType returnType,
       ExprType argsType) {
 
-    return functionName -> {
-      FunctionSignature functionSignature =
-          new FunctionSignature(functionName, Collections.singletonList(argsType));
-      FunctionBuilder functionBuilder =
-          (functionProperties, arguments) -> new FunctionExpression(functionName, arguments) {
-            @Override
-            public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-              ExprValue value = arguments.get(0).valueOf(valueEnv);
-              return function.apply(value);
-            }
-
-            @Override
-            public ExprType type() {
-              return returnType;
-            }
-
-            @Override
-            public String toString() {
-              return String.format("%s(%s)", functionName,
-                  arguments.stream()
-                      .map(Object::toString)
-                      .collect(Collectors.joining(", ")));
-            }
-          };
-      return Pair.of(functionSignature, functionBuilder);
-    };
+    return implWithProperties((fp, arg) -> function.apply(arg), returnType, argsType);
   }
 
   /**
