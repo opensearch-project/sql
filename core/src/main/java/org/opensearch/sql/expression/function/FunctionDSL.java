@@ -9,6 +9,7 @@ package org.opensearch.sql.expression.function;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
@@ -60,7 +61,7 @@ public class FunctionDSL {
 
   /**
    * Implementation of a function that takes one argument, returns a value, and
-   * requires QueryContext to complete.
+   * requires FunctionProperties to complete.
    *
    * @param function   {@link ExprValue} based unary function.
    * @param returnType return type.
@@ -68,8 +69,8 @@ public class FunctionDSL {
    * @return Unary Function Implementation.
    */
   public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
-      queryContextFunction(
-      SerializableBiFunction<FunctionProperties, ExprValue, ExprValue> function,
+      implWithProperties(
+      BiFunction<FunctionProperties, ExprValue, ExprValue> function,
       ExprType returnType,
       ExprType argsType) {
 
@@ -102,14 +103,15 @@ public class FunctionDSL {
   }
 
   /**
-   * Implementation of no args function that uses QueryContext.
+   * Implementation of no args function that uses FunctionProperties.
+   *
    * @param function {@link ExprValue} based no args function.
    * @param returnType function return type.
    * @return no args function implementation.
    */
   public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
-      queryContextFunction(SerializableFunction<FunctionProperties, ExprValue> function,
-                       ExprType returnType) {
+      implWithProperties(SerializableFunction<FunctionProperties, ExprValue> function,
+                     ExprType returnType) {
     return functionName -> {
       FunctionSignature functionSignature =
           new FunctionSignature(functionName, Collections.emptyList());

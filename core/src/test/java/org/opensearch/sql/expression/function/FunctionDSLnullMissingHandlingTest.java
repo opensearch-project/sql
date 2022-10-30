@@ -9,39 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 
 import org.junit.jupiter.api.Test;
-import org.opensearch.sql.data.model.ExprMissingValue;
-import org.opensearch.sql.data.model.ExprNullValue;
-import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.type.ExprType;
 
-class FunctionDSLnullMissingHandlingTest {
-
-  public static final ExprNullValue NULL = ExprNullValue.of();
-  private static final ExprValue ANY = new ExprValue() {
-    @Override
-    public Object value() {
-      throw new RuntimeException();
-    }
-
-    @Override
-    public ExprType type() {
-      throw new RuntimeException();
-    }
-
-    @Override
-    public int compareTo(ExprValue o) {
-      throw new RuntimeException();
-    }
-  };
-  public static final ExprMissingValue MISSING = ExprMissingValue.of();
-  private final SerializableFunction<ExprValue, ExprValue> oneArg =
-      v -> ANY;
-
-  private final SerializableBiFunction<ExprValue, ExprValue, ExprValue> twoArgs =
-      (v1, v2) -> ANY;
-
-  private final SerializableTriFunction<ExprValue, ExprValue, ExprValue, ExprValue> threeArgs =
-      (v1, v2, v3) -> ANY;
+class FunctionDSLnullMissingHandlingTest extends FunctionDSLTestBase {
 
   @Test
   void nullMissingHandling_oneArg_nullValue() {

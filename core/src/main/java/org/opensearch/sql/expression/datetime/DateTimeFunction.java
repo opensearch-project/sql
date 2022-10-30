@@ -17,8 +17,8 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.expression.function.FunctionDSL.define;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
+import static org.opensearch.sql.expression.function.FunctionDSL.implWithProperties;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
-import static org.opensearch.sql.expression.function.FunctionDSL.queryContextFunction;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_LONG_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_SHORT_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_LONG_YEAR;
@@ -59,6 +59,7 @@ import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
+import org.opensearch.sql.expression.function.FunctionDSL;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.utils.DateTimeUtils;
@@ -133,7 +134,7 @@ public class DateTimeFunction {
    */
   private FunctionResolver now(FunctionName functionName) {
     return define(functionName,
-        queryContextFunction(
+        implWithProperties(
             functionProperties -> new ExprDatetimeValue(
                 formatNow(functionProperties.getQueryStartClock())), DATETIME)
     );
@@ -160,9 +161,9 @@ public class DateTimeFunction {
    */
   private FunctionResolver sysdate() {
     return define(BuiltinFunctionName.SYSDATE.getName(),
-        queryContextFunction(functionProperties
+        implWithProperties(functionProperties
             -> new ExprDatetimeValue(formatNow(Clock.systemDefaultZone())), DATETIME),
-        queryContextFunction((functionProperties, v) -> new ExprDatetimeValue(
+        FunctionDSL.implWithProperties((functionProperties, v) -> new ExprDatetimeValue(
             formatNow(Clock.systemDefaultZone(), v.integerValue())), DATETIME, INTEGER)
     );
   }
@@ -172,7 +173,7 @@ public class DateTimeFunction {
    */
   private FunctionResolver curtime(FunctionName functionName) {
     return define(functionName,
-        queryContextFunction(functionProperties -> new ExprTimeValue(
+        implWithProperties(functionProperties -> new ExprTimeValue(
             formatNow(functionProperties.getQueryStartClock()).toLocalTime()), TIME));
   }
 
@@ -186,7 +187,7 @@ public class DateTimeFunction {
 
   private FunctionResolver curdate(FunctionName functionName) {
     return define(functionName,
-        queryContextFunction(functionProperties -> new ExprDateValue(
+        implWithProperties(functionProperties -> new ExprDateValue(
             formatNow(functionProperties.getQueryStartClock()).toLocalDate()), DATE));
   }
 

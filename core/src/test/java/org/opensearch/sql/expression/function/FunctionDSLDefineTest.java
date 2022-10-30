@@ -15,15 +15,10 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.Expression;
 
 @ExtendWith(MockitoExtension.class)
-class FunctionDSLDefineTest {
-
-  private static final FunctionName SAMPLE_NAME = FunctionName.of("sample");
-  private static final FunctionSignature SAMPLE_SIGNATURE_A =
-      new FunctionSignature(SAMPLE_NAME, List.of(ExprCoreType.UNDEFINED));
+class FunctionDSLDefineTest extends FunctionDSLTestBase {
 
   @Test
   void define_variableArgs_test() {
