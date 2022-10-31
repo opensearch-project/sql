@@ -53,6 +53,7 @@ import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Kmeans;
+import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
@@ -409,6 +410,20 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         });
 
     return new AD(builder.build());
+  }
+
+  /**
+   * ml command.
+   */
+  @Override
+  public UnresolvedPlan visitMlCommand(OpenSearchPPLParser.MlCommandContext ctx) {
+    ImmutableMap.Builder<String, Literal> builder = ImmutableMap.builder();
+    ctx.mlArg()
+            .forEach(x -> {
+              builder.put(x.argName.getText(),
+                      (Literal) internalVisitExpression(x.argValue));
+            });
+    return new ML(builder.build());
   }
 
   /**

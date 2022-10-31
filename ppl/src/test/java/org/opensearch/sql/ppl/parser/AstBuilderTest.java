@@ -55,6 +55,7 @@ import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Kmeans;
+import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 
@@ -710,6 +711,20 @@ public class AstBuilderTest {
   public void testKmeansCommandWithoutParameter() {
     assertEqual("source=t | kmeans",
         new Kmeans(relation("t"), ImmutableMap.of()));
+  }
+
+  @Test
+  public void testMLCommand() {
+    assertEqual("source=t | ml action='trainandpredict' "
+                    + "algorithm='kmeans' centroid=3 iteration=2 dist_type='l1'",
+            new ML(relation("t"), ImmutableMap.<String, Literal>builder()
+                    .put("action", new Literal("trainandpredict", DataType.STRING))
+                    .put("algorithm", new Literal("kmeans", DataType.STRING))
+                    .put("centroid", new Literal(3, DataType.INTEGER))
+                    .put("iteration", new Literal(2, DataType.INTEGER))
+                    .put("dist_type", new Literal("l1", DataType.STRING))
+                    .build()
+            ));
   }
 
   @Test
