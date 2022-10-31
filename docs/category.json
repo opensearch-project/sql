@@ -7,8 +7,11 @@
     "user/admin/settings.rst"
   ],
   "ppl_cli": [
+    "user/ppl/cmd/ad.rst",
     "user/ppl/cmd/dedup.rst",
     "user/ppl/cmd/describe.rst",
+    "user/ppl/cmd/showcatalogs.rst",
+    "user/ppl/cmd/information_schema.rst",
     "user/ppl/cmd/eval.rst",
     "user/ppl/cmd/fields.rst",
     "user/ppl/cmd/grok.rst",

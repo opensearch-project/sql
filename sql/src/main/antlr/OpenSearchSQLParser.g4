@@ -323,6 +323,7 @@ scalarFunctionName
     | dateTimeFunctionName
     | textFunctionName
     | flowControlFunctionName
+    | systemFunctionName
     ;
 
 specificFunction
@@ -394,10 +395,11 @@ trigonometricFunctionName
     ;
 
 dateTimeFunctionName
-    : ADDDATE | CONVERT_TZ | DATE | DATETIME | DATE_ADD | DATE_FORMAT | DATE_SUB | DAY | DAYNAME | DAYOFMONTH | DAYOFWEEK
-    | DAYOFYEAR | FROM_DAYS | FROM_UNIXTIME | HOUR | MAKEDATE | MAKETIME | MICROSECOND | MINUTE
-    | MONTH | MONTHNAME | QUARTER | SECOND | SUBDATE | SYSDATE | TIME | TIME_TO_SEC | TIMESTAMP
-    | TO_DAYS | UNIX_TIMESTAMP | WEEK | YEAR
+    : ADDDATE | CONVERT_TZ | DATE | DATE_ADD | DATE_FORMAT | DATE_SUB
+    | DATETIME | DAY | DAYNAME | DAYOFMONTH | DAYOFWEEK | DAYOFYEAR | FROM_DAYS | FROM_UNIXTIME
+    | HOUR | MAKEDATE | MAKETIME | MICROSECOND | MINUTE | MONTH | MONTHNAME | PERIOD_ADD
+    | PERIOD_DIFF | QUARTER | SECOND | SUBDATE | SYSDATE | TIME | TIME_TO_SEC
+    | TIMESTAMP | TO_DAYS | UNIX_TIMESTAMP | WEEK | YEAR
     ;
 
 // Functions which value could be cached in scope of a single query
@@ -414,6 +416,10 @@ textFunctionName
 
 flowControlFunctionName
     : IF | IFNULL | NULLIF | ISNULL
+    ;
+
+systemFunctionName
+    : TYPEOF
     ;
 
 singleFieldRelevanceFunctionName

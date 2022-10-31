@@ -7,7 +7,7 @@
 
 package org.opensearch.sql.prometheus.storage.implementor;
 
-import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.METRIC;
+import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.LABELS;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.TIMESTAMP;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.VALUE;
 
@@ -43,7 +43,7 @@ public class PrometheusDefaultImplementor
   public PhysicalPlan visitProject(LogicalProject node, PrometheusMetricScan context) {
     List<NamedExpression> finalProjectList = new ArrayList<>();
     finalProjectList.add(
-        new NamedExpression(METRIC, new ReferenceExpression(METRIC, ExprCoreType.STRING)));
+        new NamedExpression(LABELS, new ReferenceExpression(LABELS, ExprCoreType.STRING)));
     finalProjectList.add(
         new NamedExpression(TIMESTAMP,
             new ReferenceExpression(TIMESTAMP, ExprCoreType.TIMESTAMP)));

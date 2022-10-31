@@ -8,6 +8,7 @@ package org.opensearch.sql.config;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
+import org.opensearch.sql.CatalogSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.analysis.symbol.SymbolTable;
@@ -55,13 +56,14 @@ public class TestConfig {
       .put(STRING_TYPE_MISSING_VALUE_FIELD, ExprCoreType.STRING)
       .put("struct_value", ExprCoreType.STRUCT)
       .put("array_value", ExprCoreType.ARRAY)
+      .put("timestamp_value", ExprCoreType.TIMESTAMP)
       .build();
 
   @Bean
   protected StorageEngine storageEngine() {
     return new StorageEngine() {
       @Override
-      public Table getTable(String name) {
+      public Table getTable(CatalogSchemaName catalogSchemaName, String name) {
         return new Table() {
           @Override
           public Map<String, ExprType> getFieldTypes() {

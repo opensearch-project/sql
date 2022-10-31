@@ -49,6 +49,7 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprCollectionValue;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
+import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
@@ -245,6 +246,13 @@ class OpenSearchExprValueFactoryTest {
             }))),
         constructFromObject("arrayV", ImmutableList.of(
             ImmutableMap.of("info", "zz", "author", "au"))));
+  }
+
+  @Test
+  public void constructArrayOfStrings() {
+    assertEquals(new ExprCollectionValue(
+            ImmutableList.of(new ExprStringValue("zz"), new ExprStringValue("au"))),
+        constructFromObject("arrayV", ImmutableList.of("zz", "au")));
   }
 
   @Test

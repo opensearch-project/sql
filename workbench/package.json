@@ -16,7 +16,7 @@
     "start": "plugin-helpers start",
     "test:server": "plugin-helpers test:server",
     "test:browser": "plugin-helpers test:browser",
-    "test:jest": "NODE_PATH=../../node_modules ../../node_modules/.bin/jest --config ./test/jest.config.js",
+    "test:jest": "../../node_modules/.bin/jest --config ./test/jest.config.js",
     "build": "yarn plugin_helpers build",
     "plugin_helpers": "node ../../scripts/plugin_helpers"
   },
@@ -43,14 +43,15 @@
     "tslint-plugin-prettier": "^2.0.1"
   },
   "resolutions": {
-    "**/@types/node": "10.12.27",
-    "@types/react": "16.3.14",
-    "**/@types/angular": "1.6.50",
+    "**/@types/node": "^10.12.27",
+    "@types/react": "^16.3.14",
+    "**/@types/angular": "^1.6.50",
     "**/@types/jest": "^24.0.9",
     "**/@types/react-dom": "^16.0.5",
     "**/@types/react-router-dom": "^4.3.1",
     "eslint-utils": "^2.0.0",
     "json-schema": "^0.4.0",
-    "**/@types/react": "16.3.14"
+    "**/@types/react": "^16.3.14",
+    "ansi-regex": "^5.0.1"
   }
 }

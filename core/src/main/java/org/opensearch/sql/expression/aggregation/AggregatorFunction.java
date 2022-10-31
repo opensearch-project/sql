@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.expression.aggregation;
 
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
@@ -20,6 +21,7 @@ import static org.opensearch.sql.expression.aggregation.StdDevAggregator.stddevS
 import static org.opensearch.sql.expression.aggregation.VarianceAggregator.variancePopulation;
 import static org.opensearch.sql.expression.aggregation.VarianceAggregator.varianceSample;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
 import java.util.stream.Collectors;
@@ -57,6 +59,7 @@ public class AggregatorFunction {
     repository.register(varPop());
     repository.register(stddevSamp());
     repository.register(stddevPop());
+    repository.register(take());
   }
 
   private static DefaultFunctionResolver avg() {
@@ -192,4 +195,15 @@ public class AggregatorFunction {
             .build()
     );
   }
+
+  private static DefaultFunctionResolver take() {
+    FunctionName functionName = BuiltinFunctionName.TAKE.getName();
+    DefaultFunctionResolver functionResolver = new DefaultFunctionResolver(functionName,
+        new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
+            .put(new FunctionSignature(functionName, ImmutableList.of(STRING, INTEGER)),
+                arguments -> new TakeAggregator(arguments, ARRAY))
+            .build());
+    return functionResolver;
+  }
+
 }

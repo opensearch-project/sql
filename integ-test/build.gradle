@@ -28,11 +28,16 @@ import org.opensearch.gradle.testclusters.StandaloneRestIntegTestTask
 
 import java.util.concurrent.Callable
 
+plugins {
+    id "de.undercouch.download" version "5.3.0"
+}
 
 apply plugin: 'opensearch.build'
 apply plugin: 'opensearch.rest-test'
 apply plugin: 'java'
 apply plugin: 'io.freefair.lombok'
+apply plugin: 'com.wiredforcode.spawn'
+
 
 ext {
     projectSubstitutions = [:]
@@ -101,11 +106,37 @@ testClusters.all {
 
 testClusters.integTest {
     plugin ":opensearch-sql-plugin"
+    keystore 'plugins.query.federation.catalog.config', new File("$projectDir/src/test/resources/catalog/", 'catalog.json')
 }
+task startPrometheus(type: SpawnProcessTask) {
+    mustRunAfter ':doctest:doctest'
+    doFirst {
+        download.run {
+            src 'https://github.com/prometheus/prometheus/releases/download/v2.39.1/prometheus-2.39.1.linux-amd64.tar.gz'
+            dest new File("$projectDir/bin", 'prometheus.tar.gz')
+        }
+        copy {
+            from tarTree("$projectDir/bin/prometheus.tar.gz")
+            into "$projectDir/bin"
+        }
+        copy {
+            from "$projectDir/bin/prometheus.yml"
+            into "$projectDir/bin/prometheus-2.39.1.linux-amd64/prometheus"
+        }
+    }
+    command "$projectDir/bin/prometheus-2.39.1.linux-amd64/prometheus --storage.tsdb.path=$projectDir/bin/prometheus-2.39.1.linux-amd64/data --config.file=$projectDir/bin/prometheus-2.39.1.linux-amd64/prometheus.yml"
+    ready 'TSDB started'
+}
+
+task stopPrometheus(type: KillProcessTask)
+
+stopPrometheus.mustRunAfter startPrometheus
 
 // Run PPL ITs and new, legacy and comparison SQL ITs with new SQL engine enabled
 integTest {
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
+    dependsOn startPrometheus
+    finalizedBy stopPrometheus
 
     systemProperty 'tests.security.manager', 'false'
     systemProperty('project.root', project.projectDir.absolutePath)

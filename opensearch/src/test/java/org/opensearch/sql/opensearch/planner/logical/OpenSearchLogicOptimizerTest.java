@@ -128,7 +128,7 @@ class OpenSearchLogicOptimizerTest extends OpenSearchTestBase {
     );
   }
 
-  @Disabled
+  @Disabled("This test should be enabled once https://github.com/opensearch-project/sql/issues/912 is fixed")
   @Test
   void aggregation_cant_merge_indexScan_with_project() {
     assertEquals(

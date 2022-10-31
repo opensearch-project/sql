@@ -8,22 +8,20 @@ package org.opensearch.sql.ppl;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import java.util.Set;
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.sql.catalog.CatalogService;
+import org.opensearch.sql.catalog.model.Catalog;
+import org.opensearch.sql.catalog.model.ConnectorType;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -32,10 +30,7 @@ import org.opensearch.sql.executor.ExecutionEngine.ExplainResponseNode;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
-import org.opensearch.sql.expression.function.FunctionBuilder;
-import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.FunctionResolver;
-import org.opensearch.sql.expression.function.FunctionSignature;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.ppl.config.PPLServiceConfig;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
@@ -83,9 +78,11 @@ public class PPLServiceTest {
   public void setUp() {
     when(table.getFieldTypes()).thenReturn(ImmutableMap.of("a", ExprCoreType.INTEGER));
     when(table.implement(any())).thenReturn(plan);
-    when(storageEngine.getTable(any())).thenReturn(table);
-    when(catalogService.getCatalogs()).thenReturn(Set.of("prometheus"));
-    when(catalogService.getStorageEngine("prometheus")).thenReturn(storageEngine);
+    when(storageEngine.getTable(any(), any())).thenReturn(table);
+    when(catalogService.getCatalogs())
+        .thenReturn(Set.of(new Catalog("prometheus", ConnectorType.PROMETHEUS, storageEngine)));
+    when(catalogService.getCatalog(any()))
+        .thenReturn(new Catalog("prometheus", ConnectorType.PROMETHEUS, storageEngine));
     when(storageEngine.getFunctions()).thenReturn(Collections.singleton(functionResolver));
 
     context.registerBean(StorageEngine.class, () -> storageEngine);
@@ -98,7 +95,6 @@ public class PPLServiceTest {
 
   @Test
   public void testExecuteShouldPass() {
-    when(catalogService.getStorageEngine(any())).thenReturn(storageEngine);
     doAnswer(invocation -> {
       ResponseListener<QueryResponse> listener = invocation.getArgument(1);
       listener.onResponse(new QueryResponse(schema, Collections.emptyList()));
@@ -121,7 +117,6 @@ public class PPLServiceTest {
 
   @Test
   public void testExecuteCsvFormatShouldPass() {
-    when(catalogService.getStorageEngine(any())).thenReturn(storageEngine);
     doAnswer(invocation -> {
       ResponseListener<QueryResponse> listener = invocation.getArgument(1);
       listener.onResponse(new QueryResponse(schema, Collections.emptyList()));
@@ -143,7 +138,8 @@ public class PPLServiceTest {
 
   @Test
   public void testExplainShouldPass() {
-    when(catalogService.getStorageEngine(any())).thenReturn(storageEngine);
+    when(catalogService.getCatalog(any()))
+        .thenReturn(new Catalog("prometheus", ConnectorType.PROMETHEUS, storageEngine));
     doAnswer(invocation -> {
       ResponseListener<ExplainResponse> listener = invocation.getArgument(1);
       listener.onResponse(new ExplainResponse(new ExplainResponseNode("test")));
@@ -197,7 +193,6 @@ public class PPLServiceTest {
 
   @Test
   public void testPrometheusQuery() {
-    when(catalogService.getStorageEngine(any())).thenReturn(storageEngine);
     doAnswer(invocation -> {
       ResponseListener<QueryResponse> listener = invocation.getArgument(1);
       listener.onResponse(new QueryResponse(schema, Collections.emptyList()));

@@ -14,14 +14,15 @@ import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.swing.JTable;
 import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.CatalogSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.analysis.symbol.SymbolTable;
-import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.catalog.CatalogService;
+import org.opensearch.sql.catalog.model.Catalog;
+import org.opensearch.sql.catalog.model.ConnectorType;
 import org.opensearch.sql.config.TestConfig;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -51,16 +52,26 @@ public class AnalyzerTestBase {
 
   @Bean
   protected StorageEngine storageEngine() {
-    return new StorageEngine() {
+    return (catalogSchemaName, tableName) -> table;
+  }
+
+  @Bean
+  protected Table table() {
+    return new Table() {
       @Override
-      public Table getTable(String name) {
-        return table;
+      public Map<String, ExprType> getFieldTypes() {
+        return typeMapping();
+      }
+
+      @Override
+      public PhysicalPlan implement(LogicalPlan plan) {
+        throw new UnsupportedOperationException();
       }
     };
   }
 
   @Bean
-  protected Table table() {
+  protected Table catalogTable() {
     return new Table() {
       @Override
       public Map<String, ExprType> getFieldTypes() {
@@ -122,13 +133,16 @@ public class AnalyzerTestBase {
   protected Table table;
 
   @Autowired
+  protected CatalogService catalogService;
+
+  @Autowired
   protected Environment<Expression, ExprType> typeEnv;
 
   @Bean
   protected Analyzer analyzer(ExpressionAnalyzer expressionAnalyzer, CatalogService catalogService,
                       StorageEngine storageEngine, BuiltinFunctionRepository functionRepository,
                       Table table) {
-    catalogService.registerOpenSearchStorageEngine(storageEngine);
+    catalogService.registerDefaultOpenSearchCatalog(storageEngine);
     functionRepository.register("prometheus", new FunctionResolver() {
 
       @Override
@@ -175,20 +189,23 @@ public class AnalyzerTestBase {
 
   private class DefaultCatalogService implements CatalogService {
 
-    private StorageEngine storageEngine;
+    private StorageEngine storageEngine = storageEngine();
+    private final Catalog catalog
+        = new Catalog("prometheus", ConnectorType.PROMETHEUS, storageEngine);
+
 
     @Override
-    public StorageEngine getStorageEngine(String catalog) {
-      return storageEngine;
+    public Set<Catalog> getCatalogs() {
+      return ImmutableSet.of(catalog);
     }
 
     @Override
-    public Set<String> getCatalogs() {
-      return ImmutableSet.of("prometheus");
+    public Catalog getCatalog(String catalogName) {
+      return catalog;
     }
 
     @Override
-    public void registerOpenSearchStorageEngine(StorageEngine storageEngine) {
+    public void registerDefaultOpenSearchCatalog(StorageEngine storageEngine) {
       this.storageEngine = storageEngine;
     }
   }

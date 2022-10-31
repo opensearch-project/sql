@@ -841,63 +841,6 @@ static SQLLEN c16tombs(char *c8dt, const char16_t *c16dt, size_t n) {
 }
 #endif /* __CHAR16_UTF_16__ */
 
-//
-//	SQLBindParameter	SQL_C_CHAR to UTF-8 case
-//		the current locale => UTF-8
-//
-SQLLEN bindpara_msg_to_utf8(const char *ldt, char **wcsbuf, SQLLEN used) {
-    SQLLEN l = (-2);
-    char *utf8 = NULL, *ldt_nts, *alloc_nts = NULL, ntsbuf[128];
-    int count;
-
-    if (SQL_NTS == used) {
-        count = (int)strlen(ldt);
-        ldt_nts = (char *)ldt;
-    } else if (used < 0) {
-        return -1;
-    } else {
-        count = (int)used;
-        if (used < (SQLLEN)sizeof(ntsbuf))
-            ldt_nts = ntsbuf;
-        else {
-            if (NULL == (alloc_nts = malloc(used + 1)))
-                return l;
-            ldt_nts = alloc_nts;
-        }
-        memcpy(ldt_nts, ldt, used);
-        ldt_nts[used] = '\0';
-    }
-
-    get_convtype();
-    MYLOG(OPENSEARCH_DEBUG, " \n");
-#if defined(__WCS_ISO10646__)
-    if (use_wcs) {
-        wchar_t *wcsdt = (wchar_t *)malloc((count + 1) * sizeof(wchar_t));
-
-        if ((l = msgtowstr(ldt_nts, (wchar_t *)wcsdt, count + 1)) >= 0)
-            utf8 = wcs_to_utf8(wcsdt, -1, &l, FALSE);
-        free(wcsdt);
-    }
-#endif /* __WCS_ISO10646__ */
-#ifdef __CHAR16_UTF_16__
-    if (use_c16) {
-        SQLWCHAR *utf16 = (SQLWCHAR *)malloc((count + 1) * sizeof(SQLWCHAR));
-
-        if ((l = mbstoc16_lf((char16_t *)utf16, ldt_nts, count + 1, FALSE))
-            >= 0)
-            utf8 = ucs2_to_utf8(utf16, -1, &l, FALSE);
-        free(utf16);
-    }
-#endif /* __CHAR16_UTF_16__ */
-    if (l < 0 && NULL != utf8)
-        free(utf8);
-    else
-        *wcsbuf = (char *)utf8;
-
-    if (NULL != alloc_nts)
-        free(alloc_nts);
-    return l;
-}
 
 //
 //	SQLBindParameter	hybrid case

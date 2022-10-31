@@ -13,6 +13,9 @@ import static org.opensearch.sql.prometheus.constants.TestConstants.ENDTIME;
 import static org.opensearch.sql.prometheus.constants.TestConstants.QUERY;
 import static org.opensearch.sql.prometheus.constants.TestConstants.STARTTIME;
 import static org.opensearch.sql.prometheus.constants.TestConstants.STEP;
+import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.LABELS;
+import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.TIMESTAMP;
+import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.VALUE;
 import static org.opensearch.sql.prometheus.utils.TestUtils.getJson;
 
 import java.io.IOException;
@@ -51,18 +54,18 @@ public class PrometheusMetricScanTest {
     prometheusMetricScan.open();
     Assertions.assertTrue(prometheusMetricScan.hasNext());
     ExprTupleValue firstRow = new ExprTupleValue(new LinkedHashMap<>() {{
-        put("@timestamp", new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)));
-        put("@value", new ExprDoubleValue(1));
-        put("metric", new ExprStringValue(
+        put(TIMESTAMP, new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)));
+        put(VALUE, new ExprDoubleValue(1));
+        put(LABELS, new ExprStringValue(
             "{\"instance\":\"localhost:9090\",\"__name__\":\"up\",\"job\":\"prometheus\"}"));
       }
     });
     assertEquals(firstRow, prometheusMetricScan.next());
     Assertions.assertTrue(prometheusMetricScan.hasNext());
     ExprTupleValue secondRow = new ExprTupleValue(new LinkedHashMap<>() {{
-        put("@timestamp", new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)));
-        put("@value", new ExprDoubleValue(0));
-        put("metric", new ExprStringValue(
+        put(TIMESTAMP, new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)));
+        put(VALUE, new ExprDoubleValue(0));
+        put(LABELS, new ExprStringValue(
             "{\"instance\":\"localhost:9091\",\"__name__\":\"up\",\"job\":\"node\"}"));
       }
     });

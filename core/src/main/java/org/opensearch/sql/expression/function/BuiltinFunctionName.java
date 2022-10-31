@@ -77,6 +77,8 @@ public enum BuiltinFunctionName {
   MINUTE(FunctionName.of("minute")),
   MONTH(FunctionName.of("month")),
   MONTHNAME(FunctionName.of("monthname")),
+  PERIOD_ADD(FunctionName.of("period_add")),
+  PERIOD_DIFF(FunctionName.of("period_diff")),
   QUARTER(FunctionName.of("quarter")),
   SECOND(FunctionName.of("second")),
   SUBDATE(FunctionName.of("subdate")),
@@ -144,6 +146,8 @@ public enum BuiltinFunctionName {
   STDDEV_SAMP(FunctionName.of("stddev_samp")),
   // population standard deviation.
   STDDEV_POP(FunctionName.of("stddev_pop")),
+  // take top documents from aggregation bucket.
+  TAKE(FunctionName.of("take")),
 
   /**
    * Text Functions.
@@ -197,6 +201,7 @@ public enum BuiltinFunctionName {
   CAST_TO_TIME(FunctionName.of("cast_to_time")),
   CAST_TO_TIMESTAMP(FunctionName.of("cast_to_timestamp")),
   CAST_TO_DATETIME(FunctionName.of("cast_to_datetime")),
+  TYPEOF(FunctionName.of("typeof")),
 
   /**
    * Relevance Function.
@@ -243,6 +248,7 @@ public enum BuiltinFunctionName {
           .put("stddev", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_pop", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
+          .put("take", BuiltinFunctionName.TAKE)
           .build();
 
   public static Optional<BuiltinFunctionName> of(String str) {

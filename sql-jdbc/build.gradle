@@ -24,7 +24,7 @@ plugins {
 group 'org.opensearch.client'
 
 // keep version in sync with version in Driver source
-version '1.1.0.1'
+version '2.0.0.0'
 
 boolean snapshot = "true".equals(System.getProperty("build.snapshot", "false"));
 if (snapshot) {
@@ -46,7 +46,7 @@ repositories {
 
 dependencies {
     implementation group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.13'
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "2.13.3"
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "2.13.4.2"
     implementation group: 'com.amazonaws', name: 'aws-java-sdk-core', version: '1.11.452'
 
     testImplementation('org.junit.jupiter:junit-jupiter-api:5.3.1')
@@ -57,9 +57,8 @@ dependencies {
     testImplementation('org.junit-pioneer:junit-pioneer:0.3.0')
     testImplementation('org.eclipse.jetty:jetty-server:9.4.48.v20220622')
 
-    // Enforce wiremock to use latest guava and json-smart
+    // Enforce wiremock to use latest guava
     testImplementation('com.google.guava:guava:31.1-jre')
-    testImplementation('net.minidev:json-smart:2.4.8')
 
     testRuntimeOnly('org.slf4j:slf4j-simple:1.7.25') // capture WireMock logging
 }
@@ -98,6 +97,7 @@ shadowJar {
 }
 
 test {
+    systemProperty("opensearch_jdbc_version", version);
     useJUnitPlatform()
 }
 

@@ -9,6 +9,8 @@ package org.opensearch.sql.analysis;
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.opensearch.sql.analysis.CatalogSchemaIdentifierNameResolver.DEFAULT_CATALOG_NAME;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
@@ -29,16 +31,15 @@ import static org.opensearch.sql.ast.tree.Sort.SortOption;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
-import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
+import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
-import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
+import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -67,8 +68,11 @@ import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
+import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
+import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.physical.catalog.CatalogTable;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
@@ -125,13 +129,36 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void filter_relation_with_information_schema_and_catalog() {
+  public void filter_relation_with_information_schema_and_prom_catalog() {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.relation("tables", table),
             dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
         AstDSL.filter(
-            AstDSL.relation(AstDSL.qualifiedName("prometheus","default","tables")),
+            AstDSL.relation(AstDSL.qualifiedName("prometheus", "information_schema", "tables")),
+            AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
+  }
+
+  @Test
+  public void filter_relation_with_default_schema_and_prom_catalog() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("tables", table),
+            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+        AstDSL.filter(
+            AstDSL.relation(AstDSL.qualifiedName("prometheus", "default", "tables")),
+            AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
+  }
+
+  @Test
+  public void filter_relation_with_information_schema_and_os_catalog() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("tables", table),
+            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+        AstDSL.filter(
+            AstDSL.relation(
+                AstDSL.qualifiedName(DEFAULT_CATALOG_NAME, "information_schema", "tables")),
             AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
   }
 
@@ -142,7 +169,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             LogicalPlanDSL.relation("tables.test", table),
             dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
         AstDSL.filter(
-            AstDSL.relation(AstDSL.qualifiedName("information_schema","tables", "test")),
+            AstDSL.relation(AstDSL.qualifiedName("information_schema", "tables", "test")),
             AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
   }
 
@@ -388,7 +415,8 @@ class AnalyzerTest extends AnalyzerTestBase {
             AstDSL.field("double_value")));
   }
 
-  @Disabled("the project/remove command should shrink the type env")
+  @Disabled("the project/remove command should shrink the type env. Should be enabled once "
+          + "https://github.com/opensearch-project/sql/issues/917 is resolved")
   @Test
   public void project_source_change_type_env() {
     SemanticCheckException exception =
@@ -953,6 +981,40 @@ class AnalyzerTest extends AnalyzerTestBase {
     );
   }
 
+  @Test
+  public void ad_fitRCF_relation_with_time_field() {
+    Map<String, Literal> argumentMap = new HashMap<String, Literal>() {{
+        put("shingle_size", new Literal(8, DataType.INTEGER));
+        put("time_decay", new Literal(0.0001, DataType.DOUBLE));
+        put("time_field", new Literal("ts", DataType.STRING));
+      }};
+
+    LogicalPlan actual = analyze(AstDSL.project(
+            new AD(AstDSL.relation("schema"), argumentMap), AstDSL.allFields()));
+    assertTrue(((LogicalProject) actual).getProjectList().size() >= 3);
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named("score", DSL.ref("score", DOUBLE))));
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named("anomaly_grade", DSL.ref("anomaly_grade", DOUBLE))));
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named("ts", DSL.ref("ts", TIMESTAMP))));
+  }
+
+  @Test
+  public void ad_fitRCF_relation_without_time_field() {
+    Map<String, Literal> argumentMap = new HashMap<>() {{
+        put("shingle_size", new Literal(8, DataType.INTEGER));
+        put("time_decay", new Literal(0.0001, DataType.DOUBLE));
+      }};
+
+    LogicalPlan actual = analyze(AstDSL.project(
+            new AD(AstDSL.relation("schema"), argumentMap), AstDSL.allFields()));
+    assertTrue(((LogicalProject) actual).getProjectList().size() >= 2);
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named("score", DSL.ref("score", DOUBLE))));
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named("anomalous", DSL.ref("anomalous", BOOLEAN))));
+  }
 
   @Test
   public void table_function() {
@@ -998,5 +1060,11 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertEquals("unsupported function name: queryrange", exception.getMessage());
   }
 
+  @Test
+  public void show_catalogs() {
+    assertAnalyzeEqual(new LogicalRelation(".CATALOGS", new CatalogTable(catalogService)),
+        AstDSL.relation(qualifiedName(".CATALOGS")));
+
+  }
 
 }

@@ -20,18 +20,18 @@ class SystemIndexUtilsTest {
 
   @Test
   void test_system_index() {
-    assertTrue(isSystemIndex("_ODFE_SYS_TABLE_META.ALL"));
+    assertTrue(isSystemIndex("ALL.META_ODFE_SYS_TABLE"));
     assertFalse(isSystemIndex(".opensearch_dashboards"));
   }
 
   @Test
   void test_compose_mapping_table() {
-    assertEquals("_ODFE_SYS_TABLE_MAPPINGS.employee", mappingTable("employee"));
+    assertEquals("employee.MAPPINGS_ODFE_SYS_TABLE", mappingTable("employee"));
   }
 
   @Test
   void test_system_info_table() {
-    final SystemIndexUtils.SystemTable table = systemTable("_ODFE_SYS_TABLE_META.ALL");
+    final SystemIndexUtils.SystemTable table = systemTable("ALL.META_ODFE_SYS_TABLE");
 
     assertTrue(table.isSystemInfoTable());
     assertFalse(table.isMetaInfoTable());
@@ -40,7 +40,7 @@ class SystemIndexUtilsTest {
 
   @Test
   void test_mapping_info_table() {
-    final SystemIndexUtils.SystemTable table = systemTable("_ODFE_SYS_TABLE_MAPPINGS.employee");
+    final SystemIndexUtils.SystemTable table = systemTable("employee.MAPPINGS_ODFE_SYS_TABLE");
 
     assertTrue(table.isMetaInfoTable());
     assertFalse(table.isSystemInfoTable());
@@ -48,9 +48,18 @@ class SystemIndexUtilsTest {
   }
 
   @Test
+  void test_mapping_info_table_with_special_index_name() {
+    final SystemIndexUtils.SystemTable table
+        = systemTable("logs-2021.01.11.MAPPINGS_ODFE_SYS_TABLE");
+    assertTrue(table.isMetaInfoTable());
+    assertFalse(table.isSystemInfoTable());
+    assertEquals("logs-2021.01.11", table.getTableName());
+  }
+
+  @Test
   void throw_exception_for_invalid_index() {
     final IllegalStateException exception =
-        assertThrows(IllegalStateException.class, () -> systemTable("_ODFE_SYS_TABLE.employee"));
-    assertEquals("Invalid system index name: _ODFE_SYS_TABLE.employee", exception.getMessage());
+        assertThrows(IllegalStateException.class, () -> systemTable("employee._ODFE_SYS_TABLE"));
+    assertEquals("Invalid system index name: employee._ODFE_SYS_TABLE", exception.getMessage());
   }
 }

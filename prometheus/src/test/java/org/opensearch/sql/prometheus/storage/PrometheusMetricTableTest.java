@@ -14,7 +14,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.project;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.relation;
-import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.METRIC;
+import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.LABELS;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.TIMESTAMP;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.VALUE;
 
@@ -56,7 +56,7 @@ class PrometheusMetricTableTest {
     expectedFieldTypes.put("label2", ExprCoreType.STRING);
     expectedFieldTypes.put(VALUE, ExprCoreType.DOUBLE);
     expectedFieldTypes.put(TIMESTAMP, ExprCoreType.TIMESTAMP);
-    expectedFieldTypes.put(METRIC, ExprCoreType.STRING);
+    expectedFieldTypes.put(LABELS, ExprCoreType.STRING);
 
     Map<String, ExprType> fieldTypes = prometheusMetricTable.getFieldTypes();
 
@@ -76,7 +76,7 @@ class PrometheusMetricTableTest {
     Map<String, ExprType> expectedFieldTypes = new HashMap<>();
     expectedFieldTypes.put(VALUE, ExprCoreType.DOUBLE);
     expectedFieldTypes.put(TIMESTAMP, ExprCoreType.TIMESTAMP);
-    expectedFieldTypes.put(METRIC, ExprCoreType.STRING);
+    expectedFieldTypes.put(LABELS, ExprCoreType.STRING);
 
     Map<String, ExprType> fieldTypes = prometheusMetricTable.getFieldTypes();
 
@@ -93,7 +93,7 @@ class PrometheusMetricTableTest {
         new PrometheusMetricTable(client, prometheusQueryRequest);
     List<NamedExpression> finalProjectList = new ArrayList<>();
     finalProjectList.add(
-        new NamedExpression(METRIC, new ReferenceExpression(METRIC, ExprCoreType.STRING)));
+        new NamedExpression(LABELS, new ReferenceExpression(LABELS, ExprCoreType.STRING)));
     PhysicalPlan plan = prometheusMetricTable.implement(
         project(relation("query_range", prometheusMetricTable),
             finalProjectList, null));
@@ -103,7 +103,7 @@ class PrometheusMetricTableTest {
     List<NamedExpression> projectList = ((ProjectOperator) plan).getProjectList();
     List<String> outputFields
         = projectList.stream().map(NamedExpression::getName).collect(Collectors.toList());
-    assertEquals(List.of(METRIC, TIMESTAMP, VALUE), outputFields);
+    assertEquals(List.of(LABELS, TIMESTAMP, VALUE), outputFields);
     assertTrue(((ProjectOperator) plan).getInput() instanceof PrometheusMetricScan);
     PrometheusMetricScan prometheusMetricScan =
         (PrometheusMetricScan) ((ProjectOperator) plan).getInput();
@@ -117,7 +117,7 @@ class PrometheusMetricTableTest {
         new PrometheusMetricTable(client, prometheusQueryRequest);
     List<NamedExpression> finalProjectList = new ArrayList<>();
     finalProjectList.add(
-        new NamedExpression(METRIC, new ReferenceExpression(METRIC, ExprCoreType.STRING)));
+        new NamedExpression(LABELS, new ReferenceExpression(LABELS, ExprCoreType.STRING)));
     LogicalPlan inputPlan = project(relation("query_range", prometheusMetricTable),
         finalProjectList, null);
     LogicalPlan optimizedPlan = prometheusMetricTable.optimize(

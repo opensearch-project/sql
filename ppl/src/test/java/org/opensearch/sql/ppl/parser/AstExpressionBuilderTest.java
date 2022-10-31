@@ -478,6 +478,33 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testTakeAggregationNoArgsShouldPass() {
+    assertEqual("source=t | stats take(a)",
+        agg(
+            relation("t"),
+            exprList(alias("take(a)",
+                aggregate("take", field("a"), unresolvedArg("size", intLiteral(10))))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()
+        ));
+  }
+
+  @Test
+  public void testTakeAggregationWithArgsShouldPass() {
+    assertEqual("source=t | stats take(a, 5)",
+        agg(
+            relation("t"),
+            exprList(alias("take(a, 5)",
+                aggregate("take", field("a"), unresolvedArg("size", intLiteral(5))))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()
+        ));
+  }
+
+
+  @Test
   public void testEvalFuncCallExpr() {
     assertEqual("source=t | eval f=abs(a)",
         eval(
@@ -501,7 +528,6 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         ));
   }
 
-  @Ignore("Nested field is not supported in backend yet")
   @Test
   public void testNestedFieldName() {
     assertEqual("source=t | fields field0.field1.field2",
@@ -526,7 +552,6 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         ));
   }
 
-  @Ignore("Nested field is not supported in backend yet")
   @Test
   public void testNestedFieldNameWithSpecialChars() {
     assertEqual("source=t | fields `field-0`.`field#1`.`field*2`",

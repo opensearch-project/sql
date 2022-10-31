@@ -14,8 +14,8 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.utils.MLCommonsConstants.RCF_ANOMALOUS;
 import static org.opensearch.sql.utils.MLCommonsConstants.RCF_ANOMALY_GRADE;
 import static org.opensearch.sql.utils.MLCommonsConstants.RCF_SCORE;
-import static org.opensearch.sql.utils.MLCommonsConstants.RCF_TIMESTAMP;
 import static org.opensearch.sql.utils.MLCommonsConstants.TIME_FIELD;
+import static org.opensearch.sql.utils.SystemIndexUtils.CATALOGS_TABLE_NAME;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
@@ -25,10 +25,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.opensearch.sql.analysis.model.CatalogSchemaIdentifierName;
+import org.opensearch.sql.CatalogSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -60,6 +61,7 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.catalog.CatalogService;
+import org.opensearch.sql.catalog.model.Catalog;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -89,6 +91,7 @@ import org.opensearch.sql.planner.logical.LogicalRemove;
 import org.opensearch.sql.planner.logical.LogicalRename;
 import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.planner.logical.LogicalValues;
+import org.opensearch.sql.planner.physical.catalog.CatalogTable;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.utils.ParseUtils;
 
@@ -129,14 +132,26 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitRelation(Relation node, AnalysisContext context) {
     QualifiedName qualifiedName = node.getTableQualifiedName();
-    CatalogSchemaIdentifierName catalogSchemaIdentifierName
-        = new CatalogSchemaIdentifierName(qualifiedName.getParts(), catalogService.getCatalogs());
-    String tableName = catalogSchemaIdentifierName.getIdentifierName();
+    Set<String> allowedCatalogNames = catalogService.getCatalogs()
+        .stream()
+        .map(Catalog::getName)
+        .collect(Collectors.toSet());
+    CatalogSchemaIdentifierNameResolver catalogSchemaIdentifierNameResolver
+        = new CatalogSchemaIdentifierNameResolver(qualifiedName.getParts(), allowedCatalogNames);
+    String tableName = catalogSchemaIdentifierNameResolver.getIdentifierName();
     context.push();
     TypeEnvironment curEnv = context.peek();
-    Table table = catalogService
-        .getStorageEngine(catalogSchemaIdentifierName.getCatalogName())
-        .getTable(catalogSchemaIdentifierName.getIdentifierName());
+    Table table;
+    if (CATALOGS_TABLE_NAME.equals(tableName)) {
+      table = new CatalogTable(catalogService);
+    } else {
+      table = catalogService
+          .getCatalog(catalogSchemaIdentifierNameResolver.getCatalogName())
+          .getStorageEngine()
+          .getTable(new CatalogSchemaName(catalogSchemaIdentifierNameResolver.getCatalogName(),
+                  catalogSchemaIdentifierNameResolver.getSchemaName()),
+              catalogSchemaIdentifierNameResolver.getIdentifierName());
+    }
     table.getFieldTypes().forEach((k, v) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));
 
     // Put index name or its alias in index namespace on type environment so qualifier
@@ -163,17 +178,22 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitTableFunction(TableFunction node, AnalysisContext context) {
     QualifiedName qualifiedName = node.getFunctionName();
-    CatalogSchemaIdentifierName catalogSchemaIdentifierName
-        = new CatalogSchemaIdentifierName(qualifiedName.getParts(), catalogService.getCatalogs());
+    Set<String> allowedCatalogNames = catalogService.getCatalogs()
+        .stream()
+        .map(Catalog::getName)
+        .collect(Collectors.toSet());
+    CatalogSchemaIdentifierNameResolver catalogSchemaIdentifierNameResolver
+        = new CatalogSchemaIdentifierNameResolver(qualifiedName.getParts(), allowedCatalogNames);
 
-    FunctionName functionName = FunctionName.of(catalogSchemaIdentifierName.getIdentifierName());
+    FunctionName functionName
+        = FunctionName.of(catalogSchemaIdentifierNameResolver.getIdentifierName());
     List<Expression> arguments = node.getArguments().stream()
         .map(unresolvedExpression -> this.expressionAnalyzer.analyze(unresolvedExpression, context))
         .collect(Collectors.toList());
     TableFunctionImplementation tableFunctionImplementation
         = (TableFunctionImplementation) repository.compile(
-        catalogSchemaIdentifierName.getCatalogName(), functionName, arguments);
-    return new LogicalRelation(catalogSchemaIdentifierName.getIdentifierName(),
+        catalogSchemaIdentifierNameResolver.getCatalogName(), functionName, arguments);
+    return new LogicalRelation(catalogSchemaIdentifierNameResolver.getIdentifierName(),
         tableFunctionImplementation.applyArguments());
   }
 
@@ -479,7 +499,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       currentEnv.define(new Symbol(Namespace.FIELD_NAME, RCF_ANOMALOUS), ExprCoreType.BOOLEAN);
     } else {
       currentEnv.define(new Symbol(Namespace.FIELD_NAME, RCF_ANOMALY_GRADE), ExprCoreType.DOUBLE);
-      currentEnv.define(new Symbol(Namespace.FIELD_NAME, RCF_TIMESTAMP), ExprCoreType.TIMESTAMP);
+      currentEnv.define(new Symbol(Namespace.FIELD_NAME,
+              (String) node.getArguments().get(TIME_FIELD).getValue()), ExprCoreType.TIMESTAMP);
     }
     return new LogicalAD(child, options);
   }
