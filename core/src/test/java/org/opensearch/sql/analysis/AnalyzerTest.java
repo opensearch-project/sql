@@ -37,6 +37,21 @@ import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+import static org.opensearch.sql.utils.MLCommonsConstants.ACTION;
+import static org.opensearch.sql.utils.MLCommonsConstants.ALGO;
+import static org.opensearch.sql.utils.MLCommonsConstants.ASYNC;
+import static org.opensearch.sql.utils.MLCommonsConstants.CLUSTERID;
+import static org.opensearch.sql.utils.MLCommonsConstants.KMEANS;
+import static org.opensearch.sql.utils.MLCommonsConstants.MODELID;
+import static org.opensearch.sql.utils.MLCommonsConstants.PREDICT;
+import static org.opensearch.sql.utils.MLCommonsConstants.RCF;
+import static org.opensearch.sql.utils.MLCommonsConstants.RCF_ANOMALOUS;
+import static org.opensearch.sql.utils.MLCommonsConstants.RCF_ANOMALY_GRADE;
+import static org.opensearch.sql.utils.MLCommonsConstants.RCF_SCORE;
+import static org.opensearch.sql.utils.MLCommonsConstants.RCF_TIME_FIELD;
+import static org.opensearch.sql.utils.MLCommonsConstants.STATUS;
+import static org.opensearch.sql.utils.MLCommonsConstants.TASKID;
+import static org.opensearch.sql.utils.MLCommonsConstants.TRAIN;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -59,6 +74,7 @@ import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Kmeans;
+import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -1067,4 +1083,119 @@ class AnalyzerTest extends AnalyzerTestBase {
 
   }
 
+  @Test
+  public void ml_relation_unsupported_action() {
+    Map<String, Literal> argumentMap = new HashMap<>() {{
+        put(ACTION, new Literal("unsupported", DataType.STRING));
+        put(ALGO, new Literal(KMEANS, DataType.STRING));
+      }};
+
+    IllegalArgumentException exception =
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> analyze(AstDSL.project(
+                            new ML(AstDSL.relation("schema"), argumentMap), AstDSL.allFields())));
+    assertEquals(
+            "Action error. Please indicate train, predict or trainandpredict.",
+            exception.getMessage());
+  }
+
+  @Test
+  public void ml_relation_unsupported_algorithm() {
+    Map<String, Literal> argumentMap = new HashMap<>() {{
+        put(ACTION, new Literal(PREDICT, DataType.STRING));
+        put(ALGO, new Literal("unsupported", DataType.STRING));
+      }};
+
+    IllegalArgumentException exception =
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> analyze(AstDSL.project(
+                            new ML(AstDSL.relation("schema"), argumentMap), AstDSL.allFields())));
+    assertEquals(
+            "Unsupported algorithm: unsupported",
+            exception.getMessage());
+  }
+
+  @Test
+  public void ml_relation_train_sync() {
+    Map<String, Literal> argumentMap = new HashMap<>() {{
+        put(ACTION, new Literal(TRAIN, DataType.STRING));
+        put(ALGO, new Literal(KMEANS, DataType.STRING));
+      }};
+
+    LogicalPlan actual = analyze(AstDSL.project(
+            new ML(AstDSL.relation("schema"), argumentMap), AstDSL.allFields()));
+    assertTrue(((LogicalProject) actual).getProjectList().size() >= 2);
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named(STATUS, DSL.ref(STATUS, STRING))));
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named(MODELID, DSL.ref(MODELID, STRING))));
+  }
+
+  @Test
+  public void ml_relation_train_async() {
+    Map<String, Literal> argumentMap = new HashMap<>() {{
+        put(ACTION, new Literal(TRAIN, DataType.STRING));
+        put(ALGO, new Literal(KMEANS, DataType.STRING));
+        put(ASYNC, new Literal(true, DataType.BOOLEAN));
+      }};
+
+    LogicalPlan actual = analyze(AstDSL.project(
+            new ML(AstDSL.relation("schema"), argumentMap), AstDSL.allFields()));
+    assertTrue(((LogicalProject) actual).getProjectList().size() >= 2);
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named(STATUS, DSL.ref(STATUS, STRING))));
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named(TASKID, DSL.ref(TASKID, STRING))));
+  }
+
+  @Test
+  public void ml_relation_predict_kmeans() {
+    Map<String, Literal> argumentMap = new HashMap<>() {{
+        put(ACTION, new Literal(PREDICT, DataType.STRING));
+        put(ALGO, new Literal(KMEANS, DataType.STRING));
+      }};
+
+    LogicalPlan actual = analyze(AstDSL.project(
+            new ML(AstDSL.relation("schema"), argumentMap), AstDSL.allFields()));
+    assertTrue(((LogicalProject) actual).getProjectList().size() >= 1);
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named(CLUSTERID, DSL.ref(CLUSTERID, INTEGER))));
+  }
+
+  @Test
+  public void ml_relation_predict_rcf_with_time_field() {
+    Map<String, Literal> argumentMap = new HashMap<>() {{
+        put(ACTION, new Literal(PREDICT, DataType.STRING));
+        put(ALGO, new Literal(RCF, DataType.STRING));
+        put(RCF_TIME_FIELD, new Literal("ts", DataType.STRING));
+      }};
+
+    LogicalPlan actual = analyze(AstDSL.project(
+            new ML(AstDSL.relation("schema"), argumentMap), AstDSL.allFields()));
+    assertTrue(((LogicalProject) actual).getProjectList().size() >= 3);
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named(RCF_SCORE, DSL.ref(RCF_SCORE, DOUBLE))));
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named(RCF_ANOMALY_GRADE, DSL.ref(RCF_ANOMALY_GRADE, DOUBLE))));
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named("ts", DSL.ref("ts", TIMESTAMP))));
+  }
+
+  @Test
+  public void ml_relation_predict_rcf_without_time_field() {
+    Map<String, Literal> argumentMap = new HashMap<>() {{
+        put(ACTION, new Literal(PREDICT, DataType.STRING));
+        put(ALGO, new Literal(RCF, DataType.STRING));
+      }};
+
+    LogicalPlan actual = analyze(AstDSL.project(
+            new ML(AstDSL.relation("schema"), argumentMap), AstDSL.allFields()));
+    assertTrue(((LogicalProject) actual).getProjectList().size() >= 2);
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named(RCF_SCORE, DSL.ref(RCF_SCORE, DOUBLE))));
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named(RCF_ANOMALOUS, DSL.ref(RCF_ANOMALOUS, BOOLEAN))));
+  }
 }

@@ -24,6 +24,7 @@ import org.opensearch.sql.opensearch.planner.logical.OpenSearchLogicalIndexScan;
 import org.opensearch.sql.opensearch.planner.logical.OpenSearchLogicalPlanOptimizerFactory;
 import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
+import org.opensearch.sql.opensearch.planner.physical.MLOperator;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.system.OpenSearchDescribeIndexRequest;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
@@ -34,6 +35,7 @@ import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSeri
 import org.opensearch.sql.planner.DefaultImplementor;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalHighlight;
+import org.opensearch.sql.planner.logical.LogicalML;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalRelation;
@@ -202,6 +204,12 @@ public class OpenSearchIndex implements Table {
     @Override
     public PhysicalPlan visitAD(LogicalAD node, OpenSearchIndexScan context) {
       return new ADOperator(visitChild(node, context),
+              node.getArguments(), client.getNodeClient());
+    }
+
+    @Override
+    public PhysicalPlan visitML(LogicalML node, OpenSearchIndexScan context) {
+      return new MLOperator(visitChild(node, context),
               node.getArguments(), client.getNodeClient());
     }
 

@@ -143,6 +143,18 @@ class LogicalPlanNodeVisitorTest {
         });
     assertNull(ad.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
     }, null));
+
+    LogicalPlan ml = new LogicalML(LogicalPlanDSL.relation("schema", table),
+            new HashMap<String, Literal>() {{
+              put("action", new Literal("train", DataType.STRING));
+              put("algorithm", new Literal("rcf", DataType.STRING));
+              put("shingle_size", new Literal(8, DataType.INTEGER));
+              put("time_decay", new Literal(0.0001, DataType.DOUBLE));
+              put("time_field", new Literal(null, DataType.STRING));
+            }
+            });
+    assertNull(ml.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
+    }, null));
   }
 
   private static class NodesCount extends LogicalPlanNodeVisitor<Integer, Object> {

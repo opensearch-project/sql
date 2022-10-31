@@ -56,6 +56,7 @@ import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
+import org.opensearch.sql.opensearch.planner.physical.MLOperator;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndexScan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -291,6 +292,26 @@ class OpenSearchExecutionProtectorTest {
 
     assertEquals(executionProtector.doProtect(adOperator),
             executionProtector.visitAD(adOperator, null));
+  }
+
+  @Test
+  public void testVisitML() {
+    NodeClient nodeClient = mock(NodeClient.class);
+    MLOperator mlOperator =
+            new MLOperator(
+                values(emptyList()),
+                new HashMap<String, Literal>() {{
+                  put("action", new Literal("train", DataType.STRING));
+                  put("algorithm", new Literal("rcf", DataType.STRING));
+                  put("shingle_size", new Literal(8, DataType.INTEGER));
+                  put("time_decay", new Literal(0.0001, DataType.DOUBLE));
+                  put("time_field", new Literal(null, DataType.STRING));
+                }},
+                nodeClient
+            );
+
+    assertEquals(executionProtector.doProtect(mlOperator),
+            executionProtector.visitML(mlOperator, null));
   }
 
   PhysicalPlan resourceMonitor(PhysicalPlan input) {
