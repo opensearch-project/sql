@@ -10,7 +10,10 @@ include_directories(	${UT_HELPER}
 # Generate executable
 add_executable(itodbc_results ${SOURCE_FILES})
 
+# Find packages from vcpkg
+find_package(GTest CONFIG REQUIRED)
+
 # Library dependencies
 target_code_coverage(itodbc_results PUBLIC AUTO ALL)
-target_link_libraries(itodbc_results sqlodbc itodbc_helper ut_helper gtest_main)
+target_link_libraries(itodbc_results sqlodbc itodbc_helper ut_helper GTest::gtest_main)
 target_compile_definitions(itodbc_results PUBLIC _UNICODE UNICODE)

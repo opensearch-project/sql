@@ -60,7 +60,7 @@ configurations.all {
     resolutionStrategy.force 'com.google.guava:guava:31.0.1-jre'
     resolutionStrategy.force "com.fasterxml.jackson.core:jackson-core:${jackson_version}"
     resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${jackson_version}"
-    resolutionStrategy.force "com.fasterxml.jackson.core:jackson-databind:${jackson_version}"
+    resolutionStrategy.force "com.fasterxml.jackson.core:jackson-databind:${jackson_databind_version}"
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.6.0"
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0"
 }
@@ -109,6 +109,7 @@ testClusters.integTest {
     keystore 'plugins.query.federation.catalog.config', new File("$projectDir/src/test/resources/catalog/", 'catalog.json')
 }
 task startPrometheus(type: SpawnProcessTask) {
+    mustRunAfter ':doctest:doctest'
     doFirst {
         download.run {
             src 'https://github.com/prometheus/prometheus/releases/download/v2.39.1/prometheus-2.39.1.linux-amd64.tar.gz'

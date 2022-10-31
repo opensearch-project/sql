@@ -7,7 +7,6 @@
 package org.opensearch.sql.ppl.config;
 
 import org.opensearch.sql.catalog.CatalogService;
-import org.opensearch.sql.catalog.model.ConnectorType;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;

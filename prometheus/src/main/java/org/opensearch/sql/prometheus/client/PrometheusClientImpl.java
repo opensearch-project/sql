@@ -5,10 +5,14 @@
 
 package org.opensearch.sql.prometheus.client;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
@@ -18,6 +22,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.opensearch.sql.prometheus.request.system.model.MetricMetadata;
 
 public class PrometheusClientImpl implements PrometheusClient {
 
@@ -35,21 +40,11 @@ public class PrometheusClientImpl implements PrometheusClient {
 
   @Override
   public JSONObject queryRange(String query, Long start, Long end, String step) throws IOException {
-    HttpUrl httpUrl = new HttpUrl.Builder()
-        .scheme(uri.getScheme())
-        .host(uri.getHost())
-        .port(uri.getPort())
-        .addPathSegment("api")
-        .addPathSegment("v1")
-        .addPathSegment("query_range")
-        .addQueryParameter("query", query)
-        .addQueryParameter("start", Long.toString(start))
-        .addQueryParameter("end", Long.toString(end))
-        .addQueryParameter("step", step)
-        .build();
-    logger.debug("queryUrl: " + httpUrl);
+    String queryUrl = String.format("%s/api/v1/query_range?query=%s&start=%s&end=%s&step=%s",
+        uri.toString().replaceAll("/$", ""), query, start, end, step);
+    logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder()
-        .url(httpUrl)
+        .url(queryUrl)
         .build();
     Response response = this.okHttpClient.newCall(request).execute();
     JSONObject jsonObject = readResponse(response);
@@ -58,7 +53,8 @@ public class PrometheusClientImpl implements PrometheusClient {
 
   @Override
   public List<String> getLabels(String metricName) throws IOException {
-    String queryUrl = String.format("%sapi/v1/labels?match[]=%s", uri.toString(), metricName);
+    String queryUrl = String.format("%s/api/v1/labels?match[]=%s",
+        uri.toString().replaceAll("/$", ""), metricName);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder()
         .url(queryUrl)
@@ -66,6 +62,21 @@ public class PrometheusClientImpl implements PrometheusClient {
     Response response = this.okHttpClient.newCall(request).execute();
     JSONObject jsonObject = readResponse(response);
     return toListOfStrings(jsonObject.getJSONArray("data"));
+  }
+
+  @Override
+  public Map<String, List<MetricMetadata>> getAllMetrics() throws IOException {
+    String queryUrl = String.format("%s/api/v1/metadata",
+        uri.toString().replaceAll("/$", ""));
+    logger.debug("queryUrl: " + queryUrl);
+    Request request = new Request.Builder()
+        .url(queryUrl)
+        .build();
+    Response response = this.okHttpClient.newCall(request).execute();
+    JSONObject jsonObject = readResponse(response);
+    TypeReference<HashMap<String, List<MetricMetadata>>> typeRef
+        = new TypeReference<>() {};
+    return new ObjectMapper().readValue(jsonObject.getJSONObject("data").toString(), typeRef);
   }
 
   private List<String> toListOfStrings(JSONArray array) {
