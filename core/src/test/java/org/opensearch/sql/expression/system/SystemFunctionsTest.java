@@ -41,7 +41,13 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 
 public class SystemFunctionsTest {
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
+
+  protected static DSL dsl;
+
+  {
+    ExpressionConfig config = new ExpressionConfig();
+    dsl = config.dsl(config.functionRepository(config.functionExecutionContext()));
+  }
 
   @Test
   void typeof() {

@@ -5,18 +5,30 @@
 
 package org.opensearch.sql.expression.function;
 
+import java.io.Serializable;
 import java.time.Clock;
-import lombok.Getter;
+import java.time.Instant;
+import java.time.ZoneId;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Class to capture values that may be necessary to implement some functions.
  * An example would be query execution start time to implement now().
  */
-public class FunctionProperties {
+@RequiredArgsConstructor
+public class FunctionProperties implements Serializable {
 
-  public FunctionProperties(Clock systemClock) {
-    this.systemClock = systemClock;
-    this.queryStartClock = Clock.fixed(systemClock.instant(), systemClock.getZone());
+  private final Instant nowInstant;
+  private final ZoneId currentZoneId;
+
+
+
+  /**
+   * Method to access current system clock.
+   * @return a ticking clock that tells the time.
+   */
+  public Clock getSystemClock() {
+    return Clock.system(currentZoneId);
   }
 
   /**
@@ -25,14 +37,13 @@ public class FunctionProperties {
    * @return a fixed clock that returns the time execution started at.
    *
    */
-  @Getter
-  private final Clock queryStartClock;
+  public Clock getQueryStartClock() {
+    return Clock.fixed(nowInstant, currentZoneId);
+  }
 
-  /**
-   * Method to access current system clock.
-   * @return a ticking clock that tells the time.
-   */
-  @Getter
-  private final Clock systemClock;
+  @Override
+  public String toString() {
+    return String.format("[%s, %s]", nowInstant, currentZoneId);
+  }
 }
 

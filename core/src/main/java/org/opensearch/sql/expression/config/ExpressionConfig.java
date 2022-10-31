@@ -7,6 +7,8 @@
 package org.opensearch.sql.expression.config;
 
 import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.HashMap;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.aggregation.AggregatorFunction;
@@ -56,7 +58,7 @@ public class ExpressionConfig {
 
   @Bean
   public FunctionProperties functionExecutionContext() {
-    return new FunctionProperties(Clock.systemDefaultZone());
+    return new FunctionProperties(Instant.now(), ZoneId.systemDefault());
   }
 
   @Bean

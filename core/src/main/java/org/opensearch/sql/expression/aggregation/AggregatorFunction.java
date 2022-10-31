@@ -201,7 +201,7 @@ public class AggregatorFunction {
     DefaultFunctionResolver functionResolver = new DefaultFunctionResolver(functionName,
         new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
             .put(new FunctionSignature(functionName, ImmutableList.of(STRING, INTEGER)),
-                arguments -> new TakeAggregator(arguments, ARRAY))
+                (functionProperties, arguments) -> new TakeAggregator(arguments, ARRAY))
             .build());
     return functionResolver;
   }

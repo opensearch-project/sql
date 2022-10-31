@@ -128,16 +128,6 @@ public class DateTimeFunction {
     repository.register(unix_timestamp());
     repository.register(week());
     repository.register(year());
-
-    repository.register(now());
-    repository.register(current_timestamp());
-    repository.register(localtimestamp());
-    repository.register(localtime());
-    repository.register(sysdate());
-    repository.register(curtime());
-    repository.register(current_time());
-    repository.register(curdate());
-    repository.register(current_date());
   }
 
   /**
@@ -253,41 +243,6 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprConvertTZ),
             DATETIME, STRING, STRING, STRING)
     );
-  }
-
-  private FunctionResolver curdate(FunctionName functionName) {
-    return define(functionName,
-        impl(() -> new ExprDateValue(formatNow(null).toLocalDate()), DATE)
-    );
-  }
-
-  private FunctionResolver curdate() {
-    return curdate(BuiltinFunctionName.CURDATE.getName());
-  }
-
-  /**
-   * Synonym for @see `now`.
-   */
-  private FunctionResolver curtime(FunctionName functionName) {
-    return define(functionName,
-        impl(() -> new ExprTimeValue(formatNow(null).toLocalTime()), TIME)
-    );
-  }
-
-  private FunctionResolver curtime() {
-    return curtime(BuiltinFunctionName.CURTIME.getName());
-  }
-
-  private FunctionResolver current_date() {
-    return curdate(BuiltinFunctionName.CURRENT_DATE.getName());
-  }
-
-  private FunctionResolver current_time() {
-    return curtime(BuiltinFunctionName.CURRENT_TIME.getName());
-  }
-
-  private FunctionResolver current_timestamp() {
-    return now(BuiltinFunctionName.CURRENT_TIMESTAMP.getName());
   }
 
   /**
@@ -438,29 +393,6 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprHour), INTEGER, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::exprHour), INTEGER, TIMESTAMP)
     );
-  }
-
-  private FunctionResolver localtime() {
-    return now(BuiltinFunctionName.LOCALTIME.getName());
-  }
-
-  private FunctionResolver localtimestamp() {
-    return now(BuiltinFunctionName.LOCALTIMESTAMP.getName());
-  }
-
-  /**
-   * NOW() returns a constant time that indicates the time at which the statement began to execute.
-   * `fsp` argument support is removed until refactoring to avoid bug where `now()`, `now(x)` and
-   * `now(y) return different values.
-   */
-  private FunctionResolver now(FunctionName functionName) {
-    return define(functionName,
-        impl(() -> new ExprDatetimeValue(formatNow(null)), DATETIME)
-    );
-  }
-
-  private FunctionResolver now() {
-    return now(BuiltinFunctionName.NOW.getName());
   }
 
   private FunctionResolver makedate() {
@@ -1087,16 +1019,6 @@ public class DateTimeFunction {
     ExprValue exprValue = new ExprDatetimeValue(date.datetimeValue().minus(expr.intervalValue()));
     return (exprValue.timeValue().toSecondOfDay() == 0 ? new ExprDateValue(exprValue.dateValue())
         : exprValue);
-  }
-
-  /**
-   * SYSDATE() returns the time at which it executes.
-   */
-  private FunctionResolver sysdate() {
-    return define(BuiltinFunctionName.SYSDATE.getName(),
-        impl(() -> new ExprDatetimeValue(formatNow(null)), DATETIME),
-        impl((v) -> new ExprDatetimeValue(formatNow(v.integerValue())), DATETIME, INTEGER)
-    );
   }
 
   /**
