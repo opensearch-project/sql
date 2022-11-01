@@ -554,7 +554,8 @@ public class DateTimeFunction {
 
   private FunctionResolver unix_timestamp() {
     return define(BuiltinFunctionName.UNIX_TIMESTAMP.getName(),
-        impl(DateTimeFunction::unixTimeStamp, LONG),
+        implWithProperties(functionProperties
+            -> DateTimeFunction.unixTimeStamp(functionProperties.getQueryStartClock()), LONG),
         impl(nullMissingHandling(DateTimeFunction::unixTimeStampOf), DOUBLE, DATE),
         impl(nullMissingHandling(DateTimeFunction::unixTimeStampOf), DOUBLE, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::unixTimeStampOf), DOUBLE, TIMESTAMP),
@@ -1080,8 +1081,8 @@ public class DateTimeFunction {
         CalendarLookup.getWeekNumber(mode.integerValue(), date.dateValue()));
   }
 
-  private ExprValue unixTimeStamp() {
-    return new ExprLongValue(Instant.now().getEpochSecond());
+  private ExprValue unixTimeStamp(Clock clock) {
+    return new ExprLongValue(Instant.now(clock).getEpochSecond());
   }
 
   private ExprValue unixTimeStampOf(ExprValue value) {
