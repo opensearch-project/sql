@@ -70,7 +70,7 @@ public class FunctionDSL {
    */
   public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
       implWithProperties(
-      BiFunction<FunctionProperties, ExprValue, ExprValue> function,
+      SerializableBiFunction<FunctionProperties, ExprValue, ExprValue> function,
       ExprType returnType,
       ExprType argsType) {
 

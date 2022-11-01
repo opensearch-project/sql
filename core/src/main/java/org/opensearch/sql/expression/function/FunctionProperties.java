@@ -9,6 +9,7 @@ import java.io.Serializable;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
  * An example would be query execution start time to implement now().
  */
 @RequiredArgsConstructor
+@EqualsAndHashCode
 public class FunctionProperties implements Serializable {
 
   private final Instant nowInstant;
