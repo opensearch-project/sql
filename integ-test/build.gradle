@@ -38,6 +38,10 @@ apply plugin: 'java'
 apply plugin: 'io.freefair.lombok'
 apply plugin: 'com.wiredforcode.spawn'
 
+repositories {
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+}
 
 ext {
     projectSubstitutions = [:]
@@ -63,6 +67,7 @@ configurations.all {
     resolutionStrategy.force "com.fasterxml.jackson.core:jackson-databind:${jackson_databind_version}"
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.6.0"
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0"
+    resolutionStrategy.force "com.squareup.okhttp3:okhttp:4.9.3"
 }
 
 dependencies {
