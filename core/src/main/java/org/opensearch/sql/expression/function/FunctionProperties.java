@@ -42,10 +42,5 @@ public class FunctionProperties implements Serializable {
   public Clock getQueryStartClock() {
     return Clock.fixed(nowInstant, currentZoneId);
   }
-
-  @Override
-  public String toString() {
-    return String.format("[%s, %s]", nowInstant, currentZoneId);
-  }
 }
 

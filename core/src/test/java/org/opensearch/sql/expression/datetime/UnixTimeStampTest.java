@@ -30,8 +30,10 @@ public class UnixTimeStampTest extends DateTimeTestBase {
 
   @Test
   public void checkNoArgs() {
-    assertEquals(System.currentTimeMillis() / 1000L, unixTimeStamp());
-    assertEquals(System.currentTimeMillis() / 1000L, eval(unixTimeStampExpr()).longValue());
+
+    final long expected = functionProperties.getQueryStartClock().millis() / 1000L;
+    assertEquals(expected, unixTimeStamp());
+    assertEquals(expected, eval(unixTimeStampExpr()).longValue());
   }
 
   private static Stream<Arguments> getDateSamples() {
