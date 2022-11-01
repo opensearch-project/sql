@@ -11,7 +11,6 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import org.opensearch.common.unit.TimeValue;
 
 /**
  * Prometheus metric query request.
@@ -21,8 +20,6 @@ import org.opensearch.common.unit.TimeValue;
 @ToString
 @AllArgsConstructor
 public class PrometheusQueryRequest {
-
-  public static final TimeValue DEFAULT_QUERY_TIMEOUT = TimeValue.timeValueMinutes(1L);
 
   /**
    * PromQL.
