@@ -14,7 +14,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -82,7 +81,11 @@ public class PrometheusClientImpl implements PrometheusClient {
   private List<String> toListOfStrings(JSONArray array) {
     List<String> result = new ArrayList<>();
     for (int i = 0; i < array.length(); i++) {
-      result.add(array.optString(i));
+      //__name__ is internal label in prometheus representing the metric name.
+      //Exempting this from labels list as it is not required in any of the operations.
+      if (!"__name__".equals(array.optString(i))) {
+        result.add(array.optString(i));
+      }
     }
     return result;
   }
