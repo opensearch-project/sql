@@ -37,7 +37,7 @@ class FunctionPropertiesTest {
 
   @Test
   void getQueryStartClock_differs_from_instantNow() {
-    assertNotEquals(Instant.now(), functionProperties.getQueryStartClock());
+    assertNotEquals(Instant.now(), functionProperties.getQueryStartClock().instant());
   }
 
   @Test
@@ -51,6 +51,7 @@ class FunctionPropertiesTest {
     ObjectOutputStream objectOutput = new ObjectOutputStream(output);
     objectOutput.writeObject(functionProperties);
     objectOutput.flush();
+    assertNotEquals(0, output.size());
   }
 
   @Test
