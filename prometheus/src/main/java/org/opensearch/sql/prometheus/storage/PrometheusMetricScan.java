@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Iterator;
-import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,9 +18,9 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
-import org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants;
 import org.opensearch.sql.prometheus.request.PrometheusQueryRequest;
 import org.opensearch.sql.prometheus.response.PrometheusResponse;
+import org.opensearch.sql.prometheus.storage.model.PrometheusResponseFieldNames;
 import org.opensearch.sql.storage.TableScanOperator;
 
 /**
@@ -42,17 +41,20 @@ public class PrometheusMetricScan extends TableScanOperator {
   private Iterator<ExprValue> iterator;
 
   @Setter
-  private String valueFieldName = PrometheusFieldConstants.VALUE;
-
-  @Setter
-  private String timestampFieldName = PrometheusFieldConstants.TIMESTAMP;
+  private PrometheusResponseFieldNames prometheusResponseFieldNames;
 
 
   private static final Logger LOG = LogManager.getLogger();
 
+  /**
+   * Constructor.
+   *
+   * @param prometheusClient prometheusClient.
+   */
   public PrometheusMetricScan(PrometheusClient prometheusClient) {
     this.prometheusClient = prometheusClient;
     this.request = new PrometheusQueryRequest();
+    this.prometheusResponseFieldNames = new PrometheusResponseFieldNames();
   }
 
   @Override
@@ -63,8 +65,7 @@ public class PrometheusMetricScan extends TableScanOperator {
         JSONObject responseObject = prometheusClient.queryRange(
             request.getPromQl(),
             request.getStartTime(), request.getEndTime(), request.getStep());
-        return new PrometheusResponse(responseObject,
-            valueFieldName, timestampFieldName).iterator();
+        return new PrometheusResponse(responseObject, prometheusResponseFieldNames).iterator();
       } catch (IOException e) {
         LOG.error(e.getMessage());
         throw new RuntimeException("Error fetching data from prometheus server. " + e.getMessage());

@@ -8,6 +8,7 @@
 package org.opensearch.sql.prometheus.storage.querybuilder;
 
 import java.util.Date;
+import lombok.NoArgsConstructor;
 import org.apache.commons.math3.util.Pair;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.Expression;
@@ -15,6 +16,7 @@ import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 
+@NoArgsConstructor
 public class TimeRangeParametersResolver extends ExpressionNodeVisitor<Void, Object> {
 
 

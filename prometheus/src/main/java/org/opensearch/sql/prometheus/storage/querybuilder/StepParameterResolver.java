@@ -9,10 +9,17 @@ package org.opensearch.sql.prometheus.storage.querybuilder;
 
 import java.util.List;
 import java.util.Optional;
+import lombok.NoArgsConstructor;
 import lombok.NonNull;
+import org.apache.commons.lang3.StringUtils;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 
+/**
+ * This class resolves step parameter required for
+ * query_range api of prometheus.
+ */
+@NoArgsConstructor
 public class StepParameterResolver {
 
   /**
@@ -25,21 +32,32 @@ public class StepParameterResolver {
    * @param groupByList groupByList.
    * @return Step String.
    */
-  public String resolve(@NonNull Long startTime, @NonNull Long endTime,
+  public static String resolve(@NonNull Long startTime, @NonNull Long endTime,
                         List<NamedExpression> groupByList) {
-    return getSpanExpression(groupByList).map(
-            expression -> expression.getValue().toString() + expression.getUnit().getName())
-        .orElse(Math.max((endTime - startTime) / 250, 1) + "s");
+    Optional<SpanExpression> spanExpression = getSpanExpression(groupByList);
+    if (spanExpression.isPresent()) {
+      if (StringUtils.isEmpty(spanExpression.get().getUnit().getName())) {
+        throw new RuntimeException("Missing TimeUnit in the span expression");
+      } else {
+        return spanExpression.get().getValue().toString()
+            + spanExpression.get().getUnit().getName();
+      }
+    } else {
+      return Math.max((endTime - startTime) / 250, 1) + "s";
+    }
   }
 
-  private Optional<SpanExpression> getSpanExpression(List<NamedExpression> groupByList) {
-    if (groupByList == null) {
+  private static Optional<SpanExpression> getSpanExpression(
+        List<NamedExpression> namedExpressionList) {
+    if (namedExpressionList == null) {
       return Optional.empty();
     }
-    return groupByList.stream().map(NamedExpression::getDelegated)
-        .filter(delegated -> delegated instanceof SpanExpression)
-        .map(delegated -> (SpanExpression) delegated)
+    return namedExpressionList.stream()
+        .filter(expression -> expression.getDelegated() instanceof SpanExpression)
+        .map(expression -> (SpanExpression) expression.getDelegated())
         .findFirst();
   }
+
+
 
 }

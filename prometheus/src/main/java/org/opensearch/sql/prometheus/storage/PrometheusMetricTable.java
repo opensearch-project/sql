@@ -6,18 +6,14 @@
 
 package org.opensearch.sql.prometheus.storage;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import javax.annotation.Nonnull;
 import lombok.Getter;
-import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
 import org.opensearch.sql.prometheus.planner.logical.PrometheusLogicalPlanOptimizerFactory;
-import org.opensearch.sql.prometheus.planner.logical.PrometheusLogicalPlanValidator;
 import org.opensearch.sql.prometheus.request.PrometheusQueryRequest;
 import org.opensearch.sql.prometheus.request.system.PrometheusDescribeMetricRequest;
 import org.opensearch.sql.prometheus.storage.implementor.PrometheusDefaultImplementor;
@@ -90,17 +86,6 @@ public class PrometheusMetricTable implements Table {
   @Override
   public LogicalPlan optimize(LogicalPlan plan) {
     return PrometheusLogicalPlanOptimizerFactory.create().optimize(plan);
-  }
-
-  @Override
-  public void validate(LogicalPlan plan) {
-    PrometheusLogicalPlanValidator.ValidatorContext context
-        = new PrometheusLogicalPlanValidator.ValidatorContext(null, new ArrayList<>());
-    plan.accept(new PrometheusLogicalPlanValidator(), context);
-    if (context.getErrorMessages().size() > 0) {
-      throw new UnsupportedOperationException(
-          String.format("Error list: %s", context.getErrorMessages()));
-    }
   }
 
 }

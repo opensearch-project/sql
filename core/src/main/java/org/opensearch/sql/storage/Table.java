@@ -21,15 +21,6 @@ public interface Table {
    */
   Map<String, ExprType> getFieldTypes();
 
-
-  /**
-   * Validate a {@link LogicalPlan} is possible in a in storage engine.
-   *
-   * @param plan logical plan
-   */
-  default void validate(LogicalPlan plan) {
-  }
-
   /**
    * Implement a {@link LogicalPlan} by {@link PhysicalPlan} in storage engine.
    *

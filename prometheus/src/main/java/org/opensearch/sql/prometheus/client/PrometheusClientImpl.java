@@ -55,8 +55,10 @@ public class PrometheusClientImpl implements PrometheusClient {
 
   @Override
   public List<String> getLabels(String metricName) throws IOException {
-    String queryUrl = String.format("%s/api/v1/labels?match[]=%s",
-        uri.toString().replaceAll("/$", ""), metricName);
+    String queryUrl = String.format("%s/api/v1/labels?%s=%s",
+        uri.toString().replaceAll("/$", ""),
+        URLEncoder.encode("match[]", StandardCharsets.UTF_8),
+        URLEncoder.encode(metricName, StandardCharsets.UTF_8));
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder()
         .url(queryUrl)

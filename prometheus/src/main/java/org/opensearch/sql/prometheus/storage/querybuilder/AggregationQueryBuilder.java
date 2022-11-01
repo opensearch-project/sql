@@ -10,11 +10,18 @@ package org.opensearch.sql.prometheus.storage.querybuilder;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import lombok.NoArgsConstructor;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.span.SpanExpression;
 
+/**
+ * This class builds aggregation query for the given stats commands.
+ * In the generated query a placeholder(%s) is added in place of metric selection query
+ * and later replaced by metric selection query.
+ */
+@NoArgsConstructor
 public class AggregationQueryBuilder {
 
   private static final Set<String> allowedStatsFunctions = Set.of(
@@ -31,7 +38,7 @@ public class AggregationQueryBuilder {
    *
    * @return query string.
    */
-  public String build(List<NamedAggregator> namedAggregatorList,
+  public static String build(List<NamedAggregator> namedAggregatorList,
                       List<NamedExpression> groupByList) {
 
     if (namedAggregatorList.size() > 1) {
@@ -49,7 +56,7 @@ public class AggregationQueryBuilder {
     aggregateQuery.append(namedAggregatorList.get(0).getFunctionName().getFunctionName())
         .append(" ");
 
-    if (!groupByList.isEmpty()) {
+    if (groupByList != null && !groupByList.isEmpty()) {
       groupByList = groupByList.stream()
           .filter(expression -> !(expression.getDelegated() instanceof SpanExpression))
           .collect(Collectors.toList());

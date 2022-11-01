@@ -7,29 +7,23 @@
 
 package org.opensearch.sql.prometheus.storage.implementor;
 
-import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.LABELS;
-import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.TIMESTAMP;
-import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.VALUE;
-
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.math3.util.Pair;
 import org.opensearch.sql.common.utils.StringUtils;
-import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedExpression;
-import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.planner.DefaultImplementor;
 import org.opensearch.sql.planner.logical.LogicalPlan;
-import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
-import org.opensearch.sql.planner.physical.ProjectOperator;
 import org.opensearch.sql.prometheus.planner.logical.PrometheusLogicalMetricAgg;
 import org.opensearch.sql.prometheus.planner.logical.PrometheusLogicalMetricScan;
 import org.opensearch.sql.prometheus.storage.PrometheusMetricScan;
 import org.opensearch.sql.prometheus.storage.PrometheusMetricTable;
+import org.opensearch.sql.prometheus.storage.model.PrometheusResponseFieldNames;
 import org.opensearch.sql.prometheus.storage.querybuilder.AggregationQueryBuilder;
 import org.opensearch.sql.prometheus.storage.querybuilder.SeriesSelectionQueryBuilder;
 import org.opensearch.sql.prometheus.storage.querybuilder.StepParameterResolver;
@@ -60,13 +54,12 @@ public class PrometheusDefaultImplementor
    */
   public PhysicalPlan visitIndexScan(PrometheusLogicalMetricScan node,
                                      PrometheusMetricScan context) {
-    SeriesSelectionQueryBuilder seriesSelectionQueryBuilder = new SeriesSelectionQueryBuilder();
-    String query = seriesSelectionQueryBuilder.build(node.getMetricName(), node.getFilter());
+    String query = SeriesSelectionQueryBuilder.build(node.getMetricName(), node.getFilter());
 
     context.getRequest().setPromQl(query);
     setTimeRangeParameters(node.getFilter(), context);
     context.getRequest()
-        .setStep(new StepParameterResolver().resolve(context.getRequest().getStartTime(),
+        .setStep(StepParameterResolver.resolve(context.getRequest().getStartTime(),
             context.getRequest().getEndTime(), null));
     return context;
   }
@@ -76,23 +69,24 @@ public class PrometheusDefaultImplementor
    */
   public PhysicalPlan visitIndexAggregation(PrometheusLogicalMetricAgg node,
                                             PrometheusMetricScan context) {
-
     setTimeRangeParameters(node.getFilter(), context);
     context.getRequest()
-        .setStep(new StepParameterResolver().resolve(context.getRequest().getStartTime(),
+        .setStep(StepParameterResolver.resolve(context.getRequest().getStartTime(),
             context.getRequest().getEndTime(), node.getGroupByList()));
     String step = context.getRequest().getStep();
-    SeriesSelectionQueryBuilder seriesSelectionQueryBuilder = new SeriesSelectionQueryBuilder();
     String seriesSelectionQuery
-        = seriesSelectionQueryBuilder.build(node.getMetricName(), node.getFilter());
+        = SeriesSelectionQueryBuilder.build(node.getMetricName(), node.getFilter());
 
-    AggregationQueryBuilder aggregationQueryBuilder = new AggregationQueryBuilder();
     String aggregateQuery
-        = aggregationQueryBuilder.build(node.getAggregatorList(),
+        = AggregationQueryBuilder.build(node.getAggregatorList(),
         node.getGroupByList());
 
     String finalQuery = String.format(aggregateQuery, seriesSelectionQuery + "[" + step + "]");
     context.getRequest().setPromQl(finalQuery);
+
+    //Since prometheus response doesn't have any fieldNames in its output.
+    //the field names are sent to PrometheusResponse constructor via context.
+    setPrometheusResponseFieldNames(node, context);
     return context;
   }
 
@@ -101,31 +95,14 @@ public class PrometheusDefaultImplementor
                                     PrometheusMetricScan context) {
     PrometheusMetricTable prometheusMetricTable = (PrometheusMetricTable) node.getTable();
     if (prometheusMetricTable.getMetricName() != null) {
-      SeriesSelectionQueryBuilder seriesSelectionQueryBuilder = new SeriesSelectionQueryBuilder();
-      String query = seriesSelectionQueryBuilder.build(node.getRelationName(), null);
+      String query = SeriesSelectionQueryBuilder.build(node.getRelationName(), null);
       context.getRequest().setPromQl(query);
       setTimeRangeParameters(null, context);
       context.getRequest()
-          .setStep(new StepParameterResolver().resolve(context.getRequest().getStartTime(),
+          .setStep(StepParameterResolver.resolve(context.getRequest().getStartTime(),
               context.getRequest().getEndTime(), null));
     }
     return context;
-  }
-
-  // Since getFieldTypes include labels
-  // we are explicitly specifying the output column names;
-  @Override
-  public PhysicalPlan visitProject(LogicalProject node, PrometheusMetricScan context) {
-    for (NamedExpression namedExpression : node.getProjectList()) {
-      if (namedExpression.getDelegated().type().equals(ExprCoreType.DOUBLE)
-          || namedExpression.getDelegated().type().equals(ExprCoreType.INTEGER)) {
-        context.setValueFieldName(namedExpression.getName());
-      } else if (namedExpression.getDelegated().type().equals(ExprCoreType.TIMESTAMP)) {
-        context.setTimestampFieldName(namedExpression.getName());
-      }
-    }
-    return new ProjectOperator(visitChild(node, context), node.getProjectList(),
-        node.getNamedParseExpressions());
   }
 
   private void setTimeRangeParameters(Expression filter, PrometheusMetricScan context) {
@@ -133,6 +110,29 @@ public class PrometheusDefaultImplementor
     Pair<Long, Long> timeRange = timeRangeParametersResolver.resolve(filter);
     context.getRequest().setStartTime(timeRange.getFirst());
     context.getRequest().setEndTime(timeRange.getSecond());
+  }
+
+  private void setPrometheusResponseFieldNames(PrometheusLogicalMetricAgg node,
+                                               PrometheusMetricScan context) {
+    Optional<NamedExpression> spanExpression = getSpanExpression(node.getGroupByList());
+    if (spanExpression.isEmpty()) {
+      throw new RuntimeException(
+          "Prometheus Catalog doesn't support aggregations without span expression");
+    }
+    PrometheusResponseFieldNames prometheusResponseFieldNames = new PrometheusResponseFieldNames();
+    prometheusResponseFieldNames.setValueFieldName(node.getAggregatorList().get(0).getName());
+    prometheusResponseFieldNames.setValueType(node.getAggregatorList().get(0).type());
+    prometheusResponseFieldNames.setTimestampFieldName(spanExpression.get().getNameOrAlias());
+    context.setPrometheusResponseFieldNames(prometheusResponseFieldNames);
+  }
+
+  private Optional<NamedExpression> getSpanExpression(List<NamedExpression> namedExpressionList) {
+    if (namedExpressionList == null) {
+      return Optional.empty();
+    }
+    return namedExpressionList.stream()
+        .filter(expression -> expression.getDelegated() instanceof SpanExpression)
+        .findFirst();
   }
 
 
