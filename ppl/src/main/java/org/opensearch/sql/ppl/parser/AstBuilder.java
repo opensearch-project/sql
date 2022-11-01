@@ -29,6 +29,7 @@ import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -44,6 +45,7 @@ import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.AD;
@@ -118,11 +120,19 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   /**
    * Describe command.
+   * Current logic separates table and metadata info about table by adding
+   * MAPPING_ODFE_SYS_TABLE as suffix.
+   * Even with the introduction of catalog and schema name in fully qualified table name,
+   * we do the same thing by appending MAPPING_ODFE_SYS_TABLE as syffix to the last part
+   * of qualified name.
    */
   @Override
   public UnresolvedPlan visitDescribeCommand(DescribeCommandContext ctx) {
     final Relation table = (Relation) visitTableSourceClause(ctx.tableSourceClause());
-    return new Relation(qualifiedName(mappingTable(table.getTableName())));
+    QualifiedName tableQualifiedName = table.getTableQualifiedName();
+    ArrayList<String> parts = new ArrayList<>(tableQualifiedName.getParts());
+    parts.set(parts.size() - 1, mappingTable(parts.get(parts.size() - 1)));
+    return new Relation(new QualifiedName(parts));
   }
 
   /**
