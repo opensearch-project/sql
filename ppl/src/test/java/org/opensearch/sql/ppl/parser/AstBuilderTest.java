@@ -740,6 +740,14 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testDescribeCommandWithFullyQualifiedTableName() {
+    assertEqual("describe prometheus.http_metric",
+        relation(qualifiedName("prometheus", mappingTable("http_metric"))));
+    assertEqual("describe prometheus.schema.http_metric",
+        relation(qualifiedName("prometheus", "schema", mappingTable("http_metric"))));
+  }
+
+  @Test
   public void test_fitRCFADCommand_withoutDataFormat() {
     assertEqual("source=t | AD shingle_size=10 time_decay=0.0001 time_field='timestamp' "
             + "anomaly_rate=0.1 anomaly_score_threshold=0.1 sample_size=256 "

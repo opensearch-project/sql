@@ -106,7 +106,6 @@ public class PrometheusClientImplTest {
     mockWebServer.enqueue(mockResponse);
     List<String> response = prometheusClient.getLabels(METRIC_NAME);
     assertEquals(new ArrayList<String>() {{
-        add("__name__");
         add("call");
         add("code");
       }
