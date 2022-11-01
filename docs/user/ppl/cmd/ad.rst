@@ -1,5 +1,5 @@
 =============
-ad
+ad (deprecated by ml command)
 =============
 
 .. rubric:: Table of contents
