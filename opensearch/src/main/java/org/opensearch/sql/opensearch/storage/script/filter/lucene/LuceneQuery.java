@@ -172,7 +172,7 @@ public abstract class LuceneQuery {
       })
       .put(BuiltinFunctionName.CAST_TO_BOOLEAN.getName(), expr -> {
         if (ExprCoreType.numberTypes().contains(expr.type())) {
-          return expr.valueOf(null).doubleValue() == 1
+          return expr.valueOf(null).doubleValue() != 0
               ? ExprBooleanValue.of(true) : ExprBooleanValue.of(false);
         } else if (expr.type().equals(ExprCoreType.STRING)) {
           return ExprBooleanValue.of(Boolean.valueOf(expr.valueOf(null).stringValue()));
