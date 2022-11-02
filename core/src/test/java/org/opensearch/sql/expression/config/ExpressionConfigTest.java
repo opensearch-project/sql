@@ -28,16 +28,4 @@ class ExpressionConfigTest {
     assertEquals(repository.getFunctionProperties(),
         context.getBean(FunctionProperties.class));
   }
-
-  @Test
-  void testNotTheSame() {
-    BuiltinFunctionRepository repositoryA
-        = createContext().getBean(BuiltinFunctionRepository.class);
-    BuiltinFunctionRepository repositoryB
-        = createContext().getBean(BuiltinFunctionRepository.class);
-
-    assertNotEquals(repositoryA.getFunctionProperties(),
-        repositoryB.getFunctionProperties());
-
-  }
 }
