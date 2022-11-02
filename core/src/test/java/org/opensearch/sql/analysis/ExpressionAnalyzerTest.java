@@ -488,6 +488,15 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
+  void query_expression() {
+    assertAnalyzeEqual(
+            dsl.query(
+                    dsl.namedArgument("query", DSL.literal("field:query"))),
+            AstDSL.function("query",
+                    AstDSL.unresolvedArg("query", stringLiteral("field:query"))));
+  }
+
+  @Test
   void query_string_expression() {
     assertAnalyzeEqual(
         dsl.query_string(
