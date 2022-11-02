@@ -36,7 +36,9 @@ class FunctionPropertiesTest {
   }
 
   @Test
-  void getQueryStartClock_differs_from_instantNow() {
+  void getQueryStartClock_differs_from_instantNow() throws InterruptedException {
+    // Give system clock a chance to advance.
+    Thread.sleep(1000);
     assertNotEquals(Instant.now(), functionProperties.getQueryStartClock().instant());
   }
 
