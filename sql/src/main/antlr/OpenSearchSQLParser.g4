@@ -335,7 +335,11 @@ specificFunction
     ;
 
 relevanceFunction
-    : singleFieldRelevanceFunction | multiFieldRelevanceFunction
+    : noFieldRelevanceFunction | singleFieldRelevanceFunction | multiFieldRelevanceFunction
+    ;
+
+noFieldRelevanceFunction
+    : noFieldRelevanceFunctionName LR_BRACKET query=relevanceQuery (COMMA relevanceArg)* RR_BRACKET
     ;
 
 // Field is a single column
@@ -416,6 +420,10 @@ textFunctionName
 
 flowControlFunctionName
     : IF | IFNULL | NULLIF | ISNULL
+    ;
+
+noFieldRelevanceFunctionName
+    : QUERY
     ;
 
 systemFunctionName
