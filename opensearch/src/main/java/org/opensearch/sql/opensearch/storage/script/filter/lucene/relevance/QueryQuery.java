@@ -9,11 +9,11 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.QueryStringQueryBuilder;
 
 /**
- * Class for Lucene query that builds the query_string query.
+ * Class for Lucene query that builds the 'query' query.
  */
 public class QueryQuery extends NoFieldQuery<QueryStringQueryBuilder> {
 
-  final String queryQueryName = "query";
+  private final String queryQueryName = "query";
 
   /**
    * Default constructor for QueryQuery configures how RelevanceQuery.build() handles

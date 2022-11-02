@@ -16,7 +16,7 @@ import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
 
 /**
- * Base class to represent relevance queries that search multiple fields.
+ * Base class to represent relevance queries that have no 'fields' array as an argument.
  *
  * @param <T> The builder class for the OpenSearch query.
  */
