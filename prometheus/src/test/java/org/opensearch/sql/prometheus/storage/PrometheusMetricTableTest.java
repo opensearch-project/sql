@@ -23,6 +23,7 @@ import static org.opensearch.sql.expression.DSL.ref;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.filter;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.project;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.relation;
+import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.LABELS;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.TIMESTAMP;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.VALUE;
 import static org.opensearch.sql.prometheus.utils.LogicalPlanUtils.indexScan;
@@ -100,6 +101,7 @@ class PrometheusMetricTableTest {
     Map<String, ExprType> expectedFieldTypes = new HashMap<>();
     expectedFieldTypes.put(VALUE, ExprCoreType.DOUBLE);
     expectedFieldTypes.put(TIMESTAMP, ExprCoreType.TIMESTAMP);
+    expectedFieldTypes.put(LABELS, STRING);
 
     Map<String, ExprType> fieldTypes = prometheusMetricTable.getFieldTypes();
 

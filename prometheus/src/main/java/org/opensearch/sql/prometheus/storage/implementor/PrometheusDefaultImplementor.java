@@ -7,6 +7,10 @@
 
 package org.opensearch.sql.prometheus.storage.implementor;
 
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.LABELS;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -14,11 +18,14 @@ import org.apache.commons.math3.util.Pair;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.planner.DefaultImplementor;
 import org.opensearch.sql.planner.logical.LogicalPlan;
+import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.sql.planner.physical.ProjectOperator;
 import org.opensearch.sql.prometheus.planner.logical.PrometheusLogicalMetricAgg;
 import org.opensearch.sql.prometheus.planner.logical.PrometheusLogicalMetricScan;
 import org.opensearch.sql.prometheus.storage.PrometheusMetricScan;

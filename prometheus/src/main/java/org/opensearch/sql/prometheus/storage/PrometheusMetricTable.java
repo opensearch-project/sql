@@ -6,9 +6,13 @@
 
 package org.opensearch.sql.prometheus.storage;
 
+import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.LABELS;
+
+import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.Nonnull;
 import lombok.Getter;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -67,7 +71,9 @@ public class PrometheusMetricTable implements Table {
             new PrometheusDescribeMetricRequest(prometheusClient, null,
                 metricName).getFieldTypes();
       } else {
-        cachedFieldTypes = PrometheusMetricDefaultSchema.DEFAULT_MAPPING.getMapping();
+        cachedFieldTypes = new HashMap<>(PrometheusMetricDefaultSchema.DEFAULT_MAPPING
+            .getMapping());
+        cachedFieldTypes.put(LABELS, ExprCoreType.STRING);
       }
     }
     return cachedFieldTypes;
@@ -79,6 +85,7 @@ public class PrometheusMetricTable implements Table {
         new PrometheusMetricScan(prometheusClient);
     if (prometheusQueryRequest != null) {
       metricScan.setRequest(prometheusQueryRequest);
+      metricScan.setIsQueryRangeFunctionScan(Boolean.TRUE);
     }
     return plan.accept(new PrometheusDefaultImplementor(), metricScan);
   }

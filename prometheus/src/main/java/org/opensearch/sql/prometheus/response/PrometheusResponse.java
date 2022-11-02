@@ -8,15 +8,13 @@ package org.opensearch.sql.prometheus.response;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
-import static org.opensearch.sql.data.type.ExprCoreType.numberTypes;
-import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.VALUE;
+import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.LABELS;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import lombok.NonNull;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -36,18 +34,22 @@ public class PrometheusResponse implements Iterable<ExprValue> {
 
   private final PrometheusResponseFieldNames prometheusResponseFieldNames;
 
+  private final Boolean isQueryRangeFunctionScan;
+
   /**
    * Constructor.
    *
-   * @param responseObject Prometheus responseObject.
+   * @param responseObject               Prometheus responseObject.
    * @param prometheusResponseFieldNames data model which
-   *        contains field names for the metric measurement
-   *        and timestamp fieldName.
+   *                                     contains field names for the metric measurement
+   *                                     and timestamp fieldName.
    */
   public PrometheusResponse(JSONObject responseObject,
-                            PrometheusResponseFieldNames prometheusResponseFieldNames) {
+                            PrometheusResponseFieldNames prometheusResponseFieldNames,
+                            Boolean isQueryRangeFunctionScan) {
     this.responseObject = responseObject;
     this.prometheusResponseFieldNames = prometheusResponseFieldNames;
+    this.isQueryRangeFunctionScan = isQueryRangeFunctionScan;
   }
 
   @NonNull
@@ -67,7 +69,24 @@ public class PrometheusResponse implements Iterable<ExprValue> {
               new ExprTimestampValue(Instant.ofEpochMilli((long) (val.getDouble(0) * 1000))));
           linkedHashMap.put(prometheusResponseFieldNames.getValueFieldName(), getValue(val, 1,
               prometheusResponseFieldNames.getValueType()));
-          insertLabels(linkedHashMap, metric);
+          // Concept:
+          // {\"instance\":\"localhost:9090\",\"__name__\":\"up\",\"job\":\"prometheus\"}"
+          // This is the label string in the prometheus response.
+          // Q: how do we map this to columns in a table.
+          // For queries like source = prometheus.metric_name | ....
+          // we can get the labels list in prior as we know which metric we are working on.
+          // In case of commands  like source = prometheus.query_range('promQL');
+          // Any arbitrary command can be written and we don't know the labels
+          // in the prometheus response in prior.
+          // So for PPL like commands...output structure is @value, @timestamp
+          // and each label is treated as a separate column where as in case of query_range
+          // function irrespective of promQL, the output structure is
+          // @value, @timestamp, @labels [jsonfied string of all the labels for a data point]
+          if (isQueryRangeFunctionScan) {
+            linkedHashMap.put(LABELS, new ExprStringValue(metric.toString()));
+          } else {
+            insertLabels(linkedHashMap, metric);
+          }
           result.add(new ExprTupleValue(linkedHashMap));
         }
       }

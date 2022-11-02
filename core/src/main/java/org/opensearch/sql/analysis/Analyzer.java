@@ -203,6 +203,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     TableFunctionImplementation tableFunctionImplementation
         = (TableFunctionImplementation) repository.compile(
         catalogSchemaIdentifierNameResolver.getCatalogName(), functionName, arguments);
+    context.push();
+    TypeEnvironment curEnv = context.peek();
+    Table table = tableFunctionImplementation.applyArguments();
+    table.getFieldTypes().forEach((k, v) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));
+    curEnv.define(new Symbol(Namespace.INDEX_NAME,
+            catalogSchemaIdentifierNameResolver.getIdentifierName()), STRUCT);
     return new LogicalRelation(catalogSchemaIdentifierNameResolver.getIdentifierName(),
         tableFunctionImplementation.applyArguments());
   }

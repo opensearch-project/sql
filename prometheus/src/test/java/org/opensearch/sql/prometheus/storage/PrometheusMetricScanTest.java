@@ -7,7 +7,6 @@ package org.opensearch.sql.prometheus.storage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -16,6 +15,7 @@ import static org.opensearch.sql.prometheus.constants.TestConstants.ENDTIME;
 import static org.opensearch.sql.prometheus.constants.TestConstants.QUERY;
 import static org.opensearch.sql.prometheus.constants.TestConstants.STARTTIME;
 import static org.opensearch.sql.prometheus.constants.TestConstants.STEP;
+import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.LABELS;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.TIMESTAMP;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.VALUE;
 import static org.opensearch.sql.prometheus.utils.TestUtils.getJson;
@@ -157,6 +157,40 @@ public class PrometheusMetricScanTest {
         put("instance", new ExprStringValue("localhost:9091"));
         put("__name__", new ExprStringValue("up"));
         put("job", new ExprStringValue("node"));
+      }
+    });
+    assertEquals(secondRow, prometheusMetricScan.next());
+    Assertions.assertFalse(prometheusMetricScan.hasNext());
+  }
+
+  @Test
+  @SneakyThrows
+  void testQueryResponseIteratorForQueryRangeFunction() {
+    PrometheusMetricScan prometheusMetricScan = new PrometheusMetricScan(prometheusClient);
+    prometheusMetricScan.setIsQueryRangeFunctionScan(Boolean.TRUE);
+    prometheusMetricScan.getRequest().setPromQl(QUERY);
+    prometheusMetricScan.getRequest().setStartTime(STARTTIME);
+    prometheusMetricScan.getRequest().setEndTime(ENDTIME);
+    prometheusMetricScan.getRequest().setStep(STEP);
+
+    when(prometheusClient.queryRange(any(), any(), any(), any()))
+        .thenReturn(new JSONObject(getJson("query_range_result.json")));
+    prometheusMetricScan.open();
+    Assertions.assertTrue(prometheusMetricScan.hasNext());
+    ExprTupleValue firstRow = new ExprTupleValue(new LinkedHashMap<>() {{
+        put(TIMESTAMP, new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)));
+        put(VALUE, new ExprLongValue(1));
+        put(LABELS, new ExprStringValue(
+            "{\"instance\":\"localhost:9090\",\"__name__\":\"up\",\"job\":\"prometheus\"}"));
+      }
+    });
+    assertEquals(firstRow, prometheusMetricScan.next());
+    Assertions.assertTrue(prometheusMetricScan.hasNext());
+    ExprTupleValue secondRow = new ExprTupleValue(new LinkedHashMap<>() {{
+        put(TIMESTAMP, new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)));
+        put(VALUE, new ExprLongValue(0));
+        put(LABELS, new ExprStringValue(
+            "{\"instance\":\"localhost:9091\",\"__name__\":\"up\",\"job\":\"node\"}"));
       }
     });
     assertEquals(secondRow, prometheusMetricScan.next());
