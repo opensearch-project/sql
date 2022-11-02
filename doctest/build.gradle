@@ -105,6 +105,8 @@ String mlCommonsPlugin = 'opensearch-ml'
 testClusters {
     docTestCluster {
         keystore 'plugins.query.federation.catalog.config', new File("$projectDir/catalog", 'catalog.json')
+        // Disable loading of `ML-commons` plugin, because it might be unavailable (not released yet).
+        /*
         plugin(provider(new Callable<RegularFile>(){
             @Override
             RegularFile call() throws Exception {
@@ -124,6 +126,7 @@ testClusters {
                 }
             }
         }))
+        */
         plugin ':opensearch-sql-plugin'
         testDistribution = 'integ_test'
     }
