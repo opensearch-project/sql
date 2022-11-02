@@ -251,11 +251,6 @@ primaryExpression
     | dataTypeFunctionCall
     | fieldExpression
     | literalValue
-    | constantFunction
-    ;
-
-constantFunction
-    : constantFunctionName LT_PRTHS functionArgs? RT_PRTHS
     ;
 
 booleanExpression
@@ -413,17 +408,44 @@ trigonometricFunctionName
     ;
 
 dateAndTimeFunctionBase
-    : ADDDATE | CONVERT_TZ | DATE | DATE_ADD | DATE_FORMAT | DATE_SUB
-    | DATETIME | DAY | DAYNAME | DAYOFMONTH | DAYOFWEEK | DAYOFYEAR | FROM_DAYS | FROM_UNIXTIME
-    | HOUR | MAKEDATE | MAKETIME | MICROSECOND | MINUTE | MONTH | MONTHNAME | PERIOD_ADD
-    | PERIOD_DIFF | QUARTER | SECOND | SUBDATE | SYSDATE | TIME | TIME_TO_SEC
-    | TIMESTAMP | TO_DAYS | UNIX_TIMESTAMP | WEEK | YEAR
-    ;
-
-// Functions which value could be cached in scope of a single query
-constantFunctionName
     : datetimeConstantLiteral
-    | CURDATE | CURTIME | NOW
+    | ADDDATE
+    | CONVERT_TZ
+    | DATE
+    | DATE_ADD
+    | DATE_FORMAT
+    | DATE_SUB
+    | DATETIME
+    | DAY
+    | DAYNAME
+    | DAYOFMONTH
+    | DAYOFWEEK
+    | DAYOFYEAR
+    | CURDATE
+    | CURTIME
+    | FROM_DAYS
+    | FROM_UNIXTIME
+    | HOUR
+    | MAKEDATE
+    | MAKETIME
+    | MICROSECOND
+    | MINUTE
+    | MONTH
+    | MONTHNAME
+    | NOW
+    | PERIOD_ADD
+    | PERIOD_DIFF
+    | QUARTER
+    | SECOND
+    | SUBDATE
+    | SYSDATE
+    | TIME
+    | TIME_TO_SEC
+    | TIMESTAMP
+    | TO_DAYS
+    | UNIX_TIMESTAMP
+    | WEEK
+    | YEAR
     ;
 
 /** condition function return boolean value */
@@ -496,10 +518,10 @@ booleanLiteral
 
 // Date and Time Literal, follow ANSI 92
 datetimeLiteral
-    : dateLiteral
-    | timeLiteral
-    | timestampLiteral
-    | datetimeConstantLiteral
+    : dateLiteral #passthrough
+    | timeLiteral #passthrough
+    | timestampLiteral #passthrough
+    | datetimeConstantLiteral #functionShortcut
     ;
 
 dateLiteral
@@ -516,7 +538,14 @@ timestampLiteral
 
 // Actually, these constants are shortcuts to the corresponding functions
 datetimeConstantLiteral
-    : CURRENT_DATE | CURRENT_TIME | CURRENT_TIMESTAMP | LOCALTIME | LOCALTIMESTAMP | UTC_TIMESTAMP | UTC_DATE | UTC_TIME
+    : CURRENT_DATE
+    | CURRENT_TIME
+    | CURRENT_TIMESTAMP
+    | LOCALTIME
+    | LOCALTIMESTAMP
+    | UTC_TIMESTAMP
+    | UTC_DATE
+    | UTC_TIME
     ;
 
 intervalUnit

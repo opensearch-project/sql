@@ -222,10 +222,10 @@ nullLiteral
 
 // Date and Time Literal, follow ANSI 92
 datetimeLiteral
-    : dateLiteral
-    | timeLiteral
-    | timestampLiteral
-    | datetimeConstantLiteral
+    : dateLiteral #pasthrough
+    | timeLiteral #passthrough
+    | timestampLiteral #passthrough
+    | datetimeConstantLiteral #functionShortcut
     ;
 
 dateLiteral
@@ -242,7 +242,14 @@ timestampLiteral
 
 // Actually, these constants are shortcuts to the corresponding functions
 datetimeConstantLiteral
-    : CURRENT_DATE | CURRENT_TIME | CURRENT_TIMESTAMP | LOCALTIME | LOCALTIMESTAMP | UTC_TIMESTAMP | UTC_DATE | UTC_TIME
+    : CURRENT_DATE
+    | CURRENT_TIME
+    | CURRENT_TIMESTAMP
+    | LOCALTIME
+    | LOCALTIMESTAMP
+    | UTC_TIMESTAMP
+    | UTC_DATE
+    | UTC_TIME
     ;
 
 intervalLiteral
@@ -307,12 +314,8 @@ functionCall
     | aggregateFunction (orderByClause)? filterClause               #filteredAggregationFunctionCall
     | relevanceFunction                                             #relevanceFunctionCall
     | highlightFunction                                             #highlightFunctionCall
-    | constantFunction                                              #constantFunctionCall
     ;
 
-constantFunction
-    : constantFunctionName LR_BRACKET functionArgs RR_BRACKET
-    ;
 
 highlightFunction
     : HIGHLIGHT LR_BRACKET relevanceField (COMMA highlightArg)* RR_BRACKET
@@ -395,17 +398,44 @@ trigonometricFunctionName
     ;
 
 dateTimeFunctionName
-    : ADDDATE | CONVERT_TZ | DATE | DATE_ADD | DATE_FORMAT | DATE_SUB
-    | DATETIME | DAY | DAYNAME | DAYOFMONTH | DAYOFWEEK | DAYOFYEAR | FROM_DAYS | FROM_UNIXTIME
-    | HOUR | MAKEDATE | MAKETIME | MICROSECOND | MINUTE | MONTH | MONTHNAME | PERIOD_ADD
-    | PERIOD_DIFF | QUARTER | SECOND | SUBDATE | SYSDATE | TIME | TIME_TO_SEC
-    | TIMESTAMP | TO_DAYS | UNIX_TIMESTAMP | WEEK | YEAR
-    ;
-
-// Functions which value could be cached in scope of a single query
-constantFunctionName
     : datetimeConstantLiteral
-    | CURDATE | CURTIME | NOW
+    | ADDDATE
+    | CONVERT_TZ
+    | CURDATE
+    | CURTIME
+    | DATE
+    | DATE_ADD
+    | DATE_FORMAT
+    | DATE_SUB
+    | DATETIME
+    | DAY
+    | DAYNAME
+    | DAYOFMONTH
+    | DAYOFWEEK
+    | DAYOFYEAR
+    | FROM_DAYS
+    | FROM_UNIXTIME
+    | HOUR
+    | MAKEDATE
+    | MAKETIME
+    | MICROSECOND
+    | MINUTE
+    | MONTH
+    | MONTHNAME
+    | NOW
+    | PERIOD_ADD
+    | PERIOD_DIFF
+    | QUARTER
+    | SECOND
+    | SUBDATE
+    | SYSDATE
+    | TIME
+    | TIME_TO_SEC
+    | TIMESTAMP
+    | TO_DAYS
+    | UNIX_TIMESTAMP
+    | WEEK
+    | YEAR
     ;
 
 textFunctionName
