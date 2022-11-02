@@ -18,6 +18,7 @@ AUTH = None
 QUERY_WITH_CTRL_D = "select * from %s;\r\x04\r" % TEST_INDEX_NAME
 USE_AWS_CREDENTIALS = False
 QUERY_LANGUAGE = "sql"
+RESPONSE_TIMEOUT = 10
 
 
 @pytest.fixture()
@@ -34,7 +35,8 @@ class TestOpenSearchSqlCli:
         ) as mock_set_connectiuon:
             cli.connect(endpoint=ENDPOINT)
 
-            mock_OpenSearchConnection.assert_called_with(ENDPOINT, AUTH, USE_AWS_CREDENTIALS, QUERY_LANGUAGE)
+            mock_OpenSearchConnection.assert_called_with(ENDPOINT, AUTH, USE_AWS_CREDENTIALS, QUERY_LANGUAGE,
+                                                         RESPONSE_TIMEOUT)
             mock_set_connectiuon.assert_called()
 
     @estest
