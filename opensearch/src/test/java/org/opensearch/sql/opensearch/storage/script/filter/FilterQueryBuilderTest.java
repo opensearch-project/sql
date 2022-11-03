@@ -48,7 +48,6 @@ import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
-import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
@@ -64,18 +63,18 @@ class FilterQueryBuilderTest {
   private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
 
   private static Stream<LiteralExpression> numericCastSource() {
-    return Stream.of(literal((byte) 1), literal((short) 1), literal(
-        1), literal(1L), literal(1F), literal(1D), literal(true), literal("1"));
+    return Stream.of(literal((byte) 1), literal((short) -1), literal(
+        1), literal(21L), literal(3.14F), literal(3.1415D), literal(true), literal("1"));
   }
 
   private static Stream<LiteralExpression> booleanTrueCastSource() {
-    return Stream.of(literal((byte) 1), literal((short) 1), literal(
-        1), literal(1L), literal(1F), literal(1D), literal(true), literal("true"));
+    return Stream.of(literal((byte) 1), literal((short) -1), literal(
+        1), literal(42L), literal(3.14F), literal(3.1415D), literal(true), literal("true"));
   }
 
   private static Stream<LiteralExpression> booleanFalseCastSource() {
     return Stream.of(literal((byte) 0), literal((short) 0), literal(
-        0), literal(0L), literal(0F), literal(0D), literal(false), literal("false"));
+        0), literal(0L), literal(0.0F), literal(0.0D), literal(false), literal("false"));
   }
 
   @Mock
@@ -937,93 +936,126 @@ class FilterQueryBuilderTest {
         dsl.equal(ref("string_value", STRING), dsl.castString(literal("1")))));
   }
 
+  private Float castToFloat(Object o) {
+    if (o instanceof Number) {
+      return ((Number)o).floatValue();
+    }
+    if (o instanceof String) {
+      return Float.parseFloat((String) o);
+    }
+    if (o instanceof Boolean) {
+      return ((Boolean)o) ? 1F : 0F;
+    }
+    // unreachable code
+    throw new IllegalArgumentException();
+  }
+
+  private Integer castToInteger(Object o) {
+    if (o instanceof Number) {
+      return ((Number)o).intValue();
+    }
+    if (o instanceof String) {
+      return Integer.parseInt((String) o);
+    }
+    if (o instanceof Boolean) {
+      return ((Boolean)o) ? 1 : 0;
+    }
+    // unreachable code
+    throw new IllegalArgumentException();
+  }
+
   @ParameterizedTest(name = "castByte({0})")
   @MethodSource({"numericCastSource"})
   void cast_to_byte_in_filter(LiteralExpression expr) {
-    assertJsonEquals(
+    assertJsonEquals(String.format(
         "{\n"
             + "  \"term\" : {\n"
             + "    \"byte_value\" : {\n"
-            + "      \"value\" : 1,\n"
+            + "      \"value\" : %d,\n"
             + "      \"boost\" : 1.0\n"
             + "    }\n"
             + "  }\n"
-            + "}",
+            + "}", castToInteger(expr.valueOf(null).value())),
         buildQuery(dsl.equal(ref("byte_value", BYTE), dsl.castByte(expr))));
   }
 
   @ParameterizedTest(name = "castShort({0})")
   @MethodSource({"numericCastSource"})
   void cast_to_short_in_filter(LiteralExpression expr) {
-    assertJsonEquals(
+    assertJsonEquals(String.format(
         "{\n"
             + "  \"term\" : {\n"
             + "    \"short_value\" : {\n"
-            + "      \"value\" : 1,\n"
+            + "      \"value\" : %d,\n"
             + "      \"boost\" : 1.0\n"
             + "    }\n"
             + "  }\n"
-            + "}",
+            + "}", castToInteger(expr.valueOf(null).value())),
         buildQuery(dsl.equal(ref("short_value", SHORT), dsl.castShort(expr))));
   }
 
   @ParameterizedTest(name = "castInt({0})")
   @MethodSource({"numericCastSource"})
   void cast_to_int_in_filter(LiteralExpression expr) {
-    assertJsonEquals(
+    assertJsonEquals(String.format(
         "{\n"
             + "  \"term\" : {\n"
             + "    \"integer_value\" : {\n"
-            + "      \"value\" : 1,\n"
+            + "      \"value\" : %d,\n"
             + "      \"boost\" : 1.0\n"
             + "    }\n"
             + "  }\n"
-            + "}",
+            + "}", castToInteger(expr.valueOf(null).value())),
         buildQuery(dsl.equal(ref("integer_value", INTEGER), dsl.castInt(expr))));
   }
 
   @ParameterizedTest(name = "castLong({0})")
   @MethodSource({"numericCastSource"})
   void cast_to_long_in_filter(LiteralExpression expr) {
-    assertJsonEquals(
+    assertJsonEquals(String.format(
         "{\n"
             + "  \"term\" : {\n"
             + "    \"long_value\" : {\n"
-            + "      \"value\" : 1,\n"
+            + "      \"value\" : %d,\n"
             + "      \"boost\" : 1.0\n"
             + "    }\n"
             + "  }\n"
-            + "}",
+            + "}", castToInteger(expr.valueOf(null).value())),
         buildQuery(dsl.equal(ref("long_value", LONG), dsl.castLong(expr))));
   }
 
   @ParameterizedTest(name = "castFloat({0})")
   @MethodSource({"numericCastSource"})
   void cast_to_float_in_filter(LiteralExpression expr) {
-    assertJsonEquals(
+    assertJsonEquals(String.format(
         "{\n"
             + "  \"term\" : {\n"
             + "    \"float_value\" : {\n"
-            + "      \"value\" : 1.0,\n"
+            + "      \"value\" : %f,\n"
             + "      \"boost\" : 1.0\n"
             + "    }\n"
             + "  }\n"
-            + "}",
+            + "}", castToFloat(expr.valueOf(null).value())),
         buildQuery(dsl.equal(ref("float_value", FLOAT), dsl.castFloat(expr))));
   }
 
   @ParameterizedTest(name = "castDouble({0})")
   @MethodSource({"numericCastSource"})
   void cast_to_double_in_filter(LiteralExpression expr) {
-    assertJsonEquals(
+    // double values affected by floating point imprecision, so we can't compare them in json
+    // (Double)(Float)3.14 -> 3.14000010490417
+    assertEquals(castToFloat(expr.valueOf(null).value()),
+        dsl.castDouble(expr).valueOf(null).doubleValue(), 0.00001);
+
+    assertJsonEquals(String.format(
         "{\n"
             + "  \"term\" : {\n"
             + "    \"double_value\" : {\n"
-            + "      \"value\" : 1.0,\n"
+            + "      \"value\" : %2.20f,\n"
             + "      \"boost\" : 1.0\n"
             + "    }\n"
             + "  }\n"
-            + "}",
+            + "}", dsl.castDouble(expr).valueOf(null).doubleValue()),
         buildQuery(dsl.equal(ref("double_value", DOUBLE), dsl.castDouble(expr))));
   }
 
