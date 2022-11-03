@@ -1,5 +1,5 @@
 =============
-kmeans
+kmeans (deprecated by ml command)
 =============
 
 .. rubric:: Table of contents
