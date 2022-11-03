@@ -7,7 +7,6 @@
 
 package org.opensearch.sql.prometheus.storage;
 
-import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.LABELS;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.TIMESTAMP;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.VALUE;
 
@@ -25,10 +24,8 @@ public enum PrometheusMetricDefaultSchema {
   DEFAULT_MAPPING(new ImmutableMap.Builder<String, ExprType>()
       .put(TIMESTAMP, ExprCoreType.TIMESTAMP)
       .put(VALUE, ExprCoreType.DOUBLE)
-      .put(LABELS, ExprCoreType.STRING)
       .build());
 
   private final Map<String, ExprType> mapping;
-
 
 }
