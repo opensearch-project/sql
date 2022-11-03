@@ -71,6 +71,13 @@ test.finalizedBy(project.tasks.jacocoTestReport)
 jacocoTestCoverageVerification {
     violationRules {
         rule {
+            // hadoop-fs depend on native library which is missing on windows.
+            // https://hadoop.apache.org/docs/r3.3.4/hadoop-project-dist/hadoop-common/NativeLibraries.html#Native_Hadoop_Library
+            if ('windows' == project.getProperties().getOrDefault('buildPlatform', 'linux')) {
+                excludes = [
+                        'org.opensearch.sql.filesystem.streaming.FileSystemStreamSource'
+                ]
+            }
             element = 'CLASS'
             limit {
                 counter = 'LINE'
