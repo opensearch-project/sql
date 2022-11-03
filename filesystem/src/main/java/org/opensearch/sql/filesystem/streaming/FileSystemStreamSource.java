@@ -6,16 +6,18 @@
 package org.opensearch.sql.filesystem.streaming;
 
 import com.google.common.collect.Sets;
-import java.io.File;
-import java.nio.file.FileSystem;
-import java.nio.file.Path;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import lombok.SneakyThrows;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.executor.streaming.Batch;
@@ -38,12 +40,12 @@ public class FileSystemStreamSource implements StreamingSource {
 
   private final FileSystem fs;
 
-  private final String basePath;
+  private final Path basePath;
 
   /**
    * Constructor of FileSystemStreamSource.
    */
-  public FileSystemStreamSource(FileSystem fs, String basePath) {
+  public FileSystemStreamSource(FileSystem fs, Path basePath) {
     this.fs = fs;
     this.basePath = basePath;
     // todo, need to add state recovery
@@ -52,13 +54,14 @@ public class FileSystemStreamSource implements StreamingSource {
     this.seenFiles = new HashSet<>();
   }
 
+  @SneakyThrows(value = IOException.class)
   @Override
   public Optional<Offset> getLatestOffset() {
     // list all files. todo. improvement list performance.
     Set<Path> allFiles =
-        Arrays.stream(fs.getPath(basePath).toFile().listFiles())
-            .filter(file -> !file.isDirectory())
-            .map(File::toPath)
+        Arrays.stream(fs.listStatus(basePath))
+            .filter(status -> !status.isDirectory())
+            .map(FileStatus::getPath)
             .collect(Collectors.toSet());
 
     // find unread files.

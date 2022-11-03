@@ -9,8 +9,29 @@ plugins {
     id 'jacoco'
 }
 
+ext {
+    hadoop = "3.3.4"
+    aws = "1.12.330"
+}
+
 dependencies {
     implementation project(':core')
+    // required by hadoop filesystem https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-common/filesystem/index.html.
+    implementation("org.apache.hadoop:hadoop-common:${hadoop}") {
+        exclude group: 'org.apache.zookeeper', module: 'zookeeper'
+        exclude group: 'com.sun.jersey', module: 'jersey-json'
+        exclude group: 'com.google.protobuf', module: 'protobuf-java'
+        exclude group: 'org.apache.avro', module: 'avro'
+        exclude group: 'org.eclipse.jetty', module: 'jetty-server'
+    }
+    constraints {
+        implementation('com.fasterxml.woodstox:woodstox-core:6.4.0') {
+            because 'https://www.mend.io/vulnerability-database/CVE-2022-40156'
+        }
+    }
+    // required https://hadoop.apache.org/docs/stable/hadoop-aws/tools/hadoop-aws/index.html
+    implementation("org.apache.hadoop:hadoop-aws:${hadoop}")
+    implementation "com.amazonaws:aws-java-sdk-bundle:${aws}"
 
     testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
@@ -23,6 +44,14 @@ test {
     testLogging {
         events "passed", "skipped", "failed"
         exceptionFormat "full"
+    }
+
+    // hadoop-fs depend on native library which is missing on windows.
+    // https://hadoop.apache.org/docs/r3.3.4/hadoop-project-dist/hadoop-common/NativeLibraries.html#Native_Hadoop_Library
+    if ('windows' == project.getProperties().getOrDefault('buildPlatform', 'linux')) {
+        excludes = [
+                '**/FileSystemStreamSourceTest.class'
+        ]
     }
 }
 

@@ -5,12 +5,12 @@
 
 package org.opensearch.sql.filesystem.storage.split;
 
-import java.nio.file.Path;
 import java.util.Set;
 import java.util.UUID;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import org.apache.hadoop.fs.Path;
 import org.opensearch.sql.storage.split.Split;
 
 @Data

@@ -5,9 +5,9 @@
 
 package org.opensearch.sql.filesystem.streaming;
 
-import java.nio.file.Path;
 import java.util.Set;
 import lombok.Data;
+import org.apache.hadoop.fs.Path;
 
 /**
  * File metadata. Batch id associate with the set of {@link Path}.
