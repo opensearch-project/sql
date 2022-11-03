@@ -149,6 +149,11 @@ class FileSystemStreamSourceTest {
         streamSource.getBatch(Optional.empty(), latestOffset.get()).getSplits());
   }
 
+  @Test
+  void failTest() {
+    assertTrue(false);
+  }
+
   void assertBatchEquals(List<org.apache.hadoop.fs.Path> expectedFiles, Batch batch) {
     assertEquals(1, batch.getSplits().size());
     assertThat(
