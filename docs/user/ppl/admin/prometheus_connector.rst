@@ -72,3 +72,116 @@ AWSSigV4 Auth::
         }
     }]
 
+PPL Query support for prometheus connector
+==========================================
+
+Metric as a Table
+---------------------------
+Each connector has to abstract the underlying datasource constructs into a table as part of the interface contract with the PPL query engine.
+Prometheus connector abstracts each metric as a table and the columns of this table are ``@value``, ``@timestamp``, ``label1``, ``label2``---.
+``@value`` represents metric measurement and ``@timestamp`` represents the timestamp at which the metric is collected. labels are tags associated with metric queried.
+For eg: ``handler``, ``code``, ``instance``, ``code`` are the labels associated with ``prometheus_http_requests_total`` metric. With this abstraction, we can query prometheus
+data using PPL syntax similar to opensearch indices.
+
+Sample Example::
+
+    > source = my_prometheus.prometheus_http_requests_total;
+
+    +------------+------------------------+--------------------------------+---------------+-------------+-------------+
+    | @value     | @timestamp             |   handler                      | code          | instance    | job         |
+    |------------+------------------------+--------------------------------+---------------+-------------+-------------|
+    | 5          | "2022-11-03 07:18:14"  | "/-/ready"                     | 200           | 192.15.1.1  | prometheus  |
+    | 3          | "2022-11-03 07:18:24"  | "/-/ready"                     | 200           | 192.15.1.1  | prometheus  |
+    | 7          | "2022-11-03 07:18:34"  | "/-/ready"                     | 200           | 192.15.1.1  | prometheus  |
+    | 2          | "2022-11-03 07:18:44"  | "/-/ready"                     | 400           | 192.15.2.1  | prometheus  |
+    | 9          | "2022-11-03 07:18:54"  | "/-/promql"                    | 400           | 192.15.2.1  | prometheus  |
+    | 11         | "2022-11-03 07:18:64"  |"/-/metrics"                    | 500           | 192.15.2.1  | prometheus  |
+    +------------+------------------------+--------------------------------+---------------+-------------+-------------+
+
+
+
+Default time range and resolution
+---------------------------------
+Since time range and resolution are required parameters for query apis and these parameters are determined in the following  manner from the PPL commands.
+* Time range is determined through filter clause on ``@timestamp``. If there is no such filter clause, time range will be set to 1h with endtime set to now().
+* In case of stats, resolution is determined by ``span(@timestamp,15s)`` expression. For normal select queries, resolution is auto determined from the time range set.
+
+Prometheus Connector Limitations
+--------------------------------
+* Only one aggregation is supported in stats command.
+* Span Expression is compulsory in stats command.
+* AVG, MAX, MIN, SUM, COUNT are the only aggregations supported in prometheus connector.
+
+Example queries
+---------------
+
+1. Metric Selection Query::
+
+    > source = my_prometheus.prometheus_http_requests_total
+     +------------+------------------------+--------------------------------+---------------+-------------+-------------+
+    | @value     | @timestamp             |   handler                      | code          | instance    | job         |
+    |------------+------------------------+--------------------------------+---------------+-------------+-------------|
+    | 5          | "2022-11-03 07:18:14"  | "/-/ready"                     | 200           | 192.15.1.1  | prometheus  |
+    | 3          | "2022-11-03 07:18:24"  | "/-/ready"                     | 200           | 192.15.1.1  | prometheus  |
+    | 7          | "2022-11-03 07:18:34"  | "/-/ready"                     | 200           | 192.15.1.1  | prometheus  |
+    | 2          | "2022-11-03 07:18:44"  | "/-/ready"                     | 400           | 192.15.2.1  | prometheus  |
+    | 9          | "2022-11-03 07:18:54"  | "/-/promql"                    | 400           | 192.15.2.1  | prometheus  |
+    | 11         | "2022-11-03 07:18:64"  |"/-/metrics"                    | 500           | 192.15.2.1  | prometheus  |
+    +------------+------------------------+--------------------------------+---------------+-------------+-------------+
+
+2. Metric Selecting Query with specific dimensions::
+
+    > source = my_prometheus.prometheus_http_requests_total | where handler='/-/ready' and code='200'
+    +------------+------------------------+--------------------------------+---------------+-------------+-------------+
+    | @value     | @timestamp             |   handler                      | code          | instance    | job         |
+    |------------+------------------------+--------------------------------+---------------+-------------+-------------|
+    | 5          | "2022-11-03 07:18:14"  | "/-/ready"                     | 200           | 192.15.1.1  | prometheus  |
+    | 3          | "2022-11-03 07:18:24"  | "/-/ready"                     | 200           | 192.15.1.1  | prometheus  |
+    | 7          | "2022-11-03 07:18:34"  | "/-/ready"                     | 200           | 192.15.1.1  | prometheus  |
+    | 2          | "2022-11-03 07:18:44"  | "/-/ready"                     | 200           | 192.15.2.1  | prometheus  |
+    | 9          | "2022-11-03 07:18:54"  | "/-/ready"                     | 200           | 192.15.2.1  | prometheus  |
+    | 11         | "2022-11-03 07:18:64"  | "/-/ready"                     | 200           | 192.15.2.1  | prometheus  |
+    +------------+------------------------+--------------------------------+---------------+-------------+-------------+
+
+3. Average aggregation on a metric::
+
+    > source = my_prometheus.prometheus_http_requests_total | stats avg(@value) by span(@timestamp,15s)
+    +------------+------------------------+
+    | avg(@value)| span(@timestamp,15s)   |
+    |------------+------------------------+
+    | 5          | "2022-11-03 07:18:14"  |
+    | 3          | "2022-11-03 07:18:24"  |
+    | 7          | "2022-11-03 07:18:34"  |
+    | 2          | "2022-11-03 07:18:44"  |
+    | 9          | "2022-11-03 07:18:54"  |
+    | 11         | "2022-11-03 07:18:64"  |
+    +------------+------------------------+
+
+4. Average aggregation grouped by dimensions::
+
+    > source = my_prometheus.prometheus_http_requests_total | stats avg(@value) by span(@timestamp,15s), handler, code
+    +------------+------------------------+--------------------------------+---------------+
+    | avg(@value)| span(@timestamp,15s)   |   handler                      | code          |
+    |------------+------------------------+--------------------------------+---------------+
+    | 5          | "2022-11-03 07:18:14"  | "/-/ready"                     | 200           |
+    | 3          | "2022-11-03 07:18:24"  | "/-/ready"                     | 200           |
+    | 7          | "2022-11-03 07:18:34"  | "/-/ready"                     | 200           |
+    | 2          | "2022-11-03 07:18:44"  | "/-/ready"                     | 400           |
+    | 9          | "2022-11-03 07:18:54"  | "/-/promql"                    | 400           |
+    | 11         | "2022-11-03 07:18:64"  | "/-/metrics"                   | 500           |
+    +------------+------------------------+--------------------------------+---------------+
+
+5. Count aggregation query::
+
+    > source = my_prometheus.prometheus_http_requests_total | stats count() by span(@timestamp,15s), handler, code
+    +------------+------------------------+--------------------------------+---------------+
+    | count()    | span(@timestamp,15s)   |   handler                      | code          |
+    |------------+------------------------+--------------------------------+---------------+
+    | 5          | "2022-11-03 07:18:14"  | "/-/ready"                     | 200           |
+    | 3          | "2022-11-03 07:18:24"  | "/-/ready"                     | 200           |
+    | 7          | "2022-11-03 07:18:34"  | "/-/ready"                     | 200           |
+    | 2          | "2022-11-03 07:18:44"  | "/-/ready"                     | 400           |
+    | 9          | "2022-11-03 07:18:54"  | "/-/promql"                    | 400           |
+    | 11         | "2022-11-03 07:18:64"  | "/-/metrics"                   | 500           |
+    +------------+------------------------+--------------------------------+---------------+
+

@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import lombok.Generated;
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
@@ -348,11 +349,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    */
   @Override
   public UnresolvedPlan visitFromClause(FromClauseContext ctx) {
-    if (ctx.tableFunction() != null) {
-      return visitTableFunction(ctx.tableFunction());
-    } else {
-      return visitTableSourceClause(ctx.tableSourceClause());
-    }
+    return visitTableSourceClause(ctx.tableSourceClause());
   }
 
   @Override
@@ -363,16 +360,10 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   @Override
+  @Generated //To exclude from jacoco..will remove https://github.com/opensearch-project/sql/issues/1019
   public UnresolvedPlan visitTableFunction(OpenSearchPPLParser.TableFunctionContext ctx) {
-    ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
-    ctx.functionArgs().functionArg().forEach(arg
-        -> {
-      String argName = (arg.ident() != null) ? arg.ident().getText() : null;
-      builder.add(
-          new UnresolvedArgument(argName,
-              this.internalVisitExpression(arg.valueExpression())));
-    });
-    return new TableFunction(this.internalVisitExpression(ctx.qualifiedName()), builder.build());
+    //<TODO>
+    return null;
   }
 
   /**

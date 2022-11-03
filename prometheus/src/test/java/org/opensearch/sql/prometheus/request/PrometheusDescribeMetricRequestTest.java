@@ -9,11 +9,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 import static org.opensearch.sql.prometheus.constants.TestConstants.METRIC_NAME;
-import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.LABELS;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.TIMESTAMP;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.VALUE;
 
@@ -46,18 +44,15 @@ public class PrometheusDescribeMetricRequestTest {
   @SneakyThrows
   void testGetFieldTypes() {
     when(prometheusClient.getLabels(METRIC_NAME)).thenReturn(new ArrayList<String>() {{
-        add("__name__");
         add("call");
         add("code");
       }
     });
     Map<String, ExprType> expected = new HashMap<>() {{
-        put("__name__", ExprCoreType.STRING);
         put("call", ExprCoreType.STRING);
         put("code", ExprCoreType.STRING);
         put(VALUE, ExprCoreType.DOUBLE);
         put(TIMESTAMP, ExprCoreType.TIMESTAMP);
-        put(LABELS, ExprCoreType.STRING);
       }};
     PrometheusDescribeMetricRequest prometheusDescribeMetricRequest
         = new PrometheusDescribeMetricRequest(prometheusClient,
@@ -73,7 +68,6 @@ public class PrometheusDescribeMetricRequestTest {
     Map<String, ExprType> expected = new HashMap<>() {{
         put(VALUE, ExprCoreType.DOUBLE);
         put(TIMESTAMP, ExprCoreType.TIMESTAMP);
-        put(LABELS, ExprCoreType.STRING);
       }};
     assertThrows(NullPointerException.class,
         () -> new PrometheusDescribeMetricRequest(prometheusClient,
@@ -112,15 +106,16 @@ public class PrometheusDescribeMetricRequestTest {
   @Test
   @SneakyThrows
   void testSearch() {
-    when(prometheusClient.getLabels(METRIC_NAME)).thenReturn(new ArrayList<String>() {{
+    when(prometheusClient.getLabels(METRIC_NAME)).thenReturn(new ArrayList<>() {
+      {
         add("call");
       }
-      });
+    });
     PrometheusDescribeMetricRequest prometheusDescribeMetricRequest
         = new PrometheusDescribeMetricRequest(prometheusClient,
             new CatalogSchemaName("test", "default"), METRIC_NAME);
     List<ExprValue> result = prometheusDescribeMetricRequest.search();
-    assertEquals(4, result.size());
+    assertEquals(3, result.size());
     assertEquals(expectedRow(), result.get(0));
     verify(prometheusClient, times(1)).getLabels(METRIC_NAME);
   }

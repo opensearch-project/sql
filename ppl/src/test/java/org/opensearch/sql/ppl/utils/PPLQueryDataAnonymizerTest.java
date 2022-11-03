@@ -15,6 +15,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -39,6 +40,7 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  @Ignore
   public void testTableFunctionCommand() {
     assertEquals("source=prometheus.query_range(***,***,***,***)",
         anonymize("source=prometheus.query_range('afsd',123,123,3)")

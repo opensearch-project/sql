@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.stream.Collectors;
+import lombok.Generated;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -80,13 +81,10 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   }
 
   @Override
+  @Generated //To exclude from jacoco..will remove https://github.com/opensearch-project/sql/issues/1019
   public String visitTableFunction(TableFunction node, String context) {
-    String arguments =
-        node.getArguments().stream()
-            .map(unresolvedExpression
-                -> this.expressionAnalyzer.analyze(unresolvedExpression, context))
-            .collect(Collectors.joining(","));
-    return StringUtils.format("source=%s(%s)", node.getFunctionName().toString(), arguments);
+    //<TODO>
+    return null;
   }
 
   @Override
