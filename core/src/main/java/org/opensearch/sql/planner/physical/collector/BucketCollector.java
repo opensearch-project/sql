@@ -38,7 +38,8 @@ public class BucketCollector implements Collector {
   private final Supplier<Collector> supplier;
 
   /**
-   * Map between bucketKey and collector in the bucket.
+   * Map from bucketKey to nested collector sorted by key to make sure
+   * final result is in order after traversal.
    */
   private final Map<ExprValue, Collector> collectorMap = new TreeMap<>();
 

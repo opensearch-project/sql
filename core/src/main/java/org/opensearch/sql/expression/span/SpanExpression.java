@@ -25,7 +25,7 @@ public class SpanExpression implements Expression {
   private final SpanUnit unit;
 
   /**
-   * Rounding.
+   * Rounding that generates span starting point.
    */
   @ToString.Exclude
   private final Rounding<?> rounding;
