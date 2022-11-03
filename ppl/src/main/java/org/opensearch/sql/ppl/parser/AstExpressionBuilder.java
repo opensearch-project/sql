@@ -18,7 +18,6 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ConstantFu
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ConvertedDataTypeContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CountAllFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DataTypeFunctionCallContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DatetimeConstantLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DistinctCountFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalClauseContext;
@@ -258,11 +257,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return AstDSL.stringLiteral(ctx.getText());
   }
 
-  @Override
-  public UnresolvedExpression visitDatetimeConstantLiteral(DatetimeConstantLiteralContext ctx) {
-    return visitConstantFunction(ctx.getText(), null);
-  }
-
   public UnresolvedExpression visitConstantFunction(ConstantFunctionContext ctx) {
     return visitConstantFunction(ctx.constantFunctionName().getText(),
         ctx.functionArgs());
@@ -270,13 +264,10 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   private UnresolvedExpression visitConstantFunction(String functionName,
                                                      FunctionArgsContext args) {
-    return new ConstantFunction(functionName,
-        args == null
-            ? Collections.emptyList()
-            : args.functionArg()
-            .stream()
-            .map(this::visitFunctionArg)
-            .collect(Collectors.toList()));
+    return new ConstantFunction(functionName, args.functionArg()
+        .stream()
+        .map(this::visitFunctionArg)
+        .collect(Collectors.toList()));
   }
 
   private Function visitFunction(String functionName, FunctionArgsContext args) {
