@@ -652,11 +652,7 @@ public class DateTimeFunction {
    */
   private ExprValue exprDate(ExprValue exprValue) {
     if (exprValue instanceof ExprStringValue) {
-      try {
-        return new ExprDateValue(exprValue.stringValue());
-      } catch (SemanticCheckException e) {
-        return ExprNullValue.of();
-      }
+      return new ExprDateValue(exprValue.stringValue());
     } else {
       return new ExprDateValue(exprValue.dateValue());
     }
@@ -952,11 +948,7 @@ public class DateTimeFunction {
       return new ExprTimeValue("00:00:00");
     }
     if (exprValue instanceof ExprStringValue) {
-      try {
-        return new ExprTimeValue(exprValue.stringValue());
-      } catch (SemanticCheckException e) {
-        return ExprNullValue.of();
-      }
+      return new ExprTimeValue(exprValue.stringValue());
     } else {
       return new ExprTimeValue(exprValue.timeValue());
     }
