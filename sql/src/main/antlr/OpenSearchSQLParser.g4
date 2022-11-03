@@ -225,7 +225,6 @@ datetimeLiteral
     : dateLiteral
     | timeLiteral
     | timestampLiteral
-    | datetimeConstantLiteral
     ;
 
 dateLiteral
@@ -238,11 +237,6 @@ timeLiteral
 
 timestampLiteral
     : TIMESTAMP timestamp=stringLiteral
-    ;
-
-// Actually, these constants are shortcuts to the corresponding functions
-datetimeConstantLiteral
-    : CURRENT_DATE | CURRENT_TIME | CURRENT_TIMESTAMP | LOCALTIME | LOCALTIMESTAMP | UTC_TIMESTAMP | UTC_DATE | UTC_TIME
     ;
 
 intervalLiteral
@@ -404,7 +398,7 @@ dateTimeFunctionName
 
 // Functions which value could be cached in scope of a single query
 constantFunctionName
-    : datetimeConstantLiteral
+    : CURRENT_DATE | CURRENT_TIME | CURRENT_TIMESTAMP | LOCALTIME | LOCALTIMESTAMP | UTC_TIMESTAMP | UTC_DATE | UTC_TIME
     | CURDATE | CURTIME | NOW
     ;
 
