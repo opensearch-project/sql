@@ -14,24 +14,54 @@ ext {
     aws = "1.12.330"
 }
 
+configurations.all {
+    resolutionStrategy.force "commons-io:commons-io:2.8.0"
+}
+
 dependencies {
     implementation project(':core')
     // required by hadoop filesystem https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-common/filesystem/index.html.
     implementation("org.apache.hadoop:hadoop-common:${hadoop}") {
-        exclude group: 'org.apache.zookeeper', module: 'zookeeper'
-        exclude group: 'com.sun.jersey', module: 'jersey-json'
+        exclude group: 'org.apache.zookeeper'
+        exclude group: 'org.eclipse.jetty'
+        exclude group: 'com.sun.jersey'
+        exclude group: 'javax.servlet.jsp'
+        exclude group: 'javax.servlet'
+        exclude group: 'org.apache.kerby'
+        exclude group: 'org.apache.curator'
         exclude group: 'com.google.protobuf', module: 'protobuf-java'
         exclude group: 'org.apache.avro', module: 'avro'
-        exclude group: 'org.eclipse.jetty', module: 'jetty-server'
+        exclude group: 'com.nimbusds', module: 'nimbus-jose-jwt'
+        // enforce version.
+        exclude group: 'com.fasterxml.woodstox', module: 'woodstox-core'
+        exclude group: 'commons-io', module: 'commons-io'
+        exclude group: 'ch.qos.reload4j', module: 'reload4j'
+        exclude group: 'org.apache.httpcomponents', module: 'httpcore'
     }
+    implementation('com.fasterxml.woodstox:woodstox-core')
     constraints {
         implementation('com.fasterxml.woodstox:woodstox-core:6.4.0') {
             because 'https://www.mend.io/vulnerability-database/CVE-2022-40156'
         }
     }
-    // required https://hadoop.apache.org/docs/stable/hadoop-aws/tools/hadoop-aws/index.html
-    implementation("org.apache.hadoop:hadoop-aws:${hadoop}")
-    implementation "com.amazonaws:aws-java-sdk-bundle:${aws}"
+    implementation('commons-io:commons-io')
+    constraints {
+        implementation('commons-io:commons-io:2.8.0') {
+            because 'between versions 2.8.0 and 2.5'
+        }
+    }
+    implementation('ch.qos.reload4j:reload4j')
+    constraints {
+        implementation('ch.qos.reload4j:reload4j:1.2.22') {
+            because 'between versions 1.2.22 and 1.2.19'
+        }
+    }
+    implementation('org.apache.httpcomponents:httpcore')
+    constraints {
+        implementation('org.apache.httpcomponents:httpcore:4.4.15') {
+            because 'between versions 4.4.15 and 4.4.13'
+        }
+    }
 
     testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
