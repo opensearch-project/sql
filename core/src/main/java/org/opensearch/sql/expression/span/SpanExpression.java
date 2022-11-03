@@ -27,6 +27,7 @@ public class SpanExpression implements Expression {
   /**
    * Rounding.
    */
+  @ToString.Exclude
   private final Rounding<?> rounding;
 
   /**
@@ -36,7 +37,7 @@ public class SpanExpression implements Expression {
     this.field = field;
     this.value = value;
     this.unit = unit;
-    this.rounding = Rounding.createRounding(this);
+    this.rounding = Rounding.createRounding(this); // TODO: will integrate with WindowAssigner
   }
 
   @Override
