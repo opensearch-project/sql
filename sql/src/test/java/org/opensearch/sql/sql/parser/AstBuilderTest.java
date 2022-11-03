@@ -682,14 +682,14 @@ class AstBuilderTest {
   private static Stream<Arguments> nowLikeFunctionsData() {
     return Stream.of(
         Arguments.of("now", false, false, true),
-        Arguments.of("current_timestamp", false, true, true),
-        Arguments.of("localtimestamp", false, true, true),
-        Arguments.of("localtime", false, true, true),
+        Arguments.of("current_timestamp", false, false, true),
+        Arguments.of("localtimestamp", false, false, true),
+        Arguments.of("localtime", false, false, true),
         Arguments.of("sysdate", true, false, false),
         Arguments.of("curtime", false, false, true),
-        Arguments.of("current_time", false, true, true),
+        Arguments.of("current_time", false, false, true),
         Arguments.of("curdate", false, false, true),
-        Arguments.of("current_date", false, true, true)
+        Arguments.of("current_date", false, false, true)
     );
   }
 
