@@ -53,7 +53,8 @@ public class SpanCollector extends BucketCollector {
    */
   @Override
   protected ExprValue[] allocateBuckets() {
-    return rounding.createBuckets();
+    //return rounding.createBuckets();
+    return super.allocateBuckets();
   }
 
   /**
@@ -64,6 +65,7 @@ public class SpanCollector extends BucketCollector {
    */
   @Override
   protected int locateBucket(ExprValue value) {
-    return rounding.locate(value);
+    //return rounding.locate(value);
+    return super.locateBucket(value);
   }
 }
