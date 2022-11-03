@@ -9,6 +9,8 @@ package org.opensearch.sql.prometheus.functions;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -66,10 +68,10 @@ class QueryRangeFunctionImplementationTest {
         = new QueryRangeFunctionImplementation(functionName, namedArgumentExpressionList, client);
     PrometheusMetricTable prometheusMetricTable
         = (PrometheusMetricTable) queryRangeFunctionImplementation.applyArguments();
-    assertFalse(prometheusMetricTable.getMetricName().isPresent());
-    assertTrue(prometheusMetricTable.getPrometheusQueryRequest().isPresent());
+    assertNull(prometheusMetricTable.getMetricName());
+    assertNotNull(prometheusMetricTable.getPrometheusQueryRequest());
     PrometheusQueryRequest prometheusQueryRequest
-        = prometheusMetricTable.getPrometheusQueryRequest().get();
+        = prometheusMetricTable.getPrometheusQueryRequest();
     assertEquals("http_latency", prometheusQueryRequest.getPromQl().toString());
     assertEquals(12345, prometheusQueryRequest.getStartTime());
     assertEquals(1234, prometheusQueryRequest.getEndTime());

@@ -55,15 +55,17 @@ public class PrometheusClientImpl implements PrometheusClient {
 
   @Override
   public List<String> getLabels(String metricName) throws IOException {
-    String queryUrl = String.format("%s/api/v1/labels?match[]=%s",
-        uri.toString().replaceAll("/$", ""), metricName);
+    String queryUrl = String.format("%s/api/v1/labels?%s=%s",
+        uri.toString().replaceAll("/$", ""),
+        URLEncoder.encode("match[]", StandardCharsets.UTF_8),
+        URLEncoder.encode(metricName, StandardCharsets.UTF_8));
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder()
         .url(queryUrl)
         .build();
     Response response = this.okHttpClient.newCall(request).execute();
     JSONObject jsonObject = readResponse(response);
-    return toListOfStrings(jsonObject.getJSONArray("data"));
+    return toListOfLabels(jsonObject.getJSONArray("data"));
   }
 
   @Override
@@ -81,7 +83,7 @@ public class PrometheusClientImpl implements PrometheusClient {
     return new ObjectMapper().readValue(jsonObject.getJSONObject("data").toString(), typeRef);
   }
 
-  private List<String> toListOfStrings(JSONArray array) {
+  private List<String> toListOfLabels(JSONArray array) {
     List<String> result = new ArrayList<>();
     for (int i = 0; i < array.length(); i++) {
       //__name__ is internal label in prometheus representing the metric name.

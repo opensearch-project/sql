@@ -101,7 +101,6 @@ public class DescribeCommandIT extends PPLIntegTestCase {
         columnName("DATA_TYPE")
     );
     verifyDataRows(result,
-        rows("my_prometheus", "default", "prometheus_http_requests_total", "@labels", "keyword"),
         rows("my_prometheus", "default", "prometheus_http_requests_total", "handler", "keyword"),
         rows("my_prometheus", "default", "prometheus_http_requests_total", "code", "keyword"),
         rows("my_prometheus", "default", "prometheus_http_requests_total", "instance", "keyword"),

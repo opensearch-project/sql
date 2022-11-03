@@ -79,7 +79,7 @@ public class CatalogServiceImpl implements CatalogService {
         } catch (IOException e) {
           LOG.error("Catalog Configuration File uploaded is malformed. Verify and re-upload.", e);
         } catch (Throwable e) {
-          LOG.error("Catalog constructed failed.", e);
+          LOG.error("Catalog construction failed.", e);
         }
       }
       return null;

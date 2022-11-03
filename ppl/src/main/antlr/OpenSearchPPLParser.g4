@@ -161,8 +161,6 @@ mlArg
 fromClause
     : SOURCE EQUAL tableSourceClause
     | INDEX EQUAL tableSourceClause
-    | SOURCE EQUAL tableFunction
-    | INDEX EQUAL tableFunction
     ;
 
 tableSourceClause

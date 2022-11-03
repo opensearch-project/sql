@@ -75,11 +75,10 @@ The example retrieves table info for ``prometheus_http_requests_total`` metric i
 PPL query::
 
     os> describe my_prometheus.prometheus_http_requests_total;
-    fetched rows / total rows = 7/7
+    fetched rows / total rows = 6/6
     +-----------------+----------------+--------------------------------+---------------+-------------+
     | TABLE_CATALOG   | TABLE_SCHEMA   | TABLE_NAME                     | COLUMN_NAME   | DATA_TYPE   |
     |-----------------+----------------+--------------------------------+---------------+-------------|
-    | my_prometheus   | default        | prometheus_http_requests_total | @labels       | keyword     |
     | my_prometheus   | default        | prometheus_http_requests_total | handler       | keyword     |
     | my_prometheus   | default        | prometheus_http_requests_total | code          | keyword     |
     | my_prometheus   | default        | prometheus_http_requests_total | instance      | keyword     |
