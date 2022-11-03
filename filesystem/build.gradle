@@ -24,6 +24,8 @@ dependencies {
         exclude group: 'org.apache.zookeeper', module: 'zookeeper'
         exclude group: 'com.sun.jersey', module: 'jersey-json'
         exclude group: 'com.google.protobuf', module: 'protobuf-java'
+        exclude group: 'org.apache.avro', module: 'avro'
+        exclude group: 'org.eclipse.jetty', module: 'jetty-server'
     }
     constraints {
         implementation('com.fasterxml.woodstox:woodstox-core:6.4.0') {
