@@ -27,7 +27,7 @@ import org.opensearch.sql.storage.Table;
  * .org/docs/stable/hadoop-project-dist/hadoop-common/filesystem/index.html.
  */
 @RequiredArgsConstructor
-public class FileSystemTable implements Table, StreamTable {
+public class FileSystemTable implements Table {
 
   /**
    * Hadoop FileSystem.
@@ -47,10 +47,5 @@ public class FileSystemTable implements Table, StreamTable {
   @Override
   public PhysicalPlan implement(LogicalPlan plan) {
     throw new UnsupportedOperationException("Unsupported operation");
-  }
-
-  @Override
-  public StreamSource toStream() {
-    return null;
   }
 }
