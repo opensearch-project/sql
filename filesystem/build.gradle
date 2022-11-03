@@ -20,7 +20,16 @@ dependencies {
     implementation group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
 
     // required by hadoop filesystem https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-common/filesystem/index.html.
-    implementation "org.apache.hadoop:hadoop-aws:${hadoop}"
+    implementation("org.apache.hadoop:hadoop-aws:${hadoop}") {
+        exclude group: 'org.apache.zookeeper', module: 'zookeeper'
+        exclude group: 'com.sun.jersey', module: 'jersey-json'
+        exclude group: 'com.google.protobuf', module: 'protobuf-java'
+    }
+    constraints {
+        implementation('com.fasterxml.woodstox:woodstox-core:6.4.0') {
+            because 'https://www.mend.io/vulnerability-database/CVE-2022-40156'
+        }
+    }
     implementation "org.apache.hadoop:hadoop-common:${hadoop}"
     // required https://hadoop.apache.org/docs/stable/hadoop-aws/tools/hadoop-aws/index.html
     implementation "com.amazonaws:aws-java-sdk-bundle:${aws}"
