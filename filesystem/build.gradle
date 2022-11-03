@@ -52,7 +52,7 @@ test {
         exceptionFormat "full"
     }
 
-    if ('windows' == project.getProperties().getOrDefault('build.platform', 'linux')) {
+    if ('windows' == project.getProperties().getOrDefault('buildPlatform', 'linux')) {
         excludes = [
             '**/FileSystemStreamSourceTest.class'
         ]
