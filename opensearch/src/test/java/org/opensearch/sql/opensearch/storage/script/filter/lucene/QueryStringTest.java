@@ -46,7 +46,7 @@ class QueryStringTest {
   private static final LiteralExpression query_value = DSL.literal("query_value");
 
   static Stream<List<Expression>> generateValidData() {
-    Expression field = dsl.namedArgument("field", fields_value);
+    Expression field = dsl.namedArgument("fields", fields_value);
     Expression query = dsl.namedArgument("query", query_value);
     return List.of(
         dsl.namedArgument("analyzer", DSL.literal("standard")),
@@ -62,7 +62,7 @@ class QueryStringTest {
         dsl.namedArgument("fuzzy_rewrite", DSL.literal("constant_score")),
         dsl.namedArgument("fuzzy_max_expansions", DSL.literal("42")),
         dsl.namedArgument("fuzzy_prefix_length", DSL.literal("42")),
-        dsl.namedArgument("fuzzy_transpositions", DSL.literal("42")),
+        dsl.namedArgument("fuzzy_transpositions", DSL.literal("true")),
         dsl.namedArgument("lenient", DSL.literal("true")),
         dsl.namedArgument("max_determinized_states", DSL.literal("10000")),
         dsl.namedArgument("minimum_should_match", DSL.literal("4")),

@@ -60,7 +60,6 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
 import org.opensearch.sql.expression.function.FunctionName;
-import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.utils.DateTimeUtils;
 
 /**
@@ -135,7 +134,6 @@ public class DateTimeFunction {
    * (DATE, LONG) -> DATE
    * (STRING/DATETIME/TIMESTAMP, LONG) -> DATETIME
    */
-
   private DefaultFunctionResolver add_date(FunctionName functionName) {
     return define(functionName,
         impl(nullMissingHandling(DateTimeFunction::exprAddDateInterval),
@@ -171,38 +169,38 @@ public class DateTimeFunction {
     );
   }
 
-  private FunctionResolver curdate(FunctionName functionName) {
+  private DefaultFunctionResolver curdate(FunctionName functionName) {
     return define(functionName,
         impl(() -> new ExprDateValue(formatNow(null).toLocalDate()), DATE)
     );
   }
 
-  private FunctionResolver curdate() {
+  private DefaultFunctionResolver curdate() {
     return curdate(BuiltinFunctionName.CURDATE.getName());
   }
 
   /**
    * Synonym for @see `now`.
    */
-  private FunctionResolver curtime(FunctionName functionName) {
+  private DefaultFunctionResolver curtime(FunctionName functionName) {
     return define(functionName,
         impl(() -> new ExprTimeValue(formatNow(null).toLocalTime()), TIME)
     );
   }
 
-  private FunctionResolver curtime() {
+  private DefaultFunctionResolver curtime() {
     return curtime(BuiltinFunctionName.CURTIME.getName());
   }
 
-  private FunctionResolver current_date() {
+  private DefaultFunctionResolver current_date() {
     return curdate(BuiltinFunctionName.CURRENT_DATE.getName());
   }
 
-  private FunctionResolver current_time() {
+  private DefaultFunctionResolver current_time() {
     return curtime(BuiltinFunctionName.CURRENT_TIME.getName());
   }
 
-  private FunctionResolver current_timestamp() {
+  private DefaultFunctionResolver current_timestamp() {
     return now(BuiltinFunctionName.CURRENT_TIMESTAMP.getName());
   }
 
@@ -225,7 +223,7 @@ public class DateTimeFunction {
    * (STRING, STRING) -> DATETIME
    * (STRING) -> DATETIME
    */
-  private FunctionResolver datetime() {
+  private DefaultFunctionResolver datetime() {
     return define(BuiltinFunctionName.DATETIME.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprDateTime),
             DATETIME, STRING, STRING),
@@ -337,7 +335,7 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprFromDays), DATE, LONG));
   }
 
-  private FunctionResolver from_unixtime() {
+  private DefaultFunctionResolver from_unixtime() {
     return define(BuiltinFunctionName.FROM_UNIXTIME.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprFromUnixTime), DATETIME, DOUBLE),
         impl(nullMissingHandling(DateTimeFunction::exprFromUnixTimeFormat),
@@ -356,11 +354,11 @@ public class DateTimeFunction {
     );
   }
 
-  private FunctionResolver localtime() {
+  private DefaultFunctionResolver localtime() {
     return now(BuiltinFunctionName.LOCALTIME.getName());
   }
 
-  private FunctionResolver localtimestamp() {
+  private DefaultFunctionResolver localtimestamp() {
     return now(BuiltinFunctionName.LOCALTIMESTAMP.getName());
   }
 
@@ -369,22 +367,22 @@ public class DateTimeFunction {
    * `fsp` argument support is removed until refactoring to avoid bug where `now()`, `now(x)` and
    * `now(y) return different values.
    */
-  private FunctionResolver now(FunctionName functionName) {
+  private DefaultFunctionResolver now(FunctionName functionName) {
     return define(functionName,
         impl(() -> new ExprDatetimeValue(formatNow(null)), DATETIME)
     );
   }
 
-  private FunctionResolver now() {
+  private DefaultFunctionResolver now() {
     return now(BuiltinFunctionName.NOW.getName());
   }
 
-  private FunctionResolver makedate() {
+  private DefaultFunctionResolver makedate() {
     return define(BuiltinFunctionName.MAKEDATE.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprMakeDate), DATE, DOUBLE, DOUBLE));
   }
 
-  private FunctionResolver maketime() {
+  private DefaultFunctionResolver maketime() {
     return define(BuiltinFunctionName.MAKETIME.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprMakeTime), TIME, DOUBLE, DOUBLE, DOUBLE));
   }
@@ -536,7 +534,7 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprToDays), LONG, DATETIME));
   }
 
-  private FunctionResolver unix_timestamp() {
+  private DefaultFunctionResolver unix_timestamp() {
     return define(BuiltinFunctionName.UNIX_TIMESTAMP.getName(),
         impl(DateTimeFunction::unixTimeStamp, LONG),
         impl(nullMissingHandling(DateTimeFunction::unixTimeStampOf), DOUBLE, DATE),
@@ -1008,7 +1006,7 @@ public class DateTimeFunction {
   /**
    * SYSDATE() returns the time at which it executes.
    */
-  private FunctionResolver sysdate() {
+  private DefaultFunctionResolver sysdate() {
     return define(BuiltinFunctionName.SYSDATE.getName(),
         impl(() -> new ExprDatetimeValue(formatNow(null)), DATETIME),
         impl((v) -> new ExprDatetimeValue(formatNow(v.integerValue())), DATETIME, INTEGER)
