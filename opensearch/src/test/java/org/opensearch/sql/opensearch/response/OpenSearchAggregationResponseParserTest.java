@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.opensearch.response.AggregationResponseUtils.fromJson;
-import static org.opensearch.sql.opensearch.response.agg.Utils.handleNanValue;
+import static org.opensearch.sql.opensearch.response.agg.Utils.handleNanInfValue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -163,7 +163,9 @@ class OpenSearchAggregationResponseParserTest {
 
   @Test
   void nan_value_should_return_null() {
-    assertNull(handleNanValue(Double.NaN));
+    assertNull(handleNanInfValue(Double.NaN));
+    assertNull(handleNanInfValue(Double.NEGATIVE_INFINITY));
+    assertNull(handleNanInfValue(Double.POSITIVE_INFINITY));
   }
 
   @Test
