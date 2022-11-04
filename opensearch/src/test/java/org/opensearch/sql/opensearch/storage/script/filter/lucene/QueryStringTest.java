@@ -44,7 +44,7 @@ class QueryStringTest extends OpenSearchTestBase {
   private static final LiteralExpression query_value = DSL.literal("query_value");
 
   static Stream<List<Expression>> generateValidData() {
-    Expression field = DSL.namedArgument("field", fields_value);
+    Expression field = DSL.namedArgument("fields", fields_value);
     Expression query = DSL.namedArgument("query", query_value);
     return Stream.of(
         DSL.namedArgument("analyzer", DSL.literal("standard")),
@@ -60,7 +60,7 @@ class QueryStringTest extends OpenSearchTestBase {
         DSL.namedArgument("fuzzy_rewrite", DSL.literal("constant_score")),
         DSL.namedArgument("fuzzy_max_expansions", DSL.literal("42")),
         DSL.namedArgument("fuzzy_prefix_length", DSL.literal("42")),
-        DSL.namedArgument("fuzzy_transpositions", DSL.literal("42")),
+        DSL.namedArgument("fuzzy_transpositions", DSL.literal("true")),
         DSL.namedArgument("lenient", DSL.literal("true")),
         DSL.namedArgument("max_determinized_states", DSL.literal("10000")),
         DSL.namedArgument("minimum_should_match", DSL.literal("4")),

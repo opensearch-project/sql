@@ -35,7 +35,8 @@ class PrometheusStorageEngineTest {
   public void getTable() {
     PrometheusStorageEngine engine = new PrometheusStorageEngine(client);
     Table table = engine.getTable(new CatalogSchemaName("prometheus", "default"), "test");
-    assertNull(table);
+    assertNotNull(table);
+    assertTrue(table instanceof PrometheusMetricTable);
   }
 
   @Test

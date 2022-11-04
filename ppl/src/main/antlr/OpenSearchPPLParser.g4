@@ -26,7 +26,7 @@ pplCommands
 
 commands
     : whereCommand | fieldsCommand | renameCommand | statsCommand | dedupCommand | sortCommand | evalCommand | headCommand
-    | topCommand | rareCommand | grokCommand | parseCommand | patternsCommand | kmeansCommand | adCommand;
+    | topCommand | rareCommand | grokCommand | parseCommand | patternsCommand | kmeansCommand | adCommand | mlCommand;
 
 searchCommand
     : (SEARCH)? fromClause                                          #searchFrom
@@ -149,12 +149,18 @@ adParameter
     | (ANOMALY_SCORE_THRESHOLD EQUAL anomaly_score_threshold=decimalLiteral)
     ;
 
+mlCommand
+    : ML (mlArg)*
+    ;
+
+mlArg
+    : (argName=ident EQUAL argValue=literalValue)
+    ;
+
 /** clauses */
 fromClause
     : SOURCE EQUAL tableSourceClause
     | INDEX EQUAL tableSourceClause
-    | SOURCE EQUAL tableFunction
-    | INDEX EQUAL tableFunction
     ;
 
 tableSourceClause
@@ -518,10 +524,9 @@ booleanLiteral
 
 // Date and Time Literal, follow ANSI 92
 datetimeLiteral
-    : dateLiteral #passthrough
-    | timeLiteral #passthrough
-    | timestampLiteral #passthrough
-    | datetimeConstantLiteral #functionShortcut
+    : dateLiteral
+    | timeLiteral
+    | timestampLiteral
     ;
 
 dateLiteral
@@ -592,4 +597,7 @@ keywordsCanBeId
     | TIMESTAMP | DATE | TIME
     | FIRST | LAST
     | timespanUnit | SPAN
+    | dateAndTimeFunctionBase
+    | textFunctionBase
+    | mathematicalFunctionBase
     ;

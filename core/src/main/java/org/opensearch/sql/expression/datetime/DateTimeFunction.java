@@ -209,7 +209,6 @@ public class DateTimeFunction {
    * (DATE, LONG) -> DATE
    * (STRING/DATETIME/TIMESTAMP, LONG) -> DATETIME
    */
-
   private DefaultFunctionResolver add_date(FunctionName functionName) {
     return define(functionName,
         impl(nullMissingHandling(DateTimeFunction::exprAddDateInterval),

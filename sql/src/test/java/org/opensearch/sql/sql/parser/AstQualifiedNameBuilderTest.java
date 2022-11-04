@@ -7,8 +7,12 @@
 package org.opensearch.sql.sql.parser;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.RuleNode;
@@ -45,6 +49,27 @@ public class AstQualifiedNameBuilderTest {
   @Test
   public void canBuildQualifiedIdentifier() {
     buildFromQualifiers("account.location.city").expectQualifiedName("account", "location", "city");
+  }
+
+
+  @Test
+  public void functionNameCanBeUsedAsIdentifier() {
+    assertFunctionNameCouldBeId("AVG | COUNT | SUM | MIN | MAX");
+    assertFunctionNameCouldBeId(
+        "CURRENT_DATE | CURRENT_TIME | CURRENT_TIMESTAMP | LOCALTIME | LOCALTIMESTAMP |"
+            + " UTC_TIMESTAMP | UTC_DATE | UTC_TIME | CURDATE | CURTIME | NOW");
+  }
+
+  void assertFunctionNameCouldBeId(String antlrFunctionName) {
+    List<String> functionList =
+        Arrays.stream(antlrFunctionName.split("\\|")).map(String::stripLeading)
+            .map(String::stripTrailing).collect(
+            Collectors.toList());
+
+    assertFalse(functionList.isEmpty());
+    for (String functionName : functionList) {
+      buildFromQualifiers(functionName).expectQualifiedName(functionName);
+    }
   }
 
   private AstExpressionBuilderAssertion buildFromIdentifier(String expr) {

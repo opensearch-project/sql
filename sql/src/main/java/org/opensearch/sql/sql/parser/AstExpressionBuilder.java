@@ -339,12 +339,6 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   }
 
   @Override
-  public UnresolvedExpression visitFunctionShortcut(
-      OpenSearchSQLParser.FunctionShortcutContext ctx) {
-    return buildFunction(ctx.datetimeConstantLiteral().getText(), List.of());
-  }
-
-  @Override
   public UnresolvedExpression visitBinaryComparisonPredicate(
       BinaryComparisonPredicateContext ctx) {
     String functionName = ctx.comparisonOperator().getText();

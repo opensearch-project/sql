@@ -335,12 +335,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   @Override
-  public UnresolvedExpression
-      visitFunctionShortcut(OpenSearchPPLParser.FunctionShortcutContext ctx) {
-    return buildFunction(ctx.datetimeConstantLiteral().getText(), List.of());
-  }
-
-  @Override
   public UnresolvedExpression visitBySpanClause(BySpanClauseContext ctx) {
     String name = ctx.spanClause().getText();
     return ctx.alias != null ? new Alias(name, visit(ctx.spanClause()), StringUtils

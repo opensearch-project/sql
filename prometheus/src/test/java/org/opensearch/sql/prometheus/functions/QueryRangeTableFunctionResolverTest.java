@@ -8,6 +8,7 @@
 package org.opensearch.sql.prometheus.functions;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
@@ -66,11 +67,10 @@ class QueryRangeTableFunctionResolverTest {
     assertTrue(functionImplementation instanceof QueryRangeFunctionImplementation);
     PrometheusMetricTable prometheusMetricTable
         = (PrometheusMetricTable) functionImplementation.applyArguments();
-    assertTrue(prometheusMetricTable.getPrometheusQueryRequest().isPresent());
+    assertNotNull(prometheusMetricTable.getPrometheusQueryRequest());
     PrometheusQueryRequest prometheusQueryRequest =
-        prometheusMetricTable.getPrometheusQueryRequest()
-            .get();
-    assertEquals("http_latency", prometheusQueryRequest.getPromQl().toString());
+        prometheusMetricTable.getPrometheusQueryRequest();
+    assertEquals("http_latency", prometheusQueryRequest.getPromQl());
     assertEquals(12345L, prometheusQueryRequest.getStartTime());
     assertEquals(12345L, prometheusQueryRequest.getEndTime());
     assertEquals("14", prometheusQueryRequest.getStep());
@@ -101,11 +101,10 @@ class QueryRangeTableFunctionResolverTest {
     assertTrue(functionImplementation instanceof QueryRangeFunctionImplementation);
     PrometheusMetricTable prometheusMetricTable
         = (PrometheusMetricTable) functionImplementation.applyArguments();
-    assertTrue(prometheusMetricTable.getPrometheusQueryRequest().isPresent());
+    assertNotNull(prometheusMetricTable.getPrometheusQueryRequest());
     PrometheusQueryRequest prometheusQueryRequest =
-        prometheusMetricTable.getPrometheusQueryRequest()
-            .get();
-    assertEquals("http_latency", prometheusQueryRequest.getPromQl().toString());
+        prometheusMetricTable.getPrometheusQueryRequest();
+    assertEquals("http_latency", prometheusQueryRequest.getPromQl());
     assertEquals(12345L, prometheusQueryRequest.getStartTime());
     assertEquals(12345L, prometheusQueryRequest.getEndTime());
     assertEquals("14", prometheusQueryRequest.getStep());
@@ -137,11 +136,10 @@ class QueryRangeTableFunctionResolverTest {
     assertTrue(functionImplementation instanceof QueryRangeFunctionImplementation);
     PrometheusMetricTable prometheusMetricTable
         = (PrometheusMetricTable) functionImplementation.applyArguments();
-    assertTrue(prometheusMetricTable.getPrometheusQueryRequest().isPresent());
+    assertNotNull(prometheusMetricTable.getPrometheusQueryRequest());
     PrometheusQueryRequest prometheusQueryRequest =
-        prometheusMetricTable.getPrometheusQueryRequest()
-            .get();
-    assertEquals("http_latency", prometheusQueryRequest.getPromQl().toString());
+        prometheusMetricTable.getPrometheusQueryRequest();
+    assertEquals("http_latency", prometheusQueryRequest.getPromQl());
     assertEquals(12345L, prometheusQueryRequest.getStartTime());
     assertEquals(12345L, prometheusQueryRequest.getEndTime());
     assertEquals("14", prometheusQueryRequest.getStep());

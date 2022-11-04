@@ -16,6 +16,7 @@ import static org.mockito.Mockito.withSettings;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.NotImplementedException;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,15 +46,16 @@ class RelevanceQueryBuildTest {
   public static final NamedArgumentExpression QUERY_ARG = namedArgument("query", "find me");
   private RelevanceQuery query;
   private QueryBuilder queryBuilder;
+  private final Map<String, RelevanceQuery.QueryBuilderStep<QueryBuilder>> queryBuildActions =
+      ImmutableMap.<String, RelevanceQuery.QueryBuilderStep<QueryBuilder>>builder()
+         .put("boost", (k, v) -> k.boost(Float.parseFloat(v.stringValue()))).build();
 
   @BeforeEach
   public void setUp() {
-    query = mock(RelevanceQuery.class, withSettings().useConstructor(
-            ImmutableMap.<String, RelevanceQuery.QueryBuilderStep<QueryBuilder>>builder()
-                .put("boost", (k, v) -> k.boost(Float.parseFloat(v.stringValue()))).build())
+    query = mock(RelevanceQuery.class, withSettings().useConstructor(queryBuildActions)
         .defaultAnswer(Mockito.CALLS_REAL_METHODS));
     queryBuilder = mock(QueryBuilder.class);
-    when(query.createQueryBuilder(any(), any())).thenReturn(queryBuilder);
+    when(query.createQueryBuilder(any())).thenReturn(queryBuilder);
     String queryName = "mock_query";
     when(queryBuilder.queryName()).thenReturn(queryName);
     when(queryBuilder.getWriteableName()).thenReturn(queryName);

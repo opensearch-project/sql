@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,10 +40,10 @@ class SingleFieldQueryTest {
     String sampleQuery = "sample query";
     String sampleField = "fieldA";
 
-    query.createQueryBuilder(DSL.namedArgument("field",
+    query.createQueryBuilder(List.of(DSL.namedArgument("field",
             new LiteralExpression(ExprValueUtils.stringValue(sampleField))),
         DSL.namedArgument("query",
-            new LiteralExpression(ExprValueUtils.stringValue(sampleQuery))));
+            new LiteralExpression(ExprValueUtils.stringValue(sampleQuery)))));
 
     verify(query).createBuilder(eq(sampleField),
         eq(sampleQuery));

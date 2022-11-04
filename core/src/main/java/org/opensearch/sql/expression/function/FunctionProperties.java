@@ -24,7 +24,6 @@ public class FunctionProperties implements Serializable {
   private final ZoneId currentZoneId;
 
 
-
   /**
    * Method to access current system clock.
    * @return a ticking clock that tells the time.

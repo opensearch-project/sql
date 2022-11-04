@@ -331,7 +331,7 @@ class FilterQueryBuilderTest extends OpenSearchTestBase {
             + "      \"prefix_length\" : 0,\n"
             + "      \"max_expansions\" : 50,\n"
             + "      \"minimum_should_match\" : \"3\","
-            + "      \"fuzzy_rewrite\" : \"top_terms_N\","
+            + "      \"fuzzy_rewrite\" : \"top_terms_1\","
             + "      \"fuzzy_transpositions\" : false,\n"
             + "      \"lenient\" : false,\n"
             + "      \"zero_terms_query\" : \"ALL\",\n"
@@ -351,7 +351,7 @@ class FilterQueryBuilderTest extends OpenSearchTestBase {
                 DSL.namedArgument("max_expansions", literal("50")),
                 DSL.namedArgument("prefix_length", literal("0")),
                 DSL.namedArgument("fuzzy_transpositions", literal("false")),
-                DSL.namedArgument("fuzzy_rewrite", literal("top_terms_N")),
+                DSL.namedArgument("fuzzy_rewrite", literal("top_terms_1")),
                 DSL.namedArgument("lenient", literal("false")),
                 DSL.namedArgument("minimum_should_match", literal("3")),
                 DSL.namedArgument("zero_terms_query", literal("ALL")),
@@ -365,7 +365,49 @@ class FilterQueryBuilderTest extends OpenSearchTestBase {
         DSL.namedArgument("query", literal("search query")),
         DSL.namedArgument("invalid_parameter", literal("invalid_value")));
     var msg = assertThrows(SemanticCheckException.class, () -> buildQuery(expr)).getMessage();
-    assertEquals("Parameter invalid_parameter is invalid for match function.", msg);
+    assertTrue(msg.startsWith("Parameter invalid_parameter is invalid for match function."));
+  }
+
+  @Test
+  void match_disallow_duplicate_parameter() {
+    FunctionExpression expr = dsl.match(
+        DSL.namedArgument("field", literal("message")),
+        DSL.namedArgument("query", literal("search query")),
+        DSL.namedArgument("analyzer", literal("keyword")),
+        DSL.namedArgument("AnalYzer", literal("english")));
+    var msg = assertThrows(SemanticCheckException.class, () -> buildQuery(expr)).getMessage();
+    assertEquals("Parameter 'analyzer' can only be specified once.", msg);
+  }
+
+  @Test
+  void match_disallow_duplicate_query() {
+    FunctionExpression expr = dsl.match(
+        dsl.namedArgument("field", literal("message")),
+        dsl.namedArgument("query", literal("search query")),
+        dsl.namedArgument("analyzer", literal("keyword")),
+        dsl.namedArgument("QUERY", literal("something")));
+    var msg = assertThrows(SemanticCheckException.class, () -> buildQuery(expr)).getMessage();
+    assertEquals("Parameter 'query' can only be specified once.", msg);
+  }
+
+  @Test
+  void match_disallow_duplicate_field() {
+    FunctionExpression expr = dsl.match(
+        dsl.namedArgument("field", literal("message")),
+        dsl.namedArgument("query", literal("search query")),
+        dsl.namedArgument("analyzer", literal("keyword")),
+        dsl.namedArgument("Field", literal("something")));
+    var msg = assertThrows(SemanticCheckException.class, () -> buildQuery(expr)).getMessage();
+    assertEquals("Parameter 'field' can only be specified once.", msg);
+  }
+
+  @Test
+  void match_missing_field() {
+    FunctionExpression expr = dsl.match(
+        dsl.namedArgument("query", literal("search query")),
+        dsl.namedArgument("analyzer", literal("keyword")));
+    var msg = assertThrows(SemanticCheckException.class, () -> buildQuery(expr)).getMessage();
+    assertEquals("'field' parameter is missing.", msg);
   }
 
   @Test
@@ -569,12 +611,13 @@ class FilterQueryBuilderTest extends OpenSearchTestBase {
             + "      \"analyzer\" : \"keyword\","
             + "      \"slop\" : 2,\n"
             + "      \"zero_terms_query\" : \"ALL\",\n"
-            + "      \"boost\" : 1.0\n"
+            + "      \"boost\" : 1.2\n"
             + "    }\n"
             + "  }\n"
             + "}",
         buildQuery(
             dsl.match_phrase(
+                DSL.namedArgument("boost", literal("1.2")),
                 DSL.namedArgument("field", literal("message")),
                 DSL.namedArgument("query", literal("search query")),
                 DSL.namedArgument("analyzer", literal("keyword")),
@@ -830,31 +873,71 @@ class FilterQueryBuilderTest extends OpenSearchTestBase {
         DSL.namedArgument("query", literal("search query")),
         DSL.namedArgument("invalid_parameter", literal("invalid_value")));
     var msg = assertThrows(SemanticCheckException.class, () -> buildQuery(expr)).getMessage();
-    assertEquals("Parameter invalid_parameter is invalid for match_phrase function.", msg);
+    assertTrue(msg.startsWith("Parameter invalid_parameter is invalid for match_phrase function."));
   }
 
   @Test
-  void match_phrase_invalid_value_slop() {
-    FunctionExpression expr = dsl.match_phrase(
-        DSL.namedArgument("field", literal("message")),
-        DSL.namedArgument("query", literal("search query")),
-        DSL.namedArgument("slop", literal("1.5")));
-    var msg = assertThrows(NumberFormatException.class, () -> buildQuery(expr)).getMessage();
-    assertEquals("For input string: \"1.5\"", msg);
+  void relevancy_func_invalid_arg_values() {
+    final var field = dsl.namedArgument("field", literal("message"));
+    final var fields = dsl.namedArgument("fields", DSL.literal(
+        new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
+            "field1", ExprValueUtils.floatValue(1.F),
+            "field2", ExprValueUtils.floatValue(.3F))))));
+    final var query = dsl.namedArgument("query", literal("search query"));
+
+    var slopTest = dsl.match_phrase(field, query,
+        dsl.namedArgument("slop", literal("1.5")));
+    var msg = assertThrows(RuntimeException.class, () -> buildQuery(slopTest)).getMessage();
+    assertEquals("Invalid slop value: '1.5'. Accepts only integer values.", msg);
+
+    var ztqTest = dsl.match_phrase(field, query,
+        dsl.namedArgument("zero_terms_query", literal("meow")));
+    msg = assertThrows(RuntimeException.class, () -> buildQuery(ztqTest)).getMessage();
+    assertEquals(
+        "Invalid zero_terms_query value: 'meow'. Available values are: NONE, ALL, NULL.", msg);
+
+    var boostTest = dsl.match(field, query,
+        dsl.namedArgument("boost", literal("pewpew")));
+    msg = assertThrows(RuntimeException.class, () -> buildQuery(boostTest)).getMessage();
+    assertEquals(
+        "Invalid boost value: 'pewpew'. Accepts only floating point values greater than 0.", msg);
+
+    var boolTest = dsl.query_string(fields, query,
+        dsl.namedArgument("escape", literal("42")));
+    msg = assertThrows(RuntimeException.class, () -> buildQuery(boolTest)).getMessage();
+    assertEquals(
+        "Invalid escape value: '42'. Accepts only boolean values: 'true' or 'false'.", msg);
+
+    var typeTest = dsl.multi_match(fields, query,
+        dsl.namedArgument("type", literal("42")));
+    msg = assertThrows(RuntimeException.class, () -> buildQuery(typeTest)).getMessage();
+    assertTrue(msg.startsWith("Invalid type value: '42'. Available values are:"));
+
+    var operatorTest = dsl.simple_query_string(fields, query,
+        dsl.namedArgument("default_operator", literal("42")));
+    msg = assertThrows(RuntimeException.class, () -> buildQuery(operatorTest)).getMessage();
+    assertTrue(msg.startsWith("Invalid default_operator value: '42'. Available values are:"));
+
+    var flagsTest = dsl.simple_query_string(fields, query,
+        dsl.namedArgument("flags", literal("42")));
+    msg = assertThrows(RuntimeException.class, () -> buildQuery(flagsTest)).getMessage();
+    assertTrue(msg.startsWith("Invalid flags value: '42'. Available values are:"));
+
+    var fuzzinessTest = dsl.match_bool_prefix(field, query,
+        dsl.namedArgument("fuzziness", literal("AUTO:")));
+    msg = assertThrows(RuntimeException.class, () -> buildQuery(fuzzinessTest)).getMessage();
+    assertTrue(msg.startsWith("Invalid fuzziness value: 'AUTO:'. Available values are:"));
+
+    var rewriteTest = dsl.match_bool_prefix(field, query,
+        dsl.namedArgument("fuzzy_rewrite", literal("42")));
+    msg = assertThrows(RuntimeException.class, () -> buildQuery(rewriteTest)).getMessage();
+    assertTrue(msg.startsWith("Invalid fuzzy_rewrite value: '42'. Available values are:"));
+
+    var timezoneTest = dsl.query_string(fields, query,
+        dsl.namedArgument("time_zone", literal("42")));
+    msg = assertThrows(RuntimeException.class, () -> buildQuery(timezoneTest)).getMessage();
+    assertTrue(msg.startsWith("Invalid time_zone value: '42'."));
   }
-
-  @Test
-  void match_phrase_invalid_value_ztq() {
-    FunctionExpression expr = dsl.match_phrase(
-        DSL.namedArgument("field", literal("message")),
-        DSL.namedArgument("query", literal("search query")),
-        DSL.namedArgument("zero_terms_query", literal("meow")));
-    var msg = assertThrows(IllegalArgumentException.class, () -> buildQuery(expr)).getMessage();
-    assertEquals("No enum constant org.opensearch.index.search.MatchQuery.ZeroTermsQuery.MEOW",
-          msg);
-  }
-
-
 
   @Test
   void should_build_match_bool_prefix_query_with_default_parameters() {
@@ -878,6 +961,26 @@ class FilterQueryBuilderTest extends OpenSearchTestBase {
   }
 
   @Test
+  void multi_match_missing_fields() {
+    var msg = assertThrows(SemanticCheckException.class, () ->
+        dsl.multi_match(
+            dsl.namedArgument("query", literal("search query")))).getMessage();
+    assertEquals("Expected type STRUCT instead of STRING for parameter #1", msg);
+  }
+
+  @Test
+  void multi_match_missing_fields_even_with_struct() {
+    FunctionExpression expr = dsl.multi_match(
+        dsl.namedArgument("something-but-not-fields", DSL.literal(
+            new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
+                "pewpew", ExprValueUtils.integerValue(42)))))),
+        dsl.namedArgument("query", literal("search query")),
+        dsl.namedArgument("analyzer", literal("keyword")));
+    var msg = assertThrows(SemanticCheckException.class, () -> buildQuery(expr)).getMessage();
+    assertEquals("'fields' parameter is missing.", msg);
+  }
+
+  @Test
   void should_build_match_phrase_prefix_query_with_default_parameters() {
     assertJsonEquals(
         "{\n"
@@ -898,7 +1001,7 @@ class FilterQueryBuilderTest extends OpenSearchTestBase {
   }
 
   @Test
-  void should_build_match_phrase_prefix_query_with_analyzer() {
+  void should_build_match_phrase_prefix_query_with_non_default_parameters() {
     assertJsonEquals(
         "{\n"
             + "  \"match_phrase_prefix\" : {\n"
@@ -906,8 +1009,8 @@ class FilterQueryBuilderTest extends OpenSearchTestBase {
             + "      \"query\" : \"search query\",\n"
             + "      \"slop\" : 0,\n"
             + "      \"zero_terms_query\" : \"NONE\",\n"
-            + "      \"max_expansions\" : 50,\n"
-            + "      \"boost\" : 1.0,\n"
+            + "      \"max_expansions\" : 42,\n"
+            + "      \"boost\" : 1.2,\n"
             + "      \"analyzer\": english\n"
             + "    }\n"
             + "  }\n"
@@ -916,6 +1019,8 @@ class FilterQueryBuilderTest extends OpenSearchTestBase {
             dsl.match_phrase_prefix(
                 DSL.namedArgument("field", literal("message")),
                 DSL.namedArgument("query", literal("search query")),
+                DSL.namedArgument("boost", literal("1.2")),
+                DSL.namedArgument("max_expansions", literal("42")),
                 DSL.namedArgument("analyzer", literal("english")))));
   }
 

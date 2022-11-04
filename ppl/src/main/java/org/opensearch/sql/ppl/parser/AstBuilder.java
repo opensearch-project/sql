@@ -29,10 +29,12 @@ import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import lombok.Generated;
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
@@ -44,6 +46,7 @@ import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.AD;
@@ -53,6 +56,7 @@ import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Kmeans;
+import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
@@ -117,11 +121,19 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   /**
    * Describe command.
+   * Current logic separates table and metadata info about table by adding
+   * MAPPING_ODFE_SYS_TABLE as suffix.
+   * Even with the introduction of catalog and schema name in fully qualified table name,
+   * we do the same thing by appending MAPPING_ODFE_SYS_TABLE as syffix to the last part
+   * of qualified name.
    */
   @Override
   public UnresolvedPlan visitDescribeCommand(DescribeCommandContext ctx) {
     final Relation table = (Relation) visitTableSourceClause(ctx.tableSourceClause());
-    return new Relation(qualifiedName(mappingTable(table.getTableName())));
+    QualifiedName tableQualifiedName = table.getTableQualifiedName();
+    ArrayList<String> parts = new ArrayList<>(tableQualifiedName.getParts());
+    parts.set(parts.size() - 1, mappingTable(parts.get(parts.size() - 1)));
+    return new Relation(new QualifiedName(parts));
   }
 
   /**
@@ -337,11 +349,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    */
   @Override
   public UnresolvedPlan visitFromClause(FromClauseContext ctx) {
-    if (ctx.tableFunction() != null) {
-      return visitTableFunction(ctx.tableFunction());
-    } else {
-      return visitTableSourceClause(ctx.tableSourceClause());
-    }
+    return visitTableSourceClause(ctx.tableSourceClause());
   }
 
   @Override
@@ -352,16 +360,10 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   @Override
+  @Generated //To exclude from jacoco..will remove https://github.com/opensearch-project/sql/issues/1019
   public UnresolvedPlan visitTableFunction(OpenSearchPPLParser.TableFunctionContext ctx) {
-    ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
-    ctx.functionArgs().functionArg().forEach(arg
-        -> {
-      String argName = (arg.ident() != null) ? arg.ident().getText() : null;
-      builder.add(
-          new UnresolvedArgument(argName,
-              this.internalVisitExpression(arg.valueExpression())));
-    });
-    return new TableFunction(this.internalVisitExpression(ctx.qualifiedName()), builder.build());
+    //<TODO>
+    return null;
   }
 
   /**
@@ -409,6 +411,20 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         });
 
     return new AD(builder.build());
+  }
+
+  /**
+   * ml command.
+   */
+  @Override
+  public UnresolvedPlan visitMlCommand(OpenSearchPPLParser.MlCommandContext ctx) {
+    ImmutableMap.Builder<String, Literal> builder = ImmutableMap.builder();
+    ctx.mlArg()
+            .forEach(x -> {
+              builder.put(x.argName.getText(),
+                      (Literal) internalVisitExpression(x.argValue));
+            });
+    return new ML(builder.build());
   }
 
   /**

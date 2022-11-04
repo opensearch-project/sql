@@ -36,6 +36,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `Catalog Settings <admin/catalog.rst>`_
 
+  - `Prometheus Connector <admin/prometheus_connector.rst>`_
+
 * **Commands**
 
   - `Syntax <cmd/syntax.rst>`_
@@ -55,6 +57,8 @@ The query start with search command and then flowing a set of command delimited 
   - `grok command <cmd/grok.rst>`_
 
   - `kmeans command <cmd/kmeans.rst>`_
+
+  - `ml command <cmd/ml.rst>`_
 
   - `parse command <cmd/parse.rst>`_
 

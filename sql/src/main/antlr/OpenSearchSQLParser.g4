@@ -222,10 +222,9 @@ nullLiteral
 
 // Date and Time Literal, follow ANSI 92
 datetimeLiteral
-    : dateLiteral #pasthrough
-    | timeLiteral #passthrough
-    | timestampLiteral #passthrough
-    | datetimeConstantLiteral #functionShortcut
+    : dateLiteral
+    | timeLiteral
+    | timestampLiteral
     ;
 
 dateLiteral

@@ -202,17 +202,17 @@ CURRENT_DATE
 Description
 >>>>>>>>>>>
 
-`CURRENT_DATE` and `CURRENT_DATE()` are synonyms for `CURDATE() <#curdate>`_.
+`CURRENT_DATE()` are synonyms for `CURDATE() <#curdate>`_.
 
 Example::
 
-    > source=people | eval `CURRENT_DATE()` = CURRENT_DATE(), `CURRENT_DATE` = CURRENT_DATE | fields `CURRENT_DATE()`, `CURRENT_DATE`
+    > source=people | eval `CURRENT_DATE()` = CURRENT_DATE() | fields `CURRENT_DATE()`
     fetched rows / total rows = 1/1
-    +------------------+----------------+
-    | CURRENT_DATE()   | CURRENT_DATE   |
-    |------------------+----------------|
-    | 2022-08-02       | 2022-08-02     |
-    +------------------+----------------+
+    +------------------+
+    | CURRENT_DATE()   |
+    |------------------+
+    | 2022-08-02       |
+    +------------------+
 
 
 CURRENT_TIME
@@ -221,17 +221,17 @@ CURRENT_TIME
 Description
 >>>>>>>>>>>
 
-`CURRENT_TIME` and `CURRENT_TIME()` are synonyms for `CURTIME() <#curtime>`_.
+`CURRENT_TIME()` are synonyms for `CURTIME() <#curtime>`_.
 
 Example::
 
-    > source=people | eval `CURRENT_TIME()` = CURRENT_TIME(), `CURRENT_TIME` = CURRENT_TIME | fields `CURRENT_TIME()`, `CURRENT_TIME`
+    > source=people | eval `CURRENT_TIME()` = CURRENT_TIME() | fields `CURRENT_TIME()`
     fetched rows / total rows = 1/1
-    +------------------+----------------+
-    | CURRENT_TIME()   | CURRENT_TIME   |
-    |------------------+----------------|
-    | 15:39:05         | 15:39:05       |
-    +------------------+----------------+
+    +------------------+
+    | CURRENT_TIME()   |
+    |------------------+
+    | 15:39:05         |
+    +------------------+
 
 
 CURRENT_TIMESTAMP
@@ -240,17 +240,17 @@ CURRENT_TIMESTAMP
 Description
 >>>>>>>>>>>
 
-`CURRENT_TIMESTAMP` and `CURRENT_TIMESTAMP()` are synonyms for `NOW() <#now>`_.
+`CURRENT_TIMESTAMP()` are synonyms for `NOW() <#now>`_.
 
 Example::
 
-    > source=people | eval `CURRENT_TIMESTAMP()` = CURRENT_TIMESTAMP(), `CURRENT_TIMESTAMP` = CURRENT_TIMESTAMP | fields `CURRENT_TIMESTAMP()`, `CURRENT_TIMESTAMP`
+    > source=people | eval `CURRENT_TIMESTAMP()` = CURRENT_TIMESTAMP() | fields `CURRENT_TIMESTAMP()`
     fetched rows / total rows = 1/1
-    +-----------------------+---------------------+
-    | CURRENT_TIMESTAMP()   | CURRENT_TIMESTAMP   |
-    |-----------------------+---------------------|
-    | 2022-08-02 15:54:19   | 2022-08-02 15:54:19 |
-    +-----------------------+---------------------+
+    +-----------------------+
+    | CURRENT_TIMESTAMP()   |
+    |-----------------------+
+    | 2022-08-02 15:54:19   |
+    +-----------------------+
 
 
 CURTIME
@@ -720,17 +720,17 @@ LOCALTIMESTAMP
 Description
 >>>>>>>>>>>
 
-`LOCALTIMESTAMP` and `LOCALTIMESTAMP()` are synonyms for `NOW() <#now>`_.
+`LOCALTIMESTAMP()` are synonyms for `NOW() <#now>`_.
 
 Example::
 
-    > source=people | eval `LOCALTIMESTAMP()` = LOCALTIMESTAMP(), `LOCALTIMESTAMP` = LOCALTIMESTAMP | fields `LOCALTIMESTAMP()`, `LOCALTIMESTAMP`
+    > source=people | eval `LOCALTIMESTAMP()` = LOCALTIMESTAMP() | fields `LOCALTIMESTAMP()`
     fetched rows / total rows = 1/1
-    +---------------------+---------------------+
-    | LOCALTIMESTAMP()    | LOCALTIMESTAMP      |
-    |---------------------+---------------------|
-    | 2022-08-02 15:54:19 | 2022-08-02 15:54:19 |
-    +---------------------+---------------------+
+    +---------------------+
+    | LOCALTIMESTAMP()    |
+    |---------------------+
+    | 2022-08-02 15:54:19 |
+    +---------------------+
 
 
 LOCALTIME
@@ -739,17 +739,17 @@ LOCALTIME
 Description
 >>>>>>>>>>>
 
-`LOCALTIME` and `LOCALTIME()` are synonyms for `NOW() <#now>`_.
+`LOCALTIME()` are synonyms for `NOW() <#now>`_.
 
 Example::
 
-    > source=people | eval `LOCALTIME()` = LOCALTIME(), `LOCALTIME` = LOCALTIME | fields `LOCALTIME()`, `LOCALTIME`
+    > source=people | eval `LOCALTIME()` = LOCALTIME() | fields `LOCALTIME()`
     fetched rows / total rows = 1/1
-    +---------------------+---------------------+
-    | LOCALTIME()         | LOCALTIME           |
-    |---------------------+---------------------|
-    | 2022-08-02 15:54:19 | 2022-08-02 15:54:19 |
-    +---------------------+---------------------+
+    +---------------------+
+    | LOCALTIME()         |
+    |---------------------+
+    | 2022-08-02 15:54:19 |
+    +---------------------+
 
 
 MAKEDATE

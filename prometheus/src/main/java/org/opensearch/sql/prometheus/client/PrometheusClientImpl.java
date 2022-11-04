@@ -9,12 +9,13 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -41,7 +42,8 @@ public class PrometheusClientImpl implements PrometheusClient {
   @Override
   public JSONObject queryRange(String query, Long start, Long end, String step) throws IOException {
     String queryUrl = String.format("%s/api/v1/query_range?query=%s&start=%s&end=%s&step=%s",
-        uri.toString().replaceAll("/$", ""), query, start, end, step);
+        uri.toString().replaceAll("/$", ""), URLEncoder.encode(query, StandardCharsets.UTF_8),
+        start, end, step);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder()
         .url(queryUrl)
@@ -53,15 +55,17 @@ public class PrometheusClientImpl implements PrometheusClient {
 
   @Override
   public List<String> getLabels(String metricName) throws IOException {
-    String queryUrl = String.format("%s/api/v1/labels?match[]=%s",
-        uri.toString().replaceAll("/$", ""), metricName);
+    String queryUrl = String.format("%s/api/v1/labels?%s=%s",
+        uri.toString().replaceAll("/$", ""),
+        URLEncoder.encode("match[]", StandardCharsets.UTF_8),
+        URLEncoder.encode(metricName, StandardCharsets.UTF_8));
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder()
         .url(queryUrl)
         .build();
     Response response = this.okHttpClient.newCall(request).execute();
     JSONObject jsonObject = readResponse(response);
-    return toListOfStrings(jsonObject.getJSONArray("data"));
+    return toListOfLabels(jsonObject.getJSONArray("data"));
   }
 
   @Override
@@ -79,10 +83,14 @@ public class PrometheusClientImpl implements PrometheusClient {
     return new ObjectMapper().readValue(jsonObject.getJSONObject("data").toString(), typeRef);
   }
 
-  private List<String> toListOfStrings(JSONArray array) {
+  private List<String> toListOfLabels(JSONArray array) {
     List<String> result = new ArrayList<>();
     for (int i = 0; i < array.length(); i++) {
-      result.add(array.optString(i));
+      //__name__ is internal label in prometheus representing the metric name.
+      //Exempting this from labels list as it is not required in any of the operations.
+      if (!"__name__".equals(array.optString(i))) {
+        result.add(array.optString(i));
+      }
     }
     return result;
   }

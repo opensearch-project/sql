@@ -64,20 +64,6 @@ class AstNowLikeFunctionTest extends AstBuilderTestBase {
     );
   }
 
-
-  @ParameterizedTest
-  @MethodSource("supportShortcut")
-  void project_shortcut(String name) {
-    assertEquals(
-        project(
-            values(emptyList()),
-            alias(name, function(name))
-        ),
-        buildAST("SELECT " + name)
-    );
-  }
-
-
   @ParameterizedTest
   @MethodSource("allFunctions")
   void filter_call(String name) {
@@ -97,24 +83,6 @@ class AstNowLikeFunctionTest extends AstBuilderTestBase {
     );
   }
 
-
-  @ParameterizedTest
-  @MethodSource("supportShortcut")
-  void filter_shortcut(String name) {
-    assertEquals(
-        project(
-            filter(
-                relation("test"),
-                function(
-                    "=",
-                    qualifiedName("data"),
-                    function(name))
-            ),
-            AllFields.of()
-        ),
-        buildAST("SELECT * FROM test WHERE data = " + name)
-    );
-  }
 
   @ParameterizedTest
   @MethodSource("supportFsp")
