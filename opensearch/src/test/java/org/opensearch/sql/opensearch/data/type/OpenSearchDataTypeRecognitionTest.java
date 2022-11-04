@@ -13,7 +13,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.DSL;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.opensearch.OpenSearchTestBase;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprBinaryValue;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprGeoPointValue;

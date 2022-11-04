@@ -33,7 +33,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.expression.DSL;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.opensearch.OpenSearchTestBase;
 import org.opensearch.sql.opensearch.utils.Utils;
 import org.opensearch.sql.planner.logical.LogicalPlan;

@@ -45,6 +45,7 @@ dependencies {
     testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.12.4'
     testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
     testImplementation group: 'org.opensearch.test', name: 'framework', version: "${opensearch_version}"
+    testImplementation "org.springframework:spring-test:${spring_version}"
 }
 
 test {
