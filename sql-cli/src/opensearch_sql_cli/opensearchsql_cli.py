@@ -1,5 +1,9 @@
 from __future__ import unicode_literals
 
+from os.path import expanduser, expandvars
+
+from prompt_toolkit.history import FileHistory
+
 """
 Copyright OpenSearch Contributors
 SPDX-License-Identifier: Apache-2.0
@@ -21,7 +25,7 @@ from prompt_toolkit.layout.processors import ConditionalProcessor, HighlightMatc
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from pygments.lexers.sql import SqlLexer
 
-from .config import get_config
+from .config import get_config, config_location
 from .opensearch_connection import OpenSearchConnection
 from .opensearch_buffer import opensearch_is_multiline
 from .opensearch_style import style_factory, style_factory_output
@@ -57,8 +61,20 @@ class OpenSearchSqlCli:
         self.multiline_continuation_char = config["main"]["multiline_continuation_char"]
         self.multi_line = config["main"].as_bool("multi_line")
         self.multiline_mode = config["main"].get("multi_line_mode", "src")
+        self.history_file = config["main"]["history_file"]
+        self.log_file = config["main"]["log_file"]
         self.null_string = config["main"].get("null_string", "null")
         self.style_output = style_factory_output(self.syntax_style, self.cli_style)
+
+        if self.history_file == "default":
+            self.history_file = os.path.join(config_location(), "history")
+        else:
+            self.history_file = expandvars(expanduser(self.history_file))
+
+        if self.log_file == "default":
+            self.log_file = os.path.join(config_location(), "log")
+        else:
+            self.log_file = expandvars(expanduser(self.log_file))
 
     def build_cli(self):
         # TODO: Optimize index suggestion to serve indices options only at the needed position, such as 'from'
@@ -74,8 +90,7 @@ class OpenSearchSqlCli:
             lexer=PygmentsLexer(SqlLexer),
             completer=sql_completer,
             complete_while_typing=True,
-            # TODO: add history, refer to pgcli approach
-            # history=history,
+            history=FileHistory(self.history_file),
             style=style_factory(self.syntax_style, self.cli_style),
             prompt_continuation=get_continuation,
             multiline=opensearch_is_multiline(self),
