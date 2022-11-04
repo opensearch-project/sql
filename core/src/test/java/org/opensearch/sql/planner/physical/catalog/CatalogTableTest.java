@@ -33,7 +33,7 @@ public class CatalogTableTest {
     CatalogTable catalogTable = new CatalogTable(catalogService);
     Map<String, ExprType> fieldTypes =  catalogTable.getFieldTypes();
     Map<String, ExprType> expectedTypes = new HashMap<>();
-    expectedTypes.put("CATALOG_NAME", ExprCoreType.STRING);
+    expectedTypes.put("DATASOURCE_NAME", ExprCoreType.STRING);
     expectedTypes.put("CONNECTOR_TYPE", ExprCoreType.STRING);
     assertEquals(expectedTypes, fieldTypes);
   }

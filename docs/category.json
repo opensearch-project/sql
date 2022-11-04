@@ -10,7 +10,7 @@
     "user/ppl/cmd/ad.rst",
     "user/ppl/cmd/dedup.rst",
     "user/ppl/cmd/describe.rst",
-    "user/ppl/cmd/showcatalogs.rst",
+    "user/ppl/cmd/showdatasources.rst",
     "user/ppl/cmd/information_schema.rst",
     "user/ppl/cmd/eval.rst",
     "user/ppl/cmd/fields.rst",
