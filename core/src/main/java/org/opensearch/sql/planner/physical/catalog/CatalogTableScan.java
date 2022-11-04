@@ -51,7 +51,7 @@ public class CatalogTableScan extends TableScanOperator {
     for (Catalog catalog : catalogs) {
       exprValues.add(
           new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-              "CATALOG_NAME", ExprValueUtils.stringValue(catalog.getName()),
+              "DATASOURCE_NAME", ExprValueUtils.stringValue(catalog.getName()),
               "CONNECTOR_TYPE", ExprValueUtils.stringValue(catalog.getConnectorType().name())))));
     }
     iterator = exprValues.iterator();

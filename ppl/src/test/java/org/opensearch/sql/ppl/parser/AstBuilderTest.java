@@ -800,7 +800,7 @@ public class AstBuilderTest {
 
   @Test
   public void testShowCatalogsCommand() {
-    assertEqual("show catalogs",
+    assertEqual("show datasources",
         relation(".CATALOGS"));
   }
 
