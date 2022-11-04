@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.sql.CatalogSchemaName;
+import org.opensearch.sql.DatasourceSchemaName;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
@@ -51,7 +51,7 @@ public class PrometheusListMetricsRequestTest {
     when(prometheusClient.getAllMetrics()).thenReturn(metricsResult);
     PrometheusListMetricsRequest prometheusListMetricsRequest
         = new PrometheusListMetricsRequest(prometheusClient,
-            new CatalogSchemaName("prometheus", "information_schema"));
+            new DatasourceSchemaName("prometheus", "information_schema"));
     List<ExprValue> result = prometheusListMetricsRequest.search();
     assertEquals(expectedRow(), result.get(0));
     assertEquals(2, result.size());
@@ -65,7 +65,7 @@ public class PrometheusListMetricsRequestTest {
     when(prometheusClient.getAllMetrics()).thenThrow(new IOException("ERROR Message"));
     PrometheusListMetricsRequest prometheusListMetricsRequest
         = new PrometheusListMetricsRequest(prometheusClient,
-            new CatalogSchemaName("prometheus", "information_schema"));
+            new DatasourceSchemaName("prometheus", "information_schema"));
     RuntimeException exception = assertThrows(RuntimeException.class,
         prometheusListMetricsRequest::search);
     assertEquals("Error while fetching metric list for from prometheus: ERROR Message",

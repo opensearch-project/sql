@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestHighLevelClient;
-import org.opensearch.sql.catalog.CatalogService;
+import org.opensearch.sql.datasource.DatasourceService;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -29,7 +29,7 @@ import org.opensearch.sql.opensearch.client.OpenSearchRestClient;
 import org.opensearch.sql.opensearch.executor.OpenSearchExecutionEngine;
 import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProtector;
 import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
-import org.opensearch.sql.plugin.catalog.CatalogServiceImpl;
+import org.opensearch.sql.plugin.datasource.DatasourceServiceImpl;
 import org.opensearch.sql.ppl.config.PPLServiceConfig;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
@@ -58,8 +58,8 @@ public class StandaloneIT extends PPLIntegTestCase {
         new OpenSearchExecutionProtector(new AlwaysHealthyMonitor())));
     context.register(PPLServiceConfig.class);
     OpenSearchStorageEngine openSearchStorageEngine = new OpenSearchStorageEngine(client, defaultSettings());
-    CatalogServiceImpl.getInstance().registerDefaultOpenSearchCatalog(openSearchStorageEngine);
-    context.registerBean(CatalogService.class, CatalogServiceImpl::getInstance);
+    DatasourceServiceImpl.getInstance().registerDefaultOpenSearchDatasource(openSearchStorageEngine);
+    context.registerBean(DatasourceService.class, DatasourceServiceImpl::getInstance);
     context.refresh();
 
     pplService = context.getBean(PPLService.class);

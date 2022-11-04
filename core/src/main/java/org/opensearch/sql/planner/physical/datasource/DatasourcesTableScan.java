@@ -5,7 +5,7 @@
  *
  */
 
-package org.opensearch.sql.planner.physical.catalog;
+package org.opensearch.sql.planner.physical.datasource;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
@@ -14,8 +14,8 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
-import org.opensearch.sql.catalog.CatalogService;
-import org.opensearch.sql.catalog.model.Catalog;
+import org.opensearch.sql.datasource.DatasourceService;
+import org.opensearch.sql.datasource.model.Datasource;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -28,14 +28,14 @@ import org.opensearch.sql.storage.TableScanOperator;
  * persisting catalog info somewhere.
  *
  */
-public class CatalogTableScan extends TableScanOperator {
+public class DatasourcesTableScan extends TableScanOperator {
 
-  private final CatalogService catalogService;
+  private final DatasourceService datasourceService;
 
   private Iterator<ExprValue> iterator;
 
-  public CatalogTableScan(CatalogService catalogService) {
-    this.catalogService = catalogService;
+  public DatasourcesTableScan(DatasourceService datasourceService) {
+    this.datasourceService = datasourceService;
     this.iterator = Collections.emptyIterator();
   }
 
@@ -47,12 +47,12 @@ public class CatalogTableScan extends TableScanOperator {
   @Override
   public void open() {
     List<ExprValue> exprValues = new ArrayList<>();
-    Set<Catalog> catalogs = catalogService.getCatalogs();
-    for (Catalog catalog : catalogs) {
+    Set<Datasource> datasources = datasourceService.getDatasources();
+    for (Datasource datasource : datasources) {
       exprValues.add(
           new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-              "CATALOG_NAME", ExprValueUtils.stringValue(catalog.getName()),
-              "CONNECTOR_TYPE", ExprValueUtils.stringValue(catalog.getConnectorType().name())))));
+              "CATALOG_NAME", ExprValueUtils.stringValue(datasource.getName()),
+              "CONNECTOR_TYPE", ExprValueUtils.stringValue(datasource.getConnectorType().name())))));
     }
     iterator = exprValues.iterator();
   }

@@ -30,8 +30,8 @@ import org.opensearch.sql.expression.Expression;
 
 /**
  * Builtin Function Repository.
- * Repository registers catalog specific functions under catalog specific namespace and
- * universal functions under default namespace. Catalog Specific Namespace carries their own
+ * Repository registers datasource specific functions under datasource specific namespace and
+ * universal functions under default namespace. Datasource Specific Namespace carries their own
  * namespace.
  *
  */

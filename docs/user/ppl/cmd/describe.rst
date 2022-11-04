@@ -16,9 +16,9 @@ Description
 
 Syntax
 ============
-describe <catalog>.<schema>.<tablename>
+describe <datasource>.<schema>.<tablename>
 
-* catalog: optional. If catalog is not provided, it resolves to opensearch catalog.
+* datasource: optional. If datasource is not provided, it resolves to opensearch datasource.
 * schema: optional.  If schema is not provided, it resolves to  default schema.
 * tablename: mandatory. describe command must specify which tablename to query from.
 
@@ -67,10 +67,10 @@ PPL query::
     +----------------+
 
 
-Example 3: Fetch metadata for table in prometheus catalog
+Example 3: Fetch metadata for table in prometheus datasource
 =========================================================
 
-The example retrieves table info for ``prometheus_http_requests_total`` metric in prometheus catalog.
+The example retrieves table info for ``prometheus_http_requests_total`` metric in prometheus datasource.
 
 PPL query::
 

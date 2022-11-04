@@ -11,19 +11,19 @@ Metadata queries using information_schema
 
 Description
 ============
-| Use ``information_schema`` in source command to query tables information under a catalog.
+| Use ``information_schema`` in source command to query tables information under a datasource.
 In the current state, ``information_schema`` only support metadata of tables.
 This schema will be extended for views, columns and other metadata info in future.
 
 
 Syntax
 ============
-source = catalog.information_schema.tables;
+source = datasource.information_schema.tables;
 
-Example 1: Fetch tables in prometheus catalog.
+Example 1: Fetch tables in prometheus datasource.
 ==============================================
 
-The examples fetches tables in the prometheus catalog.
+The examples fetches tables in the prometheus datasource.
 
 PPL query for fetching PROMETHEUS TABLES with where clause::
 
@@ -36,10 +36,10 @@ PPL query for fetching PROMETHEUS TABLES with where clause::
     +-----------------+----------------+--------------------------------+--------------+--------+---------------------------+
 
 
-Example 2: Search tables in prometheus catalog.
+Example 2: Search tables in prometheus datasource.
 ===============================================
 
-The examples searches tables in the prometheus catalog.
+The examples searches tables in the prometheus datasource.
 
 PPL query for searching PROMETHEUS TABLES::
 

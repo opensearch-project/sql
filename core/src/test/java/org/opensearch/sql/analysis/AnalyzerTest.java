@@ -10,7 +10,7 @@ import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.opensearch.sql.analysis.CatalogSchemaIdentifierNameResolver.DEFAULT_CATALOG_NAME;
+import static org.opensearch.sql.analysis.DatasourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
@@ -52,6 +52,7 @@ import static org.opensearch.sql.utils.MLCommonsConstants.RCF_TIME_FIELD;
 import static org.opensearch.sql.utils.MLCommonsConstants.STATUS;
 import static org.opensearch.sql.utils.MLCommonsConstants.TASKID;
 import static org.opensearch.sql.utils.MLCommonsConstants.TRAIN;
+import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -88,7 +89,7 @@ import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalRelation;
-import org.opensearch.sql.planner.physical.catalog.CatalogTable;
+import org.opensearch.sql.planner.physical.datasource.DatasourceTable;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
@@ -123,7 +124,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void filter_relation_with_catalog() {
+  public void filter_relation_with_datasource() {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.relation("http_total_requests", table),
@@ -134,7 +135,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void filter_relation_with_escaped_catalog() {
+  public void filter_relation_with_escaped_datasource() {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.relation("prometheus.http_total_requests", table),
@@ -145,7 +146,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void filter_relation_with_information_schema_and_prom_catalog() {
+  public void filter_relation_with_information_schema_and_prom_datasource() {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.relation("tables", table),
@@ -156,7 +157,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void filter_relation_with_default_schema_and_prom_catalog() {
+  public void filter_relation_with_default_schema_and_prom_datasource() {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.relation("tables", table),
@@ -167,14 +168,14 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void filter_relation_with_information_schema_and_os_catalog() {
+  public void filter_relation_with_information_schema_and_os_datasource() {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.relation("tables", table),
             dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
         AstDSL.filter(
             AstDSL.relation(
-                AstDSL.qualifiedName(DEFAULT_CATALOG_NAME, "information_schema", "tables")),
+                AstDSL.qualifiedName(DEFAULT_DATASOURCE_NAME, "information_schema", "tables")),
             AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
   }
 
@@ -190,7 +191,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void filter_relation_with_non_existing_catalog() {
+  public void filter_relation_with_non_existing_datasource() {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.relation("test.http_total_requests", table),
@@ -201,7 +202,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void filter_relation_with_non_existing_catalog_with_three_parts() {
+  public void filter_relation_with_non_existing_datasource_with_three_parts() {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.relation("test.nonexisting_schema.http_total_requests", table),
@@ -1043,7 +1044,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void table_function_with_no_catalog() {
+  public void table_function_with_no_datasource() {
     ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
         () -> analyze(AstDSL.tableFunction(List.of("query_range"),
             unresolvedArg("query", stringLiteral("http_latency")),
@@ -1055,7 +1056,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void table_function_with_wrong_catalog() {
+  public void table_function_with_wrong_datasource() {
     ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
         () -> analyze(AstDSL.tableFunction(Arrays.asList("prome", "query_range"),
             unresolvedArg("query", stringLiteral("http_latency")),
@@ -1077,9 +1078,9 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void show_catalogs() {
-    assertAnalyzeEqual(new LogicalRelation(".CATALOGS", new CatalogTable(catalogService)),
-        AstDSL.relation(qualifiedName(".CATALOGS")));
+  public void show_datasources() {
+    assertAnalyzeEqual(new LogicalRelation(DATASOURCES_TABLE_NAME, new DatasourceTable(datasourceService)),
+        AstDSL.relation(qualifiedName(DATASOURCES_TABLE_NAME)));
 
   }
 

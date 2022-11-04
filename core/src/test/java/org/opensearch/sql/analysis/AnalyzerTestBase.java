@@ -15,14 +15,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.tuple.Pair;
-import org.opensearch.sql.CatalogSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.analysis.symbol.SymbolTable;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
-import org.opensearch.sql.catalog.CatalogService;
-import org.opensearch.sql.catalog.model.Catalog;
-import org.opensearch.sql.catalog.model.ConnectorType;
+import org.opensearch.sql.datasource.DatasourceService;
+import org.opensearch.sql.datasource.model.Datasource;
+import org.opensearch.sql.datasource.model.ConnectorType;
 import org.opensearch.sql.config.TestConfig;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -52,7 +51,7 @@ public class AnalyzerTestBase {
 
   @Bean
   protected StorageEngine storageEngine() {
-    return (catalogSchemaName, tableName) -> table;
+    return (datasourceSchemaName, tableName) -> table;
   }
 
   @Bean
@@ -71,7 +70,7 @@ public class AnalyzerTestBase {
   }
 
   @Bean
-  protected Table catalogTable() {
+  protected Table datasourceTable() {
     return new Table() {
       @Override
       public Map<String, ExprType> getFieldTypes() {
@@ -86,8 +85,8 @@ public class AnalyzerTestBase {
   }
 
   @Bean
-  protected CatalogService catalogService() {
-    return new DefaultCatalogService();
+  protected DatasourceService datasourceService() {
+    return new DefaultDatasourceService();
   }
 
 
@@ -133,16 +132,16 @@ public class AnalyzerTestBase {
   protected Table table;
 
   @Autowired
-  protected CatalogService catalogService;
+  protected DatasourceService datasourceService;
 
   @Autowired
   protected Environment<Expression, ExprType> typeEnv;
 
   @Bean
-  protected Analyzer analyzer(ExpressionAnalyzer expressionAnalyzer, CatalogService catalogService,
+  protected Analyzer analyzer(ExpressionAnalyzer expressionAnalyzer, DatasourceService datasourceService,
                       StorageEngine storageEngine, BuiltinFunctionRepository functionRepository,
                       Table table) {
-    catalogService.registerDefaultOpenSearchCatalog(storageEngine);
+    datasourceService.registerDefaultOpenSearchDatasource(storageEngine);
     functionRepository.register("prometheus", new FunctionResolver() {
 
       @Override
@@ -160,7 +159,7 @@ public class AnalyzerTestBase {
         return FunctionName.of("query_range");
       }
     });
-    return new Analyzer(expressionAnalyzer, catalogService, functionRepository);
+    return new Analyzer(expressionAnalyzer, datasourceService, functionRepository);
   }
 
   @Bean
@@ -186,25 +185,25 @@ public class AnalyzerTestBase {
     return analyzer.analyze(unresolvedPlan, analysisContext);
   }
 
-  private class DefaultCatalogService implements CatalogService {
+  private class DefaultDatasourceService implements DatasourceService {
 
     private StorageEngine storageEngine = storageEngine();
-    private final Catalog catalog
-        = new Catalog("prometheus", ConnectorType.PROMETHEUS, storageEngine);
+    private final Datasource datasource
+        = new Datasource("prometheus", ConnectorType.PROMETHEUS, storageEngine);
 
 
     @Override
-    public Set<Catalog> getCatalogs() {
-      return ImmutableSet.of(catalog);
+    public Set<Datasource> getDatasources() {
+      return ImmutableSet.of(datasource);
     }
 
     @Override
-    public Catalog getCatalog(String catalogName) {
-      return catalog;
+    public Datasource getDatasource(String datasourceName) {
+      return datasource;
     }
 
     @Override
-    public void registerDefaultOpenSearchCatalog(StorageEngine storageEngine) {
+    public void registerDefaultOpenSearchDatasource(StorageEngine storageEngine) {
       this.storageEngine = storageEngine;
     }
   }

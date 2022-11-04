@@ -16,7 +16,7 @@ import org.opensearch.sql.analysis.AnalysisContext;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.analysis.ExpressionAnalyzer;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
-import org.opensearch.sql.catalog.CatalogService;
+import org.opensearch.sql.datasource.DatasourceService;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -42,7 +42,7 @@ public class PPLService {
 
   private final BuiltinFunctionRepository repository;
 
-  private final CatalogService catalogService;
+  private final DatasourceService datasourceService;
 
   private final PPLQueryDataAnonymizer anonymizer = new PPLQueryDataAnonymizer();
 
@@ -86,7 +86,7 @@ public class PPLService {
         anonymizer.anonymizeData(ast));
     // 2.Analyze abstract syntax to generate logical plan
     LogicalPlan logicalPlan =
-        new Analyzer(new ExpressionAnalyzer(repository), catalogService, repository).analyze(
+        new Analyzer(new ExpressionAnalyzer(repository), datasourceService, repository).analyze(
             UnresolvedPlanHelper.addSelectAll(ast),
             new AnalysisContext());
 

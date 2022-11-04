@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.sql.catalog.model.ConnectorType;
+import org.opensearch.sql.datasource.model.ConnectorType;
 import org.opensearch.sql.storage.StorageEngine;
 
 @ExtendWith(MockitoExtension.class)

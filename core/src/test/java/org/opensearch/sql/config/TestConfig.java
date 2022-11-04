@@ -8,7 +8,7 @@ package org.opensearch.sql.config;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
-import org.opensearch.sql.CatalogSchemaName;
+import org.opensearch.sql.DatasourceSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.analysis.symbol.SymbolTable;
@@ -63,7 +63,7 @@ public class TestConfig {
   protected StorageEngine storageEngine() {
     return new StorageEngine() {
       @Override
-      public Table getTable(CatalogSchemaName catalogSchemaName, String name) {
+      public Table getTable(DatasourceSchemaName datasourceSchemaName, String name) {
         return new Table() {
           @Override
           public Map<String, ExprType> getFieldTypes() {

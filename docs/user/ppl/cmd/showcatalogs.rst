@@ -1,5 +1,5 @@
 =============
-show catalogs
+show datasources
 =============
 
 .. rubric:: Table of contents
@@ -11,22 +11,22 @@ show catalogs
 
 Description
 ============
-| Using ``show catalogs`` command to query catalogs configured in the PPL engine. ``show catalogs`` command could be only used as the first command in the PPL query.
+| Using ``show datasources`` command to query datasources configured in the PPL engine. ``show datasources`` command could be only used as the first command in the PPL query.
 
 
 Syntax
 ============
-show catalogs
+show datasources
 
 
-Example 1: Fetch all PROMETHEUS catalogs
+Example 1: Fetch all PROMETHEUS datasources
 =================================
 
-The example fetches all the catalogs configured.
+The example fetches all the datasources configured.
 
 PPL query for all PROMETHEUS CATALOGS::
 
-    os> show catalogs | where CONNECTOR_TYPE='PROMETHEUS';
+    os> show datasources | where CONNECTOR_TYPE='PROMETHEUS';
     fetched rows / total rows = 1/1
     +----------------+------------------+
     | CATALOG_NAME   | CONNECTOR_TYPE   |

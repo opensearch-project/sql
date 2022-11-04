@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.sql.CatalogSchemaName;
+import org.opensearch.sql.DatasourceSchemaName;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -44,7 +44,7 @@ public class PrometheusSystemTableTest {
   @Test
   void testGetFieldTypesOfMetaTable() {
     PrometheusSystemTable systemIndex = new PrometheusSystemTable(client,
-        new CatalogSchemaName("prometheus", "information_schema"), TABLE_INFO);
+        new DatasourceSchemaName("prometheus", "information_schema"), TABLE_INFO);
     final Map<String, ExprType> fieldTypes = systemIndex.getFieldTypes();
     assertThat(fieldTypes, anyOf(
         hasEntry("TABLE_CATALOG", STRING)
@@ -57,7 +57,7 @@ public class PrometheusSystemTableTest {
   @Test
   void testGetFieldTypesOfMappingTable() {
     PrometheusSystemTable systemIndex = new PrometheusSystemTable(client,
-        new CatalogSchemaName("prometheus", "information_schema"), mappingTable(
+        new DatasourceSchemaName("prometheus", "information_schema"), mappingTable(
         "test_metric"));
     final Map<String, ExprType> fieldTypes = systemIndex.getFieldTypes();
     assertThat(fieldTypes, anyOf(
@@ -70,7 +70,7 @@ public class PrometheusSystemTableTest {
   @Test
   void implement() {
     PrometheusSystemTable systemIndex = new PrometheusSystemTable(client,
-        new CatalogSchemaName("prometheus", "information_schema"), TABLE_INFO);
+        new DatasourceSchemaName("prometheus", "information_schema"), TABLE_INFO);
     NamedExpression projectExpr = named("TABLE_NAME", ref("TABLE_NAME", STRING));
 
     final PhysicalPlan plan = systemIndex.implement(

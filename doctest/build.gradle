@@ -104,7 +104,7 @@ String mlCommonsPlugin = 'opensearch-ml'
 
 testClusters {
     docTestCluster {
-        keystore 'plugins.query.federation.catalog.config', new File("$projectDir/catalog", 'catalog.json')
+        keystore 'plugins.query.federation.datasource.config', new File("$projectDir/datasource", 'datasources.json')
         plugin(provider(new Callable<RegularFile>(){
             @Override
             RegularFile call() throws Exception {

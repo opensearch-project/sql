@@ -8,7 +8,7 @@
 package org.opensearch.sql.storage;
 
 import java.util.Map;
-import org.opensearch.sql.catalog.model.ConnectorType;
+import org.opensearch.sql.datasource.model.ConnectorType;
 
 public interface StorageEngineFactory {
 

@@ -12,9 +12,9 @@ import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
-public class CatalogSchemaName {
+public class DatasourceSchemaName {
 
-  private final String catalogName;
+  private final String datasourceName;
 
   private final String schemaName;
 

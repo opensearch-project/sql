@@ -12,7 +12,7 @@ import static org.mockito.AdditionalAnswers.returnsFirstArg;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
-import static org.opensearch.sql.analysis.CatalogSchemaIdentifierNameResolver.DEFAULT_CATALOG_NAME;
+import static org.opensearch.sql.analysis.DatasourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 
@@ -25,7 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.sql.CatalogSchemaName;
+import org.opensearch.sql.DatasourceSchemaName;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
@@ -81,7 +81,7 @@ public class PlannerTest extends PhysicalPlanTestBase {
                 LogicalPlanDSL.filter(
                     LogicalPlanDSL.relation("schema",
                         storageEngine.getTable(
-                            new CatalogSchemaName(DEFAULT_CATALOG_NAME, "default"),
+                            new DatasourceSchemaName(DEFAULT_DATASOURCE_NAME, "default"),
                         "schema")),
                     dsl.equal(DSL.ref("response", INTEGER), DSL.literal(10))
                 ),

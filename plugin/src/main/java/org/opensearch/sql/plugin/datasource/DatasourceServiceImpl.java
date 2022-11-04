@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.plugin.catalog;
+package org.opensearch.sql.plugin.datasource;
 
-import static org.opensearch.sql.analysis.CatalogSchemaIdentifierNameResolver.DEFAULT_CATALOG_NAME;
+import static org.opensearch.sql.analysis.DatasourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -23,35 +23,35 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.sql.catalog.CatalogService;
-import org.opensearch.sql.catalog.model.Catalog;
-import org.opensearch.sql.catalog.model.CatalogMetadata;
-import org.opensearch.sql.catalog.model.ConnectorType;
+import org.opensearch.sql.datasource.DatasourceService;
+import org.opensearch.sql.datasource.model.Datasource;
+import org.opensearch.sql.datasource.model.DatasourceMetadata;
+import org.opensearch.sql.datasource.model.ConnectorType;
 import org.opensearch.sql.opensearch.security.SecurityAccess;
 import org.opensearch.sql.prometheus.storage.PrometheusStorageFactory;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.StorageEngineFactory;
 
 /**
- * This class manages catalogs and responsible for creating connectors to these catalogs.
+ * This class manages datasources and responsible for creating connectors to these datasources.
  */
-public class CatalogServiceImpl implements CatalogService {
+public class DatasourceServiceImpl implements DatasourceService {
 
-  private static final CatalogServiceImpl INSTANCE = new CatalogServiceImpl();
+  private static final DatasourceServiceImpl INSTANCE = new DatasourceServiceImpl();
 
   private static final String CATALOG_NAME_REGEX = "[@*A-Za-z]+?[*a-zA-Z_\\-0-9]*";
 
   private static final Logger LOG = LogManager.getLogger();
 
-  private Map<String, Catalog> catalogMap = new HashMap<>();
+  private Map<String, Datasource> datasourceMap = new HashMap<>();
 
   private final Map<ConnectorType, StorageEngineFactory> connectorTypeStorageEngineFactoryMap;
 
-  public static CatalogServiceImpl getInstance() {
+  public static DatasourceServiceImpl getInstance() {
     return INSTANCE;
   }
 
-  private CatalogServiceImpl() {
+  private DatasourceServiceImpl() {
     connectorTypeStorageEngineFactoryMap = new HashMap<>();
     PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory();
     connectorTypeStorageEngineFactoryMap.put(prometheusStorageFactory.getConnectorType(),
@@ -66,20 +66,20 @@ public class CatalogServiceImpl implements CatalogService {
    */
   public void loadConnectors(Settings settings) {
     doPrivileged(() -> {
-      InputStream inputStream = CatalogSettings.CATALOG_CONFIG.get(settings);
+      InputStream inputStream = DatasourceSettings.DATASOURCE_CONFIG.get(settings);
       if (inputStream != null) {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         try {
-          List<CatalogMetadata> catalogs =
+          List<DatasourceMetadata> datasourceMetadataList =
               objectMapper.readValue(inputStream, new TypeReference<>() {
               });
-          validateCatalogs(catalogs);
-          constructConnectors(catalogs);
+          validateDatasources(datasourceMetadataList);
+          constructConnectors(datasourceMetadataList);
         } catch (IOException e) {
-          LOG.error("Catalog Configuration File uploaded is malformed. Verify and re-upload.", e);
+          LOG.error("Datasource Configuration File uploaded is malformed. Verify and re-upload.", e);
         } catch (Throwable e) {
-          LOG.error("Catalog construction failed.", e);
+          LOG.error("Datasource construction failed.", e);
         }
       }
       return null;
@@ -87,27 +87,27 @@ public class CatalogServiceImpl implements CatalogService {
   }
 
   @Override
-  public Set<Catalog> getCatalogs() {
-    return new HashSet<>(catalogMap.values());
+  public Set<Datasource> getDatasources() {
+    return new HashSet<>(datasourceMap.values());
   }
 
   @Override
-  public Catalog getCatalog(String catalogName) {
-    if (!catalogMap.containsKey(catalogName)) {
+  public Datasource getDatasource(String datasourceName) {
+    if (!datasourceMap.containsKey(datasourceName)) {
       throw new IllegalArgumentException(
-          String.format("Catalog with name %s doesn't exist.", catalogName));
+          String.format("Datasource with name %s doesn't exist.", datasourceName));
     }
-    return catalogMap.get(catalogName);
+    return datasourceMap.get(datasourceName);
   }
 
 
   @Override
-  public void registerDefaultOpenSearchCatalog(StorageEngine storageEngine) {
+  public void registerDefaultOpenSearchDatasource(StorageEngine storageEngine) {
     if (storageEngine == null) {
       throw new IllegalArgumentException("Default storage engine can't be null");
     }
-    catalogMap.put(DEFAULT_CATALOG_NAME,
-        new Catalog(DEFAULT_CATALOG_NAME, ConnectorType.OPENSEARCH, storageEngine));
+    datasourceMap.put(DEFAULT_DATASOURCE_NAME,
+        new Datasource(DEFAULT_DATASOURCE_NAME, ConnectorType.OPENSEARCH, storageEngine));
   }
 
   private <T> T doPrivileged(PrivilegedExceptionAction<T> action) {
@@ -118,7 +118,7 @@ public class CatalogServiceImpl implements CatalogService {
     }
   }
 
-  private StorageEngine createStorageEngine(CatalogMetadata catalog) {
+  private StorageEngine createStorageEngine(DatasourceMetadata catalog) {
     ConnectorType connector = catalog.getConnector();
     switch (connector) {
       case PROMETHEUS:
@@ -131,17 +131,18 @@ public class CatalogServiceImpl implements CatalogService {
     }
   }
 
-  private void constructConnectors(List<CatalogMetadata> catalogs) {
-    catalogMap = new HashMap<>();
-    for (CatalogMetadata catalog : catalogs) {
+  private void constructConnectors(List<DatasourceMetadata> datasourceMetadataList) {
+    datasourceMap = new HashMap<>();
+    for (DatasourceMetadata datasourceMetadata : datasourceMetadataList) {
       try {
-        String catalogName = catalog.getName();
-        StorageEngine storageEngine = createStorageEngine(catalog);
-        catalogMap.put(catalogName,
-            new Catalog(catalog.getName(), catalog.getConnector(), storageEngine));
+        String catalogName = datasourceMetadata.getName();
+        StorageEngine storageEngine = createStorageEngine(datasourceMetadata);
+        datasourceMap.put(catalogName,
+            new Datasource(datasourceMetadata.getName(), datasourceMetadata.getConnector(),
+                storageEngine));
       } catch (Throwable e) {
         LOG.error("Catalog : {} storage engine creation failed with the following message: {}",
-            catalog.getName(), e.getMessage(), e);
+            datasourceMetadata.getName(), e.getMessage(), e);
       }
     }
   }
@@ -150,33 +151,33 @@ public class CatalogServiceImpl implements CatalogService {
    * This can be moved to a different validator class
    * when we introduce more connectors.
    *
-   * @param catalogs catalogs.
+   * @param datasourceMetadataList datasourceMetadataList.
    */
-  private void validateCatalogs(List<CatalogMetadata> catalogs) {
+  private void validateDatasources(List<DatasourceMetadata> datasourceMetadataList) {
 
     Set<String> reviewedCatalogs = new HashSet<>();
-    for (CatalogMetadata catalog : catalogs) {
+    for (DatasourceMetadata datasourceMetadata : datasourceMetadataList) {
 
-      if (StringUtils.isEmpty(catalog.getName())) {
+      if (StringUtils.isEmpty(datasourceMetadata.getName())) {
         throw new IllegalArgumentException(
-            "Missing Name Field from a catalog. Name is a required parameter.");
+            "Missing Name Field from a datasourceMetadata. Name is a required parameter.");
       }
 
-      if (!catalog.getName().matches(CATALOG_NAME_REGEX)) {
+      if (!datasourceMetadata.getName().matches(CATALOG_NAME_REGEX)) {
         throw new IllegalArgumentException(
             String.format("Catalog Name: %s contains illegal characters."
-            + " Allowed characters: a-zA-Z0-9_-*@ ", catalog.getName()));
+            + " Allowed characters: a-zA-Z0-9_-*@ ", datasourceMetadata.getName()));
       }
 
-      String catalogName = catalog.getName();
+      String catalogName = datasourceMetadata.getName();
       if (reviewedCatalogs.contains(catalogName)) {
         throw new IllegalArgumentException("Catalogs with same name are not allowed.");
       } else {
         reviewedCatalogs.add(catalogName);
       }
 
-      if (Objects.isNull(catalog.getProperties())) {
-        throw new IllegalArgumentException("Missing properties field in catalog configuration. "
+      if (Objects.isNull(datasourceMetadata.getProperties())) {
+        throw new IllegalArgumentException("Missing properties field in datasourceMetadata configuration. "
             + "Properties are required parameters");
       }
 

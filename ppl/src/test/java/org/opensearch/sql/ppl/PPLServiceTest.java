@@ -19,9 +19,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.opensearch.sql.catalog.CatalogService;
-import org.opensearch.sql.catalog.model.Catalog;
-import org.opensearch.sql.catalog.model.ConnectorType;
+import org.opensearch.sql.datasource.DatasourceService;
+import org.opensearch.sql.datasource.model.Datasource;
+import org.opensearch.sql.datasource.model.ConnectorType;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -51,7 +51,7 @@ public class PPLServiceTest {
   private ExecutionEngine executionEngine;
 
   @Mock
-  private CatalogService catalogService;
+  private DatasourceService datasourceService;
 
   @Mock
   private BuiltinFunctionRepository functionRepository;
@@ -79,15 +79,15 @@ public class PPLServiceTest {
     when(table.getFieldTypes()).thenReturn(ImmutableMap.of("a", ExprCoreType.INTEGER));
     when(table.implement(any())).thenReturn(plan);
     when(storageEngine.getTable(any(), any())).thenReturn(table);
-    when(catalogService.getCatalogs())
-        .thenReturn(Set.of(new Catalog("prometheus", ConnectorType.PROMETHEUS, storageEngine)));
-    when(catalogService.getCatalog(any()))
-        .thenReturn(new Catalog("prometheus", ConnectorType.PROMETHEUS, storageEngine));
+    when(datasourceService.getDatasources())
+        .thenReturn(Set.of(new Datasource("prometheus", ConnectorType.PROMETHEUS, storageEngine)));
+    when(datasourceService.getDatasource(any()))
+        .thenReturn(new Datasource("prometheus", ConnectorType.PROMETHEUS, storageEngine));
     when(storageEngine.getFunctions()).thenReturn(Collections.singleton(functionResolver));
 
     context.registerBean(StorageEngine.class, () -> storageEngine);
     context.registerBean(ExecutionEngine.class, () -> executionEngine);
-    context.registerBean(CatalogService.class, () -> catalogService);
+    context.registerBean(DatasourceService.class, () -> datasourceService);
     context.register(PPLServiceConfig.class);
     context.refresh();
     pplService = context.getBean(PPLService.class);
@@ -138,8 +138,8 @@ public class PPLServiceTest {
 
   @Test
   public void testExplainShouldPass() {
-    when(catalogService.getCatalog(any()))
-        .thenReturn(new Catalog("prometheus", ConnectorType.PROMETHEUS, storageEngine));
+    when(datasourceService.getDatasource(any()))
+        .thenReturn(new Datasource("prometheus", ConnectorType.PROMETHEUS, storageEngine));
     doAnswer(invocation -> {
       ResponseListener<ExplainResponse> listener = invocation.getArgument(1);
       listener.onResponse(new ExplainResponse(new ExplainResponseNode("test")));

@@ -43,7 +43,7 @@ SOURCE:                             'SOURCE';
 INDEX:                              'INDEX';
 D:                                  'D';
 DESC:                               'DESC';
-CATALOGS:                           'CATALOGS';
+DATASOURCES:                        'DATASOURCES';
 
 // CLAUSE KEYWORDS
 SORTBY:                             'SORTBY';

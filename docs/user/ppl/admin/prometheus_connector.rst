@@ -14,7 +14,7 @@ Prometheus Connector
 Introduction
 ============
 
-This page covers prometheus connector properties for catalog configuration
+This page covers prometheus connector properties for datasource configuration
 and the nuances associated with prometheus connector.
 
 
@@ -32,7 +32,7 @@ Prometheus Connector Properties.
     * If prometheus.auth.type is awssigv4, following are required parameters.
         * ``prometheus.auth.region``, ``prometheus.auth.access_key`` and ``prometheus.auth.secret_key``
 
-Example prometheus catalog configuration with different authentications
+Example prometheus datasource configuration with different authentications
 =======================================================================
 
 No Auth ::

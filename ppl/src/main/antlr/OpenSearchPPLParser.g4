@@ -21,7 +21,7 @@ pplStatement
 pplCommands
     : searchCommand
     | describeCommand
-    | showCatalogsCommand
+    | showDatasourcesCommand
     ;
 
 commands
@@ -38,8 +38,8 @@ describeCommand
     : DESCRIBE tableSourceClause
     ;
 
-showCatalogsCommand
-    : SHOW CATALOGS
+showDatasourcesCommand
+    : SHOW DATASOURCES
     ;
 
 whereCommand

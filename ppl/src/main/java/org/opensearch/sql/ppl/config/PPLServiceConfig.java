@@ -6,7 +6,7 @@
 
 package org.opensearch.sql.ppl.config;
 
-import org.opensearch.sql.catalog.CatalogService;
+import org.opensearch.sql.datasource.DatasourceService;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
@@ -25,7 +25,7 @@ public class PPLServiceConfig {
   private ExecutionEngine executionEngine;
 
   @Autowired
-  private CatalogService catalogService;
+  private DatasourceService datasourceService;
 
   @Autowired
   private BuiltinFunctionRepository functionRepository;
@@ -38,12 +38,12 @@ public class PPLServiceConfig {
    */
   @Bean
   public PPLService pplService() {
-    catalogService.getCatalogs()
-        .forEach(catalog -> catalog.getStorageEngine().getFunctions()
+    datasourceService.getDatasources()
+        .forEach(datasource -> datasource.getStorageEngine().getFunctions()
             .forEach(functionResolver -> functionRepository
-                .register(catalog.getName(), functionResolver)));
+                .register(datasource.getName(), functionResolver)));
     return new PPLService(new PPLSyntaxParser(), executionEngine,
-            functionRepository, catalogService);
+            functionRepository, datasourceService);
   }
 
 }

@@ -8,7 +8,7 @@ package org.opensearch.sql.sql.config;
 
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.analysis.ExpressionAnalyzer;
-import org.opensearch.sql.catalog.CatalogService;
+import org.opensearch.sql.datasource.DatasourceService;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
@@ -30,14 +30,14 @@ public class SQLServiceConfig {
   private ExecutionEngine executionEngine;
 
   @Autowired
-  private CatalogService catalogService;
+  private DatasourceService datasourceService;
 
   @Autowired
   private BuiltinFunctionRepository functionRepository;
 
   @Bean
   public Analyzer analyzer() {
-    return new Analyzer(new ExpressionAnalyzer(functionRepository), catalogService,
+    return new Analyzer(new ExpressionAnalyzer(functionRepository), datasourceService,
         functionRepository);
   }
 

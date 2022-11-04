@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.sql.CatalogSchemaName;
+import org.opensearch.sql.DatasourceSchemaName;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -56,7 +56,7 @@ public class PrometheusDescribeMetricRequestTest {
       }};
     PrometheusDescribeMetricRequest prometheusDescribeMetricRequest
         = new PrometheusDescribeMetricRequest(prometheusClient,
-                new CatalogSchemaName("prometheus", "default"), METRIC_NAME);
+                new DatasourceSchemaName("prometheus", "default"), METRIC_NAME);
     assertEquals(expected, prometheusDescribeMetricRequest.getFieldTypes());
     verify(prometheusClient, times(1)).getLabels(METRIC_NAME);
   }
@@ -71,7 +71,7 @@ public class PrometheusDescribeMetricRequestTest {
       }};
     assertThrows(NullPointerException.class,
         () -> new PrometheusDescribeMetricRequest(prometheusClient,
-            new CatalogSchemaName("prometheus", "default"),
+            new DatasourceSchemaName("prometheus", "default"),
              null));
   }
 
@@ -82,7 +82,7 @@ public class PrometheusDescribeMetricRequestTest {
     when(prometheusClient.getLabels(METRIC_NAME)).thenThrow(new RuntimeException("ERROR Message"));
     PrometheusDescribeMetricRequest prometheusDescribeMetricRequest
         = new PrometheusDescribeMetricRequest(prometheusClient,
-            new CatalogSchemaName("prometheus", "default"), METRIC_NAME);
+            new DatasourceSchemaName("prometheus", "default"), METRIC_NAME);
     RuntimeException exception = assertThrows(RuntimeException.class,
         prometheusDescribeMetricRequest::getFieldTypes);
     verify(prometheusClient, times(1)).getLabels(METRIC_NAME);
@@ -95,7 +95,7 @@ public class PrometheusDescribeMetricRequestTest {
     when(prometheusClient.getLabels(METRIC_NAME)).thenThrow(new IOException("ERROR Message"));
     PrometheusDescribeMetricRequest prometheusDescribeMetricRequest
         = new PrometheusDescribeMetricRequest(prometheusClient,
-            new CatalogSchemaName("prometheus", "default"), METRIC_NAME);
+            new DatasourceSchemaName("prometheus", "default"), METRIC_NAME);
     RuntimeException exception = assertThrows(RuntimeException.class,
         prometheusDescribeMetricRequest::getFieldTypes);
     assertEquals("Error while fetching labels for http_requests_total"
@@ -113,7 +113,7 @@ public class PrometheusDescribeMetricRequestTest {
     });
     PrometheusDescribeMetricRequest prometheusDescribeMetricRequest
         = new PrometheusDescribeMetricRequest(prometheusClient,
-            new CatalogSchemaName("test", "default"), METRIC_NAME);
+            new DatasourceSchemaName("test", "default"), METRIC_NAME);
     List<ExprValue> result = prometheusDescribeMetricRequest.search();
     assertEquals(3, result.size());
     assertEquals(expectedRow(), result.get(0));

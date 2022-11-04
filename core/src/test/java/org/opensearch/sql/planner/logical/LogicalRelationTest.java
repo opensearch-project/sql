@@ -28,7 +28,7 @@ class LogicalRelationTest {
   }
 
   @Test
-  public void logicalRelationWithCatalogHasNoInput() {
+  public void logicalRelationWithdatasourceHasNoInput() {
     LogicalPlan relation = LogicalPlanDSL.relation("prometheus.index", table);
     assertEquals(0, relation.getChild().size());
   }

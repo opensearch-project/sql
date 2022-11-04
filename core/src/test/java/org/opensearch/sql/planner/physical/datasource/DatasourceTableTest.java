@@ -5,7 +5,7 @@
  *
  */
 
-package org.opensearch.sql.planner.physical.catalog;
+package org.opensearch.sql.planner.physical.datasource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -16,22 +16,22 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.sql.catalog.CatalogService;
+import org.opensearch.sql.datasource.DatasourceService;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 
 @ExtendWith(MockitoExtension.class)
-public class CatalogTableTest {
+public class DatasourceTableTest {
 
   @Mock
-  private CatalogService catalogService;
+  private DatasourceService datasourceService;
 
   @Test
   void testGetFieldTypes() {
-    CatalogTable catalogTable = new CatalogTable(catalogService);
-    Map<String, ExprType> fieldTypes =  catalogTable.getFieldTypes();
+    DatasourceTable datasourceTable = new DatasourceTable(datasourceService);
+    Map<String, ExprType> fieldTypes =  datasourceTable.getFieldTypes();
     Map<String, ExprType> expectedTypes = new HashMap<>();
     expectedTypes.put("CATALOG_NAME", ExprCoreType.STRING);
     expectedTypes.put("CONNECTOR_TYPE", ExprCoreType.STRING);
@@ -40,10 +40,10 @@ public class CatalogTableTest {
 
   @Test
   void testImplement() {
-    CatalogTable catalogTable = new CatalogTable(catalogService);
+    DatasourceTable datasourceTable = new DatasourceTable(datasourceService);
     PhysicalPlan physicalPlan
-        = catalogTable.implement(LogicalPlanDSL.relation(".CATALOGS", catalogTable));
-    assertTrue(physicalPlan instanceof CatalogTableScan);
+        = datasourceTable.implement(LogicalPlanDSL.relation(".CATALOGS", datasourceTable));
+    assertTrue(physicalPlan instanceof DatasourcesTableScan);
   }
 
 }

@@ -84,7 +84,7 @@ public class AstBuilderTest {
   }
 
   @Test
-  public void testSearchCommandWithCatalogEscape() {
+  public void testSearchCommandWithdatasourceEscape() {
     assertEqual("search source = `prometheus.http_requests_total`",
         relation("prometheus.http_requests_total")
     );
@@ -799,9 +799,9 @@ public class AstBuilderTest {
   }
 
   @Test
-  public void testShowCatalogsCommand() {
-    assertEqual("show catalogs",
-        relation(".CATALOGS"));
+  public void testShowDatasourcesCommand() {
+    assertEqual("show datasources",
+        relation(".DATASOURCES"));
   }
 
   protected void assertEqual(String query, Node expectedPlan) {

@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.sql.CatalogSchemaName;
+import org.opensearch.sql.DatasourceSchemaName;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
@@ -34,7 +34,7 @@ class PrometheusStorageEngineTest {
   @Test
   public void getTable() {
     PrometheusStorageEngine engine = new PrometheusStorageEngine(client);
-    Table table = engine.getTable(new CatalogSchemaName("prometheus", "default"), "test");
+    Table table = engine.getTable(new DatasourceSchemaName("prometheus", "default"), "test");
     assertNotNull(table);
     assertTrue(table instanceof PrometheusMetricTable);
   }
@@ -53,7 +53,7 @@ class PrometheusStorageEngineTest {
   @Test
   public void getSystemTable() {
     PrometheusStorageEngine engine = new PrometheusStorageEngine(client);
-    Table table = engine.getTable(new CatalogSchemaName("prometheus", "default"), TABLE_INFO);
+    Table table = engine.getTable(new DatasourceSchemaName("prometheus", "default"), TABLE_INFO);
     assertNotNull(table);
     assertTrue(table instanceof PrometheusSystemTable);
   }
@@ -62,7 +62,7 @@ class PrometheusStorageEngineTest {
   public void getSystemTableForAllTablesInfo() {
     PrometheusStorageEngine engine = new PrometheusStorageEngine(client);
     Table table
-        = engine.getTable(new CatalogSchemaName("prometheus", "information_schema"), "tables");
+        = engine.getTable(new DatasourceSchemaName("prometheus", "information_schema"), "tables");
     assertNotNull(table);
     assertTrue(table instanceof PrometheusSystemTable);
   }
@@ -71,7 +71,7 @@ class PrometheusStorageEngineTest {
   public void getSystemTableWithWrongInformationSchemaTable() {
     PrometheusStorageEngine engine = new PrometheusStorageEngine(client);
     SemanticCheckException exception = assertThrows(SemanticCheckException.class,
-        () -> engine.getTable(new CatalogSchemaName("prometheus", "information_schema"), "test"));
+        () -> engine.getTable(new DatasourceSchemaName("prometheus", "information_schema"), "test"));
     assertEquals("Information Schema doesn't contain test table", exception.getMessage());
   }
 

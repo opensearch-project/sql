@@ -11,19 +11,11 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
-import static org.opensearch.sql.utils.MLCommonsConstants.ACTION;
-import static org.opensearch.sql.utils.MLCommonsConstants.MODELID;
-import static org.opensearch.sql.utils.MLCommonsConstants.PREDICT;
 import static org.opensearch.sql.utils.MLCommonsConstants.RCF_ANOMALOUS;
 import static org.opensearch.sql.utils.MLCommonsConstants.RCF_ANOMALY_GRADE;
 import static org.opensearch.sql.utils.MLCommonsConstants.RCF_SCORE;
-import static org.opensearch.sql.utils.MLCommonsConstants.RCF_TIMESTAMP;
-import static org.opensearch.sql.utils.MLCommonsConstants.STATUS;
-import static org.opensearch.sql.utils.MLCommonsConstants.TASKID;
 import static org.opensearch.sql.utils.MLCommonsConstants.TIME_FIELD;
-import static org.opensearch.sql.utils.MLCommonsConstants.TRAIN;
-import static org.opensearch.sql.utils.MLCommonsConstants.TRAINANDPREDICT;
-import static org.opensearch.sql.utils.SystemIndexUtils.CATALOGS_TABLE_NAME;
+import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
@@ -37,7 +29,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.opensearch.sql.CatalogSchemaName;
+import org.opensearch.sql.DatasourceSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -69,8 +61,8 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
-import org.opensearch.sql.catalog.CatalogService;
-import org.opensearch.sql.catalog.model.Catalog;
+import org.opensearch.sql.datasource.DatasourceService;
+import org.opensearch.sql.datasource.model.Datasource;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -101,7 +93,7 @@ import org.opensearch.sql.planner.logical.LogicalRemove;
 import org.opensearch.sql.planner.logical.LogicalRename;
 import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.planner.logical.LogicalValues;
-import org.opensearch.sql.planner.physical.catalog.CatalogTable;
+import org.opensearch.sql.planner.physical.datasource.DatasourceTable;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.utils.ParseUtils;
 
@@ -117,7 +109,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   private final NamedExpressionAnalyzer namedExpressionAnalyzer;
 
-  private final CatalogService catalogService;
+  private final DatasourceService datasourceService;
 
   private final BuiltinFunctionRepository repository;
 
@@ -126,10 +118,10 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
    */
   public Analyzer(
       ExpressionAnalyzer expressionAnalyzer,
-      CatalogService catalogService,
+      DatasourceService datasourceService,
       BuiltinFunctionRepository repository) {
     this.expressionAnalyzer = expressionAnalyzer;
-    this.catalogService = catalogService;
+    this.datasourceService = datasourceService;
     this.selectExpressionAnalyzer = new SelectExpressionAnalyzer(expressionAnalyzer);
     this.namedExpressionAnalyzer = new NamedExpressionAnalyzer(expressionAnalyzer);
     this.repository = repository;
@@ -142,25 +134,25 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitRelation(Relation node, AnalysisContext context) {
     QualifiedName qualifiedName = node.getTableQualifiedName();
-    Set<String> allowedCatalogNames = catalogService.getCatalogs()
+    Set<String> allowedDatasources = datasourceService.getDatasources()
         .stream()
-        .map(Catalog::getName)
+        .map(Datasource::getName)
         .collect(Collectors.toSet());
-    CatalogSchemaIdentifierNameResolver catalogSchemaIdentifierNameResolver
-        = new CatalogSchemaIdentifierNameResolver(qualifiedName.getParts(), allowedCatalogNames);
-    String tableName = catalogSchemaIdentifierNameResolver.getIdentifierName();
+    DatasourceSchemaIdentifierNameResolver datasourceSchemaIdentifierNameResolver
+        = new DatasourceSchemaIdentifierNameResolver(qualifiedName.getParts(), allowedDatasources);
+    String tableName = datasourceSchemaIdentifierNameResolver.getIdentifierName();
     context.push();
     TypeEnvironment curEnv = context.peek();
     Table table;
-    if (CATALOGS_TABLE_NAME.equals(tableName)) {
-      table = new CatalogTable(catalogService);
+    if (DATASOURCES_TABLE_NAME.equals(tableName)) {
+      table = new DatasourceTable(datasourceService);
     } else {
-      table = catalogService
-          .getCatalog(catalogSchemaIdentifierNameResolver.getCatalogName())
+      table = datasourceService
+          .getDatasource(datasourceSchemaIdentifierNameResolver.getDatasourceName())
           .getStorageEngine()
-          .getTable(new CatalogSchemaName(catalogSchemaIdentifierNameResolver.getCatalogName(),
-                  catalogSchemaIdentifierNameResolver.getSchemaName()),
-              catalogSchemaIdentifierNameResolver.getIdentifierName());
+          .getTable(new DatasourceSchemaName(datasourceSchemaIdentifierNameResolver.getDatasourceName(),
+                  datasourceSchemaIdentifierNameResolver.getSchemaName()),
+              datasourceSchemaIdentifierNameResolver.getIdentifierName());
     }
     table.getFieldTypes().forEach((k, v) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));
 
@@ -188,28 +180,29 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitTableFunction(TableFunction node, AnalysisContext context) {
     QualifiedName qualifiedName = node.getFunctionName();
-    Set<String> allowedCatalogNames = catalogService.getCatalogs()
+    Set<String> allowedDatasourceNames = datasourceService.getDatasources()
         .stream()
-        .map(Catalog::getName)
+        .map(Datasource::getName)
         .collect(Collectors.toSet());
-    CatalogSchemaIdentifierNameResolver catalogSchemaIdentifierNameResolver
-        = new CatalogSchemaIdentifierNameResolver(qualifiedName.getParts(), allowedCatalogNames);
+    DatasourceSchemaIdentifierNameResolver datasourceSchemaIdentifierNameResolver
+        = new DatasourceSchemaIdentifierNameResolver(qualifiedName.getParts(),
+        allowedDatasourceNames);
 
     FunctionName functionName
-        = FunctionName.of(catalogSchemaIdentifierNameResolver.getIdentifierName());
+        = FunctionName.of(datasourceSchemaIdentifierNameResolver.getIdentifierName());
     List<Expression> arguments = node.getArguments().stream()
         .map(unresolvedExpression -> this.expressionAnalyzer.analyze(unresolvedExpression, context))
         .collect(Collectors.toList());
     TableFunctionImplementation tableFunctionImplementation
         = (TableFunctionImplementation) repository.compile(
-        catalogSchemaIdentifierNameResolver.getCatalogName(), functionName, arguments);
+        datasourceSchemaIdentifierNameResolver.getDatasourceName(), functionName, arguments);
     context.push();
     TypeEnvironment curEnv = context.peek();
     Table table = tableFunctionImplementation.applyArguments();
     table.getFieldTypes().forEach((k, v) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));
     curEnv.define(new Symbol(Namespace.INDEX_NAME,
-            catalogSchemaIdentifierNameResolver.getIdentifierName()), STRUCT);
-    return new LogicalRelation(catalogSchemaIdentifierNameResolver.getIdentifierName(),
+            datasourceSchemaIdentifierNameResolver.getIdentifierName()), STRUCT);
+    return new LogicalRelation(datasourceSchemaIdentifierNameResolver.getIdentifierName(),
         tableFunctionImplementation.applyArguments());
   }
 
