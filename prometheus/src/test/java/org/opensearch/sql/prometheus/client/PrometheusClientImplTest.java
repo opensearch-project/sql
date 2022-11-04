@@ -18,21 +18,23 @@ import static org.opensearch.sql.prometheus.utils.TestUtils.getJson;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Map;
 import lombok.SneakyThrows;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
-import org.apache.http.HttpStatus;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.prometheus.request.system.model.MetricMetadata;
 
 @ExtendWith(MockitoExtension.class)
 public class PrometheusClientImplTest {
@@ -46,7 +48,7 @@ public class PrometheusClientImplTest {
     this.mockWebServer = new MockWebServer();
     this.mockWebServer.start();
     this.prometheusClient =
-        new PrometheusClientImpl(new OkHttpClient(), mockWebServer.url("/").uri());
+        new PrometheusClientImpl(new OkHttpClient(), mockWebServer.url("").uri().normalize());
   }
 
 
@@ -83,7 +85,7 @@ public class PrometheusClientImplTest {
   void testQueryRangeWithNon2xxError() {
     MockResponse mockResponse = new MockResponse()
         .addHeader("Content-Type", "application/json; charset=utf-8")
-        .setResponseCode(HttpStatus.SC_BAD_REQUEST);
+        .setResponseCode(400);
     mockWebServer.enqueue(mockResponse);
     RuntimeException runtimeException
         = assertThrows(RuntimeException.class,
@@ -103,13 +105,32 @@ public class PrometheusClientImplTest {
     mockWebServer.enqueue(mockResponse);
     List<String> response = prometheusClient.getLabels(METRIC_NAME);
     assertEquals(new ArrayList<String>() {{
-        add("__name__");
         add("call");
         add("code");
       }
       }, response);
     RecordedRequest recordedRequest = mockWebServer.takeRequest();
     verifyGetLabelsCall(recordedRequest);
+  }
+
+  @Test
+  @SneakyThrows
+  void testGetAllMetrics() {
+    MockResponse mockResponse = new MockResponse()
+        .addHeader("Content-Type", "application/json; charset=utf-8")
+        .setBody(getJson("all_metrics_response.json"));
+    mockWebServer.enqueue(mockResponse);
+    Map<String, List<MetricMetadata>> response = prometheusClient.getAllMetrics();
+    Map<String, List<MetricMetadata>> expected = new HashMap<>();
+    expected.put("go_gc_duration_seconds",
+        Collections.singletonList(new MetricMetadata("summary",
+            "A summary of the pause duration of garbage collection cycles.", "")));
+    expected.put("go_goroutines",
+        Collections.singletonList(new MetricMetadata("gauge",
+            "Number of goroutines that currently exist.", "")));
+    assertEquals(expected, response);
+    RecordedRequest recordedRequest = mockWebServer.takeRequest();
+    verifyGetAllMetricsCall(recordedRequest);
   }
 
   @AfterEach
@@ -134,6 +155,13 @@ public class PrometheusClientImplTest {
     assertNotNull(httpUrl);
     assertEquals("/api/v1/labels", httpUrl.encodedPath());
     assertEquals(METRIC_NAME, httpUrl.queryParameter("match[]"));
+  }
+
+  private void verifyGetAllMetricsCall(RecordedRequest recordedRequest) {
+    HttpUrl httpUrl = recordedRequest.getRequestUrl();
+    assertEquals("GET", recordedRequest.getMethod());
+    assertNotNull(httpUrl);
+    assertEquals("/api/v1/metadata", httpUrl.encodedPath());
   }
 
 }

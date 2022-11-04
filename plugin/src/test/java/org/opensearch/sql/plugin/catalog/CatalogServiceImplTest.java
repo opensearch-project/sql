@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.plugin.catalog;
 
+import static org.opensearch.sql.analysis.CatalogSchemaIdentifierNameResolver.DEFAULT_CATALOG_NAME;
+
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -61,28 +63,27 @@ public class CatalogServiceImplTest {
   @Test
   public void testLoadConnectorsWithMissingName() {
     Settings settings = getCatalogSettings("catalog_missing_name.json");
-    IllegalArgumentException exception = Assert.assertThrows(IllegalArgumentException.class,
-        () -> CatalogServiceImpl.getInstance().loadConnectors(settings));
-    Assert.assertEquals("Missing Name Field from a catalog. Name is a required parameter.",
-        exception.getMessage());
+    Set<Catalog> expected = CatalogServiceImpl.getInstance().getCatalogs();
+    CatalogServiceImpl.getInstance().loadConnectors(settings);
+    Assert.assertEquals(expected, CatalogServiceImpl.getInstance().getCatalogs());
   }
 
   @SneakyThrows
   @Test
   public void testLoadConnectorsWithDuplicateCatalogNames() {
     Settings settings = getCatalogSettings("duplicate_catalog_names.json");
-    IllegalArgumentException exception = Assert.assertThrows(IllegalArgumentException.class,
-        () -> CatalogServiceImpl.getInstance().loadConnectors(settings));
-    Assert.assertEquals("Catalogs with same name are not allowed.",
-        exception.getMessage());
+    Set<Catalog> expected = CatalogServiceImpl.getInstance().getCatalogs();
+    CatalogServiceImpl.getInstance().loadConnectors(settings);
+    Assert.assertEquals(expected, CatalogServiceImpl.getInstance().getCatalogs());
   }
 
   @SneakyThrows
   @Test
   public void testLoadConnectorsWithMalformedJson() {
     Settings settings = getCatalogSettings("malformed_catalogs.json");
-    Assert.assertThrows(IllegalArgumentException.class,
-        () -> CatalogServiceImpl.getInstance().loadConnectors(settings));
+    Set<Catalog> expected = CatalogServiceImpl.getInstance().getCatalogs();
+    CatalogServiceImpl.getInstance().loadConnectors(settings);
+    Assert.assertEquals(expected, CatalogServiceImpl.getInstance().getCatalogs());
   }
 
   @SneakyThrows
@@ -92,13 +93,13 @@ public class CatalogServiceImplTest {
     CatalogServiceImpl.getInstance().loadConnectors(settings);
     CatalogServiceImpl.getInstance().registerDefaultOpenSearchCatalog(storageEngine);
     Set<Catalog> expected = new HashSet<>();
-    expected.add(new Catalog(".opensearch", ConnectorType.OPENSEARCH, storageEngine));
+    expected.add(new Catalog(DEFAULT_CATALOG_NAME, ConnectorType.OPENSEARCH, storageEngine));
     Assert.assertEquals(expected, CatalogServiceImpl.getInstance().getCatalogs());
     Assert.assertEquals(storageEngine,
-        CatalogServiceImpl.getInstance().getCatalog(".opensearch").getStorageEngine());
+        CatalogServiceImpl.getInstance().getCatalog(DEFAULT_CATALOG_NAME).getStorageEngine());
     Assert.assertEquals(expected, CatalogServiceImpl.getInstance().getCatalogs());
     Assert.assertEquals(storageEngine,
-        CatalogServiceImpl.getInstance().getCatalog(".opensearch").getStorageEngine());
+        CatalogServiceImpl.getInstance().getCatalog(DEFAULT_CATALOG_NAME).getStorageEngine());
     IllegalArgumentException illegalArgumentException
         = Assert.assertThrows(IllegalArgumentException.class,
           () -> CatalogServiceImpl.getInstance().getCatalog("test"));
@@ -122,10 +123,9 @@ public class CatalogServiceImplTest {
   @Test
   public void testLoadConnectorsWithIllegalCatalogNames() {
     Settings settings = getCatalogSettings("illegal_catalog_name.json");
-    IllegalArgumentException exception = Assert.assertThrows(IllegalArgumentException.class,
-        () -> CatalogServiceImpl.getInstance().loadConnectors(settings));
-    Assert.assertEquals("Catalog Name: prometheus.test contains illegal characters."
-        + " Allowed characters: a-zA-Z0-9_-*@ ", exception.getMessage());
+    Set<Catalog> expected = CatalogServiceImpl.getInstance().getCatalogs();
+    CatalogServiceImpl.getInstance().loadConnectors(settings);
+    Assert.assertEquals(expected, CatalogServiceImpl.getInstance().getCatalogs());
   }
 
   private Settings getCatalogSettings(String filename) throws URISyntaxException, IOException {

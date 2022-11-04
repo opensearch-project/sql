@@ -1307,8 +1307,6 @@ public class AggregationIT extends SQLIntegTestCase {
     );
   }
 
-  @Ignore("Skip this because it compares result of GROUP BY and DISTINCT and find difference in\n"
-      + "schema type (string and text). Remove this when DISTINCT supported in new engine.")
   @Test
   public void distinctWithMultipleFields() {
     Assert.assertEquals(

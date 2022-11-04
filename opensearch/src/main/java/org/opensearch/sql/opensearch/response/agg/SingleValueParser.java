@@ -13,7 +13,7 @@
 
 package org.opensearch.sql.opensearch.response.agg;
 
-import static org.opensearch.sql.opensearch.response.agg.Utils.handleNanValue;
+import static org.opensearch.sql.opensearch.response.agg.Utils.handleNanInfValue;
 
 import java.util.Collections;
 import java.util.Map;
@@ -34,6 +34,6 @@ public class SingleValueParser implements MetricParser {
   public Map<String, Object> parse(Aggregation agg) {
     return Collections.singletonMap(
         agg.getName(),
-        handleNanValue(((NumericMetricsAggregation.SingleValue) agg).value()));
+        handleNanInfValue(((NumericMetricsAggregation.SingleValue) agg).value()));
   }
 }

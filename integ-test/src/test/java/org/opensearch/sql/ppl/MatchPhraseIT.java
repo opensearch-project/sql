@@ -33,16 +33,6 @@ public class MatchPhraseIT extends PPLIntegTestCase {
   }
 
   @Test
-  @Ignore("Not supported actually in PPL")
-  public void test_matchphrase_legacy_function() throws IOException {
-    JSONObject result =
-            executeQuery(
-                    String.format(
-                            "source=%s | where matchphrase(phrase, 'quick fox') | fields phrase", TEST_INDEX_PHRASE));
-    verifyDataRows(result, rows("quick fox"), rows("quick fox here"));
-  }
-
-  @Test
   public void test_match_phrase_with_slop() throws IOException {
     JSONObject result =
             executeQuery(

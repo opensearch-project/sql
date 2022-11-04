@@ -8,6 +8,7 @@ package org.opensearch.sql.storage;
 
 import java.util.Collection;
 import java.util.Collections;
+import org.opensearch.sql.CatalogSchemaName;
 import org.opensearch.sql.expression.function.FunctionResolver;
 
 /**
@@ -18,7 +19,7 @@ public interface StorageEngine {
   /**
    * Get {@link Table} from storage engine.
    */
-  Table getTable(String name);
+  Table getTable(CatalogSchemaName catalogSchemaName, String tableName);
 
   /**
    * Get list of catalog related functions.

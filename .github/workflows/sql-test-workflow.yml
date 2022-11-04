@@ -2,6 +2,13 @@ name: SQL Plugin Tests
 
 on:
   workflow_dispatch:
+    inputs:
+      name:
+        required: false
+        type: string
+
+run-name:
+  ${{ inputs.name == '' && format('{0} @ {1}', github.ref_name, github.sha) || inputs.name }}
 
 jobs:
   build:
@@ -64,10 +71,10 @@ jobs:
         
     - name: Verify test results
       run: |
-        if [[ -e failures.log ]]
+        if [[ -e report.log ]]
         then
           echo "## FAILED TESTS :facepalm::warning::bangbang:" >> $GITHUB_STEP_SUMMARY
-          cat failures.log >> $GITHUB_STEP_SUMMARY
+          cat report.log >> $GITHUB_STEP_SUMMARY
           exit 1
         fi
 

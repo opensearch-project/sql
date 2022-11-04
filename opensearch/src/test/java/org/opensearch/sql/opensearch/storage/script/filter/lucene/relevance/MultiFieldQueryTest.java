@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,10 +49,10 @@ class MultiFieldQueryTest {
     var fieldSpec = ImmutableMap.<String, ExprValue>builder().put(sampleField,
         ExprValueUtils.floatValue(sampleValue)).build();
 
-    query.createQueryBuilder(dsl.namedArgument("fields",
+    query.createQueryBuilder(List.of(dsl.namedArgument("fields",
         new LiteralExpression(ExprTupleValue.fromExprValueMap(fieldSpec))),
         dsl.namedArgument("query",
-            new LiteralExpression(ExprValueUtils.stringValue(sampleQuery))));
+            new LiteralExpression(ExprValueUtils.stringValue(sampleQuery)))));
 
     verify(query).createBuilder(argThat(
             (ArgumentMatcher<ImmutableMap<String, Float>>) map -> map.size() == 1

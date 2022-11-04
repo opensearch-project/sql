@@ -1,5 +1,5 @@
 =============
-ad
+ad (deprecated by ml command)
 =============
 
 .. rubric:: Table of contents
@@ -48,7 +48,7 @@ The example trains an RCF model and uses the model to detect anomalies in the ti
 
 PPL query::
 
-    os> source=nyc_taxi | fields value, timestamp | AD time_field='timestamp' | where value=10844.0
+    > source=nyc_taxi | fields value, timestamp | AD time_field='timestamp' | where value=10844.0
     fetched rows / total rows = 1/1
     +---------+---------------------+---------+-----------------+
     | value   | timestamp           | score   | anomaly_grade   |
@@ -63,7 +63,7 @@ The example trains an RCF model and uses the model to detect anomalies in the ti
 
 PPL query::
 
-    os> source=nyc_taxi | fields category, value, timestamp | AD time_field='timestamp' category_field='category' | where value=10844.0 or value=6526.0
+    > source=nyc_taxi | fields category, value, timestamp | AD time_field='timestamp' category_field='category' | where value=10844.0 or value=6526.0
     fetched rows / total rows = 2/2
     +------------+---------+---------------------+---------+-----------------+
     | category   | value   | timestamp           | score   | anomaly_grade   |
@@ -80,7 +80,7 @@ The example trains an RCF model and uses the model to detect anomalies in the no
 
 PPL query::
 
-    os> source=nyc_taxi | fields value | AD | where value=10844.0
+    > source=nyc_taxi | fields value | AD | where value=10844.0
     fetched rows / total rows = 1/1
     +---------+---------+-------------+
     | value   | score   | anomalous   |
@@ -95,7 +95,7 @@ The example trains an RCF model and uses the model to detect anomalies in the no
 
 PPL query::
 
-    os> source=nyc_taxi | fields category, value | AD category_field='category' | where value=10844.0 or value=6526.0
+    > source=nyc_taxi | fields category, value | AD category_field='category' | where value=10844.0 or value=6526.0
     fetched rows / total rows = 2/2
     +------------+---------+---------+-------------+
     | category   | value   | score   | anomalous   |

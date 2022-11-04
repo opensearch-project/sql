@@ -55,6 +55,7 @@ import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Kmeans;
+import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 
@@ -96,6 +97,7 @@ public class AstBuilderTest {
     );
   }
 
+  @Ignore
   @Test
   public void testSearchWithPrometheusQueryRangeWithPositionedArguments() {
     assertEqual("search source = prometheus.query_range(\"test{code='200'}\",1234, 12345, 3)",
@@ -107,6 +109,7 @@ public class AstBuilderTest {
     ));
   }
 
+  @Ignore
   @Test
   public void testSearchWithPrometheusQueryRangeWithNamedArguments() {
     assertEqual("search source = prometheus.query_range(query = \"test{code='200'}\", "
@@ -713,6 +716,20 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testMLCommand() {
+    assertEqual("source=t | ml action='trainandpredict' "
+                    + "algorithm='kmeans' centroid=3 iteration=2 dist_type='l1'",
+            new ML(relation("t"), ImmutableMap.<String, Literal>builder()
+                    .put("action", new Literal("trainandpredict", DataType.STRING))
+                    .put("algorithm", new Literal("kmeans", DataType.STRING))
+                    .put("centroid", new Literal(3, DataType.INTEGER))
+                    .put("iteration", new Literal(2, DataType.INTEGER))
+                    .put("dist_type", new Literal("l1", DataType.STRING))
+                    .build()
+            ));
+  }
+
+  @Test
   public void testDescribeCommand() {
     assertEqual("describe t",
         relation(mappingTable("t")));
@@ -722,6 +739,14 @@ public class AstBuilderTest {
   public void testDescribeCommandWithMultipleIndices() {
     assertEqual("describe t,u",
         relation(mappingTable("t,u")));
+  }
+
+  @Test
+  public void testDescribeCommandWithFullyQualifiedTableName() {
+    assertEqual("describe prometheus.http_metric",
+        relation(qualifiedName("prometheus", mappingTable("http_metric"))));
+    assertEqual("describe prometheus.schema.http_metric",
+        relation(qualifiedName("prometheus", "schema", mappingTable("http_metric"))));
   }
 
   @Test

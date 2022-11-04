@@ -5,8 +5,10 @@
 
 package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 
+import java.util.List;
 import java.util.Map;
 import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.NamedArgumentExpression;
 
 /**
@@ -21,9 +23,20 @@ abstract class SingleFieldQuery<T extends QueryBuilder> extends RelevanceQuery<T
   }
 
   @Override
-  protected T createQueryBuilder(NamedArgumentExpression fields, NamedArgumentExpression query) {
+  protected T createQueryBuilder(List<NamedArgumentExpression> arguments) {
+    // Extract 'field' and 'query'
+    var field = arguments.stream()
+        .filter(a -> a.getArgName().equalsIgnoreCase("field"))
+        .findFirst()
+        .orElseThrow(() -> new SemanticCheckException("'field' parameter is missing."));
+
+    var query = arguments.stream()
+        .filter(a -> a.getArgName().equalsIgnoreCase("query"))
+        .findFirst()
+        .orElseThrow(() -> new SemanticCheckException("'query' parameter is missing"));
+
     return createBuilder(
-        fields.getValue().valueOf(null).stringValue(),
+        field.getValue().valueOf(null).stringValue(),
         query.getValue().valueOf(null).stringValue());
   }
 

@@ -18,7 +18,6 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ConstantFu
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ConvertedDataTypeContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CountAllFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DataTypeFunctionCallContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DatetimeConstantLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DistinctCountFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalClauseContext;
@@ -89,6 +88,8 @@ import org.opensearch.sql.ppl.utils.ArgumentFactory;
  * Class of building AST Expression nodes.
  */
 public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedExpression> {
+
+  private static final int DEFAULT_TAKE_FUNCTION_SIZE_VALUE = 10;
 
   /**
    * The function name mapping between fronted and core engine.
@@ -214,6 +215,17 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
         Collections.singletonList(new Argument("rank", (Literal) visit(ctx.value))));
   }
 
+  @Override
+  public UnresolvedExpression visitTakeAggFunctionCall(
+      OpenSearchPPLParser.TakeAggFunctionCallContext ctx) {
+    ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
+    builder.add(new UnresolvedArgument("size",
+        ctx.takeAggFunction().size != null ? visit(ctx.takeAggFunction().size) :
+            AstDSL.intLiteral(DEFAULT_TAKE_FUNCTION_SIZE_VALUE)));
+    return new AggregateFunction("take", visit(ctx.takeAggFunction().fieldExpression()),
+        builder.build());
+  }
+
   /**
    * Eval function.
    */
@@ -245,11 +257,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return AstDSL.stringLiteral(ctx.getText());
   }
 
-  @Override
-  public UnresolvedExpression visitDatetimeConstantLiteral(DatetimeConstantLiteralContext ctx) {
-    return visitConstantFunction(ctx.getText(), null);
-  }
-
   public UnresolvedExpression visitConstantFunction(ConstantFunctionContext ctx) {
     return visitConstantFunction(ctx.constantFunctionName().getText(),
         ctx.functionArgs());
@@ -257,13 +264,10 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   private UnresolvedExpression visitConstantFunction(String functionName,
                                                      FunctionArgsContext args) {
-    return new ConstantFunction(functionName,
-        args == null
-        ? Collections.emptyList()
-        : args.functionArg()
-            .stream()
-            .map(this::visitFunctionArg)
-            .collect(Collectors.toList()));
+    return new ConstantFunction(functionName, args.functionArg()
+        .stream()
+        .map(this::visitFunctionArg)
+        .collect(Collectors.toList()));
   }
 
   private Function visitFunction(String functionName, FunctionArgsContext args) {

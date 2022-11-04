@@ -87,7 +87,7 @@ public class QueryRangeFunctionImplementation extends FunctionExpression impleme
       switch (argName) {
         case QUERY:
           prometheusQueryRequest
-              .getPromQl().append((String) literalValue.value());
+              .setPromQl((String) literalValue.value());
           break;
         case STARTTIME:
           prometheusQueryRequest.setStartTime(((Number) literalValue.value()).longValue());
