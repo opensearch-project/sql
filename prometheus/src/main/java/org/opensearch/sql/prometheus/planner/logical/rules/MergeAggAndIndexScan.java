@@ -14,6 +14,8 @@ import com.facebook.presto.matching.Captures;
 import com.facebook.presto.matching.Pattern;
 import lombok.Getter;
 import lombok.experimental.Accessors;
+import org.opensearch.sql.expression.parse.PatternsExpression;
+import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.optimizer.Rule;
@@ -37,6 +39,12 @@ public class MergeAggAndIndexScan implements Rule<LogicalAggregation> {
   public MergeAggAndIndexScan() {
     this.capture = Capture.newCapture();
     this.pattern = typeOf(LogicalAggregation.class)
+        .matching(logicalAggregation -> logicalAggregation.getGroupByList()
+            .stream()
+            .noneMatch(expression -> expression.getDelegated() instanceof PatternsExpression))
+        .matching(logicalAggregation -> logicalAggregation.getGroupByList()
+            .stream()
+            .anyMatch(expression -> expression.getDelegated() instanceof SpanExpression))
         .with(source().matching(typeOf(PrometheusLogicalMetricScan.class)
             .capturedAs(capture)));
   }

@@ -155,4 +155,22 @@ public class PrometheusCatalogCommandsIT extends PPLIntegTestCase {
     }
   }
 
+  @Test
+  @SneakyThrows
+  public void testMetricSumAggregationCommandWithOutSpan() {
+    JSONObject response =
+        executeQuery("source=my_prometheus.prometheus_http_requests_total | stats sum(@value) by handler, job");
+    verifySchema(response,
+        schema("sum(@value)",  "double"),
+        schema("handler", "string"),
+        schema("job", "string"));
+    Assertions.assertTrue(response.getInt("size") > 0);
+    Assertions.assertEquals(3, response.getJSONArray("datarows").getJSONArray(0).length());
+    JSONArray firstRow = response.getJSONArray("datarows").getJSONArray(0);
+    for (int i = 0; i < firstRow.length(); i++) {
+      Assertions.assertNotNull(firstRow.get(i));
+      Assertions.assertTrue(StringUtils.isNotEmpty(firstRow.get(i).toString()));
+    }
+  }
+
 }
