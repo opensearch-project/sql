@@ -20,6 +20,7 @@ import java.time.LocalTime;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.Period;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
@@ -672,6 +673,10 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySome(result.getJSONArray("datarows"), rows("1945-01-06", "1989-06-06"));
   }
 
+  private static LocalDateTime utcDateTimeNow() {
+    return LocalDateTime.now(ZoneId.of("UTC"));
+  }
+
   private List<ImmutableMap<Object, Object>> nowLikeFunctionsData() {
     return List.of(
       ImmutableMap.builder()
@@ -754,6 +759,33 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
               .put("referenceGetter", (Supplier<Temporal>) LocalDate::now)
               .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse)
               .put("serializationPattern", "uuuu-MM-dd")
+              .build(),
+      ImmutableMap.builder()
+              .put("name", "utc_date")
+              .put("hasFsp", false)
+              .put("hasShortcut", true)
+              .put("constValue", true)
+              .put("referenceGetter", (Supplier<Temporal>) (()-> DateTimeFunctionIT.utcDateTimeNow().toLocalDate()))
+              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse)
+              .put("serializationPattern", "uuuu-MM-dd")
+              .build(),
+      ImmutableMap.builder()
+              .put("name", "utc_time")
+              .put("hasFsp", false)
+              .put("hasShortcut", true)
+              .put("constValue", true)
+              .put("referenceGetter", (Supplier<Temporal>) (()-> DateTimeFunctionIT.utcDateTimeNow().toLocalTime()))
+              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalTime::parse)
+              .put("serializationPattern", "HH:mm:ss")
+              .build(),
+      ImmutableMap.builder()
+              .put("name", "utc_timestamp")
+              .put("hasFsp", false)
+              .put("hasShortcut", true)
+              .put("constValue", true)
+              .put("referenceGetter", (Supplier<Temporal>) DateTimeFunctionIT::utcDateTimeNow)
+              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse)
+              .put("serializationPattern", "uuuu-MM-dd HH:mm:ss")
               .build()
     );
   }

@@ -689,7 +689,11 @@ class AstBuilderTest {
         Arguments.of("curtime", false, false, true),
         Arguments.of("current_time", false, false, true),
         Arguments.of("curdate", false, false, true),
-        Arguments.of("current_date", false, false, true)
+        Arguments.of("current_date", false, false, true),
+        Arguments.of("current_date", false, true, true),
+        Arguments.of("utc_date", false, true, true),
+        Arguments.of("utc_time", false, true, true),
+        Arguments.of("utc_timestamp", false, true, true)
     );
   }
 

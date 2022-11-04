@@ -123,6 +123,9 @@ public class DateTimeFunction {
     repository.register(date_format());
     repository.register(to_days());
     repository.register(unix_timestamp());
+    repository.register(utc_date());
+    repository.register(utc_time());
+    repository.register(utc_timestamp());
     repository.register(week());
     repository.register(year());
   }
@@ -543,6 +546,32 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::unixTimeStampOf), DOUBLE, DOUBLE)
     );
   }
+
+
+  /**
+   * UTC_DATE(). return the current UTC Date in format yyyy-MM-dd
+   */
+  private DefaultFunctionResolver utc_date() {
+    return define(BuiltinFunctionName.UTC_DATE.getName(),
+        impl(DateTimeFunction::exprUtcDate, DATE));
+  }
+
+  /**
+   * UTC_TIME(). return the current UTC Time in format HH:mm:ss
+   */
+  private DefaultFunctionResolver utc_time() {
+    return define(BuiltinFunctionName.UTC_TIME.getName(),
+        impl(DateTimeFunction::exprUtcTime, TIME));
+  }
+
+  /**
+   * UTC_TIMESTAMP(). return the current UTC TimeStamp in format yyyy-MM-dd HH:mm:ss
+   */
+  private DefaultFunctionResolver utc_timestamp() {
+    return define(BuiltinFunctionName.UTC_TIMESTAMP.getName(),
+        impl(DateTimeFunction::exprUtcTimeStamp, DATETIME));
+  }
+
 
   /**
    * WEEK(DATE[,mode]). return the week number for date.
@@ -1059,6 +1088,35 @@ public class DateTimeFunction {
    */
   private ExprValue exprToDays(ExprValue date) {
     return new ExprLongValue(date.dateValue().toEpochDay() + DAYS_0000_TO_1970);
+  }
+
+  /**
+   * UTC_DATE implementation for ExprValue.
+   *
+   * @return ExprValue.
+   */
+  private ExprValue exprUtcDate() {
+    return new ExprDateValue(exprUtcTimeStamp().dateValue());
+
+  }
+
+  /**
+   * UTC_TIME implementation for ExprValue.
+   *
+   * @return ExprValue.
+   */
+  private ExprValue exprUtcTime() {
+    return new ExprTimeValue(exprUtcTimeStamp().timeValue());
+  }
+
+  /**
+   * UTC_TIMESTAMP implementation for ExprValue.
+   *
+   * @return ExprValue.
+   */
+  private ExprValue exprUtcTimeStamp() {
+    return new ExprDatetimeValue(LocalDateTime.now(ZoneId.of("UTC"))
+        .withNano(0));
   }
 
   /**

@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Period;
+import java.time.ZoneId;
 import java.time.temporal.Temporal;
 import java.util.List;
 import java.util.function.Function;
@@ -55,7 +56,26 @@ public class NowLikeFunctionTest extends ExpressionTestBase {
         Arguments.of((Function<Expression[], FunctionExpression>)dsl::curdate,
             "curdate", DATE, false, (Supplier<Temporal>)LocalDate::now),
         Arguments.of((Function<Expression[], FunctionExpression>)dsl::current_date,
-            "current_date", DATE, false, (Supplier<Temporal>)LocalDate::now));
+            "current_date", DATE, false, (Supplier<Temporal>)LocalDate::now),
+        Arguments.of((Function<Expression[], FunctionExpression>)dsl::utc_date,
+            "utc_date", DATE, false, (Supplier<Temporal>)NowLikeFunctionTest::getUtcDateRefValue),
+        Arguments.of((Function<Expression[], FunctionExpression>)dsl::utc_time,
+            "utc_time", TIME, false, (Supplier<Temporal>)NowLikeFunctionTest::getUtcTimeRefValue),
+        Arguments.of((Function<Expression[], FunctionExpression>)dsl::utc_timestamp,
+            "utc_timestamp", DATETIME, false,
+            (Supplier<Temporal>)NowLikeFunctionTest::getUtcTimestampRefValue));
+  }
+
+  private static LocalDateTime getUtcTimestampRefValue() {
+    return LocalDateTime.now(ZoneId.of("UTC"));
+  }
+
+  private static LocalDate getUtcDateRefValue() {
+    return getUtcTimestampRefValue().toLocalDate();
+  }
+
+  private static LocalTime getUtcTimeRefValue() {
+    return getUtcTimestampRefValue().toLocalTime();
   }
 
   private Temporal extractValue(FunctionExpression func) {
@@ -93,6 +113,8 @@ public class NowLikeFunctionTest extends ExpressionTestBase {
                        Supplier<Temporal> referenceGetter) {
     // Check return types:
     // `func()`
+    // 17:59:59.99999 can pass as being equal to 18:00:00
+    var delta = resType == DATE ? 0 : 1;
     FunctionExpression expr = function.apply(new Expression[]{});
     assertEquals(resType, expr.type());
     if (hasFsp) {
@@ -116,13 +138,13 @@ public class NowLikeFunctionTest extends ExpressionTestBase {
     assertTrue(Math.abs(getDiff(
             extractValue(function.apply(new Expression[]{})),
             referenceGetter.get()
-        )) <= 1);
+        )) <= delta);
     if (hasFsp) {
       // `func(fsp)`
       assertTrue(Math.abs(getDiff(
               extractValue(function.apply(new Expression[]{DSL.literal(0)})),
               referenceGetter.get()
-      )) <= 1);
+      )) <= delta);
     }
   }
 }

@@ -2037,6 +2037,76 @@ Examples::
     | 848077542.0                                        |
     +----------------------------------------------------+
 
+UTC_DATE
+--------
+
+Description
+>>>>>>>>>>>
+
+Returns the current UTC date as a value in 'YYYY-MM-DD'.
+
+Return type: DATE
+
+Specification: UTC_DATE() -> DATE
+
+Example::
+
+    > SELECT UTC_DATE();
+    fetched rows / total rows = 1/1
+    +--------------+
+    | utc_date()   |
+    |--------------|
+    | 2022-10-03   |
+    +--------------+
+
+
+UTC_TIME
+--------
+
+Description
+>>>>>>>>>>>
+
+Returns the current UTC time as a value in 'hh:mm:ss'.
+
+Return type: TIME
+
+Specification: UTC_TIME() -> TIME
+
+Example::
+
+    > SELECT UTC_TIME();
+    fetched rows / total rows = 1/1
+    +--------------+
+    | utc_time()   |
+    |--------------|
+    | 17:54:27     |
+    +--------------+
+
+
+UTC_TIMESTAMP
+-------------
+
+Description
+>>>>>>>>>>>
+
+Returns the current UTC timestamp as a value in 'YYYY-MM-DD hh:mm:ss'.
+
+Return type: DATETIME
+
+Specification: UTC_TIMESTAMP() -> DATETIME
+
+
+Example::
+
+    > SELECT UTC_TIMESTAMP();
+    fetched rows / total rows = 1/1
+    +---------------------+
+    | utc_timestamp()     |
+    |---------------------|
+    | 2022-10-03 17:54:28 |
+    +---------------------+
+
+
 
 WEEK
 ----

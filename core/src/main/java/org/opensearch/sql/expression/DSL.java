@@ -375,6 +375,18 @@ public class DSL {
     return function(BuiltinFunctionName.TIMESTAMP, expressions);
   }
 
+  public FunctionExpression utc_time(Expression... expressions) {
+    return function(BuiltinFunctionName.UTC_TIME, expressions);
+  }
+
+  public FunctionExpression utc_date(Expression... expressions) {
+    return function(BuiltinFunctionName.UTC_DATE, expressions);
+  }
+
+  public FunctionExpression utc_timestamp(Expression... expressions) {
+    return function(BuiltinFunctionName.UTC_TIMESTAMP, expressions);
+  }
+
   public FunctionExpression date_format(Expression... expressions) {
     return function(BuiltinFunctionName.DATE_FORMAT, expressions);
   }

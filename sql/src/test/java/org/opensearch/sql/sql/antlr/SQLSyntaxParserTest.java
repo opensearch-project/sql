@@ -168,7 +168,10 @@ class SQLSyntaxParserTest {
         Arguments.of("curtime", true, false),
         Arguments.of("current_time", true, true),
         Arguments.of("curdate", false, false),
-        Arguments.of("current_date", false, true)
+        Arguments.of("current_date", false, true),
+        Arguments.of("utc_date", false, true),
+        Arguments.of("utc_time", false, true),
+        Arguments.of("utc_timestamp", false, true)
     );
   }
 
