@@ -20,25 +20,25 @@ public class ShowCatalogsCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testShowCatalogsCommands() throws IOException {
-    JSONObject result = executeQuery("show catalogs");
+    JSONObject result = executeQuery("show datasources");
     verifyDataRows(result,
         rows("my_prometheus", "PROMETHEUS"),
         rows("@opensearch", "OPENSEARCH"));
     verifyColumn(
         result,
-        columnName("CATALOG_NAME"),
+        columnName("DATASOURCE_NAME"),
         columnName("CONNECTOR_TYPE")
     );
   }
 
   @Test
   public void testShowCatalogsCommandsWithWhereClause() throws IOException {
-    JSONObject result = executeQuery("show catalogs | where CONNECTOR_TYPE='PROMETHEUS'");
+    JSONObject result = executeQuery("show datasources | where CONNECTOR_TYPE='PROMETHEUS'");
     verifyDataRows(result,
         rows("my_prometheus", "PROMETHEUS"));
     verifyColumn(
         result,
-        columnName("CATALOG_NAME"),
+        columnName("DATASOURCE_NAME"),
         columnName("CONNECTOR_TYPE")
     );
   }

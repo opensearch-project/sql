@@ -34,7 +34,7 @@ The query start with search command and then flowing a set of command delimited 
 
   - `Monitoring <admin/monitoring.rst>`_
 
-  - `Catalog Settings <admin/catalog.rst>`_
+  - `Datasource Settings <admin/datasources.rst>`_
 
   - `Prometheus Connector <admin/prometheus_connector.rst>`_
 
@@ -48,7 +48,7 @@ The query start with search command and then flowing a set of command delimited 
 
   - `describe command <cmd/describe.rst>`_
 
-  - `show catalogs command <cmd/showcatalogs.rst>`_
+  - `show datasources command <cmd/showdatasources.rst>`_
 
   - `eval command <cmd/eval.rst>`_
 
