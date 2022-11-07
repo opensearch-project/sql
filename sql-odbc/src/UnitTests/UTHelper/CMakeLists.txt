@@ -22,6 +22,9 @@ find_library(   VLD
 target_link_libraries(ut_helper ${VLD})
 endif()
 
+# Find packages from vcpkg
+find_package(GTest CONFIG REQUIRED)
+
 # Library dependencies
-target_link_libraries(ut_helper sqlodbc gtest_main)
+target_link_libraries(ut_helper sqlodbc GTest::gtest_main)
 target_compile_definitions(ut_helper PUBLIC _UNICODE UNICODE)

@@ -26,21 +26,22 @@ Definitions of catalog and connector
 Example Prometheus Catalog Definition ::
 
     [{
-        "name" : "prometheus",
+        "name" : "my_prometheus",
         "connector": "prometheus",
-        "uri" : "http://localhost:9090",
-        "authentication" : {
-            "type" : "basicauth",
-            "username" : "admin",
-            "password" : "admin"
+        "properties" : {
+            "prometheus.uri" : "http://localhost:8080",
+            "prometheus.auth.type" : "basicauth",
+            "prometheus.auth.username" : "admin",
+            "prometheus.auth.password" : "admin"
         }
     }]
 Catalog configuration Restrictions.
 
-* ``name``, ``uri``, ``connector`` are required fields in the catalog configuration.
-* All the catalog names should be unique.
-* Catalog names should match with the regex of an identifier[``[@*A-Za-z]+?[*a-zA-Z_\-0-9]*``].
-* ``prometheus`` is the only connector allowed.
+* ``name``, ``connector``, ``properties`` are required fields in the catalog configuration.
+* All the catalog names should be unique and match the following regex[``[@*A-Za-z]+?[*a-zA-Z_\-0-9]*``].
+* Allowed Connectors.
+    * ``prometheus`` [More details: `Prometheus Connector <prometheus_connector.rst>`_]
+* All the allowed config parameters in ``properties`` are defined in individual connector pages mentioned above.
 
 Configuring catalog in OpenSearch
 ====================================
@@ -73,14 +74,10 @@ so we can refer a metric and apply stats over it in the following way.
 
 Example source command with prometheus catalog ::
 
-    >> source = prometheus.prometheus_http_requests_total | stats avg(@value) by job;
+    >> source = my_prometheus.prometheus_http_requests_total | stats avg(@value) by job;
 
 
 Limitations of catalog
 ====================================
-* Catalog settings are global and all PPL users are allowed to fetch data from all the defined catalogs.
-* In each catalog, PPL users can access all the data available with the credentials provided in the catalog definition.
-* With the current release, Basic and AWSSigV4 are the only authentication mechanisms supported with the underlying data sources.
-
-
-
+Catalog settings are global and users with PPL access are allowed to fetch data from all the defined catalogs.
+PPL access can be controlled using roles.(More details: `Security Settings <security.rst>`_)

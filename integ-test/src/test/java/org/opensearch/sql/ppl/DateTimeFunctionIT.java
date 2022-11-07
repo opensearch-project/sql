@@ -13,12 +13,12 @@ import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.MatcherUtils.verifySome;
 
+import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -30,13 +30,12 @@ import java.util.TimeZone;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import com.google.common.collect.ImmutableMap;
 import org.json.JSONArray;
-import java.time.LocalTime;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.common.utils.StringUtils;
 
+@SuppressWarnings("unchecked")
 public class DateTimeFunctionIT extends PPLIntegTestCase {
 
   @Override
@@ -644,7 +643,6 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifyDateFormat(date, "date", dateFormat, dateFormatted);
   }
 
-
   @Test
   public void testDateFormatISO8601() throws IOException {
     String timestamp = "1998-01-31 13:14:15.012345";
@@ -661,7 +659,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
   @Test
   public void testMakeTime() throws IOException {
     var result = executeQuery(String.format(
-            "source=%s | eval f1 = MAKETIME(20, 30, 40), f2 = MAKETIME(20.2, 49.5, 42.100502) | fields f1, f2", TEST_INDEX_DATE));
+        "source=%s | eval f1 = MAKETIME(20, 30, 40), f2 = MAKETIME(20.2, 49.5, 42.100502) | fields f1, f2", TEST_INDEX_DATE));
     verifySchema(result, schema("f1", null, "time"), schema("f2", null, "time"));
     verifySome(result.getJSONArray("datarows"), rows("20:30:40", "20:50:42.100502"));
   }
@@ -669,7 +667,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
   @Test
   public void testMakeDate() throws IOException {
     var result = executeQuery(String.format(
-            "source=%s | eval f1 = MAKEDATE(1945, 5.9), f2 = MAKEDATE(1984, 1984) | fields f1, f2", TEST_INDEX_DATE));
+        "source=%s | eval f1 = MAKEDATE(1945, 5.9), f2 = MAKEDATE(1984, 1984) | fields f1, f2", TEST_INDEX_DATE));
     verifySchema(result, schema("f1", null, "date"), schema("f2", null, "date"));
     verifySome(result.getJSONArray("datarows"), rows("1945-01-06", "1989-06-06"));
   }
@@ -688,7 +686,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
       ImmutableMap.builder()
               .put("name", "current_timestamp")
               .put("hasFsp", false)
-              .put("hasShortcut", true)
+              .put("hasShortcut", false)
               .put("constValue", true)
               .put("referenceGetter", (Supplier<Temporal>) LocalDateTime::now)
               .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse)
@@ -697,7 +695,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
       ImmutableMap.builder()
               .put("name", "localtimestamp")
               .put("hasFsp", false)
-              .put("hasShortcut", true)
+              .put("hasShortcut", false)
               .put("constValue", true)
               .put("referenceGetter", (Supplier<Temporal>) LocalDateTime::now)
               .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse)
@@ -706,7 +704,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
       ImmutableMap.builder()
               .put("name", "localtime")
               .put("hasFsp", false)
-              .put("hasShortcut", true)
+              .put("hasShortcut", false)
               .put("constValue", true)
               .put("referenceGetter", (Supplier<Temporal>) LocalDateTime::now)
               .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse)
@@ -733,7 +731,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
       ImmutableMap.builder()
               .put("name", "current_time")
               .put("hasFsp", false)
-              .put("hasShortcut", true)
+              .put("hasShortcut", false)
               .put("constValue", false)
               .put("referenceGetter", (Supplier<Temporal>) LocalTime::now)
               .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalTime::parse)
@@ -751,7 +749,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
       ImmutableMap.builder()
               .put("name", "current_date")
               .put("hasFsp", false)
-              .put("hasShortcut", true)
+              .put("hasShortcut", false)
               .put("constValue", false)
               .put("referenceGetter", (Supplier<Temporal>) LocalDate::now)
               .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse)
@@ -861,5 +859,21 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
         schema("f2", null, "double"),
         schema("f3", null, "double"));
     verifySome(result.getJSONArray("datarows"), rows(613094400d, 1072872000d, 3404817525d));
+  }
+
+  @Test
+  public void testPeriodAdd() throws IOException {
+    var result = executeQuery(String.format(
+        "source=%s | eval f1 = PERIOD_ADD(200801, 2), f2 = PERIOD_ADD(200801, -12) | fields f1, f2", TEST_INDEX_DATE));
+    verifySchema(result, schema("f1", null, "integer"), schema("f2", null, "integer"));
+    verifySome(result.getJSONArray("datarows"), rows(200803, 200701));
+  }
+
+  @Test
+  public void testPeriodDiff() throws IOException {
+    var result = executeQuery(String.format(
+        "source=%s | eval f1 = PERIOD_DIFF(200802, 200703), f2 = PERIOD_DIFF(200802, 201003) | fields f1, f2", TEST_INDEX_DATE));
+    verifySchema(result, schema("f1", null, "integer"), schema("f2", null, "integer"));
+    verifySome(result.getJSONArray("datarows"), rows(11, -25));
   }
 }

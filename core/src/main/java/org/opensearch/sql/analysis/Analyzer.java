@@ -11,11 +11,18 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
+import static org.opensearch.sql.utils.MLCommonsConstants.ACTION;
+import static org.opensearch.sql.utils.MLCommonsConstants.MODELID;
+import static org.opensearch.sql.utils.MLCommonsConstants.PREDICT;
 import static org.opensearch.sql.utils.MLCommonsConstants.RCF_ANOMALOUS;
 import static org.opensearch.sql.utils.MLCommonsConstants.RCF_ANOMALY_GRADE;
 import static org.opensearch.sql.utils.MLCommonsConstants.RCF_SCORE;
 import static org.opensearch.sql.utils.MLCommonsConstants.RCF_TIMESTAMP;
+import static org.opensearch.sql.utils.MLCommonsConstants.STATUS;
+import static org.opensearch.sql.utils.MLCommonsConstants.TASKID;
 import static org.opensearch.sql.utils.MLCommonsConstants.TIME_FIELD;
+import static org.opensearch.sql.utils.MLCommonsConstants.TRAIN;
+import static org.opensearch.sql.utils.MLCommonsConstants.TRAINANDPREDICT;
 import static org.opensearch.sql.utils.SystemIndexUtils.CATALOGS_TABLE_NAME;
 
 import com.google.common.collect.ImmutableList;
@@ -30,7 +37,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.opensearch.sql.analysis.model.CatalogSchemaIdentifierName;
+import org.opensearch.sql.CatalogSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -50,6 +57,7 @@ import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
+import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
@@ -83,6 +91,7 @@ import org.opensearch.sql.planner.logical.LogicalDedupe;
 import org.opensearch.sql.planner.logical.LogicalEval;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalLimit;
+import org.opensearch.sql.planner.logical.LogicalML;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalProject;
@@ -137,9 +146,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
         .stream()
         .map(Catalog::getName)
         .collect(Collectors.toSet());
-    CatalogSchemaIdentifierName catalogSchemaIdentifierName
-        = new CatalogSchemaIdentifierName(qualifiedName.getParts(), allowedCatalogNames);
-    String tableName = catalogSchemaIdentifierName.getIdentifierName();
+    CatalogSchemaIdentifierNameResolver catalogSchemaIdentifierNameResolver
+        = new CatalogSchemaIdentifierNameResolver(qualifiedName.getParts(), allowedCatalogNames);
+    String tableName = catalogSchemaIdentifierNameResolver.getIdentifierName();
     context.push();
     TypeEnvironment curEnv = context.peek();
     Table table;
@@ -147,9 +156,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       table = new CatalogTable(catalogService);
     } else {
       table = catalogService
-          .getCatalog(catalogSchemaIdentifierName.getCatalogName())
+          .getCatalog(catalogSchemaIdentifierNameResolver.getCatalogName())
           .getStorageEngine()
-          .getTable(tableName);
+          .getTable(new CatalogSchemaName(catalogSchemaIdentifierNameResolver.getCatalogName(),
+                  catalogSchemaIdentifierNameResolver.getSchemaName()),
+              catalogSchemaIdentifierNameResolver.getIdentifierName());
     }
     table.getFieldTypes().forEach((k, v) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));
 
@@ -181,17 +192,24 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
         .stream()
         .map(Catalog::getName)
         .collect(Collectors.toSet());
-    CatalogSchemaIdentifierName catalogSchemaIdentifierName
-        = new CatalogSchemaIdentifierName(qualifiedName.getParts(), allowedCatalogNames);
+    CatalogSchemaIdentifierNameResolver catalogSchemaIdentifierNameResolver
+        = new CatalogSchemaIdentifierNameResolver(qualifiedName.getParts(), allowedCatalogNames);
 
-    FunctionName functionName = FunctionName.of(catalogSchemaIdentifierName.getIdentifierName());
+    FunctionName functionName
+        = FunctionName.of(catalogSchemaIdentifierNameResolver.getIdentifierName());
     List<Expression> arguments = node.getArguments().stream()
         .map(unresolvedExpression -> this.expressionAnalyzer.analyze(unresolvedExpression, context))
         .collect(Collectors.toList());
     TableFunctionImplementation tableFunctionImplementation
         = (TableFunctionImplementation) repository.compile(
-        catalogSchemaIdentifierName.getCatalogName(), functionName, arguments);
-    return new LogicalRelation(catalogSchemaIdentifierName.getIdentifierName(),
+        catalogSchemaIdentifierNameResolver.getCatalogName(), functionName, arguments);
+    context.push();
+    TypeEnvironment curEnv = context.peek();
+    Table table = tableFunctionImplementation.applyArguments();
+    table.getFieldTypes().forEach((k, v) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));
+    curEnv.define(new Symbol(Namespace.INDEX_NAME,
+            catalogSchemaIdentifierNameResolver.getIdentifierName()), STRUCT);
+    return new LogicalRelation(catalogSchemaIdentifierNameResolver.getIdentifierName(),
         tableFunctionImplementation.applyArguments());
   }
 
@@ -501,6 +519,19 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
               (String) node.getArguments().get(TIME_FIELD).getValue()), ExprCoreType.TIMESTAMP);
     }
     return new LogicalAD(child, options);
+  }
+
+  /**
+   * Build {@link LogicalML} for ml command.
+   */
+  @Override
+  public LogicalPlan visitML(ML node, AnalysisContext context) {
+    LogicalPlan child = node.getChild().get(0).accept(this, context);
+    TypeEnvironment currentEnv = context.peek();
+    node.getOutputSchema(currentEnv).entrySet().stream()
+      .forEach(v -> currentEnv.define(new Symbol(Namespace.FIELD_NAME, v.getKey()), v.getValue()));
+
+    return new LogicalML(child, node.getArguments());
   }
 
   /**

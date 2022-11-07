@@ -33,7 +33,6 @@ RETCODE SQL_API OPENSEARCHAPI_GetInfo(HDBC hdbc, SQLUSMALLINT fInfoType,
                               SQLSMALLINT *pcbInfoValue) {
     CSTR func = "OPENSEARCHAPI_GetInfo";
     ConnectionClass *conn = (ConnectionClass *)hdbc;
-    ConnInfo *ci;
     const char *p = NULL;
     char tmp[MAX_INFO_STRING];
     SQLULEN len = 0, value = 0;
@@ -46,8 +45,6 @@ RETCODE SQL_API OPENSEARCHAPI_GetInfo(HDBC hdbc, SQLUSMALLINT fInfoType,
         CC_log_error(func, NULL_STRING, NULL);
         return SQL_INVALID_HANDLE;
     }
-
-    ci = &(conn->connInfo);
 
     switch (fInfoType) {
         case SQL_ACCESSIBLE_PROCEDURES: /* ODBC 1.0 */

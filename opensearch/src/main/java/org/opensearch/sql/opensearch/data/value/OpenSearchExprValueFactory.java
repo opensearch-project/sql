@@ -214,7 +214,15 @@ public class OpenSearchExprValueFactory {
    */
   private ExprValue parseArray(Content content, String prefix) {
     List<ExprValue> result = new ArrayList<>();
-    content.array().forEachRemaining(v -> result.add(parse(v, prefix, Optional.of(STRUCT))));
+    content.array().forEachRemaining(v -> {
+      // ExprCoreType.ARRAY does not indicate inner elements type. OpenSearch nested will be an
+      // array of structs, otherwise parseArray currently only supports array of strings.
+      if (v.isString()) {
+        result.add(parse(v, prefix, Optional.of(STRING)));
+      } else {
+        result.add(parse(v, prefix, Optional.of(STRUCT)));
+      }
+    });
     return new ExprCollectionValue(result);
   }
 

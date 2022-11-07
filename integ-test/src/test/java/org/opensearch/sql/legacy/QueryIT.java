@@ -235,7 +235,6 @@ public class QueryIT extends SQLIntegTestCase {
     }
   }
 
-  @Ignore("Will fix this in issue https://github.com/opendistro-for-elasticsearch/sql/issues/121")
   @Test
   public void selectFieldWithSpace() throws IOException {
     String[] arr = new String[] {"test field"};
@@ -574,7 +573,6 @@ public class QueryIT extends SQLIntegTestCase {
     }
   }
 
-  @Ignore("Semantic analysis failed because 'age' doesn't exist.")
   @Test
   public void inTest() throws IOException {
     JSONObject response = executeQuery(

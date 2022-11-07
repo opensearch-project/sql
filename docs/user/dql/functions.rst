@@ -987,17 +987,17 @@ CURRENT_DATE
 Description
 >>>>>>>>>>>
 
-`CURRENT_DATE` and `CURRENT_DATE()` are synonyms for `CURDATE() <#curdate>`_.
+`CURRENT_DATE()` are synonyms for `CURDATE() <#curdate>`_.
 
 Example::
 
-    > SELECT CURRENT_DATE(), CURRENT_DATE;
+    > SELECT CURRENT_DATE();
     fetched rows / total rows = 1/1
-    +------------------+----------------+
-    | CURRENT_DATE()   | CURRENT_DATE   |
-    |------------------+----------------|
-    | 2022-08-02       | 2022-08-02     |
-    +------------------+----------------+
+    +------------------+
+    | CURRENT_DATE()   |
+    |------------------+
+    | 2022-08-02       |
+    +------------------+
 
 
 CURRENT_TIME
@@ -1006,17 +1006,17 @@ CURRENT_TIME
 Description
 >>>>>>>>>>>
 
-`CURRENT_TIME` and `CURRENT_TIME()` are synonyms for `CURTIME() <#curtime>`_.
+`CURRENT_TIME()` are synonyms for `CURTIME() <#curtime>`_.
 
 Example::
 
-    > SELECT CURRENT_TIME(), CURRENT_TIME;
+    > SELECT CURRENT_TIME();
     fetched rows / total rows = 1/1
-    +-----------------+----------------+
-    | CURRENT_TIME()  | CURRENT_TIME   |
-    |-----------------+----------------|
-    | 15:39:05        | 15:39:05       |
-    +-----------------+----------------+
+    +-----------------+
+    | CURRENT_TIME()  |
+    |-----------------+
+    | 15:39:05        |
+    +-----------------+
 
 
 CURRENT_TIMESTAMP
@@ -1025,17 +1025,17 @@ CURRENT_TIMESTAMP
 Description
 >>>>>>>>>>>
 
-`CURRENT_TIMESTAMP` and `CURRENT_TIMESTAMP()` are synonyms for `NOW() <#now>`_.
+`CURRENT_TIMESTAMP()` are synonyms for `NOW() <#now>`_.
 
 Example::
 
-    > SELECT CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP;
+    > SELECT CURRENT_TIMESTAMP();
     fetched rows / total rows = 1/1
-    +-----------------------+---------------------+
-    | CURRENT_TIMESTAMP()   | CURRENT_TIMESTAMP   |
-    |-----------------------+---------------------|
-    | 2022-08-02 15:54:19   | 2022-08-02 15:54:19 |
-    +-----------------------+---------------------+
+    +-----------------------+
+    | CURRENT_TIMESTAMP()   |
+    |-----------------------+
+    | 2022-08-02 15:54:19   |
+    +-----------------------+
 
 
 CURTIME
@@ -1548,17 +1548,17 @@ LOCALTIMESTAMP
 Description
 >>>>>>>>>>>
 
-`LOCALTIMESTAMP` and `LOCALTIMESTAMP()` are synonyms for `NOW() <#now>`_.
+`LOCALTIMESTAMP()` are synonyms for `NOW() <#now>`_.
 
 Example::
 
-    > SELECT LOCALTIMESTAMP(), LOCALTIMESTAMP;
+    > SELECT LOCALTIMESTAMP();
     fetched rows / total rows = 1/1
-    +---------------------+---------------------+
-    | LOCALTIMESTAMP()    | LOCALTIMESTAMP      |
-    |---------------------+---------------------|
-    | 2022-08-02 15:54:19 | 2022-08-02 15:54:19 |
-    +---------------------+---------------------+
+    +---------------------+
+    | LOCALTIMESTAMP()    |
+    |---------------------+
+    | 2022-08-02 15:54:19 |
+    +---------------------+
 
 
 LOCALTIME
@@ -1567,17 +1567,17 @@ LOCALTIME
 Description
 >>>>>>>>>>>
 
-`LOCALTIME` and `LOCALTIME()` are synonyms for `NOW() <#now>`_.
+`LOCALTIME()` are synonyms for `NOW() <#now>`_.
 
 Example::
 
     > SELECT LOCALTIME(), LOCALTIME;
     fetched rows / total rows = 1/1
-    +---------------------+---------------------+
-    | LOCALTIME()         | LOCALTIME           |
-    |---------------------+---------------------|
-    | 2022-08-02 15:54:19 | 2022-08-02 15:54:19 |
-    +---------------------+---------------------+
+    +---------------------+
+    | LOCALTIME()         |
+    |---------------------+
+    | 2022-08-02 15:54:19 |
+    +---------------------+
 
 
 MAKEDATE
@@ -1760,6 +1760,52 @@ Example::
     |---------------------+---------------------|
     | 2022-08-02 15:39:05 | 2022-08-02 15:39:05 |
     +---------------------+---------------------+
+
+
+PERIOD_ADD
+----------
+
+Description
+>>>>>>>>>>>
+
+Usage: period_add(P, N) add N months to period P (in the format YYMM or YYYYMM). Returns a value in the format YYYYMM.
+
+Argument type: INTEGER, INTEGER
+
+Return type: INTEGER
+
+Example::
+
+    os> SELECT PERIOD_ADD(200801, 2), PERIOD_ADD(200801, -12)
+    fetched rows / total rows = 1/1
+    +-------------------------+---------------------------+
+    | PERIOD_ADD(200801, 2)   | PERIOD_ADD(200801, -12)   |
+    |-------------------------+---------------------------|
+    | 200803                  | 200701                    |
+    +-------------------------+---------------------------+
+
+
+PERIOD_DIFF
+-----------
+
+Description
+>>>>>>>>>>>
+
+Usage: period_diff(P1, P2) returns the number of months between periods P1 and P2 given in the format YYMM or YYYYMM.
+
+Argument type: INTEGER, INTEGER
+
+Return type: INTEGER
+
+Example::
+
+    os> SELECT PERIOD_DIFF(200802, 200703), PERIOD_DIFF(200802, 201003)
+    fetched rows / total rows = 1/1
+    +-------------------------------+-------------------------------+
+    | PERIOD_DIFF(200802, 200703)   | PERIOD_DIFF(200802, 201003)   |
+    |-------------------------------+-------------------------------|
+    | 11                            | -25                           |
+    +-------------------------------+-------------------------------+
 
 
 QUARTER

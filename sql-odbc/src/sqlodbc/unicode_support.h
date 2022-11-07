@@ -20,7 +20,6 @@ SQLLEN bindcol_hybrid_exec(SQLWCHAR *utf16, const char *ldt, size_t n,
 SQLLEN bindcol_localize_estimate(const char *utf8dt, BOOL lf_conv,
                                  char **wcsbuf);
 SQLLEN bindcol_localize_exec(char *ldt, size_t n, BOOL lf_conv, char **wcsbuf);
-SQLLEN bindpara_msg_to_utf8(const char *ldt, char **wcsbuf, SQLLEN used);
 SQLLEN bindpara_wchar_to_msg(const SQLWCHAR *utf16, char **wcsbuf, SQLLEN used);
 
 SQLLEN locale_to_sqlwchar(SQLWCHAR *utf16, const char *ldt, size_t n,
