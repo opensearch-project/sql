@@ -67,11 +67,19 @@ public class StringUtils {
     for (int chIndex = 1; chIndex < text.length() - 1; chIndex++) {
       currentChar = text.charAt(chIndex);
       nextChar = text.charAt(chIndex + 1);
+
+      // Double quote escape character
       if (currentChar == enclosingQuote
           && nextChar == currentChar) {
         chIndex++;
       }
-      textSB.append(currentChar);
+
+      if (currentChar == '\\'
+          && nextChar == '"') {
+        chIndex += 2;
+      }
+
+      textSB.append(nextChar);
     }
 
     return textSB.toString();
