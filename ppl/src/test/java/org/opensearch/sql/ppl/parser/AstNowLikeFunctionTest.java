@@ -52,14 +52,14 @@ public class AstNowLikeFunctionTest {
   public static Iterable<Object> functionNames() {
     return List.of(new Object[][]{
         {"now", false, false, true},
-        {"current_timestamp", false, true, true},
-        {"localtimestamp", false, true, true},
-        {"localtime", false, true, true},
+        {"current_timestamp", false, false, true},
+        {"localtimestamp", false, false, true},
+        {"localtime", false, false, true},
         {"sysdate", true, false, false},
         {"curtime", false, false, true},
-        {"current_time", false, true, true},
+        {"current_time", false, false, true},
         {"curdate", false, false, true},
-        {"current_date", false, true, true}
+        {"current_date", false, false, true}
     });
   }
 

@@ -105,7 +105,7 @@ class SimpleQueryStringTest {
         List.of(
             dsl.namedArgument("fields", fields_value),
             dsl.namedArgument("query", query_value),
-            dsl.namedArgument("fuzzy_transpositions", DSL.literal("42"))
+            dsl.namedArgument("fuzzy_transpositions", DSL.literal("true"))
         ),
         List.of(
             dsl.namedArgument("fields", fields_value),

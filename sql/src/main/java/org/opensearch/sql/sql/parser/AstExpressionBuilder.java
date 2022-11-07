@@ -23,7 +23,6 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ConvertedD
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CountStarFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DataTypeFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DateLiteralContext;
-import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DatetimeConstantLiteralContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DistinctCountFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.IsNullPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.LikePredicateContext;
@@ -408,11 +407,6 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   }
 
   @Override
-  public UnresolvedExpression visitDatetimeConstantLiteral(DatetimeConstantLiteralContext ctx) {
-    return visitConstantFunction(ctx.getText(), null);
-  }
-
-  @Override
   public UnresolvedExpression visitConstantFunction(ConstantFunctionContext ctx) {
     return visitConstantFunction(ctx.constantFunctionName().getText(),
         ctx.functionArgs());
@@ -420,13 +414,10 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
   private UnresolvedExpression visitConstantFunction(String functionName,
                                                      FunctionArgsContext args) {
-    return new ConstantFunction(functionName,
-        args == null
-        ? Collections.emptyList()
-        : args.functionArg()
-            .stream()
-            .map(this::visitFunctionArg)
-            .collect(Collectors.toList()));
+    return new ConstantFunction(functionName, args.functionArg()
+        .stream()
+        .map(this::visitFunctionArg)
+        .collect(Collectors.toList()));
   }
 
   private QualifiedName visitIdentifiers(List<IdentContext> identifiers) {

@@ -16,12 +16,7 @@ public class StorageEngineTest {
 
   @Test
   void testFunctionsMethod() {
-    StorageEngine k = new StorageEngine() {
-      @Override
-      public Table getTable(String name) {
-        return null;
-      }
-    };
+    StorageEngine k = (catalogSchemaName, tableName) -> null;
     Assertions.assertEquals(Collections.emptyList(), k.getFunctions());
   }
 
