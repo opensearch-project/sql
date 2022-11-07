@@ -48,8 +48,8 @@ class TypeCastOperatorTest {
 
   private static Stream<ExprValue> numberData() {
     return Stream.of(new ExprByteValue(3), new ExprShortValue(3),
-        new ExprIntegerValue(3), new ExprLongValue(3L), new ExprFloatValue(3f),
-        new ExprDoubleValue(3D));
+        new ExprIntegerValue(3), new ExprLongValue(3L), new ExprFloatValue(3.14f),
+        new ExprDoubleValue(3.1415D));
   }
 
   private static Stream<ExprValue> stringData() {
