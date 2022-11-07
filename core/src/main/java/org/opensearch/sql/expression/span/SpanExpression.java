@@ -25,23 +25,17 @@ public class SpanExpression implements Expression {
   private final SpanUnit unit;
 
   /**
-   * Rounding that generates span starting point.
-   */
-  @ToString.Exclude
-  private final Rounding<?> rounding;
-
-  /**
    * Construct a span expression by field and span interval expression.
    */
   public SpanExpression(Expression field, Expression value, SpanUnit unit) {
     this.field = field;
     this.value = value;
     this.unit = unit;
-    this.rounding = Rounding.createRounding(this); // TODO: will integrate with WindowAssigner
   }
 
   @Override
   public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+    Rounding<?> rounding = Rounding.createRounding(this); //TODO: will integrate with WindowAssigner
     return rounding.round(field.valueOf(valueEnv));
   }
 
