@@ -12,6 +12,9 @@ include_directories(
 # Generate dll (SHARED)
 add_library(itodbc_helper SHARED ${SOURCE_FILES} ${HEADER_FILES})
 
+# Find packages from vcpkg
+find_package(GTest CONFIG REQUIRED)
+
 # Library dependencies
-target_link_libraries(itodbc_helper sqlodbc ut_helper gtest_main)
+target_link_libraries(itodbc_helper sqlodbc ut_helper GTest::gtest_main)
 target_compile_definitions(itodbc_helper PUBLIC _UNICODE UNICODE)

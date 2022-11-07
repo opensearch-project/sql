@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.CatalogSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.analysis.symbol.SymbolTable;
@@ -51,12 +52,7 @@ public class AnalyzerTestBase {
 
   @Bean
   protected StorageEngine storageEngine() {
-    return new StorageEngine() {
-      @Override
-      public Table getTable(String name) {
-        return table;
-      }
-    };
+    return (catalogSchemaName, tableName) -> table;
   }
 
   @Bean

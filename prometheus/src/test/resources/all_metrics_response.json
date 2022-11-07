@@ -1,0 +1,19 @@
+{
+  "status": "success",
+  "data": {
+    "go_gc_duration_seconds": [
+      {
+        "type": "summary",
+        "help": "A summary of the pause duration of garbage collection cycles.",
+        "unit": ""
+      }
+    ],
+    "go_goroutines": [
+      {
+        "type": "gauge",
+        "help": "Number of goroutines that currently exist.",
+        "unit": ""
+      }
+    ]
+  }
+}

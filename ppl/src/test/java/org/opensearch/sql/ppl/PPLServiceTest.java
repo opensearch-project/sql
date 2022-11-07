@@ -16,6 +16,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.DefaultQueryManager;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -27,6 +28,7 @@ import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
 import org.opensearch.sql.ppl.config.PPLServiceConfig;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
+import org.opensearch.sql.storage.StorageEngine;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -44,6 +46,15 @@ public class PPLServiceTest {
   private QueryService queryService;
 
   @Mock
+  private StorageEngine storageEngine;
+
+  @Mock
+  private ExecutionEngine executionEngine;
+
+  @Mock
+  private CatalogService catalogService;
+
+  @Mock
   private ExecutionEngine.Schema schema;
 
   /**
@@ -53,6 +64,9 @@ public class PPLServiceTest {
   public void setUp() {
     context.registerBean(QueryManager.class, DefaultQueryManager::new);
     context.registerBean(QueryPlanFactory.class, () -> new QueryPlanFactory(queryService));
+    context.registerBean(StorageEngine.class, () -> storageEngine);
+    context.registerBean(ExecutionEngine.class, () -> executionEngine);
+    context.registerBean(CatalogService.class, () -> catalogService);
     context.register(PPLServiceConfig.class);
     context.refresh();
     pplService = context.getBean(PPLService.class);

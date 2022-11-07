@@ -62,9 +62,11 @@ task doctest(type: Exec, dependsOn: ['bootstrap']) {
     }
 }
 
-task stopOpenSearch(type: KillProcessTask) {
+task stopOpenSearch(type: KillProcessTask)
 
-    finalizedBy {
+task stopPrometheus() {
+
+    doLast {
         def pidFile = new File(path, ".prom.pid.lock")
         if(!pidFile.exists()) {
             logger.quiet "No Prometheus server running!"
@@ -79,13 +81,14 @@ task stopOpenSearch(type: KillProcessTask) {
         } finally {
             pidFile.delete()
         }
-        println("Killed Prometheus")
     }
 }
 
+stopPrometheus.mustRunAfter startPrometheus
 doctest.dependsOn startOpenSearch
 startOpenSearch.dependsOn startPrometheus
 doctest.finalizedBy stopOpenSearch
+stopOpenSearch.finalizedBy stopPrometheus
 build.dependsOn doctest
 clean.dependsOn(cleanBootstrap)
 
@@ -102,6 +105,8 @@ String mlCommonsPlugin = 'opensearch-ml'
 testClusters {
     docTestCluster {
         keystore 'plugins.query.federation.catalog.config', new File("$projectDir/catalog", 'catalog.json')
+        // Disable loading of `ML-commons` plugin, because it might be unavailable (not released yet).
+        /*
         plugin(provider(new Callable<RegularFile>(){
             @Override
             RegularFile call() throws Exception {
@@ -121,6 +126,7 @@ testClusters {
                 }
             }
         }))
+        */
         plugin ':opensearch-sql-plugin'
         testDistribution = 'integ_test'
     }

@@ -48,6 +48,7 @@ import static org.opensearch.sql.legacy.TestUtils.getEmployeeNestedTypeIndexMapp
 import static org.opensearch.sql.legacy.TestUtils.getGameOfThronesIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getJoinTypeIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getLocationIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getMappingFile;
 import static org.opensearch.sql.legacy.TestUtils.getNestedSimpleIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getNestedTypeIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getOdbcIndexMapping;
@@ -575,7 +576,15 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     BEER(TestsConstants.TEST_INDEX_BEER,
         "beer",
         null,
-        "src/test/resources/beer.stackexchange.json"),;
+        "src/test/resources/beer.stackexchange.json"),
+    NULL_MISSING(TestsConstants.TEST_INDEX_NULL_MISSING,
+        "null_missing",
+        getMappingFile("null_missing_index_mapping.json"),
+        "src/test/resources/null_missing.json"),
+    CALCS(TestsConstants.TEST_INDEX_CALCS,
+        "calcs",
+        getMappingFile("calcs_index_mappings.json"),
+        "src/test/resources/calcs.json"),;
 
     private final String name;
     private final String type;

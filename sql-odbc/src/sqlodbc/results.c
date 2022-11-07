@@ -111,7 +111,6 @@ RETCODE SQL_API OPENSEARCHAPI_DescribeCol(HSTMT hstmt, SQLUSMALLINT icol,
     SQLLEN column_size = 0;
     int unknown_sizes;
     SQLINTEGER decimal_digits = 0;
-    ConnInfo *ci;
     FIELD_INFO *fi;
     char buf[255];
     int len = 0;
@@ -125,7 +124,6 @@ RETCODE SQL_API OPENSEARCHAPI_DescribeCol(HSTMT hstmt, SQLUSMALLINT icol,
     }
 
     conn = SC_get_conn(stmt);
-    ci = &(conn->connInfo);
     unknown_sizes = DEFAULT_UNKNOWNSIZES;
 
     SC_clear_error(stmt);
@@ -321,7 +319,6 @@ RETCODE SQL_API OPENSEARCHAPI_ColAttributes(HSTMT hstmt, SQLUSMALLINT icol,
     OID field_type = 0;
     Int2 col_idx;
     ConnectionClass *conn;
-    ConnInfo *ci;
     int column_size, unknown_sizes;
     int cols = 0;
     RETCODE result;
@@ -349,7 +346,6 @@ RETCODE SQL_API OPENSEARCHAPI_ColAttributes(HSTMT hstmt, SQLUSMALLINT icol,
         *pcbDesc = 0;
     irdflds = SC_get_IRDF(stmt);
     conn = SC_get_conn(stmt);
-    ci = &(conn->connInfo);
 
     /*
      * Dont check for bookmark column.	This is the responsibility of the
@@ -415,8 +411,6 @@ RETCODE SQL_API OPENSEARCHAPI_ColAttributes(HSTMT hstmt, SQLUSMALLINT icol,
     if (FI_is_applicable(fi))
         field_type = getEffectiveOid(conn, fi);
     else {
-        BOOL build_fi = FALSE;
-
         fi = NULL;
         switch (fDescType) {
             case SQL_COLUMN_OWNER_NAME:
@@ -429,7 +423,6 @@ RETCODE SQL_API OPENSEARCHAPI_ColAttributes(HSTMT hstmt, SQLUSMALLINT icol,
             case SQL_DESC_BASE_COLUMN_NAME:
             case SQL_COLUMN_UPDATABLE:
             case 1212: /* SQL_CA_SS_COLUMN_KEY ? */
-                build_fi = TRUE;
                 break;
         }
 

@@ -18,10 +18,10 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class Utils {
   /**
-   * Utils to handle Nan Value.
-   * @return null if is Nan.
+   * Utils to handle Nan/Infinite Value.
+   * @return null if is Nan or is +-Infinity.
    */
-  public static Object handleNanValue(double value) {
-    return Double.isNaN(value) ? null : value;
+  public static Object handleNanInfValue(double value) {
+    return Double.isNaN(value) || Double.isInfinite(value) ? null : value;
   }
 }

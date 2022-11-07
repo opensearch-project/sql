@@ -43,7 +43,7 @@ public class FieldsCommandIT extends PPLIntegTestCase {
     verifyColumn(result, columnName("firstname"), columnName("lastname"));
   }
 
-  @Ignore("Cannot resolve wildcard yet")
+  @Ignore("Cannot resolve wildcard yet. Enable once https://github.com/opensearch-project/sql/issues/787 is resolved.")
   @Test
   public void testFieldsWildCard() throws IOException {
     JSONObject result =

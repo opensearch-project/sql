@@ -1150,10 +1150,6 @@ public:
     : base_type(alloc)
   {}
 
-  basic_array(const basic_array& other)
-    : base_type(other)
-  {}
-
   template <typename OtherTraits>
   basic_array(const basic_value_ref<OtherTraits>& other)
     : base_type(other)
