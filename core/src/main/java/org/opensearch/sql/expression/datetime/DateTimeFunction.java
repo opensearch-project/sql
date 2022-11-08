@@ -944,9 +944,6 @@ public class DateTimeFunction {
    * @return ExprValue.
    */
   private ExprValue exprTime(ExprValue exprValue) {
-    if (exprValue.type() == DATE) {
-      return new ExprTimeValue("00:00:00");
-    }
     if (exprValue instanceof ExprStringValue) {
       return new ExprTimeValue(exprValue.stringValue());
     } else {
