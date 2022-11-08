@@ -6,6 +6,8 @@
 
 package org.opensearch.sql.data.model;
 
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
+
 import com.google.common.base.Objects;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -33,7 +35,7 @@ public class ExprDateValue extends AbstractExprValue {
    */
   public ExprDateValue(String date) {
     try {
-      this.date = LocalDate.parse(date);
+      this.date = LocalDate.parse(date, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
     } catch (DateTimeParseException e) {
       throw new SemanticCheckException(String.format("date:%s in unsupported format, please use "
           + "yyyy-MM-dd", date));
