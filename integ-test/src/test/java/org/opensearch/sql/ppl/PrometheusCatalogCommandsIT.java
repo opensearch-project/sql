@@ -46,12 +46,12 @@ public class PrometheusCatalogCommandsIT extends PPLIntegTestCase {
   @SneakyThrows
   public void testMetricAvgAggregationCommand() {
     JSONObject response =
-        executeQuery("source=my_prometheus.prometheus_http_requests_total | stats avg(@value) by span(@timestamp, 15s), handler, job");
+        executeQuery("source=`my_prometheus`.`prometheus_http_requests_total` | stats avg(@value) as `agg` by span(@timestamp, 15s), `handler`, `job`");
     verifySchema(response,
-        schema("avg(@value)",  "double"),
+        schema("agg",  "double"),
         schema("span(@timestamp,15s)", "timestamp"),
-        schema("handler", "string"),
-        schema("job", "string"));
+        schema("`handler`", "string"),
+        schema("`job`", "string"));
     Assertions.assertTrue(response.getInt("size") > 0);
     Assertions.assertEquals(4, response.getJSONArray("datarows").getJSONArray(0).length());
     JSONArray firstRow = response.getJSONArray("datarows").getJSONArray(0);
@@ -65,11 +65,11 @@ public class PrometheusCatalogCommandsIT extends PPLIntegTestCase {
   @SneakyThrows
   public void testMetricAvgAggregationCommandWithAlias() {
     JSONObject response =
-        executeQuery("source=my_prometheus.prometheus_http_requests_total | stats avg(@value) as agg by span(@timestamp, 15s), handler, job");
+        executeQuery("source=my_prometheus.prometheus_http_requests_total | stats avg(@value) as agg by span(@timestamp, 15s), `handler`, job");
     verifySchema(response,
         schema("agg",  "double"),
         schema("span(@timestamp,15s)", "timestamp"),
-        schema("handler", "string"),
+        schema("`handler`", "string"),
         schema("job", "string"));
     Assertions.assertTrue(response.getInt("size") > 0);
     Assertions.assertEquals(4, response.getJSONArray("datarows").getJSONArray(0).length());
