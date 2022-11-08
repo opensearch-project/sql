@@ -8,19 +8,13 @@ package org.opensearch.sql.expression.function;
 import static org.opensearch.sql.ast.expression.Cast.getCastFunctionName;
 import static org.opensearch.sql.ast.expression.Cast.isCastFunction;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -35,13 +29,30 @@ import org.opensearch.sql.expression.Expression;
  * namespace.
  *
  */
-@RequiredArgsConstructor
 public class BuiltinFunctionRepository {
 
   public static final String DEFAULT_NAMESPACE = "default";
 
   private final Map<String, Map<FunctionName, FunctionResolver>> namespaceFunctionResolverMap;
 
+  private static BuiltinFunctionRepository instance;
+
+  @VisibleForTesting
+  BuiltinFunctionRepository(
+      Map<String, Map<FunctionName, FunctionResolver>> namespaceFunctionResolverMap) {
+    this.namespaceFunctionResolverMap = namespaceFunctionResolverMap;
+  }
+
+  /**
+   * Get singleton instance. Initialize it if first time.
+   * @return singleton instance
+   */
+  public static synchronized BuiltinFunctionRepository getInstance() {
+    if (instance == null) {
+      instance = new BuiltinFunctionRepository(new HashMap<>());
+    }
+    return instance;
+  }
 
   /**
    * Register {@link DefaultFunctionResolver} to the Builtin Function Repository

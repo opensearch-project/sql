@@ -6,7 +6,6 @@
 
 package org.opensearch.sql.expression.config;
 
-import java.util.HashMap;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.aggregation.AggregatorFunction;
 import org.opensearch.sql.expression.datetime.DateTimeFunction;
@@ -38,7 +37,7 @@ public class ExpressionConfig {
   @Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
   public BuiltinFunctionRepository functionRepository() {
     BuiltinFunctionRepository builtinFunctionRepository =
-        new BuiltinFunctionRepository(new HashMap<>());
+        BuiltinFunctionRepository.getInstance();
     ArithmeticFunction.register(builtinFunctionRepository);
     BinaryPredicateOperator.register(builtinFunctionRepository);
     MathematicalFunction.register(builtinFunctionRepository);
