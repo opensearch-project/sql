@@ -46,8 +46,14 @@ public class BuiltinFunctionRepository {
 
   private final Map<String, Map<FunctionName, FunctionResolver>> namespaceFunctionResolverMap;
 
+  /** The singleton instance */
   private static BuiltinFunctionRepository instance;
 
+  /**
+   * Construct a function repository with the given function registered. This is only used in test.
+   *
+   * @param namespaceFunctionResolverMap function supported
+   */
   @VisibleForTesting
   BuiltinFunctionRepository(
       Map<String, Map<FunctionName, FunctionResolver>> namespaceFunctionResolverMap) {
@@ -55,12 +61,16 @@ public class BuiltinFunctionRepository {
   }
 
   /**
-   * Initialize singleton instance with all functions if the first time.
+   * Get singleton instance of the function repository. Initialize it with all built-in functions
+   * for the first time in synchronized way.
+   *
    * @return singleton instance
    */
   public static synchronized BuiltinFunctionRepository getInstance() {
     if (instance == null) {
       instance = new BuiltinFunctionRepository(new HashMap<>());
+
+      // Register all built-in functions
       ArithmeticFunction.register(instance);
       BinaryPredicateOperator.register(instance);
       MathematicalFunction.register(instance);
