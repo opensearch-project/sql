@@ -40,17 +40,14 @@ public interface Collector {
     /**
      * build {@link Collector}.
      */
-    public static Collector build(
-        NamedExpression span, List<NamedExpression> buckets, List<NamedAggregator> aggregators) {
-      if (span == null && buckets.isEmpty()) {
+    public static Collector build(List<NamedExpression> buckets,
+                                  List<NamedAggregator> aggregators) {
+      if (buckets.isEmpty()) {
         return new MetricCollector(aggregators);
-      } else if (span != null) {
-        return new SpanCollector(span, () -> build(null, buckets, aggregators));
       } else {
         return new BucketCollector(
             buckets.get(0),
-            () ->
-                build(null, ImmutableList.copyOf(buckets.subList(1, buckets.size())), aggregators));
+            () -> build(ImmutableList.copyOf(buckets.subList(1, buckets.size())), aggregators));
       }
     }
   }
