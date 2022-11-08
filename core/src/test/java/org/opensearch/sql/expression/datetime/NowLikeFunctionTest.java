@@ -31,30 +31,28 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.FunctionExpression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 
 
 public class NowLikeFunctionTest extends ExpressionTestBase {
   private static Stream<Arguments> functionNames() {
-    var dsl = new DSL(new ExpressionConfig().functionRepository());
     return Stream.of(
-        Arguments.of((Function<Expression[], FunctionExpression>)dsl::now,
+        Arguments.of((Function<Expression[], FunctionExpression>) DSL::now,
             "now", DATETIME, false, (Supplier<Temporal>)LocalDateTime::now),
-        Arguments.of((Function<Expression[], FunctionExpression>)dsl::current_timestamp,
+        Arguments.of((Function<Expression[], FunctionExpression>) DSL::current_timestamp,
             "current_timestamp", DATETIME, false, (Supplier<Temporal>)LocalDateTime::now),
-        Arguments.of((Function<Expression[], FunctionExpression>)dsl::localtimestamp,
+        Arguments.of((Function<Expression[], FunctionExpression>) DSL::localtimestamp,
             "localtimestamp", DATETIME, false, (Supplier<Temporal>)LocalDateTime::now),
-        Arguments.of((Function<Expression[], FunctionExpression>)dsl::localtime,
+        Arguments.of((Function<Expression[], FunctionExpression>) DSL::localtime,
             "localtime", DATETIME, false, (Supplier<Temporal>)LocalDateTime::now),
-        Arguments.of((Function<Expression[], FunctionExpression>)dsl::sysdate,
+        Arguments.of((Function<Expression[], FunctionExpression>) DSL::sysdate,
             "sysdate", DATETIME, true, (Supplier<Temporal>)LocalDateTime::now),
-        Arguments.of((Function<Expression[], FunctionExpression>)dsl::curtime,
+        Arguments.of((Function<Expression[], FunctionExpression>) DSL::curtime,
             "curtime", TIME, false, (Supplier<Temporal>)LocalTime::now),
-        Arguments.of((Function<Expression[], FunctionExpression>)dsl::current_time,
+        Arguments.of((Function<Expression[], FunctionExpression>) DSL::current_time,
             "current_time", TIME, false, (Supplier<Temporal>)LocalTime::now),
-        Arguments.of((Function<Expression[], FunctionExpression>)dsl::curdate,
+        Arguments.of((Function<Expression[], FunctionExpression>) DSL::curdate,
             "curdate", DATE, false, (Supplier<Temporal>)LocalDate::now),
-        Arguments.of((Function<Expression[], FunctionExpression>)dsl::current_date,
+        Arguments.of((Function<Expression[], FunctionExpression>) DSL::current_date,
             "current_date", DATE, false, (Supplier<Temporal>)LocalDate::now));
   }
 

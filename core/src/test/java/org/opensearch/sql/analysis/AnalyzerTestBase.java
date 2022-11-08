@@ -128,9 +128,6 @@ public class AnalyzerTestBase {
   protected BuiltinFunctionRepository functionRepository;
 
   @Autowired
-  protected DSL dsl;
-
-  @Autowired
   protected AnalysisContext analysisContext;
 
   @Autowired
@@ -184,7 +181,7 @@ public class AnalyzerTestBase {
   }
 
   @Bean
-  protected ExpressionAnalyzer expressionAnalyzer(DSL dsl, BuiltinFunctionRepository repo) {
+  protected ExpressionAnalyzer expressionAnalyzer(BuiltinFunctionRepository repo) {
     return new ExpressionAnalyzer(repo);
   }
 

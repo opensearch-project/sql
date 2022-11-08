@@ -38,14 +38,12 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 
 public class SystemFunctionsTest {
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
 
   @Test
   void typeof() {
-    assertEquals(STRING, dsl.typeof(DSL.literal(1)).type());
+    assertEquals(STRING, DSL.typeof(DSL.literal(1)).type());
 
     assertEquals("ARRAY", typeofGetValue(new ExprCollectionValue(List.of())));
     assertEquals("BOOLEAN", typeofGetValue(ExprBooleanValue.of(false)));
@@ -88,6 +86,6 @@ public class SystemFunctionsTest {
   }
 
   private String typeofGetValue(ExprValue input) {
-    return dsl.typeof(DSL.literal(input)).valueOf(null).stringValue();
+    return DSL.typeof(DSL.literal(input)).valueOf(null).stringValue();
   }
 }

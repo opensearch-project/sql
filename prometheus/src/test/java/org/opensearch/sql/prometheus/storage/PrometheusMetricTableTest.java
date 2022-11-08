@@ -50,7 +50,6 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.NamedExpression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.ProjectOperator;
@@ -63,8 +62,6 @@ class PrometheusMetricTableTest {
 
   @Mock
   private PrometheusClient client;
-
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
 
   @Test
   @SneakyThrows
@@ -172,12 +169,12 @@ class PrometheusMetricTableTest {
         filter(
             indexScanAgg("prometheus_http_total_requests", ImmutableList
                     .of(named("AVG(@value)",
-                        dsl.avg(DSL.ref("@value", INTEGER)))),
+                        DSL.avg(DSL.ref("@value", INTEGER)))),
                 ImmutableList.of(named("code", DSL.ref("code", STRING)),
                     named("span", DSL.span(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                     DSL.literal(40), "s")))),
-            dsl.and(dsl.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
-                dsl.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/"))))));
+            DSL.and(DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
+                DSL.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/"))))));
 
     assertTrue(plan.getChild().get(0) instanceof PrometheusMetricScan);
     PrometheusQueryRequest prometheusQueryRequest =
@@ -197,11 +194,11 @@ class PrometheusMetricTableTest {
     // IndexScanAgg with Filter
     PhysicalPlan plan = prometheusMetricTable.implement(
         indexScanAgg("prometheus_http_total_requests",
-            dsl.and(dsl.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
-                dsl.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/")))),
+            DSL.and(DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
+                DSL.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/")))),
             ImmutableList
                 .of(named("AVG(@value)",
-                    dsl.avg(DSL.ref("@value", INTEGER)))),
+                    DSL.avg(DSL.ref("@value", INTEGER)))),
             ImmutableList.of(named("job", DSL.ref("job", STRING)),
                 named("span", DSL.span(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                     DSL.literal(40), "s")))));
@@ -227,11 +224,11 @@ class PrometheusMetricTableTest {
     finalProjectList.add(DSL.named(TIMESTAMP, DSL.ref(TIMESTAMP, ExprCoreType.TIMESTAMP)));
     PhysicalPlan plan = prometheusMetricTable.implement(
         project(indexScanAgg("prometheus_http_total_requests",
-                dsl.and(dsl.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
-                    dsl.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/")))),
+                DSL.and(DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
+                    DSL.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/")))),
                 ImmutableList
                     .of(DSL.named("AVG(@value)",
-                        dsl.avg(DSL.ref("@value", INTEGER)))),
+                        DSL.avg(DSL.ref("@value", INTEGER)))),
                 ImmutableList.of(DSL.named("job", DSL.ref("job", STRING)),
                     named("span", DSL.span(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                         DSL.literal(40), "s")))),
@@ -267,20 +264,20 @@ class PrometheusMetricTableTest {
     DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     PhysicalPlan plan = prometheusMetricTable.implement(
         project(indexScanAgg("prometheus_http_total_requests",
-                dsl.and(dsl.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
-                    dsl.and(
-                        dsl.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/"))),
-                        dsl.and(dsl.gte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
+                DSL.and(DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
+                    DSL.and(
+                        DSL.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/"))),
+                        DSL.and(DSL.gte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                                 DSL.literal(
                                     fromObjectValue(dateFormat.format(new Date(startTime)),
                                         ExprCoreType.TIMESTAMP))),
-                            dsl.lte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
+                            DSL.lte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                                 DSL.literal(
                                     fromObjectValue(dateFormat.format(new Date(endTime)),
                                         ExprCoreType.TIMESTAMP)))))),
                 ImmutableList
                     .of(named("AVG(@value)",
-                        dsl.avg(DSL.ref("@value", INTEGER)))),
+                        DSL.avg(DSL.ref("@value", INTEGER)))),
                 ImmutableList.of(named("job", DSL.ref("job", STRING)),
                     named("span", DSL.span(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                         DSL.literal(40), "s")))),
@@ -314,16 +311,16 @@ class PrometheusMetricTableTest {
     DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     PhysicalPlan plan = prometheusMetricTable.implement(
         project(indexScanAgg("prometheus_http_total_requests",
-                dsl.and(dsl.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
-                    dsl.and(
-                        dsl.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/"))),
-                        dsl.gte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
+                DSL.and(DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
+                    DSL.and(
+                        DSL.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/"))),
+                        DSL.gte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                             DSL.literal(
                                 fromObjectValue(dateFormat.format(new Date(startTime)),
                                     ExprCoreType.TIMESTAMP))))),
                 ImmutableList
                     .of(named("AVG(@value)",
-                        dsl.avg(DSL.ref("@value", INTEGER)))),
+                        DSL.avg(DSL.ref("@value", INTEGER)))),
                 ImmutableList.of(named("job", DSL.ref("job", STRING)),
                     named("span", DSL.span(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                         DSL.literal(40), "s")))),
@@ -357,16 +354,16 @@ class PrometheusMetricTableTest {
     DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     PhysicalPlan plan = prometheusMetricTable.implement(
         project(indexScanAgg("prometheus_http_total_requests",
-                dsl.and(dsl.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
-                    dsl.and(
-                        dsl.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/"))),
-                        dsl.lte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
+                DSL.and(DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
+                    DSL.and(
+                        DSL.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/"))),
+                        DSL.lte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                             DSL.literal(
                                 fromObjectValue(dateFormat.format(new Date(endTime)),
                                     ExprCoreType.TIMESTAMP))))),
                 ImmutableList
                     .of(named("AVG(@value)",
-                        dsl.avg(DSL.ref("@value", INTEGER)))),
+                        DSL.avg(DSL.ref("@value", INTEGER)))),
                 ImmutableList.of(named("job", DSL.ref("job", STRING)),
                     named("span", DSL.span(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                         DSL.literal(40), "s")))),
@@ -399,20 +396,20 @@ class PrometheusMetricTableTest {
     Long startTime = new Date(System.currentTimeMillis() - 4800 * 1000).getTime();
     DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     LogicalPlan plan = project(indexScanAgg("prometheus_http_total_requests",
-                dsl.and(dsl.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
-                    dsl.and(
-                        dsl.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/"))),
-                        dsl.and(dsl.gte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
+                DSL.and(DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
+                    DSL.and(
+                        DSL.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/"))),
+                        DSL.and(DSL.gte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                                 DSL.literal(
                                     fromObjectValue(dateFormat.format(new Date(startTime)),
                                         ExprCoreType.TIMESTAMP))),
-                            dsl.lte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
+                            DSL.lte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                                 DSL.literal(
                                     fromObjectValue(dateFormat.format(new Date(endTime)),
                                         ExprCoreType.TIMESTAMP)))))),
                 ImmutableList
                     .of(named("AVG(@value)",
-                        dsl.avg(DSL.ref("@value", INTEGER)))),
+                        DSL.avg(DSL.ref("@value", INTEGER)))),
                 null),
             finalProjectList, null);
     RuntimeException runtimeException
@@ -436,20 +433,20 @@ class PrometheusMetricTableTest {
     Long startTime = new Date(System.currentTimeMillis() - 4800 * 1000).getTime();
     DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     LogicalPlan plan = project(indexScanAgg("prometheus_http_total_requests",
-            dsl.and(dsl.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
-                dsl.and(
-                    dsl.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/"))),
-                    dsl.and(dsl.gte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
+            DSL.and(DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
+                DSL.and(
+                    DSL.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/"))),
+                    DSL.and(DSL.gte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                             DSL.literal(
                                 fromObjectValue(dateFormat.format(new Date(startTime)),
                                     ExprCoreType.TIMESTAMP))),
-                        dsl.lte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
+                        DSL.lte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                             DSL.literal(
                                 fromObjectValue(dateFormat.format(new Date(endTime)),
                                     ExprCoreType.TIMESTAMP)))))),
             ImmutableList
                 .of(named("AVG(@value)",
-                    dsl.avg(DSL.ref("@value", INTEGER)))),
+                    DSL.avg(DSL.ref("@value", INTEGER)))),
             ImmutableList.of()),
         finalProjectList, null);
     RuntimeException runtimeException
@@ -475,20 +472,20 @@ class PrometheusMetricTableTest {
     DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     PhysicalPlan plan = prometheusMetricTable.implement(
         project(indexScanAgg("prometheus_http_total_requests",
-                dsl.and(dsl.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
-                    dsl.and(
-                        dsl.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/"))),
-                        dsl.and(dsl.gte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
+                DSL.and(DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
+                    DSL.and(
+                        DSL.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/"))),
+                        DSL.and(DSL.gte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                                 DSL.literal(
                                     fromObjectValue(dateFormat.format(new Date(startTime)),
                                         ExprCoreType.TIMESTAMP))),
-                            dsl.lte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
+                            DSL.lte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                                 DSL.literal(
                                     fromObjectValue(dateFormat.format(new Date(endTime)),
                                         ExprCoreType.TIMESTAMP)))))),
                 ImmutableList
                     .of(named("AVG(@value)",
-                        dsl.avg(DSL.ref("@value", INTEGER)))),
+                        DSL.avg(DSL.ref("@value", INTEGER)))),
                 ImmutableList.of(named("job", DSL.ref("job", STRING)),
                     named("span", DSL.span(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                         DSL.literal(40), "s")))),
@@ -521,20 +518,20 @@ class PrometheusMetricTableTest {
     Long startTime = new Date(System.currentTimeMillis() - 4800 * 1000).getTime();
     DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     LogicalPlan logicalPlan = project(indexScanAgg("prometheus_http_total_requests",
-                dsl.and(dsl.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
-                    dsl.and(
-                        dsl.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/"))),
-                        dsl.and(dsl.gte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
+                DSL.and(DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
+                    DSL.and(
+                        DSL.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/"))),
+                        DSL.and(DSL.gte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                                 DSL.literal(
                                     fromObjectValue(dateFormat.format(new Date(startTime)),
                                         ExprCoreType.TIMESTAMP))),
-                            dsl.lte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
+                            DSL.lte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                                 DSL.literal(
                                     fromObjectValue(dateFormat.format(new Date(endTime)),
                                         ExprCoreType.TIMESTAMP)))))),
                 ImmutableList
                     .of(named("AVG(@value)",
-                        dsl.avg(DSL.ref("@value", INTEGER)))),
+                        DSL.avg(DSL.ref("@value", INTEGER)))),
                 ImmutableList.of(named("job", DSL.ref("job", STRING)),
                     named("span", DSL.span(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                         DSL.literal(40), "")))),
@@ -560,20 +557,20 @@ class PrometheusMetricTableTest {
     DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     PhysicalPlan plan = prometheusMetricTable.implement(
         project(indexScanAgg("prometheus_http_total_requests",
-                dsl.and(dsl.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
-                    dsl.and(
-                        dsl.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/"))),
-                        dsl.and(dsl.gte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
+                DSL.and(DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
+                    DSL.and(
+                        DSL.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/"))),
+                        DSL.and(DSL.gte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                                 DSL.literal(
                                     fromObjectValue(dateFormat.format(new Date(startTime)),
                                         ExprCoreType.TIMESTAMP))),
-                            dsl.lte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
+                            DSL.lte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                                 DSL.literal(
                                     fromObjectValue(dateFormat.format(new Date(endTime)),
                                         ExprCoreType.TIMESTAMP)))))),
                 ImmutableList
                     .of(named("AVG(@value)",
-                        dsl.avg(DSL.ref("@value", INTEGER)))),
+                        DSL.avg(DSL.ref("@value", INTEGER)))),
                 ImmutableList.of(
                     named("span", DSL.span(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                         DSL.literal(40), "s")))),
@@ -607,20 +604,20 @@ class PrometheusMetricTableTest {
     DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     PhysicalPlan plan = prometheusMetricTable.implement(
         project(indexScanAgg("prometheus_http_total_requests",
-                dsl.and(dsl.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
-                    dsl.and(
-                        dsl.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/"))),
-                        dsl.and(dsl.gte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
+                DSL.and(DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
+                    DSL.and(
+                        DSL.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/"))),
+                        DSL.and(DSL.gte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                                 DSL.literal(
                                     fromObjectValue(dateFormat.format(new Date(startTime)),
                                         ExprCoreType.TIMESTAMP))),
-                            dsl.lte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
+                            DSL.lte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                                 DSL.literal(
                                     fromObjectValue(dateFormat.format(new Date(endTime)),
                                         ExprCoreType.TIMESTAMP)))))),
                 ImmutableList
                     .of(named("AVG(@value)",
-                        dsl.avg(DSL.ref("@value", INTEGER)))),
+                        DSL.avg(DSL.ref("@value", INTEGER)))),
                 ImmutableList.of(named("span",
                     DSL.span(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
                     DSL.literal(40), "s")))),
@@ -657,13 +654,13 @@ class PrometheusMetricTableTest {
     PrometheusMetricTable prometheusMetricTable =
         new PrometheusMetricTable(client, "prometheus_http_total_requests");
     LogicalPlan plan = project(indexScanAgg("prometheus_http_total_requests",
-        dsl.and(dsl.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
-            dsl.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/")))),
+        DSL.and(DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
+            DSL.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/")))),
         ImmutableList
             .of(named("AVG(@value)",
-                    dsl.avg(DSL.ref("@value", INTEGER))),
+                    DSL.avg(DSL.ref("@value", INTEGER))),
                 named("SUM(@value)",
-                    dsl.avg(DSL.ref("@value", INTEGER)))),
+                    DSL.avg(DSL.ref("@value", INTEGER)))),
         ImmutableList.of(named("job", DSL.ref("job", STRING)))));
 
     RuntimeException runtimeException = Assertions.assertThrows(RuntimeException.class,
@@ -678,11 +675,11 @@ class PrometheusMetricTableTest {
     PrometheusMetricTable prometheusMetricTable =
         new PrometheusMetricTable(client, "prometheus_http_total_requests");
     LogicalPlan plan = project(indexScanAgg("prometheus_http_total_requests",
-        dsl.and(dsl.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
-            dsl.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/")))),
+        DSL.and(DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
+            DSL.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/")))),
         ImmutableList
             .of(named("VAR_SAMP(@value)",
-                dsl.varSamp(DSL.ref("@value", INTEGER)))),
+                DSL.varSamp(DSL.ref("@value", INTEGER)))),
         ImmutableList.of(named("job", DSL.ref("job", STRING)))));
 
     RuntimeException runtimeException = Assertions.assertThrows(RuntimeException.class,
@@ -695,8 +692,8 @@ class PrometheusMetricTableTest {
     PrometheusMetricTable prometheusMetricTable =
         new PrometheusMetricTable(client, "prometheus_http_total_requests");
     LogicalPlan plan = indexScan("prometheus_http_total_requests",
-        dsl.or(dsl.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
-            dsl.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/")))));
+        DSL.or(DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
+            DSL.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/")))));
     RuntimeException exception
         = assertThrows(RuntimeException.class, () -> prometheusMetricTable.implement(plan));
     assertEquals("Prometheus Catalog doesn't support or in where command.", exception.getMessage());
@@ -710,8 +707,8 @@ class PrometheusMetricTableTest {
     PrometheusMetricTable prometheusMetricTable =
         new PrometheusMetricTable(client, "prometheus_http_total_requests");
     LogicalPlan logicalPlan = project(indexScan("prometheus_http_total_requests",
-        dsl.and(dsl.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
-            dsl.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/"))))),
+        DSL.and(DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
+            DSL.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/"))))),
         finalProjectList, null);
     PhysicalPlan physicalPlan = prometheusMetricTable.implement(logicalPlan);
     assertTrue(physicalPlan instanceof ProjectOperator);

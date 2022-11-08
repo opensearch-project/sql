@@ -153,90 +153,90 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     }
 
     FunctionExpression getDateFormatExpression() {
-      return dsl.date_format(DSL.literal(date), DSL.literal(getFormatter()));
+      return DSL.date_format(DSL.literal(date), DSL.literal(getFormatter()));
     }
   }
 
   @Test
   public void adddate() {
-    FunctionExpression expr = dsl.adddate(dsl.date(DSL.literal("2020-08-26")), DSL.literal(7));
+    FunctionExpression expr = DSL.adddate(DSL.date(DSL.literal("2020-08-26")), DSL.literal(7));
     assertEquals(DATE, expr.type());
     assertEquals(new ExprDateValue("2020-09-02"), expr.valueOf(env));
     assertEquals("adddate(date(\"2020-08-26\"), 7)", expr.toString());
 
-    expr = dsl.adddate(dsl.timestamp(DSL.literal("2020-08-26 12:05:00")), DSL.literal(7));
+    expr = DSL.adddate(DSL.timestamp(DSL.literal("2020-08-26 12:05:00")), DSL.literal(7));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue("2020-09-02 12:05:00"), expr.valueOf(env));
     assertEquals("adddate(timestamp(\"2020-08-26 12:05:00\"), 7)", expr.toString());
 
-    expr = dsl.adddate(
-        dsl.date(DSL.literal("2020-08-26")), dsl.interval(DSL.literal(1), DSL.literal("hour")));
+    expr = DSL.adddate(
+        DSL.date(DSL.literal("2020-08-26")), DSL.interval(DSL.literal(1), DSL.literal("hour")));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue("2020-08-26 01:00:00"), expr.valueOf(env));
     assertEquals("adddate(date(\"2020-08-26\"), interval(1, \"hour\"))", expr.toString());
 
-    expr = dsl.adddate(DSL.literal("2020-08-26"), DSL.literal(7));
+    expr = DSL.adddate(DSL.literal("2020-08-26"), DSL.literal(7));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDateValue("2020-09-02"), expr.valueOf(env));
     assertEquals("adddate(\"2020-08-26\", 7)", expr.toString());
 
-    expr = dsl.adddate(DSL.literal("2020-08-26 12:05:00"), DSL.literal(7));
+    expr = DSL.adddate(DSL.literal("2020-08-26 12:05:00"), DSL.literal(7));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue("2020-09-02 12:05:00"), expr.valueOf(env));
     assertEquals("adddate(\"2020-08-26 12:05:00\", 7)", expr.toString());
 
-    expr = dsl
-        .adddate(DSL.literal("2020-08-26"), dsl.interval(DSL.literal(1), DSL.literal("hour")));
+    expr = DSL
+        .adddate(DSL.literal("2020-08-26"), DSL.interval(DSL.literal(1), DSL.literal("hour")));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue("2020-08-26 01:00:00"), expr.valueOf(env));
     assertEquals("adddate(\"2020-08-26\", interval(1, \"hour\"))", expr.toString());
 
-    expr = dsl
-        .adddate(DSL.literal("2020-08-26"), dsl.interval(DSL.literal(1), DSL.literal("day")));
+    expr = DSL
+        .adddate(DSL.literal("2020-08-26"), DSL.interval(DSL.literal(1), DSL.literal("day")));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDateValue("2020-08-27"), expr.valueOf(env));
     assertEquals("adddate(\"2020-08-26\", interval(1, \"day\"))", expr.toString());
 
     when(nullRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(dsl.adddate(nullRef, DSL.literal(1L))));
+    assertEquals(nullValue(), eval(DSL.adddate(nullRef, DSL.literal(1L))));
     assertEquals(nullValue(),
-        eval(dsl.adddate(nullRef, dsl.interval(DSL.literal(1), DSL.literal("month")))));
+        eval(DSL.adddate(nullRef, DSL.interval(DSL.literal(1), DSL.literal("month")))));
 
     when(missingRef.type()).thenReturn(DATE);
-    assertEquals(missingValue(), eval(dsl.adddate(missingRef, DSL.literal(1L))));
+    assertEquals(missingValue(), eval(DSL.adddate(missingRef, DSL.literal(1L))));
     assertEquals(missingValue(),
-        eval(dsl.adddate(missingRef, dsl.interval(DSL.literal(1), DSL.literal("month")))));
+        eval(DSL.adddate(missingRef, DSL.interval(DSL.literal(1), DSL.literal("month")))));
 
     when(nullRef.type()).thenReturn(LONG);
     when(missingRef.type()).thenReturn(LONG);
-    assertEquals(nullValue(), eval(dsl.adddate(dsl.date(DSL.literal("2020-08-26")), nullRef)));
+    assertEquals(nullValue(), eval(DSL.adddate(DSL.date(DSL.literal("2020-08-26")), nullRef)));
     assertEquals(missingValue(),
-        eval(dsl.adddate(dsl.date(DSL.literal("2020-08-26")), missingRef)));
+        eval(DSL.adddate(DSL.date(DSL.literal("2020-08-26")), missingRef)));
 
     when(nullRef.type()).thenReturn(INTERVAL);
     when(missingRef.type()).thenReturn(INTERVAL);
-    assertEquals(nullValue(), eval(dsl.adddate(dsl.date(DSL.literal("2020-08-26")), nullRef)));
+    assertEquals(nullValue(), eval(DSL.adddate(DSL.date(DSL.literal("2020-08-26")), nullRef)));
     assertEquals(missingValue(),
-        eval(dsl.adddate(dsl.date(DSL.literal("2020-08-26")), missingRef)));
+        eval(DSL.adddate(DSL.date(DSL.literal("2020-08-26")), missingRef)));
 
     when(nullRef.type()).thenReturn(DATE);
     when(missingRef.type()).thenReturn(INTERVAL);
-    assertEquals(missingValue(), eval(dsl.adddate(nullRef, missingRef)));
+    assertEquals(missingValue(), eval(DSL.adddate(nullRef, missingRef)));
   }
 
   @Test
   public void date() {
     when(nullRef.type()).thenReturn(DATE);
     when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(dsl.date(nullRef)));
-    assertEquals(missingValue(), eval(dsl.date(missingRef)));
+    assertEquals(nullValue(), eval(DSL.date(nullRef)));
+    assertEquals(missingValue(), eval(DSL.date(missingRef)));
 
-    FunctionExpression expr = dsl.date(DSL.literal("2020-08-17"));
+    FunctionExpression expr = DSL.date(DSL.literal("2020-08-17"));
     assertEquals(DATE, expr.type());
     assertEquals(new ExprDateValue("2020-08-17"), eval(expr));
     assertEquals("date(\"2020-08-17\")", expr.toString());
 
-    expr = dsl.date(DSL.literal(new ExprDateValue("2020-08-17")));
+    expr = DSL.date(DSL.literal(new ExprDateValue("2020-08-17")));
     assertEquals(DATE, expr.type());
     assertEquals(new ExprDateValue("2020-08-17"), eval(expr));
     assertEquals("date(DATE '2020-08-17')", expr.toString());
@@ -244,136 +244,136 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void date_add() {
-    FunctionExpression expr = dsl.date_add(dsl.date(DSL.literal("2020-08-26")), DSL.literal(7));
+    FunctionExpression expr = DSL.date_add(DSL.date(DSL.literal("2020-08-26")), DSL.literal(7));
     assertEquals(DATE, expr.type());
     assertEquals(new ExprDateValue("2020-09-02"), expr.valueOf(env));
     assertEquals("date_add(date(\"2020-08-26\"), 7)", expr.toString());
 
-    expr = dsl.date_add(DSL.literal("2020-08-26 12:05:00"), DSL.literal(7));
+    expr = DSL.date_add(DSL.literal("2020-08-26 12:05:00"), DSL.literal(7));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue("2020-09-02 12:05:00"), expr.valueOf(env));
     assertEquals("date_add(\"2020-08-26 12:05:00\", 7)", expr.toString());
 
-    expr = dsl.date_add(dsl.timestamp(DSL.literal("2020-08-26 12:05:00")), DSL.literal(7));
+    expr = DSL.date_add(DSL.timestamp(DSL.literal("2020-08-26 12:05:00")), DSL.literal(7));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue("2020-09-02 12:05:00"), expr.valueOf(env));
     assertEquals("date_add(timestamp(\"2020-08-26 12:05:00\"), 7)", expr.toString());
 
-    expr = dsl.date_add(
-        dsl.date(DSL.literal("2020-08-26")), dsl.interval(DSL.literal(1), DSL.literal("hour")));
+    expr = DSL.date_add(
+        DSL.date(DSL.literal("2020-08-26")), DSL.interval(DSL.literal(1), DSL.literal("hour")));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue("2020-08-26 01:00:00"), expr.valueOf(env));
     assertEquals("date_add(date(\"2020-08-26\"), interval(1, \"hour\"))", expr.toString());
 
-    expr = dsl
-        .date_add(DSL.literal("2020-08-26"), dsl.interval(DSL.literal(1), DSL.literal("hour")));
+    expr = DSL
+        .date_add(DSL.literal("2020-08-26"), DSL.interval(DSL.literal(1), DSL.literal("hour")));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue("2020-08-26 01:00:00"), expr.valueOf(env));
     assertEquals("date_add(\"2020-08-26\", interval(1, \"hour\"))", expr.toString());
 
     when(nullRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(dsl.date_add(nullRef, DSL.literal(1L))));
+    assertEquals(nullValue(), eval(DSL.date_add(nullRef, DSL.literal(1L))));
     assertEquals(nullValue(),
-        eval(dsl.date_add(nullRef, dsl.interval(DSL.literal(1), DSL.literal("month")))));
+        eval(DSL.date_add(nullRef, DSL.interval(DSL.literal(1), DSL.literal("month")))));
 
     when(missingRef.type()).thenReturn(DATE);
-    assertEquals(missingValue(), eval(dsl.date_add(missingRef, DSL.literal(1L))));
+    assertEquals(missingValue(), eval(DSL.date_add(missingRef, DSL.literal(1L))));
     assertEquals(missingValue(),
-        eval(dsl.date_add(missingRef, dsl.interval(DSL.literal(1), DSL.literal("month")))));
+        eval(DSL.date_add(missingRef, DSL.interval(DSL.literal(1), DSL.literal("month")))));
 
     when(nullRef.type()).thenReturn(LONG);
     when(missingRef.type()).thenReturn(LONG);
-    assertEquals(nullValue(), eval(dsl.date_add(dsl.date(DSL.literal("2020-08-26")), nullRef)));
+    assertEquals(nullValue(), eval(DSL.date_add(DSL.date(DSL.literal("2020-08-26")), nullRef)));
     assertEquals(missingValue(),
-        eval(dsl.date_add(dsl.date(DSL.literal("2020-08-26")), missingRef)));
+        eval(DSL.date_add(DSL.date(DSL.literal("2020-08-26")), missingRef)));
 
     when(nullRef.type()).thenReturn(INTERVAL);
     when(missingRef.type()).thenReturn(INTERVAL);
-    assertEquals(nullValue(), eval(dsl.date_add(dsl.date(DSL.literal("2020-08-26")), nullRef)));
+    assertEquals(nullValue(), eval(DSL.date_add(DSL.date(DSL.literal("2020-08-26")), nullRef)));
     assertEquals(missingValue(),
-        eval(dsl.date_add(dsl.date(DSL.literal("2020-08-26")), missingRef)));
+        eval(DSL.date_add(DSL.date(DSL.literal("2020-08-26")), missingRef)));
 
     when(nullRef.type()).thenReturn(DATE);
     when(missingRef.type()).thenReturn(INTERVAL);
-    assertEquals(missingValue(), eval(dsl.date_add(nullRef, missingRef)));
+    assertEquals(missingValue(), eval(DSL.date_add(nullRef, missingRef)));
   }
 
   @Test
   public void date_sub() {
-    FunctionExpression expr = dsl.date_sub(dsl.date(DSL.literal("2020-08-26")), DSL.literal(7));
+    FunctionExpression expr = DSL.date_sub(DSL.date(DSL.literal("2020-08-26")), DSL.literal(7));
     assertEquals(DATE, expr.type());
     assertEquals(new ExprDateValue("2020-08-19"), expr.valueOf(env));
     assertEquals("date_sub(date(\"2020-08-26\"), 7)", expr.toString());
 
-    expr = dsl.date_sub(DSL.literal("2020-08-26"), DSL.literal(7));
+    expr = DSL.date_sub(DSL.literal("2020-08-26"), DSL.literal(7));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDateValue("2020-08-19"), expr.valueOf(env));
     assertEquals("date_sub(\"2020-08-26\", 7)", expr.toString());
 
-    expr = dsl.date_sub(dsl.timestamp(DSL.literal("2020-08-26 12:05:00")), DSL.literal(7));
+    expr = DSL.date_sub(DSL.timestamp(DSL.literal("2020-08-26 12:05:00")), DSL.literal(7));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue("2020-08-19 12:05:00"), expr.valueOf(env));
     assertEquals("date_sub(timestamp(\"2020-08-26 12:05:00\"), 7)", expr.toString());
 
-    expr = dsl.date_sub(DSL.literal("2020-08-26 12:05:00"), DSL.literal(7));
+    expr = DSL.date_sub(DSL.literal("2020-08-26 12:05:00"), DSL.literal(7));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue("2020-08-19 12:05:00"), expr.valueOf(env));
     assertEquals("date_sub(\"2020-08-26 12:05:00\", 7)", expr.toString());
 
-    expr = dsl.date_sub(dsl.timestamp(DSL.literal("2020-08-26 12:05:00")),
-        dsl.interval(DSL.literal(1), DSL.literal("hour")));
+    expr = DSL.date_sub(DSL.timestamp(DSL.literal("2020-08-26 12:05:00")),
+        DSL.interval(DSL.literal(1), DSL.literal("hour")));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue("2020-08-26 11:05:00"), expr.valueOf(env));
     assertEquals("date_sub(timestamp(\"2020-08-26 12:05:00\"), interval(1, \"hour\"))",
         expr.toString());
 
-    expr = dsl.date_sub(DSL.literal("2020-08-26 12:05:00"),
-        dsl.interval(DSL.literal(1), DSL.literal("year")));
+    expr = DSL.date_sub(DSL.literal("2020-08-26 12:05:00"),
+        DSL.interval(DSL.literal(1), DSL.literal("year")));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue("2019-08-26 12:05:00"), expr.valueOf(env));
     assertEquals("date_sub(\"2020-08-26 12:05:00\", interval(1, \"year\"))",
         expr.toString());
 
     when(nullRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(dsl.date_sub(nullRef, DSL.literal(1L))));
+    assertEquals(nullValue(), eval(DSL.date_sub(nullRef, DSL.literal(1L))));
     assertEquals(nullValue(),
-        eval(dsl.date_sub(nullRef, dsl.interval(DSL.literal(1), DSL.literal("month")))));
+        eval(DSL.date_sub(nullRef, DSL.interval(DSL.literal(1), DSL.literal("month")))));
 
     when(missingRef.type()).thenReturn(DATE);
-    assertEquals(missingValue(), eval(dsl.date_sub(missingRef, DSL.literal(1L))));
+    assertEquals(missingValue(), eval(DSL.date_sub(missingRef, DSL.literal(1L))));
     assertEquals(missingValue(),
-        eval(dsl.date_sub(missingRef, dsl.interval(DSL.literal(1), DSL.literal("month")))));
+        eval(DSL.date_sub(missingRef, DSL.interval(DSL.literal(1), DSL.literal("month")))));
 
     when(nullRef.type()).thenReturn(LONG);
     when(missingRef.type()).thenReturn(LONG);
-    assertEquals(nullValue(), eval(dsl.date_sub(dsl.date(DSL.literal("2020-08-26")), nullRef)));
+    assertEquals(nullValue(), eval(DSL.date_sub(DSL.date(DSL.literal("2020-08-26")), nullRef)));
     assertEquals(missingValue(),
-        eval(dsl.date_sub(dsl.date(DSL.literal("2020-08-26")), missingRef)));
+        eval(DSL.date_sub(DSL.date(DSL.literal("2020-08-26")), missingRef)));
 
     when(nullRef.type()).thenReturn(INTERVAL);
     when(missingRef.type()).thenReturn(INTERVAL);
-    assertEquals(nullValue(), eval(dsl.date_sub(dsl.date(DSL.literal("2020-08-26")), nullRef)));
+    assertEquals(nullValue(), eval(DSL.date_sub(DSL.date(DSL.literal("2020-08-26")), nullRef)));
     assertEquals(missingValue(),
-        eval(dsl.date_sub(dsl.date(DSL.literal("2020-08-26")), missingRef)));
+        eval(DSL.date_sub(DSL.date(DSL.literal("2020-08-26")), missingRef)));
 
     when(nullRef.type()).thenReturn(DATE);
     when(missingRef.type()).thenReturn(INTERVAL);
-    assertEquals(missingValue(), eval(dsl.date_sub(nullRef, missingRef)));
+    assertEquals(missingValue(), eval(DSL.date_sub(nullRef, missingRef)));
   }
 
   @Test
   public void day() {
     when(nullRef.type()).thenReturn(DATE);
     when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(dsl.day(nullRef)));
-    assertEquals(missingValue(), eval(dsl.day(missingRef)));
+    assertEquals(nullValue(), eval(DSL.day(nullRef)));
+    assertEquals(missingValue(), eval(DSL.day(missingRef)));
 
-    FunctionExpression expression = dsl.day(DSL.literal(new ExprDateValue("2020-08-07")));
+    FunctionExpression expression = DSL.day(DSL.literal(new ExprDateValue("2020-08-07")));
     assertEquals(INTEGER, expression.type());
     assertEquals("day(DATE '2020-08-07')", expression.toString());
     assertEquals(integerValue(7), eval(expression));
 
-    expression = dsl.day(DSL.literal("2020-08-07"));
+    expression = DSL.day(DSL.literal("2020-08-07"));
     assertEquals(INTEGER, expression.type());
     assertEquals("day(\"2020-08-07\")", expression.toString());
     assertEquals(integerValue(7), eval(expression));
@@ -383,15 +383,15 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void dayName() {
     when(nullRef.type()).thenReturn(DATE);
     when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(dsl.dayname(nullRef)));
-    assertEquals(missingValue(), eval(dsl.dayname(missingRef)));
+    assertEquals(nullValue(), eval(DSL.dayname(nullRef)));
+    assertEquals(missingValue(), eval(DSL.dayname(missingRef)));
 
-    FunctionExpression expression = dsl.dayname(DSL.literal(new ExprDateValue("2020-08-07")));
+    FunctionExpression expression = DSL.dayname(DSL.literal(new ExprDateValue("2020-08-07")));
     assertEquals(STRING, expression.type());
     assertEquals("dayname(DATE '2020-08-07')", expression.toString());
     assertEquals(stringValue("Friday"), eval(expression));
 
-    expression = dsl.dayname(DSL.literal("2020-08-07"));
+    expression = DSL.dayname(DSL.literal("2020-08-07"));
     assertEquals(STRING, expression.type());
     assertEquals("dayname(\"2020-08-07\")", expression.toString());
     assertEquals(stringValue("Friday"), eval(expression));
@@ -401,15 +401,15 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void dayOfMonth() {
     when(nullRef.type()).thenReturn(DATE);
     when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(dsl.dayofmonth(nullRef)));
-    assertEquals(missingValue(), eval(dsl.dayofmonth(missingRef)));
+    assertEquals(nullValue(), eval(DSL.dayofmonth(nullRef)));
+    assertEquals(missingValue(), eval(DSL.dayofmonth(missingRef)));
 
-    FunctionExpression expression = dsl.dayofmonth(DSL.literal(new ExprDateValue("2020-08-07")));
+    FunctionExpression expression = DSL.dayofmonth(DSL.literal(new ExprDateValue("2020-08-07")));
     assertEquals(INTEGER, expression.type());
     assertEquals("dayofmonth(DATE '2020-08-07')", expression.toString());
     assertEquals(integerValue(7), eval(expression));
 
-    expression = dsl.dayofmonth(DSL.literal("2020-07-08"));
+    expression = DSL.dayofmonth(DSL.literal("2020-07-08"));
     assertEquals(INTEGER, expression.type());
     assertEquals("dayofmonth(\"2020-07-08\")", expression.toString());
     assertEquals(integerValue(8), eval(expression));
@@ -419,25 +419,25 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void dayOfWeek() {
     when(nullRef.type()).thenReturn(DATE);
     when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(dsl.dayofweek(nullRef)));
-    assertEquals(missingValue(), eval(dsl.dayofweek(missingRef)));
+    assertEquals(nullValue(), eval(DSL.dayofweek(nullRef)));
+    assertEquals(missingValue(), eval(DSL.dayofweek(missingRef)));
 
-    FunctionExpression expression = dsl.dayofweek(DSL.literal(new ExprDateValue("2020-08-07")));
+    FunctionExpression expression = DSL.dayofweek(DSL.literal(new ExprDateValue("2020-08-07")));
     assertEquals(INTEGER, expression.type());
     assertEquals("dayofweek(DATE '2020-08-07')", expression.toString());
     assertEquals(integerValue(6), eval(expression));
 
-    expression = dsl.dayofweek(DSL.literal(new ExprDateValue("2020-08-09")));
+    expression = DSL.dayofweek(DSL.literal(new ExprDateValue("2020-08-09")));
     assertEquals(INTEGER, expression.type());
     assertEquals("dayofweek(DATE '2020-08-09')", expression.toString());
     assertEquals(integerValue(1), eval(expression));
 
-    expression = dsl.dayofweek(DSL.literal("2020-08-09"));
+    expression = DSL.dayofweek(DSL.literal("2020-08-09"));
     assertEquals(INTEGER, expression.type());
     assertEquals("dayofweek(\"2020-08-09\")", expression.toString());
     assertEquals(integerValue(1), eval(expression));
 
-    expression = dsl.dayofweek(DSL.literal("2020-08-09 01:02:03"));
+    expression = DSL.dayofweek(DSL.literal("2020-08-09 01:02:03"));
     assertEquals(INTEGER, expression.type());
     assertEquals("dayofweek(\"2020-08-09 01:02:03\")", expression.toString());
     assertEquals(integerValue(1), eval(expression));
@@ -447,20 +447,20 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void dayOfYear() {
     when(nullRef.type()).thenReturn(DATE);
     when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(dsl.dayofyear(nullRef)));
-    assertEquals(missingValue(), eval(dsl.dayofyear(missingRef)));
+    assertEquals(nullValue(), eval(DSL.dayofyear(nullRef)));
+    assertEquals(missingValue(), eval(DSL.dayofyear(missingRef)));
 
-    FunctionExpression expression = dsl.dayofyear(DSL.literal(new ExprDateValue("2020-08-07")));
+    FunctionExpression expression = DSL.dayofyear(DSL.literal(new ExprDateValue("2020-08-07")));
     assertEquals(INTEGER, expression.type());
     assertEquals("dayofyear(DATE '2020-08-07')", expression.toString());
     assertEquals(integerValue(220), eval(expression));
 
-    expression = dsl.dayofyear(DSL.literal("2020-08-07"));
+    expression = DSL.dayofyear(DSL.literal("2020-08-07"));
     assertEquals(INTEGER, expression.type());
     assertEquals("dayofyear(\"2020-08-07\")", expression.toString());
     assertEquals(integerValue(220), eval(expression));
 
-    expression = dsl.dayofyear(DSL.literal("2020-08-07 01:02:03"));
+    expression = DSL.dayofyear(DSL.literal("2020-08-07 01:02:03"));
     assertEquals(INTEGER, expression.type());
     assertEquals("dayofyear(\"2020-08-07 01:02:03\")", expression.toString());
     assertEquals(integerValue(220), eval(expression));
@@ -470,10 +470,10 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void from_days() {
     when(nullRef.type()).thenReturn(LONG);
     when(missingRef.type()).thenReturn(LONG);
-    assertEquals(nullValue(), eval(dsl.from_days(nullRef)));
-    assertEquals(missingValue(), eval(dsl.from_days(missingRef)));
+    assertEquals(nullValue(), eval(DSL.from_days(nullRef)));
+    assertEquals(missingValue(), eval(DSL.from_days(missingRef)));
 
-    FunctionExpression expression = dsl.from_days(DSL.literal(new ExprLongValue(730669)));
+    FunctionExpression expression = DSL.from_days(DSL.literal(new ExprLongValue(730669)));
     assertEquals(DATE, expression.type());
     assertEquals("from_days(730669)", expression.toString());
     assertEquals(new ExprDateValue("2000-07-03"), expression.valueOf(env));
@@ -483,30 +483,30 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void hour() {
     when(nullRef.type()).thenReturn(TIME);
     when(missingRef.type()).thenReturn(TIME);
-    assertEquals(nullValue(), eval(dsl.hour(nullRef)));
-    assertEquals(missingValue(), eval(dsl.hour(missingRef)));
+    assertEquals(nullValue(), eval(DSL.hour(nullRef)));
+    assertEquals(missingValue(), eval(DSL.hour(missingRef)));
 
-    FunctionExpression expression = dsl.hour(DSL.literal(new ExprTimeValue("01:02:03")));
+    FunctionExpression expression = DSL.hour(DSL.literal(new ExprTimeValue("01:02:03")));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(1), eval(expression));
     assertEquals("hour(TIME '01:02:03')", expression.toString());
 
-    expression = dsl.hour(DSL.literal("01:02:03"));
+    expression = DSL.hour(DSL.literal("01:02:03"));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(1), eval(expression));
     assertEquals("hour(\"01:02:03\")", expression.toString());
 
-    expression = dsl.hour(DSL.literal(new ExprTimestampValue("2020-08-17 01:02:03")));
+    expression = DSL.hour(DSL.literal(new ExprTimestampValue("2020-08-17 01:02:03")));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(1), expression.valueOf(env));
     assertEquals("hour(TIMESTAMP '2020-08-17 01:02:03')", expression.toString());
 
-    expression = dsl.hour(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03")));
+    expression = DSL.hour(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03")));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(1), expression.valueOf(env));
     assertEquals("hour(DATETIME '2020-08-17 01:02:03')", expression.toString());
 
-    expression = dsl.hour(DSL.literal("2020-08-17 01:02:03"));
+    expression = DSL.hour(DSL.literal("2020-08-17 01:02:03"));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(1), expression.valueOf(env));
     assertEquals("hour(\"2020-08-17 01:02:03\")", expression.toString());
@@ -516,41 +516,41 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void microsecond() {
     when(nullRef.type()).thenReturn(TIME);
     when(missingRef.type()).thenReturn(TIME);
-    assertEquals(nullValue(), eval(dsl.microsecond(nullRef)));
-    assertEquals(missingValue(), eval(dsl.microsecond(missingRef)));
+    assertEquals(nullValue(), eval(DSL.microsecond(nullRef)));
+    assertEquals(missingValue(), eval(DSL.microsecond(missingRef)));
 
-    FunctionExpression expression = dsl
+    FunctionExpression expression = DSL
         .microsecond(DSL.literal(new ExprTimeValue("01:02:03.123456")));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(123456), eval(expression));
     assertEquals("microsecond(TIME '01:02:03.123456')", expression.toString());
 
-    expression = dsl.microsecond(DSL.literal(new ExprTimeValue("01:02:03.00")));
+    expression = DSL.microsecond(DSL.literal(new ExprTimeValue("01:02:03.00")));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(0), eval(expression));
     assertEquals("microsecond(TIME '01:02:03')", expression.toString());
 
-    expression = dsl.microsecond(DSL.literal("01:02:03.12"));
+    expression = DSL.microsecond(DSL.literal("01:02:03.12"));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(120000), eval(expression));
     assertEquals("microsecond(\"01:02:03.12\")", expression.toString());
 
-    expression = dsl.microsecond(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03.000010")));
+    expression = DSL.microsecond(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03.000010")));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(10), expression.valueOf(env));
     assertEquals("microsecond(DATETIME '2020-08-17 01:02:03.00001')", expression.toString());
 
-    expression = dsl.microsecond(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03.123456")));
+    expression = DSL.microsecond(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03.123456")));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(123456), expression.valueOf(env));
     assertEquals("microsecond(DATETIME '2020-08-17 01:02:03.123456')", expression.toString());
 
-    expression = dsl.microsecond(DSL.literal("2020-08-17 01:02:03.123456"));
+    expression = DSL.microsecond(DSL.literal("2020-08-17 01:02:03.123456"));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(123456), expression.valueOf(env));
     assertEquals("microsecond(\"2020-08-17 01:02:03.123456\")", expression.toString());
 
-    expression = dsl.microsecond(DSL.literal(new ExprTimestampValue("2020-08-17 01:02:03.000010")));
+    expression = DSL.microsecond(DSL.literal(new ExprTimestampValue("2020-08-17 01:02:03.000010")));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(10), expression.valueOf(env));
     assertEquals("microsecond(TIMESTAMP '2020-08-17 01:02:03.00001')", expression.toString());
@@ -560,30 +560,30 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void minute() {
     when(nullRef.type()).thenReturn(TIME);
     when(missingRef.type()).thenReturn(TIME);
-    assertEquals(nullValue(), eval(dsl.minute(nullRef)));
-    assertEquals(missingValue(), eval(dsl.minute(missingRef)));
+    assertEquals(nullValue(), eval(DSL.minute(nullRef)));
+    assertEquals(missingValue(), eval(DSL.minute(missingRef)));
 
-    FunctionExpression expression = dsl.minute(DSL.literal(new ExprTimeValue("01:02:03")));
+    FunctionExpression expression = DSL.minute(DSL.literal(new ExprTimeValue("01:02:03")));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(2), eval(expression));
     assertEquals("minute(TIME '01:02:03')", expression.toString());
 
-    expression = dsl.minute(DSL.literal("01:02:03"));
+    expression = DSL.minute(DSL.literal("01:02:03"));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(2), eval(expression));
     assertEquals("minute(\"01:02:03\")", expression.toString());
 
-    expression = dsl.minute(DSL.literal(new ExprTimestampValue("2020-08-17 01:02:03")));
+    expression = DSL.minute(DSL.literal(new ExprTimestampValue("2020-08-17 01:02:03")));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(2), expression.valueOf(env));
     assertEquals("minute(TIMESTAMP '2020-08-17 01:02:03')", expression.toString());
 
-    expression = dsl.minute(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03")));
+    expression = DSL.minute(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03")));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(2), expression.valueOf(env));
     assertEquals("minute(DATETIME '2020-08-17 01:02:03')", expression.toString());
 
-    expression = dsl.minute(DSL.literal("2020-08-17 01:02:03"));
+    expression = DSL.minute(DSL.literal("2020-08-17 01:02:03"));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(2), expression.valueOf(env));
     assertEquals("minute(\"2020-08-17 01:02:03\")", expression.toString());
@@ -593,20 +593,20 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void month() {
     when(nullRef.type()).thenReturn(DATE);
     when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(dsl.month(nullRef)));
-    assertEquals(missingValue(), eval(dsl.month(missingRef)));
+    assertEquals(nullValue(), eval(DSL.month(nullRef)));
+    assertEquals(missingValue(), eval(DSL.month(missingRef)));
 
-    FunctionExpression expression = dsl.month(DSL.literal(new ExprDateValue("2020-08-07")));
+    FunctionExpression expression = DSL.month(DSL.literal(new ExprDateValue("2020-08-07")));
     assertEquals(INTEGER, expression.type());
     assertEquals("month(DATE '2020-08-07')", expression.toString());
     assertEquals(integerValue(8), eval(expression));
 
-    expression = dsl.month(DSL.literal("2020-08-07"));
+    expression = DSL.month(DSL.literal("2020-08-07"));
     assertEquals(INTEGER, expression.type());
     assertEquals("month(\"2020-08-07\")", expression.toString());
     assertEquals(integerValue(8), eval(expression));
 
-    expression = dsl.month(DSL.literal("2020-08-07 01:02:03"));
+    expression = DSL.month(DSL.literal("2020-08-07 01:02:03"));
     assertEquals(INTEGER, expression.type());
     assertEquals("month(\"2020-08-07 01:02:03\")", expression.toString());
     assertEquals(integerValue(8), eval(expression));
@@ -616,20 +616,20 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void monthName() {
     when(nullRef.type()).thenReturn(DATE);
     when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(dsl.monthname(nullRef)));
-    assertEquals(missingValue(), eval(dsl.monthname(missingRef)));
+    assertEquals(nullValue(), eval(DSL.monthname(nullRef)));
+    assertEquals(missingValue(), eval(DSL.monthname(missingRef)));
 
-    FunctionExpression expression = dsl.monthname(DSL.literal(new ExprDateValue("2020-08-07")));
+    FunctionExpression expression = DSL.monthname(DSL.literal(new ExprDateValue("2020-08-07")));
     assertEquals(STRING, expression.type());
     assertEquals("monthname(DATE '2020-08-07')", expression.toString());
     assertEquals(stringValue("August"), eval(expression));
 
-    expression = dsl.monthname(DSL.literal("2020-08-07"));
+    expression = DSL.monthname(DSL.literal("2020-08-07"));
     assertEquals(STRING, expression.type());
     assertEquals("monthname(\"2020-08-07\")", expression.toString());
     assertEquals(stringValue("August"), eval(expression));
 
-    expression = dsl.monthname(DSL.literal("2020-08-07 01:02:03"));
+    expression = DSL.monthname(DSL.literal("2020-08-07 01:02:03"));
     assertEquals(STRING, expression.type());
     assertEquals("monthname(\"2020-08-07 01:02:03\")", expression.toString());
     assertEquals(stringValue("August"), eval(expression));
@@ -639,20 +639,20 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void quarter() {
     when(nullRef.type()).thenReturn(DATE);
     when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(dsl.quarter(nullRef)));
-    assertEquals(missingValue(), eval(dsl.quarter(missingRef)));
+    assertEquals(nullValue(), eval(DSL.quarter(nullRef)));
+    assertEquals(missingValue(), eval(DSL.quarter(missingRef)));
 
-    FunctionExpression expression = dsl.quarter(DSL.literal(new ExprDateValue("2020-08-07")));
+    FunctionExpression expression = DSL.quarter(DSL.literal(new ExprDateValue("2020-08-07")));
     assertEquals(INTEGER, expression.type());
     assertEquals("quarter(DATE '2020-08-07')", expression.toString());
     assertEquals(integerValue(3), eval(expression));
 
-    expression = dsl.quarter(DSL.literal("2020-12-07"));
+    expression = DSL.quarter(DSL.literal("2020-12-07"));
     assertEquals(INTEGER, expression.type());
     assertEquals("quarter(\"2020-12-07\")", expression.toString());
     assertEquals(integerValue(4), eval(expression));
 
-    expression = dsl.quarter(DSL.literal("2020-12-07 01:02:03"));
+    expression = DSL.quarter(DSL.literal("2020-12-07 01:02:03"));
     assertEquals(INTEGER, expression.type());
     assertEquals("quarter(\"2020-12-07 01:02:03\")", expression.toString());
     assertEquals(integerValue(4), eval(expression));
@@ -662,30 +662,30 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void second() {
     when(nullRef.type()).thenReturn(TIME);
     when(missingRef.type()).thenReturn(TIME);
-    assertEquals(nullValue(), eval(dsl.second(nullRef)));
-    assertEquals(missingValue(), eval(dsl.second(missingRef)));
+    assertEquals(nullValue(), eval(DSL.second(nullRef)));
+    assertEquals(missingValue(), eval(DSL.second(missingRef)));
 
-    FunctionExpression expression = dsl.second(DSL.literal(new ExprTimeValue("01:02:03")));
+    FunctionExpression expression = DSL.second(DSL.literal(new ExprTimeValue("01:02:03")));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(3), eval(expression));
     assertEquals("second(TIME '01:02:03')", expression.toString());
 
-    expression = dsl.second(DSL.literal("01:02:03"));
+    expression = DSL.second(DSL.literal("01:02:03"));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(3), eval(expression));
     assertEquals("second(\"01:02:03\")", expression.toString());
 
-    expression = dsl.second(DSL.literal("2020-08-17 01:02:03"));
+    expression = DSL.second(DSL.literal("2020-08-17 01:02:03"));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(3), eval(expression));
     assertEquals("second(\"2020-08-17 01:02:03\")", expression.toString());
 
-    expression = dsl.second(DSL.literal(new ExprTimestampValue("2020-08-17 01:02:03")));
+    expression = DSL.second(DSL.literal(new ExprTimestampValue("2020-08-17 01:02:03")));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(3), expression.valueOf(env));
     assertEquals("second(TIMESTAMP '2020-08-17 01:02:03')", expression.toString());
 
-    expression = dsl.second(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03")));
+    expression = DSL.second(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03")));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(3), expression.valueOf(env));
     assertEquals("second(DATETIME '2020-08-17 01:02:03')", expression.toString());
@@ -693,87 +693,87 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void subdate() {
-    FunctionExpression expr = dsl.subdate(dsl.date(DSL.literal("2020-08-26")), DSL.literal(7));
+    FunctionExpression expr = DSL.subdate(DSL.date(DSL.literal("2020-08-26")), DSL.literal(7));
     assertEquals(DATE, expr.type());
     assertEquals(new ExprDateValue("2020-08-19"), expr.valueOf(env));
     assertEquals("subdate(date(\"2020-08-26\"), 7)", expr.toString());
 
-    expr = dsl.subdate(DSL.literal("2020-08-26"), DSL.literal(7));
+    expr = DSL.subdate(DSL.literal("2020-08-26"), DSL.literal(7));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDateValue("2020-08-19"), expr.valueOf(env));
     assertEquals("subdate(\"2020-08-26\", 7)", expr.toString());
 
-    expr = dsl.subdate(dsl.timestamp(DSL.literal("2020-08-26 12:05:00")), DSL.literal(7));
+    expr = DSL.subdate(DSL.timestamp(DSL.literal("2020-08-26 12:05:00")), DSL.literal(7));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue("2020-08-19 12:05:00"), expr.valueOf(env));
     assertEquals("subdate(timestamp(\"2020-08-26 12:05:00\"), 7)", expr.toString());
 
-    expr = dsl.subdate(DSL.literal("2020-08-26 12:05:00"), DSL.literal(7));
+    expr = DSL.subdate(DSL.literal("2020-08-26 12:05:00"), DSL.literal(7));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue("2020-08-19 12:05:00"), expr.valueOf(env));
     assertEquals("subdate(\"2020-08-26 12:05:00\", 7)", expr.toString());
 
-    expr = dsl.subdate(dsl.timestamp(DSL.literal("2020-08-26 12:05:00")),
-        dsl.interval(DSL.literal(1), DSL.literal("hour")));
+    expr = DSL.subdate(DSL.timestamp(DSL.literal("2020-08-26 12:05:00")),
+        DSL.interval(DSL.literal(1), DSL.literal("hour")));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue("2020-08-26 11:05:00"), expr.valueOf(env));
     assertEquals("subdate(timestamp(\"2020-08-26 12:05:00\"), interval(1, \"hour\"))",
         expr.toString());
 
-    expr = dsl.subdate(DSL.literal("2020-08-26 12:05:00"),
-        dsl.interval(DSL.literal(1), DSL.literal("hour")));
+    expr = DSL.subdate(DSL.literal("2020-08-26 12:05:00"),
+        DSL.interval(DSL.literal(1), DSL.literal("hour")));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue("2020-08-26 11:05:00"), expr.valueOf(env));
     assertEquals("subdate(\"2020-08-26 12:05:00\", interval(1, \"hour\"))",
         expr.toString());
 
-    expr = dsl.subdate(DSL.literal("2020-08-26"),
-        dsl.interval(DSL.literal(1), DSL.literal("day")));
+    expr = DSL.subdate(DSL.literal("2020-08-26"),
+        DSL.interval(DSL.literal(1), DSL.literal("day")));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDateValue("2020-08-25"), expr.valueOf(env));
     assertEquals("subdate(\"2020-08-26\", interval(1, \"day\"))",
         expr.toString());
 
     when(nullRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(dsl.subdate(nullRef, DSL.literal(1L))));
+    assertEquals(nullValue(), eval(DSL.subdate(nullRef, DSL.literal(1L))));
     assertEquals(nullValue(),
-        eval(dsl.subdate(nullRef, dsl.interval(DSL.literal(1), DSL.literal("month")))));
+        eval(DSL.subdate(nullRef, DSL.interval(DSL.literal(1), DSL.literal("month")))));
 
     when(missingRef.type()).thenReturn(DATE);
-    assertEquals(missingValue(), eval(dsl.subdate(missingRef, DSL.literal(1L))));
+    assertEquals(missingValue(), eval(DSL.subdate(missingRef, DSL.literal(1L))));
     assertEquals(missingValue(),
-        eval(dsl.subdate(missingRef, dsl.interval(DSL.literal(1), DSL.literal("month")))));
+        eval(DSL.subdate(missingRef, DSL.interval(DSL.literal(1), DSL.literal("month")))));
 
     when(nullRef.type()).thenReturn(LONG);
     when(missingRef.type()).thenReturn(LONG);
-    assertEquals(nullValue(), eval(dsl.subdate(dsl.date(DSL.literal("2020-08-26")), nullRef)));
+    assertEquals(nullValue(), eval(DSL.subdate(DSL.date(DSL.literal("2020-08-26")), nullRef)));
     assertEquals(missingValue(),
-        eval(dsl.subdate(dsl.date(DSL.literal("2020-08-26")), missingRef)));
+        eval(DSL.subdate(DSL.date(DSL.literal("2020-08-26")), missingRef)));
 
     when(nullRef.type()).thenReturn(INTERVAL);
     when(missingRef.type()).thenReturn(INTERVAL);
-    assertEquals(nullValue(), eval(dsl.subdate(dsl.date(DSL.literal("2020-08-26")), nullRef)));
+    assertEquals(nullValue(), eval(DSL.subdate(DSL.date(DSL.literal("2020-08-26")), nullRef)));
     assertEquals(missingValue(),
-        eval(dsl.subdate(dsl.date(DSL.literal("2020-08-26")), missingRef)));
+        eval(DSL.subdate(DSL.date(DSL.literal("2020-08-26")), missingRef)));
 
     when(nullRef.type()).thenReturn(DATE);
     when(missingRef.type()).thenReturn(INTERVAL);
-    assertEquals(missingValue(), eval(dsl.subdate(nullRef, missingRef)));
+    assertEquals(missingValue(), eval(DSL.subdate(nullRef, missingRef)));
   }
 
   @Test
   public void time_to_sec() {
     when(nullRef.type()).thenReturn(TIME);
     when(missingRef.type()).thenReturn(TIME);
-    assertEquals(nullValue(), eval(dsl.time_to_sec(nullRef)));
-    assertEquals(missingValue(), eval(dsl.time_to_sec(missingRef)));
+    assertEquals(nullValue(), eval(DSL.time_to_sec(nullRef)));
+    assertEquals(missingValue(), eval(DSL.time_to_sec(missingRef)));
 
-    FunctionExpression expression = dsl.time_to_sec(DSL.literal(new ExprTimeValue("22:23:00")));
+    FunctionExpression expression = DSL.time_to_sec(DSL.literal(new ExprTimeValue("22:23:00")));
     assertEquals(LONG, expression.type());
     assertEquals("time_to_sec(TIME '22:23:00')", expression.toString());
     assertEquals(longValue(80580L), eval(expression));
 
-    expression = dsl.time_to_sec(DSL.literal("22:23:00"));
+    expression = DSL.time_to_sec(DSL.literal("22:23:00"));
     assertEquals(LONG, expression.type());
     assertEquals("time_to_sec(\"22:23:00\")", expression.toString());
     assertEquals(longValue(80580L), eval(expression));
@@ -783,15 +783,15 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void time() {
     when(nullRef.type()).thenReturn(TIME);
     when(missingRef.type()).thenReturn(TIME);
-    assertEquals(nullValue(), eval(dsl.time(nullRef)));
-    assertEquals(missingValue(), eval(dsl.time(missingRef)));
+    assertEquals(nullValue(), eval(DSL.time(nullRef)));
+    assertEquals(missingValue(), eval(DSL.time(missingRef)));
 
-    FunctionExpression expr = dsl.time(DSL.literal("01:01:01"));
+    FunctionExpression expr = DSL.time(DSL.literal("01:01:01"));
     assertEquals(TIME, expr.type());
     assertEquals(new ExprTimeValue("01:01:01"), eval(expr));
     assertEquals("time(\"01:01:01\")", expr.toString());
 
-    expr = dsl.time(DSL.literal(new ExprTimeValue("01:01:01")));
+    expr = DSL.time(DSL.literal(new ExprTimeValue("01:01:01")));
     assertEquals(TIME, expr.type());
     assertEquals(new ExprTimeValue("01:01:01"), eval(expr));
     assertEquals("time(TIME '01:01:01')", expr.toString());
@@ -801,22 +801,22 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void timestamp() {
     when(nullRef.type()).thenReturn(TIMESTAMP);
     when(missingRef.type()).thenReturn(TIMESTAMP);
-    assertEquals(nullValue(), eval(dsl.timestamp(nullRef)));
-    assertEquals(missingValue(), eval(dsl.timestamp(missingRef)));
+    assertEquals(nullValue(), eval(DSL.timestamp(nullRef)));
+    assertEquals(missingValue(), eval(DSL.timestamp(missingRef)));
 
-    FunctionExpression expr = dsl.timestamp(DSL.literal("2020-08-17 01:01:01"));
+    FunctionExpression expr = DSL.timestamp(DSL.literal("2020-08-17 01:01:01"));
     assertEquals(TIMESTAMP, expr.type());
     assertEquals(new ExprTimestampValue("2020-08-17 01:01:01"), expr.valueOf(env));
     assertEquals("timestamp(\"2020-08-17 01:01:01\")", expr.toString());
 
-    expr = dsl.timestamp(DSL.literal(new ExprTimestampValue("2020-08-17 01:01:01")));
+    expr = DSL.timestamp(DSL.literal(new ExprTimestampValue("2020-08-17 01:01:01")));
     assertEquals(TIMESTAMP, expr.type());
     assertEquals(new ExprTimestampValue("2020-08-17 01:01:01"), expr.valueOf(env));
     assertEquals("timestamp(TIMESTAMP '2020-08-17 01:01:01')", expr.toString());
   }
 
   private void testWeek(String date, int mode, int expectedResult) {
-    FunctionExpression expression = dsl
+    FunctionExpression expression = DSL
         .week(DSL.literal(new ExprDateValue(date)), DSL.literal(mode));
     assertEquals(INTEGER, expression.type());
     assertEquals(String.format("week(DATE '%s', %d)", date, mode), expression.toString());
@@ -826,8 +826,8 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   private void testNullMissingWeek(ExprCoreType date) {
     when(nullRef.type()).thenReturn(date);
     when(missingRef.type()).thenReturn(date);
-    assertEquals(nullValue(), eval(dsl.week(nullRef)));
-    assertEquals(missingValue(), eval(dsl.week(missingRef)));
+    assertEquals(nullValue(), eval(DSL.week(nullRef)));
+    assertEquals(missingValue(), eval(DSL.week(missingRef)));
   }
 
   @Test
@@ -839,25 +839,25 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
     when(nullRef.type()).thenReturn(INTEGER);
     when(missingRef.type()).thenReturn(INTEGER);
-    assertEquals(nullValue(), eval(dsl.week(DSL.literal("2019-01-05"), nullRef)));
-    assertEquals(missingValue(), eval(dsl.week(DSL.literal("2019-01-05"), missingRef)));
+    assertEquals(nullValue(), eval(DSL.week(DSL.literal("2019-01-05"), nullRef)));
+    assertEquals(missingValue(), eval(DSL.week(DSL.literal("2019-01-05"), missingRef)));
 
     when(nullRef.type()).thenReturn(DATE);
     when(missingRef.type()).thenReturn(INTEGER);
-    assertEquals(missingValue(), eval(dsl.week(nullRef, missingRef)));
+    assertEquals(missingValue(), eval(DSL.week(nullRef, missingRef)));
 
-    FunctionExpression expression = dsl
+    FunctionExpression expression = DSL
         .week(DSL.literal(new ExprTimestampValue("2019-01-05 01:02:03")));
     assertEquals(INTEGER, expression.type());
     assertEquals("week(TIMESTAMP '2019-01-05 01:02:03')", expression.toString());
     assertEquals(integerValue(0), eval(expression));
 
-    expression = dsl.week(DSL.literal("2019-01-05"));
+    expression = DSL.week(DSL.literal("2019-01-05"));
     assertEquals(INTEGER, expression.type());
     assertEquals("week(\"2019-01-05\")", expression.toString());
     assertEquals(integerValue(0), eval(expression));
 
-    expression = dsl.week(DSL.literal("2019-01-05 00:01:00"));
+    expression = DSL.week(DSL.literal("2019-01-05 00:01:00"));
     assertEquals(INTEGER, expression.type());
     assertEquals("week(\"2019-01-05 00:01:00\")", expression.toString());
     assertEquals(integerValue(0), eval(expression));
@@ -898,14 +898,14 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void modeInUnsupportedFormat() {
     testNullMissingWeek(DATE);
 
-    FunctionExpression expression1 = dsl
+    FunctionExpression expression1 = DSL
         .week(DSL.literal(new ExprDateValue("2019-01-05")), DSL.literal(8));
     SemanticCheckException exception =
         assertThrows(SemanticCheckException.class, () -> eval(expression1));
     assertEquals("mode:8 is invalid, please use mode value between 0-7",
         exception.getMessage());
 
-    FunctionExpression expression2 = dsl
+    FunctionExpression expression2 = DSL
         .week(DSL.literal(new ExprDateValue("2019-01-05")), DSL.literal(-1));
     exception = assertThrows(SemanticCheckException.class, () -> eval(expression2));
     assertEquals("mode:-1 is invalid, please use mode value between 0-7",
@@ -916,20 +916,20 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void to_days() {
     when(nullRef.type()).thenReturn(DATE);
     when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(dsl.to_days(nullRef)));
-    assertEquals(missingValue(), eval(dsl.to_days(missingRef)));
+    assertEquals(nullValue(), eval(DSL.to_days(nullRef)));
+    assertEquals(missingValue(), eval(DSL.to_days(missingRef)));
 
-    FunctionExpression expression = dsl.to_days(DSL.literal(new ExprDateValue("2008-10-07")));
+    FunctionExpression expression = DSL.to_days(DSL.literal(new ExprDateValue("2008-10-07")));
     assertEquals(LONG, expression.type());
     assertEquals("to_days(DATE '2008-10-07')", expression.toString());
     assertEquals(longValue(733687L), eval(expression));
 
-    expression = dsl.to_days(DSL.literal("1969-12-31"));
+    expression = DSL.to_days(DSL.literal("1969-12-31"));
     assertEquals(LONG, expression.type());
     assertEquals("to_days(\"1969-12-31\")", expression.toString());
     assertEquals(longValue(719527L), eval(expression));
 
-    expression = dsl.to_days(DSL.literal("1969-12-31 01:01:01"));
+    expression = DSL.to_days(DSL.literal("1969-12-31 01:01:01"));
     assertEquals(LONG, expression.type());
     assertEquals("to_days(\"1969-12-31 01:01:01\")", expression.toString());
     assertEquals(longValue(719527L), eval(expression));
@@ -939,20 +939,20 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void year() {
     when(nullRef.type()).thenReturn(DATE);
     when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(dsl.year(nullRef)));
-    assertEquals(missingValue(), eval(dsl.year(missingRef)));
+    assertEquals(nullValue(), eval(DSL.year(nullRef)));
+    assertEquals(missingValue(), eval(DSL.year(missingRef)));
 
-    FunctionExpression expression = dsl.year(DSL.literal(new ExprDateValue("2020-08-07")));
+    FunctionExpression expression = DSL.year(DSL.literal(new ExprDateValue("2020-08-07")));
     assertEquals(INTEGER, expression.type());
     assertEquals("year(DATE '2020-08-07')", expression.toString());
     assertEquals(integerValue(2020), eval(expression));
 
-    expression = dsl.year(DSL.literal("2020-08-07"));
+    expression = DSL.year(DSL.literal("2020-08-07"));
     assertEquals(INTEGER, expression.type());
     assertEquals("year(\"2020-08-07\")", expression.toString());
     assertEquals(integerValue(2020), eval(expression));
 
-    expression = dsl.year(DSL.literal("2020-08-07 01:01:01"));
+    expression = DSL.year(DSL.literal("2020-08-07 01:01:01"));
     assertEquals(INTEGER, expression.type());
     assertEquals("year(\"2020-08-07 01:01:01\")", expression.toString());
     assertEquals(integerValue(2020), eval(expression));
@@ -967,31 +967,31 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     String timestampFormatted = "Sat Jan 01 31st 31 31 12345 13 01 01 14 031 13 1 "
         + "January 01 PM 01:14:15 PM 15 15 13:14:15 % P";
 
-    FunctionExpression expr = dsl.date_format(DSL.literal(timestamp), DSL.literal(timestampFormat));
+    FunctionExpression expr = DSL.date_format(DSL.literal(timestamp), DSL.literal(timestampFormat));
     assertEquals(STRING, expr.type());
     assertEquals(timestampFormatted, eval(expr).stringValue());
 
     when(nullRef.type()).thenReturn(DATE);
     when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(dsl.date_format(nullRef, DSL.literal(""))));
-    assertEquals(missingValue(), eval(dsl.date_format(missingRef, DSL.literal(""))));
+    assertEquals(nullValue(), eval(DSL.date_format(nullRef, DSL.literal(""))));
+    assertEquals(missingValue(), eval(DSL.date_format(missingRef, DSL.literal(""))));
 
     when(nullRef.type()).thenReturn(DATETIME);
     when(missingRef.type()).thenReturn(DATETIME);
-    assertEquals(nullValue(), eval(dsl.date_format(nullRef, DSL.literal(""))));
-    assertEquals(missingValue(), eval(dsl.date_format(missingRef, DSL.literal(""))));
+    assertEquals(nullValue(), eval(DSL.date_format(nullRef, DSL.literal(""))));
+    assertEquals(missingValue(), eval(DSL.date_format(missingRef, DSL.literal(""))));
 
     when(nullRef.type()).thenReturn(TIMESTAMP);
     when(missingRef.type()).thenReturn(TIMESTAMP);
-    assertEquals(nullValue(), eval(dsl.date_format(nullRef, DSL.literal(""))));
-    assertEquals(missingValue(), eval(dsl.date_format(missingRef, DSL.literal(""))));
+    assertEquals(nullValue(), eval(DSL.date_format(nullRef, DSL.literal(""))));
+    assertEquals(missingValue(), eval(DSL.date_format(missingRef, DSL.literal(""))));
 
     when(nullRef.type()).thenReturn(STRING);
     when(missingRef.type()).thenReturn(STRING);
-    assertEquals(nullValue(), eval(dsl.date_format(nullRef, DSL.literal(""))));
-    assertEquals(missingValue(), eval(dsl.date_format(missingRef, DSL.literal(""))));
-    assertEquals(nullValue(), eval(dsl.date_format(DSL.literal(""), nullRef)));
-    assertEquals(missingValue(), eval(dsl.date_format(DSL.literal(""), missingRef)));
+    assertEquals(nullValue(), eval(DSL.date_format(nullRef, DSL.literal(""))));
+    assertEquals(missingValue(), eval(DSL.date_format(missingRef, DSL.literal(""))));
+    assertEquals(nullValue(), eval(DSL.date_format(DSL.literal(""), nullRef)));
+    assertEquals(missingValue(), eval(DSL.date_format(DSL.literal(""), missingRef)));
   }
 
   void testDateFormat(DateFormatTester dft) {

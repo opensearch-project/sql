@@ -39,16 +39,16 @@ class LogicalPlanOptimizerTest extends AnalyzerTestBase {
     assertEquals(
         filter(
             relation("schema", table),
-            dsl.and(dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(2))),
-                dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1))))
+            DSL.and(DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(2))),
+                DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1))))
         ),
         optimize(
             filter(
                 filter(
                     relation("schema", table),
-                    dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))
+                    DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))
                 ),
-                dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(2)))
+                DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(2)))
             )
         )
     );
@@ -63,7 +63,7 @@ class LogicalPlanOptimizerTest extends AnalyzerTestBase {
         sort(
             filter(
                 relation("schema", table),
-                dsl.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
+                DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
             ),
             Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))
         ),
@@ -73,7 +73,7 @@ class LogicalPlanOptimizerTest extends AnalyzerTestBase {
                     relation("schema", table),
                     Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))
                 ),
-                dsl.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
+                DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
             )
         )
     );
@@ -88,8 +88,8 @@ class LogicalPlanOptimizerTest extends AnalyzerTestBase {
         sort(
             filter(
                 relation("schema", table),
-                dsl.and(dsl.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1))),
-                    dsl.less(DSL.ref("longV", INTEGER), DSL.literal(longValue(1L))))
+                DSL.and(DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1))),
+                    DSL.less(DSL.ref("longV", INTEGER), DSL.literal(longValue(1L))))
             ),
             Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))
         ),
@@ -98,18 +98,18 @@ class LogicalPlanOptimizerTest extends AnalyzerTestBase {
                 sort(
                     filter(
                         relation("schema", table),
-                        dsl.less(DSL.ref("longV", INTEGER), DSL.literal(longValue(1L)))
+                        DSL.less(DSL.ref("longV", INTEGER), DSL.literal(longValue(1L)))
                     ),
                     Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))
                 ),
-                dsl.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
+                DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
             )
         )
     );
   }
 
   private LogicalPlan optimize(LogicalPlan plan) {
-    final LogicalPlanOptimizer optimizer = LogicalPlanOptimizer.create(dsl);
+    final LogicalPlanOptimizer optimizer = LogicalPlanOptimizer.create();
     final LogicalPlan optimize = optimizer.optimize(plan);
     return optimize;
   }

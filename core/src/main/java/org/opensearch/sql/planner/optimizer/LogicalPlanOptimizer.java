@@ -12,7 +12,6 @@ import com.facebook.presto.matching.Match;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.optimizer.rule.MergeFilterAndFilter;
 import org.opensearch.sql.planner.optimizer.rule.PushFilterUnderSort;
@@ -38,9 +37,9 @@ public class LogicalPlanOptimizer {
   /**
    * Create {@link LogicalPlanOptimizer} with pre-defined rules.
    */
-  public static LogicalPlanOptimizer create(DSL dsl) {
+  public static LogicalPlanOptimizer create() {
     return new LogicalPlanOptimizer(Arrays.asList(
-        new MergeFilterAndFilter(dsl),
+        new MergeFilterAndFilter(),
         new PushFilterUnderSort()));
   }
 

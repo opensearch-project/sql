@@ -47,8 +47,6 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @ContextConfiguration(classes = {ExpressionConfig.class, ExpressionTestBase.class,
     TestConfig.class})
 public class ExpressionTestBase {
-  @Autowired
-  protected DSL dsl;
 
   @Autowired
   protected Environment<Expression, ExprType> typeEnv;
@@ -102,15 +100,15 @@ public class ExpressionTestBase {
       BuiltinFunctionName builtinFunctionName) {
     switch (builtinFunctionName) {
       case ADD:
-        return (expressions) -> dsl.add(expressions.get(0), expressions.get(1));
+        return (expressions) -> DSL.add(expressions.get(0), expressions.get(1));
       case SUBTRACT:
-        return (expressions) -> dsl.subtract(expressions.get(0), expressions.get(1));
+        return (expressions) -> DSL.subtract(expressions.get(0), expressions.get(1));
       case MULTIPLY:
-        return (expressions) -> dsl.multiply(expressions.get(0), expressions.get(1));
+        return (expressions) -> DSL.multiply(expressions.get(0), expressions.get(1));
       case DIVIDE:
-        return (expressions) -> dsl.divide(expressions.get(0), expressions.get(1));
+        return (expressions) -> DSL.divide(expressions.get(0), expressions.get(1));
       case MODULES:
-        return (expressions) -> dsl.module(expressions.get(0), expressions.get(1));
+        return (expressions) -> DSL.module(expressions.get(0), expressions.get(1));
       default:
         throw new RuntimeException();
     }

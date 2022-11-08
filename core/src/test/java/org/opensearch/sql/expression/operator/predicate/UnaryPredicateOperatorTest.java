@@ -36,7 +36,7 @@ class UnaryPredicateOperatorTest extends ExpressionTestBase {
   @ParameterizedTest(name = "not({0})")
   @ValueSource(booleans = {true, false})
   public void test_not(Boolean v) {
-    FunctionExpression not = dsl.not(DSL.literal(booleanValue(v)));
+    FunctionExpression not = DSL.not(DSL.literal(booleanValue(v)));
     assertEquals(BOOLEAN, not.type());
     assertEquals(!v, ExprValueUtils.getBooleanValue(not.valueOf(valueEnv())));
     assertEquals(String.format("not(%s)", v.toString()), not.toString());
@@ -156,36 +156,36 @@ class UnaryPredicateOperatorTest extends ExpressionTestBase {
 
   @Test
   public void test_not_null() {
-    FunctionExpression expression = dsl.not(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
+    FunctionExpression expression = DSL.not(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, expression.type());
     assertEquals(LITERAL_NULL, expression.valueOf(valueEnv()));
   }
 
   @Test
   public void test_not_missing() {
-    FunctionExpression expression = dsl.not(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
+    FunctionExpression expression = DSL.not(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, expression.type());
     assertEquals(LITERAL_MISSING, expression.valueOf(valueEnv()));
   }
 
   @Test
   public void test_is_null_predicate() {
-    FunctionExpression expression = dsl.is_null(DSL.literal(1));
+    FunctionExpression expression = DSL.is_null(DSL.literal(1));
     assertEquals(BOOLEAN, expression.type());
     assertEquals(LITERAL_FALSE, expression.valueOf(valueEnv()));
 
-    expression = dsl.is_null(DSL.literal(ExprNullValue.of()));
+    expression = DSL.is_null(DSL.literal(ExprNullValue.of()));
     assertEquals(BOOLEAN, expression.type());
     assertEquals(LITERAL_TRUE, expression.valueOf(valueEnv()));
   }
 
   @Test
   public void test_is_not_null_predicate() {
-    FunctionExpression expression = dsl.isnotnull(DSL.literal(1));
+    FunctionExpression expression = DSL.isnotnull(DSL.literal(1));
     assertEquals(BOOLEAN, expression.type());
     assertEquals(LITERAL_TRUE, expression.valueOf(valueEnv()));
 
-    expression = dsl.isnotnull(DSL.literal(ExprNullValue.of()));
+    expression = DSL.isnotnull(DSL.literal(ExprNullValue.of()));
     assertEquals(BOOLEAN, expression.type());
     assertEquals(LITERAL_FALSE, expression.valueOf(valueEnv()));
   }
@@ -193,25 +193,25 @@ class UnaryPredicateOperatorTest extends ExpressionTestBase {
   @ParameterizedTest
   @MethodSource("isNullArguments")
   public void test_isnull_predicate(Expression v1, Expression expected) {
-    assertEquals(expected.valueOf(valueEnv()), dsl.isnull(v1).valueOf(valueEnv()));
+    assertEquals(expected.valueOf(valueEnv()), DSL.isnull(v1).valueOf(valueEnv()));
   }
 
   @ParameterizedTest
   @MethodSource("ifNullArguments")
   public void test_ifnull_predicate(Expression v1, Expression v2, Expression expected) {
-    assertEquals(expected.valueOf(valueEnv()), dsl.ifnull(v1, v2).valueOf(valueEnv()));
+    assertEquals(expected.valueOf(valueEnv()), DSL.ifnull(v1, v2).valueOf(valueEnv()));
   }
 
   @ParameterizedTest
   @MethodSource("nullIfArguments")
   public void test_nullif_predicate(Expression v1, Expression v2, Expression expected) {
-    assertEquals(expected.valueOf(valueEnv()), dsl.nullif(v1, v2).valueOf(valueEnv()));
+    assertEquals(expected.valueOf(valueEnv()), DSL.nullif(v1, v2).valueOf(valueEnv()));
   }
 
   @ParameterizedTest
   @MethodSource("ifArguments")
   public void test_if_predicate(Expression v1, Expression v2, Expression v3, Expression expected) {
-    assertEquals(expected.valueOf(valueEnv()), dsl.iffunction(v1, v2, v3).valueOf(valueEnv()));
+    assertEquals(expected.valueOf(valueEnv()), DSL.iffunction(v1, v2, v3).valueOf(valueEnv()));
   }
 
   @ParameterizedTest
