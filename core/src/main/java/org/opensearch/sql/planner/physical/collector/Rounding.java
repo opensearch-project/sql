@@ -17,7 +17,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.time.temporal.ChronoField;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
@@ -40,10 +39,6 @@ import org.opensearch.sql.utils.DateTimeUtils;
  */
 @EqualsAndHashCode
 public abstract class Rounding<T> {
-  @Getter
-  protected T maxRounded;
-  @Getter
-  protected T minRounded;
 
   /**
    * Create Rounding instance.
@@ -75,10 +70,6 @@ public abstract class Rounding<T> {
 
   public abstract ExprValue round(ExprValue value);
 
-  public abstract Integer locate(ExprValue value);
-
-  public abstract ExprValue[] createBuckets();
-
 
   static class TimestampRounding extends Rounding<Instant> {
     private final ExprValue interval;
@@ -93,49 +84,7 @@ public abstract class Rounding<T> {
     public ExprValue round(ExprValue var) {
       Instant instant = Instant.ofEpochMilli(dateTimeUnit.round(var.timestampValue()
           .toEpochMilli(), interval.integerValue()));
-      updateRounded(instant);
       return new ExprTimestampValue(instant);
-    }
-
-    @Override
-    public ExprValue[] createBuckets() {
-      if (dateTimeUnit.isMillisBased) {
-        int size = (int) ((maxRounded.toEpochMilli() - minRounded.toEpochMilli()) / (interval
-            .integerValue() * dateTimeUnit.ratio)) + 1;
-        return new ExprValue[size];
-      } else {
-        ZonedDateTime maxZonedDateTime = maxRounded.atZone(ZoneId.of("UTC"));
-        ZonedDateTime minZonedDateTime = minRounded.atZone(ZoneId.of("UTC"));
-        int monthDiff = (maxZonedDateTime.getYear() - minZonedDateTime
-            .getYear()) * 12 + maxZonedDateTime.getMonthValue() - minZonedDateTime.getMonthValue();
-        int size = monthDiff / ((int) dateTimeUnit.ratio * interval.integerValue()) + 1;
-        return new ExprValue[size];
-      }
-    }
-
-    @Override
-    public Integer locate(ExprValue value) {
-      if (dateTimeUnit.isMillisBased) {
-        long intervalInEpochMillis = dateTimeUnit.ratio;
-        return Long.valueOf((value.timestampValue()
-            .atZone(ZoneId.of("UTC")).toInstant().toEpochMilli() - minRounded
-            .atZone(ZoneId.of("UTC")).toInstant().toEpochMilli()) / (intervalInEpochMillis
-            * interval.integerValue())).intValue();
-      } else {
-        int monthDiff = (value.dateValue().getYear() - minRounded.atZone(ZoneId.of("UTC"))
-            .getYear()) * 12 + value.dateValue().getMonthValue() - minRounded
-            .atZone(ZoneId.of("UTC")).getMonthValue();
-        return (int) (monthDiff / (dateTimeUnit.ratio * interval.integerValue()));
-      }
-    }
-
-    private void updateRounded(Instant value) {
-      if (maxRounded == null || value.isAfter(maxRounded)) {
-        maxRounded = value;
-      }
-      if (minRounded == null || value.isBefore(minRounded)) {
-        minRounded = value;
-      }
     }
   }
 
@@ -153,51 +102,7 @@ public abstract class Rounding<T> {
     public ExprValue round(ExprValue var) {
       Instant instant = Instant.ofEpochMilli(dateTimeUnit.round(var.datetimeValue()
           .atZone(ZoneId.of("UTC")).toInstant().toEpochMilli(), interval.integerValue()));
-      updateRounded(instant);
       return new ExprDatetimeValue(instant.atZone(ZoneId.of("UTC")).toLocalDateTime());
-    }
-
-    @Override
-    public ExprValue[] createBuckets() {
-      if (dateTimeUnit.isMillisBased) {
-        int size = (int) ((maxRounded.atZone(ZoneId.of("UTC")).toInstant()
-            .toEpochMilli() - minRounded.atZone(ZoneId.of("UTC")).toInstant()
-            .toEpochMilli()) / (interval.integerValue() * dateTimeUnit.ratio)) + 1;
-        return new ExprValue[size];
-      } else {
-        ZonedDateTime maxZonedDateTime = maxRounded.atZone(ZoneId.of("UTC"));
-        ZonedDateTime minZonedDateTime = minRounded.atZone(ZoneId.of("UTC"));
-        int monthDiff = (maxZonedDateTime.getYear() - minZonedDateTime
-            .getYear()) * 12 + maxZonedDateTime.getMonthValue() - minZonedDateTime.getMonthValue();
-        int size = monthDiff / ((int) dateTimeUnit.ratio * interval.integerValue()) + 1;
-        return new ExprValue[size];
-      }
-    }
-
-    @Override
-    public Integer locate(ExprValue value) {
-      if (dateTimeUnit.isMillisBased) {
-        long intervalInEpochMillis = dateTimeUnit.ratio;
-        return Long.valueOf((value.datetimeValue()
-            .atZone(ZoneId.of("UTC")).toInstant().toEpochMilli() - minRounded
-            .atZone(ZoneId.of("UTC")).toInstant().toEpochMilli()) / (intervalInEpochMillis
-            * interval.integerValue())).intValue();
-      } else {
-        int monthDiff = (value.datetimeValue().getYear() - minRounded.getYear()) * 12
-            + value.dateValue().getMonthValue() - minRounded.getMonthValue();
-        return (int) (monthDiff / (dateTimeUnit.ratio * interval.integerValue()));
-      }
-    }
-
-    private void updateRounded(Instant value) {
-      if (maxRounded == null || value.isAfter(maxRounded
-          .atZone(ZoneId.of("UTC")).toInstant())) {
-        maxRounded = value.atZone(ZoneId.of("UTC")).toLocalDateTime();
-      }
-      if (minRounded == null || value.isBefore(minRounded
-          .atZone(ZoneId.of("UTC")).toInstant())) {
-        minRounded = value.atZone(ZoneId.of("UTC")).toLocalDateTime();
-      }
     }
   }
 
@@ -215,51 +120,7 @@ public abstract class Rounding<T> {
     public ExprValue round(ExprValue var) {
       Instant instant = Instant.ofEpochMilli(dateTimeUnit.round(var.dateValue().atStartOfDay()
           .atZone(ZoneId.of("UTC")).toInstant().toEpochMilli(), interval.integerValue()));
-      updateRounded(instant);
       return new ExprDateValue(instant.atZone(ZoneId.of("UTC")).toLocalDate());
-    }
-
-    @Override
-    public ExprValue[] createBuckets() {
-      if (dateTimeUnit.isMillisBased) {
-        int size = (int) ((maxRounded.atStartOfDay().atZone(ZoneId.of("UTC")).toInstant()
-            .toEpochMilli() - minRounded.atStartOfDay().atZone(ZoneId.of("UTC")).toInstant()
-            .toEpochMilli()) / (interval.integerValue() * dateTimeUnit.ratio)) + 1;
-        return new ExprValue[size];
-      } else {
-        ZonedDateTime maxZonedDateTime = maxRounded.atStartOfDay().atZone(ZoneId.of("UTC"));
-        ZonedDateTime minZonedDateTime = minRounded.atStartOfDay().atZone(ZoneId.of("UTC"));
-        int monthDiff = (maxZonedDateTime.getYear() - minZonedDateTime
-            .getYear()) * 12 + maxZonedDateTime.getMonthValue() - minZonedDateTime.getMonthValue();
-        int size = monthDiff / ((int) dateTimeUnit.ratio * interval.integerValue()) + 1;
-        return new ExprValue[size];
-      }
-    }
-
-    @Override
-    public Integer locate(ExprValue value) {
-      if (dateTimeUnit.isMillisBased) {
-        long intervalInEpochMillis = dateTimeUnit.ratio;
-        return Long.valueOf((value.dateValue().atStartOfDay()
-            .atZone(ZoneId.of("UTC")).toInstant().toEpochMilli() - minRounded.atStartOfDay()
-            .atZone(ZoneId.of("UTC")).toInstant().toEpochMilli()) / (intervalInEpochMillis
-            * interval.integerValue())).intValue();
-      } else {
-        int monthDiff = (value.dateValue().getYear() - minRounded.getYear()) * 12
-            + value.dateValue().getMonthValue() - minRounded.getMonthValue();
-        return (int) (monthDiff / (dateTimeUnit.ratio * interval.integerValue()));
-      }
-    }
-
-    private void updateRounded(Instant value) {
-      if (maxRounded == null || value.isAfter(maxRounded.atStartOfDay()
-          .atZone(ZoneId.of("UTC")).toInstant())) {
-        maxRounded = value.atZone(ZoneId.of("UTC")).toLocalDate();
-      }
-      if (minRounded == null || value.isBefore(minRounded.atStartOfDay()
-          .atZone(ZoneId.of("UTC")).toInstant())) {
-        minRounded = value.atZone(ZoneId.of("UTC")).toLocalDate();
-      }
     }
   }
 
@@ -281,38 +142,7 @@ public abstract class Rounding<T> {
 
       Instant instant = Instant.ofEpochMilli(dateTimeUnit.round(var.timeValue().getLong(
           ChronoField.MILLI_OF_DAY), interval.integerValue()));
-      updateRounded(instant);
       return new ExprTimeValue(instant.atZone(ZoneId.of("UTC")).toLocalTime());
-    }
-
-    @Override
-    public ExprValue[] createBuckets() {
-      // local time is converted to timestamp on 1970-01-01 for aggregations
-      int size = (int) ((maxRounded.atDate(LocalDate.of(1970, 1, 1))
-          .atZone(ZoneId.of("UTC")).toInstant().toEpochMilli() - minRounded
-          .atDate(LocalDate.of(1970, 1, 1)).atZone(ZoneId.of("UTC")).toInstant()
-          .toEpochMilli()) / (interval.integerValue() * dateTimeUnit.ratio)) + 1;
-      return new ExprValue[size];
-    }
-
-    @Override
-    public Integer locate(ExprValue value) {
-      long intervalInEpochMillis = dateTimeUnit.ratio;
-      return Long.valueOf((value.timeValue().atDate(LocalDate.of(1970, 1, 1))
-          .atZone(ZoneId.of("UTC")).toInstant().toEpochMilli() - minRounded
-          .atDate(LocalDate.of(1970, 1, 1))
-          .atZone(ZoneId.of("UTC")).toInstant().toEpochMilli()) / (intervalInEpochMillis * interval
-          .integerValue())).intValue();
-    }
-
-    private void updateRounded(Instant value) {
-      if (maxRounded == null || value.isAfter(maxRounded.atDate(LocalDate.of(1970, 1, 1))
-          .atZone(ZoneId.of("UTC")).toInstant())) {
-        maxRounded = value.atZone(ZoneId.of("UTC")).toLocalTime();
-      }
-      if (minRounded == null) {
-        minRounded = value.atZone(ZoneId.of("UTC")).toLocalTime();
-      }
     }
   }
 
@@ -327,28 +157,7 @@ public abstract class Rounding<T> {
     @Override
     public ExprValue round(ExprValue value) {
       long rounded = Math.floorDiv(value.longValue(), longInterval) * longInterval;
-      updateRounded(rounded);
       return ExprValueUtils.longValue(rounded);
-    }
-
-    @Override
-    public Integer locate(ExprValue value) {
-      return Long.valueOf((value.longValue() - minRounded) / longInterval).intValue();
-    }
-
-    @Override
-    public ExprValue[] createBuckets() {
-      int size = Long.valueOf((maxRounded - minRounded) / longInterval).intValue() + 1;
-      return new ExprValue[size];
-    }
-
-    private void updateRounded(Long value) {
-      if (maxRounded == null || value > maxRounded) {
-        maxRounded = value;
-      }
-      if (minRounded == null || value < minRounded) {
-        minRounded = value;
-      }
     }
   }
 
@@ -364,28 +173,7 @@ public abstract class Rounding<T> {
     public ExprValue round(ExprValue value) {
       double rounded = Double
           .valueOf(value.doubleValue() / doubleInterval).intValue() * doubleInterval;
-      updateRounded(rounded);
       return ExprValueUtils.doubleValue(rounded);
-    }
-
-    @Override
-    public Integer locate(ExprValue value) {
-      return Double.valueOf((value.doubleValue() - minRounded) / doubleInterval).intValue();
-    }
-
-    @Override
-    public ExprValue[] createBuckets() {
-      int size = Double.valueOf((maxRounded - minRounded) / doubleInterval).intValue() + 1;
-      return new ExprValue[size];
-    }
-
-    private void updateRounded(Double value) {
-      if (maxRounded == null || value > maxRounded) {
-        maxRounded = value;
-      }
-      if (minRounded == null || value < minRounded) {
-        minRounded = value;
-      }
     }
   }
 
@@ -395,16 +183,6 @@ public abstract class Rounding<T> {
     @Override
     public ExprValue round(ExprValue var) {
       return null;
-    }
-
-    @Override
-    public Integer locate(ExprValue value) {
-      return null;
-    }
-
-    @Override
-    public ExprValue[] createBuckets() {
-      return new ExprValue[0];
     }
   }
 

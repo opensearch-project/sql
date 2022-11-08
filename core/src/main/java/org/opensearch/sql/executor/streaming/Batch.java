@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.executor.streaming;
 
-import java.util.List;
 import lombok.Data;
 import org.opensearch.sql.storage.split.Split;
 
@@ -14,5 +13,5 @@ import org.opensearch.sql.storage.split.Split;
  */
 @Data
 public class Batch {
-  private final List<Split> splits;
+  private final Split split;
 }
