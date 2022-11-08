@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -154,10 +153,9 @@ class FileSystemStreamSourceTest {
 
     private StreamSource internalBatchInBetween(
         Optional<Offset> start, Offset end, String... uris) {
-      List<Split> splits = streamSource.getBatch(start, end).getSplits();
-      assertEquals(1, splits.size());
+      Split split = streamSource.getBatch(start, end).getSplit();
       assertThat(
-          ((FileSystemSplit) splits.get(0)).getPaths(),
+          ((FileSystemSplit) split).getPaths(),
           containsInAnyOrder(
               Arrays.stream(uris)
                   .map(name -> new org.apache.hadoop.fs.Path(perTestTempDir.resolve(name).toUri()))

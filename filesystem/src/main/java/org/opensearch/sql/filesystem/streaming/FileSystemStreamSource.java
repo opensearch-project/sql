@@ -8,7 +8,6 @@ package org.opensearch.sql.filesystem.streaming;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -101,6 +100,6 @@ public class FileSystemStreamSource implements StreamingSource {
             .collect(Collectors.toSet());
 
     log.debug("fetch files {} with id from: {} to: {}.", paths, start, end);
-    return new Batch(Collections.singletonList(new FileSystemSplit(paths)));
+    return new Batch(new FileSystemSplit(paths));
   }
 }
