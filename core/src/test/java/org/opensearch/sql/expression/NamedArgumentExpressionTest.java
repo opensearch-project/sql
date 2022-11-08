@@ -16,7 +16,7 @@ public class NamedArgumentExpressionTest extends ExpressionTestBase {
   @Test
   void name_an_argument() {
     LiteralExpression value = DSL.literal("search");
-    NamedArgumentExpression namedArgument = dsl.namedArgument("query", value);
+    NamedArgumentExpression namedArgument = DSL.namedArgument("query", value);
 
     assertEquals("query", namedArgument.getArgName());
     assertEquals(value.type(), namedArgument.type());

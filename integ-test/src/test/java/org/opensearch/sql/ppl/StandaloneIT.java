@@ -29,7 +29,6 @@ import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
-import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.monitor.AlwaysHealthyMonitor;
@@ -195,7 +194,7 @@ public class StandaloneIT extends PPLIntegTestCase {
       Analyzer analyzer = new Analyzer(new ExpressionAnalyzer(functionRepository),
           catalogService, functionRepository);
       Planner planner =
-          new Planner(LogicalPlanOptimizer.create(new DSL(functionRepository)));
+          new Planner(LogicalPlanOptimizer.create());
       return new QueryPlanFactory(new QueryService(analyzer, executionEngine, planner));
     }
   }

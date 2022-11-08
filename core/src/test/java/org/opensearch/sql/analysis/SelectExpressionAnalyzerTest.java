@@ -80,7 +80,7 @@ public class SelectExpressionAnalyzerTest extends AnalyzerTestBase {
   public void field_name_in_expression_with_qualifier() {
     analysisContext.peek().define(new Symbol(Namespace.INDEX_NAME, "index_alias"), STRUCT);
     assertAnalyzeEqual(
-        DSL.named("abs(index_alias.integer_value)", dsl.abs(DSL.ref("integer_value", INTEGER))),
+        DSL.named("abs(index_alias.integer_value)", DSL.abs(DSL.ref("integer_value", INTEGER))),
         AstDSL.alias("abs(index_alias.integer_value)",
             AstDSL.function("abs", AstDSL.qualifiedName("index_alias", "integer_value")))
     );

@@ -157,7 +157,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @MethodSource("binaryPredicateArguments")
   public void test_and(Boolean v1, Boolean v2) {
     FunctionExpression and =
-        dsl.and(DSL.literal(booleanValue(v1)), DSL.literal(booleanValue(v2)));
+        DSL.and(DSL.literal(booleanValue(v1)), DSL.literal(booleanValue(v2)));
     assertEquals(BOOLEAN, and.type());
     assertEquals(v1 && v2, ExprValueUtils.getBooleanValue(and.valueOf(valueEnv())));
     assertEquals(String.format("and(%s, %s)", v1.toString(), v2.toString()), and.toString());
@@ -166,19 +166,19 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @Test
   public void test_boolean_and_null() {
     FunctionExpression and =
-        dsl.and(DSL.literal(LITERAL_TRUE), DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
+        DSL.and(DSL.literal(LITERAL_TRUE), DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, and.type());
     assertEquals(LITERAL_NULL, and.valueOf(valueEnv()));
 
-    and = dsl.and(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_TRUE));
+    and = DSL.and(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_TRUE));
     assertEquals(BOOLEAN, and.type());
     assertEquals(LITERAL_NULL, and.valueOf(valueEnv()));
 
-    and = dsl.and(DSL.literal(LITERAL_FALSE), DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
+    and = DSL.and(DSL.literal(LITERAL_FALSE), DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, and.type());
     assertEquals(LITERAL_FALSE, and.valueOf(valueEnv()));
 
-    and = dsl.and(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_FALSE));
+    and = DSL.and(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_FALSE));
     assertEquals(BOOLEAN, and.type());
     assertEquals(LITERAL_FALSE, and.valueOf(valueEnv()));
   }
@@ -186,41 +186,41 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @Test
   public void test_boolean_and_missing() {
     FunctionExpression and =
-        dsl.and(DSL.literal(LITERAL_TRUE), DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
+        DSL.and(DSL.literal(LITERAL_TRUE), DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, and.type());
     assertEquals(LITERAL_MISSING, and.valueOf(valueEnv()));
 
-    and = dsl.and(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_TRUE));
+    and = DSL.and(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_TRUE));
     assertEquals(BOOLEAN, and.type());
     assertEquals(LITERAL_MISSING, and.valueOf(valueEnv()));
 
-    and = dsl.and(DSL.literal(LITERAL_FALSE), DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
+    and = DSL.and(DSL.literal(LITERAL_FALSE), DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, and.type());
     assertEquals(LITERAL_FALSE, and.valueOf(valueEnv()));
 
-    and = dsl.and(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_FALSE));
+    and = DSL.and(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_FALSE));
     assertEquals(BOOLEAN, and.type());
     assertEquals(LITERAL_FALSE, and.valueOf(valueEnv()));
   }
 
   @Test
   public void test_null_and_missing() {
-    FunctionExpression and = dsl.and(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
+    FunctionExpression and = DSL.and(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
         DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, and.type());
     assertEquals(LITERAL_MISSING, and.valueOf(valueEnv()));
 
-    and = dsl.and(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
+    and = DSL.and(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
         DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, and.type());
     assertEquals(LITERAL_NULL, and.valueOf(valueEnv()));
 
-    and = dsl.and(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
+    and = DSL.and(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
         DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, and.type());
     assertEquals(LITERAL_MISSING, and.valueOf(valueEnv()));
 
-    and = dsl.and(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
+    and = DSL.and(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
         DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, and.type());
     assertEquals(LITERAL_MISSING, and.valueOf(valueEnv()));
@@ -230,7 +230,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @MethodSource("binaryPredicateArguments")
   public void test_or(Boolean v1, Boolean v2) {
     FunctionExpression or =
-        dsl.or(DSL.literal(booleanValue(v1)), DSL.literal(booleanValue(v2)));
+        DSL.or(DSL.literal(booleanValue(v1)), DSL.literal(booleanValue(v2)));
     assertEquals(BOOLEAN, or.type());
     assertEquals(v1 || v2, ExprValueUtils.getBooleanValue(or.valueOf(valueEnv())));
     assertEquals(String.format("or(%s, %s)", v1.toString(), v2.toString()), or.toString());
@@ -239,19 +239,19 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @Test
   public void test_boolean_or_null() {
     FunctionExpression or =
-        dsl.or(DSL.literal(LITERAL_TRUE), DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
+        DSL.or(DSL.literal(LITERAL_TRUE), DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, or.type());
     assertEquals(LITERAL_TRUE, or.valueOf(valueEnv()));
 
-    or = dsl.or(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_TRUE));
+    or = DSL.or(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_TRUE));
     assertEquals(BOOLEAN, or.type());
     assertEquals(LITERAL_TRUE, or.valueOf(valueEnv()));
 
-    or = dsl.or(DSL.literal(LITERAL_FALSE), DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
+    or = DSL.or(DSL.literal(LITERAL_FALSE), DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, or.type());
     assertEquals(LITERAL_NULL, or.valueOf(valueEnv()));
 
-    or = dsl.or(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_FALSE));
+    or = DSL.or(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_FALSE));
     assertEquals(BOOLEAN, or.type());
     assertEquals(LITERAL_NULL, or.valueOf(valueEnv()));
   }
@@ -259,42 +259,42 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @Test
   public void test_boolean_or_missing() {
     FunctionExpression or =
-        dsl.or(DSL.literal(LITERAL_TRUE), DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
+        DSL.or(DSL.literal(LITERAL_TRUE), DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, or.type());
     assertEquals(LITERAL_TRUE, or.valueOf(valueEnv()));
 
-    or = dsl.or(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_TRUE));
+    or = DSL.or(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_TRUE));
     assertEquals(BOOLEAN, or.type());
     assertEquals(LITERAL_TRUE, or.valueOf(valueEnv()));
 
-    or = dsl.or(DSL.literal(LITERAL_FALSE), DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
+    or = DSL.or(DSL.literal(LITERAL_FALSE), DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, or.type());
     assertEquals(LITERAL_MISSING, or.valueOf(valueEnv()));
 
-    or = dsl.or(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_FALSE));
+    or = DSL.or(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_FALSE));
     assertEquals(BOOLEAN, or.type());
     assertEquals(LITERAL_MISSING, or.valueOf(valueEnv()));
   }
 
   @Test
   public void test_null_or_missing() {
-    FunctionExpression or = dsl.or(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
+    FunctionExpression or = DSL.or(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
         DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, or.type());
     assertEquals(LITERAL_MISSING, or.valueOf(valueEnv()));
 
     or =
-        dsl.or(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
+        DSL.or(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
             DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, or.type());
     assertEquals(LITERAL_NULL, or.valueOf(valueEnv()));
 
-    or = dsl.or(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
+    or = DSL.or(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
         DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, or.type());
     assertEquals(LITERAL_NULL, or.valueOf(valueEnv()));
 
-    or = dsl.or(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
+    or = DSL.or(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
         DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, or.type());
     assertEquals(LITERAL_NULL, or.valueOf(valueEnv()));
@@ -305,7 +305,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @MethodSource("binaryPredicateArguments")
   public void test_xor(Boolean v1, Boolean v2) {
     FunctionExpression xor =
-        dsl.xor(DSL.literal(booleanValue(v1)), DSL.literal(booleanValue(v2)));
+        DSL.xor(DSL.literal(booleanValue(v1)), DSL.literal(booleanValue(v2)));
     assertEquals(BOOLEAN, xor.type());
     assertEquals(v1 ^ v2, ExprValueUtils.getBooleanValue(xor.valueOf(valueEnv())));
     assertEquals(String.format("xor(%s, %s)", v1.toString(), v2.toString()), xor.toString());
@@ -314,19 +314,19 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @Test
   public void test_boolean_xor_null() {
     FunctionExpression xor =
-        dsl.xor(DSL.literal(LITERAL_TRUE), DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
+        DSL.xor(DSL.literal(LITERAL_TRUE), DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, xor.type());
     assertEquals(LITERAL_TRUE, xor.valueOf(valueEnv()));
 
-    xor = dsl.xor(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_TRUE));
+    xor = DSL.xor(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_TRUE));
     assertEquals(BOOLEAN, xor.type());
     assertEquals(LITERAL_TRUE, xor.valueOf(valueEnv()));
 
-    xor = dsl.xor(DSL.literal(LITERAL_FALSE), DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
+    xor = DSL.xor(DSL.literal(LITERAL_FALSE), DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, xor.type());
     assertEquals(LITERAL_NULL, xor.valueOf(valueEnv()));
 
-    xor = dsl.xor(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_FALSE));
+    xor = DSL.xor(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_FALSE));
     assertEquals(BOOLEAN, xor.type());
     assertEquals(LITERAL_NULL, xor.valueOf(valueEnv()));
   }
@@ -334,41 +334,41 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @Test
   public void test_boolean_xor_missing() {
     FunctionExpression xor =
-        dsl.xor(DSL.literal(LITERAL_TRUE), DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
+        DSL.xor(DSL.literal(LITERAL_TRUE), DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, xor.type());
     assertEquals(LITERAL_TRUE, xor.valueOf(valueEnv()));
 
-    xor = dsl.xor(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_TRUE));
+    xor = DSL.xor(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_TRUE));
     assertEquals(BOOLEAN, xor.type());
     assertEquals(LITERAL_TRUE, xor.valueOf(valueEnv()));
 
-    xor = dsl.xor(DSL.literal(LITERAL_FALSE), DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
+    xor = DSL.xor(DSL.literal(LITERAL_FALSE), DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, xor.type());
     assertEquals(LITERAL_MISSING, xor.valueOf(valueEnv()));
 
-    xor = dsl.xor(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_FALSE));
+    xor = DSL.xor(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_FALSE));
     assertEquals(BOOLEAN, xor.type());
     assertEquals(LITERAL_MISSING, xor.valueOf(valueEnv()));
   }
 
   @Test
   public void test_null_xor_missing() {
-    FunctionExpression xor = dsl.xor(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
+    FunctionExpression xor = DSL.xor(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
         DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, xor.type());
     assertEquals(LITERAL_MISSING, xor.valueOf(valueEnv()));
 
-    xor = dsl.xor(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
+    xor = DSL.xor(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
         DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, xor.type());
     assertEquals(LITERAL_NULL, xor.valueOf(valueEnv()));
 
-    xor = dsl.xor(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
+    xor = DSL.xor(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
         DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, xor.type());
     assertEquals(LITERAL_NULL, xor.valueOf(valueEnv()));
 
-    xor = dsl.xor(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
+    xor = DSL.xor(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
         DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, xor.type());
     assertEquals(LITERAL_NULL, xor.valueOf(valueEnv()));
@@ -377,7 +377,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @ParameterizedTest(name = "equal({0}, {1})")
   @MethodSource("testEqualArguments")
   public void test_equal(ExprValue v1, ExprValue v2) {
-    FunctionExpression equal = dsl.equal(DSL.literal(v1), DSL.literal(v2));
+    FunctionExpression equal = DSL.equal(DSL.literal(v1), DSL.literal(v2));
     assertEquals(BOOLEAN, equal.type());
     assertEquals(v1.value().equals(v2.value()),
         ExprValueUtils.getBooleanValue(equal.valueOf(valueEnv())));
@@ -386,39 +386,39 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
 
   @Test
   public void test_null_equal_missing() {
-    FunctionExpression equal = dsl.equal(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
+    FunctionExpression equal = DSL.equal(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
         DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, equal.type());
     assertEquals(LITERAL_MISSING, equal.valueOf(valueEnv()));
 
-    equal = dsl.equal(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
+    equal = DSL.equal(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
         DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, equal.type());
     assertEquals(LITERAL_NULL, equal.valueOf(valueEnv()));
 
-    equal = dsl.equal(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
+    equal = DSL.equal(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
         DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, equal.type());
     assertEquals(LITERAL_MISSING, equal.valueOf(valueEnv()));
 
-    equal = dsl.equal(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
+    equal = DSL.equal(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
         DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, equal.type());
     assertEquals(LITERAL_MISSING, equal.valueOf(valueEnv()));
 
-    equal = dsl.equal(DSL.literal(LITERAL_TRUE), DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
+    equal = DSL.equal(DSL.literal(LITERAL_TRUE), DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, equal.type());
     assertEquals(LITERAL_MISSING, equal.valueOf(valueEnv()));
 
-    equal = dsl.equal(DSL.literal(LITERAL_TRUE), DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
+    equal = DSL.equal(DSL.literal(LITERAL_TRUE), DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, equal.type());
     assertEquals(LITERAL_NULL, equal.valueOf(valueEnv()));
 
-    equal = dsl.equal(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_TRUE));
+    equal = DSL.equal(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_TRUE));
     assertEquals(BOOLEAN, equal.type());
     assertEquals(LITERAL_MISSING, equal.valueOf(valueEnv()));
 
-    equal = dsl.equal(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_TRUE));
+    equal = DSL.equal(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN), DSL.literal(LITERAL_TRUE));
     assertEquals(BOOLEAN, equal.type());
     assertEquals(LITERAL_NULL, equal.valueOf(valueEnv()));
   }
@@ -426,7 +426,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @ParameterizedTest(name = "equal({0}, {1})")
   @MethodSource({"testEqualArguments", "testNotEqualArguments"})
   public void test_notequal(ExprValue v1, ExprValue v2) {
-    FunctionExpression notequal = dsl.notequal(DSL.literal(v1), DSL.literal(v2));
+    FunctionExpression notequal = DSL.notequal(DSL.literal(v1), DSL.literal(v2));
     assertEquals(BOOLEAN, notequal.type());
     assertEquals(!v1.value().equals(v2.value()),
         ExprValueUtils.getBooleanValue(notequal.valueOf(valueEnv())));
@@ -435,42 +435,42 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
 
   @Test
   public void test_null_notequal_missing() {
-    FunctionExpression notequal = dsl.notequal(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
+    FunctionExpression notequal = DSL.notequal(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
         DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, notequal.type());
     assertEquals(LITERAL_MISSING, notequal.valueOf(valueEnv()));
 
-    notequal = dsl.notequal(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
+    notequal = DSL.notequal(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
         DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, notequal.type());
     assertEquals(LITERAL_NULL, notequal.valueOf(valueEnv()));
 
-    notequal = dsl.notequal(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
+    notequal = DSL.notequal(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
         DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, notequal.type());
     assertEquals(LITERAL_MISSING, notequal.valueOf(valueEnv()));
 
-    notequal = dsl.notequal(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
+    notequal = DSL.notequal(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
         DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, notequal.type());
     assertEquals(LITERAL_MISSING, notequal.valueOf(valueEnv()));
 
-    notequal = dsl.notequal(DSL.literal(LITERAL_TRUE),
+    notequal = DSL.notequal(DSL.literal(LITERAL_TRUE),
         DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, notequal.type());
     assertEquals(LITERAL_MISSING, notequal.valueOf(valueEnv()));
 
-    notequal = dsl.notequal(DSL.literal(LITERAL_TRUE),
+    notequal = DSL.notequal(DSL.literal(LITERAL_TRUE),
         DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, notequal.type());
     assertEquals(LITERAL_NULL, notequal.valueOf(valueEnv()));
 
-    notequal = dsl.notequal(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
+    notequal = DSL.notequal(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
         DSL.literal(LITERAL_TRUE));
     assertEquals(BOOLEAN, notequal.type());
     assertEquals(LITERAL_MISSING, notequal.valueOf(valueEnv()));
 
-    notequal = dsl.notequal(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
+    notequal = DSL.notequal(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
         DSL.literal(LITERAL_TRUE));
     assertEquals(BOOLEAN, notequal.type());
     assertEquals(LITERAL_NULL, notequal.valueOf(valueEnv()));
@@ -479,7 +479,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @ParameterizedTest(name = "less({0}, {1})")
   @MethodSource("testCompareValueArguments")
   public void test_less(ExprValue v1, ExprValue v2) {
-    FunctionExpression less = dsl.less(DSL.literal(v1), DSL.literal(v2));
+    FunctionExpression less = DSL.less(DSL.literal(v1), DSL.literal(v2));
     assertEquals(BOOLEAN, less.type());
     assertEquals(compare(v1, v2) < 0,
         ExprValueUtils.getBooleanValue(less.valueOf(valueEnv())));
@@ -488,16 +488,16 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
 
   @Test
   public void test_less_null() {
-    FunctionExpression less = dsl.less(DSL.literal(1),
+    FunctionExpression less = DSL.less(DSL.literal(1),
         DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(BOOLEAN, less.type());
     assertEquals(LITERAL_NULL, less.valueOf(valueEnv()));
 
-    less = dsl.less(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER), DSL.literal(1));
+    less = DSL.less(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER), DSL.literal(1));
     assertEquals(BOOLEAN, less.type());
     assertEquals(LITERAL_NULL, less.valueOf(valueEnv()));
 
-    less = dsl.less(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER),
+    less = DSL.less(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(BOOLEAN, less.type());
     assertEquals(LITERAL_NULL, less.valueOf(valueEnv()));
@@ -505,16 +505,16 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
 
   @Test
   public void test_less_missing() {
-    FunctionExpression less = dsl.less(DSL.literal(1),
+    FunctionExpression less = DSL.less(DSL.literal(1),
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(BOOLEAN, less.type());
     assertEquals(LITERAL_MISSING, less.valueOf(valueEnv()));
 
-    less = dsl.less(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER), DSL.literal(1));
+    less = DSL.less(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER), DSL.literal(1));
     assertEquals(BOOLEAN, less.type());
     assertEquals(LITERAL_MISSING, less.valueOf(valueEnv()));
 
-    less = dsl.less(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER),
+    less = DSL.less(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(BOOLEAN, less.type());
     assertEquals(LITERAL_MISSING, less.valueOf(valueEnv()));
@@ -522,12 +522,12 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
 
   @Test
   public void test_null_less_missing() {
-    FunctionExpression less = dsl.less(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER),
+    FunctionExpression less = DSL.less(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(BOOLEAN, less.type());
     assertEquals(LITERAL_MISSING, less.valueOf(valueEnv()));
 
-    less = dsl.less(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER),
+    less = DSL.less(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(BOOLEAN, less.type());
     assertEquals(LITERAL_MISSING, less.valueOf(valueEnv()));
@@ -536,7 +536,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @ParameterizedTest(name = "lte({0}, {1})")
   @MethodSource("testCompareValueArguments")
   public void test_lte(ExprValue v1, ExprValue v2) {
-    FunctionExpression lte = dsl.lte(DSL.literal(v1), DSL.literal(v2));
+    FunctionExpression lte = DSL.lte(DSL.literal(v1), DSL.literal(v2));
     assertEquals(BOOLEAN, lte.type());
     assertEquals(compare(v1, v2) <= 0,
         ExprValueUtils.getBooleanValue(lte.valueOf(valueEnv())));
@@ -545,16 +545,16 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
 
   @Test
   public void test_lte_null() {
-    FunctionExpression lte = dsl.lte(DSL.literal(1),
+    FunctionExpression lte = DSL.lte(DSL.literal(1),
         DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(BOOLEAN, lte.type());
     assertEquals(LITERAL_NULL, lte.valueOf(valueEnv()));
 
-    lte = dsl.lte(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER), DSL.literal(1));
+    lte = DSL.lte(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER), DSL.literal(1));
     assertEquals(BOOLEAN, lte.type());
     assertEquals(LITERAL_NULL, lte.valueOf(valueEnv()));
 
-    lte = dsl.lte(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER),
+    lte = DSL.lte(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(BOOLEAN, lte.type());
     assertEquals(LITERAL_NULL, lte.valueOf(valueEnv()));
@@ -562,16 +562,16 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
 
   @Test
   public void test_lte_missing() {
-    FunctionExpression lte = dsl.lte(DSL.literal(1),
+    FunctionExpression lte = DSL.lte(DSL.literal(1),
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(BOOLEAN, lte.type());
     assertEquals(LITERAL_MISSING, lte.valueOf(valueEnv()));
 
-    lte = dsl.lte(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER), DSL.literal(1));
+    lte = DSL.lte(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER), DSL.literal(1));
     assertEquals(BOOLEAN, lte.type());
     assertEquals(LITERAL_MISSING, lte.valueOf(valueEnv()));
 
-    lte = dsl.lte(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER),
+    lte = DSL.lte(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(BOOLEAN, lte.type());
     assertEquals(LITERAL_MISSING, lte.valueOf(valueEnv()));
@@ -579,12 +579,12 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
 
   @Test
   public void test_null_lte_missing() {
-    FunctionExpression lte = dsl.lte(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER),
+    FunctionExpression lte = DSL.lte(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(BOOLEAN, lte.type());
     assertEquals(LITERAL_MISSING, lte.valueOf(valueEnv()));
 
-    lte = dsl.lte(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER),
+    lte = DSL.lte(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(BOOLEAN, lte.type());
     assertEquals(LITERAL_MISSING, lte.valueOf(valueEnv()));
@@ -593,7 +593,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @ParameterizedTest(name = "greater({0}, {1})")
   @MethodSource("testCompareValueArguments")
   public void test_greater(ExprValue v1, ExprValue v2) {
-    FunctionExpression greater = dsl.greater(DSL.literal(v1), DSL.literal(v2));
+    FunctionExpression greater = DSL.greater(DSL.literal(v1), DSL.literal(v2));
     assertEquals(BOOLEAN, greater.type());
     assertEquals(compare(v1, v2) > 0,
         ExprValueUtils.getBooleanValue(greater.valueOf(valueEnv())));
@@ -602,16 +602,16 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
 
   @Test
   public void test_greater_null() {
-    FunctionExpression greater = dsl.greater(DSL.literal(1),
+    FunctionExpression greater = DSL.greater(DSL.literal(1),
         DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(BOOLEAN, greater.type());
     assertEquals(LITERAL_NULL, greater.valueOf(valueEnv()));
 
-    greater = dsl.greater(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER), DSL.literal(1));
+    greater = DSL.greater(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER), DSL.literal(1));
     assertEquals(BOOLEAN, greater.type());
     assertEquals(LITERAL_NULL, greater.valueOf(valueEnv()));
 
-    greater = dsl.greater(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER),
+    greater = DSL.greater(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(BOOLEAN, greater.type());
     assertEquals(LITERAL_NULL, greater.valueOf(valueEnv()));
@@ -619,16 +619,16 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
 
   @Test
   public void test_greater_missing() {
-    FunctionExpression greater = dsl.greater(DSL.literal(1),
+    FunctionExpression greater = DSL.greater(DSL.literal(1),
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(BOOLEAN, greater.type());
     assertEquals(LITERAL_MISSING, greater.valueOf(valueEnv()));
 
-    greater = dsl.greater(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER), DSL.literal(1));
+    greater = DSL.greater(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER), DSL.literal(1));
     assertEquals(BOOLEAN, greater.type());
     assertEquals(LITERAL_MISSING, greater.valueOf(valueEnv()));
 
-    greater = dsl.greater(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER),
+    greater = DSL.greater(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(BOOLEAN, greater.type());
     assertEquals(LITERAL_MISSING, greater.valueOf(valueEnv()));
@@ -636,12 +636,12 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
 
   @Test
   public void test_null_greater_missing() {
-    FunctionExpression greater = dsl.greater(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER),
+    FunctionExpression greater = DSL.greater(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(BOOLEAN, greater.type());
     assertEquals(LITERAL_MISSING, greater.valueOf(valueEnv()));
 
-    greater = dsl.greater(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER),
+    greater = DSL.greater(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(BOOLEAN, greater.type());
     assertEquals(LITERAL_MISSING, greater.valueOf(valueEnv()));
@@ -650,7 +650,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @ParameterizedTest(name = "gte({0}, {1})")
   @MethodSource("testCompareValueArguments")
   public void test_gte(ExprValue v1, ExprValue v2) {
-    FunctionExpression gte = dsl.gte(DSL.literal(v1), DSL.literal(v2));
+    FunctionExpression gte = DSL.gte(DSL.literal(v1), DSL.literal(v2));
     assertEquals(BOOLEAN, gte.type());
     assertEquals(compare(v1, v2) >= 0,
         ExprValueUtils.getBooleanValue(gte.valueOf(valueEnv())));
@@ -659,16 +659,16 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
 
   @Test
   public void test_gte_null() {
-    FunctionExpression gte = dsl.gte(DSL.literal(1),
+    FunctionExpression gte = DSL.gte(DSL.literal(1),
         DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(BOOLEAN, gte.type());
     assertEquals(LITERAL_NULL, gte.valueOf(valueEnv()));
 
-    gte = dsl.gte(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER), DSL.literal(1));
+    gte = DSL.gte(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER), DSL.literal(1));
     assertEquals(BOOLEAN, gte.type());
     assertEquals(LITERAL_NULL, gte.valueOf(valueEnv()));
 
-    gte = dsl.gte(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER),
+    gte = DSL.gte(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(BOOLEAN, gte.type());
     assertEquals(LITERAL_NULL, gte.valueOf(valueEnv()));
@@ -676,16 +676,16 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
 
   @Test
   public void test_gte_missing() {
-    FunctionExpression gte = dsl.gte(DSL.literal(1),
+    FunctionExpression gte = DSL.gte(DSL.literal(1),
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(BOOLEAN, gte.type());
     assertEquals(LITERAL_MISSING, gte.valueOf(valueEnv()));
 
-    gte = dsl.gte(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER), DSL.literal(1));
+    gte = DSL.gte(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER), DSL.literal(1));
     assertEquals(BOOLEAN, gte.type());
     assertEquals(LITERAL_MISSING, gte.valueOf(valueEnv()));
 
-    gte = dsl.gte(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER),
+    gte = DSL.gte(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(BOOLEAN, gte.type());
     assertEquals(LITERAL_MISSING, gte.valueOf(valueEnv()));
@@ -693,12 +693,12 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
 
   @Test
   public void test_null_gte_missing() {
-    FunctionExpression gte = dsl.gte(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER),
+    FunctionExpression gte = DSL.gte(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(BOOLEAN, gte.type());
     assertEquals(LITERAL_MISSING, gte.valueOf(valueEnv()));
 
-    gte = dsl.gte(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER),
+    gte = DSL.gte(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER),
         DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(BOOLEAN, gte.type());
     assertEquals(LITERAL_MISSING, gte.valueOf(valueEnv()));
@@ -707,7 +707,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @ParameterizedTest(name = "like({0}, {1})")
   @MethodSource("testLikeArguments")
   public void test_like(ExprValue v1, ExprValue v2) {
-    FunctionExpression like = dsl.like(DSL.literal(v1), DSL.literal(v2));
+    FunctionExpression like = DSL.like(DSL.literal(v1), DSL.literal(v2));
     assertEquals(BOOLEAN, like.type());
     assertEquals(matches(v1, v2), like.valueOf(valueEnv()));
     assertEquals(String.format("like(%s, %s)", v1.toString(), v2.toString()), like.toString());
@@ -716,15 +716,15 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @Test
   public void test_like_null() {
     FunctionExpression like =
-        dsl.like(DSL.literal("str"), DSL.ref(STRING_TYPE_NULL_VALUE_FIELD, STRING));
+        DSL.like(DSL.literal("str"), DSL.ref(STRING_TYPE_NULL_VALUE_FIELD, STRING));
     assertEquals(BOOLEAN, like.type());
     assertEquals(LITERAL_NULL, like.valueOf(valueEnv()));
 
-    like = dsl.like(DSL.ref(STRING_TYPE_NULL_VALUE_FIELD, STRING), DSL.literal("str"));
+    like = DSL.like(DSL.ref(STRING_TYPE_NULL_VALUE_FIELD, STRING), DSL.literal("str"));
     assertEquals(BOOLEAN, like.type());
     assertEquals(LITERAL_NULL, like.valueOf(valueEnv()));
 
-    like = dsl.like(DSL.ref(STRING_TYPE_NULL_VALUE_FIELD, STRING),
+    like = DSL.like(DSL.ref(STRING_TYPE_NULL_VALUE_FIELD, STRING),
         DSL.ref(STRING_TYPE_NULL_VALUE_FIELD, STRING));
     assertEquals(BOOLEAN, like.type());
     assertEquals(LITERAL_NULL, like.valueOf(valueEnv()));
@@ -733,15 +733,15 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @Test
   public void test_like_missing() {
     FunctionExpression like =
-        dsl.like(DSL.literal("str"), DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING));
+        DSL.like(DSL.literal("str"), DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING));
     assertEquals(BOOLEAN, like.type());
     assertEquals(LITERAL_MISSING, like.valueOf(valueEnv()));
 
-    like = dsl.like(DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING), DSL.literal("str"));
+    like = DSL.like(DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING), DSL.literal("str"));
     assertEquals(BOOLEAN, like.type());
     assertEquals(LITERAL_MISSING, like.valueOf(valueEnv()));
 
-    like = dsl.like(DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING),
+    like = DSL.like(DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING),
         DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING));
     assertEquals(BOOLEAN, like.type());
     assertEquals(LITERAL_MISSING, like.valueOf(valueEnv()));
@@ -749,12 +749,12 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
 
   @Test
   public void test_null_like_missing() {
-    FunctionExpression like = dsl.like(DSL.ref(STRING_TYPE_NULL_VALUE_FIELD, STRING),
+    FunctionExpression like = DSL.like(DSL.ref(STRING_TYPE_NULL_VALUE_FIELD, STRING),
         DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING));
     assertEquals(BOOLEAN, like.type());
     assertEquals(LITERAL_MISSING, like.valueOf(valueEnv()));
 
-    like = dsl.like(DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING),
+    like = DSL.like(DSL.ref(STRING_TYPE_MISSING_VALUE_FIELD, STRING),
         DSL.ref(STRING_TYPE_NULL_VALUE_FIELD, STRING));
     assertEquals(BOOLEAN, like.type());
     assertEquals(LITERAL_MISSING, like.valueOf(valueEnv()));
@@ -762,12 +762,12 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
 
   @Test
   public void test_not_like() {
-    FunctionExpression notLike = dsl.notLike(DSL.literal("bob"), DSL.literal("tom"));
+    FunctionExpression notLike = DSL.notLike(DSL.literal("bob"), DSL.literal("tom"));
     assertEquals(BOOLEAN, notLike.type());
     assertTrue(notLike.valueOf(valueEnv()).booleanValue());
     assertEquals(String.format("not like(\"%s\", \"%s\")", "bob", "tom"), notLike.toString());
 
-    notLike = dsl.notLike(DSL.literal("bob"), DSL.literal("bo%"));
+    notLike = DSL.notLike(DSL.literal("bob"), DSL.literal("bo%"));
     assertFalse(notLike.valueOf(valueEnv()).booleanValue());
     assertEquals(String.format("not like(\"%s\", \"%s\")", "bob", "bo%"), notLike.toString());
   }
@@ -778,7 +778,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   }
 
   void testRegexpString(StringPatternPair stringPatternPair) {
-    FunctionExpression expression = dsl.regexp(
+    FunctionExpression expression = DSL.regexp(
             DSL.literal(new ExprStringValue(stringPatternPair.getStr())),
             DSL.literal(new ExprStringValue(stringPatternPair.getPatt())));
     assertEquals(INTEGER, expression.type());
@@ -791,7 +791,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
    */
   @Test
   public void serializationTest() throws Exception {
-    Expression expression = dsl.equal(DSL.literal("v1"), DSL.literal("v2"));
+    Expression expression = DSL.equal(DSL.literal("v1"), DSL.literal("v2"));
     // serialization
     ByteArrayOutputStream output = new ByteArrayOutputStream();
     ObjectOutputStream objectOutput = new ObjectOutputStream(output);
@@ -810,13 +810,13 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
 
   @Test
   public void compareNumberValueWithDifferentType() {
-    FunctionExpression equal = dsl.equal(DSL.literal(1), DSL.literal(1L));
+    FunctionExpression equal = DSL.equal(DSL.literal(1), DSL.literal(1L));
     assertTrue(equal.valueOf(valueEnv()).booleanValue());
   }
 
   @Test
   public void compare_int_long() {
-    FunctionExpression equal = dsl.equal(DSL.literal(1), DSL.literal(1L));
+    FunctionExpression equal = DSL.equal(DSL.literal(1), DSL.literal(1L));
     assertTrue(equal.valueOf(valueEnv()).booleanValue());
   }
 }

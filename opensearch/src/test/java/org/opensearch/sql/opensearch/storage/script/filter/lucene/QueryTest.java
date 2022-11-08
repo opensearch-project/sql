@@ -31,44 +31,42 @@ import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.Quer
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class QueryTest {
-  private static final DSL dsl = new ExpressionConfig()
-      .dsl(new ExpressionConfig().functionRepository());
   private final QueryQuery queryQuery = new QueryQuery();
   private final FunctionName queryFunc = FunctionName.of("query");
   private static final LiteralExpression query_value = DSL.literal("title:query_value");
 
   static Stream<List<Expression>> generateValidData() {
-    Expression query = dsl.namedArgument("query", query_value);
+    Expression query = DSL.namedArgument("query", query_value);
     return List.of(
-        dsl.namedArgument("analyzer", DSL.literal("standard")),
-        dsl.namedArgument("analyze_wildcard", DSL.literal("true")),
-        dsl.namedArgument("allow_leading_wildcard", DSL.literal("true")),
-        dsl.namedArgument("auto_generate_synonyms_phrase_query", DSL.literal("true")),
-        dsl.namedArgument("boost", DSL.literal("1")),
-        dsl.namedArgument("default_operator", DSL.literal("AND")),
-        dsl.namedArgument("default_operator", DSL.literal("and")),
-        dsl.namedArgument("enable_position_increments", DSL.literal("true")),
-        dsl.namedArgument("escape", DSL.literal("false")),
-        dsl.namedArgument("fuzziness", DSL.literal("1")),
-        dsl.namedArgument("fuzzy_rewrite", DSL.literal("constant_score")),
-        dsl.namedArgument("fuzzy_max_expansions", DSL.literal("42")),
-        dsl.namedArgument("fuzzy_prefix_length", DSL.literal("42")),
-        dsl.namedArgument("fuzzy_transpositions", DSL.literal("true")),
-        dsl.namedArgument("lenient", DSL.literal("true")),
-        dsl.namedArgument("max_determinized_states", DSL.literal("10000")),
-        dsl.namedArgument("minimum_should_match", DSL.literal("4")),
-        dsl.namedArgument("quote_analyzer", DSL.literal("standard")),
-        dsl.namedArgument("phrase_slop", DSL.literal("0")),
-        dsl.namedArgument("quote_field_suffix", DSL.literal(".exact")),
-        dsl.namedArgument("rewrite", DSL.literal("constant_score")),
-        dsl.namedArgument("type", DSL.literal("best_fields")),
-        dsl.namedArgument("tie_breaker", DSL.literal("0.3")),
-        dsl.namedArgument("time_zone", DSL.literal("Canada/Pacific")),
-        dsl.namedArgument("ANALYZER", DSL.literal("standard")),
-        dsl.namedArgument("ANALYZE_wildcard", DSL.literal("true")),
-        dsl.namedArgument("Allow_Leading_wildcard", DSL.literal("true")),
-        dsl.namedArgument("Auto_Generate_Synonyms_Phrase_Query", DSL.literal("true")),
-        dsl.namedArgument("Boost", DSL.literal("1"))
+        DSL.namedArgument("analyzer", DSL.literal("standard")),
+        DSL.namedArgument("analyze_wildcard", DSL.literal("true")),
+        DSL.namedArgument("allow_leading_wildcard", DSL.literal("true")),
+        DSL.namedArgument("auto_generate_synonyms_phrase_query", DSL.literal("true")),
+        DSL.namedArgument("boost", DSL.literal("1")),
+        DSL.namedArgument("default_operator", DSL.literal("AND")),
+        DSL.namedArgument("default_operator", DSL.literal("and")),
+        DSL.namedArgument("enable_position_increments", DSL.literal("true")),
+        DSL.namedArgument("escape", DSL.literal("false")),
+        DSL.namedArgument("fuzziness", DSL.literal("1")),
+        DSL.namedArgument("fuzzy_rewrite", DSL.literal("constant_score")),
+        DSL.namedArgument("fuzzy_max_expansions", DSL.literal("42")),
+        DSL.namedArgument("fuzzy_prefix_length", DSL.literal("42")),
+        DSL.namedArgument("fuzzy_transpositions", DSL.literal("true")),
+        DSL.namedArgument("lenient", DSL.literal("true")),
+        DSL.namedArgument("max_determinized_states", DSL.literal("10000")),
+        DSL.namedArgument("minimum_should_match", DSL.literal("4")),
+        DSL.namedArgument("quote_analyzer", DSL.literal("standard")),
+        DSL.namedArgument("phrase_slop", DSL.literal("0")),
+        DSL.namedArgument("quote_field_suffix", DSL.literal(".exact")),
+        DSL.namedArgument("rewrite", DSL.literal("constant_score")),
+        DSL.namedArgument("type", DSL.literal("best_fields")),
+        DSL.namedArgument("tie_breaker", DSL.literal("0.3")),
+        DSL.namedArgument("time_zone", DSL.literal("Canada/Pacific")),
+        DSL.namedArgument("ANALYZER", DSL.literal("standard")),
+        DSL.namedArgument("ANALYZE_wildcard", DSL.literal("true")),
+        DSL.namedArgument("Allow_Leading_wildcard", DSL.literal("true")),
+        DSL.namedArgument("Auto_Generate_Synonyms_Phrase_Query", DSL.literal("true")),
+        DSL.namedArgument("Boost", DSL.literal("1"))
     ).stream().map(arg -> List.of(query, arg));
   }
 
@@ -115,11 +113,11 @@ class QueryTest {
   }
 
   private NamedArgumentExpression namedArgument(String name, String value) {
-    return dsl.namedArgument(name, DSL.literal(value));
+    return DSL.namedArgument(name, DSL.literal(value));
   }
 
   private NamedArgumentExpression namedArgument(String name, LiteralExpression value) {
-    return dsl.namedArgument(name, value);
+    return DSL.namedArgument(name, value);
   }
 
   private class QueryExpression extends FunctionExpression {

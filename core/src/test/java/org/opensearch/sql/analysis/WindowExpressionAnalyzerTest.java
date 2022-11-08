@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
 import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -65,7 +64,7 @@ class WindowExpressionAnalyzerTest extends AnalyzerTestBase {
                 LogicalPlanDSL.relation("test", table),
                 ImmutablePair.of(DEFAULT_ASC, DSL.ref("string_value", STRING)),
                 ImmutablePair.of(DEFAULT_DESC, DSL.ref("integer_value", INTEGER))),
-            DSL.named("row_number", dsl.rowNumber()),
+            DSL.named("row_number", DSL.rowNumber()),
             new WindowDefinition(
                 ImmutableList.of(DSL.ref("string_value", STRING)),
                 ImmutableList.of(
@@ -86,7 +85,7 @@ class WindowExpressionAnalyzerTest extends AnalyzerTestBase {
     assertEquals(
         LogicalPlanDSL.window(
             LogicalPlanDSL.relation("test", table),
-            DSL.named("row_number", dsl.rowNumber()),
+            DSL.named("row_number", DSL.rowNumber()),
             new WindowDefinition(
                 ImmutableList.of(),
                 ImmutableList.of())),

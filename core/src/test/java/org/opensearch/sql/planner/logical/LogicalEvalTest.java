@@ -33,7 +33,7 @@ public class LogicalEvalTest extends AnalyzerTestBase {
         LogicalPlanDSL.eval(
             LogicalPlanDSL.relation("schema", table),
             ImmutablePair
-                .of(DSL.ref("absValue", INTEGER), dsl.abs(DSL.ref("integer_value", INTEGER)))),
+                .of(DSL.ref("absValue", INTEGER), DSL.abs(DSL.ref("integer_value", INTEGER)))),
         AstDSL.eval(
             AstDSL.relation("schema"),
             AstDSL.let(AstDSL.field("absValue"), AstDSL.function("abs", field("integer_value")))));
@@ -45,8 +45,8 @@ public class LogicalEvalTest extends AnalyzerTestBase {
         LogicalPlanDSL.eval(
             LogicalPlanDSL.relation("schema", table),
             ImmutablePair
-                .of(DSL.ref("absValue", INTEGER), dsl.abs(DSL.ref("integer_value", INTEGER))),
-            ImmutablePair.of(DSL.ref("iValue", INTEGER), dsl.abs(DSL.ref("absValue", INTEGER)))),
+                .of(DSL.ref("absValue", INTEGER), DSL.abs(DSL.ref("integer_value", INTEGER))),
+            ImmutablePair.of(DSL.ref("iValue", INTEGER), DSL.abs(DSL.ref("absValue", INTEGER)))),
         AstDSL.eval(
             AstDSL.relation("schema"),
             AstDSL.let(AstDSL.field("absValue"), AstDSL.function("abs", field("integer_value"))),

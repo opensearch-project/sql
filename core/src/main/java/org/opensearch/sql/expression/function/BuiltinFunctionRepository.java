@@ -21,6 +21,17 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.aggregation.AggregatorFunction;
+import org.opensearch.sql.expression.datetime.DateTimeFunction;
+import org.opensearch.sql.expression.datetime.IntervalClause;
+import org.opensearch.sql.expression.operator.arthmetic.ArithmeticFunction;
+import org.opensearch.sql.expression.operator.arthmetic.MathematicalFunction;
+import org.opensearch.sql.expression.operator.convert.TypeCastOperator;
+import org.opensearch.sql.expression.operator.predicate.BinaryPredicateOperator;
+import org.opensearch.sql.expression.operator.predicate.UnaryPredicateOperator;
+import org.opensearch.sql.expression.system.SystemFunctions;
+import org.opensearch.sql.expression.text.TextFunction;
+import org.opensearch.sql.expression.window.WindowFunctions;
 
 /**
  * Builtin Function Repository.
@@ -44,12 +55,24 @@ public class BuiltinFunctionRepository {
   }
 
   /**
-   * Get singleton instance. Initialize it if first time.
+   * Initialize singleton instance with all functions if the first time.
    * @return singleton instance
    */
   public static synchronized BuiltinFunctionRepository getInstance() {
     if (instance == null) {
       instance = new BuiltinFunctionRepository(new HashMap<>());
+      ArithmeticFunction.register(instance);
+      BinaryPredicateOperator.register(instance);
+      MathematicalFunction.register(instance);
+      UnaryPredicateOperator.register(instance);
+      AggregatorFunction.register(instance);
+      DateTimeFunction.register(instance);
+      IntervalClause.register(instance);
+      WindowFunctions.register(instance);
+      TextFunction.register(instance);
+      TypeCastOperator.register(instance);
+      SystemFunctions.register(instance);
+      OpenSearchFunctions.register(instance);
     }
     return instance;
   }

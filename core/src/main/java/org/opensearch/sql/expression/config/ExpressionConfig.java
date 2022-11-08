@@ -6,7 +6,6 @@
 
 package org.opensearch.sql.expression.config;
 
-import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.aggregation.AggregatorFunction;
 import org.opensearch.sql.expression.datetime.DateTimeFunction;
 import org.opensearch.sql.expression.datetime.IntervalClause;
@@ -38,24 +37,6 @@ public class ExpressionConfig {
   public BuiltinFunctionRepository functionRepository() {
     BuiltinFunctionRepository builtinFunctionRepository =
         BuiltinFunctionRepository.getInstance();
-    ArithmeticFunction.register(builtinFunctionRepository);
-    BinaryPredicateOperator.register(builtinFunctionRepository);
-    MathematicalFunction.register(builtinFunctionRepository);
-    UnaryPredicateOperator.register(builtinFunctionRepository);
-    AggregatorFunction.register(builtinFunctionRepository);
-    DateTimeFunction.register(builtinFunctionRepository);
-    IntervalClause.register(builtinFunctionRepository);
-    WindowFunctions.register(builtinFunctionRepository);
-    TextFunction.register(builtinFunctionRepository);
-    TypeCastOperator.register(builtinFunctionRepository);
-    SystemFunctions.register(builtinFunctionRepository);
-    OpenSearchFunctions.register(builtinFunctionRepository);
     return builtinFunctionRepository;
-  }
-
-  @Bean
-  @Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-  public DSL dsl(BuiltinFunctionRepository repository) {
-    return new DSL(repository);
   }
 }
