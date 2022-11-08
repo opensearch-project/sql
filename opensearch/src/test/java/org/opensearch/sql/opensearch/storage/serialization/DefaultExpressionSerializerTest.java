@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
@@ -23,15 +24,14 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.opensearch.OpenSearchTestBase;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-class DefaultExpressionSerializerTest {
+class DefaultExpressionSerializerTest extends OpenSearchTestBase {
 
   /**
    * Initialize function repository manually to avoid dependency on Spring container.
    */
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
-
   private final ExpressionSerializer serializer = new DefaultExpressionSerializer();
 
   @Test

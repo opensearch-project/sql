@@ -15,13 +15,11 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.expression.DSL;
-import org.opensearch.sql.expression.config.ExpressionConfig;
+import org.opensearch.sql.opensearch.OpenSearchTestBase;
 
-class SortQueryBuilderTest {
+class SortQueryBuilderTest extends OpenSearchTestBase {
 
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
-
-  private SortQueryBuilder sortQueryBuilder = new SortQueryBuilder();
+  private final SortQueryBuilder sortQueryBuilder = new SortQueryBuilder();
 
   @Test
   void build_sortbuilder_from_reference() {

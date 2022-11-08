@@ -6,12 +6,16 @@
 
 package org.opensearch.sql.expression.config;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.HashMap;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.aggregation.AggregatorFunction;
 import org.opensearch.sql.expression.datetime.DateTimeFunction;
 import org.opensearch.sql.expression.datetime.IntervalClause;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.expression.operator.arthmetic.ArithmeticFunction;
 import org.opensearch.sql.expression.operator.arthmetic.MathematicalFunction;
@@ -33,9 +37,10 @@ public class ExpressionConfig {
    * BuiltinFunctionRepository constructor.
    */
   @Bean
-  public BuiltinFunctionRepository functionRepository() {
+  public BuiltinFunctionRepository functionRepository(FunctionProperties functionContext) {
+
     BuiltinFunctionRepository builtinFunctionRepository =
-        new BuiltinFunctionRepository(new HashMap<>());
+        new BuiltinFunctionRepository(new HashMap<>(), functionContext);
     ArithmeticFunction.register(builtinFunctionRepository);
     BinaryPredicateOperator.register(builtinFunctionRepository);
     MathematicalFunction.register(builtinFunctionRepository);
@@ -52,7 +57,13 @@ public class ExpressionConfig {
   }
 
   @Bean
+  public FunctionProperties functionExecutionContext() {
+    return new FunctionProperties(Instant.now(), ZoneId.systemDefault());
+  }
+
+  @Bean
   public DSL dsl(BuiltinFunctionRepository repository) {
     return new DSL(repository);
   }
+
 }

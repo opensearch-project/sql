@@ -35,12 +35,11 @@ import org.opensearch.search.lookup.SearchLookup;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.config.ExpressionConfig;
+import org.opensearch.sql.opensearch.OpenSearchTestBase;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
-class ExpressionAggregationScriptTest {
-
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
+class ExpressionAggregationScriptTest extends OpenSearchTestBase {
 
   @Mock
   private SearchLookup lookup;

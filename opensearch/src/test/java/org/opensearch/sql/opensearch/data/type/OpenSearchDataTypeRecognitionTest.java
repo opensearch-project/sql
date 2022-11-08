@@ -13,16 +13,14 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.DSL;
-import org.opensearch.sql.expression.config.ExpressionConfig;
+import org.opensearch.sql.opensearch.OpenSearchTestBase;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprBinaryValue;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprGeoPointValue;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprIpValue;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprTextKeywordValue;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprTextValue;
 
-public class OpenSearchDataTypeRecognitionTest {
-
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
+public class OpenSearchDataTypeRecognitionTest extends OpenSearchTestBase {
 
   @ParameterizedTest
   @MethodSource("types")

@@ -8,38 +8,34 @@ package org.opensearch.sql.expression.datetime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprLongValue;
-import org.opensearch.sql.data.model.ExprTimestampValue;
-import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.DSL;
-import org.opensearch.sql.expression.Expression;
-import org.opensearch.sql.expression.ExpressionTestBase;
-import org.opensearch.sql.expression.FunctionExpression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
-import org.opensearch.sql.expression.env.Environment;
-import org.opensearch.sql.expression.function.FunctionName;
-import org.opensearch.sql.expression.function.FunctionSignature;
 
 public class UnixTwoWayConversionTest extends DateTimeTestBase {
 
   @Test
   public void checkConvertNow() {
-    assertEquals(LocalDateTime.now(ZoneId.of("UTC")).withNano(0), fromUnixTime(unixTimeStamp()));
-    assertEquals(LocalDateTime.now(ZoneId.of("UTC")).withNano(0),
-        eval(fromUnixTime(unixTimeStampExpr())).datetimeValue());
+    assertEquals(getExpectedNow(), fromUnixTime(unixTimeStamp()));
+  }
+
+  @Test
+  public void checkConvertNow_with_eval() {
+    assertEquals(getExpectedNow(), eval(fromUnixTime(unixTimeStampExpr())).datetimeValue());
+  }
+
+  private LocalDateTime getExpectedNow() {
+    return LocalDateTime.now(
+            functionProperties.getQueryStartClock().withZone(ZoneId.of("UTC")))
+        .withNano(0);
   }
 
   private static Stream<Arguments> getDoubleSamples() {

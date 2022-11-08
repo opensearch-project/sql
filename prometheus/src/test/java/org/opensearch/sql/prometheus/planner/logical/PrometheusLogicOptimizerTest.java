@@ -29,11 +29,19 @@ import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
 import org.opensearch.sql.storage.Table;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(MockitoExtension.class)
+@ExtendWith(SpringExtension.class)
+@ContextConfiguration(classes = {ExpressionConfig.class})
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class PrometheusLogicOptimizerTest {
 
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
+  @Autowired
+  DSL dsl;
 
   @Mock
   private Table table;

@@ -56,14 +56,22 @@ import org.opensearch.sql.planner.physical.ProjectOperator;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
 import org.opensearch.sql.prometheus.constants.TestConstants;
 import org.opensearch.sql.prometheus.request.PrometheusQueryRequest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(MockitoExtension.class)
+@ExtendWith(SpringExtension.class)
+@ContextConfiguration(classes = {ExpressionConfig.class})
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class PrometheusMetricTableTest {
+
+  @Autowired
+  DSL dsl;
 
   @Mock
   private PrometheusClient client;
-
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
 
   @Test
   @SneakyThrows

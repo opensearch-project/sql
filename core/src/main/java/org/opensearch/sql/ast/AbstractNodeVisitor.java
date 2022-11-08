@@ -15,7 +15,6 @@ import org.opensearch.sql.ast.expression.AttributeList;
 import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
-import org.opensearch.sql.ast.expression.ConstantFunction;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
@@ -120,10 +119,6 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitRelevanceFieldList(RelevanceFieldList node, C context) {
-    return visitChildren(node, context);
-  }
-
-  public T visitConstantFunction(ConstantFunction node, C context) {
     return visitChildren(node, context);
   }
 

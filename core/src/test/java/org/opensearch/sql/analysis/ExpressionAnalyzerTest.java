@@ -566,24 +566,9 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void constant_function_is_calculated_on_analyze() {
-    // Actually, we can call any function as ConstantFunction to be calculated on analyze stage
-    assertTrue(analyze(AstDSL.constantFunction("now")) instanceof LiteralExpression);
-    assertTrue(analyze(AstDSL.constantFunction("localtime")) instanceof LiteralExpression);
-  }
-
-  @Test
   public void function_isnt_calculated_on_analyze() {
     assertTrue(analyze(function("now")) instanceof FunctionExpression);
     assertTrue(analyze(AstDSL.function("localtime")) instanceof FunctionExpression);
-  }
-
-  @Test
-  public void constant_function_returns_constant_cached_value() {
-    var values = List.of(analyze(AstDSL.constantFunction("now")),
-        analyze(AstDSL.constantFunction("now")), analyze(AstDSL.constantFunction("now")));
-    assertTrue(values.stream().allMatch(v ->
-        v.valueOf() == analyze(AstDSL.constantFunction("now")).valueOf()));
   }
 
   @Test

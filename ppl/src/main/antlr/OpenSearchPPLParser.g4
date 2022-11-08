@@ -257,11 +257,6 @@ primaryExpression
     | dataTypeFunctionCall
     | fieldExpression
     | literalValue
-    | constantFunction
-    ;
-
-constantFunction
-    : constantFunctionName LT_PRTHS functionArgs? RT_PRTHS
     ;
 
 booleanExpression
@@ -419,17 +414,44 @@ trigonometricFunctionName
     ;
 
 dateAndTimeFunctionBase
-    : ADDDATE | CONVERT_TZ | DATE | DATE_ADD | DATE_FORMAT | DATE_SUB
-    | DATETIME | DAY | DAYNAME | DAYOFMONTH | DAYOFWEEK | DAYOFYEAR | FROM_DAYS | FROM_UNIXTIME
-    | HOUR | MAKEDATE | MAKETIME | MICROSECOND | MINUTE | MONTH | MONTHNAME | PERIOD_ADD
-    | PERIOD_DIFF | QUARTER | SECOND | SUBDATE | SYSDATE | TIME | TIME_TO_SEC
-    | TIMESTAMP | TO_DAYS | UNIX_TIMESTAMP | WEEK | YEAR
-    ;
-
-// Functions which value could be cached in scope of a single query
-constantFunctionName
-    : CURRENT_DATE | CURRENT_TIME | CURRENT_TIMESTAMP | LOCALTIME | LOCALTIMESTAMP | UTC_TIMESTAMP | UTC_DATE | UTC_TIME
-    | CURDATE | CURTIME | NOW
+    : datetimeConstantLiteral
+    | ADDDATE
+    | CONVERT_TZ
+    | DATE
+    | DATE_ADD
+    | DATE_FORMAT
+    | DATE_SUB
+    | DATETIME
+    | DAY
+    | DAYNAME
+    | DAYOFMONTH
+    | DAYOFWEEK
+    | DAYOFYEAR
+    | CURDATE
+    | CURTIME
+    | FROM_DAYS
+    | FROM_UNIXTIME
+    | HOUR
+    | MAKEDATE
+    | MAKETIME
+    | MICROSECOND
+    | MINUTE
+    | MONTH
+    | MONTHNAME
+    | NOW
+    | PERIOD_ADD
+    | PERIOD_DIFF
+    | QUARTER
+    | SECOND
+    | SUBDATE
+    | SYSDATE
+    | TIME
+    | TIME_TO_SEC
+    | TIMESTAMP
+    | TO_DAYS
+    | UNIX_TIMESTAMP
+    | WEEK
+    | YEAR
     ;
 
 /** condition function return boolean value */
@@ -519,6 +541,18 @@ timestampLiteral
     : TIMESTAMP timestamp=stringLiteral
     ;
 
+// Actually, these constants are shortcuts to the corresponding functions
+datetimeConstantLiteral
+    : CURRENT_DATE
+    | CURRENT_TIME
+    | CURRENT_TIMESTAMP
+    | LOCALTIME
+    | LOCALTIMESTAMP
+    | UTC_TIMESTAMP
+    | UTC_DATE
+    | UTC_TIME
+    ;
+
 intervalUnit
     : MICROSECOND | SECOND | MINUTE | HOUR | DAY | WEEK | MONTH | QUARTER | YEAR | SECOND_MICROSECOND
     | MINUTE_MICROSECOND | MINUTE_SECOND | HOUR_MICROSECOND | HOUR_SECOND | HOUR_MINUTE | DAY_MICROSECOND
@@ -563,7 +597,6 @@ keywordsCanBeId
     | TIMESTAMP | DATE | TIME
     | FIRST | LAST
     | timespanUnit | SPAN
-    | constantFunctionName
     | dateAndTimeFunctionBase
     | textFunctionBase
     | mathematicalFunctionBase

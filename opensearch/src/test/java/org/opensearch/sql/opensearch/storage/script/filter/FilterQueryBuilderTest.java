@@ -54,13 +54,12 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.config.ExpressionConfig;
+import org.opensearch.sql.opensearch.OpenSearchTestBase;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
-class FilterQueryBuilderTest {
-
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
+class FilterQueryBuilderTest extends OpenSearchTestBase {
 
   private static Stream<LiteralExpression> numericCastSource() {
     return Stream.of(literal((byte) 1), literal((short) -1), literal(
@@ -314,8 +313,8 @@ class FilterQueryBuilderTest {
             + "}",
         buildQuery(
             dsl.match(
-                dsl.namedArgument("field", literal("message")),
-                dsl.namedArgument("query", literal("search query")))));
+                DSL.namedArgument("field", literal("message")),
+                DSL.namedArgument("query", literal("search query")))));
   }
 
   @Test
@@ -342,28 +341,28 @@ class FilterQueryBuilderTest {
             + "}",
         buildQuery(
             dsl.match(
-                dsl.namedArgument("field", literal("message")),
-                dsl.namedArgument("query", literal("search query")),
-                dsl.namedArgument("operator", literal("AND")),
-                dsl.namedArgument("analyzer", literal("keyword")),
-                dsl.namedArgument("auto_generate_synonyms_phrase_query", literal("true")),
-                dsl.namedArgument("fuzziness", literal("AUTO")),
-                dsl.namedArgument("max_expansions", literal("50")),
-                dsl.namedArgument("prefix_length", literal("0")),
-                dsl.namedArgument("fuzzy_transpositions", literal("false")),
-                dsl.namedArgument("fuzzy_rewrite", literal("top_terms_1")),
-                dsl.namedArgument("lenient", literal("false")),
-                dsl.namedArgument("minimum_should_match", literal("3")),
-                dsl.namedArgument("zero_terms_query", literal("ALL")),
-                dsl.namedArgument("boost", literal("2.0")))));
+                DSL.namedArgument("field", literal("message")),
+                DSL.namedArgument("query", literal("search query")),
+                DSL.namedArgument("operator", literal("AND")),
+                DSL.namedArgument("analyzer", literal("keyword")),
+                DSL.namedArgument("auto_generate_synonyms_phrase_query", literal("true")),
+                DSL.namedArgument("fuzziness", literal("AUTO")),
+                DSL.namedArgument("max_expansions", literal("50")),
+                DSL.namedArgument("prefix_length", literal("0")),
+                DSL.namedArgument("fuzzy_transpositions", literal("false")),
+                DSL.namedArgument("fuzzy_rewrite", literal("top_terms_1")),
+                DSL.namedArgument("lenient", literal("false")),
+                DSL.namedArgument("minimum_should_match", literal("3")),
+                DSL.namedArgument("zero_terms_query", literal("ALL")),
+                DSL.namedArgument("boost", literal("2.0")))));
   }
 
   @Test
   void match_invalid_parameter() {
     FunctionExpression expr = dsl.match(
-        dsl.namedArgument("field", literal("message")),
-        dsl.namedArgument("query", literal("search query")),
-        dsl.namedArgument("invalid_parameter", literal("invalid_value")));
+        DSL.namedArgument("field", literal("message")),
+        DSL.namedArgument("query", literal("search query")),
+        DSL.namedArgument("invalid_parameter", literal("invalid_value")));
     var msg = assertThrows(SemanticCheckException.class, () -> buildQuery(expr)).getMessage();
     assertTrue(msg.startsWith("Parameter invalid_parameter is invalid for match function."));
   }
@@ -371,10 +370,10 @@ class FilterQueryBuilderTest {
   @Test
   void match_disallow_duplicate_parameter() {
     FunctionExpression expr = dsl.match(
-        dsl.namedArgument("field", literal("message")),
-        dsl.namedArgument("query", literal("search query")),
-        dsl.namedArgument("analyzer", literal("keyword")),
-        dsl.namedArgument("AnalYzer", literal("english")));
+        DSL.namedArgument("field", literal("message")),
+        DSL.namedArgument("query", literal("search query")),
+        DSL.namedArgument("analyzer", literal("keyword")),
+        DSL.namedArgument("AnalYzer", literal("english")));
     var msg = assertThrows(SemanticCheckException.class, () -> buildQuery(expr)).getMessage();
     assertEquals("Parameter 'analyzer' can only be specified once.", msg);
   }
@@ -434,8 +433,8 @@ class FilterQueryBuilderTest {
             + "}",
         buildQuery(
             dsl.match_phrase(
-                dsl.namedArgument("field", literal("message")),
-                dsl.namedArgument("query", literal("search query")))));
+                DSL.namedArgument("field", literal("message")),
+                DSL.namedArgument("query", literal("search query")))));
   }
 
   @Test
@@ -458,10 +457,10 @@ class FilterQueryBuilderTest {
             + "  }\n"
             + "}",
         buildQuery(dsl.multi_match(
-            dsl.namedArgument("fields", DSL.literal(new ExprTupleValue(
+            DSL.namedArgument("fields", DSL.literal(new ExprTupleValue(
                 new LinkedHashMap<>(ImmutableMap.of(
                     "field1", ExprValueUtils.floatValue(1.F)))))),
-            dsl.namedArgument("query", literal("search query")))));
+            DSL.namedArgument("query", literal("search query")))));
   }
 
   @Test
@@ -484,10 +483,10 @@ class FilterQueryBuilderTest {
             + "  }\n"
             + "}",
         buildQuery(dsl.multi_match(
-            dsl.namedArgument("fields", DSL.literal(new ExprTupleValue(
+            DSL.namedArgument("fields", DSL.literal(new ExprTupleValue(
                 new LinkedHashMap<>(ImmutableMap.of(
                     "*", ExprValueUtils.floatValue(1.F)))))),
-            dsl.namedArgument("query", literal("search query")))));
+            DSL.namedArgument("query", literal("search query")))));
   }
 
   @Test
@@ -508,9 +507,9 @@ class FilterQueryBuilderTest {
             + "  }\n"
             + "}",
         buildQuery(dsl.multi_match(
-            dsl.namedArgument("fields", DSL.literal(new ExprTupleValue(
+            DSL.namedArgument("fields", DSL.literal(new ExprTupleValue(
                 new LinkedHashMap<>(ImmutableMap.of())))),
-            dsl.namedArgument("query", literal("search query")))));
+            DSL.namedArgument("query", literal("search query")))));
   }
 
   // Note: we can't test `multi_match` and `simple_query_string` without weight(s)
@@ -533,11 +532,11 @@ class FilterQueryBuilderTest {
             + "  }\n"
             + "}";
     var actual = buildQuery(dsl.multi_match(
-        dsl.namedArgument("fields", DSL.literal(new ExprTupleValue(
+        DSL.namedArgument("fields", DSL.literal(new ExprTupleValue(
             new LinkedHashMap<>(ImmutableMap.of(
                 "field1", ExprValueUtils.floatValue(1.F),
                 "field2", ExprValueUtils.floatValue(.3F)))))),
-        dsl.namedArgument("query", literal("search query"))));
+        DSL.namedArgument("query", literal("search query"))));
 
     var ex1 = String.format(expected, "\"field1^1.0\", \"field2^0.3\"");
     var ex2 = String.format(expected, "\"field2^0.3\", \"field1^1.0\"");
@@ -571,24 +570,24 @@ class FilterQueryBuilderTest {
             + "}";
     var actual = buildQuery(
             dsl.multi_match(
-                dsl.namedArgument("fields", DSL.literal(
+                DSL.namedArgument("fields", DSL.literal(
                     ExprValueUtils.tupleValue(ImmutableMap.of("field1", 1.F, "field2", .3F)))),
-                dsl.namedArgument("query", literal("search query")),
-                dsl.namedArgument("analyzer", literal("keyword")),
-                dsl.namedArgument("auto_generate_synonyms_phrase_query", literal("false")),
-                dsl.namedArgument("cutoff_frequency", literal("4.3")),
-                dsl.namedArgument("fuzziness", literal("AUTO:2,4")),
-                dsl.namedArgument("fuzzy_transpositions", literal("false")),
-                dsl.namedArgument("lenient", literal("false")),
-                dsl.namedArgument("max_expansions", literal("3")),
-                dsl.namedArgument("minimum_should_match", literal("3")),
-                dsl.namedArgument("operator", literal("AND")),
-                dsl.namedArgument("prefix_length", literal("1")),
-                dsl.namedArgument("slop", literal("1")),
-                dsl.namedArgument("tie_breaker", literal("1")),
-                dsl.namedArgument("type", literal("phrase_prefix")),
-                dsl.namedArgument("zero_terms_query", literal("ALL")),
-                dsl.namedArgument("boost", literal("2.0"))));
+                DSL.namedArgument("query", literal("search query")),
+                DSL.namedArgument("analyzer", literal("keyword")),
+                DSL.namedArgument("auto_generate_synonyms_phrase_query", literal("false")),
+                DSL.namedArgument("cutoff_frequency", literal("4.3")),
+                DSL.namedArgument("fuzziness", literal("AUTO:2,4")),
+                DSL.namedArgument("fuzzy_transpositions", literal("false")),
+                DSL.namedArgument("lenient", literal("false")),
+                DSL.namedArgument("max_expansions", literal("3")),
+                DSL.namedArgument("minimum_should_match", literal("3")),
+                DSL.namedArgument("operator", literal("AND")),
+                DSL.namedArgument("prefix_length", literal("1")),
+                DSL.namedArgument("slop", literal("1")),
+                DSL.namedArgument("tie_breaker", literal("1")),
+                DSL.namedArgument("type", literal("phrase_prefix")),
+                DSL.namedArgument("zero_terms_query", literal("ALL")),
+                DSL.namedArgument("boost", literal("2.0"))));
 
     var ex1 = String.format(expected, "\"field1^1.0\", \"field2^0.3\"");
     var ex2 = String.format(expected, "\"field2^0.3\", \"field1^1.0\"");
@@ -600,12 +599,12 @@ class FilterQueryBuilderTest {
   @Test
   void multi_match_invalid_parameter() {
     FunctionExpression expr = dsl.multi_match(
-        dsl.namedArgument("fields", DSL.literal(
+        DSL.namedArgument("fields", DSL.literal(
             new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
                 "field1", ExprValueUtils.floatValue(1.F),
                 "field2", ExprValueUtils.floatValue(.3F)))))),
-        dsl.namedArgument("query", literal("search query")),
-        dsl.namedArgument("invalid_parameter", literal("invalid_value")));
+        DSL.namedArgument("query", literal("search query")),
+        DSL.namedArgument("invalid_parameter", literal("invalid_value")));
     assertThrows(SemanticCheckException.class, () -> buildQuery(expr),
         "Parameter invalid_parameter is invalid for match function.");
   }
@@ -626,12 +625,12 @@ class FilterQueryBuilderTest {
             + "}",
         buildQuery(
             dsl.match_phrase(
-                dsl.namedArgument("boost", literal("1.2")),
-                dsl.namedArgument("field", literal("message")),
-                dsl.namedArgument("query", literal("search query")),
-                dsl.namedArgument("analyzer", literal("keyword")),
-                dsl.namedArgument("slop", literal("2")),
-                dsl.namedArgument("zero_terms_query", literal("ALL")))));
+                DSL.namedArgument("boost", literal("1.2")),
+                DSL.namedArgument("field", literal("message")),
+                DSL.namedArgument("query", literal("search query")),
+                DSL.namedArgument("analyzer", literal("keyword")),
+                DSL.namedArgument("slop", literal("2")),
+                DSL.namedArgument("zero_terms_query", literal("ALL")))));
   }
 
   @Test
@@ -724,12 +723,12 @@ class FilterQueryBuilderTest {
   @Test
   void query_string_invalid_parameter() {
     FunctionExpression expr = dsl.query_string(
-        dsl.namedArgument("fields", DSL.literal(
+        DSL.namedArgument("fields", DSL.literal(
             new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
                 "field1", ExprValueUtils.floatValue(1.F),
                 "field2", ExprValueUtils.floatValue(.3F)))))),
-        dsl.namedArgument("query", literal("search query")),
-        dsl.namedArgument("invalid_parameter", literal("invalid_value")));
+        DSL.namedArgument("query", literal("search query")),
+        DSL.namedArgument("invalid_parameter", literal("invalid_value")));
     assertThrows(SemanticCheckException.class, () -> buildQuery(expr),
         "Parameter invalid_parameter is invalid for match function.");
   }
@@ -755,11 +754,11 @@ class FilterQueryBuilderTest {
         + "  }\n"
         + "}";
     var actual = buildQuery(dsl.query_string(
-        dsl.namedArgument("fields", DSL.literal(new ExprTupleValue(
+        DSL.namedArgument("fields", DSL.literal(new ExprTupleValue(
             new LinkedHashMap<>(ImmutableMap.of(
                 "field1", ExprValueUtils.floatValue(1.F),
                 "field2", ExprValueUtils.floatValue(.3F)))))),
-        dsl.namedArgument("query", literal("query_value"))));
+        DSL.namedArgument("query", literal("query_value"))));
 
     var ex1 = String.format(expected, "\"field1^1.0\", \"field2^0.3\"");
     var ex2 = String.format(expected, "\"field2^0.3\", \"field1^1.0\"");
@@ -795,21 +794,21 @@ class FilterQueryBuilderTest {
         + "}";
     var actual = buildQuery(
         dsl.query_string(
-            dsl.namedArgument("fields", DSL.literal(
+            DSL.namedArgument("fields", DSL.literal(
                 ExprValueUtils.tupleValue(ImmutableMap.of("field1", 1.F, "field2", .3F)))),
-            dsl.namedArgument("query", literal("query_value")),
-            dsl.namedArgument("analyze_wildcard", literal("true")),
-            dsl.namedArgument("analyzer", literal("keyword")),
-            dsl.namedArgument("auto_generate_synonyms_phrase_query", literal("false")),
-            dsl.namedArgument("default_operator", literal("AND")),
-            dsl.namedArgument("fuzzy_max_expansions", literal("10")),
-            dsl.namedArgument("fuzzy_prefix_length", literal("2")),
-            dsl.namedArgument("fuzzy_transpositions", literal("false")),
-            dsl.namedArgument("lenient", literal("false")),
-            dsl.namedArgument("minimum_should_match", literal("3")),
-            dsl.namedArgument("tie_breaker", literal("1.3")),
-            dsl.namedArgument("type", literal("cross_fields")),
-            dsl.namedArgument("boost", literal("2.0"))));
+            DSL.namedArgument("query", literal("query_value")),
+            DSL.namedArgument("analyze_wildcard", literal("true")),
+            DSL.namedArgument("analyzer", literal("keyword")),
+            DSL.namedArgument("auto_generate_synonyms_phrase_query", literal("false")),
+            DSL.namedArgument("default_operator", literal("AND")),
+            DSL.namedArgument("fuzzy_max_expansions", literal("10")),
+            DSL.namedArgument("fuzzy_prefix_length", literal("2")),
+            DSL.namedArgument("fuzzy_transpositions", literal("false")),
+            DSL.namedArgument("lenient", literal("false")),
+            DSL.namedArgument("minimum_should_match", literal("3")),
+            DSL.namedArgument("tie_breaker", literal("1.3")),
+            DSL.namedArgument("type", literal("cross_fields")),
+            DSL.namedArgument("boost", literal("2.0"))));
 
     var ex1 = String.format(expected, "\"field1^1.0\", \"field2^0.3\"");
     var ex2 = String.format(expected, "\"field2^0.3\", \"field1^1.0\"");
@@ -841,10 +840,10 @@ class FilterQueryBuilderTest {
             + "  }\n"
             + "}",
         buildQuery(dsl.query_string(
-            dsl.namedArgument("fields", DSL.literal(new ExprTupleValue(
+            DSL.namedArgument("fields", DSL.literal(new ExprTupleValue(
                 new LinkedHashMap<>(ImmutableMap.of(
                     "field1", ExprValueUtils.floatValue(1.F)))))),
-            dsl.namedArgument("query", literal("query_value")))));
+            DSL.namedArgument("query", literal("query_value")))));
   }
 
   @Test
@@ -870,10 +869,10 @@ class FilterQueryBuilderTest {
             + "  }\n"
             + "}",
         buildQuery(dsl.simple_query_string(
-            dsl.namedArgument("fields", DSL.literal(new ExprTupleValue(
+            DSL.namedArgument("fields", DSL.literal(new ExprTupleValue(
                 new LinkedHashMap<>(ImmutableMap.of(
                     "field1", ExprValueUtils.floatValue(1.F)))))),
-            dsl.namedArgument("query", literal("search query")))));
+            DSL.namedArgument("query", literal("search query")))));
   }
 
   @Test
@@ -893,11 +892,11 @@ class FilterQueryBuilderTest {
             + "  }\n"
             + "}";
     var actual = buildQuery(dsl.simple_query_string(
-        dsl.namedArgument("fields", DSL.literal(new ExprTupleValue(
+        DSL.namedArgument("fields", DSL.literal(new ExprTupleValue(
             new LinkedHashMap<>(ImmutableMap.of(
                 "field1", ExprValueUtils.floatValue(1.F),
                 "field2", ExprValueUtils.floatValue(.3F)))))),
-        dsl.namedArgument("query", literal("search query"))));
+        DSL.namedArgument("query", literal("search query"))));
 
     var ex1 = String.format(expected, "\"field1^1.0\", \"field2^0.3\"");
     var ex2 = String.format(expected, "\"field2^0.3\", \"field1^1.0\"");
@@ -927,20 +926,20 @@ class FilterQueryBuilderTest {
             + "}";
     var actual = buildQuery(
             dsl.simple_query_string(
-                dsl.namedArgument("fields", DSL.literal(
+                DSL.namedArgument("fields", DSL.literal(
                     ExprValueUtils.tupleValue(ImmutableMap.of("field1", 1.F, "field2", .3F)))),
-                dsl.namedArgument("query", literal("search query")),
-                dsl.namedArgument("analyze_wildcard", literal("true")),
-                dsl.namedArgument("analyzer", literal("keyword")),
-                dsl.namedArgument("auto_generate_synonyms_phrase_query", literal("false")),
-                dsl.namedArgument("default_operator", literal("AND")),
-                dsl.namedArgument("flags", literal("AND")),
-                dsl.namedArgument("fuzzy_max_expansions", literal("10")),
-                dsl.namedArgument("fuzzy_prefix_length", literal("2")),
-                dsl.namedArgument("fuzzy_transpositions", literal("false")),
-                dsl.namedArgument("lenient", literal("false")),
-                dsl.namedArgument("minimum_should_match", literal("3")),
-                dsl.namedArgument("boost", literal("2.0"))));
+                DSL.namedArgument("query", literal("search query")),
+                DSL.namedArgument("analyze_wildcard", literal("true")),
+                DSL.namedArgument("analyzer", literal("keyword")),
+                DSL.namedArgument("auto_generate_synonyms_phrase_query", literal("false")),
+                DSL.namedArgument("default_operator", literal("AND")),
+                DSL.namedArgument("flags", literal("AND")),
+                DSL.namedArgument("fuzzy_max_expansions", literal("10")),
+                DSL.namedArgument("fuzzy_prefix_length", literal("2")),
+                DSL.namedArgument("fuzzy_transpositions", literal("false")),
+                DSL.namedArgument("lenient", literal("false")),
+                DSL.namedArgument("minimum_should_match", literal("3")),
+                DSL.namedArgument("boost", literal("2.0"))));
 
     var ex1 = String.format(expected, "\"field1^1.0\", \"field2^0.3\"");
     var ex2 = String.format(expected, "\"field2^0.3\", \"field1^1.0\"");
@@ -952,12 +951,12 @@ class FilterQueryBuilderTest {
   @Test
   void simple_query_string_invalid_parameter() {
     FunctionExpression expr = dsl.simple_query_string(
-        dsl.namedArgument("fields", DSL.literal(
+        DSL.namedArgument("fields", DSL.literal(
             new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
                 "field1", ExprValueUtils.floatValue(1.F),
                 "field2", ExprValueUtils.floatValue(.3F)))))),
-        dsl.namedArgument("query", literal("search query")),
-        dsl.namedArgument("invalid_parameter", literal("invalid_value")));
+        DSL.namedArgument("query", literal("search query")),
+        DSL.namedArgument("invalid_parameter", literal("invalid_value")));
     assertThrows(SemanticCheckException.class, () -> buildQuery(expr),
         "Parameter invalid_parameter is invalid for match function.");
   }
@@ -965,9 +964,9 @@ class FilterQueryBuilderTest {
   @Test
   void match_phrase_invalid_parameter() {
     FunctionExpression expr = dsl.match_phrase(
-        dsl.namedArgument("field", literal("message")),
-        dsl.namedArgument("query", literal("search query")),
-        dsl.namedArgument("invalid_parameter", literal("invalid_value")));
+        DSL.namedArgument("field", literal("message")),
+        DSL.namedArgument("query", literal("search query")),
+        DSL.namedArgument("invalid_parameter", literal("invalid_value")));
     var msg = assertThrows(SemanticCheckException.class, () -> buildQuery(expr)).getMessage();
     assertTrue(msg.startsWith("Parameter invalid_parameter is invalid for match_phrase function."));
   }
@@ -1052,8 +1051,8 @@ class FilterQueryBuilderTest {
             + "}",
         buildQuery(
             dsl.match_bool_prefix(
-                dsl.namedArgument("field", literal("message")),
-                dsl.namedArgument("query", literal("search query")))));
+                DSL.namedArgument("field", literal("message")),
+                DSL.namedArgument("query", literal("search query")))));
   }
 
   @Test
@@ -1104,8 +1103,8 @@ class FilterQueryBuilderTest {
             + "}",
         buildQuery(
             dsl.match_phrase_prefix(
-                dsl.namedArgument("field", literal("message")),
-                dsl.namedArgument("query", literal("search query")))));
+                DSL.namedArgument("field", literal("message")),
+                DSL.namedArgument("query", literal("search query")))));
   }
 
   @Test
@@ -1125,11 +1124,11 @@ class FilterQueryBuilderTest {
             + "}",
         buildQuery(
             dsl.match_phrase_prefix(
-                dsl.namedArgument("field", literal("message")),
-                dsl.namedArgument("query", literal("search query")),
-                dsl.namedArgument("boost", literal("1.2")),
-                dsl.namedArgument("max_expansions", literal("42")),
-                dsl.namedArgument("analyzer", literal("english")))));
+                DSL.namedArgument("field", literal("message")),
+                DSL.namedArgument("query", literal("search query")),
+                DSL.namedArgument("boost", literal("1.2")),
+                DSL.namedArgument("max_expansions", literal("42")),
+                DSL.namedArgument("analyzer", literal("english")))));
   }
 
   @Test

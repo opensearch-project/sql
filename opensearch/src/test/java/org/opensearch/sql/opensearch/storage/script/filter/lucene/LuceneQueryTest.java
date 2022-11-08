@@ -15,13 +15,13 @@ import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.config.ExpressionConfig;
+import org.opensearch.sql.opensearch.OpenSearchTestBase;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-class LuceneQueryTest {
+class LuceneQueryTest extends OpenSearchTestBase {
 
   @Test
   void should_not_support_single_argument_by_default() {
-    DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
     assertFalse(new LuceneQuery(){}.canSupport(dsl.abs(DSL.ref("age", INTEGER))));
   }
 
