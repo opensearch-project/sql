@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -58,7 +59,7 @@ class QueryServiceTest {
 
   @BeforeEach
   public void setUp() {
-    when(analyzer.analyze(any(), any())).thenReturn(logicalPlan);
+    lenient().when(analyzer.analyze(any(), any())).thenReturn(logicalPlan);
     when(planner.plan(any())).thenReturn(plan);
 
     queryService = new QueryService(analyzer, executionEngine, planner);
@@ -158,6 +159,33 @@ class QueryServiceTest {
           @Override
           public void onFailure(Exception e) {
             assertTrue(e instanceof IllegalStateException);
+          }
+        });
+  }
+
+  @Test
+  public void testExecutePlanShouldPass() {
+    doAnswer(
+        invocation -> {
+          ResponseListener<ExecutionEngine.QueryResponse> listener = invocation.getArgument(1);
+          listener.onResponse(
+              new ExecutionEngine.QueryResponse(schema, Collections.emptyList()));
+          return null;
+        })
+        .when(executionEngine)
+        .execute(any(), any());
+
+    queryService.executePlan(
+        logicalPlan,
+        new ResponseListener<>() {
+          @Override
+          public void onResponse(ExecutionEngine.QueryResponse pplQueryResponse) {
+
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            fail();
           }
         });
   }

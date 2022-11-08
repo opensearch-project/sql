@@ -37,6 +37,17 @@ public class QueryService {
    */
   public void execute(UnresolvedPlan plan,
                       ResponseListener<ExecutionEngine.QueryResponse> listener) {
+    executePlan(analyze(plan), listener);
+  }
+
+  /**
+   * Todo.
+   *
+   * @param plan {@link LogicalPlan}
+   * @param listener {@link ResponseListener}
+   */
+  public void executePlan(LogicalPlan plan,
+                          ResponseListener<ExecutionEngine.QueryResponse> listener) {
     try {
       executionEngine.execute(plan(plan), listener);
     } catch (Exception e) {
@@ -54,17 +65,23 @@ public class QueryService {
   public void explain(UnresolvedPlan plan,
                       ResponseListener<ExecutionEngine.ExplainResponse> listener) {
     try {
-      executionEngine.explain(plan(plan), listener);
+      executionEngine.explain(plan(analyze(plan)), listener);
     } catch (Exception e) {
       listener.onFailure(e);
     }
   }
 
-  private PhysicalPlan plan(UnresolvedPlan plan) {
-    // 1.Analyze abstract syntax to generate logical plan
-    LogicalPlan logicalPlan = analyzer.analyze(plan, new AnalysisContext());
+  /**
+   * Todo.
+   */
+  public LogicalPlan analyze(UnresolvedPlan plan) {
+    return analyzer.analyze(plan, new AnalysisContext());
+  }
 
-    // 2.Generate optimal physical plan from logical plan
-    return planner.plan(logicalPlan);
+  /**
+   * Todo.
+   */
+  public PhysicalPlan plan(LogicalPlan plan) {
+    return planner.plan(plan);
   }
 }
