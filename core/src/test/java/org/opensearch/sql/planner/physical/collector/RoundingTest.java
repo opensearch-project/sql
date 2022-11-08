@@ -5,16 +5,13 @@
 
 package org.opensearch.sql.planner.physical.collector;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 
-import com.google.common.collect.ImmutableMap;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprTimeValue;
-import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.DSL;
@@ -34,8 +31,6 @@ public class RoundingTest {
     SpanExpression span = DSL.span(DSL.ref("unknown", STRING), DSL.literal(1), "");
     Rounding rounding = Rounding.createRounding(span);
     assertNull(rounding.round(ExprValueUtils.integerValue(1)));
-    assertNull(rounding.locate(ExprValueUtils.integerValue(1)));
-    assertEquals(0, rounding.createBuckets().length);
   }
 
   @Test
