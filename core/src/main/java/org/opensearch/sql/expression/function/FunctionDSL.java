@@ -58,6 +58,42 @@ public class FunctionDSL {
     return builder.build();
   }
 
+
+  /**
+   * Implementation of no args function that uses FunctionProperties.
+   *
+   * @param function {@link ExprValue} based no args function.
+   * @param returnType function return type.
+   * @return no args function implementation.
+   */
+  public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
+  implWithProperties(SerializableFunction<FunctionProperties, ExprValue> function,
+                     ExprType returnType) {
+    return functionName -> {
+      FunctionSignature functionSignature =
+          new FunctionSignature(functionName, Collections.emptyList());
+      FunctionBuilder functionBuilder =
+          (functionProperties, arguments) ->
+              new FunctionExpression(functionName, Collections.emptyList()) {
+                @Override
+                public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+                  return function.apply(functionProperties);
+                }
+
+                @Override
+                public ExprType type() {
+                  return returnType;
+                }
+
+                @Override
+                public String toString() {
+                  return String.format("%s()", functionName);
+                }
+              };
+      return Pair.of(functionSignature, functionBuilder);
+    };
+  }
+
   /**
    * Implementation of a function that takes one argument, returns a value, and
    * requires FunctionProperties to complete.
@@ -95,41 +131,6 @@ public class FunctionDSL {
                   arguments.stream()
                       .map(Object::toString)
                       .collect(Collectors.joining(", ")));
-            }
-          };
-      return Pair.of(functionSignature, functionBuilder);
-    };
-  }
-
-  /**
-   * Implementation of no args function that uses FunctionProperties.
-   *
-   * @param function {@link ExprValue} based no args function.
-   * @param returnType function return type.
-   * @return no args function implementation.
-   */
-  public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
-      implWithProperties(SerializableFunction<FunctionProperties, ExprValue> function,
-                     ExprType returnType) {
-    return functionName -> {
-      FunctionSignature functionSignature =
-          new FunctionSignature(functionName, Collections.emptyList());
-      FunctionBuilder functionBuilder =
-          (functionProperties, arguments) ->
-              new FunctionExpression(functionName, Collections.emptyList()) {
-            @Override
-            public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-              return function.apply(functionProperties);
-            }
-
-            @Override
-            public ExprType type() {
-              return returnType;
-            }
-
-            @Override
-            public String toString() {
-              return String.format("%s()", functionName);
             }
           };
       return Pair.of(functionSignature, functionBuilder);
@@ -295,6 +296,24 @@ public class FunctionDSL {
         return ExprValueUtils.nullValue();
       } else {
         return function.apply(v1, v2, v3);
+      }
+    };
+  }
+
+  /**
+   * Wrapper the unary ExprValue function that is aware of FunctionProperties,
+   * with default NULL and MISSING handling.
+   */
+  public static SerializableBiFunction<FunctionProperties, ExprValue, ExprValue>
+        nullMissingHandlingWithProperties(
+      SerializableBiFunction<FunctionProperties, ExprValue, ExprValue>  implementation) {
+    return (functionProperties, v1) -> {
+      if (v1.isMissing()) {
+        return ExprValueUtils.missingValue();
+      } else if (v1.isNull()) {
+        return ExprValueUtils.nullValue();
+      } else {
+        return implementation.apply(functionProperties, v1);
       }
     };
   }

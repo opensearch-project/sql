@@ -18,6 +18,9 @@ import org.opensearch.sql.data.type.ExprType;
 
 @ExtendWith(MockitoExtension.class)
 public class FunctionDSLTestBase {
+  @Mock
+  FunctionProperties functionProperties;
+
   public static final ExprNullValue NULL = ExprNullValue.of();
   public static final ExprMissingValue MISSING = ExprMissingValue.of();
   protected static final ExprType ANY_TYPE = () -> "ANY";
@@ -47,6 +50,9 @@ public class FunctionDSLTestBase {
       new FunctionSignature(SAMPLE_NAME, List.of(ExprCoreType.UNDEFINED));
   static final SerializableNoArgFunction<ExprValue> noArg = () -> ANY;
   static final SerializableFunction<ExprValue, ExprValue> oneArg = v -> ANY;
+  static final SerializableBiFunction<FunctionProperties, ExprValue, ExprValue>
+      oneArgWithProperties = (functionProperties, v) -> ANY;
+
   static final SerializableBiFunction<ExprValue, ExprValue, ExprValue>
       twoArgs = (v1, v2) -> ANY;
   static final SerializableTriFunction<ExprValue, ExprValue, ExprValue, ExprValue>

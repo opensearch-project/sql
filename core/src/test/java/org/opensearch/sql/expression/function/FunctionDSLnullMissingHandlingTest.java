@@ -7,6 +7,7 @@ package org.opensearch.sql.expression.function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
+import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandlingWithProperties;
 
 import org.junit.jupiter.api.Test;
 
@@ -25,6 +26,22 @@ class FunctionDSLnullMissingHandlingTest extends FunctionDSLTestBase {
   @Test
   void nullMissingHandling_oneArg_apply() {
     assertEquals(ANY, nullMissingHandling(oneArg).apply(ANY));
+  }
+
+
+  @Test
+  void nullMissingHandling_oneArg_FunctionProperties_nullValue() {
+    assertEquals(NULL, nullMissingHandlingWithProperties(oneArgWithProperties).apply(functionProperties, NULL));
+  }
+
+  @Test
+  void nullMissingHandling_oneArg_FunctionProperties_missingValue() {
+    assertEquals(MISSING, nullMissingHandlingWithProperties(oneArgWithProperties).apply(functionProperties, MISSING));
+  }
+
+  @Test
+  void nullMissingHandling_oneArg_FunctionProperties_apply() {
+    assertEquals(ANY, nullMissingHandlingWithProperties(oneArgWithProperties).apply(functionProperties, ANY));
   }
 
   @Test
