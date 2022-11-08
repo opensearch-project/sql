@@ -739,4 +739,31 @@ class PrometheusMetricTableTest {
     assertEquals(inputPlan, optimizedPlan);
   }
 
+  @Test
+  void testImplementPrometheusQueryWithBackQuotedFieldNamesInStatsQuery() {
+
+    PrometheusMetricTable prometheusMetricTable =
+        new PrometheusMetricTable(client, "prometheus_http_total_requests");
+
+
+    // IndexScanAgg with Filter
+    PhysicalPlan plan = prometheusMetricTable.implement(
+        indexScanAgg("prometheus_http_total_requests",
+            dsl.and(dsl.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
+                dsl.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/")))),
+            ImmutableList
+                .of(named("AVG(@value)",
+                    dsl.avg(DSL.ref("@value", INTEGER)))),
+            ImmutableList.of(named("`job`", DSL.ref("job", STRING)),
+                named("span", DSL.span(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
+                    DSL.literal(40), "s")))));
+    assertTrue(plan instanceof PrometheusMetricScan);
+    PrometheusQueryRequest prometheusQueryRequest = ((PrometheusMetricScan) plan).getRequest();
+    assertEquals(
+        "avg by(job) (avg_over_time"
+            + "(prometheus_http_total_requests{code=\"200\" , handler=\"/ready/\"}[40s]))",
+        prometheusQueryRequest.getPromQl());
+
+  }
+
 }
