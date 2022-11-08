@@ -499,7 +499,7 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
   @Test
   public void aggregate_with_two_groups_with_windowing() {
     PhysicalPlan plan = new AggregationOperator(testScan(compoundInputs),
-        Collections.singletonList(DSL.named("sum", dsl.sum(DSL.ref("errors", INTEGER)))),
+        Collections.singletonList(DSL.named("sum", DSL.sum(DSL.ref("errors", INTEGER)))),
         Arrays.asList(
             DSL.named("host", DSL.ref("host", STRING)),
             DSL.named("span", DSL.span(DSL.ref("day", DATE), DSL.literal(1), "d"))));
@@ -540,7 +540,7 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
   @Test
   public void aggregate_with_three_groups_with_windowing() {
     PhysicalPlan plan = new AggregationOperator(testScan(compoundInputs),
-        Collections.singletonList(DSL.named("sum", dsl.sum(DSL.ref("errors", INTEGER)))),
+        Collections.singletonList(DSL.named("sum", DSL.sum(DSL.ref("errors", INTEGER)))),
         Arrays.asList(
             DSL.named("host", DSL.ref("host", STRING)),
             DSL.named("span", DSL.span(DSL.ref("day", DATE), DSL.literal(1), "d")),
