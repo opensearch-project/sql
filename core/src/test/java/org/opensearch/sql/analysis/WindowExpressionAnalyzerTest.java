@@ -29,7 +29,6 @@ import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.expression.DSL;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
@@ -41,7 +40,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @Configuration
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {ExpressionConfig.class, SelectExpressionAnalyzerTest.class})
+@ContextConfiguration(classes = {SelectExpressionAnalyzerTest.class})
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class WindowExpressionAnalyzerTest extends AnalyzerTestBase {
 

@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
@@ -27,7 +27,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @Configuration
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {ExpressionConfig.class, AnalyzerTest.class})
+@ContextConfiguration(classes = {AnalyzerTest.class})
 class ExpressionReferenceOptimizerTest extends AnalyzerTestBase {
 
   @Test
@@ -156,6 +156,7 @@ class ExpressionReferenceOptimizerTest extends AnalyzerTestBase {
   }
 
   Expression optimize(Expression expression, LogicalPlan logicalPlan) {
+    BuiltinFunctionRepository functionRepository = BuiltinFunctionRepository.getInstance();
     final ExpressionReferenceOptimizer optimizer =
         new ExpressionReferenceOptimizer(functionRepository, logicalPlan);
     return optimizer.optimize(DSL.named(expression), new AnalysisContext());

@@ -29,7 +29,6 @@ import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.monitor.AlwaysHealthyMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
@@ -49,7 +48,6 @@ import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Scope;
 
 /**
@@ -165,7 +163,6 @@ public class StandaloneIT extends PPLIntegTestCase {
   }
 
   @Configuration
-  @Import({ExpressionConfig.class})
   static class StandaloneConfig {
     @Autowired
     private CatalogService catalogService;
@@ -180,17 +177,8 @@ public class StandaloneIT extends PPLIntegTestCase {
 
     @Bean
     @Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    QueryPlanFactory queryExecutionFactory(BuiltinFunctionRepository functionRepository) {
-      catalogService
-          .getCatalogs()
-          .forEach(
-              catalog ->
-                  catalog
-                      .getStorageEngine()
-                      .getFunctions()
-                      .forEach(
-                          functionResolver ->
-                              functionRepository.register(catalog.getName(), functionResolver)));
+    QueryPlanFactory queryExecutionFactory() {
+      BuiltinFunctionRepository functionRepository = BuiltinFunctionRepository.getInstance();
       Analyzer analyzer = new Analyzer(new ExpressionAnalyzer(functionRepository),
           catalogService, functionRepository);
       Planner planner =

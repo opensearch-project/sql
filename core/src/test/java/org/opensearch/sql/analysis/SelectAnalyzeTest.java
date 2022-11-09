@@ -23,7 +23,6 @@ import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
@@ -31,7 +30,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @Configuration
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {ExpressionConfig.class, SelectAnalyzeTest.class})
+@ContextConfiguration(classes = {SelectAnalyzeTest.class})
 public class SelectAnalyzeTest extends AnalyzerTestBase {
 
   @Override

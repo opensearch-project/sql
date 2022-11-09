@@ -49,7 +49,6 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.LiteralExpression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.window.aggregation.AggregateWindowFunction;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
@@ -57,7 +56,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @Configuration
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {ExpressionConfig.class, AnalyzerTestBase.class})
+@ContextConfiguration(classes = {AnalyzerTestBase.class})
 class ExpressionAnalyzerTest extends AnalyzerTestBase {
 
   @Test
