@@ -45,7 +45,7 @@ public class GrokExpression extends ParseExpression {
    */
   public GrokExpression(Expression sourceField, Expression pattern, Expression identifier) {
     super("grok", sourceField, pattern, identifier);
-    this.grok = grokCompiler.compile(pattern.valueOf(null).stringValue());
+    this.grok = grokCompiler.compile(pattern.valueOf().stringValue());
   }
 
   @Override

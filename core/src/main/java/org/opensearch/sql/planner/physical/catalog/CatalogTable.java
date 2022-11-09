@@ -21,7 +21,7 @@ import org.opensearch.sql.storage.Table;
 
 
 /**
- * Table implementation to handle show catalogs command.
+ * Table implementation to handle show datasources command.
  * Since catalog information is not tied to any storage engine, this info
  * is handled via Catalog Table.
  *

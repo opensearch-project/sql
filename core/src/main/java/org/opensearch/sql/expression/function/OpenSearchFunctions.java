@@ -30,6 +30,7 @@ public class OpenSearchFunctions {
     repository.register(match());
     repository.register(multi_match());
     repository.register(simple_query_string());
+    repository.register(query());
     repository.register(query_string());
     // Register MATCHPHRASE as MATCH_PHRASE as well for backwards
     // compatibility.
@@ -66,6 +67,11 @@ public class OpenSearchFunctions {
   private static FunctionResolver simple_query_string() {
     FunctionName funcName = BuiltinFunctionName.SIMPLE_QUERY_STRING.getName();
     return new RelevanceFunctionResolver(funcName, STRUCT);
+  }
+
+  private static FunctionResolver query() {
+    FunctionName funcName = BuiltinFunctionName.QUERY.getName();
+    return new RelevanceFunctionResolver(funcName, STRING);
   }
 
   private static FunctionResolver query_string() {

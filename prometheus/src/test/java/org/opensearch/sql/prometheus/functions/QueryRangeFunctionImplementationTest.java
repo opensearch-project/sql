@@ -48,7 +48,7 @@ class QueryRangeFunctionImplementationTest {
     QueryRangeFunctionImplementation queryRangeFunctionImplementation
         = new QueryRangeFunctionImplementation(functionName, namedArgumentExpressionList, client);
     UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
-        () -> queryRangeFunctionImplementation.valueOf(null));
+        () -> queryRangeFunctionImplementation.valueOf());
     assertEquals("Prometheus defined function [query_range] is only "
         + "supported in SOURCE clause with prometheus connector catalog", exception.getMessage());
     assertEquals("query_range(query=\"http_latency\", starttime=12345, endtime=12345, step=14)",
