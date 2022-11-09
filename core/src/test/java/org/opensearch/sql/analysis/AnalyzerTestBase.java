@@ -125,9 +125,6 @@ public class AnalyzerTestBase {
   }
 
   @Autowired
-  protected BuiltinFunctionRepository functionRepository;
-
-  @Autowired
   protected AnalysisContext analysisContext;
 
   @Autowired
@@ -146,10 +143,12 @@ public class AnalyzerTestBase {
   protected Environment<Expression, ExprType> typeEnv;
 
   @Bean
-  protected Analyzer analyzer(ExpressionAnalyzer expressionAnalyzer, CatalogService catalogService,
-                      StorageEngine storageEngine, BuiltinFunctionRepository functionRepository,
-                      Table table) {
+  protected Analyzer analyzer(ExpressionAnalyzer expressionAnalyzer,
+                              CatalogService catalogService,
+                              StorageEngine storageEngine,
+                              Table table) {
     catalogService.registerDefaultOpenSearchCatalog(storageEngine);
+    BuiltinFunctionRepository functionRepository = BuiltinFunctionRepository.getInstance();
     functionRepository.register("prometheus", new FunctionResolver() {
 
       @Override
@@ -181,8 +180,8 @@ public class AnalyzerTestBase {
   }
 
   @Bean
-  protected ExpressionAnalyzer expressionAnalyzer(BuiltinFunctionRepository repo) {
-    return new ExpressionAnalyzer(repo);
+  protected ExpressionAnalyzer expressionAnalyzer() {
+    return new ExpressionAnalyzer(BuiltinFunctionRepository.getInstance());
   }
 
   protected void assertAnalyzeEqual(LogicalPlan expected, UnresolvedPlan unresolvedPlan) {

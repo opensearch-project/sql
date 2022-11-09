@@ -46,7 +46,7 @@ public class BuiltinFunctionRepository {
 
   private final Map<String, Map<FunctionName, FunctionResolver>> namespaceFunctionResolverMap;
 
-  /** The singleton instance */
+  /** The singleton instance. */
   private static BuiltinFunctionRepository instance;
 
   /**
