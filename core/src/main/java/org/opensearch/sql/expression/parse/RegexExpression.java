@@ -40,7 +40,7 @@ public class RegexExpression extends ParseExpression {
    */
   public RegexExpression(Expression sourceField, Expression pattern, Expression identifier) {
     super("regex", sourceField, pattern, identifier);
-    this.regexPattern = Pattern.compile(pattern.valueOf(null).stringValue());
+    this.regexPattern = Pattern.compile(pattern.valueOf().stringValue());
   }
 
   @Override

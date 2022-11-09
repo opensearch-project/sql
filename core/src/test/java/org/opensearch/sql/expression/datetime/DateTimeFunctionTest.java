@@ -831,7 +831,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
     expr = dsl.time(dsl.date(DSL.literal("2020-01-02")));
     assertEquals(TIME, expr.type());
-    assertEquals(new ExprTimeValue("00:00:00"), expr.valueOf(null));
+    assertEquals(new ExprTimeValue("00:00:00"), expr.valueOf());
   }
 
   @Test
