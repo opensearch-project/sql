@@ -294,17 +294,22 @@ nullNotnull
     ;
 
 functionCall
-    : scalarFunctionName LR_BRACKET functionArgs? RR_BRACKET        #scalarFunctionCall
+    : scalarFunctionName LR_BRACKET functionArgs RR_BRACKET         #scalarFunctionCall
     | specificFunction                                              #specificFunctionCall
     | windowFunctionClause                                          #windowFunctionCall
     | aggregateFunction                                             #aggregateFunctionCall
     | aggregateFunction (orderByClause)? filterClause               #filteredAggregationFunctionCall
     | relevanceFunction                                             #relevanceFunctionCall
     | highlightFunction                                             #highlightFunctionCall
+    | constantFunction                                              #constantFunctionCall
+    ;
+
+constantFunction
+    : constantFunctionName LR_BRACKET functionArgs RR_BRACKET
     ;
 
 highlightFunction
-    : HIGHLIGHT LR_BRACKET relevanceField RR_BRACKET
+    : HIGHLIGHT LR_BRACKET relevanceField (COMMA highlightArg)* RR_BRACKET
     ;
 
 scalarFunctionName
@@ -312,6 +317,7 @@ scalarFunctionName
     | dateTimeFunctionName
     | textFunctionName
     | flowControlFunctionName
+    | systemFunctionName
     ;
 
 specificFunction
@@ -323,7 +329,11 @@ specificFunction
     ;
 
 relevanceFunction
-    : singleFieldRelevanceFunction | multiFieldRelevanceFunction
+    : noFieldRelevanceFunction | singleFieldRelevanceFunction | multiFieldRelevanceFunction
+    ;
+
+noFieldRelevanceFunction
+    : noFieldRelevanceFunctionName LR_BRACKET query=relevanceQuery (COMMA relevanceArg)* RR_BRACKET
     ;
 
 // Field is a single column
@@ -383,9 +393,17 @@ trigonometricFunctionName
     ;
 
 dateTimeFunctionName
-    : ADDDATE | DATE | DATE_ADD | DATE_SUB | DAY | DAYNAME | DAYOFMONTH | DAYOFWEEK | DAYOFYEAR | FROM_DAYS
-    | HOUR | MICROSECOND | MINUTE | MONTH | MONTHNAME | QUARTER | SECOND | SUBDATE | TIME | TIME_TO_SEC
-    | TIMESTAMP | TO_DAYS | YEAR | WEEK | DATE_FORMAT | MAKETIME | MAKEDATE
+    : ADDDATE | CONVERT_TZ | DATE | DATE_ADD | DATE_FORMAT | DATE_SUB
+    | DATETIME | DAY | DAYNAME | DAYOFMONTH | DAYOFWEEK | DAYOFYEAR | FROM_DAYS | FROM_UNIXTIME
+    | HOUR | MAKEDATE | MAKETIME | MICROSECOND | MINUTE | MONTH | MONTHNAME | PERIOD_ADD
+    | PERIOD_DIFF | QUARTER | SECOND | SUBDATE | SYSDATE | TIME | TIME_TO_SEC
+    | TIMESTAMP | TO_DAYS | UNIX_TIMESTAMP | WEEK | YEAR
+    ;
+
+// Functions which value could be cached in scope of a single query
+constantFunctionName
+    : CURRENT_DATE | CURRENT_TIME | CURRENT_TIMESTAMP | LOCALTIME | LOCALTIMESTAMP | UTC_TIMESTAMP | UTC_DATE | UTC_TIME
+    | CURDATE | CURTIME | NOW
     ;
 
 textFunctionName
@@ -396,6 +414,14 @@ textFunctionName
 
 flowControlFunctionName
     : IF | IFNULL | NULLIF | ISNULL
+    ;
+
+noFieldRelevanceFunctionName
+    : QUERY
+    ;
+
+systemFunctionName
+    : TYPEOF
     ;
 
 singleFieldRelevanceFunctionName
@@ -414,7 +440,7 @@ legacyRelevanceFunctionName
     ;
 
 functionArgs
-    : functionArg (COMMA functionArg)*
+    : (functionArg (COMMA functionArg)*)?
     ;
 
 functionArg
@@ -425,6 +451,10 @@ relevanceArg
     : relevanceArgName EQUAL_SYMBOL relevanceArgValue
     ;
 
+highlightArg
+    : highlightArgName EQUAL_SYMBOL highlightArgValue
+    ;
+
 relevanceArgName
     : ALLOW_LEADING_WILDCARD | ANALYZER | ANALYZE_WILDCARD | AUTO_GENERATE_SYNONYMS_PHRASE_QUERY
     | BOOST | CUTOFF_FREQUENCY | DEFAULT_FIELD | DEFAULT_OPERATOR | ENABLE_POSITION_INCREMENTS
@@ -433,6 +463,10 @@ relevanceArgName
     | MAX_EXPANSIONS | MINIMUM_SHOULD_MATCH | OPERATOR | PHRASE_SLOP | PREFIX_LENGTH
     | QUOTE_ANALYZER | QUOTE_FIELD_SUFFIX | REWRITE | SLOP | TIE_BREAKER | TIME_ZONE | TYPE
     | ZERO_TERMS_QUERY
+    ;
+
+highlightArgName
+    : HIGHLIGHT_POST_TAGS | HIGHLIGHT_PRE_TAGS
     ;
 
 relevanceFieldAndWeight
@@ -458,5 +492,9 @@ relevanceQuery
 relevanceArgValue
     : qualifiedName
     | constant
+    ;
+
+highlightArgValue
+    : stringLiteral
     ;
 

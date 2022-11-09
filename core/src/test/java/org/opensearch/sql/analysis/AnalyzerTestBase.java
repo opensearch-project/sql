@@ -7,15 +7,22 @@
 package org.opensearch.sql.analysis;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.opensearch.sql.data.type.ExprCoreType.LONG;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import com.google.common.collect.ImmutableSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.CatalogSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.analysis.symbol.SymbolTable;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.catalog.CatalogService;
+import org.opensearch.sql.catalog.model.Catalog;
+import org.opensearch.sql.catalog.model.ConnectorType;
 import org.opensearch.sql.config.TestConfig;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -24,6 +31,11 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.FunctionBuilder;
+import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.function.FunctionResolver;
+import org.opensearch.sql.expression.function.FunctionSignature;
+import org.opensearch.sql.expression.function.TableFunctionImplementation;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.StorageEngine;
@@ -40,16 +52,26 @@ public class AnalyzerTestBase {
 
   @Bean
   protected StorageEngine storageEngine() {
-    return new StorageEngine() {
+    return (catalogSchemaName, tableName) -> table;
+  }
+
+  @Bean
+  protected Table table() {
+    return new Table() {
       @Override
-      public Table getTable(String name) {
-        return table;
+      public Map<String, ExprType> getFieldTypes() {
+        return typeMapping();
+      }
+
+      @Override
+      public PhysicalPlan implement(LogicalPlan plan) {
+        throw new UnsupportedOperationException();
       }
     };
   }
 
   @Bean
-  protected Table table() {
+  protected Table catalogTable() {
     return new Table() {
       @Override
       public Map<String, ExprType> getFieldTypes() {
@@ -111,13 +133,34 @@ public class AnalyzerTestBase {
   protected Table table;
 
   @Autowired
+  protected CatalogService catalogService;
+
+  @Autowired
   protected Environment<Expression, ExprType> typeEnv;
 
   @Bean
   protected Analyzer analyzer(ExpressionAnalyzer expressionAnalyzer, CatalogService catalogService,
-                              StorageEngine storageEngine) {
-    catalogService.registerOpenSearchStorageEngine(storageEngine);
-    return new Analyzer(expressionAnalyzer, catalogService);
+                      StorageEngine storageEngine, BuiltinFunctionRepository functionRepository,
+                      Table table) {
+    catalogService.registerDefaultOpenSearchCatalog(storageEngine);
+    functionRepository.register("prometheus", new FunctionResolver() {
+
+      @Override
+      public Pair<FunctionSignature, FunctionBuilder> resolve(
+          FunctionSignature unresolvedSignature) {
+        FunctionName functionName = FunctionName.of("query_range");
+        FunctionSignature functionSignature =
+            new FunctionSignature(functionName, List.of(STRING, LONG, LONG, LONG));
+        return Pair.of(functionSignature,
+            args -> new TestTableFunctionImplementation(functionName, args, table));
+      }
+
+      @Override
+      public FunctionName getFunctionName() {
+        return FunctionName.of("query_range");
+      }
+    });
+    return new Analyzer(expressionAnalyzer, catalogService, functionRepository);
   }
 
   @Bean
@@ -145,21 +188,55 @@ public class AnalyzerTestBase {
 
   private class DefaultCatalogService implements CatalogService {
 
-    private StorageEngine storageEngine;
+    private StorageEngine storageEngine = storageEngine();
+    private final Catalog catalog
+        = new Catalog("prometheus", ConnectorType.PROMETHEUS, storageEngine);
+
 
     @Override
-    public StorageEngine getStorageEngine(String catalog) {
-      return storageEngine;
+    public Set<Catalog> getCatalogs() {
+      return ImmutableSet.of(catalog);
     }
 
     @Override
-    public Set<String> getCatalogs() {
-      return ImmutableSet.of("prometheus");
+    public Catalog getCatalog(String catalogName) {
+      return catalog;
     }
 
     @Override
-    public void registerOpenSearchStorageEngine(StorageEngine storageEngine) {
+    public void registerDefaultOpenSearchCatalog(StorageEngine storageEngine) {
       this.storageEngine = storageEngine;
+    }
+  }
+
+  private class TestTableFunctionImplementation implements TableFunctionImplementation {
+
+    private FunctionName functionName;
+
+    private List<Expression> arguments;
+
+    private Table table;
+
+    public TestTableFunctionImplementation(FunctionName functionName, List<Expression> arguments,
+                                           Table table) {
+      this.functionName = functionName;
+      this.arguments = arguments;
+      this.table = table;
+    }
+
+    @Override
+    public FunctionName getFunctionName() {
+      return functionName;
+    }
+
+    @Override
+    public List<Expression> getArguments() {
+      return this.arguments;
+    }
+
+    @Override
+    public Table applyArguments() {
+      return table;
     }
   }
 }

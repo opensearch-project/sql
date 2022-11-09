@@ -176,3 +176,89 @@ Query delimited multiple indices seperated by ``,``::
     |-------|
     | 5     |
     +-------+
+
+
+
+Fully Qualified Table Names
+===========================
+
+Description
+-----------
+With the introduction of different datasources along with Opensearch, support for fully qualified table names became compulsory to resolve tables to a datasource.
+
+Format for fully qualified table name.
+``<datasourceName>.<schemaName>.<tableName>``
+
+* datasourceName:[Mandatory] Datasource information is mandatory when querying over tables from datasources other than opensearch connector.
+
+* schemaName:[Optional] Schema is a logical abstraction for a group of tables. In the current state, we only support ``default`` and ``information_schema``. Any schema mentioned in the fully qualified name other than these two will be resolved to be part of tableName.
+
+* tableName:[Mandatory] tableName is mandatory.
+
+The current resolution algorithm works in such a way, the old queries on opensearch work without specifying any datasource name.
+So queries on opensearch indices doesn't need a fully qualified table name.
+
+Table Name Resolution Algorithm.
+--------------------------------
+
+Fully qualified Name is divided into parts based on ``.`` character.
+
+TableName resolution algorithm works in the following manner.
+
+1. Take the first part of the qualified name and resolve it to a datasource from the list of datasources configured.
+If it doesn't resolve to any of the datasource names configured, datasource name will default to ``@opensearch`` datasource.
+
+2. Take the first part of the remaining qualified name after capturing the datasource name.
+If this part represents any of the supported schemas under datasource, it will resolve to the same otherwise schema name will resolve to ``default`` schema.
+Currently ``default`` and ``information_schema`` are the only schemas supported.
+
+3. Rest of the parts are combined to resolve tablename.
+
+** Only table name identifiers are supported with fully qualified names, identifiers used for columns and other attributes doesn't require prefixing with datasource and schema information.**
+
+Examples
+--------
+Assume [my_prometheus] is the only datasource configured other than default opensearch engine.
+
+1. ``my_prometheus.default.http_requests_total``
+
+datasourceName = ``my_prometheus`` [Is in the list of datasources configured].
+
+schemaName = ``default`` [Is in the list of schemas supported].
+
+tableName = ``http_requests_total``.
+
+2. ``logs.12.13.1``
+
+
+datasourceName = ``@opensearch`` [Resolves to default @opensearch connector since [my_prometheus] is the only catalog configured name.]
+
+schemaName = ``default`` [No supported schema found, so default to `default`].
+
+tableName = ``logs.12.13.1``.
+
+
+3. ``my_prometheus.http_requests_total``
+
+
+datasourceName = ```my_prometheus`` [Is in the list of datasources configured].
+
+schemaName = ``default`` [No supported schema found, so default to `default`].
+
+tableName =  ``http_requests_total``.
+
+4. ``prometheus.http_requests_total``
+
+datasourceName = ``@opensearch`` [Resolves to default @opensearch connector since [my_prometheus] is the only datasource configured name.]
+
+schemaName = ``default`` [No supported schema found, so default to `default`].
+
+tableName = ``prometheus.http_requests_total``.
+
+5. ``prometheus.default.http_requests_total.1.2.3``
+
+datasourceName = ``@opensearch`` [Resolves to default @opensearch connector since [my_prometheus] is the only catalog configured name.]
+
+schemaName = ``default`` [No supported schema found, so default to `default`].
+
+tableName = ``prometheus.default.http_requests_total.1.2.3``.

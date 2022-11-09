@@ -2,21 +2,22 @@
   {
     "name" : "prometheus",
     "connector": "prometheus",
-    "uri" : "http://localhost:9090",
-    "authentication" : {
-      "type" : "basicauth",
-      "username" : "admin",
-      "password" : "password"
+    "properties" : {
+      "prometheus.uri" : "http://localhost:9090",
+      "prometheus.auth.type" : "basicauth",
+      "prometheus.auth.username" : "admin",
+      "prometheus.auth.password" : "type"
     }
   },
   {
     "name" : "prometheus-1",
     "connector": "prometheus",
-    "uri" : "http://localhost:9090",
-    "authentication" : {
-      "type" : "basicauth",
-      "username" : "admin",
-      "password" : "password"
+    "properties" : {
+      "prometheus.uri" : "http://localhost:9090",
+      "prometheus.auth.type" : "awssigv4",
+      "prometheus.auth.region" : "us-east-1",
+      "prometheus.auth.access_key" : "accessKey",
+      "prometheus.auth.secret_key" : "secretKey"
     }
   }
 ]

@@ -16,7 +16,6 @@ import static org.opensearch.sql.data.model.ExprValueUtils.nullValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
-import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.INTERVAL;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
@@ -25,15 +24,8 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
 import com.google.common.collect.ImmutableList;
-import java.time.Duration;
 import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.Year;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Random;
-import java.util.Set;
-import java.util.stream.IntStream;
 import lombok.AllArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,10 +44,7 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.FunctionExpression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.env.Environment;
-import org.opensearch.sql.expression.function.FunctionName;
-import org.opensearch.sql.expression.function.FunctionSignature;
 
 @ExtendWith(MockitoExtension.class)
 class DateTimeFunctionTest extends ExpressionTestBase {
@@ -252,6 +241,18 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     assertEquals(DATE, expr.type());
     assertEquals(new ExprDateValue("2020-08-17"), eval(expr));
     assertEquals("date(DATE '2020-08-17')", expr.toString());
+
+    expr = dsl.date(DSL.literal(new ExprDateValue("2020-08-17 12:12:00")));
+    assertEquals(DATE, expr.type());
+    assertEquals(new ExprDateValue("2020-08-17 12:12:00"), eval(expr));
+    assertEquals("date(DATE '2020-08-17')", expr.toString());
+
+    expr = dsl.date(DSL.literal(new ExprDateValue("2020-08-17 12:12")));
+    assertEquals(DATE, expr.type());
+    assertEquals(new ExprDateValue("2020-08-17 12:12"), eval(expr));
+    assertEquals("date(DATE '2020-08-17')", expr.toString());
+
+
   }
 
   @Test
@@ -807,6 +808,30 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     assertEquals(TIME, expr.type());
     assertEquals(new ExprTimeValue("01:01:01"), eval(expr));
     assertEquals("time(TIME '01:01:01')", expr.toString());
+
+    expr = dsl.time(DSL.literal(new ExprTimeValue("01:01")));
+    assertEquals(TIME, expr.type());
+    assertEquals(new ExprTimeValue("01:01"), eval(expr));
+    assertEquals("time(TIME '01:01:00')", expr.toString());
+
+    expr = dsl.time(DSL.literal(new ExprTimeValue("2019-04-19 01:01:01")));
+    assertEquals(TIME, expr.type());
+    assertEquals(new ExprTimeValue("2019-04-19 01:01:01"), eval(expr));
+    assertEquals("time(TIME '01:01:01')", expr.toString());
+
+    expr = dsl.time(DSL.literal(new ExprTimeValue("2019-04-19 01:01")));
+    assertEquals(TIME, expr.type());
+    assertEquals(new ExprTimeValue("2019-04-19 01:01"), eval(expr));
+    assertEquals("time(TIME '01:01:00')", expr.toString());
+
+    expr = dsl.time(DSL.literal(new ExprTimeValue("01:01:01.0123")));
+    assertEquals(TIME, expr.type());
+    assertEquals(new ExprTimeValue("01:01:01.0123"), eval(expr));
+    assertEquals("time(TIME '01:01:01.0123')", expr.toString());
+
+    expr = dsl.time(dsl.date(DSL.literal("2020-01-02")));
+    assertEquals(TIME, expr.type());
+    assertEquals(new ExprTimeValue("00:00:00"), expr.valueOf());
   }
 
   @Test

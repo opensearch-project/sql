@@ -58,7 +58,7 @@ public class ValuesOperator extends PhysicalPlan {
   @Override
   public ExprValue next() {
     List<ExprValue> values = valuesIterator.next().stream()
-                                           .map(expr -> expr.valueOf(null))
+                                           .map(expr -> expr.valueOf())
                                            .collect(Collectors.toList());
     return new ExprCollectionValue(values);
   }

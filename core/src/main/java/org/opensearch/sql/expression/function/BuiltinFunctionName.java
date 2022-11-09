@@ -58,7 +58,9 @@ public enum BuiltinFunctionName {
    * Date and Time Functions.
    */
   ADDDATE(FunctionName.of("adddate")),
+  CONVERT_TZ(FunctionName.of("convert_tz")),
   DATE(FunctionName.of("date")),
+  DATETIME(FunctionName.of("datetime")),
   DATE_ADD(FunctionName.of("date_add")),
   DATE_SUB(FunctionName.of("date_sub")),
   DAY(FunctionName.of("day")),
@@ -67,6 +69,7 @@ public enum BuiltinFunctionName {
   DAYOFWEEK(FunctionName.of("dayofweek")),
   DAYOFYEAR(FunctionName.of("dayofyear")),
   FROM_DAYS(FunctionName.of("from_days")),
+  FROM_UNIXTIME(FunctionName.of("from_unixtime")),
   HOUR(FunctionName.of("hour")),
   MAKEDATE(FunctionName.of("makedate")),
   MAKETIME(FunctionName.of("maketime")),
@@ -74,6 +77,8 @@ public enum BuiltinFunctionName {
   MINUTE(FunctionName.of("minute")),
   MONTH(FunctionName.of("month")),
   MONTHNAME(FunctionName.of("monthname")),
+  PERIOD_ADD(FunctionName.of("period_add")),
+  PERIOD_DIFF(FunctionName.of("period_diff")),
   QUARTER(FunctionName.of("quarter")),
   SECOND(FunctionName.of("second")),
   SUBDATE(FunctionName.of("subdate")),
@@ -82,9 +87,19 @@ public enum BuiltinFunctionName {
   TIMESTAMP(FunctionName.of("timestamp")),
   DATE_FORMAT(FunctionName.of("date_format")),
   TO_DAYS(FunctionName.of("to_days")),
+  UNIX_TIMESTAMP(FunctionName.of("unix_timestamp")),
   WEEK(FunctionName.of("week")),
   YEAR(FunctionName.of("year")),
-
+  // `now`-like functions
+  NOW(FunctionName.of("now")),
+  CURDATE(FunctionName.of("curdate")),
+  CURRENT_DATE(FunctionName.of("current_date")),
+  CURTIME(FunctionName.of("curtime")),
+  CURRENT_TIME(FunctionName.of("current_time")),
+  LOCALTIME(FunctionName.of("localtime")),
+  CURRENT_TIMESTAMP(FunctionName.of("current_timestamp")),
+  LOCALTIMESTAMP(FunctionName.of("localtimestamp")),
+  SYSDATE(FunctionName.of("sysdate")),
   /**
    * Text Functions.
    */
@@ -131,6 +146,8 @@ public enum BuiltinFunctionName {
   STDDEV_SAMP(FunctionName.of("stddev_samp")),
   // population standard deviation.
   STDDEV_POP(FunctionName.of("stddev_pop")),
+  // take top documents from aggregation bucket.
+  TAKE(FunctionName.of("take")),
 
   /**
    * Text Functions.
@@ -184,6 +201,7 @@ public enum BuiltinFunctionName {
   CAST_TO_TIME(FunctionName.of("cast_to_time")),
   CAST_TO_TIMESTAMP(FunctionName.of("cast_to_timestamp")),
   CAST_TO_DATETIME(FunctionName.of("cast_to_datetime")),
+  TYPEOF(FunctionName.of("typeof")),
 
   /**
    * Relevance Function.
@@ -230,6 +248,7 @@ public enum BuiltinFunctionName {
           .put("stddev", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_pop", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
+          .put("take", BuiltinFunctionName.TAKE)
           .build();
 
   public static Optional<BuiltinFunctionName> of(String str) {

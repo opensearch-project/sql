@@ -42,3 +42,5 @@ gen
 .DS_Store
 
 /artifacts/
+/.pid.lock
+/.prom.pid.lock

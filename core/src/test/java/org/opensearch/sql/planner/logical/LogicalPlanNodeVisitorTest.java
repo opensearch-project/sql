@@ -13,6 +13,7 @@ import static org.opensearch.sql.expression.DSL.named;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
@@ -117,8 +118,9 @@ class LogicalPlanNodeVisitorTest {
     assertNull(rareTopN.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
     }, null));
 
+    Map<String, Literal> args = new HashMap<>();
     LogicalPlan highlight = new LogicalHighlight(filter,
-        new LiteralExpression(ExprValueUtils.stringValue("fieldA")));
+        new LiteralExpression(ExprValueUtils.stringValue("fieldA")), args);
     assertNull(highlight.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
     }, null));
 
@@ -140,6 +142,18 @@ class LogicalPlanNodeVisitorTest {
             }
         });
     assertNull(ad.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
+    }, null));
+
+    LogicalPlan ml = new LogicalML(LogicalPlanDSL.relation("schema", table),
+            new HashMap<String, Literal>() {{
+              put("action", new Literal("train", DataType.STRING));
+              put("algorithm", new Literal("rcf", DataType.STRING));
+              put("shingle_size", new Literal(8, DataType.INTEGER));
+              put("time_decay", new Literal(0.0001, DataType.DOUBLE));
+              put("time_field", new Literal(null, DataType.STRING));
+            }
+            });
+    assertNull(ml.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
     }, null));
   }
 

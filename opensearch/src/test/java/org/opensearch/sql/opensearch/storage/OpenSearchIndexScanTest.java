@@ -9,7 +9,6 @@ package org.opensearch.sql.opensearch.storage;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -20,6 +19,8 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,9 +33,12 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
+import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
@@ -190,12 +194,47 @@ class OpenSearchIndexScanTest {
 
   @Test
   void pushDownHighlight() {
+    Map<String, Literal> args = new HashMap<>();
     assertThat()
         .pushDown(QueryBuilders.termQuery("name", "John"))
-        .pushDownHighlight("Title")
-        .pushDownHighlight("Body")
+        .pushDownHighlight("Title", args)
+        .pushDownHighlight("Body", args)
         .shouldQueryHighlight(QueryBuilders.termQuery("name", "John"),
             new HighlightBuilder().field("Title").field("Body"));
+  }
+
+  @Test
+  void pushDownHighlightWithArguments() {
+    Map<String, Literal> args = new HashMap<>();
+    args.put("pre_tags", new Literal("<mark>", DataType.STRING));
+    args.put("post_tags", new Literal("</mark>", DataType.STRING));
+    HighlightBuilder highlightBuilder = new HighlightBuilder()
+        .field("Title");
+    highlightBuilder.fields().get(0).preTags("<mark>").postTags("</mark>");
+    assertThat()
+        .pushDown(QueryBuilders.termQuery("name", "John"))
+        .pushDownHighlight("Title", args)
+        .shouldQueryHighlight(QueryBuilders.termQuery("name", "John"),
+            highlightBuilder);
+  }
+
+  @Test
+  void pushDownHighlightWithRepeatingFields() {
+    mockResponse(
+        new ExprValue[]{employee(1, "John", "IT"), employee(2, "Smith", "HR")},
+        new ExprValue[]{employee(3, "Allen", "IT"), employee(4, "Bob", "HR")});
+
+    try (OpenSearchIndexScan indexScan =
+             new OpenSearchIndexScan(client, settings, "test", 2, exprValueFactory)) {
+      indexScan.getRequestBuilder().pushDownLimit(3, 0);
+      indexScan.open();
+      Map<String, Literal> args = new HashMap<>();
+      indexScan.getRequestBuilder().pushDownHighlight("name", args);
+      indexScan.getRequestBuilder().pushDownHighlight("name", args);
+    } catch (SemanticCheckException e) {
+      assertTrue(e.getClass().equals(SemanticCheckException.class));
+    }
+    verify(client).cleanup(any());
   }
 
   private PushDownAssertion assertThat() {
@@ -223,8 +262,8 @@ class OpenSearchIndexScanTest {
       return this;
     }
 
-    PushDownAssertion pushDownHighlight(String query) {
-      indexScan.getRequestBuilder().pushDownHighlight(query);
+    PushDownAssertion pushDownHighlight(String query, Map<String, Literal> arguments) {
+      indexScan.getRequestBuilder().pushDownHighlight(query, arguments);
       return this;
     }
 

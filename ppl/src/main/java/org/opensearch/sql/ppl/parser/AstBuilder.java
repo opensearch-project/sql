@@ -24,23 +24,30 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsComma
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WhereCommandContext;
+import static org.opensearch.sql.utils.SystemIndexUtils.CATALOGS_TABLE_NAME;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import lombok.Generated;
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
+import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
@@ -49,6 +56,7 @@ import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Kmeans;
+import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
@@ -56,6 +64,7 @@ import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
@@ -112,12 +121,30 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   /**
    * Describe command.
+   * Current logic separates table and metadata info about table by adding
+   * MAPPING_ODFE_SYS_TABLE as suffix.
+   * Even with the introduction of catalog and schema name in fully qualified table name,
+   * we do the same thing by appending MAPPING_ODFE_SYS_TABLE as syffix to the last part
+   * of qualified name.
    */
   @Override
   public UnresolvedPlan visitDescribeCommand(DescribeCommandContext ctx) {
     final Relation table = (Relation) visitTableSourceClause(ctx.tableSourceClause());
-    return new Relation(qualifiedName(mappingTable(table.getTableName())));
+    QualifiedName tableQualifiedName = table.getTableQualifiedName();
+    ArrayList<String> parts = new ArrayList<>(tableQualifiedName.getParts());
+    parts.set(parts.size() - 1, mappingTable(parts.get(parts.size() - 1)));
+    return new Relation(new QualifiedName(parts));
   }
+
+  /**
+   * Show command.
+   */
+  @Override
+  public UnresolvedPlan visitShowCatalogsCommand(
+      OpenSearchPPLParser.ShowCatalogsCommandContext ctx) {
+    return new Relation(qualifiedName(CATALOGS_TABLE_NAME));
+  }
+
 
   /**
    * Where command.
@@ -272,11 +299,34 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   @Override
-  public UnresolvedPlan visitParseCommand(OpenSearchPPLParser.ParseCommandContext ctx) {
-    UnresolvedExpression expression = internalVisitExpression(ctx.expression());
-    Literal pattern = (Literal) internalVisitExpression(ctx.pattern());
+  public UnresolvedPlan visitGrokCommand(OpenSearchPPLParser.GrokCommandContext ctx) {
+    UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
+    Literal pattern = (Literal) internalVisitExpression(ctx.pattern);
 
-    return new Parse(expression, pattern);
+    return new Parse(ParseMethod.GROK, sourceField, pattern, ImmutableMap.of());
+  }
+
+  @Override
+  public UnresolvedPlan visitParseCommand(OpenSearchPPLParser.ParseCommandContext ctx) {
+    UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
+    Literal pattern = (Literal) internalVisitExpression(ctx.pattern);
+
+    return new Parse(ParseMethod.REGEX, sourceField, pattern, ImmutableMap.of());
+  }
+
+  @Override
+  public UnresolvedPlan visitPatternsCommand(OpenSearchPPLParser.PatternsCommandContext ctx) {
+    UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
+    ImmutableMap.Builder<String, Literal> builder = ImmutableMap.builder();
+    ctx.patternsParameter()
+        .forEach(x -> {
+          builder.put(x.children.get(0).toString(),
+              (Literal) internalVisitExpression(x.children.get(2)));
+        });
+    java.util.Map<String, Literal> arguments = builder.build();
+    Literal pattern = arguments.getOrDefault("pattern", AstDSL.stringLiteral(""));
+
+    return new Parse(ParseMethod.PATTERNS, sourceField, pattern, arguments);
   }
 
   /**
@@ -307,6 +357,13 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return new Relation(ctx.tableSource()
         .stream().map(this::internalVisitExpression)
         .collect(Collectors.toList()));
+  }
+
+  @Override
+  @Generated //To exclude from jacoco..will remove https://github.com/opensearch-project/sql/issues/1019
+  public UnresolvedPlan visitTableFunction(OpenSearchPPLParser.TableFunctionContext ctx) {
+    //<TODO>
+    return null;
   }
 
   /**
@@ -354,6 +411,20 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         });
 
     return new AD(builder.build());
+  }
+
+  /**
+   * ml command.
+   */
+  @Override
+  public UnresolvedPlan visitMlCommand(OpenSearchPPLParser.MlCommandContext ctx) {
+    ImmutableMap.Builder<String, Literal> builder = ImmutableMap.builder();
+    ctx.mlArg()
+            .forEach(x -> {
+              builder.put(x.argName.getText(),
+                      (Literal) internalVisitExpression(x.argValue));
+            });
+    return new ML(builder.build());
   }
 
   /**

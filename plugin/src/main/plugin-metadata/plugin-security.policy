@@ -8,7 +8,11 @@ grant {
   permission java.lang.reflect.ReflectPermission "suppressAccessChecks";
   permission java.lang.RuntimePermission "accessDeclaredMembers";
   permission java.lang.RuntimePermission "defineClass";
-  permission java.lang.RuntimePermission "accessDeclaredMembers";
   permission java.lang.RuntimePermission "getClassLoader";
-  permission java.lang.reflect.ReflectPermission "suppressAccessChecks";
+  permission java.lang.RuntimePermission "accessUserInformation";
+  permission java.net.NetPermission "getProxySelector";
+  permission java.net.SocketPermission "*", "accept,connect,resolve";
+
+  // ml-commons client
+  permission java.lang.RuntimePermission "setContextClassLoader";
 };

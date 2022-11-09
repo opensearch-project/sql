@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.stream.Collectors;
+import lombok.Generated;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -39,6 +40,7 @@ import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
@@ -75,7 +77,14 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitRelation(Relation node, String context) {
-    return StringUtils.format("source=%s", node.getFullyQualifiedTableNameWithCatalog());
+    return StringUtils.format("source=%s", node.getTableName());
+  }
+
+  @Override
+  @Generated //To exclude from jacoco..will remove https://github.com/opensearch-project/sql/issues/1019
+  public String visitTableFunction(TableFunction node, String context) {
+    //<TODO>
+    return null;
   }
 
   @Override

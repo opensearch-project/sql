@@ -52,7 +52,8 @@ public class DataTypeIT extends PPLIntegTestCase {
         schema("date_value", "timestamp"),
         schema("ip_value", "ip"),
         schema("object_value", "struct"),
-        schema("nested_value", "array"));
+        schema("nested_value", "array"),
+        schema("geo_point_value", "geo_point"));
   }
 
   @Test
@@ -71,5 +72,4 @@ public class DataTypeIT extends PPLIntegTestCase {
         schema("long1", "long"),
         schema("long2", "long"));
   }
-
 }

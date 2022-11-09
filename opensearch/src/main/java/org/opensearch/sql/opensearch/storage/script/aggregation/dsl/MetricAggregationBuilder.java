@@ -18,6 +18,7 @@ import org.opensearch.search.aggregations.AggregatorFactories;
 import org.opensearch.search.aggregations.bucket.filter.FilterAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.CardinalityAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.ExtendedStats;
+import org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
@@ -28,6 +29,7 @@ import org.opensearch.sql.opensearch.response.agg.FilterParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
 import org.opensearch.sql.opensearch.response.agg.StatsParser;
+import org.opensearch.sql.opensearch.response.agg.TopHitsParser;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
@@ -132,28 +134,36 @@ public class MetricAggregationBuilder
             expression,
             condition,
             name,
-            new StatsParser(ExtendedStats::getVarianceSampling,name));
+            new StatsParser(ExtendedStats::getVarianceSampling, name));
       case "var_pop":
         return make(
             AggregationBuilders.extendedStats(name),
             expression,
             condition,
             name,
-            new StatsParser(ExtendedStats::getVariancePopulation,name));
+            new StatsParser(ExtendedStats::getVariancePopulation, name));
       case "stddev_samp":
         return make(
             AggregationBuilders.extendedStats(name),
             expression,
             condition,
             name,
-            new StatsParser(ExtendedStats::getStdDeviationSampling,name));
+            new StatsParser(ExtendedStats::getStdDeviationSampling, name));
       case "stddev_pop":
         return make(
             AggregationBuilders.extendedStats(name),
             expression,
             condition,
             name,
-            new StatsParser(ExtendedStats::getStdDeviationPopulation,name));
+            new StatsParser(ExtendedStats::getStdDeviationPopulation, name));
+      case "take":
+        return make(
+            AggregationBuilders.topHits(name),
+            expression,
+            node.getArguments().get(1),
+            condition,
+            name,
+            new TopHitsParser(name));
       default:
         throw new IllegalStateException(
             String.format("unsupported aggregator %s", node.getFunctionName().getFunctionName()));
@@ -195,6 +205,27 @@ public class MetricAggregationBuilder
   }
 
   /**
+   * Make {@link TopHitsAggregationBuilder} for take aggregations.
+   */
+  private Pair<AggregationBuilder, MetricParser> make(TopHitsAggregationBuilder builder,
+                                                      Expression expression,
+                                                      Expression size,
+                                                      Expression condition,
+                                                      String name,
+                                                      MetricParser parser) {
+    String fieldName = ((ReferenceExpression) expression).getAttr();
+    builder.fetchSource(fieldName, null);
+    builder.size(size.valueOf().integerValue());
+    builder.from(0);
+    if (condition != null) {
+      return Pair.of(
+          makeFilterAggregation(builder, condition, name),
+          FilterParser.builder().name(name).metricsParser(parser).build());
+    }
+    return Pair.of(builder, parser);
+  }
+
+  /**
    * Replace star or literal with OpenSearch metadata field "_index". Because: 1) Analyzer already
    * converts * to string literal, literal check here can handle both COUNT(*) and COUNT(1). 2)
    * Value count aggregation on _index counts all docs (after filter), therefore it has same
@@ -214,8 +245,8 @@ public class MetricAggregationBuilder
    * Make builder to build FilterAggregation for aggregations with filter in the bucket.
    *
    * @param subAggBuilder AggregationBuilder instance which the filter is applied to.
-   * @param condition Condition expression in the filter.
-   * @param name Name of the FilterAggregation instance to build.
+   * @param condition     Condition expression in the filter.
+   * @param name          Name of the FilterAggregation instance to build.
    * @return {@link FilterAggregationBuilder}.
    */
   private FilterAggregationBuilder makeFilterAggregation(

@@ -21,11 +21,12 @@ pplStatement
 pplCommands
     : searchCommand
     | describeCommand
+    | showCatalogsCommand
     ;
 
 commands
     : whereCommand | fieldsCommand | renameCommand | statsCommand | dedupCommand | sortCommand | evalCommand | headCommand
-    | topCommand | rareCommand | parseCommand | kmeansCommand | adCommand;
+    | topCommand | rareCommand | grokCommand | parseCommand | patternsCommand | kmeansCommand | adCommand | mlCommand;
 
 searchCommand
     : (SEARCH)? fromClause                                          #searchFrom
@@ -35,6 +36,10 @@ searchCommand
 
 describeCommand
     : DESCRIBE tableSourceClause
+    ;
+
+showCatalogsCommand
+    : SHOW CATALOGS
     ;
 
 whereCommand
@@ -94,10 +99,27 @@ rareCommand
     (byClause)?
     ;
 
-parseCommand
-    : PARSE expression pattern
+grokCommand
+    : GROK (source_field=expression) (pattern=stringLiteral)
     ;
-    
+
+parseCommand
+    : PARSE (source_field=expression) (pattern=stringLiteral)
+    ;
+
+patternsCommand
+    : PATTERNS (patternsParameter)* (source_field=expression)
+    ;
+
+patternsParameter
+    : (NEW_FIELD EQUAL new_field=stringLiteral)
+    | (PATTERN EQUAL pattern=stringLiteral)
+    ;
+
+patternsMethod
+    : PUNCT | REGEX
+    ;
+
 kmeansCommand
     : KMEANS (kmeansParameter)*
     ;
@@ -119,11 +141,20 @@ adParameter
     | (OUTPUT_AFTER EQUAL output_after=integerLiteral)
     | (TIME_DECAY EQUAL time_decay=decimalLiteral)
     | (ANOMALY_RATE EQUAL anomaly_rate=decimalLiteral)
+    | (CATEGORY_FIELD EQUAL category_field=stringLiteral)
     | (TIME_FIELD EQUAL time_field=stringLiteral)
     | (DATE_FORMAT EQUAL date_format=stringLiteral)
     | (TIME_ZONE EQUAL time_zone=stringLiteral)
     | (TRAINING_DATA_SIZE EQUAL training_data_size=integerLiteral)
     | (ANOMALY_SCORE_THRESHOLD EQUAL anomaly_score_threshold=decimalLiteral)
+    ;
+
+mlCommand
+    : ML (mlArg)*
+    ;
+
+mlArg
+    : (argName=ident EQUAL argValue=literalValue)
     ;
 
 /** clauses */
@@ -177,10 +208,15 @@ statsFunction
     | COUNT LT_PRTHS RT_PRTHS                                       #countAllFunctionCall
     | (DISTINCT_COUNT | DC) LT_PRTHS valueExpression RT_PRTHS       #distinctCountFunctionCall
     | percentileAggFunction                                         #percentileAggFunctionCall
+    | takeAggFunction                                               #takeAggFunctionCall
     ;
 
 statsFunctionName
     : AVG | COUNT | SUM | MIN | MAX | VAR_SAMP | VAR_POP | STDDEV_SAMP | STDDEV_POP
+    ;
+
+takeAggFunction
+    : TAKE LT_PRTHS fieldExpression (COMMA size=integerLiteral)? RT_PRTHS
     ;
 
 percentileAggFunction
@@ -221,6 +257,11 @@ primaryExpression
     | dataTypeFunctionCall
     | fieldExpression
     | literalValue
+    | constantFunction
+    ;
+
+constantFunction
+    : constantFunctionName LT_PRTHS functionArgs? RT_PRTHS
     ;
 
 booleanExpression
@@ -249,6 +290,10 @@ multiFieldRelevanceFunction
 tableSource
     : qualifiedName
     | ID_DATE_SUFFIX
+    ;
+
+tableFunction
+    : qualifiedName LT_PRTHS functionArgs RT_PRTHS
     ;
 
 /** fields */
@@ -313,6 +358,7 @@ evalFunctionName
     | dateAndTimeFunctionBase
     | textFunctionBase
     | conditionFunctionBase
+    | systemFunctionBase
     ;
 
 functionArgs
@@ -320,7 +366,7 @@ functionArgs
     ;
 
 functionArg
-    : valueExpression
+    : (ident EQUAL)? valueExpression
     ;
 
 relevanceArg
@@ -373,15 +419,27 @@ trigonometricFunctionName
     ;
 
 dateAndTimeFunctionBase
-    : ADDDATE | DATE | DATE_ADD | DATE_SUB | DAY | DAYNAME | DAYOFMONTH | DAYOFWEEK | DAYOFYEAR | FROM_DAYS
-    | HOUR | MICROSECOND | MINUTE | MONTH | MONTHNAME | QUARTER | SECOND | SUBDATE | TIME | TIME_TO_SEC
-    | TIMESTAMP | TO_DAYS | YEAR | WEEK | DATE_FORMAT | MAKETIME | MAKEDATE
+    : ADDDATE | CONVERT_TZ | DATE | DATE_ADD | DATE_FORMAT | DATE_SUB
+    | DATETIME | DAY | DAYNAME | DAYOFMONTH | DAYOFWEEK | DAYOFYEAR | FROM_DAYS | FROM_UNIXTIME
+    | HOUR | MAKEDATE | MAKETIME | MICROSECOND | MINUTE | MONTH | MONTHNAME | PERIOD_ADD
+    | PERIOD_DIFF | QUARTER | SECOND | SUBDATE | SYSDATE | TIME | TIME_TO_SEC
+    | TIMESTAMP | TO_DAYS | UNIX_TIMESTAMP | WEEK | YEAR
+    ;
+
+// Functions which value could be cached in scope of a single query
+constantFunctionName
+    : CURRENT_DATE | CURRENT_TIME | CURRENT_TIMESTAMP | LOCALTIME | LOCALTIMESTAMP | UTC_TIMESTAMP | UTC_DATE | UTC_TIME
+    | CURDATE | CURTIME | NOW
     ;
 
 /** condition function return boolean value */
 conditionFunctionBase
     : LIKE
     | IF | ISNULL | ISNOTNULL | IFNULL | NULLIF
+    ;
+
+systemFunctionBase
+    : TYPEOF
     ;
 
 textFunctionBase
@@ -419,6 +477,7 @@ literalValue
     | integerLiteral
     | decimalLiteral
     | booleanLiteral
+    | datetimeLiteral           //#datetime
     ;
 
 intervalLiteral
@@ -441,8 +500,23 @@ booleanLiteral
     : TRUE | FALSE
     ;
 
-pattern
-    : stringLiteral
+// Date and Time Literal, follow ANSI 92
+datetimeLiteral
+    : dateLiteral
+    | timeLiteral
+    | timestampLiteral
+    ;
+
+dateLiteral
+    : DATE date=stringLiteral
+    ;
+
+timeLiteral
+    : TIME time=stringLiteral
+    ;
+
+timestampLiteral
+    : TIMESTAMP timestamp=stringLiteral
     ;
 
 intervalUnit
@@ -489,4 +563,8 @@ keywordsCanBeId
     | TIMESTAMP | DATE | TIME
     | FIRST | LAST
     | timespanUnit | SPAN
+    | constantFunctionName
+    | dateAndTimeFunctionBase
+    | textFunctionBase
+    | mathematicalFunctionBase
     ;

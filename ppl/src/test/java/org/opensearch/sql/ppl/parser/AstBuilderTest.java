@@ -38,9 +38,12 @@ import static org.opensearch.sql.ast.dsl.AstDSL.rename;
 import static org.opensearch.sql.ast.dsl.AstDSL.sort;
 import static org.opensearch.sql.ast.dsl.AstDSL.span;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.tableFunction;
+import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Arrays;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -48,9 +51,11 @@ import org.junit.rules.ExpectedException;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Kmeans;
+import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 
@@ -74,7 +79,7 @@ public class AstBuilderTest {
   @Test
   public void testPrometheusSearchCommand() {
     assertEqual("search source = prometheus.http_requests_total",
-        relation(qualifiedName("http_requests_total"))
+        relation(qualifiedName("prometheus", "http_requests_total"))
     );
   }
 
@@ -88,8 +93,33 @@ public class AstBuilderTest {
   @Test
   public void testSearchCommandWithDotInIndexName() {
     assertEqual("search source = http_requests_total.test",
-        relation("test")
+        relation(qualifiedName("http_requests_total","test"))
     );
+  }
+
+  @Ignore
+  @Test
+  public void testSearchWithPrometheusQueryRangeWithPositionedArguments() {
+    assertEqual("search source = prometheus.query_range(\"test{code='200'}\",1234, 12345, 3)",
+        tableFunction(Arrays.asList("prometheus", "query_range"),
+            unresolvedArg(null, stringLiteral("test{code='200'}")),
+            unresolvedArg(null, intLiteral(1234)),
+            unresolvedArg(null, intLiteral(12345)),
+            unresolvedArg(null, intLiteral(3))
+    ));
+  }
+
+  @Ignore
+  @Test
+  public void testSearchWithPrometheusQueryRangeWithNamedArguments() {
+    assertEqual("search source = prometheus.query_range(query = \"test{code='200'}\", "
+            + "starttime = 1234, step=3, endtime=12345)",
+        tableFunction(Arrays.asList("prometheus", "query_range"),
+            unresolvedArg("query", stringLiteral("test{code='200'}")),
+            unresolvedArg("starttime", intLiteral(1234)),
+            unresolvedArg("step", intLiteral(3)),
+            unresolvedArg("endtime", intLiteral(12345))
+        ));
   }
 
   @Test
@@ -617,13 +647,55 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testGrokCommand() {
+    assertEqual("source=t | grok raw \"pattern\"",
+        parse(
+            relation("t"),
+            ParseMethod.GROK,
+            field("raw"),
+            stringLiteral("pattern"),
+            ImmutableMap.of()
+        ));
+  }
+
+  @Test
   public void testParseCommand() {
     assertEqual("source=t | parse raw \"pattern\"",
         parse(
             relation("t"),
+            ParseMethod.REGEX,
             field("raw"),
-            stringLiteral("pattern")
+            stringLiteral("pattern"),
+            ImmutableMap.of()
         ));
+  }
+
+  @Test
+  public void testPatternsCommand() {
+    assertEqual("source=t | patterns new_field=\"custom_field\" "
+            + "pattern=\"custom_pattern\" raw",
+        parse(
+            relation("t"),
+            ParseMethod.PATTERNS,
+            field("raw"),
+            stringLiteral("custom_pattern"),
+            ImmutableMap.<String, Literal>builder()
+                .put("new_field", stringLiteral("custom_field"))
+                .put("pattern", stringLiteral("custom_pattern"))
+                .build()
+        ));
+  }
+
+  @Test
+  public void testPatternsCommandWithoutArguments() {
+    assertEqual(
+        "source=t | patterns raw",
+        parse(
+            relation("t"),
+            ParseMethod.PATTERNS,
+            field("raw"),
+            stringLiteral(""),
+            ImmutableMap.of()));
   }
 
   @Test
@@ -644,6 +716,20 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testMLCommand() {
+    assertEqual("source=t | ml action='trainandpredict' "
+                    + "algorithm='kmeans' centroid=3 iteration=2 dist_type='l1'",
+            new ML(relation("t"), ImmutableMap.<String, Literal>builder()
+                    .put("action", new Literal("trainandpredict", DataType.STRING))
+                    .put("algorithm", new Literal("kmeans", DataType.STRING))
+                    .put("centroid", new Literal(3, DataType.INTEGER))
+                    .put("iteration", new Literal(2, DataType.INTEGER))
+                    .put("dist_type", new Literal("l1", DataType.STRING))
+                    .build()
+            ));
+  }
+
+  @Test
   public void testDescribeCommand() {
     assertEqual("describe t",
         relation(mappingTable("t")));
@@ -653,6 +739,14 @@ public class AstBuilderTest {
   public void testDescribeCommandWithMultipleIndices() {
     assertEqual("describe t,u",
         relation(mappingTable("t,u")));
+  }
+
+  @Test
+  public void testDescribeCommandWithFullyQualifiedTableName() {
+    assertEqual("describe prometheus.http_metric",
+        relation(qualifiedName("prometheus", mappingTable("http_metric"))));
+    assertEqual("describe prometheus.schema.http_metric",
+        relation(qualifiedName("prometheus", "schema", mappingTable("http_metric"))));
   }
 
   @Test
@@ -702,6 +796,12 @@ public class AstBuilderTest {
   public void test_batchRCFADCommand() {
     assertEqual("source=t | AD",
         new AD(relation("t"), ImmutableMap.of()));
+  }
+
+  @Test
+  public void testShowCatalogsCommand() {
+    assertEqual("show datasources",
+        relation(".CATALOGS"));
   }
 
   protected void assertEqual(String query, Node expectedPlan) {

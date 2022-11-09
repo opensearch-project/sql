@@ -9,6 +9,7 @@ package org.opensearch.sql.analysis;
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.floatLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
@@ -27,6 +28,7 @@ import static org.opensearch.sql.expression.DSL.ref;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,7 +37,6 @@ import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
-import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
@@ -46,7 +47,8 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
-import org.opensearch.sql.expression.HighlightExpression;
+import org.opensearch.sql.expression.FunctionExpression;
+import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.window.aggregation.AggregateWindowFunction;
 import org.springframework.context.annotation.Configuration;
@@ -314,6 +316,14 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
+  public void take_aggregation() {
+    assertAnalyzeEqual(
+        dsl.take(DSL.ref("string_value", STRING), DSL.literal(10)),
+        AstDSL.aggregate("take", qualifiedName("string_value"), intLiteral(10))
+    );
+  }
+
+  @Test
   public void named_argument() {
     assertAnalyzeEqual(
         dsl.namedArgument("arg_name", DSL.literal("query")),
@@ -327,10 +337,10 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
     analysisContext.peek().define(new Symbol(Namespace.FIELD_NAME, "string_field"), STRING);
     analysisContext.getNamedParseExpressions()
         .add(DSL.named("group",
-            DSL.parsed(ref("string_field", STRING), DSL.literal("(?<group>\\d+)"),
+            DSL.regex(ref("string_field", STRING), DSL.literal("(?<group>\\d+)"),
             DSL.literal("group"))));
     assertAnalyzeEqual(
-        DSL.parsed(ref("string_field", STRING), DSL.literal("(?<group>\\d+)"),
+        DSL.regex(ref("string_field", STRING), DSL.literal("(?<group>\\d+)"),
             DSL.literal("group")),
         qualifiedName("group")
     );
@@ -478,6 +488,15 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
+  void query_expression() {
+    assertAnalyzeEqual(
+            dsl.query(
+                    dsl.namedArgument("query", DSL.literal("field:query"))),
+            AstDSL.function("query",
+                    AstDSL.unresolvedArg("query", stringLiteral("field:query"))));
+  }
+
+  @Test
   void query_string_expression() {
     assertAnalyzeEqual(
         dsl.query_string(
@@ -547,9 +566,44 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  void highlight() {
-    assertAnalyzeEqual(new HighlightExpression(DSL.literal("fieldA")),
-        new HighlightFunction(stringLiteral("fieldA")));
+  public void constant_function_is_calculated_on_analyze() {
+    // Actually, we can call any function as ConstantFunction to be calculated on analyze stage
+    assertTrue(analyze(AstDSL.constantFunction("now")) instanceof LiteralExpression);
+    assertTrue(analyze(AstDSL.constantFunction("localtime")) instanceof LiteralExpression);
+  }
+
+  @Test
+  public void function_isnt_calculated_on_analyze() {
+    assertTrue(analyze(function("now")) instanceof FunctionExpression);
+    assertTrue(analyze(AstDSL.function("localtime")) instanceof FunctionExpression);
+  }
+
+  @Test
+  public void constant_function_returns_constant_cached_value() {
+    var values = List.of(analyze(AstDSL.constantFunction("now")),
+        analyze(AstDSL.constantFunction("now")), analyze(AstDSL.constantFunction("now")));
+    assertTrue(values.stream().allMatch(v ->
+        v.valueOf() == analyze(AstDSL.constantFunction("now")).valueOf()));
+  }
+
+  @Test
+  public void function_returns_non_constant_value() {
+    // Even a function returns the same values - they are calculated on each call
+    // `sysdate()` which returns `LocalDateTime.now()` shouldn't be cached and should return always
+    // different values
+    var values = List.of(analyze(function("sysdate")), analyze(function("sysdate")),
+        analyze(function("sysdate")), analyze(function("sysdate")));
+    var referenceValue = analyze(function("sysdate")).valueOf();
+    assertTrue(values.stream().noneMatch(v -> v.valueOf() == referenceValue));
+  }
+
+  @Test
+  public void now_as_a_function_not_cached() {
+    // // We can call `now()` as a function, in that case nothing should be cached
+    var values = List.of(analyze(function("now")), analyze(function("now")),
+        analyze(function("now")), analyze(function("now")));
+    var referenceValue = analyze(function("now")).valueOf();
+    assertTrue(values.stream().noneMatch(v -> v.valueOf() == referenceValue));
   }
 
   protected Expression analyze(UnresolvedExpression unresolvedExpression) {

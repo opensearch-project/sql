@@ -6,6 +6,10 @@ $INSTALL_DIR = $args[4]
 
 Write-Host $args
 
+# aws-sdk-cpp fails compilation with warning:
+# "Various members of std::allocator are deprecated in C++17"
+$env:CL='-D_SILENCE_CXX17_OLD_ALLOCATOR_MEMBERS_DEPRECATION_WARNING'
+
 cmake -S $SRC_DIR `
     -B $BUILD_DIR `
     -A $WIN_ARCH `

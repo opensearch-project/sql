@@ -14,6 +14,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.constantFunction;
 import static org.opensearch.sql.ast.dsl.AstDSL.doubleLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
@@ -32,10 +33,19 @@ import static org.opensearch.sql.utils.SystemIndexUtils.TABLE_INFO;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
@@ -669,20 +679,92 @@ class AstBuilderTest {
         buildAST("SELECT name FROM test LIMIT 5, 10"));
   }
 
+  private static Stream<Arguments> nowLikeFunctionsData() {
+    return Stream.of(
+        Arguments.of("now", false, false, true),
+        Arguments.of("current_timestamp", false, false, true),
+        Arguments.of("localtimestamp", false, false, true),
+        Arguments.of("localtime", false, false, true),
+        Arguments.of("sysdate", true, false, false),
+        Arguments.of("curtime", false, false, true),
+        Arguments.of("current_time", false, false, true),
+        Arguments.of("curdate", false, false, true),
+        Arguments.of("current_date", false, false, true)
+    );
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("nowLikeFunctionsData")
+  public void test_now_like_functions(String name, Boolean hasFsp, Boolean hasShortcut,
+                                      Boolean isConstantFunction) {
+    for (var call : hasShortcut ? List.of(name, name + "()") : List.of(name + "()")) {
+      assertEquals(
+          project(
+              values(emptyList()),
+              alias(call, (isConstantFunction ? constantFunction(name) : function(name)))
+          ),
+          buildAST("SELECT " + call)
+      );
+
+      assertEquals(
+          project(
+              filter(
+                  relation("test"),
+                  function(
+                      "=",
+                      qualifiedName("data"),
+                      (isConstantFunction ? constantFunction(name) : function(name)))
+              ),
+              AllFields.of()
+          ),
+          buildAST("SELECT * FROM test WHERE data = " + call)
+      );
+    }
+
+    // Unfortunately, only real functions (not ConstantFunction) might have `fsp` now.
+    if (hasFsp) {
+      assertEquals(
+          project(
+              values(emptyList()),
+              alias(name + "(0)", function(name, intLiteral(0)))
+          ),
+          buildAST("SELECT " + name + "(0)")
+      );
+    }
+  }
+
   @Test
   public void can_build_qualified_name_highlight() {
+    Map<String, Literal> args = new HashMap<>();
     assertEquals(
         project(relation("test"),
-            alias("highlight(fieldA)", highlight(AstDSL.qualifiedName("fieldA")))),
+            alias("highlight(fieldA)",
+                highlight(AstDSL.qualifiedName("fieldA"), args))),
         buildAST("SELECT highlight(fieldA) FROM test")
     );
   }
 
   @Test
-  public void can_build_string_literal_highlight() {
+  public void can_build_qualified_highlight_with_arguments() {
+    Map<String, Literal> args = new HashMap<>();
+    args.put("pre_tags", new Literal("<mark>", DataType.STRING));
+    args.put("post_tags", new Literal("</mark>", DataType.STRING));
     assertEquals(
         project(relation("test"),
-            alias("highlight(\"fieldA\")", highlight(AstDSL.stringLiteral("fieldA")))),
+            alias("highlight(fieldA, pre_tags='<mark>', post_tags='</mark>')",
+                highlight(AstDSL.qualifiedName("fieldA"), args))),
+        buildAST("SELECT highlight(fieldA, pre_tags='<mark>', post_tags='</mark>') "
+            + "FROM test")
+    );
+  }
+
+  @Test
+  public void can_build_string_literal_highlight() {
+    Map<String, Literal> args = new HashMap<>();
+    assertEquals(
+        project(relation("test"),
+            alias("highlight(\"fieldA\")",
+                highlight(AstDSL.stringLiteral("fieldA"), args))),
         buildAST("SELECT highlight(\"fieldA\") FROM test")
     );
   }
@@ -691,5 +773,4 @@ class AstBuilderTest {
     ParseTree parseTree = parser.parse(query);
     return parseTree.accept(new AstBuilder(query));
   }
-
 }

@@ -22,6 +22,7 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 
@@ -157,6 +158,39 @@ class SQLSyntaxParserTest {
     assertThrows(SyntaxCheckException.class, () -> parser.parse("SHOW TABLES"));
   }
 
+  private static Stream<Arguments> nowLikeFunctionsData() {
+    return Stream.of(
+        Arguments.of("now", true, false),
+        Arguments.of("current_timestamp", true, true),
+        Arguments.of("localtimestamp", true, true),
+        Arguments.of("localtime", true, true),
+        Arguments.of("sysdate", true, false),
+        Arguments.of("curtime", true, false),
+        Arguments.of("current_time", true, true),
+        Arguments.of("curdate", false, false),
+        Arguments.of("current_date", false, true)
+    );
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("nowLikeFunctionsData")
+  public void can_parse_now_like_functions(String name, Boolean hasFsp, Boolean hasShortcut) {
+    var calls = new ArrayList<String>() {{
+        add(name + "()");
+      }};
+    if (hasShortcut) {
+      calls.add(name);
+    }
+    if (hasFsp) {
+      calls.add(name + "(0)");
+    }
+
+    assertNotNull(parser.parse("SELECT " + String.join(", ", calls)));
+    assertNotNull(parser.parse("SELECT " + String.join(", ", calls) + " FROM test"));
+    assertNotNull(parser.parse("SELECT " + String.join(", ", calls) + ", id FROM test"));
+    assertNotNull(parser.parse("SELECT id FROM test WHERE " + String.join(" AND ", calls)));
+  }
+
   @Test
   public void can_parse_multi_match_relevance_function() {
     assertNotNull(parser.parse(
@@ -290,6 +324,49 @@ class SQLSyntaxParserTest {
             + " query_string([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query', analyzer=keyword,"
             + "operator='AND', tie_breaker=0.3, type = \"most_fields\", fuzziness = 4)"));
   }
+
+
+  @Test
+  public void can_parse_query_relevance_function() {
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query('address:query')"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query('address:query OR notes:query')"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query(\"address:query\")"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query(\"address:query OR notes:query\")"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query(`address:query`)"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query(`address:query OR notes:query`)"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query('*:query')"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query(\"*:query\")"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query(`*:query`)"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query('address:*uery OR notes:?uery')"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query(\"address:*uery OR notes:?uery\")"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query(`address:*uery OR notes:?uery`)"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query('address:qu*ry OR notes:qu?ry')"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query(\"address:qu*ry OR notes:qu?ry\")"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query(`address:qu*ry OR notes:qu?ry`)"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query('address:query notes:query')"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query(\"address:query notes:query\")"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE "
+                    + "query(\"Body:\'taste beer\' Tags:\'taste beer\'  Title:\'taste beer\'\")"));
+  }
+
 
   @Test
   public void can_parse_match_relevance_function() {

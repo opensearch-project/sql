@@ -1,0 +1,37 @@
+{
+    "mappings" : {
+        "properties" : {
+            "key" : {
+                "type" : "keyword"
+            },
+            "int" : {
+                "type" : "integer"
+            },
+            "dbl" : {
+                "type" : "double"
+            },
+            "bool" : {
+                "type" : "boolean"
+            },
+            "str" : {
+                "type" : "text"
+            },
+            "date" : {
+                "type" : "date",
+                "format": "yyyy-MM-dd"
+            },
+            "time" : {
+                "type" : "date",
+                "format": "HH:mm:ss"
+            },
+            "datetime" : {
+                "type" : "date",
+                "format": "yyyy-MM-dd HH:mm:ss"
+            },
+            "timestamp" : {
+                "type" : "date",
+                "format": "yyyy-MM-dd HH:mm:ss"
+            }
+        }
+    }
+}

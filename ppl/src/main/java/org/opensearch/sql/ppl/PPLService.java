@@ -86,7 +86,7 @@ public class PPLService {
         anonymizer.anonymizeData(ast));
     // 2.Analyze abstract syntax to generate logical plan
     LogicalPlan logicalPlan =
-        new Analyzer(new ExpressionAnalyzer(repository), catalogService).analyze(
+        new Analyzer(new ExpressionAnalyzer(repository), catalogService, repository).analyze(
             UnresolvedPlanHelper.addSelectAll(ast),
             new AnalysisContext());
 

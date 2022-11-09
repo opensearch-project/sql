@@ -33,7 +33,7 @@ import org.opensearch.sql.storage.bindingtuple.BindingTuple;
  * Calculate the rare result by using the {@link RareTopNOperator#fieldExprList}.
  */
 @ToString
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 public class RareTopNOperator extends PhysicalPlan {
 
   @Getter

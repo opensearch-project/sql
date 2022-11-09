@@ -13,7 +13,6 @@ import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.caseWhen;
 import static org.opensearch.sql.ast.dsl.AstDSL.dateLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.doubleLiteral;
-import static org.opensearch.sql.ast.dsl.AstDSL.floatLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.highlight;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
@@ -35,12 +34,14 @@ import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.HashMap;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.common.antlr.CaseInsensitiveCharStream;
@@ -311,16 +312,18 @@ class AstExpressionBuilderTest {
 
   @Test
   public void canBuildStringLiteralHighlightFunction() {
+    HashMap<String, Literal> args = new HashMap<>();
     assertEquals(
-        highlight(AstDSL.stringLiteral("fieldA")),
+        highlight(AstDSL.stringLiteral("fieldA"), args),
         buildExprAst("highlight(\"fieldA\")")
     );
   }
 
   @Test
   public void canBuildQualifiedNameHighlightFunction() {
+    HashMap<String, Literal> args = new HashMap<>();
     assertEquals(
-        highlight(AstDSL.qualifiedName("fieldA")),
+        highlight(AstDSL.qualifiedName("fieldA"), args),
         buildExprAst("highlight(fieldA)")
     );
   }
@@ -538,6 +541,22 @@ class AstExpressionBuilderTest {
             unresolvedArg("tie_breaker", stringLiteral("1.3"))),
         buildExprAst("query_string(['field1', 'field2' ^ 3.2], 'search query',"
             + "analyzer='keyword', time_zone='Canada/Pacific', tie_breaker='1.3')"));
+  }
+
+  @Test
+  public void relevanceQuery() {
+    assertEquals(AstDSL.function("query",
+                    unresolvedArg("query", stringLiteral("field1:query OR field2:query"))),
+            buildExprAst("query('field1:query OR field2:query')")
+    );
+
+    assertEquals(AstDSL.function("query",
+                    unresolvedArg("query", stringLiteral("search query")),
+                    unresolvedArg("analyzer", stringLiteral("keyword")),
+                    unresolvedArg("time_zone", stringLiteral("Canada/Pacific")),
+                    unresolvedArg("tie_breaker", stringLiteral("1.3"))),
+            buildExprAst("query('search query',"
+                    + "analyzer='keyword', time_zone='Canada/Pacific', tie_breaker='1.3')"));
   }
 
   @Test

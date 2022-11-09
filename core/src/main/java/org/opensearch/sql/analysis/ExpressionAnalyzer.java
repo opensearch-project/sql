@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.analysis;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
@@ -21,9 +22,11 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.And;
+import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
+import org.opensearch.sql.ast.expression.ConstantFunction;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
@@ -52,7 +55,6 @@ import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
 import org.opensearch.sql.expression.NamedExpression;
-import org.opensearch.sql.expression.ParseExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.AggregationState;
 import org.opensearch.sql.expression.aggregation.Aggregator;
@@ -61,6 +63,7 @@ import org.opensearch.sql.expression.conditional.cases.WhenClause;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.expression.window.aggregation.AggregateWindowFunction;
 
@@ -150,9 +153,13 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     Optional<BuiltinFunctionName> builtinFunctionName =
         BuiltinFunctionName.ofAggregation(node.getFuncName());
     if (builtinFunctionName.isPresent()) {
-      Expression arg = node.getField().accept(this, context);
+      ImmutableList.Builder<Expression> builder = ImmutableList.builder();
+      builder.add(node.getField().accept(this, context));
+      for (UnresolvedExpression arg : node.getArgList()) {
+        builder.add(arg.accept(this, context));
+      }
       Aggregator aggregator = (Aggregator) repository.compile(
-              builtinFunctionName.get().getName(), Collections.singletonList(arg));
+              builtinFunctionName.get().getName(), builder.build());
       aggregator.distinct(node.getDistinct());
       if (node.condition() != null) {
         aggregator.condition(analyze(node.condition(), context));
@@ -167,6 +174,19 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
   public Expression visitRelevanceFieldList(RelevanceFieldList node, AnalysisContext context) {
     return new LiteralExpression(ExprValueUtils.tupleValue(
         ImmutableMap.copyOf(node.getFieldList())));
+  }
+
+  @Override
+  public Expression visitConstantFunction(ConstantFunction node, AnalysisContext context) {
+    var valueName = node.getFuncName();
+    if (context.getConstantFunctionValues().containsKey(valueName)) {
+      return context.getConstantFunctionValues().get(valueName);
+    }
+
+    var value = visitFunction(node, context);
+    value = DSL.literal(value.valueOf());
+    context.getConstantFunctionValues().put(valueName, value);
+    return value;
   }
 
   @Override
@@ -191,7 +211,7 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
   }
 
   @Override
-  public Expression visitHighlight(HighlightFunction node, AnalysisContext context) {
+  public Expression visitHighlightFunction(HighlightFunction node, AnalysisContext context) {
     Expression expr = node.getHighlightField().accept(this, context);
     return new HighlightExpression(expr);
   }
