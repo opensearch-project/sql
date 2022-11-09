@@ -36,26 +36,20 @@ public class StringUtils {
    *     removed
    */
   public static String unquoteText(String text) {
-
     if (text.length() < 2) {
       return text;
     }
 
-    char enclosingQuote;
+    char enclosingQuote = 0;
     char firstChar = text.charAt(0);
     char lastChar = text.charAt(text.length() - 1);
 
     if (firstChar == lastChar
         && (firstChar == '\''
-        || firstChar == '"'
-        || firstChar == '`')) {
+        || firstChar == '"')) {
       enclosingQuote = firstChar;
     } else {
       return text;
-    }
-
-    if (enclosingQuote == '`') {
-      return text.substring(1, text.length() - 1);
     }
 
     char currentChar;
@@ -68,20 +62,17 @@ public class StringUtils {
       currentChar = text.charAt(chIndex);
       nextChar = text.charAt(chIndex + 1);
 
-      // Double quote escape character
-      if (currentChar == enclosingQuote
-          && nextChar == currentChar) {
+      if ((currentChar == '\\'
+          && (nextChar == '"'
+          || nextChar == '\\'
+          || nextChar == '\''))
+          || currentChar == nextChar
+          && currentChar == enclosingQuote) {
         chIndex++;
+        currentChar = nextChar;
       }
-
-      if (currentChar == '\\'
-          && nextChar == '"') {
-        chIndex += 2;
-      }
-
-      textSB.append(nextChar);
+      textSB.append(currentChar);
     }
-
     return textSB.toString();
   }
 
