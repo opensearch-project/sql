@@ -68,6 +68,7 @@ configurations.all {
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.6.0"
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0"
     resolutionStrategy.force "com.squareup.okhttp3:okhttp:4.9.3"
+    resolutionStrategy.force "org.slf4j:slf4j-api:1.7.36"
 }
 
 dependencies {
