@@ -12,6 +12,6 @@ import org.opensearch.common.settings.Setting;
 public class CatalogSettings {
 
   public static final Setting<InputStream> CATALOG_CONFIG = SecureSetting.secureFile(
-      "plugins.query.federation.catalog.config",
+      "plugins.query.federation.datasources.config",
       null);
 }

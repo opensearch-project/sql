@@ -1076,13 +1076,13 @@ Return type: DATE
 
 Example::
 
-    >od SELECT DATE('2020-08-26'), DATE(TIMESTAMP('2020-08-26 13:49:00'))
+    os> SELECT DATE('2020-08-26'), DATE(TIMESTAMP('2020-08-26 13:49:00')), DATE('2020-08-26 13:49:00'), DATE('2020-08-26 13:49')
     fetched rows / total rows = 1/1
-    +----------------------+------------------------------------------+
-    | DATE('2020-08-26')   | DATE(TIMESTAMP('2020-08-26 13:49:00'))   |
-    |----------------------+------------------------------------------|
-    | DATE '2020-08-26'    | DATE '2020-08-26'                        |
-    +----------------------+------------------------------------------+
+    +----------------------+------------------------------------------+-------------------------------+----------------------------+
+    | DATE('2020-08-26')   | DATE(TIMESTAMP('2020-08-26 13:49:00'))   | DATE('2020-08-26 13:49:00')   | DATE('2020-08-26 13:49')   |
+    |----------------------+------------------------------------------+-------------------------------+----------------------------|
+    | 2020-08-26           | 2020-08-26                               | 2020-08-26                    | 2020-08-26                 |
+    +----------------------+------------------------------------------+-------------------------------+----------------------------+
 
 
 DATETIME
@@ -1926,13 +1926,13 @@ Return type: TIME
 
 Example::
 
-    >od SELECT TIME('13:49:00'), TIME(TIMESTAMP('2020-08-26 13:49:00'))
+    os> SELECT TIME('13:49:00'), TIME('13:49'), TIME(TIMESTAMP('2020-08-26 13:49:00')), TIME('2020-08-26 13:49:00')
     fetched rows / total rows = 1/1
-    +--------------------+------------------------------------------+
-    | TIME('13:49:00')   | TIME(TIMESTAMP('2020-08-26 13:49:00'))   |
-    |--------------------+------------------------------------------|
-    | TIME '13:49:00'    | TIME '13:49:00'                          |
-    +--------------------+------------------------------------------+
+    +--------------------+-----------------+------------------------------------------+-------------------------------+
+    | TIME('13:49:00')   | TIME('13:49')   | TIME(TIMESTAMP('2020-08-26 13:49:00'))   | TIME('2020-08-26 13:49:00')   |
+    |--------------------+-----------------+------------------------------------------+-------------------------------|
+    | 13:49:00           | 13:49:00        | 13:49:00                                 | 13:49:00                      |
+    +--------------------+-----------------+------------------------------------------+-------------------------------+
 
 
 TIME_TO_SEC
@@ -3016,6 +3016,67 @@ Another example to show how to set custom values for the optional parameters::
     | 1    | The House at Pooh Corner | Alan Alexander Milne |
     +------+--------------------------+----------------------+
 
+
+QUERY
+-----
+
+Description
+>>>>>>>>>>>
+
+``query("query_expression" [, option=<option_value>]*)``
+
+The `query` function is an alternative syntax to the `query_string`_ function. It maps to the query_string query used in search engine, to return the documents that match a provided text, number, date or boolean value with a given query expression.
+``query_expression`` must be a string provided in Lucene query string syntax. Please refer to examples below:
+
+| ``query('Tags:taste OR Body:taste', ...)``
+| ``query("Tags:taste AND Body:taste", ...)``
+
+Available parameters include:
+
+- analyzer
+- escape
+- allow_leading_wildcard
+- analyze_wildcard
+- auto_generate_synonyms_phrase_query
+- boost
+- default_operator
+- enable_position_increments
+- fuzziness
+- fuzzy_max_expansions
+- fuzzy_prefix_length
+- fuzzy_transpositions
+- fuzzy_rewrite
+- tie_breaker
+- lenient
+- type
+- max_determinized_states
+- minimum_should_match
+- quote_analyzer
+- phrase_slop
+- quote_field_suffix
+- rewrite
+- time_zone
+
+Example with only ``query_expressions``, and all other parameters are set default values::
+
+    os> select * from books where query('title:Pooh House');
+    fetched rows / total rows = 2/2
+    +------+--------------------------+----------------------+
+    | id   | title                    | author               |
+    |------+--------------------------+----------------------|
+    | 1    | The House at Pooh Corner | Alan Alexander Milne |
+    | 2    | Winnie-the-Pooh          | Alan Alexander Milne |
+    +------+--------------------------+----------------------+
+
+Another example to show how to set custom values for the optional parameters::
+
+    os> select * from books where query('title:Pooh House', default_operator='AND');
+    fetched rows / total rows = 1/1
+    +------+--------------------------+----------------------+
+    | id   | title                    | author               |
+    |------+--------------------------+----------------------|
+    | 1    | The House at Pooh Corner | Alan Alexander Milne |
+    +------+--------------------------+----------------------+
 
 HIGHLIGHT
 ------------

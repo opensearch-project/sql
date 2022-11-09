@@ -36,8 +36,8 @@ abstract class SingleFieldQuery<T extends QueryBuilder> extends RelevanceQuery<T
         .orElseThrow(() -> new SemanticCheckException("'query' parameter is missing"));
 
     return createBuilder(
-        field.getValue().valueOf(null).stringValue(),
-        query.getValue().valueOf(null).stringValue());
+        field.getValue().valueOf().stringValue(),
+        query.getValue().valueOf().stringValue());
   }
 
   protected abstract T createBuilder(String field, String query);

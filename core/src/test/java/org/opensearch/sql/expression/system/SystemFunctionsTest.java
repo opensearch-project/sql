@@ -88,6 +88,6 @@ public class SystemFunctionsTest {
   }
 
   private String typeofGetValue(ExprValue input) {
-    return dsl.typeof(DSL.literal(input)).valueOf(null).stringValue();
+    return dsl.typeof(DSL.literal(input)).valueOf().stringValue();
   }
 }

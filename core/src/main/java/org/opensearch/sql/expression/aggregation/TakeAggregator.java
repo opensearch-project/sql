@@ -29,7 +29,7 @@ public class TakeAggregator extends Aggregator<TakeAggregator.TakeState> {
 
   @Override
   public TakeState create() {
-    return new TakeState(getArguments().get(1).valueOf(null).integerValue());
+    return new TakeState(getArguments().get(1).valueOf().integerValue());
   }
 
   @Override

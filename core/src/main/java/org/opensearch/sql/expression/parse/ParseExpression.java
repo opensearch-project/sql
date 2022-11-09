@@ -48,7 +48,7 @@ public abstract class ParseExpression extends FunctionExpression {
     this.sourceField = sourceField;
     this.pattern = pattern;
     this.identifier = identifier;
-    this.identifierStr = identifier.valueOf(null).stringValue();
+    this.identifierStr = identifier.valueOf().stringValue();
   }
 
   @Override

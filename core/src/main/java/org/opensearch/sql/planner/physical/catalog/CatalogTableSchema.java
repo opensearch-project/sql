@@ -22,7 +22,7 @@ public enum CatalogTableSchema {
 
   CATALOG_TABLE_SCHEMA(new LinkedHashMap<>() {
     {
-      put("CATALOG_NAME", STRING);
+      put("DATASOURCE_NAME", STRING);
       put("CONNECTOR_TYPE", STRING);
     }
   }
