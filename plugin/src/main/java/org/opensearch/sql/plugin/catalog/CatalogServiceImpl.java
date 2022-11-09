@@ -178,6 +178,7 @@ public class CatalogServiceImpl implements CatalogService {
     }
   }
 
+  // TODO: for now register storage engine functions here which should be static per storage engine
   private void registerFunctions(String catalogName, StorageEngine storageEngine) {
     storageEngine.getFunctions()
         .forEach(functionResolver ->
