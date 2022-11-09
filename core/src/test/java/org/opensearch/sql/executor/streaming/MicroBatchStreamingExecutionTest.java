@@ -10,7 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -37,19 +36,12 @@ class MicroBatchStreamingExecutionTest {
 
   @Test
   void executedFailed() {
-    streamingQuery()
-        .addData()
-        .executeFailed()
-        .latestOffsetLogShouldBe(0L)
-        .noCommittedLog();
+    streamingQuery().addData().executeFailed().latestOffsetLogShouldBe(0L).noCommittedLog();
   }
 
   @Test
   void noDataInSource() {
-    streamingQuery()
-        .executeSuccess()
-        .noOffsetLog()
-        .noCommittedLog();
+    streamingQuery().executeSuccess().noOffsetLog().noCommittedLog();
   }
 
   @Test
@@ -143,7 +135,8 @@ class MicroBatchStreamingExecutionTest {
     }
 
     Helper executeSuccess() {
-      lenient().doAnswer(
+      lenient()
+          .doAnswer(
               invocation -> {
                 ResponseListener<ExecutionEngine.QueryResponse> listener =
                     invocation.getArgument(1);
@@ -159,12 +152,14 @@ class MicroBatchStreamingExecutionTest {
     }
 
     Helper executeFailed() {
-      lenient().doAnswer(
-          invocation -> {
-            ResponseListener<ExecutionEngine.QueryResponse> listener = invocation.getArgument(1);
-            listener.onFailure(new RuntimeException());
-            return null;
-          })
+      lenient()
+          .doAnswer(
+              invocation -> {
+                ResponseListener<ExecutionEngine.QueryResponse> listener =
+                    invocation.getArgument(1);
+                listener.onFailure(new RuntimeException());
+                return null;
+              })
           .when(queryService)
           .executePlan(any(), any());
       execution.execute();
@@ -198,23 +193,20 @@ class MicroBatchStreamingExecutionTest {
   /**
    * StreamingSource impl only for testing.
    *
-   * <p> * initially, offset is -1, getLatestOffset() will return Optional.emtpy().
-   * <p> * call addData() add offset by one.
+   * <p>initially, offset is -1, getLatestOffset() will return Optional.emtpy().
+   * 
+   * <p>call addData() add offset by one.
    */
   static class TestStreamingSource implements StreamingSource {
 
     private final AtomicLong offset = new AtomicLong(-1L);
 
-    /**
-     * add offset by one.
-     */
+    /** add offset by one. */
     void addData() {
       offset.incrementAndGet();
     }
 
-    /**
-     * return offset if addData was called.
-     */
+    /** return offset if addData was called. */
     @Override
     public Optional<Offset> getLatestOffset() {
       if (offset.get() == -1) {
@@ -224,12 +216,10 @@ class MicroBatchStreamingExecutionTest {
       }
     }
 
-    /**
-     * always return `empty` Batch regardless start and end offset.
-     */
+    /** always return `empty` Batch regardless start and end offset. */
     @Override
     public Batch getBatch(Optional<Offset> start, Offset end) {
-      return new Batch(new ArrayList<>());
+      return new Batch(() -> "id");
     }
   }
 }
