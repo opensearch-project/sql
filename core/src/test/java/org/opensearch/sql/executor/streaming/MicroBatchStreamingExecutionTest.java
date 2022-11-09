@@ -7,12 +7,18 @@ package org.opensearch.sql.executor.streaming;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+import lombok.EqualsAndHashCode;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -20,7 +26,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryService;
+import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.logical.LogicalPlan;
+import org.opensearch.sql.storage.split.Split;
 
 @ExtendWith(MockitoExtension.class)
 class MicroBatchStreamingExecutionTest {
@@ -29,29 +37,36 @@ class MicroBatchStreamingExecutionTest {
   void executedSuccess() {
     streamingQuery()
         .addData()
-        .executeSuccess()
+        .executeSuccess(0L)
         .latestOffsetLogShouldBe(0L)
         .latestCommittedLogShouldBe(0L);
   }
 
   @Test
   void executedFailed() {
-    streamingQuery().addData().executeFailed().latestOffsetLogShouldBe(0L).noCommittedLog();
+    streamingQuery()
+        .addData()
+        .executeFailed()
+        .latestOffsetLogShouldBe(0L)
+        .noCommittedLog();
   }
 
   @Test
   void noDataInSource() {
-    streamingQuery().executeSuccess().noOffsetLog().noCommittedLog();
+    streamingQuery()
+        .neverProcess()
+        .noOffsetLog()
+        .noCommittedLog();
   }
 
   @Test
   void noNewDataInSource() {
     streamingQuery()
         .addData()
-        .executeSuccess()
+        .executeSuccess(0L)
         .latestOffsetLogShouldBe(0L)
         .latestCommittedLogShouldBe(0L)
-        .executeSuccess()
+        .neverProcess()
         .latestOffsetLogShouldBe(0L)
         .latestCommittedLogShouldBe(0L);
   }
@@ -60,11 +75,11 @@ class MicroBatchStreamingExecutionTest {
   void addNewDataInSequenceAllExecuteSuccess() {
     streamingQuery()
         .addData()
-        .executeSuccess()
+        .executeSuccess(0L)
         .latestOffsetLogShouldBe(0L)
         .latestCommittedLogShouldBe(0L)
         .addData()
-        .executeSuccess()
+        .executeSuccess(1L)
         .latestOffsetLogShouldBe(1L)
         .latestCommittedLogShouldBe(1L);
   }
@@ -73,14 +88,14 @@ class MicroBatchStreamingExecutionTest {
   void addNewDataInSequenceExecuteFailedInBetween() {
     streamingQuery()
         .addData()
-        .executeSuccess()
+        .executeSuccess(0L)
         .latestOffsetLogShouldBe(0L)
         .latestCommittedLogShouldBe(0L)
         .addData()
         .executeFailed()
         .latestOffsetLogShouldBe(1L)
         .latestCommittedLogShouldBe(0L)
-        .executeSuccess()
+        .executeSuccess(1L)
         .latestOffsetLogShouldBe(1L)
         .latestCommittedLogShouldBe(1L);
   }
@@ -89,7 +104,7 @@ class MicroBatchStreamingExecutionTest {
   void addNewDataInSequenceExecuteFailed() {
     streamingQuery()
         .addData()
-        .executeSuccess()
+        .executeSuccess(0L)
         .latestOffsetLogShouldBe(0L)
         .latestCommittedLogShouldBe(0L)
         .addData()
@@ -134,18 +149,36 @@ class MicroBatchStreamingExecutionTest {
       return this;
     }
 
-    Helper executeSuccess() {
+    Helper neverProcess() {
+      lenient()
+          .doAnswer(
+              invocation -> {
+                fail();
+                return null;
+              })
+          .when(queryService)
+          .executePlan(any(), any(), any());
+      execution.execute();
+      return this;
+    }
+
+    Helper executeSuccess(Long... offsets) {
       lenient()
           .doAnswer(
               invocation -> {
                 ResponseListener<ExecutionEngine.QueryResponse> listener =
-                    invocation.getArgument(1);
+                    invocation.getArgument(2);
                 listener.onResponse(
                     new ExecutionEngine.QueryResponse(null, Collections.emptyList()));
+
+                PlanContext planContext = invocation.getArgument(1);
+                assertTrue(planContext.getSplit().isPresent());
+                assertEquals(new TestOffsetSplit(offsets), planContext.getSplit().get());
+
                 return null;
               })
           .when(queryService)
-          .executePlan(any(), any());
+          .executePlan(any(), any(), any());
       execution.execute();
 
       return this;
@@ -156,12 +189,13 @@ class MicroBatchStreamingExecutionTest {
           .doAnswer(
               invocation -> {
                 ResponseListener<ExecutionEngine.QueryResponse> listener =
-                    invocation.getArgument(1);
+                    invocation.getArgument(2);
                 listener.onFailure(new RuntimeException());
+
                 return null;
               })
           .when(queryService)
-          .executePlan(any(), any());
+          .executePlan(any(), any(), any());
       execution.execute();
 
       return this;
@@ -219,7 +253,32 @@ class MicroBatchStreamingExecutionTest {
     /** always return `empty` Batch regardless start and end offset. */
     @Override
     public Batch getBatch(Optional<Offset> start, Offset end) {
-      return new Batch(() -> "id");
+      return new Batch(
+          new TestOffsetSplit(
+              start.map(v -> v.getOffset() + 1).orElse(0L), Long.min(offset.get(),
+              end.getOffset())));
+    }
+  }
+
+  @EqualsAndHashCode
+  static class TestOffsetSplit implements Split {
+
+    private final List<Long> offsets;
+
+    public TestOffsetSplit(Long start, Long end) {
+      this.offsets = new ArrayList<>();
+      for (long l = start; l <= end; l++) {
+        this.offsets.add(l);
+      }
+    }
+
+    public TestOffsetSplit(Long... offsets) {
+      this.offsets = Arrays.stream(offsets).collect(Collectors.toList());
+    }
+
+    @Override
+    public String getSplitId() {
+      return "id";
     }
   }
 }

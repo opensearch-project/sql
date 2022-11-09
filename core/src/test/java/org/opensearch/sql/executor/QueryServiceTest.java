@@ -25,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -56,6 +57,9 @@ class QueryServiceTest {
 
   @Mock
   private ExecutionEngine.Schema schema;
+
+  @Mock
+  private PlanContext planContext;
 
   @BeforeEach
   public void setUp() {
@@ -177,6 +181,7 @@ class QueryServiceTest {
 
     queryService.executePlan(
         logicalPlan,
+        planContext,
         new ResponseListener<>() {
           @Override
           public void onResponse(ExecutionEngine.QueryResponse pplQueryResponse) {

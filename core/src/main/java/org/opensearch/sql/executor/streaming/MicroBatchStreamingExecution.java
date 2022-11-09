@@ -17,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryService;
+import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 
 /**
@@ -89,12 +90,11 @@ public class MicroBatchStreamingExecution {
 
     Optional<Offset> availableOffsets = source.getLatestOffset();
     if (hasNewData(availableOffsets, committedOffset)) {
-      // todo, add batch to execution context.
       Batch batch = source.getBatch(committedOffset, availableOffsets.get());
       offsetLog.add(currentBatchId.get(), availableOffsets.get());
-
       queryService.executePlan(
           batchPlan,
+          new PlanContext(batch.getSplit()),
           new ResponseListener<>() {
             @Override
             public void onResponse(ExecutionEngine.QueryResponse response) {
