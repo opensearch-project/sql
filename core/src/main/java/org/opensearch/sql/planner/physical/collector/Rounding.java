@@ -44,7 +44,7 @@ public abstract class Rounding<T> {
    * Create Rounding instance.
    */
   public static Rounding<?> createRounding(SpanExpression span) {
-    ExprValue interval = span.getValue().valueOf(null);
+    ExprValue interval = span.getValue().valueOf();
     ExprType type = span.type();
 
     if (LONG.isCompatible(type)) {

@@ -115,7 +115,7 @@ testClusters.all {
 
 testClusters.integTest {
     plugin ":opensearch-sql-plugin"
-    keystore 'plugins.query.federation.catalog.config', new File("$projectDir/src/test/resources/catalog/", 'catalog.json')
+    keystore 'plugins.query.federation.datasources.config', new File("$projectDir/src/test/resources/catalog/", 'catalog.json')
 }
 task startPrometheus(type: SpawnProcessTask) {
     mustRunAfter ':doctest:doctest'

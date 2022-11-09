@@ -39,6 +39,6 @@ public class OpenSearchDataTypeRecognitionTest {
   }
 
   private String typeofGetValue(ExprValue input) {
-    return DSL.typeof(DSL.literal(input)).valueOf(null).stringValue();
+    return DSL.typeof(DSL.literal(input)).valueOf().stringValue();
   }
 }

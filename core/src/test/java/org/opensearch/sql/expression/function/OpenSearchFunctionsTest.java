@@ -184,6 +184,13 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
   }
 
   @Test
+  void query() {
+    FunctionExpression expr = DSL.query(query);
+    assertEquals(String.format("query(query=%s)", query.getValue()),
+            expr.toString());
+  }
+
+  @Test
   void query_string() {
     FunctionExpression expr = DSL.query_string(fields, query);
     assertEquals(String.format("query_string(fields=%s, query=%s)",

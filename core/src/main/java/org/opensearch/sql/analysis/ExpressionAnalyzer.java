@@ -181,7 +181,7 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     }
 
     var value = visitFunction(node, context);
-    value = DSL.literal(value.valueOf(null));
+    value = DSL.literal(value.valueOf());
     context.getConstantFunctionValues().put(valueName, value);
     return value;
   }

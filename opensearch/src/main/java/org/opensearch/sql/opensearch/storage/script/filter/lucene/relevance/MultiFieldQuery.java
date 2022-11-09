@@ -37,13 +37,13 @@ abstract class MultiFieldQuery<T extends QueryBuilder> extends RelevanceQuery<T>
 
     var fieldsAndWeights = fields
         .getValue()
-        .valueOf(null)
+        .valueOf()
         .tupleValue()
         .entrySet()
         .stream()
         .collect(ImmutableMap.toImmutableMap(e -> e.getKey(), e -> e.getValue().floatValue()));
 
-    return createBuilder(fieldsAndWeights, query.getValue().valueOf(null).stringValue());
+    return createBuilder(fieldsAndWeights, query.getValue().valueOf().stringValue());
   }
 
   protected abstract  T createBuilder(ImmutableMap<String, Float> fields, String query);

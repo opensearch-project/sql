@@ -100,7 +100,7 @@ public class DSL {
       return (NamedExpression) expression;
     }
     if (expression instanceof ParseExpression) {
-      return named(((ParseExpression) expression).getIdentifier().valueOf(null).stringValue(),
+      return named(((ParseExpression) expression).getIdentifier().valueOf().stringValue(),
           expression);
     }
     return named(expression.toString(), expression);
@@ -704,6 +704,10 @@ public class DSL {
 
   public static FunctionExpression simple_query_string(Expression... args) {
     return compile(BuiltinFunctionName.SIMPLE_QUERY_STRING, args);
+  }
+
+  public static FunctionExpression query(Expression... args) {
+    return compile(BuiltinFunctionName.QUERY, args);
   }
 
   public static FunctionExpression query_string(Expression... args) {

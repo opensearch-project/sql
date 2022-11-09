@@ -61,7 +61,7 @@ public class CatalogTableScanTest {
     assertTrue(catalogTableScan.hasNext());
     for (Catalog catalog : catalogSet) {
       assertEquals(new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-              "CATALOG_NAME", ExprValueUtils.stringValue(catalog.getName()),
+              "DATASOURCE_NAME", ExprValueUtils.stringValue(catalog.getName()),
               "CONNECTOR_TYPE", ExprValueUtils.stringValue(catalog.getConnectorType().name())))),
           catalogTableScan.next());
     }

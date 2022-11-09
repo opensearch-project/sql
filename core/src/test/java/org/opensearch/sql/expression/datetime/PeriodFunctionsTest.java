@@ -96,8 +96,8 @@ public class PeriodFunctionsTest extends DateTimeTestBase {
   @ParameterizedTest
   @MethodSource("getInvalidTestData")
   public void period_add_returns_null_on_invalid_input(int period) {
-    assertNull(period_add(DSL.literal(period), DSL.literal(1)).valueOf(null).value());
-    assertNull(period_diff(DSL.literal(period), DSL.literal(1)).valueOf(null).value());
-    assertNull(period_diff(DSL.literal(1), DSL.literal(period)).valueOf(null).value());
+    assertNull(period_add(DSL.literal(period), DSL.literal(1)).valueOf().value());
+    assertNull(period_diff(DSL.literal(period), DSL.literal(1)).valueOf().value());
+    assertNull(period_diff(DSL.literal(1), DSL.literal(period)).valueOf().value());
   }
 }
