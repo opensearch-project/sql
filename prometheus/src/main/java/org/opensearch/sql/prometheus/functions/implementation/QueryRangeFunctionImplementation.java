@@ -83,7 +83,7 @@ public class QueryRangeFunctionImplementation extends FunctionExpression impleme
     arguments.forEach(arg -> {
       String argName = ((NamedArgumentExpression) arg).getArgName();
       Expression argValue = ((NamedArgumentExpression) arg).getValue();
-      ExprValue literalValue = argValue.valueOf(null);
+      ExprValue literalValue = argValue.valueOf();
       switch (argName) {
         case QUERY:
           prometheusQueryRequest
