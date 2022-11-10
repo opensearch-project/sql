@@ -5,18 +5,20 @@
 
 package org.opensearch.sql.planner.streaming.watermark;
 
+import org.opensearch.sql.data.model.ExprValue;
+
 /**
- * A watermark generator generates watermark timestamp based on some strategy which is defined
+ * A watermark generator generates watermark based on some strategy which is defined
  * in implementation class.
  */
 public interface WatermarkGenerator {
 
   /**
-   * Generate watermark timestamp on the given event timestamp.
+   * Generate watermark value on the given value.
    *
-   * @param timestamp event timestamp in millisecond
-   * @return watermark timestamp in millisecond
+   * @param value value
+   * @return watermark
    */
-  long generate(long timestamp);
+  ExprValue generate(ExprValue value);
 
 }

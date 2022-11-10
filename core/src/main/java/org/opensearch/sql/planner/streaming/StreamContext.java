@@ -6,6 +6,7 @@
 package org.opensearch.sql.planner.streaming;
 
 import lombok.Data;
+import org.opensearch.sql.data.model.ExprValue;
 
 /**
  * Stream context required by stream processing components and can be
@@ -14,6 +15,6 @@ import lombok.Data;
 @Data
 public class StreamContext {
 
-  /** Current watermark timestamp. */
-  private long watermark;
+  /** Current watermark value. */
+  private ExprValue watermark;
 }

@@ -112,7 +112,6 @@ public class BuiltinFunctionRepository {
     namespaceFunctionResolverMap.get(namespace).put(resolver.getFunctionName(), resolver);
   }
 
-
   /**
    * Compile FunctionExpression under default namespace.
    *

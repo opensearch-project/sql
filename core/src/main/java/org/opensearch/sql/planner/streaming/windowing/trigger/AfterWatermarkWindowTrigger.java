@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.planner.streaming.windowing.trigger;
 
+import static org.opensearch.sql.planner.streaming.windowing.Window.UNBOUND;
+
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.planner.streaming.StreamContext;
 import org.opensearch.sql.planner.streaming.windowing.Window;
@@ -22,9 +24,14 @@ public class AfterWatermarkWindowTrigger implements WindowTrigger {
 
   @Override
   public TriggerResult trigger(Window window) {
-    if (window.maxTimestamp() <= context.getWatermark()) {
+    // Fire if window (exclusive upper bound) <= watermark
+    if (isWindowBelowWatermark(window)) {
       return TriggerResult.FIRE;
     }
     return TriggerResult.CONTINUE;
+  }
+
+  private boolean isWindowBelowWatermark(Window window) {
+    return window.compareTo(new Window(UNBOUND, context.getWatermark())) <= 0;
   }
 }
