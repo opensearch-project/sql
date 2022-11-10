@@ -62,9 +62,10 @@ public enum ExprCoreType implements ExprType {
   INTERVAL(UNDEFINED),
 
   /**
-   * Struct.
+   * Composite data type.
    */
   STRUCT(UNDEFINED),
+  WINDOW(UNDEFINED),
 
   /**
    * Array.
