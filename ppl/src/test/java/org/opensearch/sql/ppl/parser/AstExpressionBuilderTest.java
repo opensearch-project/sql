@@ -705,7 +705,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             relation("test"),
             function(
                 "match",
-                unresolvedArg("field", stringLiteral("message")),
+                unresolvedArg("field", qualifiedName("message")),
                 unresolvedArg("query", stringLiteral("test query")),
                 unresolvedArg("analyzer", stringLiteral("keyword"))
             )
