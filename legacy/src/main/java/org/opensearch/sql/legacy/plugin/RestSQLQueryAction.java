@@ -13,6 +13,8 @@ import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.
 
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 import javax.xml.catalog.Catalog;
 import org.apache.logging.log4j.LogManager;
@@ -29,6 +31,7 @@ import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
+import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.opensearch.security.SecurityAccess;
@@ -68,7 +71,8 @@ public class RestSQLQueryAction extends BaseRestHandler {
   /**
    * Constructor of RestSQLQueryAction.
    */
-  public RestSQLQueryAction(ClusterService clusterService, Settings pluginSettings, CatalogService catalogService) {
+  public RestSQLQueryAction(ClusterService clusterService, Settings pluginSettings,
+                            CatalogService catalogService) {
     super();
     this.clusterService = clusterService;
     this.pluginSettings = pluginSettings;
@@ -126,6 +130,7 @@ public class RestSQLQueryAction extends BaseRestHandler {
   private SQLService createSQLService(NodeClient client) {
     return doPrivileged(() -> {
       AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+      context.registerBean(FunctionProperties.class, FunctionProperties::new);
       context.registerBean(ClusterService.class, () -> clusterService);
       context.registerBean(NodeClient.class, () -> client);
       context.registerBean(Settings.class, () -> pluginSettings);
@@ -136,6 +141,8 @@ public class RestSQLQueryAction extends BaseRestHandler {
       return context.getBean(SQLService.class);
     });
   }
+
+
 
   private ResponseListener<ExplainResponse> createExplainResponseListener(RestChannel channel) {
     return new ResponseListener<ExplainResponse>() {
@@ -159,7 +166,8 @@ public class RestSQLQueryAction extends BaseRestHandler {
     };
   }
 
-  private ResponseListener<QueryResponse> createQueryResponseListener(RestChannel channel, SQLQueryRequest request) {
+  private ResponseListener<QueryResponse> createQueryResponseListener(RestChannel channel,
+                                                                      SQLQueryRequest request) {
     Format format = request.format();
     ResponseFormatter<QueryResult> formatter;
     if (format.equals(Format.CSV)) {

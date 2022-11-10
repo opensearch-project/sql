@@ -27,6 +27,7 @@ import org.opensearch.sql.expression.aggregation.AvgAggregator;
 import org.opensearch.sql.expression.conditional.cases.CaseClause;
 import org.opensearch.sql.expression.conditional.cases.WhenClause;
 import org.opensearch.sql.expression.config.ExpressionConfig;
+import org.opensearch.sql.expression.function.FunctionPropertiesTestConfig;
 import org.opensearch.sql.expression.parse.ParseExpression;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -34,7 +35,8 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {ExpressionConfig.class, AnalyzerTestBase.class})
+@ContextConfiguration(classes = {FunctionPropertiesTestConfig.class, ExpressionConfig.class,
+    AnalyzerTestBase.class})
 class ExpressionNodeVisitorTest {
 
   @Autowired

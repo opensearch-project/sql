@@ -43,12 +43,14 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.config.ExpressionConfig;
+import org.opensearch.sql.expression.function.FunctionPropertiesTestConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {ExpressionConfig.class, AnalyzerTestBase.class})
+@ContextConfiguration(classes = {FunctionPropertiesTestConfig.class, ExpressionConfig.class,
+    AnalyzerTestBase.class})
 class TypeCastOperatorTest {
 
   @Autowired

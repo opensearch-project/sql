@@ -81,6 +81,7 @@ import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.config.ExpressionConfig;
+import org.opensearch.sql.expression.function.FunctionPropertiesTestConfig;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
@@ -96,7 +97,8 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @Configuration
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {ExpressionConfig.class, AnalyzerTest.class})
+@ContextConfiguration(classes = {FunctionPropertiesTestConfig.class,
+    ExpressionConfig.class, AnalyzerTest.class})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class AnalyzerTest extends AnalyzerTestBase {
 

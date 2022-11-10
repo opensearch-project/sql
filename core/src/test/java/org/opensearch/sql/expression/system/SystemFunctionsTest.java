@@ -40,13 +40,14 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.config.ExpressionConfig;
+import org.opensearch.sql.expression.function.FunctionPropertiesTestConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {ExpressionConfig.class})
+@ContextConfiguration(classes = {FunctionPropertiesTestConfig.class, ExpressionConfig.class})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class SystemFunctionsTest {
 

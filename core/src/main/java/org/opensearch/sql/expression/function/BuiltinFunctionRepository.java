@@ -36,7 +36,6 @@ public class BuiltinFunctionRepository {
 
   private final Map<String, Map<FunctionName, FunctionResolver>> namespaceFunctionResolverMap;
 
-  @Getter
   private final FunctionProperties functionProperties;
 
 
@@ -63,12 +62,6 @@ public class BuiltinFunctionRepository {
       namespaceFunctionResolverMap.put(namespace, functionResolverMap);
     }
     namespaceFunctionResolverMap.get(namespace).put(resolver.getFunctionName(), resolver);
-  }
-
-
-  public FunctionImplementation compile(BuiltinFunctionName functionName,
-                                        List<Expression> expressions) {
-    return compile(functionName.getName(), expressions);
   }
 
   /**

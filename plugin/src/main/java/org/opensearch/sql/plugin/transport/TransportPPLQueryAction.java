@@ -23,6 +23,7 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.executor.ExecutionEngine;
+import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.opensearch.security.SecurityAccess;
@@ -98,6 +99,7 @@ public class TransportPPLQueryAction
     return doPrivileged(
         () -> {
           AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+          context.registerBean(FunctionProperties.class, FunctionProperties::new);
           context.registerBean(ClusterService.class, () -> clusterService);
           context.registerBean(NodeClient.class, () -> client);
           context.registerBean(Settings.class, () -> pluginSettings);

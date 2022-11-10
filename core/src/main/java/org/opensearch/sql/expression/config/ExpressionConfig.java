@@ -25,6 +25,7 @@ import org.opensearch.sql.expression.operator.predicate.UnaryPredicateOperator;
 import org.opensearch.sql.expression.system.SystemFunctions;
 import org.opensearch.sql.expression.text.TextFunction;
 import org.opensearch.sql.expression.window.WindowFunctions;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -56,10 +57,8 @@ public class ExpressionConfig {
     return builtinFunctionRepository;
   }
 
-  @Bean
-  public FunctionProperties functionExecutionContext() {
-    return new FunctionProperties(Instant.now(), ZoneId.systemDefault());
-  }
+  @Autowired
+  FunctionProperties functionProperties;
 
   @Bean
   public DSL dsl(BuiltinFunctionRepository repository) {

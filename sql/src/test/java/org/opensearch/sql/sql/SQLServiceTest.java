@@ -26,6 +26,7 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponseNode;
+import org.opensearch.sql.expression.function.FunctionPropertiesTestConfig;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.sql.config.SQLServiceConfig;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
@@ -56,6 +57,7 @@ class SQLServiceTest {
     context.registerBean(StorageEngine.class, () -> storageEngine);
     context.registerBean(ExecutionEngine.class, () -> executionEngine);
     context.registerBean(CatalogService.class, () -> catalogService);
+    context.register(FunctionPropertiesTestConfig.class);
     context.register(SQLServiceConfig.class);
     context.refresh();
     sqlService = context.getBean(SQLService.class);

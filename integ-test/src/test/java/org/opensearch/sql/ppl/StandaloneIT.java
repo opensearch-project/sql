@@ -23,6 +23,7 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
+import org.opensearch.sql.expression.function.FunctionPropertiesTestConfig;
 import org.opensearch.sql.monitor.AlwaysHealthyMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.client.OpenSearchRestClient;
@@ -56,6 +57,7 @@ public class StandaloneIT extends PPLIntegTestCase {
     AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
     context.registerBean(ExecutionEngine.class, () -> new OpenSearchExecutionEngine(client,
         new OpenSearchExecutionProtector(new AlwaysHealthyMonitor())));
+    context.register(FunctionPropertiesTestConfig.class);
     context.register(PPLServiceConfig.class);
     OpenSearchStorageEngine openSearchStorageEngine = new OpenSearchStorageEngine(client, defaultSettings());
     CatalogServiceImpl.getInstance().registerDefaultOpenSearchCatalog(openSearchStorageEngine);

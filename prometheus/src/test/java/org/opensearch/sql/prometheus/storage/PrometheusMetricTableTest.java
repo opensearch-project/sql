@@ -50,6 +50,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.config.ExpressionConfig;
+import org.opensearch.sql.expression.function.FunctionPropertiesTestConfig;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.ProjectOperator;
@@ -63,7 +64,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(MockitoExtension.class)
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {ExpressionConfig.class})
+@ContextConfiguration(classes = {FunctionPropertiesTestConfig.class, ExpressionConfig.class})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class PrometheusMetricTableTest {
 

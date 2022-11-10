@@ -37,6 +37,7 @@ import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.FunctionProperties;
+import org.opensearch.sql.expression.function.FunctionPropertiesTestConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -45,8 +46,8 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @Configuration
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {ExpressionConfig.class, ExpressionTestBase.class,
-    TestConfig.class})
+@ContextConfiguration(classes = {FunctionPropertiesTestConfig.class, ExpressionConfig.class,
+    ExpressionTestBase.class, TestConfig.class})
 public class ExpressionTestBase {
   @Autowired
   protected DSL dsl;

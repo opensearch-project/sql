@@ -45,21 +45,22 @@ public class DateTimeTestBase extends ExpressionTestBase {
     return expression.valueOf(env);
   }
 
+  protected LocalDateTime fromUnixTime(Double value) {
+    return fromUnixTime(DSL.literal(value)).valueOf().datetimeValue();
+  }
+
   protected FunctionExpression fromUnixTime(Expression value) {
     return (FunctionExpression)
-        functionRepository.compile(BuiltinFunctionName.FROM_UNIXTIME, List.of(value));
+        functionRepository.compile(BuiltinFunctionName.FROM_UNIXTIME.getName(), List.of(value));
   }
 
   protected FunctionExpression fromUnixTime(Expression value, Expression format) {
     return (FunctionExpression)
-        functionRepository.compile(BuiltinFunctionName.FROM_UNIXTIME, List.of(value, format));
+        functionRepository.compile(
+            BuiltinFunctionName.FROM_UNIXTIME.getName(), List.of(value, format));
   }
 
   protected LocalDateTime fromUnixTime(Long value) {
-    return fromUnixTime(DSL.literal(value)).valueOf().datetimeValue();
-  }
-
-  protected LocalDateTime fromUnixTime(Double value) {
     return fromUnixTime(DSL.literal(value)).valueOf().datetimeValue();
   }
 
@@ -75,8 +76,10 @@ public class DateTimeTestBase extends ExpressionTestBase {
 
   protected FunctionExpression maketime(Expression hour, Expression minute, Expression second) {
     return (FunctionExpression)
-        functionRepository.compile(BuiltinFunctionName.MAKETIME, List.of(hour, minute, second));
+        functionRepository.compile(
+            BuiltinFunctionName.MAKETIME.getName(), List.of(hour, minute, second));
   }
+
 
   protected LocalTime maketime(Double hour, Double minute, Double second) {
     return maketime(DSL.literal(hour), DSL.literal(minute), DSL.literal(second))
@@ -84,8 +87,8 @@ public class DateTimeTestBase extends ExpressionTestBase {
   }
 
   protected FunctionExpression makedate(Expression year, Expression dayOfYear) {
-    return (FunctionExpression)
-        functionRepository.compile(BuiltinFunctionName.MAKEDATE, List.of(year, dayOfYear));
+    return (FunctionExpression) functionRepository.compile(
+        BuiltinFunctionName.MAKEDATE.getName(), List.of(year, dayOfYear));
   }
 
   protected LocalDate makedate(double year, double dayOfYear) {
@@ -93,8 +96,8 @@ public class DateTimeTestBase extends ExpressionTestBase {
   }
 
   protected FunctionExpression period_add(Expression period, Expression months) {
-    return (FunctionExpression)
-        functionRepository.compile(BuiltinFunctionName.PERIOD_ADD, List.of(period, months));
+    return (FunctionExpression) functionRepository.compile(
+        BuiltinFunctionName.PERIOD_ADD.getName(), List.of(period, months));
   }
 
   protected Integer period_add(Integer period, Integer months) {
@@ -103,8 +106,8 @@ public class DateTimeTestBase extends ExpressionTestBase {
   }
 
   protected FunctionExpression period_diff(Expression first, Expression second) {
-    return (FunctionExpression)
-        functionRepository.compile(BuiltinFunctionName.PERIOD_DIFF, List.of(first, second));
+    return (FunctionExpression) functionRepository.compile(
+        BuiltinFunctionName.PERIOD_DIFF.getName(), List.of(first, second));
   }
 
   protected Integer period_diff(Integer first, Integer second) {
@@ -113,8 +116,8 @@ public class DateTimeTestBase extends ExpressionTestBase {
   }
 
   protected FunctionExpression unixTimeStampExpr() {
-    return (FunctionExpression)
-        functionRepository.compile(BuiltinFunctionName.UNIX_TIMESTAMP, List.of());
+    return (FunctionExpression) functionRepository.compile(
+        BuiltinFunctionName.UNIX_TIMESTAMP.getName(), List.of());
   }
 
   protected Long unixTimeStamp() {
@@ -123,7 +126,7 @@ public class DateTimeTestBase extends ExpressionTestBase {
 
   protected FunctionExpression unixTimeStampOf(Expression value) {
     return (FunctionExpression)
-        functionRepository.compile(BuiltinFunctionName.UNIX_TIMESTAMP, List.of(value));
+        functionRepository.compile(BuiltinFunctionName.UNIX_TIMESTAMP.getName(), List.of(value));
   }
 
   protected Double unixTimeStampOf(Double value) {

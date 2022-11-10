@@ -17,13 +17,15 @@ import org.opensearch.sql.analysis.AnalyzerTestBase;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.config.ExpressionConfig;
+import org.opensearch.sql.expression.function.FunctionPropertiesTestConfig;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @Configuration
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {ExpressionConfig.class, AnalyzerTestBase.class})
+@ContextConfiguration(classes = {FunctionPropertiesTestConfig.class, ExpressionConfig.class,
+    AnalyzerTestBase.class})
 @ExtendWith(MockitoExtension.class)
 public class LogicalEvalTest extends AnalyzerTestBase {
 

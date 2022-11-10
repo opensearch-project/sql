@@ -23,6 +23,13 @@ public class FunctionProperties implements Serializable {
   private final Instant nowInstant;
   private final ZoneId currentZoneId;
 
+  /**
+   * By default, use current time and current timezone.
+   */
+  public FunctionProperties() {
+    nowInstant = Instant.now();
+    currentZoneId = ZoneId.systemDefault();
+  }
 
   /**
    * Method to access current system clock.

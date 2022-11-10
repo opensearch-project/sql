@@ -33,6 +33,7 @@ import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionBuilder;
 import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.expression.function.FunctionSignature;
 import org.opensearch.sql.expression.function.TableFunctionImplementation;

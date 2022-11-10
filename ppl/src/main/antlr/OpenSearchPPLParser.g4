@@ -414,9 +414,11 @@ trigonometricFunctionName
     ;
 
 dateAndTimeFunctionBase
-    : datetimeConstantLiteral
-    | ADDDATE
+    : ADDDATE
     | CONVERT_TZ
+    | CURRENT_DATE
+    | CURRENT_TIME
+    | CURRENT_TIMESTAMP
     | DATE
     | DATE_ADD
     | DATE_FORMAT
@@ -432,6 +434,8 @@ dateAndTimeFunctionBase
     | FROM_DAYS
     | FROM_UNIXTIME
     | HOUR
+    | LOCALTIME
+    | LOCALTIMESTAMP
     | MAKEDATE
     | MAKETIME
     | MICROSECOND
@@ -450,6 +454,9 @@ dateAndTimeFunctionBase
     | TIMESTAMP
     | TO_DAYS
     | UNIX_TIMESTAMP
+    | UTC_DATE
+    | UTC_TIME
+    | UTC_TIMESTAMP
     | WEEK
     | YEAR
     ;
@@ -539,18 +546,6 @@ timeLiteral
 
 timestampLiteral
     : TIMESTAMP timestamp=stringLiteral
-    ;
-
-// Actually, these constants are shortcuts to the corresponding functions
-datetimeConstantLiteral
-    : CURRENT_DATE
-    | CURRENT_TIME
-    | CURRENT_TIMESTAMP
-    | LOCALTIME
-    | LOCALTIMESTAMP
-    | UTC_TIMESTAMP
-    | UTC_DATE
-    | UTC_TIME
     ;
 
 intervalUnit

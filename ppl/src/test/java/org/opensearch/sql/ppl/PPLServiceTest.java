@@ -30,6 +30,7 @@ import org.opensearch.sql.executor.ExecutionEngine.ExplainResponseNode;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.FunctionPropertiesTestConfig;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.ppl.config.PPLServiceConfig;
@@ -88,6 +89,7 @@ public class PPLServiceTest {
     context.registerBean(StorageEngine.class, () -> storageEngine);
     context.registerBean(ExecutionEngine.class, () -> executionEngine);
     context.registerBean(CatalogService.class, () -> catalogService);
+    context.register(FunctionPropertiesTestConfig.class);
     context.register(PPLServiceConfig.class);
     context.refresh();
     pplService = context.getBean(PPLService.class);
