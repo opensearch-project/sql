@@ -23,7 +23,7 @@ public class StringLiteralIT extends SQLIntegTestCase {
   @Test
   public void testDateSub() throws IOException {
     JSONObject result =
-        executeQuery("select 'Hello'");
+        executeJdbcRequest("select 'Hello'");
     verifySchema(result,
         schema("'Hello'", null, "string"));
     verifyDataRows(result, rows("Hello"));
