@@ -425,7 +425,8 @@ systemFunctionName
     ;
 
 singleFieldRelevanceFunctionName
-    : MATCH | MATCH_PHRASE | MATCHPHRASE
+    : MATCH | MATCHQUERY | MATCH_QUERY
+    | MATCH_PHRASE | MATCHPHRASE
     | MATCH_BOOL_PREFIX | MATCH_PHRASE_PREFIX
     ;
 
@@ -436,7 +437,7 @@ multiFieldRelevanceFunctionName
     ;
 
 legacyRelevanceFunctionName
-    : QUERY | MATCH_QUERY | MATCHQUERY
+    : QUERY 
     ;
 
 functionArgs
