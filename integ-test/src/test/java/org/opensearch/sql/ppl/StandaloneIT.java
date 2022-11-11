@@ -176,7 +176,7 @@ public class StandaloneIT extends PPLIntegTestCase {
 
     @Bean
     QueryManager queryManager() {
-      return new DefaultQueryManager();
+      return DefaultQueryManager.defaultQueryManager();
     }
 
     @Bean

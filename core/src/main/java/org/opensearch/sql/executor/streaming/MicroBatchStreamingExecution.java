@@ -105,7 +105,7 @@ public class MicroBatchStreamingExecution {
 
             @Override
             public void onFailure(Exception e) {
-              log.error("streaming processing failed. source = {}", source);
+              log.error("streaming processing failed. source = {}", source, e);
             }
           });
     }

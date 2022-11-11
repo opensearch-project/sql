@@ -19,9 +19,9 @@ configurations.all {
 }
 
 dependencies {
-    implementation project(':core')
+    api project(':core')
     // required by hadoop filesystem https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-common/filesystem/index.html.
-    implementation("org.apache.hadoop:hadoop-common:${hadoop}") {
+    api("org.apache.hadoop:hadoop-common:${hadoop}") {
         exclude group: 'org.apache.zookeeper'
         exclude group: 'org.eclipse.jetty'
         exclude group: 'com.sun.jersey'
