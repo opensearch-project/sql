@@ -32,7 +32,11 @@ import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.Matc
 public class MatchQueryTest {
   private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
   private final MatchQuery matchQuery = new MatchQuery();
-  private final FunctionName match = FunctionName.of("match");
+  private final FunctionName matchName = FunctionName.of("match");
+  private final FunctionName matchQueryName = FunctionName.of("matchquery");
+  private final FunctionName matchQueryWithUnderscoreName = FunctionName.of("match_query");
+  private final FunctionName[] functionNames =
+      {matchName,matchQueryName, matchQueryWithUnderscoreName};
 
   static Stream<List<Expression>> generateValidData() {
     final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
@@ -112,21 +116,27 @@ public class MatchQueryTest {
   @ParameterizedTest
   @MethodSource("generateValidData")
   public void test_valid_parameters(List<Expression> validArgs) {
-    Assertions.assertNotNull(matchQuery.build(new MatchExpression(validArgs)));
+    for (FunctionName funcName : functionNames) {
+      Assertions.assertNotNull(matchQuery.build(new MatchExpression(validArgs, funcName)));
+    }
   }
 
   @Test
   public void test_SyntaxCheckException_when_no_arguments() {
     List<Expression> arguments = List.of();
-    assertThrows(SyntaxCheckException.class,
-        () -> matchQuery.build(new MatchExpression(arguments)));
+    for (FunctionName funcName : functionNames) {
+      assertThrows(SyntaxCheckException.class,
+          () -> matchQuery.build(new MatchExpression(arguments, funcName)));
+    }
   }
 
   @Test
   public void test_SyntaxCheckException_when_one_argument() {
     List<Expression> arguments = List.of(namedArgument("field", "field_value"));
-    assertThrows(SyntaxCheckException.class,
-        () -> matchQuery.build(new MatchExpression(arguments)));
+    for (FunctionName funcName : functionNames) {
+      assertThrows(SyntaxCheckException.class,
+          () -> matchQuery.build(new MatchExpression(arguments, funcName)));
+    }
   }
 
   @Test
@@ -135,8 +145,10 @@ public class MatchQueryTest {
         namedArgument("field", "field_value"),
         namedArgument("query", "query_value"),
         namedArgument("unsupported", "unsupported_value"));
-    Assertions.assertThrows(SemanticCheckException.class,
-        () -> matchQuery.build(new MatchExpression(arguments)));
+    for (FunctionName funcName : functionNames) {
+      Assertions.assertThrows(SemanticCheckException.class,
+          () -> matchQuery.build(new MatchExpression(arguments, funcName)));
+    }
   }
 
   private NamedArgumentExpression namedArgument(String name, String value) {
@@ -144,8 +156,8 @@ public class MatchQueryTest {
   }
 
   private class MatchExpression extends FunctionExpression {
-    public MatchExpression(List<Expression> arguments) {
-      super(MatchQueryTest.this.match, arguments);
+    public MatchExpression(List<Expression> arguments, FunctionName funcName) {
+      super(funcName, arguments);
     }
 
     @Override

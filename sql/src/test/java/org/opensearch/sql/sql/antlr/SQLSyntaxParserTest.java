@@ -375,7 +375,28 @@ class SQLSyntaxParserTest {
     assertNotNull(parser.parse("SELECT * FROM test WHERE match(`column`, \"this is a test\")"));
     assertNotNull(parser.parse("SELECT * FROM test WHERE match(`column`, 'this is a test')"));
     assertNotNull(parser.parse("SELECT * FROM test WHERE match(column, 100500)"));
+  }
 
+  @Test
+  public void can_parse_matchquery_relevance_function() {
+    assertNotNull(parser.parse("SELECT * FROM test WHERE matchquery(column, \"this is a test\")"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE matchquery(column, 'this is a test')"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE matchquery(`column`, \"this is a test\")"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE matchquery(`column`, 'this is a test')"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE matchquery(column, 100500)"));
+  }
+
+  @Test
+  public void can_parse_match_query_relevance_function() {
+    assertNotNull(parser.parse("SELECT * FROM test WHERE match_query(column, \"this is a test\")"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE match_query(column, 'this is a test')"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE match_query(`column`, \"this is a test\")"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE match_query(`column`, 'this is a test')"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE match_query(column, 100500)"));
+  }
+
+  @Test
+  public void can_parse_match_phrase_relevance_function() {
     assertNotNull(
             parser.parse("SELECT * FROM test WHERE match_phrase(column, \"this is a test\")"));
     assertNotNull(parser.parse("SELECT * FROM test WHERE match_phrase(column, 'this is a test')"));
