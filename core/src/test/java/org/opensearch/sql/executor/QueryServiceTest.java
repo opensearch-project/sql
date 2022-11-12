@@ -8,6 +8,7 @@
 
 package org.opensearch.sql.executor;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -64,7 +65,7 @@ class QueryServiceTest {
   @BeforeEach
   public void setUp() {
     lenient().when(analyzer.analyze(any(), any())).thenReturn(logicalPlan);
-    when(planner.plan(any())).thenReturn(plan);
+    lenient().when(planner.plan(any())).thenReturn(plan);
 
     queryService = new QueryService(analyzer, executionEngine, planner);
   }
@@ -86,7 +87,7 @@ class QueryServiceTest {
         new ResponseListener<>() {
           @Override
           public void onResponse(ExecutionEngine.QueryResponse pplQueryResponse) {
-
+            assertNotNull(pplQueryResponse);
           }
 
           @Override
@@ -115,7 +116,7 @@ class QueryServiceTest {
         new ResponseListener<>() {
           @Override
           public void onResponse(ExecutionEngine.ExplainResponse pplQueryResponse) {
-
+            assertNotNull(pplQueryResponse);
           }
 
           @Override
@@ -185,12 +186,31 @@ class QueryServiceTest {
         new ResponseListener<>() {
           @Override
           public void onResponse(ExecutionEngine.QueryResponse pplQueryResponse) {
-
+            assertNotNull(pplQueryResponse);
           }
 
           @Override
           public void onFailure(Exception e) {
             fail();
+          }
+        });
+  }
+
+  @Test
+  public void analyzeExceptionShouldBeCached() {
+    when(analyzer.analyze(any(), any())).thenThrow(IllegalStateException.class);
+
+    queryService.execute(
+        ast,
+        new ResponseListener<>() {
+          @Override
+          public void onResponse(ExecutionEngine.QueryResponse pplQueryResponse) {
+            fail();
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            assertTrue(e instanceof IllegalStateException);
           }
         });
   }

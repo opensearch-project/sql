@@ -39,7 +39,11 @@ public class QueryService {
    */
   public void execute(UnresolvedPlan plan,
                       ResponseListener<ExecutionEngine.QueryResponse> listener) {
-    executePlan(analyze(plan), PlanContext.emptyPlanContext(), listener);
+    try {
+      executePlan(analyze(plan), PlanContext.emptyPlanContext(), listener);
+    } catch (Exception e) {
+      listener.onFailure(e);
+    }
   }
 
   /**
