@@ -59,7 +59,7 @@ class NamedExpressionTest extends ExpressionTestBase {
             DSL.literal("group"));
     NamedExpression named = DSL.named(parse);
     assertEquals(parse, named.getDelegated());
-    assertEquals(parse.getIdentifier().valueOf(null).stringValue(), named.getName());
+    assertEquals(parse.getIdentifier().valueOf().stringValue(), named.getName());
   }
 
 }

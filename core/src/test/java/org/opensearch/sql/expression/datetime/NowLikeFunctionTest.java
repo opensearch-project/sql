@@ -60,9 +60,9 @@ public class NowLikeFunctionTest extends ExpressionTestBase {
 
   private Temporal extractValue(FunctionExpression func) {
     switch ((ExprCoreType)func.type()) {
-      case DATE: return func.valueOf(null).dateValue();
-      case DATETIME: return func.valueOf(null).datetimeValue();
-      case TIME: return func.valueOf(null).timeValue();
+      case DATE: return func.valueOf().dateValue();
+      case DATETIME: return func.valueOf().datetimeValue();
+      case TIME: return func.valueOf().timeValue();
       // unreachable code
       default: throw new IllegalArgumentException(String.format("%s", func.type()));
     }
@@ -105,7 +105,7 @@ public class NowLikeFunctionTest extends ExpressionTestBase {
 
       for (var wrongFspValue: List.of(-1, 10)) {
         var exception = assertThrows(IllegalArgumentException.class,
-            () -> function.apply(new Expression[]{DSL.literal(wrongFspValue)}).valueOf(null));
+            () -> function.apply(new Expression[]{DSL.literal(wrongFspValue)}).valueOf());
         assertEquals(String.format("Invalid `fsp` value: %d, allowed 0 to 6", wrongFspValue),
             exception.getMessage());
       }

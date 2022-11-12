@@ -30,7 +30,7 @@ import org.opensearch.sql.storage.StorageEngine;
 public class CatalogServiceImplTest {
 
   public static final String CATALOG_SETTING_METADATA_KEY =
-      "plugins.query.federation.catalog.config";
+      "plugins.query.federation.datasources.config";
 
   @Mock
   private StorageEngine storageEngine;

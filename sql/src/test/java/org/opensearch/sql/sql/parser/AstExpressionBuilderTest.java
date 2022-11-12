@@ -544,6 +544,22 @@ class AstExpressionBuilderTest {
   }
 
   @Test
+  public void relevanceQuery() {
+    assertEquals(AstDSL.function("query",
+                    unresolvedArg("query", stringLiteral("field1:query OR field2:query"))),
+            buildExprAst("query('field1:query OR field2:query')")
+    );
+
+    assertEquals(AstDSL.function("query",
+                    unresolvedArg("query", stringLiteral("search query")),
+                    unresolvedArg("analyzer", stringLiteral("keyword")),
+                    unresolvedArg("time_zone", stringLiteral("Canada/Pacific")),
+                    unresolvedArg("tie_breaker", stringLiteral("1.3"))),
+            buildExprAst("query('search query',"
+                    + "analyzer='keyword', time_zone='Canada/Pacific', tie_breaker='1.3')"));
+  }
+
+  @Test
   public void canBuildInClause() {
     assertEquals(
         AstDSL.in(qualifiedName("age"), AstDSL.intLiteral(20), AstDSL.intLiteral(30)),

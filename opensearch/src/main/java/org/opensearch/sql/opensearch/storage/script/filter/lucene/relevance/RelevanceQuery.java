@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
@@ -24,17 +25,24 @@ import org.opensearch.sql.opensearch.storage.script.filter.lucene.LuceneQuery;
  */
 @RequiredArgsConstructor
 public abstract class RelevanceQuery<T extends QueryBuilder> extends LuceneQuery {
+  @Getter
   private final Map<String, QueryBuilderStep<T>> queryBuildActions;
 
-  @Override
-  public QueryBuilder build(FunctionExpression func) {
-    var arguments = func.getArguments().stream()
-        .map(a -> (NamedArgumentExpression)a).collect(Collectors.toList());
-    if (arguments.size() < 2) {
-      throw new SyntaxCheckException(
-          String.format("%s requires at least two parameters", getQueryName()));
-    }
+  protected void ignoreArguments(List<NamedArgumentExpression> arguments) {
+    arguments.removeIf(a -> a.getArgName().equalsIgnoreCase("field")
+            || a.getArgName().equalsIgnoreCase("fields")
+            || a.getArgName().equalsIgnoreCase("query"));
+  }
 
+  protected void checkValidArguments(String argNormalized, T queryBuilder) {
+    if (!queryBuildActions.containsKey(argNormalized)) {
+      throw new SemanticCheckException(
+              String.format("Parameter %s is invalid for %s function.",
+                      argNormalized, queryBuilder.getWriteableName()));
+    }
+  }
+
+  protected T loadArguments(List<NamedArgumentExpression> arguments) throws SemanticCheckException {
     // Aggregate parameters by name, so getting a Map<Name:String, List>
     arguments.stream().collect(Collectors.groupingBy(a -> a.getArgName().toLowerCase()))
         .forEach((k, v) -> {
@@ -46,31 +54,44 @@ public abstract class RelevanceQuery<T extends QueryBuilder> extends LuceneQuery
 
     T queryBuilder = createQueryBuilder(arguments);
 
-    arguments.removeIf(a -> a.getArgName().equalsIgnoreCase("field")
-        || a.getArgName().equalsIgnoreCase("fields")
-        || a.getArgName().equalsIgnoreCase("query"));
+    ignoreArguments(arguments);
 
     var iterator = arguments.listIterator();
     while (iterator.hasNext()) {
       NamedArgumentExpression arg = iterator.next();
       String argNormalized = arg.getArgName().toLowerCase();
 
-      if (!queryBuildActions.containsKey(argNormalized)) {
-        throw new SemanticCheckException(
-            String.format("Parameter %s is invalid for %s function.",
-                argNormalized, queryBuilder.getWriteableName()));
-      }
+      checkValidArguments(argNormalized, queryBuilder);
+
       (Objects.requireNonNull(
           queryBuildActions
               .get(argNormalized)))
-          .apply(queryBuilder, arg.getValue().valueOf(null));
+          .apply(queryBuilder, arg.getValue().valueOf());
     }
+
     return queryBuilder;
+  }
+
+  @Override
+  public QueryBuilder build(FunctionExpression func) {
+    var arguments = func.getArguments().stream()
+        .map(a -> (NamedArgumentExpression)a).collect(Collectors.toList());
+    if (arguments.size() < 2) {
+      throw new SyntaxCheckException(
+          String.format("%s requires at least two parameters", getQueryName()));
+    }
+
+    return loadArguments(arguments);
+
   }
 
   protected abstract T createQueryBuilder(List<NamedArgumentExpression> arguments);
 
   protected abstract String getQueryName();
+
+  public Map<String, QueryBuilderStep<T>> getQueryBuildActions() {
+    return queryBuildActions;
+  }
 
   /**
    * Convenience interface for a function that updates a QueryBuilder

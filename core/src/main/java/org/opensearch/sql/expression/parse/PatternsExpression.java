@@ -44,7 +44,7 @@ public class PatternsExpression extends ParseExpression {
    */
   public PatternsExpression(Expression sourceField, Expression pattern, Expression identifier) {
     super("patterns", sourceField, pattern, identifier);
-    String patternStr = pattern.valueOf(null).stringValue();
+    String patternStr = pattern.valueOf().stringValue();
     useCustomPattern = !patternStr.isEmpty();
     if (useCustomPattern) {
       this.pattern = Pattern.compile(patternStr);

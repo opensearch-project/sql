@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.prometheus.response;
 
-import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.LABELS;
@@ -16,6 +15,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import lombok.NonNull;
+import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.sql.data.model.ExprDoubleValue;
@@ -26,6 +26,8 @@ import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.prometheus.storage.model.PrometheusResponseFieldNames;
 
 public class PrometheusResponse implements Iterable<ExprValue> {
@@ -100,7 +102,7 @@ public class PrometheusResponse implements Iterable<ExprValue> {
 
   private void insertLabels(LinkedHashMap<String, ExprValue> linkedHashMap, JSONObject metric) {
     for (String key : metric.keySet()) {
-      linkedHashMap.put(key, new ExprStringValue(metric.getString(key)));
+      linkedHashMap.put(getKey(key), new ExprStringValue(metric.getString(key)));
     }
   }
 
@@ -111,6 +113,20 @@ public class PrometheusResponse implements Iterable<ExprValue> {
       return new ExprLongValue(jsonArray.getLong(index));
     }
     return new ExprDoubleValue(jsonArray.getDouble(index));
+  }
+
+  private String getKey(String key) {
+    if (this.prometheusResponseFieldNames.getGroupByList() == null) {
+      return key;
+    } else {
+      return this.prometheusResponseFieldNames.getGroupByList().stream()
+          .filter(expression -> expression.getDelegated() instanceof ReferenceExpression)
+          .filter(expression
+              -> ((ReferenceExpression) expression.getDelegated()).getAttr().equals(key))
+          .findFirst()
+          .map(NamedExpression::getName)
+          .orElse(key);
+    }
   }
 
 }
