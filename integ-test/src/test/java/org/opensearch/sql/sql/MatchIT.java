@@ -35,4 +35,32 @@ public class MatchIT extends SQLIntegTestCase {
     verifySchema(result, schema("lastname", "text"));
     verifyDataRows(result, rows("Bates"));
   }
+
+  @Test
+  public void matchquery_in_where() throws IOException {
+    JSONObject result = executeJdbcRequest("SELECT firstname FROM " + TEST_INDEX_ACCOUNT + " WHERE matchquery(lastname, 'Bates')");
+    verifySchema(result, schema("firstname", "text"));
+    verifyDataRows(result, rows("Nanette"));
+  }
+
+  @Test
+  public void matchquery_in_having() throws IOException {
+    JSONObject result = executeJdbcRequest("SELECT lastname FROM " + TEST_INDEX_ACCOUNT + " HAVING matchquery(firstname, 'Nanette')");
+    verifySchema(result, schema("lastname", "text"));
+    verifyDataRows(result, rows("Bates"));
+  }
+
+  @Test
+  public void match_query_in_where() throws IOException {
+    JSONObject result = executeJdbcRequest("SELECT firstname FROM " + TEST_INDEX_ACCOUNT + " WHERE match_query(lastname, 'Bates')");
+    verifySchema(result, schema("firstname", "text"));
+    verifyDataRows(result, rows("Nanette"));
+  }
+
+  @Test
+  public void match_query_in_having() throws IOException {
+    JSONObject result = executeJdbcRequest("SELECT lastname FROM " + TEST_INDEX_ACCOUNT + " HAVING match_query(firstname, 'Nanette')");
+    verifySchema(result, schema("lastname", "text"));
+    verifyDataRows(result, rows("Bates"));
+  }
 }
