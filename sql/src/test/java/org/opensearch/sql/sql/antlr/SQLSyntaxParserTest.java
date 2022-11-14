@@ -325,6 +325,49 @@ class SQLSyntaxParserTest {
             + "operator='AND', tie_breaker=0.3, type = \"most_fields\", fuzziness = 4)"));
   }
 
+
+  @Test
+  public void can_parse_query_relevance_function() {
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query('address:query')"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query('address:query OR notes:query')"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query(\"address:query\")"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query(\"address:query OR notes:query\")"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query(`address:query`)"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query(`address:query OR notes:query`)"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query('*:query')"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query(\"*:query\")"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query(`*:query`)"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query('address:*uery OR notes:?uery')"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query(\"address:*uery OR notes:?uery\")"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query(`address:*uery OR notes:?uery`)"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query('address:qu*ry OR notes:qu?ry')"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query(\"address:qu*ry OR notes:qu?ry\")"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query(`address:qu*ry OR notes:qu?ry`)"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query('address:query notes:query')"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE query(\"address:query notes:query\")"));
+    assertNotNull(parser.parse(
+            "SELECT id FROM test WHERE "
+                    + "query(\"Body:\'taste beer\' Tags:\'taste beer\'  Title:\'taste beer\'\")"));
+  }
+
+
   @Test
   public void can_parse_match_relevance_function() {
     assertNotNull(parser.parse("SELECT * FROM test WHERE match(column, \"this is a test\")"));

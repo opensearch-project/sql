@@ -71,7 +71,7 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     FunctionExpression expression = dsl.add(literal(op1), literal(op2));
     ExprType expectedType = WideningTypeRule.max(op1.type(), op2.type());
     assertEquals(expectedType, expression.type());
-    assertValueEqual(BuiltinFunctionName.ADD, expectedType, op1, op2, expression.valueOf(null));
+    assertValueEqual(BuiltinFunctionName.ADD, expectedType, op1, op2, expression.valueOf());
     assertEquals(String.format("+(%s, %s)", op1.toString(), op2.toString()), expression.toString());
   }
 
@@ -147,7 +147,7 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     ExprType expectedType = WideningTypeRule.max(op1.type(), op2.type());
     assertEquals(expectedType, expression.type());
     assertValueEqual(BuiltinFunctionName.SUBTRACT, expectedType, op1, op2,
-        expression.valueOf(null));
+        expression.valueOf());
     assertEquals(String.format("-(%s, %s)", op1.toString(), op2.toString()),
         expression.toString());
   }
@@ -159,7 +159,7 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     ExprType expectedType = WideningTypeRule.max(op1.type(), op2.type());
     assertEquals(expectedType, expression.type());
     assertValueEqual(BuiltinFunctionName.MULTIPLY, expectedType, op1, op2,
-        expression.valueOf(null));
+        expression.valueOf());
     assertEquals(String.format("*(%s, %s)", op1.toString(), op2.toString()),
         expression.toString());
   }
@@ -170,7 +170,7 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     FunctionExpression expression = dsl.divide(literal(op1), literal(op2));
     ExprType expectedType = WideningTypeRule.max(op1.type(), op2.type());
     assertEquals(expectedType, expression.type());
-    assertValueEqual(BuiltinFunctionName.DIVIDE, expectedType, op1, op2, expression.valueOf(null));
+    assertValueEqual(BuiltinFunctionName.DIVIDE, expectedType, op1, op2, expression.valueOf());
     assertEquals(String.format("/(%s, %s)", op1.toString(), op2.toString()),
         expression.toString());
 
@@ -187,7 +187,7 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     FunctionExpression expression = dsl.module(literal(op1), literal(op2));
     ExprType expectedType = WideningTypeRule.max(op1.type(), op2.type());
     assertEquals(expectedType, expression.type());
-    assertValueEqual(BuiltinFunctionName.MODULES, expectedType, op1, op2, expression.valueOf(null));
+    assertValueEqual(BuiltinFunctionName.MODULES, expectedType, op1, op2, expression.valueOf());
     assertEquals(String.format("%%(%s, %s)", op1.toString(), op2.toString()),
         expression.toString());
 

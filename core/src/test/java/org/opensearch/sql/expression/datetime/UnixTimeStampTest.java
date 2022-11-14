@@ -229,7 +229,7 @@ public class UnixTimeStampTest extends DateTimeTestBase {
   @MethodSource("getInvalidDoubleSamples")
   public void checkInvalidDoubleCausesNull(Double value) {
     assertEquals(ExprNullValue.of(),
-        unixTimeStampOf(DSL.literal(new ExprDoubleValue(value))).valueOf(null),
+        unixTimeStampOf(DSL.literal(new ExprDoubleValue(value))).valueOf(),
         new DecimalFormat("0.#").format(value));
   }
 }

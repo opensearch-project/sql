@@ -57,7 +57,7 @@ public class TimeRangeParametersResolver extends ExpressionNodeVisitor<Void, Obj
       ReferenceExpression ref = (ReferenceExpression) func.getArguments().get(0);
       Expression rightExpr = func.getArguments().get(1);
       if (ref.getAttr().equals("@timestamp")) {
-        ExprValue literalValue = rightExpr.valueOf(null);
+        ExprValue literalValue = rightExpr.valueOf();
         if (func.getFunctionName().getFunctionName().contains(">")) {
           startTime = literalValue.timestampValue().toEpochMilli() / 1000;
         }
