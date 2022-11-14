@@ -23,7 +23,6 @@ import org.opensearch.sql.analysis.ExpressionAnalyzer;
 import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
-import org.opensearch.sql.executor.DefaultQueryManager;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.QueryManager;
@@ -45,6 +44,7 @@ import org.opensearch.sql.ppl.config.PPLServiceConfig;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
+import org.opensearch.sql.util.ExecuteOnCallerThreadQueryManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -176,7 +176,7 @@ public class StandaloneIT extends PPLIntegTestCase {
 
     @Bean
     QueryManager queryManager() {
-      return DefaultQueryManager.defaultQueryManager();
+      return new ExecuteOnCallerThreadQueryManager();
     }
 
     @Bean
