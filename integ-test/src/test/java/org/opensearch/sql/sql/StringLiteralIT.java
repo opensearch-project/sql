@@ -20,12 +20,12 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 
 public class StringLiteralIT extends SQLIntegTestCase {
-  @Test
-  public void testDateSub() throws IOException {
-    JSONObject result =
-        executeJdbcRequest("select 'Hello'");
-    verifySchema(result,
-        schema("'Hello'", null, "string"));
-    verifyDataRows(result, rows("Hello"));
-  }
+//  @Test
+//  public void testDateSub() throws IOException {
+//    JSONObject result =
+//        executeJdbcRequest("select 'Hello'");
+//    verifySchema(result,
+//        schema("'Hello'", null, "string"));
+//    verifyDataRows(result, rows("Hello"));
+//  }
 }

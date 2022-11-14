@@ -29,7 +29,7 @@ public class MultiMatchIT extends SQLIntegTestCase {
   @Test
   public void test_mandatory_params() throws IOException {
     String query = "SELECT Id FROM " + TEST_INDEX_BEER
-        + " WHERE multi_match([\\\"Tags\\\" ^ 1.5, Title, `Body` 4.2], 'taste')";
+        + " WHERE multi_match([\\\"Tags\\\" ^ 1.5, Title, 'Body' 4.2], 'taste')";
     var result = new JSONObject(executeQuery(query, "jdbc"));
     assertEquals(16, result.getInt("total"));
   }

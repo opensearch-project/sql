@@ -21,7 +21,7 @@ public class QueryStringIT extends SQLIntegTestCase {
   @Test
   public void all_fields_test() throws IOException {
     String query = "SELECT * FROM "
-        + TEST_INDEX_BEER + " WHERE query_string([`*`], 'taste')";
+        + TEST_INDEX_BEER + " WHERE query_string(['*'], 'taste')";
     JSONObject result = executeJdbcRequest(query);
     assertEquals(16, result.getInt("total"));
   }
@@ -29,7 +29,7 @@ public class QueryStringIT extends SQLIntegTestCase {
   @Test
   public void mandatory_params_test() throws IOException {
     String query = "SELECT Id FROM "
-        + TEST_INDEX_BEER + " WHERE query_string([\\\"Tags\\\" ^ 1.5, Title, `Body` 4.2], 'taste')";
+        + TEST_INDEX_BEER + " WHERE query_string([\\\"Tags\\\" ^ 1.5, Title, 'Body' 4.2], 'taste')";
     JSONObject result = executeJdbcRequest(query);
     assertEquals(16, result.getInt("total"));
   }
