@@ -13,6 +13,7 @@ import org.opensearch.sql.analysis.AnalysisContext;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -31,12 +32,32 @@ public class QueryService {
 
   /**
    * Execute the {@link UnresolvedPlan}, using {@link ResponseListener} to get response.
+   * Todo. deprecated this interface after finalize {@link PlanContext}.
    *
    * @param plan  {@link UnresolvedPlan}
    * @param listener {@link ResponseListener}
    */
   public void execute(UnresolvedPlan plan,
                       ResponseListener<ExecutionEngine.QueryResponse> listener) {
+    try {
+      executePlan(analyze(plan), PlanContext.emptyPlanContext(), listener);
+    } catch (Exception e) {
+      listener.onFailure(e);
+    }
+  }
+
+  /**
+   * Execute the {@link UnresolvedPlan}, with {@link PlanContext} and using {@link ResponseListener}
+   * to get response.
+   * Todo. Pass split from PlanContext to ExecutionEngine in following PR.
+   *
+   * @param plan {@link LogicalPlan}
+   * @param planContext {@link PlanContext}
+   * @param listener {@link ResponseListener}
+   */
+  public void executePlan(LogicalPlan plan,
+                          PlanContext planContext,
+                          ResponseListener<ExecutionEngine.QueryResponse> listener) {
     try {
       executionEngine.execute(plan(plan), listener);
     } catch (Exception e) {
@@ -54,17 +75,23 @@ public class QueryService {
   public void explain(UnresolvedPlan plan,
                       ResponseListener<ExecutionEngine.ExplainResponse> listener) {
     try {
-      executionEngine.explain(plan(plan), listener);
+      executionEngine.explain(plan(analyze(plan)), listener);
     } catch (Exception e) {
       listener.onFailure(e);
     }
   }
 
-  private PhysicalPlan plan(UnresolvedPlan plan) {
-    // 1.Analyze abstract syntax to generate logical plan
-    LogicalPlan logicalPlan = analyzer.analyze(plan, new AnalysisContext());
+  /**
+   * Analyze {@link UnresolvedPlan}.
+   */
+  public LogicalPlan analyze(UnresolvedPlan plan) {
+    return analyzer.analyze(plan, new AnalysisContext());
+  }
 
-    // 2.Generate optimal physical plan from logical plan
-    return planner.plan(logicalPlan);
+  /**
+   * Translate {@link LogicalPlan} to {@link PhysicalPlan}.
+   */
+  public PhysicalPlan plan(LogicalPlan plan) {
+    return planner.plan(plan);
   }
 }

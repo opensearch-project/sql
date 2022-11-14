@@ -8,11 +8,13 @@
 
 package org.opensearch.sql.executor;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -24,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -56,10 +59,13 @@ class QueryServiceTest {
   @Mock
   private ExecutionEngine.Schema schema;
 
+  @Mock
+  private PlanContext planContext;
+
   @BeforeEach
   public void setUp() {
-    when(analyzer.analyze(any(), any())).thenReturn(logicalPlan);
-    when(planner.plan(any())).thenReturn(plan);
+    lenient().when(analyzer.analyze(any(), any())).thenReturn(logicalPlan);
+    lenient().when(planner.plan(any())).thenReturn(plan);
 
     queryService = new QueryService(analyzer, executionEngine, planner);
   }
@@ -81,7 +87,7 @@ class QueryServiceTest {
         new ResponseListener<>() {
           @Override
           public void onResponse(ExecutionEngine.QueryResponse pplQueryResponse) {
-
+            assertNotNull(pplQueryResponse);
           }
 
           @Override
@@ -110,7 +116,7 @@ class QueryServiceTest {
         new ResponseListener<>() {
           @Override
           public void onResponse(ExecutionEngine.ExplainResponse pplQueryResponse) {
-
+            assertNotNull(pplQueryResponse);
           }
 
           @Override
@@ -152,6 +158,53 @@ class QueryServiceTest {
         new ResponseListener<>() {
           @Override
           public void onResponse(ExecutionEngine.ExplainResponse pplQueryResponse) {
+            fail();
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            assertTrue(e instanceof IllegalStateException);
+          }
+        });
+  }
+
+  @Test
+  public void testExecutePlanShouldPass() {
+    doAnswer(
+        invocation -> {
+          ResponseListener<ExecutionEngine.QueryResponse> listener = invocation.getArgument(1);
+          listener.onResponse(
+              new ExecutionEngine.QueryResponse(schema, Collections.emptyList()));
+          return null;
+        })
+        .when(executionEngine)
+        .execute(any(), any());
+
+    queryService.executePlan(
+        logicalPlan,
+        planContext,
+        new ResponseListener<>() {
+          @Override
+          public void onResponse(ExecutionEngine.QueryResponse pplQueryResponse) {
+            assertNotNull(pplQueryResponse);
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            fail();
+          }
+        });
+  }
+
+  @Test
+  public void analyzeExceptionShouldBeCached() {
+    when(analyzer.analyze(any(), any())).thenThrow(IllegalStateException.class);
+
+    queryService.execute(
+        ast,
+        new ResponseListener<>() {
+          @Override
+          public void onResponse(ExecutionEngine.QueryResponse pplQueryResponse) {
             fail();
           }
 
