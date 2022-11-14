@@ -2755,7 +2755,7 @@ The matchquery function maps to the match query used in search engine, to return
 
 Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
 
-    os> SELECT lastname, address FROM accounts WHERE match(address, 'Street');
+    os> SELECT lastname, address FROM accounts WHERE matchquery(address, 'Street');
     fetched rows / total rows = 2/2
     +------------+--------------------+
     | lastname   | address            |
@@ -2766,7 +2766,7 @@ Example with only ``field`` and ``query`` expressions, and all other parameters 
 
 Another example to show how to set custom values for the optional parameters::
 
-    os> SELECT lastname FROM accounts WHERE match(firstname, 'Hattie', operator='AND', boost=2.0);
+    os> SELECT lastname FROM accounts WHERE matchquery(firstname, 'Hattie', operator='AND', boost=2.0);
     fetched rows / total rows = 1/1
     +------------+
     | lastname   |
@@ -2780,9 +2780,9 @@ MATCH_QUERY
 Description
 >>>>>>>>>>>
 
-``match(field_expression, query_expression[, option=<option_value>]*)``
+``match_query(field_expression, query_expression[, option=<option_value>]*)``
 
-The match function maps to the match query used in search engine, to return the documents that match a provided text, number, date or boolean value with a given field. This is alternate syntax for the `match`_ function.  Available parameters include:
+The match_query function maps to the match query used in search engine, to return the documents that match_query a provided text, number, date or boolean value with a given field. This is alternate syntax for the `match`_ function.  Available parameters include:
 
 - analyzer
 - auto_generate_synonyms_phrase
@@ -2799,7 +2799,7 @@ The match function maps to the match query used in search engine, to return the 
 
 Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
 
-    os> SELECT lastname, address FROM accounts WHERE match(address, 'Street');
+    os> SELECT lastname, address FROM accounts WHERE match_query(address, 'Street');
     fetched rows / total rows = 2/2
     +------------+--------------------+
     | lastname   | address            |
@@ -2810,7 +2810,7 @@ Example with only ``field`` and ``query`` expressions, and all other parameters 
 
 Another example to show how to set custom values for the optional parameters::
 
-    os> SELECT lastname FROM accounts WHERE match(firstname, 'Hattie', operator='AND', boost=2.0);
+    os> SELECT lastname FROM accounts WHERE match_query(firstname, 'Hattie', operator='AND', boost=2.0);
     fetched rows / total rows = 1/1
     +------------+
     | lastname   |

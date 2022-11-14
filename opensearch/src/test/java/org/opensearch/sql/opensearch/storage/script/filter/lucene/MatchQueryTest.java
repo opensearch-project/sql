@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.grok.Match;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -113,27 +114,21 @@ public class MatchQueryTest {
   @ParameterizedTest
   @MethodSource("generateValidData")
   public void test_valid_parameters(List<Expression> validArgs) {
-    for (FunctionName funcName : functionNames) {
-      Assertions.assertNotNull(matchQuery.build(new MatchExpression(validArgs, funcName)));
-    }
+    Assertions.assertNotNull(matchQuery.build(new MatchExpression(validArgs)));
   }
 
   @Test
   public void test_SyntaxCheckException_when_no_arguments() {
     List<Expression> arguments = List.of();
-    for (FunctionName funcName : functionNames) {
-      assertThrows(SyntaxCheckException.class,
-          () -> matchQuery.build(new MatchExpression(arguments, funcName)));
-    }
+    assertThrows(SyntaxCheckException.class,
+        () -> matchQuery.build(new MatchExpression(arguments)));
   }
 
   @Test
   public void test_SyntaxCheckException_when_one_argument() {
     List<Expression> arguments = List.of(namedArgument("field", "field_value"));
-    for (FunctionName funcName : functionNames) {
-      assertThrows(SyntaxCheckException.class,
-          () -> matchQuery.build(new MatchExpression(arguments, funcName)));
-    }
+    assertThrows(SyntaxCheckException.class,
+        () -> matchQuery.build(new MatchExpression(arguments)));
   }
 
   @Test
@@ -142,17 +137,89 @@ public class MatchQueryTest {
         namedArgument("field", "field_value"),
         namedArgument("query", "query_value"),
         namedArgument("unsupported", "unsupported_value"));
-    for (FunctionName funcName : functionNames) {
-      Assertions.assertThrows(SemanticCheckException.class,
-          () -> matchQuery.build(new MatchExpression(arguments, funcName)));
-    }
+    Assertions.assertThrows(SemanticCheckException.class,
+        () -> matchQuery.build(new MatchExpression(arguments)));
   }
+
+  @ParameterizedTest
+  @MethodSource("generateValidData")
+  public void test_valid_parameters_matchquery_syntax(List<Expression> validArgs) {
+    Assertions.assertNotNull(matchQuery.build(
+        new MatchExpression(validArgs, MatchQueryTest.this.matchQueryName)));
+  }
+
+  @Test
+  public void test_SyntaxCheckException_when_no_arguments_matchquery_syntax() {
+    List<Expression> arguments = List.of();
+    assertThrows(SyntaxCheckException.class,
+        () -> matchQuery.build(
+            new MatchExpression(arguments, MatchQueryTest.this.matchQueryName)));
+  }
+
+  @Test
+  public void test_SyntaxCheckException_when_one_argument_matchquery_syntax() {
+    List<Expression> arguments = List.of(namedArgument("field", "field_value"));
+    assertThrows(SyntaxCheckException.class,
+        () -> matchQuery.build(
+            new MatchExpression(arguments, MatchQueryTest.this.matchQueryName)));
+  }
+
+  @Test
+  public void test_SemanticCheckException_when_invalid_parameter_matchquery_syntax() {
+    List<Expression> arguments = List.of(
+        namedArgument("field", "field_value"),
+        namedArgument("query", "query_value"),
+        namedArgument("unsupported", "unsupported_value"));
+    Assertions.assertThrows(SemanticCheckException.class,
+        () -> matchQuery.build(
+            new MatchExpression(arguments, MatchQueryTest.this.matchQueryName)));
+  }
+
+  @ParameterizedTest
+  @MethodSource("generateValidData")
+  public void test_valid_parameters_match_query_syntax(List<Expression> validArgs) {
+    Assertions.assertNotNull(matchQuery.build(
+        new MatchExpression(validArgs, MatchQueryTest.this.matchQueryWithUnderscoreName)));
+  }
+
+  @Test
+  public void test_SyntaxCheckException_when_no_arguments_match_query_syntax() {
+    List<Expression> arguments = List.of();
+    assertThrows(SyntaxCheckException.class,
+        () -> matchQuery.build(
+            new MatchExpression(arguments, MatchQueryTest.this.matchQueryWithUnderscoreName)));
+  }
+
+  @Test
+  public void test_SyntaxCheckException_when_one_argument_match_query_syntax() {
+    List<Expression> arguments = List.of(namedArgument("field", "field_value"));
+    assertThrows(SyntaxCheckException.class,
+        () -> matchQuery.build(
+            new MatchExpression(arguments, MatchQueryTest.this.matchQueryWithUnderscoreName)));
+  }
+
+  @Test
+  public void test_SemanticCheckException_when_invalid_parameter_match_query_syntax() {
+    List<Expression> arguments = List.of(
+        namedArgument("field", "field_value"),
+        namedArgument("query", "query_value"),
+        namedArgument("unsupported", "unsupported_value"));
+    Assertions.assertThrows(SemanticCheckException.class,
+        () -> matchQuery.build(
+            new MatchExpression(arguments, MatchQueryTest.this.matchQueryWithUnderscoreName)));
+  }
+
 
   private NamedArgumentExpression namedArgument(String name, String value) {
     return DSL.namedArgument(name, DSL.literal(value));
   }
 
   private class MatchExpression extends FunctionExpression {
+
+    public MatchExpression(List<Expression> arguments) {
+      super(MatchQueryTest.this.matchName, arguments);
+    }
+
     public MatchExpression(List<Expression> arguments, FunctionName funcName) {
       super(funcName, arguments);
     }
