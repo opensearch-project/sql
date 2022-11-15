@@ -2753,6 +2753,8 @@ The matchquery function maps to the match query used in search engine, to return
 - zero_terms_query
 - boost
 
+For backwards compatibility, matchquery is supported and mapped to the match query.
+
 Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
 
     os> SELECT lastname, address FROM accounts WHERE matchquery(address, 'Street');
@@ -2796,6 +2798,8 @@ The match_query function maps to the match query used in search engine, to retur
 - minimum_should_match
 - zero_terms_query
 - boost
+
+For backwards compatibility, match_query is supported and mapped to the match query.
 
 Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
 
