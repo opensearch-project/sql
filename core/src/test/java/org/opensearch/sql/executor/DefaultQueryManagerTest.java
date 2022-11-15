@@ -45,6 +45,10 @@ class DefaultQueryManagerTest {
     queryManager.awaitTermination(1, TimeUnit.SECONDS);
   }
 
+  /**
+   * ignore verify(plan, times(1)).execute(), because the time ExecutorService executing the
+   * runnable is undetermined.
+   */
   @Test
   public void submitQuery() {
     when(plan.getQueryId()).thenReturn(queryId);
@@ -53,7 +57,6 @@ class DefaultQueryManagerTest {
     QueryId actualQueryId = queryManager.submit(plan);
 
     assertEquals(queryId, actualQueryId);
-    verify(plan, times(1)).execute();
   }
 
   @Test
