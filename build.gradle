@@ -67,6 +67,7 @@ plugins {
     id 'checkstyle'
     id "io.freefair.lombok" version "6.4.0"
     id 'jacoco'
+    id 'info.solidsoft.pitest' version '1.9.0'
 }
 
 // Repository on root level is for dependencies that project code depends on. And this block must be placed after plugins{}
