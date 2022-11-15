@@ -8,12 +8,9 @@
 
 package org.opensearch.sql.executor;
 
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.concurrent.ExecutorService;
@@ -30,11 +27,9 @@ import org.opensearch.sql.executor.execution.AbstractPlan;
 @ExtendWith(MockitoExtension.class)
 class DefaultQueryManagerTest {
 
-  @Mock
-  private QueryId queryId;
+  @Mock private QueryId queryId;
 
-  @Mock
-  private AbstractPlan plan;
+  @Mock private AbstractPlan plan;
 
   private DefaultQueryManager queryManager;
 
@@ -61,20 +56,27 @@ class DefaultQueryManagerTest {
 
   @Test
   public void cancel() {
-    queryManager = DefaultQueryManager.defaultQueryManager();;
-    QueryId id = queryManager.submit(new AbstractPlan(queryId) {
-      @Override
-      public void execute() {
-        // do nothing
-      }
+    queryManager = DefaultQueryManager.defaultQueryManager();
+    QueryId id =
+        queryManager.submit(
+            new AbstractPlan(queryId) {
+              @Override
+              public void execute() {
+                // do nothing
+              }
 
-      @Override
-      public void explain(ResponseListener<ExecutionEngine.ExplainResponse> listener) {
-        // do nothing
-      }
-    });
+              @Override
+              public void explain(ResponseListener<ExecutionEngine.ExplainResponse> listener) {
+                // do nothing
+              }
+            });
     assertTrue(queryManager.cancel(id));
-    assertFalse(queryManager.cancel(id));
+  }
+
+  @Test
+  public void cancelQueryNotExist() {
+    queryManager = DefaultQueryManager.defaultQueryManager();
+    assertFalse(queryManager.cancel(QueryId.queryId()));
   }
 
   @Test
