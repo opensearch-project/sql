@@ -436,10 +436,6 @@ multiFieldRelevanceFunctionName
     | QUERY_STRING
     ;
 
-legacyRelevanceFunctionName
-    : QUERY 
-    ;
-
 functionArgs
     : (functionArg (COMMA functionArg)*)?
     ;
