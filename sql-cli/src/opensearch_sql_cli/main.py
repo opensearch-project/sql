@@ -77,7 +77,7 @@ click.disable_unicode_literals_warning = True
     "response_timeout",
     type=click.INT,
     default=10,
-    help="Timeout to await a response from the server"
+    help="Timeout in seconds to await a response from the server"
 )
 def cli(
     endpoint,
