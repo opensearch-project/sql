@@ -306,6 +306,7 @@ MINUTE_OF_HOUR:                     'MINUTE_OF_HOUR';
 MONTH_OF_YEAR:                      'MONTH_OF_YEAR';
 MULTIMATCH:                         'MULTIMATCH';
 MULTI_MATCH:                        'MULTI_MATCH';
+MULTIMATCHQUERY:                    'MULTIMATCHQUERY';
 NESTED:                             'NESTED';
 PERCENTILES:                        'PERCENTILES';
 REGEXP_QUERY:                       'REGEXP_QUERY';

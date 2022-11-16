@@ -549,7 +549,45 @@ class AstExpressionBuilderTest {
             unresolvedArg("analyzer", stringLiteral("keyword")),
             unresolvedArg("operator", stringLiteral("AND"))),
         buildExprAst("multi_match(['field1', 'field2' ^ 3.2], 'search query',"
+            + "analyzer='keyword', 'operator'='AND')"));
+  }
+
+  @Test
+  public void relevanceMultimatch_alternate_parameter_syntax() {
+    assertEquals(AstDSL.function("multimatch",
+            unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
+                "field1", 1F, "field2", 2F))),
+            unresolvedArg("query", stringLiteral("search query"))),
+        buildExprAst("multimatch(query='search query', fields=['field1^1.0,field2^2.0'])")
+    );
+
+    assertEquals(AstDSL.function("multimatch",
+            unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
+                "field1", 1F, "field2", 2F))),
+            unresolvedArg("query", stringLiteral("search query")),
+            unresolvedArg("analyzer", stringLiteral("keyword")),
+            unresolvedArg("operator", stringLiteral("AND"))),
+        buildExprAst("multimatch(query='search query', fields=['field1^1.0,field2^2.0'],"
             + "analyzer='keyword', operator='AND')"));
+  }
+
+  @Test
+  public void relevanceMultimatchquery_alternate_parameter_syntax() {
+    assertEquals(AstDSL.function("multimatchquery",
+            unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
+                "field", 1F))),
+            unresolvedArg("query", stringLiteral("search query"))),
+        buildExprAst("multimatchquery(query='search query', fields='field')")
+    );
+
+    assertEquals(AstDSL.function("multimatchquery",
+            unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
+                "field", 1F))),
+            unresolvedArg("query", stringLiteral("search query")),
+            unresolvedArg("analyzer", stringLiteral("keyword")),
+            unresolvedArg("operator", stringLiteral("AND"))),
+        buildExprAst("multimatchquery(query='search query', fields='field',"
+            + "analyzer='keyword', 'operator'='AND')"));
   }
 
   @Test
