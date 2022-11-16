@@ -67,7 +67,18 @@ plugins {
     id 'checkstyle'
     id "io.freefair.lombok" version "6.4.0"
     id 'jacoco'
+    id 'java'
     id 'info.solidsoft.pitest' version '1.9.0'
+}
+
+pitest {
+    targetClasses = ['org.opensearch.sql.expression.*']  //by default "${project.group}.*"'testPlugin = "junit
+    targetTests = ['org.opensearch.sql.expression.*']
+//    testPlugin = "junit5"
+//    pitestVersion = '1.9.0' //not needed when a default PIT version should be used
+//    threads = 4
+//    outputFormats = ['XML', 'HTML']
+//    timestampedReports = false
 }
 
 // Repository on root level is for dependencies that project code depends on. And this block must be placed after plugins{}
