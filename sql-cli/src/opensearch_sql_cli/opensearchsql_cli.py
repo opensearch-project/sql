@@ -62,7 +62,6 @@ class OpenSearchSqlCli:
         self.multi_line = config["main"].as_bool("multi_line")
         self.multiline_mode = config["main"].get("multi_line_mode", "src")
         self.history_file = config["main"]["history_file"]
-        self.log_file = config["main"]["log_file"]
         self.null_string = config["main"].get("null_string", "null")
         self.style_output = style_factory_output(self.syntax_style, self.cli_style)
 
@@ -70,11 +69,6 @@ class OpenSearchSqlCli:
             self.history_file = os.path.join(config_location(), "history")
         else:
             self.history_file = expandvars(expanduser(self.history_file))
-
-        if self.log_file == "default":
-            self.log_file = os.path.join(config_location(), "log")
-        else:
-            self.log_file = expandvars(expanduser(self.log_file))
 
     def build_cli(self):
         # TODO: Optimize index suggestion to serve indices options only at the needed position, such as 'from'
