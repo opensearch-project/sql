@@ -225,6 +225,10 @@ public class DSL {
     return compile(BuiltinFunctionName.SQRT, expressions);
   }
 
+  public FunctionExpression cbrt(Expression... expressions) {
+    return compile(BuiltinFunctionName.CBRT, expressions);
+  }
+
   public static FunctionExpression truncate(Expression... expressions) {
     return compile(BuiltinFunctionName.TRUNCATE, expressions);
   }

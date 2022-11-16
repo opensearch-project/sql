@@ -2327,4 +2327,79 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     assertEquals(DOUBLE, tan.type());
     assertTrue(tan.valueOf(valueEnv()).isMissing());
   }
+
+  /**
+   * Test cbrt with int value.
+   */
+  @ParameterizedTest(name = "cbrt({0})")
+  @ValueSource(ints = {1, 2})
+  public void cbrt_int_value(Integer value) {
+    FunctionExpression cbrt = dsl.cbrt(DSL.literal(value));
+    assertThat(cbrt.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.cbrt(value))));
+    assertEquals(String.format("cbrt(%s)", value), cbrt.toString());
+  }
+
+  /**
+   * Test cbrt with long value.
+   */
+  @ParameterizedTest(name = "cbrt({0})")
+  @ValueSource(longs = {1L, 2L})
+  public void cbrt_long_value(Long value) {
+    FunctionExpression cbrt = dsl.cbrt(DSL.literal(value));
+    assertThat(cbrt.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.cbrt(value))));
+    assertEquals(String.format("cbrt(%s)", value), cbrt.toString());
+  }
+
+  /**
+   * Test cbrt with float value.
+   */
+  @ParameterizedTest(name = "cbrt({0})")
+  @ValueSource(floats = {1F, 2F})
+  public void cbrt_float_value(Float value) {
+    FunctionExpression cbrt = dsl.cbrt(DSL.literal(value));
+    assertThat(cbrt.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.cbrt(value))));
+    assertEquals(String.format("cbrt(%s)", value), cbrt.toString());
+  }
+
+  /**
+   * Test cbrt with double value.
+   */
+  @ParameterizedTest(name = "cbrt({0})")
+  @ValueSource(doubles = {1D, 2D, Double.MAX_VALUE, Double.MIN_VALUE})
+  public void cbrt_double_value(Double value) {
+    FunctionExpression cbrt = dsl.cbrt(DSL.literal(value));
+    assertThat(cbrt.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.cbrt(value))));
+    assertEquals(String.format("cbrt(%s)", value), cbrt.toString());
+  }
+
+  /**
+   * Test cbrt with negative value.
+   */
+  @ParameterizedTest(name = "cbrt({0})")
+  @ValueSource(doubles = {-1D, -2D})
+  public void cbrt_negative_value(Double value) {
+    FunctionExpression cbrt = dsl.cbrt(DSL.literal(value));
+    assertThat(cbrt.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.cbrt(value))));
+    assertEquals(String.format("cbrt(%s)", value), cbrt.toString());
+  }
+
+  /**
+   * Test cbrt with null value.
+   */
+  @Test
+  public void cbrt_null_value() {
+    FunctionExpression cbrt = dsl.cbrt(DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
+    assertEquals(DOUBLE, cbrt.type());
+    assertTrue(cbrt.valueOf(valueEnv()).isNull());
+  }
+
+  /**
+   * Test cbrt with missing value.
+   */
+  @Test
+  public void cbrt_missing_value() {
+    FunctionExpression cbrt = dsl.cbrt(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
+    assertEquals(DOUBLE, cbrt.type());
+    assertTrue(cbrt.valueOf(valueEnv()).isMissing());
+  }
 }
