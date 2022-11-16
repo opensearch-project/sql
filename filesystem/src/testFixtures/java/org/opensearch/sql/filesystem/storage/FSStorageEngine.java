@@ -16,9 +16,7 @@ import org.opensearch.sql.CatalogSchemaName;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
 
-/**
- * FileSystem StorageEngine. Used for testing purpose.
- */
+/** FileSystem StorageEngine. Used for testing purpose. */
 @RequiredArgsConstructor
 public class FSStorageEngine implements StorageEngine {
 
@@ -28,6 +26,9 @@ public class FSStorageEngine implements StorageEngine {
 
   private final AtomicInteger result;
 
+  /**
+   * constructor.
+   */
   @SneakyThrows
   public FSStorageEngine(URI basePath, AtomicInteger result) {
     this.fs = FileSystem.get(new Configuration());
