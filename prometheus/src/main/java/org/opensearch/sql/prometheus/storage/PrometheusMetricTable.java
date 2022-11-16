@@ -64,6 +64,18 @@ public class PrometheusMetricTable implements Table {
   }
 
   @Override
+  public boolean exists() {
+    throw new UnsupportedOperationException(
+        "Prometheus metric exists operation is not supported");
+  }
+
+  @Override
+  public void create(Map<String, ExprType> schema) {
+    throw new UnsupportedOperationException(
+        "Prometheus metric create operation is not supported");
+  }
+
+  @Override
   public Map<String, ExprType> getFieldTypes() {
     if (cachedFieldTypes == null) {
       if (metricName != null) {

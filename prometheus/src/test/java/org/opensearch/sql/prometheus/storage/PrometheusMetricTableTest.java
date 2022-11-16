@@ -34,6 +34,7 @@ import com.google.common.collect.ImmutableList;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -740,6 +741,17 @@ class PrometheusMetricTableTest {
   }
 
   @Test
+  void testUnsupportedOperation() {
+    PrometheusQueryRequest prometheusQueryRequest = new PrometheusQueryRequest();
+    PrometheusMetricTable prometheusMetricTable =
+        new PrometheusMetricTable(client, prometheusQueryRequest);
+
+    assertThrows(UnsupportedOperationException.class, prometheusMetricTable::exists);
+    assertThrows(UnsupportedOperationException.class,
+        () -> prometheusMetricTable.create(Collections.emptyMap()));
+  }
+
+  @Test
   void testImplementPrometheusQueryWithBackQuotedFieldNamesInStatsQuery() {
 
     PrometheusMetricTable prometheusMetricTable =
@@ -765,5 +777,4 @@ class PrometheusMetricTableTest {
         prometheusQueryRequest.getPromQl());
 
   }
-
 }

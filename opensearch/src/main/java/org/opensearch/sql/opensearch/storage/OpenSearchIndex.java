@@ -7,6 +7,7 @@
 package org.opensearch.sql.opensearch.storage;
 
 import com.google.common.annotations.VisibleForTesting;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -18,6 +19,7 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.planner.logical.OpenSearchLogicalIndexAgg;
 import org.opensearch.sql.opensearch.planner.logical.OpenSearchLogicalIndexScan;
@@ -72,6 +74,23 @@ public class OpenSearchIndex implements Table {
     this.client = client;
     this.settings = settings;
     this.indexName = new OpenSearchRequest.IndexName(indexName);
+  }
+
+  @Override
+  public boolean exists() {
+    return client.exists(indexName.toString());
+  }
+
+  @Override
+  public void create(Map<String, ExprType> schema) {
+    Map<String, Object> mappings = new HashMap<>();
+    Map<String, Object> properties = new HashMap<>();
+    mappings.put("properties", properties);
+
+    for (Map.Entry<String, ExprType> colType : schema.entrySet()) {
+      properties.put(colType.getKey(), OpenSearchDataType.getOpenSearchType(colType.getValue()));
+    }
+    client.createIndex(indexName.toString(), mappings);
   }
 
   /*

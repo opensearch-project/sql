@@ -93,7 +93,7 @@ doctest.dependsOn startOpenSearch
 startOpenSearch.dependsOn startPrometheus
 doctest.finalizedBy stopOpenSearch
 stopOpenSearch.finalizedBy stopPrometheus
-build.dependsOn doctest
+check.dependsOn doctest
 clean.dependsOn(cleanBootstrap)
 
 // 2.0.0-alpha1-SNAPSHOT -> 2.0.0.0-alpha1-SNAPSHOT

@@ -6,7 +6,6 @@
 
 package org.opensearch.sql.opensearch.security;
 
-import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
@@ -21,13 +20,12 @@ public class SecurityAccess {
   /**
    * Execute the operation in privileged mode.
    */
-  public static <T> T doPrivileged(final PrivilegedExceptionAction<T> operation)
-      throws IOException {
+  public static <T> T doPrivileged(final PrivilegedExceptionAction<T> operation) {
     SpecialPermission.check();
     try {
       return AccessController.doPrivileged(operation);
     } catch (final PrivilegedActionException e) {
-      throw (IOException) e.getCause();
+      throw new IllegalStateException("Failed to perform privileged action", e);
     }
   }
 }

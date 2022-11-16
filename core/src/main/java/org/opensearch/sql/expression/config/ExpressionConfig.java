@@ -21,8 +21,10 @@ import org.opensearch.sql.expression.operator.predicate.UnaryPredicateOperator;
 import org.opensearch.sql.expression.system.SystemFunctions;
 import org.opensearch.sql.expression.text.TextFunction;
 import org.opensearch.sql.expression.window.WindowFunctions;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Scope;
 
 /**
  * Expression Config for Spring IoC.
@@ -33,6 +35,7 @@ public class ExpressionConfig {
    * BuiltinFunctionRepository constructor.
    */
   @Bean
+  @Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
   public BuiltinFunctionRepository functionRepository() {
     BuiltinFunctionRepository builtinFunctionRepository =
         new BuiltinFunctionRepository(new HashMap<>());
@@ -52,6 +55,7 @@ public class ExpressionConfig {
   }
 
   @Bean
+  @Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
   public DSL dsl(BuiltinFunctionRepository repository) {
     return new DSL(repository);
   }

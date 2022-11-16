@@ -8,6 +8,7 @@
 package org.opensearch.sql.planner.physical.catalog;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashMap;
@@ -46,4 +47,21 @@ public class CatalogTableTest {
     assertTrue(physicalPlan instanceof CatalogTableScan);
   }
 
+  // todo. temporary added for code coverage. remove if required.
+  @Test
+  void testExist() {
+    UnsupportedOperationException exception =
+        assertThrows(UnsupportedOperationException.class,
+            () -> new CatalogTable(catalogService).exists());
+    assertEquals("Unsupported Operation", exception.getMessage());
+  }
+
+  // todo. temporary added for code coverage. remove if required.
+  @Test
+  void testCreateTable() {
+    UnsupportedOperationException exception =
+        assertThrows(UnsupportedOperationException.class,
+            () -> new CatalogTable(catalogService).create(new HashMap<>()));
+    assertEquals("Unsupported Operation", exception.getMessage());
+  }
 }
