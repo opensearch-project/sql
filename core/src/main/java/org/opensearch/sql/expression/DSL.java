@@ -225,7 +225,7 @@ public class DSL {
     return compile(BuiltinFunctionName.SQRT, expressions);
   }
 
-  public FunctionExpression cbrt(Expression... expressions) {
+  public static FunctionExpression cbrt(Expression... expressions) {
     return compile(BuiltinFunctionName.CBRT, expressions);
   }
 
