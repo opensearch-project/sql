@@ -5,7 +5,7 @@
  *
  */
 
-package org.opensearch.sql.planner.physical.catalog;
+package org.opensearch.sql.planner.physical.datasource;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
@@ -14,45 +14,47 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
-import org.opensearch.sql.catalog.CatalogService;
-import org.opensearch.sql.catalog.model.Catalog;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.storage.TableScanOperator;
 
 /**
- * This class handles table scan of catalog table.
- * Right now these are derived from catalogService thorough static fields.
+ * This class handles table scan of data source table.
+ * Right now these are derived from dataSourceService thorough static fields.
  * In future this might scan data from underlying datastore if we start
- * persisting catalog info somewhere.
+ * persisting datasource info somewhere.
  *
  */
-public class CatalogTableScan extends TableScanOperator {
+public class DataSourceTableScan extends TableScanOperator {
 
-  private final CatalogService catalogService;
+  private final DataSourceService dataSourceService;
 
   private Iterator<ExprValue> iterator;
 
-  public CatalogTableScan(CatalogService catalogService) {
-    this.catalogService = catalogService;
+  public DataSourceTableScan(DataSourceService dataSourceService) {
+    this.dataSourceService = dataSourceService;
     this.iterator = Collections.emptyIterator();
   }
 
   @Override
   public String explain() {
-    return "GetCatalogRequestRequest{}";
+    return "GetDataSourcesInfoRequest{}";
   }
 
   @Override
   public void open() {
     List<ExprValue> exprValues = new ArrayList<>();
-    Set<Catalog> catalogs = catalogService.getCatalogs();
-    for (Catalog catalog : catalogs) {
+    Set<DataSource> dataSources = dataSourceService.getDataSources();
+    for (DataSource dataSource : dataSources) {
       exprValues.add(
           new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-              "DATASOURCE_NAME", ExprValueUtils.stringValue(catalog.getName()),
-              "CONNECTOR_TYPE", ExprValueUtils.stringValue(catalog.getConnectorType().name())))));
+              "DATASOURCE_NAME",
+              ExprValueUtils.stringValue(dataSource.getName()),
+              "CONNECTOR_TYPE",
+              ExprValueUtils.stringValue(dataSource.getConnectorType().name())))));
     }
     iterator = exprValues.iterator();
   }

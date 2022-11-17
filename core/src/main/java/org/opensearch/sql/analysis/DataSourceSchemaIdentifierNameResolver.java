@@ -10,29 +10,31 @@ package org.opensearch.sql.analysis;
 import java.util.List;
 import java.util.Set;
 
-public class CatalogSchemaIdentifierNameResolver {
+public class DataSourceSchemaIdentifierNameResolver {
 
-  public static final String DEFAULT_CATALOG_NAME = "@opensearch";
+  public static final String DEFAULT_DATASOURCE_NAME = "@opensearch";
   public static final String DEFAULT_SCHEMA_NAME = "default";
   public static final String INFORMATION_SCHEMA_NAME = "information_schema";
 
-  private String catalogName = DEFAULT_CATALOG_NAME;
+  private String dataSourceName = DEFAULT_DATASOURCE_NAME;
   private String schemaName = DEFAULT_SCHEMA_NAME;
   private String identifierName;
 
   private static final String DOT = ".";
 
   /**
-   * Data model for capturing catalog, schema and identifier from
+   * Data model for capturing dataSourceName, schema and identifier from
    * fully qualifiedName. In the current state, it is used to capture
-   * CatalogSchemaTable name and CatalogSchemaFunction in case of table
+   * DataSourceSchemaTable name and DataSourceSchemaFunction in case of table
    * functions.
    *
    * @param parts           parts of qualifiedName.
-   * @param allowedCatalogs allowedCatalogs.
+   * @param allowedDataSources allowedDataSources.
    */
-  public CatalogSchemaIdentifierNameResolver(List<String> parts, Set<String> allowedCatalogs) {
-    List<String> remainingParts = captureSchemaName(captureCatalogName(parts, allowedCatalogs));
+  public DataSourceSchemaIdentifierNameResolver(List<String> parts,
+                                                Set<String> allowedDataSources) {
+    List<String> remainingParts
+        = captureSchemaName(captureDataSourceName(parts, allowedDataSources));
     identifierName = String.join(DOT, remainingParts);
   }
 
@@ -40,8 +42,8 @@ public class CatalogSchemaIdentifierNameResolver {
     return identifierName;
   }
 
-  public String getCatalogName() {
-    return catalogName;
+  public String getDataSourceName() {
+    return dataSourceName;
   }
 
   public String getSchemaName() {
@@ -49,12 +51,12 @@ public class CatalogSchemaIdentifierNameResolver {
   }
 
 
-  // Capture catalog name and return remaining parts(schema name and table name)
+  // Capture datasource name and return remaining parts(schema name and table name)
   // from the fully qualified name.
-  private List<String> captureCatalogName(List<String> parts, Set<String> allowedCatalogs) {
-    if (parts.size() > 1 && allowedCatalogs.contains(parts.get(0))
-        || DEFAULT_CATALOG_NAME.equals(parts.get(0))) {
-      catalogName = parts.get(0);
+  private List<String> captureDataSourceName(List<String> parts, Set<String> allowedDataSources) {
+    if (parts.size() > 1 && allowedDataSources.contains(parts.get(0))
+        || DEFAULT_DATASOURCE_NAME.equals(parts.get(0))) {
+      dataSourceName = parts.get(0);
       return parts.subList(1, parts.size());
     } else {
       return parts;

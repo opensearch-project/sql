@@ -20,9 +20,9 @@ import org.opensearch.client.RestClient;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.analysis.ExpressionAnalyzer;
-import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.executor.DefaultQueryManager;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
@@ -38,7 +38,7 @@ import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProte
 import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
-import org.opensearch.sql.plugin.catalog.CatalogServiceImpl;
+import org.opensearch.sql.plugin.datasource.DataSourceServiceImpl;
 import org.opensearch.sql.ppl.config.PPLServiceConfig;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
@@ -73,8 +73,8 @@ public class StandaloneIT extends PPLIntegTestCase {
     context.registerBean(OpenSearchClient.class, () -> client);
     context.registerBean(Settings.class, () -> defaultSettings());
     OpenSearchStorageEngine openSearchStorageEngine = new OpenSearchStorageEngine(client, defaultSettings());
-    CatalogServiceImpl.getInstance().registerDefaultOpenSearchCatalog(openSearchStorageEngine);
-    context.registerBean(CatalogService.class, CatalogServiceImpl::getInstance);
+    DataSourceServiceImpl.getInstance().registerDefaultOpenSearchDataSource(openSearchStorageEngine);
+    context.registerBean(DataSourceService.class, DataSourceServiceImpl::getInstance);
     context.register(StandaloneConfig.class);
     context.register(PPLServiceConfig.class);
     context.refresh();
@@ -165,7 +165,7 @@ public class StandaloneIT extends PPLIntegTestCase {
   @Configuration
   static class StandaloneConfig {
     @Autowired
-    private CatalogService catalogService;
+    private DataSourceService dataSourceService;
 
     @Autowired
     private ExecutionEngine executionEngine;
@@ -180,7 +180,7 @@ public class StandaloneIT extends PPLIntegTestCase {
     QueryPlanFactory queryExecutionFactory() {
       BuiltinFunctionRepository functionRepository = BuiltinFunctionRepository.getInstance();
       Analyzer analyzer = new Analyzer(new ExpressionAnalyzer(functionRepository),
-          catalogService, functionRepository);
+          dataSourceService, functionRepository);
       Planner planner =
           new Planner(LogicalPlanOptimizer.create());
       return new QueryPlanFactory(new QueryService(analyzer, executionEngine, planner));

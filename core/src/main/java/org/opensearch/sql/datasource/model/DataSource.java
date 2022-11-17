@@ -5,7 +5,7 @@
  *
  */
 
-package org.opensearch.sql.catalog.model;
+package org.opensearch.sql.datasource.model;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -15,7 +15,7 @@ import org.opensearch.sql.storage.StorageEngine;
 @Getter
 @RequiredArgsConstructor
 @EqualsAndHashCode
-public class Catalog {
+public class DataSource {
 
   private final String name;
 

@@ -5,11 +5,12 @@
  *
  */
 
-package org.opensearch.sql.planner.physical.catalog;
+package org.opensearch.sql.planner.physical.datasource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,22 +18,22 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 
 @ExtendWith(MockitoExtension.class)
-public class CatalogTableTest {
+public class DataSourceTableTest {
 
   @Mock
-  private CatalogService catalogService;
+  private DataSourceService dataSourceService;
 
   @Test
   void testGetFieldTypes() {
-    CatalogTable catalogTable = new CatalogTable(catalogService);
-    Map<String, ExprType> fieldTypes =  catalogTable.getFieldTypes();
+    DataSourceTable dataSourceTable = new DataSourceTable(dataSourceService);
+    Map<String, ExprType> fieldTypes =  dataSourceTable.getFieldTypes();
     Map<String, ExprType> expectedTypes = new HashMap<>();
     expectedTypes.put("DATASOURCE_NAME", ExprCoreType.STRING);
     expectedTypes.put("CONNECTOR_TYPE", ExprCoreType.STRING);
@@ -41,10 +42,11 @@ public class CatalogTableTest {
 
   @Test
   void testImplement() {
-    CatalogTable catalogTable = new CatalogTable(catalogService);
+    DataSourceTable dataSourceTable = new DataSourceTable(dataSourceService);
     PhysicalPlan physicalPlan
-        = catalogTable.implement(LogicalPlanDSL.relation(".CATALOGS", catalogTable));
-    assertTrue(physicalPlan instanceof CatalogTableScan);
+        = dataSourceTable.implement(
+            LogicalPlanDSL.relation(DATASOURCES_TABLE_NAME, dataSourceTable));
+    assertTrue(physicalPlan instanceof DataSourceTableScan);
   }
 
   // todo. temporary added for code coverage. remove if required.
@@ -52,7 +54,7 @@ public class CatalogTableTest {
   void testExist() {
     UnsupportedOperationException exception =
         assertThrows(UnsupportedOperationException.class,
-            () -> new CatalogTable(catalogService).exists());
+            () -> new DataSourceTable(dataSourceService).exists());
     assertEquals("Unsupported Operation", exception.getMessage());
   }
 
@@ -61,7 +63,7 @@ public class CatalogTableTest {
   void testCreateTable() {
     UnsupportedOperationException exception =
         assertThrows(UnsupportedOperationException.class,
-            () -> new CatalogTable(catalogService).create(new HashMap<>()));
+            () -> new DataSourceTable(dataSourceService).create(new HashMap<>()));
     assertEquals("Unsupported Operation", exception.getMessage());
   }
 }
