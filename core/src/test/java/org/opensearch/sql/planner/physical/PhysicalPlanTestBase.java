@@ -11,7 +11,6 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
@@ -24,13 +23,7 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@Configuration
-@ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {PhysicalPlanTestBase.class})
 public class PhysicalPlanTestBase {
 
   protected static final List<ExprValue> countTestInputs = new ImmutableList.Builder<ExprValue>()
