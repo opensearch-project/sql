@@ -26,6 +26,7 @@ import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.catalog.model.Catalog;
 import org.opensearch.sql.catalog.model.CatalogMetadata;
 import org.opensearch.sql.catalog.model.ConnectorType;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.opensearch.security.SecurityAccess;
 import org.opensearch.sql.prometheus.storage.PrometheusStorageFactory;
 import org.opensearch.sql.storage.StorageEngine;
@@ -107,15 +108,18 @@ public class CatalogServiceImpl implements CatalogService {
     }
     catalogMap.put(DEFAULT_CATALOG_NAME,
         new Catalog(DEFAULT_CATALOG_NAME, ConnectorType.OPENSEARCH, storageEngine));
+    registerFunctions(DEFAULT_CATALOG_NAME, storageEngine);
   }
 
   private StorageEngine createStorageEngine(CatalogMetadata catalog) {
     ConnectorType connector = catalog.getConnector();
     switch (connector) {
       case PROMETHEUS:
-        return connectorTypeStorageEngineFactoryMap
+        StorageEngine storageEngine = connectorTypeStorageEngineFactoryMap
             .get(catalog.getConnector())
             .getStorageEngine(catalog.getName(), catalog.getProperties());
+        registerFunctions(catalog.getName(), storageEngine);
+        return storageEngine;
       default:
         throw new IllegalStateException(
             String.format("Unsupported Connector: %s", connector.name()));
@@ -174,5 +178,10 @@ public class CatalogServiceImpl implements CatalogService {
     }
   }
 
-
+  // TODO: for now register storage engine functions here which should be static per storage engine
+  private void registerFunctions(String catalogName, StorageEngine storageEngine) {
+    storageEngine.getFunctions()
+        .forEach(functionResolver ->
+            BuiltinFunctionRepository.getInstance().register(catalogName, functionResolver));
+  }
 }

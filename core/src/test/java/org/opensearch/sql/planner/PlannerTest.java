@@ -69,9 +69,9 @@ public class PlannerTest extends PhysicalPlanTestBase {
             PhysicalPlanDSL.agg(
                 PhysicalPlanDSL.filter(
                     scan,
-                    dsl.equal(DSL.ref("response", INTEGER), DSL.literal(10))
+                    DSL.equal(DSL.ref("response", INTEGER), DSL.literal(10))
                 ),
-                ImmutableList.of(DSL.named("avg(response)", dsl.avg(DSL.ref("response", INTEGER)))),
+                ImmutableList.of(DSL.named("avg(response)", DSL.avg(DSL.ref("response", INTEGER)))),
                 ImmutableList.of()
             ),
             ImmutableMap.of(DSL.ref("ivalue", INTEGER), DSL.ref("avg(response)", DOUBLE))
@@ -83,9 +83,9 @@ public class PlannerTest extends PhysicalPlanTestBase {
                         storageEngine.getTable(
                             new CatalogSchemaName(DEFAULT_CATALOG_NAME, "default"),
                         "schema")),
-                    dsl.equal(DSL.ref("response", INTEGER), DSL.literal(10))
+                    DSL.equal(DSL.ref("response", INTEGER), DSL.literal(10))
                 ),
-                ImmutableList.of(DSL.named("avg(response)", dsl.avg(DSL.ref("response", INTEGER)))),
+                ImmutableList.of(DSL.named("avg(response)", DSL.avg(DSL.ref("response", INTEGER)))),
                 ImmutableList.of()
             ),
             ImmutableMap.of(DSL.ref("ivalue", INTEGER), DSL.ref("avg(response)", DOUBLE))

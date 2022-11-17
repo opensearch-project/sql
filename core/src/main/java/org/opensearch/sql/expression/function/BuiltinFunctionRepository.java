@@ -8,25 +8,30 @@ package org.opensearch.sql.expression.function;
 import static org.opensearch.sql.ast.expression.Cast.getCastFunctionName;
 import static org.opensearch.sql.ast.expression.Cast.isCastFunction;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.aggregation.AggregatorFunction;
+import org.opensearch.sql.expression.datetime.DateTimeFunction;
+import org.opensearch.sql.expression.datetime.IntervalClause;
+import org.opensearch.sql.expression.operator.arthmetic.ArithmeticFunction;
+import org.opensearch.sql.expression.operator.arthmetic.MathematicalFunction;
+import org.opensearch.sql.expression.operator.convert.TypeCastOperator;
+import org.opensearch.sql.expression.operator.predicate.BinaryPredicateOperator;
+import org.opensearch.sql.expression.operator.predicate.UnaryPredicateOperator;
+import org.opensearch.sql.expression.system.SystemFunctions;
+import org.opensearch.sql.expression.text.TextFunction;
+import org.opensearch.sql.expression.window.WindowFunctions;
 
 /**
  * Builtin Function Repository.
@@ -35,13 +40,52 @@ import org.opensearch.sql.expression.Expression;
  * namespace.
  *
  */
-@RequiredArgsConstructor
 public class BuiltinFunctionRepository {
 
   public static final String DEFAULT_NAMESPACE = "default";
 
   private final Map<String, Map<FunctionName, FunctionResolver>> namespaceFunctionResolverMap;
 
+  /** The singleton instance. */
+  private static BuiltinFunctionRepository instance;
+
+  /**
+   * Construct a function repository with the given function registered. This is only used in test.
+   *
+   * @param namespaceFunctionResolverMap function supported
+   */
+  @VisibleForTesting
+  BuiltinFunctionRepository(
+      Map<String, Map<FunctionName, FunctionResolver>> namespaceFunctionResolverMap) {
+    this.namespaceFunctionResolverMap = namespaceFunctionResolverMap;
+  }
+
+  /**
+   * Get singleton instance of the function repository. Initialize it with all built-in functions
+   * for the first time in synchronized way.
+   *
+   * @return singleton instance
+   */
+  public static synchronized BuiltinFunctionRepository getInstance() {
+    if (instance == null) {
+      instance = new BuiltinFunctionRepository(new HashMap<>());
+
+      // Register all built-in functions
+      ArithmeticFunction.register(instance);
+      BinaryPredicateOperator.register(instance);
+      MathematicalFunction.register(instance);
+      UnaryPredicateOperator.register(instance);
+      AggregatorFunction.register(instance);
+      DateTimeFunction.register(instance);
+      IntervalClause.register(instance);
+      WindowFunctions.register(instance);
+      TextFunction.register(instance);
+      TypeCastOperator.register(instance);
+      SystemFunctions.register(instance);
+      OpenSearchFunctions.register(instance);
+    }
+    return instance;
+  }
 
   /**
    * Register {@link DefaultFunctionResolver} to the Builtin Function Repository

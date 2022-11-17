@@ -43,7 +43,7 @@ class EvalOperatorTest extends PhysicalPlanTestBase {
             inputPlan,
             ImmutablePair.of(
                 DSL.ref("velocity", DOUBLE),
-                dsl.divide(DSL.ref("distance", INTEGER), DSL.ref("time", INTEGER))));
+                DSL.divide(DSL.ref("distance", INTEGER), DSL.ref("time", INTEGER))));
     assertThat(
         execute(plan),
         allOf(
@@ -63,11 +63,11 @@ class EvalOperatorTest extends PhysicalPlanTestBase {
         eval(
             inputPlan,
             ImmutablePair.of(
-                DSL.ref("velocity", DOUBLE), dsl.divide(DSL.ref("distance", INTEGER), DSL.ref(
+                DSL.ref("velocity", DOUBLE), DSL.divide(DSL.ref("distance", INTEGER), DSL.ref(
                     "time", INTEGER))),
             ImmutablePair.of(
                 DSL.ref("doubleDistance", INTEGER),
-                dsl.multiply(DSL.ref("distance", INTEGER), DSL.literal(2))));
+                DSL.multiply(DSL.ref("distance", INTEGER), DSL.literal(2))));
     assertThat(
         execute(plan),
         allOf(
@@ -88,11 +88,11 @@ class EvalOperatorTest extends PhysicalPlanTestBase {
         eval(
             inputPlan,
             ImmutablePair.of(
-                DSL.ref("velocity", INTEGER), dsl.divide(DSL.ref("distance", INTEGER), DSL.ref(
+                DSL.ref("velocity", INTEGER), DSL.divide(DSL.ref("distance", INTEGER), DSL.ref(
                     "time", INTEGER))),
             ImmutablePair.of(
                 DSL.ref("doubleVelocity", INTEGER),
-                dsl.multiply(DSL.ref("velocity", INTEGER), DSL.literal(2))));
+                DSL.multiply(DSL.ref("velocity", INTEGER), DSL.literal(2))));
     assertThat(
         execute(plan),
         allOf(
@@ -114,7 +114,7 @@ class EvalOperatorTest extends PhysicalPlanTestBase {
             inputPlan,
             ImmutablePair.of(
                 DSL.ref("distance", INTEGER),
-                dsl.multiply(DSL.ref("distance", INTEGER), DSL.literal(2))));
+                DSL.multiply(DSL.ref("distance", INTEGER), DSL.literal(2))));
     assertThat(
         execute(plan),
         allOf(

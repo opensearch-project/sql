@@ -26,8 +26,6 @@ public class MergeFilterAndFilter implements Rule<LogicalFilter> {
 
   private final Capture<LogicalFilter> capture;
 
-  private final DSL dsl;
-
   @Accessors(fluent = true)
   @Getter
   private final Pattern<LogicalFilter> pattern;
@@ -35,8 +33,7 @@ public class MergeFilterAndFilter implements Rule<LogicalFilter> {
   /**
    * Constructor of MergeFilterAndFilter.
    */
-  public MergeFilterAndFilter(DSL dsl) {
-    this.dsl = dsl;
+  public MergeFilterAndFilter() {
     this.capture = Capture.newCapture();
     this.pattern = typeOf(LogicalFilter.class)
         .with(source().matching(typeOf(LogicalFilter.class).capturedAs(capture)));
@@ -48,7 +45,7 @@ public class MergeFilterAndFilter implements Rule<LogicalFilter> {
     LogicalFilter childFilter = captures.get(capture);
     return new LogicalFilter(
         childFilter.getChild().get(0),
-        dsl.and(filter.getCondition(), childFilter.getCondition())
+        DSL.and(filter.getCondition(), childFilter.getCondition())
     );
   }
 }

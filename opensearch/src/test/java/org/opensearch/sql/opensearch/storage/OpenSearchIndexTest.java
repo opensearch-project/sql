@@ -61,7 +61,6 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.AvgAggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
@@ -78,8 +77,6 @@ import org.opensearch.sql.storage.Table;
 
 @ExtendWith(MockitoExtension.class)
 class OpenSearchIndexTest {
-
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
 
   private final String indexName = "test";
 
@@ -254,7 +251,7 @@ class OpenSearchIndexTest {
 
     ReferenceExpression field = ref("name", STRING);
     NamedExpression named = named("n", field);
-    Expression filterExpr = dsl.equal(field, literal("John"));
+    Expression filterExpr = DSL.equal(field, literal("John"));
 
     PhysicalPlan plan = index.implement(
         project(
@@ -274,7 +271,7 @@ class OpenSearchIndexTest {
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
 
     ReferenceExpression field = ref("name", STRING);
-    Expression filterExpr = dsl.equal(field, literal("John"));
+    Expression filterExpr = DSL.equal(field, literal("John"));
     List<NamedExpression> groupByExprs = Arrays.asList(named("age", ref("age", INTEGER)));
     List<NamedAggregator> aggregators =
         Arrays.asList(named("avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)),
@@ -298,7 +295,7 @@ class OpenSearchIndexTest {
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
 
     ReferenceExpression field = ref("name", STRING);
-    Expression filterExpr = dsl.equal(field, literal("John"));
+    Expression filterExpr = DSL.equal(field, literal("John"));
     List<NamedExpression> groupByExprs = Arrays.asList(named("age", ref("age", INTEGER)));
     List<NamedAggregator> aggregators =
         Arrays.asList(named("avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)),
@@ -332,7 +329,7 @@ class OpenSearchIndexTest {
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
 
     ReferenceExpression field = ref("name", STRING);
-    Expression filterExpr = dsl.equal(field, literal("John"));
+    Expression filterExpr = DSL.equal(field, literal("John"));
     List<NamedExpression> groupByExprs = Arrays.asList(named("age", ref("age", INTEGER)));
     List<NamedAggregator> aggregators =
         Arrays.asList(named("avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)),
@@ -423,7 +420,7 @@ class OpenSearchIndexTest {
                 sort(
                     relation("test", table),
                     Pair.of(Sort.SortOption.DEFAULT_ASC,
-                        dsl.abs(named("intV", ref("intV", INTEGER))))
+                        DSL.abs(named("intV", ref("intV", INTEGER))))
                 ),
                 300, 1
             ),
