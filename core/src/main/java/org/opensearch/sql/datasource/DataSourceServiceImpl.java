@@ -7,7 +7,6 @@ package org.opensearch.sql.datasource;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -47,7 +46,7 @@ public class DataSourceServiceImpl implements DataSourceService {
 
   @Override
   public Set<DataSource> getDataSources() {
-    return new HashSet<>(dataSourceMap.values());
+    return Set.copyOf(dataSourceMap.values());
   }
 
   @Override
