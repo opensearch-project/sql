@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.catalog;
+package org.opensearch.sql.datasource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -15,13 +15,12 @@ import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver
 import com.google.common.collect.ImmutableMap;
 import java.util.HashSet;
 import java.util.Map;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.sql.datasource.DataSourceService;
-import org.opensearch.sql.datasource.DataSourceServiceImpl;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
@@ -57,6 +56,11 @@ class DataSourceServiceImplTest {
                 add(dataSourceFactory);
               }
             });
+  }
+
+  @AfterEach
+  public void clear() {
+    dataSourceService.clear();
   }
 
   @Test
@@ -127,6 +131,20 @@ class DataSourceServiceImplTest {
             () -> dataSourceService.addDataSource(metadata(NAME, DataSourceType.OPENSEARCH, null)));
     assertEquals(
         "Missing properties field in catalog configuration. Properties are required parameters.",
+        exception.getMessage());
+  }
+
+  @Test
+  void metaDataHasDuplicateNameShouldFail() {
+    dataSourceService.addDataSource(metadata(NAME, DataSourceType.OPENSEARCH, ImmutableMap.of()));
+    assertEquals(1, dataSourceService.getDataSources().size());
+
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> dataSourceService.addDataSource(metadata(NAME, DataSourceType.OPENSEARCH, null)));
+    assertEquals(
+        String.format("Datasource name should be unique, Duplicate datasource found %s.", NAME),
         exception.getMessage());
   }
 

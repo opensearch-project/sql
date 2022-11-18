@@ -3,14 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.catalog.model.auth;
+package org.opensearch.sql.datasource.model.auth;
 
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.junit.jupiter.api.Test;
-import org.opensearch.sql.datasource.model.auth.AuthenticationType;
 
 class AuthenticationTypeTest {
   @Test

@@ -34,9 +34,9 @@ import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.plugin.SQLPlugin;
 
 @RunWith(MockitoJUnitRunner.class)
-public class DataSourceServiceImplTest {
+public class DataSourceMetaDataTest {
 
-  public static final String CATALOG_SETTING_METADATA_KEY =
+  public static final String DATASOURCE_SETTING_METADATA_KEY =
       "plugins.query.federation.datasources.config";
 
   @Mock
@@ -45,7 +45,7 @@ public class DataSourceServiceImplTest {
   @SneakyThrows
   @Test
   public void testLoadConnectors() {
-    Settings settings = getCatalogSettings("datasources.json");
+    Settings settings = getDataSourceSettings("datasources.json");
     loadConnectors(settings);
     List<DataSourceMetadata> expected =
         new ArrayList<>() {
@@ -67,8 +67,8 @@ public class DataSourceServiceImplTest {
 
   @SneakyThrows
   @Test
-  public void testLoadConnectorsWithMultipleCatalogs() {
-    Settings settings = getCatalogSettings("multiple_datasources.json");
+  public void testLoadConnectorsWithMultipleDataSources() {
+    Settings settings = getDataSourceSettings("multiple_datasources.json");
     loadConnectors(settings);
     List<DataSourceMetadata> expected = new ArrayList<>() {{
         add(metadata("prometheus", DataSourceType.PROMETHEUS, ImmutableMap.of(
@@ -91,27 +91,18 @@ public class DataSourceServiceImplTest {
 
   @SneakyThrows
   @Test
-  public void testLoadConnectorsWithDuplicateCatalogNames() {
-    Settings settings = getCatalogSettings("duplicate_datasource_names.json");
-    loadConnectors(settings);
-
-    verify(dataSourceService, never()).addDataSource(any());
-  }
-
-  @SneakyThrows
-  @Test
   public void testLoadConnectorsWithMalformedJson() {
-    Settings settings = getCatalogSettings("malformed_datasources.json");
+    Settings settings = getDataSourceSettings("malformed_datasources.json");
     loadConnectors(settings);
 
     verify(dataSourceService, never()).addDataSource(any());
   }
 
-  private Settings getCatalogSettings(String filename) throws URISyntaxException, IOException {
+  private Settings getDataSourceSettings(String filename) throws URISyntaxException, IOException {
     MockSecureSettings mockSecureSettings = new MockSecureSettings();
     ClassLoader classLoader = getClass().getClassLoader();
     Path filepath = Paths.get(classLoader.getResource(filename).toURI());
-    mockSecureSettings.setFile(CATALOG_SETTING_METADATA_KEY, Files.readAllBytes(filepath));
+    mockSecureSettings.setFile(DATASOURCE_SETTING_METADATA_KEY, Files.readAllBytes(filepath));
     return Settings.builder().setSecureSettings(mockSecureSettings).build();
   }
 
@@ -120,11 +111,11 @@ public class DataSourceServiceImplTest {
   }
 
   void verifyAddDataSourceWithMetadata(List<DataSourceMetadata> metadataList) {
-    int expectCount = metadataList.size();
     ArgumentCaptor<DataSourceMetadata> metadataCaptor =
         ArgumentCaptor.forClass(DataSourceMetadata.class);
-    verify(dataSourceService, times(expectCount)).addDataSource(metadataCaptor.capture());
+    verify(dataSourceService, times(1)).addDataSource(metadataCaptor.capture());
     List<DataSourceMetadata> actualValues = metadataCaptor.getAllValues();
+    assertEquals(metadataList.size(), actualValues.size());
     assertEquals(metadataList, actualValues);
   }
 

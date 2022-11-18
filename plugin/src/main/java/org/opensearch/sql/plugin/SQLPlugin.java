@@ -18,11 +18,8 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Supplier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -242,8 +239,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
             try {
               List<DataSourceMetadata> metadataList =
                   objectMapper.readValue(inputStream, new TypeReference<>() {});
-              verifyDuplicateName(metadataList);
-              metadataList.forEach(metadata -> dataSourceService.addDataSource(metadata));
+              dataSourceService.addDataSource(metadataList.toArray(new DataSourceMetadata[0]));
             } catch (IOException e) {
               LOG.error(
                   "DataSource Configuration File uploaded is malformed. Verify and re-upload.", e);
@@ -253,19 +249,5 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
           }
           return null;
         });
-  }
-
-  static void verifyDuplicateName(List<DataSourceMetadata> metadataList) {
-    Set<String> seenNames = new HashSet<>();
-    for (DataSourceMetadata metadata : metadataList) {
-      if (seenNames.contains(metadata.getName())) {
-        throw new IllegalArgumentException(
-            String.format(
-                Locale.ROOT,
-                "Datasource name should be unique, Duplicate datasource found %s",
-                metadata.getName()));
-      }
-      seenNames.add(metadata.getName());
-    }
   }
 }

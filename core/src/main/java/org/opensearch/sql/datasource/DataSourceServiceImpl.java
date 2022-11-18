@@ -5,13 +5,15 @@
 
 package org.opensearch.sql.datasource;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringUtils;
+import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
@@ -58,11 +60,13 @@ public class DataSourceServiceImpl implements DataSourceService {
   }
 
   @Override
-  public void addDataSource(DataSourceMetadata metadata) {
-    validateDataSource(metadata);
-    dataSourceMap.put(
-        metadata.getName(),
-        dataSourceFactoryMap.get(metadata.getConnector()).createDataSource(metadata));
+  public void addDataSource(DataSourceMetadata... metadatas) {
+    for (DataSourceMetadata metadata : metadatas) {
+      validateDataSourceMetaData(metadata);
+      dataSourceMap.put(
+          metadata.getName(),
+          dataSourceFactoryMap.get(metadata.getConnector()).createDataSource(metadata));
+    }
   }
 
   @Override
@@ -75,20 +79,22 @@ public class DataSourceServiceImpl implements DataSourceService {
    *
    * @param metadata {@link DataSourceMetadata}.
    */
-  private void validateDataSource(DataSourceMetadata metadata) {
-    if (StringUtils.isEmpty(metadata.getName())) {
-      throw new IllegalArgumentException(
-          "Missing Name Field from a DataSource. Name is a required parameter.");
-    }
-    if (!metadata.getName().matches(DATASOURCE_NAME_REGEX)) {
-      throw new IllegalArgumentException(
-          String.format(
-              "DataSource Name: %s contains illegal characters. Allowed characters: a-zA-Z0-9_-*@.",
-              metadata.getName()));
-    }
-    if (Objects.isNull(metadata.getProperties())) {
-      throw new IllegalArgumentException(
-          "Missing properties field in catalog configuration. Properties are required parameters.");
-    }
+  private void validateDataSourceMetaData(DataSourceMetadata metadata) {
+    Preconditions.checkArgument(
+        !Strings.isNullOrEmpty(metadata.getName()),
+        "Missing Name Field from a DataSource. Name is a required parameter.");
+    Preconditions.checkArgument(
+        !dataSourceMap.containsKey(metadata.getName()),
+        StringUtils.format(
+            "Datasource name should be unique, Duplicate datasource found %s.",
+            metadata.getName()));
+    Preconditions.checkArgument(
+        metadata.getName().matches(DATASOURCE_NAME_REGEX),
+        StringUtils.format(
+            "DataSource Name: %s contains illegal characters. Allowed characters: a-zA-Z0-9_-*@.",
+            metadata.getName()));
+    Preconditions.checkArgument(
+        !Objects.isNull(metadata.getProperties()),
+        "Missing properties field in catalog configuration. Properties are required parameters.");
   }
 }

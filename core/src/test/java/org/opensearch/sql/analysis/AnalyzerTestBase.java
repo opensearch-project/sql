@@ -207,7 +207,7 @@ public class AnalyzerTestBase {
     }
 
     @Override
-    public void addDataSource(DataSourceMetadata metadata) {
+    public void addDataSource(DataSourceMetadata... metadatas) {
       throw new UnsupportedOperationException();
     }
 

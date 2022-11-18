@@ -32,9 +32,9 @@ public interface DataSourceService {
   /**
    * Register {@link DataSource} defined by {@link DataSourceMetadata}.
    *
-   * @param dataSourceMetadata {@link DataSourceMetadata}.
+   * @param metadatas list of {@link DataSourceMetadata}.
    */
-  void addDataSource(DataSourceMetadata dataSourceMetadata);
+  void addDataSource(DataSourceMetadata... metadatas);
 
   /**
    * remove all the registered {@link DataSource}.
