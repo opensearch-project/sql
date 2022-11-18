@@ -1442,7 +1442,7 @@ DAYOFYEAR
 Description
 >>>>>>>>>>>
 
-Usage:  dayofyear(date) returns the day of the year for date, in the range 1 to 366.
+Usage:  dayofyear(date) returns the day of the year for date, in the range 1 to 366. Also supports day_of_year(date) as alternate syntax.
 
 Argument type: STRING/DATE/DATETIME/TIMESTAMP
 
@@ -1454,6 +1454,14 @@ Example::
     fetched rows / total rows = 1/1
     +---------------------------------+
     | DAYOFYEAR(DATE('2020-08-26'))   |
+    |---------------------------------|
+    | 239                             |
+    +---------------------------------+
+
+    os> SELECT DAY_OF_YEAR(DATE('2020-08-26'))
+    fetched rows / total rows = 1/1
+    +---------------------------------+
+    | DAY_OF_YEAR(DATE('2020-08-26')) |
     |---------------------------------|
     | 239                             |
     +---------------------------------+
