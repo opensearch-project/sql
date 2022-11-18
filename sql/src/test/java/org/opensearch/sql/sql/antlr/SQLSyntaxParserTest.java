@@ -192,6 +192,12 @@ class SQLSyntaxParserTest {
   }
 
   @Test
+  public void can_parse_dayofyear_functions() {
+    assertNotNull(parser.parse("SELECT dayofyear('2022-11-18')"));
+    assertNotNull(parser.parse("SELECT day_of_year('2022-11-18')"));
+  }
+
+  @Test
   public void can_parse_multi_match_relevance_function() {
     assertNotNull(parser.parse(
         "SELECT id FROM test WHERE multi_match(['address'], 'query')"));
