@@ -18,7 +18,7 @@ In this doc, the restrictions and limitations of SQL plugin is covered as follow
 Limitations on Identifiers
 ==========================
 
-Using OpenSearch cluster name as catalog name to qualify an index name, such as ``my_cluster.my_index``, is not supported for now.
+Using OpenSearch cluster name as dataSource name to qualify an index name, such as ``my_cluster.my_index``, is not supported for now.
 
 Limitations on Fields
 =====================

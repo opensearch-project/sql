@@ -87,7 +87,7 @@ class BuiltinFunctionRepositoryTest {
   }
 
   @Test
-  void register_under_catalog_namespace() {
+  void register_under_datasource_namespace() {
     when(mockNamespaceMap.containsKey(TEST_NAMESPACE)).thenReturn(false);
     when(mockNamespaceMap.put(eq(TEST_NAMESPACE), any())).thenReturn(null);
     when(mockNamespaceMap.get(TEST_NAMESPACE)).thenReturn(mockMap);
@@ -120,7 +120,7 @@ class BuiltinFunctionRepositoryTest {
 
 
   @Test
-  void compile_function_under_catalog_namespace() {
+  void compile_function_under_datasource_namespace() {
     when(mockExpression.type()).thenReturn(UNDEFINED);
     when(functionSignature.getParamTypeList()).thenReturn(Arrays.asList(UNDEFINED));
     when(mockfunctionResolver.getFunctionName()).thenReturn(mockFunctionName);

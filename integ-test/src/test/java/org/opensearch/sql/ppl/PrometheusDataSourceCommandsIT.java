@@ -19,7 +19,7 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class PrometheusCatalogCommandsIT extends PPLIntegTestCase {
+public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
 
   @Test
   @SneakyThrows

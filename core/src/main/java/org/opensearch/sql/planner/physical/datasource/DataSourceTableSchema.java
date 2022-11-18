@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.planner.physical.catalog;
+package org.opensearch.sql.planner.physical.datasource;
 
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
@@ -14,13 +14,13 @@ import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.type.ExprType;
 
 /**
- * Definition of the system table schema.
+ * Definition of the data source table schema.
  */
 @Getter
 @RequiredArgsConstructor
-public enum CatalogTableSchema {
+public enum DataSourceTableSchema {
 
-  CATALOG_TABLE_SCHEMA(new LinkedHashMap<>() {
+  DATASOURCE_TABLE_SCHEMA(new LinkedHashMap<>() {
     {
       put("DATASOURCE_NAME", STRING);
       put("CONNECTOR_TYPE", STRING);

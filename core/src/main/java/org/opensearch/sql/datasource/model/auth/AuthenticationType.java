@@ -5,12 +5,11 @@
  *
  */
 
-package org.opensearch.sql.catalog.model.auth;
+package org.opensearch.sql.datasource.model.auth;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 public enum AuthenticationType {
 

@@ -38,7 +38,7 @@ public class SystemIndexUtils {
    */
   public static final String TABLE_INFO = "ALL." + SYS_META_SUFFIX;
 
-  public static final String CATALOGS_TABLE_NAME = ".CATALOGS";
+  public static final String DATASOURCES_TABLE_NAME = ".DATASOURCES";
 
 
   public static Boolean isSystemIndex(String indexName) {

@@ -40,7 +40,7 @@ import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptContext;
 import org.opensearch.script.ScriptEngine;
 import org.opensearch.script.ScriptService;
-import org.opensearch.sql.catalog.CatalogService;
+import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.executor.AsyncRestExecutor;
 import org.opensearch.sql.legacy.metrics.Metrics;
@@ -53,9 +53,9 @@ import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 import org.opensearch.sql.opensearch.storage.script.ExpressionScriptEngine;
 import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
-import org.opensearch.sql.plugin.catalog.CatalogServiceImpl;
-import org.opensearch.sql.plugin.catalog.CatalogSettings;
 import org.opensearch.sql.plugin.config.OpenSearchPluginConfig;
+import org.opensearch.sql.plugin.datasource.DataSourceServiceImpl;
+import org.opensearch.sql.plugin.datasource.DataSourceSettings;
 import org.opensearch.sql.plugin.rest.RestPPLQueryAction;
 import org.opensearch.sql.plugin.rest.RestPPLStatsAction;
 import org.opensearch.sql.plugin.rest.RestQuerySettingsAction;
@@ -142,8 +142,9 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
     this.clusterService = clusterService;
     this.pluginSettings = new OpenSearchSettings(clusterService.getClusterSettings());
     this.client = (NodeClient) client;
-    CatalogServiceImpl.getInstance().loadConnectors(clusterService.getSettings());
-    CatalogServiceImpl.getInstance().registerDefaultOpenSearchCatalog(openSearchStorageEngine());
+    DataSourceServiceImpl.getInstance().loadConnectors(clusterService.getSettings());
+    DataSourceServiceImpl.getInstance()
+        .registerDefaultOpenSearchDataSource(openSearchStorageEngine());
     LocalClusterState.state().setClusterService(clusterService);
     LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
 
@@ -155,7 +156,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
           applicationContext.registerBean(
               org.opensearch.sql.common.setting.Settings.class, () -> pluginSettings);
           applicationContext.registerBean(
-              CatalogService.class, () -> CatalogServiceImpl.getInstance());
+              DataSourceService.class, () -> DataSourceServiceImpl.getInstance());
           applicationContext.register(OpenSearchPluginConfig.class);
           applicationContext.register(PPLServiceConfig.class);
           applicationContext.register(SQLServiceConfig.class);
@@ -184,7 +185,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
     return new ImmutableList.Builder<Setting<?>>()
         .addAll(LegacyOpenDistroSettings.legacySettings())
         .addAll(OpenSearchSettings.pluginSettings())
-        .add(CatalogSettings.CATALOG_CONFIG)
+        .add(DataSourceSettings.DATASOURCE_CONFIG)
         .build();
   }
 
@@ -195,8 +196,9 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
 
   @Override
   public void reload(Settings settings) {
-    CatalogServiceImpl.getInstance().loadConnectors(settings);
-    CatalogServiceImpl.getInstance().registerDefaultOpenSearchCatalog(openSearchStorageEngine());
+    DataSourceServiceImpl.getInstance().loadConnectors(settings);
+    DataSourceServiceImpl.getInstance()
+        .registerDefaultOpenSearchDataSource(openSearchStorageEngine());
   }
 
   private StorageEngine openSearchStorageEngine() {

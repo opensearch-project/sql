@@ -16,10 +16,10 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
-public class ShowCatalogsCommandIT extends PPLIntegTestCase {
+public class ShowDataSourcesCommandIT extends PPLIntegTestCase {
 
   @Test
-  public void testShowCatalogsCommands() throws IOException {
+  public void testShowDataSourcesCommands() throws IOException {
     JSONObject result = executeQuery("show datasources");
     verifyDataRows(result,
         rows("my_prometheus", "PROMETHEUS"),
@@ -32,7 +32,7 @@ public class ShowCatalogsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testShowCatalogsCommandsWithWhereClause() throws IOException {
+  public void testShowDataSourcesCommandsWithWhereClause() throws IOException {
     JSONObject result = executeQuery("show datasources | where CONNECTOR_TYPE='PROMETHEUS'");
     verifyDataRows(result,
         rows("my_prometheus", "PROMETHEUS"));

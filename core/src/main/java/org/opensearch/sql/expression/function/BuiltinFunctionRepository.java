@@ -35,9 +35,8 @@ import org.opensearch.sql.expression.window.WindowFunctions;
 
 /**
  * Builtin Function Repository.
- * Repository registers catalog specific functions under catalog specific namespace and
- * universal functions under default namespace. Catalog Specific Namespace carries their own
- * namespace.
+ * Repository registers datasource specific functions under datasource namespace and
+ * universal functions under default namespace.
  *
  */
 public class BuiltinFunctionRepository {
