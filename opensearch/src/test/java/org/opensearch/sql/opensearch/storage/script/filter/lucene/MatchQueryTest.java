@@ -32,7 +32,11 @@ import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.Matc
 public class MatchQueryTest {
   private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
   private final MatchQuery matchQuery = new MatchQuery();
-  private final FunctionName match = FunctionName.of("match");
+  private final FunctionName matchName = FunctionName.of("match");
+  private final FunctionName matchQueryName = FunctionName.of("matchquery");
+  private final FunctionName matchQueryWithUnderscoreName = FunctionName.of("match_query");
+  private final FunctionName[] functionNames =
+      {matchName,matchQueryName, matchQueryWithUnderscoreName};
 
   static Stream<List<Expression>> generateValidData() {
     final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
@@ -139,13 +143,87 @@ public class MatchQueryTest {
         () -> matchQuery.build(new MatchExpression(arguments)));
   }
 
+  @ParameterizedTest
+  @MethodSource("generateValidData")
+  public void test_valid_parameters_matchquery_syntax(List<Expression> validArgs) {
+    Assertions.assertNotNull(matchQuery.build(
+        new MatchExpression(validArgs, MatchQueryTest.this.matchQueryName)));
+  }
+
+  @Test
+  public void test_SyntaxCheckException_when_no_arguments_matchquery_syntax() {
+    List<Expression> arguments = List.of();
+    assertThrows(SyntaxCheckException.class,
+        () -> matchQuery.build(
+            new MatchExpression(arguments, MatchQueryTest.this.matchQueryName)));
+  }
+
+  @Test
+  public void test_SyntaxCheckException_when_one_argument_matchquery_syntax() {
+    List<Expression> arguments = List.of(namedArgument("field", "field_value"));
+    assertThrows(SyntaxCheckException.class,
+        () -> matchQuery.build(
+            new MatchExpression(arguments, MatchQueryTest.this.matchQueryName)));
+  }
+
+  @Test
+  public void test_SemanticCheckException_when_invalid_parameter_matchquery_syntax() {
+    List<Expression> arguments = List.of(
+        namedArgument("field", "field_value"),
+        namedArgument("query", "query_value"),
+        namedArgument("unsupported", "unsupported_value"));
+    Assertions.assertThrows(SemanticCheckException.class,
+        () -> matchQuery.build(
+            new MatchExpression(arguments, MatchQueryTest.this.matchQueryName)));
+  }
+
+  @ParameterizedTest
+  @MethodSource("generateValidData")
+  public void test_valid_parameters_match_query_syntax(List<Expression> validArgs) {
+    Assertions.assertNotNull(matchQuery.build(
+        new MatchExpression(validArgs, MatchQueryTest.this.matchQueryWithUnderscoreName)));
+  }
+
+  @Test
+  public void test_SyntaxCheckException_when_no_arguments_match_query_syntax() {
+    List<Expression> arguments = List.of();
+    assertThrows(SyntaxCheckException.class,
+        () -> matchQuery.build(
+            new MatchExpression(arguments, MatchQueryTest.this.matchQueryWithUnderscoreName)));
+  }
+
+  @Test
+  public void test_SyntaxCheckException_when_one_argument_match_query_syntax() {
+    List<Expression> arguments = List.of(namedArgument("field", "field_value"));
+    assertThrows(SyntaxCheckException.class,
+        () -> matchQuery.build(
+            new MatchExpression(arguments, MatchQueryTest.this.matchQueryWithUnderscoreName)));
+  }
+
+  @Test
+  public void test_SemanticCheckException_when_invalid_parameter_match_query_syntax() {
+    List<Expression> arguments = List.of(
+        namedArgument("field", "field_value"),
+        namedArgument("query", "query_value"),
+        namedArgument("unsupported", "unsupported_value"));
+    Assertions.assertThrows(SemanticCheckException.class,
+        () -> matchQuery.build(
+            new MatchExpression(arguments, MatchQueryTest.this.matchQueryWithUnderscoreName)));
+  }
+
+
   private NamedArgumentExpression namedArgument(String name, String value) {
     return dsl.namedArgument(name, DSL.literal(value));
   }
 
   private class MatchExpression extends FunctionExpression {
+
     public MatchExpression(List<Expression> arguments) {
-      super(MatchQueryTest.this.match, arguments);
+      super(MatchQueryTest.this.matchName, arguments);
+    }
+
+    public MatchExpression(List<Expression> arguments, FunctionName funcName) {
+      super(funcName, arguments);
     }
 
     @Override
