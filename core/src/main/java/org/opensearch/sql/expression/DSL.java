@@ -325,10 +325,13 @@ public class DSL {
     return compile(BuiltinFunctionName.DAYOFYEAR, expressions);
   }
 
+  public static FunctionExpression day_of_year(Expression... expressions) {
+    return compile(BuiltinFunctionName.DAY_OF_YEAR, expressions);
+  }
+
   public static FunctionExpression from_days(Expression... expressions) {
     return compile(BuiltinFunctionName.FROM_DAYS, expressions);
   }
-
   public static FunctionExpression hour(Expression... expressions) {
     return compile(BuiltinFunctionName.HOUR, expressions);
   }

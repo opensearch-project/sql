@@ -483,20 +483,20 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void day_Of_Year() {
     when(nullRef.type()).thenReturn(DATE);
     when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(dsl.day_of_year(nullRef)));
-    assertEquals(missingValue(), eval(dsl.day_of_year(missingRef)));
+    assertEquals(nullValue(), eval(DSL.day_of_year(nullRef)));
+    assertEquals(missingValue(), eval(DSL.day_of_year(missingRef)));
 
-    FunctionExpression expression = dsl.day_of_year(DSL.literal(new ExprDateValue("2020-08-07")));
+    FunctionExpression expression = DSL.day_of_year(DSL.literal(new ExprDateValue("2020-08-07")));
     assertEquals(INTEGER, expression.type());
     assertEquals("day_of_year(DATE '2020-08-07')", expression.toString());
     assertEquals(integerValue(220), eval(expression));
 
-    expression = dsl.day_of_year(DSL.literal("2020-08-07"));
+    expression = DSL.day_of_year(DSL.literal("2020-08-07"));
     assertEquals(INTEGER, expression.type());
     assertEquals("day_of_year(\"2020-08-07\")", expression.toString());
     assertEquals(integerValue(220), eval(expression));
 
-    expression = dsl.day_of_year(DSL.literal("2020-08-07 01:02:03"));
+    expression = DSL.day_of_year(DSL.literal("2020-08-07 01:02:03"));
     assertEquals(INTEGER, expression.type());
     assertEquals("day_of_year(\"2020-08-07 01:02:03\")", expression.toString());
     assertEquals(integerValue(220), eval(expression));

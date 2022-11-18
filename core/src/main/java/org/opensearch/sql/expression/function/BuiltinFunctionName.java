@@ -68,6 +68,7 @@ public enum BuiltinFunctionName {
   DAYOFMONTH(FunctionName.of("dayofmonth")),
   DAYOFWEEK(FunctionName.of("dayofweek")),
   DAYOFYEAR(FunctionName.of("dayofyear")),
+  DAY_OF_YEAR(FunctionName.of("day_of_year")),
   FROM_DAYS(FunctionName.of("from_days")),
   FROM_UNIXTIME(FunctionName.of("from_unixtime")),
   HOUR(FunctionName.of("hour")),
