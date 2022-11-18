@@ -24,8 +24,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.datasource.DataSourceService;
-import org.opensearch.sql.datasource.model.ConnectorType;
 import org.opensearch.sql.datasource.model.DataSource;
+import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.storage.StorageEngine;
 
 @ExtendWith(MockitoExtension.class)
@@ -52,8 +52,8 @@ public class DataSourceTableScanTest {
   @Test
   void testIterator() {
     Set<DataSource> dataSourceSet = new HashSet<>();
-    dataSourceSet.add(new DataSource("prometheus", ConnectorType.PROMETHEUS, storageEngine));
-    dataSourceSet.add(new DataSource("opensearch", ConnectorType.OPENSEARCH, storageEngine));
+    dataSourceSet.add(new DataSource("prometheus", DataSourceType.PROMETHEUS, storageEngine));
+    dataSourceSet.add(new DataSource("opensearch", DataSourceType.OPENSEARCH, storageEngine));
     when(dataSourceService.getDataSources()).thenReturn(dataSourceSet);
 
     assertFalse(dataSourceTableScan.hasNext());

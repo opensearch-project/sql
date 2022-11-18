@@ -14,16 +14,18 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import okhttp3.OkHttpClient;
-import org.opensearch.sql.datasource.model.ConnectorType;
+import org.opensearch.sql.datasource.model.DataSource;
+import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasource.model.auth.AuthenticationType;
 import org.opensearch.sql.prometheus.authinterceptors.AwsSigningInterceptor;
 import org.opensearch.sql.prometheus.authinterceptors.BasicAuthenticationInterceptor;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
 import org.opensearch.sql.prometheus.client.PrometheusClientImpl;
+import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.sql.storage.StorageEngine;
-import org.opensearch.sql.storage.StorageEngineFactory;
 
-public class PrometheusStorageFactory implements StorageEngineFactory {
+public class PrometheusStorageFactory implements DataSourceFactory {
 
   public static final String URI = "prometheus.uri";
   public static final String AUTH_TYPE = "prometheus.auth.type";
@@ -33,14 +35,20 @@ public class PrometheusStorageFactory implements StorageEngineFactory {
   public static final String ACCESS_KEY = "prometheus.auth.access_key";
   public static final String SECRET_KEY = "prometheus.auth.secret_key";
 
-
   @Override
-  public ConnectorType getConnectorType() {
-    return ConnectorType.PROMETHEUS;
+  public DataSourceType getDataSourceType() {
+    return DataSourceType.PROMETHEUS;
   }
 
   @Override
-  public StorageEngine getStorageEngine(String catalogName, Map<String, String> requiredConfig) {
+  public DataSource createDataSource(DataSourceMetadata metadata) {
+    return new DataSource(
+        metadata.getName(),
+        DataSourceType.PROMETHEUS,
+        getStorageEngine(metadata.getName(), metadata.getProperties()));
+  }
+
+  StorageEngine getStorageEngine(String catalogName, Map<String, String> requiredConfig) {
     validateFieldsInConfig(requiredConfig, Set.of(URI));
     PrometheusClient prometheusClient;
     try {

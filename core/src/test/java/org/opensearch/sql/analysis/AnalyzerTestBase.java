@@ -22,10 +22,10 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.config.TestConfig;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.datasource.DataSourceService;
-import org.opensearch.sql.datasource.model.ConnectorType;
 import org.opensearch.sql.datasource.model.DataSource;
+import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
-import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
@@ -144,9 +144,7 @@ public class AnalyzerTestBase {
   @Bean
   protected Analyzer analyzer(ExpressionAnalyzer expressionAnalyzer,
                       DataSourceService dataSourceService,
-                      StorageEngine storageEngine,
                       Table table) {
-    dataSourceService.registerDefaultOpenSearchDataSource(storageEngine);
     BuiltinFunctionRepository functionRepository = BuiltinFunctionRepository.getInstance();
     functionRepository.register("prometheus", new FunctionResolver() {
 
@@ -195,7 +193,7 @@ public class AnalyzerTestBase {
 
     private StorageEngine storageEngine = storageEngine();
     private final DataSource dataSource
-        = new DataSource("prometheus", ConnectorType.PROMETHEUS, storageEngine);
+        = new DataSource("prometheus", DataSourceType.PROMETHEUS, storageEngine);
 
 
     @Override
@@ -209,8 +207,13 @@ public class AnalyzerTestBase {
     }
 
     @Override
-    public void registerDefaultOpenSearchDataSource(StorageEngine storageEngine) {
-      this.storageEngine = storageEngine;
+    public void addDataSource(DataSourceMetadata metadata) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void clear() {
+      throw new UnsupportedOperationException();
     }
   }
 

@@ -5,137 +5,134 @@
 
 package org.opensearch.sql.plugin.datasource;
 
-import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
+import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import lombok.SneakyThrows;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.common.settings.MockSecureSettings;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.sql.datasource.model.ConnectorType;
-import org.opensearch.sql.datasource.model.DataSource;
-import org.opensearch.sql.storage.StorageEngine;
+import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.datasource.model.DataSourceType;
+import org.opensearch.sql.plugin.SQLPlugin;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DataSourceServiceImplTest {
 
-  public static final String DATASOURCE_SETTING_METADATA_KEY =
+  public static final String CATALOG_SETTING_METADATA_KEY =
       "plugins.query.federation.datasources.config";
 
   @Mock
-  private StorageEngine storageEngine;
+  private DataSourceService dataSourceService;
 
   @SneakyThrows
   @Test
   public void testLoadConnectors() {
-    Settings settings = getDataSourceSettings("datasources.json");
-    DataSourceServiceImpl.getInstance().loadConnectors(settings);
-    Set<DataSource> expected = new HashSet<>() {{
-        add(new DataSource("prometheus", ConnectorType.PROMETHEUS, storageEngine));
+    Settings settings = getCatalogSettings("datasources.json");
+    loadConnectors(settings);
+    List<DataSourceMetadata> expected =
+        new ArrayList<>() {
+          {
+            add(
+                metadata(
+                    "prometheus",
+                    DataSourceType.PROMETHEUS,
+                    ImmutableMap.of(
+                        "prometheus.uri", "http://localhost:9090",
+                        "prometheus.auth.type", "basicauth",
+                        "prometheus.auth.username", "admin",
+                        "prometheus.auth.password", "type")));
+          }
+        };
+
+    verifyAddDataSourceWithMetadata(expected);
+  }
+
+  @SneakyThrows
+  @Test
+  public void testLoadConnectorsWithMultipleCatalogs() {
+    Settings settings = getCatalogSettings("multiple_datasources.json");
+    loadConnectors(settings);
+    List<DataSourceMetadata> expected = new ArrayList<>() {{
+        add(metadata("prometheus", DataSourceType.PROMETHEUS, ImmutableMap.of(
+            "prometheus.uri", "http://localhost:9090",
+            "prometheus.auth.type", "basicauth",
+            "prometheus.auth.username", "admin",
+            "prometheus.auth.password", "type"
+        )));
+        add(metadata("prometheus-1", DataSourceType.PROMETHEUS, ImmutableMap.of(
+            "prometheus.uri", "http://localhost:9090",
+            "prometheus.auth.type", "awssigv4",
+            "prometheus.auth.region", "us-east-1",
+            "prometheus.auth.access_key", "accessKey",
+            "prometheus.auth.secret_key", "secretKey"
+        )));
       }};
-    Assert.assertEquals(expected, DataSourceServiceImpl.getInstance().getDataSources());
-  }
 
-
-  @SneakyThrows
-  @Test
-  public void testLoadConnectorsWithMultipleDataSources() {
-    Settings settings = getDataSourceSettings("multiple_datasources.json");
-    DataSourceServiceImpl.getInstance().loadConnectors(settings);
-    Set<DataSource> expected = new HashSet<>() {{
-        add(new DataSource("prometheus", ConnectorType.PROMETHEUS, storageEngine));
-        add(new DataSource("prometheus-1", ConnectorType.PROMETHEUS, storageEngine));
-      }};
-    Assert.assertEquals(expected, DataSourceServiceImpl.getInstance().getDataSources());
+    verifyAddDataSourceWithMetadata(expected);
   }
 
   @SneakyThrows
   @Test
-  public void testLoadConnectorsWithMissingName() {
-    Settings settings = getDataSourceSettings("datasource_missing_name.json");
-    Set<DataSource> expected = DataSourceServiceImpl.getInstance().getDataSources();
-    DataSourceServiceImpl.getInstance().loadConnectors(settings);
-    Assert.assertEquals(expected, DataSourceServiceImpl.getInstance().getDataSources());
-  }
+  public void testLoadConnectorsWithDuplicateCatalogNames() {
+    Settings settings = getCatalogSettings("duplicate_datasource_names.json");
+    loadConnectors(settings);
 
-  @SneakyThrows
-  @Test
-  public void testLoadConnectorsWithDuplicateDataSourceNames() {
-    Settings settings = getDataSourceSettings("duplicate_datasource_names.json");
-    Set<DataSource> expected = DataSourceServiceImpl.getInstance().getDataSources();
-    DataSourceServiceImpl.getInstance().loadConnectors(settings);
-    Assert.assertEquals(expected, DataSourceServiceImpl.getInstance().getDataSources());
+    verify(dataSourceService, never()).addDataSource(any());
   }
 
   @SneakyThrows
   @Test
   public void testLoadConnectorsWithMalformedJson() {
-    Settings settings = getDataSourceSettings("malformed_datasources.json");
-    Set<DataSource> expected = DataSourceServiceImpl.getInstance().getDataSources();
-    DataSourceServiceImpl.getInstance().loadConnectors(settings);
-    Assert.assertEquals(expected, DataSourceServiceImpl.getInstance().getDataSources());
+    Settings settings = getCatalogSettings("malformed_datasources.json");
+    loadConnectors(settings);
+
+    verify(dataSourceService, never()).addDataSource(any());
   }
 
-  @SneakyThrows
-  @Test
-  public void testGetStorageEngineAfterGetDataSources() {
-    Settings settings = getDataSourceSettings("empty_datasource.json");
-    DataSourceServiceImpl.getInstance().loadConnectors(settings);
-    DataSourceServiceImpl.getInstance().registerDefaultOpenSearchDataSource(storageEngine);
-    Set<DataSource> expected = new HashSet<>();
-    expected.add(new DataSource(DEFAULT_DATASOURCE_NAME, ConnectorType.OPENSEARCH, storageEngine));
-    Assert.assertEquals(expected, DataSourceServiceImpl.getInstance().getDataSources());
-    Assert.assertEquals(storageEngine,
-        DataSourceServiceImpl.getInstance()
-            .getDataSource(DEFAULT_DATASOURCE_NAME).getStorageEngine());
-    Assert.assertEquals(expected, DataSourceServiceImpl.getInstance().getDataSources());
-    Assert.assertEquals(storageEngine,
-        DataSourceServiceImpl.getInstance()
-            .getDataSource(DEFAULT_DATASOURCE_NAME).getStorageEngine());
-    IllegalArgumentException illegalArgumentException
-        = Assert.assertThrows(IllegalArgumentException.class,
-          () -> DataSourceServiceImpl.getInstance().getDataSource("test"));
-    Assert.assertEquals("DataSource with name test doesn't exist.",
-        illegalArgumentException.getMessage());
-  }
-
-
-  @SneakyThrows
-  @Test
-  public void testGetStorageEngineAfterLoadingConnectors() {
-    Settings settings = getDataSourceSettings("empty_datasource.json");
-    DataSourceServiceImpl.getInstance().registerDefaultOpenSearchDataSource(storageEngine);
-    //Load Connectors will empty the dataSourceMap.So OpenSearch Storage Engine
-    DataSourceServiceImpl.getInstance().loadConnectors(settings);
-    Set<DataSource> expected = new HashSet<>();
-    Assert.assertEquals(expected, DataSourceServiceImpl.getInstance().getDataSources());
-  }
-
-  @SneakyThrows
-  @Test
-  public void testLoadConnectorsWithIllegalDataSourceNames() {
-    Settings settings = getDataSourceSettings("illegal_datasource_name.json");
-    Set<DataSource> expected = DataSourceServiceImpl.getInstance().getDataSources();
-    DataSourceServiceImpl.getInstance().loadConnectors(settings);
-    Assert.assertEquals(expected, DataSourceServiceImpl.getInstance().getDataSources());
-  }
-
-  private Settings getDataSourceSettings(String filename) throws URISyntaxException, IOException {
+  private Settings getCatalogSettings(String filename) throws URISyntaxException, IOException {
     MockSecureSettings mockSecureSettings = new MockSecureSettings();
     ClassLoader classLoader = getClass().getClassLoader();
     Path filepath = Paths.get(classLoader.getResource(filename).toURI());
-    mockSecureSettings.setFile(DATASOURCE_SETTING_METADATA_KEY, Files.readAllBytes(filepath));
+    mockSecureSettings.setFile(CATALOG_SETTING_METADATA_KEY, Files.readAllBytes(filepath));
     return Settings.builder().setSecureSettings(mockSecureSettings).build();
   }
 
+  void loadConnectors(Settings settings) {
+    SQLPlugin.loadDataSources(dataSourceService, settings);
+  }
+
+  void verifyAddDataSourceWithMetadata(List<DataSourceMetadata> metadataList) {
+    int expectCount = metadataList.size();
+    ArgumentCaptor<DataSourceMetadata> metadataCaptor =
+        ArgumentCaptor.forClass(DataSourceMetadata.class);
+    verify(dataSourceService, times(expectCount)).addDataSource(metadataCaptor.capture());
+    List<DataSourceMetadata> actualValues = metadataCaptor.getAllValues();
+    assertEquals(metadataList, actualValues);
+  }
+
+  DataSourceMetadata metadata(String name, DataSourceType type, Map<String, String> properties) {
+    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
+    dataSourceMetadata.setName(name);
+    dataSourceMetadata.setConnector(type);
+    dataSourceMetadata.setProperties(properties);
+    return dataSourceMetadata;
+  }
 }
