@@ -40,7 +40,7 @@ class WindowOperatorTest extends PhysicalPlanTestBase {
 
   @Test
   void test_ranking_window_function() {
-    window(dsl.rank())
+    window(DSL.rank())
         .partitionBy(ref("action", STRING))
         .sortBy(DEFAULT_ASC, ref("response", INTEGER))
         .expectNext(ImmutableMap.of(
@@ -64,7 +64,7 @@ class WindowOperatorTest extends PhysicalPlanTestBase {
   @SuppressWarnings("unchecked")
   @Test
   void test_aggregate_window_function() {
-    window(new AggregateWindowFunction(dsl.sum(ref("response", INTEGER))))
+    window(new AggregateWindowFunction(DSL.sum(ref("response", INTEGER))))
         .partitionBy(ref("action", STRING))
         .sortBy(DEFAULT_ASC, ref("response", INTEGER))
         .expectNext(ImmutableMap.of(
@@ -88,7 +88,7 @@ class WindowOperatorTest extends PhysicalPlanTestBase {
   @SuppressWarnings("unchecked")
   @Test
   void test_aggregate_window_function_without_sort_key() {
-    window(new AggregateWindowFunction(dsl.sum(ref("response", INTEGER))))
+    window(new AggregateWindowFunction(DSL.sum(ref("response", INTEGER))))
         .expectNext(ImmutableMap.of(
             "ip", "209.160.24.63", "action", "GET", "response", 200, "referer", "www.amazon.com",
             "sum(response)", 1504))

@@ -44,24 +44,23 @@ public class DateTimeTestBase extends ExpressionTestBase {
   @Mock
   protected Expression missingRef;
 
-  @Autowired
-  protected BuiltinFunctionRepository functionRepository;
-
   protected ExprValue eval(Expression expression) {
     return expression.valueOf(env);
   }
 
   protected FunctionExpression fromUnixTime(Expression value) {
-    var func = functionRepository.resolve(Collections.singletonList(DEFAULT_NAMESPACE),
-        new FunctionSignature(new FunctionName("from_unixtime"),
-        List.of(value.type())));
+    var func = BuiltinFunctionRepository.getInstance()
+        .resolve(Collections.singletonList(DEFAULT_NAMESPACE),
+            new FunctionSignature(new FunctionName("from_unixtime"),
+            List.of(value.type())));
     return (FunctionExpression)func.apply(List.of(value));
   }
 
   protected FunctionExpression fromUnixTime(Expression value, Expression format) {
-    var func = functionRepository.resolve(Collections.singletonList(DEFAULT_NAMESPACE),
-        new FunctionSignature(new FunctionName("from_unixtime"),
-        List.of(value.type(), format.type())));
+    var func = BuiltinFunctionRepository.getInstance()
+        .resolve(Collections.singletonList(DEFAULT_NAMESPACE),
+            new FunctionSignature(new FunctionName("from_unixtime"),
+            List.of(value.type(), format.type())));
     return (FunctionExpression)func.apply(List.of(value, format));
   }
 
@@ -82,9 +81,10 @@ public class DateTimeTestBase extends ExpressionTestBase {
   }
 
   protected FunctionExpression makedate(Expression year, Expression dayOfYear) {
-    var func = functionRepository.resolve(Collections.singletonList(DEFAULT_NAMESPACE),
-        new FunctionSignature(new FunctionName("makedate"),
-        List.of(DOUBLE, DOUBLE)));
+    var func = BuiltinFunctionRepository.getInstance()
+        .resolve(Collections.singletonList(DEFAULT_NAMESPACE),
+            new FunctionSignature(new FunctionName("makedate"),
+            List.of(DOUBLE, DOUBLE)));
     return (FunctionExpression)func.apply(List.of(year, dayOfYear));
   }
 
@@ -93,9 +93,10 @@ public class DateTimeTestBase extends ExpressionTestBase {
   }
 
   protected FunctionExpression maketime(Expression hour, Expression minute, Expression second) {
-    var func = functionRepository.resolve(Collections.singletonList(DEFAULT_NAMESPACE),
-        new FunctionSignature(new FunctionName("maketime"),
-        List.of(DOUBLE, DOUBLE, DOUBLE)));
+    var func = BuiltinFunctionRepository.getInstance()
+        .resolve(Collections.singletonList(DEFAULT_NAMESPACE),
+            new FunctionSignature(new FunctionName("maketime"),
+            List.of(DOUBLE, DOUBLE, DOUBLE)));
     return (FunctionExpression)func.apply(List.of(hour, minute, second));
   }
 
@@ -105,9 +106,10 @@ public class DateTimeTestBase extends ExpressionTestBase {
   }
 
   protected FunctionExpression period_add(Expression period, Expression months) {
-    var func = functionRepository.resolve(Collections.singletonList(DEFAULT_NAMESPACE),
-        new FunctionSignature(new FunctionName("period_add"),
-        List.of(INTEGER, INTEGER)));
+    var func = BuiltinFunctionRepository.getInstance()
+        .resolve(Collections.singletonList(DEFAULT_NAMESPACE),
+            new FunctionSignature(new FunctionName("period_add"),
+            List.of(INTEGER, INTEGER)));
     return (FunctionExpression)func.apply(List.of(period, months));
   }
 
@@ -116,9 +118,10 @@ public class DateTimeTestBase extends ExpressionTestBase {
   }
 
   protected FunctionExpression period_diff(Expression first, Expression second) {
-    var func = functionRepository.resolve(Collections.singletonList(DEFAULT_NAMESPACE),
-        new FunctionSignature(new FunctionName("period_diff"),
-        List.of(INTEGER, INTEGER)));
+    var func = BuiltinFunctionRepository.getInstance()
+        .resolve(Collections.singletonList(DEFAULT_NAMESPACE),
+            new FunctionSignature(new FunctionName("period_diff"),
+            List.of(INTEGER, INTEGER)));
     return (FunctionExpression)func.apply(List.of(first, second));
   }
 
@@ -127,8 +130,9 @@ public class DateTimeTestBase extends ExpressionTestBase {
   }
 
   protected FunctionExpression unixTimeStampExpr() {
-    var func = functionRepository.resolve(Collections.singletonList(DEFAULT_NAMESPACE),
-        new FunctionSignature(new FunctionName("unix_timestamp"), List.of()));
+    var func = BuiltinFunctionRepository.getInstance()
+        .resolve(Collections.singletonList(DEFAULT_NAMESPACE),
+            new FunctionSignature(new FunctionName("unix_timestamp"), List.of()));
     return (FunctionExpression)func.apply(List.of());
   }
 
@@ -137,9 +141,10 @@ public class DateTimeTestBase extends ExpressionTestBase {
   }
 
   protected FunctionExpression unixTimeStampOf(Expression value) {
-    var func = functionRepository.resolve(Collections.singletonList(DEFAULT_NAMESPACE),
-        new FunctionSignature(new FunctionName("unix_timestamp"),
-        List.of(value.type())));
+    var func = BuiltinFunctionRepository.getInstance()
+        .resolve(Collections.singletonList(DEFAULT_NAMESPACE),
+            new FunctionSignature(new FunctionName("unix_timestamp"),
+            List.of(value.type())));
     return (FunctionExpression)func.apply(List.of(value));
   }
 

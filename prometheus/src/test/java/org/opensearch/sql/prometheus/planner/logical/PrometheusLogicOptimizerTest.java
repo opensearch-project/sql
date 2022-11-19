@@ -25,15 +25,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.expression.DSL;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
 import org.opensearch.sql.storage.Table;
 
 @ExtendWith(MockitoExtension.class)
 public class PrometheusLogicOptimizerTest {
-
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
 
   @Mock
   private Table table;
@@ -43,13 +40,13 @@ public class PrometheusLogicOptimizerTest {
     assertEquals(
         project(
             indexScan("prometheus_http_total_requests",
-                dsl.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))))
+                DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))))
         ),
         optimize(
             project(
                 filter(
                     relation("prometheus_http_total_requests", table),
-                    dsl.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200")))
+                    DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200")))
                 ))
         )
     );
@@ -61,7 +58,7 @@ public class PrometheusLogicOptimizerTest {
         project(
             indexScanAgg("prometheus_http_total_requests", ImmutableList
                     .of(DSL.named("AVG(@value)",
-                        dsl.avg(DSL.ref("@value", INTEGER)))),
+                        DSL.avg(DSL.ref("@value", INTEGER)))),
                 ImmutableList.of(DSL.named("code", DSL.ref("code", STRING)))),
             DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))),
         optimize(
@@ -70,7 +67,7 @@ public class PrometheusLogicOptimizerTest {
                     relation("prometheus_http_total_requests", table),
                     ImmutableList
                         .of(DSL.named("AVG(@value)",
-                            dsl.avg(DSL.ref("@value", INTEGER)))),
+                            DSL.avg(DSL.ref("@value", INTEGER)))),
                     ImmutableList.of(DSL.named("code",
                         DSL.ref("code", STRING)))),
                 DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE)))
@@ -84,11 +81,11 @@ public class PrometheusLogicOptimizerTest {
     assertEquals(
         project(
             indexScanAgg("prometheus_http_total_requests",
-                dsl.and(dsl.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
-                    dsl.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/")))),
+                DSL.and(DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
+                    DSL.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/")))),
                 ImmutableList
                     .of(DSL.named("AVG(@value)",
-                        dsl.avg(DSL.ref("@value", INTEGER)))),
+                        DSL.avg(DSL.ref("@value", INTEGER)))),
                 ImmutableList.of(DSL.named("job", DSL.ref("job", STRING)))),
             DSL.named("AVG(@value)", DSL.ref("AVG(@value)", DOUBLE))),
         optimize(
@@ -96,15 +93,15 @@ public class PrometheusLogicOptimizerTest {
                 aggregation(
                     filter(
                         relation("prometheus_http_total_requests", table),
-                        dsl.and(
-                            dsl.equal(DSL.ref("code", STRING),
+                        DSL.and(
+                            DSL.equal(DSL.ref("code", STRING),
                                 DSL.literal(stringValue("200"))),
-                            dsl.equal(DSL.ref("handler", STRING),
+                            DSL.equal(DSL.ref("handler", STRING),
                                 DSL.literal(stringValue("/ready/"))))
                     ),
                     ImmutableList
                         .of(DSL.named("AVG(@value)",
-                            dsl.avg(DSL.ref("@value", INTEGER)))),
+                            DSL.avg(DSL.ref("@value", INTEGER)))),
                     ImmutableList.of(DSL.named("job",
                         DSL.ref("job", STRING)))),
                 DSL.named("AVG(@value)", DSL.ref("AVG(@value)", DOUBLE)))

@@ -83,7 +83,7 @@ class RankingWindowFunctionTest extends ExpressionTestBase {
             fromExprValueMap(ImmutableMap.of(
                 "state", new ExprStringValue("WA"), "age", new ExprIntegerValue(30)))));
 
-    RankingWindowFunction rowNumber = dsl.rowNumber();
+    RankingWindowFunction rowNumber = DSL.rowNumber();
 
     windowFrame1.load(iterator);
     assertEquals(new ExprIntegerValue(1), rowNumber.valueOf(windowFrame1));
@@ -91,7 +91,7 @@ class RankingWindowFunctionTest extends ExpressionTestBase {
 
   @Test
   void test_row_number() {
-    RankingWindowFunction rowNumber = dsl.rowNumber();
+    RankingWindowFunction rowNumber = DSL.rowNumber();
 
     windowFrame1.load(iterator1);
     assertEquals(1, rowNumber.rank(windowFrame1));
@@ -108,7 +108,7 @@ class RankingWindowFunctionTest extends ExpressionTestBase {
 
   @Test
   void test_rank() {
-    RankingWindowFunction rank = dsl.rank();
+    RankingWindowFunction rank = DSL.rank();
 
     windowFrame1.load(iterator2);
     assertEquals(1, rank.rank(windowFrame1));
@@ -128,7 +128,7 @@ class RankingWindowFunctionTest extends ExpressionTestBase {
 
   @Test
   void test_dense_rank() {
-    RankingWindowFunction denseRank = dsl.denseRank();
+    RankingWindowFunction denseRank = DSL.denseRank();
 
     windowFrame1.load(iterator2);
     assertEquals(1, denseRank.rank(windowFrame1));
@@ -148,7 +148,7 @@ class RankingWindowFunctionTest extends ExpressionTestBase {
 
   @Test
   void row_number_should_work_if_no_sort_items_defined() {
-    RankingWindowFunction rowNumber = dsl.rowNumber();
+    RankingWindowFunction rowNumber = DSL.rowNumber();
 
     windowFrame2.load(iterator1);
     assertEquals(1, rowNumber.rank(windowFrame2));
@@ -178,7 +178,7 @@ class RankingWindowFunctionTest extends ExpressionTestBase {
             fromExprValueMap(ImmutableMap.of(
                 "state", new ExprStringValue("CA"), "age", new ExprIntegerValue(15)))));
 
-    RankingWindowFunction rank = dsl.rank();
+    RankingWindowFunction rank = DSL.rank();
 
     windowFrame2.load(iterator);
     assertEquals(1, rank.rank(windowFrame2));
@@ -198,7 +198,7 @@ class RankingWindowFunctionTest extends ExpressionTestBase {
 
   @Test
   void dense_rank_should_always_return_1_if_no_sort_items_defined() {
-    RankingWindowFunction denseRank = dsl.denseRank();
+    RankingWindowFunction denseRank = DSL.denseRank();
 
     windowFrame2.load(iterator2);
     assertEquals(1, denseRank.rank(windowFrame2));

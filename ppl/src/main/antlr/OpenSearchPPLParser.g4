@@ -29,7 +29,7 @@ queryStatement
 pplCommands
     : searchCommand
     | describeCommand
-    | showCatalogsCommand
+    | showDataSourcesCommand
     ;
 
 commands
@@ -46,8 +46,8 @@ describeCommand
     : DESCRIBE tableSourceClause
     ;
 
-showCatalogsCommand
-    : SHOW CATALOGS
+showDataSourcesCommand
+    : SHOW DATASOURCES
     ;
 
 whereCommand

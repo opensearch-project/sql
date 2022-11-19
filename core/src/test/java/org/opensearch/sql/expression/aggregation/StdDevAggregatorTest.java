@@ -67,7 +67,7 @@ public class StdDevAggregatorTest extends AggregationTest {
   public void stddev_sample_arithmetic_expression() {
     ExprValue result =
         aggregation(
-            dsl.stddevSamp(dsl.multiply(ref("integer_value", INTEGER), DSL.literal(10))), tuples);
+            DSL.stddevSamp(DSL.multiply(ref("integer_value", INTEGER), DSL.literal(10))), tuples);
     assertEquals(12.909944487358056, result.value());
   }
 
@@ -75,7 +75,7 @@ public class StdDevAggregatorTest extends AggregationTest {
   public void stddev_population_arithmetic_expression() {
     ExprValue result =
         aggregation(
-            dsl.stddevPop(dsl.multiply(ref("integer_value", INTEGER), DSL.literal(10))), tuples);
+            DSL.stddevPop(DSL.multiply(ref("integer_value", INTEGER), DSL.literal(10))), tuples);
     assertEquals(11.180339887498949, result.value());
   }
 
@@ -83,8 +83,8 @@ public class StdDevAggregatorTest extends AggregationTest {
   public void filtered_stddev_sample() {
     ExprValue result =
         aggregation(
-            dsl.stddevSamp(ref("integer_value", INTEGER))
-                .condition(dsl.greater(ref("integer_value", INTEGER), DSL.literal(1))),
+            DSL.stddevSamp(ref("integer_value", INTEGER))
+                .condition(DSL.greater(ref("integer_value", INTEGER), DSL.literal(1))),
             tuples);
     assertEquals(1.0, result.value());
   }
@@ -93,8 +93,8 @@ public class StdDevAggregatorTest extends AggregationTest {
   public void filtered_stddev_population() {
     ExprValue result =
         aggregation(
-            dsl.stddevPop(ref("integer_value", INTEGER))
-                .condition(dsl.greater(ref("integer_value", INTEGER), DSL.literal(1))),
+            DSL.stddevPop(ref("integer_value", INTEGER))
+                .condition(DSL.greater(ref("integer_value", INTEGER), DSL.literal(1))),
             tuples);
     assertEquals(0.816496580927726, result.value());
   }
@@ -137,21 +137,21 @@ public class StdDevAggregatorTest extends AggregationTest {
 
   @Test
   public void stddev_sample_to_string() {
-    Aggregator aggregator = dsl.stddevSamp(ref("integer_value", INTEGER));
+    Aggregator aggregator = DSL.stddevSamp(ref("integer_value", INTEGER));
     assertEquals("stddev_samp(integer_value)", aggregator.toString());
   }
 
   @Test
   public void stddev_pop_to_string() {
-    Aggregator aggregator = dsl.stddevPop(ref("integer_value", INTEGER));
+    Aggregator aggregator = DSL.stddevPop(ref("integer_value", INTEGER));
     assertEquals("stddev_pop(integer_value)", aggregator.toString());
   }
 
   @Test
   public void stddev_sample_nested_to_string() {
     Aggregator avgAggregator =
-        dsl.stddevSamp(
-            dsl.multiply(
+        DSL.stddevSamp(
+            DSL.multiply(
                 ref("integer_value", INTEGER), DSL.literal(ExprValueUtils.integerValue(10))));
     assertEquals(
         String.format("stddev_samp(*(%s, %d))", ref("integer_value", INTEGER), 10),
@@ -161,13 +161,13 @@ public class StdDevAggregatorTest extends AggregationTest {
   private ExprValue stddevSample(ExprValue value, ExprValue... values) {
     when(expression.valueOf(any())).thenReturn(value, values);
     when(expression.type()).thenReturn(DOUBLE);
-    return aggregation(dsl.stddevSamp(expression), mockTuples(value, values));
+    return aggregation(DSL.stddevSamp(expression), mockTuples(value, values));
   }
 
   private ExprValue stddevPop(ExprValue value, ExprValue... values) {
     when(expression.valueOf(any())).thenReturn(value, values);
     when(expression.type()).thenReturn(DOUBLE);
-    return aggregation(dsl.stddevPop(expression), mockTuples(value, values));
+    return aggregation(DSL.stddevPop(expression), mockTuples(value, values));
   }
 
   private List<ExprValue> mockTuples(ExprValue value, ExprValue... values) {

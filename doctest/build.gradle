@@ -29,19 +29,21 @@ task bootstrap(type: Exec) {
 task startPrometheus(type: SpawnProcessTask) {
     doFirst {
         download.run {
-            src 'https://github.com/prometheus/prometheus/releases/download/v2.39.1/prometheus-2.39.1.linux-amd64.tar.gz'
+            src getPrometheusBinaryLocation()
             dest new File("$projectDir/bin", 'prometheus.tar.gz')
         }
         copy {
             from tarTree("$projectDir/bin/prometheus.tar.gz")
             into "$projectDir/bin"
         }
-        copy {
-            from "$projectDir/bin/prometheus.yml"
-            into "$projectDir/bin/prometheus-2.39.1.linux-amd64/prometheus"
+        file("$projectDir/bin").eachDir {
+            if (it.name.startsWith("prometheus-")) {
+                println "Renaming folder : " + it.name.toString()
+                println it.renameTo("$projectDir/bin/prometheus")
+            }
         }
     }
-    command "$projectDir/bin/prometheus-2.39.1.linux-amd64/prometheus --storage.tsdb.path=$projectDir/bin/prometheus-2.39.1.linux-amd64/data --config.file=$projectDir/bin/prometheus-2.39.1.linux-amd64/prometheus.yml"
+    command "$projectDir/bin/prometheus/prometheus --storage.tsdb.path=$projectDir/bin/prometheus/data --config.file=$projectDir/bin/prometheus/prometheus.yml"
     ready 'TSDB started'
     pidLockFileName '.prom.pid.lock'
 }
@@ -80,6 +82,8 @@ task stopPrometheus() {
             process.waitFor()
         } finally {
             pidFile.delete()
+            file("$projectDir/bin/prometheus").deleteDir()
+            file("$projectDir/bin/prometheus.tar.gz").delete()
         }
     }
 }
@@ -104,7 +108,7 @@ String mlCommonsPlugin = 'opensearch-ml'
 
 testClusters {
     docTestCluster {
-        keystore 'plugins.query.federation.datasources.config', new File("$projectDir/catalog", 'catalog.json')
+        keystore 'plugins.query.federation.datasources.config', new File("$projectDir/datasource", 'datasources.json')
         // Disable loading of `ML-commons` plugin, because it might be unavailable (not released yet).
         /*
         plugin(provider(new Callable<RegularFile>(){

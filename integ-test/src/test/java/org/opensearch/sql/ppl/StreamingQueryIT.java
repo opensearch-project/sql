@@ -7,6 +7,8 @@ package org.opensearch.sql.ppl;
 
 import com.carrotsearch.randomizedtesting.ThreadFilter;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -22,27 +24,33 @@ import org.junit.Test;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.analysis.ExpressionAnalyzer;
 import org.opensearch.sql.ast.dsl.AstDSL;
-import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.datasource.DataSourceServiceImpl;
+import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.executor.DefaultExecutionEngine;
 import org.opensearch.sql.executor.DefaultQueryManager;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.StreamingQueryPlan;
-import org.opensearch.sql.expression.DSL;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.filesystem.storage.FSDataSourceFactory;
 import org.opensearch.sql.filesystem.storage.FSStorageEngine;
 import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
-import org.opensearch.sql.plugin.catalog.CatalogServiceImpl;
+import org.opensearch.sql.storage.DataSourceFactory;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 @ThreadLeakFilters(filters = {StreamingQueryIT.HadoopFSThreadsFilter.class})
 public class StreamingQueryIT extends PPLIntegTestCase {
 
   private static final int INTERVAL_IN_SECONDS = 1;
+
+  private static final String DATASOURCE_NAME = "fs";
+
+  private static final String TABLE_NAME = "mock";
 
   private final AtomicInteger result = new AtomicInteger(0);
 
@@ -68,12 +76,12 @@ public class StreamingQueryIT extends PPLIntegTestCase {
   }
 
   @After
-  void clean() throws InterruptedException, IOException {
+  public void clean() throws InterruptedException, IOException {
     query.close();
     source.close();
   }
 
-  StreamingQuery fromFile(java.nio.file.Path path) throws IOException {
+  StreamingQuery fromFile(java.nio.file.Path path) {
     return new StreamingQuery(path);
   }
 
@@ -117,17 +125,21 @@ public class StreamingQueryIT extends PPLIntegTestCase {
     public StreamingQuery(java.nio.file.Path tempDir) {
       result.set(0);
       context = new AnnotationConfigApplicationContext();
-      context.register(ExpressionConfig.class);
       context.refresh();
-      BuiltinFunctionRepository functionRepository =
-          context.getBean(BuiltinFunctionRepository.class);
-      CatalogService catalogService = CatalogServiceImpl.getInstance();
-      storageEngine = new FSStorageEngine(tempDir.toUri(), result);
-      CatalogServiceImpl.getInstance().registerDefaultOpenSearchCatalog(storageEngine);
+      DataSourceService dataSourceService =
+          new DataSourceServiceImpl(
+              new ImmutableSet.Builder<DataSourceFactory>()
+                  .add(new FSDataSourceFactory(tempDir.toUri(), result))
+                  .build());
+      dataSourceService.addDataSource(fsDataSourceMetadata());
+      context.registerBean(DataSourceService.class, () -> dataSourceService);
+      storageEngine =
+          (FSStorageEngine) dataSourceService.getDataSource(DATASOURCE_NAME).getStorageEngine();
+      final BuiltinFunctionRepository functionRepository = BuiltinFunctionRepository.getInstance();
       Analyzer analyzer =
           new Analyzer(
-              new ExpressionAnalyzer(functionRepository), catalogService, functionRepository);
-      Planner planner = new Planner(LogicalPlanOptimizer.create(new DSL(functionRepository)));
+              new ExpressionAnalyzer(functionRepository), dataSourceService, functionRepository);
+      Planner planner = new Planner(LogicalPlanOptimizer.create());
 
       queryManager = DefaultQueryManager.defaultQueryManager();
       queryService = new QueryService(analyzer, new DefaultExecutionEngine(), planner);
@@ -137,7 +149,7 @@ public class StreamingQueryIT extends PPLIntegTestCase {
       queryManager.submit(
           new StreamingQueryPlan(
               queryId,
-              AstDSL.relation("mock"),
+              AstDSL.relation(AstDSL.qualifiedName(DATASOURCE_NAME, "default", TABLE_NAME)),
               queryService,
               new ResponseListener<>() {
                 @Override
@@ -177,5 +189,13 @@ public class StreamingQueryIT extends PPLIntegTestCase {
     public boolean reject(Thread t) {
       return t.getName().contains("StatisticsDataReferenceCleaner");
     }
+  }
+
+  private DataSourceMetadata fsDataSourceMetadata() {
+    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
+    dataSourceMetadata.setName(DATASOURCE_NAME);
+    dataSourceMetadata.setConnector(DataSourceType.FILESYSTEM);
+    dataSourceMetadata.setProperties(ImmutableMap.of());
+    return dataSourceMetadata;
   }
 }

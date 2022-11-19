@@ -66,7 +66,7 @@ public class VarianceAggregatorTest extends AggregationTest {
   public void variance_sample_arithmetic_expression() {
     ExprValue result =
         aggregation(
-            dsl.varSamp(dsl.multiply(ref("integer_value", INTEGER), DSL.literal(10))), tuples);
+            DSL.varSamp(DSL.multiply(ref("integer_value", INTEGER), DSL.literal(10))), tuples);
     assertEquals(166.66666666666666, result.value());
   }
 
@@ -74,7 +74,7 @@ public class VarianceAggregatorTest extends AggregationTest {
   public void variance_pop_arithmetic_expression() {
     ExprValue result =
         aggregation(
-            dsl.varPop(dsl.multiply(ref("integer_value", INTEGER), DSL.literal(10))), tuples);
+            DSL.varPop(DSL.multiply(ref("integer_value", INTEGER), DSL.literal(10))), tuples);
     assertEquals(125d, result.value());
   }
 
@@ -82,8 +82,8 @@ public class VarianceAggregatorTest extends AggregationTest {
   public void filtered_variance_sample() {
     ExprValue result =
         aggregation(
-            dsl.varSamp(ref("integer_value", INTEGER))
-                .condition(dsl.greater(ref("integer_value", INTEGER), DSL.literal(1))),
+            DSL.varSamp(ref("integer_value", INTEGER))
+                .condition(DSL.greater(ref("integer_value", INTEGER), DSL.literal(1))),
             tuples);
     assertEquals(1.0, result.value());
   }
@@ -92,8 +92,8 @@ public class VarianceAggregatorTest extends AggregationTest {
   public void filtered_variance_pop() {
     ExprValue result =
         aggregation(
-            dsl.varPop(ref("integer_value", INTEGER))
-                .condition(dsl.greater(ref("integer_value", INTEGER), DSL.literal(1))),
+            DSL.varPop(ref("integer_value", INTEGER))
+                .condition(DSL.greater(ref("integer_value", INTEGER), DSL.literal(1))),
             tuples);
     assertEquals(0.6666666666666666, result.value());
   }
@@ -139,27 +139,27 @@ public class VarianceAggregatorTest extends AggregationTest {
     ExpressionEvaluationException exception =
         assertThrows(
             ExpressionEvaluationException.class,
-            () -> dsl.avg(ref("double_value", DOUBLE)).valueOf(valueEnv()));
+            () -> DSL.avg(ref("double_value", DOUBLE)).valueOf(valueEnv()));
     assertEquals("can't evaluate on aggregator: avg", exception.getMessage());
   }
 
   @Test
   public void variance_sample_to_string() {
-    Aggregator avgAggregator = dsl.varSamp(ref("integer_value", INTEGER));
+    Aggregator avgAggregator = DSL.varSamp(ref("integer_value", INTEGER));
     assertEquals("var_samp(integer_value)", avgAggregator.toString());
   }
 
   @Test
   public void variance_pop_to_string() {
-    Aggregator avgAggregator = dsl.varPop(ref("integer_value", INTEGER));
+    Aggregator avgAggregator = DSL.varPop(ref("integer_value", INTEGER));
     assertEquals("var_pop(integer_value)", avgAggregator.toString());
   }
 
   @Test
   public void variance_sample_nested_to_string() {
     Aggregator avgAggregator =
-        dsl.varSamp(
-            dsl.multiply(
+        DSL.varSamp(
+            DSL.multiply(
                 ref("integer_value", INTEGER), DSL.literal(ExprValueUtils.integerValue(10))));
     assertEquals(
         String.format("var_samp(*(%s, %d))", ref("integer_value", INTEGER), 10),
@@ -169,13 +169,13 @@ public class VarianceAggregatorTest extends AggregationTest {
   private ExprValue varianceSample(ExprValue value, ExprValue... values) {
     when(expression.valueOf(any())).thenReturn(value, values);
     when(expression.type()).thenReturn(DOUBLE);
-    return aggregation(dsl.varSamp(expression), mockTuples(value, values));
+    return aggregation(DSL.varSamp(expression), mockTuples(value, values));
   }
 
   private ExprValue variancePop(ExprValue value, ExprValue... values) {
     when(expression.valueOf(any())).thenReturn(value, values);
     when(expression.type()).thenReturn(DOUBLE);
-    return aggregation(dsl.varPop(expression), mockTuples(value, values));
+    return aggregation(DSL.varPop(expression), mockTuples(value, values));
   }
 
   private List<ExprValue> mockTuples(ExprValue value, ExprValue... values) {

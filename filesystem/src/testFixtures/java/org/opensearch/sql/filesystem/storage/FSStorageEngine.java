@@ -12,7 +12,7 @@ import lombok.SneakyThrows;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.opensearch.sql.CatalogSchemaName;
+import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
 
@@ -37,7 +37,7 @@ public class FSStorageEngine implements StorageEngine {
   }
 
   @Override
-  public Table getTable(CatalogSchemaName catalogSchemaName, String tableName) {
+  public Table getTable(DataSourceSchemaName dataSourceSchemaName, String tableName) {
     return new FSTable(fs, basePath, result);
   }
 

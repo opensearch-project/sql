@@ -27,7 +27,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.sql.catalog.CatalogService;
+import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryManager;
@@ -66,7 +66,7 @@ public class RestSQLQueryActionTest extends BaseRestHandler {
     context = new AnnotationConfigApplicationContext();
     context.registerBean(StorageEngine.class, () -> Mockito.mock(StorageEngine.class));
     context.registerBean(ExecutionEngine.class, () -> Mockito.mock(ExecutionEngine.class));
-    context.registerBean(CatalogService.class, () -> Mockito.mock(CatalogService.class));
+    context.registerBean(DataSourceService.class, () -> Mockito.mock(DataSourceService.class));
     context.registerBean(QueryManager.class, () -> queryManager);
     context.registerBean(QueryPlanFactory.class, () -> factory);
     context.register(SQLServiceConfig.class);

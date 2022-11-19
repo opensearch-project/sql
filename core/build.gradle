@@ -68,7 +68,7 @@ jacocoTestReport {
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
             fileTree(dir: it,
-                    exclude: ['**/ast/**', '**/catalog/model/**'])
+                    exclude: ['**/ast/**', '**/datasource/model/**'])
         }))
     }
 }
@@ -80,7 +80,7 @@ jacocoTestCoverageVerification {
             excludes = [
                     'org.opensearch.sql.utils.MLCommonsConstants',
                     'org.opensearch.sql.utils.Constants',
-                    'org.opensearch.sql.catalog.model.*'
+                    'org.opensearch.sql.datasource.model.*'
             ]
             limit {
                 counter = 'LINE'

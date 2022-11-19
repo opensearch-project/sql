@@ -44,13 +44,10 @@ import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.LiteralExpression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
 class ExpressionFilterScriptTest {
-
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
 
   @Mock
   private SearchLookup lookup;
@@ -82,7 +79,7 @@ class ExpressionFilterScriptTest {
     assertThat()
         .docValues("age", 30L) // DocValue only supports long
         .filterBy(
-            dsl.greater(ref("age", INTEGER), literal(20)))
+            DSL.greater(ref("age", INTEGER), literal(20)))
         .shouldMatch();
   }
 
@@ -91,7 +88,7 @@ class ExpressionFilterScriptTest {
     assertThat()
         .docValues("name.keyword", "John")
         .filterBy(
-            dsl.equal(ref("name", OPENSEARCH_TEXT_KEYWORD), literal("John")))
+            DSL.equal(ref("name", OPENSEARCH_TEXT_KEYWORD), literal("John")))
         .shouldMatch();
   }
 
@@ -102,9 +99,9 @@ class ExpressionFilterScriptTest {
             "balance", 100.0, // DocValue only supports double
             "name", "John")
         .filterBy(
-            dsl.and(
-                dsl.less(ref("balance", FLOAT), literal(150.0F)),
-                dsl.equal(ref("name", STRING), literal("John"))))
+            DSL.and(
+                DSL.less(ref("balance", FLOAT), literal(150.0F)),
+                DSL.equal(ref("name", STRING), literal("John"))))
         .shouldMatch();
   }
 
@@ -113,7 +110,7 @@ class ExpressionFilterScriptTest {
     ExprTimestampValue ts = new ExprTimestampValue("2020-08-04 10:00:00");
     assertThat()
         .docValues("birthday", ZonedDateTime.parse("2020-08-04T10:00:00Z"))
-        .filterBy(dsl.equal(ref("birthday", TIMESTAMP), new LiteralExpression(ts)))
+        .filterBy(DSL.equal(ref("birthday", TIMESTAMP), new LiteralExpression(ts)))
         .shouldMatch();
   }
 
@@ -137,7 +134,7 @@ class ExpressionFilterScriptTest {
   void can_execute_parse_expression() {
     assertThat()
         .docValues("age_string", "age: 30")
-        .filterBy(dsl.equal(
+        .filterBy(DSL.equal(
             DSL.regex(DSL.ref("age_string", STRING), literal("age: (?<age>\\d+)"), literal("age")),
             literal("30")))
         .shouldMatch();
