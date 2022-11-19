@@ -158,8 +158,8 @@ stopPrometheus.mustRunAfter startPrometheus
 // Run PPL ITs and new, legacy and comparison SQL ITs with new SQL engine enabled
 integTest {
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
-//    dependsOn startPrometheus
-//    finalizedBy stopPrometheus
+    dependsOn startPrometheus
+    finalizedBy stopPrometheus
 
     systemProperty 'tests.security.manager', 'false'
     systemProperty('project.root', project.projectDir.absolutePath)

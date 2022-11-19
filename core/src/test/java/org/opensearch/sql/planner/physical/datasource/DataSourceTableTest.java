@@ -71,6 +71,6 @@ public class DataSourceTableTest {
   void defaultAsStreamingSource() {
     assertThrows(
         UnsupportedOperationException.class,
-        () -> new CatalogTable(catalogService).asStreamingSource());
+        () -> new DataSourceTable(dataSourceService).asStreamingSource());
   }
 }
