@@ -6,6 +6,8 @@
 
 package org.opensearch.sql.planner.logical;
 
+import org.opensearch.sql.storage.TableScanBuilder;
+
 /**
  * The visitor of {@link LogicalPlan}.
  *
@@ -19,6 +21,10 @@ public abstract class LogicalPlanNodeVisitor<R, C> {
   }
 
   public R visitRelation(LogicalRelation plan, C context) {
+    return visitNode(plan, context);
+  }
+
+  public R visitScanBuilder(TableScanBuilder plan, C context) {
     return visitNode(plan, context);
   }
 

@@ -32,6 +32,8 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.storage.Table;
+import org.opensearch.sql.storage.TableScanBuilder;
+import org.opensearch.sql.storage.TableScanOperator;
 
 /**
  * Todo. Temporary added for UT coverage, Will be removed.
@@ -70,6 +72,15 @@ class LogicalPlanNodeVisitorTest {
   public void testAbstractPlanNodeVisitorShouldReturnNull() {
     LogicalPlan relation = LogicalPlanDSL.relation("schema", table);
     assertNull(relation.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
+    }, null));
+
+    LogicalPlan tableScanBuilder = new TableScanBuilder() {
+      @Override
+      public TableScanOperator build() {
+        return null;
+      }
+    };
+    assertNull(tableScanBuilder.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
     }, null));
 
     LogicalPlan filter = LogicalPlanDSL.filter(relation, expression);

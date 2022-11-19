@@ -1,0 +1,87 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.storage.scan;
+
+import com.google.common.annotations.VisibleForTesting;
+import lombok.EqualsAndHashCode;
+import org.opensearch.sql.opensearch.storage.OpenSearchIndexScan;
+import org.opensearch.sql.planner.logical.LogicalAggregation;
+import org.opensearch.sql.planner.logical.LogicalFilter;
+import org.opensearch.sql.planner.logical.LogicalLimit;
+import org.opensearch.sql.planner.logical.LogicalProject;
+import org.opensearch.sql.planner.logical.LogicalSort;
+import org.opensearch.sql.storage.TableScanBuilder;
+import org.opensearch.sql.storage.TableScanOperator;
+
+/**
+ * Table scan builder that builds table scan operator for OpenSearch. The actual work is performed
+ * by delegated builder internally. This is to avoid conditional check of different push down logic
+ * for non-aggregate and aggregate query everywhere.
+ */
+public class OpenSearchIndexScanBuilder extends TableScanBuilder {
+
+  /**
+   * Delegated index scan builder for non-aggregate or aggregate query.
+   */
+  @EqualsAndHashCode.Include
+  private TableScanBuilder delegate;
+
+  @VisibleForTesting
+  OpenSearchIndexScanBuilder(TableScanBuilder delegate) {
+    this.delegate = delegate;
+  }
+
+  /**
+   * Initialize with given index scan.
+   *
+   * @param indexScan index scan to optimize
+   */
+  public OpenSearchIndexScanBuilder(OpenSearchIndexScan indexScan) {
+    this.delegate = new OpenSearchSimpleIndexScanBuilder(indexScan);
+  }
+
+  @Override
+  public TableScanOperator build() {
+    return delegate.build();
+  }
+
+  @Override
+  public boolean pushDownFilter(LogicalFilter filter) {
+    return delegate.pushDownFilter(filter);
+  }
+
+  @Override
+  public boolean pushDownAggregation(LogicalAggregation aggregation) {
+    // Switch to builder for aggregate query which has different push down logic
+    //  for later filter, sort and limit operator. Change back if unable to push
+    //  down aggregation.
+    TableScanBuilder oldDelegate = delegate;
+    delegate = new OpenSearchAggregateIndexScanBuilder(
+        (OpenSearchIndexScan) delegate.build());
+
+    if (delegate.pushDownAggregation(aggregation)) {
+      return true;
+    } else {
+      delegate = oldDelegate;
+      return false;
+    }
+  }
+
+  @Override
+  public boolean pushDownSort(LogicalSort sort) {
+    return delegate.pushDownSort(sort);
+  }
+
+  @Override
+  public boolean pushDownLimit(LogicalLimit limit) {
+    return delegate.pushDownLimit(limit);
+  }
+
+  @Override
+  public boolean pushDownProject(LogicalProject project) {
+    return delegate.pushDownProject(project);
+  }
+}

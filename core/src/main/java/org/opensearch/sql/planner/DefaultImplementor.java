@@ -34,6 +34,7 @@ import org.opensearch.sql.planner.physical.RenameOperator;
 import org.opensearch.sql.planner.physical.SortOperator;
 import org.opensearch.sql.planner.physical.ValuesOperator;
 import org.opensearch.sql.planner.physical.WindowOperator;
+import org.opensearch.sql.storage.TableScanBuilder;
 
 /**
  * Default implementor for implementing logical to physical translation. "Default" here means all
@@ -121,6 +122,11 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
   @Override
   public PhysicalPlan visitLimit(LogicalLimit node, C context) {
     return new LimitOperator(visitChild(node, context), node.getLimit(), node.getOffset());
+  }
+
+  @Override
+  public PhysicalPlan visitScanBuilder(TableScanBuilder plan, C context) {
+    return plan.build();
   }
 
   @Override

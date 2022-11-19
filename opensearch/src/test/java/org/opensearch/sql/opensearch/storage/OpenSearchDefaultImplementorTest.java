@@ -32,31 +32,10 @@ import org.opensearch.sql.storage.Table;
 public class OpenSearchDefaultImplementorTest {
 
   @Mock
-  OpenSearchIndexScan indexScan;
-  @Mock
   OpenSearchClient client;
 
   @Mock
   Table table;
-
-  /**
-   * For test coverage.
-   */
-  @Test
-  public void visitInvalidTypeShouldThrowException() {
-    final OpenSearchIndex.OpenSearchDefaultImplementor implementor =
-        new OpenSearchIndex.OpenSearchDefaultImplementor(indexScan, client);
-
-    final IllegalStateException exception =
-        assertThrows(IllegalStateException.class,
-            () -> implementor.visitNode(relation("index", table),
-                indexScan));
-    ;
-    assertEquals(
-        "unexpected plan node type "
-            + "class org.opensearch.sql.planner.logical.LogicalRelation",
-        exception.getMessage());
-  }
 
   @Test
   public void visitMachineLearning() {
@@ -64,8 +43,8 @@ public class OpenSearchDefaultImplementorTest {
         Answers.RETURNS_DEEP_STUBS);
     Mockito.when(node.getChild().get(0)).thenReturn(Mockito.mock(LogicalPlan.class));
     OpenSearchIndex.OpenSearchDefaultImplementor implementor =
-        new OpenSearchIndex.OpenSearchDefaultImplementor(indexScan, client);
-    assertNotNull(implementor.visitMLCommons(node, indexScan));
+        new OpenSearchIndex.OpenSearchDefaultImplementor(client);
+    assertNotNull(implementor.visitMLCommons(node, null));
   }
 
   @Test
@@ -74,8 +53,8 @@ public class OpenSearchDefaultImplementorTest {
         Answers.RETURNS_DEEP_STUBS);
     Mockito.when(node.getChild().get(0)).thenReturn(Mockito.mock(LogicalPlan.class));
     OpenSearchIndex.OpenSearchDefaultImplementor implementor =
-        new OpenSearchIndex.OpenSearchDefaultImplementor(indexScan, client);
-    assertNotNull(implementor.visitAD(node, indexScan));
+        new OpenSearchIndex.OpenSearchDefaultImplementor(client);
+    assertNotNull(implementor.visitAD(node, null));
   }
 
   @Test
@@ -84,8 +63,8 @@ public class OpenSearchDefaultImplementorTest {
             Answers.RETURNS_DEEP_STUBS);
     Mockito.when(node.getChild().get(0)).thenReturn(Mockito.mock(LogicalPlan.class));
     OpenSearchIndex.OpenSearchDefaultImplementor implementor =
-            new OpenSearchIndex.OpenSearchDefaultImplementor(indexScan, client);
-    assertNotNull(implementor.visitML(node, indexScan));
+            new OpenSearchIndex.OpenSearchDefaultImplementor(client);
+    assertNotNull(implementor.visitML(node, null));
   }
 
   @Test
@@ -93,10 +72,11 @@ public class OpenSearchDefaultImplementorTest {
     LogicalHighlight node = Mockito.mock(LogicalHighlight.class,
         Answers.RETURNS_DEEP_STUBS);
     Mockito.when(node.getChild().get(0)).thenReturn(Mockito.mock(LogicalPlan.class));
+    OpenSearchIndexScan indexScan = Mockito.mock(OpenSearchIndexScan.class);
     OpenSearchRequestBuilder requestBuilder = Mockito.mock(OpenSearchRequestBuilder.class);
     Mockito.when(indexScan.getRequestBuilder()).thenReturn(requestBuilder);
     OpenSearchIndex.OpenSearchDefaultImplementor implementor =
-        new OpenSearchIndex.OpenSearchDefaultImplementor(indexScan, client);
+        new OpenSearchIndex.OpenSearchDefaultImplementor(client);
 
     implementor.visitHighlight(node, indexScan);
     verify(requestBuilder).pushDownHighlight(any(), any());

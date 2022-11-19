@@ -15,6 +15,8 @@ import java.util.stream.Collectors;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.optimizer.rule.MergeFilterAndFilter;
 import org.opensearch.sql.planner.optimizer.rule.PushFilterUnderSort;
+import org.opensearch.sql.planner.optimizer.rule.scan.CreateTableScanBuilder;
+import org.opensearch.sql.planner.optimizer.rule.scan.TableScanPushDown;
 
 /**
  * {@link LogicalPlan} Optimizer.
@@ -39,8 +41,20 @@ public class LogicalPlanOptimizer {
    */
   public static LogicalPlanOptimizer create() {
     return new LogicalPlanOptimizer(Arrays.asList(
+        /*
+         * Phase 1: Transformations rely on static relation algebra equivalence
+         */
         new MergeFilterAndFilter(),
-        new PushFilterUnderSort()));
+        new PushFilterUnderSort(),
+        /*
+         * Phase 2: Transformations rely on connector push down capability
+         */
+        new CreateTableScanBuilder(),
+        TableScanPushDown.PUSH_DOWN_FILTER,
+        TableScanPushDown.PUSH_DOWN_AGGREGATION,
+        TableScanPushDown.PUSH_DOWN_SORT,
+        TableScanPushDown.PUSH_DOWN_LIMIT,
+        TableScanPushDown.PUSH_DOWN_PROJECT));
   }
 
   /**
@@ -63,7 +77,12 @@ public class LogicalPlanOptimizer {
         Match match = DEFAULT_MATCHER.match(rule.pattern(), node);
         if (match.isPresent()) {
           node = rule.apply(match.value(), match.captures());
-          done = false;
+
+          // Re-iterate all rules against the node if the node is replaced by any rule
+          // TODO: may need to introduce fixed point or maximum iteration limit in future
+          if (node != match.value()) {
+            done = false;
+          }
         }
       }
     }

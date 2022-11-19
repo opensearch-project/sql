@@ -44,7 +44,9 @@ public interface Table {
    *
    * @param plan logical plan
    * @return physical plan
+   * @deprecated replaced by write/scan builder
    */
+  @Deprecated(since = "2.5")
   PhysicalPlan implement(LogicalPlan plan);
 
   /**
@@ -53,9 +55,19 @@ public interface Table {
    *
    * @param plan logical plan.
    * @return logical plan.
+   * @deprecated replaced by write/scan builder
    */
+  @Deprecated(since = "2.5")
   default LogicalPlan optimize(LogicalPlan plan) {
     return plan;
+  }
+
+  /**
+   * Create table scan builder for logical to physical transformation.
+   * @return table scan builder
+   */
+  default TableScanBuilder createScanBuilder() {
+    return null; // TODO: enforce all connector to create one for unified optimizing workflow
   }
 
 }
