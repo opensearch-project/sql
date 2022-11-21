@@ -19,12 +19,16 @@ import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.storage.TableScanBuilder;
 
 /**
- * {@code RelationPushDown} defines a set of push down rules...
+ * Rule that replace logical relation operator to {@link TableScanBuilder} for later
+ * push down optimization. All push down optimization rules that depends on table scan
+ * builder needs to run after this.
  */
 public class CreateTableScanBuilder implements Rule<LogicalRelation> {
 
+  /** Capture the table inside matched logical relation operator. */
   private final Capture<Table> capture;
 
+  /** Pattern that matches logical relation operator. */
   @Accessors(fluent = true)
   @Getter
   private final Pattern<LogicalRelation> pattern;
@@ -41,7 +45,7 @@ public class CreateTableScanBuilder implements Rule<LogicalRelation> {
   @Override
   public LogicalPlan apply(LogicalRelation plan, Captures captures) {
     TableScanBuilder scanBuilder = captures.get(capture).createScanBuilder();
-    // TODO: temporary check to avoid impact and separate Prometheus refactor work
+    // TODO: Remove this after Prometheus refactored to new table scan builder too
     return (scanBuilder == null) ? plan : scanBuilder;
   }
 }

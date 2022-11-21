@@ -42,12 +42,12 @@ public class LogicalPlanOptimizer {
   public static LogicalPlanOptimizer create() {
     return new LogicalPlanOptimizer(Arrays.asList(
         /*
-         * Phase 1: Transformations rely on static relation algebra equivalence
+         * Phase 1: Transformations that rely on relational algebra equivalence
          */
         new MergeFilterAndFilter(),
         new PushFilterUnderSort(),
         /*
-         * Phase 2: Transformations rely on connector push down capability
+         * Phase 2: Transformations that rely on data source push down capability
          */
         new CreateTableScanBuilder(),
         TableScanPushDown.PUSH_DOWN_FILTER,

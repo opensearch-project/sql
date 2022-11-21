@@ -110,8 +110,7 @@ public class OpenSearchIndex implements Table {
    */
   @Override
   public PhysicalPlan implement(LogicalPlan plan) {
-    // TODO: deprecate this and move to Planner. For now leave it here to
-    //  avoid impact Prometheus optimize/implement logic
+    // TODO: Leave it here to avoid impact Prometheus, AD and highlight. Need to move to Planner.
     return plan.accept(new OpenSearchDefaultImplementor(client), null);
   }
 

@@ -24,7 +24,10 @@ import org.opensearch.sql.planner.optimizer.Rule;
 import org.opensearch.sql.storage.TableScanBuilder;
 
 /**
- * Base class for all table scan push down rules.
+ * Rule template for all table scan push down rules. Because all push down optimization rules
+ * have similar workflow in common, such as a pattern that match an operator on top of table scan
+ * builder, and action that eliminates the original operator if pushed down, this class helps
+ * remove redundant code and improve readability.
  *
  * @param <T> logical plan node type
  */
