@@ -128,25 +128,28 @@ class OpenSearchIndexTest {
                         .put("blob", "binary")
                         .build())));
 
-    Map<String, ExprType> fieldTypes = index.getFieldTypes();
-    assertThat(
-        fieldTypes,
-        allOf(
-            aMapWithSize(13),
-            hasEntry("name", ExprCoreType.STRING),
-            hasEntry("address", (ExprType) OpenSearchDataType.OPENSEARCH_TEXT),
-            hasEntry("age", ExprCoreType.INTEGER),
-            hasEntry("account_number", ExprCoreType.LONG),
-            hasEntry("balance1", ExprCoreType.FLOAT),
-            hasEntry("balance2", ExprCoreType.DOUBLE),
-            hasEntry("gender", ExprCoreType.BOOLEAN),
-            hasEntry("family", ExprCoreType.ARRAY),
-            hasEntry("employer", ExprCoreType.STRUCT),
-            hasEntry("birthday", ExprCoreType.TIMESTAMP),
-            hasEntry("id1", ExprCoreType.BYTE),
-            hasEntry("id2", ExprCoreType.SHORT),
-            hasEntry("blob", (ExprType) OpenSearchDataType.OPENSEARCH_BINARY)
-        ));
+    // Run more than once to confirm caching logic is covered and can work
+    for (int i = 0; i < 2; i++) {
+      Map<String, ExprType> fieldTypes = index.getFieldTypes();
+      assertThat(
+          fieldTypes,
+          allOf(
+              aMapWithSize(13),
+              hasEntry("name", ExprCoreType.STRING),
+              hasEntry("address", (ExprType) OpenSearchDataType.OPENSEARCH_TEXT),
+              hasEntry("age", ExprCoreType.INTEGER),
+              hasEntry("account_number", ExprCoreType.LONG),
+              hasEntry("balance1", ExprCoreType.FLOAT),
+              hasEntry("balance2", ExprCoreType.DOUBLE),
+              hasEntry("gender", ExprCoreType.BOOLEAN),
+              hasEntry("family", ExprCoreType.ARRAY),
+              hasEntry("employer", ExprCoreType.STRUCT),
+              hasEntry("birthday", ExprCoreType.TIMESTAMP),
+              hasEntry("id1", ExprCoreType.BYTE),
+              hasEntry("id2", ExprCoreType.SHORT),
+              hasEntry("blob", (ExprType) OpenSearchDataType.OPENSEARCH_BINARY)
+      ));
+    }
   }
 
   @Test

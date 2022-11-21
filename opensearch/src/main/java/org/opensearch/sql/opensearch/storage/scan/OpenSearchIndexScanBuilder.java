@@ -29,6 +29,8 @@ public class OpenSearchIndexScanBuilder extends TableScanBuilder {
   @EqualsAndHashCode.Include
   private TableScanBuilder delegate;
 
+  private boolean hasLimit = false;
+
   @VisibleForTesting
   OpenSearchIndexScanBuilder(TableScanBuilder delegate) {
     this.delegate = delegate;
@@ -55,19 +57,16 @@ public class OpenSearchIndexScanBuilder extends TableScanBuilder {
 
   @Override
   public boolean pushDownAggregation(LogicalAggregation aggregation) {
+    if (hasLimit) {
+      return false;
+    }
+
     // Switch to builder for aggregate query which has different push down logic
-    //  for later filter, sort and limit operator. Change back if unable to push
-    //  down aggregation.
-    TableScanBuilder oldDelegate = delegate;
+    //  for later filter, sort and limit operator.
     delegate = new OpenSearchAggregateIndexScanBuilder(
         (OpenSearchIndexScan) delegate.build());
 
-    if (delegate.pushDownAggregation(aggregation)) {
-      return true;
-    } else {
-      delegate = oldDelegate;
-      return false;
-    }
+    return delegate.pushDownAggregation(aggregation);
   }
 
   @Override
@@ -77,6 +76,7 @@ public class OpenSearchIndexScanBuilder extends TableScanBuilder {
 
   @Override
   public boolean pushDownLimit(LogicalLimit limit) {
+    hasLimit = true;
     return delegate.pushDownLimit(limit);
   }
 

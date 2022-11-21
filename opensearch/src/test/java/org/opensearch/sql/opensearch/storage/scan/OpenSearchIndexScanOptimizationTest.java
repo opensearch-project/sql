@@ -332,32 +332,6 @@ class OpenSearchIndexScanOptimizationTest {
     );
   }
 
-  /*
-  @Test
-  void aggregation_cant_merge_index_scan_with_limit() {
-    assertEquals(
-        project(
-            aggregation(
-                indexScan("schema", 10, 0, noProjects()),
-                ImmutableList
-                    .of(DSL.named("AVG(intV)",
-                        DSL.avg(DSL.ref("intV", INTEGER)))),
-                ImmutableList.of(DSL.named("longV",
-                    DSL.abs(DSL.ref("longV", LONG))))),
-            DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))),
-        optimize(
-            project(
-                aggregation(
-                    indexScan("schema", 10, 0, noProjects()),
-                    ImmutableList
-                        .of(DSL.named("AVG(intV)",
-                            DSL.avg(DSL.ref("intV", INTEGER)))),
-                    ImmutableList.of(DSL.named("longV",
-                        DSL.abs(DSL.ref("longV", LONG))))),
-                DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE)))));
-  }
-   */
-
   /**
    * Project(intV, abs(intV)) -> Relation.
    * -- will be optimized as
@@ -419,7 +393,7 @@ class OpenSearchIndexScanOptimizationTest {
   void sort_with_expression_cannot_merge_with_relation() {
     assertEqualsAfterOptimization(
         sort(
-            indexScanAggBuilder(),
+            indexScanBuilder(),
             Pair.of(SortOption.DEFAULT_ASC, DSL.abs(DSL.ref("intV", INTEGER)))
         ),
         sort(
@@ -429,6 +403,56 @@ class OpenSearchIndexScanOptimizationTest {
     );
   }
 
+  @Test
+  void sort_with_expression_cannot_merge_with_aggregation() {
+    assertEqualsAfterOptimization(
+        sort(
+            indexScanAggBuilder(
+                withAggregationPushedDown(
+                    aggregate("AVG(intV)")
+                        .aggregateBy("intV")
+                        .groupBy("stringV")
+                        .resultTypes(Map.of(
+                            "AVG(intV)", DOUBLE,
+                            "stringV", STRING)))),
+            Pair.of(SortOption.DEFAULT_ASC, DSL.abs(DSL.ref("intV", INTEGER)))
+        ),
+        sort(
+            aggregation(
+                relation("schema", table),
+                ImmutableList
+                    .of(DSL.named("AVG(intV)", DSL.avg(DSL.ref("intV", INTEGER)))),
+                ImmutableList.of(DSL.named("stringV", DSL.ref("stringV", STRING)))),
+            Pair.of(SortOption.DEFAULT_ASC, DSL.abs(DSL.ref("intV", INTEGER)))
+        )
+    );
+  }
+
+  @Test
+  void aggregation_cant_merge_index_scan_with_limit() {
+    assertEqualsAfterOptimization(
+        project(
+            aggregation(
+                indexScanBuilder(
+                    withLimitPushedDown(10, 0)),
+                ImmutableList
+                    .of(DSL.named("AVG(intV)",
+                        DSL.avg(DSL.ref("intV", INTEGER)))),
+                ImmutableList.of(DSL.named("longV",
+                    DSL.abs(DSL.ref("longV", LONG))))),
+            DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))),
+        project(
+            aggregation(
+                limit(
+                    relation("schema", table),
+                    10, 0),
+                ImmutableList
+                    .of(DSL.named("AVG(intV)",
+                        DSL.avg(DSL.ref("intV", INTEGER)))),
+                ImmutableList.of(DSL.named("longV",
+                    DSL.abs(DSL.ref("longV", LONG))))),
+            DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))));
+  }
 
   /**
    * Can't Optimize the following query.
