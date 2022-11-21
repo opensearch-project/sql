@@ -14,6 +14,14 @@ root
 
 /** statement */
 pplStatement
+    : dmlStatement
+    ;
+
+dmlStatement
+    : queryStatement
+    ;
+
+queryStatement
     : pplCommands (PIPE commands)*
     ;
 
@@ -21,7 +29,7 @@ pplStatement
 pplCommands
     : searchCommand
     | describeCommand
-    | showCatalogsCommand
+    | showDataSourcesCommand
     ;
 
 commands
@@ -38,8 +46,8 @@ describeCommand
     : DESCRIBE tableSourceClause
     ;
 
-showCatalogsCommand
-    : SHOW CATALOGS
+showDataSourcesCommand
+    : SHOW DATASOURCES
     ;
 
 whereCommand

@@ -93,6 +93,9 @@ configurations.all {
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.6.0"
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0"
     resolutionStrategy.force "com.squareup.okhttp3:okhttp:4.9.3"
+    resolutionStrategy.force "org.apache.commons:commons-math3:3.6.1"
+    resolutionStrategy.force "org.apache.commons:commons-lang3:3.12.0"
+    resolutionStrategy.force "joda-time:joda-time:2.10.12"
     resolutionStrategy.force "org.slf4j:slf4j-api:1.7.36"
 }
 compileJava {
@@ -109,11 +112,11 @@ dependencies {
     api "com.fasterxml.jackson.core:jackson-databind:${jackson_databind_version}"
     api "com.fasterxml.jackson.core:jackson-annotations:${jackson_version}"
 
-
     api project(":ppl")
     api project(':legacy')
     api project(':opensearch')
     api project(':prometheus')
+    api project(':filesystem')
 }
 
 test {

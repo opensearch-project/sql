@@ -13,7 +13,6 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalComman
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FromClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.HeadCommandContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PplStatementContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFilterFromContext;
@@ -24,7 +23,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsComma
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WhereCommandContext;
-import static org.opensearch.sql.utils.SystemIndexUtils.CATALOGS_TABLE_NAME;
+import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableList;
@@ -47,7 +46,6 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.QualifiedName;
-import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
@@ -64,7 +62,6 @@ import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
-import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
@@ -91,7 +88,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   private final String query;
 
   @Override
-  public UnresolvedPlan visitPplStatement(PplStatementContext ctx) {
+  public UnresolvedPlan visitQueryStatement(OpenSearchPPLParser.QueryStatementContext ctx) {
     UnresolvedPlan pplCommand = visit(ctx.pplCommands());
     return ctx.commands()
         .stream()
@@ -123,7 +120,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    * Describe command.
    * Current logic separates table and metadata info about table by adding
    * MAPPING_ODFE_SYS_TABLE as suffix.
-   * Even with the introduction of catalog and schema name in fully qualified table name,
+   * Even with the introduction of datasource and schema name in fully qualified table name,
    * we do the same thing by appending MAPPING_ODFE_SYS_TABLE as syffix to the last part
    * of qualified name.
    */
@@ -140,9 +137,9 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    * Show command.
    */
   @Override
-  public UnresolvedPlan visitShowCatalogsCommand(
-      OpenSearchPPLParser.ShowCatalogsCommandContext ctx) {
-    return new Relation(qualifiedName(CATALOGS_TABLE_NAME));
+  public UnresolvedPlan visitShowDataSourcesCommand(
+      OpenSearchPPLParser.ShowDataSourcesCommandContext ctx) {
+    return new Relation(qualifiedName(DATASOURCES_TABLE_NAME));
   }
 
 

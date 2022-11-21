@@ -42,14 +42,12 @@ import org.opensearch.sql.expression.aggregation.MinAggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.aggregation.SumAggregator;
 import org.opensearch.sql.expression.aggregation.TakeAggregator;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
 class MetricAggregationBuilderTest {
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
 
   @Mock
   private ExpressionSerializer serializer;
@@ -287,7 +285,7 @@ class MetricAggregationBuilderTest {
         buildQuery(Collections.singletonList(named(
             "count(distinct name) filter(where age > 30)",
             new CountAggregator(Collections.singletonList(ref("name", STRING)), INTEGER)
-                .condition(dsl.greater(ref("age", INTEGER), literal(30)))
+                .condition(DSL.greater(ref("age", INTEGER), literal(30)))
                 .distinct(true)))));
   }
 
@@ -351,7 +349,7 @@ class MetricAggregationBuilderTest {
             "take(name, 10) filter(where age > 30)",
             new TakeAggregator(
                 ImmutableList.of(ref("name", STRING), literal(10)), ARRAY)
-                .condition(dsl.greater(ref("age", INTEGER), literal(30)))))));
+                .condition(DSL.greater(ref("age", INTEGER), literal(30)))))));
   }
 
   @Test

@@ -22,7 +22,7 @@ import lombok.NonNull;
 import lombok.ToString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.sql.CatalogSchemaName;
+import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -43,7 +43,7 @@ public class PrometheusDescribeMetricRequest implements PrometheusSystemRequest 
   @ToString.Include
   private final String metricName;
 
-  private final CatalogSchemaName catalogSchemaName;
+  private final DataSourceSchemaName dataSourceSchemaName;
 
   private static final Logger LOG = LogManager.getLogger();
 
@@ -53,15 +53,15 @@ public class PrometheusDescribeMetricRequest implements PrometheusSystemRequest 
    * metric names are optional.
    *
    * @param prometheusClient  prometheusClient.
-   * @param catalogSchemaName catalogSchemaName.
+   * @param dataSourceSchemaName dataSourceSchemaName.
    * @param metricName        metricName.
    */
   public PrometheusDescribeMetricRequest(PrometheusClient prometheusClient,
-                                         CatalogSchemaName catalogSchemaName,
+                                         DataSourceSchemaName dataSourceSchemaName,
                                          @NonNull String metricName) {
     this.prometheusClient = prometheusClient;
     this.metricName = metricName;
-    this.catalogSchemaName = catalogSchemaName;
+    this.dataSourceSchemaName = dataSourceSchemaName;
   }
 
 
@@ -94,16 +94,16 @@ public class PrometheusDescribeMetricRequest implements PrometheusSystemRequest 
     List<ExprValue> results = new ArrayList<>();
     for (Map.Entry<String, ExprType> entry : getFieldTypes().entrySet()) {
       results.add(row(entry.getKey(), entry.getValue().legacyTypeName().toLowerCase(),
-          catalogSchemaName));
+          dataSourceSchemaName));
     }
     return results;
   }
 
   private ExprTupleValue row(String fieldName, String fieldType,
-                             CatalogSchemaName catalogSchemaName) {
+                             DataSourceSchemaName dataSourceSchemaName) {
     LinkedHashMap<String, ExprValue> valueMap = new LinkedHashMap<>();
-    valueMap.put("TABLE_CATALOG", stringValue(catalogSchemaName.getCatalogName()));
-    valueMap.put("TABLE_SCHEMA", stringValue(catalogSchemaName.getSchemaName()));
+    valueMap.put("TABLE_CATALOG", stringValue(dataSourceSchemaName.getDataSourceName()));
+    valueMap.put("TABLE_SCHEMA", stringValue(dataSourceSchemaName.getSchemaName()));
     valueMap.put("TABLE_NAME", stringValue(metricName));
     valueMap.put("COLUMN_NAME", stringValue(fieldName));
     valueMap.put("DATA_TYPE", stringValue(fieldType));

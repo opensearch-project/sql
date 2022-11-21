@@ -62,8 +62,8 @@ public class ConditionalFunctionTest extends ExpressionTestBase {
 
     Expression cases = DSL.cases(
         DSL.literal(defaultVal),
-        DSL.when(dsl.equal(DSL.literal(cond1), DSL.literal(value)), DSL.literal(result1)),
-        DSL.when(dsl.equal(DSL.literal(cond2), DSL.literal(value)), DSL.literal(result2)));
+        DSL.when(DSL.equal(DSL.literal(cond1), DSL.literal(value)), DSL.literal(result1)),
+        DSL.when(DSL.equal(DSL.literal(cond2), DSL.literal(value)), DSL.literal(result2)));
 
     assertEquals(
         new ExprIntegerValue(expect.call()),

@@ -34,8 +34,7 @@ public class AggregationOperator extends PhysicalPlan {
   private final List<NamedAggregator> aggregatorList;
   @Getter
   private final List<NamedExpression> groupByExprList;
-  @Getter
-  private final NamedExpression span;
+
   /**
    * {@link BindingTuple} Collector.
    */
@@ -56,18 +55,7 @@ public class AggregationOperator extends PhysicalPlan {
     this.input = input;
     this.aggregatorList = aggregatorList;
     this.groupByExprList = groupByExprList;
-    if (hasSpan(groupByExprList)) {
-      // span expression is always the first expression in group list if exist.
-      this.span = groupByExprList.get(0);
-      this.collector =
-          Collector.Builder.build(
-              this.span, groupByExprList.subList(1, groupByExprList.size()), this.aggregatorList);
-
-    } else {
-      this.span = null;
-      this.collector =
-          Collector.Builder.build(this.span, this.groupByExprList, this.aggregatorList);
-    }
+    this.collector = Collector.Builder.build(groupByExprList, this.aggregatorList);
   }
 
   @Override
@@ -98,10 +86,5 @@ public class AggregationOperator extends PhysicalPlan {
       collector.collect(input.next().bindingTuples());
     }
     iterator = collector.results().iterator();
-  }
-
-  private boolean hasSpan(List<NamedExpression> namedExpressionList) {
-    return !namedExpressionList.isEmpty()
-        && namedExpressionList.get(0).getDelegated() instanceof SpanExpression;
   }
 }

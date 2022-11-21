@@ -22,7 +22,6 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.And;
-import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
@@ -74,7 +73,6 @@ import org.opensearch.sql.expression.window.aggregation.AggregateWindowFunction;
 public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, AnalysisContext> {
   @Getter
   private final BuiltinFunctionRepository repository;
-  private final DSL dsl;
 
   @Override
   public Expression visitCast(Cast node, AnalysisContext context) {
@@ -86,7 +84,6 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
   public ExpressionAnalyzer(
       BuiltinFunctionRepository repository) {
     this.repository = repository;
-    this.dsl = new DSL(repository);
   }
 
   public Expression analyze(UnresolvedExpression unresolved, AnalysisContext context) {
@@ -103,7 +100,7 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     Expression left = node.getLeft().accept(this, context);
     Expression right = node.getRight().accept(this, context);
 
-    return dsl.equal(left, right);
+    return DSL.equal(left, right);
   }
 
   @Override
@@ -116,7 +113,7 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
   public Expression visitInterval(Interval node, AnalysisContext context) {
     Expression value = node.getValue().accept(this, context);
     Expression unit = DSL.literal(node.getUnit().name());
-    return dsl.interval(value, unit);
+    return DSL.interval(value, unit);
   }
 
   @Override
@@ -124,7 +121,7 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     Expression left = node.getLeft().accept(this, context);
     Expression right = node.getRight().accept(this, context);
 
-    return dsl.and(left, right);
+    return DSL.and(left, right);
   }
 
   @Override
@@ -132,7 +129,7 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     Expression left = node.getLeft().accept(this, context);
     Expression right = node.getRight().accept(this, context);
 
-    return dsl.or(left, right);
+    return DSL.or(left, right);
   }
 
   @Override
@@ -140,12 +137,12 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     Expression left = node.getLeft().accept(this, context);
     Expression right = node.getRight().accept(this, context);
 
-    return dsl.xor(left, right);
+    return DSL.xor(left, right);
   }
 
   @Override
   public Expression visitNot(Not node, AnalysisContext context) {
-    return dsl.not(node.getExpression().accept(this, context));
+    return DSL.not(node.getExpression().accept(this, context));
   }
 
   @Override
@@ -226,7 +223,7 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     if (valueList.size() == 1) {
       return visitCompare(new Compare("=", field, valueList.get(0)), context);
     } else if (valueList.size() > 1) {
-      return dsl.or(
+      return DSL.or(
           visitCompare(new Compare("=", field, valueList.get(0)), context),
           visitIn(field, valueList.subList(1, valueList.size()), context));
     } else {

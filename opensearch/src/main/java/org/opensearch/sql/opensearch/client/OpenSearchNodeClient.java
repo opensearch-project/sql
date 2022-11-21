@@ -18,6 +18,9 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
@@ -48,6 +51,28 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   public OpenSearchNodeClient(NodeClient client) {
     this.client = client;
     this.resolver = new IndexNameExpressionResolver(client.threadPool().getThreadContext());
+  }
+
+  @Override
+  public boolean exists(String indexName) {
+    try {
+      IndicesExistsResponse checkExistResponse = client.admin().indices()
+          .exists(new IndicesExistsRequest(indexName)).actionGet();
+      return checkExistResponse.isExists();
+    } catch (Exception e) {
+      throw new IllegalStateException("Failed to check if index [" + indexName + "] exists", e);
+    }
+  }
+
+  @Override
+  public void createIndex(String indexName, Map<String, Object> mappings) {
+    try {
+      // TODO: 1.pass index settings (the number of primary shards, etc); 2.check response?
+      CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName).mapping(mappings);
+      client.admin().indices().create(createIndexRequest).actionGet();
+    } catch (Exception e) {
+      throw new IllegalStateException("Failed to create index [" + indexName + "]", e);
+    }
   }
 
   /**

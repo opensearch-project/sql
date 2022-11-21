@@ -17,6 +17,24 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 public interface Table {
 
   /**
+   * Check if current table exists.
+   *
+   * @return true if exists, otherwise false
+   */
+  default boolean exists() {
+    throw new UnsupportedOperationException("Unsupported Operation");
+  }
+
+  /**
+   * Create table given table schema.
+   *
+   * @param schema table schema
+   */
+  default void create(Map<String, ExprType> schema) {
+    throw new UnsupportedOperationException("Unsupported Operation");
+  }
+
+  /**
    * Get the {@link ExprType} for each field in the table.
    */
   Map<String, ExprType> getFieldTypes();

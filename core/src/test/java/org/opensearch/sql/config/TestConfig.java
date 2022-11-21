@@ -8,7 +8,7 @@ package org.opensearch.sql.config;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
-import org.opensearch.sql.CatalogSchemaName;
+import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.analysis.symbol.SymbolTable;
@@ -63,8 +63,18 @@ public class TestConfig {
   protected StorageEngine storageEngine() {
     return new StorageEngine() {
       @Override
-      public Table getTable(CatalogSchemaName catalogSchemaName, String name) {
+      public Table getTable(DataSourceSchemaName dataSourceSchemaName, String name) {
         return new Table() {
+          @Override
+          public boolean exists() {
+            return true;
+          }
+
+          @Override
+          public void create(Map<String, ExprType> schema) {
+            throw new UnsupportedOperationException("Create table is not supported");
+          }
+
           @Override
           public Map<String, ExprType> getFieldTypes() {
             return typeMapping;
