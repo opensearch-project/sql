@@ -29,7 +29,6 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.SimpleQueryStringQuery;
@@ -168,7 +167,7 @@ class SimpleQueryStringTest {
 
   @Test
   public void test_SyntaxCheckException_when_one_argument() {
-    List<Expression> arguments = List.of(DSL.namedArgument("fields", fields_value));
+    List<Expression> arguments = List.of(namedArgument("fields", fields_value));
     assertThrows(SyntaxCheckException.class,
         () -> simpleQueryStringQuery.build(new SimpleQueryStringExpression(arguments)));
   }
@@ -176,11 +175,19 @@ class SimpleQueryStringTest {
   @Test
   public void test_SemanticCheckException_when_invalid_parameter() {
     List<Expression> arguments = List.of(
-        DSL.namedArgument("fields", fields_value),
-        DSL.namedArgument("query", query_value),
-        DSL.namedArgument("unsupported", "unsupported_value"));
+        namedArgument("fields", fields_value),
+        namedArgument("query", query_value),
+        namedArgument("unsupported", "unsupported_value"));
     Assertions.assertThrows(SemanticCheckException.class,
         () -> simpleQueryStringQuery.build(new SimpleQueryStringExpression(arguments)));
+  }
+
+  private NamedArgumentExpression namedArgument(String name, String value) {
+    return DSL.namedArgument(name, DSL.literal(value));
+  }
+
+  private NamedArgumentExpression namedArgument(String name, LiteralExpression value) {
+    return DSL.namedArgument(name, value);
   }
 
   private class SimpleQueryStringExpression extends FunctionExpression {

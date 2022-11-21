@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -26,20 +27,28 @@ import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.opensearch.sql.expression.function.FunctionProperties;
 
 @ExtendWith(MockitoExtension.class)
 public class DateTimeTestBase extends ExpressionTestBase {
 
+  protected final BuiltinFunctionRepository functionRepository
+      = BuiltinFunctionRepository.getInstance();
+
   @Mock
   protected Environment<Expression, ExprValue> env;
+
+
+  protected static FunctionProperties functionProperties;
+
+  @BeforeAll
+  public static void setup() {
+    functionProperties = new FunctionProperties();
+  }
 
   protected Expression nullRef = DSL.literal(ExprNullValue.of());
 
   protected Expression missingRef = DSL.literal(ExprMissingValue.of());
-
-  @Autowired
-  protected BuiltinFunctionRepository functionRepository;
 
   protected ExprValue eval(Expression expression) {
     return expression.valueOf(env);
@@ -51,12 +60,14 @@ public class DateTimeTestBase extends ExpressionTestBase {
 
   protected FunctionExpression fromUnixTime(Expression value) {
     return (FunctionExpression)
-        functionRepository.compile(BuiltinFunctionName.FROM_UNIXTIME.getName(), List.of(value));
+        functionRepository.compile(functionProperties,
+            BuiltinFunctionName.FROM_UNIXTIME.getName(), List.of(value));
   }
 
   protected FunctionExpression fromUnixTime(Expression value, Expression format) {
     return (FunctionExpression)
         functionRepository.compile(
+            functionProperties,
             BuiltinFunctionName.FROM_UNIXTIME.getName(), List.of(value, format));
   }
 
@@ -77,6 +88,7 @@ public class DateTimeTestBase extends ExpressionTestBase {
   protected FunctionExpression maketime(Expression hour, Expression minute, Expression second) {
     return (FunctionExpression)
         functionRepository.compile(
+            functionProperties,
             BuiltinFunctionName.MAKETIME.getName(), List.of(hour, minute, second));
   }
 
@@ -88,6 +100,7 @@ public class DateTimeTestBase extends ExpressionTestBase {
 
   protected FunctionExpression makedate(Expression year, Expression dayOfYear) {
     return (FunctionExpression) functionRepository.compile(
+        functionProperties,
         BuiltinFunctionName.MAKEDATE.getName(), List.of(year, dayOfYear));
   }
 
@@ -97,6 +110,7 @@ public class DateTimeTestBase extends ExpressionTestBase {
 
   protected FunctionExpression period_add(Expression period, Expression months) {
     return (FunctionExpression) functionRepository.compile(
+        functionProperties,
         BuiltinFunctionName.PERIOD_ADD.getName(), List.of(period, months));
   }
 
@@ -107,6 +121,7 @@ public class DateTimeTestBase extends ExpressionTestBase {
 
   protected FunctionExpression period_diff(Expression first, Expression second) {
     return (FunctionExpression) functionRepository.compile(
+        functionProperties,
         BuiltinFunctionName.PERIOD_DIFF.getName(), List.of(first, second));
   }
 
@@ -117,7 +132,7 @@ public class DateTimeTestBase extends ExpressionTestBase {
 
   protected FunctionExpression unixTimeStampExpr() {
     return (FunctionExpression) functionRepository.compile(
-        BuiltinFunctionName.UNIX_TIMESTAMP.getName(), List.of());
+        functionProperties, BuiltinFunctionName.UNIX_TIMESTAMP.getName(), List.of());
   }
 
   protected Long unixTimeStamp() {
@@ -126,8 +141,10 @@ public class DateTimeTestBase extends ExpressionTestBase {
 
   protected FunctionExpression unixTimeStampOf(Expression value) {
     return (FunctionExpression)
-        functionRepository.compile(BuiltinFunctionName.UNIX_TIMESTAMP.getName(), List.of(value));
+        functionRepository.compile(functionProperties,
+            BuiltinFunctionName.UNIX_TIMESTAMP.getName(), List.of(value));
   }
+
 
   protected Double unixTimeStampOf(Double value) {
     return unixTimeStampOf(DSL.literal(value)).valueOf().doubleValue();

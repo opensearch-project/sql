@@ -24,8 +24,6 @@ import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.NamedExpression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
-import org.opensearch.sql.expression.function.FunctionPropertiesTestConfig;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -33,8 +31,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @Configuration
 @ExtendWith(SpringExtension.class)
 @ExtendWith(MockitoExtension.class)
-@ContextConfiguration(classes = {FunctionPropertiesTestConfig.class, ExpressionConfig.class,
-    SelectExpressionAnalyzerTest.class})
+@ContextConfiguration(classes = {SelectExpressionAnalyzerTest.class})
 public class SelectExpressionAnalyzerTest extends AnalyzerTestBase {
 
   @Mock
@@ -80,7 +77,7 @@ public class SelectExpressionAnalyzerTest extends AnalyzerTestBase {
   public void field_name_in_expression_with_qualifier() {
     analysisContext.peek().define(new Symbol(Namespace.INDEX_NAME, "index_alias"), STRUCT);
     assertAnalyzeEqual(
-        DSL.named("abs(index_alias.integer_value)", dsl.abs(DSL.ref("integer_value", INTEGER))),
+        DSL.named("abs(index_alias.integer_value)", DSL.abs(DSL.ref("integer_value", INTEGER))),
         AstDSL.alias("abs(index_alias.integer_value)",
             AstDSL.function("abs", AstDSL.qualifiedName("index_alias", "integer_value")))
     );

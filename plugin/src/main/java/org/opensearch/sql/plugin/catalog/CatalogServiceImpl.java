@@ -12,7 +12,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.PrivilegedExceptionAction;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -27,6 +26,7 @@ import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.catalog.model.Catalog;
 import org.opensearch.sql.catalog.model.CatalogMetadata;
 import org.opensearch.sql.catalog.model.ConnectorType;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.opensearch.security.SecurityAccess;
 import org.opensearch.sql.prometheus.storage.PrometheusStorageFactory;
 import org.opensearch.sql.storage.StorageEngine;
@@ -65,7 +65,7 @@ public class CatalogServiceImpl implements CatalogService {
    * @param settings settings.
    */
   public void loadConnectors(Settings settings) {
-    doPrivileged(() -> {
+    SecurityAccess.doPrivileged(() -> {
       InputStream inputStream = CatalogSettings.CATALOG_CONFIG.get(settings);
       if (inputStream != null) {
         ObjectMapper objectMapper = new ObjectMapper();
@@ -108,23 +108,18 @@ public class CatalogServiceImpl implements CatalogService {
     }
     catalogMap.put(DEFAULT_CATALOG_NAME,
         new Catalog(DEFAULT_CATALOG_NAME, ConnectorType.OPENSEARCH, storageEngine));
-  }
-
-  private <T> T doPrivileged(PrivilegedExceptionAction<T> action) {
-    try {
-      return SecurityAccess.doPrivileged(action);
-    } catch (IOException e) {
-      throw new IllegalStateException("Failed to perform privileged action", e);
-    }
+    registerFunctions(DEFAULT_CATALOG_NAME, storageEngine);
   }
 
   private StorageEngine createStorageEngine(CatalogMetadata catalog) {
     ConnectorType connector = catalog.getConnector();
     switch (connector) {
       case PROMETHEUS:
-        return connectorTypeStorageEngineFactoryMap
+        StorageEngine storageEngine = connectorTypeStorageEngineFactoryMap
             .get(catalog.getConnector())
             .getStorageEngine(catalog.getName(), catalog.getProperties());
+        registerFunctions(catalog.getName(), storageEngine);
+        return storageEngine;
       default:
         throw new IllegalStateException(
             String.format("Unsupported Connector: %s", connector.name()));
@@ -183,5 +178,10 @@ public class CatalogServiceImpl implements CatalogService {
     }
   }
 
-
+  // TODO: for now register storage engine functions here which should be static per storage engine
+  private void registerFunctions(String catalogName, StorageEngine storageEngine) {
+    storageEngine.getFunctions()
+        .forEach(functionResolver ->
+            BuiltinFunctionRepository.getInstance().register(catalogName, functionResolver));
+  }
 }

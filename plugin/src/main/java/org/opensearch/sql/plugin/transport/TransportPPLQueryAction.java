@@ -7,8 +7,6 @@ package org.opensearch.sql.plugin.transport;
 
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
-import java.io.IOException;
-import java.security.PrivilegedExceptionAction;
 import java.util.Locale;
 import java.util.Optional;
 import org.opensearch.action.ActionListener;
@@ -18,20 +16,15 @@ import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
-import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.executor.ExecutionEngine;
-import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.opensearch.security.SecurityAccess;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
-import org.opensearch.sql.plugin.catalog.CatalogServiceImpl;
-import org.opensearch.sql.plugin.rest.OpenSearchPluginConfig;
 import org.opensearch.sql.ppl.PPLService;
-import org.opensearch.sql.ppl.config.PPLServiceConfig;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.CsvResponseFormatter;
@@ -56,6 +49,8 @@ public class TransportPPLQueryAction
   /** Settings required by been initialization. */
   private final Settings pluginSettings;
 
+  private final AnnotationConfigApplicationContext applicationContext;
+
 
   /** Constructor of TransportPPLQueryAction. */
   @Inject
@@ -64,11 +59,12 @@ public class TransportPPLQueryAction
       ActionFilters actionFilters,
       NodeClient client,
       ClusterService clusterService,
-      org.opensearch.common.settings.Settings clusterSettings) {
+      AnnotationConfigApplicationContext applicationContext) {
     super(PPLQueryAction.NAME, transportService, actionFilters, TransportPPLQueryRequest::new);
     this.client = client;
     this.clusterService = clusterService;
     this.pluginSettings = new OpenSearchSettings(clusterService.getClusterSettings());
+    this.applicationContext = applicationContext;
   }
 
   /**
@@ -83,7 +79,8 @@ public class TransportPPLQueryAction
 
     QueryContext.addRequestId();
 
-    PPLService pplService = createPPLService(client);
+    PPLService pplService =
+        SecurityAccess.doPrivileged(() -> applicationContext.getBean(PPLService.class));
     TransportPPLQueryRequest transportRequest = TransportPPLQueryRequest.fromActionRequest(request);
     // in order to use PPL service, we need to convert TransportPPLQueryRequest to PPLQueryRequest
     PPLQueryRequest transformedRequest = transportRequest.toPPLQueryRequest();
@@ -92,30 +89,6 @@ public class TransportPPLQueryAction
       pplService.explain(transformedRequest, createExplainResponseListener(listener));
     } else {
       pplService.execute(transformedRequest, createListener(transformedRequest, listener));
-    }
-  }
-
-  private PPLService createPPLService(NodeClient client) {
-    return doPrivileged(
-        () -> {
-          AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
-          context.registerBean(FunctionProperties.class, FunctionProperties::new);
-          context.registerBean(ClusterService.class, () -> clusterService);
-          context.registerBean(NodeClient.class, () -> client);
-          context.registerBean(Settings.class, () -> pluginSettings);
-          context.registerBean(CatalogService.class, CatalogServiceImpl::getInstance);
-          context.register(OpenSearchPluginConfig.class);
-          context.register(PPLServiceConfig.class);
-          context.refresh();
-          return context.getBean(PPLService.class);
-        });
-  }
-
-  private <T> T doPrivileged(PrivilegedExceptionAction<T> action) {
-    try {
-      return SecurityAccess.doPrivileged(action);
-    } catch (IOException e) {
-      throw new IllegalStateException("Failed to perform privileged action", e);
     }
   }
 

@@ -6,36 +6,27 @@
 
 package org.opensearch.sql.legacy.plugin;
 
-import static org.opensearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
 import static org.opensearch.rest.RestStatus.OK;
 import static org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
-import java.io.IOException;
-import java.security.PrivilegedExceptionAction;
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.List;
-import javax.xml.catalog.Catalog;
+import java.util.function.BiConsumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
-import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.response.ResponseListener;
-import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
-import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.opensearch.security.SecurityAccess;
-import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.CsvResponseFormatter;
 import org.opensearch.sql.protocol.response.format.Format;
@@ -44,7 +35,6 @@ import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.RawResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.sql.SQLService;
-import org.opensearch.sql.sql.config.SQLServiceConfig;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
@@ -59,24 +49,14 @@ public class RestSQLQueryAction extends BaseRestHandler {
 
   public static final RestChannelConsumer NOT_SUPPORTED_YET = null;
 
-  private final ClusterService clusterService;
-
-  /**
-   * Settings required by been initialization.
-   */
-  private final Settings pluginSettings;
-
-  private final CatalogService catalogService;
+  private final AnnotationConfigApplicationContext applicationContext;
 
   /**
    * Constructor of RestSQLQueryAction.
    */
-  public RestSQLQueryAction(ClusterService clusterService, Settings pluginSettings,
-                            CatalogService catalogService) {
+  public RestSQLQueryAction(AnnotationConfigApplicationContext applicationContext) {
     super();
-    this.clusterService = clusterService;
-    this.pluginSettings = pluginSettings;
-    this.catalogService = catalogService;
+    this.applicationContext = applicationContext;
   }
 
   @Override
@@ -96,55 +76,67 @@ public class RestSQLQueryAction extends BaseRestHandler {
 
   /**
    * Prepare REST channel consumer for a SQL query request.
-   * @param request     SQL request
-   * @param nodeClient  node client
-   * @return            channel consumer
+   *
+   * @param request SQL request
+   * @param fallbackHandler handle request fallback to legacy engine.
+   * @param executionErrorHandler handle error response during new engine execution.
+   * @return {@link RestChannelConsumer}
    */
-  public RestChannelConsumer prepareRequest(SQLQueryRequest request, NodeClient nodeClient) {
+  public RestChannelConsumer prepareRequest(
+      SQLQueryRequest request,
+      BiConsumer<RestChannel, Exception> fallbackHandler,
+      BiConsumer<RestChannel, Exception> executionErrorHandler) {
     if (!request.isSupported()) {
-      return NOT_SUPPORTED_YET;
+      return channel -> fallbackHandler.accept(channel, new IllegalStateException("not supported"));
     }
 
-    SQLService sqlService = createSQLService(nodeClient);
-    PhysicalPlan plan;
-    try {
-      // For now analyzing and planning stage may throw syntax exception as well
-      // which hints the fallback to legacy code is necessary here.
-      plan = sqlService.plan(
-                sqlService.analyze(
-                    sqlService.parse(request.getQuery())));
-    } catch (SyntaxCheckException e) {
-      // When explain, print info log for what unsupported syntax is causing fallback to old engine
-      if (request.isExplainRequest()) {
-        LOG.info("Request is falling back to old SQL engine due to: " + e.getMessage());
-      }
-      return NOT_SUPPORTED_YET;
-    }
+    SQLService sqlService =
+        SecurityAccess.doPrivileged(() -> applicationContext.getBean(SQLService.class));
 
     if (request.isExplainRequest()) {
-      return channel -> sqlService.explain(plan, createExplainResponseListener(channel));
+      return channel ->
+          sqlService.explain(
+              request,
+              fallBackListener(
+                  channel,
+                  createExplainResponseListener(channel, executionErrorHandler),
+                  fallbackHandler));
+    } else {
+      return channel ->
+          sqlService.execute(
+              request,
+              fallBackListener(
+                  channel,
+                  createQueryResponseListener(channel, request, executionErrorHandler),
+                  fallbackHandler));
     }
-    return channel -> sqlService.execute(plan, createQueryResponseListener(channel, request));
   }
 
-  private SQLService createSQLService(NodeClient client) {
-    return doPrivileged(() -> {
-      AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
-      context.registerBean(FunctionProperties.class, FunctionProperties::new);
-      context.registerBean(ClusterService.class, () -> clusterService);
-      context.registerBean(NodeClient.class, () -> client);
-      context.registerBean(Settings.class, () -> pluginSettings);
-      context.registerBean(CatalogService.class, () -> catalogService);
-      context.register(OpenSearchSQLPluginConfig.class);
-      context.register(SQLServiceConfig.class);
-      context.refresh();
-      return context.getBean(SQLService.class);
-    });
+  private <T> ResponseListener<T> fallBackListener(
+      RestChannel channel,
+      ResponseListener<T> next,
+      BiConsumer<RestChannel, Exception> fallBackHandler) {
+    return new ResponseListener<T>() {
+      @Override
+      public void onResponse(T response) {
+        LOG.error("[{}] Request is handled by new SQL query engine",
+            QueryContext.getRequestId());
+        next.onResponse(response);
+      }
+
+      @Override
+      public void onFailure(Exception e) {
+        if (e instanceof SyntaxCheckException) {
+          fallBackHandler.accept(channel, e);
+        } else {
+          next.onFailure(e);
+        }
+      }
+    };
   }
 
-
-
-  private ResponseListener<ExplainResponse> createExplainResponseListener(RestChannel channel) {
+  private ResponseListener<ExplainResponse> createExplainResponseListener(
+      RestChannel channel, BiConsumer<RestChannel, Exception> errorHandler) {
     return new ResponseListener<ExplainResponse>() {
       @Override
       public void onResponse(ExplainResponse response) {
@@ -158,16 +150,15 @@ public class RestSQLQueryAction extends BaseRestHandler {
 
       @Override
       public void onFailure(Exception e) {
-        LOG.error("Error happened during explain", e);
-        logAndPublishMetrics(e);
-        sendResponse(channel, INTERNAL_SERVER_ERROR,
-            "Failed to explain the query due to error: " + e.getMessage());
+        errorHandler.accept(channel, e);
       }
     };
   }
 
-  private ResponseListener<QueryResponse> createQueryResponseListener(RestChannel channel,
-                                                                      SQLQueryRequest request) {
+  private ResponseListener<QueryResponse> createQueryResponseListener(
+      RestChannel channel,
+      SQLQueryRequest request,
+      BiConsumer<RestChannel, Exception> errorHandler) {
     Format format = request.format();
     ResponseFormatter<QueryResult> formatter;
     if (format.equals(Format.CSV)) {
@@ -186,19 +177,9 @@ public class RestSQLQueryAction extends BaseRestHandler {
 
       @Override
       public void onFailure(Exception e) {
-        LOG.error("Error happened during query handling", e);
-        logAndPublishMetrics(e);
-        sendResponse(channel, INTERNAL_SERVER_ERROR, formatter.format(e));
+        errorHandler.accept(channel, e);
       }
     };
-  }
-
-  private <T> T doPrivileged(PrivilegedExceptionAction<T> action) {
-    try {
-      return SecurityAccess.doPrivileged(action);
-    } catch (IOException e) {
-      throw new IllegalStateException("Failed to perform privileged action", e);
-    }
   }
 
   private void sendResponse(RestChannel channel, RestStatus status, String content) {

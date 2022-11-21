@@ -15,9 +15,8 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.expression.DSL;
-import org.opensearch.sql.opensearch.OpenSearchTestBase;
 
-class SortQueryBuilderTest extends OpenSearchTestBase {
+class SortQueryBuilderTest {
 
   private final SortQueryBuilder sortQueryBuilder = new SortQueryBuilder();
 
@@ -29,7 +28,7 @@ class SortQueryBuilderTest extends OpenSearchTestBase {
   @Test
   void build_sortbuilder_from_function_should_throw_exception() {
     final IllegalStateException exception =
-        assertThrows(IllegalStateException.class, () -> sortQueryBuilder.build(dsl.equal(DSL.ref(
+        assertThrows(IllegalStateException.class, () -> sortQueryBuilder.build(DSL.equal(DSL.ref(
             "intV", INTEGER), DSL.literal(1)), Sort.SortOption.DEFAULT_ASC));
     assertThat(exception.getMessage(), Matchers.containsString("unsupported expression"));
   }

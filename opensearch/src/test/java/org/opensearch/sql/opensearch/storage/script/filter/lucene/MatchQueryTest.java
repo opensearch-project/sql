@@ -25,11 +25,10 @@ import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.FunctionName;
-import org.opensearch.sql.opensearch.OpenSearchTestBase;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchQuery;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-class MatchQueryTest extends OpenSearchTestBase {
+public class MatchQueryTest {
   private final MatchQuery matchQuery = new MatchQuery();
   private final FunctionName match = FunctionName.of("match");
 
@@ -109,26 +108,26 @@ class MatchQueryTest extends OpenSearchTestBase {
 
   @ParameterizedTest
   @MethodSource("generateValidData")
-  void test_valid_parameters(List<Expression> validArgs) {
+  public void test_valid_parameters(List<Expression> validArgs) {
     Assertions.assertNotNull(matchQuery.build(new MatchExpression(validArgs)));
   }
 
   @Test
-  void test_SyntaxCheckException_when_no_arguments() {
+  public void test_SyntaxCheckException_when_no_arguments() {
     List<Expression> arguments = List.of();
     assertThrows(SyntaxCheckException.class,
         () -> matchQuery.build(new MatchExpression(arguments)));
   }
 
   @Test
-  void test_SyntaxCheckException_when_one_argument() {
+  public void test_SyntaxCheckException_when_one_argument() {
     List<Expression> arguments = List.of(namedArgument("field", "field_value"));
     assertThrows(SyntaxCheckException.class,
         () -> matchQuery.build(new MatchExpression(arguments)));
   }
 
   @Test
-  void test_SemanticCheckException_when_invalid_parameter() {
+  public void test_SemanticCheckException_when_invalid_parameter() {
     List<Expression> arguments = List.of(
         namedArgument("field", "field_value"),
         namedArgument("query", "query_value"),

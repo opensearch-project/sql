@@ -18,7 +18,8 @@ public interface FunctionBuilder {
   /**
    * Create {@link FunctionImplementation} from input {@link Expression} list.
    *
-   * @param arguments {@link Expression} list
+   * @param functionProperties context for function execution.
+   * @param arguments          {@link Expression} list.
    * @return {@link FunctionImplementation}
    */
   FunctionImplementation apply(FunctionProperties functionProperties, List<Expression> arguments);

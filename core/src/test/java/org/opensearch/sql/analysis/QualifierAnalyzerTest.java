@@ -18,16 +18,13 @@ import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.type.ExprType;
-import org.opensearch.sql.expression.config.ExpressionConfig;
-import org.opensearch.sql.expression.function.FunctionPropertiesTestConfig;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @Configuration
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {FunctionPropertiesTestConfig.class, ExpressionConfig.class,
-    AnalyzerTestBase.class})
+@ContextConfiguration(classes = {AnalyzerTestBase.class})
 class QualifierAnalyzerTest extends AnalyzerTestBase {
 
   private QualifierAnalyzer qualifierAnalyzer;

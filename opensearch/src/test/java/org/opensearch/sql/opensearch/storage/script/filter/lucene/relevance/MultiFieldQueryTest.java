@@ -23,7 +23,6 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.LiteralExpression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 
 class MultiFieldQueryTest {
   MultiFieldQuery<?> query;
@@ -49,7 +48,7 @@ class MultiFieldQueryTest {
         ExprValueUtils.floatValue(sampleValue)).build();
 
     query.createQueryBuilder(List.of(DSL.namedArgument("fields",
-            new LiteralExpression(ExprTupleValue.fromExprValueMap(fieldSpec))),
+        new LiteralExpression(ExprTupleValue.fromExprValueMap(fieldSpec))),
         DSL.namedArgument("query",
             new LiteralExpression(ExprValueUtils.stringValue(sampleQuery)))));
 

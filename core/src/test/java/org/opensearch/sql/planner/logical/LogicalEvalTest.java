@@ -16,16 +16,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.analysis.AnalyzerTestBase;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.expression.DSL;
-import org.opensearch.sql.expression.config.ExpressionConfig;
-import org.opensearch.sql.expression.function.FunctionPropertiesTestConfig;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @Configuration
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {FunctionPropertiesTestConfig.class, ExpressionConfig.class,
-    AnalyzerTestBase.class})
+@ContextConfiguration(classes = {AnalyzerTestBase.class})
 @ExtendWith(MockitoExtension.class)
 public class LogicalEvalTest extends AnalyzerTestBase {
 
@@ -35,7 +32,7 @@ public class LogicalEvalTest extends AnalyzerTestBase {
         LogicalPlanDSL.eval(
             LogicalPlanDSL.relation("schema", table),
             ImmutablePair
-                .of(DSL.ref("absValue", INTEGER), dsl.abs(DSL.ref("integer_value", INTEGER)))),
+                .of(DSL.ref("absValue", INTEGER), DSL.abs(DSL.ref("integer_value", INTEGER)))),
         AstDSL.eval(
             AstDSL.relation("schema"),
             AstDSL.let(AstDSL.field("absValue"), AstDSL.function("abs", field("integer_value")))));
@@ -47,8 +44,8 @@ public class LogicalEvalTest extends AnalyzerTestBase {
         LogicalPlanDSL.eval(
             LogicalPlanDSL.relation("schema", table),
             ImmutablePair
-                .of(DSL.ref("absValue", INTEGER), dsl.abs(DSL.ref("integer_value", INTEGER))),
-            ImmutablePair.of(DSL.ref("iValue", INTEGER), dsl.abs(DSL.ref("absValue", INTEGER)))),
+                .of(DSL.ref("absValue", INTEGER), DSL.abs(DSL.ref("integer_value", INTEGER))),
+            ImmutablePair.of(DSL.ref("iValue", INTEGER), DSL.abs(DSL.ref("absValue", INTEGER)))),
         AstDSL.eval(
             AstDSL.relation("schema"),
             AstDSL.let(AstDSL.field("absValue"), AstDSL.function("abs", field("integer_value"))),

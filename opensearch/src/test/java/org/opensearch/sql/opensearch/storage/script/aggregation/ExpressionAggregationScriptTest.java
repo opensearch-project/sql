@@ -34,12 +34,10 @@ import org.opensearch.search.lookup.LeafSearchLookup;
 import org.opensearch.search.lookup.SearchLookup;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
-import org.opensearch.sql.opensearch.OpenSearchTestBase;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
-class ExpressionAggregationScriptTest extends OpenSearchTestBase {
+class ExpressionAggregationScriptTest {
 
   @Mock
   private SearchLookup lookup;
@@ -55,7 +53,7 @@ class ExpressionAggregationScriptTest extends OpenSearchTestBase {
     assertThat()
         .docValues("age", 30L) // DocValue only supports long
         .evaluate(
-            dsl.abs(ref("age", INTEGER)))
+            DSL.abs(ref("age", INTEGER)))
         .shouldMatch(30);
   }
 
@@ -64,7 +62,7 @@ class ExpressionAggregationScriptTest extends OpenSearchTestBase {
     assertThat()
         .docValues("age", 30L) // DocValue only supports long
         .evaluate(
-            dsl.greater(ref("age", INTEGER), literal(20)))
+            DSL.greater(ref("age", INTEGER), literal(20)))
         .shouldMatch(true);
   }
 
@@ -73,7 +71,7 @@ class ExpressionAggregationScriptTest extends OpenSearchTestBase {
     assertThat()
         .docValues("name.keyword", "John")
         .evaluate(
-            dsl.equal(ref("name", OPENSEARCH_TEXT_KEYWORD), literal("John")))
+            DSL.equal(ref("name", OPENSEARCH_TEXT_KEYWORD), literal("John")))
         .shouldMatch(true);
   }
 

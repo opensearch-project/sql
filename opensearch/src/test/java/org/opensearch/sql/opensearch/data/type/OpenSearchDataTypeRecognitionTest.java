@@ -13,14 +13,13 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.DSL;
-import org.opensearch.sql.opensearch.OpenSearchTestBase;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprBinaryValue;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprGeoPointValue;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprIpValue;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprTextKeywordValue;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprTextValue;
 
-public class OpenSearchDataTypeRecognitionTest extends OpenSearchTestBase {
+public class OpenSearchDataTypeRecognitionTest {
 
   @ParameterizedTest
   @MethodSource("types")
@@ -40,6 +39,6 @@ public class OpenSearchDataTypeRecognitionTest extends OpenSearchTestBase {
   }
 
   private String typeofGetValue(ExprValue input) {
-    return dsl.typeof(DSL.literal(input)).valueOf().stringValue();
+    return DSL.typeof(DSL.literal(input)).valueOf().stringValue();
   }
 }

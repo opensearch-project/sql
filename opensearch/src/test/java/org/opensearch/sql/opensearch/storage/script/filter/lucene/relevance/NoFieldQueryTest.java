@@ -19,10 +19,8 @@ import org.mockito.Mockito;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.LiteralExpression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
-import org.opensearch.sql.opensearch.OpenSearchTestBase;
 
-class NoFieldQueryTest extends OpenSearchTestBase {
+class NoFieldQueryTest {
   NoFieldQuery query;
   private final String testQueryName = "test_query";
   private final Map<String, RelevanceQuery.QueryBuilderStep> actionMap

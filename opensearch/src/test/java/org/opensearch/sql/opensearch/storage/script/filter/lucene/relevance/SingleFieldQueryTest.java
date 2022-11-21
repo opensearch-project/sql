@@ -19,7 +19,6 @@ import org.mockito.Mockito;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.LiteralExpression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 
 class SingleFieldQueryTest {
   SingleFieldQuery query;

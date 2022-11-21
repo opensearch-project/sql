@@ -38,7 +38,7 @@ import org.opensearch.sql.expression.FunctionExpression;
 class NowLikeFunctionTest extends ExpressionTestBase {
   @Test
   void now() {
-    test_now_like_functions(dsl::now,
+    test_now_like_functions(DSL::now,
         DATETIME,
         false,
         () -> LocalDateTime.now(functionProperties.getQueryStartClock()));
@@ -46,44 +46,44 @@ class NowLikeFunctionTest extends ExpressionTestBase {
 
   @Test
   void current_timestamp() {
-    test_now_like_functions(dsl::current_timestamp, DATETIME, false,
+    test_now_like_functions(DSL::current_timestamp, DATETIME, false,
         () -> LocalDateTime.now(functionProperties.getQueryStartClock()));
   }
 
   @Test
   void localtimestamp() {
-    test_now_like_functions(dsl::localtimestamp, DATETIME, false,
+    test_now_like_functions(DSL::localtimestamp, DATETIME, false,
         () -> LocalDateTime.now(functionProperties.getQueryStartClock()));
   }
 
   @Test
   void localtime() {
-    test_now_like_functions(dsl::localtime, DATETIME, false,
+    test_now_like_functions(DSL::localtime, DATETIME, false,
         () -> LocalDateTime.now(functionProperties.getQueryStartClock()));
   }
 
   @Test
   void sysdate() {
-    test_now_like_functions(dsl::sysdate, DATETIME, true, LocalDateTime::now);
+    test_now_like_functions(DSL::sysdate, DATETIME, true, LocalDateTime::now);
   }
 
   @Test
   void curtime() {
-    test_now_like_functions(dsl::curtime, TIME, false,
+    test_now_like_functions(DSL::curtime, TIME, false,
         () -> LocalTime.now(functionProperties.getQueryStartClock()));
   }
 
   @Test
   void currdate() {
 
-    test_now_like_functions(dsl::curdate,
+    test_now_like_functions(DSL::curdate,
         DATE, false,
         () -> LocalDate.now(functionProperties.getQueryStartClock()));
   }
 
   @Test
   void current_time() {
-    test_now_like_functions(dsl::current_time,
+    test_now_like_functions(DSL::current_time,
         TIME,
         false,
         () -> LocalTime.now(functionProperties.getQueryStartClock()));
@@ -91,7 +91,7 @@ class NowLikeFunctionTest extends ExpressionTestBase {
 
   @Test
   void current_date() {
-    test_now_like_functions(dsl::current_date, DATE, false,
+    test_now_like_functions(DSL::current_date, DATE, false,
         () -> LocalDate.now(functionProperties.getQueryStartClock()));
   }
 
@@ -155,21 +155,21 @@ class NowLikeFunctionTest extends ExpressionTestBase {
           }
       );
     return Stream.of(
-        buildTest.apply("now", dsl::now),
-        buildTest.apply("current_timestamp", dsl::current_timestamp),
-        buildTest.apply("current_time", dsl::current_time),
-        buildTest.apply("curdate", dsl::curdate),
-        buildTest.apply("curtime", dsl::curtime),
-        buildTest.apply("localtimestamp", dsl::localtimestamp),
-        buildTest.apply("localtime", dsl::localtime)
+        buildTest.apply("now", DSL::now),
+        buildTest.apply("current_timestamp", DSL::current_timestamp),
+        buildTest.apply("current_time", DSL::current_time),
+        buildTest.apply("curdate", DSL::curdate),
+        buildTest.apply("curtime", DSL::curtime),
+        buildTest.apply("localtimestamp", DSL::localtimestamp),
+        buildTest.apply("localtime", DSL::localtime)
     );
   }
 
   @Test
   void sysdate_multiple_invocations_differ() throws InterruptedException {
-    var v1 = extractValue(dsl.sysdate());
+    var v1 = extractValue(DSL.sysdate());
     Thread.sleep(1000);
-    var v2 = extractValue(dsl.sysdate());
+    var v2 = extractValue(DSL.sysdate());
     assertEquals(1, getDiff(v1, v2));
   }
 

@@ -20,14 +20,12 @@ import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.FunctionName;
-import org.opensearch.sql.opensearch.OpenSearchTestBase;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhraseQuery;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-public class MatchPhraseQueryTest extends OpenSearchTestBase {
+public class MatchPhraseQueryTest {
 
   private final MatchPhraseQuery matchPhraseQuery = new MatchPhraseQuery();
   private final FunctionName matchPhrase = FunctionName.of("match_phrase");

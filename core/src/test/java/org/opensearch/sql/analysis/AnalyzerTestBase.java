@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.tuple.Pair;
-import org.opensearch.sql.CatalogSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.analysis.symbol.SymbolTable;
@@ -26,14 +25,12 @@ import org.opensearch.sql.catalog.model.ConnectorType;
 import org.opensearch.sql.config.TestConfig;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
-import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionBuilder;
 import org.opensearch.sql.expression.function.FunctionName;
-import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.expression.function.FunctionSignature;
 import org.opensearch.sql.expression.function.TableFunctionImplementation;
@@ -59,6 +56,16 @@ public class AnalyzerTestBase {
   @Bean
   protected Table table() {
     return new Table() {
+      @Override
+      public boolean exists() {
+        return true;
+      }
+
+      @Override
+      public void create(Map<String, ExprType> schema) {
+        throw new UnsupportedOperationException("Create table is not supported");
+      }
+
       @Override
       public Map<String, ExprType> getFieldTypes() {
         return typeMapping();
@@ -116,12 +123,6 @@ public class AnalyzerTestBase {
   }
 
   @Autowired
-  protected BuiltinFunctionRepository functionRepository;
-
-  @Autowired
-  protected DSL dsl;
-
-  @Autowired
   protected AnalysisContext analysisContext;
 
   @Autowired
@@ -140,10 +141,12 @@ public class AnalyzerTestBase {
   protected Environment<Expression, ExprType> typeEnv;
 
   @Bean
-  protected Analyzer analyzer(ExpressionAnalyzer expressionAnalyzer, CatalogService catalogService,
-                      StorageEngine storageEngine, BuiltinFunctionRepository functionRepository,
-                      Table table) {
+  protected Analyzer analyzer(ExpressionAnalyzer expressionAnalyzer,
+                              CatalogService catalogService,
+                              StorageEngine storageEngine,
+                              Table table) {
     catalogService.registerDefaultOpenSearchCatalog(storageEngine);
+    BuiltinFunctionRepository functionRepository = BuiltinFunctionRepository.getInstance();
     functionRepository.register("prometheus", new FunctionResolver() {
 
       @Override
@@ -176,8 +179,8 @@ public class AnalyzerTestBase {
   }
 
   @Bean
-  protected ExpressionAnalyzer expressionAnalyzer(DSL dsl, BuiltinFunctionRepository repo) {
-    return new ExpressionAnalyzer(repo);
+  protected ExpressionAnalyzer expressionAnalyzer() {
+    return new ExpressionAnalyzer(BuiltinFunctionRepository.getInstance());
   }
 
   protected void assertAnalyzeEqual(LogicalPlan expected, UnresolvedPlan unresolvedPlan) {

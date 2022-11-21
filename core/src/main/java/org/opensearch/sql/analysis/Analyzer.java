@@ -201,7 +201,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
         .map(unresolvedExpression -> this.expressionAnalyzer.analyze(unresolvedExpression, context))
         .collect(Collectors.toList());
     TableFunctionImplementation tableFunctionImplementation
-        = (TableFunctionImplementation) repository.compile(
+        = (TableFunctionImplementation) repository.compile(context.getFunctionProperties(),
         catalogSchemaIdentifierNameResolver.getCatalogName(), functionName, arguments);
     context.push();
     TypeEnvironment curEnv = context.peek();

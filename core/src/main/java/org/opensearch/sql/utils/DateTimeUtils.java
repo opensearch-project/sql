@@ -85,6 +85,16 @@ public class DateTimeUtils {
     return initDateTime.plusYears(yearToAdd).toInstant().toEpochMilli();
   }
 
+  /**
+   * Get window start time which aligns with the given size.
+   *
+   * @param timestamp event timestamp
+   * @param size defines a window's start time to align with
+   * @return start timestamp of the window
+   */
+  public long getWindowStartTime(long timestamp, long size) {
+    return timestamp - timestamp % size;
+  }
 
   /**
    * isValidMySqlTimeZoneId for timezones which match timezone the range set by MySQL.

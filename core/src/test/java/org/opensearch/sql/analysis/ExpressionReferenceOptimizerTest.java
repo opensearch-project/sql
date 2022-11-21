@@ -17,8 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
-import org.opensearch.sql.expression.function.FunctionPropertiesTestConfig;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
@@ -28,15 +27,14 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @Configuration
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {FunctionPropertiesTestConfig.class, ExpressionConfig.class,
-    AnalyzerTest.class})
+@ContextConfiguration(classes = {AnalyzerTest.class})
 class ExpressionReferenceOptimizerTest extends AnalyzerTestBase {
 
   @Test
   void expression_without_aggregation_should_not_be_replaced() {
     assertEquals(
-        dsl.subtract(DSL.ref("age", INTEGER), DSL.literal(1)),
-        optimize(dsl.subtract(DSL.ref("age", INTEGER), DSL.literal(1)))
+        DSL.subtract(DSL.ref("age", INTEGER), DSL.literal(1)),
+        optimize(DSL.subtract(DSL.ref("age", INTEGER), DSL.literal(1)))
     );
   }
 
@@ -44,7 +42,7 @@ class ExpressionReferenceOptimizerTest extends AnalyzerTestBase {
   void group_expression_should_be_replaced() {
     assertEquals(
         DSL.ref("abs(balance)", INTEGER),
-        optimize(dsl.abs(DSL.ref("balance", INTEGER)))
+        optimize(DSL.abs(DSL.ref("balance", INTEGER)))
     );
   }
 
@@ -52,15 +50,15 @@ class ExpressionReferenceOptimizerTest extends AnalyzerTestBase {
   void aggregation_expression_should_be_replaced() {
     assertEquals(
         DSL.ref("AVG(age)", DOUBLE),
-        optimize(dsl.avg(DSL.ref("age", INTEGER)))
+        optimize(DSL.avg(DSL.ref("age", INTEGER)))
     );
   }
 
   @Test
   void aggregation_in_expression_should_be_replaced() {
     assertEquals(
-        dsl.subtract(DSL.ref("AVG(age)", DOUBLE), DSL.literal(1)),
-        optimize(dsl.subtract(dsl.avg(DSL.ref("age", INTEGER)), DSL.literal(1)))
+        DSL.subtract(DSL.ref("AVG(age)", DOUBLE), DSL.literal(1)),
+        optimize(DSL.subtract(DSL.avg(DSL.ref("age", INTEGER)), DSL.literal(1)))
     );
   }
 
@@ -69,7 +67,7 @@ class ExpressionReferenceOptimizerTest extends AnalyzerTestBase {
     Expression caseClause = DSL.cases(
         null,
         DSL.when(
-            dsl.equal(DSL.ref("age", INTEGER), DSL.literal(30)),
+            DSL.equal(DSL.ref("age", INTEGER), DSL.literal(30)),
             DSL.literal("true")));
 
     LogicalPlan logicalPlan =
@@ -93,20 +91,20 @@ class ExpressionReferenceOptimizerTest extends AnalyzerTestBase {
     Expression caseClause = DSL.cases(
         null,
         DSL.when(
-            dsl.equal(dsl.avg(DSL.ref("age", INTEGER)), DSL.literal(30)),
+            DSL.equal(DSL.avg(DSL.ref("age", INTEGER)), DSL.literal(30)),
             DSL.literal("true")));
 
     LogicalPlan logicalPlan =
         LogicalPlanDSL.aggregation(
             LogicalPlanDSL.relation("test", table),
-            ImmutableList.of(DSL.named("AVG(age)", dsl.avg(DSL.ref("age", INTEGER)))),
+            ImmutableList.of(DSL.named("AVG(age)", DSL.avg(DSL.ref("age", INTEGER)))),
             ImmutableList.of(DSL.named("name", DSL.ref("name", STRING))));
 
     assertEquals(
         DSL.cases(
             null,
             DSL.when(
-                dsl.equal(DSL.ref("AVG(age)", DOUBLE), DSL.literal(30)),
+                DSL.equal(DSL.ref("AVG(age)", DOUBLE), DSL.literal(30)),
                 DSL.literal("true"))),
         optimize(caseClause, logicalPlan));
   }
@@ -114,22 +112,22 @@ class ExpressionReferenceOptimizerTest extends AnalyzerTestBase {
   @Test
   void aggregation_in_case_else_clause_should_be_replaced() {
     Expression caseClause = DSL.cases(
-        dsl.avg(DSL.ref("age", INTEGER)),
+        DSL.avg(DSL.ref("age", INTEGER)),
         DSL.when(
-            dsl.equal(DSL.ref("age", INTEGER), DSL.literal(30)),
+            DSL.equal(DSL.ref("age", INTEGER), DSL.literal(30)),
             DSL.literal("true")));
 
     LogicalPlan logicalPlan =
         LogicalPlanDSL.aggregation(
             LogicalPlanDSL.relation("test", table),
-            ImmutableList.of(DSL.named("AVG(age)", dsl.avg(DSL.ref("age", INTEGER)))),
+            ImmutableList.of(DSL.named("AVG(age)", DSL.avg(DSL.ref("age", INTEGER)))),
             ImmutableList.of(DSL.named("name", DSL.ref("name", STRING))));
 
     assertEquals(
         DSL.cases(
             DSL.ref("AVG(age)", DOUBLE),
             DSL.when(
-                dsl.equal(DSL.ref("age", INTEGER), DSL.literal(30)),
+                DSL.equal(DSL.ref("age", INTEGER), DSL.literal(30)),
                 DSL.literal("true"))),
         optimize(caseClause, logicalPlan));
   }
@@ -140,17 +138,17 @@ class ExpressionReferenceOptimizerTest extends AnalyzerTestBase {
         LogicalPlanDSL.window(
             LogicalPlanDSL.window(
                 LogicalPlanDSL.relation("test", table),
-                DSL.named(dsl.rank()),
+                DSL.named(DSL.rank()),
                 new WindowDefinition(emptyList(), emptyList())),
-            DSL.named(dsl.denseRank()),
+            DSL.named(DSL.denseRank()),
             new WindowDefinition(emptyList(), emptyList()));
 
     assertEquals(
         DSL.ref("rank()", INTEGER),
-        optimize(dsl.rank(), logicalPlan));
+        optimize(DSL.rank(), logicalPlan));
     assertEquals(
         DSL.ref("dense_rank()", INTEGER),
-        optimize(dsl.denseRank(), logicalPlan));
+        optimize(DSL.denseRank(), logicalPlan));
   }
 
   Expression optimize(Expression expression) {
@@ -158,6 +156,7 @@ class ExpressionReferenceOptimizerTest extends AnalyzerTestBase {
   }
 
   Expression optimize(Expression expression, LogicalPlan logicalPlan) {
+    BuiltinFunctionRepository functionRepository = BuiltinFunctionRepository.getInstance();
     final ExpressionReferenceOptimizer optimizer =
         new ExpressionReferenceOptimizer(functionRepository, logicalPlan);
     return optimizer.optimize(DSL.named(expression), new AnalysisContext());
@@ -167,10 +166,10 @@ class ExpressionReferenceOptimizerTest extends AnalyzerTestBase {
     return LogicalPlanDSL.aggregation(
         LogicalPlanDSL.relation("schema", table),
         ImmutableList
-            .of(DSL.named("AVG(age)", dsl.avg(DSL.ref("age", INTEGER))),
-                DSL.named("SUM(age)", dsl.sum(DSL.ref("age", INTEGER)))),
+            .of(DSL.named("AVG(age)", DSL.avg(DSL.ref("age", INTEGER))),
+                DSL.named("SUM(age)", DSL.sum(DSL.ref("age", INTEGER)))),
         ImmutableList.of(DSL.named("balance", DSL.ref("balance", INTEGER)),
-            DSL.named("abs(balance)", dsl.abs(DSL.ref("balance", INTEGER))))
+            DSL.named("abs(balance)", DSL.abs(DSL.ref("balance", INTEGER))))
     );
   }
 }

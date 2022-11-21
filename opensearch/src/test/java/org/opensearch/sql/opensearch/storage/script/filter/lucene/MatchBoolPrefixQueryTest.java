@@ -23,14 +23,12 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.FunctionName;
-import org.opensearch.sql.opensearch.OpenSearchTestBase;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchBoolPrefixQuery;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-public class MatchBoolPrefixQueryTest extends OpenSearchTestBase {
+public class MatchBoolPrefixQueryTest {
   private final MatchBoolPrefixQuery matchBoolPrefixQuery = new MatchBoolPrefixQuery();
   private final FunctionName matchBoolPrefix = FunctionName.of("match_bool_prefix");
 

@@ -34,7 +34,7 @@ class FilterOperatorTest extends PhysicalPlanTestBase {
   @Test
   public void filterTest() {
     FilterOperator plan = new FilterOperator(new TestScan(),
-        dsl.equal(DSL.ref("response", INTEGER), DSL.literal(404)));
+        DSL.equal(DSL.ref("response", INTEGER), DSL.literal(404)));
     List<ExprValue> result = execute(plan);
     assertEquals(1, result.size());
     assertThat(result, containsInAnyOrder(ExprValueUtils
@@ -51,7 +51,7 @@ class FilterOperatorTest extends PhysicalPlanTestBase {
     when(inputPlan.next()).thenReturn(new ExprTupleValue(value));
 
     FilterOperator plan = new FilterOperator(inputPlan,
-        dsl.equal(DSL.ref("response", INTEGER), DSL.literal(404)));
+        DSL.equal(DSL.ref("response", INTEGER), DSL.literal(404)));
     List<ExprValue> result = execute(plan);
     assertEquals(0, result.size());
   }
@@ -64,7 +64,7 @@ class FilterOperatorTest extends PhysicalPlanTestBase {
     when(inputPlan.next()).thenReturn(new ExprTupleValue(value));
 
     FilterOperator plan = new FilterOperator(inputPlan,
-        dsl.equal(DSL.ref("response", INTEGER), DSL.literal(404)));
+        DSL.equal(DSL.ref("response", INTEGER), DSL.literal(404)));
     List<ExprValue> result = execute(plan);
     assertEquals(0, result.size());
   }

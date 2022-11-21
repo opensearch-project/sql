@@ -29,8 +29,6 @@ import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.expression.DSL;
-import org.opensearch.sql.expression.config.ExpressionConfig;
-import org.opensearch.sql.expression.function.FunctionPropertiesTestConfig;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
@@ -42,8 +40,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @Configuration
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {FunctionPropertiesTestConfig.class, ExpressionConfig.class,
-    SelectExpressionAnalyzerTest.class})
+@ContextConfiguration(classes = {SelectExpressionAnalyzerTest.class})
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class WindowExpressionAnalyzerTest extends AnalyzerTestBase {
 
@@ -66,7 +63,7 @@ class WindowExpressionAnalyzerTest extends AnalyzerTestBase {
                 LogicalPlanDSL.relation("test", table),
                 ImmutablePair.of(DEFAULT_ASC, DSL.ref("string_value", STRING)),
                 ImmutablePair.of(DEFAULT_DESC, DSL.ref("integer_value", INTEGER))),
-            DSL.named("row_number", dsl.rowNumber()),
+            DSL.named("row_number", DSL.rowNumber()),
             new WindowDefinition(
                 ImmutableList.of(DSL.ref("string_value", STRING)),
                 ImmutableList.of(
@@ -87,7 +84,7 @@ class WindowExpressionAnalyzerTest extends AnalyzerTestBase {
     assertEquals(
         LogicalPlanDSL.window(
             LogicalPlanDSL.relation("test", table),
-            DSL.named("row_number", dsl.rowNumber()),
+            DSL.named("row_number", DSL.rowNumber()),
             new WindowDefinition(
                 ImmutableList.of(),
                 ImmutableList.of())),

@@ -37,21 +37,21 @@ abstract class FunctionDSLimplTestBase extends FunctionDSLTestBase {
   void implementation_valid_functionBuilder() {
 
     FunctionBuilder v = getImplementation().getValue();
-    assertDoesNotThrow(() -> v.apply(mockProperties, getSampleArguments()));
+    assertDoesNotThrow(() -> v.apply(functionProperties, getSampleArguments()));
   }
 
   @Test
   void implementation_functionBuilder_return_functionExpression() {
     FunctionImplementation executable = getImplementation().getValue()
-        .apply(mockProperties, getSampleArguments());
+        .apply(functionProperties, getSampleArguments());
     assertTrue(executable instanceof FunctionExpression);
   }
 
   @Test
   void implementation_functionExpression_valueOf() {
     FunctionExpression executable =
-        (FunctionExpression) getImplementation().getValue().apply(mockProperties,
-            getSampleArguments());
+        (FunctionExpression) getImplementation().getValue()
+            .apply(functionProperties, getSampleArguments());
 
     assertEquals(ANY, executable.valueOf(null));
   }
@@ -59,16 +59,16 @@ abstract class FunctionDSLimplTestBase extends FunctionDSLTestBase {
   @Test
   void implementation_functionExpression_type() {
     FunctionExpression executable =
-        (FunctionExpression) getImplementation().getValue().apply(mockProperties,
-            getSampleArguments());
+        (FunctionExpression) getImplementation().getValue()
+            .apply(functionProperties, getSampleArguments());
     assertEquals(ANY_TYPE, executable.type());
   }
 
   @Test
   void implementation_functionExpression_toString() {
     FunctionExpression executable =
-        (FunctionExpression) getImplementation().getValue().apply(mockProperties,
-            getSampleArguments());
+        (FunctionExpression) getImplementation().getValue()
+            .apply(functionProperties, getSampleArguments());
     assertEquals(getExpected_toString(), executable.toString());
   }
 

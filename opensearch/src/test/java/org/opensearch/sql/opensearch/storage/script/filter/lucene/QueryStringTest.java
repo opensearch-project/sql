@@ -30,11 +30,10 @@ import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.FunctionName;
-import org.opensearch.sql.opensearch.OpenSearchTestBase;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.QueryStringQuery;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-class QueryStringTest extends OpenSearchTestBase {
+class QueryStringTest {
   private final QueryStringQuery queryStringQuery = new QueryStringQuery();
   private final FunctionName queryStringFunc = FunctionName.of("query_string");
   private static final LiteralExpression fields_value = DSL.literal(

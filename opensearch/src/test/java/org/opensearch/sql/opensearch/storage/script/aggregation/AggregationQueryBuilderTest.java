@@ -52,14 +52,11 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.aggregation.AvgAggregator;
 import org.opensearch.sql.expression.aggregation.CountAggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
-import org.opensearch.sql.expression.config.ExpressionConfig;
-import org.opensearch.sql.opensearch.OpenSearchTestBase;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
-class AggregationQueryBuilderTest extends OpenSearchTestBase {
-
+class AggregationQueryBuilderTest {
   @Mock
   private ExpressionSerializer serializer;
 
@@ -235,8 +232,8 @@ class AggregationQueryBuilderTest extends OpenSearchTestBase {
         buildQuery(
             Arrays.asList(
                 named("avg(balance)", new AvgAggregator(
-                    Arrays.asList(dsl.abs(ref("balance", INTEGER))), INTEGER))),
-            Arrays.asList(named("age", dsl.asin(ref("age", INTEGER))))));
+                    Arrays.asList(DSL.abs(ref("balance", INTEGER))), INTEGER))),
+            Arrays.asList(named("age", DSL.asin(ref("age", INTEGER))))));
   }
 
   @Test
@@ -288,8 +285,8 @@ class AggregationQueryBuilderTest extends OpenSearchTestBase {
     assertThat(
         buildTypeMapping(Arrays.asList(
             named("avg(balance)", new AvgAggregator(
-                Arrays.asList(dsl.abs(ref("balance", INTEGER))), INTEGER))),
-            Arrays.asList(named("age", dsl.asin(ref("age", INTEGER))))),
+                Arrays.asList(DSL.abs(ref("balance", INTEGER))), INTEGER))),
+            Arrays.asList(named("age", DSL.asin(ref("age", INTEGER))))),
         containsInAnyOrder(
             map("avg(balance)", INTEGER),
             map("age", DOUBLE)
@@ -341,7 +338,7 @@ class AggregationQueryBuilderTest extends OpenSearchTestBase {
         buildQuery(
             Arrays.asList(named("avg(age) filter(where age > 34)",
                 new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER)
-                    .condition(dsl.greater(ref("age", INTEGER), literal(20))))),
+                    .condition(DSL.greater(ref("age", INTEGER), literal(20))))),
             Collections.emptyList()));
   }
 
@@ -390,7 +387,7 @@ class AggregationQueryBuilderTest extends OpenSearchTestBase {
         buildQuery(
             Arrays.asList(named("avg(age) filter(where age > 34)",
                 new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER)
-                    .condition(dsl.greater(ref("age", INTEGER), literal(20))))),
+                    .condition(DSL.greater(ref("age", INTEGER), literal(20))))),
             Arrays.asList(named(ref("gender", STRING)))));
   }
 

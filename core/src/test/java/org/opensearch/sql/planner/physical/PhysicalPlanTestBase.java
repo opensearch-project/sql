@@ -11,7 +11,6 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
@@ -20,24 +19,12 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
-import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ReferenceExpression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.env.Environment;
-import org.opensearch.sql.expression.function.FunctionPropertiesTestConfig;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@Configuration
-@ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {FunctionPropertiesTestConfig.class, ExpressionConfig.class})
 public class PhysicalPlanTestBase {
-  @Autowired
-  protected DSL dsl;
 
   protected static final List<ExprValue> countTestInputs = new ImmutableList.Builder<ExprValue>()
           .add(ExprValueUtils.tupleValue(ImmutableMap
