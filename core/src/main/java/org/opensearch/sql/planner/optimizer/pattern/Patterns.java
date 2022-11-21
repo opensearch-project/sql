@@ -14,6 +14,7 @@ import java.util.Optional;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalFilter;
+import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalLimit;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalProject;
@@ -54,6 +55,13 @@ public class Patterns {
    */
   public static <T extends LogicalPlan> Pattern<LogicalLimit> limit(Pattern<T> pattern) {
     return Pattern.typeOf(LogicalLimit.class).with(source(pattern));
+  }
+
+  /**
+   * Logical highlight operator with a given pattern on inner field.
+   */
+  public static <T extends LogicalPlan> Pattern<LogicalHighlight> highlight(Pattern<T> pattern) {
+    return Pattern.typeOf(LogicalHighlight.class).with(source(pattern));
   }
 
   /**

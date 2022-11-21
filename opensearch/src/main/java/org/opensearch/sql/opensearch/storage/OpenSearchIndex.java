@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.common.setting.Settings;
-import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
@@ -24,7 +23,6 @@ import org.opensearch.sql.opensearch.request.system.OpenSearchDescribeIndexReque
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanBuilder;
 import org.opensearch.sql.planner.DefaultImplementor;
 import org.opensearch.sql.planner.logical.LogicalAD;
-import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalML;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
@@ -150,13 +148,6 @@ public class OpenSearchIndex implements Table {
     public PhysicalPlan visitML(LogicalML node, OpenSearchIndexScan context) {
       return new MLOperator(visitChild(node, context),
               node.getArguments(), client.getNodeClient());
-    }
-
-    @Override
-    public PhysicalPlan visitHighlight(LogicalHighlight node, OpenSearchIndexScan context) {
-      context.getRequestBuilder().pushDownHighlight(
-          StringUtils.unquoteText(node.getHighlightField().toString()), node.getArguments());
-      return visitChild(node, context);
     }
   }
 }

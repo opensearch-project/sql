@@ -20,12 +20,14 @@ import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.aggregation;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.filter;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.highlight;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.limit;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.project;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.relation;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.sort;
 import static org.opensearch.sql.planner.optimizer.rule.scan.TableScanPushDown.PUSH_DOWN_AGGREGATION;
 import static org.opensearch.sql.planner.optimizer.rule.scan.TableScanPushDown.PUSH_DOWN_FILTER;
+import static org.opensearch.sql.planner.optimizer.rule.scan.TableScanPushDown.PUSH_DOWN_HIGHLIGHT;
 import static org.opensearch.sql.planner.optimizer.rule.scan.TableScanPushDown.PUSH_DOWN_LIMIT;
 import static org.opensearch.sql.planner.optimizer.rule.scan.TableScanPushDown.PUSH_DOWN_PROJECT;
 import static org.opensearch.sql.planner.optimizer.rule.scan.TableScanPushDown.PUSH_DOWN_SORT;
@@ -52,9 +54,11 @@ import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuil
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
@@ -217,6 +221,25 @@ class OpenSearchIndexScanOptimizationTest {
                 relation("schema", table),
                 1, 1),
             DSL.named("intV", DSL.ref("intV", INTEGER))
+        )
+    );
+  }
+
+  @Test
+  void test_highlight_push_down() {
+    assertEqualsAfterOptimization(
+        project(
+            indexScanBuilder(
+                withHighlightPushedDown("*", Collections.emptyMap())),
+            DSL.named("highlight(*)",
+                new HighlightExpression(DSL.literal("*")))
+        ),
+        project(
+            highlight(
+                relation("schema", table),
+                DSL.literal("*"), Collections.emptyMap()),
+                DSL.named("highlight(*)",
+                    new HighlightExpression(DSL.literal("*")))
         )
     );
   }
@@ -573,6 +596,10 @@ class OpenSearchIndexScanOptimizationTest {
         new HashSet<>(Arrays.asList(references)));
   }
 
+  private Runnable withHighlightPushedDown(String field, Map<String, Literal> arguments) {
+    return () -> verify(requestBuilder, times(1)).pushDownHighlight(field, arguments);
+  }
+
   private static AggregationAssertHelper.AggregationAssertHelperBuilder aggregate(String aggName) {
     var aggBuilder = new AggregationAssertHelper.AggregationAssertHelperBuilder();
     aggBuilder.aggregateName = aggName;
@@ -602,6 +629,7 @@ class OpenSearchIndexScanOptimizationTest {
         PUSH_DOWN_AGGREGATION,
         PUSH_DOWN_SORT,
         PUSH_DOWN_LIMIT,
+        PUSH_DOWN_HIGHLIGHT,
         PUSH_DOWN_PROJECT));
     return optimizer.optimize(plan);
   }

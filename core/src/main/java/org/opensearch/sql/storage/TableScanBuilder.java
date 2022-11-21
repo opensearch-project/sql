@@ -8,6 +8,7 @@ package org.opensearch.sql.storage;
 import java.util.Collections;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalFilter;
+import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalLimit;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
@@ -88,6 +89,17 @@ public abstract class TableScanBuilder extends LogicalPlan {
    * @return true if pushed down, otherwise false
    */
   public boolean pushDownProject(LogicalProject project) {
+    return false;
+  }
+
+  /**
+   * Can a given highlight operator be pushed down to table scan builder. Assume no such support
+   * by default unless subclass override this.
+   *
+   * @param highlight logical highlight operator
+   * @return true if pushed down, otherwise false
+   */
+  public boolean pushDownHighlight(LogicalHighlight highlight) {
     return false;
   }
 

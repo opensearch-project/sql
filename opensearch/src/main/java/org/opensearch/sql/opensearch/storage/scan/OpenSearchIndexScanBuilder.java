@@ -10,6 +10,7 @@ import lombok.EqualsAndHashCode;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndexScan;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalFilter;
+import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalLimit;
 import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalSort;
@@ -83,5 +84,10 @@ public class OpenSearchIndexScanBuilder extends TableScanBuilder {
   @Override
   public boolean pushDownProject(LogicalProject project) {
     return delegate.pushDownProject(project);
+  }
+
+  @Override
+  public boolean pushDownHighlight(LogicalHighlight highlight) {
+    return delegate.pushDownHighlight(highlight);
   }
 }

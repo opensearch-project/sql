@@ -7,6 +7,7 @@ package org.opensearch.sql.planner.optimizer.rule.scan;
 
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.aggregate;
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.filter;
+import static org.opensearch.sql.planner.optimizer.pattern.Patterns.highlight;
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.limit;
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.project;
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.scanBuilder;
@@ -66,6 +67,12 @@ public class TableScanPushDown<T extends LogicalPlan> implements Rule<T> {
           project(
               scanBuilder()))
       .apply((project, scanBuilder) -> scanBuilder.pushDownProject(project));
+
+  public static final Rule<?> PUSH_DOWN_HIGHLIGHT =
+      match(
+          highlight(
+              scanBuilder()))
+          .apply((highlight, scanBuilder) -> scanBuilder.pushDownHighlight(highlight));
 
 
   /** Pattern that matches a plan node. */

@@ -15,12 +15,14 @@ import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.aggregation;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.filter;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.highlight;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.limit;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.project;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.relation;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.sort;
 
 import com.google.common.collect.ImmutableList;
+import java.util.Collections;
 import java.util.Map;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
@@ -228,6 +230,21 @@ class LogicalPlanOptimizerTest {
             limit(
                 relation("schema", table),
                 1, 1)
+        )
+    );
+  }
+
+  @Test
+  void table_scan_builder_support_highlight_push_down_can_apply_its_rule() {
+    when(tableScanBuilder.pushDownHighlight(any())).thenReturn(true);
+
+    assertEquals(
+        tableScanBuilder,
+        optimize(
+            highlight(
+                relation("schema", table),
+                DSL.named("i", DSL.ref("intV", INTEGER)),
+                Collections.emptyMap())
         )
     );
   }
