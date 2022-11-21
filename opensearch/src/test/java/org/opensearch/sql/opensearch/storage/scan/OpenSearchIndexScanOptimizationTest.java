@@ -529,12 +529,12 @@ class OpenSearchIndexScanOptimizationTest {
 
   private OpenSearchIndexScanBuilder indexScanBuilder(Runnable... verifyPushDownCalls) {
     this.verifyPushDownCalls = verifyPushDownCalls;
-    return new OpenSearchIndexScanBuilder(new OpenSearchSimpleIndexScanBuilder(indexScan));
+    return new OpenSearchIndexScanBuilder(new OpenSearchIndexScanQueryBuilder(indexScan));
   }
 
   private OpenSearchIndexScanBuilder indexScanAggBuilder(Runnable... verifyPushDownCalls) {
     this.verifyPushDownCalls = verifyPushDownCalls;
-    return new OpenSearchIndexScanBuilder(new OpenSearchAggregateIndexScanBuilder(indexScan));
+    return new OpenSearchIndexScanBuilder(new OpenSearchIndexScanAggregationBuilder(indexScan));
   }
 
   private void assertEqualsAfterOptimization(LogicalPlan expected, LogicalPlan actual) {

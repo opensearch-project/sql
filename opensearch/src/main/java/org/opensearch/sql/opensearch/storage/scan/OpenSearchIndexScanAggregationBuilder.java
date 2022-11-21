@@ -27,7 +27,7 @@ import org.opensearch.sql.storage.TableScanOperator;
 /**
  * Index scan builder for aggregate query used by {@link OpenSearchIndexScanBuilder} internally.
  */
-class OpenSearchAggregateIndexScanBuilder extends TableScanBuilder {
+class OpenSearchIndexScanAggregationBuilder extends TableScanBuilder {
 
   /** OpenSearch index scan to be optimized. */
   private final OpenSearchIndexScan indexScan;
@@ -46,7 +46,7 @@ class OpenSearchAggregateIndexScanBuilder extends TableScanBuilder {
    *
    * @param indexScan index scan not fully optimized yet
    */
-  OpenSearchAggregateIndexScanBuilder(OpenSearchIndexScan indexScan) {
+  OpenSearchIndexScanAggregationBuilder(OpenSearchIndexScan indexScan) {
     this.indexScan = indexScan;
   }
 

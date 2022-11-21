@@ -37,7 +37,7 @@ import org.opensearch.sql.storage.TableScanOperator;
  * {@link OpenSearchIndexScanBuilder} internally.
  */
 @VisibleForTesting
-class OpenSearchSimpleIndexScanBuilder extends TableScanBuilder {
+class OpenSearchIndexScanQueryBuilder extends TableScanBuilder {
 
   /** OpenSearch index scan to be optimized. */
   @EqualsAndHashCode.Include
@@ -48,7 +48,7 @@ class OpenSearchSimpleIndexScanBuilder extends TableScanBuilder {
    *
    * @param indexScan index scan not optimized yet
    */
-  OpenSearchSimpleIndexScanBuilder(OpenSearchIndexScan indexScan) {
+  OpenSearchIndexScanQueryBuilder(OpenSearchIndexScan indexScan) {
     this.indexScan = indexScan;
   }
 

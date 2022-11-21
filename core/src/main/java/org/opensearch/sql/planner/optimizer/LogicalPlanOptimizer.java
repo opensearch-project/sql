@@ -79,7 +79,9 @@ public class LogicalPlanOptimizer {
         if (match.isPresent()) {
           node = rule.apply(match.value(), match.captures());
 
-          // Re-iterate all rules against the node if the node is replaced by any rule
+          // For new TableScanPushDown impl, pattern match doesn't necessarily cause
+          // push down to happen. So reiterate all rules against the node only if the node
+          // is actually replaced by any rule.
           // TODO: may need to introduce fixed point or maximum iteration limit in future
           if (node != match.value()) {
             done = false;

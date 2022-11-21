@@ -243,7 +243,7 @@ class LogicalPlanOptimizerTest {
         optimize(
             highlight(
                 relation("schema", table),
-                DSL.named("i", DSL.ref("intV", INTEGER)),
+                DSL.literal("*"),
                 Collections.emptyMap())
         )
     );

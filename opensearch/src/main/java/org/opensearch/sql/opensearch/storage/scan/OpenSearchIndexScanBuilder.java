@@ -43,7 +43,7 @@ public class OpenSearchIndexScanBuilder extends TableScanBuilder {
    * @param indexScan index scan to optimize
    */
   public OpenSearchIndexScanBuilder(OpenSearchIndexScan indexScan) {
-    this.delegate = new OpenSearchSimpleIndexScanBuilder(indexScan);
+    this.delegate = new OpenSearchIndexScanQueryBuilder(indexScan);
   }
 
   @Override
@@ -64,7 +64,7 @@ public class OpenSearchIndexScanBuilder extends TableScanBuilder {
 
     // Switch to builder for aggregate query which has different push down logic
     //  for later filter, sort and limit operator.
-    delegate = new OpenSearchAggregateIndexScanBuilder(
+    delegate = new OpenSearchIndexScanAggregationBuilder(
         (OpenSearchIndexScan) delegate.build());
 
     return delegate.pushDownAggregation(aggregation);
