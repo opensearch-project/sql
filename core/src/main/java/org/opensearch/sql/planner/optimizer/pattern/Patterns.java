@@ -20,6 +20,7 @@ import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.logical.LogicalSort;
+import org.opensearch.sql.planner.logical.LogicalWrite;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 
@@ -108,6 +109,16 @@ public class Patterns {
     return Property.optionalProperty("table",
         plan -> plan instanceof LogicalRelation
             ? Optional.of(((LogicalRelation) plan).getTable())
+            : Optional.empty());
+  }
+
+  /**
+   * Logical relation with table field.
+   */
+  public static Property<LogicalPlan, Table> writeTable() {
+    return Property.optionalProperty("table",
+        plan -> plan instanceof LogicalWrite
+            ? Optional.of(((LogicalWrite) plan).getTable())
             : Optional.empty());
   }
 }

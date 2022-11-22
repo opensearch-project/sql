@@ -58,6 +58,8 @@ import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.sql.storage.read.TableScanBuilder;
+import org.opensearch.sql.storage.write.TableWriteBuilder;
+import org.opensearch.sql.storage.write.TableWriteOperator;
 
 @ExtendWith(MockitoExtension.class)
 class DefaultImplementorTest {
@@ -211,5 +213,18 @@ class DefaultImplementorTest {
       }
     };
     assertEquals(tableScanOperator, tableScanBuilder.accept(implementor, null));
+  }
+
+  @Test
+  public void visitTableWriteBuilderShouldBuildTableWriteOperator() {
+    LogicalPlan child = values();
+    TableWriteOperator tableWriteOperator = Mockito.mock(TableWriteOperator.class);
+    TableWriteBuilder logicalPlan = new TableWriteBuilder(child) {
+      @Override
+      public TableWriteOperator build(PhysicalPlan child) {
+        return tableWriteOperator;
+      }
+    };
+    assertEquals(tableWriteOperator, logicalPlan.accept(implementor, null));
   }
 }

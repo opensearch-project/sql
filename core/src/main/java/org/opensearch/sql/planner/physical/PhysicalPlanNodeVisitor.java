@@ -7,7 +7,7 @@
 package org.opensearch.sql.planner.physical;
 
 import org.opensearch.sql.storage.TableScanOperator;
-import org.opensearch.sql.storage.TableWriteOperator;
+import org.opensearch.sql.storage.write.TableWriteOperator;
 
 /**
  * The visitor of {@link PhysicalPlan}.
