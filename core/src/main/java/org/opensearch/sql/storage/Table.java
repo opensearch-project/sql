@@ -73,6 +73,16 @@ public interface Table {
     return null; // TODO: Enforce all subclasses to implement this later
   }
 
+  /*
+   * Create table write builder for logical to physical transformation.
+   *
+   * @return table write builder
+   */
+  default TableWriteBuilder createWriteBuilder() {
+    throw new UnsupportedOperationException(
+        "Write operation is not supported on current table");
+  }
+
   /**
    * Translate {@link Table} to {@link StreamingSource} if possible.
    */
