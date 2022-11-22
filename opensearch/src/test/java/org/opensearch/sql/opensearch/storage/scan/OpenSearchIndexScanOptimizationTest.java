@@ -512,7 +512,7 @@ class OpenSearchIndexScanOptimizationTest {
   }
 
   @Test
-  void project_literal_no_push() {
+  void project_literal_should_not_be_pushed_down() {
     assertEqualsAfterOptimization(
         project(
             indexScanBuilder(),

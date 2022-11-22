@@ -104,6 +104,9 @@ public class OpenSearchRequestBuilder {
    * @return query request or scroll request
    */
   public OpenSearchRequest build() {
+    // Sort by doc as long as no sort pushed down here, no matter if post-processing sort exists
+    sortByDocIfNoSortPushedDown();
+
     Integer from = sourceBuilder.from();
     Integer size = sourceBuilder.size();
 
@@ -133,10 +136,6 @@ public class OpenSearchRequestBuilder {
             .filter(current)
             .filter(query));
       }
-    }
-
-    if (sourceBuilder.sorts() == null) {
-      sourceBuilder.sort(DOC_FIELD_NAME, ASC); // Make sure consistent order
     }
   }
 
@@ -219,5 +218,12 @@ public class OpenSearchRequestBuilder {
 
   private boolean isBoolFilterQuery(QueryBuilder current) {
     return (current instanceof BoolQueryBuilder);
+  }
+
+  private void sortByDocIfNoSortPushedDown() {
+    // Add sort to make sure consistent order
+    if (sourceBuilder.sorts() == null) {
+      sourceBuilder.sort(DOC_FIELD_NAME, ASC);
+    }
   }
 }

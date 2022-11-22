@@ -9,6 +9,8 @@ package org.opensearch.sql.opensearch.request;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
+import static org.opensearch.search.sort.SortOrder.ASC;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 
 import java.util.Collections;
@@ -73,7 +75,8 @@ public class OpenSearchRequestBuilderTest {
             new SearchSourceBuilder()
                 .from(offset)
                 .size(limit)
-                .timeout(DEFAULT_QUERY_TIMEOUT),
+                .timeout(DEFAULT_QUERY_TIMEOUT)
+                .sort(DOC_FIELD_NAME, ASC),
             exprValueFactory),
         requestBuilder.build());
   }
@@ -90,8 +93,9 @@ public class OpenSearchRequestBuilderTest {
             new SearchSourceBuilder()
                 .from(offset)
                 .size(MAX_RESULT_WINDOW - offset)
-                .timeout(DEFAULT_QUERY_TIMEOUT),
-            exprValueFactory),
+                .timeout(DEFAULT_QUERY_TIMEOUT)
+                .sort(DOC_FIELD_NAME, ASC),
+        exprValueFactory),
         requestBuilder.build());
   }
 
