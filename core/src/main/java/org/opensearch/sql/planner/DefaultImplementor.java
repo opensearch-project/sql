@@ -125,7 +125,7 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
   }
 
   @Override
-  public PhysicalPlan visitScanBuilder(TableScanBuilder plan, C context) {
+  public PhysicalPlan visitTableScanBuilder(TableScanBuilder plan, C context) {
     return plan.build();
   }
 

@@ -24,7 +24,7 @@ public abstract class LogicalPlanNodeVisitor<R, C> {
     return visitNode(plan, context);
   }
 
-  public R visitScanBuilder(TableScanBuilder plan, C context) {
+  public R visitTableScanBuilder(TableScanBuilder plan, C context) {
     return visitNode(plan, context);
   }
 

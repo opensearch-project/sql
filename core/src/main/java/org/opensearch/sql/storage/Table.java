@@ -64,6 +64,7 @@ public interface Table {
 
   /**
    * Create table scan builder for logical to physical transformation.
+   *
    * @return table scan builder
    */
   default TableScanBuilder createScanBuilder() {

@@ -105,6 +105,6 @@ public abstract class TableScanBuilder extends LogicalPlan {
 
   @Override
   public <R, C> R accept(LogicalPlanNodeVisitor<R, C> visitor, C context) {
-    return visitor.visitScanBuilder(this, context);
+    return visitor.visitTableScanBuilder(this, context);
   }
 }
