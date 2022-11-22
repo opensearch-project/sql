@@ -31,9 +31,12 @@ import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
+import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.sql.storage.read.TableScanBuilder;
+import org.opensearch.sql.storage.write.TableWriteBuilder;
+import org.opensearch.sql.storage.write.TableWriteOperator;
 
 /**
  * Todo. Temporary added for UT coverage, Will be removed.
@@ -81,6 +84,19 @@ class LogicalPlanNodeVisitorTest {
       }
     };
     assertNull(tableScanBuilder.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
+    }, null));
+
+    LogicalPlan write = LogicalPlanDSL.write(null, table);
+    assertNull(write.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
+    }, null));
+
+    TableWriteBuilder tableWriteBuilder = new TableWriteBuilder(null) {
+      @Override
+      public TableWriteOperator build(PhysicalPlan child) {
+        return null;
+      }
+    };
+    assertNull(tableWriteBuilder.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
     }, null));
 
     LogicalPlan filter = LogicalPlanDSL.filter(relation, expression);
