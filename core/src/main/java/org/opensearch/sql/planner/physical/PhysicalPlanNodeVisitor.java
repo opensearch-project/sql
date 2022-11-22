@@ -7,6 +7,7 @@
 package org.opensearch.sql.planner.physical;
 
 import org.opensearch.sql.storage.TableScanOperator;
+import org.opensearch.sql.storage.TableWriteOperator;
 
 /**
  * The visitor of {@link PhysicalPlan}.
@@ -33,6 +34,10 @@ public abstract class PhysicalPlanNodeVisitor<R, C> {
   }
 
   public R visitTableScan(TableScanOperator node, C context) {
+    return visitNode(node, context);
+  }
+
+  public R visitTableWrite(TableWriteOperator node, C context) {
     return visitNode(node, context);
   }
 
