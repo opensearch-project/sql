@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.sql.CatalogSchemaName;
+import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
@@ -30,7 +30,7 @@ public class PrometheusListMetricsRequest implements PrometheusSystemRequest {
 
   private final PrometheusClient prometheusClient;
 
-  private final CatalogSchemaName catalogSchemaName;
+  private final DataSourceSchemaName dataSourceSchemaName;
 
   private static final Logger LOG = LogManager.getLogger();
 
@@ -60,7 +60,7 @@ public class PrometheusListMetricsRequest implements PrometheusSystemRequest {
 
   private ExprTupleValue row(String metricName, String tableType, String unit, String help) {
     LinkedHashMap<String, ExprValue> valueMap = new LinkedHashMap<>();
-    valueMap.put("TABLE_CATALOG", stringValue(catalogSchemaName.getCatalogName()));
+    valueMap.put("TABLE_CATALOG", stringValue(dataSourceSchemaName.getDataSourceName()));
     valueMap.put("TABLE_SCHEMA", stringValue("default"));
     valueMap.put("TABLE_NAME", stringValue(metricName));
     valueMap.put("TABLE_TYPE", stringValue(tableType));

@@ -10,14 +10,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.executor.DefaultQueryManager;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
@@ -52,24 +54,32 @@ public class PPLServiceTest {
   private ExecutionEngine executionEngine;
 
   @Mock
-  private CatalogService catalogService;
+  private DataSourceService dataSourceService;
 
   @Mock
   private ExecutionEngine.Schema schema;
+
+  private DefaultQueryManager queryManager;
 
   /**
    * Setup the test context.
    */
   @Before
   public void setUp() {
-    context.registerBean(QueryManager.class, DefaultQueryManager::new);
+    queryManager = DefaultQueryManager.defaultQueryManager();
+    context.registerBean(QueryManager.class, () -> queryManager);
     context.registerBean(QueryPlanFactory.class, () -> new QueryPlanFactory(queryService));
     context.registerBean(StorageEngine.class, () -> storageEngine);
     context.registerBean(ExecutionEngine.class, () -> executionEngine);
-    context.registerBean(CatalogService.class, () -> catalogService);
+    context.registerBean(DataSourceService.class, () -> dataSourceService);
     context.register(PPLServiceConfig.class);
     context.refresh();
     pplService = context.getBean(PPLService.class);
+  }
+
+  @After
+  public void cleanup() throws InterruptedException {
+    queryManager.awaitTermination(1, TimeUnit.SECONDS);
   }
 
   @Test

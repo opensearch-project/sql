@@ -26,7 +26,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 @RequiredArgsConstructor
 public class Query extends Statement {
 
-  private final UnresolvedPlan plan;
+  protected final UnresolvedPlan plan;
 
   @Override
   public <R, C> R accept(AbstractNodeVisitor<R, C> visitor, C context) {

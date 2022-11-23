@@ -8,6 +8,7 @@ package org.opensearch.sql.storage;
 
 import java.util.Map;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.executor.streaming.StreamingSource;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.read.TableScanBuilder;
@@ -72,4 +73,10 @@ public interface Table {
     return null; // TODO: Enforce all subclasses to implement this later
   }
 
+  /**
+   * Translate {@link Table} to {@link StreamingSource} if possible.
+   */
+  default StreamingSource asStreamingSource() {
+    throw new UnsupportedOperationException();
+  }
 }
