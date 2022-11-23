@@ -2736,24 +2736,7 @@ MATCHQUERY
 Description
 >>>>>>>>>>>
 
-``matchquery(field_expression, query_expression[, option=<option_value>]*)``
-
-The matchquery function maps to the match query used in search engine, to return the documents that match a provided text, number, date or boolean value with a given field. This is alternate syntax for the `match`_ function. Available parameters include:
-
-- analyzer
-- auto_generate_synonyms_phrase
-- fuzziness
-- max_expansions
-- prefix_length
-- fuzzy_transpositions
-- fuzzy_rewrite
-- lenient
-- operator
-- minimum_should_match
-- zero_terms_query
-- boost
-
-For backwards compatibility, matchquery is supported and mapped to the match query.
+The matchquery function is a synonym for the `match`_ function.
 
 Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
 
@@ -2782,24 +2765,7 @@ MATCH_QUERY
 Description
 >>>>>>>>>>>
 
-``match_query(field_expression, query_expression[, option=<option_value>]*)``
-
-The match_query function maps to the match query used in search engine, to return the documents that match_query a provided text, number, date or boolean value with a given field. This is alternate syntax for the `match`_ function.  Available parameters include:
-
-- analyzer
-- auto_generate_synonyms_phrase
-- fuzziness
-- max_expansions
-- prefix_length
-- fuzzy_transpositions
-- fuzzy_rewrite
-- lenient
-- operator
-- minimum_should_match
-- zero_terms_query
-- boost
-
-For backwards compatibility, match_query is supported and mapped to the match query.
+The match_query function is a synonym for the `match`_ function.
 
 Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
 
