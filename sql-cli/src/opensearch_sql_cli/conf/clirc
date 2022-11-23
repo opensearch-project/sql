@@ -31,13 +31,13 @@ multi_line = True
 multi_line_mode = opensearchsql_cli
 
 # log_file location.
-# In Unix/Linux: ~/.conf/opensearchsql-cli/log
+# In Unix/Linux: ~/.config/opensearchsql-cli/log
 # In Windows: %USERPROFILE%\AppData\Local\dbcli\opensearchsql-cli\log
 # %USERPROFILE% is typically C:\Users\{username}
 log_file = default
 
 # history_file location.
-# In Unix/Linux: ~/.conf/opensearchsql-cli/history
+# In Unix/Linux: ~/.config/opensearchsql-cli/history
 # In Windows: %USERPROFILE%\AppData\Local\dbcli\opensearchsql-cli\history
 # %USERPROFILE% is typically C:\Users\{username}
 history_file = default
