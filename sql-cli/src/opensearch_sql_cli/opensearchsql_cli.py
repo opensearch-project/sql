@@ -43,7 +43,8 @@ click.disable_unicode_literals_warning = True
 class OpenSearchSqlCli:
     """OpenSearchSqlCli instance is used to build and run the OpenSearch SQL CLI."""
 
-    def __init__(self, clirc_file=None, always_use_pager=False, use_aws_authentication=False, query_language="sql"):
+    def __init__(self, clirc_file=None, always_use_pager=False, use_aws_authentication=False, query_language="sql",
+                 response_timeout=10):
         # Load conf file
         config = self.config = get_config(clirc_file)
         literal = self.literal = self._get_literals()
@@ -53,6 +54,7 @@ class OpenSearchSqlCli:
         self.query_language = query_language
         self.always_use_pager = always_use_pager
         self.use_aws_authentication = use_aws_authentication
+        self.response_timeout = response_timeout
         self.keywords_list = literal["keywords"]
         self.functions_list = literal["functions"]
         self.syntax_style = config["main"]["syntax_style"]
@@ -169,7 +171,7 @@ class OpenSearchSqlCli:
 
     def connect(self, endpoint, http_auth=None):
         self.opensearch_executor = OpenSearchConnection(
-            endpoint, http_auth, self.use_aws_authentication, self.query_language
+            endpoint, http_auth, self.use_aws_authentication, self.query_language, self.response_timeout
         )
         self.opensearch_executor.set_connection()
 
