@@ -6,7 +6,7 @@
 
 package org.opensearch.sql.planner.logical;
 
-import org.opensearch.sql.storage.TableScanBuilder;
+import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /**
  * The visitor of {@link LogicalPlan}.

@@ -56,8 +56,8 @@ import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
 import org.opensearch.sql.storage.Table;
-import org.opensearch.sql.storage.TableScanBuilder;
 import org.opensearch.sql.storage.TableScanOperator;
+import org.opensearch.sql.storage.read.TableScanBuilder;
 
 @ExtendWith(MockitoExtension.class)
 class DefaultImplementorTest {

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.planner.optimizer.rule.scan;
+package org.opensearch.sql.planner.optimizer.rule.read;
 
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.aggregate;
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.filter;
@@ -12,7 +12,7 @@ import static org.opensearch.sql.planner.optimizer.pattern.Patterns.limit;
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.project;
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.scanBuilder;
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.sort;
-import static org.opensearch.sql.planner.optimizer.rule.scan.TableScanPushDown.TableScanPushDownBuilder.match;
+import static org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown.TableScanPushDownBuilder.match;
 
 import com.facebook.presto.matching.Capture;
 import com.facebook.presto.matching.Captures;
@@ -22,7 +22,7 @@ import com.facebook.presto.matching.pattern.WithPattern;
 import java.util.function.BiFunction;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.optimizer.Rule;
-import org.opensearch.sql.storage.TableScanBuilder;
+import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /**
  * Rule template for all table scan push down rules. Because all push down optimization rules

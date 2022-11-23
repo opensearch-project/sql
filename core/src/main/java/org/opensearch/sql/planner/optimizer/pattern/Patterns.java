@@ -21,7 +21,7 @@ import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.storage.Table;
-import org.opensearch.sql.storage.TableScanBuilder;
+import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /**
  * Pattern helper class.

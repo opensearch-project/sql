@@ -25,12 +25,12 @@ import static org.opensearch.sql.planner.logical.LogicalPlanDSL.limit;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.project;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.relation;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.sort;
-import static org.opensearch.sql.planner.optimizer.rule.scan.TableScanPushDown.PUSH_DOWN_AGGREGATION;
-import static org.opensearch.sql.planner.optimizer.rule.scan.TableScanPushDown.PUSH_DOWN_FILTER;
-import static org.opensearch.sql.planner.optimizer.rule.scan.TableScanPushDown.PUSH_DOWN_HIGHLIGHT;
-import static org.opensearch.sql.planner.optimizer.rule.scan.TableScanPushDown.PUSH_DOWN_LIMIT;
-import static org.opensearch.sql.planner.optimizer.rule.scan.TableScanPushDown.PUSH_DOWN_PROJECT;
-import static org.opensearch.sql.planner.optimizer.rule.scan.TableScanPushDown.PUSH_DOWN_SORT;
+import static org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown.PUSH_DOWN_AGGREGATION;
+import static org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown.PUSH_DOWN_FILTER;
+import static org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown.PUSH_DOWN_HIGHLIGHT;
+import static org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown.PUSH_DOWN_LIMIT;
+import static org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown.PUSH_DOWN_PROJECT;
+import static org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown.PUSH_DOWN_SORT;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
@@ -68,7 +68,7 @@ import org.opensearch.sql.opensearch.storage.OpenSearchIndexScan;
 import org.opensearch.sql.opensearch.storage.script.aggregation.AggregationQueryBuilder;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
-import org.opensearch.sql.planner.optimizer.rule.scan.CreateTableScanBuilder;
+import org.opensearch.sql.planner.optimizer.rule.read.CreateTableScanBuilder;
 import org.opensearch.sql.storage.Table;
 
 

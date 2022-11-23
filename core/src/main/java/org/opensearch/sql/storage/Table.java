@@ -10,6 +10,7 @@ import java.util.Map;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /**
  * Table.

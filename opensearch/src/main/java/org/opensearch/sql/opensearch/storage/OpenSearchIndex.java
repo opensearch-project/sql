@@ -28,7 +28,7 @@ import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.Table;
-import org.opensearch.sql.storage.TableScanBuilder;
+import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /** OpenSearch table (index) implementation. */
 public class OpenSearchIndex implements Table {

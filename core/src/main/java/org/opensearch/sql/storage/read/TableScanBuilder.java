@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.storage;
+package org.opensearch.sql.storage.read;
 
 import java.util.Collections;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
@@ -14,6 +14,7 @@ import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
 import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalSort;
+import org.opensearch.sql.storage.TableScanOperator;
 
 /**
  * A {@code TableScanBuilder} represents transition state between logical planning and

@@ -15,8 +15,8 @@ import java.util.stream.Collectors;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.optimizer.rule.MergeFilterAndFilter;
 import org.opensearch.sql.planner.optimizer.rule.PushFilterUnderSort;
-import org.opensearch.sql.planner.optimizer.rule.scan.CreateTableScanBuilder;
-import org.opensearch.sql.planner.optimizer.rule.scan.TableScanPushDown;
+import org.opensearch.sql.planner.optimizer.rule.read.CreateTableScanBuilder;
+import org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown;
 
 /**
  * {@link LogicalPlan} Optimizer.

@@ -21,8 +21,8 @@ import org.opensearch.sql.opensearch.storage.script.aggregation.AggregationQuery
 import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalSort;
-import org.opensearch.sql.storage.TableScanBuilder;
 import org.opensearch.sql.storage.TableScanOperator;
+import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /**
  * Index scan builder for aggregate query used by {@link OpenSearchIndexScanBuilder} internally.

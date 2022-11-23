@@ -14,8 +14,8 @@ import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalLimit;
 import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalSort;
-import org.opensearch.sql.storage.TableScanBuilder;
 import org.opensearch.sql.storage.TableScanOperator;
+import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /**
  * Table scan builder that builds table scan operator for OpenSearch. The actual work is performed

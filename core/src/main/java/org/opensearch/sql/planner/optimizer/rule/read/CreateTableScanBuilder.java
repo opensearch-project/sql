@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.planner.optimizer.rule.scan;
+package org.opensearch.sql.planner.optimizer.rule.read;
 
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.table;
 
@@ -16,7 +16,7 @@ import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.optimizer.Rule;
 import org.opensearch.sql.storage.Table;
-import org.opensearch.sql.storage.TableScanBuilder;
+import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /**
  * Rule that replace logical relation operator to {@link TableScanBuilder} for later

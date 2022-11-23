@@ -32,8 +32,8 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.storage.Table;
-import org.opensearch.sql.storage.TableScanBuilder;
 import org.opensearch.sql.storage.TableScanOperator;
+import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /**
  * Todo. Temporary added for UT coverage, Will be removed.

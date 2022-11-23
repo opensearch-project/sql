@@ -34,7 +34,7 @@ import org.opensearch.sql.planner.physical.RenameOperator;
 import org.opensearch.sql.planner.physical.SortOperator;
 import org.opensearch.sql.planner.physical.ValuesOperator;
 import org.opensearch.sql.planner.physical.WindowOperator;
-import org.opensearch.sql.storage.TableScanBuilder;
+import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /**
  * Default implementor for implementing logical to physical translation. "Default" here means all
