@@ -24,11 +24,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.FieldSortBuilder;
+import org.opensearch.search.sort.ScoreSortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprType;
@@ -75,8 +78,7 @@ public class OpenSearchRequestBuilderTest {
             new SearchSourceBuilder()
                 .from(offset)
                 .size(limit)
-                .timeout(DEFAULT_QUERY_TIMEOUT)
-                .sort(DOC_FIELD_NAME, ASC),
+                .timeout(DEFAULT_QUERY_TIMEOUT),
             exprValueFactory),
         requestBuilder.build());
   }
@@ -93,10 +95,25 @@ public class OpenSearchRequestBuilderTest {
             new SearchSourceBuilder()
                 .from(offset)
                 .size(MAX_RESULT_WINDOW - offset)
-                .timeout(DEFAULT_QUERY_TIMEOUT)
-                .sort(DOC_FIELD_NAME, ASC),
+                .timeout(DEFAULT_QUERY_TIMEOUT),
         exprValueFactory),
         requestBuilder.build());
+  }
+
+  @Test
+  void testPushDownQuery() {
+    QueryBuilder query = QueryBuilders.termQuery("intA", 1);
+    requestBuilder.pushDown(query);
+
+    assertEquals(
+        new SearchSourceBuilder()
+            .from(DEFAULT_OFFSET)
+            .size(DEFAULT_LIMIT)
+            .timeout(DEFAULT_QUERY_TIMEOUT)
+            .query(query)
+            .sort(DOC_FIELD_NAME, ASC),
+        requestBuilder.getSourceBuilder()
+    );
   }
 
   @Test
@@ -121,6 +138,24 @@ public class OpenSearchRequestBuilderTest {
   }
 
   @Test
+  void testPushDownQueryAndSort() {
+    QueryBuilder query = QueryBuilders.termQuery("intA", 1);
+    requestBuilder.pushDown(query);
+
+    FieldSortBuilder sortBuilder = SortBuilders.fieldSort("intA");
+    requestBuilder.pushDownSort(List.of(sortBuilder));
+
+    assertEquals(
+        new SearchSourceBuilder()
+            .from(DEFAULT_OFFSET)
+            .size(DEFAULT_LIMIT)
+            .timeout(DEFAULT_QUERY_TIMEOUT)
+            .query(query)
+            .sort(sortBuilder),
+        requestBuilder.getSourceBuilder());
+  }
+
+  @Test
   void testPushDownSort() {
     FieldSortBuilder sortBuilder = SortBuilders.fieldSort("intA");
     requestBuilder.pushDownSort(List.of(sortBuilder));
@@ -131,6 +166,36 @@ public class OpenSearchRequestBuilderTest {
             .size(DEFAULT_LIMIT)
             .timeout(DEFAULT_QUERY_TIMEOUT)
             .sort(sortBuilder),
+        requestBuilder.getSourceBuilder());
+  }
+
+  @Test
+  void testPushDownNonFieldSort() {
+    ScoreSortBuilder sortBuilder = SortBuilders.scoreSort();
+    requestBuilder.pushDownSort(List.of(sortBuilder));
+
+    assertEquals(
+        new SearchSourceBuilder()
+            .from(DEFAULT_OFFSET)
+            .size(DEFAULT_LIMIT)
+            .timeout(DEFAULT_QUERY_TIMEOUT)
+            .sort(sortBuilder),
+        requestBuilder.getSourceBuilder());
+  }
+
+  @Test
+  void testPushDownMultipleSort() {
+    requestBuilder.pushDownSort(List.of(
+        SortBuilders.fieldSort("intA"),
+        SortBuilders.fieldSort("intB")));
+
+    assertEquals(
+        new SearchSourceBuilder()
+            .from(DEFAULT_OFFSET)
+            .size(DEFAULT_LIMIT)
+            .timeout(DEFAULT_QUERY_TIMEOUT)
+            .sort(SortBuilders.fieldSort("intA"))
+            .sort(SortBuilders.fieldSort("intB")),
         requestBuilder.getSourceBuilder());
   }
 
