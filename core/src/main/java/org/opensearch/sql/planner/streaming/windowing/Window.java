@@ -7,9 +7,9 @@ package org.opensearch.sql.planner.streaming.windowing;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
+import org.opensearch.sql.data.model.AbstractExprValue;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -22,11 +22,13 @@ import org.opensearch.sql.data.type.ExprType;
  * as the definition specifies, it is not restricted to time window by design.
  */
 @Getter
-@EqualsAndHashCode
 @ToString
-public class Window implements ExprValue {
+public class Window extends AbstractExprValue {
 
+  /** Constants for caller to use. */
   public static final ExprValue UNBOUND = ExprNullValue.of();
+  public static final String START_NAME = "start";
+  public static final String END_NAME = "end";
 
   /** Lower bound (inclusive by default) of the time window. */
   private final ExprValue lowerBound;
@@ -53,7 +55,8 @@ public class Window implements ExprValue {
   @Override
   public Object value() {
     return ExprValueUtils.tupleValue(ImmutableMap.of(
-        "start", lowerBound, "end", upperBound));
+        START_NAME, lowerBound,
+        END_NAME, upperBound));
   }
 
   @Override
@@ -62,10 +65,7 @@ public class Window implements ExprValue {
   }
 
   @Override
-  public int compareTo(ExprValue o) {
-    Preconditions.checkArgument((o instanceof Window),
-        "Expr value [%s] must be a window for comparison", o.type());
-
+  public int compare(ExprValue o) {
     // Define that a window's order is only determined by its upper bound value
     Window other = (Window) o;
     if (upperBound == UNBOUND && other.upperBound == UNBOUND) {
@@ -76,6 +76,11 @@ public class Window implements ExprValue {
       return -1;
     }
     return upperBound.compareTo(other.upperBound);
+  }
+
+  @Override
+  public boolean equal(ExprValue other) {
+    return value().equals(other.value());
   }
 
   private boolean isBothBoundValid(ExprValue lowerBound, ExprValue upperBound) {

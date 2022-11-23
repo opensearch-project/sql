@@ -14,6 +14,7 @@ import java.util.Map;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.planner.streaming.windowing.Window;
 
 /**
  * The definition of {@link ExprValue} factory.
@@ -61,6 +62,14 @@ public class ExprValueUtils {
     return new ExprIntervalValue(value);
   }
 
+  public static ExprValue datetimeValue(String value) {
+    return new ExprDatetimeValue(value);
+  }
+
+  public static ExprValue dateValue(String value) {
+    return new ExprDateValue(value);
+  }
+
   /**
    * {@link ExprTupleValue} constructor.
    */
@@ -78,6 +87,14 @@ public class ExprValueUtils {
     List<ExprValue> valueList = new ArrayList<>();
     list.forEach(o -> valueList.add(fromObjectValue(o)));
     return new ExprCollectionValue(valueList);
+  }
+
+  public static Window window(Object lowerBound, Object upperBound) {
+    return new Window(fromObjectValue(lowerBound), fromObjectValue(upperBound));
+  }
+
+  public static Window window(Object lowerBound, Object upperBound, ExprCoreType type) {
+    return new Window(fromObjectValue(lowerBound, type), fromObjectValue(upperBound, type));
   }
 
   public static ExprValue missingValue() {

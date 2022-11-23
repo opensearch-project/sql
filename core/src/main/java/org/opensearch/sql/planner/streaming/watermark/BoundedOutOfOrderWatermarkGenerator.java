@@ -40,7 +40,7 @@ public class BoundedOutOfOrderWatermarkGenerator implements WatermarkGenerator {
       return true;
     }
     return greater(literal(value), literal(maxTimestamp))
-        .valueOf(null).booleanValue();
+        .valueOf().booleanValue();
   }
 
   private ExprValue generateWatermark() {
@@ -50,6 +50,6 @@ public class BoundedOutOfOrderWatermarkGenerator implements WatermarkGenerator {
     } else {
       function = subdate(literal(maxTimestamp), maxOutOfOrderAllowed);
     }
-    return function.valueOf(null);
+    return function.valueOf();
   }
 }

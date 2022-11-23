@@ -7,7 +7,7 @@ package org.opensearch.sql.planner.streaming.windowing.trigger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
-import static org.opensearch.sql.expression.DSL.window;
+import static org.opensearch.sql.data.model.ExprValueUtils.window;
 import static org.opensearch.sql.planner.streaming.windowing.trigger.TriggerResult.CONTINUE;
 import static org.opensearch.sql.planner.streaming.windowing.trigger.TriggerResult.FIRE;
 

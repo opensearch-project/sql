@@ -14,7 +14,7 @@ import org.opensearch.sql.data.model.ExprValue;
 public interface WatermarkGenerator {
 
   /**
-   * Generate watermark value on the given value.
+   * Generate watermark on the given value.
    *
    * @param value value
    * @return watermark

@@ -11,7 +11,6 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.data.model.ExprShortValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
-import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
@@ -26,7 +25,6 @@ import org.opensearch.sql.expression.parse.PatternsExpression;
 import org.opensearch.sql.expression.parse.RegexExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.expression.window.ranking.RankingWindowFunction;
-import org.opensearch.sql.planner.streaming.windowing.Window;
 
 public class DSL {
 
@@ -145,16 +143,6 @@ public class DSL {
 
   public static SpanExpression span(Expression field, Expression value, String unit) {
     return new SpanExpression(field, value, SpanUnit.of(unit));
-  }
-
-  public static Window window(Object lowerBound, Object upperBound) {
-    return new Window(ExprValueUtils.fromObjectValue(lowerBound),
-        ExprValueUtils.fromObjectValue(upperBound));
-  }
-
-  public static Window window(Object lowerBound, Object upperBound, ExprCoreType type) {
-    return new Window(ExprValueUtils.fromObjectValue(lowerBound, type),
-        ExprValueUtils.fromObjectValue(upperBound, type));
   }
 
   public static FunctionExpression abs(Expression... expressions) {

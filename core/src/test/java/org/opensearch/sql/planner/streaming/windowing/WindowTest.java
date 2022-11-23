@@ -9,12 +9,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.model.ExprValueUtils.booleanValue;
-import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.dateValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.window;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.WINDOW;
-import static org.opensearch.sql.expression.DSL.window;
+import static org.opensearch.sql.planner.streaming.windowing.Window.END_NAME;
+import static org.opensearch.sql.planner.streaming.windowing.Window.START_NAME;
 import static org.opensearch.sql.planner.streaming.windowing.Window.UNBOUND;
 
 import java.util.Map;
@@ -32,8 +34,8 @@ class WindowTest {
   @Test
   void testDateTimeWindow() {
     Window window = window("2022-11-01", "2022-11-05", DATE);
-    assertEquals(fromObjectValue("2022-11-01", DATE), window.getLowerBound());
-    assertEquals(fromObjectValue("2022-11-05", DATE), window.getUpperBound());
+    assertEquals(dateValue("2022-11-01"), window.getLowerBound());
+    assertEquals(dateValue("2022-11-05"), window.getUpperBound());
   }
 
   @Test
@@ -41,8 +43,8 @@ class WindowTest {
     Window window = window(1, 10);
     assertEquals(
         tupleValue(Map.of(
-            "start", integerValue(1),
-            "end", integerValue(10))),
+            START_NAME, integerValue(1),
+            END_NAME, integerValue(10))),
         window.value());
   }
 
@@ -63,6 +65,7 @@ class WindowTest {
   @Test
   void testWindowComparison() {
     assertTrue(window(1, 10).compareTo(window(1, 9)) > 0);
+    assertEquals(window(1, 10), window(1, 10));
   }
 
   @Test
