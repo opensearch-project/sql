@@ -31,7 +31,8 @@ public class OpenSearchIndexScanBuilder extends TableScanBuilder {
   @EqualsAndHashCode.Include
   private TableScanBuilder delegate;
 
-  private boolean hasLimit = false;
+  /** Is limit operator pushed down. */
+  private boolean isLimitPushedDown = false;
 
   @VisibleForTesting
   OpenSearchIndexScanBuilder(TableScanBuilder delegate) {
@@ -59,7 +60,7 @@ public class OpenSearchIndexScanBuilder extends TableScanBuilder {
 
   @Override
   public boolean pushDownAggregation(LogicalAggregation aggregation) {
-    if (hasLimit) {
+    if (isLimitPushedDown) {
       return false;
     }
 
@@ -81,7 +82,8 @@ public class OpenSearchIndexScanBuilder extends TableScanBuilder {
 
   @Override
   public boolean pushDownLimit(LogicalLimit limit) {
-    hasLimit = true;
+    // Assume limit push down happening on OpenSearchIndexScanQueryBuilder
+    isLimitPushedDown = true;
     return delegate.pushDownLimit(limit);
   }
 

@@ -355,62 +355,35 @@ class OpenSearchIndexScanOptimizationTest {
     );
   }
 
-  /**
-   * Project(intV, abs(intV)) -> Relation.
-   * -- will be optimized as
-   * Project(intV, abs(intV)) -> Relation(project=intV).
-   */
-  /*
-  @Test
-  void push_down_should_handle_duplication() {
-    assertEquals(
-        project(
-            indexScan("schema", projects(DSL.ref("intV", INTEGER))),
-            DSL.named("i", DSL.ref("intV", INTEGER)),
-            DSL.named("absi", DSL.abs(DSL.ref("intV", INTEGER)))
-        ),
-        optimize(
-            project(
-                relation("schema", table),
-                DSL.named("i", DSL.ref("intV", INTEGER)),
-                DSL.named("absi", DSL.abs(DSL.ref("intV", INTEGER))))
-        )
-    );
-  }
-   */
-
   /*
    * Project(ListA) -> Project(ListB) -> Relation.
    * -- will be optimized as
    * Project(ListA) -> Project(ListB) -> Relation(project=ListB).
    */
-  /*
   @Test
   void only_one_project_should_be_push() {
-    assertEquals(
+    assertEqualsAfterOptimization(
         project(
             project(
-                indexScan("schema",
-                    projects(DSL.ref("intV", INTEGER), DSL.ref("stringV", STRING))
-                ),
+                indexScanBuilder(
+                    withProjectPushedDown(
+                        DSL.ref("intV", INTEGER),
+                        DSL.ref("stringV", STRING))),
                 DSL.named("i", DSL.ref("intV", INTEGER)),
                 DSL.named("s", DSL.ref("stringV", STRING))
             ),
             DSL.named("i", DSL.ref("intV", INTEGER))
         ),
-        optimize(
+        project(
             project(
-                project(
-                    relation("schema", table),
-                    DSL.named("i", DSL.ref("intV", INTEGER)),
-                    DSL.named("s", DSL.ref("stringV", STRING))
-                ),
-                DSL.named("i", DSL.ref("intV", INTEGER))
-            )
+                relation("schema", table),
+                DSL.named("i", DSL.ref("intV", INTEGER)),
+                DSL.named("s", DSL.ref("stringV", STRING))
+            ),
+            DSL.named("i", DSL.ref("intV", INTEGER))
         )
     );
   }
-   */
 
   @Test
   void sort_with_expression_cannot_merge_with_relation() {
