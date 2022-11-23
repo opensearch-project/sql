@@ -68,10 +68,6 @@ class OpenSearchIndexScanQueryBuilder extends TableScanBuilder {
 
   @Override
   public boolean pushDownSort(LogicalSort sort) {
-    if (!sortByFieldsOnly(sort)) {
-      return false;
-    }
-
     List<Pair<Sort.SortOption, Expression>> sortList = sort.getSortList();
     final SortQueryBuilder builder = new SortQueryBuilder();
     indexScan.getRequestBuilder().pushDownSort(sortList.stream()
@@ -101,12 +97,6 @@ class OpenSearchIndexScanQueryBuilder extends TableScanBuilder {
         StringUtils.unquoteText(highlight.getHighlightField().toString()),
         highlight.getArguments());
     return true;
-  }
-
-  private boolean sortByFieldsOnly(LogicalSort sort) {
-    return sort.getSortList().stream()
-        .map(sortItem -> sortItem.getRight() instanceof ReferenceExpression)
-        .reduce(true, Boolean::logicalAnd);
   }
 
   /**

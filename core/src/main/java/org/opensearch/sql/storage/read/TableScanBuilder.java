@@ -17,10 +17,10 @@ import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.storage.TableScanOperator;
 
 /**
- * A {@code TableScanBuilder} represents transition state between logical planning and
- * physical planning. The concrete implementation class gets involved in the logical
- * optimization through this abstraction and thus get the chance to handle push down
- * optimization without intruding core engine.
+ * A TableScanBuilder represents transition state between logical planning and physical planning
+ * for table scan operator. The concrete implementation class gets involved in the logical
+ * optimization through this abstraction and thus get the chance to handle push down optimization
+ * without intruding core engine.
  */
 public abstract class TableScanBuilder extends LogicalPlan {
 

@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.storage.scan;
 
 import com.google.common.annotations.VisibleForTesting;
 import lombok.EqualsAndHashCode;
+import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndexScan;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalFilter;
@@ -72,6 +73,9 @@ public class OpenSearchIndexScanBuilder extends TableScanBuilder {
 
   @Override
   public boolean pushDownSort(LogicalSort sort) {
+    if (!sortByFieldsOnly(sort)) {
+      return false;
+    }
     return delegate.pushDownSort(sort);
   }
 
@@ -89,5 +93,11 @@ public class OpenSearchIndexScanBuilder extends TableScanBuilder {
   @Override
   public boolean pushDownHighlight(LogicalHighlight highlight) {
     return delegate.pushDownHighlight(highlight);
+  }
+
+  private boolean sortByFieldsOnly(LogicalSort sort) {
+    return sort.getSortList().stream()
+        .map(sortItem -> sortItem.getRight() instanceof ReferenceExpression)
+        .reduce(true, Boolean::logicalAnd);
   }
 }

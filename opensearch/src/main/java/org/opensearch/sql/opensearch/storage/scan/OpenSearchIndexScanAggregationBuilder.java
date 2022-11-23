@@ -71,18 +71,12 @@ class OpenSearchIndexScanAggregationBuilder extends TableScanBuilder {
 
   @Override
   public boolean pushDownSort(LogicalSort sort) {
-    if (!sortByFieldsOnly(sort) || hasAggregatorInSortBy(sort)) {
+    if (hasAggregatorInSortBy(sort)) {
       return false;
     }
 
     sortList = sort.getSortList();
     return true;
-  }
-
-  private boolean sortByFieldsOnly(LogicalSort sort) {
-    return sort.getSortList().stream()
-        .map(sortItem -> sortItem.getRight() instanceof ReferenceExpression)
-        .reduce(true, Boolean::logicalAnd);
   }
 
   private boolean hasAggregatorInSortBy(LogicalSort sort) {
