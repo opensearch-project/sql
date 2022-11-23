@@ -30,6 +30,7 @@ plugins {
 }
 
 apply plugin: 'opensearch.pluginzip'
+apply plugin: 'opensearch.rest-test'
 
 ext {
     projectSubstitutions = [:]
@@ -225,4 +226,20 @@ afterEvaluate {
             doLast { delete file("$buildDir/distributions/$archiveName") }
         }
     }
+}
+
+testClusters.integTest {
+    plugin(project.tasks.bundlePlugin.archiveFile)
+
+    // debug with command, ./gradlew opensearch-sql:run -DdebugJVM. --debug-jvm does not work with keystore.
+    if (System.getProperty("debugJVM") != null) {
+        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005'
+    }
+
+    // add customized keystore
+    keystore 'plugins.query.federation.datasources.config', new File("$projectDir/src/test/resources/", 'datasources.json')
+}
+
+run {
+    useCluster testClusters.integTest
 }
