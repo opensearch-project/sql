@@ -23,11 +23,18 @@ public interface ExecutionEngine {
 
   /**
    * Execute physical plan and call back response listener.
+   * Todo. deprecated this interface after finalize {@link ExecutionContext}.
    *
    * @param plan     executable physical plan
    * @param listener response listener
    */
   void execute(PhysicalPlan plan, ResponseListener<QueryResponse> listener);
+
+  /**
+   * Execute physical plan with {@link ExecutionContext} and call back response listener.
+   */
+  void execute(PhysicalPlan plan, ExecutionContext context,
+               ResponseListener<QueryResponse> listener);
 
   /**
    * Explain physical plan and call back response listener. The reason why this has to
