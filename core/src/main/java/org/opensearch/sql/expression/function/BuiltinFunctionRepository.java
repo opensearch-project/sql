@@ -9,7 +9,6 @@ import static org.opensearch.sql.ast.expression.Cast.getCastFunctionName;
 import static org.opensearch.sql.ast.expression.Cast.isCastFunction;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -133,10 +132,9 @@ public class BuiltinFunctionRepository {
     if (!namespace.equals(DEFAULT_NAMESPACE)) {
       namespaceList.add(namespace);
     }
-    FunctionBuilder resolvedFunctionBuilder = resolve(namespaceList,
-        new FunctionSignature(functionName, expressions
-            .stream().map(Expression::type).collect(Collectors.toList())))
-        .apply(functionProperties);
+    FunctionBuilder resolvedFunctionBuilder = resolve(functionProperties,
+        namespaceList, new FunctionSignature(functionName, expressions
+            .stream().map(Expression::type).collect(Collectors.toList())));
     return resolvedFunctionBuilder.apply(functionProperties, expressions);
   }
 
@@ -146,20 +144,21 @@ public class BuiltinFunctionRepository {
    * Returns the First FunctionBuilder found.
    * So list of namespaces is also the priority of namespaces.
    *
-   * @param functionSignature {@link FunctionSignature} functionsignature.
-   *
+   * @param functionProperties {@link FunctionProperties} function properties.
+   * @param functionSignature  {@link FunctionSignature} functionsignature.
    * @return Original function builder if it's a cast function or all arguments have expected types
-   *         or other wise wrap its arguments by cast function as needed.
+   *      or otherwise wrap its arguments by cast function as needed.
    */
-  public Function<FunctionProperties, FunctionBuilder>
-      resolve(List<String> namespaces, FunctionSignature functionSignature) {
+  public FunctionBuilder
+      resolve(FunctionProperties functionProperties, List<String> namespaces,
+              FunctionSignature functionSignature) {
     FunctionName functionName = functionSignature.getFunctionName();
-    Function<FunctionProperties, FunctionBuilder> result = null;
+    FunctionBuilder result = null;
     for (String namespace : namespaces) {
       if (namespaceFunctionResolverMap.containsKey(namespace)
           && namespaceFunctionResolverMap.get(namespace).containsKey(functionName)) {
         result = getFunctionBuilder(functionSignature, functionName,
-            namespaceFunctionResolverMap.get(namespace));
+            namespaceFunctionResolverMap.get(namespace)).apply(functionProperties);
         break;
       }
     }
@@ -231,6 +230,6 @@ public class BuiltinFunctionRepository {
           "Type conversion to type %s is not supported", targetType));
     }
     return functionProperties -> (Expression) compile(functionProperties,
-        castFunctionName, ImmutableList.of(arg));
+        castFunctionName, List.of(arg));
   }
 }
