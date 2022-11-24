@@ -156,7 +156,7 @@ class BuiltinFunctionRepositoryTest {
     BuiltinFunctionRepository repo = new BuiltinFunctionRepository(mockNamespaceMap);
     repo.register(mockfunctionResolver);
 
-    assertEquals(functionExpressionBuilder, repo.resolve(functionProperties,
+    assertEquals(functionExpressionBuilder, repo.resolve(
         Collections.singletonList(DEFAULT_NAMESPACE), functionSignature));
   }
 
@@ -164,7 +164,7 @@ class BuiltinFunctionRepositoryTest {
   void resolve_should_not_cast_arguments_in_cast_function() {
     when(mockExpression.toString()).thenReturn("string");
     FunctionImplementation function =
-        repo.resolve(functionProperties,
+        repo.resolve(
                 Collections.singletonList(DEFAULT_NAMESPACE),
                 registerFunctionResolver(CAST_TO_BOOLEAN.getName(), DATETIME, BOOLEAN))
             .apply(functionProperties, ImmutableList.of(mockExpression));
@@ -176,7 +176,7 @@ class BuiltinFunctionRepositoryTest {
     when(mockFunctionName.getFunctionName()).thenReturn("mock");
     when(mockExpression.toString()).thenReturn("string");
     FunctionImplementation function =
-        repo.resolve(functionProperties,
+        repo.resolve(
                 Collections.singletonList(DEFAULT_NAMESPACE),
                 registerFunctionResolver(mockFunctionName, STRING, STRING))
             .apply(functionProperties, ImmutableList.of(mockExpression));
@@ -188,7 +188,7 @@ class BuiltinFunctionRepositoryTest {
     when(mockFunctionName.getFunctionName()).thenReturn("mock");
     when(mockExpression.toString()).thenReturn("byte");
     FunctionImplementation function =
-        repo.resolve(functionProperties,
+        repo.resolve(
                 Collections.singletonList(DEFAULT_NAMESPACE),
                 registerFunctionResolver(mockFunctionName, BYTE, INTEGER))
             .apply(functionProperties, ImmutableList.of(mockExpression));
@@ -206,7 +206,7 @@ class BuiltinFunctionRepositoryTest {
     registerFunctionResolver(CAST_TO_BOOLEAN.getName(), STRING, STRING);
 
     FunctionImplementation function =
-        repo.resolve(functionProperties, Collections.singletonList(DEFAULT_NAMESPACE), signature)
+        repo.resolve(Collections.singletonList(DEFAULT_NAMESPACE), signature)
             .apply(functionProperties, ImmutableList.of(mockExpression));
     assertEquals("mock(cast_to_boolean(string))", function.toString());
   }
@@ -215,7 +215,7 @@ class BuiltinFunctionRepositoryTest {
   void resolve_should_throw_exception_for_unsupported_conversion() {
     ExpressionEvaluationException error =
         assertThrows(ExpressionEvaluationException.class, () ->
-            repo.resolve(functionProperties,
+            repo.resolve(
                     Collections.singletonList(DEFAULT_NAMESPACE),
                     registerFunctionResolver(mockFunctionName, BYTE, STRUCT))
                 .apply(functionProperties, ImmutableList.of(mockExpression)));
@@ -232,7 +232,7 @@ class BuiltinFunctionRepositoryTest {
     repo.register(mockfunctionResolver);
 
     ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
-        () -> repo.resolve(functionProperties,
+        () -> repo.resolve(
             Collections.singletonList(DEFAULT_NAMESPACE),
             new FunctionSignature(FunctionName.of("unknown"), List.of())));
     assertEquals("unsupported function name: unknown", exception.getMessage());

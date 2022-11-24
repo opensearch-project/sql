@@ -132,7 +132,7 @@ public class BuiltinFunctionRepository {
     if (!namespace.equals(DEFAULT_NAMESPACE)) {
       namespaceList.add(namespace);
     }
-    FunctionBuilder resolvedFunctionBuilder = resolve(functionProperties,
+    FunctionBuilder resolvedFunctionBuilder = resolve(
         namespaceList, new FunctionSignature(functionName, expressions
             .stream().map(Expression::type).collect(Collectors.toList())));
     return resolvedFunctionBuilder.apply(functionProperties, expressions);
@@ -144,13 +144,12 @@ public class BuiltinFunctionRepository {
    * Returns the First FunctionBuilder found.
    * So list of namespaces is also the priority of namespaces.
    *
-   * @param functionProperties {@link FunctionProperties} function properties.
-   * @param functionSignature  {@link FunctionSignature} functionsignature.
+   * @param functionSignature {@link FunctionSignature} functionsignature.
    * @return Original function builder if it's a cast function or all arguments have expected types
    *      or otherwise wrap its arguments by cast function as needed.
    */
   public FunctionBuilder
-      resolve(FunctionProperties functionProperties, List<String> namespaces,
+      resolve(List<String> namespaces,
               FunctionSignature functionSignature) {
     FunctionName functionName = functionSignature.getFunctionName();
     FunctionBuilder result = null;
@@ -158,7 +157,7 @@ public class BuiltinFunctionRepository {
       if (namespaceFunctionResolverMap.containsKey(namespace)
           && namespaceFunctionResolverMap.get(namespace).containsKey(functionName)) {
         result = getFunctionBuilder(functionSignature, functionName,
-            namespaceFunctionResolverMap.get(namespace)).apply(functionProperties);
+            namespaceFunctionResolverMap.get(namespace));
         break;
       }
     }
@@ -170,7 +169,7 @@ public class BuiltinFunctionRepository {
     }
   }
 
-  private Function<FunctionProperties, FunctionBuilder> getFunctionBuilder(
+  private FunctionBuilder getFunctionBuilder(
       FunctionSignature functionSignature,
       FunctionName functionName,
       Map<FunctionName, FunctionResolver> functionResolverMap) {
@@ -181,9 +180,9 @@ public class BuiltinFunctionRepository {
     List<ExprType> targetTypes = resolvedSignature.getKey().getParamTypeList();
     FunctionBuilder funcBuilder = resolvedSignature.getValue();
     if (isCastFunction(functionName) || sourceTypes.equals(targetTypes)) {
-      return functionProperties -> funcBuilder;
+      return funcBuilder;
     }
-    return functionProperties -> castArguments(functionProperties, sourceTypes,
+    return castArguments(sourceTypes,
         targetTypes, funcBuilder);
   }
 
@@ -193,8 +192,7 @@ public class BuiltinFunctionRepository {
    * equal(BOOL,STRING) and its resolved function builder is F with signature equal(BOOL,BOOL).
    * In this case, wrap F and return equal(BOOL, cast_to_bool(STRING)).
    */
-  private FunctionBuilder castArguments(FunctionProperties functionProperties,
-                                        List<ExprType> sourceTypes,
+  private FunctionBuilder castArguments(List<ExprType> sourceTypes,
                                         List<ExprType> targetTypes,
                                         FunctionBuilder funcBuilder) {
     return (fp, arguments) -> {
@@ -210,7 +208,7 @@ public class BuiltinFunctionRepository {
           argsCasted.add(arg);
         }
       }
-      return funcBuilder.apply(functionProperties, argsCasted);
+      return funcBuilder.apply(fp, argsCasted);
     };
   }
 
