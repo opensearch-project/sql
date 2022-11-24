@@ -12,6 +12,7 @@ import java.util.Objects;
 import lombok.Getter;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.function.FunctionProperties;
+import org.opensearch.sql.expression.function.QueryFunctionProperties;
 
 /**
  * The context used for Analyzer.
@@ -38,7 +39,7 @@ public class AnalysisContext {
   public AnalysisContext(TypeEnvironment environment) {
     this.environment = environment;
     this.namedParseExpressions = new ArrayList<>();
-    this.functionProperties = new FunctionProperties();
+    this.functionProperties = new QueryFunctionProperties();
   }
 
   /**

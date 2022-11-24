@@ -7,46 +7,30 @@ package org.opensearch.sql.expression.function;
 
 import java.io.Serializable;
 import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneId;
-import lombok.EqualsAndHashCode;
-import lombok.RequiredArgsConstructor;
 
-/**
- * Class to capture values that may be necessary to implement some functions.
- * An example would be query execution start time to implement now().
- */
-@RequiredArgsConstructor
-@EqualsAndHashCode
-public class FunctionProperties implements Serializable {
+public interface FunctionProperties extends Serializable {
+  Clock getSystemClock();
 
-  private final Instant nowInstant;
-  private final ZoneId currentZoneId;
+  Clock getQueryStartClock();
 
   /**
-   * By default, use current time and current timezone.
+   * Use when compiling functions that do not rely on function properties.
    */
-  public FunctionProperties() {
-    nowInstant = Instant.now();
-    currentZoneId = ZoneId.systemDefault();
-  }
+  FunctionProperties None = new FunctionProperties() {
+    @Override
+    public Clock getSystemClock() {
+      throw new UnexpectedCallException();
+    }
 
-  /**
-   * Method to access current system clock.
-   * @return a ticking clock that tells the time.
-   */
-  public Clock getSystemClock() {
-    return Clock.system(currentZoneId);
-  }
+    @Override
+    public Clock getQueryStartClock() {
+      throw new UnexpectedCallException();
+    }
+  };
 
-  /**
-   * Method to get time when query began execution.
-   * Clock class combines an instant Supplier and a time zone.
-   * @return a fixed clock that returns the time execution started at.
-   *
-   */
-  public Clock getQueryStartClock() {
-    return Clock.fixed(nowInstant, currentZoneId);
+  class UnexpectedCallException extends RuntimeException {
+    public UnexpectedCallException() {
+      super("The function that uses this object is not meant to use query start time");
+    }
   }
 }
-

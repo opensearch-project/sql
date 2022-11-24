@@ -21,13 +21,13 @@ import org.junit.jupiter.api.Test;
 
 class FunctionPropertiesTest {
 
-  FunctionProperties functionProperties;
+  QueryFunctionProperties functionProperties;
   Instant startTime;
 
   @BeforeEach
   void init() {
     startTime = Instant.now();
-    functionProperties = new FunctionProperties(startTime, ZoneId.systemDefault());
+    functionProperties = new QueryFunctionProperties(startTime, ZoneId.systemDefault());
   }
 
   @Test

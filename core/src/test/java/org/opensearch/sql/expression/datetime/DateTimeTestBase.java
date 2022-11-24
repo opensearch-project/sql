@@ -28,6 +28,7 @@ import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionProperties;
+import org.opensearch.sql.expression.function.QueryFunctionProperties;
 
 @ExtendWith(MockitoExtension.class)
 public class DateTimeTestBase extends ExpressionTestBase {
@@ -43,7 +44,7 @@ public class DateTimeTestBase extends ExpressionTestBase {
 
   @BeforeAll
   public static void setup() {
-    functionProperties = new FunctionProperties();
+    functionProperties = new QueryFunctionProperties();
   }
 
   protected Expression nullRef = DSL.literal(ExprNullValue.of());

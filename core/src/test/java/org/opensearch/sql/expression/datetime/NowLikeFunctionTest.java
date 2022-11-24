@@ -40,6 +40,7 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.FunctionExpression;
+import org.opensearch.sql.expression.function.FunctionProperties;
 
 
 class NowLikeFunctionTest extends ExpressionTestBase {
@@ -110,25 +111,26 @@ class NowLikeFunctionTest extends ExpressionTestBase {
    * @param hasFsp          Whether function has fsp argument
    * @param referenceGetter A callback to get reference value
    */
-  void test_now_like_functions(Function<Expression[], FunctionExpression> function,
+  void test_now_like_functions(
+      BiFunction<FunctionProperties, Expression[], FunctionExpression> function,
                                ExprCoreType resType,
                                Boolean hasFsp,
                                Supplier<Temporal> referenceGetter) {
     // Check return types:
     // `func()`
-    FunctionExpression expr = function.apply(new Expression[] {});
+    FunctionExpression expr = function.apply(functionProperties, new Expression[] {});
     assertEquals(resType, expr.type());
     if (hasFsp) {
       // `func(fsp = 0)`
-      expr = function.apply(new Expression[] {DSL.literal(0)});
+      expr = function.apply(functionProperties, new Expression[] {DSL.literal(0)});
       assertEquals(resType, expr.type());
       // `func(fsp = 6)`
-      expr = function.apply(new Expression[] {DSL.literal(6)});
+      expr = function.apply(functionProperties, new Expression[] {DSL.literal(6)});
       assertEquals(resType, expr.type());
 
       for (var wrongFspValue : List.of(-1, 10)) {
         var exception = assertThrows(IllegalArgumentException.class,
-            () -> function.apply(
+            () -> function.apply(functionProperties,
                 new Expression[] {DSL.literal(wrongFspValue)}).valueOf());
         assertEquals(String.format("Invalid `fsp` value: %d, allowed 0 to 6", wrongFspValue),
             exception.getMessage());
@@ -137,14 +139,15 @@ class NowLikeFunctionTest extends ExpressionTestBase {
 
     // Check how calculations are precise:
     // `func()`
-    Temporal sample = extractValue(function.apply(new Expression[] {}));
+    Temporal sample = extractValue(function.apply(functionProperties, new Expression[] {}));
     Temporal reference = referenceGetter.get();
     long maxDiff = 1;
     TemporalUnit unit = resType.isCompatible(DATE) ? ChronoUnit.DAYS : ChronoUnit.SECONDS;
     assertThat(sample, isCloseTo(reference, maxDiff, unit));
     if (hasFsp) {
       // `func(fsp)`
-      Temporal value = extractValue(function.apply(new Expression[] {DSL.literal(0)}));
+      Temporal value = extractValue(function.apply(functionProperties,
+          new Expression[] {DSL.literal(0)}));
       assertThat(referenceGetter.get(),
           isCloseTo(value, maxDiff, unit));
 
@@ -177,13 +180,14 @@ class NowLikeFunctionTest extends ExpressionTestBase {
 
   @TestFactory
   Stream<DynamicTest> constantValueTestFactory() {
-    BiFunction<String, Callable<FunctionExpression>, DynamicTest> buildTest = (name, action) ->
+    BiFunction<String, Function<FunctionProperties, FunctionExpression>, DynamicTest> buildTest
+        = (name, action) ->
         DynamicTest.dynamicTest(
           String.format("multiple_invocations_same_value_test[%s]", name),
           () -> {
-            var v1 = extractValue(action.call());
+            var v1 = extractValue(action.apply(functionProperties));
             Thread.sleep(1000);
-            var v2 = extractValue(action.call());
+            var v2 = extractValue(action.apply(functionProperties));
             assertEquals(v1, v2);
           }
       );
@@ -200,9 +204,9 @@ class NowLikeFunctionTest extends ExpressionTestBase {
 
   @Test
   void sysdate_multiple_invocations_differ() throws InterruptedException {
-    var v1 = extractValue(DSL.sysdate());
+    var v1 = extractValue(DSL.sysdate(functionProperties));
     Thread.sleep(1000);
-    var v2 = extractValue(DSL.sysdate());
+    var v2 = extractValue(DSL.sysdate(functionProperties));
     assertThat(v1, IsNot.not(isCloseTo(v2, 1, ChronoUnit.NANOS)));
 
   }
