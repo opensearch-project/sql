@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.expression.datetime;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -18,13 +19,18 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Period;
+import java.time.temporal.ChronoUnit;
 import java.time.temporal.Temporal;
+import java.time.temporal.TemporalUnit;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.core.IsNot;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
@@ -132,14 +138,56 @@ class NowLikeFunctionTest extends ExpressionTestBase {
     // `func()`
     Temporal sample = extractValue(function.apply(new Expression[] {}));
     Temporal reference = referenceGetter.get();
-    assertTrue(Math.abs(getDiff(reference, sample)) <= 1);
+    long maxDiff = 1;
+    TemporalUnit unit = resType.isCompatible(DATE)? ChronoUnit.DAYS : ChronoUnit.SECONDS;
+    assertThat(sample, isCloseTo(reference, maxDiff, unit));
     if (hasFsp) {
       // `func(fsp)`
-      assertTrue(Math.abs(getDiff(
-          extractValue(function.apply(new Expression[] {DSL.literal(0)})),
-          referenceGetter.get()
-      )) <= 1);
+      Temporal value = extractValue(function.apply(new Expression[] {DSL.literal(0)}));
+      assertThat(referenceGetter.get(),
+          isCloseTo(value, maxDiff, unit));
+
     }
+  }
+
+  static Matcher<Temporal> isCloseTo(Temporal reference, long maxDiff, TemporalUnit units) {
+    return new Matcher<>() {
+      @Override
+      public boolean matches(Object value) {
+        if (value instanceof Temporal) {
+          Temporal temporalValue = (Temporal) value;
+          long diff = reference.until(temporalValue, units);
+          return Math.abs(diff) <= maxDiff;
+        }
+        return false;
+      }
+
+      @Override
+      public void describeMismatch(Object reference, Description mismatchDescription) {
+        if (!(reference instanceof Temporal)) {
+          mismatchDescription.appendText(
+              String.format("Wrong type of reference '%s'", reference.getClass()));
+        } else {
+          Temporal temporalValue = (Temporal) reference;
+          long diff = temporalValue.until(temporalValue, units);
+          if (Math.abs(diff) > maxDiff) {
+            String msg = String.format("Difference of %d between '%s' and '%s' is larger than %d",
+                diff, temporalValue, reference, maxDiff);
+            mismatchDescription.appendText(msg);
+          }
+        }
+      }
+
+      @Override
+      public void _dont_implement_Matcher___instead_extend_BaseMatcher_() {
+
+      }
+
+      @Override
+      public void describeTo(Description description) {
+
+      }
+    };
   }
 
   @TestFactory
@@ -170,7 +218,8 @@ class NowLikeFunctionTest extends ExpressionTestBase {
     var v1 = extractValue(DSL.sysdate());
     Thread.sleep(1000);
     var v2 = extractValue(DSL.sysdate());
-    assertEquals(1, getDiff(v1, v2));
+    assertThat(v1, IsNot.not(isCloseTo(v2, 1, ChronoUnit.NANOS)));
+
   }
 
   private Temporal extractValue(FunctionExpression func) {
@@ -185,12 +234,5 @@ class NowLikeFunctionTest extends ExpressionTestBase {
       default:
         throw new IllegalArgumentException(String.format("%s", func.type()));
     }
-  }
-
-  private long getDiff(Temporal sample, Temporal reference) {
-    if (sample instanceof LocalDate) {
-      return Period.between((LocalDate) sample, (LocalDate) reference).getDays();
-    }
-    return Duration.between(sample, reference).toSeconds();
   }
 }
