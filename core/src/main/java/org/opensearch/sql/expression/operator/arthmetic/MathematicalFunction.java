@@ -52,6 +52,7 @@ public class MathematicalFunction {
    */
   public static void register(BuiltinFunctionRepository repository) {
     repository.register(abs());
+    repository.register(cbrt());
     repository.register(ceil());
     repository.register(ceiling());
     repository.register(conv());
@@ -468,6 +469,20 @@ public class MathematicalFunction {
             .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
                 v -> v.doubleValue() < 0 ? ExprNullValue.of() :
                     new ExprDoubleValue(Math.sqrt(v.doubleValue()))),
+                DOUBLE, type)).collect(Collectors.toList()));
+  }
+
+  /**
+   * Definition of cbrt(x) function.
+   * Calculate the cube root of a number x
+   * The supported signature is
+   * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   */
+  private static DefaultFunctionResolver cbrt() {
+    return FunctionDSL.define(BuiltinFunctionName.CBRT.getName(),
+        ExprCoreType.numberTypes().stream()
+            .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
+                v -> new ExprDoubleValue(Math.cbrt(v.doubleValue()))),
                 DOUBLE, type)).collect(Collectors.toList()));
   }
 

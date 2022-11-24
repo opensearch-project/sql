@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.executor;
 
 import static com.google.common.collect.ImmutableMap.of;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -25,6 +26,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +37,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.executor.ExecutionContext;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
@@ -43,6 +46,7 @@ import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProte
 import org.opensearch.sql.opensearch.storage.OpenSearchIndexScan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.TableScanOperator;
+import org.opensearch.sql.storage.split.Split;
 
 @ExtendWith(MockitoExtension.class)
 class OpenSearchExecutionEngineTest {
@@ -52,6 +56,10 @@ class OpenSearchExecutionEngineTest {
   @Mock private OpenSearchExecutionProtector protector;
 
   @Mock private static ExecutionEngine.Schema schema;
+
+  @Mock private ExecutionContext executionContext;
+
+  @Mock private Split split;
 
   @BeforeEach
   void setUp() {
@@ -167,11 +175,44 @@ class OpenSearchExecutionEngineTest {
     assertNotNull(result.get());
   }
 
+  @Test
+  void callAddSplitAndOpenInOrder() {
+    List<ExprValue> expected =
+        Arrays.asList(
+            tupleValue(of("name", "John", "age", 20)), tupleValue(of("name", "Allen", "age", 30)));
+    FakePhysicalPlan plan = new FakePhysicalPlan(expected.iterator());
+    when(protector.protect(plan)).thenReturn(plan);
+    when(executionContext.getSplit()).thenReturn(Optional.of(split));
+
+    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector);
+    List<ExprValue> actual = new ArrayList<>();
+    executor.execute(
+        plan,
+        executionContext,
+        new ResponseListener<>() {
+          @Override
+          public void onResponse(QueryResponse response) {
+            actual.addAll(response.getResults());
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            fail("Error occurred during execution", e);
+          }
+        });
+
+    assertTrue(plan.hasSplit);
+    assertTrue(plan.hasOpen);
+    assertEquals(expected, actual);
+    assertTrue(plan.hasClosed);
+  }
+
   @RequiredArgsConstructor
   private static class FakePhysicalPlan extends TableScanOperator {
     private final Iterator<ExprValue> it;
     private boolean hasOpen;
     private boolean hasClosed;
+    private boolean hasSplit;
 
     @Override
     public void open() {
@@ -183,6 +224,12 @@ class OpenSearchExecutionEngineTest {
     public void close() {
       super.close();
       hasClosed = true;
+    }
+
+    @Override
+    public void add(Split split) {
+      assertFalse(hasOpen);
+      hasSplit = true;
     }
 
     @Override

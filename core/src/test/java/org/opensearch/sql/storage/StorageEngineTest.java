@@ -16,7 +16,7 @@ public class StorageEngineTest {
 
   @Test
   void testFunctionsMethod() {
-    StorageEngine k = (catalogSchemaName, tableName) -> null;
+    StorageEngine k = (dataSourceSchemaName, tableName) -> null;
     Assertions.assertEquals(Collections.emptyList(), k.getFunctions());
   }
 

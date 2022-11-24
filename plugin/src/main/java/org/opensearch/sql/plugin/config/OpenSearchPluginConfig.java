@@ -12,8 +12,8 @@ package org.opensearch.sql.plugin.config;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.analysis.ExpressionAnalyzer;
-import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.QueryService;
@@ -52,7 +52,7 @@ public class OpenSearchPluginConfig {
   private Settings settings;
 
   @Autowired
-  private CatalogService catalogService;
+  private DataSourceService dataSourceService;
 
   @Bean
   @Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
@@ -100,7 +100,7 @@ public class OpenSearchPluginConfig {
   public QueryPlanFactory queryExecutionFactory() {
     BuiltinFunctionRepository functionRepository = BuiltinFunctionRepository.getInstance();
     Analyzer analyzer = new Analyzer(new ExpressionAnalyzer(functionRepository),
-        catalogService, functionRepository);
+        dataSourceService, functionRepository);
     Planner planner =
         new Planner(LogicalPlanOptimizer.create());
     return new QueryPlanFactory(new QueryService(analyzer, executionEngine(), planner));

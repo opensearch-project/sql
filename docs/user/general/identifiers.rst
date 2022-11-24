@@ -231,7 +231,7 @@ tableName = ``http_requests_total``.
 2. ``logs.12.13.1``
 
 
-datasourceName = ``@opensearch`` [Resolves to default @opensearch connector since [my_prometheus] is the only catalog configured name.]
+datasourceName = ``@opensearch`` [Resolves to default @opensearch connector since [my_prometheus] is the only dataSource configured.]
 
 schemaName = ``default`` [No supported schema found, so default to `default`].
 
@@ -249,7 +249,7 @@ tableName =  ``http_requests_total``.
 
 4. ``prometheus.http_requests_total``
 
-datasourceName = ``@opensearch`` [Resolves to default @opensearch connector since [my_prometheus] is the only datasource configured name.]
+datasourceName = ``@opensearch`` [Resolves to default @opensearch connector since [my_prometheus] is the only datasource configured.]
 
 schemaName = ``default`` [No supported schema found, so default to `default`].
 
@@ -257,7 +257,7 @@ tableName = ``prometheus.http_requests_total``.
 
 5. ``prometheus.default.http_requests_total.1.2.3``
 
-datasourceName = ``@opensearch`` [Resolves to default @opensearch connector since [my_prometheus] is the only catalog configured name.]
+datasourceName = ``@opensearch`` [Resolves to default @opensearch connector since [my_prometheus] is the only dataSource configured.]
 
 schemaName = ``default`` [No supported schema found, so default to `default`].
 

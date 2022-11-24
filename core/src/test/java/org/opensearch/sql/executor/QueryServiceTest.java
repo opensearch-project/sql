@@ -18,6 +18,7 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,6 +31,7 @@ import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.sql.storage.split.Split;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 @ExtendWith(MockitoExtension.class)
@@ -62,156 +64,194 @@ class QueryServiceTest {
   @Mock
   private PlanContext planContext;
 
-  @BeforeEach
-  public void setUp() {
-    lenient().when(analyzer.analyze(any(), any())).thenReturn(logicalPlan);
-    lenient().when(planner.plan(any())).thenReturn(plan);
+  @Mock
+  private Split split;
 
-    queryService = new QueryService(analyzer, executionEngine, planner);
+  @Test
+  public void executeWithoutContext() {
+    queryService()
+        .executeSuccess()
+        .handledByOnResponse();
   }
 
   @Test
-  public void testExecuteShouldPass() {
-    doAnswer(
-            invocation -> {
-              ResponseListener<ExecutionEngine.QueryResponse> listener = invocation.getArgument(1);
-              listener.onResponse(
-                  new ExecutionEngine.QueryResponse(schema, Collections.emptyList()));
-              return null;
-            })
-        .when(executionEngine)
-        .execute(any(), any());
-
-    queryService.execute(
-        ast,
-        new ResponseListener<>() {
-          @Override
-          public void onResponse(ExecutionEngine.QueryResponse pplQueryResponse) {
-            assertNotNull(pplQueryResponse);
-          }
-
-          @Override
-          public void onFailure(Exception e) {
-            fail();
-          }
-        });
+  public void executeWithContext() {
+    queryService()
+        .executeSuccess(split)
+        .handledByOnResponse();
   }
 
   @Test
   public void testExplainShouldPass() {
-    doAnswer(
-            invocation -> {
-              ResponseListener<ExecutionEngine.ExplainResponse> listener =
-                  invocation.getArgument(1);
-              listener.onResponse(
-                  new ExecutionEngine.ExplainResponse(
-                      new ExecutionEngine.ExplainResponseNode("test")));
-              return null;
-            })
-        .when(executionEngine)
-        .explain(any(), any());
-
-    queryService.explain(
-        ast,
-        new ResponseListener<>() {
-          @Override
-          public void onResponse(ExecutionEngine.ExplainResponse pplQueryResponse) {
-            assertNotNull(pplQueryResponse);
-          }
-
-          @Override
-          public void onFailure(Exception e) {
-            fail();
-          }
-        });
+    queryService()
+        .explainSuccess()
+        .handledByExplainOnResponse();
   }
 
   @Test
   public void testExecuteWithExceptionShouldBeCaughtByHandler() {
-    doThrow(new IllegalStateException("illegal state exception"))
-        .when(executionEngine)
-        .execute(any(), any());
-
-    queryService.execute(
-        ast,
-        new ResponseListener<>() {
-          @Override
-          public void onResponse(ExecutionEngine.QueryResponse pplQueryResponse) {
-            fail();
-          }
-
-          @Override
-          public void onFailure(Exception e) {
-            assertTrue(e instanceof IllegalStateException);
-          }
-        });
+    queryService()
+        .executeFail()
+        .handledByOnFailure();
   }
 
   @Test
-  public void testExecuteWithIllegalQueryShouldBeCaughtByHandler() {
-    doThrow(new IllegalStateException("illegal state exception"))
-        .when(executionEngine)
-        .explain(any(), any());
-
-    queryService.explain(
-        ast,
-        new ResponseListener<>() {
-          @Override
-          public void onResponse(ExecutionEngine.ExplainResponse pplQueryResponse) {
-            fail();
-          }
-
-          @Override
-          public void onFailure(Exception e) {
-            assertTrue(e instanceof IllegalStateException);
-          }
-        });
-  }
-
-  @Test
-  public void testExecutePlanShouldPass() {
-    doAnswer(
-        invocation -> {
-          ResponseListener<ExecutionEngine.QueryResponse> listener = invocation.getArgument(1);
-          listener.onResponse(
-              new ExecutionEngine.QueryResponse(schema, Collections.emptyList()));
-          return null;
-        })
-        .when(executionEngine)
-        .execute(any(), any());
-
-    queryService.executePlan(
-        logicalPlan,
-        planContext,
-        new ResponseListener<>() {
-          @Override
-          public void onResponse(ExecutionEngine.QueryResponse pplQueryResponse) {
-            assertNotNull(pplQueryResponse);
-          }
-
-          @Override
-          public void onFailure(Exception e) {
-            fail();
-          }
-        });
+  public void explainWithIllegalQueryShouldBeCaughtByHandler() {
+    queryService()
+        .explainFail()
+        .handledByExplainOnFailure();
   }
 
   @Test
   public void analyzeExceptionShouldBeCached() {
-    when(analyzer.analyze(any(), any())).thenThrow(IllegalStateException.class);
+    queryService()
+        .analyzeFail()
+        .handledByOnFailure();
+  }
 
-    queryService.execute(
-        ast,
-        new ResponseListener<>() {
-          @Override
-          public void onResponse(ExecutionEngine.QueryResponse pplQueryResponse) {
-            fail();
-          }
+  Helper queryService() {
+    return new Helper();
+  }
 
-          @Override
-          public void onFailure(Exception e) {
-            assertTrue(e instanceof IllegalStateException);
-          }
-        });
+  class Helper {
+
+    Optional<Split> split = Optional.empty();
+
+    public Helper() {
+      lenient().when(analyzer.analyze(any(), any())).thenReturn(logicalPlan);
+      lenient().when(planner.plan(any())).thenReturn(plan);
+
+      queryService = new QueryService(analyzer, executionEngine, planner);
+    }
+
+    Helper executeSuccess() {
+      executeSuccess(null);
+
+      return this;
+    }
+
+    Helper executeSuccess(Split split) {
+      this.split = Optional.ofNullable(split);
+      doAnswer(
+          invocation -> {
+            ResponseListener<ExecutionEngine.QueryResponse> listener = invocation.getArgument(2);
+            listener.onResponse(
+                new ExecutionEngine.QueryResponse(schema, Collections.emptyList()));
+            return null;
+          })
+          .when(executionEngine)
+          .execute(any(), any(), any());
+      lenient().when(planContext.getSplit()).thenReturn(this.split);
+
+      return this;
+    }
+
+    Helper analyzeFail() {
+      doThrow(new IllegalStateException("analyze exception"))
+          .when(analyzer)
+          .analyze(any(), any());
+
+      return this;
+    }
+
+    Helper executeFail() {
+      doThrow(new IllegalStateException("illegal state exception"))
+          .when(executionEngine)
+          .execute(any(), any(), any());
+
+      return this;
+    }
+
+    Helper explainSuccess() {
+      doAnswer(
+          invocation -> {
+            ResponseListener<ExecutionEngine.ExplainResponse> listener =
+                invocation.getArgument(1);
+            listener.onResponse(
+                new ExecutionEngine.ExplainResponse(
+                    new ExecutionEngine.ExplainResponseNode("test")));
+            return null;
+          })
+          .when(executionEngine)
+          .explain(any(), any());
+
+      return this;
+    }
+
+    Helper explainFail() {
+      doThrow(new IllegalStateException("illegal state exception"))
+          .when(executionEngine)
+          .explain(any(), any());
+
+      return this;
+    }
+
+
+    void handledByOnResponse() {
+      ResponseListener<ExecutionEngine.QueryResponse> responseListener = new ResponseListener<>() {
+        @Override
+        public void onResponse(ExecutionEngine.QueryResponse pplQueryResponse) {
+          assertNotNull(pplQueryResponse);
+        }
+
+        @Override
+        public void onFailure(Exception e) {
+          fail();
+        }
+      };
+      split.ifPresentOrElse(
+          split -> queryService.executePlan(logicalPlan, planContext, responseListener),
+          () -> queryService.execute(ast, responseListener));
+    }
+
+    void handledByOnFailure() {
+      ResponseListener<ExecutionEngine.QueryResponse> responseListener = new ResponseListener<>() {
+        @Override
+        public void onResponse(ExecutionEngine.QueryResponse pplQueryResponse) {
+          fail();
+        }
+
+        @Override
+        public void onFailure(Exception e) {
+          assertTrue(e instanceof IllegalStateException);
+        }
+      };
+      split.ifPresentOrElse(
+          split -> queryService.executePlan(logicalPlan, planContext, responseListener),
+          () -> queryService.execute(ast, responseListener));
+    }
+
+    void handledByExplainOnResponse() {
+      queryService.explain(
+          ast,
+          new ResponseListener<>() {
+            @Override
+            public void onResponse(ExecutionEngine.ExplainResponse pplQueryResponse) {
+              assertNotNull(pplQueryResponse);
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+              fail();
+            }
+          });
+    }
+
+    void handledByExplainOnFailure() {
+      queryService.explain(
+          ast,
+          new ResponseListener<>() {
+            @Override
+            public void onResponse(ExecutionEngine.ExplainResponse pplQueryResponse) {
+              fail();
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+              assertTrue(e instanceof IllegalStateException);
+            }
+          });
+    }
+
   }
 }

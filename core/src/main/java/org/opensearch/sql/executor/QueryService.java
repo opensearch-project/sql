@@ -59,7 +59,12 @@ public class QueryService {
                           PlanContext planContext,
                           ResponseListener<ExecutionEngine.QueryResponse> listener) {
     try {
-      executionEngine.execute(plan(plan), listener);
+      planContext
+          .getSplit()
+          .ifPresentOrElse(
+              split -> executionEngine.execute(plan(plan), new ExecutionContext(split), listener),
+              () -> executionEngine.execute(
+                      plan(plan), ExecutionContext.emptyExecutionContext(), listener));
     } catch (Exception e) {
       listener.onFailure(e);
     }

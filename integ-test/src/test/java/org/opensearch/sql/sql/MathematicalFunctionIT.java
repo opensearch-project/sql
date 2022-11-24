@@ -162,4 +162,20 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
     Response response = client().performRequest(request);
     return new JSONObject(getResponseBody(response));
   }
+
+
+  @Test
+  public void testCbrt() throws IOException {
+    JSONObject result = executeQuery("select cbrt(8)");
+    verifySchema(result, schema("cbrt(8)", "double"));
+    verifyDataRows(result, rows(2.0));
+
+    result = executeQuery("select cbrt(9.261)");
+    verifySchema(result, schema("cbrt(9.261)", "double"));
+    verifyDataRows(result, rows(2.1));
+
+    result = executeQuery("select cbrt(-27)");
+    verifySchema(result, schema("cbrt(-27)", "double"));
+    verifyDataRows(result, rows(-3.0));
+  }
 }
