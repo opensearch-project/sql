@@ -28,6 +28,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
+import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.core.IsNot;
@@ -139,7 +140,7 @@ class NowLikeFunctionTest extends ExpressionTestBase {
     Temporal sample = extractValue(function.apply(new Expression[] {}));
     Temporal reference = referenceGetter.get();
     long maxDiff = 1;
-    TemporalUnit unit = resType.isCompatible(DATE)? ChronoUnit.DAYS : ChronoUnit.SECONDS;
+    TemporalUnit unit = resType.isCompatible(DATE) ? ChronoUnit.DAYS : ChronoUnit.SECONDS;
     assertThat(sample, isCloseTo(reference, maxDiff, unit));
     if (hasFsp) {
       // `func(fsp)`
@@ -151,7 +152,15 @@ class NowLikeFunctionTest extends ExpressionTestBase {
   }
 
   static Matcher<Temporal> isCloseTo(Temporal reference, long maxDiff, TemporalUnit units) {
-    return new Matcher<>() {
+    return new BaseMatcher<>() {
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("value between ")
+            .appendValue(reference.minus(maxDiff, units))
+            .appendText(" and ")
+            .appendValue(reference.plus(maxDiff, units));
+      }
+
       @Override
       public boolean matches(Object value) {
         if (value instanceof Temporal) {
@@ -162,31 +171,7 @@ class NowLikeFunctionTest extends ExpressionTestBase {
         return false;
       }
 
-      @Override
-      public void describeMismatch(Object reference, Description mismatchDescription) {
-        if (!(reference instanceof Temporal)) {
-          mismatchDescription.appendText(
-              String.format("Wrong type of reference '%s'", reference.getClass()));
-        } else {
-          Temporal temporalValue = (Temporal) reference;
-          long diff = temporalValue.until(temporalValue, units);
-          if (Math.abs(diff) > maxDiff) {
-            String msg = String.format("Difference of %d between '%s' and '%s' is larger than %d",
-                diff, temporalValue, reference, maxDiff);
-            mismatchDescription.appendText(msg);
-          }
-        }
-      }
 
-      @Override
-      public void _dont_implement_Matcher___instead_extend_BaseMatcher_() {
-
-      }
-
-      @Override
-      public void describeTo(Description description) {
-
-      }
     };
   }
 
