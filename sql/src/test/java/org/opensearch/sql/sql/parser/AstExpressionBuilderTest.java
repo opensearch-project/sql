@@ -452,6 +452,22 @@ class AstExpressionBuilderTest {
   }
 
   @Test
+  public void matchPhraseQueryAllParameters() {
+    assertEquals(
+        AstDSL.function("matchphrasequery",
+            unresolvedArg("field", stringLiteral("test")),
+            unresolvedArg("query", stringLiteral("search query")),
+            unresolvedArg("slop", stringLiteral("3")),
+            unresolvedArg("analyzer", stringLiteral("standard")),
+            unresolvedArg("zero_terms_query", stringLiteral("NONE"))
+        ),
+        buildExprAst("matchphrasequery(test, 'search query', slop = 3"
+            + ", analyzer = 'standard', zero_terms_query='NONE'"
+            + ")")
+    );
+  }
+
+  @Test
   public void matchPhrasePrefixAllParameters() {
     assertEquals(
         AstDSL.function("match_phrase_prefix",

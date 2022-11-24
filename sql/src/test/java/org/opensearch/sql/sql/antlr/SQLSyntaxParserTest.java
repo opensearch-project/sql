@@ -391,6 +391,7 @@ class SQLSyntaxParserTest {
       "matchPhraseComplexQueries",
       "matchPhraseGeneratedQueries",
       "generateMatchPhraseQueries",
+      "matchPhraseQueryComplexQueries"
   })
   public void canParseComplexMatchPhraseArgsTest(String query) {
     assertNotNull(parser.parse(query));
@@ -417,6 +418,22 @@ class SQLSyntaxParserTest {
               + "prefix_length=34, fuzziness='auto', minimum_should_match='2<-25% 9<-3')",
       "SELECT * FROM t WHERE match_phrase(c, 3, minimum_should_match='2<-25% 9<-3')",
       "SELECT * FROM t WHERE match_phrase(c, 3, operator='AUTO')"
+    );
+  }
+
+  private static Stream<String> matchPhraseQueryComplexQueries() {
+    return Stream.of(
+        "SELECT * FROM t WHERE matchphrasequery(c, 3)",
+        "SELECT * FROM t WHERE matchphrasequery(c, 3, fuzziness=AUTO)",
+        "SELECT * FROM t WHERE matchphrasequery(c, 3, zero_terms_query=\"all\")",
+        "SELECT * FROM t WHERE matchphrasequery(c, 3, lenient=true)",
+        "SELECT * FROM t WHERE matchphrasequery(c, 3, lenient='true')",
+        "SELECT * FROM t WHERE matchphrasequery(c, 3, operator=xor)",
+        "SELECT * FROM t WHERE matchphrasequery(c, 3, cutoff_frequency=0.04)",
+        "SELECT * FROM t WHERE matchphrasequery(c, 3, cutoff_frequency=0.04, analyzer = english, "
+            + "prefix_length=34, fuzziness='auto', minimum_should_match='2<-25% 9<-3')",
+        "SELECT * FROM t WHERE matchphrasequery(c, 3, minimum_should_match='2<-25% 9<-3')",
+        "SELECT * FROM t WHERE matchphrasequery(c, 3, operator='AUTO')"
     );
   }
 
