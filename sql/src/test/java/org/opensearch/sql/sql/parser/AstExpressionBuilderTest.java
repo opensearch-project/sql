@@ -544,6 +544,19 @@ class AstExpressionBuilderTest {
   }
 
   @Test
+  public void relevanceWildcard_query() {
+    assertEquals(AstDSL.function("wildcard_query",
+            unresolvedArg("field", stringLiteral("field")),
+            unresolvedArg("query", stringLiteral("search query*")),
+            unresolvedArg("boost", stringLiteral("1.5")),
+            unresolvedArg("case_insensitive", stringLiteral("true")),
+            unresolvedArg("rewrite", stringLiteral("scoring_boolean"))),
+        buildExprAst("wildcard_query(field, 'search query*', boost=1.5,"
+            + "case_insensitive=true, rewrite='scoring_boolean'))")
+    );
+  }
+
+  @Test
   public void relevanceQuery() {
     assertEquals(AstDSL.function("query",
                     unresolvedArg("query", stringLiteral("field1:query OR field2:query"))),
