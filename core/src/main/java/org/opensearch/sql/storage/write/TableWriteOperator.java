@@ -19,8 +19,8 @@ import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
 @RequiredArgsConstructor
 public abstract class TableWriteOperator extends PhysicalPlan {
 
-  /** Child physical node. */
-  private final PhysicalPlan child;
+  /** Input physical node. */
+  protected final PhysicalPlan input;
 
   @Override
   public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
@@ -29,7 +29,7 @@ public abstract class TableWriteOperator extends PhysicalPlan {
 
   @Override
   public List<PhysicalPlan> getChild() {
-    return Collections.singletonList(child);
+    return Collections.singletonList(input);
   }
 
   /**
