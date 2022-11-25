@@ -30,7 +30,7 @@ public interface FunctionProperties extends Serializable {
 
   class UnexpectedCallException extends RuntimeException {
     public UnexpectedCallException() {
-      super("The function that uses this object is not meant to use query start time");
+      super("FunctionProperties.None is a null object and not meant to be accessed.");
     }
   }
 }
