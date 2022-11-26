@@ -282,7 +282,7 @@ class LogicalPlanOptimizerTest {
 
     assertEquals(
         writeBuilder,
-        optimize(write(values(), table))
+        optimize(write(values(), table, Collections.emptyList()))
     );
   }
 

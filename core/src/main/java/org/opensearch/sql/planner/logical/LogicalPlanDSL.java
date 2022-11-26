@@ -32,8 +32,8 @@ import org.opensearch.sql.storage.Table;
 @UtilityClass
 public class LogicalPlanDSL {
 
-  public static LogicalPlan write(LogicalPlan input, Table table) {
-    return new LogicalWrite(input, table);
+  public static LogicalPlan write(LogicalPlan input, Table table, List<String> columns) {
+    return new LogicalWrite(input, table, columns);
   }
 
   public static LogicalPlan aggregation(
