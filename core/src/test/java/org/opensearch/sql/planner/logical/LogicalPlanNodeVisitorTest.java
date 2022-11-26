@@ -12,6 +12,7 @@ import static org.opensearch.sql.expression.DSL.named;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -86,7 +87,7 @@ class LogicalPlanNodeVisitorTest {
     assertNull(tableScanBuilder.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
     }, null));
 
-    LogicalPlan write = LogicalPlanDSL.write(null, table);
+    LogicalPlan write = LogicalPlanDSL.write(null, table, Collections.emptyList());
     assertNull(write.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
     }, null));
 
