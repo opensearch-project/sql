@@ -267,19 +267,9 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   @Test
   public void testCbrt() throws IOException {
     JSONObject result =
-            executeQuery(
-                    String.format(
-                            "source=%s | eval f = cbrt(age) | fields f", TEST_INDEX_BANK));
-    verifySchema(result, schema("f", null, "double"));
-    verifyDataRows(result,
-            rows(3.174802103936399), rows(3.3019272488946267), rows(3.0365889718756627),
-            rows(3.2075343299958265), rows(3.3019272488946267), rows(3.391211443014167),
-            rows(3.2396118012774835));
-
-    result =
-            executeQuery(
-                    String.format(
-                            "source=%s | eval f = cbrt(num3) | fields f", TEST_INDEX_CALCS));
+        executeQuery(
+                String.format(
+                        "source=%s | eval f = cbrt(num3) | fields f", TEST_INDEX_CALCS));
     verifySchema(result, schema("f", null, "double"));
     verifyDataRows(result,
             closeTo(Math.cbrt(-11.52)), closeTo(Math.cbrt(-9.31)), closeTo(Math.cbrt(-12.17)),
