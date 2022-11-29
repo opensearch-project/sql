@@ -36,6 +36,11 @@ class SQLSyntaxParserTest {
   }
 
   @Test
+  public void canParseQasdueryEndWithSemiColon() {
+    assertNotNull(parser.parse("SELECT nested(message.info) from blah;"));
+  }
+
+  @Test
   public void canParseSelectLiterals() {
     assertNotNull(parser.parse("SELECT 123, 'hello'"));
   }

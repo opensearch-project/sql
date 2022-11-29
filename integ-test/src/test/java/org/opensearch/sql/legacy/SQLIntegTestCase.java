@@ -593,7 +593,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     WILDCARD(TestsConstants.TEST_INDEX_WILDCARD,
         "wildcard",
         getMappingFile("wildcard_index_mappings.json"),
-        "src/test/resources/wildcard.json"),;
+        "src/test/resources/wildcard.json"),
+    MULTI_NESTED(TestsConstants.TEST_INDEX_MULTI_NESTED,
+        "multi_nested",
+        getMappingFile("indexDefinitions/multi_nested.json"),
+        "src/test/resources/multi_nested_objects.json");
 
     private final String name;
     private final String type;

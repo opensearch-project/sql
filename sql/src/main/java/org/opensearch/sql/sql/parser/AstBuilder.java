@@ -111,6 +111,14 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
     if (queryContext.limitClause() != null) {
       from = visit(queryContext.limitClause()).attach(from);
     }
+    AstUnnestedBuilder nestBuilder = new AstUnnestedBuilder(context.peek());
+    UnresolvedPlan unnested = nestBuilder.visit(queryContext.selectClause());
+    if (unnested != null) {
+      unnested = unnested.attach(from);
+      UnresolvedPlan result = project.attach(unnested);
+      context.pop();
+      return result;
+    }
     UnresolvedPlan result = project.attach(from);
     context.pop();
     return result;
@@ -124,7 +132,9 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
       builder.add(AllFields.of());
     }
     ctx.selectElements().selectElement().forEach(field -> builder.add(visitSelectItem(field)));
-    return new Project(builder.build());
+
+    UnresolvedPlan result = new Project(builder.build());
+    return result;
   }
 
   @Override

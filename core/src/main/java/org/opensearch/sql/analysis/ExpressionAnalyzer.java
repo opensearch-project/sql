@@ -8,8 +8,6 @@ package org.opensearch.sql.analysis;
 
 import static org.opensearch.sql.ast.dsl.AstDSL.and;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.GTE;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTE;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;

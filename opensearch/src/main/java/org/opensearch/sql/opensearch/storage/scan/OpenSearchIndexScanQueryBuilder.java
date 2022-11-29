@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 import lombok.EqualsAndHashCode;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.index.query.QueryBuilder;
@@ -27,6 +28,7 @@ import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSeri
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalLimit;
+import org.opensearch.sql.planner.logical.LogicalNested;
 import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.storage.TableScanOperator;
@@ -97,6 +99,13 @@ class OpenSearchIndexScanQueryBuilder extends TableScanBuilder {
         StringUtils.unquoteText(highlight.getHighlightField().toString()),
         highlight.getArguments());
     return true;
+  }
+
+  @Override
+  public boolean pushDownNested(LogicalNested nested) {
+    indexScan.getRequestBuilder().pushDownNested(nested.toString());
+    // Return false intentionally to keep the original nested operator
+    return false;
   }
 
   /**

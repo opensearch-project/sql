@@ -51,4 +51,24 @@ public class Field extends UnresolvedExpression {
   public <R, C> R accept(AbstractNodeVisitor<R, C> nodeVisitor, C context) {
     return nodeVisitor.visitField(this, context);
   }
+
+  public boolean isNested() {
+    return this.toString().contains(".");
+  }
+
+  public boolean isReverseNested() {
+    return false;
+  }
+
+  public String getNestedPath() {
+    if (!this.isNested()) {
+      return null;
+    }
+    int lastDot = field.toString().lastIndexOf(".");
+    return field.toString().substring(0, lastDot);
+  }
+
+  public String getName() {
+    return this.field.toString();
+  }
 }

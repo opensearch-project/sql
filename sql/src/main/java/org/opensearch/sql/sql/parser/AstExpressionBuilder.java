@@ -9,10 +9,10 @@ package org.opensearch.sql.sql.parser;
 import static org.opensearch.sql.ast.dsl.AstDSL.between;
 import static org.opensearch.sql.ast.dsl.AstDSL.not;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
-import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LIKE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.NESTED;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT_LIKE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.POSITION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEXP;
@@ -39,6 +39,7 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.IsNullPred
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.LikePredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.MathExpressionAtomContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.MultiFieldRelevanceFunctionContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.NestedFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.NoFieldRelevanceFunctionContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.NotExpressionContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.NullLiteralContext;
@@ -148,6 +149,11 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitScalarFunctionCall(ScalarFunctionCallContext ctx) {
     return buildFunction(ctx.scalarFunctionName().getText(), ctx.functionArgs().functionArg());
+  }
+
+  @Override
+  public UnresolvedExpression visitNestedFunctionCall(NestedFunctionCallContext ctx) {
+    return buildNestedFunction(NESTED.getName().getFunctionName(), List.of(ctx.nestedFunction().nestedField().getText()));
   }
 
   @Override
@@ -476,6 +482,13 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
             .stream()
             .map(this::visitFunctionArg)
             .collect(Collectors.toList())
+    );
+  }
+
+  private Function buildNestedFunction(String functionName, List<String> arg) {
+    return new Function(
+        functionName,
+        List.of(new QualifiedName(arg))
     );
   }
 

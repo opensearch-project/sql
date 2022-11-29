@@ -10,11 +10,15 @@ import static org.opensearch.sql.utils.ExpressionUtils.PATH_SEP;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.data.model.ExprCollectionValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.env.Environment;
 
@@ -100,6 +104,11 @@ public class ReferenceExpression implements Expression {
   }
 
   private ExprValue resolve(ExprValue value, List<String> paths) {
+    if (value.type().equals(ExprCoreType.ARRAY)){
+      return new ExprCollectionValue(value.collectionValue().stream()
+          .map(val -> resolve(val, paths)).collect(Collectors.toList()));
+    }
+
     final ExprValue wholePathValue = value.keyValue(String.join(PATH_SEP, paths));
     if (!wholePathValue.isMissing() || paths.size() == 1) {
       return wholePathValue;

@@ -9,6 +9,7 @@ import static org.opensearch.sql.planner.optimizer.pattern.Patterns.aggregate;
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.filter;
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.highlight;
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.limit;
+import static org.opensearch.sql.planner.optimizer.pattern.Patterns.nested;
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.project;
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.scanBuilder;
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.sort;
@@ -73,6 +74,12 @@ public class TableScanPushDown<T extends LogicalPlan> implements Rule<T> {
           highlight(
               scanBuilder()))
           .apply((highlight, scanBuilder) -> scanBuilder.pushDownHighlight(highlight));
+
+  public static final Rule<?> PUSH_DOWN_NESTED =
+      match(
+          nested(
+              scanBuilder()))
+          .apply((nested, scanBuilder) -> scanBuilder.pushDownNested(nested));
 
 
   /** Pattern that matches a plan node. */

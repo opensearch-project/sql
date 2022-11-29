@@ -18,6 +18,8 @@ import org.junit.Assume;
 import org.junit.Test;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
+import java.util.List;
+
 /**
  * Integration test for OpenSearch object field (and nested field).
  * This class is focused on simple SELECT-FROM query to ensure right column
@@ -88,9 +90,8 @@ public class ObjectFieldSelectIT extends SQLIntegTestCase {
   @Test
   public void testSelectObjectFieldOfArrayValuesItself() {
     JSONObject response = new JSONObject(query("SELECT accounts FROM %s"));
-
-    // Only the first element of the list of is returned.
-    verifyDataRows(response, rows(new JSONObject("{\"id\": 1}")));
+    var blah = rows(new JSONArray(List.of("c","a")), "ab");
+    verifyDataRows(response, rows(new JSONArray(List.of(new JSONObject("{\"id\":1}"), new JSONObject("{\"id\":2}")))));
   }
 
   @Test
@@ -98,7 +99,7 @@ public class ObjectFieldSelectIT extends SQLIntegTestCase {
     JSONObject response = new JSONObject(query("SELECT accounts.id FROM %s"));
 
     // Only the first element of the list of is returned.
-    verifyDataRows(response, rows(1));
+    verifyDataRows(response, rows(new JSONArray(List.of(1,2))));
   }
 
   private String query(String sql) {

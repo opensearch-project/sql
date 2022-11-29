@@ -309,8 +309,16 @@ functionCall
     | relevanceFunction                                             #relevanceFunctionCall
     | highlightFunction                                             #highlightFunctionCall
     | positionFunction                                              #positionFunctionCall
+    | nestedFunction                                                #nestedFunctionCall
     ;
 
+nestedFunction
+    : NESTED LR_BRACKET nestedField RR_BRACKET
+    ;
+
+nestedField
+    : ID DOT ID (DOT ID)*
+    ;
 
 highlightFunction
     : HIGHLIGHT LR_BRACKET relevanceField (COMMA highlightArg)* RR_BRACKET
@@ -481,6 +489,10 @@ flowControlFunctionName
 
 noFieldRelevanceFunctionName
     : QUERY
+    ;
+
+nestedFunctionName
+    : NESTED
     ;
 
 systemFunctionName

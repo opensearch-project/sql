@@ -11,6 +11,7 @@ import org.opensearch.sql.planner.logical.LogicalDedupe;
 import org.opensearch.sql.planner.logical.LogicalEval;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalLimit;
+import org.opensearch.sql.planner.logical.LogicalNested;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
 import org.opensearch.sql.planner.logical.LogicalProject;
@@ -32,6 +33,7 @@ import org.opensearch.sql.planner.physical.RareTopNOperator;
 import org.opensearch.sql.planner.physical.RemoveOperator;
 import org.opensearch.sql.planner.physical.RenameOperator;
 import org.opensearch.sql.planner.physical.SortOperator;
+import org.opensearch.sql.planner.physical.UnnestOperator;
 import org.opensearch.sql.planner.physical.ValuesOperator;
 import org.opensearch.sql.planner.physical.WindowOperator;
 import org.opensearch.sql.storage.read.TableScanBuilder;
@@ -92,6 +94,11 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
   @Override
   public PhysicalPlan visitEval(LogicalEval node, C context) {
     return new EvalOperator(visitChild(node, context), node.getExpressions());
+  }
+
+  @Override
+  public PhysicalPlan visitUnnest(LogicalNested node, C context) {
+    return new UnnestOperator(visitChild(node, context), node.getField());
   }
 
   @Override

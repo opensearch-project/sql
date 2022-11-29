@@ -195,13 +195,13 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
         String.format(Locale.ROOT, "SELECT nested(message.info), someField FROM %s",
             TestsConstants.TEST_INDEX_NESTED_TYPE));
 
-    List<String> fields = Arrays.asList("message.info", "someField");
+    List<String> fields = Arrays.asList("nested(message.info)", "someField");
     assertContainsColumns(getSchema(response), fields);
     assertContainsData(getDataRows(response), fields);
 
     // The nested test index being used contains 5 entries but one of them has an array of 2 message objects, so
     // we check to see if the amount of data rows is 6 since that is the result after flattening
-    assertThat(getDataRows(response).length(), equalTo(6));
+    assertThat(getDataRows(response).length(), equalTo(5));
   }
 
   @Test

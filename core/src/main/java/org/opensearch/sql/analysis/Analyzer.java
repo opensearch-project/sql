@@ -33,6 +33,7 @@ import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
@@ -59,6 +60,7 @@ import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Unnested;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.data.model.ExprMissingValue;
@@ -85,6 +87,7 @@ import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalLimit;
 import org.opensearch.sql.planner.logical.LogicalML;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
+import org.opensearch.sql.planner.logical.LogicalNested;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalRareTopN;
@@ -394,6 +397,16 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       typeEnvironment.define(ref);
     }
     return new LogicalEval(child, expressionsBuilder.build());
+  }
+
+  /**
+   * Build {@link LogicalNested}.
+   */
+  @Override
+  public LogicalPlan visitUnnested(Unnested node, AnalysisContext context) {
+    LogicalPlan child = node.getChild().get(0).accept(this, context);
+    Expression expr = expressionAnalyzer.analyze(node.getExpression(), context);
+    return new LogicalNested(child, expr);
   }
 
   /**
