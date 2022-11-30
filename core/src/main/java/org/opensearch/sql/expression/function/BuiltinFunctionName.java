@@ -90,6 +90,7 @@ public enum BuiltinFunctionName {
   TO_DAYS(FunctionName.of("to_days")),
   UNIX_TIMESTAMP(FunctionName.of("unix_timestamp")),
   WEEK(FunctionName.of("week")),
+  WEEK_OF_YEAR(FunctionName.of("week_of_year")),
   YEAR(FunctionName.of("year")),
   // `now`-like functions
   NOW(FunctionName.of("now")),

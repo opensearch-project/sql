@@ -191,6 +191,13 @@ class SQLSyntaxParserTest {
     assertNotNull(parser.parse("SELECT id FROM test WHERE " + String.join(" AND ", calls)));
   }
 
+
+  @Test
+  public void can_parse_week_of_year_functions() {
+    assertNotNull(parser.parse("SELECT week('2022-11-18')"));
+    assertNotNull(parser.parse("SELECT week_of_year('2022-11-18')"));
+  }
+
   @Test
   public void can_parse_multi_match_relevance_function() {
     assertNotNull(parser.parse(

@@ -249,6 +249,7 @@ datetimeConstantLiteral
     | UTC_TIMESTAMP
     | UTC_DATE
     | UTC_TIME
+    | WEEK_OF_YEAR
     ;
 
 intervalLiteral

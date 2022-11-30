@@ -127,7 +127,8 @@ public class DateTimeFunction {
     repository.register(date_format());
     repository.register(to_days());
     repository.register(unix_timestamp());
-    repository.register(week());
+    repository.register(week(BuiltinFunctionName.WEEK));
+    repository.register(week(BuiltinFunctionName.WEEK_OF_YEAR));
     repository.register(year());
   }
 
@@ -566,8 +567,8 @@ public class DateTimeFunction {
   /**
    * WEEK(DATE[,mode]). return the week number for date.
    */
-  private DefaultFunctionResolver week() {
-    return define(BuiltinFunctionName.WEEK.getName(),
+  private DefaultFunctionResolver week(BuiltinFunctionName week) {
+    return define(week.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprWeekWithoutMode), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprWeekWithoutMode), INTEGER, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::exprWeekWithoutMode), INTEGER, TIMESTAMP),
