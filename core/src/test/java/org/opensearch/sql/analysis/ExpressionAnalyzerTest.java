@@ -56,8 +56,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @Configuration
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {FunctionPropertiesTestConfig.class,
-    AnalyzerTestBase.class})
+@ContextConfiguration(classes = {FunctionPropertiesTestConfig.class, AnalyzerTestBase.class})
 class ExpressionAnalyzerTest extends AnalyzerTestBase {
 
   @Test

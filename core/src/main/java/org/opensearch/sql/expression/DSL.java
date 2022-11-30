@@ -20,7 +20,6 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionImplementation;
 import org.opensearch.sql.expression.function.FunctionProperties;
-import org.opensearch.sql.expression.function.QueryFunctionProperties;
 import org.opensearch.sql.expression.parse.GrokExpression;
 import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.expression.parse.PatternsExpression;
@@ -697,7 +696,7 @@ public class DSL {
   }
 
   public static FunctionExpression match_bool_prefix(Expression... args) {
-    return compile(QueryFunctionProperties.None, BuiltinFunctionName.MATCH_BOOL_PREFIX, args);
+    return compile(FunctionProperties.None, BuiltinFunctionName.MATCH_BOOL_PREFIX, args);
   }
 
   public static FunctionExpression now(FunctionProperties functionProperties,

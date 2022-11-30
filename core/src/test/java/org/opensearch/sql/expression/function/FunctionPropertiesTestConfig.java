@@ -12,6 +12,6 @@ import org.springframework.context.annotation.Configuration;
 public class FunctionPropertiesTestConfig {
   @Bean
   FunctionProperties functionProperties() {
-    return new QueryFunctionProperties();
+    return new FunctionProperties();
   }
 }
