@@ -234,6 +234,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.POSITION, expressions);
   }
 
+  public static FunctionExpression position(Expression... expressions) {
+    return compile(BuiltinFunctionName.POSITION, expressions);
+  }
+
   public static FunctionExpression truncate(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.TRUNCATE, expressions);
   }
