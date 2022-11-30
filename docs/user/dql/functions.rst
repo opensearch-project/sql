@@ -215,8 +215,7 @@ Argument type: INTEGER/LONG/FLOAT/DOUBLE
 
 Return type: DOUBLE
 
-(Non-negative) INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
-(Negative) INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
 
 Example::
 
@@ -2737,6 +2736,65 @@ Example with only ``field`` and ``query`` expressions, and all other parameters 
 Another example to show how to set custom values for the optional parameters::
 
     os> SELECT lastname FROM accounts WHERE match(firstname, 'Hattie', operator='AND', boost=2.0);
+    fetched rows / total rows = 1/1
+    +------------+
+    | lastname   |
+    |------------|
+    | Bond       |
+    +------------+
+
+
+MATCHQUERY
+-----
+
+Description
+>>>>>>>>>>>
+
+The matchquery function is a synonym for the `match`_ function.
+
+Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
+
+    os> SELECT lastname, address FROM accounts WHERE matchquery(address, 'Street');
+    fetched rows / total rows = 2/2
+    +------------+--------------------+
+    | lastname   | address            |
+    |------------+--------------------|
+    | Bond       | 671 Bristol Street |
+    | Bates      | 789 Madison Street |
+    +------------+--------------------+
+
+Another example to show how to set custom values for the optional parameters::
+
+    os> SELECT lastname FROM accounts WHERE matchquery(firstname, 'Hattie', operator='AND', boost=2.0);
+    fetched rows / total rows = 1/1
+    +------------+
+    | lastname   |
+    |------------|
+    | Bond       |
+    +------------+
+
+MATCH_QUERY
+-----
+
+Description
+>>>>>>>>>>>
+
+The match_query function is a synonym for the `match`_ function.
+
+Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
+
+    os> SELECT lastname, address FROM accounts WHERE match_query(address, 'Street');
+    fetched rows / total rows = 2/2
+    +------------+--------------------+
+    | lastname   | address            |
+    |------------+--------------------|
+    | Bond       | 671 Bristol Street |
+    | Bates      | 789 Madison Street |
+    +------------+--------------------+
+
+Another example to show how to set custom values for the optional parameters::
+
+    os> SELECT lastname FROM accounts WHERE match_query(firstname, 'Hattie', operator='AND', boost=2.0);
     fetched rows / total rows = 1/1
     +------------+
     | lastname   |
