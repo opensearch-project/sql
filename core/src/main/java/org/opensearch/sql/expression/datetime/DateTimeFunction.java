@@ -112,7 +112,8 @@ public class DateTimeFunction {
     repository.register(maketime());
     repository.register(microsecond());
     repository.register(minute());
-    repository.register(month());
+    repository.register(month(BuiltinFunctionName.MONTH));
+    repository.register(month(BuiltinFunctionName.MONTH_OF_YEAR));
     repository.register(monthName());
     repository.register(now());
     repository.register(period_add());
@@ -432,8 +433,8 @@ public class DateTimeFunction {
   /**
    * MONTH(STRING/DATE/DATETIME/TIMESTAMP). return the month for date (1-12).
    */
-  private DefaultFunctionResolver month() {
-    return define(BuiltinFunctionName.MONTH.getName(),
+  private DefaultFunctionResolver month(BuiltinFunctionName month) {
+    return define(month.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprMonth), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprMonth), INTEGER, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::exprMonth), INTEGER, TIMESTAMP),

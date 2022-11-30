@@ -8,6 +8,7 @@ package org.opensearch.sql.expression.datetime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.longValue;
@@ -622,6 +623,44 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     expression = DSL.month(DSL.literal("2020-08-07 01:02:03"));
     assertEquals(INTEGER, expression.type());
     assertEquals("month(\"2020-08-07 01:02:03\")", expression.toString());
+    assertEquals(integerValue(8), eval(expression));
+  }
+
+  public void testInvalidDates(String date) throws SemanticCheckException {
+    FunctionExpression expression = DSL.month_of_year(DSL.literal(new ExprDateValue(date)));
+    eval(expression);
+  }
+
+  @Test void monthOfYearInvalidDates() {
+    when(nullRef.type()).thenReturn(DATE);
+    when(missingRef.type()).thenReturn(DATE);
+    assertEquals(nullValue(), eval(DSL.month_of_year(nullRef)));
+    assertEquals(missingValue(), eval(DSL.month_of_year(missingRef)));
+
+    assertThrows(SemanticCheckException.class, () ->  testInvalidDates("2019-01-50"));
+    assertThrows(SemanticCheckException.class, () ->  testInvalidDates("2019-02-29"));
+    assertThrows(SemanticCheckException.class, () ->  testInvalidDates("2019-02-31"));
+    assertThrows(SemanticCheckException.class, () ->  testInvalidDates("2019-13-05"));
+  }
+
+  @Test
+  public void monthOfYearAlternateArgumentSyntaxes() {
+    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
+    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
+
+    FunctionExpression expression = DSL.month_of_year(DSL.literal(new ExprDateValue("2020-08-07")));
+    assertEquals(INTEGER, expression.type());
+    assertEquals("month_of_year(DATE '2020-08-07')", expression.toString());
+    assertEquals(integerValue(8), eval(expression));
+
+    expression = DSL.month_of_year(DSL.literal("2020-08-07"));
+    assertEquals(INTEGER, expression.type());
+    assertEquals("month_of_year(\"2020-08-07\")", expression.toString());
+    assertEquals(integerValue(8), eval(expression));
+
+    expression = DSL.month_of_year(DSL.literal("2020-08-07 01:02:03"));
+    assertEquals(INTEGER, expression.type());
+    assertEquals("month_of_year(\"2020-08-07 01:02:03\")", expression.toString());
     assertEquals(integerValue(8), eval(expression));
   }
 

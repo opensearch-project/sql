@@ -350,6 +350,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.MONTH, expressions);
   }
 
+  public static FunctionExpression month_of_year(Expression... expressions) {
+    return compile(BuiltinFunctionName.MONTH_OF_YEAR, expressions);
+  }
+
   public static FunctionExpression monthname(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.MONTHNAME, expressions);
   }

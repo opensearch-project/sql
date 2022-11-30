@@ -7,6 +7,7 @@
 package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_PEOPLE2;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -49,6 +50,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     super.init();
     loadIndex(Index.BANK);
     loadIndex(Index.PEOPLE2);
+    loadIndex(Index.CALCS);
   }
 
   @Test
@@ -320,6 +322,57 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result = executeQuery("select month('2020-09-16')");
     verifySchema(result, schema("month('2020-09-16')", null, "integer"));
     verifyDataRows(result, rows(9));
+  }
+
+  @Test
+  public void testMonthOfYearTypes() throws IOException {
+    JSONObject result = executeQuery("select month_of_year(date('2020-09-16'))");
+    verifySchema(result, schema("month_of_year(date('2020-09-16'))", null, "integer"));
+    verifyDataRows(result, rows(9));
+
+    result = executeQuery("select month_of_year(datetime('2020-09-16 00:00:00'))");
+    verifySchema(result, schema("month_of_year(datetime('2020-09-16 00:00:00'))", null, "integer"));
+    verifyDataRows(result, rows(9));
+
+    result = executeQuery("select month_of_year(timestamp('2020-09-16 00:00:00'))");
+    verifySchema(result, schema("month_of_year(timestamp('2020-09-16 00:00:00'))", null, "integer"));
+    verifyDataRows(result, rows(9));
+
+    result = executeQuery("select month_of_year('2020-09-16')");
+    verifySchema(result, schema("month_of_year('2020-09-16')", null, "integer"));
+    verifyDataRows(result, rows(9));
+  }
+
+  @Test
+  public void testMonthAlternateSyntaxesReturnTheSameResults() throws IOException {
+    JSONObject result1 = executeQuery("SELECT month(date('2022-11-22'))");
+    JSONObject result2 = executeQuery("SELECT month_of_year(date('2022-11-22'))");
+    verifyDataRows(result1, rows(11));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT month(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT month_of_year(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT month(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT month_of_year(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT month(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT month_of_year(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT month(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT month_of_year(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
   }
 
   @Test
