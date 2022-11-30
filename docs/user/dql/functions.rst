@@ -1457,6 +1457,7 @@ Description
 >>>>>>>>>>>
 
 Usage:  dayofyear(date) returns the day of the year for date, in the range 1 to 366.
+The function `day_of_year`_ is also provided as an alias.
 
 Argument type: STRING/DATE/DATETIME/TIMESTAMP
 
@@ -1471,6 +1472,62 @@ Example::
     |---------------------------------|
     | 239                             |
     +---------------------------------+
+
+    os> SELECT DAYOFYEAR(DATETIME('2020-08-26 00:00:00'))
+    fetched rows / total rows = 1/1
+    +----------------------------------------------+
+    | DAYOFYEAR(DATETIME('2020-08-26 00:00:00'))   |
+    |----------------------------------------------|
+    | 239                                          |
+    +----------------------------------------------+
+
+    os> SELECT DAYOFYEAR(TIMESTAMP('2020-08-26 00:00:00'))
+    fetched rows / total rows = 1/1
+    +-----------------------------------------------+
+    | DAYOFYEAR(TIMESTAMP('2020-08-26 00:00:00'))   |
+    |-----------------------------------------------|
+    | 239                                           |
+    +-----------------------------------------------+
+
+
+DAY_OF_YEAR
+---------
+
+Description
+>>>>>>>>>>>
+
+This function is an alias to the `dayofyear`_ function
+
+Argument type: STRING/DATE/DATETIME/TIMESTAMP
+
+Return type: INTEGER
+
+Example::
+
+    os> SELECT DAY_OF_YEAR(DATE('2020-08-26'))
+    fetched rows / total rows = 1/1
+    +-----------------------------------+
+    | DAY_OF_YEAR(DATE('2020-08-26'))   |
+    |-----------------------------------|
+    | 239                               |
+    +-----------------------------------+
+
+    os> SELECT DAY_OF_YEAR(DATETIME('2020-08-26 00:00:00'))
+    fetched rows / total rows = 1/1
+    +------------------------------------------------+
+    | DAY_OF_YEAR(DATETIME('2020-08-26 00:00:00'))   |
+    |------------------------------------------------|
+    | 239                                            |
+    +------------------------------------------------+
+
+    os> SELECT DAY_OF_YEAR(TIMESTAMP('2020-08-26 00:00:00'))
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------+
+    | DAY_OF_YEAR(TIMESTAMP('2020-08-26 00:00:00'))   |
+    |-------------------------------------------------|
+    | 239                                             |
+    +-------------------------------------------------+
+
 
 
 FROM_DAYS

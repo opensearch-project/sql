@@ -330,6 +330,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.DAYOFYEAR, expressions);
   }
 
+  public static FunctionExpression day_of_year(Expression... expressions) {
+    return compile(BuiltinFunctionName.DAY_OF_YEAR, expressions);
+  }
+
   public static FunctionExpression from_days(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.FROM_DAYS, expressions);
   }

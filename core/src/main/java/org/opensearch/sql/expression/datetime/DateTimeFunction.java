@@ -102,7 +102,8 @@ public class DateTimeFunction {
     repository.register(dayName());
     repository.register(dayOfMonth());
     repository.register(dayOfWeek());
-    repository.register(dayOfYear());
+    repository.register(dayOfYear(BuiltinFunctionName.DAYOFYEAR));
+    repository.register(dayOfYear(BuiltinFunctionName.DAY_OF_YEAR));
     repository.register(from_days());
     repository.register(from_unixtime());
     repository.register(hour());
@@ -359,8 +360,8 @@ public class DateTimeFunction {
    * DAYOFYEAR(STRING/DATE/DATETIME/TIMESTAMP).
    * return the day of the year for date (1-366).
    */
-  private DefaultFunctionResolver dayOfYear() {
-    return define(BuiltinFunctionName.DAYOFYEAR.getName(),
+  private DefaultFunctionResolver dayOfYear(BuiltinFunctionName dayOfYear) {
+    return define(dayOfYear.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfYear), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfYear), INTEGER, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfYear), INTEGER, TIMESTAMP),

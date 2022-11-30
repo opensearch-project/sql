@@ -7,6 +7,7 @@
 package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_PEOPLE2;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -49,6 +50,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     super.init();
     loadIndex(Index.BANK);
     loadIndex(Index.PEOPLE2);
+    loadIndex(Index.CALCS);
   }
 
   @Test
@@ -225,6 +227,56 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result, rows(260));
   }
 
+  @Test
+  public void testDayOfYearWithUnderscores() throws IOException {
+    JSONObject result = executeQuery("select day_of_year(date('2020-09-16'))");
+    verifySchema(result, schema("day_of_year(date('2020-09-16'))", null, "integer"));
+    verifyDataRows(result, rows(260));
+
+    result = executeQuery("select day_of_year(datetime('2020-09-16 00:00:00'))");
+    verifySchema(result, schema("day_of_year(datetime('2020-09-16 00:00:00'))", null, "integer"));
+    verifyDataRows(result, rows(260));
+
+    result = executeQuery("select day_of_year(timestamp('2020-09-16 00:00:00'))");
+    verifySchema(result, schema("day_of_year(timestamp('2020-09-16 00:00:00'))", null, "integer"));
+    verifyDataRows(result, rows(260));
+
+    result = executeQuery("select day_of_year('2020-09-16')");
+    verifySchema(result, schema("day_of_year('2020-09-16')", null, "integer"));
+    verifyDataRows(result, rows(260));
+  }
+
+  @Test
+  public void testDayOfYearAlternateSyntaxesReturnTheSameResults() throws IOException {
+    JSONObject result1 = executeQuery("SELECT dayofyear(date('2022-11-22'))");
+    JSONObject result2 = executeQuery("SELECT day_of_year(date('2022-11-22'))");
+    verifyDataRows(result1, rows(326));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT dayofyear(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT day_of_year(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT dayofyear(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT day_of_year(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT dayofyear(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT day_of_year(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT dayofyear(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT day_of_year(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+  }
   @Test
   public void testFromDays() throws IOException {
     JSONObject result = executeQuery("select from_days(738049)");

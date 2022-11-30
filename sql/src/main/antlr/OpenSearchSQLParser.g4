@@ -244,6 +244,7 @@ datetimeConstantLiteral
     : CURRENT_DATE
     | CURRENT_TIME
     | CURRENT_TIMESTAMP
+    | DAY_OF_YEAR
     | LOCALTIME
     | LOCALTIMESTAMP
     | UTC_TIMESTAMP
