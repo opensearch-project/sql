@@ -1,5 +1,0 @@
-pytest==4.6.3
-mock==3.0.5
-pexpect==3.3
-twine==1.13.0
-tox>=1.9.2
