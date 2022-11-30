@@ -234,6 +234,7 @@ NULLIF:                             'NULLIF';
 PERIOD_ADD:                         'PERIOD_ADD';
 PERIOD_DIFF:                        'PERIOD_DIFF';
 PI:                                 'PI';
+POSITION:                           'POSITION';
 POW:                                'POW';
 POWER:                              'POWER';
 RADIANS:                            'RADIANS';

@@ -39,22 +39,23 @@ public class TextFunction {
    * @param repository {@link BuiltinFunctionRepository}.
    */
   public void register(BuiltinFunctionRepository repository) {
-    repository.register(substr());
-    repository.register(substring());
-    repository.register(ltrim());
-    repository.register(rtrim());
-    repository.register(trim());
-    repository.register(lower());
-    repository.register(upper());
+    repository.register(ascii());
     repository.register(concat());
     repository.register(concat_ws());
-    repository.register(length());
-    repository.register(strcmp());
-    repository.register(right());
     repository.register(left());
-    repository.register(ascii());
+    repository.register(length());
     repository.register(locate());
+    repository.register(lower());
+    repository.register(ltrim());
+    repository.register(position());
     repository.register(replace());
+    repository.register(right());
+    repository.register(rtrim());
+    repository.register(strcmp());
+    repository.register(substr());
+    repository.register(substring());
+    repository.register(trim());
+    repository.register(upper());
   }
 
   /**
@@ -242,6 +243,18 @@ public class TextFunction {
   }
 
   /**
+   * Returns the position of the first occurrence of a substring in a string starting from 1.
+   * Returns 0 if substring is not in string.
+   * Returns NULL if any argument is NULL.
+   * Supports following signature:
+   * (STRING IN STRING) -> INTEGER
+   */
+  private DefaultFunctionResolver position() {
+    return define(BuiltinFunctionName.POSITION.getName(),
+            impl(nullMissingHandling(TextFunction::exprPosition), INTEGER, STRING, STRING));
+  }
+
+  /**
    * REPLACE(str, from_str, to_str) returns the string str with all occurrences of
    * the string from_str replaced by the string to_str.
    * REPLACE() performs a case-sensitive match when searching for from_str.
@@ -311,6 +324,10 @@ public class TextFunction {
   private static ExprValue exprLocate(ExprValue subStr, ExprValue str, ExprValue pos) {
     return new ExprIntegerValue(
         str.stringValue().indexOf(subStr.stringValue(), pos.integerValue() - 1) + 1);
+  }
+
+  private static ExprValue exprPosition(ExprValue subStr, ExprValue str) {
+    return exprLocate(subStr, str);
   }
 
   private static ExprValue exprReplace(ExprValue str, ExprValue from, ExprValue to) {

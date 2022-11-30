@@ -153,23 +153,24 @@ public enum BuiltinFunctionName {
   /**
    * Text Functions.
    */
-  SUBSTR(FunctionName.of("substr")),
-  SUBSTRING(FunctionName.of("substring")),
-  RTRIM(FunctionName.of("rtrim")),
-  LTRIM(FunctionName.of("ltrim")),
-  TRIM(FunctionName.of("trim")),
-  UPPER(FunctionName.of("upper")),
-  LOWER(FunctionName.of("lower")),
-  REGEXP(FunctionName.of("regexp")),
+  ASCII(FunctionName.of("ascii")),
   CONCAT(FunctionName.of("concat")),
   CONCAT_WS(FunctionName.of("concat_ws")),
-  LENGTH(FunctionName.of("length")),
-  STRCMP(FunctionName.of("strcmp")),
-  RIGHT(FunctionName.of("right")),
   LEFT(FunctionName.of("left")),
-  ASCII(FunctionName.of("ascii")),
+  LENGTH(FunctionName.of("length")),
   LOCATE(FunctionName.of("locate")),
+  LOWER(FunctionName.of("lower")),
+  LTRIM(FunctionName.of("ltrim")),
+  POSITION(FunctionName.of("position")),
+  REGEXP(FunctionName.of("regexp")),
   REPLACE(FunctionName.of("replace")),
+  RIGHT(FunctionName.of("right")),
+  RTRIM(FunctionName.of("rtrim")),
+  STRCMP(FunctionName.of("strcmp")),
+  SUBSTR(FunctionName.of("substr")),
+  SUBSTRING(FunctionName.of("substring")),
+  TRIM(FunctionName.of("trim")),
+  UPPER(FunctionName.of("upper")),
 
   /**
    * NULL Test.

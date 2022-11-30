@@ -70,6 +70,7 @@ import org.opensearch.sql.ast.expression.IntervalUnit;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
+import org.opensearch.sql.ast.expression.PositionFunction;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
@@ -143,6 +144,13 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
     return new HighlightFunction(visit(ctx.highlightFunction().relevanceField()),
         builder.build());
+  }
+
+  @Override
+  public UnresolvedExpression visitPositionFunction(
+          OpenSearchSQLParser.PositionFunctionContext ctx) {
+    return new PositionFunction(visitFunctionArg(ctx.functionArg(0)),
+            visitFunctionArg(ctx.functionArg(1)));
   }
 
   @Override
