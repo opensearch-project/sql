@@ -2346,7 +2346,7 @@ Return type integer:
 
 Example::
 
-    os> SELECT POSITION('world' IN 'helloworld')
+    opensearchsql> SELECT POSITION('world' IN 'helloworld'), POSITION('invalid' IN 'helloworld');
     fetched rows / total rows = 1/1
     +-------------------------------------+---------------------------------------+
     | POSITION('world' IN 'helloworld')   | POSITION('invalid' IN 'helloworld')   |
