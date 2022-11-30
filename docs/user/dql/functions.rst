@@ -3157,7 +3157,7 @@ Example with only ``field`` and ``query`` expressions, and all other parameters 
 Another example to show how to set custom values for the optional parameters::
 
     os> select Body from wildcard where wildcard_query(Body, 'test wildcard*', boost=0.7, case_insensitive=true, rewrite='constant_score');
-    fetched rows / total rows = 7/7
+    fetched rows / total rows = 8/8
     +-------------------------------------------+
     | Body                                      |
     |-------------------------------------------|
@@ -3168,6 +3168,7 @@ Another example to show how to set custom values for the optional parameters::
     | test wildcard in the end of the text_     |
     | test wildcard in _ the middle of the text |
     | test wildcard __ beside each other        |
+    | tEsT wIlDcArD sensitive cases             |
     +-------------------------------------------+
 
 System Functions

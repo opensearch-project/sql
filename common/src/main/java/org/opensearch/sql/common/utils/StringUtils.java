@@ -108,48 +108,6 @@ public class StringUtils {
     return String.format(Locale.ROOT, format, args);
   }
 
-  /**
-   * Converts sql wildcard character % and _ to * and ?.
-   * @param text string to be converted
-   * @return converted string
-   */
-  public static String convertSqlWildcardToLucene(String text) {
-    final char DEFAULT_ESCAPE = '\\';
-    StringBuilder convertedString = new StringBuilder(text.length());
-    boolean escaped = false;
-
-    for (char currentChar : text.toCharArray()) {
-      switch (currentChar) {
-        case DEFAULT_ESCAPE:
-          escaped = true;
-          convertedString.append(currentChar);
-          break;
-        case '%':
-          if (escaped) {
-            convertedString.deleteCharAt(convertedString.length() - 1);
-            convertedString.append("%");
-          } else {
-            convertedString.append("*");
-          }
-          escaped = false;
-          break;
-        case '_':
-          if (escaped) {
-            convertedString.deleteCharAt(convertedString.length() - 1);
-            convertedString.append("_");
-          } else {
-            convertedString.append('?');
-          }
-          escaped = false;
-          break;
-        default:
-          convertedString.append(currentChar);
-          escaped = false;
-      }
-    }
-    return convertedString.toString();
-  }
-
   private static boolean isQuoted(String text, String mark) {
     return !Strings.isNullOrEmpty(text) && text.startsWith(mark) && text.endsWith(mark);
   }

@@ -8,7 +8,7 @@ package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.WildcardQueryBuilder;
-import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.opensearch.storage.script.StringUtils;
 
 /**
  * Lucene query that builds wildcard query.

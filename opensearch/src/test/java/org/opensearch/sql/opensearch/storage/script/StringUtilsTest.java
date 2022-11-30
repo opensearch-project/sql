@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.common.utils;
+package org.opensearch.sql.opensearch.storage.script;
 
 import static org.junit.Assert.assertEquals;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class ConvertSQLWildcardTest {
+public class StringUtilsTest {
   @Test
   public void test_escaping_sql_wildcards() {
     assertEquals("%", StringUtils.convertSqlWildcardToLucene("\\%"));

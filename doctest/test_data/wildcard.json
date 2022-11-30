@@ -18,3 +18,5 @@
 {"Body":"test wildcard __ beside each other"}
 {"index":{"_id":"9"}}
 {"Body":"test backslash wildcard \\_"}
+{"index":{"_id":"10"}}
+{"Body":"tEsT wIlDcArD sensitive cases"}

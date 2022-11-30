@@ -8,11 +8,11 @@ package org.opensearch.sql.opensearch.storage.script.filter.lucene;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.WildcardQueryBuilder;
-import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.opensearch.storage.script.StringUtils;
 
 public class LikeQuery extends LuceneQuery {
   @Override
