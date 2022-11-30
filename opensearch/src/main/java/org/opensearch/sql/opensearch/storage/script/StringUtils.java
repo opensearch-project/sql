@@ -6,6 +6,9 @@
 
 package org.opensearch.sql.opensearch.storage.script;
 
+import lombok.experimental.UtilityClass;
+
+@UtilityClass
 public class StringUtils {
   /**
    * Converts sql wildcard character % and _ to * and ?.
