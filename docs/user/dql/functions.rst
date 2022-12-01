@@ -2744,47 +2744,7 @@ The match_phrase function maps to the match_phrase query used in search engine, 
 - slop
 - zero_terms_query
 
-For backward compatibility, matchphrase is also supported and mapped to match_phrase query as well.
-
-Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
-
-    os> SELECT author, title FROM books WHERE match_phrase(author, 'Alexander Milne');
-    fetched rows / total rows = 2/2
-    +----------------------+--------------------------+
-    | author               | title                    |
-    |----------------------+--------------------------|
-    | Alan Alexander Milne | The House at Pooh Corner |
-    | Alan Alexander Milne | Winnie-the-Pooh          |
-    +----------------------+--------------------------+
-
-Another example to show how to set custom values for the optional parameters::
-
-    os> SELECT author, title FROM books WHERE match_phrase(author, 'Alan Milne', slop = 2);
-    fetched rows / total rows = 2/2
-    +----------------------+--------------------------+
-    | author               | title                    |
-    |----------------------+--------------------------|
-    | Alan Alexander Milne | The House at Pooh Corner |
-    | Alan Alexander Milne | Winnie-the-Pooh          |
-    +----------------------+--------------------------+
-
-
-MATCHPHRASEQUERY
-------------
-
-Description
->>>>>>>>>>>
-
-``matchphrasequery(field_expression, query_expression[, option=<option_value>]*)``
-
-The matchphrasequery function maps to the match_phrase query used in search engine, to return the documents that match a provided text with a given field.
-It is an alternate syntax for the `match_phrase`_ function. Available parameters include:
-
-- analyzer
-- slop
-- zero_terms_query
-
-For backward compatibility, matchphrase is also supported and mapped to match_phrase query.
+`matchphrase` and `matchphrasequery` are synonyms for `match_phrase`_
 
 Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
 
