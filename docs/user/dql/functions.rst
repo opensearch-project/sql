@@ -2817,7 +2817,7 @@ The match_phrase function maps to the match_phrase query used in search engine, 
 - slop
 - zero_terms_query
 
-For backward compatibility, matchphrase is also supported and mapped to match_phrase query as well.
+`matchphrase` and `matchphrasequery` are synonyms for `match_phrase`_
 
 Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
 

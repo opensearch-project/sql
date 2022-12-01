@@ -38,6 +38,7 @@ public class OpenSearchFunctions {
     // compatibility.
     repository.register(match_phrase(BuiltinFunctionName.MATCH_PHRASE));
     repository.register(match_phrase(BuiltinFunctionName.MATCHPHRASE));
+    repository.register(match_phrase(BuiltinFunctionName.MATCHPHRASEQUERY));
     repository.register(match_phrase_prefix());
   }
 
