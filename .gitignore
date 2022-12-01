@@ -44,3 +44,5 @@ gen
 /artifacts/
 /.pid.lock
 /.prom.pid.lock
+
+.java-version

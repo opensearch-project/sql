@@ -383,7 +383,7 @@ aggregationFunctionName
     ;
 
 mathematicalFunctionName
-    : ABS | CEIL | CEILING | CONV | CRC32 | E | EXP | FLOOR | LN | LOG | LOG10 | LOG2 | MOD | PI | POW | POWER
+    : ABS | CBRT | CEIL | CEILING | CONV | CRC32 | E | EXP | FLOOR | LN | LOG | LOG10 | LOG2 | MOD | PI | POW | POWER
     | RAND | ROUND | SIGN | SQRT | TRUNCATE
     | trigonometricFunctionName
     ;
@@ -425,7 +425,8 @@ systemFunctionName
     ;
 
 singleFieldRelevanceFunctionName
-    : MATCH | MATCH_PHRASE | MATCHPHRASE| MATCHPHRASEQUERY
+    : MATCH | MATCHQUERY | MATCH_QUERY
+    | MATCH_PHRASE | MATCHPHRASE | MATCHPHRASEQUERY
     | MATCH_BOOL_PREFIX | MATCH_PHRASE_PREFIX
     ;
 
@@ -433,10 +434,6 @@ multiFieldRelevanceFunctionName
     : MULTI_MATCH
     | SIMPLE_QUERY_STRING
     | QUERY_STRING
-    ;
-
-legacyRelevanceFunctionName
-    : QUERY | MATCH_QUERY | MATCHQUERY
     ;
 
 functionArgs

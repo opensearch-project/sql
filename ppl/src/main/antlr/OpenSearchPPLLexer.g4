@@ -201,6 +201,7 @@ DC:                                 'DC';
 
 // BASIC FUNCTIONS
 ABS:                                'ABS';
+CBRT:                               'CBRT';
 CEIL:                               'CEIL';
 CEILING:                            'CEILING';
 CONV:                               'CONV';

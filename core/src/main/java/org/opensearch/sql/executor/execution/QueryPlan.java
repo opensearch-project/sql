@@ -24,14 +24,14 @@ public class QueryPlan extends AbstractPlan {
   /**
    * The query plan ast.
    */
-  private final UnresolvedPlan plan;
+  protected final UnresolvedPlan plan;
 
   /**
    * Query service.
    */
-  private final QueryService queryService;
+  protected final QueryService queryService;
 
-  private final ResponseListener<ExecutionEngine.QueryResponse> listener;
+  protected final ResponseListener<ExecutionEngine.QueryResponse> listener;
 
   /** constructor. */
   public QueryPlan(

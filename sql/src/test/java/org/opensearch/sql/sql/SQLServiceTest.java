@@ -13,7 +13,9 @@ import static org.mockito.Mockito.doAnswer;
 import static org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 import org.json.JSONObject;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,6 +44,8 @@ class SQLServiceTest {
 
   private SQLService sqlService;
 
+  private DefaultQueryManager queryManager;
+
   @Mock
   private QueryService queryService;
 
@@ -50,11 +54,17 @@ class SQLServiceTest {
 
   @BeforeEach
   public void setUp() {
-    context.registerBean(QueryManager.class, DefaultQueryManager::new);
+    queryManager = DefaultQueryManager.defaultQueryManager();
+    context.registerBean(QueryManager.class, () -> queryManager);
     context.registerBean(QueryPlanFactory.class, () -> new QueryPlanFactory(queryService));
     context.register(SQLServiceConfig.class);
     context.refresh();
     sqlService = context.getBean(SQLService.class);
+  }
+
+  @AfterEach
+  public void cleanup() throws InterruptedException {
+    queryManager.awaitTermination(1, TimeUnit.SECONDS);
   }
 
   @Test

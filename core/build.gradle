@@ -26,17 +26,12 @@ plugins {
     id 'java-library'
     id "io.freefair.lombok"
     id 'jacoco'
+    id 'java-test-fixtures'
 }
 
 repositories {
     mavenCentral()
 }
-//
-//configurations.all {
-//    resolutionStrategy.dependencySubstitution {
-//        substitute module('com.google.guava:guava:26.0-jre') with module('com.google.guava:guava:29.0-jre')
-//    }
-//}
 
 dependencies {
     api group: 'com.google.guava', name: 'guava', version: '31.0.1-jre'

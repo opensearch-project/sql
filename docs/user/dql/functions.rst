@@ -209,9 +209,23 @@ CBRT
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: CBRT(number) calculates the cube root of a number
 
-1. CBRT(NUMBER T) -> T
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: DOUBLE
+
+INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+
+Example::
+
+    opensearchsql> SELECT CBRT(8), CBRT(9.261), CBRT(-27);
+    fetched rows / total rows = 1/1
+    +-----------+---------------+-------------+
+    | CBRT(8)   | CBRT(9.261)   | CBRT(-27)   |
+    |-----------+---------------+-------------|
+    | 2.0       | 2.1           | -3.0        |
+    +-----------+---------------+-------------+
 
 
 CEIL
@@ -2722,6 +2736,65 @@ Example with only ``field`` and ``query`` expressions, and all other parameters 
 Another example to show how to set custom values for the optional parameters::
 
     os> SELECT lastname FROM accounts WHERE match(firstname, 'Hattie', operator='AND', boost=2.0);
+    fetched rows / total rows = 1/1
+    +------------+
+    | lastname   |
+    |------------|
+    | Bond       |
+    +------------+
+
+
+MATCHQUERY
+-----
+
+Description
+>>>>>>>>>>>
+
+The matchquery function is a synonym for the `match`_ function.
+
+Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
+
+    os> SELECT lastname, address FROM accounts WHERE matchquery(address, 'Street');
+    fetched rows / total rows = 2/2
+    +------------+--------------------+
+    | lastname   | address            |
+    |------------+--------------------|
+    | Bond       | 671 Bristol Street |
+    | Bates      | 789 Madison Street |
+    +------------+--------------------+
+
+Another example to show how to set custom values for the optional parameters::
+
+    os> SELECT lastname FROM accounts WHERE matchquery(firstname, 'Hattie', operator='AND', boost=2.0);
+    fetched rows / total rows = 1/1
+    +------------+
+    | lastname   |
+    |------------|
+    | Bond       |
+    +------------+
+
+MATCH_QUERY
+-----
+
+Description
+>>>>>>>>>>>
+
+The match_query function is a synonym for the `match`_ function.
+
+Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
+
+    os> SELECT lastname, address FROM accounts WHERE match_query(address, 'Street');
+    fetched rows / total rows = 2/2
+    +------------+--------------------+
+    | lastname   | address            |
+    |------------+--------------------|
+    | Bond       | 671 Bristol Street |
+    | Bates      | 789 Madison Street |
+    +------------+--------------------+
+
+Another example to show how to set custom values for the optional parameters::
+
+    os> SELECT lastname FROM accounts WHERE match_query(firstname, 'Hattie', operator='AND', boost=2.0);
     fetched rows / total rows = 1/1
     +------------+
     | lastname   |

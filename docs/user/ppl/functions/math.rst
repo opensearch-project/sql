@@ -662,3 +662,27 @@ Example::
     | 2.0       | 2.1          |
     +-----------+--------------+
 
+CBRT
+----
+
+Description
+>>>>>>>>>>>
+
+Usage: Calculates the cube root of a number
+
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type DOUBLE:
+
+INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+
+Example::
+
+    opensearchsql> source=location | eval `CBRT(8)` = CBRT(8), `CBRT(9.261)` = CBRT(9.261), `CBRT(-27)` = CBRT(-27) | fields `CBRT(8)`, `CBRT(9.261)`, `CBRT(-27)`;
+    fetched rows / total rows = 2/2
+    +-----------+---------------+-------------+
+    | CBRT(8)   | CBRT(9.261)   | CBRT(-27)   |
+    |-----------+---------------+-------------|
+    | 2.0       | 2.1           | -3.0        |
+    | 2.0       | 2.1           | -3.0        |
+    +-----------+---------------+-------------+

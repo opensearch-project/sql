@@ -141,6 +141,8 @@ The plugin codebase is in standard layout of Gradle project::
    ├── core
    ├── doctest
    ├── opensearch
+   ├── filesystem
+   ├── prometheus
    ├── integ-test
    ├── legacy
    ├── plugin
@@ -159,6 +161,8 @@ Here are sub-folders (Gradle modules) for plugin source code:
 - ``ppl``: PPL language processor.
 - ``core``: core query engine.
 - ``opensearch``: OpenSearch storage engine.
+- ``prometheus``: Prometheus storage engine.
+- ``filesystem``: File System storage engine (in development).
 - ``protocol``: request/response protocol formatter.
 - ``common``: common util code.
 - ``integ-test``: integration and comparison test.

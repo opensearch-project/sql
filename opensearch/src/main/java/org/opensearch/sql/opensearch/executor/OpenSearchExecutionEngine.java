@@ -12,6 +12,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.executor.ExecutionContext;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.Explain;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
@@ -29,11 +30,19 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
 
   @Override
   public void execute(PhysicalPlan physicalPlan, ResponseListener<QueryResponse> listener) {
+    execute(physicalPlan, ExecutionContext.emptyExecutionContext(), listener);
+  }
+
+  @Override
+  public void execute(PhysicalPlan physicalPlan, ExecutionContext context,
+                      ResponseListener<QueryResponse> listener) {
     PhysicalPlan plan = executionProtector.protect(physicalPlan);
     client.schedule(
         () -> {
           try {
             List<ExprValue> result = new ArrayList<>();
+
+            context.getSplit().ifPresent(plan::add);
             plan.open();
 
             while (plan.hasNext()) {
