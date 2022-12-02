@@ -177,13 +177,7 @@ public class JDBCConnection implements DBConnection {
       if (Strings.isNullOrEmpty(colName)) {
         colName = metaData.getColumnName(i);
       }
-      var columnType = metaData.getColumnTypeName(i);
-      // BIGINT type does not exist for all databases, needs to convert to INTEGER to compare correct types.
-      if(Objects.equals(columnType, "BIGINT"))
-      {
-        columnType = "INTEGER";
-      }
-      result.addColumn(colName, columnType);
+      result.addColumn(colName, metaData.getColumnTypeName(i));
     }
   }
 
