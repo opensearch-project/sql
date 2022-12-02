@@ -17,6 +17,10 @@ on:
       - '**/*.pom'
       - '.github/workflows/sql-test-and-build-workflow.yml'
 
+env:
+  OPENSEARCH_VERSION: '3.0.0-SNAPSHOT'
+  JDBC_VERSION: '1.1.0.1'
+
 jobs:
   build:
     strategy:
@@ -40,6 +44,17 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: ${{ matrix.entry.java }}
+
+    # dependencies: sql-jdbc
+    - name: Checkout Opensearch-SQL-library
+      uses: actions/checkout@v2
+      with:
+        repository: 'opensearch-project/sql-jdbc'
+        path: sql-jdbc
+        ref: ${{ env.JDBC_VERSION }}
+    - name: Build SQL-JDBC library
+      working-directory: ./sql-jdbc
+      run: ./gradlew publishToMavenLocal -Dbuild.snapshot=false
 
     - name: Build with Gradle
       run: ./gradlew --continue build ${{ matrix.entry.os_build_args }}
