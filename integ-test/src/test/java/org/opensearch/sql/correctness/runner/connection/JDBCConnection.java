@@ -17,6 +17,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Properties;
 import org.json.JSONObject;
 import org.opensearch.sql.correctness.runner.resultset.DBResult;
@@ -176,7 +177,13 @@ public class JDBCConnection implements DBConnection {
       if (Strings.isNullOrEmpty(colName)) {
         colName = metaData.getColumnName(i);
       }
-      result.addColumn(colName, metaData.getColumnTypeName(i));
+      var columnType = metaData.getColumnTypeName(i);
+      // BIGINT type does not exist for all databases, needs to convert to INTEGER to compare correct types.
+      if(Objects.equals(columnType, "BIGINT"))
+      {
+        columnType = "INTEGER";
+      }
+      result.addColumn(colName, columnType);
     }
   }
 
