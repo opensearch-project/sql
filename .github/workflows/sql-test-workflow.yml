@@ -5,7 +5,7 @@ on:
 
 env:
   OPENSEARCH_VERSION: '3.0.0-SNAPSHOT'
-  JDBC_VERSION: '1.1.0.1'
+  JDBC_VERSION: '2.0.0.0'
 
 jobs:
   build:
