@@ -58,8 +58,6 @@ public class MakeTimeTest extends DateTimeTestBase {
 
   @Test
   public void checkNullValues() {
-    when(nullRef.valueOf(env)).thenReturn(nullValue());
-
     assertEquals(nullValue(), eval(maketime(nullRef, DSL.literal(42.), DSL.literal(42.))));
     assertEquals(nullValue(), eval(maketime(DSL.literal(42.), nullRef, DSL.literal(42.))));
     assertEquals(nullValue(), eval(maketime(DSL.literal(42.), DSL.literal(42.), nullRef)));
@@ -71,8 +69,6 @@ public class MakeTimeTest extends DateTimeTestBase {
 
   @Test
   public void checkMissingValues() {
-    when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     assertEquals(missingValue(), eval(maketime(missingRef, DSL.literal(42.), DSL.literal(42.))));
     assertEquals(missingValue(), eval(maketime(DSL.literal(42.), missingRef, DSL.literal(42.))));
     assertEquals(missingValue(), eval(maketime(DSL.literal(42.), DSL.literal(42.), missingRef)));

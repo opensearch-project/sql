@@ -25,9 +25,9 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.LiteralExpression;
 
 class MultiFieldQueryTest {
-  MultiFieldQuery query;
+  MultiFieldQuery<?> query;
   private final String testQueryName = "test_query";
-  private final Map<String, RelevanceQuery.QueryBuilderStep> actionMap
+  private final Map<String, RelevanceQuery.QueryBuilderStep<?>> actionMap
       = ImmutableMap.of("paramA", (o, v) -> o);
 
   @BeforeEach

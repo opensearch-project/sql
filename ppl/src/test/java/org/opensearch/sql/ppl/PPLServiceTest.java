@@ -28,6 +28,7 @@ import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
+import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.ppl.config.PPLServiceConfig;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.storage.StorageEngine;
@@ -72,6 +73,7 @@ public class PPLServiceTest {
     context.registerBean(StorageEngine.class, () -> storageEngine);
     context.registerBean(ExecutionEngine.class, () -> executionEngine);
     context.registerBean(DataSourceService.class, () -> dataSourceService);
+    context.registerBean(FunctionProperties.class, FunctionProperties::new);
     context.register(PPLServiceConfig.class);
     context.refresh();
     pplService = context.getBean(PPLService.class);
