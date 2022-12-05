@@ -11,6 +11,7 @@ CAST(ceil(-1) AS INT)
 CAST(ceil(0.0) AS INT)
 CAST(ceil(0.4999) AS INT)
 CAST(ceil(abs(1)) AS INT)
+# CAST(CEIL(2147483647 + 0.6) AS INT) will fail because the cast limits the return to be INT_MAX (21474883647) which is not an H2 or SQLite limitation
 exp(0)
 exp(1)
 exp(-1)
