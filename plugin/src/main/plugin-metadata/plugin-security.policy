@@ -15,5 +15,6 @@ grant {
     // For AWS SDK
     permission java.io.FilePermission "/Users/penghuo/.aws/*", "read";
     permission java.io.FilePermission "/Users/daichen/.aws/*", "read";
+    permission java.io.FilePermission "${user.home}${/}.aws${/}*", "read";
     permission java.net.SocketPermission "*", "accept,connect,resolve";
 };
