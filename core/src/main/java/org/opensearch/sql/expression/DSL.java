@@ -331,7 +331,7 @@ public class DSL {
   }
 
   public static FunctionExpression day_of_year(Expression... expressions) {
-    return compile(BuiltinFunctionName.DAY_OF_YEAR, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.DAY_OF_YEAR, expressions);
   }
 
   public static FunctionExpression from_days(Expression... expressions) {
