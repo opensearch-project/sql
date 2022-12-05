@@ -391,7 +391,7 @@ public class DSL {
   }
 
   public static FunctionExpression week_of_year(Expression... expressions) {
-    return compile(BuiltinFunctionName.WEEK_OF_YEAR, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.WEEK_OF_YEAR, expressions);
   }
 
   public static FunctionExpression year(Expression... expressions) {
