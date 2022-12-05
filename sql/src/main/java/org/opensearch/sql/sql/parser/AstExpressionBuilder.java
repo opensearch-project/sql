@@ -12,6 +12,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LIKE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT_LIKE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.POSITION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEXP;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BinaryComparisonPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BooleanContext;
@@ -70,7 +71,6 @@ import org.opensearch.sql.ast.expression.IntervalUnit;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
-import org.opensearch.sql.ast.expression.PositionFunction;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
@@ -149,8 +149,10 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitPositionFunction(
           OpenSearchSQLParser.PositionFunctionContext ctx) {
-    return new PositionFunction(visitFunctionArg(ctx.functionArg(0)),
-            visitFunctionArg(ctx.functionArg(1)));
+    return new Function(
+            POSITION.getName().getFunctionName(),
+            Arrays.asList(visitFunctionArg(ctx.functionArg(0)),
+                    visitFunctionArg(ctx.functionArg(1))));
   }
 
   @Override

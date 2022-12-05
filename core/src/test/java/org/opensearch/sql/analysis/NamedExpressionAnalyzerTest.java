@@ -16,7 +16,6 @@ import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.Literal;
-import org.opensearch.sql.ast.expression.PositionFunction;
 import org.opensearch.sql.expression.NamedExpression;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
@@ -48,15 +47,5 @@ class NamedExpressionAnalyzerTest extends AnalyzerTestBase {
 
     NamedExpression analyze = analyzer.analyze(alias, analysisContext);
     assertEquals("highlight(fieldA)", analyze.getNameOrAlias());
-  }
-
-  @Test
-  void visit_position() {
-    Alias alias = AstDSL.alias("position(fieldA IN fieldB)",
-        new PositionFunction(AstDSL.stringLiteral("fieldA"), AstDSL.stringLiteral("fieldB")));
-    NamedExpressionAnalyzer analyzer = new NamedExpressionAnalyzer(expressionAnalyzer);
-
-    NamedExpression analyze = analyzer.analyze(alias, analysisContext);
-    assertEquals("position(fieldA IN fieldB)", analyze.getNameOrAlias());
   }
 }
