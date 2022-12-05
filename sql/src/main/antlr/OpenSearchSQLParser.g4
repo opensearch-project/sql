@@ -321,9 +321,9 @@ highlightFunction
     : HIGHLIGHT LR_BRACKET relevanceField (COMMA highlightArg)* RR_BRACKET
     ;
 
-    positionFunction
-        : POSITION LR_BRACKET functionArg IN functionArg RR_BRACKET
-        ;
+positionFunction
+    : POSITION LR_BRACKET functionArg IN functionArg RR_BRACKET
+    ;
 
 scalarFunctionName
     : mathematicalFunctionName
