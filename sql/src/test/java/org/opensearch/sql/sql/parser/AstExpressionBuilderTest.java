@@ -21,7 +21,6 @@ import static org.opensearch.sql.ast.dsl.AstDSL.longLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.not;
 import static org.opensearch.sql.ast.dsl.AstDSL.nullLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.or;
-import static org.opensearch.sql.ast.dsl.AstDSL.position;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.timeLiteral;
@@ -330,18 +329,10 @@ class AstExpressionBuilderTest {
   }
 
   @Test
-  public void canBuildPositionFunction() {
-    assertEquals(
-            position(AstDSL.qualifiedName("fieldA"), AstDSL.qualifiedName("fieldB")),
-            buildExprAst("position(fieldA IN fieldB)")
-    );
-  }
-
-  @Test
   public void canBuildStringLiteralPositionFunction() {
     assertEquals(
-            position(AstDSL.stringLiteral("fieldA"), AstDSL.stringLiteral("fieldB")),
-            buildExprAst("position(\"fieldA\" IN \"fieldB\")")
+            function("position", stringLiteral("substr"), stringLiteral("str")),
+            buildExprAst("position(\"substr\" IN \"str\")")
     );
   }
 

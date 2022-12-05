@@ -26,7 +26,6 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
-import org.opensearch.sql.ast.expression.PositionFunction;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
 import org.opensearch.sql.ast.expression.Span;
@@ -271,10 +270,6 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitHighlightFunction(HighlightFunction node, C context) {
-    return visitChildren(node, context);
-  }
-
-  public T visitPositionFunction(PositionFunction node, C context) {
     return visitChildren(node, context);
   }
 
