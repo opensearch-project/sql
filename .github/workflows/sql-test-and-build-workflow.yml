@@ -44,7 +44,7 @@ jobs:
         java-version: ${{ matrix.entry.java }}
     
     - name: Build with Gradle
-      run: ./gradlew --continue  build ${{ matrix.entry.os_build_args }} -Dopensearch.version=${{ env.OPENSEARCH_VERSION }}
+      run: ./gradlew --continue build ${{ matrix.entry.os_build_args }}
 
     - name: Run backward compatibility tests
       if: ${{ matrix.entry.os == 'ubuntu-latest' }}
