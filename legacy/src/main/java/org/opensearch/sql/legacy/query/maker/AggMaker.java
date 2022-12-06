@@ -71,7 +71,7 @@ public class AggMaker {
     private Where where;
 
     /**
-     * 分组查的聚合函数
+     * group aggregation.
      *
      * @param field
      * @return

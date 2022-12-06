@@ -19,7 +19,7 @@ import org.opensearch.sql.legacy.exception.SqlParseException;
 public class QueryMaker extends Maker {
 
     /**
-     * 将where条件构建成query
+     * Rewrite where condition to query.
      *
      * @param where
      * @return
@@ -58,7 +58,7 @@ public class QueryMaker extends Maker {
     }
 
     /**
-     * 增加嵌套插
+     * Add sub query.
      *
      * @param boolQuery
      * @param where
