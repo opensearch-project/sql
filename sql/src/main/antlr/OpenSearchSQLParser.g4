@@ -247,6 +247,7 @@ datetimeConstantLiteral
     | DAY_OF_YEAR
     | LOCALTIME
     | LOCALTIMESTAMP
+    | MONTH_OF_YEAR
     | UTC_TIMESTAMP
     | UTC_DATE
     | UTC_TIME

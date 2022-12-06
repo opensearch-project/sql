@@ -1770,6 +1770,7 @@ Description
 >>>>>>>>>>>
 
 Usage: month(date) returns the month for date, in the range 1 to 12 for January to December. The dates with value 0 such as '0000-00-00' or '2008-00-00' are invalid.
+The function month_of_year is also provided as an alias
 
 Argument type: STRING/DATE/DATETIME/TIMESTAMP
 
@@ -1784,6 +1785,15 @@ Example::
     |-----------------------------|
     | 8                           |
     +-----------------------------+
+
+
+    os> SELECT MONTH_OF_YEAR(DATE('2020-08-26'))
+    fetched rows / total rows = 1/1
+    +-------------------------------------+
+    | MONTH_OF_YEAR(DATE('2020-08-26'))   |
+    |-------------------------------------|
+    | 8                                   |
+    +-------------------------------------+
 
 
 MONTHNAME

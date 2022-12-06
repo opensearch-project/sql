@@ -78,6 +78,7 @@ public enum BuiltinFunctionName {
   MICROSECOND(FunctionName.of("microsecond")),
   MINUTE(FunctionName.of("minute")),
   MONTH(FunctionName.of("month")),
+  MONTH_OF_YEAR(FunctionName.of("month_of_year")),
   MONTHNAME(FunctionName.of("monthname")),
   PERIOD_ADD(FunctionName.of("period_add")),
   PERIOD_DIFF(FunctionName.of("period_diff")),
