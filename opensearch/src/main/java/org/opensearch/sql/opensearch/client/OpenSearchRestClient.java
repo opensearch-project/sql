@@ -20,6 +20,8 @@ import lombok.RequiredArgsConstructor;
 import org.opensearch.action.admin.cluster.settings.ClusterGetSettingsRequest;
 import org.opensearch.action.admin.indices.settings.get.GetSettingsRequest;
 import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
+import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.ClearScrollRequest;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.RestHighLevelClient;
@@ -64,6 +66,19 @@ public class OpenSearchRestClient implements OpenSearchClient {
           new CreateIndexRequest(indexName).mapping(mappings), RequestOptions.DEFAULT);
     } catch (IOException e) {
       throw new IllegalStateException("Failed to create index [" + indexName + "]", e);
+    }
+  }
+
+  @Override
+  public void bulk(String indexName, List<Map<String, Object>> data) {
+    try {
+      BulkRequest bulkRequest = new BulkRequest(indexName);
+      for (Map<String, Object> source : data) {
+        bulkRequest.add(new IndexRequest().source(source));
+      }
+      client.bulk(bulkRequest, RequestOptions.DEFAULT);
+    } catch (IOException e) {
+      throw new IllegalStateException("Failed to bulk index [" + indexName + "]", e);
     }
   }
 

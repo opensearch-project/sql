@@ -24,6 +24,8 @@ import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
+import org.opensearch.action.bulk.BulkRequestBuilder;
+import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -72,6 +74,25 @@ public class OpenSearchNodeClient implements OpenSearchClient {
       client.admin().indices().create(createIndexRequest).actionGet();
     } catch (Exception e) {
       throw new IllegalStateException("Failed to create index [" + indexName + "]", e);
+    }
+  }
+
+  @Override
+  public void bulk(final String indexName, List<Map<String, Object>> data) {
+    BulkResponse response;
+    try {
+      BulkRequestBuilder builder = client.prepareBulk(indexName);
+      for (Map<String, Object> row : data) {
+        builder.add(client.prepareIndex().setSource(row).request());
+      }
+      response = builder.get();
+    } catch (Exception e) {
+      throw new IllegalStateException("Failed to bulk index [" + indexName + "]", e);
+    }
+
+    if (response.hasFailures()) {
+      throw new IllegalStateException("Failure in bulk response: "
+          + response.buildFailureMessage());
     }
   }
 

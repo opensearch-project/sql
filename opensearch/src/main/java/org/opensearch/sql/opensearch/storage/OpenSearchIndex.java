@@ -7,8 +7,11 @@
 package org.opensearch.sql.opensearch.storage;
 
 import com.google.common.annotations.VisibleForTesting;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprType;
@@ -21,14 +24,18 @@ import org.opensearch.sql.opensearch.planner.physical.MLOperator;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.system.OpenSearchDescribeIndexRequest;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanBuilder;
+import org.opensearch.sql.opensearch.storage.write.OpenSearchIndexWrite;
+import org.opensearch.sql.opensearch.storage.write.OpenSearchIndexWriteBuilder;
 import org.opensearch.sql.planner.DefaultImplementor;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalML;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
+import org.opensearch.sql.planner.logical.LogicalWrite;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.storage.read.TableScanBuilder;
+import org.opensearch.sql.storage.write.TableWriteBuilder;
 
 /** OpenSearch table (index) implementation. */
 public class OpenSearchIndex implements Table {
@@ -123,6 +130,16 @@ public class OpenSearchIndex implements Table {
     OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings, indexName,
         getMaxResultWindow(), new OpenSearchExprValueFactory(getFieldTypes()));
     return new OpenSearchIndexScanBuilder(indexScan);
+  }
+
+  @Override
+  public TableWriteBuilder createWriteBuilder(LogicalWrite plan) {
+    // TODO: need to get column in the order when index created
+    List<String> columns = (plan.getColumns().isEmpty())
+        ? new ArrayList<>(getFieldTypes().keySet()) : plan.getColumns();
+    Function<PhysicalPlan, OpenSearchIndexWrite> createIndexWrite =
+        child -> new OpenSearchIndexWrite(child, client, settings, indexName, columns);
+    return new OpenSearchIndexWriteBuilder(plan, createIndexWrite);
   }
 
   @VisibleForTesting

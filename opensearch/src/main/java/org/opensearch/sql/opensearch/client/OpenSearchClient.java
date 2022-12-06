@@ -44,6 +44,8 @@ public interface OpenSearchClient {
    */
   Map<String, IndexMapping> getIndexMappings(String... indexExpression);
 
+  void bulk(final String indexName, List<Map<String, Object>> data);
+
   /**
    * Fetch index.max_result_window settings according to index expression given.
    *
