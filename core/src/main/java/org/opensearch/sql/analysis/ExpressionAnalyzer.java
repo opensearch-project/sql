@@ -34,7 +34,6 @@ import org.opensearch.sql.ast.expression.Interval;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
-import org.opensearch.sql.ast.expression.PositionFunction;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
 import org.opensearch.sql.ast.expression.Span;
@@ -200,13 +199,6 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
   public Expression visitHighlightFunction(HighlightFunction node, AnalysisContext context) {
     Expression expr = node.getHighlightField().accept(this, context);
     return new HighlightExpression(expr);
-  }
-
-  @Override
-  public Expression visitPositionFunction(PositionFunction node, AnalysisContext context) {
-    Expression stringPatternExpr = node.getStringPatternExpr().accept(this, context);
-    Expression searchStringExpr = node.getSearchStringExpr().accept(this, context);
-    return DSL.position(stringPatternExpr, searchStringExpr);
   }
 
   @Override
