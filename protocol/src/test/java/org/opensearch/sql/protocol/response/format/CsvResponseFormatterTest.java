@@ -38,7 +38,7 @@ public class CsvResponseFormatterTest {
         tupleValue(ImmutableMap.of("name", "John", "age", 20)),
         tupleValue(ImmutableMap.of("name", "Smith", "age", 30))));
     CsvResponseFormatter formatter = new CsvResponseFormatter();
-    String expected = "name|age%nJohn|20%nSmith|30";
+    String expected = "name,age%nJohn,20%nSmith,30";
     assertEquals(format(expected), formatter.format(response));
   }
 
@@ -52,8 +52,8 @@ public class CsvResponseFormatterTest {
     QueryResult response = new QueryResult(schema, Arrays.asList(
         tupleValue(ImmutableMap.of(
             "=firstname", "John", "+lastname", "Smith", "-city", "Seattle", "@age", 20))));
-    String expected = "=firstname|+lastname|-city|@age%n"
-        + "John|Smith|Seattle|20";
+    String expected = "'=firstname,'+lastname,'-city,'@age%n"
+        + "John,Smith,Seattle,20";
     assertEquals(format(expected), formatter.format(response));
   }
 
@@ -70,10 +70,10 @@ public class CsvResponseFormatterTest {
         tupleValue(ImmutableMap.of("city", "Seattle="))));
     String expected = "city%n"
         + "Seattle%n"
-        + "=Seattle%n"
-        + "+Seattle%n"
-        + "-Seattle%n"
-        + "@Seattle%n"
+        + "'=Seattle%n"
+        + "'+Seattle%n"
+        + "'-Seattle%n"
+        + "'@Seattle%n"
         + "Seattle=";
     assertEquals(format(expected), formatter.format(response));
   }
@@ -85,8 +85,8 @@ public class CsvResponseFormatterTest {
         new ExecutionEngine.Schema.Column(",,age", ",,age", INTEGER)));
     QueryResult response = new QueryResult(schema, Arrays.asList(
         tupleValue(ImmutableMap.of("na,me", "John,Smith", ",,age", "30,,,"))));
-    String expected = "\"na|me\"|\"||age\"%n"
-        + "\"John|Smith\"|\"30|||\"";
+    String expected = "\"na,me\",\",,age\"%n"
+        + "\"John,Smith\",\"30,,,\"";
     assertEquals(format(expected), formatter.format(response));
   }
 
@@ -108,7 +108,7 @@ public class CsvResponseFormatterTest {
         tupleValue(ImmutableMap.of("city", ",,Seattle"))));
     String expected = "city%n"
         + "=Seattle%n"
-        + "\"||Seattle\"";
+        + "\",,Seattle\"";
     assertEquals(format(expected), escapeFormatter.format(response));
   }
 
@@ -123,10 +123,10 @@ public class CsvResponseFormatterTest {
             ImmutableMap.of("firstname", LITERAL_NULL, "city", stringValue("Seattle"))),
         ExprTupleValue.fromExprValueMap(
             ImmutableMap.of("firstname", stringValue("John"), "city", LITERAL_MISSING))));
-    String expected = "name|city%n"
-        + "John|Seattle%n"
-        + "|Seattle%n"
-        + "John|";
+    String expected = "name,city%n"
+        + "John,Seattle%n"
+        + ",Seattle%n"
+        + "John,";
     assertEquals(format(expected), formatter.format(response));
   }
 
