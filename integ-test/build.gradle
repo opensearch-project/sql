@@ -140,28 +140,6 @@ integTest {
     exclude 'org/opensearch/sql/legacy/OrderIT.class'
 }
 
-
-task docTest(type: RestIntegTestTask) {
-    dependsOn ':plugin:bundlePlugin'
-
-    systemProperty 'tests.security.manager', 'false'
-    systemProperty('project.root', project.projectDir.absolutePath)
-
-    // Tell the test JVM if the cluster JVM is running under a debugger so that tests can use longer timeouts for
-    // requests. The 'doFirst' delays reading the debug setting on the cluster till execution time.
-    doFirst { systemProperty 'cluster.debug', getDebug() }
-
-    if (System.getProperty("test.debug") != null) {
-        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
-    }
-
-    include 'org/opensearch/sql/doctest/**/*IT.class'
-    exclude 'org/opensearch/sql/correctness/**/*IT.class'
-    exclude 'org/opensearch/sql/ppl/**/*IT.class'
-    exclude 'org/opensearch/sql/sql/**/*IT.class'
-    exclude 'org/opensearch/sql/legacy/**/*IT.class'
-}
-
 task comparisonTest(type: RestIntegTestTask) {
     dependsOn ':plugin:bundlePlugin'
 
