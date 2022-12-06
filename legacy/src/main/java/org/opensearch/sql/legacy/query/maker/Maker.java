@@ -93,7 +93,7 @@ public abstract class Maker {
     }
 
     /**
-     * 构建过滤条件
+     * Construct filter.
      *
      * @param cond
      * @return

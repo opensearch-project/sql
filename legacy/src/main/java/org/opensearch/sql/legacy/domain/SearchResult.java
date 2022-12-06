@@ -30,7 +30,7 @@ import org.opensearch.sql.legacy.exception.SqlParseException;
 
 public class SearchResult {
     /**
-     * 查询结果
+     * Search Result.
      */
     private List<Map<String, Object>> results;
 
@@ -82,7 +82,7 @@ public class SearchResult {
     }
 
     /**
-     * 讲es的field域转换为你Object
+     * Rewrite field to Object.
      *
      * @param fields
      * @return
@@ -101,7 +101,7 @@ public class SearchResult {
     }
 
     /**
-     * 讲es的field域转换为你Object
+     * Rewrite field to Object.
      *
      * @param fields
      * @return
