@@ -251,7 +251,9 @@ public class TextFunction {
    */
   private DefaultFunctionResolver position() {
     return define(BuiltinFunctionName.POSITION.getName(),
-            impl(nullMissingHandling(TextFunction::exprPosition), INTEGER, STRING, STRING));
+            impl(nullMissingHandling(
+                    (SerializableBiFunction<ExprValue, ExprValue, ExprValue>)
+                            TextFunction::exprLocate), INTEGER, STRING, STRING));
   }
 
   /**
@@ -324,10 +326,6 @@ public class TextFunction {
   private static ExprValue exprLocate(ExprValue subStr, ExprValue str, ExprValue pos) {
     return new ExprIntegerValue(
         str.stringValue().indexOf(subStr.stringValue(), pos.integerValue() - 1) + 1);
-  }
-
-  private static ExprValue exprPosition(ExprValue subStr, ExprValue str) {
-    return exprLocate(subStr, str);
   }
 
   private static ExprValue exprReplace(ExprValue str, ExprValue from, ExprValue to) {
