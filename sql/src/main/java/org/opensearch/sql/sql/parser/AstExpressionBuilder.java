@@ -12,6 +12,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LIKE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT_LIKE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.POSITION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEXP;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BinaryComparisonPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BooleanContext;
@@ -146,6 +147,15 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
     return new HighlightFunction(visit(ctx.highlightFunction().relevanceField()),
         builder.build());
+  }
+
+  @Override
+  public UnresolvedExpression visitPositionFunction(
+          OpenSearchSQLParser.PositionFunctionContext ctx) {
+    return new Function(
+            POSITION.getName().getFunctionName(),
+            Arrays.asList(visitFunctionArg(ctx.functionArg(0)),
+                    visitFunctionArg(ctx.functionArg(1))));
   }
 
   @Override

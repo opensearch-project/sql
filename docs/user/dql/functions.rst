@@ -2420,6 +2420,31 @@ Example::
     +---------------------+---------------------+
 
 
+POSITION
+------
+
+Description
+>>>>>>>>>>>
+
+Usage: The syntax POSITION(substr IN str) returns the position of the first occurrence of substring substr in string str. Returns 0 if substr is not in str. Returns NULL if any argument is NULL.
+
+Argument type: STRING, STRING
+
+Return type integer:
+
+(STRING IN STRING) -> INTEGER
+
+Example::
+
+    os> SELECT POSITION('world' IN 'helloworld'), POSITION('invalid' IN 'helloworld');
+    fetched rows / total rows = 1/1
+    +-------------------------------------+---------------------------------------+
+    | POSITION('world' IN 'helloworld')   | POSITION('invalid' IN 'helloworld')   |
+    |-------------------------------------+---------------------------------------|
+    | 6                                   | 0                                     |
+    +-------------------------------------+---------------------------------------+
+
+
 REPLACE
 -------
 

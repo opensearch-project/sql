@@ -329,6 +329,14 @@ class AstExpressionBuilderTest {
   }
 
   @Test
+  public void canBuildStringLiteralPositionFunction() {
+    assertEquals(
+            function("position", stringLiteral("substr"), stringLiteral("str")),
+            buildExprAst("position(\"substr\" IN \"str\")")
+    );
+  }
+
+  @Test
   public void canBuildWindowFunctionWithoutOrderBy() {
     assertEquals(
         window(
