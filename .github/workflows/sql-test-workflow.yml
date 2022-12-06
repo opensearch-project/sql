@@ -1,6 +1,9 @@
 name: SQL Plugin Tests
 
 on:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
   workflow_dispatch:
 
 env:
