@@ -3021,12 +3021,20 @@ Description
 >>>>>>>>>>>
 
 ``multi_match([field_expression+], query_expression[, option=<option_value>]*)``
+``multi_match(query=query_expression+, fields=[field_expression+][, option=<option_value>]*)``
 
 The multi_match function maps to the multi_match query used in search engine, to return the documents that match a provided text, number, date or boolean value with a given field or fields.
 The **^** lets you *boost* certain fields. Boosts are multipliers that weigh matches in one field more heavily than matches in other fields. The syntax allows to specify the fields in double quotes, single quotes, in backtick or even without any wrap. All fields search using star ``"*"`` is also available (star symbol should be wrapped). The weight is optional and should be specified using after the field name, it could be delimeted by the `caret` character or by whitespace. Please, refer to examples below:
 
+
+- ``MULTI_MATCH(...)``
+- ``MULTIMATCH(...)``
+- ``MULTIMATCHQUERY(...)``
+
 | ``multi_match(["Tags" ^ 2, 'Title' 3.4, `Body`, Comments ^ 0.3], ...)``
 | ``multi_match(["*"], ...)``
+| ``multimatch(query='query value', fields=["Tags^2,Title^3.4,Body"], ...)``
+| ``multimatchquery('query'='query value', 'fields'='Title', ...)``
 
 Available parameters include:
 
