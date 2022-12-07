@@ -11,6 +11,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.executor.streaming.StreamingSource;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /**
  * Table.
@@ -45,7 +46,9 @@ public interface Table {
    *
    * @param plan logical plan
    * @return physical plan
+   * @deprecated because of new {@link TableScanBuilder} implementation
    */
+  @Deprecated(since = "2.5.0")
   PhysicalPlan implement(LogicalPlan plan);
 
   /**
@@ -54,9 +57,20 @@ public interface Table {
    *
    * @param plan logical plan.
    * @return logical plan.
+   * @deprecated because of new {@link TableScanBuilder} implementation
    */
+  @Deprecated(since = "2.5.0")
   default LogicalPlan optimize(LogicalPlan plan) {
     return plan;
+  }
+
+  /**
+   * Create table scan builder for logical to physical transformation.
+   *
+   * @return table scan builder
+   */
+  default TableScanBuilder createScanBuilder() {
+    return null; // TODO: Enforce all subclasses to implement this later
   }
 
   /**
