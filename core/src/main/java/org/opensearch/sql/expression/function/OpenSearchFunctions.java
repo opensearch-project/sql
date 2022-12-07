@@ -42,6 +42,8 @@ public class OpenSearchFunctions {
     repository.register(match_phrase(BuiltinFunctionName.MATCHPHRASE));
     repository.register(match_phrase(BuiltinFunctionName.MATCHPHRASEQUERY));
     repository.register(match_phrase_prefix());
+    repository.register(wildcard_query(BuiltinFunctionName.WILDCARD_QUERY));
+    repository.register(wildcard_query(BuiltinFunctionName.WILDCARDQUERY));
   }
 
   private static FunctionResolver match_bool_prefix() {
@@ -81,6 +83,11 @@ public class OpenSearchFunctions {
   private static FunctionResolver query_string() {
     FunctionName funcName = BuiltinFunctionName.QUERY_STRING.getName();
     return new RelevanceFunctionResolver(funcName, STRUCT);
+  }
+
+  private static FunctionResolver wildcard_query(BuiltinFunctionName wildcardQuery) {
+    FunctionName funcName = wildcardQuery.getName();
+    return new RelevanceFunctionResolver(funcName, STRING);
   }
 
   public static class OpenSearchFunction extends FunctionExpression {

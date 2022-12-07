@@ -3299,6 +3299,59 @@ Example searching for field Tags::
     | [Winnie-the-<em>Pooh</em>]                   |
     +----------------------------------------------+
 
+WILDCARD_QUERY
+------------
+
+Description
+>>>>>>>>>>>
+
+``wildcard_query(field_expression, query_expression[, option=<option_value>]*)``
+
+The ``wildcard_query`` function maps to the ``wildcard_query`` query used in search engine. It returns documents that match provided text in the specified field.
+OpenSearch supports wildcard characters ``*`` and ``?``.  See the full description here: https://opensearch.org/docs/latest/opensearch/query-dsl/term/#wildcards.
+You may include a backslash ``\`` to escape SQL wildcard characters ``\%`` and ``\_``.
+
+Available parameters include:
+
+- boost
+- case_insensitive
+- rewrite
+
+For backward compatibility, ``wildcardquery`` is also supported and mapped to ``wildcard_query`` query as well.
+
+Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
+
+    os> select Body from wildcard where wildcard_query(Body, 'test wildcard*');
+    fetched rows / total rows = 7/7
+    +-------------------------------------------+
+    | Body                                      |
+    |-------------------------------------------|
+    | test wildcard                             |
+    | test wildcard in the end of the text%     |
+    | test wildcard in % the middle of the text |
+    | test wildcard %% beside each other        |
+    | test wildcard in the end of the text_     |
+    | test wildcard in _ the middle of the text |
+    | test wildcard __ beside each other        |
+    +-------------------------------------------+
+
+Another example to show how to set custom values for the optional parameters::
+
+    os> select Body from wildcard where wildcard_query(Body, 'test wildcard*', boost=0.7, case_insensitive=true, rewrite='constant_score');
+    fetched rows / total rows = 8/8
+    +-------------------------------------------+
+    | Body                                      |
+    |-------------------------------------------|
+    | test wildcard                             |
+    | test wildcard in the end of the text%     |
+    | test wildcard in % the middle of the text |
+    | test wildcard %% beside each other        |
+    | test wildcard in the end of the text_     |
+    | test wildcard in _ the middle of the text |
+    | test wildcard __ beside each other        |
+    | tEsT wIlDcArD sensitive cases             |
+    +-------------------------------------------+
+
 System Functions
 ================
 
@@ -3323,3 +3376,5 @@ Example::
     |----------------+---------------+-----------------+------------------|
     | DATE           | INTEGER       | DATETIME        | STRUCT           |
     +----------------+---------------+-----------------+------------------+
+
+
