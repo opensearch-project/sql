@@ -215,6 +215,7 @@ LOG10:                              'LOG10';
 LOG2:                               'LOG2';
 MOD:                                'MOD';
 PI:                                 'PI';
+POSITION:                           'POSITION';
 POW:                                'POW';
 POWER:                              'POWER';
 RAND:                               'RAND';
