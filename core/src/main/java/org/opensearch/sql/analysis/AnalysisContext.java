@@ -7,13 +7,11 @@
 package org.opensearch.sql.analysis;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import lombok.Getter;
-import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.function.FunctionProperties;
 
 /**
  * The context used for Analyzer.
@@ -26,13 +24,8 @@ public class AnalysisContext {
   @Getter
   private final List<NamedExpression> namedParseExpressions;
 
-  /**
-   * Storage for values of functions which return a constant value.
-   * We are storing the values there to use it in sequential calls to those functions.
-   * For example, `now` function should the same value during processing a query.
-   */
   @Getter
-  private final Map<String, Expression> constantFunctionValues;
+  private final FunctionProperties functionProperties;
 
   public AnalysisContext() {
     this(new TypeEnvironment(null));
@@ -45,7 +38,7 @@ public class AnalysisContext {
   public AnalysisContext(TypeEnvironment environment) {
     this.environment = environment;
     this.namedParseExpressions = new ArrayList<>();
-    this.constantFunctionValues = new HashMap<>();
+    this.functionProperties = new FunctionProperties();
   }
 
   /**

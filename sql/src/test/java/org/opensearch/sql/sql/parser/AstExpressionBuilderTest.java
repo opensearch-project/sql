@@ -329,6 +329,14 @@ class AstExpressionBuilderTest {
   }
 
   @Test
+  public void canBuildStringLiteralPositionFunction() {
+    assertEquals(
+            function("position", stringLiteral("substr"), stringLiteral("str")),
+            buildExprAst("position(\"substr\" IN \"str\")")
+    );
+  }
+
+  @Test
   public void canBuildWindowFunctionWithoutOrderBy() {
     assertEquals(
         window(
@@ -452,6 +460,22 @@ class AstExpressionBuilderTest {
   }
 
   @Test
+  public void matchPhraseQueryAllParameters() {
+    assertEquals(
+        AstDSL.function("matchphrasequery",
+            unresolvedArg("field", stringLiteral("test")),
+            unresolvedArg("query", stringLiteral("search query")),
+            unresolvedArg("slop", stringLiteral("3")),
+            unresolvedArg("analyzer", stringLiteral("standard")),
+            unresolvedArg("zero_terms_query", stringLiteral("NONE"))
+        ),
+        buildExprAst("matchphrasequery(test, 'search query', slop = 3"
+            + ", analyzer = 'standard', zero_terms_query='NONE'"
+            + ")")
+    );
+  }
+
+  @Test
   public void matchPhrasePrefixAllParameters() {
     assertEquals(
         AstDSL.function("match_phrase_prefix",
@@ -486,6 +510,38 @@ class AstExpressionBuilderTest {
   }
 
   @Test
+  public void relevanceMatchQuery() {
+    assertEquals(AstDSL.function("matchquery",
+            unresolvedArg("field", stringLiteral("message")),
+            unresolvedArg("query", stringLiteral("search query"))),
+        buildExprAst("matchquery('message', 'search query')")
+    );
+
+    assertEquals(AstDSL.function("matchquery",
+            unresolvedArg("field", stringLiteral("message")),
+            unresolvedArg("query", stringLiteral("search query")),
+            unresolvedArg("analyzer", stringLiteral("keyword")),
+            unresolvedArg("operator", stringLiteral("AND"))),
+        buildExprAst("matchquery('message', 'search query', analyzer='keyword', operator='AND')"));
+  }
+
+  @Test
+  public void relevanceMatch_Query() {
+    assertEquals(AstDSL.function("match_query",
+            unresolvedArg("field", stringLiteral("message")),
+            unresolvedArg("query", stringLiteral("search query"))),
+        buildExprAst("match_query('message', 'search query')")
+    );
+
+    assertEquals(AstDSL.function("match_query",
+            unresolvedArg("field", stringLiteral("message")),
+            unresolvedArg("query", stringLiteral("search query")),
+            unresolvedArg("analyzer", stringLiteral("keyword")),
+            unresolvedArg("operator", stringLiteral("AND"))),
+        buildExprAst("match_query('message', 'search query', analyzer='keyword', operator='AND')"));
+  }
+
+  @Test
   public void relevanceMulti_match() {
     assertEquals(AstDSL.function("multi_match",
             unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
@@ -501,7 +557,45 @@ class AstExpressionBuilderTest {
             unresolvedArg("analyzer", stringLiteral("keyword")),
             unresolvedArg("operator", stringLiteral("AND"))),
         buildExprAst("multi_match(['field1', 'field2' ^ 3.2], 'search query',"
+            + "analyzer='keyword', 'operator'='AND')"));
+  }
+
+  @Test
+  public void relevanceMultimatch_alternate_parameter_syntax() {
+    assertEquals(AstDSL.function("multimatch",
+            unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
+                "field1", 1F, "field2", 2F))),
+            unresolvedArg("query", stringLiteral("search query"))),
+        buildExprAst("multimatch(query='search query', fields=['field1^1.0,field2^2.0'])")
+    );
+
+    assertEquals(AstDSL.function("multimatch",
+            unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
+                "field1", 1F, "field2", 2F))),
+            unresolvedArg("query", stringLiteral("search query")),
+            unresolvedArg("analyzer", stringLiteral("keyword")),
+            unresolvedArg("operator", stringLiteral("AND"))),
+        buildExprAst("multimatch(query='search query', fields=['field1^1.0,field2^2.0'],"
             + "analyzer='keyword', operator='AND')"));
+  }
+
+  @Test
+  public void relevanceMultimatchquery_alternate_parameter_syntax() {
+    assertEquals(AstDSL.function("multimatchquery",
+            unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
+                "field", 1F))),
+            unresolvedArg("query", stringLiteral("search query"))),
+        buildExprAst("multimatchquery(query='search query', fields='field')")
+    );
+
+    assertEquals(AstDSL.function("multimatchquery",
+            unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
+                "field", 1F))),
+            unresolvedArg("query", stringLiteral("search query")),
+            unresolvedArg("analyzer", stringLiteral("keyword")),
+            unresolvedArg("operator", stringLiteral("AND"))),
+        buildExprAst("multimatchquery(query='search query', fields='field',"
+            + "analyzer='keyword', 'operator'='AND')"));
   }
 
   @Test

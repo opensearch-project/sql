@@ -25,7 +25,7 @@ import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhrasePrefixQuery;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-public class MatchPhrasePrefixQueryTest {
+public class MatchPhrasePrefixQueryTest  {
 
   private final MatchPhrasePrefixQuery matchPhrasePrefixQuery = new MatchPhrasePrefixQuery();
   private final FunctionName matchPhrasePrefix = FunctionName.of("match_phrase_prefix");

@@ -14,7 +14,6 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanFun
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BySpanClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CompareExprContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ConstantFunctionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ConvertedDataTypeContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CountAllFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DataTypeFunctionCallContext;
@@ -23,7 +22,6 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DistinctCo
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldExpressionContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FunctionArgsContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsQualifiedNameContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsWildcardQualifiedNameContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.InExprContext;
@@ -61,7 +59,6 @@ import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
-import org.opensearch.sql.ast.expression.ConstantFunction;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
@@ -232,8 +229,8 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitBooleanFunctionCall(BooleanFunctionCallContext ctx) {
     final String functionName = ctx.conditionFunctionBase().getText();
-    return visitFunction(FUNCTION_NAME_MAPPING.getOrDefault(functionName, functionName),
-        ctx.functionArgs());
+    return buildFunction(FUNCTION_NAME_MAPPING.getOrDefault(functionName, functionName),
+        ctx.functionArgs().functionArg());
   }
 
   /**
@@ -241,7 +238,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
    */
   @Override
   public UnresolvedExpression visitEvalFunctionCall(EvalFunctionCallContext ctx) {
-    return visitFunction(ctx.evalFunctionName().getText(), ctx.functionArgs());
+    return buildFunction(ctx.evalFunctionName().getText(), ctx.functionArgs().functionArg());
   }
 
   /**
@@ -257,23 +254,11 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return AstDSL.stringLiteral(ctx.getText());
   }
 
-  public UnresolvedExpression visitConstantFunction(ConstantFunctionContext ctx) {
-    return visitConstantFunction(ctx.constantFunctionName().getText(),
-        ctx.functionArgs());
-  }
-
-  private UnresolvedExpression visitConstantFunction(String functionName,
-                                                     FunctionArgsContext args) {
-    return new ConstantFunction(functionName, args.functionArg()
-        .stream()
-        .map(this::visitFunctionArg)
-        .collect(Collectors.toList()));
-  }
-
-  private Function visitFunction(String functionName, FunctionArgsContext args) {
+  private Function buildFunction(String functionName,
+                                 List<OpenSearchPPLParser.FunctionArgContext> args) {
     return new Function(
         functionName,
-        args.functionArg()
+        args
             .stream()
             .map(this::visitFunctionArg)
             .collect(Collectors.toList())
@@ -372,7 +357,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   private List<UnresolvedExpression> singleFieldRelevanceArguments(
-      OpenSearchPPLParser.SingleFieldRelevanceFunctionContext ctx) {
+      SingleFieldRelevanceFunctionContext ctx) {
     // all the arguments are defaulted to string values
     // to skip environment resolving and function signature resolving
     ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
@@ -387,7 +372,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   private List<UnresolvedExpression> multiFieldRelevanceArguments(
-      OpenSearchPPLParser.MultiFieldRelevanceFunctionContext ctx) {
+      MultiFieldRelevanceFunctionContext ctx) {
     // all the arguments are defaulted to string values
     // to skip environment resolving and function signature resolving
     ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();

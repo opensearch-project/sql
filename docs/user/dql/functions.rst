@@ -215,8 +215,7 @@ Argument type: INTEGER/LONG/FLOAT/DOUBLE
 
 Return type: DOUBLE
 
-(Non-negative) INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
-(Negative) INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
 
 Example::
 
@@ -1458,6 +1457,7 @@ Description
 >>>>>>>>>>>
 
 Usage:  dayofyear(date) returns the day of the year for date, in the range 1 to 366.
+The function `day_of_year`_ is also provided as an alias.
 
 Argument type: STRING/DATE/DATETIME/TIMESTAMP
 
@@ -1472,6 +1472,62 @@ Example::
     |---------------------------------|
     | 239                             |
     +---------------------------------+
+
+    os> SELECT DAYOFYEAR(DATETIME('2020-08-26 00:00:00'))
+    fetched rows / total rows = 1/1
+    +----------------------------------------------+
+    | DAYOFYEAR(DATETIME('2020-08-26 00:00:00'))   |
+    |----------------------------------------------|
+    | 239                                          |
+    +----------------------------------------------+
+
+    os> SELECT DAYOFYEAR(TIMESTAMP('2020-08-26 00:00:00'))
+    fetched rows / total rows = 1/1
+    +-----------------------------------------------+
+    | DAYOFYEAR(TIMESTAMP('2020-08-26 00:00:00'))   |
+    |-----------------------------------------------|
+    | 239                                           |
+    +-----------------------------------------------+
+
+
+DAY_OF_YEAR
+---------
+
+Description
+>>>>>>>>>>>
+
+This function is an alias to the `dayofyear`_ function
+
+Argument type: STRING/DATE/DATETIME/TIMESTAMP
+
+Return type: INTEGER
+
+Example::
+
+    os> SELECT DAY_OF_YEAR(DATE('2020-08-26'))
+    fetched rows / total rows = 1/1
+    +-----------------------------------+
+    | DAY_OF_YEAR(DATE('2020-08-26'))   |
+    |-----------------------------------|
+    | 239                               |
+    +-----------------------------------+
+
+    os> SELECT DAY_OF_YEAR(DATETIME('2020-08-26 00:00:00'))
+    fetched rows / total rows = 1/1
+    +------------------------------------------------+
+    | DAY_OF_YEAR(DATETIME('2020-08-26 00:00:00'))   |
+    |------------------------------------------------|
+    | 239                                            |
+    +------------------------------------------------+
+
+    os> SELECT DAY_OF_YEAR(TIMESTAMP('2020-08-26 00:00:00'))
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------+
+    | DAY_OF_YEAR(TIMESTAMP('2020-08-26 00:00:00'))   |
+    |-------------------------------------------------|
+    | 239                                             |
+    +-------------------------------------------------+
+
 
 
 FROM_DAYS
@@ -1714,6 +1770,7 @@ Description
 >>>>>>>>>>>
 
 Usage: month(date) returns the month for date, in the range 1 to 12 for January to December. The dates with value 0 such as '0000-00-00' or '2008-00-00' are invalid.
+The function month_of_year is also provided as an alias
 
 Argument type: STRING/DATE/DATETIME/TIMESTAMP
 
@@ -1728,6 +1785,15 @@ Example::
     |-----------------------------|
     | 8                           |
     +-----------------------------+
+
+
+    os> SELECT MONTH_OF_YEAR(DATE('2020-08-26'))
+    fetched rows / total rows = 1/1
+    +-------------------------------------+
+    | MONTH_OF_YEAR(DATE('2020-08-26'))   |
+    |-------------------------------------|
+    | 8                                   |
+    +-------------------------------------+
 
 
 MONTHNAME
@@ -2060,6 +2126,7 @@ Description
 >>>>>>>>>>>
 
 Usage: week(date[, mode]) returns the week number for date. If the mode argument is omitted, the default mode 0 is used.
+The function `week_of_year` is also provided as an alias.
 
 .. list-table:: The following table describes how the mode argument works.
    :widths: 25 50 25 75
@@ -2108,13 +2175,35 @@ Return type: INTEGER
 
 Example::
 
-    >od SELECT WEEK(DATE('2008-02-20')), WEEK(DATE('2008-02-20'), 1)
+    os> SELECT WEEK(DATE('2008-02-20')), WEEK(DATE('2008-02-20'), 1)
     fetched rows / total rows = 1/1
     +----------------------------+-------------------------------+
     | WEEK(DATE('2008-02-20'))   | WEEK(DATE('2008-02-20'), 1)   |
-    |----------------------------|-------------------------------|
+    |----------------------------+-------------------------------|
     | 7                          | 8                             |
     +----------------------------+-------------------------------+
+
+WEEK_OF_YEAR
+----
+
+Description
+>>>>>>>>>>>
+
+The week_of_year function is a synonym for the `week`_ function.
+
+Argument type: DATE/DATETIME/TIMESTAMP/STRING
+
+Return type: INTEGER
+
+Example::
+
+    os> SELECT WEEK_OF_YEAR(DATE('2008-02-20')), WEEK_OF_YEAR(DATE('2008-02-20'), 1)
+    fetched rows / total rows = 1/1
+    +------------------------------------+---------------------------------------+
+    | WEEK_OF_YEAR(DATE('2008-02-20'))   | WEEK_OF_YEAR(DATE('2008-02-20'), 1)   |
+    |------------------------------------+---------------------------------------|
+    | 7                                  | 8                                     |
+    +------------------------------------+---------------------------------------+
 
 
 YEAR
@@ -2329,6 +2418,31 @@ Example::
     |---------------------+---------------------|
     | hello               | hello               |
     +---------------------+---------------------+
+
+
+POSITION
+------
+
+Description
+>>>>>>>>>>>
+
+Usage: The syntax POSITION(substr IN str) returns the position of the first occurrence of substring substr in string str. Returns 0 if substr is not in str. Returns NULL if any argument is NULL.
+
+Argument type: STRING, STRING
+
+Return type integer:
+
+(STRING IN STRING) -> INTEGER
+
+Example::
+
+    os> SELECT POSITION('world' IN 'helloworld'), POSITION('invalid' IN 'helloworld');
+    fetched rows / total rows = 1/1
+    +-------------------------------------+---------------------------------------+
+    | POSITION('world' IN 'helloworld')   | POSITION('invalid' IN 'helloworld')   |
+    |-------------------------------------+---------------------------------------|
+    | 6                                   | 0                                     |
+    +-------------------------------------+---------------------------------------+
 
 
 REPLACE
@@ -2745,6 +2859,65 @@ Another example to show how to set custom values for the optional parameters::
     +------------+
 
 
+MATCHQUERY
+-----
+
+Description
+>>>>>>>>>>>
+
+The matchquery function is a synonym for the `match`_ function.
+
+Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
+
+    os> SELECT lastname, address FROM accounts WHERE matchquery(address, 'Street');
+    fetched rows / total rows = 2/2
+    +------------+--------------------+
+    | lastname   | address            |
+    |------------+--------------------|
+    | Bond       | 671 Bristol Street |
+    | Bates      | 789 Madison Street |
+    +------------+--------------------+
+
+Another example to show how to set custom values for the optional parameters::
+
+    os> SELECT lastname FROM accounts WHERE matchquery(firstname, 'Hattie', operator='AND', boost=2.0);
+    fetched rows / total rows = 1/1
+    +------------+
+    | lastname   |
+    |------------|
+    | Bond       |
+    +------------+
+
+MATCH_QUERY
+-----
+
+Description
+>>>>>>>>>>>
+
+The match_query function is a synonym for the `match`_ function.
+
+Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
+
+    os> SELECT lastname, address FROM accounts WHERE match_query(address, 'Street');
+    fetched rows / total rows = 2/2
+    +------------+--------------------+
+    | lastname   | address            |
+    |------------+--------------------|
+    | Bond       | 671 Bristol Street |
+    | Bates      | 789 Madison Street |
+    +------------+--------------------+
+
+Another example to show how to set custom values for the optional parameters::
+
+    os> SELECT lastname FROM accounts WHERE match_query(firstname, 'Hattie', operator='AND', boost=2.0);
+    fetched rows / total rows = 1/1
+    +------------+
+    | lastname   |
+    |------------|
+    | Bond       |
+    +------------+
+
+
 MATCH_PHRASE
 ------------
 
@@ -2759,7 +2932,7 @@ The match_phrase function maps to the match_phrase query used in search engine, 
 - slop
 - zero_terms_query
 
-For backward compatibility, matchphrase is also supported and mapped to match_phrase query as well.
+`matchphrase` and `matchphrasequery` are synonyms for `match_phrase`_
 
 Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
 
@@ -2873,12 +3046,20 @@ Description
 >>>>>>>>>>>
 
 ``multi_match([field_expression+], query_expression[, option=<option_value>]*)``
+``multi_match(query=query_expression+, fields=[field_expression+][, option=<option_value>]*)``
 
 The multi_match function maps to the multi_match query used in search engine, to return the documents that match a provided text, number, date or boolean value with a given field or fields.
 The **^** lets you *boost* certain fields. Boosts are multipliers that weigh matches in one field more heavily than matches in other fields. The syntax allows to specify the fields in double quotes, single quotes, in backtick or even without any wrap. All fields search using star ``"*"`` is also available (star symbol should be wrapped). The weight is optional and should be specified using after the field name, it could be delimeted by the `caret` character or by whitespace. Please, refer to examples below:
 
+
+- ``MULTI_MATCH(...)``
+- ``MULTIMATCH(...)``
+- ``MULTIMATCHQUERY(...)``
+
 | ``multi_match(["Tags" ^ 2, 'Title' 3.4, `Body`, Comments ^ 0.3], ...)``
 | ``multi_match(["*"], ...)``
+| ``multimatch(query='query value', fields=["Tags^2,Title^3.4,Body"], ...)``
+| ``multimatchquery('query'='query value', 'fields'='Title', ...)``
 
 Available parameters include:
 

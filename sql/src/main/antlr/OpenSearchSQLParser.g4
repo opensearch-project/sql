@@ -239,6 +239,21 @@ timestampLiteral
     : TIMESTAMP timestamp=stringLiteral
     ;
 
+// Actually, these constants are shortcuts to the corresponding functions
+datetimeConstantLiteral
+    : CURRENT_DATE
+    | CURRENT_TIME
+    | CURRENT_TIMESTAMP
+    | DAY_OF_YEAR
+    | LOCALTIME
+    | LOCALTIMESTAMP
+    | MONTH_OF_YEAR
+    | UTC_TIMESTAMP
+    | UTC_DATE
+    | UTC_TIME
+    | WEEK_OF_YEAR
+    ;
+
 intervalLiteral
     : INTERVAL expression intervalUnit
     ;
@@ -301,15 +316,16 @@ functionCall
     | aggregateFunction (orderByClause)? filterClause               #filteredAggregationFunctionCall
     | relevanceFunction                                             #relevanceFunctionCall
     | highlightFunction                                             #highlightFunctionCall
-    | constantFunction                                              #constantFunctionCall
+    | positionFunction                                              #positionFunctionCall
     ;
 
-constantFunction
-    : constantFunctionName LR_BRACKET functionArgs RR_BRACKET
-    ;
 
 highlightFunction
     : HIGHLIGHT LR_BRACKET relevanceField (COMMA highlightArg)* RR_BRACKET
+    ;
+
+positionFunction
+    : POSITION LR_BRACKET functionArg IN functionArg RR_BRACKET
     ;
 
 scalarFunctionName
@@ -347,6 +363,8 @@ multiFieldRelevanceFunction
     : multiFieldRelevanceFunctionName LR_BRACKET
         LT_SQR_PRTHS field=relevanceFieldAndWeight (COMMA field=relevanceFieldAndWeight)* RT_SQR_PRTHS
         COMMA query=relevanceQuery (COMMA relevanceArg)* RR_BRACKET
+    | multiFieldRelevanceFunctionName LR_BRACKET
+        alternateMultiMatchQuery  COMMA alternateMultiMatchField (COMMA relevanceArg)* RR_BRACKET
     ;
 
 convertedDataType
@@ -393,17 +411,44 @@ trigonometricFunctionName
     ;
 
 dateTimeFunctionName
-    : ADDDATE | CONVERT_TZ | DATE | DATE_ADD | DATE_FORMAT | DATE_SUB
-    | DATETIME | DAY | DAYNAME | DAYOFMONTH | DAYOFWEEK | DAYOFYEAR | FROM_DAYS | FROM_UNIXTIME
-    | HOUR | MAKEDATE | MAKETIME | MICROSECOND | MINUTE | MONTH | MONTHNAME | PERIOD_ADD
-    | PERIOD_DIFF | QUARTER | SECOND | SUBDATE | SYSDATE | TIME | TIME_TO_SEC
-    | TIMESTAMP | TO_DAYS | UNIX_TIMESTAMP | WEEK | YEAR
-    ;
-
-// Functions which value could be cached in scope of a single query
-constantFunctionName
-    : CURRENT_DATE | CURRENT_TIME | CURRENT_TIMESTAMP | LOCALTIME | LOCALTIMESTAMP | UTC_TIMESTAMP | UTC_DATE | UTC_TIME
-    | CURDATE | CURTIME | NOW
+    : datetimeConstantLiteral
+    | ADDDATE
+    | CONVERT_TZ
+    | CURDATE
+    | CURTIME
+    | DATE
+    | DATE_ADD
+    | DATE_FORMAT
+    | DATE_SUB
+    | DATETIME
+    | DAY
+    | DAYNAME
+    | DAYOFMONTH
+    | DAYOFWEEK
+    | DAYOFYEAR
+    | FROM_DAYS
+    | FROM_UNIXTIME
+    | HOUR
+    | MAKEDATE
+    | MAKETIME
+    | MICROSECOND
+    | MINUTE
+    | MONTH
+    | MONTHNAME
+    | NOW
+    | PERIOD_ADD
+    | PERIOD_DIFF
+    | QUARTER
+    | SECOND
+    | SUBDATE
+    | SYSDATE
+    | TIME
+    | TIME_TO_SEC
+    | TIMESTAMP
+    | TO_DAYS
+    | UNIX_TIMESTAMP
+    | WEEK
+    | YEAR
     ;
 
 textFunctionName
@@ -425,18 +470,17 @@ systemFunctionName
     ;
 
 singleFieldRelevanceFunctionName
-    : MATCH | MATCH_PHRASE | MATCHPHRASE
+    : MATCH | MATCHQUERY | MATCH_QUERY
+    | MATCH_PHRASE | MATCHPHRASE | MATCHPHRASEQUERY
     | MATCH_BOOL_PREFIX | MATCH_PHRASE_PREFIX
     ;
 
 multiFieldRelevanceFunctionName
     : MULTI_MATCH
+    | MULTIMATCH
+    | MULTIMATCHQUERY
     | SIMPLE_QUERY_STRING
     | QUERY_STRING
-    ;
-
-legacyRelevanceFunctionName
-    : QUERY | MATCH_QUERY | MATCHQUERY
     ;
 
 functionArgs
@@ -449,6 +493,7 @@ functionArg
 
 relevanceArg
     : relevanceArgName EQUAL_SYMBOL relevanceArgValue
+    | argName=stringLiteral EQUAL_SYMBOL argVal=relevanceArgValue
     ;
 
 highlightArg
@@ -498,3 +543,18 @@ highlightArgValue
     : stringLiteral
     ;
 
+alternateMultiMatchArgName
+    : FIELDS
+    | QUERY
+    | stringLiteral
+    ;
+
+alternateMultiMatchQuery
+    : argName=alternateMultiMatchArgName EQUAL_SYMBOL argVal=relevanceArgValue
+    ;
+
+alternateMultiMatchField
+    : argName=alternateMultiMatchArgName EQUAL_SYMBOL argVal=relevanceArgValue
+    | argName=alternateMultiMatchArgName EQUAL_SYMBOL
+    LT_SQR_PRTHS argVal=relevanceArgValue RT_SQR_PRTHS
+    ;
