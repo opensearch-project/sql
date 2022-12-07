@@ -48,7 +48,7 @@ import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
-import org.opensearch.sql.expression.LiteralExpression;
+import org.opensearch.sql.expression.function.FunctionPropertiesTestConfig;
 import org.opensearch.sql.expression.window.aggregation.AggregateWindowFunction;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
@@ -56,7 +56,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @Configuration
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {AnalyzerTestBase.class})
+@ContextConfiguration(classes = {FunctionPropertiesTestConfig.class, AnalyzerTestBase.class})
 class ExpressionAnalyzerTest extends AnalyzerTestBase {
 
   @Test
@@ -593,24 +593,9 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void constant_function_is_calculated_on_analyze() {
-    // Actually, we can call any function as ConstantFunction to be calculated on analyze stage
-    assertTrue(analyze(AstDSL.constantFunction("now")) instanceof LiteralExpression);
-    assertTrue(analyze(AstDSL.constantFunction("localtime")) instanceof LiteralExpression);
-  }
-
-  @Test
   public void function_isnt_calculated_on_analyze() {
     assertTrue(analyze(function("now")) instanceof FunctionExpression);
     assertTrue(analyze(AstDSL.function("localtime")) instanceof FunctionExpression);
-  }
-
-  @Test
-  public void constant_function_returns_constant_cached_value() {
-    var values = List.of(analyze(AstDSL.constantFunction("now")),
-        analyze(AstDSL.constantFunction("now")), analyze(AstDSL.constantFunction("now")));
-    assertTrue(values.stream().allMatch(v ->
-        v.valueOf() == analyze(AstDSL.constantFunction("now")).valueOf()));
   }
 
   @Test

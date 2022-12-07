@@ -18,7 +18,7 @@ import org.opensearch.sql.expression.DSL;
 
 class SortQueryBuilderTest {
 
-  private SortQueryBuilder sortQueryBuilder = new SortQueryBuilder();
+  private final SortQueryBuilder sortQueryBuilder = new SortQueryBuilder();
 
   @Test
   void build_sortbuilder_from_reference() {

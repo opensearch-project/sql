@@ -19,6 +19,7 @@ import org.opensearch.sql.expression.conditional.cases.WhenClause;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionImplementation;
+import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.parse.GrokExpression;
 import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.expression.parse.PatternsExpression;
@@ -146,375 +147,391 @@ public class DSL {
   }
 
   public static FunctionExpression abs(Expression... expressions) {
-    return compile(BuiltinFunctionName.ABS, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.ABS, expressions);
   }
 
   public static FunctionExpression ceil(Expression... expressions) {
-    return compile(BuiltinFunctionName.CEIL, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.CEIL, expressions);
   }
 
   public static FunctionExpression ceiling(Expression... expressions) {
-    return compile(BuiltinFunctionName.CEILING, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.CEILING, expressions);
   }
 
   public static FunctionExpression conv(Expression... expressions) {
-    return compile(BuiltinFunctionName.CONV, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.CONV, expressions);
   }
 
   public static FunctionExpression crc32(Expression... expressions) {
-    return compile(BuiltinFunctionName.CRC32, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.CRC32, expressions);
   }
 
   public static FunctionExpression euler(Expression... expressions) {
-    return compile(BuiltinFunctionName.E, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.E, expressions);
   }
 
   public static FunctionExpression exp(Expression... expressions) {
-    return compile(BuiltinFunctionName.EXP, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.EXP, expressions);
   }
 
   public static FunctionExpression floor(Expression... expressions) {
-    return compile(BuiltinFunctionName.FLOOR, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.FLOOR, expressions);
   }
 
   public static FunctionExpression ln(Expression... expressions) {
-    return compile(BuiltinFunctionName.LN, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.LN, expressions);
   }
 
   public static FunctionExpression log(Expression... expressions) {
-    return compile(BuiltinFunctionName.LOG, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.LOG, expressions);
   }
 
   public static FunctionExpression log10(Expression... expressions) {
-    return compile(BuiltinFunctionName.LOG10, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.LOG10, expressions);
   }
 
   public static FunctionExpression log2(Expression... expressions) {
-    return compile(BuiltinFunctionName.LOG2, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.LOG2, expressions);
   }
 
   public static FunctionExpression mod(Expression... expressions) {
-    return compile(BuiltinFunctionName.MOD, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.MOD, expressions);
   }
 
   public static FunctionExpression pi(Expression... expressions) {
-    return compile(BuiltinFunctionName.PI, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.PI, expressions);
   }
 
   public static FunctionExpression pow(Expression... expressions) {
-    return compile(BuiltinFunctionName.POW, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.POW, expressions);
   }
 
   public static FunctionExpression power(Expression... expressions) {
-    return compile(BuiltinFunctionName.POWER, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.POWER, expressions);
   }
 
   public static FunctionExpression rand(Expression... expressions) {
-    return compile(BuiltinFunctionName.RAND, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.RAND, expressions);
   }
 
   public static FunctionExpression round(Expression... expressions) {
-    return compile(BuiltinFunctionName.ROUND, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.ROUND, expressions);
   }
 
   public static FunctionExpression sign(Expression... expressions) {
-    return compile(BuiltinFunctionName.SIGN, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.SIGN, expressions);
   }
 
   public static FunctionExpression sqrt(Expression... expressions) {
-    return compile(BuiltinFunctionName.SQRT, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.SQRT, expressions);
   }
 
   public static FunctionExpression cbrt(Expression... expressions) {
-    return compile(BuiltinFunctionName.CBRT, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.CBRT, expressions);
+  }
+
+  public static FunctionExpression position(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.POSITION, expressions);
   }
 
   public static FunctionExpression truncate(Expression... expressions) {
-    return compile(BuiltinFunctionName.TRUNCATE, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.TRUNCATE, expressions);
   }
 
   public static FunctionExpression acos(Expression... expressions) {
-    return compile(BuiltinFunctionName.ACOS, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.ACOS, expressions);
   }
 
   public static FunctionExpression asin(Expression... expressions) {
-    return compile(BuiltinFunctionName.ASIN, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.ASIN, expressions);
   }
 
   public static FunctionExpression atan(Expression... expressions) {
-    return compile(BuiltinFunctionName.ATAN, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.ATAN, expressions);
   }
 
   public static FunctionExpression atan2(Expression... expressions) {
-    return compile(BuiltinFunctionName.ATAN2, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.ATAN2, expressions);
   }
 
   public static FunctionExpression cos(Expression... expressions) {
-    return compile(BuiltinFunctionName.COS, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.COS, expressions);
   }
 
   public static FunctionExpression cot(Expression... expressions) {
-    return compile(BuiltinFunctionName.COT, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.COT, expressions);
   }
 
   public static FunctionExpression degrees(Expression... expressions) {
-    return compile(BuiltinFunctionName.DEGREES, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.DEGREES, expressions);
   }
 
   public static FunctionExpression radians(Expression... expressions) {
-    return compile(BuiltinFunctionName.RADIANS, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.RADIANS, expressions);
   }
 
   public static FunctionExpression sin(Expression... expressions) {
-    return compile(BuiltinFunctionName.SIN, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.SIN, expressions);
   }
 
   public static FunctionExpression tan(Expression... expressions) {
-    return compile(BuiltinFunctionName.TAN, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.TAN, expressions);
   }
 
   public static FunctionExpression add(Expression... expressions) {
-    return compile(BuiltinFunctionName.ADD, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.ADD, expressions);
   }
 
   public static FunctionExpression subtract(Expression... expressions) {
-    return compile(BuiltinFunctionName.SUBTRACT, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.SUBTRACT, expressions);
   }
 
   public static FunctionExpression multiply(Expression... expressions) {
-    return compile(BuiltinFunctionName.MULTIPLY, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.MULTIPLY, expressions);
   }
 
   public static FunctionExpression adddate(Expression... expressions) {
-    return compile(BuiltinFunctionName.ADDDATE, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.ADDDATE, expressions);
   }
 
   public static FunctionExpression convert_tz(Expression... expressions) {
-    return compile(BuiltinFunctionName.CONVERT_TZ, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.CONVERT_TZ, expressions);
   }
 
   public static FunctionExpression date(Expression... expressions) {
-    return compile(BuiltinFunctionName.DATE, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.DATE, expressions);
   }
 
   public static FunctionExpression datetime(Expression... expressions) {
-    return compile(BuiltinFunctionName.DATETIME, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.DATETIME, expressions);
   }
 
   public static FunctionExpression date_add(Expression... expressions) {
-    return compile(BuiltinFunctionName.DATE_ADD, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.DATE_ADD, expressions);
   }
 
   public static FunctionExpression date_sub(Expression... expressions) {
-    return compile(BuiltinFunctionName.DATE_SUB, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.DATE_SUB, expressions);
   }
 
   public static FunctionExpression day(Expression... expressions) {
-    return compile(BuiltinFunctionName.DAY, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.DAY, expressions);
   }
 
   public static FunctionExpression dayname(Expression... expressions) {
-    return compile(BuiltinFunctionName.DAYNAME, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.DAYNAME, expressions);
   }
 
   public static FunctionExpression dayofmonth(Expression... expressions) {
-    return compile(BuiltinFunctionName.DAYOFMONTH, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.DAYOFMONTH, expressions);
   }
 
   public static FunctionExpression dayofweek(Expression... expressions) {
-    return compile(BuiltinFunctionName.DAYOFWEEK, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.DAYOFWEEK, expressions);
   }
 
   public static FunctionExpression dayofyear(Expression... expressions) {
-    return compile(BuiltinFunctionName.DAYOFYEAR, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.DAYOFYEAR, expressions);
+  }
+
+  public static FunctionExpression day_of_year(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.DAY_OF_YEAR, expressions);
   }
 
   public static FunctionExpression from_days(Expression... expressions) {
-    return compile(BuiltinFunctionName.FROM_DAYS, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.FROM_DAYS, expressions);
   }
 
   public static FunctionExpression hour(Expression... expressions) {
-    return compile(BuiltinFunctionName.HOUR, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.HOUR, expressions);
   }
 
   public static FunctionExpression microsecond(Expression... expressions) {
-    return compile(BuiltinFunctionName.MICROSECOND, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.MICROSECOND, expressions);
   }
 
   public static FunctionExpression minute(Expression... expressions) {
-    return compile(BuiltinFunctionName.MINUTE, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.MINUTE, expressions);
   }
 
   public static FunctionExpression month(Expression... expressions) {
-    return compile(BuiltinFunctionName.MONTH, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.MONTH, expressions);
+  }
+
+  public static FunctionExpression month_of_year(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.MONTH_OF_YEAR, expressions);
   }
 
   public static FunctionExpression monthname(Expression... expressions) {
-    return compile(BuiltinFunctionName.MONTHNAME, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.MONTHNAME, expressions);
   }
 
   public static FunctionExpression quarter(Expression... expressions) {
-    return compile(BuiltinFunctionName.QUARTER, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.QUARTER, expressions);
   }
 
   public static FunctionExpression second(Expression... expressions) {
-    return compile(BuiltinFunctionName.SECOND, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.SECOND, expressions);
   }
 
   public static FunctionExpression subdate(Expression... expressions) {
-    return compile(BuiltinFunctionName.SUBDATE, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.SUBDATE, expressions);
   }
 
   public static FunctionExpression time(Expression... expressions) {
-    return compile(BuiltinFunctionName.TIME, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.TIME, expressions);
   }
 
   public static FunctionExpression time_to_sec(Expression... expressions) {
-    return compile(BuiltinFunctionName.TIME_TO_SEC, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.TIME_TO_SEC, expressions);
   }
 
   public static FunctionExpression timestamp(Expression... expressions) {
-    return compile(BuiltinFunctionName.TIMESTAMP, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.TIMESTAMP, expressions);
   }
 
   public static FunctionExpression date_format(Expression... expressions) {
-    return compile(BuiltinFunctionName.DATE_FORMAT, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.DATE_FORMAT, expressions);
   }
 
   public static FunctionExpression to_days(Expression... expressions) {
-    return compile(BuiltinFunctionName.TO_DAYS, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.TO_DAYS, expressions);
   }
 
   public static FunctionExpression week(Expression... expressions) {
-    return compile(BuiltinFunctionName.WEEK, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.WEEK, expressions);
+  }
+
+  public static FunctionExpression week_of_year(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.WEEK_OF_YEAR, expressions);
   }
 
   public static FunctionExpression year(Expression... expressions) {
-    return compile(BuiltinFunctionName.YEAR, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.YEAR, expressions);
   }
 
   public static FunctionExpression divide(Expression... expressions) {
-    return compile(BuiltinFunctionName.DIVIDE, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.DIVIDE, expressions);
   }
 
   public static FunctionExpression module(Expression... expressions) {
-    return compile(BuiltinFunctionName.MODULES, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.MODULES, expressions);
   }
 
   public static FunctionExpression substr(Expression... expressions) {
-    return compile(BuiltinFunctionName.SUBSTR, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.SUBSTR, expressions);
   }
 
   public static FunctionExpression substring(Expression... expressions) {
-    return compile(BuiltinFunctionName.SUBSTR, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.SUBSTR, expressions);
   }
 
   public static FunctionExpression ltrim(Expression... expressions) {
-    return compile(BuiltinFunctionName.LTRIM, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.LTRIM, expressions);
   }
 
   public static FunctionExpression rtrim(Expression... expressions) {
-    return compile(BuiltinFunctionName.RTRIM, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.RTRIM, expressions);
   }
 
   public static FunctionExpression trim(Expression... expressions) {
-    return compile(BuiltinFunctionName.TRIM, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.TRIM, expressions);
   }
 
   public static FunctionExpression upper(Expression... expressions) {
-    return compile(BuiltinFunctionName.UPPER, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.UPPER, expressions);
   }
 
   public static FunctionExpression lower(Expression... expressions) {
-    return compile(BuiltinFunctionName.LOWER, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.LOWER, expressions);
   }
 
   public static FunctionExpression regexp(Expression... expressions) {
-    return compile(BuiltinFunctionName.REGEXP, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.REGEXP, expressions);
   }
 
   public static FunctionExpression concat(Expression... expressions) {
-    return compile(BuiltinFunctionName.CONCAT, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.CONCAT, expressions);
   }
 
   public static FunctionExpression concat_ws(Expression... expressions) {
-    return compile(BuiltinFunctionName.CONCAT_WS, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.CONCAT_WS, expressions);
   }
 
   public static FunctionExpression length(Expression... expressions) {
-    return compile(BuiltinFunctionName.LENGTH, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.LENGTH, expressions);
   }
 
   public static FunctionExpression strcmp(Expression... expressions) {
-    return compile(BuiltinFunctionName.STRCMP, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.STRCMP, expressions);
   }
 
   public static FunctionExpression right(Expression... expressions) {
-    return compile(BuiltinFunctionName.RIGHT, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.RIGHT, expressions);
   }
 
   public static FunctionExpression left(Expression... expressions) {
-    return compile(BuiltinFunctionName.LEFT, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.LEFT, expressions);
   }
 
   public static FunctionExpression ascii(Expression... expressions) {
-    return compile(BuiltinFunctionName.ASCII, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.ASCII, expressions);
   }
 
   public static FunctionExpression locate(Expression... expressions) {
-    return compile(BuiltinFunctionName.LOCATE, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.LOCATE, expressions);
   }
 
   public static FunctionExpression replace(Expression... expressions) {
-    return compile(BuiltinFunctionName.REPLACE, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.REPLACE, expressions);
   }
 
   public static FunctionExpression and(Expression... expressions) {
-    return compile(BuiltinFunctionName.AND, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.AND, expressions);
   }
 
   public static FunctionExpression or(Expression... expressions) {
-    return compile(BuiltinFunctionName.OR, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.OR, expressions);
   }
 
   public static FunctionExpression xor(Expression... expressions) {
-    return compile(BuiltinFunctionName.XOR, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.XOR, expressions);
   }
 
   public static FunctionExpression not(Expression... expressions) {
-    return compile(BuiltinFunctionName.NOT, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.NOT, expressions);
   }
 
   public static FunctionExpression equal(Expression... expressions) {
-    return compile(BuiltinFunctionName.EQUAL, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.EQUAL, expressions);
   }
 
   public static FunctionExpression notequal(Expression... expressions) {
-    return compile(BuiltinFunctionName.NOTEQUAL, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.NOTEQUAL, expressions);
   }
 
   public static FunctionExpression less(Expression... expressions) {
-    return compile(BuiltinFunctionName.LESS, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.LESS, expressions);
   }
 
   public static FunctionExpression lte(Expression... expressions) {
-    return compile(BuiltinFunctionName.LTE, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.LTE, expressions);
   }
 
   public static FunctionExpression greater(Expression... expressions) {
-    return compile(BuiltinFunctionName.GREATER, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.GREATER, expressions);
   }
 
   public static FunctionExpression gte(Expression... expressions) {
-    return compile(BuiltinFunctionName.GTE, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.GTE, expressions);
   }
 
   public static FunctionExpression like(Expression... expressions) {
-    return compile(BuiltinFunctionName.LIKE, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.LIKE, expressions);
   }
 
   public static FunctionExpression notLike(Expression... expressions) {
-    return compile(BuiltinFunctionName.NOT_LIKE, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.NOT_LIKE, expressions);
   }
 
   public static Aggregator avg(Expression... expressions) {
@@ -554,15 +571,15 @@ public class DSL {
   }
 
   public static RankingWindowFunction rowNumber() {
-    return compile(BuiltinFunctionName.ROW_NUMBER);
+    return compile(FunctionProperties.None, BuiltinFunctionName.ROW_NUMBER);
   }
 
   public static RankingWindowFunction rank() {
-    return compile(BuiltinFunctionName.RANK);
+    return compile(FunctionProperties.None, BuiltinFunctionName.RANK);
   }
 
   public static RankingWindowFunction denseRank() {
-    return compile(BuiltinFunctionName.DENSE_RANK);
+    return compile(FunctionProperties.None, BuiltinFunctionName.DENSE_RANK);
   }
 
   public static Aggregator min(Expression... expressions) {
@@ -574,31 +591,31 @@ public class DSL {
   }
 
   private static Aggregator aggregate(BuiltinFunctionName functionName, Expression... expressions) {
-    return compile(functionName, expressions);
+    return compile(FunctionProperties.None, functionName, expressions);
   }
 
   public static FunctionExpression isnull(Expression... expressions) {
-    return compile(BuiltinFunctionName.ISNULL, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.ISNULL, expressions);
   }
 
   public static FunctionExpression is_null(Expression... expressions) {
-    return compile(BuiltinFunctionName.IS_NULL, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.IS_NULL, expressions);
   }
 
   public static FunctionExpression isnotnull(Expression... expressions) {
-    return compile(BuiltinFunctionName.IS_NOT_NULL, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.IS_NOT_NULL, expressions);
   }
 
   public static FunctionExpression ifnull(Expression... expressions) {
-    return compile(BuiltinFunctionName.IFNULL, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.IFNULL, expressions);
   }
 
   public static FunctionExpression nullif(Expression... expressions) {
-    return compile(BuiltinFunctionName.NULLIF, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.NULLIF, expressions);
   }
 
   public static FunctionExpression iffunction(Expression... expressions) {
-    return compile(BuiltinFunctionName.IF, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.IF, expressions);
   }
 
   public static Expression cases(Expression defaultResult,
@@ -611,136 +628,147 @@ public class DSL {
   }
 
   public static FunctionExpression interval(Expression value, Expression unit) {
-    return compile(BuiltinFunctionName.INTERVAL, value, unit);
+    return compile(FunctionProperties.None, BuiltinFunctionName.INTERVAL, value, unit);
   }
 
   public static FunctionExpression castString(Expression value) {
-    return compile(BuiltinFunctionName.CAST_TO_STRING, value);
+    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_STRING, value);
   }
 
   public static FunctionExpression castByte(Expression value) {
-    return compile(BuiltinFunctionName.CAST_TO_BYTE, value);
+    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_BYTE, value);
   }
 
   public static FunctionExpression castShort(Expression value) {
-    return compile(BuiltinFunctionName.CAST_TO_SHORT, value);
+    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_SHORT, value);
   }
 
   public static FunctionExpression castInt(Expression value) {
-    return compile(BuiltinFunctionName.CAST_TO_INT, value);
+    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_INT, value);
   }
 
   public static FunctionExpression castLong(Expression value) {
-    return compile(BuiltinFunctionName.CAST_TO_LONG, value);
+    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_LONG, value);
   }
 
   public static FunctionExpression castFloat(Expression value) {
-    return compile(BuiltinFunctionName.CAST_TO_FLOAT, value);
+    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_FLOAT, value);
   }
 
   public static FunctionExpression castDouble(Expression value) {
-    return compile(BuiltinFunctionName.CAST_TO_DOUBLE, value);
+    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_DOUBLE, value);
   }
 
   public static FunctionExpression castBoolean(Expression value) {
-    return compile(BuiltinFunctionName.CAST_TO_BOOLEAN, value);
+    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_BOOLEAN, value);
   }
 
   public static FunctionExpression castDate(Expression value) {
-    return compile(BuiltinFunctionName.CAST_TO_DATE, value);
+    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_DATE, value);
   }
 
   public static FunctionExpression castTime(Expression value) {
-    return compile(BuiltinFunctionName.CAST_TO_TIME, value);
+    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_TIME, value);
   }
 
   public static FunctionExpression castTimestamp(Expression value) {
-    return compile(BuiltinFunctionName.CAST_TO_TIMESTAMP, value);
+    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_TIMESTAMP, value);
   }
 
   public static FunctionExpression castDatetime(Expression value) {
-    return compile(BuiltinFunctionName.CAST_TO_DATETIME, value);
+    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_DATETIME, value);
   }
 
   public static FunctionExpression typeof(Expression value) {
-    return compile(BuiltinFunctionName.TYPEOF, value);
+    return compile(FunctionProperties.None, BuiltinFunctionName.TYPEOF, value);
   }
 
   public static FunctionExpression match(Expression... args) {
-    return compile(BuiltinFunctionName.MATCH, args);
+    return compile(FunctionProperties.None, BuiltinFunctionName.MATCH, args);
   }
 
   public static FunctionExpression match_phrase(Expression... args) {
-    return compile(BuiltinFunctionName.MATCH_PHRASE, args);
+    return compile(FunctionProperties.None, BuiltinFunctionName.MATCH_PHRASE, args);
   }
 
   public static FunctionExpression match_phrase_prefix(Expression... args) {
-    return compile(BuiltinFunctionName.MATCH_PHRASE_PREFIX, args);
+    return compile(FunctionProperties.None, BuiltinFunctionName.MATCH_PHRASE_PREFIX, args);
   }
 
   public static FunctionExpression multi_match(Expression... args) {
-    return compile(BuiltinFunctionName.MULTI_MATCH, args);
+    return compile(FunctionProperties.None, BuiltinFunctionName.MULTI_MATCH, args);
   }
 
   public static FunctionExpression simple_query_string(Expression... args) {
-    return compile(BuiltinFunctionName.SIMPLE_QUERY_STRING, args);
+    return compile(FunctionProperties.None, BuiltinFunctionName.SIMPLE_QUERY_STRING, args);
   }
 
   public static FunctionExpression query(Expression... args) {
-    return compile(BuiltinFunctionName.QUERY, args);
+    return compile(FunctionProperties.None, BuiltinFunctionName.QUERY, args);
   }
 
   public static FunctionExpression query_string(Expression... args) {
-    return compile(BuiltinFunctionName.QUERY_STRING, args);
+    return compile(FunctionProperties.None, BuiltinFunctionName.QUERY_STRING, args);
   }
 
   public static FunctionExpression match_bool_prefix(Expression... args) {
-    return compile(BuiltinFunctionName.MATCH_BOOL_PREFIX, args);
+    return compile(FunctionProperties.None, BuiltinFunctionName.MATCH_BOOL_PREFIX, args);
   }
 
   public static FunctionExpression wildcard_query(Expression... args) {
-    return compile(BuiltinFunctionName.WILDCARD_QUERY, args);
+    return compile(FunctionProperties.None,BuiltinFunctionName.WILDCARD_QUERY, args);
   }
 
-  public static FunctionExpression now(Expression... args) {
-    return compile(BuiltinFunctionName.NOW, args);
+  public static FunctionExpression now(FunctionProperties functionProperties,
+                                       Expression... args) {
+    return compile(functionProperties, BuiltinFunctionName.NOW, args);
   }
 
-  public static FunctionExpression current_timestamp(Expression... args) {
-    return compile(BuiltinFunctionName.CURRENT_TIMESTAMP, args);
+  public static FunctionExpression current_timestamp(FunctionProperties functionProperties,
+                                                     Expression... args) {
+    return compile(functionProperties, BuiltinFunctionName.CURRENT_TIMESTAMP, args);
   }
 
-  public static FunctionExpression localtimestamp(Expression... args) {
-    return compile(BuiltinFunctionName.LOCALTIMESTAMP, args);
+  public static FunctionExpression localtimestamp(FunctionProperties functionProperties,
+                                                  Expression... args) {
+    return compile(functionProperties, BuiltinFunctionName.LOCALTIMESTAMP, args);
   }
 
-  public static FunctionExpression localtime(Expression... args) {
-    return compile(BuiltinFunctionName.LOCALTIME, args);
+  public static FunctionExpression localtime(FunctionProperties functionProperties,
+                                             Expression... args) {
+    return compile(functionProperties, BuiltinFunctionName.LOCALTIME, args);
   }
 
-  public static FunctionExpression sysdate(Expression... args) {
-    return compile(BuiltinFunctionName.SYSDATE, args);
+  public static FunctionExpression sysdate(FunctionProperties functionProperties,
+                                           Expression... args) {
+    return compile(functionProperties, BuiltinFunctionName.SYSDATE, args);
   }
 
-  public static FunctionExpression curtime(Expression... args) {
-    return compile(BuiltinFunctionName.CURTIME, args);
+  public static FunctionExpression curtime(FunctionProperties functionProperties,
+                                           Expression... args) {
+    return compile(functionProperties, BuiltinFunctionName.CURTIME, args);
   }
 
-  public static FunctionExpression current_time(Expression... args) {
-    return compile(BuiltinFunctionName.CURRENT_TIME, args);
+  public static FunctionExpression current_time(FunctionProperties functionProperties,
+                                                Expression... args) {
+    return compile(functionProperties, BuiltinFunctionName.CURRENT_TIME, args);
   }
 
-  public static FunctionExpression curdate(Expression... args) {
-    return compile(BuiltinFunctionName.CURDATE, args);
+  public static FunctionExpression curdate(FunctionProperties functionProperties,
+                                           Expression... args) {
+    return compile(functionProperties, BuiltinFunctionName.CURDATE, args);
   }
 
-  public static FunctionExpression current_date(Expression... args) {
-    return compile(BuiltinFunctionName.CURRENT_DATE, args);
+  public static FunctionExpression current_date(FunctionProperties functionProperties,
+                                                Expression... args) {
+    return compile(functionProperties, BuiltinFunctionName.CURRENT_DATE, args);
   }
 
   @SuppressWarnings("unchecked")
   private static <T extends FunctionImplementation>
-      T compile(BuiltinFunctionName bfn, Expression... args) {
-    return (T) BuiltinFunctionRepository.getInstance().compile(bfn.getName(), Arrays.asList(args));
+      T compile(FunctionProperties functionProperties,
+                BuiltinFunctionName bfn, Expression... args) {
+    return (T) BuiltinFunctionRepository.getInstance().compile(functionProperties,
+        bfn.getName(), Arrays.asList(args));
   }
 }

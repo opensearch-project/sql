@@ -57,7 +57,6 @@ import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
 class AggregationQueryBuilderTest {
-
   @Mock
   private ExpressionSerializer serializer;
 

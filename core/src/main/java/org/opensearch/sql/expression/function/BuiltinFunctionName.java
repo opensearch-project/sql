@@ -69,6 +69,7 @@ public enum BuiltinFunctionName {
   DAYOFMONTH(FunctionName.of("dayofmonth")),
   DAYOFWEEK(FunctionName.of("dayofweek")),
   DAYOFYEAR(FunctionName.of("dayofyear")),
+  DAY_OF_YEAR(FunctionName.of("day_of_year")),
   FROM_DAYS(FunctionName.of("from_days")),
   FROM_UNIXTIME(FunctionName.of("from_unixtime")),
   HOUR(FunctionName.of("hour")),
@@ -77,6 +78,7 @@ public enum BuiltinFunctionName {
   MICROSECOND(FunctionName.of("microsecond")),
   MINUTE(FunctionName.of("minute")),
   MONTH(FunctionName.of("month")),
+  MONTH_OF_YEAR(FunctionName.of("month_of_year")),
   MONTHNAME(FunctionName.of("monthname")),
   PERIOD_ADD(FunctionName.of("period_add")),
   PERIOD_DIFF(FunctionName.of("period_diff")),
@@ -90,6 +92,7 @@ public enum BuiltinFunctionName {
   TO_DAYS(FunctionName.of("to_days")),
   UNIX_TIMESTAMP(FunctionName.of("unix_timestamp")),
   WEEK(FunctionName.of("week")),
+  WEEK_OF_YEAR(FunctionName.of("week_of_year")),
   YEAR(FunctionName.of("year")),
   // `now`-like functions
   NOW(FunctionName.of("now")),
@@ -153,23 +156,24 @@ public enum BuiltinFunctionName {
   /**
    * Text Functions.
    */
-  SUBSTR(FunctionName.of("substr")),
-  SUBSTRING(FunctionName.of("substring")),
-  RTRIM(FunctionName.of("rtrim")),
-  LTRIM(FunctionName.of("ltrim")),
-  TRIM(FunctionName.of("trim")),
-  UPPER(FunctionName.of("upper")),
-  LOWER(FunctionName.of("lower")),
-  REGEXP(FunctionName.of("regexp")),
+  ASCII(FunctionName.of("ascii")),
   CONCAT(FunctionName.of("concat")),
   CONCAT_WS(FunctionName.of("concat_ws")),
-  LENGTH(FunctionName.of("length")),
-  STRCMP(FunctionName.of("strcmp")),
-  RIGHT(FunctionName.of("right")),
   LEFT(FunctionName.of("left")),
-  ASCII(FunctionName.of("ascii")),
+  LENGTH(FunctionName.of("length")),
   LOCATE(FunctionName.of("locate")),
+  LOWER(FunctionName.of("lower")),
+  LTRIM(FunctionName.of("ltrim")),
+  POSITION(FunctionName.of("position")),
+  REGEXP(FunctionName.of("regexp")),
   REPLACE(FunctionName.of("replace")),
+  RIGHT(FunctionName.of("right")),
+  RTRIM(FunctionName.of("rtrim")),
+  STRCMP(FunctionName.of("strcmp")),
+  SUBSTR(FunctionName.of("substr")),
+  SUBSTRING(FunctionName.of("substring")),
+  TRIM(FunctionName.of("trim")),
+  UPPER(FunctionName.of("upper")),
 
   /**
    * NULL Test.
@@ -211,6 +215,7 @@ public enum BuiltinFunctionName {
   SIMPLE_QUERY_STRING(FunctionName.of("simple_query_string")),
   MATCH_PHRASE(FunctionName.of("match_phrase")),
   MATCHPHRASE(FunctionName.of("matchphrase")),
+  MATCHPHRASEQUERY(FunctionName.of("matchphrasequery")),
   QUERY_STRING(FunctionName.of("query_string")),
   MATCH_BOOL_PREFIX(FunctionName.of("match_bool_prefix")),
   HIGHLIGHT(FunctionName.of("highlight")),
@@ -222,6 +227,8 @@ public enum BuiltinFunctionName {
   MATCH_QUERY(FunctionName.of("match_query")),
   MATCHQUERY(FunctionName.of("matchquery")),
   MULTI_MATCH(FunctionName.of("multi_match")),
+  MULTIMATCH(FunctionName.of("multimatch")),
+  MULTIMATCHQUERY(FunctionName.of("multimatchquery")),
   WILDCARDQUERY(FunctionName.of("wildcardquery")),
   WILDCARD_QUERY(FunctionName.of("wildcard_query"));
 

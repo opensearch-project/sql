@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.expression.datetime;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -18,92 +19,119 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Period;
+import java.time.temporal.ChronoUnit;
 import java.time.temporal.Temporal;
+import java.time.temporal.TemporalUnit;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.core.IsNot;
+import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestFactory;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.FunctionExpression;
+import org.opensearch.sql.expression.function.FunctionProperties;
 
 
-public class NowLikeFunctionTest extends ExpressionTestBase {
-  private static Stream<Arguments> functionNames() {
-    return Stream.of(
-        Arguments.of((Function<Expression[], FunctionExpression>) DSL::now,
-            "now", DATETIME, false, (Supplier<Temporal>)LocalDateTime::now),
-        Arguments.of((Function<Expression[], FunctionExpression>) DSL::current_timestamp,
-            "current_timestamp", DATETIME, false, (Supplier<Temporal>)LocalDateTime::now),
-        Arguments.of((Function<Expression[], FunctionExpression>) DSL::localtimestamp,
-            "localtimestamp", DATETIME, false, (Supplier<Temporal>)LocalDateTime::now),
-        Arguments.of((Function<Expression[], FunctionExpression>) DSL::localtime,
-            "localtime", DATETIME, false, (Supplier<Temporal>)LocalDateTime::now),
-        Arguments.of((Function<Expression[], FunctionExpression>) DSL::sysdate,
-            "sysdate", DATETIME, true, (Supplier<Temporal>)LocalDateTime::now),
-        Arguments.of((Function<Expression[], FunctionExpression>) DSL::curtime,
-            "curtime", TIME, false, (Supplier<Temporal>)LocalTime::now),
-        Arguments.of((Function<Expression[], FunctionExpression>) DSL::current_time,
-            "current_time", TIME, false, (Supplier<Temporal>)LocalTime::now),
-        Arguments.of((Function<Expression[], FunctionExpression>) DSL::curdate,
-            "curdate", DATE, false, (Supplier<Temporal>)LocalDate::now),
-        Arguments.of((Function<Expression[], FunctionExpression>) DSL::current_date,
-            "current_date", DATE, false, (Supplier<Temporal>)LocalDate::now));
+class NowLikeFunctionTest extends ExpressionTestBase {
+  @Test
+  void now() {
+    test_now_like_functions(DSL::now,
+        DATETIME,
+        false,
+        () -> LocalDateTime.now(functionProperties.getQueryStartClock()));
   }
 
-  private Temporal extractValue(FunctionExpression func) {
-    switch ((ExprCoreType)func.type()) {
-      case DATE: return func.valueOf().dateValue();
-      case DATETIME: return func.valueOf().datetimeValue();
-      case TIME: return func.valueOf().timeValue();
-      // unreachable code
-      default: throw new IllegalArgumentException(String.format("%s", func.type()));
-    }
+  @Test
+  void current_timestamp() {
+    test_now_like_functions(DSL::current_timestamp, DATETIME, false,
+        () -> LocalDateTime.now(functionProperties.getQueryStartClock()));
   }
 
-  private long getDiff(Temporal sample, Temporal reference) {
-    if (sample instanceof LocalDate) {
-      return Period.between((LocalDate) sample, (LocalDate) reference).getDays();
-    }
-    return Duration.between(sample, reference).toSeconds();
+  @Test
+  void localtimestamp() {
+    test_now_like_functions(DSL::localtimestamp, DATETIME, false,
+        () -> LocalDateTime.now(functionProperties.getQueryStartClock()));
+  }
+
+  @Test
+  void localtime() {
+    test_now_like_functions(DSL::localtime, DATETIME, false,
+        () -> LocalDateTime.now(functionProperties.getQueryStartClock()));
+  }
+
+  @Test
+  void sysdate() {
+    test_now_like_functions(DSL::sysdate, DATETIME, true, LocalDateTime::now);
+  }
+
+  @Test
+  void curtime() {
+    test_now_like_functions(DSL::curtime, TIME, false,
+        () -> LocalTime.now(functionProperties.getQueryStartClock()));
+  }
+
+  @Test
+  void currdate() {
+
+    test_now_like_functions(DSL::curdate,
+        DATE, false,
+        () -> LocalDate.now(functionProperties.getQueryStartClock()));
+  }
+
+  @Test
+  void current_time() {
+    test_now_like_functions(DSL::current_time,
+        TIME,
+        false,
+        () -> LocalTime.now(functionProperties.getQueryStartClock()));
+  }
+
+  @Test
+  void current_date() {
+    test_now_like_functions(DSL::current_date, DATE, false,
+        () -> LocalDate.now(functionProperties.getQueryStartClock()));
   }
 
   /**
    * Check how NOW-like functions are processed.
-   * @param function Function
-   * @param name Function name
-   * @param resType Return type
-   * @param hasFsp Whether function has fsp argument
+   *
+   * @param function        Function
+   * @param resType         Return type
+   * @param hasFsp          Whether function has fsp argument
    * @param referenceGetter A callback to get reference value
    */
-  @ParameterizedTest(name = "{1}")
-  @MethodSource("functionNames")
-  public void test_now_like_functions(Function<Expression[], FunctionExpression> function,
-                       @SuppressWarnings("unused")  // Used in the test name above
-                       String name,
-                       ExprCoreType resType,
-                       Boolean hasFsp,
-                       Supplier<Temporal> referenceGetter) {
+  void test_now_like_functions(
+      BiFunction<FunctionProperties, Expression[], FunctionExpression> function,
+                               ExprCoreType resType,
+                               Boolean hasFsp,
+                               Supplier<Temporal> referenceGetter) {
     // Check return types:
     // `func()`
-    FunctionExpression expr = function.apply(new Expression[]{});
+    FunctionExpression expr = function.apply(functionProperties, new Expression[] {});
     assertEquals(resType, expr.type());
     if (hasFsp) {
       // `func(fsp = 0)`
-      expr = function.apply(new Expression[]{DSL.literal(0)});
+      expr = function.apply(functionProperties, new Expression[] {DSL.literal(0)});
       assertEquals(resType, expr.type());
       // `func(fsp = 6)`
-      expr = function.apply(new Expression[]{DSL.literal(6)});
+      expr = function.apply(functionProperties, new Expression[] {DSL.literal(6)});
       assertEquals(resType, expr.type());
 
-      for (var wrongFspValue: List.of(-1, 10)) {
+      for (var wrongFspValue : List.of(-1, 10)) {
         var exception = assertThrows(IllegalArgumentException.class,
-            () -> function.apply(new Expression[]{DSL.literal(wrongFspValue)}).valueOf());
+            () -> function.apply(functionProperties,
+                new Expression[] {DSL.literal(wrongFspValue)}).valueOf());
         assertEquals(String.format("Invalid `fsp` value: %d, allowed 0 to 6", wrongFspValue),
             exception.getMessage());
       }
@@ -111,16 +139,89 @@ public class NowLikeFunctionTest extends ExpressionTestBase {
 
     // Check how calculations are precise:
     // `func()`
-    assertTrue(Math.abs(getDiff(
-            extractValue(function.apply(new Expression[]{})),
-            referenceGetter.get()
-        )) <= 1);
+    Temporal sample = extractValue(function.apply(functionProperties, new Expression[] {}));
+    Temporal reference = referenceGetter.get();
+    long maxDiff = 1;
+    TemporalUnit unit = resType.isCompatible(DATE) ? ChronoUnit.DAYS : ChronoUnit.SECONDS;
+    assertThat(sample, isCloseTo(reference, maxDiff, unit));
     if (hasFsp) {
       // `func(fsp)`
-      assertTrue(Math.abs(getDiff(
-              extractValue(function.apply(new Expression[]{DSL.literal(0)})),
-              referenceGetter.get()
-      )) <= 1);
+      Temporal value = extractValue(function.apply(functionProperties,
+          new Expression[] {DSL.literal(0)}));
+      assertThat(referenceGetter.get(),
+          isCloseTo(value, maxDiff, unit));
+
+    }
+  }
+
+  static Matcher<Temporal> isCloseTo(Temporal reference, long maxDiff, TemporalUnit units) {
+    return new BaseMatcher<>() {
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("value between ")
+            .appendValue(reference.minus(maxDiff, units))
+            .appendText(" and ")
+            .appendValue(reference.plus(maxDiff, units));
+      }
+
+      @Override
+      public boolean matches(Object value) {
+        if (value instanceof Temporal) {
+          Temporal temporalValue = (Temporal) value;
+          long diff = reference.until(temporalValue, units);
+          return Math.abs(diff) <= maxDiff;
+        }
+        return false;
+      }
+
+
+    };
+  }
+
+  @TestFactory
+  Stream<DynamicTest> constantValueTestFactory() {
+    BiFunction<String, Function<FunctionProperties, FunctionExpression>, DynamicTest> buildTest
+        = (name, action) ->
+        DynamicTest.dynamicTest(
+          String.format("multiple_invocations_same_value_test[%s]", name),
+          () -> {
+            var v1 = extractValue(action.apply(functionProperties));
+            Thread.sleep(1000);
+            var v2 = extractValue(action.apply(functionProperties));
+            assertEquals(v1, v2);
+          }
+      );
+    return Stream.of(
+        buildTest.apply("now", DSL::now),
+        buildTest.apply("current_timestamp", DSL::current_timestamp),
+        buildTest.apply("current_time", DSL::current_time),
+        buildTest.apply("curdate", DSL::curdate),
+        buildTest.apply("curtime", DSL::curtime),
+        buildTest.apply("localtimestamp", DSL::localtimestamp),
+        buildTest.apply("localtime", DSL::localtime)
+    );
+  }
+
+  @Test
+  void sysdate_multiple_invocations_differ() throws InterruptedException {
+    var v1 = extractValue(DSL.sysdate(functionProperties));
+    Thread.sleep(1000);
+    var v2 = extractValue(DSL.sysdate(functionProperties));
+    assertThat(v1, IsNot.not(isCloseTo(v2, 1, ChronoUnit.NANOS)));
+
+  }
+
+  private Temporal extractValue(FunctionExpression func) {
+    switch ((ExprCoreType) func.type()) {
+      case DATE:
+        return func.valueOf().dateValue();
+      case DATETIME:
+        return func.valueOf().datetimeValue();
+      case TIME:
+        return func.valueOf().timeValue();
+      // unreachable code
+      default:
+        throw new IllegalArgumentException(String.format("%s", func.type()));
     }
   }
 }

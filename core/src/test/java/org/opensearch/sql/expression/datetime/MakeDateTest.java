@@ -51,8 +51,6 @@ public class MakeDateTest extends DateTimeTestBase {
 
   @Test
   public void checkNullValues() {
-    when(nullRef.valueOf(env)).thenReturn(nullValue());
-
     assertEquals(nullValue(), eval(makedate(nullRef, DSL.literal(42.))));
     assertEquals(nullValue(), eval(makedate(DSL.literal(42.), nullRef)));
     assertEquals(nullValue(), eval(makedate(nullRef, nullRef)));
@@ -60,8 +58,6 @@ public class MakeDateTest extends DateTimeTestBase {
 
   @Test
   public void checkMissingValues() {
-    when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     assertEquals(missingValue(), eval(makedate(missingRef, DSL.literal(42.))));
     assertEquals(missingValue(), eval(makedate(DSL.literal(42.), missingRef)));
     assertEquals(missingValue(), eval(makedate(missingRef, missingRef)));

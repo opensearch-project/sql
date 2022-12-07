@@ -38,7 +38,8 @@ public class SystemFunctions {
       public Pair<FunctionSignature, FunctionBuilder> resolve(
           FunctionSignature unresolvedSignature) {
         return Pair.of(unresolvedSignature,
-            arguments -> new FunctionExpression(BuiltinFunctionName.TYPEOF.getName(), arguments) {
+            (functionProperties, arguments) ->
+                new FunctionExpression(BuiltinFunctionName.TYPEOF.getName(), arguments) {
               @Override
               public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
                 return new ExprStringValue(getArguments().get(0).type().toString());

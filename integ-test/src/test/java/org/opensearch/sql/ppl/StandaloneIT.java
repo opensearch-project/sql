@@ -32,6 +32,7 @@ import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.monitor.AlwaysHealthyMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.client.OpenSearchRestClient;
@@ -75,6 +76,7 @@ public class StandaloneIT extends PPLIntegTestCase {
         new OpenSearchExecutionProtector(new AlwaysHealthyMonitor())));
     context.registerBean(OpenSearchClient.class, () -> client);
     context.registerBean(Settings.class, () -> defaultSettings());
+    context.registerBean(FunctionProperties.class, FunctionProperties::new);
     DataSourceService dataSourceService = new DataSourceServiceImpl(
         new ImmutableSet.Builder<DataSourceFactory>()
             .add(new OpenSearchDataSourceFactory(client, defaultSettings()))

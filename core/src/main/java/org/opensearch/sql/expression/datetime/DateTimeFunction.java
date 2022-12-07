@@ -18,6 +18,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.expression.function.FunctionDSL.define;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
+import static org.opensearch.sql.expression.function.FunctionDSL.implWithProperties;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_LONG_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_SHORT_YEAR;
@@ -28,6 +29,7 @@ import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_ST
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
+import java.time.Clock;
 import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -42,7 +44,6 @@ import java.time.format.TextStyle;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
-import javax.annotation.Nullable;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
@@ -60,7 +61,9 @@ import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
+import org.opensearch.sql.expression.function.FunctionDSL;
 import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.utils.DateTimeUtils;
 
 /**
@@ -99,7 +102,8 @@ public class DateTimeFunction {
     repository.register(dayName());
     repository.register(dayOfMonth());
     repository.register(dayOfWeek());
-    repository.register(dayOfYear());
+    repository.register(dayOfYear(BuiltinFunctionName.DAYOFYEAR));
+    repository.register(dayOfYear(BuiltinFunctionName.DAY_OF_YEAR));
     repository.register(from_days());
     repository.register(from_unixtime());
     repository.register(hour());
@@ -109,7 +113,8 @@ public class DateTimeFunction {
     repository.register(maketime());
     repository.register(microsecond());
     repository.register(minute());
-    repository.register(month());
+    repository.register(month(BuiltinFunctionName.MONTH));
+    repository.register(month(BuiltinFunctionName.MONTH_OF_YEAR));
     repository.register(monthName());
     repository.register(now());
     repository.register(period_add());
@@ -124,8 +129,81 @@ public class DateTimeFunction {
     repository.register(date_format());
     repository.register(to_days());
     repository.register(unix_timestamp());
-    repository.register(week());
+    repository.register(week(BuiltinFunctionName.WEEK));
+    repository.register(week(BuiltinFunctionName.WEEK_OF_YEAR));
     repository.register(year());
+  }
+
+  /**
+   * NOW() returns a constant time that indicates the time at which the statement began to execute.
+   * `fsp` argument support is removed until refactoring to avoid bug where `now()`, `now(x)` and
+   * `now(y) return different values.
+   */
+  private FunctionResolver now(FunctionName functionName) {
+    return define(functionName,
+        implWithProperties(
+            functionProperties -> new ExprDatetimeValue(
+                formatNow(functionProperties.getQueryStartClock())), DATETIME)
+    );
+  }
+
+  private FunctionResolver now() {
+    return now(BuiltinFunctionName.NOW.getName());
+  }
+
+  private FunctionResolver current_timestamp() {
+    return now(BuiltinFunctionName.CURRENT_TIMESTAMP.getName());
+  }
+
+  private FunctionResolver localtimestamp() {
+    return now(BuiltinFunctionName.LOCALTIMESTAMP.getName());
+  }
+
+  private FunctionResolver localtime() {
+    return now(BuiltinFunctionName.LOCALTIME.getName());
+  }
+
+  /**
+   * SYSDATE() returns the time at which it executes.
+   */
+  private FunctionResolver sysdate() {
+    return define(BuiltinFunctionName.SYSDATE.getName(),
+        implWithProperties(functionProperties
+            -> new ExprDatetimeValue(formatNow(Clock.systemDefaultZone())), DATETIME),
+        FunctionDSL.implWithProperties((functionProperties, v) -> new ExprDatetimeValue(
+            formatNow(Clock.systemDefaultZone(), v.integerValue())), DATETIME, INTEGER)
+    );
+  }
+
+  /**
+   * Synonym for @see `now`.
+   */
+  private FunctionResolver curtime(FunctionName functionName) {
+    return define(functionName,
+        implWithProperties(functionProperties -> new ExprTimeValue(
+            formatNow(functionProperties.getQueryStartClock()).toLocalTime()), TIME));
+  }
+
+  private FunctionResolver curtime() {
+    return curtime(BuiltinFunctionName.CURTIME.getName());
+  }
+
+  private FunctionResolver current_time() {
+    return curtime(BuiltinFunctionName.CURRENT_TIME.getName());
+  }
+
+  private FunctionResolver curdate(FunctionName functionName) {
+    return define(functionName,
+        implWithProperties(functionProperties -> new ExprDateValue(
+            formatNow(functionProperties.getQueryStartClock()).toLocalDate()), DATE));
+  }
+
+  private FunctionResolver curdate() {
+    return curdate(BuiltinFunctionName.CURDATE.getName());
+  }
+
+  private FunctionResolver current_date() {
+    return curdate(BuiltinFunctionName.CURRENT_DATE.getName());
   }
 
   /**
@@ -170,41 +248,6 @@ public class DateTimeFunction {
     );
   }
 
-  private DefaultFunctionResolver curdate(FunctionName functionName) {
-    return define(functionName,
-        impl(() -> new ExprDateValue(formatNow(null).toLocalDate()), DATE)
-    );
-  }
-
-  private DefaultFunctionResolver curdate() {
-    return curdate(BuiltinFunctionName.CURDATE.getName());
-  }
-
-  /**
-   * Synonym for @see `now`.
-   */
-  private DefaultFunctionResolver curtime(FunctionName functionName) {
-    return define(functionName,
-        impl(() -> new ExprTimeValue(formatNow(null).toLocalTime()), TIME)
-    );
-  }
-
-  private DefaultFunctionResolver curtime() {
-    return curtime(BuiltinFunctionName.CURTIME.getName());
-  }
-
-  private DefaultFunctionResolver current_date() {
-    return curdate(BuiltinFunctionName.CURRENT_DATE.getName());
-  }
-
-  private DefaultFunctionResolver current_time() {
-    return curtime(BuiltinFunctionName.CURRENT_TIME.getName());
-  }
-
-  private DefaultFunctionResolver current_timestamp() {
-    return now(BuiltinFunctionName.CURRENT_TIMESTAMP.getName());
-  }
-
   /**
    * Extracts the date part of a date and time value.
    * Also to construct a date type. The supported signatures:
@@ -224,7 +267,7 @@ public class DateTimeFunction {
    * (STRING, STRING) -> DATETIME
    * (STRING) -> DATETIME
    */
-  private DefaultFunctionResolver datetime() {
+  private FunctionResolver datetime() {
     return define(BuiltinFunctionName.DATETIME.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprDateTime),
             DATETIME, STRING, STRING),
@@ -319,8 +362,8 @@ public class DateTimeFunction {
    * DAYOFYEAR(STRING/DATE/DATETIME/TIMESTAMP).
    * return the day of the year for date (1-366).
    */
-  private DefaultFunctionResolver dayOfYear() {
-    return define(BuiltinFunctionName.DAYOFYEAR.getName(),
+  private DefaultFunctionResolver dayOfYear(BuiltinFunctionName dayOfYear) {
+    return define(dayOfYear.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfYear), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfYear), INTEGER, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfYear), INTEGER, TIMESTAMP),
@@ -336,7 +379,7 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprFromDays), DATE, LONG));
   }
 
-  private DefaultFunctionResolver from_unixtime() {
+  private FunctionResolver from_unixtime() {
     return define(BuiltinFunctionName.FROM_UNIXTIME.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprFromUnixTime), DATETIME, DOUBLE),
         impl(nullMissingHandling(DateTimeFunction::exprFromUnixTimeFormat),
@@ -355,35 +398,12 @@ public class DateTimeFunction {
     );
   }
 
-  private DefaultFunctionResolver localtime() {
-    return now(BuiltinFunctionName.LOCALTIME.getName());
-  }
-
-  private DefaultFunctionResolver localtimestamp() {
-    return now(BuiltinFunctionName.LOCALTIMESTAMP.getName());
-  }
-
-  /**
-   * NOW() returns a constant time that indicates the time at which the statement began to execute.
-   * `fsp` argument support is removed until refactoring to avoid bug where `now()`, `now(x)` and
-   * `now(y) return different values.
-   */
-  private DefaultFunctionResolver now(FunctionName functionName) {
-    return define(functionName,
-        impl(() -> new ExprDatetimeValue(formatNow(null)), DATETIME)
-    );
-  }
-
-  private DefaultFunctionResolver now() {
-    return now(BuiltinFunctionName.NOW.getName());
-  }
-
-  private DefaultFunctionResolver makedate() {
+  private FunctionResolver makedate() {
     return define(BuiltinFunctionName.MAKEDATE.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprMakeDate), DATE, DOUBLE, DOUBLE));
   }
 
-  private DefaultFunctionResolver maketime() {
+  private FunctionResolver maketime() {
     return define(BuiltinFunctionName.MAKETIME.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprMakeTime), TIME, DOUBLE, DOUBLE, DOUBLE));
   }
@@ -415,8 +435,8 @@ public class DateTimeFunction {
   /**
    * MONTH(STRING/DATE/DATETIME/TIMESTAMP). return the month for date (1-12).
    */
-  private DefaultFunctionResolver month() {
-    return define(BuiltinFunctionName.MONTH.getName(),
+  private DefaultFunctionResolver month(BuiltinFunctionName month) {
+    return define(month.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprMonth), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprMonth), INTEGER, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::exprMonth), INTEGER, TIMESTAMP),
@@ -535,9 +555,10 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprToDays), LONG, DATETIME));
   }
 
-  private DefaultFunctionResolver unix_timestamp() {
+  private FunctionResolver unix_timestamp() {
     return define(BuiltinFunctionName.UNIX_TIMESTAMP.getName(),
-        impl(DateTimeFunction::unixTimeStamp, LONG),
+        implWithProperties(functionProperties
+            -> DateTimeFunction.unixTimeStamp(functionProperties.getQueryStartClock()), LONG),
         impl(nullMissingHandling(DateTimeFunction::unixTimeStampOf), DOUBLE, DATE),
         impl(nullMissingHandling(DateTimeFunction::unixTimeStampOf), DOUBLE, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::unixTimeStampOf), DOUBLE, TIMESTAMP),
@@ -548,8 +569,8 @@ public class DateTimeFunction {
   /**
    * WEEK(DATE[,mode]). return the week number for date.
    */
-  private DefaultFunctionResolver week() {
-    return define(BuiltinFunctionName.WEEK.getName(),
+  private DefaultFunctionResolver week(BuiltinFunctionName week) {
+    return define(week.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprWeekWithoutMode), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprWeekWithoutMode), INTEGER, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::exprWeekWithoutMode), INTEGER, TIMESTAMP),
@@ -1005,16 +1026,6 @@ public class DateTimeFunction {
   }
 
   /**
-   * SYSDATE() returns the time at which it executes.
-   */
-  private DefaultFunctionResolver sysdate() {
-    return define(BuiltinFunctionName.SYSDATE.getName(),
-        impl(() -> new ExprDatetimeValue(formatNow(null)), DATETIME),
-        impl((v) -> new ExprDatetimeValue(formatNow(v.integerValue())), DATETIME, INTEGER)
-    );
-  }
-
-  /**
    * Time implementation for ExprValue.
    *
    * @param exprValue ExprValue of Time type or String.
@@ -1073,8 +1084,8 @@ public class DateTimeFunction {
         CalendarLookup.getWeekNumber(mode.integerValue(), date.dateValue()));
   }
 
-  private ExprValue unixTimeStamp() {
-    return new ExprLongValue(Instant.now().getEpochSecond());
+  private ExprValue unixTimeStamp(Clock clock) {
+    return new ExprLongValue(Instant.now(clock).getEpochSecond());
   }
 
   private ExprValue unixTimeStampOf(ExprValue value) {
@@ -1167,17 +1178,18 @@ public class DateTimeFunction {
     return new ExprIntegerValue(date.dateValue().getYear());
   }
 
+  private LocalDateTime formatNow(Clock clock) {
+    return formatNow(clock, 0);
+  }
+
   /**
    * Prepare LocalDateTime value. Truncate fractional second part according to the argument.
    * @param fsp argument is given to specify a fractional seconds precision from 0 to 6,
    *            the return value includes a fractional seconds part of that many digits.
    * @return LocalDateTime object.
    */
-  private LocalDateTime formatNow(@Nullable Integer fsp) {
-    var res = LocalDateTime.now();
-    if (fsp == null) {
-      fsp = 0;
-    }
+  private LocalDateTime formatNow(Clock clock,  Integer fsp) {
+    var res = LocalDateTime.now(clock);
     var defaultPrecision = 9; // There are 10^9 nanoseconds in one second
     if (fsp < 0 || fsp > 6) { // Check that the argument is in the allowed range [0, 6]
       throw new IllegalArgumentException(
