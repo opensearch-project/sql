@@ -490,9 +490,9 @@ textFunctionBase
     | RIGHT | LEFT | ASCII | LOCATE | REPLACE
     ;
 
-    positionFunctionName
-        : POSITION
-        ;
+positionFunctionName
+    : POSITION
+    ;
 
 /** operators */
 comparisonOperator
