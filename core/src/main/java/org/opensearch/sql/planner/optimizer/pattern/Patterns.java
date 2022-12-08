@@ -113,7 +113,7 @@ public class Patterns {
   }
 
   /**
-   * Logical relation with table field.
+   * Logical write with table field.
    */
   public static Property<LogicalPlan, Table> writeTable() {
     return Property.optionalProperty("table",
