@@ -6,6 +6,8 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_PEOPLE2;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -20,6 +22,7 @@ import java.time.LocalTime;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.Period;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
@@ -754,6 +757,33 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
               .put("referenceGetter", (Supplier<Temporal>) LocalDate::now)
               .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse)
               .put("serializationPattern", "uuuu-MM-dd")
+              .build(),
+      ImmutableMap.builder()
+              .put("name", "utc_date")
+              .put("hasFsp", false)
+              .put("hasShortcut", true)
+              .put("constValue", true)
+              .put("referenceGetter", (Supplier<Temporal>) LocalDateTime::now)
+              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse)
+              .put("serializationPattern", "uuuu-MM-dd")
+              .build(),
+      ImmutableMap.builder()
+              .put("name", "utc_time")
+              .put("hasFsp", false)
+              .put("hasShortcut", true)
+              .put("constValue", true)
+              .put("referenceGetter", (Supplier<Temporal>) LocalDateTime::now)
+              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalTime::parse)
+              .put("serializationPattern", "HH:mm:ss")
+              .build(),
+      ImmutableMap.builder()
+              .put("name", "utc_timestamp")
+              .put("hasFsp", false)
+              .put("hasShortcut", true)
+              .put("constValue", true)
+              .put("referenceGetter", (Supplier<Temporal>) LocalDateTime::now)
+              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse)
+              .put("serializationPattern", "uuuu-MM-dd HH:mm:ss")
               .build()
     );
   }

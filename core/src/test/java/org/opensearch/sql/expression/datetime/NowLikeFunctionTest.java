@@ -103,6 +103,24 @@ class NowLikeFunctionTest extends ExpressionTestBase {
         () -> LocalDate.now(functionProperties.getQueryStartClock()));
   }
 
+  @Test
+  void utc_date() {
+    test_now_like_functions(DSL::utc_date, DATE, false,
+        () -> LocalDate.now(functionProperties.getQueryStartClock()));
+  }
+
+  @Test
+  void utc_time() {
+    test_now_like_functions(DSL::utc_time, TIME, false,
+        () -> LocalTime.now(functionProperties.getQueryStartClock()));
+  }
+
+  @Test
+  void utc_timestamp() {
+    test_now_like_functions(DSL::utc_timestamp, DATETIME, false,
+        () -> LocalDateTime.now(functionProperties.getQueryStartClock()));
+  }
+
   /**
    * Check how NOW-like functions are processed.
    *

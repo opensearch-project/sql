@@ -20,6 +20,7 @@ import static org.opensearch.sql.expression.function.FunctionDSL.define;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.implWithProperties;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
+import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandlingWithProperties;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_LONG_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_SHORT_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_LONG_YEAR;
@@ -63,6 +64,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
 import org.opensearch.sql.expression.function.FunctionDSL;
 import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.utils.DateTimeUtils;
 
@@ -126,6 +128,9 @@ public class DateTimeFunction {
     repository.register(time());
     repository.register(time_to_sec());
     repository.register(timestamp());
+    repository.register(utc_date());
+    repository.register(utc_time());
+    repository.register(utc_timestamp());
     repository.register(date_format());
     repository.register(to_days());
     repository.register(unix_timestamp());
@@ -564,6 +569,33 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::unixTimeStampOf), DOUBLE, TIMESTAMP),
         impl(nullMissingHandling(DateTimeFunction::unixTimeStampOf), DOUBLE, DOUBLE)
     );
+  }
+
+  /**
+   * UTC_DATE(). return the current UTC Date in format yyyy-MM-dd
+   */
+  private DefaultFunctionResolver utc_date() {
+    return define(BuiltinFunctionName.UTC_DATE.getName(),
+        implWithProperties(functionProperties
+            -> DateTimeFunction.exprUtcDate(functionProperties), DATE));
+  }
+
+  /**
+   * UTC_TIME(). return the current UTC Time in format HH:mm:ss
+   */
+  private DefaultFunctionResolver utc_time() {
+    return define(BuiltinFunctionName.UTC_TIME.getName(),
+        implWithProperties(functionProperties
+            -> DateTimeFunction.exprUtcTime(functionProperties), TIME));
+  }
+
+  /**
+   * UTC_TIMESTAMP(). return the current UTC TimeStamp in format yyyy-MM-dd HH:mm:ss
+   */
+  private DefaultFunctionResolver utc_timestamp() {
+    return define(BuiltinFunctionName.UTC_TIMESTAMP.getName(),
+        implWithProperties(functionProperties
+            -> DateTimeFunction.exprUtcTimeStamp(functionProperties), DATETIME));
   }
 
   /**
@@ -1061,6 +1093,35 @@ public class DateTimeFunction {
    */
   private ExprValue exprTimeToSec(ExprValue time) {
     return new ExprLongValue(time.timeValue().toSecondOfDay());
+  }
+
+  /**
+   * UTC_DATE implementation for ExprValue.
+   *
+   * @return ExprValue.
+   */
+  private ExprValue exprUtcDate(FunctionProperties functionProperties) {
+    return new ExprDateValue(LocalDate.now(functionProperties.getQueryStartClock()));
+  }
+
+  /**
+   * UTC_TIME implementation for ExprValue.
+   *
+   * @return ExprValue.
+   */
+  private ExprValue exprUtcTime(FunctionProperties functionProperties) {
+    return new ExprTimeValue(LocalTime.now(functionProperties.getQueryStartClock()).withNano(0));
+  }
+
+  /**
+   * UTC_TIMESTAMP implementation for ExprValue.
+   *
+   * @return ExprValue.
+   */
+  private ExprValue exprUtcTimeStamp(FunctionProperties functionProperties) {
+    return new ExprDatetimeValue(
+        LocalDateTime.now(
+            functionProperties.getQueryStartClock()).withNano(0));
   }
 
   /**
