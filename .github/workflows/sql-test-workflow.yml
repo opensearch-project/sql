@@ -2,6 +2,10 @@ name: SQL Plugin Tests
 
 on:
   workflow_dispatch:
+  pull_request:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
 
 jobs:
   build:
