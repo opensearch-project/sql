@@ -487,7 +487,7 @@ systemFunctionBase
 
 textFunctionBase
     : SUBSTR | SUBSTRING | TRIM | LTRIM | RTRIM | LOWER | UPPER | CONCAT | CONCAT_WS | LENGTH | STRCMP
-    | RIGHT | LEFT | ASCII | LOCATE | REPLACE
+    | RIGHT | LEFT | ASCII | LOCATE | REPLACE | REVERSE
     ;
 
 positionFunctionName
