@@ -54,7 +54,7 @@ jobs:
         ref: ${{ env.JDBC_VERSION }}
     - name: Build SQL-JDBC library
       working-directory: ./sql-jdbc
-      run: ./gradlew publishToMavenLocal -Dbuild.snapshot=false
+      run: ./gradlew publishToMavenLocal
 
     - name: Build with Gradle
       run: ./gradlew --continue build ${{ matrix.entry.os_build_args }}
