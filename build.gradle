@@ -9,7 +9,7 @@ buildscript {
         opensearch_version = System.getProperty("opensearch.version", "3.0.0-SNAPSHOT")
         spring_version = "5.3.22"
         jackson_version = "2.13.4"
-        opensearch_jdbc_version ="1.1.0.1"
+        opensearch_jdbc_version ="2.0.0.0"
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
         version_tokens = opensearch_version.tokenize('-')
