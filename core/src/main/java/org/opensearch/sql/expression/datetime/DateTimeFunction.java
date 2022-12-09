@@ -1098,30 +1098,33 @@ public class DateTimeFunction {
   /**
    * UTC_DATE implementation for ExprValue.
    *
+   * @param functionProperties FunctionProperties.
    * @return ExprValue.
    */
   private ExprValue exprUtcDate(FunctionProperties functionProperties) {
-    return new ExprDateValue(LocalDate.now(functionProperties.getQueryStartClock()));
+    return new ExprDateValue(exprUtcTimeStamp(functionProperties).dateValue());
   }
 
   /**
    * UTC_TIME implementation for ExprValue.
    *
+   * @param functionProperties FunctionProperties.
    * @return ExprValue.
    */
   private ExprValue exprUtcTime(FunctionProperties functionProperties) {
-    return new ExprTimeValue(LocalTime.now(functionProperties.getQueryStartClock()).withNano(0));
+    return new ExprTimeValue(exprUtcTimeStamp(functionProperties).timeValue());
   }
 
   /**
    * UTC_TIMESTAMP implementation for ExprValue.
    *
+   * @param functionProperties FunctionProperties.
    * @return ExprValue.
    */
   private ExprValue exprUtcTimeStamp(FunctionProperties functionProperties) {
-    return new ExprDatetimeValue(
-        LocalDateTime.now(
-            functionProperties.getQueryStartClock()).withNano(0));
+    var zdt = ZonedDateTime.now(functionProperties.getQueryStartClock())
+        .withZoneSameInstant(ZoneId.of("UTC"));
+    return new ExprDatetimeValue(DATE_TIME_FORMATTER_STRICT_WITH_TZ.format(zdt));
   }
 
   /**

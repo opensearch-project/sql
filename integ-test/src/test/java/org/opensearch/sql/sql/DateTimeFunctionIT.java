@@ -642,7 +642,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result, rows("1945-01-06", "1989-06-06"));
   }
 
-  private static LocalDateTime utcDateTimeNow() {
+  public static LocalDateTime utcDateTimeNow() {
     ZonedDateTime zonedDateTime =
         LocalDateTime.now().atZone(TimeZone.getDefault().toZoneId());
     return zonedDateTime.withZoneSameInstant(ZoneId.of("UTC")).toLocalDateTime();
@@ -734,7 +734,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
       ImmutableMap.builder()
               .put("name", "utc_date")
               .put("hasFsp", false)
-              .put("hasShortcut", true)
+              .put("hasShortcut", false)
               .put("constValue", true)
               .put("referenceGetter", (Supplier<Temporal>) (()-> org.opensearch.sql.sql.DateTimeFunctionIT.utcDateTimeNow().toLocalDate()))
               .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse)
@@ -743,7 +743,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
       ImmutableMap.builder()
               .put("name", "utc_time")
               .put("hasFsp", false)
-              .put("hasShortcut", true)
+              .put("hasShortcut", false)
               .put("constValue", true)
               .put("referenceGetter", (Supplier<Temporal>) (()-> org.opensearch.sql.sql.DateTimeFunctionIT.utcDateTimeNow().toLocalTime()))
               .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalTime::parse)
@@ -752,7 +752,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
       ImmutableMap.builder()
               .put("name", "utc_timestamp")
               .put("hasFsp", false)
-              .put("hasShortcut", true)
+              .put("hasShortcut", false)
               .put("constValue", true)
               .put("referenceGetter", (Supplier<Temporal>) org.opensearch.sql.sql.DateTimeFunctionIT::utcDateTimeNow)
               .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse)
