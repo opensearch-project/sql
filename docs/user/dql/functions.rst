@@ -2468,6 +2468,29 @@ Example::
     +--------------------------------------------------+
 
 
+REVERSE
+-------
+
+Description
+>>>>>>>>>>>
+
+Usage: REVERSE(str) returns reversed string of the string supplied as an argument. Returns NULL if the argument is NULL.
+
+Argument type: STRING
+
+Return type: STRING
+
+Example::
+
+    os> SELECT REVERSE('abcde'), REVERSE(null)
+    fetched rows / total rows = 1/1
+    +--------------------+-----------------+
+    | REVERSE('abcde')   | REVERSE(null)   |
+    |--------------------+-----------------|
+    | edcba              | null            |
+    +--------------------+-----------------+
+
+
 RIGHT
 -----
 

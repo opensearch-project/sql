@@ -243,6 +243,7 @@ REPLACE:                            'REPLACE';
 RINT:                               'RINT';
 ROUND:                              'ROUND';
 RTRIM:                              'RTRIM';
+REVERSE:                            'REVERSE';
 SIGN:                               'SIGN';
 SIGNUM:                             'SIGNUM';
 SIN:                                'SIN';

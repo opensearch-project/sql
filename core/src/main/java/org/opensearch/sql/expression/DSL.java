@@ -486,6 +486,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.REPLACE, expressions);
   }
 
+  public static FunctionExpression reverse(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.REVERSE, expressions);
+  }
+
   public static FunctionExpression and(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.AND, expressions);
   }

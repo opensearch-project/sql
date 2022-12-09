@@ -175,6 +175,29 @@ Example::
     +-------------------------------------+---------------------------------------+
 
 
+REVERSE
+-----
+
+Description
+>>>>>>>>>>>
+
+Usage: REVERSE(str) returns reversed string of the string supplied as an argument.
+
+Argument type: STRING
+
+Return type: STRING
+
+Example::
+
+    os> source=people | eval `REVERSE('abcde')` = REVERSE('abcde') | fields `REVERSE('abcde')`
+    fetched rows / total rows = 1/1
+    +--------------------+
+    | REVERSE('abcde')   |
+    |--------------------|
+    | edcba              |
+    +--------------------+
+
+
 RIGHT
 -----
 

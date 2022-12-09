@@ -139,4 +139,9 @@ public class TextFunctionIT extends PPLIntegTestCase {
   public void testReplace() throws IOException {
     verifyQuery("replace", "", ", 'world', ' opensearch'", "hello", " opensearch", "hello opensearch");
   }
+
+  @Test
+  public void testReverse() throws IOException {
+    verifyQuery("reverse", "", "", "olleh", "dlrow", "dlrowolleh");
+  }
 }
