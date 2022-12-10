@@ -10,6 +10,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -20,13 +21,13 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.NamedExpression;
-import org.opensearch.sql.expression.ParseExpression;
+import org.opensearch.sql.expression.parse.ParseExpression;
 
 /**
  * Project the fields specified in {@link ProjectOperator#projectList} from input.
  */
 @ToString
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
 public class ProjectOperator extends PhysicalPlan {
   @Getter
@@ -55,28 +56,33 @@ public class ProjectOperator extends PhysicalPlan {
   public ExprValue next() {
     ExprValue inputValue = input.next();
     ImmutableMap.Builder<String, ExprValue> mapBuilder = new Builder<>();
-    for (NamedExpression expr : projectList) {
-      ExprValue exprValue = expr.valueOf(inputValue.bindingTuples());
-      if (namedParseExpressions.stream()
-          .noneMatch(parsed -> parsed.getNameOrAlias().equals(expr.getNameOrAlias()))) {
-        mapBuilder.put(expr.getNameOrAlias(), exprValue);
-      }
-    }
+
     // ParseExpression will always override NamedExpression when identifier conflicts
     // TODO needs a better implementation, see https://github.com/opensearch-project/sql/issues/458
-    for (NamedExpression expr : namedParseExpressions) {
-      ExprValue value = inputValue.bindingTuples()
-          .resolve(((ParseExpression) expr.getDelegated()).getExpression());
-      if (value.isMissing()) {
-        // value will be missing after stats command, read from inputValue if it exists
+    for (NamedExpression expr : projectList) {
+      ExprValue exprValue = expr.valueOf(inputValue.bindingTuples());
+      Optional<NamedExpression> optionalParseExpression = namedParseExpressions.stream()
+          .filter(parseExpr -> parseExpr.getNameOrAlias().equals(expr.getNameOrAlias()))
+          .findFirst();
+      if (optionalParseExpression.isEmpty()) {
+        mapBuilder.put(expr.getNameOrAlias(), exprValue);
+        continue;
+      }
+
+      NamedExpression parseExpression = optionalParseExpression.get();
+      ExprValue sourceFieldValue = inputValue.bindingTuples()
+          .resolve(((ParseExpression) parseExpression.getDelegated()).getSourceField());
+      if (sourceFieldValue.isMissing()) {
+        // source field will be missing after stats command, read from inputValue if it exists
         // otherwise do nothing since it should not appear as a field
-        ExprValue exprValue = ExprValueUtils.getTupleValue(inputValue).get(expr.getNameOrAlias());
-        if (exprValue != null) {
-          mapBuilder.put(expr.getNameOrAlias(), exprValue);
+        ExprValue tupleValue =
+            ExprValueUtils.getTupleValue(inputValue).get(parseExpression.getNameOrAlias());
+        if (tupleValue != null) {
+          mapBuilder.put(parseExpression.getNameOrAlias(), tupleValue);
         }
       } else {
-        ExprValue parsedValue = expr.valueOf(inputValue.bindingTuples());
-        mapBuilder.put(expr.getNameOrAlias(), parsedValue);
+        ExprValue parsedValue = parseExpression.valueOf(inputValue.bindingTuples());
+        mapBuilder.put(parseExpression.getNameOrAlias(), parsedValue);
       }
     }
     return ExprTupleValue.fromExprValueMap(mapBuilder.build());

@@ -1,0 +1,9 @@
+# The URLs of the OpenSearch instances to use for all your queries.
+opensearch.hosts: ["https://localhost:9200"]
+
+opensearch.ssl.verificationMode: none
+
+server.ssl.enabled: true
+server.ssl.certificate: <PATH_TO_YOUR_CERT>/certificate.pem
+server.ssl.key:  <PATH_TO_YOUR_CERT>/key.pem
+server.ssl.clientAuthentication: none

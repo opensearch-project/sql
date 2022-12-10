@@ -6,20 +6,47 @@
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.0.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "2.4.0-SNAPSHOT")
         spring_version = "5.3.22"
-        jackson_version = "2.13.4"
-        opensearch_jdbc_version ="2.0.0.0"
+        jackson_version = "2.14.0"
+        jackson_databind_version = "2.14.0"
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
         version_tokens = opensearch_version.tokenize('-')
         opensearch_build = version_tokens[0] + '.0'
+        prometheus_binary_version = "2.37.2"
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
         }
         if (isSnapshot) {
             // 2.0.0-rc1-SNAPSHOT -> 2.0.0.0-rc1-SNAPSHOT (opensearch_build)
             opensearch_build += "-SNAPSHOT"
+        }
+        getArchType = {
+            if (System.getProperty("os.arch").startsWith("x") || System.getProperty("os.arch").startsWith("amd")) {
+                return "amd64"
+            }
+            else {
+                return "arm64"
+            }
+        }
+        getOSFamilyType = {
+            def os = org.gradle.internal.os.OperatingSystem.current();
+            if (os.isMacOsX()) {
+                return "darwin"
+            }
+            else if(os.isLinux()){
+                return "linux"
+            }
+            else if(os.isWindows()) {
+                return "windows"
+            }
+            else {
+                return os.getFamilyName().toString()
+            }
+        }
+        getPrometheusBinaryLocation = { ->
+            return "https://github.com/prometheus/prometheus/releases/download/v${prometheus_binary_version}/prometheus-${prometheus_binary_version}."+ getOSFamilyType() + "-" + getArchType() + ".tar.gz"
         }
     }
 
@@ -45,8 +72,6 @@ plugins {
 // Repository on root level is for dependencies that project code depends on. And this block must be placed after plugins{}
 repositories {
     mavenLocal()
-    // todo. remove this when lucene 9.4.0 is released
-    maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
     maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
     mavenCentral() // For Elastic Libs that you can use to get started coding until open OpenSearch libs are available
 }
@@ -69,8 +94,6 @@ allprojects {
 subprojects {
     repositories {
         mavenLocal()
-        // todo. remove this when lucene 9.4.0 is released
-        maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
         maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
         mavenCentral()
     }
@@ -163,6 +186,7 @@ task updateVersion {
         ext.newVersion = System.getProperty('newVersion')
         println "Setting version to ${newVersion}."
         // String tokenization to support -SNAPSHOT
+        ant.replaceregexp(file:'.github/workflows/sql-workbench-test-and-build-workflow.yml', match:'OPENSEARCH_PLUGIN_VERSION: \\d+.\\d+.\\d+.\\d+', replace:'OPENSEARCH_PLUGIN_VERSION: ' + newVersion.tokenize('-')[0] + '.0', flags:'g', byline:true)
         ant.replaceregexp(file:'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags:'g', byline:true)
         ant.replaceregexp(match:'"version": "\\d+.\\d+.\\d+.\\d+', replace:'"version": ' + '"' + newVersion.tokenize('-')[0] + '.0', flags:'g', byline:true) {
             fileset(dir: projectDir) {

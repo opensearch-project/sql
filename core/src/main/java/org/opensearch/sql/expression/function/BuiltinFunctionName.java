@@ -41,6 +41,7 @@ public enum BuiltinFunctionName {
   ROUND(FunctionName.of("round")),
   SIGN(FunctionName.of("sign")),
   SQRT(FunctionName.of("sqrt")),
+  CBRT(FunctionName.of("cbrt")),
   TRUNCATE(FunctionName.of("truncate")),
 
   ACOS(FunctionName.of("acos")),
@@ -58,7 +59,9 @@ public enum BuiltinFunctionName {
    * Date and Time Functions.
    */
   ADDDATE(FunctionName.of("adddate")),
+  CONVERT_TZ(FunctionName.of("convert_tz")),
   DATE(FunctionName.of("date")),
+  DATETIME(FunctionName.of("datetime")),
   DATE_ADD(FunctionName.of("date_add")),
   DATE_SUB(FunctionName.of("date_sub")),
   DAY(FunctionName.of("day")),
@@ -66,14 +69,19 @@ public enum BuiltinFunctionName {
   DAYOFMONTH(FunctionName.of("dayofmonth")),
   DAYOFWEEK(FunctionName.of("dayofweek")),
   DAYOFYEAR(FunctionName.of("dayofyear")),
+  DAY_OF_YEAR(FunctionName.of("day_of_year")),
   FROM_DAYS(FunctionName.of("from_days")),
+  FROM_UNIXTIME(FunctionName.of("from_unixtime")),
   HOUR(FunctionName.of("hour")),
   MAKEDATE(FunctionName.of("makedate")),
   MAKETIME(FunctionName.of("maketime")),
   MICROSECOND(FunctionName.of("microsecond")),
   MINUTE(FunctionName.of("minute")),
   MONTH(FunctionName.of("month")),
+  MONTH_OF_YEAR(FunctionName.of("month_of_year")),
   MONTHNAME(FunctionName.of("monthname")),
+  PERIOD_ADD(FunctionName.of("period_add")),
+  PERIOD_DIFF(FunctionName.of("period_diff")),
   QUARTER(FunctionName.of("quarter")),
   SECOND(FunctionName.of("second")),
   SUBDATE(FunctionName.of("subdate")),
@@ -82,9 +90,20 @@ public enum BuiltinFunctionName {
   TIMESTAMP(FunctionName.of("timestamp")),
   DATE_FORMAT(FunctionName.of("date_format")),
   TO_DAYS(FunctionName.of("to_days")),
+  UNIX_TIMESTAMP(FunctionName.of("unix_timestamp")),
   WEEK(FunctionName.of("week")),
+  WEEK_OF_YEAR(FunctionName.of("week_of_year")),
   YEAR(FunctionName.of("year")),
-
+  // `now`-like functions
+  NOW(FunctionName.of("now")),
+  CURDATE(FunctionName.of("curdate")),
+  CURRENT_DATE(FunctionName.of("current_date")),
+  CURTIME(FunctionName.of("curtime")),
+  CURRENT_TIME(FunctionName.of("current_time")),
+  LOCALTIME(FunctionName.of("localtime")),
+  CURRENT_TIMESTAMP(FunctionName.of("current_timestamp")),
+  LOCALTIMESTAMP(FunctionName.of("localtimestamp")),
+  SYSDATE(FunctionName.of("sysdate")),
   /**
    * Text Functions.
    */
@@ -131,27 +150,30 @@ public enum BuiltinFunctionName {
   STDDEV_SAMP(FunctionName.of("stddev_samp")),
   // population standard deviation.
   STDDEV_POP(FunctionName.of("stddev_pop")),
+  // take top documents from aggregation bucket.
+  TAKE(FunctionName.of("take")),
 
   /**
    * Text Functions.
    */
-  SUBSTR(FunctionName.of("substr")),
-  SUBSTRING(FunctionName.of("substring")),
-  RTRIM(FunctionName.of("rtrim")),
-  LTRIM(FunctionName.of("ltrim")),
-  TRIM(FunctionName.of("trim")),
-  UPPER(FunctionName.of("upper")),
-  LOWER(FunctionName.of("lower")),
-  REGEXP(FunctionName.of("regexp")),
+  ASCII(FunctionName.of("ascii")),
   CONCAT(FunctionName.of("concat")),
   CONCAT_WS(FunctionName.of("concat_ws")),
-  LENGTH(FunctionName.of("length")),
-  STRCMP(FunctionName.of("strcmp")),
-  RIGHT(FunctionName.of("right")),
   LEFT(FunctionName.of("left")),
-  ASCII(FunctionName.of("ascii")),
+  LENGTH(FunctionName.of("length")),
   LOCATE(FunctionName.of("locate")),
+  LOWER(FunctionName.of("lower")),
+  LTRIM(FunctionName.of("ltrim")),
+  POSITION(FunctionName.of("position")),
+  REGEXP(FunctionName.of("regexp")),
   REPLACE(FunctionName.of("replace")),
+  RIGHT(FunctionName.of("right")),
+  RTRIM(FunctionName.of("rtrim")),
+  STRCMP(FunctionName.of("strcmp")),
+  SUBSTR(FunctionName.of("substr")),
+  SUBSTRING(FunctionName.of("substring")),
+  TRIM(FunctionName.of("trim")),
+  UPPER(FunctionName.of("upper")),
 
   /**
    * NULL Test.
@@ -184,6 +206,7 @@ public enum BuiltinFunctionName {
   CAST_TO_TIME(FunctionName.of("cast_to_time")),
   CAST_TO_TIMESTAMP(FunctionName.of("cast_to_timestamp")),
   CAST_TO_DATETIME(FunctionName.of("cast_to_datetime")),
+  TYPEOF(FunctionName.of("typeof")),
 
   /**
    * Relevance Function.
@@ -192,6 +215,7 @@ public enum BuiltinFunctionName {
   SIMPLE_QUERY_STRING(FunctionName.of("simple_query_string")),
   MATCH_PHRASE(FunctionName.of("match_phrase")),
   MATCHPHRASE(FunctionName.of("matchphrase")),
+  MATCHPHRASEQUERY(FunctionName.of("matchphrasequery")),
   QUERY_STRING(FunctionName.of("query_string")),
   MATCH_BOOL_PREFIX(FunctionName.of("match_bool_prefix")),
   HIGHLIGHT(FunctionName.of("highlight")),
@@ -202,7 +226,9 @@ public enum BuiltinFunctionName {
   QUERY(FunctionName.of("query")),
   MATCH_QUERY(FunctionName.of("match_query")),
   MATCHQUERY(FunctionName.of("matchquery")),
-  MULTI_MATCH(FunctionName.of("multi_match"));
+  MULTI_MATCH(FunctionName.of("multi_match")),
+  MULTIMATCH(FunctionName.of("multimatch")),
+  MULTIMATCHQUERY(FunctionName.of("multimatchquery"));
 
   private final FunctionName name;
 
@@ -230,6 +256,7 @@ public enum BuiltinFunctionName {
           .put("stddev", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_pop", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
+          .put("take", BuiltinFunctionName.TAKE)
           .build();
 
   public static Optional<BuiltinFunctionName> of(String str) {

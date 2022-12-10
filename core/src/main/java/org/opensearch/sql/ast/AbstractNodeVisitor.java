@@ -34,6 +34,9 @@ import org.opensearch.sql.ast.expression.UnresolvedAttribute;
 import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
+import org.opensearch.sql.ast.statement.Explain;
+import org.opensearch.sql.ast.statement.Query;
+import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
@@ -42,6 +45,7 @@ import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
+import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
@@ -49,6 +53,7 @@ import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Values;
 
 /**
@@ -89,6 +94,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitRelationSubquery(RelationSubquery node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitTableFunction(TableFunction node, C context) {
     return visitChildren(node, context);
   }
 
@@ -256,7 +265,23 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(node, context);
   }
 
-  public T visitHighlight(HighlightFunction node, C context) {
+  public T visitML(ML node, C context) {
     return visitChildren(node, context);
+  }
+
+  public T visitHighlightFunction(HighlightFunction node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitStatement(Statement node, C context) {
+    return visit(node, context);
+  }
+
+  public T visitQuery(Query node, C context) {
+    return visitStatement(node, context);
+  }
+
+  public T visitExplain(Explain node, C context) {
+    return visitStatement(node, context);
   }
 }

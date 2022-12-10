@@ -8,7 +8,6 @@ package org.opensearch.sql.ast.expression;
 
 import java.util.Collections;
 import java.util.List;
-import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

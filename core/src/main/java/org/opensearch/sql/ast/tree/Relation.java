@@ -45,45 +45,12 @@ public class Relation extends UnresolvedPlan {
   private String alias;
 
   /**
-   * Get original table name. Unwrap and get name if table name expression
-   * is actually an Alias.
-   * In case of federated queries we are assuming single table.
+   * Return table name.
    *
    * @return table name
    */
   public String getTableName() {
-    if (tableName.size() == 1 && ((QualifiedName) tableName.get(0)).first().isPresent()) {
-      return ((QualifiedName) tableName.get(0)).rest().toString();
-    }
-    return tableName.stream()
-        .map(UnresolvedExpression::toString)
-        .collect(Collectors.joining(COMMA));
-  }
-
-  /**
-   * Get Catalog Name if present. Since in the initial phase we would be supporting single table
-   * federation queries, we are making an assumption of one table.
-   *
-   * @return catalog name
-   */
-  public String getCatalogName() {
-    if (tableName.size() == 1) {
-      if (tableName.get(0) instanceof QualifiedName) {
-        return ((QualifiedName) tableName.get(0)).first().orElse(null);
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Return full qualified table name with catalog.
-   *
-   * @return fully qualified table name with catalog.
-   */
-  public String getFullyQualifiedTableNameWithCatalog() {
-    return tableName.stream()
-        .map(UnresolvedExpression::toString)
-        .collect(Collectors.joining(COMMA));
+    return getTableQualifiedName().toString();
   }
 
   /**
@@ -93,6 +60,32 @@ public class Relation extends UnresolvedPlan {
    */
   public String getTableNameOrAlias() {
     return (alias == null) ? getTableName() : alias;
+  }
+
+  /**
+   * Return alias.
+   *
+   * @return alias.
+   */
+  public String getAlias() {
+    return alias;
+  }
+
+  /**
+   * Get Qualified name preservs parts of the user given identifiers.
+   * This can later be utilized to determine DataSource,Schema and Table Name during
+   * Analyzer stage. So Passing QualifiedName directly to Analyzer Stage.
+   *
+   * @return TableQualifiedName.
+   */
+  public QualifiedName getTableQualifiedName() {
+    if (tableName.size() == 1) {
+      return (QualifiedName) tableName.get(0);
+    } else {
+      return new QualifiedName(tableName.stream()
+          .map(UnresolvedExpression::toString)
+          .collect(Collectors.joining(COMMA)));
+    }
   }
 
   @Override

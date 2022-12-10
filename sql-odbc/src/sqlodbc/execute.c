@@ -1,0 +1,134 @@
+#include <stdio.h>
+#include <string.h>
+
+#include "opensearch_odbc.h"
+#include "misc.h"
+
+#ifndef WIN32
+#include <ctype.h>
+#endif /* WIN32 */
+
+#include "bind.h"
+#include "convert.h"
+#include "environ.h"
+#include "opensearch_types.h"
+#include "opensearch_apifunc.h"
+#include "opensearch_connection.h"
+#include "opensearch_statement.h"
+#include "qresult.h"
+#include "statement.h"
+
+RETCODE SQL_API OPENSEARCHAPI_Prepare(HSTMT hstmt, const SQLCHAR *stmt_str,
+                              SQLINTEGER stmt_sz) {
+    if (hstmt == NULL)
+        return SQL_ERROR;
+
+    // We know cursor is not open at this point
+    StatementClass *stmt = (StatementClass *)hstmt;
+
+    // PrepareStatement deallocates memory if necessary
+    RETCODE ret = PrepareStatement(stmt, stmt_str, stmt_sz);
+    if (ret != SQL_SUCCESS)
+        return ret;
+
+    // Execute the statement
+    ret = ExecuteStatement(stmt, FALSE);
+    if (ret == SQL_SUCCESS)
+        stmt->prepared = PREPARED;
+
+    return ret;
+}
+
+RETCODE SQL_API OPENSEARCHAPI_Execute(HSTMT hstmt) {
+    if (hstmt == NULL)
+        return SQL_ERROR;
+
+    // We know cursor is not open at this point
+    StatementClass *stmt = (StatementClass *)hstmt;
+    RETCODE ret = SQL_ERROR;
+    switch (stmt->prepared) {
+        case PREPARED:
+            ret = AssignResult(stmt);
+            stmt->prepared = EXECUTED;
+            break;
+        case EXECUTED:
+            ret = RePrepareStatement(stmt);
+            if (ret != SQL_SUCCESS)
+                break;
+            ret = ExecuteStatement(stmt, TRUE);
+            if (ret != SQL_SUCCESS)
+                break;
+            stmt->prepared = EXECUTED;
+            break;
+        case NOT_PREPARED:
+            ret = SQL_ERROR;
+            break;
+        default:
+            break;
+    }
+    return ret;
+}
+
+RETCODE SQL_API OPENSEARCHAPI_ExecDirect(HSTMT hstmt, const SQLCHAR *stmt_str,
+                                 SQLINTEGER stmt_sz, BOOL commit) {
+    if (hstmt == NULL)
+        return SQL_ERROR;
+
+    // We know cursor is not open at this point
+    StatementClass *stmt = (StatementClass *)hstmt;
+    RETCODE ret = PrepareStatement(stmt, stmt_str, stmt_sz);
+    if (ret != SQL_SUCCESS)
+        return ret;
+
+    // Execute statement
+    ret = ExecuteStatement(hstmt, commit);
+    if (ret != SQL_SUCCESS)
+        return ret;
+    stmt->prepared = NOT_PREPARED;
+    return ret;
+}
+
+/*
+ *	Returns the SQL string as modified by the driver.
+ *	Currently, just copy the input string without modification
+ *	observing buffer limits and truncation.
+ */
+RETCODE SQL_API OPENSEARCHAPI_NativeSql(HDBC hdbc, const SQLCHAR *szSqlStrIn,
+                                SQLINTEGER cbSqlStrIn, SQLCHAR *szSqlStr,
+                                SQLINTEGER cbSqlStrMax, SQLINTEGER *pcbSqlStr) {
+    CSTR func = "OPENSEARCHAPI_NativeSql";
+    size_t len = 0;
+    char *ptr;
+    ConnectionClass *conn = (ConnectionClass *)hdbc;
+    RETCODE result;
+
+    MYLOG(OPENSEARCH_TRACE, "entering...cbSqlStrIn=" FORMAT_INTEGER "\n", cbSqlStrIn);
+
+    ptr = (cbSqlStrIn == 0) ? "" : make_string(szSqlStrIn, cbSqlStrIn, NULL, 0);
+    if (!ptr) {
+        CC_set_error(conn, CONN_NO_MEMORY_ERROR,
+                     "No memory available to store native sql string", func);
+        return SQL_ERROR;
+    }
+
+    result = SQL_SUCCESS;
+    len = strlen(ptr);
+
+    if (szSqlStr) {
+        strncpy_null((char *)szSqlStr, ptr, cbSqlStrMax);
+
+        if (len >= (size_t)cbSqlStrMax) {
+            result = SQL_SUCCESS_WITH_INFO;
+            CC_set_error(conn, CONN_TRUNCATED,
+                         "The buffer was too small for the NativeSQL.", func);
+        }
+    }
+
+    if (pcbSqlStr)
+        *pcbSqlStr = (SQLINTEGER)len;
+
+    if (cbSqlStrIn)
+        free(ptr);
+
+    return result;
+}

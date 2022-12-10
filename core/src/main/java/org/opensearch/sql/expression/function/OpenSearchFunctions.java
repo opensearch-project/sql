@@ -17,7 +17,6 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
-import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
 import org.opensearch.sql.expression.env.Environment;
 
@@ -28,24 +27,21 @@ public class OpenSearchFunctions {
    */
   public void register(BuiltinFunctionRepository repository) {
     repository.register(match_bool_prefix());
-    repository.register(match());
-    repository.register(multi_match());
+    repository.register(multi_match(BuiltinFunctionName.MULTI_MATCH));
+    repository.register(multi_match(BuiltinFunctionName.MULTIMATCH));
+    repository.register(multi_match(BuiltinFunctionName.MULTIMATCHQUERY));
+    repository.register(match(BuiltinFunctionName.MATCH));
+    repository.register(match(BuiltinFunctionName.MATCHQUERY));
+    repository.register(match(BuiltinFunctionName.MATCH_QUERY));
     repository.register(simple_query_string());
+    repository.register(query());
     repository.register(query_string());
     // Register MATCHPHRASE as MATCH_PHRASE as well for backwards
     // compatibility.
     repository.register(match_phrase(BuiltinFunctionName.MATCH_PHRASE));
     repository.register(match_phrase(BuiltinFunctionName.MATCHPHRASE));
+    repository.register(match_phrase(BuiltinFunctionName.MATCHPHRASEQUERY));
     repository.register(match_phrase_prefix());
-    repository.register(highlight());
-  }
-
-  private static FunctionResolver highlight() {
-    FunctionName functionName = BuiltinFunctionName.HIGHLIGHT.getName();
-    FunctionSignature functionSignature = new FunctionSignature(functionName, List.of(STRING));
-    FunctionBuilder functionBuilder = arguments -> new HighlightExpression(arguments.get(0));
-    return new DefaultFunctionResolver(functionName,
-        ImmutableMap.of(functionSignature, functionBuilder));
   }
 
   private static FunctionResolver match_bool_prefix() {
@@ -53,8 +49,8 @@ public class OpenSearchFunctions {
     return new RelevanceFunctionResolver(name, STRING);
   }
 
-  private static FunctionResolver match() {
-    FunctionName funcName = BuiltinFunctionName.MATCH.getName();
+  private static FunctionResolver match(BuiltinFunctionName match) {
+    FunctionName funcName = match.getName();
     return new RelevanceFunctionResolver(funcName, STRING);
   }
 
@@ -68,14 +64,18 @@ public class OpenSearchFunctions {
     return new RelevanceFunctionResolver(funcName, STRING);
   }
 
-  private static FunctionResolver multi_match() {
-    FunctionName funcName = BuiltinFunctionName.MULTI_MATCH.getName();
-    return new RelevanceFunctionResolver(funcName, STRUCT);
+  private static FunctionResolver multi_match(BuiltinFunctionName multiMatchName) {
+    return new RelevanceFunctionResolver(multiMatchName.getName(), STRUCT);
   }
 
   private static FunctionResolver simple_query_string() {
     FunctionName funcName = BuiltinFunctionName.SIMPLE_QUERY_STRING.getName();
     return new RelevanceFunctionResolver(funcName, STRUCT);
+  }
+
+  private static FunctionResolver query() {
+    FunctionName funcName = BuiltinFunctionName.QUERY.getName();
+    return new RelevanceFunctionResolver(funcName, STRING);
   }
 
   private static FunctionResolver query_string() {

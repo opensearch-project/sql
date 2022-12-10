@@ -7,6 +7,7 @@
 package org.opensearch.sql.opensearch.storage;
 
 import com.google.common.annotations.VisibleForTesting;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -18,12 +19,14 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.planner.logical.OpenSearchLogicalIndexAgg;
 import org.opensearch.sql.opensearch.planner.logical.OpenSearchLogicalIndexScan;
 import org.opensearch.sql.opensearch.planner.logical.OpenSearchLogicalPlanOptimizerFactory;
 import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
+import org.opensearch.sql.opensearch.planner.physical.MLOperator;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.system.OpenSearchDescribeIndexRequest;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
@@ -34,6 +37,7 @@ import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSeri
 import org.opensearch.sql.planner.DefaultImplementor;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalHighlight;
+import org.opensearch.sql.planner.logical.LogicalML;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalRelation;
@@ -70,6 +74,23 @@ public class OpenSearchIndex implements Table {
     this.client = client;
     this.settings = settings;
     this.indexName = new OpenSearchRequest.IndexName(indexName);
+  }
+
+  @Override
+  public boolean exists() {
+    return client.exists(indexName.toString());
+  }
+
+  @Override
+  public void create(Map<String, ExprType> schema) {
+    Map<String, Object> mappings = new HashMap<>();
+    Map<String, Object> properties = new HashMap<>();
+    mappings.put("properties", properties);
+
+    for (Map.Entry<String, ExprType> colType : schema.entrySet()) {
+      properties.put(colType.getKey(), OpenSearchDataType.getOpenSearchType(colType.getValue()));
+    }
+    client.createIndex(indexName.toString(), mappings);
   }
 
   /*
@@ -206,8 +227,15 @@ public class OpenSearchIndex implements Table {
     }
 
     @Override
+    public PhysicalPlan visitML(LogicalML node, OpenSearchIndexScan context) {
+      return new MLOperator(visitChild(node, context),
+              node.getArguments(), client.getNodeClient());
+    }
+
+    @Override
     public PhysicalPlan visitHighlight(LogicalHighlight node, OpenSearchIndexScan context) {
-      context.getRequestBuilder().pushDownHighlight(node.getHighlightField().toString());
+      context.getRequestBuilder().pushDownHighlight(
+          StringUtils.unquoteText(node.getHighlightField().toString()), node.getArguments());
       return visitChild(node, context);
     }
   }

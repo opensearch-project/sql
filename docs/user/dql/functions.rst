@@ -209,9 +209,23 @@ CBRT
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: CBRT(number) calculates the cube root of a number
 
-1. CBRT(NUMBER T) -> T
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: DOUBLE
+
+INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+
+Example::
+
+    opensearchsql> SELECT CBRT(8), CBRT(9.261), CBRT(-27);
+    fetched rows / total rows = 1/1
+    +-----------+---------------+-------------+
+    | CBRT(8)   | CBRT(9.261)   | CBRT(-27)   |
+    |-----------+---------------+-------------|
+    | 2.0       | 2.1           | -3.0        |
+    +-----------+---------------+-------------+
 
 
 CEIL
@@ -859,15 +873,207 @@ Example::
     +------------------------------------------------+----------------------------------+------------------------------------------------+
 
 
+CONVERT_TZ
+----------
+
+Description
+>>>>>>>>>>>
+
+Usage: convert_tz(datetime, from_timezone, to_timezone) constructs a datetime object converted from the from_timezone to the to_timezone.
+
+Argument type: DATETIME, STRING, STRING
+
+Return type: DATETIME
+
+Example::
+
+  os> SELECT CONVERT_TZ('2008-12-25 05:30:00', '+00:00', 'America/Los_Angeles')
+    fetched rows / total rows = 1/1
+    +----------------------------------------------------------------------+
+    | CONVERT_TZ('2008-12-25 05:30:00', '+00:00', 'America/Los_Angeles')   |
+    |----------------------------------------------------------------------|
+    | 2008-12-24 21:30:00                                                  |
+    +----------------------------------------------------------------------+
+
+
+  os> SELECT CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "-10:00")
+    fetched rows / total rows = 1/1
+    +---------------------------------------------------------+
+    | CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "-10:00")   |
+    |---------------------------------------------------------|
+    | 2010-10-09 23:10:10                                     |
+    +---------------------------------------------------------+
+
+When the datedate, or either of the two time zone fields are invalid format, then the result is null. In this example any datetime that is not <yyyy-MM-dd HH:mm:ss> will result in null.
+Example::
+
+  os> SELECT CONVERT_TZ("test", "+01:00", "-10:00")
+      fetched rows / total rows = 1/1
+      +------------------------------------------+
+      | CONVERT_TZ("test", "+01:00", "-10:00")   |
+      |------------------------------------------|
+      | null                                     |
+      +------------------------------------------+
+
+When the datetime, or either of the two time zone fields are invalid format, then the result is null. In this example any timezone that is not <+HH:mm> or <-HH:mm> will result in null.
+Example::
+
+  os> SELECT CONVERT_TZ("2010-10-10 10:10:10", "test", "-10:00")
+      fetched rows / total rows = 1/1
+      +-------------------------------------------------------+
+      | CONVERT_TZ("2010-10-10 10:10:10", "test", "-10:00")   |
+      |-------------------------------------------------------|
+      | null                                                  |
+      +-------------------------------------------------------+
+
+The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range will result in null.
+Example::
+
+  os> SELECT CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "+14:00")
+    fetched rows / total rows = 1/1
+    +---------------------------------------------------------+
+    | CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "+14:00")   |
+    |---------------------------------------------------------|
+    | 2010-10-10 23:10:10                                     |
+    +---------------------------------------------------------+
+
+The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range will result in null.
+Example::
+
+  os> SELECT CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "+14:01")
+    fetched rows / total rows = 1/1
+    +---------------------------------------------------------+
+    | CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "+14:01")   |
+    |---------------------------------------------------------|
+    | null                                                    | 
+    +---------------------------------------------------------+
+
+The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range will result in null.
+Example::
+
+  os> SELECT CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "-13:59")
+    fetched rows / total rows = 1/1
+    +---------------------------------------------------------+
+    | CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "-13:59")   |
+    |---------------------------------------------------------|
+    | 2010-10-09 19:11:10                                     |
+    +---------------------------------------------------------+
+
+The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range will result in null.
+Example::
+
+  os> SELECT CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "-14:00")
+    fetched rows / total rows = 1/1
+    +---------------------------------------------------------+
+    | CONVERT_TZ("2010-10-10 10:10:10", "+01:00", "-14:00")   |
+    |---------------------------------------------------------|
+    | null                                                    | 
+    +---------------------------------------------------------+
+
+
 CURDATE
 -------
 
 Description
 >>>>>>>>>>>
 
-Specifications:
+Returns the current time as a value in 'YYYY-MM-DD'.
+CURDATE() returns the time at which it executes as `SYSDATE() <#sysdate>`_ does.
 
-1. CURDATE() -> DATE
+Return type: DATE
+
+Specification: CURDATE() -> DATE
+
+Example::
+
+    > SELECT CURDATE();
+    fetched rows / total rows = 1/1
+    +-------------+
+    | CURDATE()   |
+    |-------------|
+    | 2022-08-02  |
+    +-------------+
+
+
+CURRENT_DATE
+------------
+
+Description
+>>>>>>>>>>>
+
+`CURRENT_DATE()` are synonyms for `CURDATE() <#curdate>`_.
+
+Example::
+
+    > SELECT CURRENT_DATE();
+    fetched rows / total rows = 1/1
+    +------------------+
+    | CURRENT_DATE()   |
+    |------------------+
+    | 2022-08-02       |
+    +------------------+
+
+
+CURRENT_TIME
+------------
+
+Description
+>>>>>>>>>>>
+
+`CURRENT_TIME()` are synonyms for `CURTIME() <#curtime>`_.
+
+Example::
+
+    > SELECT CURRENT_TIME();
+    fetched rows / total rows = 1/1
+    +-----------------+
+    | CURRENT_TIME()  |
+    |-----------------+
+    | 15:39:05        |
+    +-----------------+
+
+
+CURRENT_TIMESTAMP
+-----------------
+
+Description
+>>>>>>>>>>>
+
+`CURRENT_TIMESTAMP()` are synonyms for `NOW() <#now>`_.
+
+Example::
+
+    > SELECT CURRENT_TIMESTAMP();
+    fetched rows / total rows = 1/1
+    +-----------------------+
+    | CURRENT_TIMESTAMP()   |
+    |-----------------------+
+    | 2022-08-02 15:54:19   |
+    +-----------------------+
+
+
+CURTIME
+-------
+
+Description
+>>>>>>>>>>>
+
+Returns the current time as a value in 'hh:mm:ss'.
+CURTIME() returns the time at which the statement began to execute as `NOW() <#now>`_ does.
+
+Return type: TIME
+
+Specification: CURTIME() -> TIME
+
+Example::
+
+    > SELECT CURTIME() as value_1, CURTIME()  as value_2;
+    fetched rows / total rows = 1/1
+    +-----------+-----------+
+    | value_1   | value_2   |
+    |-----------+-----------|
+    | 15:39:05  | 15:39:05  |
+    +-----------+-----------+
 
 
 DATE
@@ -884,14 +1090,108 @@ Return type: DATE
 
 Example::
 
-    >od SELECT DATE('2020-08-26'), DATE(TIMESTAMP('2020-08-26 13:49:00'))
+    os> SELECT DATE('2020-08-26'), DATE(TIMESTAMP('2020-08-26 13:49:00')), DATE('2020-08-26 13:49:00'), DATE('2020-08-26 13:49')
     fetched rows / total rows = 1/1
-    +----------------------+------------------------------------------+
-    | DATE('2020-08-26')   | DATE(TIMESTAMP('2020-08-26 13:49:00'))   |
-    |----------------------+------------------------------------------|
-    | DATE '2020-08-26'    | DATE '2020-08-26'                        |
-    +----------------------+------------------------------------------+
+    +----------------------+------------------------------------------+-------------------------------+----------------------------+
+    | DATE('2020-08-26')   | DATE(TIMESTAMP('2020-08-26 13:49:00'))   | DATE('2020-08-26 13:49:00')   | DATE('2020-08-26 13:49')   |
+    |----------------------+------------------------------------------+-------------------------------+----------------------------|
+    | 2020-08-26           | 2020-08-26                               | 2020-08-26                    | 2020-08-26                 |
+    +----------------------+------------------------------------------+-------------------------------+----------------------------+
 
+
+DATETIME
+--------
+
+Description
+>>>>>>>>>>>
+
+Usage: datetime(datetime)/ datetime(date, to_timezone) Converts the datetime to a new timezone
+
+Argument type: DATETIME/STRING
+
+Return type map:
+
+DATETIME, STRING -> DATETIME
+
+DATETIME -> DATETIME
+
+Example::
+
+    os> SELECT DATETIME('2008-12-25 05:30:00+00:00', 'America/Los_Angeles')
+    fetched rows / total rows = 1/1
+    +----------------------------------------------------------------+
+    | DATETIME('2008-12-25 05:30:00+00:00', 'America/Los_Angeles')   |
+    |----------------------------------------------------------------|
+    | 2008-12-24 21:30:00                                            |
+    +----------------------------------------------------------------+
+
+This example converts from -10:00 timezone to +10:00 timezone.
+Example::
+
+    os> SELECT DATETIME('2004-02-28 23:00:00-10:00', '+10:00')
+    fetched rows / total rows = 1/1
+    +---------------------------------------------------+
+    | DATETIME('2004-02-28 23:00:00-10:00', '+10:00')   |
+    |---------------------------------------------------|
+    | 2004-02-29 19:00:00                               |
+    +---------------------------------------------------+
+
+This example uses the timezone -14:00, which is outside of the range -13:59 and +14:00. This results in a null value.
+Example::
+
+    os> SELECT DATETIME('2008-01-01 02:00:00', '-14:00')
+    fetched rows / total rows = 1/1
+    +---------------------------------------------+
+    | DATETIME('2008-01-01 02:00:00', '-14:00')   |
+    |---------------------------------------------|
+    | null                                        |
+    +---------------------------------------------+
+
+February 30th is not a day, so it returns null.
+Example::
+
+    os> SELECT DATETIME('2008-02-30 02:00:00', '-00:00')
+    fetched rows / total rows = 1/1
+    +---------------------------------------------+
+    | DATETIME('2008-02-30 02:00:00', '-00:00')   |
+    |---------------------------------------------|
+    | null                                        |
+    +---------------------------------------------+
+
+DATETIME(datetime) examples
+
+DATETIME with no timezone specified does no conversion.
+Example::
+
+    os> SELECT DATETIME('2008-02-10 02:00:00')
+    fetched rows / total rows = 1/1
+    +-----------------------------------+
+    | DATETIME('2008-02-10 02:00:00')   |
+    |-----------------------------------|
+    | 2008-02-10 02:00:00               |
+    +-----------------------------------+
+
+February 30th is not a day, so it returns null.
+Example::
+
+    os> SELECT DATETIME('2008-02-30 02:00:00')
+    fetched rows / total rows = 1/1
+    +-----------------------------------+
+    | DATETIME('2008-02-30 02:00:00')   |
+    |-----------------------------------|
+    | null                              |
+    +-----------------------------------+
+
+DATETIME with a datetime and no seperate timezone to convert to returns the datetime object without a timezone.
+Example::
+
+    os> SELECT DATETIME('2008-02-10 02:00:00+04:00')
+    fetched rows / total rows = 1/1
+    +-----------------------------------------+
+    | DATETIME('2008-02-10 02:00:00+04:00')   |
+    |-----------------------------------------|
+    | 2008-02-10 02:00:00                     |
+    +-----------------------------------------+
 
 DATE_ADD
 --------
@@ -1157,6 +1457,7 @@ Description
 >>>>>>>>>>>
 
 Usage:  dayofyear(date) returns the day of the year for date, in the range 1 to 366.
+The function `day_of_year`_ is also provided as an alias.
 
 Argument type: STRING/DATE/DATETIME/TIMESTAMP
 
@@ -1171,6 +1472,62 @@ Example::
     |---------------------------------|
     | 239                             |
     +---------------------------------+
+
+    os> SELECT DAYOFYEAR(DATETIME('2020-08-26 00:00:00'))
+    fetched rows / total rows = 1/1
+    +----------------------------------------------+
+    | DAYOFYEAR(DATETIME('2020-08-26 00:00:00'))   |
+    |----------------------------------------------|
+    | 239                                          |
+    +----------------------------------------------+
+
+    os> SELECT DAYOFYEAR(TIMESTAMP('2020-08-26 00:00:00'))
+    fetched rows / total rows = 1/1
+    +-----------------------------------------------+
+    | DAYOFYEAR(TIMESTAMP('2020-08-26 00:00:00'))   |
+    |-----------------------------------------------|
+    | 239                                           |
+    +-----------------------------------------------+
+
+
+DAY_OF_YEAR
+---------
+
+Description
+>>>>>>>>>>>
+
+This function is an alias to the `dayofyear`_ function
+
+Argument type: STRING/DATE/DATETIME/TIMESTAMP
+
+Return type: INTEGER
+
+Example::
+
+    os> SELECT DAY_OF_YEAR(DATE('2020-08-26'))
+    fetched rows / total rows = 1/1
+    +-----------------------------------+
+    | DAY_OF_YEAR(DATE('2020-08-26'))   |
+    |-----------------------------------|
+    | 239                               |
+    +-----------------------------------+
+
+    os> SELECT DAY_OF_YEAR(DATETIME('2020-08-26 00:00:00'))
+    fetched rows / total rows = 1/1
+    +------------------------------------------------+
+    | DAY_OF_YEAR(DATETIME('2020-08-26 00:00:00'))   |
+    |------------------------------------------------|
+    | 239                                            |
+    +------------------------------------------------+
+
+    os> SELECT DAY_OF_YEAR(TIMESTAMP('2020-08-26 00:00:00'))
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------+
+    | DAY_OF_YEAR(TIMESTAMP('2020-08-26 00:00:00'))   |
+    |-------------------------------------------------|
+    | 239                                             |
+    +-------------------------------------------------+
+
 
 
 FROM_DAYS
@@ -1196,6 +1553,43 @@ Example::
     +---------------------+
 
 
+FROM_UNIXTIME
+-------------
+
+Description
+>>>>>>>>>>>
+
+Usage: Returns a representation of the argument given as a datetime or character string value. Perform reverse conversion for `UNIX_TIMESTAMP`_ function.
+If second argument is provided, it is used to format the result in the same way as the format string used for the `DATE_FORMAT`_ function.
+If timestamp is outside of range 1970-01-01 00:00:00 - 3001-01-18 23:59:59.999999 (0 to 32536771199.999999 epoch time), function returns NULL.
+
+Argument type: DOUBLE, STRING
+
+Return type map:
+
+DOUBLE -> DATETIME
+
+DOUBLE, STRING -> STRING
+
+Examples::
+
+    os> select FROM_UNIXTIME(1220249547)
+    fetched rows / total rows = 1/1
+    +-----------------------------+
+    | FROM_UNIXTIME(1220249547)   |
+    |-----------------------------|
+    | 2008-09-01 06:12:27         |
+    +-----------------------------+
+
+    os> select FROM_UNIXTIME(1220249547, '%T')
+    fetched rows / total rows = 1/1
+    +-----------------------------------+
+    | FROM_UNIXTIME(1220249547, '%T')   |
+    |-----------------------------------|
+    | 06:12:27                          |
+    +-----------------------------------+
+
+
 HOUR
 ----
 
@@ -1217,6 +1611,44 @@ Example::
     |---------------------------|
     | 1                         |
     +---------------------------+
+
+
+LOCALTIMESTAMP
+--------------
+
+Description
+>>>>>>>>>>>
+
+`LOCALTIMESTAMP()` are synonyms for `NOW() <#now>`_.
+
+Example::
+
+    > SELECT LOCALTIMESTAMP();
+    fetched rows / total rows = 1/1
+    +---------------------+
+    | LOCALTIMESTAMP()    |
+    |---------------------+
+    | 2022-08-02 15:54:19 |
+    +---------------------+
+
+
+LOCALTIME
+---------
+
+Description
+>>>>>>>>>>>
+
+`LOCALTIME()` are synonyms for `NOW() <#now>`_.
+
+Example::
+
+    > SELECT LOCALTIME(), LOCALTIME;
+    fetched rows / total rows = 1/1
+    +---------------------+
+    | LOCALTIME()         |
+    |---------------------+
+    | 2022-08-02 15:54:19 |
+    +---------------------+
 
 
 MAKEDATE
@@ -1338,6 +1770,7 @@ Description
 >>>>>>>>>>>
 
 Usage: month(date) returns the month for date, in the range 1 to 12 for January to December. The dates with value 0 such as '0000-00-00' or '2008-00-00' are invalid.
+The function month_of_year is also provided as an alias
 
 Argument type: STRING/DATE/DATETIME/TIMESTAMP
 
@@ -1352,6 +1785,15 @@ Example::
     |-----------------------------|
     | 8                           |
     +-----------------------------+
+
+
+    os> SELECT MONTH_OF_YEAR(DATE('2020-08-26'))
+    fetched rows / total rows = 1/1
+    +-------------------------------------+
+    | MONTH_OF_YEAR(DATE('2020-08-26'))   |
+    |-------------------------------------|
+    | 8                                   |
+    +-------------------------------------+
 
 
 MONTHNAME
@@ -1383,9 +1825,68 @@ NOW
 Description
 >>>>>>>>>>>
 
-Specifications:
+Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss' format. The value is expressed in the cluster time zone.
+`NOW()` returns a constant time that indicates the time at which the statement began to execute. This differs from the behavior for `SYSDATE() <#sysdate>`_, which returns the exact time at which it executes.
 
-1. NOW() -> DATE
+Return type: DATETIME
+
+Specification: NOW() -> DATETIME
+
+Example::
+
+    > SELECT NOW() as value_1, NOW() as value_2;
+    fetched rows / total rows = 1/1
+    +---------------------+---------------------+
+    | value_1             | value_2             |
+    |---------------------+---------------------|
+    | 2022-08-02 15:39:05 | 2022-08-02 15:39:05 |
+    +---------------------+---------------------+
+
+
+PERIOD_ADD
+----------
+
+Description
+>>>>>>>>>>>
+
+Usage: period_add(P, N) add N months to period P (in the format YYMM or YYYYMM). Returns a value in the format YYYYMM.
+
+Argument type: INTEGER, INTEGER
+
+Return type: INTEGER
+
+Example::
+
+    os> SELECT PERIOD_ADD(200801, 2), PERIOD_ADD(200801, -12)
+    fetched rows / total rows = 1/1
+    +-------------------------+---------------------------+
+    | PERIOD_ADD(200801, 2)   | PERIOD_ADD(200801, -12)   |
+    |-------------------------+---------------------------|
+    | 200803                  | 200701                    |
+    +-------------------------+---------------------------+
+
+
+PERIOD_DIFF
+-----------
+
+Description
+>>>>>>>>>>>
+
+Usage: period_diff(P1, P2) returns the number of months between periods P1 and P2 given in the format YYMM or YYYYMM.
+
+Argument type: INTEGER, INTEGER
+
+Return type: INTEGER
+
+Example::
+
+    os> SELECT PERIOD_DIFF(200802, 200703), PERIOD_DIFF(200802, 201003)
+    fetched rows / total rows = 1/1
+    +-------------------------------+-------------------------------+
+    | PERIOD_DIFF(200802, 200703)   | PERIOD_DIFF(200802, 201003)   |
+    |-------------------------------+-------------------------------|
+    | 11                            | -25                           |
+    +-------------------------------+-------------------------------+
 
 
 QUARTER
@@ -1465,6 +1966,33 @@ Example::
     +------------------------------------------------+----------------------------------+------------------------------------------------+
 
 
+SYSDATE
+-------
+
+Description
+>>>>>>>>>>>
+
+Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss[.nnnnnn]'.
+SYSDATE() returns the time at which it executes. This differs from the behavior for `NOW() <#now>`_, which returns a constant time that indicates the time at which the statement began to execute.
+If the argument is given, it specifies a fractional seconds precision from 0 to 6, the return value includes a fractional seconds part of that many digits.
+
+Optional argument type: INTEGER
+
+Return type: DATETIME
+
+Specification: SYSDATE([INTEGER]) -> DATETIME
+
+Example::
+
+    > SELECT SYSDATE() as value_1, SYSDATE(6) as value_2;
+    fetched rows / total rows = 1/1
+    +---------------------+----------------------------+
+    | value_1             | value_2                    |
+    |---------------------+----------------------------|
+    | 2022-08-02 15:39:05 | 2022-08-02 15:39:05.123456 |
+    +---------------------+----------------------------+
+
+
 TIME
 ----
 
@@ -1479,13 +2007,13 @@ Return type: TIME
 
 Example::
 
-    >od SELECT TIME('13:49:00'), TIME(TIMESTAMP('2020-08-26 13:49:00'))
+    os> SELECT TIME('13:49:00'), TIME('13:49'), TIME(TIMESTAMP('2020-08-26 13:49:00')), TIME('2020-08-26 13:49:00')
     fetched rows / total rows = 1/1
-    +--------------------+------------------------------------------+
-    | TIME('13:49:00')   | TIME(TIMESTAMP('2020-08-26 13:49:00'))   |
-    |--------------------+------------------------------------------|
-    | TIME '13:49:00'    | TIME '13:49:00'                          |
-    +--------------------+------------------------------------------+
+    +--------------------+-----------------+------------------------------------------+-------------------------------+
+    | TIME('13:49:00')   | TIME('13:49')   | TIME(TIMESTAMP('2020-08-26 13:49:00'))   | TIME('2020-08-26 13:49:00')   |
+    |--------------------+-----------------+------------------------------------------+-------------------------------|
+    | 13:49:00           | 13:49:00        | 13:49:00                                 | 13:49:00                      |
+    +--------------------+-----------------+------------------------------------------+-------------------------------+
 
 
 TIME_TO_SEC
@@ -1557,6 +2085,40 @@ Example::
     +------------------------------+
 
 
+UNIX_TIMESTAMP
+--------------
+
+Description
+>>>>>>>>>>>
+
+Usage: Converts given argument to Unix time (seconds since January 1st, 1970 at 00:00:00 UTC). If no argument given, it returns current Unix time.
+The date argument may be a DATE, DATETIME, or TIMESTAMP string, or a number in YYMMDD, YYMMDDhhmmss, YYYYMMDD, or YYYYMMDDhhmmss format. If the argument includes a time part, it may optionally include a fractional seconds part.
+If argument is in invalid format or outside of range 1970-01-01 00:00:00 - 3001-01-18 23:59:59.999999 (0 to 32536771199.999999 epoch time), function returns NULL.
+You can use `FROM_UNIXTIME`_ to do reverse conversion.
+
+Argument type: <NONE>/DOUBLE/DATE/DATETIME/TIMESTAMP
+
+Return type: DOUBLE
+
+Examples::
+
+    os> select UNIX_TIMESTAMP(20771122143845)
+    fetched rows / total rows = 1/1
+    +----------------------------------+
+    | UNIX_TIMESTAMP(20771122143845)   |
+    |----------------------------------|
+    | 3404817525.0                     |
+    +----------------------------------+
+
+    os> select UNIX_TIMESTAMP(TIMESTAMP('1996-11-15 17:05:42'))
+    fetched rows / total rows = 1/1
+    +----------------------------------------------------+
+    | UNIX_TIMESTAMP(TIMESTAMP('1996-11-15 17:05:42'))   |
+    |----------------------------------------------------|
+    | 848077542.0                                        |
+    +----------------------------------------------------+
+
+
 WEEK
 ----
 
@@ -1564,6 +2126,7 @@ Description
 >>>>>>>>>>>
 
 Usage: week(date[, mode]) returns the week number for date. If the mode argument is omitted, the default mode 0 is used.
+The function `week_of_year` is also provided as an alias.
 
 .. list-table:: The following table describes how the mode argument works.
    :widths: 25 50 25 75
@@ -1612,13 +2175,35 @@ Return type: INTEGER
 
 Example::
 
-    >od SELECT WEEK(DATE('2008-02-20')), WEEK(DATE('2008-02-20'), 1)
+    os> SELECT WEEK(DATE('2008-02-20')), WEEK(DATE('2008-02-20'), 1)
     fetched rows / total rows = 1/1
     +----------------------------+-------------------------------+
     | WEEK(DATE('2008-02-20'))   | WEEK(DATE('2008-02-20'), 1)   |
-    |----------------------------|-------------------------------|
+    |----------------------------+-------------------------------|
     | 7                          | 8                             |
     +----------------------------+-------------------------------+
+
+WEEK_OF_YEAR
+----
+
+Description
+>>>>>>>>>>>
+
+The week_of_year function is a synonym for the `week`_ function.
+
+Argument type: DATE/DATETIME/TIMESTAMP/STRING
+
+Return type: INTEGER
+
+Example::
+
+    os> SELECT WEEK_OF_YEAR(DATE('2008-02-20')), WEEK_OF_YEAR(DATE('2008-02-20'), 1)
+    fetched rows / total rows = 1/1
+    +------------------------------------+---------------------------------------+
+    | WEEK_OF_YEAR(DATE('2008-02-20'))   | WEEK_OF_YEAR(DATE('2008-02-20'), 1)   |
+    |------------------------------------+---------------------------------------|
+    | 7                                  | 8                                     |
+    +------------------------------------+---------------------------------------+
 
 
 YEAR
@@ -1833,6 +2418,31 @@ Example::
     |---------------------+---------------------|
     | hello               | hello               |
     +---------------------+---------------------+
+
+
+POSITION
+------
+
+Description
+>>>>>>>>>>>
+
+Usage: The syntax POSITION(substr IN str) returns the position of the first occurrence of substring substr in string str. Returns 0 if substr is not in str. Returns NULL if any argument is NULL.
+
+Argument type: STRING, STRING
+
+Return type integer:
+
+(STRING IN STRING) -> INTEGER
+
+Example::
+
+    os> SELECT POSITION('world' IN 'helloworld'), POSITION('invalid' IN 'helloworld');
+    fetched rows / total rows = 1/1
+    +-------------------------------------+---------------------------------------+
+    | POSITION('world' IN 'helloworld')   | POSITION('invalid' IN 'helloworld')   |
+    |-------------------------------------+---------------------------------------|
+    | 6                                   | 0                                     |
+    +-------------------------------------+---------------------------------------+
 
 
 REPLACE
@@ -2249,6 +2859,65 @@ Another example to show how to set custom values for the optional parameters::
     +------------+
 
 
+MATCHQUERY
+-----
+
+Description
+>>>>>>>>>>>
+
+The matchquery function is a synonym for the `match`_ function.
+
+Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
+
+    os> SELECT lastname, address FROM accounts WHERE matchquery(address, 'Street');
+    fetched rows / total rows = 2/2
+    +------------+--------------------+
+    | lastname   | address            |
+    |------------+--------------------|
+    | Bond       | 671 Bristol Street |
+    | Bates      | 789 Madison Street |
+    +------------+--------------------+
+
+Another example to show how to set custom values for the optional parameters::
+
+    os> SELECT lastname FROM accounts WHERE matchquery(firstname, 'Hattie', operator='AND', boost=2.0);
+    fetched rows / total rows = 1/1
+    +------------+
+    | lastname   |
+    |------------|
+    | Bond       |
+    +------------+
+
+MATCH_QUERY
+-----
+
+Description
+>>>>>>>>>>>
+
+The match_query function is a synonym for the `match`_ function.
+
+Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
+
+    os> SELECT lastname, address FROM accounts WHERE match_query(address, 'Street');
+    fetched rows / total rows = 2/2
+    +------------+--------------------+
+    | lastname   | address            |
+    |------------+--------------------|
+    | Bond       | 671 Bristol Street |
+    | Bates      | 789 Madison Street |
+    +------------+--------------------+
+
+Another example to show how to set custom values for the optional parameters::
+
+    os> SELECT lastname FROM accounts WHERE match_query(firstname, 'Hattie', operator='AND', boost=2.0);
+    fetched rows / total rows = 1/1
+    +------------+
+    | lastname   |
+    |------------|
+    | Bond       |
+    +------------+
+
+
 MATCH_PHRASE
 ------------
 
@@ -2263,7 +2932,7 @@ The match_phrase function maps to the match_phrase query used in search engine, 
 - slop
 - zero_terms_query
 
-For backward compatibility, matchphrase is also supported and mapped to match_phrase query as well.
+`matchphrase` and `matchphrasequery` are synonyms for `match_phrase`_
 
 Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
 
@@ -2377,12 +3046,20 @@ Description
 >>>>>>>>>>>
 
 ``multi_match([field_expression+], query_expression[, option=<option_value>]*)``
+``multi_match(query=query_expression+, fields=[field_expression+][, option=<option_value>]*)``
 
 The multi_match function maps to the multi_match query used in search engine, to return the documents that match a provided text, number, date or boolean value with a given field or fields.
 The **^** lets you *boost* certain fields. Boosts are multipliers that weigh matches in one field more heavily than matches in other fields. The syntax allows to specify the fields in double quotes, single quotes, in backtick or even without any wrap. All fields search using star ``"*"`` is also available (star symbol should be wrapped). The weight is optional and should be specified using after the field name, it could be delimeted by the `caret` character or by whitespace. Please, refer to examples below:
 
+
+- ``MULTI_MATCH(...)``
+- ``MULTIMATCH(...)``
+- ``MULTIMATCHQUERY(...)``
+
 | ``multi_match(["Tags" ^ 2, 'Title' 3.4, `Body`, Comments ^ 0.3], ...)``
 | ``multi_match(["*"], ...)``
+| ``multimatch(query='query value', fields=["Tags^2,Title^3.4,Body"], ...)``
+| ``multimatchquery('query'='query value', 'fields'='Title', ...)``
 
 Available parameters include:
 
@@ -2536,6 +3213,67 @@ Another example to show how to set custom values for the optional parameters::
     +------+--------------------------+----------------------+
 
 
+QUERY
+-----
+
+Description
+>>>>>>>>>>>
+
+``query("query_expression" [, option=<option_value>]*)``
+
+The `query` function is an alternative syntax to the `query_string`_ function. It maps to the query_string query used in search engine, to return the documents that match a provided text, number, date or boolean value with a given query expression.
+``query_expression`` must be a string provided in Lucene query string syntax. Please refer to examples below:
+
+| ``query('Tags:taste OR Body:taste', ...)``
+| ``query("Tags:taste AND Body:taste", ...)``
+
+Available parameters include:
+
+- analyzer
+- escape
+- allow_leading_wildcard
+- analyze_wildcard
+- auto_generate_synonyms_phrase_query
+- boost
+- default_operator
+- enable_position_increments
+- fuzziness
+- fuzzy_max_expansions
+- fuzzy_prefix_length
+- fuzzy_transpositions
+- fuzzy_rewrite
+- tie_breaker
+- lenient
+- type
+- max_determinized_states
+- minimum_should_match
+- quote_analyzer
+- phrase_slop
+- quote_field_suffix
+- rewrite
+- time_zone
+
+Example with only ``query_expressions``, and all other parameters are set default values::
+
+    os> select * from books where query('title:Pooh House');
+    fetched rows / total rows = 2/2
+    +------+--------------------------+----------------------+
+    | id   | title                    | author               |
+    |------+--------------------------+----------------------|
+    | 1    | The House at Pooh Corner | Alan Alexander Milne |
+    | 2    | Winnie-the-Pooh          | Alan Alexander Milne |
+    +------+--------------------------+----------------------+
+
+Another example to show how to set custom values for the optional parameters::
+
+    os> select * from books where query('title:Pooh House', default_operator='AND');
+    fetched rows / total rows = 1/1
+    +------+--------------------------+----------------------+
+    | id   | title                    | author               |
+    |------+--------------------------+----------------------|
+    | 1    | The House at Pooh Corner | Alan Alexander Milne |
+    +------+--------------------------+----------------------+
+
 HIGHLIGHT
 ------------
 
@@ -2560,3 +3298,28 @@ Example searching for field Tags::
     | [The <em>House</em> at <em>Pooh</em> Corner] |
     | [Winnie-the-<em>Pooh</em>]                   |
     +----------------------------------------------+
+
+System Functions
+================
+
+TYPEOF
+------
+
+Description
+>>>>>>>>>>>
+
+Usage: typeof(expr) function returns name of the data type of the value that is passed to it. This can be helpful for troubleshooting or dynamically constructing SQL queries.
+
+Argument type: ANY
+
+Return type: STRING
+
+Example::
+
+    os> select typeof(DATE('2008-04-14')) as `typeof(date)`, typeof(1) as `typeof(int)`, typeof(now()) as `typeof(now())`, typeof(accounts) as `typeof(column)` from people
+    fetched rows / total rows = 1/1
+    +----------------+---------------+-----------------+------------------+
+    | typeof(date)   | typeof(int)   | typeof(now())   | typeof(column)   |
+    |----------------+---------------+-----------------+------------------|
+    | DATE           | INTEGER       | DATETIME        | STRUCT           |
+    +----------------+---------------+-----------------+------------------+

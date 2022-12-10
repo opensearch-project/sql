@@ -86,6 +86,8 @@ import org.opensearch.sql.ppl.utils.ArgumentFactory;
  */
 public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedExpression> {
 
+  private static final int DEFAULT_TAKE_FUNCTION_SIZE_VALUE = 10;
+
   /**
    * The function name mapping between fronted and core engine.
    */
@@ -210,20 +212,25 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
         Collections.singletonList(new Argument("rank", (Literal) visit(ctx.value))));
   }
 
+  @Override
+  public UnresolvedExpression visitTakeAggFunctionCall(
+      OpenSearchPPLParser.TakeAggFunctionCallContext ctx) {
+    ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
+    builder.add(new UnresolvedArgument("size",
+        ctx.takeAggFunction().size != null ? visit(ctx.takeAggFunction().size) :
+            AstDSL.intLiteral(DEFAULT_TAKE_FUNCTION_SIZE_VALUE)));
+    return new AggregateFunction("take", visit(ctx.takeAggFunction().fieldExpression()),
+        builder.build());
+  }
+
   /**
    * Eval function.
    */
   @Override
   public UnresolvedExpression visitBooleanFunctionCall(BooleanFunctionCallContext ctx) {
     final String functionName = ctx.conditionFunctionBase().getText();
-
-    return new Function(
-        FUNCTION_NAME_MAPPING.getOrDefault(functionName, functionName),
-        ctx.functionArgs()
-            .functionArg()
-            .stream()
-            .map(this::visitFunctionArg)
-            .collect(Collectors.toList()));
+    return buildFunction(FUNCTION_NAME_MAPPING.getOrDefault(functionName, functionName),
+        ctx.functionArgs().functionArg());
   }
 
   /**
@@ -231,13 +238,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
    */
   @Override
   public UnresolvedExpression visitEvalFunctionCall(EvalFunctionCallContext ctx) {
-    return new Function(
-        ctx.evalFunctionName().getText(),
-        ctx.functionArgs()
-            .functionArg()
-            .stream()
-            .map(this::visitFunctionArg)
-            .collect(Collectors.toList()));
+    return buildFunction(ctx.evalFunctionName().getText(), ctx.functionArgs().functionArg());
   }
 
   /**
@@ -251,6 +252,17 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitConvertedDataType(ConvertedDataTypeContext ctx) {
     return AstDSL.stringLiteral(ctx.getText());
+  }
+
+  private Function buildFunction(String functionName,
+                                 List<OpenSearchPPLParser.FunctionArgContext> args) {
+    return new Function(
+        functionName,
+        args
+            .stream()
+            .map(this::visitFunctionArg)
+            .collect(Collectors.toList())
+    );
   }
 
   @Override
@@ -345,7 +357,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   private List<UnresolvedExpression> singleFieldRelevanceArguments(
-      OpenSearchPPLParser.SingleFieldRelevanceFunctionContext ctx) {
+      SingleFieldRelevanceFunctionContext ctx) {
     // all the arguments are defaulted to string values
     // to skip environment resolving and function signature resolving
     ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
@@ -360,7 +372,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   private List<UnresolvedExpression> multiFieldRelevanceArguments(
-      OpenSearchPPLParser.MultiFieldRelevanceFunctionContext ctx) {
+      MultiFieldRelevanceFunctionContext ctx) {
     // all the arguments are defaulted to string values
     // to skip environment resolving and function signature resolving
     ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();

@@ -4,6 +4,9 @@
       "anomaly_type": {
         "type": "keyword"
       },
+      "category": {
+        "type": "keyword"
+      },
       "timestamp": {
         "type": "date",
         "format": "yyyy-MM-dd HH:mm:ss"

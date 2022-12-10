@@ -17,8 +17,8 @@ on:
       - '**/*.pom'
       - '.github/workflows/sql-test-and-build-workflow.yml'
 
+
 env:
-  OPENSEARCH_VERSION: '3.0.0-SNAPSHOT'
   JDBC_VERSION: '2.0.0.0'
 
 jobs:
@@ -29,11 +29,11 @@ jobs:
       matrix:
         entry:
           - { os: ubuntu-latest, java: 11 }
-          - { os: windows-latest, java: 11, os_build_args: -x doctest -x integTest -x jacocoTestReport}
-          - { os: macos-latest, java: 11, os_build_args: -x doctest -x integTest -x jacocoTestReport }
+          - { os: windows-latest, java: 11, os_build_args: -x doctest -x integTest -x jacocoTestReport -PbuildPlatform=windows }
+          - { os: macos-latest, java: 11, os_build_args: -x doctest -x integTest -x jacocoTestReport  }
           - { os: ubuntu-latest, java: 17 }
-          - { os: windows-latest, java: 17, os_build_args: -x doctest -x integTest -x jacocoTestReport}
-          - { os: macos-latest, java: 17, os_build_args: -x doctest -x integTest -x jacocoTestReport }
+          - { os: windows-latest, java: 17, os_build_args: -x doctest -x integTest -x jacocoTestReport -PbuildPlatform=windows }
+          - { os: macos-latest, java: 17, os_build_args: -x doctest -x integTest -x jacocoTestReport  }
     runs-on: ${{ matrix.entry.os }}
 
     steps:
@@ -47,7 +47,7 @@ jobs:
 
     # dependencies: sql-jdbc
     - name: Checkout Opensearch-SQL-library
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         repository: 'opensearch-project/sql-jdbc'
         path: sql-jdbc
@@ -55,8 +55,9 @@ jobs:
     - name: Build SQL-JDBC library
       working-directory: ./sql-jdbc
       run: ./gradlew publishToMavenLocal
-
-    - name: Build with Gradle
+             
+             
+             - name: Build with Gradle
       run: ./gradlew --continue build ${{ matrix.entry.os_build_args }}
 
     - name: Run backward compatibility tests

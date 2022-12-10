@@ -13,7 +13,6 @@ import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.caseWhen;
 import static org.opensearch.sql.ast.dsl.AstDSL.dateLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.doubleLiteral;
-import static org.opensearch.sql.ast.dsl.AstDSL.floatLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.highlight;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
@@ -35,12 +34,14 @@ import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.HashMap;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.common.antlr.CaseInsensitiveCharStream;
@@ -311,17 +312,27 @@ class AstExpressionBuilderTest {
 
   @Test
   public void canBuildStringLiteralHighlightFunction() {
+    HashMap<String, Literal> args = new HashMap<>();
     assertEquals(
-        highlight(AstDSL.stringLiteral("fieldA")),
+        highlight(AstDSL.stringLiteral("fieldA"), args),
         buildExprAst("highlight(\"fieldA\")")
     );
   }
 
   @Test
   public void canBuildQualifiedNameHighlightFunction() {
+    HashMap<String, Literal> args = new HashMap<>();
     assertEquals(
-        highlight(AstDSL.qualifiedName("fieldA")),
+        highlight(AstDSL.qualifiedName("fieldA"), args),
         buildExprAst("highlight(fieldA)")
+    );
+  }
+
+  @Test
+  public void canBuildStringLiteralPositionFunction() {
+    assertEquals(
+            function("position", stringLiteral("substr"), stringLiteral("str")),
+            buildExprAst("position(\"substr\" IN \"str\")")
     );
   }
 
@@ -449,6 +460,22 @@ class AstExpressionBuilderTest {
   }
 
   @Test
+  public void matchPhraseQueryAllParameters() {
+    assertEquals(
+        AstDSL.function("matchphrasequery",
+            unresolvedArg("field", stringLiteral("test")),
+            unresolvedArg("query", stringLiteral("search query")),
+            unresolvedArg("slop", stringLiteral("3")),
+            unresolvedArg("analyzer", stringLiteral("standard")),
+            unresolvedArg("zero_terms_query", stringLiteral("NONE"))
+        ),
+        buildExprAst("matchphrasequery(test, 'search query', slop = 3"
+            + ", analyzer = 'standard', zero_terms_query='NONE'"
+            + ")")
+    );
+  }
+
+  @Test
   public void matchPhrasePrefixAllParameters() {
     assertEquals(
         AstDSL.function("match_phrase_prefix",
@@ -483,6 +510,38 @@ class AstExpressionBuilderTest {
   }
 
   @Test
+  public void relevanceMatchQuery() {
+    assertEquals(AstDSL.function("matchquery",
+            unresolvedArg("field", stringLiteral("message")),
+            unresolvedArg("query", stringLiteral("search query"))),
+        buildExprAst("matchquery('message', 'search query')")
+    );
+
+    assertEquals(AstDSL.function("matchquery",
+            unresolvedArg("field", stringLiteral("message")),
+            unresolvedArg("query", stringLiteral("search query")),
+            unresolvedArg("analyzer", stringLiteral("keyword")),
+            unresolvedArg("operator", stringLiteral("AND"))),
+        buildExprAst("matchquery('message', 'search query', analyzer='keyword', operator='AND')"));
+  }
+
+  @Test
+  public void relevanceMatch_Query() {
+    assertEquals(AstDSL.function("match_query",
+            unresolvedArg("field", stringLiteral("message")),
+            unresolvedArg("query", stringLiteral("search query"))),
+        buildExprAst("match_query('message', 'search query')")
+    );
+
+    assertEquals(AstDSL.function("match_query",
+            unresolvedArg("field", stringLiteral("message")),
+            unresolvedArg("query", stringLiteral("search query")),
+            unresolvedArg("analyzer", stringLiteral("keyword")),
+            unresolvedArg("operator", stringLiteral("AND"))),
+        buildExprAst("match_query('message', 'search query', analyzer='keyword', operator='AND')"));
+  }
+
+  @Test
   public void relevanceMulti_match() {
     assertEquals(AstDSL.function("multi_match",
             unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
@@ -498,7 +557,45 @@ class AstExpressionBuilderTest {
             unresolvedArg("analyzer", stringLiteral("keyword")),
             unresolvedArg("operator", stringLiteral("AND"))),
         buildExprAst("multi_match(['field1', 'field2' ^ 3.2], 'search query',"
+            + "analyzer='keyword', 'operator'='AND')"));
+  }
+
+  @Test
+  public void relevanceMultimatch_alternate_parameter_syntax() {
+    assertEquals(AstDSL.function("multimatch",
+            unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
+                "field1", 1F, "field2", 2F))),
+            unresolvedArg("query", stringLiteral("search query"))),
+        buildExprAst("multimatch(query='search query', fields=['field1^1.0,field2^2.0'])")
+    );
+
+    assertEquals(AstDSL.function("multimatch",
+            unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
+                "field1", 1F, "field2", 2F))),
+            unresolvedArg("query", stringLiteral("search query")),
+            unresolvedArg("analyzer", stringLiteral("keyword")),
+            unresolvedArg("operator", stringLiteral("AND"))),
+        buildExprAst("multimatch(query='search query', fields=['field1^1.0,field2^2.0'],"
             + "analyzer='keyword', operator='AND')"));
+  }
+
+  @Test
+  public void relevanceMultimatchquery_alternate_parameter_syntax() {
+    assertEquals(AstDSL.function("multimatchquery",
+            unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
+                "field", 1F))),
+            unresolvedArg("query", stringLiteral("search query"))),
+        buildExprAst("multimatchquery(query='search query', fields='field')")
+    );
+
+    assertEquals(AstDSL.function("multimatchquery",
+            unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
+                "field", 1F))),
+            unresolvedArg("query", stringLiteral("search query")),
+            unresolvedArg("analyzer", stringLiteral("keyword")),
+            unresolvedArg("operator", stringLiteral("AND"))),
+        buildExprAst("multimatchquery(query='search query', fields='field',"
+            + "analyzer='keyword', 'operator'='AND')"));
   }
 
   @Test
@@ -538,6 +635,22 @@ class AstExpressionBuilderTest {
             unresolvedArg("tie_breaker", stringLiteral("1.3"))),
         buildExprAst("query_string(['field1', 'field2' ^ 3.2], 'search query',"
             + "analyzer='keyword', time_zone='Canada/Pacific', tie_breaker='1.3')"));
+  }
+
+  @Test
+  public void relevanceQuery() {
+    assertEquals(AstDSL.function("query",
+                    unresolvedArg("query", stringLiteral("field1:query OR field2:query"))),
+            buildExprAst("query('field1:query OR field2:query')")
+    );
+
+    assertEquals(AstDSL.function("query",
+                    unresolvedArg("query", stringLiteral("search query")),
+                    unresolvedArg("analyzer", stringLiteral("keyword")),
+                    unresolvedArg("time_zone", stringLiteral("Canada/Pacific")),
+                    unresolvedArg("tie_breaker", stringLiteral("1.3"))),
+            buildExprAst("query('search query',"
+                    + "analyzer='keyword', time_zone='Canada/Pacific', tie_breaker='1.3')"));
   }
 
   @Test

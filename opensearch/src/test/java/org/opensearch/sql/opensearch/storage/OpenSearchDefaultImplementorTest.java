@@ -23,6 +23,7 @@ import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalHighlight;
+import org.opensearch.sql.planner.logical.LogicalML;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.storage.Table;
@@ -78,6 +79,16 @@ public class OpenSearchDefaultImplementorTest {
   }
 
   @Test
+  public void visitML() {
+    LogicalML node = Mockito.mock(LogicalML.class,
+            Answers.RETURNS_DEEP_STUBS);
+    Mockito.when(node.getChild().get(0)).thenReturn(Mockito.mock(LogicalPlan.class));
+    OpenSearchIndex.OpenSearchDefaultImplementor implementor =
+            new OpenSearchIndex.OpenSearchDefaultImplementor(indexScan, client);
+    assertNotNull(implementor.visitML(node, indexScan));
+  }
+
+  @Test
   public void visitHighlight() {
     LogicalHighlight node = Mockito.mock(LogicalHighlight.class,
         Answers.RETURNS_DEEP_STUBS);
@@ -88,6 +99,6 @@ public class OpenSearchDefaultImplementorTest {
         new OpenSearchIndex.OpenSearchDefaultImplementor(indexScan, client);
 
     implementor.visitHighlight(node, indexScan);
-    verify(requestBuilder).pushDownHighlight(any());
+    verify(requestBuilder).pushDownHighlight(any(), any());
   }
 }

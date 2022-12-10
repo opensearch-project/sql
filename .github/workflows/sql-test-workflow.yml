@@ -5,10 +5,17 @@ on:
     branches-ignore:
       - 'dependabot/**'
   workflow_dispatch:
+    inputs:
+      name:
+        required: false
+        type: string
 
 env:
   OPENSEARCH_VERSION: '3.0.0-SNAPSHOT'
   JDBC_VERSION: '2.0.0.0'
+
+run-name:
+  ${{ inputs.name == '' && format('{0} @ {1}', github.ref_name, github.sha) || inputs.name }}
 
 jobs:
   build:
@@ -21,6 +28,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+
     - name: Set up JDK ${{ matrix.java }}
       uses: actions/setup-java@v3
       with:
@@ -85,6 +93,13 @@ jobs:
         then
           echo "## FAILED TESTS :facepalm::warning::bangbang:" >> $GITHUB_STEP_SUMMARY
           cat failures.log >> $GITHUB_STEP_SUMMARY
+
+    - name: Verify test results
+      run: |
+        if [[ -e report.log ]]
+        then
+          echo "## FAILED TESTS :facepalm::warning::bangbang:" >> $GITHUB_STEP_SUMMARY
+          cat report.log >> $GITHUB_STEP_SUMMARY
           exit 1
         fi
 

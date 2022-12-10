@@ -95,7 +95,7 @@ public abstract class LuceneQuery {
     ReferenceExpression ref = (ReferenceExpression) func.getArguments().get(0);
     Expression expr = func.getArguments().get(1);
     ExprValue literalValue = expr instanceof LiteralExpression ? expr
-        .valueOf(null) : cast((FunctionExpression) expr);
+        .valueOf() : cast((FunctionExpression) expr);
     return doBuild(ref.getAttr(), ref.type(), literalValue);
   }
 
@@ -111,101 +111,101 @@ public abstract class LuceneQuery {
       .<FunctionName, Function<LiteralExpression, ExprValue>>builder()
       .put(BuiltinFunctionName.CAST_TO_STRING.getName(), expr -> {
         if (!expr.type().equals(ExprCoreType.STRING)) {
-          return new ExprStringValue(String.valueOf(expr.valueOf(null).value()));
+          return new ExprStringValue(String.valueOf(expr.valueOf().value()));
         } else {
-          return expr.valueOf(null);
+          return expr.valueOf();
         }
       })
       .put(BuiltinFunctionName.CAST_TO_BYTE.getName(), expr -> {
         if (ExprCoreType.numberTypes().contains(expr.type())) {
-          return new ExprByteValue(expr.valueOf(null).byteValue());
+          return new ExprByteValue(expr.valueOf().byteValue());
         } else if (expr.type().equals(ExprCoreType.BOOLEAN)) {
-          return new ExprByteValue(expr.valueOf(null).booleanValue() ? 1 : 0);
+          return new ExprByteValue(expr.valueOf().booleanValue() ? 1 : 0);
         } else {
-          return new ExprByteValue(Byte.valueOf(expr.valueOf(null).stringValue()));
+          return new ExprByteValue(Byte.valueOf(expr.valueOf().stringValue()));
         }
       })
       .put(BuiltinFunctionName.CAST_TO_SHORT.getName(), expr -> {
         if (ExprCoreType.numberTypes().contains(expr.type())) {
-          return new ExprShortValue(expr.valueOf(null).shortValue());
+          return new ExprShortValue(expr.valueOf().shortValue());
         } else if (expr.type().equals(ExprCoreType.BOOLEAN)) {
-          return new ExprShortValue(expr.valueOf(null).booleanValue() ? 1 : 0);
+          return new ExprShortValue(expr.valueOf().booleanValue() ? 1 : 0);
         } else {
-          return new ExprShortValue(Short.valueOf(expr.valueOf(null).stringValue()));
+          return new ExprShortValue(Short.valueOf(expr.valueOf().stringValue()));
         }
       })
       .put(BuiltinFunctionName.CAST_TO_INT.getName(), expr -> {
         if (ExprCoreType.numberTypes().contains(expr.type())) {
-          return new ExprIntegerValue(expr.valueOf(null).integerValue());
+          return new ExprIntegerValue(expr.valueOf().integerValue());
         } else if (expr.type().equals(ExprCoreType.BOOLEAN)) {
-          return new ExprIntegerValue(expr.valueOf(null).booleanValue() ? 1 : 0);
+          return new ExprIntegerValue(expr.valueOf().booleanValue() ? 1 : 0);
         } else {
-          return new ExprIntegerValue(Integer.valueOf(expr.valueOf(null).stringValue()));
+          return new ExprIntegerValue(Integer.valueOf(expr.valueOf().stringValue()));
         }
       })
       .put(BuiltinFunctionName.CAST_TO_LONG.getName(), expr -> {
         if (ExprCoreType.numberTypes().contains(expr.type())) {
-          return new ExprLongValue(expr.valueOf(null).longValue());
+          return new ExprLongValue(expr.valueOf().longValue());
         } else if (expr.type().equals(ExprCoreType.BOOLEAN)) {
-          return new ExprLongValue(expr.valueOf(null).booleanValue() ? 1 : 0);
+          return new ExprLongValue(expr.valueOf().booleanValue() ? 1 : 0);
         } else {
-          return new ExprLongValue(Long.valueOf(expr.valueOf(null).stringValue()));
+          return new ExprLongValue(Long.valueOf(expr.valueOf().stringValue()));
         }
       })
       .put(BuiltinFunctionName.CAST_TO_FLOAT.getName(), expr -> {
         if (ExprCoreType.numberTypes().contains(expr.type())) {
-          return new ExprFloatValue(expr.valueOf(null).floatValue());
+          return new ExprFloatValue(expr.valueOf().floatValue());
         } else if (expr.type().equals(ExprCoreType.BOOLEAN)) {
-          return new ExprFloatValue(expr.valueOf(null).booleanValue() ? 1 : 0);
+          return new ExprFloatValue(expr.valueOf().booleanValue() ? 1 : 0);
         } else {
-          return new ExprFloatValue(Float.valueOf(expr.valueOf(null).stringValue()));
+          return new ExprFloatValue(Float.valueOf(expr.valueOf().stringValue()));
         }
       })
       .put(BuiltinFunctionName.CAST_TO_DOUBLE.getName(), expr -> {
         if (ExprCoreType.numberTypes().contains(expr.type())) {
-          return new ExprDoubleValue(expr.valueOf(null).doubleValue());
+          return new ExprDoubleValue(expr.valueOf().doubleValue());
         } else if (expr.type().equals(ExprCoreType.BOOLEAN)) {
-          return new ExprDoubleValue(expr.valueOf(null).booleanValue() ? 1 : 0);
+          return new ExprDoubleValue(expr.valueOf().booleanValue() ? 1 : 0);
         } else {
-          return new ExprDoubleValue(Double.valueOf(expr.valueOf(null).stringValue()));
+          return new ExprDoubleValue(Double.valueOf(expr.valueOf().stringValue()));
         }
       })
       .put(BuiltinFunctionName.CAST_TO_BOOLEAN.getName(), expr -> {
         if (ExprCoreType.numberTypes().contains(expr.type())) {
-          return expr.valueOf(null).doubleValue() == 1
+          return expr.valueOf().doubleValue() != 0
               ? ExprBooleanValue.of(true) : ExprBooleanValue.of(false);
         } else if (expr.type().equals(ExprCoreType.STRING)) {
-          return ExprBooleanValue.of(Boolean.valueOf(expr.valueOf(null).stringValue()));
+          return ExprBooleanValue.of(Boolean.valueOf(expr.valueOf().stringValue()));
         } else {
-          return expr.valueOf(null);
+          return expr.valueOf();
         }
       })
       .put(BuiltinFunctionName.CAST_TO_DATE.getName(), expr -> {
         if (expr.type().equals(ExprCoreType.STRING)) {
-          return new ExprDateValue(expr.valueOf(null).stringValue());
+          return new ExprDateValue(expr.valueOf().stringValue());
         } else {
-          return new ExprDateValue(expr.valueOf(null).dateValue());
+          return new ExprDateValue(expr.valueOf().dateValue());
         }
       })
       .put(BuiltinFunctionName.CAST_TO_TIME.getName(), expr -> {
         if (expr.type().equals(ExprCoreType.STRING)) {
-          return new ExprTimeValue(expr.valueOf(null).stringValue());
+          return new ExprTimeValue(expr.valueOf().stringValue());
         } else {
-          return new ExprTimeValue(expr.valueOf(null).timeValue());
+          return new ExprTimeValue(expr.valueOf().timeValue());
         }
       })
       .put(BuiltinFunctionName.CAST_TO_DATETIME.getName(), expr -> {
         if (expr.type().equals(ExprCoreType.STRING)) {
-          return new ExprDatetimeValue(expr.valueOf(null).stringValue());
+          return new ExprDatetimeValue(expr.valueOf().stringValue());
         } else {
-          return new ExprDatetimeValue(expr.valueOf(null).datetimeValue());
+          return new ExprDatetimeValue(expr.valueOf().datetimeValue());
         }
       })
       .put(BuiltinFunctionName.CAST_TO_TIMESTAMP.getName(), expr -> {
         if (expr.type().equals(ExprCoreType.STRING)) {
-          return new ExprTimestampValue(expr.valueOf(null).stringValue());
+          return new ExprTimestampValue(expr.valueOf().stringValue());
         } else {
-          return new ExprTimestampValue(expr.valueOf(null).timestampValue());
+          return new ExprTimestampValue(expr.valueOf().timestampValue());
         }
       })
       .build();

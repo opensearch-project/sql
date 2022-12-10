@@ -34,6 +34,10 @@ The query start with search command and then flowing a set of command delimited 
 
   - `Monitoring <admin/monitoring.rst>`_
 
+  - `Datasource Settings <admin/datasources.rst>`_
+
+  - `Prometheus Connector <admin/prometheus_connector.rst>`_
+
 * **Commands**
 
   - `Syntax <cmd/syntax.rst>`_
@@ -44,13 +48,21 @@ The query start with search command and then flowing a set of command delimited 
 
   - `describe command <cmd/describe.rst>`_
 
+  - `show datasources command <cmd/showdatasources.rst>`_
+
   - `eval command <cmd/eval.rst>`_
 
   - `fields command <cmd/fields.rst>`_
 
+  - `grok command <cmd/grok.rst>`_
+
   - `kmeans command <cmd/kmeans.rst>`_
 
+  - `ml command <cmd/ml.rst>`_
+
   - `parse command <cmd/parse.rst>`_
+
+  - `patterns command <cmd/patterns.rst>`_
 
   - `rename command <cmd/rename.rst>`_
 
@@ -68,6 +80,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `top command <cmd/top.rst>`_
 
+  - `metadata commands <cmd/information_schema.rst>`_
+
 * **Functions**
 
   - `Expressions <functions/expressions.rst>`_
@@ -83,6 +97,8 @@ The query start with search command and then flowing a set of command delimited 
   - `Relevance Functions <functions/relevance.rst>`_
 
   - `Type Conversion Functions <functions/conversion.rst>`_
+
+  - `System Functions <functions/system.rst>`_
 
 * **Optimization**
 

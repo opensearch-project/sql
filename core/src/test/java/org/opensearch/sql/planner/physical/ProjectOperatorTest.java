@@ -110,12 +110,13 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
     when(inputPlan.next())
         .thenReturn(ExprValueUtils.tupleValue(ImmutableMap.of("response", "GET 200")));
     PhysicalPlan plan =
-        project(inputPlan, ImmutableList.of(DSL.named("action", DSL.ref("action", STRING))),
+        project(inputPlan, ImmutableList.of(DSL.named("action", DSL.ref("action", STRING)),
+                DSL.named("response", DSL.ref("response", STRING))),
             ImmutableList.of(DSL.named("action",
-                DSL.parsed(DSL.ref("response", STRING),
+                DSL.regex(DSL.ref("response", STRING),
                     DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
                     DSL.literal("action"))), DSL.named("response",
-                DSL.parsed(DSL.ref("response", STRING),
+                DSL.regex(DSL.ref("response", STRING),
                     DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
                     DSL.literal("response"))))
         );
@@ -130,6 +131,54 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
   }
 
   @Test
+  public void project_fields_with_unused_parse_expressions() {
+    when(inputPlan.hasNext()).thenReturn(true, false);
+    when(inputPlan.next())
+        .thenReturn(ExprValueUtils.tupleValue(ImmutableMap.of("response", "GET 200")));
+    PhysicalPlan plan =
+        project(inputPlan, ImmutableList.of(DSL.named("response", DSL.ref("response", STRING))),
+            ImmutableList.of(DSL.named("ignored",
+                DSL.regex(DSL.ref("response", STRING),
+                    DSL.literal("(?<action>\\w+) (?<ignored>\\d+)"),
+                    DSL.literal("ignored"))))
+        );
+    List<ExprValue> result = execute(plan);
+
+    assertThat(
+        result,
+        allOf(
+            iterableWithSize(1),
+            hasItems(
+                ExprValueUtils.tupleValue(ImmutableMap.of("response", "GET 200")))));
+  }
+
+  @Test
+  public void project_fields_with_parse_expressions_and_runtime_fields() {
+    when(inputPlan.hasNext()).thenReturn(true, false);
+    when(inputPlan.next())
+        .thenReturn(
+            ExprValueUtils.tupleValue(ImmutableMap.of("response", "GET 200", "eval_field", 1)));
+    PhysicalPlan plan =
+        project(inputPlan, ImmutableList.of(DSL.named("response", DSL.ref("response", STRING)),
+                DSL.named("action", DSL.ref("action", STRING)),
+                DSL.named("eval_field", DSL.ref("eval_field", INTEGER))),
+            ImmutableList.of(DSL.named("action",
+                DSL.regex(DSL.ref("response", STRING),
+                    DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
+                    DSL.literal("action"))))
+        );
+    List<ExprValue> result = execute(plan);
+
+    assertThat(
+        result,
+        allOf(
+            iterableWithSize(1),
+            hasItems(
+                ExprValueUtils.tupleValue(
+                    ImmutableMap.of("response", "GET 200", "action", "GET", "eval_field", 1)))));
+  }
+
+  @Test
   public void project_parse_missing_will_fallback() {
     when(inputPlan.hasNext()).thenReturn(true, true, false);
     when(inputPlan.next())
@@ -137,12 +186,13 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
             ExprValueUtils.tupleValue(ImmutableMap.of("action", "GET", "response", "GET 200")))
         .thenReturn(ExprValueUtils.tupleValue(ImmutableMap.of("action", "POST")));
     PhysicalPlan plan =
-        project(inputPlan, ImmutableList.of(DSL.named("action", DSL.ref("action", STRING))),
+        project(inputPlan, ImmutableList.of(DSL.named("action", DSL.ref("action", STRING)),
+                DSL.named("response", DSL.ref("response", STRING))),
             ImmutableList.of(DSL.named("action",
-                DSL.parsed(DSL.ref("response", STRING),
+                DSL.regex(DSL.ref("response", STRING),
                     DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
                     DSL.literal("action"))), DSL.named("response",
-                DSL.parsed(DSL.ref("response", STRING),
+                DSL.regex(DSL.ref("response", STRING),
                     DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
                     DSL.literal("response"))))
         );

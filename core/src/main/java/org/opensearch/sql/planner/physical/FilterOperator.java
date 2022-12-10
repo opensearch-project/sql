@@ -21,7 +21,7 @@ import org.opensearch.sql.storage.bindingtuple.BindingTuple;
  * The Filter operator only return the results that evaluated to true.
  * The NULL and MISSING are handled by the logic defined in {@link BinaryPredicateOperator}.
  */
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 @ToString
 @RequiredArgsConstructor
 public class FilterOperator extends PhysicalPlan {
