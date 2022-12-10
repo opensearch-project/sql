@@ -1123,7 +1123,7 @@ public class DateTimeFunction {
   private ExprValue exprUtcTimeStamp(FunctionProperties functionProperties) {
     var zdt = ZonedDateTime.now(functionProperties.getQueryStartClock())
         .withZoneSameInstant(ZoneId.of("UTC"));
-    return new ExprDatetimeValue(DATE_TIME_FORMATTER_STRICT_WITH_TZ.format(zdt));
+    return new ExprDatetimeValue(zdt.toLocalDateTime());
   }
 
   /**

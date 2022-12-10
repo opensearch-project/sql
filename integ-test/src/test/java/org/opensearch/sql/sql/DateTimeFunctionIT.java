@@ -736,7 +736,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
               .put("hasFsp", false)
               .put("hasShortcut", false)
               .put("constValue", true)
-              .put("referenceGetter", (Supplier<Temporal>) (()-> org.opensearch.sql.sql.DateTimeFunctionIT.utcDateTimeNow().toLocalDate()))
+              .put("referenceGetter", (Supplier<Temporal>) (()-> utcDateTimeNow().toLocalDate()))
               .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse)
               .put("serializationPattern", "uuuu-MM-dd")
               .build(),
@@ -745,7 +745,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
               .put("hasFsp", false)
               .put("hasShortcut", false)
               .put("constValue", true)
-              .put("referenceGetter", (Supplier<Temporal>) (()-> org.opensearch.sql.sql.DateTimeFunctionIT.utcDateTimeNow().toLocalTime()))
+              .put("referenceGetter", (Supplier<Temporal>) (()-> utcDateTimeNow().toLocalTime()))
               .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalTime::parse)
               .put("serializationPattern", "HH:mm:ss")
               .build(),
@@ -754,7 +754,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
               .put("hasFsp", false)
               .put("hasShortcut", false)
               .put("constValue", true)
-              .put("referenceGetter", (Supplier<Temporal>) org.opensearch.sql.sql.DateTimeFunctionIT::utcDateTimeNow)
+              .put("referenceGetter", (Supplier<Temporal>) DateTimeFunctionIT::utcDateTimeNow)
               .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse)
               .put("serializationPattern", "uuuu-MM-dd HH:mm:ss")
               .build()

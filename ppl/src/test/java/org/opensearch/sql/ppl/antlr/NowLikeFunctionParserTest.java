@@ -46,7 +46,10 @@ public class NowLikeFunctionParserTest {
         {"curtime", true, false},
         {"current_time", true, true},
         {"curdate", false, false},
-        {"current_date", false, true}
+        {"current_date", false, true},
+        {"utc_date", false, false},
+        {"utc_time", false, false},
+        {"utc_timestamp", false, false}
     });
   }
 
