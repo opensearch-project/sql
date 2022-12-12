@@ -32,6 +32,6 @@ public class LikeQuery extends LuceneQuery {
    */
   protected WildcardQueryBuilder createBuilder(String field, String query) {
     String matchText = StringUtils.convertSqlWildcardToLucene(query);
-    return QueryBuilders.wildcardQuery(field, matchText);
+    return QueryBuilders.wildcardQuery(field, matchText).caseInsensitive(true);
   }
 }

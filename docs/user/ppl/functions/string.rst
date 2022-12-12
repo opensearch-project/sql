@@ -87,7 +87,7 @@ LIKE
 Description
 >>>>>>>>>>>
 
-Usage: like(string, PATTERN) return true if the string match the PATTERN.
+Usage: like(string, PATTERN) return true if the string match the PATTERN, PATTERN is case insensitive.
 
 There are two wildcards often used in conjunction with the LIKE operator:
 
@@ -96,7 +96,7 @@ There are two wildcards often used in conjunction with the LIKE operator:
 
 Example::
 
-    os> source=people | eval `LIKE('hello world', '_ello%')` = LIKE('hello world', '_ello%') | fields `LIKE('hello world', '_ello%')`
+    os> source=people | eval `LIKE('hello world', '_ello%')` = LIKE('hello world', '_ELLO%') | fields `LIKE('hello world', '_ello%')`
     fetched rows / total rows = 1/1
     +---------------------------------+
     | LIKE('hello world', '_ello%')   |
