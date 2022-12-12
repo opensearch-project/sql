@@ -55,8 +55,7 @@ public class ExpressionAggregationScript extends AggregationScript {
     }
     switch ((ExprCoreType)expr.type()) {
       case TIME:
-        // workaround for session context issue
-        // TODO remove once fixed
+        // Can't get timestamp from `ExprTimeValue`
         return MILLIS.between(LocalTime.MIN, expr.timeValue());
       case DATE:
       case DATETIME:
