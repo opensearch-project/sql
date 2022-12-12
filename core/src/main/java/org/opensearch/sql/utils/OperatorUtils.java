@@ -22,8 +22,9 @@ public class OperatorUtils {
    * @return if text matches pattern returns true; else return false.
    */
   public static ExprBooleanValue matches(ExprValue text, ExprValue pattern) {
-    return ExprBooleanValue
-        .of(Pattern.compile(patternToRegex(pattern.stringValue())).matcher(text.stringValue())
+    return ExprBooleanValue.of(
+        Pattern.compile(patternToRegex(pattern.stringValue()), Pattern.CASE_INSENSITIVE)
+            .matcher(text.stringValue())
             .matches());
   }
 
