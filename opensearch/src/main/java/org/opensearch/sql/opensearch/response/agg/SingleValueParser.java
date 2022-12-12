@@ -17,6 +17,7 @@ import static org.opensearch.sql.opensearch.response.agg.Utils.handleNanInfValue
 
 import java.util.Collections;
 import java.util.Map;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.search.aggregations.Aggregation;
@@ -25,6 +26,7 @@ import org.opensearch.search.aggregations.metrics.NumericMetricsAggregation;
 /**
  * {@link NumericMetricsAggregation.SingleValue} metric parser.
  */
+@EqualsAndHashCode
 @RequiredArgsConstructor
 public class SingleValueParser implements MetricParser {
 

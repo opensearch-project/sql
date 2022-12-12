@@ -36,7 +36,7 @@ jobs:
 
       # dependencies: sql-jdbc
     - name: Checkout Opensearch-SQL-library
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         repository: 'opensearch-project/sql-jdbc'
         path: sql-jdbc

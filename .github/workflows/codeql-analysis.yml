@@ -29,11 +29,14 @@ jobs:
     steps:
       # dependencies: sql-jdbc
       - name: Checkout Opensearch-SQL-library
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: 'opensearch-project/sql-jdbc'
           path: sql-jdbc
           ref: ${{ env.JDBC_VERSION }}
+      - name: Build SQL-JDBC library
+        working-directory: ./sql-jdbc
+        run: ./gradlew publishToMavenLocal -Dbuild.snapshot=false
 
       - name: Checkout repository
         uses: actions/checkout@v3
