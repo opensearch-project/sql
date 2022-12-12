@@ -6,20 +6,9 @@
 
 package org.opensearch.sql.correctness;
 
-import static org.opensearch.sql.util.TestUtils.getResourceFilePath;
-
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.google.common.collect.Maps;
-
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Map;
-import java.util.TimeZone;
-import org.apache.hc.core5.http.HttpHost;
+import org.apache.http.HttpHost;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
@@ -32,6 +21,17 @@ import org.opensearch.sql.correctness.runner.connection.JDBCConnection;
 import org.opensearch.sql.correctness.runner.connection.OpenSearchConnection;
 import org.opensearch.sql.correctness.testset.TestDataSet;
 import org.opensearch.test.OpenSearchIntegTestCase;
+
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Map;
+import java.util.TimeZone;
+
+import static org.opensearch.sql.util.TestUtils.getResourceFilePath;
 
 /**
  * Correctness integration test by performing comparison test with other databases.

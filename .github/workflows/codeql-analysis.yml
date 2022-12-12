@@ -11,6 +11,8 @@ on:
     paths:
       - '**/*.java'
       - '.github/workflows/codeql-analysis.yml'
+env:
+  JDBC_VERSION: '2.0.0.0'
 
 jobs:
   analyze:
@@ -25,6 +27,14 @@ jobs:
         language: [ 'java' ]
 
     steps:
+      # dependencies: sql-jdbc
+      - name: Checkout Opensearch-SQL-library
+        uses: actions/checkout@v2
+        with:
+          repository: 'opensearch-project/sql-jdbc'
+          path: sql-jdbc
+          ref: ${{ env.JDBC_VERSION }}
+
       - name: Checkout repository
         uses: actions/checkout@v3
 

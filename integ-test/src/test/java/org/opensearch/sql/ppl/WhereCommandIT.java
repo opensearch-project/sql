@@ -90,10 +90,8 @@ public class WhereCommandIT extends PPLIntegTestCase {
     verifyDataRows(result, rows("Virginia"));
   }
 
-//  @Test
-//  This test only fails on github workflow for specific OS cases - open a ticket to revolve this
-//  Momentary remove test so that workflow will pass...
-  public void ignoreFailedTestIsNotNullFunction() throws IOException {
+  @Test
+  public void IgnoreFaileTestIsNotNullFunction() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(

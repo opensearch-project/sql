@@ -19,7 +19,11 @@ def path = project(':').projectDir
 // plugin module, and will only build ppl in it.
 def plugin_path = project(':doctest').projectDir
 
-task bootstrap(type: Exec) {
+task cloneRepo(type: Exec) {
+    commandLine 'git', 'clone', 'https://github.com/opensearch-project/sql-cli.git'
+}
+
+task bootstrap(type: Exec, dependsOn: ['cloneRepo']) {
     inputs.file "$projectDir/bootstrap.sh"
     outputs.dir "$projectDir/.venv"
 
