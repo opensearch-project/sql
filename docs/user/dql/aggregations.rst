@@ -182,7 +182,7 @@ AVG
 Description
 >>>>>>>>>>>
 
-Usage: AVG(expr). Returns the average value of `expr`. `expr` could be of any of the numeric and datetime data types. Datetime aggregation perfomed with milliseconds precision.
+Usage: AVG(expr). Returns the average value of `expr`. `expr` can be any numeric or datetime data type. Datetime aggregation is performed with milliseconds precision.
 
 Example::
 
@@ -201,7 +201,7 @@ MAX
 Description
 >>>>>>>>>>>
 
-Usage: MAX(expr). Returns the maximum value of `expr`. `expr` could be of any of the numeric and datetime data types. Datetime aggregation perfomed with milliseconds precision.
+Usage: MAX(expr). Returns the maximum value of `expr`. `expr` can be any numeric or datetime data type. Datetime aggregation is performed with milliseconds precision.
 
 Example::
 
@@ -219,7 +219,7 @@ MIN
 Description
 >>>>>>>>>>>
 
-Usage: MIN(expr). Returns the minimum value of `expr`. `expr` could be of any of the numeric and datetime data types. Datetime aggregation perfomed with milliseconds precision.
+Usage: MIN(expr). Returns the minimum value of `expr`. `expr` can be any numeric or datetime data type. Datetime aggregation is performed with milliseconds precision.
 
 Example::
 
