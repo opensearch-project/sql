@@ -6,12 +6,7 @@
 
 package org.opensearch.sql.opensearch.storage;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.opensearch.sql.planner.logical.LogicalPlanDSL.relation;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,9 +15,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
-import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.planner.logical.LogicalAD;
-import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalML;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
@@ -32,31 +25,10 @@ import org.opensearch.sql.storage.Table;
 public class OpenSearchDefaultImplementorTest {
 
   @Mock
-  OpenSearchIndexScan indexScan;
-  @Mock
   OpenSearchClient client;
 
   @Mock
   Table table;
-
-  /**
-   * For test coverage.
-   */
-  @Test
-  public void visitInvalidTypeShouldThrowException() {
-    final OpenSearchIndex.OpenSearchDefaultImplementor implementor =
-        new OpenSearchIndex.OpenSearchDefaultImplementor(indexScan, client);
-
-    final IllegalStateException exception =
-        assertThrows(IllegalStateException.class,
-            () -> implementor.visitNode(relation("index", table),
-                indexScan));
-    ;
-    assertEquals(
-        "unexpected plan node type "
-            + "class org.opensearch.sql.planner.logical.LogicalRelation",
-        exception.getMessage());
-  }
 
   @Test
   public void visitMachineLearning() {
@@ -64,8 +36,8 @@ public class OpenSearchDefaultImplementorTest {
         Answers.RETURNS_DEEP_STUBS);
     Mockito.when(node.getChild().get(0)).thenReturn(Mockito.mock(LogicalPlan.class));
     OpenSearchIndex.OpenSearchDefaultImplementor implementor =
-        new OpenSearchIndex.OpenSearchDefaultImplementor(indexScan, client);
-    assertNotNull(implementor.visitMLCommons(node, indexScan));
+        new OpenSearchIndex.OpenSearchDefaultImplementor(client);
+    assertNotNull(implementor.visitMLCommons(node, null));
   }
 
   @Test
@@ -74,8 +46,8 @@ public class OpenSearchDefaultImplementorTest {
         Answers.RETURNS_DEEP_STUBS);
     Mockito.when(node.getChild().get(0)).thenReturn(Mockito.mock(LogicalPlan.class));
     OpenSearchIndex.OpenSearchDefaultImplementor implementor =
-        new OpenSearchIndex.OpenSearchDefaultImplementor(indexScan, client);
-    assertNotNull(implementor.visitAD(node, indexScan));
+        new OpenSearchIndex.OpenSearchDefaultImplementor(client);
+    assertNotNull(implementor.visitAD(node, null));
   }
 
   @Test
@@ -84,21 +56,7 @@ public class OpenSearchDefaultImplementorTest {
             Answers.RETURNS_DEEP_STUBS);
     Mockito.when(node.getChild().get(0)).thenReturn(Mockito.mock(LogicalPlan.class));
     OpenSearchIndex.OpenSearchDefaultImplementor implementor =
-            new OpenSearchIndex.OpenSearchDefaultImplementor(indexScan, client);
-    assertNotNull(implementor.visitML(node, indexScan));
-  }
-
-  @Test
-  public void visitHighlight() {
-    LogicalHighlight node = Mockito.mock(LogicalHighlight.class,
-        Answers.RETURNS_DEEP_STUBS);
-    Mockito.when(node.getChild().get(0)).thenReturn(Mockito.mock(LogicalPlan.class));
-    OpenSearchRequestBuilder requestBuilder = Mockito.mock(OpenSearchRequestBuilder.class);
-    Mockito.when(indexScan.getRequestBuilder()).thenReturn(requestBuilder);
-    OpenSearchIndex.OpenSearchDefaultImplementor implementor =
-        new OpenSearchIndex.OpenSearchDefaultImplementor(indexScan, client);
-
-    implementor.visitHighlight(node, indexScan);
-    verify(requestBuilder).pushDownHighlight(any(), any());
+            new OpenSearchIndex.OpenSearchDefaultImplementor(client);
+    assertNotNull(implementor.visitML(node, null));
   }
 }

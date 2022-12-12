@@ -258,6 +258,7 @@ valueExpression
     | LT_PRTHS left=valueExpression binaryOperator
     right=valueExpression RT_PRTHS                                  #parentheticBinaryArithmetic
     | primaryExpression                                             #valueExpressionDefault
+    | positionFunction                                              #positionFunctionCall
     ;
 
 primaryExpression
@@ -265,6 +266,10 @@ primaryExpression
     | dataTypeFunctionCall
     | fieldExpression
     | literalValue
+    ;
+
+positionFunction
+    : positionFunctionName LT_PRTHS functionArg IN functionArg RT_PRTHS
     ;
 
 booleanExpression
@@ -362,6 +367,7 @@ evalFunctionName
     | textFunctionBase
     | conditionFunctionBase
     | systemFunctionBase
+    | positionFunctionName
     ;
 
 functionArgs
@@ -481,7 +487,11 @@ systemFunctionBase
 
 textFunctionBase
     : SUBSTR | SUBSTRING | TRIM | LTRIM | RTRIM | LOWER | UPPER | CONCAT | CONCAT_WS | LENGTH | STRCMP
-    | RIGHT | LEFT | ASCII | LOCATE | REPLACE
+    | RIGHT | LEFT | ASCII | LOCATE | REPLACE | REVERSE
+    ;
+
+positionFunctionName
+    : POSITION
     ;
 
 /** operators */
@@ -603,4 +613,5 @@ keywordsCanBeId
     | dateAndTimeFunctionBase
     | textFunctionBase
     | mathematicalFunctionBase
+    | positionFunctionName
     ;

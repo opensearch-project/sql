@@ -167,6 +167,7 @@ public enum BuiltinFunctionName {
   POSITION(FunctionName.of("position")),
   REGEXP(FunctionName.of("regexp")),
   REPLACE(FunctionName.of("replace")),
+  REVERSE(FunctionName.of("reverse")),
   RIGHT(FunctionName.of("right")),
   RTRIM(FunctionName.of("rtrim")),
   STRCMP(FunctionName.of("strcmp")),
@@ -228,7 +229,9 @@ public enum BuiltinFunctionName {
   MATCHQUERY(FunctionName.of("matchquery")),
   MULTI_MATCH(FunctionName.of("multi_match")),
   MULTIMATCH(FunctionName.of("multimatch")),
-  MULTIMATCHQUERY(FunctionName.of("multimatchquery"));
+  MULTIMATCHQUERY(FunctionName.of("multimatchquery")),
+  WILDCARDQUERY(FunctionName.of("wildcardquery")),
+  WILDCARD_QUERY(FunctionName.of("wildcard_query"));
 
   private final FunctionName name;
 
