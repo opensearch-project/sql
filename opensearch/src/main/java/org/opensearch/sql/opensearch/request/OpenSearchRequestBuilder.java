@@ -9,6 +9,8 @@ package org.opensearch.sql.opensearch.request;
 import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
 
+import com.google.common.collect.Lists;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,7 +26,9 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
+import org.opensearch.search.sort.FieldSortBuilder;
 import org.opensearch.search.sort.SortBuilder;
+import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -158,6 +162,11 @@ public class OpenSearchRequestBuilder {
    * @param sortBuilders sortBuilders.
    */
   public void pushDownSort(List<SortBuilder<?>> sortBuilders) {
+    // TODO: Sort by _doc is added when filter push down. Remove both logic once doctest fixed.
+    if (isSortByDocOnly()) {
+      sourceBuilder.sorts().clear();
+    }
+
     for (SortBuilder<?> sortBuilder : sortBuilders) {
       sourceBuilder.sort(sortBuilder);
     }
@@ -219,5 +228,13 @@ public class OpenSearchRequestBuilder {
 
   private boolean isBoolFilterQuery(QueryBuilder current) {
     return (current instanceof BoolQueryBuilder);
+  }
+
+  private boolean isSortByDocOnly() {
+    List<SortBuilder<?>> sorts = sourceBuilder.sorts();
+    if (sorts != null) {
+      return sorts.equals(Arrays.asList(SortBuilders.fieldSort(DOC_FIELD_NAME)));
+    }
+    return false;
   }
 }

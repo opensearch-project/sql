@@ -9,6 +9,7 @@ package org.opensearch.sql.ppl.parser;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NULL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.POSITION;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BinaryArithmeticContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
@@ -288,6 +289,15 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     } else {
       return visitIdentifiers(Arrays.asList(ctx));
     }
+  }
+
+  @Override
+  public UnresolvedExpression visitPositionFunction(
+          OpenSearchPPLParser.PositionFunctionContext ctx) {
+    return new Function(
+            POSITION.getName().getFunctionName(),
+            Arrays.asList(visitFunctionArg(ctx.functionArg(0)),
+                    visitFunctionArg(ctx.functionArg(1))));
   }
 
   /**

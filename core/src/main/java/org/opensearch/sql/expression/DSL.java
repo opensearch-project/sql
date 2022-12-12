@@ -486,6 +486,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.REPLACE, expressions);
   }
 
+  public static FunctionExpression reverse(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.REVERSE, expressions);
+  }
+
   public static FunctionExpression and(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.AND, expressions);
   }
@@ -713,6 +717,10 @@ public class DSL {
 
   public static FunctionExpression match_bool_prefix(Expression... args) {
     return compile(FunctionProperties.None, BuiltinFunctionName.MATCH_BOOL_PREFIX, args);
+  }
+
+  public static FunctionExpression wildcard_query(Expression... args) {
+    return compile(FunctionProperties.None,BuiltinFunctionName.WILDCARD_QUERY, args);
   }
 
   public static FunctionExpression now(FunctionProperties functionProperties,

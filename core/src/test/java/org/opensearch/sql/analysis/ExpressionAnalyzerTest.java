@@ -541,6 +541,34 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
+  void wildcard_query_expression() {
+    assertAnalyzeEqual(
+        DSL.wildcard_query(
+            DSL.namedArgument("field", DSL.literal("test")),
+            DSL.namedArgument("query", DSL.literal("query_value*"))),
+        AstDSL.function("wildcard_query",
+            unresolvedArg("field", stringLiteral("test")),
+            unresolvedArg("query", stringLiteral("query_value*"))));
+  }
+
+  @Test
+  void wildcard_query_expression_all_params() {
+    assertAnalyzeEqual(
+        DSL.wildcard_query(
+            DSL.namedArgument("field", DSL.literal("test")),
+            DSL.namedArgument("query", DSL.literal("query_value*")),
+            DSL.namedArgument("boost", DSL.literal("1.5")),
+            DSL.namedArgument("case_insensitive", DSL.literal("true")),
+            DSL.namedArgument("rewrite", DSL.literal("scoring_boolean"))),
+        AstDSL.function("wildcard_query",
+            unresolvedArg("field", stringLiteral("test")),
+            unresolvedArg("query", stringLiteral("query_value*")),
+            unresolvedArg("boost", stringLiteral("1.5")),
+            unresolvedArg("case_insensitive", stringLiteral("true")),
+            unresolvedArg("rewrite", stringLiteral("scoring_boolean"))));
+  }
+
+  @Test
   public void match_phrase_prefix_all_params() {
     assertAnalyzeEqual(
         DSL.match_phrase_prefix(

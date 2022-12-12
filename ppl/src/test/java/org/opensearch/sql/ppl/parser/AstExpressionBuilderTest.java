@@ -182,6 +182,19 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testPositionFunctionExpr() {
+    assertEqual("source=t | eval f=position('substr' IN 'str')",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function("position",
+                        stringLiteral("substr"), stringLiteral("str"))
+            )
+        ));
+  }
+
+  @Test
   public void testEvalBinaryOperationExpr() {
     assertEqual("source=t | eval f=a+b",
         eval(
