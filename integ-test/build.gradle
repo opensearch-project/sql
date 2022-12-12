@@ -39,8 +39,6 @@ apply plugin: 'io.freefair.lombok'
 apply plugin: 'com.wiredforcode.spawn'
 
 
-
-
 repositories {
     mavenCentral()
     maven { url 'https://jitpack.io' }
@@ -84,14 +82,13 @@ dependencies {
     testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
     testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-client', version: "${opensearch_version}"
     testImplementation group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
-    implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version:'2.17.1'
+    implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.17.1'
     testImplementation project(':opensearch-sql-plugin')
     testImplementation project(':legacy')
     testImplementation('org.junit.jupiter:junit-jupiter-api:5.6.2')
     testRuntimeOnly('org.junit.jupiter:junit-jupiter-engine:5.6.2')
 
-    testImplementation group: 'org.opensearch.client', name: 'opensearch-sql-jdbc', version: "${opensearch_jdbc_version}"
-    testImplementation group: 'com.h2database', name: 'h2', version: '2.1.210'
+//    testImplementation group: 'org.opensearch.client', name: 'opensearch-sql-jdbc'
     testImplementation group: 'com.h2database', name: 'h2', version: '2.1.210'
     testImplementation group: 'org.xerial', name: 'sqlite-jdbc', version: '3.28.0'
     testImplementation group: 'com.google.code.gson', name: 'gson', version: '2.8.9'
@@ -104,6 +101,12 @@ testingConventions.enabled = false
 checkstyleTest.ignoreFailures = true
 forbiddenApisTest.enabled = false
 thirdPartyAudit.enabled = false
+
+tasks.named("compileTestJava") { dependsOn("cloneSqlJdbcRepo") }
+
+task cloneSqlJdbcRepo(type: Exec) {
+    commandLine 'git', 'clone', 'https://github.com/opensearch-project/sql-jdbc.git'
+}
 
 compileTestJava {
     options.compilerArgs.addAll(["-processor", 'lombok.launch.AnnotationProcessorHider$AnnotationProcessor'])
@@ -266,7 +269,7 @@ String bwcRemoteFile = "https://ci.opensearch.org/ci/dbc/bundle-build/1.1.0/2021
                             }
                             File f = new File(dir, bwcSqlPlugin)
                             if (!f.exists()) {
-                                new URL(bwcRemoteFile).withInputStream{ ins -> f.withOutputStream{ it << ins }}
+                                new URL(bwcRemoteFile).withInputStream { ins -> f.withOutputStream { it << ins } }
                             }
                             return fileTree(bwcFilePath + bwcVersion).getSingleFile()
                         }
@@ -280,17 +283,17 @@ String bwcRemoteFile = "https://ci.opensearch.org/ci/dbc/bundle-build/1.1.0/2021
 }
 
 List<Provider<RegularFile>> plugins = [
-    provider(new Callable<RegularFile>() {
-        @Override
-        RegularFile call() throws Exception {
-            return new RegularFile() {
-                @Override
-                File getAsFile() {
-                    return fileTree(bwcFilePath + project.version).getSingleFile()
+        provider(new Callable<RegularFile>() {
+            @Override
+            RegularFile call() throws Exception {
+                return new RegularFile() {
+                    @Override
+                    File getAsFile() {
+                        return fileTree(bwcFilePath + project.version).getSingleFile()
+                    }
                 }
             }
-        }
-    })
+        })
 ]
 
 // Creates 2 test clusters with 3 nodes of the old version.
