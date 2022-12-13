@@ -9,7 +9,6 @@ on:
       name:
         required: false
         type: string
-
 env:
   JDBC_VERSION: '2.0.0.0'
 
