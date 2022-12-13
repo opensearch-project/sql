@@ -9,11 +9,11 @@ import static org.opensearch.sql.ast.expression.Cast.getCastFunctionName;
 import static org.opensearch.sql.ast.expression.Cast.isCastFunction;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -40,7 +40,6 @@ import org.opensearch.sql.expression.window.WindowFunctions;
  *
  */
 public class BuiltinFunctionRepository {
-
   public static final String DEFAULT_NAMESPACE = "default";
 
   private final Map<String, Map<FunctionName, FunctionResolver>> namespaceFunctionResolverMap;
@@ -111,13 +110,13 @@ public class BuiltinFunctionRepository {
     namespaceFunctionResolverMap.get(namespace).put(resolver.getFunctionName(), resolver);
   }
 
-
   /**
    * Compile FunctionExpression under default namespace.
    *
    */
-  public FunctionImplementation compile(FunctionName functionName, List<Expression> expressions) {
-    return compile(DEFAULT_NAMESPACE, functionName, expressions);
+  public FunctionImplementation compile(FunctionProperties functionProperties,
+                                        FunctionName functionName, List<Expression> expressions) {
+    return compile(functionProperties, DEFAULT_NAMESPACE, functionName, expressions);
   }
 
 
@@ -125,16 +124,18 @@ public class BuiltinFunctionRepository {
    * Compile FunctionExpression within given namespace.
    * Checks for default namespace first and then tries to compile from given namespace.
    */
-  public FunctionImplementation compile(String namespace, FunctionName functionName,
+  public FunctionImplementation compile(FunctionProperties functionProperties,
+                                        String namespace,
+                                        FunctionName functionName,
                                         List<Expression> expressions) {
     List<String> namespaceList = new ArrayList<>(List.of(DEFAULT_NAMESPACE));
     if (!namespace.equals(DEFAULT_NAMESPACE)) {
       namespaceList.add(namespace);
     }
-    FunctionBuilder resolvedFunctionBuilder = resolve(namespaceList,
-        new FunctionSignature(functionName, expressions
-            .stream().map(expression -> expression.type()).collect(Collectors.toList())));
-    return resolvedFunctionBuilder.apply(expressions);
+    FunctionBuilder resolvedFunctionBuilder = resolve(
+        namespaceList, new FunctionSignature(functionName, expressions
+            .stream().map(Expression::type).collect(Collectors.toList())));
+    return resolvedFunctionBuilder.apply(functionProperties, expressions);
   }
 
   /**
@@ -144,11 +145,12 @@ public class BuiltinFunctionRepository {
    * So list of namespaces is also the priority of namespaces.
    *
    * @param functionSignature {@link FunctionSignature} functionsignature.
-   *
    * @return Original function builder if it's a cast function or all arguments have expected types
-   *         or other wise wrap its arguments by cast function as needed.
+   *      or otherwise wrap its arguments by cast function as needed.
    */
-  public FunctionBuilder resolve(List<String> namespaces, FunctionSignature functionSignature) {
+  public FunctionBuilder
+      resolve(List<String> namespaces,
+              FunctionSignature functionSignature) {
     FunctionName functionName = functionSignature.getFunctionName();
     FunctionBuilder result = null;
     for (String namespace : namespaces) {
@@ -167,9 +169,10 @@ public class BuiltinFunctionRepository {
     }
   }
 
-  private FunctionBuilder getFunctionBuilder(FunctionSignature functionSignature,
-                       FunctionName functionName,
-                       Map<FunctionName, FunctionResolver> functionResolverMap) {
+  private FunctionBuilder getFunctionBuilder(
+      FunctionSignature functionSignature,
+      FunctionName functionName,
+      Map<FunctionName, FunctionResolver> functionResolverMap) {
     Pair<FunctionSignature, FunctionBuilder> resolvedSignature =
         functionResolverMap.get(functionName).resolve(functionSignature);
 
@@ -179,7 +182,8 @@ public class BuiltinFunctionRepository {
     if (isCastFunction(functionName) || sourceTypes.equals(targetTypes)) {
       return funcBuilder;
     }
-    return castArguments(sourceTypes, targetTypes, funcBuilder);
+    return castArguments(sourceTypes,
+        targetTypes, funcBuilder);
   }
 
   /**
@@ -191,7 +195,7 @@ public class BuiltinFunctionRepository {
   private FunctionBuilder castArguments(List<ExprType> sourceTypes,
                                         List<ExprType> targetTypes,
                                         FunctionBuilder funcBuilder) {
-    return arguments -> {
+    return (fp, arguments) -> {
       List<Expression> argsCasted = new ArrayList<>();
       for (int i = 0; i < arguments.size(); i++) {
         Expression arg = arguments.get(i);
@@ -199,12 +203,12 @@ public class BuiltinFunctionRepository {
         ExprType targetType = targetTypes.get(i);
 
         if (isCastRequired(sourceType, targetType)) {
-          argsCasted.add(cast(arg, targetType));
+          argsCasted.add(cast(arg, targetType).apply(fp));
         } else {
           argsCasted.add(arg);
         }
       }
-      return funcBuilder.apply(argsCasted);
+      return funcBuilder.apply(fp, argsCasted);
     };
   }
 
@@ -217,13 +221,13 @@ public class BuiltinFunctionRepository {
     return sourceType.shouldCast(targetType);
   }
 
-  private Expression cast(Expression arg, ExprType targetType) {
+  private Function<FunctionProperties, Expression> cast(Expression arg, ExprType targetType) {
     FunctionName castFunctionName = getCastFunctionName(targetType);
     if (castFunctionName == null) {
       throw new ExpressionEvaluationException(StringUtils.format(
           "Type conversion to type %s is not supported", targetType));
     }
-    return (Expression) compile(castFunctionName, ImmutableList.of(arg));
+    return functionProperties -> (Expression) compile(functionProperties,
+        castFunctionName, List.of(arg));
   }
-
 }

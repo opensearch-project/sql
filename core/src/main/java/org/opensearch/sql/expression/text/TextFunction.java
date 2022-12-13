@@ -39,22 +39,24 @@ public class TextFunction {
    * @param repository {@link BuiltinFunctionRepository}.
    */
   public void register(BuiltinFunctionRepository repository) {
-    repository.register(substr());
-    repository.register(substring());
-    repository.register(ltrim());
-    repository.register(rtrim());
-    repository.register(trim());
-    repository.register(lower());
-    repository.register(upper());
+    repository.register(ascii());
     repository.register(concat());
     repository.register(concat_ws());
-    repository.register(length());
-    repository.register(strcmp());
-    repository.register(right());
     repository.register(left());
-    repository.register(ascii());
+    repository.register(length());
     repository.register(locate());
+    repository.register(lower());
+    repository.register(ltrim());
+    repository.register(position());
     repository.register(replace());
+    repository.register(reverse());
+    repository.register(right());
+    repository.register(rtrim());
+    repository.register(strcmp());
+    repository.register(substr());
+    repository.register(substring());
+    repository.register(trim());
+    repository.register(upper());
   }
 
   /**
@@ -242,6 +244,20 @@ public class TextFunction {
   }
 
   /**
+   * Returns the position of the first occurrence of a substring in a string starting from 1.
+   * Returns 0 if substring is not in string.
+   * Returns NULL if any argument is NULL.
+   * Supports following signature:
+   * (STRING IN STRING) -> INTEGER
+   */
+  private DefaultFunctionResolver position() {
+    return define(BuiltinFunctionName.POSITION.getName(),
+            impl(nullMissingHandling(
+                    (SerializableBiFunction<ExprValue, ExprValue, ExprValue>)
+                            TextFunction::exprLocate), INTEGER, STRING, STRING));
+  }
+
+  /**
    * REPLACE(str, from_str, to_str) returns the string str with all occurrences of
    * the string from_str replaced by the string to_str.
    * REPLACE() performs a case-sensitive match when searching for from_str.
@@ -251,6 +267,17 @@ public class TextFunction {
   private DefaultFunctionResolver replace() {
     return define(BuiltinFunctionName.REPLACE.getName(),
         impl(nullMissingHandling(TextFunction::exprReplace), STRING, STRING, STRING, STRING));
+  }
+
+  /**
+   * REVERSE(str) returns reversed string of the string supplied as an argument
+   * Returns NULL if the argument is NULL.
+   * Supports the following signature:
+   * (STRING) -> STRING
+   */
+  private DefaultFunctionResolver reverse() {
+    return define(BuiltinFunctionName.REVERSE.getName(),
+        impl(nullMissingHandling(TextFunction::exprReverse), STRING, STRING));
   }
 
   private static ExprValue exprSubstrStart(ExprValue exprValue, ExprValue start) {
@@ -315,6 +342,10 @@ public class TextFunction {
 
   private static ExprValue exprReplace(ExprValue str, ExprValue from, ExprValue to) {
     return new ExprStringValue(str.stringValue().replaceAll(from.stringValue(), to.stringValue()));
+  }
+
+  private static ExprValue exprReverse(ExprValue str) {
+    return new ExprStringValue(new StringBuilder(str.stringValue()).reverse().toString());
   }
 }
 

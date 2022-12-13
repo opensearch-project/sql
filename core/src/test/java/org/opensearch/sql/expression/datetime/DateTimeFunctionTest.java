@@ -6,8 +6,10 @@
 
 package org.opensearch.sql.expression.datetime;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.longValue;
@@ -479,6 +481,93 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     assertEquals(integerValue(220), eval(expression));
   }
 
+  public void testDayOfYearWithUnderscores(String date, int dayOfYear) {
+    FunctionExpression expression = DSL.day_of_year(DSL.literal(new ExprDateValue(date)));
+    assertEquals(INTEGER, expression.type());
+    assertEquals(integerValue(dayOfYear), eval(expression));
+  }
+
+  @Test
+  public void dayOfYearWithUnderscoresDifferentArgumentFormats() {
+    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
+    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
+
+    FunctionExpression expression1 = DSL.day_of_year(DSL.literal(new ExprDateValue("2020-08-07")));
+    FunctionExpression expression2 = DSL.day_of_year(DSL.literal("2020-08-07"));
+    FunctionExpression expression3 = DSL.day_of_year(DSL.literal("2020-08-07 01:02:03"));
+
+    assertAll(
+        () -> testDayOfYearWithUnderscores("2020-08-07", 220),
+        () -> assertEquals("day_of_year(DATE '2020-08-07')", expression1.toString()),
+
+        () -> testDayOfYearWithUnderscores("2020-08-07", 220),
+        () ->     assertEquals("day_of_year(\"2020-08-07\")", expression2.toString()),
+
+        () -> testDayOfYearWithUnderscores("2020-08-07 01:02:03", 220),
+        () ->     assertEquals("day_of_year(\"2020-08-07 01:02:03\")", expression3.toString())
+    );
+  }
+
+  @Test
+  public void dayOfYearWithUnderscoresCornerCaseDates() {
+    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
+    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
+
+    assertAll(
+        //31st of December during non leap year (should be 365)
+        () -> testDayOfYearWithUnderscores("2019-12-31", 365),
+        //Year 1200
+        () -> testDayOfYearWithUnderscores("1200-02-28", 59),
+        //Year 4000
+        () -> testDayOfYearWithUnderscores("4000-02-28", 59)
+    );
+  }
+
+  @Test
+  public void dayOfYearWithUnderscoresLeapYear() {
+    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
+    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
+
+    assertAll(
+        //28th of Feb
+        () -> testDayOfYearWithUnderscores("2020-02-28", 59),
+
+        //29th of Feb during leap year
+        () -> testDayOfYearWithUnderscores("2020-02-29 23:59:59", 60),
+        () -> testDayOfYearWithUnderscores("2020-02-29", 60),
+
+        //1st of March during leap year
+        () -> testDayOfYearWithUnderscores("2020-03-01 00:00:00", 61),
+        () -> testDayOfYearWithUnderscores("2020-03-01", 61),
+
+        //1st of March during non leap year
+        () -> testDayOfYearWithUnderscores("2019-03-01", 60),
+
+        //31st of December during  leap year (should be 366)
+        () -> testDayOfYearWithUnderscores("2020-12-31", 366)
+    );
+  }
+
+  public void testInvalidDayOfYear(String date) {
+    FunctionExpression expression = DSL.day_of_year(DSL.literal(new ExprDateValue(date)));
+    eval(expression);
+  }
+
+  @Test
+  public void invalidDayOfYearArgument() {
+    when(nullRef.type()).thenReturn(DATE);
+    when(missingRef.type()).thenReturn(DATE);
+    assertEquals(nullValue(), eval(DSL.day_of_year(nullRef)));
+    assertEquals(missingValue(), eval(DSL.day_of_year(missingRef)));
+
+    //29th of Feb non-leapyear
+    assertThrows(SemanticCheckException.class, () ->  testInvalidDayOfYear("2019-02-29"));
+    //13th month
+    assertThrows(SemanticCheckException.class, () ->  testInvalidDayOfYear("2019-13-15"));
+    //incorrect format for type
+    assertThrows(SemanticCheckException.class, () ->  testInvalidDayOfYear("asdfasdfasdf"));
+  }
+  
   @Test
   public void from_days() {
     when(nullRef.type()).thenReturn(LONG);
@@ -622,6 +711,44 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     expression = DSL.month(DSL.literal("2020-08-07 01:02:03"));
     assertEquals(INTEGER, expression.type());
     assertEquals("month(\"2020-08-07 01:02:03\")", expression.toString());
+    assertEquals(integerValue(8), eval(expression));
+  }
+
+  public void testInvalidDates(String date) throws SemanticCheckException {
+    FunctionExpression expression = DSL.month_of_year(DSL.literal(new ExprDateValue(date)));
+    eval(expression);
+  }
+
+  @Test void monthOfYearInvalidDates() {
+    when(nullRef.type()).thenReturn(DATE);
+    when(missingRef.type()).thenReturn(DATE);
+    assertEquals(nullValue(), eval(DSL.month_of_year(nullRef)));
+    assertEquals(missingValue(), eval(DSL.month_of_year(missingRef)));
+
+    assertThrows(SemanticCheckException.class, () ->  testInvalidDates("2019-01-50"));
+    assertThrows(SemanticCheckException.class, () ->  testInvalidDates("2019-02-29"));
+    assertThrows(SemanticCheckException.class, () ->  testInvalidDates("2019-02-31"));
+    assertThrows(SemanticCheckException.class, () ->  testInvalidDates("2019-13-05"));
+  }
+
+  @Test
+  public void monthOfYearAlternateArgumentSyntaxes() {
+    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
+    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
+
+    FunctionExpression expression = DSL.month_of_year(DSL.literal(new ExprDateValue("2020-08-07")));
+    assertEquals(INTEGER, expression.type());
+    assertEquals("month_of_year(DATE '2020-08-07')", expression.toString());
+    assertEquals(integerValue(8), eval(expression));
+
+    expression = DSL.month_of_year(DSL.literal("2020-08-07"));
+    assertEquals(INTEGER, expression.type());
+    assertEquals("month_of_year(\"2020-08-07\")", expression.toString());
+    assertEquals(integerValue(8), eval(expression));
+
+    expression = DSL.month_of_year(DSL.literal("2020-08-07 01:02:03"));
+    assertEquals(INTEGER, expression.type());
+    assertEquals("month_of_year(\"2020-08-07 01:02:03\")", expression.toString());
     assertEquals(integerValue(8), eval(expression));
   }
 
@@ -944,6 +1071,124 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
     FunctionExpression expression2 = DSL
         .week(DSL.literal(new ExprDateValue("2019-01-05")), DSL.literal(-1));
+    exception = assertThrows(SemanticCheckException.class, () -> eval(expression2));
+    assertEquals("mode:-1 is invalid, please use mode value between 0-7",
+        exception.getMessage());
+  }
+
+  private void testWeekOfYear(String date, int mode, int expectedResult) {
+    FunctionExpression expression = DSL
+        .week_of_year(DSL.literal(new ExprDateValue(date)), DSL.literal(mode));
+    assertEquals(INTEGER, expression.type());
+    assertEquals(String.format("week_of_year(DATE '%s', %d)", date, mode), expression.toString());
+    assertEquals(integerValue(expectedResult), eval(expression));
+  }
+
+  private void testNullMissingWeekOfYear(ExprCoreType date) {
+    when(nullRef.type()).thenReturn(date);
+    when(missingRef.type()).thenReturn(date);
+    assertEquals(nullValue(), eval(DSL.week_of_year(nullRef)));
+    assertEquals(missingValue(), eval(DSL.week_of_year(missingRef)));
+  }
+
+  @Test
+  public void testInvalidWeekOfYear() {
+    testNullMissingWeekOfYear(DATE);
+    testNullMissingWeekOfYear(DATETIME);
+    testNullMissingWeekOfYear(TIMESTAMP);
+    testNullMissingWeekOfYear(STRING);
+
+    when(nullRef.type()).thenReturn(INTEGER);
+    when(missingRef.type()).thenReturn(INTEGER);
+    assertEquals(nullValue(), eval(DSL.week_of_year(DSL.literal("2019-01-05"), nullRef)));
+    assertEquals(missingValue(), eval(DSL.week_of_year(DSL.literal("2019-01-05"), missingRef)));
+
+    when(nullRef.type()).thenReturn(DATE);
+    when(missingRef.type()).thenReturn(INTEGER);
+    assertEquals(missingValue(), eval(DSL.week_of_year(nullRef, missingRef)));
+
+    //test invalid month
+    assertThrows(SemanticCheckException.class, () -> testWeekOfYear("2019-13-05 01:02:03", 0, 0));
+    //test invalid day
+    assertThrows(SemanticCheckException.class, () -> testWeekOfYear("2019-01-50 01:02:03", 0, 0));
+    //test invalid leap year
+    assertThrows(SemanticCheckException.class, () -> testWeekOfYear("2019-02-29 01:02:03", 0, 0));
+  }
+
+  @Test
+  public void testWeekOfYearAlternateArgumentFormats() {
+    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
+    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
+
+    FunctionExpression expression = DSL
+        .week_of_year(DSL.literal(new ExprTimestampValue("2019-01-05 01:02:03")));
+    assertEquals(INTEGER, expression.type());
+    assertEquals("week_of_year(TIMESTAMP '2019-01-05 01:02:03')", expression.toString());
+    assertEquals(integerValue(0), eval(expression));
+
+    expression = DSL.week_of_year(DSL.literal("2019-01-05"));
+    assertEquals(INTEGER, expression.type());
+    assertEquals("week_of_year(\"2019-01-05\")", expression.toString());
+    assertEquals(integerValue(0), eval(expression));
+
+    expression = DSL.week_of_year(DSL.literal("2019-01-05 00:01:00"));
+    assertEquals(INTEGER, expression.type());
+    assertEquals("week_of_year(\"2019-01-05 00:01:00\")", expression.toString());
+    assertEquals(integerValue(0), eval(expression));
+  }
+
+  @Test
+  public void testWeekOfYearDifferentModes() {
+    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
+    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
+
+    //Test the behavior of different modes passed into the 'week_of_year' function
+    testWeekOfYear("2019-01-05", 0, 0);
+    testWeekOfYear("2019-01-05", 1, 1);
+    testWeekOfYear("2019-01-05", 2, 52);
+    testWeekOfYear("2019-01-05", 3, 1);
+    testWeekOfYear("2019-01-05", 4, 1);
+    testWeekOfYear("2019-01-05", 5, 0);
+    testWeekOfYear("2019-01-05", 6, 1);
+    testWeekOfYear("2019-01-05", 7, 53);
+
+    testWeekOfYear("2019-01-06", 0, 1);
+    testWeekOfYear("2019-01-06", 1, 1);
+    testWeekOfYear("2019-01-06", 2, 1);
+    testWeekOfYear("2019-01-06", 3, 1);
+    testWeekOfYear("2019-01-06", 4, 2);
+    testWeekOfYear("2019-01-06", 5, 0);
+    testWeekOfYear("2019-01-06", 6, 2);
+    testWeekOfYear("2019-01-06", 7, 53);
+
+    testWeekOfYear("2019-01-07", 0, 1);
+    testWeekOfYear("2019-01-07", 1, 2);
+    testWeekOfYear("2019-01-07", 2, 1);
+    testWeekOfYear("2019-01-07", 3, 2);
+    testWeekOfYear("2019-01-07", 4, 2);
+    testWeekOfYear("2019-01-07", 5, 1);
+    testWeekOfYear("2019-01-07", 6, 2);
+    testWeekOfYear("2019-01-07", 7, 1);
+
+    testWeekOfYear("2000-01-01", 0, 0);
+    testWeekOfYear("2000-01-01", 2, 52);
+    testWeekOfYear("1999-12-31", 0, 52);
+
+  }
+
+  @Test
+  public void weekOfYearModeInUnsupportedFormat() {
+    testNullMissingWeekOfYear(DATE);
+
+    FunctionExpression expression1 = DSL
+        .week_of_year(DSL.literal(new ExprDateValue("2019-01-05")), DSL.literal(8));
+    SemanticCheckException exception =
+        assertThrows(SemanticCheckException.class, () -> eval(expression1));
+    assertEquals("mode:8 is invalid, please use mode value between 0-7",
+        exception.getMessage());
+
+    FunctionExpression expression2 = DSL
+        .week_of_year(DSL.literal(new ExprDateValue("2019-01-05")), DSL.literal(-1));
     exception = assertThrows(SemanticCheckException.class, () -> eval(expression2));
     assertEquals("mode:-1 is invalid, please use mode value between 0-7",
         exception.getMessage());

@@ -19,6 +19,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.expression.function.DefaultFunctionResolver.DefaultFunctionResolverBuilder;
 
 /**
  * Function Define Utility.
@@ -35,7 +36,7 @@ public class FunctionDSL {
   public static DefaultFunctionResolver define(FunctionName functionName,
                SerializableFunction<FunctionName, Pair<FunctionSignature,
                 FunctionBuilder>>... functions) {
-    return define(functionName, Arrays.asList(functions));
+    return define(functionName, List.of(functions));
   }
 
   /**
@@ -48,8 +49,7 @@ public class FunctionDSL {
   public static DefaultFunctionResolver define(FunctionName functionName, List<
       SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>> functions) {
 
-    DefaultFunctionResolver.DefaultFunctionResolverBuilder builder
-        = DefaultFunctionResolver.builder();
+    DefaultFunctionResolverBuilder builder = DefaultFunctionResolver.builder();
     builder.functionName(functionName);
     for (Function<FunctionName, Pair<FunctionSignature, FunctionBuilder>> func : functions) {
       Pair<FunctionSignature, FunctionBuilder> functionBuilder = func.apply(functionName);
@@ -58,51 +58,54 @@ public class FunctionDSL {
     return builder.build();
   }
 
-  /**
-   * No Arg Function Implementation.
-   *
-   * @param function   {@link ExprValue} based unary function.
-   * @param returnType return type.
-   * @return Unary Function Implementation.
-   */
-  public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>> impl(
-      SerializableNoArgFunction<ExprValue> function,
-      ExprType returnType) {
 
+  /**
+   * Implementation of no args function that uses FunctionProperties.
+   *
+   * @param function {@link ExprValue} based no args function.
+   * @param returnType function return type.
+   * @return no args function implementation.
+   */
+  public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
+      implWithProperties(SerializableFunction<FunctionProperties, ExprValue> function,
+                     ExprType returnType) {
     return functionName -> {
       FunctionSignature functionSignature =
           new FunctionSignature(functionName, Collections.emptyList());
       FunctionBuilder functionBuilder =
-          arguments -> new FunctionExpression(functionName, Collections.emptyList()) {
-            @Override
-            public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-              return function.get();
-            }
+          (functionProperties, arguments) ->
+              new FunctionExpression(functionName, Collections.emptyList()) {
+                @Override
+                public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+                  return function.apply(functionProperties);
+                }
 
-            @Override
-            public ExprType type() {
-              return returnType;
-            }
+                @Override
+                public ExprType type() {
+                  return returnType;
+                }
 
-            @Override
-            public String toString() {
-              return String.format("%s()", functionName);
-            }
-          };
+                @Override
+                public String toString() {
+                  return String.format("%s()", functionName);
+                }
+              };
       return Pair.of(functionSignature, functionBuilder);
     };
   }
 
   /**
-   * Unary Function Implementation.
+   * Implementation of a function that takes one argument, returns a value, and
+   * requires FunctionProperties to complete.
    *
    * @param function   {@link ExprValue} based unary function.
    * @param returnType return type.
-   * @param argsType   argument type.
+   * @param argsType argument type.
    * @return Unary Function Implementation.
    */
-  public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>> impl(
-      SerializableFunction<ExprValue, ExprValue> function,
+  public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
+      implWithProperties(
+      SerializableBiFunction<FunctionProperties, ExprValue, ExprValue> function,
       ExprType returnType,
       ExprType argsType) {
 
@@ -110,11 +113,11 @@ public class FunctionDSL {
       FunctionSignature functionSignature =
           new FunctionSignature(functionName, Collections.singletonList(argsType));
       FunctionBuilder functionBuilder =
-          arguments -> new FunctionExpression(functionName, arguments) {
+          (functionProperties, arguments) -> new FunctionExpression(functionName, arguments) {
             @Override
             public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
               ExprValue value = arguments.get(0).valueOf(valueEnv);
-              return function.apply(value);
+              return function.apply(functionProperties, value);
             }
 
             @Override
@@ -132,6 +135,35 @@ public class FunctionDSL {
           };
       return Pair.of(functionSignature, functionBuilder);
     };
+  }
+
+  /**
+   * No Arg Function Implementation.
+   *
+   * @param function   {@link ExprValue} based unary function.
+   * @param returnType return type.
+   * @return Unary Function Implementation.
+   */
+  public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>> impl(
+      SerializableNoArgFunction<ExprValue> function,
+      ExprType returnType) {
+    return implWithProperties(fp -> function.get(), returnType);
+  }
+
+  /**
+   * Unary Function Implementation.
+   *
+   * @param function   {@link ExprValue} based unary function.
+   * @param returnType return type.
+   * @param argsType   argument type.
+   * @return Unary Function Implementation.
+   */
+  public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>> impl(
+      SerializableFunction<ExprValue, ExprValue> function,
+      ExprType returnType,
+      ExprType argsType) {
+
+    return implWithProperties((fp, arg) -> function.apply(arg), returnType, argsType);
   }
 
   /**
@@ -153,7 +185,7 @@ public class FunctionDSL {
       FunctionSignature functionSignature =
           new FunctionSignature(functionName, Arrays.asList(args1Type, args2Type));
       FunctionBuilder functionBuilder =
-          arguments -> new FunctionExpression(functionName, arguments) {
+          (functionProperties, arguments) -> new FunctionExpression(functionName, arguments) {
             @Override
             public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
               ExprValue arg1 = arguments.get(0).valueOf(valueEnv);
@@ -196,7 +228,7 @@ public class FunctionDSL {
       FunctionSignature functionSignature =
           new FunctionSignature(functionName, Arrays.asList(args1Type, args2Type, args3Type));
       FunctionBuilder functionBuilder =
-          arguments -> new FunctionExpression(functionName, arguments) {
+          (functionProperties, arguments) -> new FunctionExpression(functionName, arguments) {
             @Override
             public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
               ExprValue arg1 = arguments.get(0).valueOf(valueEnv);
@@ -264,6 +296,24 @@ public class FunctionDSL {
         return ExprValueUtils.nullValue();
       } else {
         return function.apply(v1, v2, v3);
+      }
+    };
+  }
+
+  /**
+   * Wrapper the unary ExprValue function that is aware of FunctionProperties,
+   * with default NULL and MISSING handling.
+   */
+  public static SerializableBiFunction<FunctionProperties, ExprValue, ExprValue>
+        nullMissingHandlingWithProperties(
+      SerializableBiFunction<FunctionProperties, ExprValue, ExprValue>  implementation) {
+    return (functionProperties, v1) -> {
+      if (v1.isMissing()) {
+        return ExprValueUtils.missingValue();
+      } else if (v1.isNull()) {
+        return ExprValueUtils.nullValue();
+      } else {
+        return implementation.apply(functionProperties, v1);
       }
     };
   }

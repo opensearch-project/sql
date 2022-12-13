@@ -24,9 +24,18 @@ public class UnixTwoWayConversionTest extends DateTimeTestBase {
 
   @Test
   public void checkConvertNow() {
-    assertEquals(LocalDateTime.now(ZoneId.of("UTC")).withNano(0), fromUnixTime(unixTimeStamp()));
-    assertEquals(LocalDateTime.now(ZoneId.of("UTC")).withNano(0),
-        eval(fromUnixTime(unixTimeStampExpr())).datetimeValue());
+    assertEquals(getExpectedNow(), fromUnixTime(unixTimeStamp()));
+  }
+
+  @Test
+  public void checkConvertNow_with_eval() {
+    assertEquals(getExpectedNow(), eval(fromUnixTime(unixTimeStampExpr())).datetimeValue());
+  }
+
+  private LocalDateTime getExpectedNow() {
+    return LocalDateTime.now(
+            functionProperties.getQueryStartClock().withZone(ZoneId.of("UTC")))
+        .withNano(0);
   }
 
   private static Stream<Arguments> getDoubleSamples() {

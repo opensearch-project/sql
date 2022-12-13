@@ -35,6 +35,8 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.FunctionProperties;
+import org.opensearch.sql.expression.function.FunctionPropertiesTestConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -43,9 +45,12 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @Configuration
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {ExpressionTestBase.class,
+@ContextConfiguration(classes = {FunctionPropertiesTestConfig.class, ExpressionTestBase.class,
     TestConfig.class})
 public class ExpressionTestBase {
+
+  @Autowired
+  protected FunctionProperties functionProperties;
 
   @Autowired
   protected Environment<Expression, ExprType> typeEnv;

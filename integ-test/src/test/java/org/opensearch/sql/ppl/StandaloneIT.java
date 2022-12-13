@@ -26,13 +26,13 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.DataSourceServiceImpl;
-import org.opensearch.sql.executor.DefaultQueryManager;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.monitor.AlwaysHealthyMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.client.OpenSearchRestClient;
@@ -46,6 +46,7 @@ import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
 import org.opensearch.sql.storage.DataSourceFactory;
+import org.opensearch.sql.util.ExecuteOnCallerThreadQueryManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -75,6 +76,7 @@ public class StandaloneIT extends PPLIntegTestCase {
         new OpenSearchExecutionProtector(new AlwaysHealthyMonitor())));
     context.registerBean(OpenSearchClient.class, () -> client);
     context.registerBean(Settings.class, () -> defaultSettings());
+    context.registerBean(FunctionProperties.class, FunctionProperties::new);
     DataSourceService dataSourceService = new DataSourceServiceImpl(
         new ImmutableSet.Builder<DataSourceFactory>()
             .add(new OpenSearchDataSourceFactory(client, defaultSettings()))
@@ -178,7 +180,7 @@ public class StandaloneIT extends PPLIntegTestCase {
 
     @Bean
     QueryManager queryManager() {
-      return new DefaultQueryManager();
+      return new ExecuteOnCallerThreadQueryManager();
     }
 
     @Bean

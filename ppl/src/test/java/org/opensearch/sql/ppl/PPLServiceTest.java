@@ -10,6 +10,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -26,6 +28,7 @@ import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
+import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.ppl.config.PPLServiceConfig;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.storage.StorageEngine;
@@ -57,19 +60,28 @@ public class PPLServiceTest {
   @Mock
   private ExecutionEngine.Schema schema;
 
+  private DefaultQueryManager queryManager;
+
   /**
    * Setup the test context.
    */
   @Before
   public void setUp() {
-    context.registerBean(QueryManager.class, DefaultQueryManager::new);
+    queryManager = DefaultQueryManager.defaultQueryManager();
+    context.registerBean(QueryManager.class, () -> queryManager);
     context.registerBean(QueryPlanFactory.class, () -> new QueryPlanFactory(queryService));
     context.registerBean(StorageEngine.class, () -> storageEngine);
     context.registerBean(ExecutionEngine.class, () -> executionEngine);
     context.registerBean(DataSourceService.class, () -> dataSourceService);
+    context.registerBean(FunctionProperties.class, FunctionProperties::new);
     context.register(PPLServiceConfig.class);
     context.refresh();
     pplService = context.getBean(PPLService.class);
+  }
+
+  @After
+  public void cleanup() throws InterruptedException {
+    queryManager.awaitTermination(1, TimeUnit.SECONDS);
   }
 
   @Test

@@ -22,4 +22,13 @@ public interface QueryManager {
    * @return {@link QueryId}.
    */
   QueryId submit(AbstractPlan queryPlan);
+
+  /**
+   * Cancel submitted {@link AbstractPlan} by {@link QueryId}.
+   *
+   * @return true indicate successful.
+   */
+  default boolean cancel(QueryId queryId) {
+    throw new UnsupportedOperationException();
+  }
 }

@@ -45,7 +45,7 @@ class QueryStringTest {
   static Stream<List<Expression>> generateValidData() {
     Expression field = DSL.namedArgument("fields", fields_value);
     Expression query = DSL.namedArgument("query", query_value);
-    return List.of(
+    return Stream.of(
         DSL.namedArgument("analyzer", DSL.literal("standard")),
         DSL.namedArgument("analyze_wildcard", DSL.literal("true")),
         DSL.namedArgument("allow_leading_wildcard", DSL.literal("true")),
@@ -75,32 +75,32 @@ class QueryStringTest {
         DSL.namedArgument("Allow_Leading_wildcard", DSL.literal("true")),
         DSL.namedArgument("Auto_Generate_Synonyms_Phrase_Query", DSL.literal("true")),
         DSL.namedArgument("Boost", DSL.literal("1"))
-    ).stream().map(arg -> List.of(field, query, arg));
+    ).map(arg -> List.of(field, query, arg));
   }
 
   @ParameterizedTest
   @MethodSource("generateValidData")
-  public void test_valid_parameters(List<Expression> validArgs) {
+  void test_valid_parameters(List<Expression> validArgs) {
     Assertions.assertNotNull(queryStringQuery.build(
         new QueryStringExpression(validArgs)));
   }
 
   @Test
-  public void test_SyntaxCheckException_when_no_arguments() {
+  void test_SyntaxCheckException_when_no_arguments() {
     List<Expression> arguments = List.of();
     assertThrows(SyntaxCheckException.class,
         () -> queryStringQuery.build(new QueryStringExpression(arguments)));
   }
 
   @Test
-  public void test_SyntaxCheckException_when_one_argument() {
+  void test_SyntaxCheckException_when_one_argument() {
     List<Expression> arguments = List.of(namedArgument("fields", fields_value));
     assertThrows(SyntaxCheckException.class,
         () -> queryStringQuery.build(new QueryStringExpression(arguments)));
   }
 
   @Test
-  public void test_SemanticCheckException_when_invalid_parameter() {
+  void test_SemanticCheckException_when_invalid_parameter() {
     List<Expression> arguments = List.of(
         namedArgument("fields", fields_value),
         namedArgument("query", query_value),

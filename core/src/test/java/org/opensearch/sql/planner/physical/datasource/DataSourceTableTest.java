@@ -66,4 +66,11 @@ public class DataSourceTableTest {
             () -> new DataSourceTable(dataSourceService).create(new HashMap<>()));
     assertEquals("Unsupported Operation", exception.getMessage());
   }
+
+  @Test
+  void defaultAsStreamingSource() {
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> new DataSourceTable(dataSourceService).asStreamingSource());
+  }
 }

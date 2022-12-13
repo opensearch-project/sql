@@ -258,6 +258,7 @@ valueExpression
     | LT_PRTHS left=valueExpression binaryOperator
     right=valueExpression RT_PRTHS                                  #parentheticBinaryArithmetic
     | primaryExpression                                             #valueExpressionDefault
+    | positionFunction                                              #positionFunctionCall
     ;
 
 primaryExpression
@@ -265,11 +266,10 @@ primaryExpression
     | dataTypeFunctionCall
     | fieldExpression
     | literalValue
-    | constantFunction
     ;
 
-constantFunction
-    : constantFunctionName LT_PRTHS functionArgs? RT_PRTHS
+positionFunction
+    : positionFunctionName LT_PRTHS functionArg IN functionArg RT_PRTHS
     ;
 
 booleanExpression
@@ -367,6 +367,7 @@ evalFunctionName
     | textFunctionBase
     | conditionFunctionBase
     | systemFunctionBase
+    | positionFunctionName
     ;
 
 functionArgs
@@ -417,7 +418,7 @@ relevanceArgValue
     ;
 
 mathematicalFunctionBase
-    : ABS | CEIL | CEILING | CONV | CRC32 | E | EXP | FLOOR | LN | LOG | LOG10 | LOG2 | MOD | PI |POW | POWER
+    : ABS | CBRT | CEIL | CEILING | CONV | CRC32 | E | EXP | FLOOR | LN | LOG | LOG10 | LOG2 | MOD | PI |POW | POWER
     | RAND | ROUND | SIGN | SQRT | TRUNCATE
     | trigonometricFunctionName
     ;
@@ -427,17 +428,51 @@ trigonometricFunctionName
     ;
 
 dateAndTimeFunctionBase
-    : ADDDATE | CONVERT_TZ | DATE | DATE_ADD | DATE_FORMAT | DATE_SUB
-    | DATETIME | DAY | DAYNAME | DAYOFMONTH | DAYOFWEEK | DAYOFYEAR | FROM_DAYS | FROM_UNIXTIME
-    | HOUR | MAKEDATE | MAKETIME | MICROSECOND | MINUTE | MONTH | MONTHNAME | PERIOD_ADD
-    | PERIOD_DIFF | QUARTER | SECOND | SUBDATE | SYSDATE | TIME | TIME_TO_SEC
-    | TIMESTAMP | TO_DAYS | UNIX_TIMESTAMP | WEEK | YEAR
-    ;
-
-// Functions which value could be cached in scope of a single query
-constantFunctionName
-    : CURRENT_DATE | CURRENT_TIME | CURRENT_TIMESTAMP | LOCALTIME | LOCALTIMESTAMP | UTC_TIMESTAMP | UTC_DATE | UTC_TIME
-    | CURDATE | CURTIME | NOW
+    : ADDDATE
+    | CONVERT_TZ
+    | CURRENT_DATE
+    | CURRENT_TIME
+    | CURRENT_TIMESTAMP
+    | DATE
+    | DATE_ADD
+    | DATE_FORMAT
+    | DATE_SUB
+    | DATETIME
+    | DAY
+    | DAYNAME
+    | DAYOFMONTH
+    | DAYOFWEEK
+    | DAYOFYEAR
+    | CURDATE
+    | CURTIME
+    | FROM_DAYS
+    | FROM_UNIXTIME
+    | HOUR
+    | LOCALTIME
+    | LOCALTIMESTAMP
+    | MAKEDATE
+    | MAKETIME
+    | MICROSECOND
+    | MINUTE
+    | MONTH
+    | MONTHNAME
+    | NOW
+    | PERIOD_ADD
+    | PERIOD_DIFF
+    | QUARTER
+    | SECOND
+    | SUBDATE
+    | SYSDATE
+    | TIME
+    | TIME_TO_SEC
+    | TIMESTAMP
+    | TO_DAYS
+    | UNIX_TIMESTAMP
+    | UTC_DATE
+    | UTC_TIME
+    | UTC_TIMESTAMP
+    | WEEK
+    | YEAR
     ;
 
 /** condition function return boolean value */
@@ -452,7 +487,11 @@ systemFunctionBase
 
 textFunctionBase
     : SUBSTR | SUBSTRING | TRIM | LTRIM | RTRIM | LOWER | UPPER | CONCAT | CONCAT_WS | LENGTH | STRCMP
-    | RIGHT | LEFT | ASCII | LOCATE | REPLACE
+    | RIGHT | LEFT | ASCII | LOCATE | REPLACE | REVERSE
+    ;
+
+positionFunctionName
+    : POSITION
     ;
 
 /** operators */
@@ -571,8 +610,8 @@ keywordsCanBeId
     | TIMESTAMP | DATE | TIME
     | FIRST | LAST
     | timespanUnit | SPAN
-    | constantFunctionName
     | dateAndTimeFunctionBase
     | textFunctionBase
     | mathematicalFunctionBase
+    | positionFunctionName
     ;

@@ -378,6 +378,26 @@ public class TextFunctionTest extends ExpressionTestBase {
   }
 
   @Test
+  void position() {
+    FunctionExpression expression = DSL.position(
+        DSL.literal("world"),
+        DSL.literal("helloworldworld"));
+    assertEquals(INTEGER, expression.type());
+    assertEquals(6, eval(expression).integerValue());
+
+    expression = DSL.position(
+            DSL.literal("abc"),
+            DSL.literal("hello world"));
+    assertEquals(INTEGER, expression.type());
+    assertEquals(0, eval(expression).integerValue());
+
+    when(nullRef.type()).thenReturn(STRING);
+    assertEquals(nullValue(), eval(DSL.position(nullRef, DSL.literal("hello"))));
+    when(missingRef.type()).thenReturn(STRING);
+    assertEquals(missingValue(), eval(DSL.position(missingRef, DSL.literal("hello"))));
+  }
+
+  @Test
   void replace() {
     FunctionExpression expression = DSL.replace(
         DSL.literal("helloworld"),
@@ -390,6 +410,18 @@ public class TextFunctionTest extends ExpressionTestBase {
     assertEquals(nullValue(), eval(DSL.replace(nullRef, DSL.literal("a"), DSL.literal("b"))));
     when(missingRef.type()).thenReturn(STRING);
     assertEquals(missingValue(), eval(DSL.replace(missingRef, DSL.literal("a"), DSL.literal("b"))));
+  }
+
+  @Test
+  void reverse() {
+    FunctionExpression expression = DSL.reverse(DSL.literal("abcde"));
+    assertEquals(STRING, expression.type());
+    assertEquals("edcba", eval(expression).stringValue());
+
+    when(nullRef.type()).thenReturn(STRING);
+    assertEquals(nullValue(), eval(DSL.reverse(nullRef)));
+    when(missingRef.type()).thenReturn(STRING);
+    assertEquals(missingValue(), eval(DSL.reverse(missingRef)));
   }
 
   void testConcatString(List<String> strings) {

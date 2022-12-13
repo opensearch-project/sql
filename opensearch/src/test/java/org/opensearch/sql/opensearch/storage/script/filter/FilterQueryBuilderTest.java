@@ -132,6 +132,7 @@ class FilterQueryBuilderTest {
             + "  \"wildcard\" : {\n"
             + "    \"name\" : {\n"
             + "      \"wildcard\" : \"*John?\",\n"
+            + "      \"case_insensitive\" : true,\n"
             + "      \"boost\" : 1.0\n"
             + "    }\n"
             + "  }\n"
@@ -282,6 +283,7 @@ class FilterQueryBuilderTest {
             + "  \"wildcard\" : {\n"
             + "    \"name.keyword\" : {\n"
             + "      \"wildcard\" : \"John*\",\n"
+            + "      \"case_insensitive\" : true,\n"
             + "      \"boost\" : 1.0\n"
             + "    }\n"
             + "  }\n"
@@ -629,6 +631,130 @@ class FilterQueryBuilderTest {
                 DSL.namedArgument("analyzer", literal("keyword")),
                 DSL.namedArgument("slop", literal("2")),
                 DSL.namedArgument("zero_terms_query", literal("ALL")))));
+  }
+
+  @Test
+  void wildcard_query_invalid_parameter() {
+    FunctionExpression expr = DSL.wildcard_query(
+        DSL.namedArgument("field", literal("field")),
+        DSL.namedArgument("query", literal("search query*")),
+        DSL.namedArgument("invalid_parameter", literal("invalid_value")));
+    assertThrows(SemanticCheckException.class, () -> buildQuery(expr),
+        "Parameter invalid_parameter is invalid for wildcard_query function.");
+  }
+
+  @Test
+  void wildcard_query_convert_sql_wildcard_to_lucene() {
+    // Test conversion of % wildcard to *
+    assertJsonEquals("{\n"
+        + "  \"wildcard\" : {\n"
+        + "    \"field\" : {\n"
+        + "      \"wildcard\" : \"search query*\",\n"
+        + "      \"boost\" : 1.0\n"
+        + "    }\n"
+        + "  }\n"
+        + "}",
+        buildQuery(DSL.wildcard_query(
+            DSL.namedArgument("field", literal("field")),
+            DSL.namedArgument("query", literal("search query%")))));
+
+    assertJsonEquals("{\n"
+        + "  \"wildcard\" : {\n"
+        + "    \"field\" : {\n"
+        + "      \"wildcard\" : \"search query?\",\n"
+        + "      \"boost\" : 1.0\n"
+        + "    }\n"
+        + "  }\n"
+        + "}",
+        buildQuery(DSL.wildcard_query(
+            DSL.namedArgument("field", literal("field")),
+            DSL.namedArgument("query", literal("search query_")))));
+  }
+
+  @Test
+  void wildcard_query_escape_wildcards_characters() {
+    assertJsonEquals("{\n"
+        + "  \"wildcard\" : {\n"
+        + "    \"field\" : {\n"
+        + "      \"wildcard\" : \"search query%\",\n"
+        + "      \"boost\" : 1.0\n"
+        + "    }\n"
+        + "  }\n"
+        + "}",
+        buildQuery(DSL.wildcard_query(
+            DSL.namedArgument("field", literal("field")),
+            DSL.namedArgument("query", literal("search query\\%")))));
+
+    assertJsonEquals("{\n"
+        + "  \"wildcard\" : {\n"
+        + "    \"field\" : {\n"
+        + "      \"wildcard\" : \"search query_\",\n"
+        + "      \"boost\" : 1.0\n"
+        + "    }\n"
+        + "  }\n"
+        + "}",
+        buildQuery(DSL.wildcard_query(
+            DSL.namedArgument("field", literal("field")),
+            DSL.namedArgument("query", literal("search query\\_")))));
+
+    assertJsonEquals("{\n"
+        + "  \"wildcard\" : {\n"
+        + "    \"field\" : {\n"
+        + "      \"wildcard\" : \"search query\\\\*\",\n"
+        + "      \"boost\" : 1.0\n"
+        + "    }\n"
+        + "  }\n"
+        + "}",
+        buildQuery(DSL.wildcard_query(
+            DSL.namedArgument("field", literal("field")),
+            DSL.namedArgument("query", literal("search query\\*")))));
+
+    assertJsonEquals("{\n"
+        + "  \"wildcard\" : {\n"
+        + "    \"field\" : {\n"
+        + "      \"wildcard\" : \"search query\\\\?\",\n"
+        + "      \"boost\" : 1.0\n"
+        + "    }\n"
+        + "  }\n"
+        + "}",
+        buildQuery(DSL.wildcard_query(
+            DSL.namedArgument("field", literal("field")),
+            DSL.namedArgument("query", literal("search query\\?")))));
+  }
+
+  @Test
+  void should_build_wildcard_query_with_default_parameters() {
+    assertJsonEquals("{\n"
+        + "  \"wildcard\" : {\n"
+        + "    \"field\" : {\n"
+        + "      \"wildcard\" : \"search query*\",\n"
+        + "      \"boost\" : 1.0\n"
+        + "    }\n"
+        + "  }\n"
+        + "}",
+        buildQuery(DSL.wildcard_query(
+            DSL.namedArgument("field", literal("field")),
+            DSL.namedArgument("query", literal("search query*")))));
+  }
+
+  @Test
+  void should_build_wildcard_query_query_with_custom_parameters() {
+    assertJsonEquals("{\n"
+        + "  \"wildcard\" : {\n"
+        + "    \"field\" : {\n"
+        + "      \"wildcard\" : \"search query*\",\n"
+        + "      \"boost\" : 0.6,\n"
+        + "      \"case_insensitive\" : true,\n"
+        + "      \"rewrite\" : \"constant_score_boolean\"\n"
+        + "    }\n"
+        + "  }\n"
+        + "}",
+        buildQuery(DSL.wildcard_query(
+            DSL.namedArgument("field", literal("field")),
+            DSL.namedArgument("query", literal("search query*")),
+            DSL.namedArgument("boost", literal("0.6")),
+            DSL.namedArgument("case_insensitive", literal("true")),
+            DSL.namedArgument("rewrite", literal("constant_score_boolean")))));
   }
 
   @Test
