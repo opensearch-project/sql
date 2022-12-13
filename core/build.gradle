@@ -37,9 +37,9 @@ dependencies {
     api group: 'com.google.guava', name: 'guava', version: '31.0.1-jre'
     api group: 'org.springframework', name: 'spring-context', version: "${spring_version}"
     api group: 'org.springframework', name: 'spring-beans', version: "${spring_version}"
-    api group: 'org.apache.commons', name: 'commons-lang3', version: '3.10'
+    api group: 'org.apache.commons', name: 'commons-lang3', version: "${apache_commons_version}"
     api group: 'com.facebook.presto', name: 'presto-matching', version: '0.240'
-    api group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
+    api group: 'org.apache.commons', name: 'commons-math3', version: "${apache_commons_version}"
     api "com.fasterxml.jackson.core:jackson-core:${jackson_version}"
     api "com.fasterxml.jackson.core:jackson-databind:${jackson_databind_version}"
     api "com.fasterxml.jackson.core:jackson-annotations:${jackson_version}"
