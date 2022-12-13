@@ -6,6 +6,11 @@
 
 package org.opensearch.sql.analysis;
 
+import static org.opensearch.sql.ast.dsl.AstDSL.and;
+import static org.opensearch.sql.ast.dsl.AstDSL.compare;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.GTE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTE;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -22,6 +27,7 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.And;
+import org.opensearch.sql.ast.expression.Between;
 import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
@@ -227,6 +233,14 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     return (Expression)
         repository.compile(context.getFunctionProperties(),
             functionName, Arrays.asList(left, right));
+  }
+
+  @Override
+  public Expression visitBetween(Between node, AnalysisContext context) {
+    return and(
+        compare(">=", node.getValue(), node.getLowerBound()),
+        compare("<=", node.getValue(), node.getUpperBound())
+    ).accept(this, context);
   }
 
   @Override

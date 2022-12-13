@@ -8,7 +8,6 @@ package org.opensearch.sql.sql.parser;
 
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.BETWEEN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LIKE;
@@ -77,6 +76,7 @@ import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.And;
+import org.opensearch.sql.ast.expression.Between;
 import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.DataType;
@@ -268,10 +268,11 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitBetweenPredicate(BetweenPredicateContext ctx) {
-    Function func = new Function(BETWEEN.getName().getFunctionName(),
-        ctx.predicate().stream()
-            .map(this::visit)
-            .collect(Collectors.toList()));
+    UnresolvedExpression func =
+        new Between(
+            visit(ctx.predicate(0)),
+            visit(ctx.predicate(1)),
+            visit(ctx.predicate(2)));
 
     if (ctx.NOT() != null) {
       func = new Function(NOT.getName().getFunctionName(), Collections.singletonList(func));
