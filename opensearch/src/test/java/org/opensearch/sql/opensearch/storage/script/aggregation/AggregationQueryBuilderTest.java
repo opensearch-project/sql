@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.opensearch.sql.common.utils.StringUtils.format;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -51,15 +52,11 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.aggregation.AvgAggregator;
 import org.opensearch.sql.expression.aggregation.CountAggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
 class AggregationQueryBuilderTest {
-
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
-
   @Mock
   private ExpressionSerializer serializer;
 
@@ -72,31 +69,31 @@ class AggregationQueryBuilderTest {
 
   @Test
   void should_build_composite_aggregation_for_field_reference() {
-    assertEquals(
-        "{\n"
-            + "  \"composite_buckets\" : {\n"
-            + "    \"composite\" : {\n"
-            + "      \"size\" : 1000,\n"
-            + "      \"sources\" : [ {\n"
-            + "        \"name\" : {\n"
-            + "          \"terms\" : {\n"
-            + "            \"field\" : \"name\",\n"
-            + "            \"missing_bucket\" : true,\n"
-            + "            \"missing_order\" : \"first\",\n"
-            + "            \"order\" : \"asc\"\n"
-            + "          }\n"
-            + "        }\n"
-            + "      } ]\n"
-            + "    },\n"
-            + "    \"aggregations\" : {\n"
-            + "      \"avg(age)\" : {\n"
-            + "        \"avg\" : {\n"
-            + "          \"field\" : \"age\"\n"
-            + "        }\n"
-            + "      }\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+    assertEquals(format(
+        "{%n"
+            + "  \"composite_buckets\" : {%n"
+            + "    \"composite\" : {%n"
+            + "      \"size\" : 1000,%n"
+            + "      \"sources\" : [ {%n"
+            + "        \"name\" : {%n"
+            + "          \"terms\" : {%n"
+            + "            \"field\" : \"name\",%n"
+            + "            \"missing_bucket\" : true,%n"
+            + "            \"missing_order\" : \"first\",%n"
+            + "            \"order\" : \"asc\"%n"
+            + "          }%n"
+            + "        }%n"
+            + "      } ]%n"
+            + "    },%n"
+            + "    \"aggregations\" : {%n"
+            + "      \"avg(age)\" : {%n"
+            + "        \"avg\" : {%n"
+            + "          \"field\" : \"age\"%n"
+            + "        }%n"
+            + "      }%n"
+            + "    }%n"
+            + "  }%n"
+            + "}"),
         buildQuery(
             Arrays.asList(
                 named("avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER))),
@@ -105,31 +102,31 @@ class AggregationQueryBuilderTest {
 
   @Test
   void should_build_composite_aggregation_for_field_reference_with_order() {
-    assertEquals(
-        "{\n"
-            + "  \"composite_buckets\" : {\n"
-            + "    \"composite\" : {\n"
-            + "      \"size\" : 1000,\n"
-            + "      \"sources\" : [ {\n"
-            + "        \"name\" : {\n"
-            + "          \"terms\" : {\n"
-            + "            \"field\" : \"name\",\n"
-            + "            \"missing_bucket\" : true,\n"
-            + "            \"missing_order\" : \"last\",\n"
-            + "            \"order\" : \"desc\"\n"
-            + "          }\n"
-            + "        }\n"
-            + "      } ]\n"
-            + "    },\n"
-            + "    \"aggregations\" : {\n"
-            + "      \"avg(age)\" : {\n"
-            + "        \"avg\" : {\n"
-            + "          \"field\" : \"age\"\n"
-            + "        }\n"
-            + "      }\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+    assertEquals(format(
+        "{%n"
+            + "  \"composite_buckets\" : {%n"
+            + "    \"composite\" : {%n"
+            + "      \"size\" : 1000,%n"
+            + "      \"sources\" : [ {%n"
+            + "        \"name\" : {%n"
+            + "          \"terms\" : {%n"
+            + "            \"field\" : \"name\",%n"
+            + "            \"missing_bucket\" : true,%n"
+            + "            \"missing_order\" : \"last\",%n"
+            + "            \"order\" : \"desc\"%n"
+            + "          }%n"
+            + "        }%n"
+            + "      } ]%n"
+            + "    },%n"
+            + "    \"aggregations\" : {%n"
+            + "      \"avg(age)\" : {%n"
+            + "        \"avg\" : {%n"
+            + "          \"field\" : \"age\"%n"
+            + "        }%n"
+            + "      }%n"
+            + "    }%n"
+            + "  }%n"
+            + "}"),
         buildQuery(
             Arrays.asList(
                 named("avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER))),
@@ -152,31 +149,31 @@ class AggregationQueryBuilderTest {
 
   @Test
   void should_build_composite_aggregation_for_field_reference_of_keyword() {
-    assertEquals(
-        "{\n"
-            + "  \"composite_buckets\" : {\n"
-            + "    \"composite\" : {\n"
-            + "      \"size\" : 1000,\n"
-            + "      \"sources\" : [ {\n"
-            + "        \"name\" : {\n"
-            + "          \"terms\" : {\n"
-            + "            \"field\" : \"name.keyword\",\n"
-            + "            \"missing_bucket\" : true,\n"
-            + "            \"missing_order\" : \"first\",\n"
-            + "            \"order\" : \"asc\"\n"
-            + "          }\n"
-            + "        }\n"
-            + "      } ]\n"
-            + "    },\n"
-            + "    \"aggregations\" : {\n"
-            + "      \"avg(age)\" : {\n"
-            + "        \"avg\" : {\n"
-            + "          \"field\" : \"age\"\n"
-            + "        }\n"
-            + "      }\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+    assertEquals(format(
+        "{%n"
+            + "  \"composite_buckets\" : {%n"
+            + "    \"composite\" : {%n"
+            + "      \"size\" : 1000,%n"
+            + "      \"sources\" : [ {%n"
+            + "        \"name\" : {%n"
+            + "          \"terms\" : {%n"
+            + "            \"field\" : \"name.keyword\",%n"
+            + "            \"missing_bucket\" : true,%n"
+            + "            \"missing_order\" : \"first\",%n"
+            + "            \"order\" : \"asc\"%n"
+            + "          }%n"
+            + "        }%n"
+            + "      } ]%n"
+            + "    },%n"
+            + "    \"aggregations\" : {%n"
+            + "      \"avg(age)\" : {%n"
+            + "        \"avg\" : {%n"
+            + "          \"field\" : \"age\"%n"
+            + "        }%n"
+            + "      }%n"
+            + "    }%n"
+            + "  }%n"
+            + "}"),
         buildQuery(
             Arrays.asList(
                 named("avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER))),
@@ -201,80 +198,80 @@ class AggregationQueryBuilderTest {
       Expression expr = invocation.getArgument(0);
       return expr.toString();
     }).when(serializer).serialize(any());
-    assertEquals(
-        "{\n"
-            + "  \"composite_buckets\" : {\n"
-            + "    \"composite\" : {\n"
-            + "      \"size\" : 1000,\n"
-            + "      \"sources\" : [ {\n"
-            + "        \"age\" : {\n"
-            + "          \"terms\" : {\n"
-            + "            \"script\" : {\n"
-            + "              \"source\" : \"asin(age)\",\n"
-            + "              \"lang\" : \"opensearch_query_expression\"\n"
-            + "            },\n"
-            + "            \"missing_bucket\" : true,\n"
-            + "            \"missing_order\" : \"first\",\n"
-            + "            \"order\" : \"asc\"\n"
-            + "          }\n"
-            + "        }\n"
-            + "      } ]\n"
-            + "    },\n"
-            + "    \"aggregations\" : {\n"
-            + "      \"avg(balance)\" : {\n"
-            + "        \"avg\" : {\n"
-            + "          \"script\" : {\n"
-            + "            \"source\" : \"abs(balance)\",\n"
-            + "            \"lang\" : \"opensearch_query_expression\"\n"
-            + "          }\n"
-            + "        }\n"
-            + "      }\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+    assertEquals(format(
+        "{%n"
+            + "  \"composite_buckets\" : {%n"
+            + "    \"composite\" : {%n"
+            + "      \"size\" : 1000,%n"
+            + "      \"sources\" : [ {%n"
+            + "        \"age\" : {%n"
+            + "          \"terms\" : {%n"
+            + "            \"script\" : {%n"
+            + "              \"source\" : \"asin(age)\",%n"
+            + "              \"lang\" : \"opensearch_query_expression\"%n"
+            + "            },%n"
+            + "            \"missing_bucket\" : true,%n"
+            + "            \"missing_order\" : \"first\",%n"
+            + "            \"order\" : \"asc\"%n"
+            + "          }%n"
+            + "        }%n"
+            + "      } ]%n"
+            + "    },%n"
+            + "    \"aggregations\" : {%n"
+            + "      \"avg(balance)\" : {%n"
+            + "        \"avg\" : {%n"
+            + "          \"script\" : {%n"
+            + "            \"source\" : \"abs(balance)\",%n"
+            + "            \"lang\" : \"opensearch_query_expression\"%n"
+            + "          }%n"
+            + "        }%n"
+            + "      }%n"
+            + "    }%n"
+            + "  }%n"
+            + "}"),
         buildQuery(
             Arrays.asList(
                 named("avg(balance)", new AvgAggregator(
-                    Arrays.asList(dsl.abs(ref("balance", INTEGER))), INTEGER))),
-            Arrays.asList(named("age", dsl.asin(ref("age", INTEGER))))));
+                    Arrays.asList(DSL.abs(ref("balance", INTEGER))), INTEGER))),
+            Arrays.asList(named("age", DSL.asin(ref("age", INTEGER))))));
   }
 
   @Test
   void should_build_composite_aggregation_follow_with_order_by_position() {
-    assertEquals(
-        "{\n"
-            + "  \"composite_buckets\" : {\n"
-            + "    \"composite\" : {\n"
-            + "      \"size\" : 1000,\n"
-            + "      \"sources\" : [ {\n"
-            + "        \"name\" : {\n"
-            + "          \"terms\" : {\n"
-            + "            \"field\" : \"name\",\n"
-            + "            \"missing_bucket\" : true,\n"
-            + "            \"missing_order\" : \"last\",\n"
-            + "            \"order\" : \"desc\"\n"
-            + "          }\n"
-            + "        }\n"
-            + "      }, {\n"
-            + "        \"age\" : {\n"
-            + "          \"terms\" : {\n"
-            + "            \"field\" : \"age\",\n"
-            + "            \"missing_bucket\" : true,\n"
-            + "            \"missing_order\" : \"first\",\n"
-            + "            \"order\" : \"asc\"\n"
-            + "          }\n"
-            + "        }\n"
-            + "      } ]\n"
-            + "    },\n"
-            + "    \"aggregations\" : {\n"
-            + "      \"avg(balance)\" : {\n"
-            + "        \"avg\" : {\n"
-            + "          \"field\" : \"balance\"\n"
-            + "        }\n"
-            + "      }\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+    assertEquals(format(
+        "{%n"
+            + "  \"composite_buckets\" : {%n"
+            + "    \"composite\" : {%n"
+            + "      \"size\" : 1000,%n"
+            + "      \"sources\" : [ {%n"
+            + "        \"name\" : {%n"
+            + "          \"terms\" : {%n"
+            + "            \"field\" : \"name\",%n"
+            + "            \"missing_bucket\" : true,%n"
+            + "            \"missing_order\" : \"last\",%n"
+            + "            \"order\" : \"desc\"%n"
+            + "          }%n"
+            + "        }%n"
+            + "      }, {%n"
+            + "        \"age\" : {%n"
+            + "          \"terms\" : {%n"
+            + "            \"field\" : \"age\",%n"
+            + "            \"missing_bucket\" : true,%n"
+            + "            \"missing_order\" : \"first\",%n"
+            + "            \"order\" : \"asc\"%n"
+            + "          }%n"
+            + "        }%n"
+            + "      } ]%n"
+            + "    },%n"
+            + "    \"aggregations\" : {%n"
+            + "      \"avg(balance)\" : {%n"
+            + "        \"avg\" : {%n"
+            + "          \"field\" : \"balance\"%n"
+            + "        }%n"
+            + "      }%n"
+            + "    }%n"
+            + "  }%n"
+            + "}"),
         buildQuery(
             agg(named("avg(balance)", avg(ref("balance", INTEGER), INTEGER))),
             group(named("age", ref("age", INTEGER)), named("name", ref("name", STRING))),
@@ -288,8 +285,8 @@ class AggregationQueryBuilderTest {
     assertThat(
         buildTypeMapping(Arrays.asList(
             named("avg(balance)", new AvgAggregator(
-                Arrays.asList(dsl.abs(ref("balance", INTEGER))), INTEGER))),
-            Arrays.asList(named("age", dsl.asin(ref("age", INTEGER))))),
+                Arrays.asList(DSL.abs(ref("balance", INTEGER))), INTEGER))),
+            Arrays.asList(named("age", DSL.asin(ref("age", INTEGER))))),
         containsInAnyOrder(
             map("avg(balance)", INTEGER),
             map("age", DOUBLE)
@@ -298,14 +295,14 @@ class AggregationQueryBuilderTest {
 
   @Test
   void should_build_aggregation_without_bucket() {
-    assertEquals(
-        "{\n"
-            + "  \"avg(balance)\" : {\n"
-            + "    \"avg\" : {\n"
-            + "      \"field\" : \"balance\"\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+    assertEquals(format(
+        "{%n"
+            + "  \"avg(balance)\" : {%n"
+            + "    \"avg\" : {%n"
+            + "      \"field\" : \"balance\"%n"
+            + "    }%n"
+            + "  }%n"
+            + "}"),
         buildQuery(
             Arrays.asList(
                 named("avg(balance)", new AvgAggregator(
@@ -315,82 +312,82 @@ class AggregationQueryBuilderTest {
 
   @Test
   void should_build_filter_aggregation() {
-    assertEquals(
-        "{\n" 
-            + "  \"avg(age) filter(where age > 34)\" : {\n"
-            + "    \"filter\" : {\n" 
-            + "      \"range\" : {\n" 
-            + "        \"age\" : {\n" 
-            + "          \"from\" : 20,\n" 
-            + "          \"to\" : null,\n" 
-            + "          \"include_lower\" : false,\n" 
-            + "          \"include_upper\" : true,\n" 
-            + "          \"boost\" : 1.0\n" 
-            + "        }\n" 
-            + "      }\n" 
-            + "    },\n" 
-            + "    \"aggregations\" : {\n" 
-            + "      \"avg(age) filter(where age > 34)\" : {\n" 
-            + "        \"avg\" : {\n" 
-            + "          \"field\" : \"age\"\n" 
-            + "        }\n" 
-            + "      }\n" 
-            + "    }\n" 
-            + "  }\n" 
-            + "}",
+    assertEquals(format(
+        "{%n"
+            + "  \"avg(age) filter(where age > 34)\" : {%n"
+            + "    \"filter\" : {%n"
+            + "      \"range\" : {%n"
+            + "        \"age\" : {%n"
+            + "          \"from\" : 20,%n"
+            + "          \"to\" : null,%n"
+            + "          \"include_lower\" : false,%n"
+            + "          \"include_upper\" : true,%n"
+            + "          \"boost\" : 1.0%n"
+            + "        }%n"
+            + "      }%n"
+            + "    },%n"
+            + "    \"aggregations\" : {%n"
+            + "      \"avg(age) filter(where age > 34)\" : {%n"
+            + "        \"avg\" : {%n"
+            + "          \"field\" : \"age\"%n"
+            + "        }%n"
+            + "      }%n"
+            + "    }%n"
+            + "  }%n"
+            + "}"),
         buildQuery(
             Arrays.asList(named("avg(age) filter(where age > 34)",
                 new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER)
-                    .condition(dsl.greater(ref("age", INTEGER), literal(20))))),
+                    .condition(DSL.greater(ref("age", INTEGER), literal(20))))),
             Collections.emptyList()));
   }
 
   @Test
   void should_build_filter_aggregation_group_by() {
-    assertEquals(
-        "{\n" 
-            + "  \"composite_buckets\" : {\n" 
-            + "    \"composite\" : {\n" 
-            + "      \"size\" : 1000,\n" 
-            + "      \"sources\" : [ {\n" 
-            + "        \"gender\" : {\n" 
-            + "          \"terms\" : {\n" 
-            + "            \"field\" : \"gender\",\n" 
-            + "            \"missing_bucket\" : true,\n"
-            + "            \"missing_order\" : \"first\",\n"
-            + "            \"order\" : \"asc\"\n" 
-            + "          }\n" 
-            + "        }\n" 
-            + "      } ]\n" 
-            + "    },\n" 
-            + "    \"aggregations\" : {\n" 
-            + "      \"avg(age) filter(where age > 34)\" : {\n" 
-            + "        \"filter\" : {\n" 
-            + "          \"range\" : {\n" 
-            + "            \"age\" : {\n" 
-            + "              \"from\" : 20,\n" 
-            + "              \"to\" : null,\n" 
-            + "              \"include_lower\" : false,\n" 
-            + "              \"include_upper\" : true,\n" 
-            + "              \"boost\" : 1.0\n" 
-            + "            }\n" 
-            + "          }\n" 
-            + "        },\n" 
-            + "        \"aggregations\" : {\n" 
-            + "          \"avg(age) filter(where age > 34)\" : {\n" 
-            + "            \"avg\" : {\n" 
-            + "              \"field\" : \"age\"\n" 
-            + "            }\n" 
-            + "          }\n" 
-            + "        }\n" 
-            + "      }\n" 
-            + "    }\n" 
-            + "  }\n" 
-            + "}",
+    assertEquals(format(
+        "{%n"
+            + "  \"composite_buckets\" : {%n"
+            + "    \"composite\" : {%n"
+            + "      \"size\" : 1000,%n"
+            + "      \"sources\" : [ {%n"
+            + "        \"gender\" : {%n"
+            + "          \"terms\" : {%n"
+            + "            \"field\" : \"gender\",%n"
+            + "            \"missing_bucket\" : true,%n"
+            + "            \"missing_order\" : \"first\",%n"
+            + "            \"order\" : \"asc\"%n"
+            + "          }%n"
+            + "        }%n"
+            + "      } ]%n"
+            + "    },%n"
+            + "    \"aggregations\" : {%n"
+            + "      \"avg(age) filter(where age > 34)\" : {%n"
+            + "        \"filter\" : {%n"
+            + "          \"range\" : {%n"
+            + "            \"age\" : {%n"
+            + "              \"from\" : 20,%n"
+            + "              \"to\" : null,%n"
+            + "              \"include_lower\" : false,%n"
+            + "              \"include_upper\" : true,%n"
+            + "              \"boost\" : 1.0%n"
+            + "            }%n"
+            + "          }%n"
+            + "        },%n"
+            + "        \"aggregations\" : {%n"
+            + "          \"avg(age) filter(where age > 34)\" : {%n"
+            + "            \"avg\" : {%n"
+            + "              \"field\" : \"age\"%n"
+            + "            }%n"
+            + "          }%n"
+            + "        }%n"
+            + "      }%n"
+            + "    }%n"
+            + "  }%n"
+            + "}"),
         buildQuery(
             Arrays.asList(named("avg(age) filter(where age > 34)",
                 new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER)
-                    .condition(dsl.greater(ref("age", INTEGER), literal(20))))),
+                    .condition(DSL.greater(ref("age", INTEGER), literal(20))))),
             Arrays.asList(named(ref("gender", STRING)))));
   }
 
@@ -408,32 +405,32 @@ class AggregationQueryBuilderTest {
 
   @Test
   void should_build_histogram() {
-    assertEquals(
-        "{\n"
-            + "  \"composite_buckets\" : {\n"
-            + "    \"composite\" : {\n"
-            + "      \"size\" : 1000,\n"
-            + "      \"sources\" : [ {\n"
-            + "        \"SpanExpression(field=age, value=10, unit=NONE)\" : {\n"
-            + "          \"histogram\" : {\n"
-            + "            \"field\" : \"age\",\n"
-            + "            \"missing_bucket\" : true,\n"
-            + "            \"missing_order\" : \"first\",\n"
-            + "            \"order\" : \"asc\",\n"
-            + "            \"interval\" : 10.0\n"
-            + "          }\n"
-            + "        }\n"
-            + "      } ]\n"
-            + "    },\n"
-            + "    \"aggregations\" : {\n"
-            + "      \"count(a)\" : {\n"
-            + "        \"value_count\" : {\n"
-            + "          \"field\" : \"a\"\n"
-            + "        }\n"
-            + "      }\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+    assertEquals(format(
+        "{%n"
+            + "  \"composite_buckets\" : {%n"
+            + "    \"composite\" : {%n"
+            + "      \"size\" : 1000,%n"
+            + "      \"sources\" : [ {%n"
+            + "        \"SpanExpression(field=age, value=10, unit=NONE)\" : {%n"
+            + "          \"histogram\" : {%n"
+            + "            \"field\" : \"age\",%n"
+            + "            \"missing_bucket\" : true,%n"
+            + "            \"missing_order\" : \"first\",%n"
+            + "            \"order\" : \"asc\",%n"
+            + "            \"interval\" : 10.0%n"
+            + "          }%n"
+            + "        }%n"
+            + "      } ]%n"
+            + "    },%n"
+            + "    \"aggregations\" : {%n"
+            + "      \"count(a)\" : {%n"
+            + "        \"value_count\" : {%n"
+            + "          \"field\" : \"a\"%n"
+            + "        }%n"
+            + "      }%n"
+            + "    }%n"
+            + "  }%n"
+            + "}"),
         buildQuery(
             Arrays.asList(
                 named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER))),
@@ -442,37 +439,37 @@ class AggregationQueryBuilderTest {
 
   @Test
   void should_build_histogram_two_metrics() {
-    assertEquals(
-        "{\n"
-            + "  \"composite_buckets\" : {\n"
-            + "    \"composite\" : {\n"
-            + "      \"size\" : 1000,\n"
-            + "      \"sources\" : [ {\n"
-            + "        \"SpanExpression(field=age, value=10, unit=NONE)\" : {\n"
-            + "          \"histogram\" : {\n"
-            + "            \"field\" : \"age\",\n"
-            + "            \"missing_bucket\" : true,\n"
-            + "            \"missing_order\" : \"first\",\n"
-            + "            \"order\" : \"asc\",\n"
-            + "            \"interval\" : 10.0\n"
-            + "          }\n"
-            + "        }\n"
-            + "      } ]\n"
-            + "    },\n"
-            + "    \"aggregations\" : {\n"
-            + "      \"count(a)\" : {\n"
-            + "        \"value_count\" : {\n"
-            + "          \"field\" : \"a\"\n"
-            + "        }\n"
-            + "      },\n"
-            + "      \"avg(b)\" : {\n"
-            + "        \"avg\" : {\n"
-            + "          \"field\" : \"b\"\n"
-            + "        }\n"
-            + "      }\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+    assertEquals(format(
+        "{%n"
+            + "  \"composite_buckets\" : {%n"
+            + "    \"composite\" : {%n"
+            + "      \"size\" : 1000,%n"
+            + "      \"sources\" : [ {%n"
+            + "        \"SpanExpression(field=age, value=10, unit=NONE)\" : {%n"
+            + "          \"histogram\" : {%n"
+            + "            \"field\" : \"age\",%n"
+            + "            \"missing_bucket\" : true,%n"
+            + "            \"missing_order\" : \"first\",%n"
+            + "            \"order\" : \"asc\",%n"
+            + "            \"interval\" : 10.0%n"
+            + "          }%n"
+            + "        }%n"
+            + "      } ]%n"
+            + "    },%n"
+            + "    \"aggregations\" : {%n"
+            + "      \"count(a)\" : {%n"
+            + "        \"value_count\" : {%n"
+            + "          \"field\" : \"a\"%n"
+            + "        }%n"
+            + "      },%n"
+            + "      \"avg(b)\" : {%n"
+            + "        \"avg\" : {%n"
+            + "          \"field\" : \"b\"%n"
+            + "        }%n"
+            + "      }%n"
+            + "    }%n"
+            + "  }%n"
+            + "}"),
         buildQuery(
             Arrays.asList(
                 named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER)),
@@ -482,32 +479,32 @@ class AggregationQueryBuilderTest {
 
   @Test
   void fixed_interval_time_span() {
-    assertEquals(
-        "{\n"
-            + "  \"composite_buckets\" : {\n"
-            + "    \"composite\" : {\n"
-            + "      \"size\" : 1000,\n"
-            + "      \"sources\" : [ {\n"
-            + "        \"SpanExpression(field=timestamp, value=1, unit=H)\" : {\n"
-            + "          \"date_histogram\" : {\n"
-            + "            \"field\" : \"timestamp\",\n"
-            + "            \"missing_bucket\" : true,\n"
-            + "            \"missing_order\" : \"first\",\n"
-            + "            \"order\" : \"asc\",\n"
-            + "            \"fixed_interval\" : \"1h\"\n"
-            + "          }\n"
-            + "        }\n"
-            + "      } ]\n"
-            + "    },\n"
-            + "    \"aggregations\" : {\n"
-            + "      \"count(a)\" : {\n"
-            + "        \"value_count\" : {\n"
-            + "          \"field\" : \"a\"\n"
-            + "        }\n"
-            + "      }\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+    assertEquals(format(
+        "{%n"
+            + "  \"composite_buckets\" : {%n"
+            + "    \"composite\" : {%n"
+            + "      \"size\" : 1000,%n"
+            + "      \"sources\" : [ {%n"
+            + "        \"SpanExpression(field=timestamp, value=1, unit=H)\" : {%n"
+            + "          \"date_histogram\" : {%n"
+            + "            \"field\" : \"timestamp\",%n"
+            + "            \"missing_bucket\" : true,%n"
+            + "            \"missing_order\" : \"first\",%n"
+            + "            \"order\" : \"asc\",%n"
+            + "            \"fixed_interval\" : \"1h\"%n"
+            + "          }%n"
+            + "        }%n"
+            + "      } ]%n"
+            + "    },%n"
+            + "    \"aggregations\" : {%n"
+            + "      \"count(a)\" : {%n"
+            + "        \"value_count\" : {%n"
+            + "          \"field\" : \"a\"%n"
+            + "        }%n"
+            + "      }%n"
+            + "    }%n"
+            + "  }%n"
+            + "}"),
         buildQuery(
             Arrays.asList(
                 named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER))),
@@ -516,32 +513,32 @@ class AggregationQueryBuilderTest {
 
   @Test
   void calendar_interval_time_span() {
-    assertEquals(
-        "{\n"
-            + "  \"composite_buckets\" : {\n"
-            + "    \"composite\" : {\n"
-            + "      \"size\" : 1000,\n"
-            + "      \"sources\" : [ {\n"
-            + "        \"SpanExpression(field=date, value=1, unit=W)\" : {\n"
-            + "          \"date_histogram\" : {\n"
-            + "            \"field\" : \"date\",\n"
-            + "            \"missing_bucket\" : true,\n"
-            + "            \"missing_order\" : \"first\",\n"
-            + "            \"order\" : \"asc\",\n"
-            + "            \"calendar_interval\" : \"1w\"\n"
-            + "          }\n"
-            + "        }\n"
-            + "      } ]\n"
-            + "    },\n"
-            + "    \"aggregations\" : {\n"
-            + "      \"count(a)\" : {\n"
-            + "        \"value_count\" : {\n"
-            + "          \"field\" : \"a\"\n"
-            + "        }\n"
-            + "      }\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+    assertEquals(format(
+        "{%n"
+            + "  \"composite_buckets\" : {%n"
+            + "    \"composite\" : {%n"
+            + "      \"size\" : 1000,%n"
+            + "      \"sources\" : [ {%n"
+            + "        \"SpanExpression(field=date, value=1, unit=W)\" : {%n"
+            + "          \"date_histogram\" : {%n"
+            + "            \"field\" : \"date\",%n"
+            + "            \"missing_bucket\" : true,%n"
+            + "            \"missing_order\" : \"first\",%n"
+            + "            \"order\" : \"asc\",%n"
+            + "            \"calendar_interval\" : \"1w\"%n"
+            + "          }%n"
+            + "        }%n"
+            + "      } ]%n"
+            + "    },%n"
+            + "    \"aggregations\" : {%n"
+            + "      \"count(a)\" : {%n"
+            + "        \"value_count\" : {%n"
+            + "          \"field\" : \"a\"%n"
+            + "        }%n"
+            + "      }%n"
+            + "    }%n"
+            + "  }%n"
+            + "}"),
         buildQuery(
             Arrays.asList(
                 named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER))),
@@ -550,32 +547,32 @@ class AggregationQueryBuilderTest {
 
   @Test
   void general_span() {
-    assertEquals(
-        "{\n"
-            + "  \"composite_buckets\" : {\n"
-            + "    \"composite\" : {\n"
-            + "      \"size\" : 1000,\n"
-            + "      \"sources\" : [ {\n"
-            + "        \"SpanExpression(field=age, value=1, unit=NONE)\" : {\n"
-            + "          \"histogram\" : {\n"
-            + "            \"field\" : \"age\",\n"
-            + "            \"missing_bucket\" : true,\n"
-            + "            \"missing_order\" : \"first\",\n"
-            + "            \"order\" : \"asc\",\n"
-            + "            \"interval\" : 1.0\n"
-            + "          }\n"
-            + "        }\n"
-            + "      } ]\n"
-            + "    },\n"
-            + "    \"aggregations\" : {\n"
-            + "      \"count(a)\" : {\n"
-            + "        \"value_count\" : {\n"
-            + "          \"field\" : \"a\"\n"
-            + "        }\n"
-            + "      }\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+    assertEquals(format(
+        "{%n"
+            + "  \"composite_buckets\" : {%n"
+            + "    \"composite\" : {%n"
+            + "      \"size\" : 1000,%n"
+            + "      \"sources\" : [ {%n"
+            + "        \"SpanExpression(field=age, value=1, unit=NONE)\" : {%n"
+            + "          \"histogram\" : {%n"
+            + "            \"field\" : \"age\",%n"
+            + "            \"missing_bucket\" : true,%n"
+            + "            \"missing_order\" : \"first\",%n"
+            + "            \"order\" : \"asc\",%n"
+            + "            \"interval\" : 1.0%n"
+            + "          }%n"
+            + "        }%n"
+            + "      } ]%n"
+            + "    },%n"
+            + "    \"aggregations\" : {%n"
+            + "      \"count(a)\" : {%n"
+            + "        \"value_count\" : {%n"
+            + "          \"field\" : \"a\"%n"
+            + "        }%n"
+            + "      }%n"
+            + "    }%n"
+            + "  }%n"
+            + "}"),
         buildQuery(
             Arrays.asList(
                 named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER))),

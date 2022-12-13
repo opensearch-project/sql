@@ -13,6 +13,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -54,11 +55,11 @@ class NamedExpressionTest extends ExpressionTestBase {
   @Test
   void name_a_parse_expression() {
     ParseExpression parse =
-        DSL.parsed(DSL.ref("string_value", STRING), DSL.literal("(?<group>\\w{2})\\w"),
+        DSL.regex(DSL.ref("string_value", STRING), DSL.literal("(?<group>\\w{2})\\w"),
             DSL.literal("group"));
     NamedExpression named = DSL.named(parse);
     assertEquals(parse, named.getDelegated());
-    assertEquals(parse.getIdentifier().valueOf(null).stringValue(), named.getName());
+    assertEquals(parse.getIdentifier().valueOf().stringValue(), named.getName());
   }
 
 }

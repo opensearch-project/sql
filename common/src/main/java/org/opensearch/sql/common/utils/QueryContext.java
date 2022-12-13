@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.common.utils;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -13,6 +14,8 @@ import org.apache.logging.log4j.ThreadContext;
 
 /**
  * Utility class for recording and accessing context for the query being executed.
+ * Implementation Details: context variables is being persisted statically in the thread context
+ * @see: @ThreadContext
  */
 public class QueryContext {
 

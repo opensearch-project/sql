@@ -34,13 +34,10 @@ import org.opensearch.search.lookup.LeafSearchLookup;
 import org.opensearch.search.lookup.SearchLookup;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
 class ExpressionAggregationScriptTest {
-
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
 
   @Mock
   private SearchLookup lookup;
@@ -56,7 +53,7 @@ class ExpressionAggregationScriptTest {
     assertThat()
         .docValues("age", 30L) // DocValue only supports long
         .evaluate(
-            dsl.abs(ref("age", INTEGER)))
+            DSL.abs(ref("age", INTEGER)))
         .shouldMatch(30);
   }
 
@@ -65,7 +62,7 @@ class ExpressionAggregationScriptTest {
     assertThat()
         .docValues("age", 30L) // DocValue only supports long
         .evaluate(
-            dsl.greater(ref("age", INTEGER), literal(20)))
+            DSL.greater(ref("age", INTEGER), literal(20)))
         .shouldMatch(true);
   }
 
@@ -74,7 +71,7 @@ class ExpressionAggregationScriptTest {
     assertThat()
         .docValues("name.keyword", "John")
         .evaluate(
-            dsl.equal(ref("name", OPENSEARCH_TEXT_KEYWORD), literal("John")))
+            DSL.equal(ref("name", OPENSEARCH_TEXT_KEYWORD), literal("John")))
         .shouldMatch(true);
   }
 
@@ -98,7 +95,7 @@ class ExpressionAggregationScriptTest {
   void can_execute_parse_expression() {
     assertThat()
         .docValues("age_string", "age: 30")
-        .evaluate(DSL.parsed(DSL.ref("age_string", STRING), DSL.literal("age: (?<age>\\d+)"),
+        .evaluate(DSL.regex(DSL.ref("age_string", STRING), DSL.literal("age: (?<age>\\d+)"),
             DSL.literal("age")))
         .shouldMatch("30");
   }

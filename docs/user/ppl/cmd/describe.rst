@@ -16,9 +16,12 @@ Description
 
 Syntax
 ============
-describe <index>
+describe <dataSource>.<schema>.<tablename>
 
-* index: mandatory. describe command must specify which index to query from.
+* dataSource: optional. If dataSource is not provided, it resolves to opensearch dataSource.
+* schema: optional.  If schema is not provided, it resolves to  default schema.
+* tablename: mandatory. describe command must specify which tablename to query from.
+
 
 
 Example 1: Fetch all the metadata
@@ -63,3 +66,23 @@ PPL query::
     | age            |
     +----------------+
 
+
+Example 3: Fetch metadata for table in prometheus dataSource
+=========================================================
+
+The example retrieves table info for ``prometheus_http_requests_total`` metric in prometheus dataSource.
+
+PPL query::
+
+    os> describe my_prometheus.prometheus_http_requests_total;
+    fetched rows / total rows = 6/6
+    +-----------------+----------------+--------------------------------+---------------+-------------+
+    | TABLE_CATALOG   | TABLE_SCHEMA   | TABLE_NAME                     | COLUMN_NAME   | DATA_TYPE   |
+    |-----------------+----------------+--------------------------------+---------------+-------------|
+    | my_prometheus   | default        | prometheus_http_requests_total | handler       | keyword     |
+    | my_prometheus   | default        | prometheus_http_requests_total | code          | keyword     |
+    | my_prometheus   | default        | prometheus_http_requests_total | instance      | keyword     |
+    | my_prometheus   | default        | prometheus_http_requests_total | @timestamp    | timestamp   |
+    | my_prometheus   | default        | prometheus_http_requests_total | @value        | double      |
+    | my_prometheus   | default        | prometheus_http_requests_total | job           | keyword     |
+    +-----------------+----------------+--------------------------------+---------------+-------------+

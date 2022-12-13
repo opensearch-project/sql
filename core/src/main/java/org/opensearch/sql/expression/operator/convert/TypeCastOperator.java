@@ -125,7 +125,7 @@ public class TypeCastOperator {
         impl(nullMissingHandling(
             (v) -> new ExprFloatValue(Float.valueOf(v.stringValue()))), FLOAT, STRING),
         impl(nullMissingHandling(
-            (v) -> new ExprFloatValue(v.longValue())), FLOAT, DOUBLE),
+            (v) -> new ExprFloatValue(v.floatValue())), FLOAT, DOUBLE),
         impl(nullMissingHandling(
             (v) -> new ExprFloatValue(v.booleanValue() ? 1f : 0f)), FLOAT, BOOLEAN)
     );

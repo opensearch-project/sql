@@ -9,6 +9,8 @@ package org.opensearch.sql.analysis;
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
@@ -22,20 +24,42 @@ import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.ast.dsl.AstDSL.span;
+import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder;
 import static org.opensearch.sql.ast.tree.Sort.SortOption;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
+import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+import static org.opensearch.sql.utils.MLCommonsConstants.ACTION;
+import static org.opensearch.sql.utils.MLCommonsConstants.ALGO;
+import static org.opensearch.sql.utils.MLCommonsConstants.ASYNC;
+import static org.opensearch.sql.utils.MLCommonsConstants.CLUSTERID;
+import static org.opensearch.sql.utils.MLCommonsConstants.KMEANS;
+import static org.opensearch.sql.utils.MLCommonsConstants.MODELID;
+import static org.opensearch.sql.utils.MLCommonsConstants.PREDICT;
+import static org.opensearch.sql.utils.MLCommonsConstants.RCF;
+import static org.opensearch.sql.utils.MLCommonsConstants.RCF_ANOMALOUS;
+import static org.opensearch.sql.utils.MLCommonsConstants.RCF_ANOMALY_GRADE;
+import static org.opensearch.sql.utils.MLCommonsConstants.RCF_SCORE;
+import static org.opensearch.sql.utils.MLCommonsConstants.RCF_TIME_FIELD;
+import static org.opensearch.sql.utils.MLCommonsConstants.STATUS;
+import static org.opensearch.sql.utils.MLCommonsConstants.TASKID;
+import static org.opensearch.sql.utils.MLCommonsConstants.TRAIN;
+import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -47,19 +71,24 @@ import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.Literal;
-import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Kmeans;
+import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.HighlightExpression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
+import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
+import org.opensearch.sql.planner.logical.LogicalProject;
+import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.physical.datasource.DataSourceTable;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
@@ -67,7 +96,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @Configuration
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {ExpressionConfig.class, AnalyzerTest.class})
+@ContextConfiguration(classes = {AnalyzerTest.class})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class AnalyzerTest extends AnalyzerTestBase {
 
@@ -76,42 +105,121 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.relation("schema", table),
-            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+            DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
         AstDSL.filter(
             AstDSL.relation("schema"),
             AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
   }
 
   @Test
-  public void filter_relation_with_catalog() {
+  public void filter_relation_with_alias() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("schema", table),
+            DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+        AstDSL.filter(
+            AstDSL.relation("schema", "alias"),
+            AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
+  }
+
+  @Test
+  public void filter_relation_with_datasource() {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.relation("http_total_requests", table),
-            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+            DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
         AstDSL.filter(
             AstDSL.relation(AstDSL.qualifiedName("prometheus", "http_total_requests")),
             AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
   }
 
   @Test
-  public void filter_relation_with_escaped_catalog() {
+  public void filter_relation_with_escaped_datasource() {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.relation("prometheus.http_total_requests", table),
-            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+            DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
         AstDSL.filter(
             AstDSL.relation(AstDSL.qualifiedName("prometheus.http_total_requests")),
             AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
   }
 
   @Test
-  public void filter_relation_with_non_existing_catalog() {
+  public void filter_relation_with_information_schema_and_prom_datasource() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("tables", table),
+            DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+        AstDSL.filter(
+            AstDSL.relation(AstDSL.qualifiedName("prometheus", "information_schema", "tables")),
+            AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
+  }
+
+  @Test
+  public void filter_relation_with_default_schema_and_prom_datasource() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("tables", table),
+            DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+        AstDSL.filter(
+            AstDSL.relation(AstDSL.qualifiedName("prometheus", "default", "tables")),
+            AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
+  }
+
+  @Test
+  public void filter_relation_with_information_schema_and_os_datasource() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("tables", table),
+            DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+        AstDSL.filter(
+            AstDSL.relation(
+                AstDSL.qualifiedName(DEFAULT_DATASOURCE_NAME, "information_schema", "tables")),
+            AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
+  }
+
+  @Test
+  public void filter_relation_with_information_schema() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("tables.test", table),
+            DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+        AstDSL.filter(
+            AstDSL.relation(AstDSL.qualifiedName("information_schema", "tables", "test")),
+            AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
+  }
+
+  @Test
+  public void filter_relation_with_non_existing_datasource() {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.relation("test.http_total_requests", table),
-            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+            DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
         AstDSL.filter(
             AstDSL.relation(AstDSL.qualifiedName("test", "http_total_requests")),
+            AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
+  }
+
+  @Test
+  public void filter_relation_with_non_existing_datasource_with_three_parts() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("test.nonexisting_schema.http_total_requests", table),
+            DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+        AstDSL.filter(
+            AstDSL.relation(AstDSL.qualifiedName("test",
+                "nonexisting_schema", "http_total_requests")),
+            AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
+  }
+
+  @Test
+  public void filter_relation_with_multiple_tables() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("test.1,test.2", table),
+            DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+        AstDSL.filter(
+            AstDSL.relation(Arrays.asList("test.1", "test.2")),
             AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
   }
 
@@ -128,7 +236,7 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.relation("schema", table),
-            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+            DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
         filter(relation("schema"), compare("=", field("integer_value"), intLiteral(1))));
   }
 
@@ -139,10 +247,10 @@ class AnalyzerTest extends AnalyzerTestBase {
             LogicalPlanDSL.aggregation(
                 LogicalPlanDSL.relation("schema", table),
                 ImmutableList.of(
-                    DSL.named("AVG(integer_value)", dsl.avg(DSL.ref("integer_value", INTEGER))),
-                    DSL.named("MIN(integer_value)", dsl.min(DSL.ref("integer_value", INTEGER)))),
+                    DSL.named("AVG(integer_value)", DSL.avg(DSL.ref("integer_value", INTEGER))),
+                    DSL.named("MIN(integer_value)", DSL.min(DSL.ref("integer_value", INTEGER)))),
                 ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING)))),
-            dsl.greater(// Expect to be replaced with reference by expression optimizer
+            DSL.greater(// Expect to be replaced with reference by expression optimizer
                 DSL.ref("MIN(integer_value)", INTEGER), DSL.literal(integerValue(10)))),
         AstDSL.filter(
             AstDSL.agg(
@@ -174,7 +282,7 @@ class AnalyzerTest extends AnalyzerTestBase {
         LogicalPlanDSL.aggregation(
             LogicalPlanDSL.relation("schema", table),
             ImmutableList
-                .of(DSL.named("avg(integer_value)", dsl.avg(DSL.ref("integer_value", INTEGER)))),
+                .of(DSL.named("avg(integer_value)", DSL.avg(DSL.ref("integer_value", INTEGER)))),
             ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING)))),
         AstDSL.agg(
             AstDSL.relation("schema"),
@@ -270,16 +378,41 @@ class AnalyzerTest extends AnalyzerTestBase {
 
   @Test
   public void project_highlight() {
+    Map<String, Literal> args = new HashMap<>();
+    args.put("pre_tags", new Literal("<mark>", DataType.STRING));
+    args.put("post_tags", new Literal("</mark>", DataType.STRING));
+
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
             LogicalPlanDSL.highlight(LogicalPlanDSL.relation("schema", table),
-                DSL.literal("fieldA")),
-            DSL.named("highlight(fieldA)", new HighlightExpression(DSL.literal("fieldA")))
+                DSL.literal("fieldA"), args),
+            DSL.named("highlight(fieldA, pre_tags='<mark>', post_tags='</mark>')",
+                new HighlightExpression(DSL.literal("fieldA")))
         ),
         AstDSL.projectWithArg(
             AstDSL.relation("schema"),
             AstDSL.defaultFieldsArgs(),
-            AstDSL.alias("highlight(fieldA)", new HighlightFunction(AstDSL.stringLiteral("fieldA")))
+            AstDSL.alias("highlight(fieldA, pre_tags='<mark>', post_tags='</mark>')",
+                new HighlightFunction(AstDSL.stringLiteral("fieldA"), args))
+        )
+    );
+  }
+
+  @Test
+  public void project_highlight_wildcard() {
+    Map<String, Literal> args = new HashMap<>();
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.highlight(LogicalPlanDSL.relation("schema", table),
+                DSL.literal("*"), args),
+            DSL.named("highlight(*)",
+                new HighlightExpression(DSL.literal("*")))
+        ),
+        AstDSL.projectWithArg(
+            AstDSL.relation("schema"),
+            AstDSL.defaultFieldsArgs(),
+            AstDSL.alias("highlight(*)",
+                new HighlightFunction(AstDSL.stringLiteral("*"), args))
         )
     );
   }
@@ -298,7 +431,8 @@ class AnalyzerTest extends AnalyzerTestBase {
             AstDSL.field("double_value")));
   }
 
-  @Disabled("the project/remove command should shrink the type env")
+  @Disabled("the project/remove command should shrink the type env. Should be enabled once "
+          + "https://github.com/opensearch-project/sql/issues/917 is resolved")
   @Test
   public void project_source_change_type_env() {
     SemanticCheckException exception =
@@ -345,7 +479,7 @@ class AnalyzerTest extends AnalyzerTestBase {
                     ImmutableList.of(
                         DSL.named(
                             "avg(integer_value)",
-                            dsl.avg(DSL.ref("integer_value", INTEGER)))),
+                            DSL.avg(DSL.ref("integer_value", INTEGER)))),
                     ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING)))),
                 // Aggregator in Sort AST node is replaced with reference by expression optimizer
                 Pair.of(SortOption.DEFAULT_ASC, DSL.ref("avg(integer_value)", DOUBLE))),
@@ -419,7 +553,7 @@ class AnalyzerTest extends AnalyzerTestBase {
                     LogicalPlanDSL.relation("test", table),
                     ImmutablePair.of(DEFAULT_ASC, DSL.ref("string_value", STRING)),
                     ImmutablePair.of(DEFAULT_ASC, DSL.ref("integer_value", INTEGER))),
-                DSL.named("window_function", dsl.rowNumber()),
+                DSL.named("window_function", DSL.rowNumber()),
                 new WindowDefinition(
                     ImmutableList.of(DSL.ref("string_value", STRING)),
                     ImmutableList.of(
@@ -507,7 +641,7 @@ class AnalyzerTest extends AnalyzerTestBase {
                 LogicalPlanDSL.relation("schema", table),
                 ImmutableList
                     .of(DSL
-                        .named("AVG(integer_value)", dsl.avg(DSL.ref("integer_value", INTEGER)))),
+                        .named("AVG(integer_value)", DSL.avg(DSL.ref("integer_value", INTEGER)))),
                 ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING)))),
             DSL.named("string_value", DSL.ref("string_value", STRING)),
             DSL.named("AVG(integer_value)", DSL.ref("AVG(integer_value)", DOUBLE))),
@@ -535,9 +669,9 @@ class AnalyzerTest extends AnalyzerTestBase {
                 LogicalPlanDSL.relation("schema", table),
                 ImmutableList
                     .of(DSL
-                        .named("AVG(integer_value)", dsl.avg(DSL.ref("integer_value", INTEGER)))),
+                        .named("AVG(integer_value)", DSL.avg(DSL.ref("integer_value", INTEGER)))),
                 ImmutableList.of(DSL.named("abs(long_value)",
-                    dsl.abs(DSL.ref("long_value", LONG))))),
+                    DSL.abs(DSL.ref("long_value", LONG))))),
             DSL.named("abs(long_value)", DSL.ref("abs(long_value)", LONG)),
             DSL.named("AVG(integer_value)", DSL.ref("AVG(integer_value)", DOUBLE))),
         AstDSL.project(
@@ -565,9 +699,9 @@ class AnalyzerTest extends AnalyzerTestBase {
                 LogicalPlanDSL.relation("schema", table),
                 ImmutableList
                     .of(DSL
-                        .named("AVG(integer_value)", dsl.avg(DSL.ref("integer_value", INTEGER)))),
+                        .named("AVG(integer_value)", DSL.avg(DSL.ref("integer_value", INTEGER)))),
                 ImmutableList.of(DSL.named("ABS(long_value)",
-                    dsl.abs(DSL.ref("long_value", LONG))))),
+                    DSL.abs(DSL.ref("long_value", LONG))))),
             DSL.named("abs(long_value)", DSL.ref("ABS(long_value)", LONG)),
             DSL.named("AVG(integer_value)", DSL.ref("AVG(integer_value)", DOUBLE))),
         AstDSL.project(
@@ -595,11 +729,11 @@ class AnalyzerTest extends AnalyzerTestBase {
                 LogicalPlanDSL.relation("schema", table),
                 ImmutableList
                     .of(DSL.named("avg(integer_value)",
-                        dsl.avg(DSL.ref("integer_value", INTEGER)))),
+                        DSL.avg(DSL.ref("integer_value", INTEGER)))),
                 ImmutableList.of(DSL.named("abs(long_value)",
-                    dsl.abs(DSL.ref("long_value", LONG))))),
+                    DSL.abs(DSL.ref("long_value", LONG))))),
             DSL.named("abs(long_value)", DSL.ref("abs(long_value)", LONG)),
-            DSL.named("abs(avg(integer_value)", dsl.abs(DSL.ref("avg(integer_value)", DOUBLE)))),
+            DSL.named("abs(avg(integer_value)", DSL.abs(DSL.ref("avg(integer_value)", DOUBLE)))),
         AstDSL.project(
             AstDSL.agg(
                 AstDSL.relation("schema"),
@@ -626,14 +760,14 @@ class AnalyzerTest extends AnalyzerTestBase {
                 LogicalPlanDSL.relation("schema", table),
                 ImmutableList
                     .of(DSL.named("sum(integer_value)",
-                            dsl.sum(DSL.ref("integer_value", INTEGER))),
+                            DSL.sum(DSL.ref("integer_value", INTEGER))),
                         DSL.named("avg(integer_value)",
-                            dsl.avg(DSL.ref("integer_value", INTEGER)))),
+                            DSL.avg(DSL.ref("integer_value", INTEGER)))),
                 ImmutableList.of(DSL.named("abs(long_value)",
-                    dsl.abs(DSL.ref("long_value", LONG))))),
+                    DSL.abs(DSL.ref("long_value", LONG))))),
             DSL.named("abs(long_value)", DSL.ref("abs(long_value)", LONG)),
             DSL.named("sum(integer_value)-avg(integer_value)",
-                dsl.subtract(DSL.ref("sum(integer_value)", INTEGER),
+                DSL.subtract(DSL.ref("sum(integer_value)", INTEGER),
                     DSL.ref("avg(integer_value)", DOUBLE)))),
         AstDSL.project(
             AstDSL.agg(
@@ -685,7 +819,7 @@ class AnalyzerTest extends AnalyzerTestBase {
                 LogicalPlanDSL.relation("schema", table),
                 ImmutableList.of(
                     DSL.named("count(string_value) filter(where integer_value > 1)",
-                        dsl.count(DSL.ref("string_value", STRING)).condition(dsl.greater(DSL.ref(
+                        DSL.count(DSL.ref("string_value", STRING)).condition(DSL.greater(DSL.ref(
                             "integer_value", INTEGER), DSL.literal(1))))
                 ),
                 emptyList()
@@ -720,7 +854,7 @@ class AnalyzerTest extends AnalyzerTestBase {
         LogicalPlanDSL.aggregation(
             LogicalPlanDSL.relation("schema", table),
             ImmutableList.of(
-                DSL.named("AVG(integer_value)", dsl.avg(DSL.ref("integer_value", INTEGER)))),
+                DSL.named("AVG(integer_value)", DSL.avg(DSL.ref("integer_value", INTEGER)))),
             ImmutableList.of(
                 DSL.named("span", DSL.span(DSL.ref("long_value", LONG), DSL.literal(10), "")),
                 DSL.named("string_value", DSL.ref("string_value", STRING)))),
@@ -735,20 +869,90 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void parse_relation() {
+  public void parse_relation_with_grok_expression() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.relation("schema", table),
+            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
+            ImmutableList.of(DSL.named("grok_field",
+                DSL.grok(DSL.ref("string_value", STRING), DSL.literal("%{IPV4:grok_field}"),
+                    DSL.literal("grok_field"))))
+        ),
+        AstDSL.project(
+            AstDSL.parse(
+                AstDSL.relation("schema"),
+                ParseMethod.GROK,
+                AstDSL.field("string_value"),
+                AstDSL.stringLiteral("%{IPV4:grok_field}"),
+                ImmutableMap.of()),
+            AstDSL.alias("string_value", qualifiedName("string_value"))
+        ));
+  }
+
+  @Test
+  public void parse_relation_with_regex_expression() {
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
             LogicalPlanDSL.relation("schema", table),
             ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
             ImmutableList.of(DSL.named("group",
-                DSL.parsed(DSL.ref("string_value", STRING), DSL.literal("(?<group>.*)"),
+                DSL.regex(DSL.ref("string_value", STRING), DSL.literal("(?<group>.*)"),
                     DSL.literal("group"))))
         ),
         AstDSL.project(
             AstDSL.parse(
                 AstDSL.relation("schema"),
+                ParseMethod.REGEX,
                 AstDSL.field("string_value"),
-                AstDSL.stringLiteral("(?<group>.*)")),
+                AstDSL.stringLiteral("(?<group>.*)"),
+                ImmutableMap.of()),
+            AstDSL.alias("string_value", qualifiedName("string_value"))
+        ));
+  }
+
+  @Test
+  public void parse_relation_with_patterns_expression() {
+    Map<String, Literal> arguments = ImmutableMap.<String, Literal>builder()
+        .put("new_field", AstDSL.stringLiteral("custom_field"))
+        .put("pattern", AstDSL.stringLiteral("custom_pattern"))
+        .build();
+
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.relation("schema", table),
+            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
+            ImmutableList.of(DSL.named("custom_field",
+                DSL.patterns(DSL.ref("string_value", STRING), DSL.literal("custom_pattern"),
+                    DSL.literal("custom_field"))))
+        ),
+        AstDSL.project(
+            AstDSL.parse(
+                AstDSL.relation("schema"),
+                ParseMethod.PATTERNS,
+                AstDSL.field("string_value"),
+                AstDSL.stringLiteral("custom_pattern"),
+                arguments),
+            AstDSL.alias("string_value", qualifiedName("string_value"))
+        ));
+  }
+
+  @Test
+  public void parse_relation_with_patterns_expression_no_args() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.relation("schema", table),
+            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
+            ImmutableList.of(DSL.named("patterns_field",
+                DSL.patterns(DSL.ref("string_value", STRING), DSL.literal(""),
+                    DSL.literal("patterns_field"))))
+        ),
+        AstDSL.project(
+            AstDSL.parse(
+                AstDSL.relation("schema"),
+                ParseMethod.PATTERNS,
+                AstDSL.field("string_value"),
+                AstDSL.stringLiteral(""),
+                ImmutableMap.of()),
             AstDSL.alias("string_value", qualifiedName("string_value"))
         ));
   }
@@ -770,9 +974,9 @@ class AnalyzerTest extends AnalyzerTestBase {
   @Test
   public void ad_batchRCF_relation() {
     Map<String, Literal> argumentMap =
-            new HashMap<String, Literal>() {{
-                put("shingle_size", new Literal(8, DataType.INTEGER));
-            }};
+        new HashMap<String, Literal>() {{
+            put("shingle_size", new Literal(8, DataType.INTEGER));
+          }};
     assertAnalyzeEqual(
         new LogicalAD(LogicalPlanDSL.relation("schema", table), argumentMap),
         new AD(AstDSL.relation("schema"), argumentMap)
@@ -791,5 +995,207 @@ class AnalyzerTest extends AnalyzerTestBase {
             argumentMap),
         new AD(AstDSL.relation("schema"), argumentMap)
     );
+  }
+
+  @Test
+  public void ad_fitRCF_relation_with_time_field() {
+    Map<String, Literal> argumentMap = new HashMap<String, Literal>() {{
+        put("shingle_size", new Literal(8, DataType.INTEGER));
+        put("time_decay", new Literal(0.0001, DataType.DOUBLE));
+        put("time_field", new Literal("ts", DataType.STRING));
+      }};
+
+    LogicalPlan actual = analyze(AstDSL.project(
+            new AD(AstDSL.relation("schema"), argumentMap), AstDSL.allFields()));
+    assertTrue(((LogicalProject) actual).getProjectList().size() >= 3);
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named("score", DSL.ref("score", DOUBLE))));
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named("anomaly_grade", DSL.ref("anomaly_grade", DOUBLE))));
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named("ts", DSL.ref("ts", TIMESTAMP))));
+  }
+
+  @Test
+  public void ad_fitRCF_relation_without_time_field() {
+    Map<String, Literal> argumentMap = new HashMap<>() {{
+        put("shingle_size", new Literal(8, DataType.INTEGER));
+        put("time_decay", new Literal(0.0001, DataType.DOUBLE));
+      }};
+
+    LogicalPlan actual = analyze(AstDSL.project(
+            new AD(AstDSL.relation("schema"), argumentMap), AstDSL.allFields()));
+    assertTrue(((LogicalProject) actual).getProjectList().size() >= 2);
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named("score", DSL.ref("score", DOUBLE))));
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named("anomalous", DSL.ref("anomalous", BOOLEAN))));
+  }
+
+  @Test
+  public void table_function() {
+    assertAnalyzeEqual(new LogicalRelation("query_range", table),
+        AstDSL.tableFunction(List.of("prometheus", "query_range"),
+            unresolvedArg("query", stringLiteral("http_latency")),
+            unresolvedArg("starttime", intLiteral(12345)),
+            unresolvedArg("endtime", intLiteral(12345)),
+            unresolvedArg("step", intLiteral(14))));
+  }
+
+  @Test
+  public void table_function_with_no_datasource() {
+    ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
+        () -> analyze(AstDSL.tableFunction(List.of("query_range"),
+            unresolvedArg("query", stringLiteral("http_latency")),
+            unresolvedArg("", intLiteral(12345)),
+            unresolvedArg("", intLiteral(12345)),
+            unresolvedArg(null, intLiteral(14)))));
+    assertEquals("unsupported function name: query_range",
+        exception.getMessage());
+  }
+
+  @Test
+  public void table_function_with_wrong_datasource() {
+    ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
+        () -> analyze(AstDSL.tableFunction(Arrays.asList("prome", "query_range"),
+            unresolvedArg("query", stringLiteral("http_latency")),
+            unresolvedArg("", intLiteral(12345)),
+            unresolvedArg("", intLiteral(12345)),
+            unresolvedArg(null, intLiteral(14)))));
+    assertEquals("unsupported function name: prome.query_range", exception.getMessage());
+  }
+
+  @Test
+  public void table_function_with_wrong_table_function() {
+    ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
+        () -> analyze(AstDSL.tableFunction(Arrays.asList("prometheus", "queryrange"),
+            unresolvedArg("query", stringLiteral("http_latency")),
+            unresolvedArg("", intLiteral(12345)),
+            unresolvedArg("", intLiteral(12345)),
+            unresolvedArg(null, intLiteral(14)))));
+    assertEquals("unsupported function name: queryrange", exception.getMessage());
+  }
+
+  @Test
+  public void show_datasources() {
+    assertAnalyzeEqual(new LogicalRelation(DATASOURCES_TABLE_NAME,
+            new DataSourceTable(dataSourceService)),
+        AstDSL.relation(qualifiedName(DATASOURCES_TABLE_NAME)));
+  }
+
+  @Test
+  public void ml_relation_unsupported_action() {
+    Map<String, Literal> argumentMap = new HashMap<>() {{
+        put(ACTION, new Literal("unsupported", DataType.STRING));
+        put(ALGO, new Literal(KMEANS, DataType.STRING));
+      }};
+
+    IllegalArgumentException exception =
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> analyze(AstDSL.project(
+                            new ML(AstDSL.relation("schema"), argumentMap), AstDSL.allFields())));
+    assertEquals(
+            "Action error. Please indicate train, predict or trainandpredict.",
+            exception.getMessage());
+  }
+
+  @Test
+  public void ml_relation_unsupported_algorithm() {
+    Map<String, Literal> argumentMap = new HashMap<>() {{
+        put(ACTION, new Literal(PREDICT, DataType.STRING));
+        put(ALGO, new Literal("unsupported", DataType.STRING));
+      }};
+
+    IllegalArgumentException exception =
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> analyze(AstDSL.project(
+                            new ML(AstDSL.relation("schema"), argumentMap), AstDSL.allFields())));
+    assertEquals(
+            "Unsupported algorithm: unsupported",
+            exception.getMessage());
+  }
+
+  @Test
+  public void ml_relation_train_sync() {
+    Map<String, Literal> argumentMap = new HashMap<>() {{
+        put(ACTION, new Literal(TRAIN, DataType.STRING));
+        put(ALGO, new Literal(KMEANS, DataType.STRING));
+      }};
+
+    LogicalPlan actual = analyze(AstDSL.project(
+            new ML(AstDSL.relation("schema"), argumentMap), AstDSL.allFields()));
+    assertTrue(((LogicalProject) actual).getProjectList().size() >= 2);
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named(STATUS, DSL.ref(STATUS, STRING))));
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named(MODELID, DSL.ref(MODELID, STRING))));
+  }
+
+  @Test
+  public void ml_relation_train_async() {
+    Map<String, Literal> argumentMap = new HashMap<>() {{
+        put(ACTION, new Literal(TRAIN, DataType.STRING));
+        put(ALGO, new Literal(KMEANS, DataType.STRING));
+        put(ASYNC, new Literal(true, DataType.BOOLEAN));
+      }};
+
+    LogicalPlan actual = analyze(AstDSL.project(
+            new ML(AstDSL.relation("schema"), argumentMap), AstDSL.allFields()));
+    assertTrue(((LogicalProject) actual).getProjectList().size() >= 2);
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named(STATUS, DSL.ref(STATUS, STRING))));
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named(TASKID, DSL.ref(TASKID, STRING))));
+  }
+
+  @Test
+  public void ml_relation_predict_kmeans() {
+    Map<String, Literal> argumentMap = new HashMap<>() {{
+        put(ACTION, new Literal(PREDICT, DataType.STRING));
+        put(ALGO, new Literal(KMEANS, DataType.STRING));
+      }};
+
+    LogicalPlan actual = analyze(AstDSL.project(
+            new ML(AstDSL.relation("schema"), argumentMap), AstDSL.allFields()));
+    assertTrue(((LogicalProject) actual).getProjectList().size() >= 1);
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named(CLUSTERID, DSL.ref(CLUSTERID, INTEGER))));
+  }
+
+  @Test
+  public void ml_relation_predict_rcf_with_time_field() {
+    Map<String, Literal> argumentMap = new HashMap<>() {{
+        put(ACTION, new Literal(PREDICT, DataType.STRING));
+        put(ALGO, new Literal(RCF, DataType.STRING));
+        put(RCF_TIME_FIELD, new Literal("ts", DataType.STRING));
+      }};
+
+    LogicalPlan actual = analyze(AstDSL.project(
+            new ML(AstDSL.relation("schema"), argumentMap), AstDSL.allFields()));
+    assertTrue(((LogicalProject) actual).getProjectList().size() >= 3);
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named(RCF_SCORE, DSL.ref(RCF_SCORE, DOUBLE))));
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named(RCF_ANOMALY_GRADE, DSL.ref(RCF_ANOMALY_GRADE, DOUBLE))));
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named("ts", DSL.ref("ts", TIMESTAMP))));
+  }
+
+  @Test
+  public void ml_relation_predict_rcf_without_time_field() {
+    Map<String, Literal> argumentMap = new HashMap<>() {{
+        put(ACTION, new Literal(PREDICT, DataType.STRING));
+        put(ALGO, new Literal(RCF, DataType.STRING));
+      }};
+
+    LogicalPlan actual = analyze(AstDSL.project(
+            new ML(AstDSL.relation("schema"), argumentMap), AstDSL.allFields()));
+    assertTrue(((LogicalProject) actual).getProjectList().size() >= 2);
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named(RCF_SCORE, DSL.ref(RCF_SCORE, DOUBLE))));
+    assertTrue(((LogicalProject) actual).getProjectList()
+            .contains(DSL.named(RCF_ANOMALOUS, DSL.ref(RCF_ANOMALOUS, BOOLEAN))));
   }
 }

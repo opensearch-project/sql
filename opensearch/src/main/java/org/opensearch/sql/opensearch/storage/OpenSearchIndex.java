@@ -7,38 +7,28 @@
 package org.opensearch.sql.opensearch.storage;
 
 import com.google.common.annotations.VisibleForTesting;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.tuple.Pair;
-import org.opensearch.index.query.QueryBuilder;
-import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.sql.common.setting.Settings;
-import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
-import org.opensearch.sql.opensearch.planner.logical.OpenSearchLogicalIndexAgg;
-import org.opensearch.sql.opensearch.planner.logical.OpenSearchLogicalIndexScan;
-import org.opensearch.sql.opensearch.planner.logical.OpenSearchLogicalPlanOptimizerFactory;
 import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
+import org.opensearch.sql.opensearch.planner.physical.MLOperator;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.system.OpenSearchDescribeIndexRequest;
-import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
-import org.opensearch.sql.opensearch.storage.script.aggregation.AggregationQueryBuilder;
-import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
-import org.opensearch.sql.opensearch.storage.script.sort.SortQueryBuilder;
-import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
+import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanBuilder;
 import org.opensearch.sql.planner.DefaultImplementor;
 import org.opensearch.sql.planner.logical.LogicalAD;
-import org.opensearch.sql.planner.logical.LogicalHighlight;
+import org.opensearch.sql.planner.logical.LogicalML;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
-import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.Table;
+import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /** OpenSearch table (index) implementation. */
 public class OpenSearchIndex implements Table {
@@ -72,6 +62,23 @@ public class OpenSearchIndex implements Table {
     this.indexName = new OpenSearchRequest.IndexName(indexName);
   }
 
+  @Override
+  public boolean exists() {
+    return client.exists(indexName.toString());
+  }
+
+  @Override
+  public void create(Map<String, ExprType> schema) {
+    Map<String, Object> mappings = new HashMap<>();
+    Map<String, Object> properties = new HashMap<>();
+    mappings.put("properties", properties);
+
+    for (Map.Entry<String, ExprType> colType : schema.entrySet()) {
+      properties.put(colType.getKey(), OpenSearchDataType.getOpenSearchType(colType.getValue()));
+    }
+    client.createIndex(indexName.toString(), mappings);
+  }
+
   /*
    * TODO: Assume indexName doesn't have wildcard.
    *  Need to either handle field name conflicts
@@ -101,97 +108,29 @@ public class OpenSearchIndex implements Table {
    */
   @Override
   public PhysicalPlan implement(LogicalPlan plan) {
-    OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings, indexName,
-        getMaxResultWindow(), new OpenSearchExprValueFactory(getFieldTypes()));
-
-    /*
-     * Visit logical plan with index scan as context so logical operators visited, such as
-     * aggregation, filter, will accumulate (push down) OpenSearch query and aggregation DSL on
-     * index scan.
-     */
-    return plan.accept(new OpenSearchDefaultImplementor(indexScan, client), indexScan);
+    // TODO: Leave it here to avoid impact Prometheus and AD operators. Need to move to Planner.
+    return plan.accept(new OpenSearchDefaultImplementor(client), null);
   }
 
   @Override
   public LogicalPlan optimize(LogicalPlan plan) {
-    return OpenSearchLogicalPlanOptimizerFactory.create().optimize(plan);
+    // No-op because optimization already done in Planner
+    return plan;
+  }
+
+  @Override
+  public TableScanBuilder createScanBuilder() {
+    OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings, indexName,
+        getMaxResultWindow(), new OpenSearchExprValueFactory(getFieldTypes()));
+    return new OpenSearchIndexScanBuilder(indexScan);
   }
 
   @VisibleForTesting
   @RequiredArgsConstructor
   public static class OpenSearchDefaultImplementor
       extends DefaultImplementor<OpenSearchIndexScan> {
-    private final OpenSearchIndexScan indexScan;
 
     private final OpenSearchClient client;
-
-    @Override
-    public PhysicalPlan visitNode(LogicalPlan plan, OpenSearchIndexScan context) {
-      if (plan instanceof OpenSearchLogicalIndexScan) {
-        return visitIndexScan((OpenSearchLogicalIndexScan) plan, context);
-      } else if (plan instanceof OpenSearchLogicalIndexAgg) {
-        return visitIndexAggregation((OpenSearchLogicalIndexAgg) plan, context);
-      } else {
-        throw new IllegalStateException(StringUtils.format("unexpected plan node type %s",
-            plan.getClass()));
-      }
-    }
-
-    /**
-     * Implement ElasticsearchLogicalIndexScan.
-     */
-    public PhysicalPlan visitIndexScan(OpenSearchLogicalIndexScan node,
-                                       OpenSearchIndexScan context) {
-      if (null != node.getSortList()) {
-        final SortQueryBuilder builder = new SortQueryBuilder();
-        context.getRequestBuilder().pushDownSort(node.getSortList().stream()
-            .map(sort -> builder.build(sort.getValue(), sort.getKey()))
-            .collect(Collectors.toList()));
-      }
-
-      if (null != node.getFilter()) {
-        FilterQueryBuilder queryBuilder = new FilterQueryBuilder(new DefaultExpressionSerializer());
-        QueryBuilder query = queryBuilder.build(node.getFilter());
-        context.getRequestBuilder().pushDown(query);
-      }
-
-      if (node.getLimit() != null) {
-        context.getRequestBuilder().pushDownLimit(node.getLimit(), node.getOffset());
-      }
-
-      if (node.hasProjects()) {
-        context.getRequestBuilder().pushDownProjects(node.getProjectList());
-      }
-      return indexScan;
-    }
-
-    /**
-     * Implement ElasticsearchLogicalIndexAgg.
-     */
-    public PhysicalPlan visitIndexAggregation(OpenSearchLogicalIndexAgg node,
-                                              OpenSearchIndexScan context) {
-      if (node.getFilter() != null) {
-        FilterQueryBuilder queryBuilder = new FilterQueryBuilder(
-            new DefaultExpressionSerializer());
-        QueryBuilder query = queryBuilder.build(node.getFilter());
-        context.getRequestBuilder().pushDown(query);
-      }
-      AggregationQueryBuilder builder =
-          new AggregationQueryBuilder(new DefaultExpressionSerializer());
-      Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
-          builder.buildAggregationBuilder(node.getAggregatorList(),
-              node.getGroupByList(), node.getSortList());
-      context.getRequestBuilder().pushDownAggregation(aggregationBuilder);
-      context.getRequestBuilder().pushTypeMapping(
-          builder.buildTypeMapping(node.getAggregatorList(),
-              node.getGroupByList()));
-      return indexScan;
-    }
-
-    @Override
-    public PhysicalPlan visitRelation(LogicalRelation node, OpenSearchIndexScan context) {
-      return indexScan;
-    }
 
     @Override
     public PhysicalPlan visitMLCommons(LogicalMLCommons node, OpenSearchIndexScan context) {
@@ -206,9 +145,9 @@ public class OpenSearchIndex implements Table {
     }
 
     @Override
-    public PhysicalPlan visitHighlight(LogicalHighlight node, OpenSearchIndexScan context) {
-      context.getRequestBuilder().pushDownHighlight(node.getHighlightField().toString());
-      return visitChild(node, context);
+    public PhysicalPlan visitML(LogicalML node, OpenSearchIndexScan context) {
+      return new MLOperator(visitChild(node, context),
+              node.getArguments(), client.getNodeClient());
     }
   }
 }

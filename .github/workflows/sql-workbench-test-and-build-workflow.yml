@@ -12,12 +12,19 @@ on:
 env: 
   PLUGIN_NAME: query-workbench-dashboards
   OPENSEARCH_VERSION: 'main'
-  OPENSEARCH_PLUGIN_VERSION: 2.3.0.0
+  OPENSEARCH_PLUGIN_VERSION: 2.5.0.0
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
+      - name: Enable longer filenames
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: git config --system core.longpaths true
+
       - name: Checkout Plugin
         uses: actions/checkout@v3
 
@@ -51,7 +58,7 @@ jobs:
           yarn test:jest --coverage
 
       - name: Upload coverage
-        if: always()
+        if: ${{ always() && matrix.os == 'ubuntu-latest' }}
         uses: codecov/codecov-action@v3
         with:
           flags: query-workbench
@@ -68,5 +75,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v1 # can't update to v3 because upload fails
         with:
-          name: workbench
+          name: workbench-${{ matrix.os }}
           path: ../OpenSearch-Dashboards/plugins/workbench/build
+          

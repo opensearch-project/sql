@@ -13,7 +13,7 @@ Description
 ============
 | Using ``stats`` command to calculate the aggregation from search result.
 
-The following table catalogs the aggregation functions and also indicates how the NULL/MISSING values is handled:
+The following table dataSources the aggregation functions and also indicates how the NULL/MISSING values is handled:
 
 +----------+-------------+-------------+
 | Function | NULL        | MISSING     |
@@ -238,6 +238,27 @@ Example::
     | 2.8613807855648994 |
     +--------------------+
 
+TAKE
+----------
+
+Description
+>>>>>>>>>>>
+
+Usage: TAKE(field [, size]). Return original values of a field. It does not guarantee on the order of values.
+
+* field: mandatory. The field must be a text field.
+* size: optional integer. The number of values should be returned. Default is 10.
+
+Example::
+
+    os> source=accounts | stats take(firstname);
+    fetched rows / total rows = 1/1
+    +-----------------------------+
+    | take(firstname)             |
+    |-----------------------------|
+    | [Amber,Hattie,Nanette,Dale] |
+    +-----------------------------+
+
 Example 1: Calculate the count of events
 ========================================
 
@@ -381,3 +402,20 @@ PPL query::
     | 2     | 30         | M        |
     | 1     | 35         | M        |
     +-------+------------+----------+
+
+Example 10: Calculate the count and get email list by a gender and span
+=======================================================================
+
+The example gets the count of age by the interval of 10 years and group by gender, additionally for each row get a list of at most 5 emails.
+
+PPL query::
+
+    os> source=accounts | stats count() as cnt, take(email, 5) by span(age, 5) as age_span, gender
+    fetched rows / total rows = 3/3
+    +-------+--------------------------------------------+------------+----------+
+    | cnt   | take(email, 5)                             | age_span   | gender   |
+    |-------+--------------------------------------------+------------+----------|
+    | 1     | []                                         | 25         | F        |
+    | 2     | [amberduke@pyrami.com,daleadams@boink.com] | 30         | M        |
+    | 1     | [hattiebond@netagy.com]                    | 35         | M        |
+    +-------+--------------------------------------------+------------+----------+

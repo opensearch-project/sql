@@ -7,23 +7,34 @@
 package org.opensearch.sql.analysis;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.opensearch.sql.data.type.ExprCoreType.LONG;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import com.google.common.collect.ImmutableSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.analysis.symbol.SymbolTable;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
-import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.config.TestConfig;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.datasource.model.DataSource;
+import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
-import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.FunctionBuilder;
+import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.function.FunctionResolver;
+import org.opensearch.sql.expression.function.FunctionSignature;
+import org.opensearch.sql.expression.function.TableFunctionImplementation;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.StorageEngine;
@@ -40,16 +51,36 @@ public class AnalyzerTestBase {
 
   @Bean
   protected StorageEngine storageEngine() {
-    return new StorageEngine() {
+    return (dataSourceSchemaName, tableName) -> table;
+  }
+
+  @Bean
+  protected Table table() {
+    return new Table() {
       @Override
-      public Table getTable(String name) {
-        return table;
+      public boolean exists() {
+        return true;
+      }
+
+      @Override
+      public void create(Map<String, ExprType> schema) {
+        throw new UnsupportedOperationException("Create table is not supported");
+      }
+
+      @Override
+      public Map<String, ExprType> getFieldTypes() {
+        return typeMapping();
+      }
+
+      @Override
+      public PhysicalPlan implement(LogicalPlan plan) {
+        throw new UnsupportedOperationException();
       }
     };
   }
 
   @Bean
-  protected Table table() {
+  protected Table dataSourceTable() {
     return new Table() {
       @Override
       public Map<String, ExprType> getFieldTypes() {
@@ -64,8 +95,8 @@ public class AnalyzerTestBase {
   }
 
   @Bean
-  protected CatalogService catalogService() {
-    return new DefaultCatalogService();
+  protected DataSourceService dataSourceService() {
+    return new DefaultDataSourceService();
   }
 
 
@@ -93,12 +124,6 @@ public class AnalyzerTestBase {
   }
 
   @Autowired
-  protected BuiltinFunctionRepository functionRepository;
-
-  @Autowired
-  protected DSL dsl;
-
-  @Autowired
   protected AnalysisContext analysisContext;
 
   @Autowired
@@ -111,13 +136,35 @@ public class AnalyzerTestBase {
   protected Table table;
 
   @Autowired
+  protected DataSourceService dataSourceService;
+
+  @Autowired
   protected Environment<Expression, ExprType> typeEnv;
 
   @Bean
-  protected Analyzer analyzer(ExpressionAnalyzer expressionAnalyzer, CatalogService catalogService,
-                              StorageEngine storageEngine) {
-    catalogService.registerOpenSearchStorageEngine(storageEngine);
-    return new Analyzer(expressionAnalyzer, catalogService);
+  protected Analyzer analyzer(ExpressionAnalyzer expressionAnalyzer,
+                      DataSourceService dataSourceService,
+                      Table table) {
+    BuiltinFunctionRepository functionRepository = BuiltinFunctionRepository.getInstance();
+    functionRepository.register("prometheus", new FunctionResolver() {
+
+      @Override
+      public Pair<FunctionSignature, FunctionBuilder> resolve(
+          FunctionSignature unresolvedSignature) {
+        FunctionName functionName = FunctionName.of("query_range");
+        FunctionSignature functionSignature =
+            new FunctionSignature(functionName, List.of(STRING, LONG, LONG, LONG));
+        return Pair.of(functionSignature,
+            (functionProperties, args) -> new TestTableFunctionImplementation(functionName, args,
+                table));
+      }
+
+      @Override
+      public FunctionName getFunctionName() {
+        return FunctionName.of("query_range");
+      }
+    });
+    return new Analyzer(expressionAnalyzer, dataSourceService, functionRepository);
   }
 
   @Bean
@@ -131,8 +178,8 @@ public class AnalyzerTestBase {
   }
 
   @Bean
-  protected ExpressionAnalyzer expressionAnalyzer(DSL dsl, BuiltinFunctionRepository repo) {
-    return new ExpressionAnalyzer(repo);
+  protected ExpressionAnalyzer expressionAnalyzer() {
+    return new ExpressionAnalyzer(BuiltinFunctionRepository.getInstance());
   }
 
   protected void assertAnalyzeEqual(LogicalPlan expected, UnresolvedPlan unresolvedPlan) {
@@ -143,23 +190,62 @@ public class AnalyzerTestBase {
     return analyzer.analyze(unresolvedPlan, analysisContext);
   }
 
-  private class DefaultCatalogService implements CatalogService {
+  private class DefaultDataSourceService implements DataSourceService {
 
-    private StorageEngine storageEngine;
+    private StorageEngine storageEngine = storageEngine();
+    private final DataSource dataSource
+        = new DataSource("prometheus", DataSourceType.PROMETHEUS, storageEngine);
+
 
     @Override
-    public StorageEngine getStorageEngine(String catalog) {
-      return storageEngine;
+    public Set<DataSource> getDataSources() {
+      return ImmutableSet.of(dataSource);
     }
 
     @Override
-    public Set<String> getCatalogs() {
-      return ImmutableSet.of("prometheus");
+    public DataSource getDataSource(String dataSourceName) {
+      return dataSource;
     }
 
     @Override
-    public void registerOpenSearchStorageEngine(StorageEngine storageEngine) {
-      this.storageEngine = storageEngine;
+    public void addDataSource(DataSourceMetadata... metadatas) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void clear() {
+      throw new UnsupportedOperationException();
+    }
+  }
+
+  private class TestTableFunctionImplementation implements TableFunctionImplementation {
+
+    private FunctionName functionName;
+
+    private List<Expression> arguments;
+
+    private Table table;
+
+    public TestTableFunctionImplementation(FunctionName functionName, List<Expression> arguments,
+                                           Table table) {
+      this.functionName = functionName;
+      this.arguments = arguments;
+      this.table = table;
+    }
+
+    @Override
+    public FunctionName getFunctionName() {
+      return functionName;
+    }
+
+    @Override
+    public List<Expression> getArguments() {
+      return this.arguments;
+    }
+
+    @Override
+    public Table applyArguments() {
+      return table;
     }
   }
 }

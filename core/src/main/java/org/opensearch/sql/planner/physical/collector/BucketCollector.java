@@ -7,11 +7,11 @@ package org.opensearch.sql.planner.physical.collector;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -38,9 +38,10 @@ public class BucketCollector implements Collector {
   private final Supplier<Collector> supplier;
 
   /**
-   * Map between bucketKey and collector in the bucket.
+   * Map from bucketKey to nested collector sorted by key to make sure
+   * final result is in order after traversal.
    */
-  private final Map<ExprValue, Collector> collectorMap = new HashMap<>();
+  private final Map<ExprValue, Collector> collectorMap = new TreeMap<>();
 
   /**
    * Bucket Index.
