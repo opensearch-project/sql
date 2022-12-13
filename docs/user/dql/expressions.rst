@@ -132,6 +132,8 @@ Operators
 +----------------+----------------------------------------+
 | NOT IN         | NOT IN value list test                 |
 +----------------+----------------------------------------+
+| BETWEEN        | Between a range (endpoint inclusive)   |
++----------------+----------------------------------------+
 
 Basic Comparison Operator
 -------------------------
@@ -198,6 +200,20 @@ Here is an example for IN value test::
     |---------------+-------------------|
     | True          | True              |
     +---------------+-------------------+
+
+BETWEEN range test
+------------------
+
+Here is an example for range test by BETWEEN expression::
+
+    os> SELECT 1 BETWEEN 1 AND 3, 4 BETWEEN 1 AND 3;
+    fetched rows / total rows = 1/1
+    +---------------------+---------------------+
+    | 1 BETWEEN 1 AND 3   | 4 BETWEEN 1 AND 3   |
+    |---------------------+---------------------|
+    | True                | False               |
+    +---------------------+---------------------+
+
 
 Function Call
 =============
