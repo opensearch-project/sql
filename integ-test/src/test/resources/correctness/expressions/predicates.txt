@@ -5,3 +5,10 @@ true or false AS bool
 NOT true AS bool
 NOT false AS bool
 NOT (true AND false) AS bool
+-3 BETWEEN 1 AND 5 AS bool
+1 BETWEEN 1 AND 5 AS bool
+3 BETWEEN 1 AND 5 AS bool
+5 BETWEEN 1 AND 5 AS bool
+6 BETWEEN 1 AND 5 AS bool
+'a' BETWEEN 'b' AND 'e' AS bool
+'c' BETWEEN 'b' AND 'e' AS bool
