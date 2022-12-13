@@ -137,6 +137,10 @@ public class DSL {
     return new RegexExpression(sourceField, pattern, identifier);
   }
 
+  public static FunctionExpression between(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.BETWEEN, expressions);
+  }
+
   public static PatternsExpression patterns(Expression sourceField, Expression pattern,
                                             Expression identifier) {
     return new PatternsExpression(sourceField, pattern, identifier);

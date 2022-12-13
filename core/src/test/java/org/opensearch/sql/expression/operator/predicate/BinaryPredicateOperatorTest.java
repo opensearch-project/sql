@@ -786,6 +786,29 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
         .valueOf(valueEnv()).integerValue());
   }
 
+  @Test
+  public void test_between() {
+    Object[][] testData = {
+        {false, 5, 10, 30},
+        {true, 10, 10, 30},
+        {true, 20, 10, 30},
+        {true, 30, 10, 30},
+        {false, 45, 10, 30},
+        {false, "a", "b", "e"},
+        {true, "c", "b", "e"},
+    };
+
+    for (Object[] data : testData) {
+      assertEquals(
+          data[0],
+          eval(DSL.between(
+              DSL.literal(fromObjectValue(data[1])),
+              DSL.literal(fromObjectValue(data[2])),
+              DSL.literal(fromObjectValue(data[3])))),
+          String.format("Failed on test data: %s", Arrays.toString(data)));
+    }
+  }
+
   /**
    * Todo. remove this test cases after script serilization implemented.
    */
@@ -818,5 +841,9 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   public void compare_int_long() {
     FunctionExpression equal = DSL.equal(DSL.literal(1), DSL.literal(1L));
     assertTrue(equal.valueOf(valueEnv()).booleanValue());
+  }
+
+  private boolean eval(Expression expr) {
+    return expr.valueOf().booleanValue();
   }
 }

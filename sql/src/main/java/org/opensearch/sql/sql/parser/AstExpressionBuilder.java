@@ -8,12 +8,16 @@ package org.opensearch.sql.sql.parser;
 
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.BETWEEN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LIKE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT_LIKE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.POSITION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEXP;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.AlternateMultiMatchFieldContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.AlternateMultiMatchQueryContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BetweenPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BinaryComparisonPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BooleanContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CaseFuncAlternativeContext;
@@ -24,16 +28,25 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CountStarF
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DataTypeFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DateLiteralContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DistinctCountFunctionCallContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.FilterClauseContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.FilteredAggregationFunctionCallContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.FunctionArgContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.HighlightFunctionCallContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.InPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.IsNullPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.LikePredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.MathExpressionAtomContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.MultiFieldRelevanceFunctionContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.NoFieldRelevanceFunctionContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.NotExpressionContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.NullLiteralContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.OverClauseContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.PositionFunctionContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.QualifiedNameContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.RegexpPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.RegularAggregateFunctionCallContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.RelevanceArgContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.RelevanceFieldAndWeightContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ScalarFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ScalarWindowFunctionContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ShowDescribePatternContext;
@@ -82,7 +95,6 @@ import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
-import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.AndExpressionContext;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ColumnNameContext;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.IdentContext;
@@ -137,7 +149,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitHighlightFunctionCall(
-      OpenSearchSQLParser.HighlightFunctionCallContext ctx) {
+      HighlightFunctionCallContext ctx) {
     ImmutableMap.Builder<String, Literal> builder = ImmutableMap.builder();
     ctx.highlightFunction().highlightArg().forEach(v -> builder.put(
         v.highlightArgName().getText().toLowerCase(),
@@ -151,7 +163,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitPositionFunction(
-          OpenSearchSQLParser.PositionFunctionContext ctx) {
+          PositionFunctionContext ctx) {
     return new Function(
             POSITION.getName().getFunctionName(),
             Arrays.asList(visitFunctionArg(ctx.functionArg(0)),
@@ -184,7 +196,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitFilteredAggregationFunctionCall(
-      OpenSearchSQLParser.FilteredAggregationFunctionCallContext ctx) {
+      FilteredAggregationFunctionCallContext ctx) {
     AggregateFunction agg = (AggregateFunction) visit(ctx.aggregateFunction());
     return agg.condition(visit(ctx.filterClause()));
   }
@@ -241,7 +253,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   }
 
   @Override
-  public UnresolvedExpression visitFilterClause(OpenSearchSQLParser.FilterClauseContext ctx) {
+  public UnresolvedExpression visitFilterClause(FilterClauseContext ctx) {
     return visit(ctx.expression());
   }
 
@@ -251,6 +263,14 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
         ctx.nullNotnull().NOT() == null ? IS_NULL.getName().getFunctionName() :
             IS_NOT_NULL.getName().getFunctionName(),
         Arrays.asList(visit(ctx.predicate())));
+  }
+
+  @Override
+  public UnresolvedExpression visitBetweenPredicate(BetweenPredicateContext ctx) {
+    return new Function(BETWEEN.getName().getFunctionName(),
+        ctx.predicate().stream()
+            .map(this::visit)
+            .collect(Collectors.toList()));
   }
 
   @Override
@@ -268,7 +288,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   }
 
   @Override
-  public UnresolvedExpression visitInPredicate(OpenSearchSQLParser.InPredicateContext ctx) {
+  public UnresolvedExpression visitInPredicate(InPredicateContext ctx) {
     UnresolvedExpression field = visit(ctx.predicate());
     List<UnresolvedExpression> inLists = ctx
         .expressions()
@@ -392,7 +412,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitNoFieldRelevanceFunction(
-          OpenSearchSQLParser.NoFieldRelevanceFunctionContext ctx) {
+          NoFieldRelevanceFunctionContext ctx) {
     return new Function(
             ctx.noFieldRelevanceFunctionName().getText().toLowerCase(),
             noFieldRelevanceArguments(ctx));
@@ -415,7 +435,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
     if ((funcName.equalsIgnoreCase(BuiltinFunctionName.MULTI_MATCH.toString())
         || funcName.equalsIgnoreCase(BuiltinFunctionName.MULTIMATCH.toString())
         || funcName.equalsIgnoreCase(BuiltinFunctionName.MULTIMATCHQUERY.toString()))
-        && ! ctx.getRuleContexts(OpenSearchSQLParser.AlternateMultiMatchQueryContext.class)
+        && ! ctx.getRuleContexts(AlternateMultiMatchQueryContext.class)
         .isEmpty()) {
       return new Function(
           ctx.multiFieldRelevanceFunctionName().getText().toLowerCase(),
@@ -428,7 +448,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   }
 
   private Function buildFunction(String functionName,
-                                 List<OpenSearchSQLParser.FunctionArgContext> arg) {
+                                 List<FunctionArgContext> arg) {
     return new Function(
         functionName,
         arg
@@ -447,7 +467,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
     );
   }
 
-  private void fillRelevanceArgs(List<OpenSearchSQLParser.RelevanceArgContext> args,
+  private void fillRelevanceArgs(List<RelevanceArgContext> args,
                                  ImmutableList.Builder<UnresolvedExpression> builder) {
     // To support old syntax we must support argument keys as quoted strings.
     args.forEach(v -> builder.add(v.argName == null
@@ -459,7 +479,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   }
 
   private List<UnresolvedExpression> noFieldRelevanceArguments(
-          OpenSearchSQLParser.NoFieldRelevanceFunctionContext ctx) {
+          NoFieldRelevanceFunctionContext ctx) {
     // all the arguments are defaulted to string values
     // to skip environment resolving and function signature resolving
     ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
@@ -470,7 +490,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   }
 
   private List<UnresolvedExpression> singleFieldRelevanceArguments(
-        OpenSearchSQLParser.SingleFieldRelevanceFunctionContext ctx) {
+        SingleFieldRelevanceFunctionContext ctx) {
     // all the arguments are defaulted to string values
     // to skip environment resolving and function signature resolving
     ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
@@ -485,12 +505,12 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
 
   private List<UnresolvedExpression> multiFieldRelevanceArguments(
-      OpenSearchSQLParser.MultiFieldRelevanceFunctionContext ctx) {
+      MultiFieldRelevanceFunctionContext ctx) {
     // all the arguments are defaulted to string values
     // to skip environment resolving and function signature resolving
     ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
     var fields = new RelevanceFieldList(ctx
-        .getRuleContexts(OpenSearchSQLParser.RelevanceFieldAndWeightContext.class)
+        .getRuleContexts(RelevanceFieldAndWeightContext.class)
         .stream()
         .collect(Collectors.toMap(
             f -> StringUtils.unquoteText(f.field.getText()),
@@ -509,14 +529,14 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
    * @return : Returns list of all arguments for relevance function.
    */
   private List<UnresolvedExpression> alternateMultiMatchArguments(
-      OpenSearchSQLParser.MultiFieldRelevanceFunctionContext ctx) {
+      MultiFieldRelevanceFunctionContext ctx) {
     // all the arguments are defaulted to string values
     // to skip environment resolving and function signature resolving
     ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
     Map<String, Float> fieldAndWeightMap = new HashMap<>();
 
     String[] fieldAndWeights = StringUtils.unquoteText(
-        ctx.getRuleContexts(OpenSearchSQLParser.AlternateMultiMatchFieldContext.class)
+        ctx.getRuleContexts(AlternateMultiMatchFieldContext.class)
         .stream().findFirst().get().argVal.getText()).split(",");
 
     for (var fieldAndWeight : fieldAndWeights) {
@@ -527,7 +547,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
     builder.add(new UnresolvedArgument("fields",
         new RelevanceFieldList(fieldAndWeightMap)));
 
-    ctx.getRuleContexts(OpenSearchSQLParser.AlternateMultiMatchQueryContext.class)
+    ctx.getRuleContexts(AlternateMultiMatchQueryContext.class)
         .stream().findFirst().ifPresent(
           arg ->
             builder.add(new UnresolvedArgument("query",

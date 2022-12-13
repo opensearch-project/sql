@@ -54,6 +54,7 @@ public class BinaryPredicateOperator {
     repository.register(like());
     repository.register(notLike());
     repository.register(regexp());
+    repository.register(between());
   }
 
   /**
@@ -251,6 +252,19 @@ public class BinaryPredicateOperator {
             BOOLEAN,
             STRING,
             STRING));
+  }
+
+  private static DefaultFunctionResolver between() {
+    return FunctionDSL.define(BuiltinFunctionName.BETWEEN.getName(),
+        ExprCoreType.coreTypes().stream().map(
+            type -> FunctionDSL.impl(
+                FunctionDSL.nullMissingHandling((v1, v2, v3) ->
+                    ExprBooleanValue.of(v1.compareTo(v2) >= 0 && v1.compareTo(v3) <= 0)),
+                BOOLEAN,
+                type,
+                type,
+                type))
+            .collect(Collectors.toList()));
   }
 
   private static ExprValue lookupTableFunction(ExprValue arg1, ExprValue arg2,
