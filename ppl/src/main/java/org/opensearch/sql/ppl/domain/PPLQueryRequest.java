@@ -9,16 +9,17 @@ package org.opensearch.sql.ppl.domain;
 import java.util.Locale;
 import java.util.Optional;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.json.JSONObject;
 import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 
-@RequiredArgsConstructor
 public class PPLQueryRequest {
-  public static final PPLQueryRequest NULL = new PPLQueryRequest("", null, "", "");
+
+  private static final String DEFAULT_PPL_PATH = "/_plugins/_ppl";
+
+  public static final PPLQueryRequest NULL = new PPLQueryRequest("", null, DEFAULT_PPL_PATH, "");
 
   private final String pplQuery;
   @Getter
@@ -38,13 +39,17 @@ public class PPLQueryRequest {
   @Accessors(fluent = true)
   private JsonResponseFormatter.Style style = JsonResponseFormatter.Style.COMPACT;
 
+  public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path) {
+    this(pplQuery, jsonContent, path, "");
+  }
+
   /**
    * Constructor of PPLQueryRequest.
    */
   public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path, String format) {
     this.pplQuery = pplQuery;
     this.jsonContent = jsonContent;
-    this.path = path;
+    this.path = Optional.ofNullable(path).orElse(DEFAULT_PPL_PATH);
     this.format = format;
   }
 

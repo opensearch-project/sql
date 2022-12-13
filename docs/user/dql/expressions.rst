@@ -149,12 +149,12 @@ Here is an example for different type of comparison operators::
 LIKE
 ----
 
-expr LIKE pattern. The expr is string value, pattern is supports literal text, a percent ( % ) character for a wildcard, and an underscore ( _ ) character for a single character match::
+expr LIKE pattern. The expr is string value, pattern is supports literal text, a percent ( % ) character for a wildcard, and an underscore ( _ ) character for a single character match, pattern is case insensitive::
 
-    os> SELECT 'axyzb' LIKE 'a%b', 'acb' LIKE 'a_b', 'axyzb' NOT LIKE 'a%b', 'acb' NOT LIKE 'a_b';
+    os> SELECT 'axyzb' LIKE 'a%b', 'acb' LIKE 'A_B', 'axyzb' NOT LIKE 'a%b', 'acb' NOT LIKE 'a_b';
     fetched rows / total rows = 1/1
     +----------------------+--------------------+--------------------------+------------------------+
-    | 'axyzb' LIKE 'a%b'   | 'acb' LIKE 'a_b'   | 'axyzb' NOT LIKE 'a%b'   | 'acb' NOT LIKE 'a_b'   |
+    | 'axyzb' LIKE 'a%b'   | 'acb' LIKE 'A_B'   | 'axyzb' NOT LIKE 'a%b'   | 'acb' NOT LIKE 'a_b'   |
     |----------------------+--------------------+--------------------------+------------------------|
     | True                 | True               | False                    | False                  |
     +----------------------+--------------------+--------------------------+------------------------+

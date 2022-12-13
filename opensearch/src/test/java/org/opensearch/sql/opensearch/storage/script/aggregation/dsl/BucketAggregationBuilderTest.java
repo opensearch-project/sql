@@ -35,7 +35,7 @@ import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.NamedExpression;
-import org.opensearch.sql.expression.ParseExpression;
+import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -87,7 +87,7 @@ class BucketAggregationBuilderTest {
   @Test
   void should_build_bucket_with_parse_expression() {
     ParseExpression parseExpression =
-        DSL.parsed(ref("name.keyword", STRING), DSL.literal("(?<name>\\w+)"), DSL.literal("name"));
+        DSL.regex(ref("name.keyword", STRING), DSL.literal("(?<name>\\w+)"), DSL.literal("name"));
     when(serializer.serialize(parseExpression)).thenReturn("mock-serialize");
     assertEquals(
         "{\n"

@@ -198,7 +198,8 @@ class AstAggregationBuilderTest {
         error.getMessage());
   }
 
-  @Disabled("This validation is supposed to be in analyzing phase")
+  @Disabled("This validation is supposed to be in analyzing phase. This test should be enabled "
+          + "once https://github.com/opensearch-project/sql/issues/910 has been resolved")
   @Test
   void should_report_error_for_mismatch_between_select_and_group_by_items() {
     SemanticCheckException error1 = assertThrows(SemanticCheckException.class, () ->

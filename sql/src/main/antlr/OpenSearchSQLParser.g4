@@ -239,6 +239,21 @@ timestampLiteral
     : TIMESTAMP timestamp=stringLiteral
     ;
 
+// Actually, these constants are shortcuts to the corresponding functions
+datetimeConstantLiteral
+    : CURRENT_DATE
+    | CURRENT_TIME
+    | CURRENT_TIMESTAMP
+    | DAY_OF_YEAR
+    | LOCALTIME
+    | LOCALTIMESTAMP
+    | MONTH_OF_YEAR
+    | UTC_TIMESTAMP
+    | UTC_DATE
+    | UTC_TIME
+    | WEEK_OF_YEAR
+    ;
+
 intervalLiteral
     : INTERVAL expression intervalUnit
     ;
@@ -294,17 +309,23 @@ nullNotnull
     ;
 
 functionCall
-    : scalarFunctionName LR_BRACKET functionArgs? RR_BRACKET        #scalarFunctionCall
+    : scalarFunctionName LR_BRACKET functionArgs RR_BRACKET         #scalarFunctionCall
     | specificFunction                                              #specificFunctionCall
     | windowFunctionClause                                          #windowFunctionCall
     | aggregateFunction                                             #aggregateFunctionCall
     | aggregateFunction (orderByClause)? filterClause               #filteredAggregationFunctionCall
     | relevanceFunction                                             #relevanceFunctionCall
     | highlightFunction                                             #highlightFunctionCall
+    | positionFunction                                              #positionFunctionCall
     ;
 
+
 highlightFunction
-    : HIGHLIGHT LR_BRACKET relevanceField RR_BRACKET
+    : HIGHLIGHT LR_BRACKET relevanceField (COMMA highlightArg)* RR_BRACKET
+    ;
+
+positionFunction
+    : POSITION LR_BRACKET functionArg IN functionArg RR_BRACKET
     ;
 
 scalarFunctionName
@@ -312,6 +333,7 @@ scalarFunctionName
     | dateTimeFunctionName
     | textFunctionName
     | flowControlFunctionName
+    | systemFunctionName
     ;
 
 specificFunction
@@ -323,7 +345,11 @@ specificFunction
     ;
 
 relevanceFunction
-    : singleFieldRelevanceFunction | multiFieldRelevanceFunction
+    : noFieldRelevanceFunction | singleFieldRelevanceFunction | multiFieldRelevanceFunction
+    ;
+
+noFieldRelevanceFunction
+    : noFieldRelevanceFunctionName LR_BRACKET query=relevanceQuery (COMMA relevanceArg)* RR_BRACKET
     ;
 
 // Field is a single column
@@ -337,6 +363,8 @@ multiFieldRelevanceFunction
     : multiFieldRelevanceFunctionName LR_BRACKET
         LT_SQR_PRTHS field=relevanceFieldAndWeight (COMMA field=relevanceFieldAndWeight)* RT_SQR_PRTHS
         COMMA query=relevanceQuery (COMMA relevanceArg)* RR_BRACKET
+    | multiFieldRelevanceFunctionName LR_BRACKET
+        alternateMultiMatchQuery  COMMA alternateMultiMatchField (COMMA relevanceArg)* RR_BRACKET
     ;
 
 convertedDataType
@@ -373,7 +401,7 @@ aggregationFunctionName
     ;
 
 mathematicalFunctionName
-    : ABS | CEIL | CEILING | CONV | CRC32 | E | EXP | FLOOR | LN | LOG | LOG10 | LOG2 | MOD | PI | POW | POWER
+    : ABS | CBRT | CEIL | CEILING | CONV | CRC32 | E | EXP | FLOOR | LN | LOG | LOG10 | LOG2 | MOD | PI | POW | POWER
     | RAND | ROUND | SIGN | SQRT | TRUNCATE
     | trigonometricFunctionName
     ;
@@ -383,38 +411,81 @@ trigonometricFunctionName
     ;
 
 dateTimeFunctionName
-    : ADDDATE | DATE | DATE_ADD | DATE_SUB | DAY | DAYNAME | DAYOFMONTH | DAYOFWEEK | DAYOFYEAR | FROM_DAYS
-    | HOUR | MICROSECOND | MINUTE | MONTH | MONTHNAME | QUARTER | SECOND | SUBDATE | TIME | TIME_TO_SEC
-    | TIMESTAMP | TO_DAYS | YEAR | WEEK | DATE_FORMAT | MAKETIME | MAKEDATE
+    : datetimeConstantLiteral
+    | ADDDATE
+    | CONVERT_TZ
+    | CURDATE
+    | CURTIME
+    | DATE
+    | DATE_ADD
+    | DATE_FORMAT
+    | DATE_SUB
+    | DATETIME
+    | DAY
+    | DAYNAME
+    | DAYOFMONTH
+    | DAYOFWEEK
+    | DAYOFYEAR
+    | FROM_DAYS
+    | FROM_UNIXTIME
+    | HOUR
+    | MAKEDATE
+    | MAKETIME
+    | MICROSECOND
+    | MINUTE
+    | MONTH
+    | MONTHNAME
+    | NOW
+    | PERIOD_ADD
+    | PERIOD_DIFF
+    | QUARTER
+    | SECOND
+    | SUBDATE
+    | SYSDATE
+    | TIME
+    | TIME_TO_SEC
+    | TIMESTAMP
+    | TO_DAYS
+    | UNIX_TIMESTAMP
+    | WEEK
+    | YEAR
     ;
 
 textFunctionName
     : SUBSTR | SUBSTRING | TRIM | LTRIM | RTRIM | LOWER | UPPER
     | CONCAT | CONCAT_WS | SUBSTR | LENGTH | STRCMP | RIGHT | LEFT
-    | ASCII | LOCATE | REPLACE
+    | ASCII | LOCATE | REPLACE | REVERSE
     ;
 
 flowControlFunctionName
     : IF | IFNULL | NULLIF | ISNULL
     ;
 
+noFieldRelevanceFunctionName
+    : QUERY
+    ;
+
+systemFunctionName
+    : TYPEOF
+    ;
+
 singleFieldRelevanceFunctionName
-    : MATCH | MATCH_PHRASE | MATCHPHRASE
+    : MATCH | MATCHQUERY | MATCH_QUERY
+    | MATCH_PHRASE | MATCHPHRASE | MATCHPHRASEQUERY
     | MATCH_BOOL_PREFIX | MATCH_PHRASE_PREFIX
+    | WILDCARD_QUERY | WILDCARDQUERY
     ;
 
 multiFieldRelevanceFunctionName
     : MULTI_MATCH
+    | MULTIMATCH
+    | MULTIMATCHQUERY
     | SIMPLE_QUERY_STRING
     | QUERY_STRING
     ;
 
-legacyRelevanceFunctionName
-    : QUERY | MATCH_QUERY | MATCHQUERY
-    ;
-
 functionArgs
-    : functionArg (COMMA functionArg)*
+    : (functionArg (COMMA functionArg)*)?
     ;
 
 functionArg
@@ -423,16 +494,25 @@ functionArg
 
 relevanceArg
     : relevanceArgName EQUAL_SYMBOL relevanceArgValue
+    | argName=stringLiteral EQUAL_SYMBOL argVal=relevanceArgValue
+    ;
+
+highlightArg
+    : highlightArgName EQUAL_SYMBOL highlightArgValue
     ;
 
 relevanceArgName
     : ALLOW_LEADING_WILDCARD | ANALYZER | ANALYZE_WILDCARD | AUTO_GENERATE_SYNONYMS_PHRASE_QUERY
-    | BOOST | CUTOFF_FREQUENCY | DEFAULT_FIELD | DEFAULT_OPERATOR | ENABLE_POSITION_INCREMENTS
+    | BOOST | CASE_INSENSITIVE | CUTOFF_FREQUENCY | DEFAULT_FIELD | DEFAULT_OPERATOR | ENABLE_POSITION_INCREMENTS
     | ESCAPE | FIELDS | FLAGS | FUZZINESS | FUZZY_MAX_EXPANSIONS | FUZZY_PREFIX_LENGTH
     | FUZZY_REWRITE | FUZZY_TRANSPOSITIONS | LENIENT | LOW_FREQ_OPERATOR | MAX_DETERMINIZED_STATES
     | MAX_EXPANSIONS | MINIMUM_SHOULD_MATCH | OPERATOR | PHRASE_SLOP | PREFIX_LENGTH
     | QUOTE_ANALYZER | QUOTE_FIELD_SUFFIX | REWRITE | SLOP | TIE_BREAKER | TIME_ZONE | TYPE
     | ZERO_TERMS_QUERY
+    ;
+
+highlightArgName
+    : HIGHLIGHT_POST_TAGS | HIGHLIGHT_PRE_TAGS
     ;
 
 relevanceFieldAndWeight
@@ -460,3 +540,22 @@ relevanceArgValue
     | constant
     ;
 
+highlightArgValue
+    : stringLiteral
+    ;
+
+alternateMultiMatchArgName
+    : FIELDS
+    | QUERY
+    | stringLiteral
+    ;
+
+alternateMultiMatchQuery
+    : argName=alternateMultiMatchArgName EQUAL_SYMBOL argVal=relevanceArgValue
+    ;
+
+alternateMultiMatchField
+    : argName=alternateMultiMatchArgName EQUAL_SYMBOL argVal=relevanceArgValue
+    | argName=alternateMultiMatchArgName EQUAL_SYMBOL
+    LT_SQR_PRTHS argVal=relevanceArgValue RT_SQR_PRTHS
+    ;

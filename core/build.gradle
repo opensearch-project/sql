@@ -26,17 +26,12 @@ plugins {
     id 'java-library'
     id "io.freefair.lombok"
     id 'jacoco'
+    id 'java-test-fixtures'
 }
 
 repositories {
     mavenCentral()
 }
-//
-//configurations.all {
-//    resolutionStrategy.dependencySubstitution {
-//        substitute module('com.google.guava:guava:26.0-jre') with module('com.google.guava:guava:29.0-jre')
-//    }
-//}
 
 dependencies {
     api group: 'com.google.guava', name: 'guava', version: '31.0.1-jre'
@@ -46,7 +41,7 @@ dependencies {
     api group: 'com.facebook.presto', name: 'presto-matching', version: '0.240'
     api group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
     api "com.fasterxml.jackson.core:jackson-core:${jackson_version}"
-    api "com.fasterxml.jackson.core:jackson-databind:${jackson_version}"
+    api "com.fasterxml.jackson.core:jackson-databind:${jackson_databind_version}"
     api "com.fasterxml.jackson.core:jackson-annotations:${jackson_version}"
     api project(':common')
 
@@ -73,7 +68,7 @@ jacocoTestReport {
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
             fileTree(dir: it,
-                    exclude: ['**/ast/**', '**/catalog/model/**'])
+                    exclude: ['**/ast/**', '**/datasource/model/**'])
         }))
     }
 }
@@ -85,7 +80,7 @@ jacocoTestCoverageVerification {
             excludes = [
                     'org.opensearch.sql.utils.MLCommonsConstants',
                     'org.opensearch.sql.utils.Constants',
-                    'org.opensearch.sql.catalog.model.*'
+                    'org.opensearch.sql.datasource.model.*'
             ]
             limit {
                 counter = 'LINE'

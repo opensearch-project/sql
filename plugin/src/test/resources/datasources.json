@@ -1,0 +1,12 @@
+[
+  {
+    "name" : "prometheus",
+    "connector": "prometheus",
+    "properties" : {
+      "prometheus.uri" : "http://localhost:9090",
+      "prometheus.auth.type" : "basicauth",
+      "prometheus.auth.username" : "admin",
+      "prometheus.auth.password" : "type"
+    }
+  }
+]

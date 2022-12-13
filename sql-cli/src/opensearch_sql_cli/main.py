@@ -61,7 +61,7 @@ click.disable_unicode_literals_warning = True
     "use_aws_authentication",
     is_flag=True,
     default=False,
-    help="Use AWS sigV4 to connect to AWS ELasticsearch domain",
+    help="Use AWS sigV4 to connect to AWS OpenSearch domain",
 )
 @click.option(
     "-l",
@@ -70,6 +70,14 @@ click.disable_unicode_literals_warning = True
     type=click.STRING,
     default="sql",
     help="SQL OR PPL",
+)
+@click.option(
+    "-t",
+    "--timeout",
+    "response_timeout",
+    type=click.INT,
+    default=10,
+    help="Timeout in seconds to await a response from the server"
 )
 def cli(
     endpoint,
@@ -83,6 +91,7 @@ def cli(
     always_use_pager,
     use_aws_authentication,
     query_language,
+    response_timeout
 ):
     """
     Provide endpoint for OpenSearch client.
@@ -114,12 +123,9 @@ def cli(
         sys.exit(0)
 
     # use console to interact with user
-    opensearchsql_cli = OpenSearchSqlCli(
-        clirc_file=clirc,
-        always_use_pager=always_use_pager,
-        use_aws_authentication=use_aws_authentication,
-        query_language=query_language,
-    )
+    opensearchsql_cli = OpenSearchSqlCli(clirc_file=clirc, always_use_pager=always_use_pager,
+                                         use_aws_authentication=use_aws_authentication, query_language=query_language,
+                                         response_timeout=response_timeout)
     opensearchsql_cli.connect(endpoint, http_auth)
     opensearchsql_cli.run_cli()
 

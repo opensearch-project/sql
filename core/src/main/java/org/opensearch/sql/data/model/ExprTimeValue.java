@@ -6,11 +6,16 @@
 
 package org.opensearch.sql.data.model;
 
+import static java.time.format.DateTimeFormatter.ISO_LOCAL_TIME;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
-import java.time.temporal.ChronoField;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -22,29 +27,15 @@ import org.opensearch.sql.exception.SemanticCheckException;
  */
 @RequiredArgsConstructor
 public class ExprTimeValue extends AbstractExprValue {
+
   private final LocalTime time;
 
-  private static final DateTimeFormatter FORMATTER_VARIABLE_NANOS;
-  private static final int MIN_FRACTION_SECONDS = 0;
-  private static final int MAX_FRACTION_SECONDS = 9;
-
-  static {
-    FORMATTER_VARIABLE_NANOS = new DateTimeFormatterBuilder()
-            .appendPattern("HH:mm:ss")
-            .appendFraction(
-                    ChronoField.NANO_OF_SECOND,
-                    MIN_FRACTION_SECONDS,
-                    MAX_FRACTION_SECONDS,
-                    true)
-            .toFormatter();
-  }
-
   /**
-   * Constructor.
+   * Constructor of ExprTimeValue.
    */
   public ExprTimeValue(String time) {
     try {
-      this.time = LocalTime.parse(time, FORMATTER_VARIABLE_NANOS);
+      this.time = LocalTime.parse(time, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
     } catch (DateTimeParseException e) {
       throw new SemanticCheckException(String.format("time:%s in unsupported format, please use "
           + "HH:mm:ss[.SSSSSSSSS]", time));
@@ -53,7 +44,7 @@ public class ExprTimeValue extends AbstractExprValue {
 
   @Override
   public String value() {
-    return DateTimeFormatter.ISO_LOCAL_TIME.format(time);
+    return ISO_LOCAL_TIME.format(time);
   }
 
   @Override

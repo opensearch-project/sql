@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.expression.datetime;
 
+import static java.time.temporal.ChronoUnit.MONTHS;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
@@ -17,17 +18,36 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.expression.function.FunctionDSL.define;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
+import static org.opensearch.sql.expression.function.FunctionDSL.implWithProperties;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_LONG_YEAR;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_SHORT_YEAR;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_LONG_YEAR;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_SHORT_YEAR;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_STRICT_WITH_TZ;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
+import java.time.Clock;
+import java.time.DateTimeException;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.format.TextStyle;
 import java.util.Locale;
+import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
+import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprNullValue;
@@ -35,11 +55,16 @@ import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
+import org.opensearch.sql.expression.function.FunctionDSL;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.FunctionResolver;
+import org.opensearch.sql.utils.DateTimeUtils;
 
 /**
  * The definition of date and time functions.
@@ -47,10 +72,14 @@ import org.opensearch.sql.expression.function.FunctionResolver;
  * 2) the implementation should rely on ExprValue.
  */
 @UtilityClass
+@SuppressWarnings("unchecked")
 public class DateTimeFunction {
-
   // The number of days from year zero to year 1970.
   private static final Long DAYS_0000_TO_1970 = (146097 * 5L) - (30L * 365L + 7L);
+
+  // MySQL doesn't process any datetime/timestamp values which are greater than
+  // 32536771199.999999, or equivalent '3001-01-18 23:59:59.999999' UTC
+  private static final Double MYSQL_MAX_TIMESTAMP = 32536771200d;
 
   /**
    * Register Date and Time Functions.
@@ -59,32 +88,122 @@ public class DateTimeFunction {
    */
   public void register(BuiltinFunctionRepository repository) {
     repository.register(adddate());
+    repository.register(convert_tz());
+    repository.register(curtime());
+    repository.register(curdate());
+    repository.register(current_date());
+    repository.register(current_time());
+    repository.register(current_timestamp());
     repository.register(date());
+    repository.register(datetime());
     repository.register(date_add());
     repository.register(date_sub());
     repository.register(day());
     repository.register(dayName());
     repository.register(dayOfMonth());
     repository.register(dayOfWeek());
-    repository.register(dayOfYear());
+    repository.register(dayOfYear(BuiltinFunctionName.DAYOFYEAR));
+    repository.register(dayOfYear(BuiltinFunctionName.DAY_OF_YEAR));
     repository.register(from_days());
+    repository.register(from_unixtime());
     repository.register(hour());
+    repository.register(localtime());
+    repository.register(localtimestamp());
     repository.register(makedate());
     repository.register(maketime());
     repository.register(microsecond());
     repository.register(minute());
-    repository.register(month());
+    repository.register(month(BuiltinFunctionName.MONTH));
+    repository.register(month(BuiltinFunctionName.MONTH_OF_YEAR));
     repository.register(monthName());
+    repository.register(now());
+    repository.register(period_add());
+    repository.register(period_diff());
     repository.register(quarter());
     repository.register(second());
     repository.register(subdate());
+    repository.register(sysdate());
     repository.register(time());
     repository.register(time_to_sec());
     repository.register(timestamp());
     repository.register(date_format());
     repository.register(to_days());
-    repository.register(week());
+    repository.register(unix_timestamp());
+    repository.register(week(BuiltinFunctionName.WEEK));
+    repository.register(week(BuiltinFunctionName.WEEK_OF_YEAR));
     repository.register(year());
+  }
+
+  /**
+   * NOW() returns a constant time that indicates the time at which the statement began to execute.
+   * `fsp` argument support is removed until refactoring to avoid bug where `now()`, `now(x)` and
+   * `now(y) return different values.
+   */
+  private FunctionResolver now(FunctionName functionName) {
+    return define(functionName,
+        implWithProperties(
+            functionProperties -> new ExprDatetimeValue(
+                formatNow(functionProperties.getQueryStartClock())), DATETIME)
+    );
+  }
+
+  private FunctionResolver now() {
+    return now(BuiltinFunctionName.NOW.getName());
+  }
+
+  private FunctionResolver current_timestamp() {
+    return now(BuiltinFunctionName.CURRENT_TIMESTAMP.getName());
+  }
+
+  private FunctionResolver localtimestamp() {
+    return now(BuiltinFunctionName.LOCALTIMESTAMP.getName());
+  }
+
+  private FunctionResolver localtime() {
+    return now(BuiltinFunctionName.LOCALTIME.getName());
+  }
+
+  /**
+   * SYSDATE() returns the time at which it executes.
+   */
+  private FunctionResolver sysdate() {
+    return define(BuiltinFunctionName.SYSDATE.getName(),
+        implWithProperties(functionProperties
+            -> new ExprDatetimeValue(formatNow(Clock.systemDefaultZone())), DATETIME),
+        FunctionDSL.implWithProperties((functionProperties, v) -> new ExprDatetimeValue(
+            formatNow(Clock.systemDefaultZone(), v.integerValue())), DATETIME, INTEGER)
+    );
+  }
+
+  /**
+   * Synonym for @see `now`.
+   */
+  private FunctionResolver curtime(FunctionName functionName) {
+    return define(functionName,
+        implWithProperties(functionProperties -> new ExprTimeValue(
+            formatNow(functionProperties.getQueryStartClock()).toLocalTime()), TIME));
+  }
+
+  private FunctionResolver curtime() {
+    return curtime(BuiltinFunctionName.CURTIME.getName());
+  }
+
+  private FunctionResolver current_time() {
+    return curtime(BuiltinFunctionName.CURRENT_TIME.getName());
+  }
+
+  private FunctionResolver curdate(FunctionName functionName) {
+    return define(functionName,
+        implWithProperties(functionProperties -> new ExprDateValue(
+            formatNow(functionProperties.getQueryStartClock()).toLocalDate()), DATE));
+  }
+
+  private FunctionResolver curdate() {
+    return curdate(BuiltinFunctionName.CURDATE.getName());
+  }
+
+  private FunctionResolver current_date() {
+    return curdate(BuiltinFunctionName.CURRENT_DATE.getName());
   }
 
   /**
@@ -94,7 +213,6 @@ public class DateTimeFunction {
    * (DATE, LONG) -> DATE
    * (STRING/DATETIME/TIMESTAMP, LONG) -> DATETIME
    */
-
   private DefaultFunctionResolver add_date(FunctionName functionName) {
     return define(functionName,
         impl(nullMissingHandling(DateTimeFunction::exprAddDateInterval),
@@ -116,6 +234,21 @@ public class DateTimeFunction {
   }
 
   /**
+   * Converts date/time from a specified timezone to another specified timezone.
+   * The supported signatures:
+   * (DATETIME, STRING, STRING) -> DATETIME
+   * (STRING, STRING, STRING) -> DATETIME
+   */
+  private DefaultFunctionResolver convert_tz() {
+    return define(BuiltinFunctionName.CONVERT_TZ.getName(),
+        impl(nullMissingHandling(DateTimeFunction::exprConvertTZ),
+            DATETIME, DATETIME, STRING, STRING),
+        impl(nullMissingHandling(DateTimeFunction::exprConvertTZ),
+            DATETIME, STRING, STRING, STRING)
+    );
+  }
+
+  /**
    * Extracts the date part of a date and time value.
    * Also to construct a date type. The supported signatures:
    * STRING/DATE/DATETIME/TIMESTAMP -> DATE
@@ -126,6 +259,21 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprDate), DATE, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprDate), DATE, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::exprDate), DATE, TIMESTAMP));
+  }
+
+  /**
+   * Specify a datetime with time zone field and a time zone to convert to.
+   * Returns a local date time.
+   * (STRING, STRING) -> DATETIME
+   * (STRING) -> DATETIME
+   */
+  private FunctionResolver datetime() {
+    return define(BuiltinFunctionName.DATETIME.getName(),
+        impl(nullMissingHandling(DateTimeFunction::exprDateTime),
+            DATETIME, STRING, STRING),
+        impl(nullMissingHandling(DateTimeFunction::exprDateTimeNoTimezone),
+            DATETIME, STRING)
+    );
   }
 
   private DefaultFunctionResolver date_add() {
@@ -214,8 +362,8 @@ public class DateTimeFunction {
    * DAYOFYEAR(STRING/DATE/DATETIME/TIMESTAMP).
    * return the day of the year for date (1-366).
    */
-  private DefaultFunctionResolver dayOfYear() {
-    return define(BuiltinFunctionName.DAYOFYEAR.getName(),
+  private DefaultFunctionResolver dayOfYear(BuiltinFunctionName dayOfYear) {
+    return define(dayOfYear.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfYear), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfYear), INTEGER, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfYear), INTEGER, TIMESTAMP),
@@ -229,6 +377,13 @@ public class DateTimeFunction {
   private DefaultFunctionResolver from_days() {
     return define(BuiltinFunctionName.FROM_DAYS.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprFromDays), DATE, LONG));
+  }
+
+  private FunctionResolver from_unixtime() {
+    return define(BuiltinFunctionName.FROM_UNIXTIME.getName(),
+        impl(nullMissingHandling(DateTimeFunction::exprFromUnixTime), DATETIME, DOUBLE),
+        impl(nullMissingHandling(DateTimeFunction::exprFromUnixTimeFormat),
+            STRING, DOUBLE, STRING));
   }
 
   /**
@@ -280,8 +435,8 @@ public class DateTimeFunction {
   /**
    * MONTH(STRING/DATE/DATETIME/TIMESTAMP). return the month for date (1-12).
    */
-  private DefaultFunctionResolver month() {
-    return define(BuiltinFunctionName.MONTH.getName(),
+  private DefaultFunctionResolver month(BuiltinFunctionName month) {
+    return define(month.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprMonth), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprMonth), INTEGER, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::exprMonth), INTEGER, TIMESTAMP),
@@ -298,6 +453,27 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprMonthName), STRING, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::exprMonthName), STRING, TIMESTAMP),
         impl(nullMissingHandling(DateTimeFunction::exprMonthName), STRING, STRING)
+    );
+  }
+
+  /**
+   * Add N months to period P (in the format YYMM or YYYYMM). Returns a value in the format YYYYMM.
+   * (INTEGER, INTEGER) -> INTEGER
+   */
+  private DefaultFunctionResolver period_add() {
+    return define(BuiltinFunctionName.PERIOD_ADD.getName(),
+        impl(nullMissingHandling(DateTimeFunction::exprPeriodAdd), INTEGER, INTEGER, INTEGER)
+    );
+  }
+
+  /**
+   * Returns the number of months between periods P1 and P2.
+   * P1 and P2 should be in the format YYMM or YYYYMM.
+   * (INTEGER, INTEGER) -> INTEGER
+   */
+  private DefaultFunctionResolver period_diff() {
+    return define(BuiltinFunctionName.PERIOD_DIFF.getName(),
+        impl(nullMissingHandling(DateTimeFunction::exprPeriodDiff), INTEGER, INTEGER, INTEGER)
     );
   }
 
@@ -379,11 +555,22 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprToDays), LONG, DATETIME));
   }
 
+  private FunctionResolver unix_timestamp() {
+    return define(BuiltinFunctionName.UNIX_TIMESTAMP.getName(),
+        implWithProperties(functionProperties
+            -> DateTimeFunction.unixTimeStamp(functionProperties.getQueryStartClock()), LONG),
+        impl(nullMissingHandling(DateTimeFunction::unixTimeStampOf), DOUBLE, DATE),
+        impl(nullMissingHandling(DateTimeFunction::unixTimeStampOf), DOUBLE, DATETIME),
+        impl(nullMissingHandling(DateTimeFunction::unixTimeStampOf), DOUBLE, TIMESTAMP),
+        impl(nullMissingHandling(DateTimeFunction::unixTimeStampOf), DOUBLE, DOUBLE)
+    );
+  }
+
   /**
    * WEEK(DATE[,mode]). return the week number for date.
    */
-  private DefaultFunctionResolver week() {
-    return define(BuiltinFunctionName.WEEK.getName(),
+  private DefaultFunctionResolver week(BuiltinFunctionName week) {
+    return define(week.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprWeekWithoutMode), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprWeekWithoutMode), INTEGER, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::exprWeekWithoutMode), INTEGER, TIMESTAMP),
@@ -455,6 +642,42 @@ public class DateTimeFunction {
   }
 
   /**
+   * CONVERT_TZ function implementation for ExprValue.
+   * Returns null for time zones outside of +13:00 and -12:00.
+   *
+   * @param startingDateTime ExprValue of DateTime that is being converted from
+   * @param fromTz           ExprValue of time zone, representing the time to convert from.
+   * @param toTz             ExprValue of time zone, representing the time to convert to.
+   * @return DateTime that has been converted to the to_tz timezone.
+   */
+  private ExprValue exprConvertTZ(ExprValue startingDateTime, ExprValue fromTz, ExprValue toTz) {
+    if (startingDateTime.type() == ExprCoreType.STRING) {
+      startingDateTime = exprDateTimeNoTimezone(startingDateTime);
+    }
+    try {
+      ZoneId convertedFromTz = ZoneId.of(fromTz.stringValue());
+      ZoneId convertedToTz = ZoneId.of(toTz.stringValue());
+
+      // isValidMySqlTimeZoneId checks if the timezone is within the range accepted by
+      // MySQL standard.
+      if (!DateTimeUtils.isValidMySqlTimeZoneId(convertedFromTz)
+          || !DateTimeUtils.isValidMySqlTimeZoneId(convertedToTz)) {
+        return ExprNullValue.of();
+      }
+      ZonedDateTime zonedDateTime =
+          startingDateTime.datetimeValue().atZone(convertedFromTz);
+      return new ExprDatetimeValue(
+          zonedDateTime.withZoneSameInstant(convertedToTz).toLocalDateTime());
+
+
+      // Catches exception for invalid timezones.
+      // ex. "+0:00" is an invalid timezone and would result in this exception being thrown.
+    } catch (ExpressionEvaluationException | DateTimeException e) {
+      return ExprNullValue.of();
+    }
+  }
+
+  /**
    * Date implementation for ExprValue.
    *
    * @param exprValue ExprValue of Date type or String type.
@@ -466,6 +689,62 @@ public class DateTimeFunction {
     } else {
       return new ExprDateValue(exprValue.dateValue());
     }
+  }
+
+  /**
+   * DateTime implementation for ExprValue.
+   *
+   * @param dateTime ExprValue of String type.
+   * @param timeZone ExprValue of String type (or null).
+   * @return ExprValue of date type.
+   */
+  private ExprValue exprDateTime(ExprValue dateTime, ExprValue timeZone) {
+    String defaultTimeZone = TimeZone.getDefault().getID();
+
+
+    try {
+      LocalDateTime ldtFormatted =
+          LocalDateTime.parse(dateTime.stringValue(), DATE_TIME_FORMATTER_STRICT_WITH_TZ);
+      if (timeZone.isNull()) {
+        return new ExprDatetimeValue(ldtFormatted);
+      }
+
+      // Used if datetime field is invalid format.
+    } catch (DateTimeParseException e) {
+      return ExprNullValue.of();
+    }
+
+    ExprValue convertTZResult;
+    ExprDatetimeValue ldt;
+    String toTz;
+
+    try {
+      ZonedDateTime zdtWithZoneOffset =
+          ZonedDateTime.parse(dateTime.stringValue(), DATE_TIME_FORMATTER_STRICT_WITH_TZ);
+      ZoneId fromTZ = zdtWithZoneOffset.getZone();
+
+      ldt = new ExprDatetimeValue(zdtWithZoneOffset.toLocalDateTime());
+      toTz = String.valueOf(fromTZ);
+    } catch (DateTimeParseException e) {
+      ldt = new ExprDatetimeValue(dateTime.stringValue());
+      toTz = defaultTimeZone;
+    }
+    convertTZResult = exprConvertTZ(
+        ldt,
+        new ExprStringValue(toTz),
+        timeZone);
+
+    return convertTZResult;
+  }
+
+  /**
+   * DateTime implementation for ExprValue without a timezone to convert to.
+   *
+   * @param dateTime ExprValue of String type.
+   * @return ExprValue of date type.
+   */
+  private ExprValue exprDateTimeNoTimezone(ExprValue dateTime) {
+    return exprDateTime(dateTime, ExprNullValue.of());
   }
 
   /**
@@ -517,6 +796,35 @@ public class DateTimeFunction {
    */
   private ExprValue exprFromDays(ExprValue exprValue) {
     return new ExprDateValue(LocalDate.ofEpochDay(exprValue.longValue() - DAYS_0000_TO_1970));
+  }
+
+  private ExprValue exprFromUnixTime(ExprValue time) {
+    if (0 > time.doubleValue()) {
+      return ExprNullValue.of();
+    }
+    // According to MySQL documentation:
+    //     effective maximum is 32536771199.999999, which returns '3001-01-18 23:59:59.999999' UTC.
+    //     Regardless of platform or version, a greater value for first argument than the effective
+    //     maximum returns 0.
+    if (MYSQL_MAX_TIMESTAMP <= time.doubleValue()) {
+      return ExprNullValue.of();
+    }
+    return new ExprDatetimeValue(exprFromUnixTimeImpl(time));
+  }
+
+  private LocalDateTime exprFromUnixTimeImpl(ExprValue time) {
+    return LocalDateTime.ofInstant(
+            Instant.ofEpochSecond((long)Math.floor(time.doubleValue())),
+            ZoneId.of("UTC"))
+        .withNano((int)((time.doubleValue() % 1) * 1E9));
+  }
+
+  private ExprValue exprFromUnixTimeFormat(ExprValue time, ExprValue format) {
+    var value = exprFromUnixTime(time);
+    if (value.equals(ExprNullValue.of())) {
+      return ExprNullValue.of();
+    }
+    return DateTimeFormatterUtil.getFormattedDate(value, format);
   }
 
   /**
@@ -613,6 +921,61 @@ public class DateTimeFunction {
   private ExprValue exprMonthName(ExprValue date) {
     return new ExprStringValue(
         date.dateValue().getMonth().getDisplayName(TextStyle.FULL, Locale.getDefault()));
+  }
+
+  private LocalDate parseDatePeriod(Integer period) {
+    var input = period.toString();
+    // MySQL undocumented: if year is not specified or has 1 digit - 2000/200x is assumed
+    if (input.length() <= 5) {
+      input = String.format("200%05d", period);
+    }
+    try {
+      return LocalDate.parse(input, DATE_FORMATTER_SHORT_YEAR);
+    } catch (DateTimeParseException ignored) {
+      // nothing to do, try another format
+    }
+    try {
+      return LocalDate.parse(input, DATE_FORMATTER_LONG_YEAR);
+    } catch (DateTimeParseException ignored) {
+      return null;
+    }
+  }
+
+  /**
+   * Adds N months to period P (in the format YYMM or YYYYMM).
+   * Returns a value in the format YYYYMM.
+   *
+   * @param period Period in the format YYMM or YYYYMM.
+   * @param months Amount of months to add.
+   * @return ExprIntegerValue.
+   */
+  private ExprValue exprPeriodAdd(ExprValue period, ExprValue months) {
+    // We should add a day to make string parsable and remove it afterwards
+    var input =  period.integerValue() * 100 + 1; // adds 01 to end of the string
+    var parsedDate = parseDatePeriod(input);
+    if (parsedDate == null) {
+      return ExprNullValue.of();
+    }
+    var res = DATE_FORMATTER_LONG_YEAR.format(parsedDate.plusMonths(months.integerValue()));
+    return new ExprIntegerValue(Integer.parseInt(
+        res.substring(0, res.length() - 2))); // Remove the day part, .eg. 20070101 -> 200701
+  }
+
+  /**
+   * Returns the number of months between periods P1 and P2.
+   * P1 and P2 should be in the format YYMM or YYYYMM.
+   *
+   * @param period1 Period in the format YYMM or YYYYMM.
+   * @param period2 Period in the format YYMM or YYYYMM.
+   * @return ExprIntegerValue.
+   */
+  private ExprValue exprPeriodDiff(ExprValue period1, ExprValue period2) {
+    var parsedDate1 = parseDatePeriod(period1.integerValue() * 100 + 1);
+    var parsedDate2 = parseDatePeriod(period2.integerValue() * 100 + 1);
+    if (parsedDate1 == null || parsedDate2 == null) {
+      return ExprNullValue.of();
+    }
+    return new ExprIntegerValue(MONTHS.between(parsedDate2, parsedDate1));
   }
 
   /**
@@ -721,6 +1084,79 @@ public class DateTimeFunction {
         CalendarLookup.getWeekNumber(mode.integerValue(), date.dateValue()));
   }
 
+  private ExprValue unixTimeStamp(Clock clock) {
+    return new ExprLongValue(Instant.now(clock).getEpochSecond());
+  }
+
+  private ExprValue unixTimeStampOf(ExprValue value) {
+    var res = unixTimeStampOfImpl(value);
+    if (res == null) {
+      return ExprNullValue.of();
+    }
+    if (res < 0) {
+      // According to MySQL returns 0 if year < 1970, don't return negative values as java does.
+      return new ExprDoubleValue(0);
+    }
+    if (res >= MYSQL_MAX_TIMESTAMP) {
+      // Return 0 also for dates > '3001-01-19 03:14:07.999999' UTC (32536771199.999999 sec)
+      return new ExprDoubleValue(0);
+    }
+    return new ExprDoubleValue(res);
+  }
+
+  private Double unixTimeStampOfImpl(ExprValue value) {
+    // Also, according to MySQL documentation:
+    //    The date argument may be a DATE, DATETIME, or TIMESTAMP ...
+    switch ((ExprCoreType)value.type()) {
+      case DATE: return value.dateValue().toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;
+      case DATETIME: return value.datetimeValue().toEpochSecond(ZoneOffset.UTC)
+          + value.datetimeValue().getNano() / 1E9;
+      case TIMESTAMP: return value.timestampValue().getEpochSecond()
+          + value.timestampValue().getNano() / 1E9;
+      default:
+        //     ... or a number in YYMMDD, YYMMDDhhmmss, YYYYMMDD, or YYYYMMDDhhmmss format.
+        //     If the argument includes a time part, it may optionally include a fractional
+        //     seconds part.
+
+        var format = new DecimalFormat("0.#");
+        format.setMinimumFractionDigits(0);
+        format.setMaximumFractionDigits(6);
+        String input = format.format(value.doubleValue());
+        double fraction = 0;
+        if (input.contains(".")) {
+          // Keeping fraction second part and adding it to the result, don't parse it
+          // Because `toEpochSecond` returns only `long`
+          // input = 12345.6789 becomes input = 12345 and fraction = 0.6789
+          fraction = value.doubleValue() - Math.round(Math.ceil(value.doubleValue()));
+          input = input.substring(0, input.indexOf('.'));
+        }
+        try {
+          var res = LocalDateTime.parse(input, DATE_TIME_FORMATTER_SHORT_YEAR);
+          return res.toEpochSecond(ZoneOffset.UTC) + fraction;
+        } catch (DateTimeParseException ignored) {
+          // nothing to do, try another format
+        }
+        try {
+          var res = LocalDateTime.parse(input, DATE_TIME_FORMATTER_LONG_YEAR);
+          return res.toEpochSecond(ZoneOffset.UTC) + fraction;
+        } catch (DateTimeParseException ignored) {
+          // nothing to do, try another format
+        }
+        try {
+          var res = LocalDate.parse(input, DATE_FORMATTER_SHORT_YEAR);
+          return res.toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;
+        } catch (DateTimeParseException ignored) {
+          // nothing to do, try another format
+        }
+        try {
+          var res = LocalDate.parse(input, DATE_FORMATTER_LONG_YEAR);
+          return res.toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;
+        } catch (DateTimeParseException ignored) {
+          return null;
+        }
+    }
+  }
+
   /**
    * Week for date implementation for ExprValue.
    * When mode is not specified default value mode 0 is used for default_week_format.
@@ -742,4 +1178,25 @@ public class DateTimeFunction {
     return new ExprIntegerValue(date.dateValue().getYear());
   }
 
+  private LocalDateTime formatNow(Clock clock) {
+    return formatNow(clock, 0);
+  }
+
+  /**
+   * Prepare LocalDateTime value. Truncate fractional second part according to the argument.
+   * @param fsp argument is given to specify a fractional seconds precision from 0 to 6,
+   *            the return value includes a fractional seconds part of that many digits.
+   * @return LocalDateTime object.
+   */
+  private LocalDateTime formatNow(Clock clock,  Integer fsp) {
+    var res = LocalDateTime.now(clock);
+    var defaultPrecision = 9; // There are 10^9 nanoseconds in one second
+    if (fsp < 0 || fsp > 6) { // Check that the argument is in the allowed range [0, 6]
+      throw new IllegalArgumentException(
+          String.format("Invalid `fsp` value: %d, allowed 0 to 6", fsp));
+    }
+    var nano = new BigDecimal(res.getNano())
+        .setScale(fsp - defaultPrecision, RoundingMode.DOWN).intValue();
+    return res.withNano(nano);
+  }
 }

@@ -33,9 +33,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensearch.sql.config.TestConfig;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.FunctionProperties;
+import org.opensearch.sql.expression.function.FunctionPropertiesTestConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -44,11 +45,12 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @Configuration
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {ExpressionConfig.class, ExpressionTestBase.class,
+@ContextConfiguration(classes = {FunctionPropertiesTestConfig.class, ExpressionTestBase.class,
     TestConfig.class})
 public class ExpressionTestBase {
+
   @Autowired
-  protected DSL dsl;
+  protected FunctionProperties functionProperties;
 
   @Autowired
   protected Environment<Expression, ExprType> typeEnv;
@@ -102,15 +104,15 @@ public class ExpressionTestBase {
       BuiltinFunctionName builtinFunctionName) {
     switch (builtinFunctionName) {
       case ADD:
-        return (expressions) -> dsl.add(expressions.get(0), expressions.get(1));
+        return (expressions) -> DSL.add(expressions.get(0), expressions.get(1));
       case SUBTRACT:
-        return (expressions) -> dsl.subtract(expressions.get(0), expressions.get(1));
+        return (expressions) -> DSL.subtract(expressions.get(0), expressions.get(1));
       case MULTIPLY:
-        return (expressions) -> dsl.multiply(expressions.get(0), expressions.get(1));
+        return (expressions) -> DSL.multiply(expressions.get(0), expressions.get(1));
       case DIVIDE:
-        return (expressions) -> dsl.divide(expressions.get(0), expressions.get(1));
+        return (expressions) -> DSL.divide(expressions.get(0), expressions.get(1));
       case MODULES:
-        return (expressions) -> dsl.module(expressions.get(0), expressions.get(1));
+        return (expressions) -> DSL.module(expressions.get(0), expressions.get(1));
       default:
         throw new RuntimeException();
     }

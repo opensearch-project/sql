@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
+import org.opensearch.sql.opensearch.planner.physical.MLOperator;
 import org.opensearch.sql.planner.physical.AggregationOperator;
 import org.opensearch.sql.planner.physical.DedupeOperator;
 import org.opensearch.sql.planner.physical.EvalOperator;
@@ -147,6 +148,16 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
                     adOperator.getArguments(),
                     adOperator.getNodeClient()
                     )
+    );
+  }
+
+  @Override
+  public PhysicalPlan visitML(PhysicalPlan node, Object context) {
+    MLOperator mlOperator = (MLOperator) node;
+    return doProtect(
+            new MLOperator(visitInput(mlOperator.getInput(), context),
+                    mlOperator.getArguments(),
+                    mlOperator.getNodeClient())
     );
   }
 

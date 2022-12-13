@@ -70,7 +70,8 @@ public class ExpressionReferenceOptimizer
       final List<Expression> args =
           node.getArguments().stream().map(expr -> expr.accept(this, context))
               .collect(Collectors.toList());
-      return (Expression) repository.compile(node.getFunctionName(), args);
+      return (Expression) repository.compile(context.getFunctionProperties(),
+          node.getFunctionName(), args);
     }
   }
 

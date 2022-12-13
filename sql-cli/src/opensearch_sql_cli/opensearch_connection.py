@@ -27,6 +27,7 @@ class OpenSearchConnection:
         http_auth=None,
         use_aws_authentication=False,
         query_language="sql",
+        response_timeout=10
     ):
         """Initialize an OpenSearchConnection instance.
 
@@ -45,6 +46,7 @@ class OpenSearchConnection:
         self.http_auth = http_auth
         self.use_aws_authentication = use_aws_authentication
         self.query_language = query_language
+        self.response_timeout = response_timeout
 
     def get_indices(self):
         if self.client:
@@ -58,7 +60,7 @@ class OpenSearchConnection:
         region = session.region_name
 
         if credentials is not None:
-            self.aws_auth = AWS4Auth(credentials.access_key, credentials.secret_key, region, service)
+            self.aws_auth = AWS4Auth(credentials.access_key, credentials.secret_key, region, service, session_token=credentials.token)
         else:
             click.secho(
                 message="Can not retrieve your AWS credentials, check your AWS config",
@@ -167,14 +169,14 @@ class OpenSearchConnection:
                 data = self.client.transport.perform_request(
                     url="/_plugins/_sql/_explain" if explain else "/_plugins/_sql/",
                     method="POST",
-                    params=None if explain else {"format": output_format},
+                    params=None if explain else {"format": output_format, "request_timeout": self.response_timeout},
                     body={"query": final_query},
                 )
             else:
                 data = self.client.transport.perform_request(
                     url="/_plugins/_ppl/_explain" if explain else "/_plugins/_ppl/",
                     method="POST",
-                    params=None if explain else {"format": output_format},
+                    params=None if explain else {"format": output_format, "request_timeout": self.response_timeout},
                     body={"query": final_query},
                 )
             return data

@@ -7,6 +7,7 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.util.MatcherUtils.closeTo;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -24,6 +25,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   public void init() throws IOException {
     loadIndex(Index.BANK);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
+    loadIndex(Index.CALCS);
   }
 
   @Test
@@ -260,6 +262,22 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
         rows(5.656854249492381), rows(6.0), rows(5.291502622129181),
         rows(5.744562646538029), rows(6.0), rows(6.244997998398398),
         rows(5.830951894845301));
+  }
+
+  @Test
+  public void testCbrt() throws IOException {
+    JSONObject result =
+        executeQuery(
+                String.format(
+                        "source=%s | eval f = cbrt(num3) | fields f", TEST_INDEX_CALCS));
+    verifySchema(result, schema("f", null, "double"));
+    verifyDataRows(result,
+            closeTo(Math.cbrt(-11.52)), closeTo(Math.cbrt(-9.31)), closeTo(Math.cbrt(-12.17)),
+            closeTo(Math.cbrt(-7.25)), closeTo(Math.cbrt(12.93)), closeTo(Math.cbrt(-19.96)),
+            closeTo(Math.cbrt(10.93)), closeTo(Math.cbrt(3.64)), closeTo(Math.cbrt(-13.38)),
+            closeTo(Math.cbrt(-10.56)), closeTo(Math.cbrt(-4.79)), closeTo(Math.cbrt(-10.81)),
+            closeTo(Math.cbrt(-6.62)), closeTo(Math.cbrt(-18.43)), closeTo(Math.cbrt(6.84)),
+            closeTo(Math.cbrt(-10.98)), closeTo(Math.cbrt(-2.6)));
   }
 
   @Test

@@ -12,7 +12,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.ref;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
@@ -21,16 +20,10 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.env.Environment;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class DefaultExpressionSerializerTest {
-
-  /**
-   * Initialize function repository manually to avoid dependency on Spring container.
-   */
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
 
   private final ExpressionSerializer serializer = new DefaultExpressionSerializer();
 
@@ -50,15 +43,14 @@ class DefaultExpressionSerializerTest {
 
   @Test
   public void can_serialize_and_deserialize_predicates() {
-    Expression original = dsl.or(literal(true), dsl.less(literal(1), literal(2)));
+    Expression original = DSL.or(literal(true), DSL.less(literal(1), literal(2)));
     Expression actual = serializer.deserialize(serializer.serialize(original));
     assertEquals(original, actual);
   }
 
-  @Disabled("Bypass until all functions become serializable")
   @Test
   public void can_serialize_and_deserialize_functions() {
-    Expression original = dsl.abs(literal(30.0));
+    Expression original = DSL.abs(literal(30.0));
     Expression actual = serializer.deserialize(serializer.serialize(original));
     assertEquals(original, actual);
   }

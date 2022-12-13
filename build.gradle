@@ -8,17 +8,45 @@ buildscript {
     ext {
         opensearch_version = System.getProperty("opensearch.version", "3.0.0-SNAPSHOT")
         spring_version = "5.3.22"
-        jackson_version = "2.13.4"
+        jackson_version = "2.14.1"
+        jackson_databind_version = "2.14.1"
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
         version_tokens = opensearch_version.tokenize('-')
         opensearch_build = version_tokens[0] + '.0'
+        prometheus_binary_version = "2.37.2"
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
         }
         if (isSnapshot) {
             // 2.0.0-rc1-SNAPSHOT -> 2.0.0.0-rc1-SNAPSHOT (opensearch_build)
             opensearch_build += "-SNAPSHOT"
+        }
+        getArchType = {
+            if (System.getProperty("os.arch").startsWith("x") || System.getProperty("os.arch").startsWith("amd")) {
+                return "amd64"
+            }
+            else {
+                return "arm64"
+            }
+        }
+        getOSFamilyType = {
+            def os = org.gradle.internal.os.OperatingSystem.current();
+            if (os.isMacOsX()) {
+                return "darwin"
+            }
+            else if(os.isLinux()){
+                return "linux"
+            }
+            else if(os.isWindows()) {
+                return "windows"
+            }
+            else {
+                return os.getFamilyName().toString()
+            }
+        }
+        getPrometheusBinaryLocation = { ->
+            return "https://github.com/prometheus/prometheus/releases/download/v${prometheus_binary_version}/prometheus-${prometheus_binary_version}."+ getOSFamilyType() + "-" + getArchType() + ".tar.gz"
         }
     }
 

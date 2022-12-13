@@ -10,5 +10,8 @@ include_directories(	${UT_HELPER}
 # Generate executable
 add_executable(ut_rabbit ${SOURCE_FILES})
 
-target_link_libraries(ut_rabbit ut_helper gtest_main ${VLD})
+# Find packages from vcpkg
+find_package(GTest CONFIG REQUIRED)
+
+target_link_libraries(ut_rabbit ut_helper GTest::gtest_main ${VLD})
 target_compile_definitions(ut_rabbit PUBLIC _UNICODE UNICODE)

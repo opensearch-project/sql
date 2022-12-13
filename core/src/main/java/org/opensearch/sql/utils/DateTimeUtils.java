@@ -6,6 +6,7 @@
 package org.opensearch.sql.utils;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import lombok.experimental.UtilityClass;
@@ -84,4 +85,44 @@ public class DateTimeUtils {
     return initDateTime.plusYears(yearToAdd).toInstant().toEpochMilli();
   }
 
+  /**
+   * Get window start time which aligns with the given size.
+   *
+   * @param timestamp event timestamp
+   * @param size defines a window's start time to align with
+   * @return start timestamp of the window
+   */
+  public long getWindowStartTime(long timestamp, long size) {
+    return timestamp - timestamp % size;
+  }
+
+  /**
+   * isValidMySqlTimeZoneId for timezones which match timezone the range set by MySQL.
+   *
+   * @param zone ZoneId of ZoneId type.
+   * @return Boolean.
+   */
+  public Boolean isValidMySqlTimeZoneId(ZoneId zone) {
+    String timeZoneMax = "+14:00";
+    String timeZoneMin = "-13:59";
+    String timeZoneZero = "+00:00";
+
+    ZoneId maxTz = ZoneId.of(timeZoneMax);
+    ZoneId minTz = ZoneId.of(timeZoneMin);
+    ZoneId defaultTz = ZoneId.of(timeZoneZero);
+
+    ZonedDateTime defaultDateTime = LocalDateTime.of(2000, 1, 2, 12, 0).atZone(defaultTz);
+
+    ZonedDateTime maxTzValidator =
+        defaultDateTime.withZoneSameInstant(maxTz).withZoneSameLocal(defaultTz);
+    ZonedDateTime minTzValidator =
+        defaultDateTime.withZoneSameInstant(minTz).withZoneSameLocal(defaultTz);
+    ZonedDateTime passedTzValidator =
+        defaultDateTime.withZoneSameInstant(zone).withZoneSameLocal(defaultTz);
+
+    return (passedTzValidator.isBefore(maxTzValidator)
+        || passedTzValidator.isEqual(maxTzValidator))
+        && (passedTzValidator.isAfter(minTzValidator)
+        || passedTzValidator.isEqual(minTzValidator));
+  }
 }

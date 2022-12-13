@@ -77,4 +77,3 @@ jobs:
         with:
           name: workbench-${{ matrix.os }}
           path: ../OpenSearch-Dashboards/plugins/workbench/build
-          
