@@ -12,6 +12,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.BETWEEN
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LIKE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT_LIKE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.POSITION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEXP;
@@ -267,10 +268,15 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitBetweenPredicate(BetweenPredicateContext ctx) {
-    return new Function(BETWEEN.getName().getFunctionName(),
+    Function func = new Function(BETWEEN.getName().getFunctionName(),
         ctx.predicate().stream()
             .map(this::visit)
             .collect(Collectors.toList()));
+
+    if (ctx.NOT() != null) {
+      func = new Function(NOT.getName().getFunctionName(), Collections.singletonList(func));
+    }
+    return func;
   }
 
   @Override

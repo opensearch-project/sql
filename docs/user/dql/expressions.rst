@@ -134,6 +134,8 @@ Operators
 +----------------+----------------------------------------+
 | BETWEEN        | Between a range (endpoint inclusive)   |
 +----------------+----------------------------------------+
+| NOT BETWEEN    | Not between a range (between negation) |
++----------------+----------------------------------------+
 
 Basic Comparison Operator
 -------------------------
@@ -206,13 +208,16 @@ BETWEEN range test
 
 Here is an example for range test by BETWEEN expression::
 
-    os> SELECT 1 BETWEEN 1 AND 3, 4 BETWEEN 1 AND 3;
+    os> SELECT
+    ...  1 BETWEEN 1 AND 3,
+    ...  4 BETWEEN 1 AND 3,
+    ...  4 NOT BETWEEN 1 AND 3;
     fetched rows / total rows = 1/1
-    +---------------------+---------------------+
-    | 1 BETWEEN 1 AND 3   | 4 BETWEEN 1 AND 3   |
-    |---------------------+---------------------|
-    | True                | False               |
-    +---------------------+---------------------+
+    +---------------------+---------------------+-------------------------|
+    | 1 BETWEEN 1 AND 3   | 4 BETWEEN 1 AND 3   | 4 NOT BETWEEN 1 AND 3   |
+    |---------------------+---------------------|-------------------------|
+    | True                | False               | True                    |
+    +---------------------+---------------------+-------------------------|
 
 
 Function Call

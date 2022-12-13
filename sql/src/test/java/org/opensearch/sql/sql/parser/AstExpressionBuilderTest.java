@@ -270,6 +270,16 @@ class AstExpressionBuilderTest {
   }
 
   @Test
+  public void canBuildNotBetweenExpression() {
+    assertEquals(
+        function("not",
+            function("between",
+                qualifiedName("age"), intLiteral(10), intLiteral(30))),
+        buildExprAst("age NOT BETWEEN 10 AND 30")
+    );
+  }
+
+  @Test
   public void canBuildLogicalExpression() {
     assertEquals(
         and(booleanLiteral(true), booleanLiteral(false)),
