@@ -819,8 +819,4 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     FunctionExpression equal = DSL.equal(DSL.literal(1), DSL.literal(1L));
     assertTrue(equal.valueOf(valueEnv()).booleanValue());
   }
-
-  private boolean eval(Expression expr) {
-    return expr.valueOf().booleanValue();
-  }
 }

@@ -265,7 +265,8 @@ class AstExpressionBuilderTest {
   @Test
   public void canBuildBetweenExpression() {
     assertEquals(
-        between(qualifiedName("age"), intLiteral(10), intLiteral(30)),
+        between(
+            qualifiedName("age"), intLiteral(10), intLiteral(30)),
         buildExprAst("age BETWEEN 10 AND 30")
     );
   }
@@ -273,8 +274,9 @@ class AstExpressionBuilderTest {
   @Test
   public void canBuildNotBetweenExpression() {
     assertEquals(
-        function("not",
-            between(qualifiedName("age"), intLiteral(10), intLiteral(30))),
+        not(
+            between(
+                qualifiedName("age"), intLiteral(10), intLiteral(30))),
         buildExprAst("age NOT BETWEEN 10 AND 30")
     );
   }

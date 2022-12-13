@@ -275,7 +275,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
             visit(ctx.predicate(2)));
 
     if (ctx.NOT() != null) {
-      func = new Function(NOT.getName().getFunctionName(), Collections.singletonList(func));
+      func = AstDSL.not(func);
     }
     return func;
   }

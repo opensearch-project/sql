@@ -134,7 +134,7 @@ Operators
 +----------------+----------------------------------------+
 | BETWEEN        | Between a range (endpoint inclusive)   |
 +----------------+----------------------------------------+
-| NOT BETWEEN    | Not between a range (between negation) |
+| NOT BETWEEN    | Not between a range (BETWEEN negation) |
 +----------------+----------------------------------------+
 
 Basic Comparison Operator
