@@ -66,7 +66,7 @@ public class MatchIT extends SQLIntegTestCase {
   }
 
   @Test
-  public void alternate_syntaxes_return_the_same_results() throws IOException {
+  public void match_aliases_return_the_same_results() throws IOException {
     String query1 = "SELECT lastname FROM "
         + TEST_INDEX_ACCOUNT + " HAVING match(firstname, 'Nanette')";
     JSONObject result1 = executeJdbcRequest(query1);
@@ -75,6 +75,37 @@ public class MatchIT extends SQLIntegTestCase {
     JSONObject result2 = executeJdbcRequest(query2);
     String query3 = "SELECT lastname FROM "
         + TEST_INDEX_ACCOUNT + " HAVING match_query(firstname, 'Nanette')";
+    JSONObject result3 = executeJdbcRequest(query3);
+    assertEquals(result1.getInt("total"), result2.getInt("total"));
+    assertEquals(result1.getInt("total"), result3.getInt("total"));
+  }
+
+  @Test
+  public void match_query_alternate_syntax() throws IOException {
+    JSONObject result = executeJdbcRequest(
+        "SELECT lastname FROM " + TEST_INDEX_ACCOUNT + " WHERE lastname = match_query('Bates')");
+    verifySchema(result, schema("lastname", "text"));
+    verifyDataRows(result, rows("Bates"));
+  }
+
+  @Test
+  public void matchquery_alternate_syntax() throws IOException {
+    JSONObject result = executeJdbcRequest(
+        "SELECT lastname FROM " + TEST_INDEX_ACCOUNT + " WHERE lastname = matchquery('Bates')");
+    verifySchema(result, schema("lastname", "text"));
+    verifyDataRows(result, rows("Bates"));
+  }
+
+  @Test
+  public void match_alternate_syntaxes_return_the_same_results() throws IOException {
+    String query1 = "SELECT * FROM "
+        + TEST_INDEX_ACCOUNT + " WHERE match(firstname, 'Nanette')";
+    JSONObject result1 = executeJdbcRequest(query1);
+    String query2 = "SELECT * FROM "
+        + TEST_INDEX_ACCOUNT + " WHERE firstname = match_query('Nanette')";
+    JSONObject result2 = executeJdbcRequest(query2);
+    String query3 = "SELECT * FROM "
+        + TEST_INDEX_ACCOUNT + " WHERE firstname = matchquery('Nanette')";
     JSONObject result3 = executeJdbcRequest(query3);
     assertEquals(result1.getInt("total"), result2.getInt("total"));
     assertEquals(result1.getInt("total"), result3.getInt("total"));

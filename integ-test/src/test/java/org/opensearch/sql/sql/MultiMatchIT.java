@@ -124,4 +124,35 @@ public class MultiMatchIT extends SQLIntegTestCase {
     JSONObject result = executeJdbcRequest(query);
     assertEquals(2, result.getInt("total"));
   }
+
+  @Test
+  public void multi_match_alternate_syntax() throws IOException {
+    String query = "SELECT Id FROM " + TEST_INDEX_BEER
+        + " WHERE CreationDate = multi_match('2014-01-22');";
+    var result = new JSONObject(executeQuery(query, "jdbc"));
+    assertEquals(8, result.getInt("total"));
+  }
+
+  @Test
+  public void multimatch_alternate_syntax() throws IOException {
+    String query = "SELECT Id FROM " + TEST_INDEX_BEER
+        + " WHERE CreationDate = multimatch('2014-01-22');";
+    var result = new JSONObject(executeQuery(query, "jdbc"));
+    assertEquals(8, result.getInt("total"));
+  }
+
+  @Test
+  public void multi_match_alternate_syntaxes_return_the_same_results() throws IOException {
+    String query1 = "SELECT Id FROM " + TEST_INDEX_BEER
+        + " WHERE multi_match(['CreationDate'], '2014-01-22');";
+    String query2 = "SELECT Id FROM " + TEST_INDEX_BEER
+        + " WHERE CreationDate = multi_match('2014-01-22');";
+    String query3 = "SELECT Id FROM " + TEST_INDEX_BEER
+        + " WHERE CreationDate = multimatch('2014-01-22');";
+    var result1 = new JSONObject(executeQuery(query1, "jdbc"));
+    var result2 = new JSONObject(executeQuery(query2, "jdbc"));
+    var result3 = new JSONObject(executeQuery(query3, "jdbc"));
+    assertEquals(result1.getInt("total"), result2.getInt("total"));
+    assertEquals(result1.getInt("total"), result3.getInt("total"));
+  }
 }
