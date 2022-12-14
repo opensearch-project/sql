@@ -17,6 +17,7 @@ import org.opensearch.sql.planner.optimizer.rule.MergeFilterAndFilter;
 import org.opensearch.sql.planner.optimizer.rule.PushFilterUnderSort;
 import org.opensearch.sql.planner.optimizer.rule.read.CreateTableScanBuilder;
 import org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown;
+import org.opensearch.sql.planner.optimizer.rule.write.CreateTableWriteBuilder;
 
 /**
  * {@link LogicalPlan} Optimizer.
@@ -55,7 +56,8 @@ public class LogicalPlanOptimizer {
         TableScanPushDown.PUSH_DOWN_SORT,
         TableScanPushDown.PUSH_DOWN_LIMIT,
         TableScanPushDown.PUSH_DOWN_HIGHLIGHT,
-        TableScanPushDown.PUSH_DOWN_PROJECT));
+        TableScanPushDown.PUSH_DOWN_PROJECT,
+        new CreateTableWriteBuilder()));
   }
 
   /**
