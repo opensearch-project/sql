@@ -33,7 +33,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalNot
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalOrContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalXorContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.MultiFieldRelevanceFunctionContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ParentheticBinaryArithmeticContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ParentheticValueExprContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.PercentileAggFunctionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SingleFieldRelevanceFunctionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
@@ -154,18 +154,14 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitBinaryArithmetic(BinaryArithmeticContext ctx) {
     return new Function(
-        ctx.binaryOperator().getText(),
+        ctx.binaryOperator.getText(),
         Arrays.asList(visit(ctx.left), visit(ctx.right))
     );
   }
 
   @Override
-  public UnresolvedExpression visitParentheticBinaryArithmetic(
-      ParentheticBinaryArithmeticContext ctx) {
-    return new Function(
-        ctx.binaryOperator().getText(),
-        Arrays.asList(visit(ctx.left), visit(ctx.right))
-    );
+  public UnresolvedExpression visitParentheticValueExpr(ParentheticValueExprContext ctx) {
+    return visit(ctx.valueExpression()); // Discard parenthesis around
   }
 
   /**

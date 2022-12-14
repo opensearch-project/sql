@@ -154,7 +154,7 @@ class AstExpressionBuilderTest {
   }
 
   @Test
-  public void canBuildArithmeticExpressionWithPrecedence() {
+  public void canBuildArithmeticExpressionPrecedence() {
     assertEquals(
         function("+",
             intLiteral(1),
