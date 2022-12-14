@@ -68,12 +68,8 @@ plugins {
 }
 
 // import versions defined in https://github.com/opensearch-project/OpenSearch/blob/main/buildSrc/src/main/java/org/opensearch/gradle/OpenSearchJavaPlugin.java#L94
-apply plugin: 'opensearch.java'
 // versions https://github.com/opensearch-project/OpenSearch/blob/main/buildSrc/version.properties
-ext {
-    jackson_version = versions.jackson
-    jackson_databind_version = versions.jackson_databind
-}
+apply plugin: 'opensearch.java'
 
 // Repository on root level is for dependencies that project code depends on. And this block must be placed after plugins{}
 repositories {
