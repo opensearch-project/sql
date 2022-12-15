@@ -19,7 +19,7 @@ def path = project(':').projectDir
 // plugin module, and will only build ppl in it.
 def plugin_path = project(':doctest').projectDir
 
-task bootstrap(type: Exec) {
+task bootstrap(type: Exec,dependsOn: ['cloneSqlCli']) {
     inputs.file "$projectDir/bootstrap.sh"
     outputs.dir "$projectDir/.venv"
 
@@ -48,6 +48,9 @@ task startPrometheus(type: SpawnProcessTask) {
     pidLockFileName '.prom.pid.lock'
 }
 
+task cloneSqlCli(type: Exec) {
+    commandLine 'git', 'clone', 'https://github.com/opensearch-project/sql-cli.git'
+}
 
 //evaluationDependsOn(':')
 task startOpenSearch(type: SpawnProcessTask) {

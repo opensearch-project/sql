@@ -261,17 +261,17 @@ String bwcRemoteFile = "https://ci.opensearch.org/ci/dbc/distribution-build-open
 }
 
 List<Provider<RegularFile>> plugins = [
-    provider(new Callable<RegularFile>() {
-        @Override
-        RegularFile call() throws Exception {
-            return new RegularFile() {
-                @Override
-                File getAsFile() {
-                    return fileTree(bwcFilePath + project.version).getSingleFile()
+        provider(new Callable<RegularFile>() {
+            @Override
+            RegularFile call() throws Exception {
+                return new RegularFile() {
+                    @Override
+                    File getAsFile() {
+                        return fileTree(bwcFilePath + project.version).getSingleFile()
+                    }
                 }
             }
-        }
-    })
+        })
 ]
 
 // Creates 2 test clusters with 3 nodes of the old version.
