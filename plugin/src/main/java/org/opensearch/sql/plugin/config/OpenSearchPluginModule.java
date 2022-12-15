@@ -50,7 +50,8 @@ public class OpenSearchPluginModule extends AbstractModule {
       BuiltinFunctionRepository.getInstance();
 
   @Override
-  protected void configure() {}
+  protected void configure() {
+  }
 
   @Provides
   public OpenSearchClient openSearchClient() {
@@ -93,6 +94,9 @@ public class OpenSearchPluginModule extends AbstractModule {
     return new SQLService(new SQLSyntaxParser(), queryManager, queryPlanFactory);
   }
 
+  /**
+   * {@link QueryPlanFactory}.
+   */
   @Provides
   public QueryPlanFactory queryPlanFactory(ExecutionEngine executionEngine) {
     Analyzer analyzer =
