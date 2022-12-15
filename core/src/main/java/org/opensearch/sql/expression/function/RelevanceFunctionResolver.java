@@ -47,8 +47,8 @@ public class RelevanceFunctionResolver
       }
     }
 
-    FunctionBuilder buildFunction =
-        args -> new OpenSearchFunctions.OpenSearchFunction(functionName, args);
+    FunctionBuilder buildFunction = (functionProperties, args)
+        -> new OpenSearchFunctions.OpenSearchFunction(functionName, args);
     return Pair.of(unresolvedSignature, buildFunction);
   }
 

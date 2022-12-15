@@ -7,6 +7,7 @@
 package org.opensearch.sql.ppl.parser;
 
 import static java.util.Collections.emptyList;
+import static org.junit.Assert.assertFalse;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
@@ -44,13 +45,13 @@ import static org.opensearch.sql.ast.dsl.AstDSL.xor;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ast.expression.AllFields;
-import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
-import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
 
 public class AstExpressionBuilderTest extends AstBuilderTest {
@@ -164,6 +165,31 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             let(
                 field("f"),
                 function("abs", field("a"))
+            )
+        ));
+  }
+
+  @Test
+  public void testEvalFunctionExprNoArgs() {
+    assertEqual("source=t | eval f=PI()",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function("PI")
+            )
+        ));
+  }
+
+  @Test
+  public void testPositionFunctionExpr() {
+    assertEqual("source=t | eval f=position('substr' IN 'str')",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function("position",
+                        stringLiteral("substr"), stringLiteral("str"))
             )
         ));
   }
@@ -463,6 +489,33 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testTakeAggregationNoArgsShouldPass() {
+    assertEqual("source=t | stats take(a)",
+        agg(
+            relation("t"),
+            exprList(alias("take(a)",
+                aggregate("take", field("a"), unresolvedArg("size", intLiteral(10))))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()
+        ));
+  }
+
+  @Test
+  public void testTakeAggregationWithArgsShouldPass() {
+    assertEqual("source=t | stats take(a, 5)",
+        agg(
+            relation("t"),
+            exprList(alias("take(a, 5)",
+                aggregate("take", field("a"), unresolvedArg("size", intLiteral(5))))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()
+        ));
+  }
+
+
+  @Test
   public void testEvalFuncCallExpr() {
     assertEqual("source=t | eval f=abs(a)",
         eval(
@@ -486,7 +539,6 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         ));
   }
 
-  @Ignore("Nested field is not supported in backend yet")
   @Test
   public void testNestedFieldName() {
     assertEqual("source=t | fields field0.field1.field2",
@@ -511,7 +563,6 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         ));
   }
 
-  @Ignore("Nested field is not supported in backend yet")
   @Test
   public void testNestedFieldNameWithSpecialChars() {
     assertEqual("source=t | fields `field-0`.`field#1`.`field*2`",
@@ -714,5 +765,48 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             )
         )
     );
+  }
+
+  @Test
+  public void functionNameCanBeUsedAsIdentifier() {
+    assertFunctionNameCouldBeId(
+        "AVG | COUNT | SUM | MIN | MAX | VAR_SAMP | VAR_POP | STDDEV_SAMP | STDDEV_POP");
+    assertFunctionNameCouldBeId(
+        "CURRENT_DATE | CURRENT_TIME | CURRENT_TIMESTAMP | LOCALTIME | LOCALTIMESTAMP | "
+            + "UTC_TIMESTAMP | UTC_DATE | UTC_TIME | CURDATE | CURTIME | NOW");
+    assertFunctionNameCouldBeId(
+        "ADDDATE | CONVERT_TZ | DATE | DATE_ADD | DATE_FORMAT | DATE_SUB "
+            + "| DATETIME | DAY | DAYNAME | DAYOFMONTH "
+            + "| DAYOFWEEK | DAYOFYEAR | FROM_DAYS | FROM_UNIXTIME | HOUR | MAKEDATE | MAKETIME "
+            + "| MICROSECOND | MINUTE | MONTH | MONTHNAME "
+            + "| PERIOD_ADD | PERIOD_DIFF | QUARTER | SECOND | SUBDATE | SYSDATE | TIME "
+            + "| TIME_TO_SEC | TIMESTAMP | TO_DAYS | UNIX_TIMESTAMP | WEEK | YEAR");
+    assertFunctionNameCouldBeId(
+        "SUBSTR | SUBSTRING | TRIM | LTRIM | RTRIM | LOWER | UPPER | CONCAT | CONCAT_WS | LENGTH "
+            + "| STRCMP | RIGHT | LEFT | ASCII | LOCATE | REPLACE"
+    );
+    assertFunctionNameCouldBeId(
+        "ABS | CEIL | CEILING | CONV | CRC32 | E | EXP | FLOOR | LN | LOG"
+        + " | LOG10 | LOG2 | MOD | PI |POW | POWER | RAND | ROUND | SIGN | SQRT | TRUNCATE "
+            + "| ACOS | ASIN | ATAN | ATAN2 | COS | COT | DEGREES | RADIANS | SIN | TAN");
+  }
+
+  void assertFunctionNameCouldBeId(String antlrFunctionName) {
+    List<String> functionList =
+        Arrays.stream(antlrFunctionName.split("\\|")).map(String::stripLeading)
+            .map(String::stripTrailing).collect(
+            Collectors.toList());
+
+    assertFalse(functionList.isEmpty());
+    for (String functionName : functionList) {
+      assertEqual(String.format(Locale.ROOT, "source=t | fields %s", functionName),
+          projectWithArg(
+              relation("t"),
+              defaultFieldsArgs(),
+              field(
+                  qualifiedName(functionName)
+              )
+          ));
+    }
   }
 }

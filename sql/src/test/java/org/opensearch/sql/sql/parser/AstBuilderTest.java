@@ -32,20 +32,24 @@ import static org.opensearch.sql.utils.SystemIndexUtils.TABLE_INFO;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 
-class AstBuilderTest {
-
-  /**
-   * SQL syntax parser that helps prepare parse tree as AstBuilder input.
-   */
-  private final SQLSyntaxParser parser = new SQLSyntaxParser();
+class AstBuilderTest extends AstBuilderTestBase {
 
   @Test
   public void can_build_select_literals() {
@@ -671,25 +675,38 @@ class AstBuilderTest {
 
   @Test
   public void can_build_qualified_name_highlight() {
+    Map<String, Literal> args = new HashMap<>();
     assertEquals(
         project(relation("test"),
-            alias("highlight(fieldA)", highlight(AstDSL.qualifiedName("fieldA")))),
+            alias("highlight(fieldA)",
+                highlight(AstDSL.qualifiedName("fieldA"), args))),
         buildAST("SELECT highlight(fieldA) FROM test")
     );
   }
 
   @Test
-  public void can_build_string_literal_highlight() {
+  public void can_build_qualified_highlight_with_arguments() {
+    Map<String, Literal> args = new HashMap<>();
+    args.put("pre_tags", new Literal("<mark>", DataType.STRING));
+    args.put("post_tags", new Literal("</mark>", DataType.STRING));
     assertEquals(
         project(relation("test"),
-            alias("highlight(\"fieldA\")", highlight(AstDSL.stringLiteral("fieldA")))),
-        buildAST("SELECT highlight(\"fieldA\") FROM test")
+            alias("highlight(fieldA, pre_tags='<mark>', post_tags='</mark>')",
+                highlight(AstDSL.qualifiedName("fieldA"), args))),
+        buildAST("SELECT highlight(fieldA, pre_tags='<mark>', post_tags='</mark>') "
+            + "FROM test")
     );
   }
 
-  private UnresolvedPlan buildAST(String query) {
-    ParseTree parseTree = parser.parse(query);
-    return parseTree.accept(new AstBuilder(query));
+  @Test
+  public void can_build_string_literal_highlight() {
+    Map<String, Literal> args = new HashMap<>();
+    assertEquals(
+        project(relation("test"),
+            alias("highlight(\"fieldA\")",
+                highlight(AstDSL.stringLiteral("fieldA"), args))),
+        buildAST("SELECT highlight(\"fieldA\") FROM test")
+    );
   }
 
 }

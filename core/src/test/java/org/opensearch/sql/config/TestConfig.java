@@ -8,6 +8,7 @@ package org.opensearch.sql.config;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
+import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.analysis.symbol.SymbolTable;
@@ -55,14 +56,25 @@ public class TestConfig {
       .put(STRING_TYPE_MISSING_VALUE_FIELD, ExprCoreType.STRING)
       .put("struct_value", ExprCoreType.STRUCT)
       .put("array_value", ExprCoreType.ARRAY)
+      .put("timestamp_value", ExprCoreType.TIMESTAMP)
       .build();
 
   @Bean
   protected StorageEngine storageEngine() {
     return new StorageEngine() {
       @Override
-      public Table getTable(String name) {
+      public Table getTable(DataSourceSchemaName dataSourceSchemaName, String name) {
         return new Table() {
+          @Override
+          public boolean exists() {
+            return true;
+          }
+
+          @Override
+          public void create(Map<String, ExprType> schema) {
+            throw new UnsupportedOperationException("Create table is not supported");
+          }
+
           @Override
           public Map<String, ExprType> getFieldTypes() {
             return typeMapping;

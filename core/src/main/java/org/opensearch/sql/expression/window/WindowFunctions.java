@@ -54,9 +54,8 @@ public class WindowFunctions {
   private DefaultFunctionResolver rankingFunction(FunctionName functionName,
                                                   Supplier<RankingWindowFunction> constructor) {
     FunctionSignature functionSignature = new FunctionSignature(functionName, emptyList());
-    FunctionBuilder functionBuilder = arguments -> constructor.get();
+    FunctionBuilder functionBuilder = (functionProperties, arguments) -> constructor.get();
     return new DefaultFunctionResolver(functionName,
         ImmutableMap.of(functionSignature, functionBuilder));
   }
-
 }

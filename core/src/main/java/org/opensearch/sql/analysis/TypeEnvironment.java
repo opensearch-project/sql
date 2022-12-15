@@ -6,6 +6,8 @@
 
 package org.opensearch.sql.analysis;
 
+import static org.opensearch.sql.analysis.symbol.Namespace.FIELD_NAME;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -82,7 +84,7 @@ public class TypeEnvironment implements Environment<Symbol, ExprType> {
    * @param ref {@link ReferenceExpression}
    */
   public void define(ReferenceExpression ref) {
-    define(new Symbol(Namespace.FIELD_NAME, ref.getAttr()), ref.type());
+    define(new Symbol(FIELD_NAME, ref.getAttr()), ref.type());
   }
 
   public void remove(Symbol symbol) {
@@ -93,6 +95,14 @@ public class TypeEnvironment implements Environment<Symbol, ExprType> {
    * Remove ref.
    */
   public void remove(ReferenceExpression ref) {
-    remove(new Symbol(Namespace.FIELD_NAME, ref.getAttr()));
+    remove(new Symbol(FIELD_NAME, ref.getAttr()));
+  }
+
+  /**
+   * Clear all fields in the current environment.
+   */
+  public void clearAllFields() {
+    lookupAllFields(FIELD_NAME).keySet().stream()
+            .forEach(v -> remove(new Symbol(Namespace.FIELD_NAME, v)));
   }
 }

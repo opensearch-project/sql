@@ -55,7 +55,7 @@ public class BucketAggregationBuilder {
       return buildHistogram(
           expr.getNameOrAlias(),
           spanExpr.getField().toString(),
-          spanExpr.getValue().valueOf(null).doubleValue(),
+          spanExpr.getValue().valueOf().doubleValue(),
           spanExpr.getUnit(),
           missingOrder);
     } else {

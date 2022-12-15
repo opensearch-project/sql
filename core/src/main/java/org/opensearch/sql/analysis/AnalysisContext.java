@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Objects;
 import lombok.Getter;
 import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.function.FunctionProperties;
 
 /**
  * The context used for Analyzer.
@@ -23,13 +24,21 @@ public class AnalysisContext {
   @Getter
   private final List<NamedExpression> namedParseExpressions;
 
+  @Getter
+  private final FunctionProperties functionProperties;
+
   public AnalysisContext() {
     this(new TypeEnvironment(null));
   }
 
+  /**
+   * Class CTOR.
+   * @param environment Env to set to a new instance.
+   */
   public AnalysisContext(TypeEnvironment environment) {
     this.environment = environment;
     this.namedParseExpressions = new ArrayList<>();
+    this.functionProperties = new FunctionProperties();
   }
 
   /**

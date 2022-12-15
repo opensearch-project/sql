@@ -9,6 +9,7 @@ package org.opensearch.sql.opensearch.storage.system;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.hasEntry;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.named;
@@ -18,6 +19,7 @@ import static org.opensearch.sql.planner.logical.LogicalPlanDSL.relation;
 import static org.opensearch.sql.utils.SystemIndexUtils.TABLE_INFO;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -56,6 +58,19 @@ class OpenSearchSystemIndexTest {
     assertThat(fieldTypes, anyOf(
         hasEntry("COLUMN_NAME", STRING)
     ));
+  }
+
+  @Test
+  void testIsExist() {
+    Table systemIndex = new OpenSearchSystemIndex(client, TABLE_INFO);
+    assertTrue(systemIndex.exists());
+  }
+
+  @Test
+  void testCreateTable() {
+    Table systemIndex = new OpenSearchSystemIndex(client, TABLE_INFO);
+    assertThrows(UnsupportedOperationException.class,
+        () -> systemIndex.create(ImmutableMap.of()));
   }
 
   @Test

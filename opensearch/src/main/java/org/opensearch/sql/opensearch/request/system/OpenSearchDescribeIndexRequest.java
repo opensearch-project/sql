@@ -10,7 +10,6 @@ import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 import static org.opensearch.sql.opensearch.client.OpenSearchClient.META_CLUSTER_NAME;
 
-import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -38,33 +37,6 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
   private static final Integer DEFAULT_NULLABLE = 2;
 
   private static final String DEFAULT_IS_AUTOINCREMENT = "NO";
-
-  /**
-   * Type mapping from OpenSearch data type to expression type in our type system in query
-   * engine. TODO: geo, ip etc.
-   */
-  private static final Map<String, ExprType> OPENSEARCH_TYPE_TO_EXPR_TYPE_MAPPING =
-      ImmutableMap.<String, ExprType>builder()
-          .put("text", OpenSearchDataType.OPENSEARCH_TEXT)
-          .put("text_keyword", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)
-          .put("keyword", ExprCoreType.STRING)
-          .put("byte", ExprCoreType.BYTE)
-          .put("short", ExprCoreType.SHORT)
-          .put("integer", ExprCoreType.INTEGER)
-          .put("long", ExprCoreType.LONG)
-          .put("float", ExprCoreType.FLOAT)
-          .put("half_float", ExprCoreType.FLOAT)
-          .put("scaled_float", ExprCoreType.DOUBLE)
-          .put("double", ExprCoreType.DOUBLE)
-          .put("boolean", ExprCoreType.BOOLEAN)
-          .put("nested", ExprCoreType.ARRAY)
-          .put("object", ExprCoreType.STRUCT)
-          .put("date", ExprCoreType.TIMESTAMP)
-          .put("date_nanos", ExprCoreType.TIMESTAMP)
-          .put("ip", OpenSearchDataType.OPENSEARCH_IP)
-          .put("geo_point", OpenSearchDataType.OPENSEARCH_GEO_POINT)
-          .put("binary", OpenSearchDataType.OPENSEARCH_BINARY)
-          .build();
 
   /**
    * OpenSearch client connection.
@@ -132,7 +104,7 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
   }
 
   private ExprType transformESTypeToExprType(String openSearchType) {
-    return OPENSEARCH_TYPE_TO_EXPR_TYPE_MAPPING.getOrDefault(openSearchType, ExprCoreType.UNKNOWN);
+    return OpenSearchDataType.getExprType(openSearchType);
   }
 
   private ExprTupleValue row(String fieldName, String fieldType, int position, String clusterName) {

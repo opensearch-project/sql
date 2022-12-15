@@ -64,9 +64,9 @@ class ExplainTest extends ExpressionTestBase {
   @Test
   void can_explain_project_filter_table_scan() {
     Expression filterExpr =
-        dsl.and(
-            dsl.equal(ref("balance", INTEGER), literal(10000)),
-            dsl.greater(ref("age", INTEGER), literal(30)));
+        DSL.and(
+            DSL.equal(ref("balance", INTEGER), literal(10000)),
+            DSL.greater(ref("age", INTEGER), literal(30)));
     NamedExpression[] projectList = {
         named("full_name", ref("full_name", STRING), "name"),
         named("age", ref("age", INTEGER))
@@ -95,7 +95,7 @@ class ExplainTest extends ExpressionTestBase {
   void can_explain_aggregations() {
     List<Expression> aggExprs = ImmutableList.of(ref("balance", DOUBLE));
     List<NamedAggregator> aggList = ImmutableList.of(
-        named("avg(balance)", dsl.avg(aggExprs.toArray(new Expression[0]))));
+        named("avg(balance)", DSL.avg(aggExprs.toArray(new Expression[0]))));
     List<NamedExpression> groupByList = ImmutableList.of(
         named("state", ref("state", STRING)));
 
@@ -135,7 +135,7 @@ class ExplainTest extends ExpressionTestBase {
     List<Pair<Sort.SortOption, Expression>> sortList = ImmutableList.of(
         ImmutablePair.of(DEFAULT_ASC, ref("age", INTEGER)));
 
-    PhysicalPlan plan = window(tableScan, named(dsl.rank()),
+    PhysicalPlan plan = window(tableScan, named(DSL.rank()),
         new WindowDefinition(partitionByList, sortList));
 
     assertEquals(
@@ -160,7 +160,7 @@ class ExplainTest extends ExpressionTestBase {
     Map<ReferenceExpression, ReferenceExpression> renameMapping = ImmutableMap.of(
         ref("state", STRING), ref("s", STRING));
     Pair<ReferenceExpression, Expression> evalExprs = ImmutablePair.of(
-        ref("age", INTEGER), dsl.add(ref("age", INTEGER), literal(2)));
+        ref("age", INTEGER), DSL.add(ref("age", INTEGER), literal(2)));
     Expression[] dedupeList = {ref("age", INTEGER)};
     Pair<Sort.SortOption, Expression> sortList = ImmutablePair.of(
         DEFAULT_ASC, ref("age", INTEGER));

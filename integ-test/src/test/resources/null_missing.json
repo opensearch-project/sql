@@ -1,0 +1,18 @@
+{"index":{}}
+{"key" : "values", "int" : 42, "dbl" : 3.1415, "bool" : true, "str" : "pewpew", "date" : "1984-05-22", "time" : "22:13:37", "datetime" : "1984-05-22 22:13:37", "timestamp" : "2000-01-02 03:04:05" }
+{"index":{}}
+{"key" : "missing"}
+{"index":{}}
+{"key" : "missing"}
+{"index":{}}
+{"key" : "missing"}
+{"index":{}}
+{"key" : "missing"}
+{"index":{}}
+{"key" : "null", "int" : null, "dbl" : null, "bool" : null, "str" : null, "date" : null, "time" : null, "datetime" : null, "timestamp" : null}
+{"index":{}}
+{"key" : "null", "int" : null, "dbl" : null, "bool" : null, "str" : null, "date" : null, "time" : null, "datetime" : null, "timestamp" : null}
+{"index":{}}
+{"key" : "null", "int" : null, "dbl" : null, "bool" : null, "str" : null, "date" : null, "time" : null, "datetime" : null, "timestamp" : null}
+{"index":{}}
+{"key" : "null", "int" : null, "dbl" : null, "bool" : null, "str" : null, "date" : null, "time" : null, "datetime" : null, "timestamp" : null}

@@ -12,6 +12,7 @@ channels { WHITESPACE, ERRORCHANNEL }
 // COMMAND KEYWORDS
 SEARCH:                             'SEARCH';
 DESCRIBE:                           'DESCRIBE';
+SHOW:                               'SHOW';
 FROM:                               'FROM';
 WHERE:                              'WHERE';
 FIELDS:                             'FIELDS';
@@ -24,8 +25,16 @@ HEAD:                               'HEAD';
 TOP:                                'TOP';
 RARE:                               'RARE';
 PARSE:                              'PARSE';
+METHOD:                             'METHOD';
+REGEX:                              'REGEX';
+PUNCT:                              'PUNCT';
+GROK:                               'GROK';
+PATTERN:                            'PATTERN';
+PATTERNS:                           'PATTERNS';
+NEW_FIELD:                          'NEW_FIELD';
 KMEANS:                             'KMEANS';
 AD:                                 'AD';
+ML:                                 'ML';
 
 // COMMAND ASSIST KEYWORDS
 AS:                                 'AS';
@@ -34,6 +43,7 @@ SOURCE:                             'SOURCE';
 INDEX:                              'INDEX';
 D:                                  'D';
 DESC:                               'DESC';
+DATASOURCES:                        'DATASOURCES';
 
 // CLAUSE KEYWORDS
 SORTBY:                             'SORTBY';
@@ -60,6 +70,7 @@ SAMPLE_SIZE:                        'SAMPLE_SIZE';
 OUTPUT_AFTER:                       'OUTPUT_AFTER';
 TIME_DECAY:                         'TIME_DECAY';
 ANOMALY_RATE:                       'ANOMALY_RATE';
+CATEGORY_FIELD:                     'CATEGORY_FIELD';
 TIME_FIELD:                         'TIME_FIELD';
 TIME_ZONE:                          'TIME_ZONE';
 TRAINING_DATA_SIZE:                 'TRAINING_DATA_SIZE';
@@ -102,6 +113,7 @@ DAY_SECOND:                         'DAY_SECOND';
 DAY_MINUTE:                         'DAY_MINUTE';
 DAY_HOUR:                           'DAY_HOUR';
 YEAR_MONTH:                         'YEAR_MONTH';
+CONVERT_TZ:                         'CONVERT_TZ';
 
 // DATASET TYPES
 DATAMODEL:                          'DATAMODEL';
@@ -169,6 +181,7 @@ VAR_POP:                            'VAR_POP';
 STDDEV_SAMP:                        'STDDEV_SAMP';
 STDDEV_POP:                         'STDDEV_POP';
 PERCENTILE:                         'PERCENTILE';
+TAKE:                               'TAKE';
 FIRST:                              'FIRST';
 LAST:                               'LAST';
 LIST:                               'LIST';
@@ -188,6 +201,7 @@ DC:                                 'DC';
 
 // BASIC FUNCTIONS
 ABS:                                'ABS';
+CBRT:                               'CBRT';
 CEIL:                               'CEIL';
 CEILING:                            'CEILING';
 CONV:                               'CONV';
@@ -201,6 +215,7 @@ LOG10:                              'LOG10';
 LOG2:                               'LOG2';
 MOD:                                'MOD';
 PI:                                 'PI';
+POSITION:                           'POSITION';
 POW:                                'POW';
 POWER:                              'POWER';
 RAND:                               'RAND';
@@ -223,23 +238,39 @@ TAN:                                'TAN';
 
 // DATE AND TIME FUNCTIONS
 ADDDATE:                            'ADDDATE';
+CURDATE:                            'CURDATE';
+CURRENT_DATE:                       'CURRENT_DATE';
+CURRENT_TIME:                       'CURRENT_TIME';
+CURRENT_TIMESTAMP:                  'CURRENT_TIMESTAMP';
+CURTIME:                            'CURTIME';
 DATE:                               'DATE';
 DATE_ADD:                           'DATE_ADD';
+DATE_FORMAT:                        'DATE_FORMAT';
 DATE_SUB:                           'DATE_SUB';
+DAYNAME:                            'DAYNAME';
 DAYOFMONTH:                         'DAYOFMONTH';
 DAYOFWEEK:                          'DAYOFWEEK';
 DAYOFYEAR:                          'DAYOFYEAR';
-DAYNAME:                            'DAYNAME';
 FROM_DAYS:                          'FROM_DAYS';
+LOCALTIME:                          'LOCALTIME';
+LOCALTIMESTAMP:                     'LOCALTIMESTAMP';
+FROM_UNIXTIME:                      'FROM_UNIXTIME';
 MAKEDATE:                           'MAKEDATE';
 MAKETIME:                           'MAKETIME';
 MONTHNAME:                          'MONTHNAME';
+NOW:                                'NOW';
+PERIOD_ADD:                         'PERIOD_ADD';
+PERIOD_DIFF:                        'PERIOD_DIFF';
 SUBDATE:                            'SUBDATE';
+SYSDATE:                            'SYSDATE';
 TIME:                               'TIME';
 TIME_TO_SEC:                        'TIME_TO_SEC';
 TIMESTAMP:                          'TIMESTAMP';
-DATE_FORMAT:                        'DATE_FORMAT';
 TO_DAYS:                            'TO_DAYS';
+UTC_DATE:                           'UTC_DATE';
+UTC_TIME:                           'UTC_TIME';
+UTC_TIMESTAMP:                      'UTC_TIMESTAMP';
+UNIX_TIMESTAMP:                     'UNIX_TIMESTAMP';
 
 // TEXT FUNCTIONS
 SUBSTR:                             'SUBSTR';
@@ -259,6 +290,7 @@ LEFT:                               'LEFT';
 ASCII:                              'ASCII';
 LOCATE:                             'LOCATE';
 REPLACE:                            'REPLACE';
+REVERSE:                            'REVERSE';
 CAST:                               'CAST';
 
 // BOOL FUNCTIONS
@@ -270,6 +302,7 @@ ISNOTNULL:                          'ISNOTNULL';
 IFNULL:                             'IFNULL';
 NULLIF:                             'NULLIF';
 IF:                                 'IF';
+TYPEOF:                             'TYPEOF';
 
 // RELEVANCE FUNCTIONS AND PARAMETERS
 MATCH:                              'MATCH';
