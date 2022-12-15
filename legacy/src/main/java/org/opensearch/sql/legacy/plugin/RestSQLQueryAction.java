@@ -26,7 +26,6 @@ import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
-import org.opensearch.sql.opensearch.security.SecurityAccess;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.CsvResponseFormatter;
 import org.opensearch.sql.protocol.response.format.Format;
@@ -36,7 +35,6 @@ import org.opensearch.sql.protocol.response.format.RawResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.sql.SQLService;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 /**
  * New SQL REST action handler. This will not be registered to OpenSearch unless:
@@ -49,14 +47,14 @@ public class RestSQLQueryAction extends BaseRestHandler {
 
   public static final RestChannelConsumer NOT_SUPPORTED_YET = null;
 
-  private final AnnotationConfigApplicationContext applicationContext;
+  private final SQLService sqlService;
 
   /**
    * Constructor of RestSQLQueryAction.
    */
-  public RestSQLQueryAction(AnnotationConfigApplicationContext applicationContext) {
+  public RestSQLQueryAction(SQLService sqlService) {
     super();
-    this.applicationContext = applicationContext;
+    this.sqlService = sqlService;
   }
 
   @Override
@@ -89,9 +87,6 @@ public class RestSQLQueryAction extends BaseRestHandler {
     if (!request.isSupported()) {
       return channel -> fallbackHandler.accept(channel, new IllegalStateException("not supported"));
     }
-
-    SQLService sqlService =
-        SecurityAccess.doPrivileged(() -> applicationContext.getBean(SQLService.class));
 
     if (request.isExplainRequest()) {
       return channel ->

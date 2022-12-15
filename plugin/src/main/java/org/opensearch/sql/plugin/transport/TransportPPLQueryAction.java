@@ -22,7 +22,6 @@ import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
-import org.opensearch.sql.opensearch.security.SecurityAccess;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.ppl.PPLService;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
@@ -36,7 +35,6 @@ import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.VisualizationResponseFormatter;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 /** Send PPL query transport action. */
 public class TransportPPLQueryAction
@@ -49,8 +47,7 @@ public class TransportPPLQueryAction
   /** Settings required by been initialization. */
   private final Settings pluginSettings;
 
-  private final AnnotationConfigApplicationContext applicationContext;
-
+  private final PPLService pplService;
 
   /** Constructor of TransportPPLQueryAction. */
   @Inject
@@ -59,12 +56,12 @@ public class TransportPPLQueryAction
       ActionFilters actionFilters,
       NodeClient client,
       ClusterService clusterService,
-      AnnotationConfigApplicationContext applicationContext) {
+      PPLService pplService) {
     super(PPLQueryAction.NAME, transportService, actionFilters, TransportPPLQueryRequest::new);
     this.client = client;
     this.clusterService = clusterService;
     this.pluginSettings = new OpenSearchSettings(clusterService.getClusterSettings());
-    this.applicationContext = applicationContext;
+    this.pplService = pplService;
   }
 
   /**
@@ -79,8 +76,6 @@ public class TransportPPLQueryAction
 
     QueryContext.addRequestId();
 
-    PPLService pplService =
-        SecurityAccess.doPrivileged(() -> applicationContext.getBean(PPLService.class));
     TransportPPLQueryRequest transportRequest = TransportPPLQueryRequest.fromActionRequest(request);
     // in order to use PPL service, we need to convert TransportPPLQueryRequest to PPLQueryRequest
     PPLQueryRequest transformedRequest = transportRequest.toPPLQueryRequest();

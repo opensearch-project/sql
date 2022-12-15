@@ -22,13 +22,10 @@ import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 /**
  * Configuration will be used for UT.
  */
-@Configuration
 public class TestConfig {
   public static final String INT_TYPE_NULL_VALUE_FIELD = "int_null_value";
   public static final String INT_TYPE_MISSING_VALUE_FIELD = "int_missing_value";
@@ -59,7 +56,6 @@ public class TestConfig {
       .put("timestamp_value", ExprCoreType.TIMESTAMP)
       .build();
 
-  @Bean
   protected StorageEngine storageEngine() {
     return new StorageEngine() {
       @Override
@@ -89,8 +85,6 @@ public class TestConfig {
     };
   }
 
-
-  @Bean
   protected SymbolTable symbolTable() {
     SymbolTable symbolTable = new SymbolTable();
     typeMapping.entrySet()
@@ -100,7 +94,6 @@ public class TestConfig {
     return symbolTable;
   }
 
-  @Bean
   protected Environment<Expression, ExprType> typeEnv() {
     return var -> {
       if (var instanceof ReferenceExpression) {

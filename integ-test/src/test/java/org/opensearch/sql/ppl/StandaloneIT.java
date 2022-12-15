@@ -16,10 +16,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.common.inject.AbstractModule;
+import org.opensearch.common.inject.Injector;
+import org.opensearch.common.inject.ModulesBuilder;
+import org.opensearch.common.inject.Provides;
+import org.opensearch.common.inject.Singleton;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.analysis.ExpressionAnalyzer;
 import org.opensearch.sql.common.response.ResponseListener;
@@ -32,27 +38,27 @@ import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
-import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.monitor.AlwaysHealthyMonitor;
+import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.client.OpenSearchRestClient;
 import org.opensearch.sql.opensearch.executor.OpenSearchExecutionEngine;
+import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
 import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProtector;
+import org.opensearch.sql.opensearch.security.SecurityAccess;
 import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
+import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
-import org.opensearch.sql.ppl.config.PPLServiceConfig;
+import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
+import org.opensearch.sql.sql.SQLService;
+import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.storage.DataSourceFactory;
+import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.util.ExecuteOnCallerThreadQueryManager;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Scope;
 
 /**
  * Run PPL with query engine outside OpenSearch cluster. This IT doesn't require our plugin
@@ -67,27 +73,19 @@ public class StandaloneIT extends PPLIntegTestCase {
 
   @Override
   public void init() {
-    // Using client() defined in ODFERestTestCase.
     restClient = new InternalRestHighLevelClient(client());
-
     OpenSearchClient client = new OpenSearchRestClient(restClient);
-    AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
-    context.registerBean(ExecutionEngine.class, () -> new OpenSearchExecutionEngine(client,
-        new OpenSearchExecutionProtector(new AlwaysHealthyMonitor())));
-    context.registerBean(OpenSearchClient.class, () -> client);
-    context.registerBean(Settings.class, () -> defaultSettings());
-    context.registerBean(FunctionProperties.class, FunctionProperties::new);
     DataSourceService dataSourceService = new DataSourceServiceImpl(
         new ImmutableSet.Builder<DataSourceFactory>()
             .add(new OpenSearchDataSourceFactory(client, defaultSettings()))
             .build());
     dataSourceService.addDataSource(defaultOpenSearchDataSourceMetadata());
-    context.registerBean(DataSourceService.class, () -> dataSourceService);
-    context.register(StandaloneConfig.class);
-    context.register(PPLServiceConfig.class);
-    context.refresh();
 
-    pplService = context.getBean(PPLService.class);
+    ModulesBuilder modules = new ModulesBuilder();
+    modules.add(new StandaloneModule(new InternalRestHighLevelClient(client()), defaultSettings(), dataSourceService));
+    Injector injector = modules.createInjector();
+    pplService =
+        SecurityAccess.doPrivileged(() -> injector.getInstance(PPLService.class));
   }
 
   @Test
@@ -170,27 +168,68 @@ public class StandaloneIT extends PPLIntegTestCase {
     }
   }
 
-  @Configuration
-  static class StandaloneConfig {
-    @Autowired
-    private DataSourceService dataSourceService;
+  @RequiredArgsConstructor
+  public class StandaloneModule extends AbstractModule {
 
-    @Autowired
-    private ExecutionEngine executionEngine;
+    private final RestHighLevelClient client;
 
-    @Bean
-    QueryManager queryManager() {
+    private final Settings settings;
+
+    private final DataSourceService dataSourceService;
+
+    private final BuiltinFunctionRepository functionRepository =
+        BuiltinFunctionRepository.getInstance();
+
+    @Override
+    protected void configure() {}
+
+    @Provides
+    public OpenSearchClient openSearchClient() {
+      return new OpenSearchRestClient(client);
+    }
+
+    @Provides
+    public StorageEngine storageEngine(OpenSearchClient client) {
+      return new OpenSearchStorageEngine(client, settings);
+    }
+
+    @Provides
+    public ExecutionEngine executionEngine(OpenSearchClient client, ExecutionProtector protector) {
+      return new OpenSearchExecutionEngine(client, protector);
+    }
+
+    @Provides
+    public ResourceMonitor resourceMonitor() {
+      return new AlwaysHealthyMonitor();
+    }
+
+    @Provides
+    public ExecutionProtector protector(ResourceMonitor resourceMonitor) {
+      return new OpenSearchExecutionProtector(resourceMonitor);
+    }
+
+    @Provides
+    @Singleton
+    public QueryManager queryManager() {
       return new ExecuteOnCallerThreadQueryManager();
     }
 
-    @Bean
-    @Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    QueryPlanFactory queryExecutionFactory() {
-      BuiltinFunctionRepository functionRepository = BuiltinFunctionRepository.getInstance();
-      Analyzer analyzer = new Analyzer(new ExpressionAnalyzer(functionRepository),
-          dataSourceService, functionRepository);
-      Planner planner =
-          new Planner(LogicalPlanOptimizer.create());
+    @Provides
+    public PPLService pplService(QueryManager queryManager, QueryPlanFactory queryPlanFactory) {
+      return new PPLService(new PPLSyntaxParser(), queryManager, queryPlanFactory);
+    }
+
+    @Provides
+    public SQLService sqlService(QueryManager queryManager, QueryPlanFactory queryPlanFactory) {
+      return new SQLService(new SQLSyntaxParser(), queryManager, queryPlanFactory);
+    }
+
+    @Provides
+    public QueryPlanFactory queryPlanFactory(ExecutionEngine executionEngine) {
+      Analyzer analyzer =
+          new Analyzer(
+              new ExpressionAnalyzer(functionRepository), dataSourceService, functionRepository);
+      Planner planner = new Planner(LogicalPlanOptimizer.create());
       return new QueryPlanFactory(new QueryService(analyzer, executionEngine, planner));
     }
   }
