@@ -77,9 +77,7 @@ import org.opensearch.sql.plugin.rest.RestQuerySettingsAction;
 import org.opensearch.sql.plugin.transport.PPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
-import org.opensearch.sql.ppl.PPLService;
 import org.opensearch.sql.prometheus.storage.PrometheusStorageFactory;
-import org.opensearch.sql.sql.SQLService;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.threadpool.ExecutorBuilder;
 import org.opensearch.threadpool.FixedExecutorBuilder;
@@ -99,9 +97,9 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
 
   private NodeClient client;
 
-  private SQLService sqlService;
-
   private DataSourceService dataSourceService;
+
+  private Injector injector;
 
   public String name() {
     return "sql";
@@ -128,7 +126,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
 
     return Arrays.asList(
         new RestPPLQueryAction(pluginSettings, settings),
-        new RestSqlAction(settings, sqlService),
+        new RestSqlAction(settings, injector),
         new RestSqlStatsAction(settings, restController),
         new RestPPLStatsAction(settings, restController),
         new RestQuerySettingsAction(settings, restController));
@@ -174,16 +172,15 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
     LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
 
     ModulesBuilder modules = new ModulesBuilder();
-    modules.add(
-        new OpenSearchPluginModule((NodeClient) client, pluginSettings, dataSourceService));
-    Injector injector = modules.createInjector();
-    PPLService pplService =
-        SecurityAccess.doPrivileged(() -> injector.getInstance(PPLService.class));
-    this.sqlService = SecurityAccess.doPrivileged(() -> injector.getInstance(SQLService.class));
+    modules.add(new OpenSearchPluginModule());
+    modules.add(b -> {
+      b.bind(NodeClient.class).toInstance((NodeClient) client);
+      b.bind(org.opensearch.sql.common.setting.Settings.class).toInstance(pluginSettings);
+      b.bind(DataSourceService.class).toInstance(dataSourceService);
+    });
 
-    // return objects used by Guice to inject dependencies for e.g.,
-    // transport action handler constructors
-    return ImmutableList.of(pplService);
+    injector = modules.createInjector();
+    return ImmutableList.of(injector);
   }
 
   @Override

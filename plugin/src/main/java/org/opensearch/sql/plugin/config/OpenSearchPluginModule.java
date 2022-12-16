@@ -40,12 +40,6 @@ import org.opensearch.sql.storage.StorageEngine;
 @RequiredArgsConstructor
 public class OpenSearchPluginModule extends AbstractModule {
 
-  private final NodeClient nodeClient;
-
-  private final Settings settings;
-
-  private final DataSourceService dataSourceService;
-
   private final BuiltinFunctionRepository functionRepository =
       BuiltinFunctionRepository.getInstance();
 
@@ -54,12 +48,12 @@ public class OpenSearchPluginModule extends AbstractModule {
   }
 
   @Provides
-  public OpenSearchClient openSearchClient() {
+  public OpenSearchClient openSearchClient(NodeClient nodeClient) {
     return new OpenSearchNodeClient(nodeClient);
   }
 
   @Provides
-  public StorageEngine storageEngine(OpenSearchClient client) {
+  public StorageEngine storageEngine(OpenSearchClient client, Settings settings) {
     return new OpenSearchStorageEngine(client, settings);
   }
 
@@ -69,7 +63,7 @@ public class OpenSearchPluginModule extends AbstractModule {
   }
 
   @Provides
-  public ResourceMonitor resourceMonitor() {
+  public ResourceMonitor resourceMonitor(Settings settings) {
     return new OpenSearchResourceMonitor(settings, new OpenSearchMemoryHealthy());
   }
 
@@ -80,7 +74,7 @@ public class OpenSearchPluginModule extends AbstractModule {
 
   @Provides
   @Singleton
-  public QueryManager queryManager() {
+  public QueryManager queryManager(NodeClient nodeClient) {
     return new OpenSearchQueryManager(nodeClient);
   }
 
@@ -98,7 +92,8 @@ public class OpenSearchPluginModule extends AbstractModule {
    * {@link QueryPlanFactory}.
    */
   @Provides
-  public QueryPlanFactory queryPlanFactory(ExecutionEngine executionEngine) {
+  public QueryPlanFactory queryPlanFactory(
+      DataSourceService dataSourceService, ExecutionEngine executionEngine) {
     Analyzer analyzer =
         new Analyzer(
             new ExpressionAnalyzer(functionRepository), dataSourceService, functionRepository);

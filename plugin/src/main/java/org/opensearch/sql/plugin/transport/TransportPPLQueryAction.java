@@ -16,12 +16,14 @@ import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.common.inject.Injector;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.sql.opensearch.security.SecurityAccess;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.ppl.PPLService;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
@@ -47,7 +49,8 @@ public class TransportPPLQueryAction
   /** Settings required by been initialization. */
   private final Settings pluginSettings;
 
-  private final PPLService pplService;
+  private final Injector injector;
+
 
   /** Constructor of TransportPPLQueryAction. */
   @Inject
@@ -56,12 +59,12 @@ public class TransportPPLQueryAction
       ActionFilters actionFilters,
       NodeClient client,
       ClusterService clusterService,
-      PPLService pplService) {
+      Injector injector) {
     super(PPLQueryAction.NAME, transportService, actionFilters, TransportPPLQueryRequest::new);
     this.client = client;
     this.clusterService = clusterService;
     this.pluginSettings = new OpenSearchSettings(clusterService.getClusterSettings());
-    this.pplService = pplService;
+    this.injector = injector;
   }
 
   /**
@@ -76,6 +79,8 @@ public class TransportPPLQueryAction
 
     QueryContext.addRequestId();
 
+    PPLService pplService =
+        SecurityAccess.doPrivileged(() -> injector.getInstance(PPLService.class));
     TransportPPLQueryRequest transportRequest = TransportPPLQueryRequest.fromActionRequest(request);
     // in order to use PPL service, we need to convert TransportPPLQueryRequest to PPLQueryRequest
     PPLQueryRequest transformedRequest = transportRequest.toPPLQueryRequest();

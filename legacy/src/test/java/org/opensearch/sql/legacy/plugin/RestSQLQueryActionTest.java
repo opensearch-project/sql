@@ -20,8 +20,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.client.node.NodeClient;
+import org.opensearch.common.inject.Injector;
+import org.opensearch.common.inject.ModulesBuilder;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
@@ -31,9 +35,15 @@ import org.opensearch.sql.executor.execution.QueryPlanFactory;
 import org.opensearch.sql.sql.SQLService;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
+import org.opensearch.threadpool.ThreadPool;
 
 @RunWith(MockitoJUnitRunner.class)
 public class RestSQLQueryActionTest extends BaseRestHandler {
+
+  private NodeClient nodeClient;
+
+  @Mock
+  private ThreadPool threadPool;
 
   @Mock
   private QueryManager queryManager;
@@ -44,11 +54,18 @@ public class RestSQLQueryActionTest extends BaseRestHandler {
   @Mock
   private RestChannel restChannel;
 
-  private SQLService sqlService;
+  private Injector injector;
 
   @Before
   public void setup() {
-    sqlService = new SQLService(new SQLSyntaxParser(), queryManager, factory);
+    nodeClient = new NodeClient(org.opensearch.common.settings.Settings.EMPTY, threadPool);
+    ModulesBuilder modules = new ModulesBuilder();
+    modules.add(b -> {
+      b.bind(SQLService.class).toInstance(new SQLService(new SQLSyntaxParser(), queryManager, factory));
+    });
+    injector = modules.createInjector();
+    Mockito.lenient().when(threadPool.getThreadContext())
+        .thenReturn(new ThreadContext(org.opensearch.common.settings.Settings.EMPTY));
   }
 
   @Test
@@ -59,7 +76,7 @@ public class RestSQLQueryActionTest extends BaseRestHandler {
         QUERY_API_ENDPOINT,
         "");
 
-    RestSQLQueryAction queryAction = new RestSQLQueryAction(sqlService);
+    RestSQLQueryAction queryAction = new RestSQLQueryAction(injector);
     queryAction.prepareRequest(request, (channel, exception) -> {
       fail();
     }, (channel, exception) -> {
@@ -75,7 +92,7 @@ public class RestSQLQueryActionTest extends BaseRestHandler {
         EXPLAIN_API_ENDPOINT,
         "");
 
-    RestSQLQueryAction queryAction = new RestSQLQueryAction(sqlService);
+    RestSQLQueryAction queryAction = new RestSQLQueryAction(injector);
     queryAction.prepareRequest(request, (channel, exception) -> {
       fail();
     }, (channel, exception) -> {
@@ -93,7 +110,7 @@ public class RestSQLQueryActionTest extends BaseRestHandler {
         "");
 
     AtomicBoolean fallback = new AtomicBoolean(false);
-    RestSQLQueryAction queryAction = new RestSQLQueryAction(sqlService);
+    RestSQLQueryAction queryAction = new RestSQLQueryAction(injector);
     queryAction.prepareRequest(request, (channel, exception) -> {
       fallback.set(true);
       assertTrue(exception instanceof SyntaxCheckException);
@@ -118,7 +135,7 @@ public class RestSQLQueryActionTest extends BaseRestHandler {
         .submit(any());
 
     AtomicBoolean executionErrorHandler = new AtomicBoolean(false);
-    RestSQLQueryAction queryAction = new RestSQLQueryAction(sqlService);
+    RestSQLQueryAction queryAction = new RestSQLQueryAction(injector);
     queryAction.prepareRequest(request, (channel, exception) -> {
       assertTrue(exception instanceof SyntaxCheckException);
     }, (channel, exception) -> {
