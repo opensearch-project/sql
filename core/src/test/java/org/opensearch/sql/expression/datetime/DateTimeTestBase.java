@@ -5,15 +5,13 @@
 
 package org.opensearch.sql.expression.datetime;
 
+import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
+
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprMissingValue;
@@ -24,34 +22,50 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.FunctionExpression;
-import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
-import org.opensearch.sql.expression.function.FunctionProperties;
 
-@ExtendWith(MockitoExtension.class)
 public class DateTimeTestBase extends ExpressionTestBase {
 
   protected final BuiltinFunctionRepository functionRepository
       = BuiltinFunctionRepository.getInstance();
-
-  @Mock
-  protected Environment<Expression, ExprValue> env;
-
-
-  protected static FunctionProperties functionProperties;
-
-  @BeforeAll
-  public static void setup() {
-    functionProperties = new FunctionProperties();
-  }
 
   protected Expression nullRef = DSL.literal(ExprNullValue.of());
 
   protected Expression missingRef = DSL.literal(ExprMissingValue.of());
 
   protected ExprValue eval(Expression expression) {
-    return expression.valueOf(env);
+    return expression.valueOf();
+  }
+
+  protected FunctionExpression adddate(Expression date, Expression interval) {
+    return (FunctionExpression) functionRepository.compile(functionProperties,
+        BuiltinFunctionName.ADDDATE.getName(), List.of(date, interval));
+  }
+
+  protected ExprValue adddate(Object first, Object interval) {
+    return adddate(DSL.literal(fromObjectValue(first)), DSL.literal(fromObjectValue(interval)))
+        .valueOf(null);
+  }
+
+  protected FunctionExpression date_add(Expression date, Expression interval) {
+    return (FunctionExpression) functionRepository.compile(functionProperties,
+        BuiltinFunctionName.DATE_ADD.getName(), List.of(date, interval));
+  }
+
+  protected ExprValue date_add(Object first, Object second) {
+    return date_add(DSL.literal(fromObjectValue(first)), DSL.literal(fromObjectValue(second)))
+        .valueOf(null);
+  }
+
+  protected FunctionExpression date_sub(Expression date, Expression interval) {
+    return (FunctionExpression) functionRepository.compile(functionProperties,
+        BuiltinFunctionName.DATE_SUB.getName(), List.of(date, interval));
+  }
+
+  protected ExprValue date_sub(Object first, Object second) {
+    return date_sub(DSL.literal(fromObjectValue(first)), DSL.literal(fromObjectValue(second)))
+        .valueOf(null);
   }
 
   protected LocalDateTime fromUnixTime(Double value) {
@@ -130,6 +144,16 @@ public class DateTimeTestBase extends ExpressionTestBase {
         .valueOf().integerValue();
   }
 
+  protected FunctionExpression subdate(Expression date, Expression interval) {
+    return (FunctionExpression) functionRepository.compile(functionProperties,
+        BuiltinFunctionName.SUBDATE.getName(), List.of(date, interval));
+  }
+
+  protected ExprValue subdate(Object first, Object interval) {
+    return subdate(DSL.literal(fromObjectValue(first)), DSL.literal(fromObjectValue(interval)))
+        .valueOf(null);
+  }
+
   protected FunctionExpression unixTimeStampExpr() {
     return (FunctionExpression) functionRepository.compile(
         functionProperties, BuiltinFunctionName.UNIX_TIMESTAMP.getName(), List.of());
@@ -144,7 +168,6 @@ public class DateTimeTestBase extends ExpressionTestBase {
         functionRepository.compile(functionProperties,
             BuiltinFunctionName.UNIX_TIMESTAMP.getName(), List.of(value));
   }
-
 
   protected Double unixTimeStampOf(Double value) {
     return unixTimeStampOf(DSL.literal(value)).valueOf().doubleValue();
