@@ -154,6 +154,17 @@ class AstExpressionBuilderTest {
   }
 
   @Test
+  public void canBuildArithmeticExpressionPrecedence() {
+    assertEquals(
+        function("+",
+            intLiteral(1),
+            function("*",
+                intLiteral(2), intLiteral(3))),
+        buildExprAst("1 + 2 * 3")
+    );
+  }
+
+  @Test
   public void canBuildFunctionWithoutArguments() {
     assertEquals(
         function("PI"),

@@ -227,6 +227,30 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testBinaryOperationExprWithParentheses() {
+    assertEqual("source = t | where a = (1 + 2) * 3",
+        filter(
+            relation("t"),
+            compare("=",
+                field("a"),
+                function("*",
+                    function("+", intLiteral(1), intLiteral(2)),
+                    intLiteral(3)))));
+  }
+
+  @Test
+  public void testBinaryOperationExprPrecedence() {
+    assertEqual("source = t | where a = 1 + 2 * 3",
+        filter(
+            relation("t"),
+            compare("=",
+                field("a"),
+                function("+",
+                    intLiteral(1),
+                    function("*", intLiteral(2), intLiteral(3))))));
+  }
+
+  @Test
   public void testCompareExpr() {
     assertEqual("source=t a='b'",
         filter(
