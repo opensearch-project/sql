@@ -293,11 +293,12 @@ expressionAtom
     | columnName                                                    #fullColumnNameExpressionAtom
     | functionCall                                                  #functionCallExpressionAtom
     | LR_BRACKET expression RR_BRACKET                              #nestedExpressionAtom
-    | left=expressionAtom mathOperator right=expressionAtom         #mathExpressionAtom
-    ;
-
-mathOperator
-    : PLUS | MINUS | STAR | DIVIDE | MODULE
+    | left=expressionAtom
+        mathOperator=(STAR | DIVIDE | MODULE)
+            right=expressionAtom                                    #mathExpressionAtom
+    | left=expressionAtom
+        mathOperator=(PLUS | MINUS)
+            right=expressionAtom                                    #mathExpressionAtom
     ;
 
 comparisonOperator

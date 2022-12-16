@@ -133,7 +133,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitMathExpressionAtom(MathExpressionAtomContext ctx) {
     return new Function(
-        ctx.mathOperator().getText(),
+        ctx.mathOperator.getText(),
         Arrays.asList(visit(ctx.left), visit(ctx.right))
     );
   }
