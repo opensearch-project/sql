@@ -34,23 +34,6 @@ Aggregation over expression is not supported for now. You can only apply aggrega
 Here's a link to the Github issue - [Issue #288](https://github.com/opendistro-for-elasticsearch/sql/issues/288).
 
 
-Limitations on Subqueries
-=========================
-
-Subqueries in the FROM clause
------------------------------
-
-Subquery in the `FROM` clause in this format: `SELECT outer FROM (SELECT inner)` is supported only when the query is merged into one query. For example, the following query is supported::
-
-    SELECT t.f, t.d
-    FROM (
-        SELECT FlightNum as f, DestCountry as d
-        FROM opensearch_dashboards_sample_data_flights
-        WHERE OriginCountry = 'US') t
-
-But, if the outer query has `GROUP BY` or `ORDER BY`, then it's not supported.
-
-
 Limitations on JOINs
 ====================
 
