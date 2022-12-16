@@ -1,0 +1,1 @@
+SELECT ABS(`flights`.`AvgTicketPrice`) FROM (SELECT `AvgTicketPrice` FROM `opensearch_dashboards_sample_data_flights`) AS `flights` GROUP BY ABS(`flights`.`AvgTicketPrice`)
