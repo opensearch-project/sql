@@ -9,6 +9,7 @@ package org.opensearch.sql.sql.parser;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.and;
+import static org.opensearch.sql.ast.dsl.AstDSL.between;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.caseWhen;
 import static org.opensearch.sql.ast.dsl.AstDSL.dateLiteral;
@@ -269,6 +270,25 @@ class AstExpressionBuilderTest {
     assertEquals(
         function("regexp", stringLiteral("str"), stringLiteral(".*")),
         buildExprAst("'str' regexp '.*'")
+    );
+  }
+
+  @Test
+  public void canBuildBetweenExpression() {
+    assertEquals(
+        between(
+            qualifiedName("age"), intLiteral(10), intLiteral(30)),
+        buildExprAst("age BETWEEN 10 AND 30")
+    );
+  }
+
+  @Test
+  public void canBuildNotBetweenExpression() {
+    assertEquals(
+        not(
+            between(
+                qualifiedName("age"), intLiteral(10), intLiteral(30))),
+        buildExprAst("age NOT BETWEEN 10 AND 30")
     );
   }
 

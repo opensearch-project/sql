@@ -108,6 +108,22 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
+  public void between() {
+    assertAnalyzeEqual(
+        DSL.and(
+            DSL.gte(
+                DSL.ref("integer_value", INTEGER),
+                DSL.literal(20)),
+            DSL.lte(
+                DSL.ref("integer_value", INTEGER),
+                DSL.literal(30))),
+        AstDSL.between(
+            qualifiedName("integer_value"),
+            AstDSL.intLiteral(20),
+            AstDSL.intLiteral(30)));
+  }
+
+  @Test
   public void case_value() {
     assertAnalyzeEqual(
         DSL.cases(

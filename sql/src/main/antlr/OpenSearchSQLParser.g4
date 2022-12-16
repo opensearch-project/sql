@@ -278,6 +278,7 @@ predicate
     : expressionAtom                                                #expressionAtomPredicate
     | left=predicate comparisonOperator right=predicate             #binaryComparisonPredicate
     | predicate IS nullNotnull                                      #isNullPredicate
+    | predicate NOT? BETWEEN predicate AND predicate                #betweenPredicate
     | left=predicate NOT? LIKE right=predicate                      #likePredicate
     | left=predicate REGEXP right=predicate                         #regexpPredicate
     | predicate NOT? IN '(' expressions ')'                         #inPredicate
