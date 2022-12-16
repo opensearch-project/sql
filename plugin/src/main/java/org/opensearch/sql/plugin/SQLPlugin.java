@@ -180,7 +180,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
     });
 
     injector = modules.createInjector();
-    return ImmutableList.of(injector);
+    return ImmutableList.of(dataSourceService);
   }
 
   @Override
