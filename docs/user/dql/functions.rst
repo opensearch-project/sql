@@ -234,13 +234,13 @@ CEIL
 Description
 >>>>>>>>>>>
 
-Usage: CEIL(a) takes the ceiling of value a.
+Usage: CEIL(T) takes the ceiling of value T.
 
-Note: CEIL and CEILING functions have the same implementation & functionality
+Note: CEIL and `CEILING`_ functions have the same implementation & functionality
 
 Limitation: CEIL only works as expected when IEEE 754 double type displays decimal when stored.
 
-Argument type: a: <any numeric type>
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
 
 Return type: LONG
 
@@ -263,18 +263,18 @@ Example::
     +--------------------------+----------------------------+--------------------------+
 
 CEILING
-----
+-------
 
 Description
 >>>>>>>>>>>
 
-Usage: CEILING(a) takes the ceiling of value a.
+Usage: CEILING(T) takes the ceiling of value T.
 
-Note: CEIL and CEILING functions have the same implementation & functionality
+Note: `CEIL`_ and CEILING functions have the same implementation & functionality
 
 Limitation: CEILING only works as expected when IEEE 754 double type displays decimal when stored.
 
-Argument type: a: <any numeric type>
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
 
 Return type: LONG
 
@@ -482,11 +482,11 @@ FLOOR
 Description
 >>>>>>>>>>>
 
-Usage: FLOOR(a) takes the floor of value a.
+Usage: FLOOR(T) takes the floor of value T.
 
 Limitation: FLOOR only works as expected when IEEE 754 double type displays decimal when stored.
 
-Argument type: a: <any numeric type>
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
 
 Return type: LONG
 
