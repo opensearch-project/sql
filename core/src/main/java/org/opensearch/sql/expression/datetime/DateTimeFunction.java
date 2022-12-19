@@ -576,7 +576,7 @@ public class DateTimeFunction {
   private DefaultFunctionResolver utc_date() {
     return define(BuiltinFunctionName.UTC_DATE.getName(),
         implWithProperties(functionProperties
-            -> DateTimeFunction.exprUtcDate(functionProperties), DATE));
+            -> exprUtcDate(functionProperties), DATE));
   }
 
   /**
@@ -585,7 +585,7 @@ public class DateTimeFunction {
   private DefaultFunctionResolver utc_time() {
     return define(BuiltinFunctionName.UTC_TIME.getName(),
         implWithProperties(functionProperties
-            -> DateTimeFunction.exprUtcTime(functionProperties), TIME));
+            -> exprUtcTime(functionProperties), TIME));
   }
 
   /**
@@ -594,7 +594,7 @@ public class DateTimeFunction {
   private DefaultFunctionResolver utc_timestamp() {
     return define(BuiltinFunctionName.UTC_TIMESTAMP.getName(),
         implWithProperties(functionProperties
-            -> DateTimeFunction.exprUtcTimeStamp(functionProperties), DATETIME));
+            -> exprUtcTimeStamp(functionProperties), DATETIME));
   }
 
   /**
