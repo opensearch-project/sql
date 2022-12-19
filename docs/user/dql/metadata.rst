@@ -47,6 +47,7 @@ SQL query::
     | docTestCluster | null          | books        | BASE TABLE   | null      | null       | null         | null        | null                        | null             |
     | docTestCluster | null          | nyc_taxi     | BASE TABLE   | null      | null       | null         | null        | null                        | null             |
     | docTestCluster | null          | people       | BASE TABLE   | null      | null       | null         | null        | null                        | null             |
+    | docTestCluster | null          | wildcard     | BASE TABLE   | null      | null       | null         | null        | null                        | null             |
     +----------------+---------------+--------------+--------------+-----------+------------+--------------+-------------+-----------------------------+------------------+
 
 Example 2: Show Specific Index Information
