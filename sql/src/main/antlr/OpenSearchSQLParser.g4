@@ -413,6 +413,7 @@ trigonometricFunctionName
 dateTimeFunctionName
     : datetimeConstantLiteral
     | ADDDATE
+    | ADDTIME
     | CONVERT_TZ
     | CURDATE
     | CURTIME
@@ -441,6 +442,7 @@ dateTimeFunctionName
     | QUARTER
     | SECOND
     | SUBDATE
+    | SUBTIME
     | SYSDATE
     | TIME
     | TIME_TO_SEC

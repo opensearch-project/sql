@@ -20,17 +20,20 @@ import static org.opensearch.sql.expression.function.FunctionDSL.define;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.implWithProperties;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
+import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandlingWithProperties;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_LONG_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_SHORT_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_LONG_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_SHORT_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_STRICT_WITH_TZ;
+import static org.opensearch.sql.utils.DateTimeUtils.extractDateTime;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.time.Clock;
 import java.time.DateTimeException;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -63,6 +66,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
 import org.opensearch.sql.expression.function.FunctionDSL;
 import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.utils.DateTimeUtils;
 
@@ -88,6 +92,7 @@ public class DateTimeFunction {
    */
   public void register(BuiltinFunctionRepository repository) {
     repository.register(adddate());
+    repository.register(addtime());
     repository.register(convert_tz());
     repository.register(curtime());
     repository.register(curdate());
@@ -122,6 +127,7 @@ public class DateTimeFunction {
     repository.register(quarter());
     repository.register(second());
     repository.register(subdate());
+    repository.register(subtime());
     repository.register(sysdate());
     repository.register(time());
     repository.register(time_to_sec());
@@ -231,6 +237,52 @@ public class DateTimeFunction {
 
   private DefaultFunctionResolver adddate() {
     return add_date(BuiltinFunctionName.ADDDATE.getName());
+  }
+
+  /**
+   * Adds expr2 to expr1 and returns the result.
+   * (TIME, TIME/DATE/DATETIME/TIMESTAMP) -> TIME
+   * (DATE/DATETIME/TIMESTAMP, TIME/DATE/DATETIME/TIMESTAMP) -> DATETIME
+   * TODO: MySQL has these signatures too
+   * (STRING, STRING/TIME) -> STRING               // second arg - string with time only
+   * (x, STRING) -> NULL                           // second arg - string with timestamp
+   * (x, STRING/DATE) -> x                         // second arg - string with date only
+   */
+  private DefaultFunctionResolver addtime() {
+    return define(BuiltinFunctionName.ADDTIME.getName(),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprAddTime),
+            TIME, TIME, TIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprAddTime),
+            TIME, TIME, DATE),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprAddTime),
+            TIME, TIME, DATETIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprAddTime),
+            TIME, TIME, TIMESTAMP),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprAddTime),
+            DATETIME, DATETIME, TIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprAddTime),
+            DATETIME, DATETIME, DATE),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprAddTime),
+            DATETIME, DATETIME, DATETIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprAddTime),
+            DATETIME, DATETIME, TIMESTAMP),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprAddTime),
+            DATETIME, DATE, TIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprAddTime),
+            DATETIME, DATE, DATE),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprAddTime),
+            DATETIME, DATE, DATETIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprAddTime),
+            DATETIME, DATE, TIMESTAMP),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprAddTime),
+            DATETIME, TIMESTAMP, TIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprAddTime),
+            DATETIME, TIMESTAMP, DATE),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprAddTime),
+            DATETIME, TIMESTAMP, DATETIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprAddTime),
+            DATETIME, TIMESTAMP, TIMESTAMP)
+    );
   }
 
   /**
@@ -506,6 +558,52 @@ public class DateTimeFunction {
   }
 
   /**
+   * Subtracts expr2 from expr1 and returns the result.
+   * (TIME, TIME/DATE/DATETIME/TIMESTAMP) -> TIME
+   * (DATE/DATETIME/TIMESTAMP, TIME/DATE/DATETIME/TIMESTAMP) -> DATETIME
+   * TODO: MySQL has these signatures too
+   * (STRING, STRING/TIME) -> STRING               // second arg - string with time only
+   * (x, STRING) -> NULL                           // second arg - string with timestamp
+   * (x, STRING/DATE) -> x                         // second arg - string with date only
+   */
+  private DefaultFunctionResolver subtime() {
+    return define(BuiltinFunctionName.SUBTIME.getName(),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprSubTime),
+            TIME, TIME, TIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprSubTime),
+            TIME, TIME, DATE),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprSubTime),
+            TIME, TIME, DATETIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprSubTime),
+            TIME, TIME, TIMESTAMP),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprSubTime),
+            DATETIME, DATETIME, TIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprSubTime),
+            DATETIME, DATETIME, DATE),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprSubTime),
+            DATETIME, DATETIME, DATETIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprSubTime),
+            DATETIME, DATETIME, TIMESTAMP),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprSubTime),
+            DATETIME, DATE, TIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprSubTime),
+            DATETIME, DATE, DATE),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprSubTime),
+            DATETIME, DATE, DATETIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprSubTime),
+            DATETIME, DATE, TIMESTAMP),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprSubTime),
+            DATETIME, TIMESTAMP, TIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprSubTime),
+            DATETIME, TIMESTAMP, DATE),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprSubTime),
+            DATETIME, TIMESTAMP, DATETIME),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprSubTime),
+            DATETIME, TIMESTAMP, TIMESTAMP)
+    );
+  }
+
+  /**
    * Extracts the time part of a date and time value.
    * Also to construct a time type. The supported signatures:
    * STRING/DATE/DATETIME/TIME/TIMESTAMP -> TIME
@@ -639,6 +737,39 @@ public class DateTimeFunction {
     ExprValue exprValue = new ExprDatetimeValue(date.datetimeValue().plusDays(days.longValue()));
     return (exprValue.timeValue().toSecondOfDay() == 0 ? new ExprDateValue(exprValue.dateValue())
         : exprValue);
+  }
+
+  /**
+   * Adds or subtracts time to/from date and returns the result.
+   *
+   * @param functionProperties A FunctionProperties object.
+   * @param temporal A Date/Time/Datetime/Timestamp value to change.
+   * @param temporalDelta A Date/Time/Datetime/Timestamp object to add/subtract time from.
+   * @param isAdd A flag: true to add, false to subtract.
+   * @return A value calculated.
+   */
+  private ExprValue exprApplyTime(FunctionProperties functionProperties,
+                                  ExprValue temporal, ExprValue temporalDelta, Boolean isAdd) {
+    var interval = Duration.between(LocalTime.MIN, temporalDelta.timeValue());
+    var result = isAdd
+        ? extractDateTime(temporal, functionProperties).plus(interval)
+        : extractDateTime(temporal, functionProperties).minus(interval);
+    return temporal.type() == TIME
+        ? new ExprTimeValue(result.toLocalTime())
+        : new ExprDatetimeValue(result);
+  }
+
+  /**
+   * Adds time to date and returns the result.
+   *
+   * @param functionProperties A FunctionProperties object.
+   * @param temporal A Date/Time/Datetime/Timestamp value to change.
+   * @param temporalDelta A Date/Time/Datetime/Timestamp object to add time from.
+   * @return A value calculated.
+   */
+  private ExprValue exprAddTime(FunctionProperties functionProperties,
+                                ExprValue temporal, ExprValue temporalDelta) {
+    return exprApplyTime(functionProperties, temporal, temporalDelta, true);
   }
 
   /**
@@ -1023,6 +1154,18 @@ public class DateTimeFunction {
     ExprValue exprValue = new ExprDatetimeValue(date.datetimeValue().minus(expr.intervalValue()));
     return (exprValue.timeValue().toSecondOfDay() == 0 ? new ExprDateValue(exprValue.dateValue())
         : exprValue);
+  }
+
+  /**
+   * Subtracts expr2 from expr1 and returns the result.
+   *
+   * @param temporal A Date/Time/Datetime/Timestamp value to change.
+   * @param temporalDelta A Date/Time/Datetime/Timestamp to subtract time from.
+   * @return A value calculated.
+   */
+  private ExprValue exprSubTime(FunctionProperties functionProperties,
+                                ExprValue temporal, ExprValue temporalDelta) {
+    return exprApplyTime(functionProperties, temporal, temporalDelta, false);
   }
 
   /**

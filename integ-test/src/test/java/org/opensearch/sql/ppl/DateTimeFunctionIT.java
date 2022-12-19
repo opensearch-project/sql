@@ -836,6 +836,42 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testAddTime() throws IOException {
+    var result = executeQuery(String.format("source=%s | eval"
+        + " `'2008-12-12' + 0` = ADDTIME(DATE('2008-12-12'), DATE('2008-11-15')),"
+        + " `'23:59:59' + 0` = ADDTIME(TIME('23:59:59'), DATE('2004-01-01')),"
+        + " `'2004-01-01' + '23:59:59'` = ADDTIME(DATE('2004-01-01'), TIME('23:59:59')),"
+        + " `'10:20:30' + '00:05:42'` = ADDTIME(TIME('10:20:30'), TIME('00:05:42')),"
+        + " `'15:42:13' + '09:07:00'` = ADDTIME(TIMESTAMP('1999-12-31 15:42:13'), DATETIME('1961-04-12 09:07:00'))"
+        + " | fields `'2008-12-12' + 0`, `'23:59:59' + 0`, `'2004-01-01' + '23:59:59'`, `'10:20:30' + '00:05:42'`, `'15:42:13' + '09:07:00'`", TEST_INDEX_DATE));
+    verifySchema(result,
+        schema("'2008-12-12' + 0", null, "datetime"),
+        schema("'23:59:59' + 0", null, "time"),
+        schema("'2004-01-01' + '23:59:59'", null, "datetime"),
+        schema("'10:20:30' + '00:05:42'", null, "time"),
+        schema("'15:42:13' + '09:07:00'", null, "datetime"));
+    verifySome(result.getJSONArray("datarows"), rows("2008-12-12 00:00:00", "23:59:59", "2004-01-01 23:59:59", "10:26:12", "2000-01-01 00:49:13"));
+  }
+
+  @Test
+  public void testSubTime() throws IOException {
+    var result = executeQuery(String.format("source=%s | eval"
+        + " `'2008-12-12' - 0` = SUBTIME(DATE('2008-12-12'), DATE('2008-11-15')),"
+        + " `'23:59:59' - 0` = SUBTIME(TIME('23:59:59'), DATE('2004-01-01')),"
+        + " `'2004-01-01' - '23:59:59'` = SUBTIME(DATE('2004-01-01'), TIME('23:59:59')),"
+        + " `'10:20:30' - '00:05:42'` = SUBTIME(TIME('10:20:30'), TIME('00:05:42')),"
+        + " `'15:42:13' - '09:07:00'` = SUBTIME(TIMESTAMP('1999-12-31 15:42:13'), DATETIME('1961-04-12 09:07:00'))"
+        + " | fields `'2008-12-12' - 0`, `'23:59:59' - 0`, `'2004-01-01' - '23:59:59'`, `'10:20:30' - '00:05:42'`, `'15:42:13' - '09:07:00'`", TEST_INDEX_DATE));
+    verifySchema(result,
+        schema("'2008-12-12' - 0", null, "datetime"),
+        schema("'23:59:59' - 0", null, "time"),
+        schema("'2004-01-01' - '23:59:59'", null, "datetime"),
+        schema("'10:20:30' - '00:05:42'", null, "time"),
+        schema("'15:42:13' - '09:07:00'", null, "datetime"));
+    verifySome(result.getJSONArray("datarows"), rows("2008-12-12 00:00:00", "23:59:59", "2003-12-31 00:00:01", "10:14:48", "1999-12-31 06:35:13"));
+  }
+
+  @Test
   public void testFromUnixTime() throws IOException {
     var result = executeQuery(String.format(
         "source=%s | eval f1 = FROM_UNIXTIME(200300400), f2 = FROM_UNIXTIME(12224.12), "
