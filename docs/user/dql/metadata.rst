@@ -37,7 +37,7 @@ Example 1: Show All Indices Information
 SQL query::
 
     os> SHOW TABLES LIKE '%'
-    fetched rows / total rows = 6/6
+    fetched rows / total rows = 7/7
     +----------------+---------------+--------------+--------------+-----------+------------+--------------+-------------+-----------------------------+------------------+
     | TABLE_CAT      | TABLE_SCHEM   | TABLE_NAME   | TABLE_TYPE   | REMARKS   | TYPE_CAT   | TYPE_SCHEM   | TYPE_NAME   | SELF_REFERENCING_COL_NAME   | REF_GENERATION   |
     |----------------+---------------+--------------+--------------+-----------+------------+--------------+-------------+-----------------------------+------------------|
