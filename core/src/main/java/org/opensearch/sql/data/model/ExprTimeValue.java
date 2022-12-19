@@ -71,6 +71,11 @@ public class ExprTimeValue extends AbstractExprValue {
   }
 
   @Override
+  public boolean isDateTime() {
+    return true;
+  }
+
+  @Override
   public String toString() {
     return String.format("TIME '%s'", value());
   }

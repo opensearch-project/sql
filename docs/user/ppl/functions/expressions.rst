@@ -95,6 +95,9 @@ Operators
 | NOT            | NOT NULL value test                    |
 +----------------+----------------------------------------+
 
+It is possible to compare datetimes. When comparing different datetime types, for example `DATE` and `TIME`, both converted to `DATETIME`.
+The following rule is applied on coversion: a `TIME` applied to today's date; `DATE` is interpreted at midnight.
+
 Examples
 --------
 
