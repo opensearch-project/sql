@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.common.utils.StringUtils.format;
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.literal;
@@ -21,6 +22,7 @@ import static org.opensearch.sql.expression.aggregation.VarianceAggregator.varia
 import static org.opensearch.sql.expression.aggregation.VarianceAggregator.varianceSample;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -39,14 +41,13 @@ import org.opensearch.sql.expression.aggregation.MaxAggregator;
 import org.opensearch.sql.expression.aggregation.MinAggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.aggregation.SumAggregator;
-import org.opensearch.sql.expression.config.ExpressionConfig;
+import org.opensearch.sql.expression.aggregation.TakeAggregator;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
 class MetricAggregationBuilderTest {
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
 
   @Mock
   private ExpressionSerializer serializer;
@@ -284,8 +285,71 @@ class MetricAggregationBuilderTest {
         buildQuery(Collections.singletonList(named(
             "count(distinct name) filter(where age > 30)",
             new CountAggregator(Collections.singletonList(ref("name", STRING)), INTEGER)
-                .condition(dsl.greater(ref("age", INTEGER), literal(30)))
+                .condition(DSL.greater(ref("age", INTEGER), literal(30)))
                 .distinct(true)))));
+  }
+
+  @Test
+  void should_build_top_hits_aggregation() {
+    assertEquals(format(
+        "{%n"
+            + "  \"take(name, 10)\" : {%n"
+            + "    \"top_hits\" : {%n"
+            + "      \"from\" : 0,%n"
+            + "      \"size\" : 10,%n"
+            + "      \"version\" : false,%n"
+            + "      \"seq_no_primary_term\" : false,%n"
+            + "      \"explain\" : false,%n"
+            + "      \"_source\" : {%n"
+            + "        \"includes\" : [ \"name\" ],%n"
+            + "        \"excludes\" : [ ]%n"
+            + "      }%n"
+            + "    }%n"
+            + "  }%n"
+            + "}"),
+        buildQuery(
+            Collections.singletonList(named("take(name, 10)", new TakeAggregator(
+                ImmutableList.of(ref("name", STRING), literal(10)), ARRAY)))));
+  }
+
+  @Test
+  void should_build_filtered_top_hits_aggregation() {
+    assertEquals(format(
+        "{%n"
+            + "  \"take(name, 10) filter(where age > 30)\" : {%n"
+            + "    \"filter\" : {%n"
+            + "      \"range\" : {%n"
+            + "        \"age\" : {%n"
+            + "          \"from\" : 30,%n"
+            + "          \"to\" : null,%n"
+            + "          \"include_lower\" : false,%n"
+            + "          \"include_upper\" : true,%n"
+            + "          \"boost\" : 1.0%n"
+            + "        }%n"
+            + "      }%n"
+            + "    },%n"
+            + "    \"aggregations\" : {%n"
+            + "      \"take(name, 10) filter(where age > 30)\" : {%n"
+            + "        \"top_hits\" : {%n"
+            + "          \"from\" : 0,%n"
+            + "          \"size\" : 10,%n"
+            + "          \"version\" : false,%n"
+            + "          \"seq_no_primary_term\" : false,%n"
+            + "          \"explain\" : false,%n"
+            + "          \"_source\" : {%n"
+            + "            \"includes\" : [ \"name\" ],%n"
+            + "            \"excludes\" : [ ]%n"
+            + "          }%n"
+            + "        }%n"
+            + "      }%n"
+            + "    }%n"
+            + "  }%n"
+            + "}"),
+        buildQuery(Collections.singletonList(named(
+            "take(name, 10) filter(where age > 30)",
+            new TakeAggregator(
+                ImmutableList.of(ref("name", STRING), literal(10)), ARRAY)
+                .condition(DSL.greater(ref("age", INTEGER), literal(30)))))));
   }
 
   @Test
@@ -322,7 +386,7 @@ class MetricAggregationBuilderTest {
   private String buildQuery(List<NamedAggregator> namedAggregatorList) {
     ObjectMapper objectMapper = new ObjectMapper();
     return objectMapper.readTree(
-        aggregationBuilder.build(namedAggregatorList).getLeft().toString())
+            aggregationBuilder.build(namedAggregatorList).getLeft().toString())
         .toPrettyString();
   }
 }

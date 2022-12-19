@@ -1,0 +1,9 @@
+{
+  "mappings" : {
+    "properties" : {
+      "Body" : {
+        "type" : "keyword"
+      }
+    }
+  }
+}

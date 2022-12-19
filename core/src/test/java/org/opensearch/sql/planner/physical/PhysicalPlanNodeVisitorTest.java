@@ -50,12 +50,12 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
                                     new TestScan(),
                                     1, 1
                                 ),
-                                dsl.equal(DSL.ref("response", INTEGER), DSL.literal(10))),
+                                DSL.equal(DSL.ref("response", INTEGER), DSL.literal(10))),
                             CommandType.TOP,
                             ImmutableList.of(),
                             DSL.ref("response", INTEGER)),
                         ImmutableList
-                            .of(DSL.named("avg(response)", dsl.avg(DSL.ref("response", INTEGER)))),
+                            .of(DSL.named("avg(response)", DSL.avg(DSL.ref("response", INTEGER)))),
                         ImmutableList.of()),
                     ImmutableMap.of(DSL.ref("ivalue", INTEGER), DSL.ref("avg(response)", DOUBLE))),
                 named("ref", ref)),
@@ -77,14 +77,14 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
   public void test_PhysicalPlanVisitor_should_return_null() {
     PhysicalPlan filter =
         PhysicalPlanDSL.filter(
-            new TestScan(), dsl.equal(DSL.ref("response", INTEGER), DSL.literal(10)));
+            new TestScan(), DSL.equal(DSL.ref("response", INTEGER), DSL.literal(10)));
     assertNull(filter.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
     }, null));
 
     PhysicalPlan aggregation =
         PhysicalPlanDSL.agg(
             filter, ImmutableList.of(DSL.named("avg(response)",
-                dsl.avg(DSL.ref("response", INTEGER)))), ImmutableList.of());
+                DSL.avg(DSL.ref("response", INTEGER)))), ImmutableList.of());
     assertNull(aggregation.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
     }, null));
 
@@ -99,7 +99,7 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
     assertNull(project.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
     }, null));
 
-    PhysicalPlan window = PhysicalPlanDSL.window(plan, named(dsl.rowNumber()),
+    PhysicalPlan window = PhysicalPlanDSL.window(plan, named(DSL.rowNumber()),
         new WindowDefinition(emptyList(), emptyList()));
     assertNull(window.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
     }, null));
@@ -148,6 +148,14 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
             new PhysicalPlanNodeVisitor<Integer, Object>() {};
 
     assertNull(physicalPlanNodeVisitor.visitAD(plan, null));
+  }
+
+  @Test
+  public void test_visitML() {
+    PhysicalPlanNodeVisitor physicalPlanNodeVisitor =
+            new PhysicalPlanNodeVisitor<Integer, Object>() {};
+
+    assertNull(physicalPlanNodeVisitor.visitML(plan, null));
   }
 
   public static class PhysicalPlanPrinter extends PhysicalPlanNodeVisitor<String, Integer> {

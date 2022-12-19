@@ -87,7 +87,7 @@ LIKE
 Description
 >>>>>>>>>>>
 
-Usage: like(string, PATTERN) return true if the string match the PATTERN.
+Usage: like(string, PATTERN) return true if the string match the PATTERN, PATTERN is case insensitive.
 
 There are two wildcards often used in conjunction with the LIKE operator:
 
@@ -96,7 +96,7 @@ There are two wildcards often used in conjunction with the LIKE operator:
 
 Example::
 
-    os> source=people | eval `LIKE('hello world', '_ello%')` = LIKE('hello world', '_ello%') | fields `LIKE('hello world', '_ello%')`
+    os> source=people | eval `LIKE('hello world', '_ello%')` = LIKE('hello world', '_ELLO%') | fields `LIKE('hello world', '_ello%')`
     fetched rows / total rows = 1/1
     +---------------------------------+
     | LIKE('hello world', '_ello%')   |
@@ -148,6 +148,54 @@ Example::
     |---------------------+---------------------|
     | hello               | hello               |
     +---------------------+---------------------+
+
+
+POSITION
+------
+
+Description
+>>>>>>>>>>>
+
+Usage: The syntax POSITION(substr IN str) returns the position of the first occurrence of substring substr in string str. Returns 0 if substr is not in str. Returns NULL if any argument is NULL.
+
+Argument type: STRING, STRING
+
+Return type INTEGER
+
+(STRING IN STRING) -> INTEGER
+
+Example::
+
+    os> source=people | eval `POSITION('world' IN 'helloworld')` = POSITION('world' IN 'helloworld'), `POSITION('invalid' IN 'helloworld')`= POSITION('invalid' IN 'helloworld')  | fields `POSITION('world' IN 'helloworld')`, `POSITION('invalid' IN 'helloworld')`
+    fetched rows / total rows = 1/1
+    +-------------------------------------+---------------------------------------+
+    | POSITION('world' IN 'helloworld')   | POSITION('invalid' IN 'helloworld')   |
+    |-------------------------------------+---------------------------------------|
+    | 6                                   | 0                                     |
+    +-------------------------------------+---------------------------------------+
+
+
+REVERSE
+-----
+
+Description
+>>>>>>>>>>>
+
+Usage: REVERSE(str) returns reversed string of the string supplied as an argument.
+
+Argument type: STRING
+
+Return type: STRING
+
+Example::
+
+    os> source=people | eval `REVERSE('abcde')` = REVERSE('abcde') | fields `REVERSE('abcde')`
+    fetched rows / total rows = 1/1
+    +--------------------+
+    | REVERSE('abcde')   |
+    |--------------------|
+    | edcba              |
+    +--------------------+
 
 
 RIGHT

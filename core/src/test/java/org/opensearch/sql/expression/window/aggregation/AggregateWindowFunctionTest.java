@@ -53,7 +53,7 @@ class AggregateWindowFunctionTest extends ExpressionTestBase {
   void should_accumulate_all_peer_values_and_not_reset_state_if_same_partition() {
     PeerRowsWindowFrame windowFrame = mock(PeerRowsWindowFrame.class);
     AggregateWindowFunction windowFunction =
-        new AggregateWindowFunction(dsl.sum(DSL.ref("age", INTEGER)));
+        new AggregateWindowFunction(DSL.sum(DSL.ref("age", INTEGER)));
 
     when(windowFrame.isNewPartition()).thenReturn(true);
     when(windowFrame.next()).thenReturn(ImmutableList.of(

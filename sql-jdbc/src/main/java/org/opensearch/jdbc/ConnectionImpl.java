@@ -507,7 +507,7 @@ public class ConnectionImpl implements OpenSearchConnection, JdbcWrapper, Loggin
     }
 
     private String getUserAgent() {
-        return String.format("openes-jdbc/%s (Java %s)",
+        return String.format("opensearch-jdbc/%s (Java %s)",
                 Version.Current.getFullVersion(), JavaUtil.getJavaVersion());
     }
 }

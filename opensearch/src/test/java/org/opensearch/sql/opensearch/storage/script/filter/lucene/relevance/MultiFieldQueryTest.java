@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,13 +23,11 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.LiteralExpression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 
 class MultiFieldQueryTest {
-  MultiFieldQuery query;
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
+  MultiFieldQuery<?> query;
   private final String testQueryName = "test_query";
-  private final Map<String, RelevanceQuery.QueryBuilderStep> actionMap
+  private final Map<String, RelevanceQuery.QueryBuilderStep<?>> actionMap
       = ImmutableMap.of("paramA", (o, v) -> o);
 
   @BeforeEach
@@ -48,10 +47,10 @@ class MultiFieldQueryTest {
     var fieldSpec = ImmutableMap.<String, ExprValue>builder().put(sampleField,
         ExprValueUtils.floatValue(sampleValue)).build();
 
-    query.createQueryBuilder(dsl.namedArgument("fields",
+    query.createQueryBuilder(List.of(DSL.namedArgument("fields",
         new LiteralExpression(ExprTupleValue.fromExprValueMap(fieldSpec))),
-        dsl.namedArgument("query",
-            new LiteralExpression(ExprValueUtils.stringValue(sampleQuery))));
+        DSL.namedArgument("query",
+            new LiteralExpression(ExprValueUtils.stringValue(sampleQuery)))));
 
     verify(query).createBuilder(argThat(
             (ArgumentMatcher<ImmutableMap<String, Float>>) map -> map.size() == 1

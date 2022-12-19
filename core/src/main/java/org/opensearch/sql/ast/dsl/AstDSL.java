@@ -7,8 +7,8 @@
 package org.opensearch.sql.ast.dsl;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.expression.AggregateFunction;
@@ -16,6 +16,7 @@ import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Between;
 import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
@@ -31,6 +32,7 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
+import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.SpanUnit;
@@ -55,8 +57,10 @@ import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
 /**
  * Class of static methods to create specific node instances.
@@ -72,12 +76,21 @@ public class AstDSL {
     return new Relation(qualifiedName(tableName));
   }
 
+  public UnresolvedPlan relation(List<String> tableNames) {
+    return new Relation(
+        tableNames.stream().map(AstDSL::qualifiedName).collect(Collectors.toList()));
+  }
+
   public UnresolvedPlan relation(QualifiedName tableName) {
     return new Relation(tableName);
   }
 
   public UnresolvedPlan relation(String tableName, String alias) {
     return new Relation(qualifiedName(tableName), alias);
+  }
+
+  public UnresolvedPlan tableFunction(List<String> functionName, UnresolvedExpression... args) {
+    return new TableFunction(new QualifiedName(functionName), Arrays.asList(args));
   }
 
   public static UnresolvedPlan project(UnresolvedPlan input, UnresolvedExpression... projectList) {
@@ -267,8 +280,9 @@ public class AstDSL {
     return new When(condition, result);
   }
 
-  public UnresolvedExpression highlight(UnresolvedExpression fieldName) {
-    return new HighlightFunction(fieldName);
+  public UnresolvedExpression highlight(UnresolvedExpression fieldName,
+      java.util.Map<String, Literal> arguments) {
+    return new HighlightFunction(fieldName, arguments);
   }
 
   public UnresolvedExpression window(UnresolvedExpression function,
@@ -306,6 +320,12 @@ public class AstDSL {
   public static UnresolvedExpression compare(
       String operator, UnresolvedExpression left, UnresolvedExpression right) {
     return new Compare(operator, left, right);
+  }
+
+  public static UnresolvedExpression between(UnresolvedExpression value,
+                                             UnresolvedExpression lowerBound,
+                                             UnresolvedExpression upperBound) {
+    return new Between(value, lowerBound, upperBound);
   }
 
   public static Argument argument(String argName, Literal argValue) {
@@ -428,8 +448,11 @@ public class AstDSL {
     return new Limit(limit, offset).attach(input);
   }
 
-  public static Parse parse(UnresolvedPlan input, UnresolvedExpression expression,
-                            Literal pattern) {
-    return new Parse(expression, pattern, input);
+  public static Parse parse(UnresolvedPlan input, ParseMethod parseMethod,
+                                  UnresolvedExpression sourceField,
+                                  Literal pattern,
+                                  java.util.Map<String, Literal> arguments) {
+    return new Parse(parseMethod, sourceField, pattern, arguments, input);
   }
+
 }

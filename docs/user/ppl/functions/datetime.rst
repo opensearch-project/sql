@@ -38,6 +38,244 @@ Example::
     | 2020-08-26 01:00:00                            | 2020-08-27                       | 2020-08-27 01:01:01                            |
     +------------------------------------------------+----------------------------------+------------------------------------------------+
 
+CONVERT_TZ
+----
+
+Description
+>>>>>>>>>>>
+
+Usage: convert_tz(datetime, from_timezone, to_timezone) constructs a local datetime converted from the from_timezone to the to_timezone. CONVERT_TZ returns null when any of the three function arguments are invalid, i.e. datetime is not in the format yyyy-MM-dd HH:mm:ss or the timeszone is not in (+/-)HH:mm. It also is invalid for invalid dates, such as February 30th and invalid timezones, which are ones outside of -13:59 and +14:00.
+
+Argument type: DATETIME, STRING, STRING
+
+Return type: DATETIME
+
+Conversion from +00:00 timezone to +10:00 timezone. Returns the datetime argument converted from +00:00 to +10:00
+Example::
+
+    os> source=people | eval `convert_tz('2008-05-15 12:00:00','+00:00','+10:00')` = convert_tz('2008-05-15 12:00:00','+00:00','+10:00') | fields `convert_tz('2008-05-15 12:00:00','+00:00','+10:00')`
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------------+
+    | convert_tz('2008-05-15 12:00:00','+00:00','+10:00')   |
+    |-------------------------------------------------------|
+    | 2008-05-15 22:00:00                                   |
+    +-------------------------------------------------------+
+
+The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range, such as +15:00 in this example will return null.
+Example::
+
+    os> source=people | eval `convert_tz('2008-05-15 12:00:00','+00:00','+15:00')` = convert_tz('2008-05-15 12:00:00','+00:00','+15:00')| fields `convert_tz('2008-05-15 12:00:00','+00:00','+15:00')`
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------------+
+    | convert_tz('2008-05-15 12:00:00','+00:00','+15:00')   |
+    |-------------------------------------------------------|
+    | null                                                  |
+    +-------------------------------------------------------+
+
+Conversion from a positive timezone to a negative timezone that goes over date line.
+Example::
+
+    os> source=people | eval `convert_tz('2008-05-15 12:00:00','+03:30','-10:00')` = convert_tz('2008-05-15 12:00:00','+03:30','-10:00') | fields `convert_tz('2008-05-15 12:00:00','+03:30','-10:00')`
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------------+
+    | convert_tz('2008-05-15 12:00:00','+03:30','-10:00')   |
+    |-------------------------------------------------------|
+    | 2008-05-14 22:30:00                                   |
+    +-------------------------------------------------------+
+
+Valid dates are required in convert_tz, invalid dates such as April 31st (not a date in the Gregorian calendar) will result in null.
+Example::
+
+    os> source=people | eval `convert_tz('2008-04-31 12:00:00','+03:30','-10:00')` = convert_tz('2008-04-31 12:00:00','+03:30','-10:00') | fields `convert_tz('2008-04-31 12:00:00','+03:30','-10:00')`
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------------+
+    | convert_tz('2008-04-31 12:00:00','+03:30','-10:00')   |
+    |-------------------------------------------------------|
+    | null                                                  |
+    +-------------------------------------------------------+
+
+Valid dates are required in convert_tz, invalid dates such as February 30th (not a date in the Gregorian calendar) will result in null.
+Example::
+
+    os> source=people | eval `convert_tz('2008-02-30 12:00:00','+03:30','-10:00')` = convert_tz('2008-02-30 12:00:00','+03:30','-10:00') | fields `convert_tz('2008-02-30 12:00:00','+03:30','-10:00')`
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------------+
+    | convert_tz('2008-02-30 12:00:00','+03:30','-10:00')   |
+    |-------------------------------------------------------|
+    | null                                                  |
+    +-------------------------------------------------------+
+
+February 29th 2008 is a valid date because it is a leap year.
+Example::
+
+    os> source=people | eval `convert_tz('2008-02-29 12:00:00','+03:30','-10:00')` = convert_tz('2008-02-29 12:00:00','+03:30','-10:00') | fields `convert_tz('2008-02-29 12:00:00','+03:30','-10:00')`
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------------+
+    | convert_tz('2008-02-29 12:00:00','+03:30','-10:00')   |
+    |-------------------------------------------------------|
+    | 2008-02-28 22:30:00                                   |
+    +-------------------------------------------------------+
+
+Valid dates are required in convert_tz, invalid dates such as February 29th 2007 (2007 is not a leap year) will result in null.
+Example::
+
+    os> source=people | eval `convert_tz('2007-02-29 12:00:00','+03:30','-10:00')` = convert_tz('2007-02-29 12:00:00','+03:30','-10:00') | fields `convert_tz('2007-02-29 12:00:00','+03:30','-10:00')`
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------------+
+    | convert_tz('2007-02-29 12:00:00','+03:30','-10:00')   |
+    |-------------------------------------------------------|
+    | null                                                  |
+    +-------------------------------------------------------+
+
+The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range, such as +14:01 in this example will return null.
+Example::
+
+    os> source=people | eval `convert_tz('2008-02-01 12:00:00','+14:01','+00:00')` = convert_tz('2008-02-01 12:00:00','+14:01','+00:00') | fields `convert_tz('2008-02-01 12:00:00','+14:01','+00:00')`
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------------+
+    | convert_tz('2008-02-01 12:00:00','+14:01','+00:00')   |
+    |-------------------------------------------------------|
+    | null                                                  |
+    +-------------------------------------------------------+
+
+The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range, such as +14:00 in this example will return a correctly converted date time object.
+Example::
+
+    os> source=people | eval `convert_tz('2008-02-01 12:00:00','+14:00','+00:00')` = convert_tz('2008-02-01 12:00:00','+14:00','+00:00') | fields `convert_tz('2008-02-01 12:00:00','+14:00','+00:00')`
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------------+
+    | convert_tz('2008-02-01 12:00:00','+14:00','+00:00')   |
+    |-------------------------------------------------------|
+    | 2008-01-31 22:00:00                                   |
+    +-------------------------------------------------------+
+
+The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range, such as -14:00 will result in null
+Example::
+
+    os> source=people | eval `convert_tz('2008-02-01 12:00:00','-14:00','+00:00')` = convert_tz('2008-02-01 12:00:00','-14:00','+00:00') | fields `convert_tz('2008-02-01 12:00:00','-14:00','+00:00')`
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------------+
+    | convert_tz('2008-02-01 12:00:00','-14:00','+00:00')   |
+    |-------------------------------------------------------|
+    | null                                                  |
+    +-------------------------------------------------------+
+
+The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. This timezone is within range so it is valid and will convert the time.
+Example::
+
+    os> source=people | eval `convert_tz('2008-02-01 12:00:00','-13:59','+00:00')` = convert_tz('2008-02-01 12:00:00','-13:59','+00:00') | fields `convert_tz('2008-02-01 12:00:00','-13:59','+00:00')`
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------------+
+    | convert_tz('2008-02-01 12:00:00','-13:59','+00:00')   |
+    |-------------------------------------------------------|
+    | 2008-02-02 01:59:00                                   |
+    +-------------------------------------------------------+
+
+
+CURDATE
+-------
+
+Description
+>>>>>>>>>>>
+
+Returns the current time as a value in 'YYYY-MM-DD'.
+CURDATE() returns the time at which it executes as `SYSDATE() <#sysdate>`_ does.
+
+Return type: DATE
+
+Specification: CURDATE() -> DATE
+
+Example::
+
+    > source=people | eval `CURDATE()` = CURDATE() | fields `CURDATE()`
+    fetched rows / total rows = 1/1
+    +-------------+
+    | CURDATE()   |
+    |-------------|
+    | 2022-08-02  |
+    +-------------+
+
+
+CURRENT_DATE
+------------
+
+Description
+>>>>>>>>>>>
+
+`CURRENT_DATE()` are synonyms for `CURDATE() <#curdate>`_.
+
+Example::
+
+    > source=people | eval `CURRENT_DATE()` = CURRENT_DATE() | fields `CURRENT_DATE()`
+    fetched rows / total rows = 1/1
+    +------------------+
+    | CURRENT_DATE()   |
+    |------------------+
+    | 2022-08-02       |
+    +------------------+
+
+
+CURRENT_TIME
+------------
+
+Description
+>>>>>>>>>>>
+
+`CURRENT_TIME()` are synonyms for `CURTIME() <#curtime>`_.
+
+Example::
+
+    > source=people | eval `CURRENT_TIME()` = CURRENT_TIME() | fields `CURRENT_TIME()`
+    fetched rows / total rows = 1/1
+    +------------------+
+    | CURRENT_TIME()   |
+    |------------------+
+    | 15:39:05         |
+    +------------------+
+
+
+CURRENT_TIMESTAMP
+-----------------
+
+Description
+>>>>>>>>>>>
+
+`CURRENT_TIMESTAMP()` are synonyms for `NOW() <#now>`_.
+
+Example::
+
+    > source=people | eval `CURRENT_TIMESTAMP()` = CURRENT_TIMESTAMP() | fields `CURRENT_TIMESTAMP()`
+    fetched rows / total rows = 1/1
+    +-----------------------+
+    | CURRENT_TIMESTAMP()   |
+    |-----------------------+
+    | 2022-08-02 15:54:19   |
+    +-----------------------+
+
+
+CURTIME
+-------
+
+Description
+>>>>>>>>>>>
+
+Returns the current time as a value in 'hh:mm:ss'.
+CURTIME() returns the time at which the statement began to execute as `NOW() <#now>`_ does.
+
+Return type: TIME
+
+Specification: CURTIME() -> TIME
+
+Example::
+
+    > source=people | eval `value_1` = CURTIME(), `value_2` = CURTIME() | fields `value_1`, `value_2`
+    fetched rows / total rows = 1/1
+    +-----------+-----------+
+    | value_1   | value_2   |
+    |-----------+-----------|
+    | 15:39:05  | 15:39:05  |
+    +-----------+-----------+
+
 
 DATE
 ----
@@ -53,13 +291,38 @@ Return type: DATE
 
 Example::
 
-    >od source=people | eval `DATE('2020-08-26')` = DATE('2020-08-26'), `DATE(TIMESTAMP('2020-08-26 13:49:00'))` = DATE(TIMESTAMP('2020-08-26 13:49:00')) | fields `DATE('2020-08-26')`, `DATE(TIMESTAMP('2020-08-26 13:49:00'))`
+    os> source=people | eval `DATE('2020-08-26')` = DATE('2020-08-26') | fields `DATE('2020-08-26')`
     fetched rows / total rows = 1/1
-    +----------------------+------------------------------------------+
-    | DATE('2020-08-26')   | DATE(TIMESTAMP('2020-08-26 13:49:00'))   |
-    |----------------------+------------------------------------------|
-    | DATE '2020-08-26'    | DATE '2020-08-26'                        |
-    +----------------------+------------------------------------------+
+    +----------------------+
+    | DATE('2020-08-26')   |
+    |----------------------|
+    | 2020-08-26           |
+    +----------------------+
+
+    os> source=people | eval `DATE(TIMESTAMP('2020-08-26 13:49:00'))` = DATE(TIMESTAMP('2020-08-26 13:49:00')) | fields `DATE(TIMESTAMP('2020-08-26 13:49:00'))`
+    fetched rows / total rows = 1/1
+    +------------------------------------------+
+    | DATE(TIMESTAMP('2020-08-26 13:49:00'))   |
+    |------------------------------------------|
+    | 2020-08-26                               |
+    +------------------------------------------+
+
+    os> source=people | eval `DATE('2020-08-26 13:49')` = DATE('2020-08-26 13:49') | fields `DATE('2020-08-26 13:49')`
+    fetched rows / total rows = 1/1
+    +----------------------------+
+    | DATE('2020-08-26 13:49')   |
+    |----------------------------|
+    | 2020-08-26                 |
+    +----------------------------+
+
+    os> source=people | eval `DATE('2020-08-26 13:49')` = DATE('2020-08-26 13:49') | fields `DATE('2020-08-26 13:49')`
+    fetched rows / total rows = 1/1
+    +----------------------------+
+    | DATE('2020-08-26 13:49')   |
+    |----------------------------|
+    | 2020-08-26                 |
+    +----------------------------+
+
 
 
 DATE_ADD
@@ -190,6 +453,58 @@ Example::
     | '13:14:15.012345'                             | '1998-Jan-31st 01:14:15 PM'                                    |
     +-----------------------------------------------+----------------------------------------------------------------+
 
+
+
+DATETIME
+--------
+
+Description
+>>>>>>>>>>>
+
+Usage: DATETIME(datetime)/ DATETIME(date, to_timezone) Converts the datetime to a new timezone
+
+Argument type: DATETIME/STRING
+
+Return type map:
+
+DATETIME, STRING -> DATETIME
+
+DATETIME -> DATETIME
+
+
+Converting datetime with timezone to the second argument timezone.
+Example::
+
+    os> source=people | eval `DATETIME('2004-02-28 23:00:00-10:00', '+10:00')` = DATETIME('2004-02-28 23:00:00-10:00', '+10:00') | fields `DATETIME('2004-02-28 23:00:00-10:00', '+10:00')`
+    fetched rows / total rows = 1/1
+    +---------------------------------------------------+
+    | DATETIME('2004-02-28 23:00:00-10:00', '+10:00')   |
+    |---------------------------------------------------|
+    | 2004-02-29 19:00:00                               |
+    +---------------------------------------------------+
+
+
+ The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range will result in null.
+Example::
+
+    os> source=people | eval  `DATETIME('2008-01-01 02:00:00', '-14:00')` = DATETIME('2008-01-01 02:00:00', '-14:00') | fields `DATETIME('2008-01-01 02:00:00', '-14:00')`
+    fetched rows / total rows = 1/1
+    +---------------------------------------------+
+    | DATETIME('2008-01-01 02:00:00', '-14:00')   |
+    |---------------------------------------------|
+    | null                                        |
+    +---------------------------------------------+
+
+The valid timezone range for convert_tz is (-13:59, +14:00) inclusive. Timezones outside of the range will result in null.
+Example::
+
+    os> source=people | eval  `DATETIME('2008-02-30 02:00:00', '-00:00')` = DATETIME('2008-02-30 02:00:00', '-00:00') | fields `DATETIME('2008-02-30 02:00:00', '-00:00')`
+    fetched rows / total rows = 1/1
+    +---------------------------------------------+
+    | DATETIME('2008-02-30 02:00:00', '-00:00')   |
+    |---------------------------------------------|
+    | null                                        |
+    +---------------------------------------------+
 
 DATE_SUB
 --------
@@ -365,6 +680,42 @@ Example::
     +---------------------+
 
 
+FROM_UNIXTIME
+-------------
+
+Description
+>>>>>>>>>>>
+
+Usage: Returns a representation of the argument given as a datetime or character string value. Perform reverse conversion for `UNIX_TIMESTAMP`_ function.
+If second argument is provided, it is used to format the result in the same way as the format string used for the `DATE_FORMAT`_ function.
+If timestamp is outside of range 1970-01-01 00:00:00 - 3001-01-18 23:59:59.999999 (0 to 32536771199.999999 epoch time), function returns NULL.
+Argument type: DOUBLE, STRING
+
+Return type map:
+
+DOUBLE -> DATETIME
+
+DOUBLE, STRING -> STRING
+
+Examples::
+
+    os> source=people | eval `FROM_UNIXTIME(1220249547)` = FROM_UNIXTIME(1220249547) | fields `FROM_UNIXTIME(1220249547)`
+    fetched rows / total rows = 1/1
+    +-----------------------------+
+    | FROM_UNIXTIME(1220249547)   |
+    |-----------------------------|
+    | 2008-09-01 06:12:27         |
+    +-----------------------------+
+
+    os> source=people | eval `FROM_UNIXTIME(1220249547, '%T')` = FROM_UNIXTIME(1220249547, '%T') | fields `FROM_UNIXTIME(1220249547, '%T')`
+    fetched rows / total rows = 1/1
+    +-----------------------------------+
+    | FROM_UNIXTIME(1220249547, '%T')   |
+    |-----------------------------------|
+    | 06:12:27                          |
+    +-----------------------------------+
+
+
 HOUR
 ----
 
@@ -386,6 +737,44 @@ Example::
     |--------------------------|
     | 1                        |
     +--------------------------+
+
+
+LOCALTIMESTAMP
+--------------
+
+Description
+>>>>>>>>>>>
+
+`LOCALTIMESTAMP()` are synonyms for `NOW() <#now>`_.
+
+Example::
+
+    > source=people | eval `LOCALTIMESTAMP()` = LOCALTIMESTAMP() | fields `LOCALTIMESTAMP()`
+    fetched rows / total rows = 1/1
+    +---------------------+
+    | LOCALTIMESTAMP()    |
+    |---------------------+
+    | 2022-08-02 15:54:19 |
+    +---------------------+
+
+
+LOCALTIME
+---------
+
+Description
+>>>>>>>>>>>
+
+`LOCALTIME()` are synonyms for `NOW() <#now>`_.
+
+Example::
+
+    > source=people | eval `LOCALTIME()` = LOCALTIME() | fields `LOCALTIME()`
+    fetched rows / total rows = 1/1
+    +---------------------+
+    | LOCALTIME()         |
+    |---------------------+
+    | 2022-08-02 15:54:19 |
+    +---------------------+
 
 
 MAKEDATE
@@ -552,9 +941,68 @@ NOW
 Description
 >>>>>>>>>>>
 
-Specifications:
+Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss' format. The value is expressed in the cluster time zone.
+`NOW()` returns a constant time that indicates the time at which the statement began to execute. This differs from the behavior for `SYSDATE() <#sysdate>`_, which returns the exact time at which it executes.
 
-1. NOW() -> DATE
+Return type: DATETIME
+
+Specification: NOW() -> DATETIME
+
+Example::
+
+    > source=people | eval `value_1` = NOW(), `value_2` = NOW() | fields `value_1`, `value_2`
+    fetched rows / total rows = 1/1
+    +---------------------+---------------------+
+    | value_1             | value_2             |
+    |---------------------+---------------------|
+    | 2022-08-02 15:39:05 | 2022-08-02 15:39:05 |
+    +---------------------+---------------------+
+
+
+PERIOD_ADD
+----------
+
+Description
+>>>>>>>>>>>
+
+Usage: period_add(P, N) add N months to period P (in the format YYMM or YYYYMM). Returns a value in the format YYYYMM.
+
+Argument type: INTEGER, INTEGER
+
+Return type: INTEGER
+
+Example::
+
+    os> source=people | eval `PERIOD_ADD(200801, 2)` = PERIOD_ADD(200801, 2), `PERIOD_ADD(200801, -12)` = PERIOD_ADD(200801, -12) | fields `PERIOD_ADD(200801, 2)`, `PERIOD_ADD(200801, -12)`
+    fetched rows / total rows = 1/1
+    +-------------------------+---------------------------+
+    | PERIOD_ADD(200801, 2)   | PERIOD_ADD(200801, -12)   |
+    |-------------------------+---------------------------|
+    | 200803                  | 200701                    |
+    +-------------------------+---------------------------+
+
+
+PERIOD_DIFF
+-----------
+
+Description
+>>>>>>>>>>>
+
+Usage: period_diff(P1, P2) returns the number of months between periods P1 and P2 given in the format YYMM or YYYYMM.
+
+Argument type: INTEGER, INTEGER
+
+Return type: INTEGER
+
+Example::
+
+    os> source=people | eval `PERIOD_DIFF(200802, 200703)` = PERIOD_DIFF(200802, 200703), `PERIOD_DIFF(200802, 201003)` = PERIOD_DIFF(200802, 201003) | fields `PERIOD_DIFF(200802, 200703)`, `PERIOD_DIFF(200802, 201003)`
+    fetched rows / total rows = 1/1
+    +-------------------------------+-------------------------------+
+    | PERIOD_DIFF(200802, 200703)   | PERIOD_DIFF(200802, 201003)   |
+    |-------------------------------+-------------------------------|
+    | 11                            | -25                           |
+    +-------------------------------+-------------------------------+
 
 
 QUARTER
@@ -634,6 +1082,33 @@ Example::
     +------------------------------------------------+----------------------------------+------------------------------------------------+
 
 
+SYSDATE
+-------
+
+Description
+>>>>>>>>>>>
+
+Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss[.nnnnnn]'.
+SYSDATE() returns the time at which it executes. This differs from the behavior for `NOW() <#now>`_, which returns a constant time that indicates the time at which the statement began to execute.
+If the argument is given, it specifies a fractional seconds precision from 0 to 6, the return value includes a fractional seconds part of that many digits.
+
+Optional argument type: INTEGER
+
+Return type: DATETIME
+
+Specification: SYSDATE([INTEGER]) -> DATETIME
+
+Example::
+
+    > source=people | eval `value_1` = SYSDATE(), `value_2` = SYSDATE(6) | fields `value_1`, `value_2`
+    fetched rows / total rows = 1/1
+    +---------------------+----------------------------+
+    | value_1             | value_2                    |
+    |---------------------+----------------------------|
+    | 2022-08-02 15:39:05 | 2022-08-02 15:39:05.123456 |
+    +---------------------+----------------------------+
+
+
 TIME
 ----
 
@@ -648,13 +1123,37 @@ Return type: TIME
 
 Example::
 
-    >od source=people | eval `TIME('13:49:00')` = TIME('13:49:00'), `TIME(TIMESTAMP('2020-08-26 13:49:00'))` = TIME(TIMESTAMP('2020-08-26 13:49:00')) | fields `TIME('13:49:00')`, `TIME(TIMESTAMP('2020-08-26 13:49:00'))`
+    os> source=people | eval `TIME('13:49:00')` = TIME('13:49:00') | fields `TIME('13:49:00')`
     fetched rows / total rows = 1/1
-    +--------------------+------------------------------------------+
-    | TIME('13:49:00')   | TIME(TIMESTAMP('2020-08-26 13:49:00'))   |
-    |--------------------+------------------------------------------|
-    | TIME '13:49:00'    | TIME '13:49:00'                          |
-    +--------------------+------------------------------------------+
+    +--------------------+
+    | TIME('13:49:00')   |
+    |--------------------|
+    | 13:49:00           |
+    +--------------------+
+
+    os> source=people | eval `TIME('13:49')` = TIME('13:49') | fields `TIME('13:49')`
+    fetched rows / total rows = 1/1
+    +-----------------+
+    | TIME('13:49')   |
+    |-----------------|
+    | 13:49:00        |
+    +-----------------+
+
+    os> source=people | eval `TIME('2020-08-26 13:49:00')` = TIME('2020-08-26 13:49:00') | fields `TIME('2020-08-26 13:49:00')`
+    fetched rows / total rows = 1/1
+    +-------------------------------+
+    | TIME('2020-08-26 13:49:00')   |
+    |-------------------------------|
+    | 13:49:00                      |
+    +-------------------------------+
+
+    os> source=people | eval `TIME('2020-08-26 13:49')` = TIME('2020-08-26 13:49') | fields `TIME('2020-08-26 13:49')`
+    fetched rows / total rows = 1/1
+    +----------------------------+
+    | TIME('2020-08-26 13:49')   |
+    |----------------------------|
+    | 13:49:00                   |
+    +----------------------------+
 
 
 TIME_TO_SEC
@@ -724,6 +1223,32 @@ Example::
     |-------------------------------|
     | 733687                        |
     +-------------------------------+
+
+
+UNIX_TIMESTAMP
+--------------
+
+Description
+>>>>>>>>>>>
+
+Usage: Converts given argument to Unix time (seconds since Epoch - very beginning of year 1970). If no argument given, it returns the current Unix time.
+The date argument may be a DATE, DATETIME, or TIMESTAMP string, or a number in YYMMDD, YYMMDDhhmmss, YYYYMMDD, or YYYYMMDDhhmmss format. If the argument includes a time part, it may optionally include a fractional seconds part.
+If argument is in invalid format or outside of range 1970-01-01 00:00:00 - 3001-01-18 23:59:59.999999 (0 to 32536771199.999999 epoch time), function returns NULL.
+You can use `FROM_UNIXTIME`_ to do reverse conversion.
+
+Argument type: <NONE>/DOUBLE/DATE/DATETIME/TIMESTAMP
+
+Return type: DOUBLE
+
+Example::
+
+    os> source=people | eval `UNIX_TIMESTAMP(double)` = UNIX_TIMESTAMP(20771122143845), `UNIX_TIMESTAMP(timestamp)` = UNIX_TIMESTAMP(TIMESTAMP('1996-11-15 17:05:42')) | fields `UNIX_TIMESTAMP(double)`, `UNIX_TIMESTAMP(timestamp)`
+    fetched rows / total rows = 1/1
+    +--------------------------+-----------------------------+
+    | UNIX_TIMESTAMP(double)   | UNIX_TIMESTAMP(timestamp)   |
+    |--------------------------+-----------------------------|
+    | 3404817525.0             | 848077542.0                 |
+    +--------------------------+-----------------------------+
 
 
 WEEK

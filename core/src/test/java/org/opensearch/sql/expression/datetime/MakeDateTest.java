@@ -10,51 +10,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.missingValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.nullValue;
-import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 
 import java.time.LocalDate;
 import java.time.Year;
-import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.DSL;
-import org.opensearch.sql.expression.Expression;
-import org.opensearch.sql.expression.ExpressionTestBase;
-import org.opensearch.sql.expression.FunctionExpression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
-import org.opensearch.sql.expression.env.Environment;
-import org.opensearch.sql.expression.function.FunctionName;
-import org.opensearch.sql.expression.function.FunctionSignature;
 
-@ExtendWith(MockitoExtension.class)
-public class MakeDateTest extends ExpressionTestBase {
-
-  @Mock
-  Environment<Expression, ExprValue> env;
-
-  @Mock
-  Expression nullRef;
-
-  @Mock
-  Expression missingRef;
-
-  private FunctionExpression makedate(Expression year, Expression dayOfYear) {
-    var repo = new ExpressionConfig().functionRepository();
-    var func = repo.resolve(new FunctionSignature(new FunctionName("makedate"),
-        List.of(DOUBLE, DOUBLE)));
-    return (FunctionExpression)func.apply(List.of(year, dayOfYear));
-  }
-
-  private LocalDate makedate(Double year, Double dayOfYear) {
-    return makedate(DSL.literal(year), DSL.literal(dayOfYear)).valueOf(null).dateValue();
-  }
+public class MakeDateTest extends DateTimeTestBase {
 
   @Test
   public void checkEdgeCases() {
@@ -85,8 +51,6 @@ public class MakeDateTest extends ExpressionTestBase {
 
   @Test
   public void checkNullValues() {
-    when(nullRef.valueOf(env)).thenReturn(nullValue());
-
     assertEquals(nullValue(), eval(makedate(nullRef, DSL.literal(42.))));
     assertEquals(nullValue(), eval(makedate(DSL.literal(42.), nullRef)));
     assertEquals(nullValue(), eval(makedate(nullRef, nullRef)));
@@ -94,8 +58,6 @@ public class MakeDateTest extends ExpressionTestBase {
 
   @Test
   public void checkMissingValues() {
-    when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     assertEquals(missingValue(), eval(makedate(missingRef, DSL.literal(42.))));
     assertEquals(missingValue(), eval(makedate(DSL.literal(42.), missingRef)));
     assertEquals(missingValue(), eval(makedate(missingRef, missingRef)));
@@ -166,9 +128,5 @@ public class MakeDateTest extends ExpressionTestBase {
       }
     }
     return LocalDate.ofYearDay(yearL, dayL);
-  }
-
-  private ExprValue eval(Expression expression) {
-    return expression.valueOf(env);
   }
 }

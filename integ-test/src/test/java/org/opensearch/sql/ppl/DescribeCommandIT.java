@@ -15,6 +15,7 @@ import java.io.IOException;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
+import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
@@ -86,5 +87,26 @@ public class DescribeCommandIT extends PPLIntegTestCase {
       assertTrue(e.getMessage().contains("RuntimeException"));
       assertTrue(e.getMessage().contains("Failed to parse query due to offending symbol"));
     }
+  }
+
+  @Test
+  public void testDescribeCommandWithPrometheusCatalog() throws IOException {
+    JSONObject result = executeQuery("describe  my_prometheus.prometheus_http_requests_total");
+    verifyColumn(
+        result,
+        columnName("TABLE_CATALOG"),
+        columnName("TABLE_SCHEMA"),
+        columnName("TABLE_NAME"),
+        columnName("COLUMN_NAME"),
+        columnName("DATA_TYPE")
+    );
+    verifyDataRows(result,
+        rows("my_prometheus", "default", "prometheus_http_requests_total", "handler", "keyword"),
+        rows("my_prometheus", "default", "prometheus_http_requests_total", "code", "keyword"),
+        rows("my_prometheus", "default", "prometheus_http_requests_total", "instance", "keyword"),
+        rows("my_prometheus", "default", "prometheus_http_requests_total", "@value", "double"),
+        rows("my_prometheus", "default", "prometheus_http_requests_total", "@timestamp",
+            "timestamp"),
+        rows("my_prometheus", "default", "prometheus_http_requests_total", "job", "keyword"));
   }
 }

@@ -141,6 +141,10 @@ Operators
 +----------------+----------------------------------------+
 | NOT IN         | NOT IN value list test                 |
 +----------------+----------------------------------------+
+| BETWEEN        | Between a range (endpoint inclusive)   |
++----------------+----------------------------------------+
+| NOT BETWEEN    | Not between a range (BETWEEN negation) |
++----------------+----------------------------------------+
 
 Basic Comparison Operator
 -------------------------
@@ -158,12 +162,12 @@ Here is an example for different type of comparison operators::
 LIKE
 ----
 
-expr LIKE pattern. The expr is string value, pattern is supports literal text, a percent ( % ) character for a wildcard, and an underscore ( _ ) character for a single character match::
+expr LIKE pattern. The expr is string value, pattern is supports literal text, a percent ( % ) character for a wildcard, and an underscore ( _ ) character for a single character match, pattern is case insensitive::
 
-    os> SELECT 'axyzb' LIKE 'a%b', 'acb' LIKE 'a_b', 'axyzb' NOT LIKE 'a%b', 'acb' NOT LIKE 'a_b';
+    os> SELECT 'axyzb' LIKE 'a%b', 'acb' LIKE 'A_B', 'axyzb' NOT LIKE 'a%b', 'acb' NOT LIKE 'a_b';
     fetched rows / total rows = 1/1
     +----------------------+--------------------+--------------------------+------------------------+
-    | 'axyzb' LIKE 'a%b'   | 'acb' LIKE 'a_b'   | 'axyzb' NOT LIKE 'a%b'   | 'acb' NOT LIKE 'a_b'   |
+    | 'axyzb' LIKE 'a%b'   | 'acb' LIKE 'A_B'   | 'axyzb' NOT LIKE 'a%b'   | 'acb' NOT LIKE 'a_b'   |
     |----------------------+--------------------+--------------------------+------------------------|
     | True                 | True               | False                    | False                  |
     +----------------------+--------------------+--------------------------+------------------------+
@@ -207,6 +211,23 @@ Here is an example for IN value test::
     |---------------+-------------------|
     | True          | True              |
     +---------------+-------------------+
+
+BETWEEN range test
+------------------
+
+Here is an example for range test by BETWEEN expression::
+
+    os> SELECT
+    ...  1 BETWEEN 1 AND 3,
+    ...  4 BETWEEN 1 AND 3,
+    ...  4 NOT BETWEEN 1 AND 3;
+    fetched rows / total rows = 1/1
+    +---------------------+---------------------+-------------------------+
+    | 1 BETWEEN 1 AND 3   | 4 BETWEEN 1 AND 3   | 4 NOT BETWEEN 1 AND 3   |
+    |---------------------+---------------------+-------------------------|
+    | True                | False               | True                    |
+    +---------------------+---------------------+-------------------------+
+
 
 Function Call
 =============

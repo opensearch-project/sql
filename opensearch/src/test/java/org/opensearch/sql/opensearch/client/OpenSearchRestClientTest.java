@@ -39,6 +39,7 @@ import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.client.indices.CreateIndexResponse;
 import org.opensearch.client.indices.GetIndexRequest;
 import org.opensearch.client.indices.GetIndexResponse;
 import org.opensearch.client.indices.GetMappingsRequest;
@@ -69,7 +70,7 @@ class OpenSearchRestClientTest {
   @Mock(answer = RETURNS_DEEP_STUBS)
   private RestHighLevelClient restClient;
 
-  private OpenSearchRestClient client;
+  private OpenSearchClient client;
 
   @Mock
   private OpenSearchExprValueFactory factory;
@@ -86,6 +87,52 @@ class OpenSearchRestClientTest {
   @BeforeEach
   void setUp() {
     client = new OpenSearchRestClient(restClient);
+  }
+
+  @Test
+  void isIndexExist() throws IOException {
+    when(restClient.indices()
+        .exists(any(), any())) // use any() because missing equals() in GetIndexRequest
+        .thenReturn(true);
+
+    assertTrue(client.exists("test"));
+  }
+
+  @Test
+  void isIndexNotExist() throws IOException {
+    when(restClient.indices()
+        .exists(any(), any())) // use any() because missing equals() in GetIndexRequest
+        .thenReturn(false);
+
+    assertFalse(client.exists("test"));
+  }
+
+  @Test
+  void isIndexExistWithException() throws IOException {
+    when(restClient.indices().exists(any(), any())).thenThrow(IOException.class);
+
+    assertThrows(IllegalStateException.class, () -> client.exists("test"));
+  }
+
+  @Test
+  void createIndex() throws IOException {
+    String indexName = "test";
+    Map<String, Object> mappings = ImmutableMap.of(
+        "properties",
+        ImmutableMap.of("name", "text"));
+    when(restClient.indices()
+        .create(any(), any()))
+        .thenReturn(new CreateIndexResponse(true, true, indexName));
+
+    client.createIndex(indexName, mappings);
+  }
+
+  @Test
+  void createIndexWithIOException() throws IOException {
+    when(restClient.indices().create(any(), any())).thenThrow(IOException.class);
+
+    assertThrows(IllegalStateException.class,
+        () -> client.createIndex("test", ImmutableMap.of()));
   }
 
   @Test

@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.search.aggregations.Aggregation;
 import org.opensearch.search.aggregations.Aggregations;
@@ -25,6 +26,7 @@ import org.opensearch.sql.common.utils.StringUtils;
 /**
  * Parse multiple metrics in one bucket.
  */
+@EqualsAndHashCode
 @RequiredArgsConstructor
 public class MetricParserHelper {
 

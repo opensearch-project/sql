@@ -20,15 +20,13 @@ import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhrasePrefixQuery;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-public class MatchPhrasePrefixQueryTest {
+public class MatchPhrasePrefixQueryTest  {
 
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
   private final MatchPhrasePrefixQuery matchPhrasePrefixQuery = new MatchPhrasePrefixQuery();
   private final FunctionName matchPhrasePrefix = FunctionName.of("match_phrase_prefix");
 
@@ -41,7 +39,7 @@ public class MatchPhrasePrefixQueryTest {
 
   @Test
   public void test_SyntaxCheckException_when_one_argument() {
-    List<Expression> arguments = List.of(dsl.namedArgument("field", "test"));
+    List<Expression> arguments = List.of(DSL.namedArgument("field", "test"));
     assertThrows(SyntaxCheckException.class,
         () -> matchPhrasePrefixQuery.build(new MatchPhraseExpression(arguments)));
   }
@@ -49,9 +47,9 @@ public class MatchPhrasePrefixQueryTest {
   @Test
   public void test_SyntaxCheckException_when_invalid_parameter() {
     List<Expression> arguments = List.of(
-        dsl.namedArgument("field", "test"),
-        dsl.namedArgument("query", "test2"),
-        dsl.namedArgument("unsupported", "3"));
+        DSL.namedArgument("field", "test"),
+        DSL.namedArgument("query", "test2"),
+        DSL.namedArgument("unsupported", "3"));
     Assertions.assertThrows(SemanticCheckException.class,
         () -> matchPhrasePrefixQuery.build(new MatchPhraseExpression(arguments)));
   }
@@ -59,9 +57,9 @@ public class MatchPhrasePrefixQueryTest {
   @Test
   public void test_analyzer_parameter() {
     List<Expression> arguments = List.of(
-        dsl.namedArgument("field", "t1"),
-        dsl.namedArgument("query", "t2"),
-        dsl.namedArgument("analyzer", "standard")
+        DSL.namedArgument("field", "t1"),
+        DSL.namedArgument("query", "t2"),
+        DSL.namedArgument("analyzer", "standard")
     );
     Assertions.assertNotNull(matchPhrasePrefixQuery.build(new MatchPhraseExpression(arguments)));
   }
@@ -69,17 +67,17 @@ public class MatchPhrasePrefixQueryTest {
   @Test
   public void build_succeeds_with_two_arguments() {
     List<Expression> arguments = List.of(
-        dsl.namedArgument("field", "test"),
-        dsl.namedArgument("query", "test2"));
+        DSL.namedArgument("field", "test"),
+        DSL.namedArgument("query", "test2"));
     Assertions.assertNotNull(matchPhrasePrefixQuery.build(new MatchPhraseExpression(arguments)));
   }
 
   @Test
   public void test_slop_parameter() {
     List<Expression> arguments = List.of(
-        dsl.namedArgument("field", "t1"),
-        dsl.namedArgument("query", "t2"),
-        dsl.namedArgument("slop", "2")
+        DSL.namedArgument("field", "t1"),
+        DSL.namedArgument("query", "t2"),
+        DSL.namedArgument("slop", "2")
     );
     Assertions.assertNotNull(matchPhrasePrefixQuery.build(new MatchPhraseExpression(arguments)));
   }
@@ -87,9 +85,9 @@ public class MatchPhrasePrefixQueryTest {
   @Test
   public void test_zero_terms_query_parameter() {
     List<Expression> arguments = List.of(
-        dsl.namedArgument("field", "t1"),
-        dsl.namedArgument("query", "t2"),
-        dsl.namedArgument("zero_terms_query", "ALL")
+        DSL.namedArgument("field", "t1"),
+        DSL.namedArgument("query", "t2"),
+        DSL.namedArgument("zero_terms_query", "ALL")
     );
     Assertions.assertNotNull(matchPhrasePrefixQuery.build(new MatchPhraseExpression(arguments)));
   }
@@ -97,9 +95,9 @@ public class MatchPhrasePrefixQueryTest {
   @Test
   public void test_zero_terms_query_parameter_lower_case() {
     List<Expression> arguments = List.of(
-        dsl.namedArgument("field", "t1"),
-        dsl.namedArgument("query", "t2"),
-        dsl.namedArgument("zero_terms_query", "all")
+        DSL.namedArgument("field", "t1"),
+        DSL.namedArgument("query", "t2"),
+        DSL.namedArgument("zero_terms_query", "all")
     );
     Assertions.assertNotNull(matchPhrasePrefixQuery.build(new MatchPhraseExpression(arguments)));
   }
@@ -107,9 +105,9 @@ public class MatchPhrasePrefixQueryTest {
   @Test
   public void test_boost_parameter() {
     List<Expression> arguments = List.of(
-        dsl.namedArgument("field", "t1"),
-        dsl.namedArgument("query", "t2"),
-        dsl.namedArgument("boost", "0.1")
+        DSL.namedArgument("field", "t1"),
+        DSL.namedArgument("query", "t2"),
+        DSL.namedArgument("boost", "0.1")
     );
     Assertions.assertNotNull(matchPhrasePrefixQuery.build(new MatchPhraseExpression(arguments)));
   }
