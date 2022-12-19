@@ -44,6 +44,9 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew --continue build ${{ matrix.entry.os_build_args }}
 
+    - name: PiTest with Gradle
+      run: ./gradlew pitest
+
     - name: Run backward compatibility tests
       if: ${{ matrix.entry.os == 'ubuntu-latest' }}
       run: ./scripts/bwctest.sh
@@ -82,3 +85,4 @@ jobs:
           protocol/build/reports/**
           legacy/build/reports/**
           plugin/build/reports/**
+          pitest/build/reports/**

@@ -43,9 +43,11 @@ pitest {
     targetClasses = ['org.opensearch.sql.*']
     pitestVersion = '1.9.0'
     threads = 4
-    outputFormats = ['XML', 'HTML']
+    outputFormats = ['XML']
     timestampedReports = false
     junit5PluginVersion = '1.0.0'
+    historyInputLocation =
+    historyOutputLocation  =
 }
 
 dependencies {
