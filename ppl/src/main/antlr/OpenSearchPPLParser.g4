@@ -437,6 +437,7 @@ dateAndTimeFunctionBase
     | DATE_ADD
     | DATE_FORMAT
     | DATE_SUB
+    | DATEDIFF
     | DATETIME
     | DAY
     | DAYNAME
@@ -465,6 +466,7 @@ dateAndTimeFunctionBase
     | SYSDATE
     | TIME
     | TIME_TO_SEC
+    | TIMEDIFF
     | TIMESTAMP
     | TO_DAYS
     | UNIX_TIMESTAMP

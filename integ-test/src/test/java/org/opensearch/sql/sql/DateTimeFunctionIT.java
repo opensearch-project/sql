@@ -845,6 +845,27 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result, rows(11, -25));
   }
 
+  public void testDateDiff() throws IOException {
+    var result = executeQuery("SELECT"
+        + " DATEDIFF(TIMESTAMP('2000-01-02 00:00:00'), TIMESTAMP('2000-01-01 23:59:59')) AS `'2000-01-02' - '2000-01-01'`,"
+        + " DATEDIFF(DATE('2001-02-01'), TIMESTAMP('2004-01-01 00:00:00')) AS `'2001-02-01' - '2004-01-01'`,"
+        + " DATEDIFF(TIMESTAMP('2004-01-01 00:00:00'), DATETIME('2002-02-01 14:25:30')) AS `'2004-01-01' - '2002-02-01'`,"
+        + " DATEDIFF(TIME('23:59:59'), TIME('00:00:00')) AS `today - today`");
+    verifySchema(result,
+        schema("DATEDIFF(TIMESTAMP('2000-01-02 00:00:00'), TIMESTAMP('2000-01-01 23:59:59'))", "'2000-01-02' - '2000-01-01'", "long"),
+        schema("DATEDIFF(DATE('2001-02-01'), TIMESTAMP('2004-01-01 00:00:00'))", "'2001-02-01' - '2004-01-01'", "long"),
+        schema("DATEDIFF(TIMESTAMP('2004-01-01 00:00:00'), DATETIME('2002-02-01 14:25:30'))", "'2004-01-01' - '2002-02-01'", "long"),
+        schema("DATEDIFF(TIME('23:59:59'), TIME('00:00:00'))", "today - today", "long"));
+    verifyDataRows(result, rows(1, -1064, 699, 0));
+  }
+
+  @Test
+  public void testTimeDiff() throws IOException {
+    var result = executeQuery("select TIMEDIFF('23:59:59', '13:00:00') as f");
+    verifySchema(result, schema("TIMEDIFF('23:59:59', '13:00:00')", "f", "time"));
+    verifyDataRows(result, rows("10:59:59"));
+  }
+
   protected JSONObject executeQuery(String query) throws IOException {
     Request request = new Request("POST", QUERY_API_ENDPOINT);
     request.setJsonEntity(String.format(Locale.ROOT, "{\n" + "  \"query\": \"%s\"\n" + "}", query));
