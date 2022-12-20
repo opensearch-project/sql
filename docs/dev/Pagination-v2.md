@@ -155,3 +155,9 @@ Goal of this phase is to support getting arbitrarily large datasets, done in two
 ## Phase 3
 Support queries with `WHERE` and `ORDER` by clauses.
 The focus of this phase will be on sharing query context for the paginated query between all SQL nodes in the cluster.
+
+## Related work
+
+[index-management](https://github.com/opensearch-project/index-management) and [asynchronous-search](https://github.com/opensearch-project/asynchronous-search) plugins are good examples of how to store query-specific context on the plugin side using OpenSearch indices. 
+
+See [IndexManagementIndicies.kt](https://github.com/opensearch-project/index-management/blob/f2a9fa6ef05227f3c048b5e59a5852b18c1e98e1/src/main/kotlin/org/opensearch/indexmanagement/IndexManagementIndices.kt) and [AsynchronnousSearchPersistenceService.java](https://github.com/opensearch-project/asynchronous-search/blob/71c5ddc392ab97fe0a70376b37432155866b268a/src/main/java/org/opensearch/search/asynchronous/service/AsynchronousSearchPersistenceService.java).
