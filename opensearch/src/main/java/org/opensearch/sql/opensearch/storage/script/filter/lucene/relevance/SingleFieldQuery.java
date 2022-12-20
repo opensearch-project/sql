@@ -10,6 +10,7 @@ import java.util.Map;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.NamedArgumentExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
 
 /**
  * Base class to represent builder class for relevance queries like match_query, match_bool_prefix,
@@ -36,7 +37,7 @@ abstract class SingleFieldQuery<T extends QueryBuilder> extends RelevanceQuery<T
         .orElseThrow(() -> new SemanticCheckException("'query' parameter is missing"));
 
     return createBuilder(
-        field.getValue().valueOf().stringValue(),
+        ((ReferenceExpression)field.getValue()).getAttr(),
         query.getValue().valueOf().stringValue());
   }
 

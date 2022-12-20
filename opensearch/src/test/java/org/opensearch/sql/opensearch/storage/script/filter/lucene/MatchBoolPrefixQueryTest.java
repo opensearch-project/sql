@@ -23,8 +23,10 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchBoolPrefixQuery;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -33,7 +35,8 @@ public class MatchBoolPrefixQueryTest {
   private final FunctionName matchBoolPrefix = FunctionName.of("match_bool_prefix");
 
   static Stream<List<Expression>> generateValidData() {
-    NamedArgumentExpression field = DSL.namedArgument("field", DSL.literal("field_value"));
+    NamedArgumentExpression field = DSL.namedArgument("field",
+        new ReferenceExpression("field_value", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD));
     NamedArgumentExpression query = DSL.namedArgument("query", DSL.literal("query_value"));
     return List.of(
             DSL.namedArgument("fuzziness", DSL.literal("AUTO")),
@@ -58,7 +61,8 @@ public class MatchBoolPrefixQueryTest {
   @Test
   public void test_valid_when_two_arguments() {
     List<Expression> arguments = List.of(
-        DSL.namedArgument("field", "field_value"),
+        DSL.namedArgument("field",
+            new ReferenceExpression("field_value", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
         DSL.namedArgument("query", "query_value"));
     Assertions.assertNotNull(matchBoolPrefixQuery.build(new MatchExpression(arguments)));
   }
@@ -80,7 +84,8 @@ public class MatchBoolPrefixQueryTest {
   @Test
   public void test_SemanticCheckException_when_invalid_argument() {
     List<Expression> arguments = List.of(
-        DSL.namedArgument("field", "field_value"),
+        DSL.namedArgument("field",
+            new ReferenceExpression("field_value", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
         DSL.namedArgument("query", "query_value"),
         DSL.namedArgument("unsupported", "unsupported_value"));
     Assertions.assertThrows(SemanticCheckException.class,
