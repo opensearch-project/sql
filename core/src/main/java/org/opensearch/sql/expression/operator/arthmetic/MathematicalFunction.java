@@ -501,7 +501,7 @@ public class MathematicalFunction {
             FunctionDSL.nullMissingHandling(
                 (x, y) -> new ExprLongValue(
                         BigDecimal.valueOf(x.integerValue()).setScale(y.integerValue(),
-                                x.integerValue() > 0 ? RoundingMode.FLOOR : RoundingMode.CEILING)
+                                        RoundingMode.DOWN)
                                 .longValue())),
             LONG, INTEGER, INTEGER),
         FunctionDSL.impl(
