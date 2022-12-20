@@ -24,7 +24,7 @@ class RelevanceFunctionResolverTest {
 
   @BeforeEach
   void setUp() {
-    resolver = new RelevanceFunctionResolver(sampleFuncName, STRING);
+    resolver = new RelevanceFunctionResolver(sampleFuncName);
   }
 
   @Test
@@ -41,15 +41,6 @@ class RelevanceFunctionResolverTest {
     Exception exception = assertThrows(SemanticCheckException.class,
         () -> resolver.resolve(sig));
     assertEquals("Expected 'sample_function' but got 'wrong_func'",
-        exception.getMessage());
-  }
-
-  @Test
-  void resolve_invalid_first_param_type_test() {
-    var sig = new FunctionSignature(sampleFuncName, List.of(INTEGER));
-    Exception exception = assertThrows(SemanticCheckException.class,
-        () -> resolver.resolve(sig));
-    assertEquals("Expected type STRING instead of INTEGER for parameter #1",
         exception.getMessage());
   }
 

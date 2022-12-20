@@ -22,8 +22,10 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.WildcardQuery;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -34,7 +36,8 @@ class WildcardQueryTest {
   static Stream<List<Expression>> generateValidData() {
     return Stream.of(
         List.of(
-            namedArgument("field", "title"),
+            namedArgument("field",
+                new ReferenceExpression("title", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
             namedArgument("query", "query_value*"),
             namedArgument("boost", "0.7"),
             namedArgument("case_insensitive", "false"),
@@ -59,7 +62,8 @@ class WildcardQueryTest {
 
   @Test
   public void test_SyntaxCheckException_when_one_argument() {
-    List<Expression> arguments = List.of(namedArgument("field", "title"));
+    List<Expression> arguments = List.of(namedArgument("field",
+        new ReferenceExpression("title", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)));
     assertThrows(SyntaxCheckException.class,
         () -> wildcardQueryQuery.build(new WildcardQueryExpression(arguments)));
   }
@@ -67,7 +71,8 @@ class WildcardQueryTest {
   @Test
   public void test_SemanticCheckException_when_invalid_parameter() {
     List<Expression> arguments = List.of(
-        namedArgument("field", "title"),
+        namedArgument("field",
+            new ReferenceExpression("title", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
         namedArgument("query", "query_value*"),
         namedArgument("unsupported", "unsupported_value"));
     Assertions.assertThrows(SemanticCheckException.class,

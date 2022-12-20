@@ -494,7 +494,7 @@ class AstExpressionBuilderTest {
   public void matchPhraseQueryAllParameters() {
     assertEquals(
         AstDSL.function("matchphrasequery",
-            unresolvedArg("field", stringLiteral("test")),
+            unresolvedArg("field", qualifiedName("test")),
             unresolvedArg("query", stringLiteral("search query")),
             unresolvedArg("slop", stringLiteral("3")),
             unresolvedArg("analyzer", stringLiteral("standard")),
@@ -510,7 +510,7 @@ class AstExpressionBuilderTest {
   public void matchPhrasePrefixAllParameters() {
     assertEquals(
         AstDSL.function("match_phrase_prefix",
-          unresolvedArg("field", stringLiteral("test")),
+          unresolvedArg("field", qualifiedName("test")),
           unresolvedArg("query", stringLiteral("search query")),
           unresolvedArg("slop", stringLiteral("3")),
           unresolvedArg("boost", stringLiteral("1.5")),
@@ -527,13 +527,13 @@ class AstExpressionBuilderTest {
   @Test
   public void relevanceMatch() {
     assertEquals(AstDSL.function("match",
-        unresolvedArg("field", stringLiteral("message")),
+        unresolvedArg("field", qualifiedName("message")),
         unresolvedArg("query", stringLiteral("search query"))),
         buildExprAst("match('message', 'search query')")
     );
 
     assertEquals(AstDSL.function("match",
-        unresolvedArg("field", stringLiteral("message")),
+        unresolvedArg("field", qualifiedName("message")),
         unresolvedArg("query", stringLiteral("search query")),
         unresolvedArg("analyzer", stringLiteral("keyword")),
         unresolvedArg("operator", stringLiteral("AND"))),
@@ -543,13 +543,13 @@ class AstExpressionBuilderTest {
   @Test
   public void relevanceMatchQuery() {
     assertEquals(AstDSL.function("matchquery",
-            unresolvedArg("field", stringLiteral("message")),
+            unresolvedArg("field", qualifiedName("message")),
             unresolvedArg("query", stringLiteral("search query"))),
         buildExprAst("matchquery('message', 'search query')")
     );
 
     assertEquals(AstDSL.function("matchquery",
-            unresolvedArg("field", stringLiteral("message")),
+            unresolvedArg("field", qualifiedName("message")),
             unresolvedArg("query", stringLiteral("search query")),
             unresolvedArg("analyzer", stringLiteral("keyword")),
             unresolvedArg("operator", stringLiteral("AND"))),
@@ -559,13 +559,13 @@ class AstExpressionBuilderTest {
   @Test
   public void relevanceMatch_Query() {
     assertEquals(AstDSL.function("match_query",
-            unresolvedArg("field", stringLiteral("message")),
+            unresolvedArg("field", qualifiedName("message")),
             unresolvedArg("query", stringLiteral("search query"))),
         buildExprAst("match_query('message', 'search query')")
     );
 
     assertEquals(AstDSL.function("match_query",
-            unresolvedArg("field", stringLiteral("message")),
+            unresolvedArg("field", qualifiedName("message")),
             unresolvedArg("query", stringLiteral("search query")),
             unresolvedArg("analyzer", stringLiteral("keyword")),
             unresolvedArg("operator", stringLiteral("AND"))),
@@ -671,7 +671,7 @@ class AstExpressionBuilderTest {
   @Test
   public void relevanceWildcard_query() {
     assertEquals(AstDSL.function("wildcard_query",
-            unresolvedArg("field", stringLiteral("field")),
+            unresolvedArg("field", qualifiedName("field")),
             unresolvedArg("query", stringLiteral("search query*")),
             unresolvedArg("boost", stringLiteral("1.5")),
             unresolvedArg("case_insensitive", stringLiteral("true")),

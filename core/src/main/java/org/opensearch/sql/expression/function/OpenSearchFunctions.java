@@ -5,10 +5,6 @@
 
 package org.opensearch.sql.expression.function;
 
-import static org.opensearch.sql.data.type.ExprCoreType.STRING;
-import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
-
-import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
@@ -48,46 +44,46 @@ public class OpenSearchFunctions {
 
   private static FunctionResolver match_bool_prefix() {
     FunctionName name = BuiltinFunctionName.MATCH_BOOL_PREFIX.getName();
-    return new RelevanceFunctionResolver(name, STRING);
+    return new RelevanceFunctionResolver(name);
   }
 
   private static FunctionResolver match(BuiltinFunctionName match) {
     FunctionName funcName = match.getName();
-    return new RelevanceFunctionResolver(funcName, STRING);
+    return new RelevanceFunctionResolver(funcName);
   }
 
   private static FunctionResolver match_phrase_prefix() {
     FunctionName funcName = BuiltinFunctionName.MATCH_PHRASE_PREFIX.getName();
-    return new RelevanceFunctionResolver(funcName, STRING);
+    return new RelevanceFunctionResolver(funcName);
   }
 
   private static FunctionResolver match_phrase(BuiltinFunctionName matchPhrase) {
     FunctionName funcName = matchPhrase.getName();
-    return new RelevanceFunctionResolver(funcName, STRING);
+    return new RelevanceFunctionResolver(funcName);
   }
 
   private static FunctionResolver multi_match(BuiltinFunctionName multiMatchName) {
-    return new RelevanceFunctionResolver(multiMatchName.getName(), STRUCT);
+    return new RelevanceFunctionResolver(multiMatchName.getName());
   }
 
   private static FunctionResolver simple_query_string() {
     FunctionName funcName = BuiltinFunctionName.SIMPLE_QUERY_STRING.getName();
-    return new RelevanceFunctionResolver(funcName, STRUCT);
+    return new RelevanceFunctionResolver(funcName);
   }
 
   private static FunctionResolver query() {
     FunctionName funcName = BuiltinFunctionName.QUERY.getName();
-    return new RelevanceFunctionResolver(funcName, STRING);
+    return new RelevanceFunctionResolver(funcName);
   }
 
   private static FunctionResolver query_string() {
     FunctionName funcName = BuiltinFunctionName.QUERY_STRING.getName();
-    return new RelevanceFunctionResolver(funcName, STRUCT);
+    return new RelevanceFunctionResolver(funcName);
   }
 
   private static FunctionResolver wildcard_query(BuiltinFunctionName wildcardQuery) {
     FunctionName funcName = wildcardQuery.getName();
-    return new RelevanceFunctionResolver(funcName, STRING);
+    return new RelevanceFunctionResolver(funcName);
   }
 
   public static class OpenSearchFunction extends FunctionExpression {
