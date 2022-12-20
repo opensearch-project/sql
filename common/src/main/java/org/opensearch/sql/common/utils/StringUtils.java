@@ -12,20 +12,6 @@ import java.util.Locale;
 
 public class StringUtils {
   /**
-   * Unquote any string with mark specified.
-   * @param text string
-   * @param mark quotation mark
-   * @return An unquoted string whose outer pair of (single/double/back-tick) quotes have been
-   *     removed
-   */
-  public static String unquote(String text, String mark) {
-    if (isQuoted(text, mark)) {
-      return text.substring(mark.length(), text.length() - mark.length());
-    }
-    return text;
-  }
-
-  /**
    * Unquote Identifier which has " or ' or ` as mark.
    * Strings quoted by ' or " with two of these quotes appearing next to each other in the quote
    * acts as an escape
