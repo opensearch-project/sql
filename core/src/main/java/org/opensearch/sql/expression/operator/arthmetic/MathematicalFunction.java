@@ -501,29 +501,25 @@ public class MathematicalFunction {
             FunctionDSL.nullMissingHandling(
                 (x, y) -> new ExprLongValue(
                         BigDecimal.valueOf(x.integerValue()).setScale(y.integerValue(),
-                                        RoundingMode.DOWN)
-                                .longValue())),
+                                        RoundingMode.DOWN).longValue())),
             LONG, INTEGER, INTEGER),
         FunctionDSL.impl(
             FunctionDSL.nullMissingHandling(
                 (x, y) -> new ExprLongValue(
                         BigDecimal.valueOf(x.longValue()).setScale(y.integerValue(),
-                                x.longValue() > 0 ? RoundingMode.FLOOR : RoundingMode.CEILING)
-                                .longValue())),
+                                        RoundingMode.DOWN).longValue())),
             LONG, LONG, INTEGER),
         FunctionDSL.impl(
             FunctionDSL.nullMissingHandling(
                 (x, y) -> new ExprDoubleValue(
                         BigDecimal.valueOf(x.floatValue()).setScale(y.integerValue(),
-                                x.floatValue() > 0 ? RoundingMode.FLOOR : RoundingMode.CEILING)
-                                .doubleValue())),
+                                        RoundingMode.DOWN).doubleValue())),
             DOUBLE, FLOAT, INTEGER),
         FunctionDSL.impl(
             FunctionDSL.nullMissingHandling(
                 (x, y) -> new ExprDoubleValue(
                         BigDecimal.valueOf(x.doubleValue()).setScale(y.integerValue(),
-                                x.doubleValue() > 0 ? RoundingMode.FLOOR : RoundingMode.CEILING)
-                                .doubleValue())),
+                                        RoundingMode.DOWN).doubleValue())),
             DOUBLE, DOUBLE, INTEGER));
   }
 
