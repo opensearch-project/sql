@@ -831,6 +831,60 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     assertEquals("second(DATETIME '2020-08-17 01:02:03')", expression.toString());
   }
 
+  public void testSecondOfMinute(FunctionExpression dateExpression, int second, String testExpr) {
+    assertEquals(INTEGER, dateExpression.type());
+    assertEquals(integerValue(second), eval(dateExpression));
+    assertEquals(testExpr, dateExpression.toString());
+  }
+
+  @Test
+  public void secondOfMinute() {
+    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
+    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
+
+    FunctionExpression expression1 = DSL.second_of_minute(DSL.literal(new ExprTimeValue("01:02:03")));
+    FunctionExpression expression2 = DSL.second_of_minute(DSL.literal("01:02:03"));
+    FunctionExpression expression3 = DSL.second_of_minute(DSL.literal("2020-08-17 01:02:03"));
+    FunctionExpression expression4 = DSL.second_of_minute(DSL.literal(new ExprTimestampValue("2020-08-17 01:02:03")));
+    FunctionExpression expression5 = DSL.second_of_minute(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03")));
+
+    assertAll(
+        () -> testSecondOfMinute(expression1, 3, "second_of_minute(TIME '01:02:03')"),
+        () -> testSecondOfMinute(expression2, 3, "second_of_minute(\"01:02:03\")"),
+        () -> testSecondOfMinute(expression3, 3, "second_of_minute(\"2020-08-17 01:02:03\")"),
+        () -> testSecondOfMinute(
+            expression4, 3, "second_of_minute(TIMESTAMP '2020-08-17 01:02:03')"),
+        () -> testSecondOfMinute(
+            expression5, 3, "second_of_minute(DATETIME '2020-08-17 01:02:03')")
+    );
+  }
+
+  public void testInvalidSecondOfMinute(String time) {
+    FunctionExpression expression = DSL.second_of_minute(DSL.literal(new ExprTimeValue(time)));
+    eval(expression);
+  }
+
+  @Test
+  public void secondOfMinuteInvalidArguments() {
+    when(nullRef.type()).thenReturn(TIME);
+    when(missingRef.type()).thenReturn(TIME);
+    assertEquals(nullValue(), eval(DSL.second_of_minute(nullRef)));
+    assertEquals(missingValue(), eval(DSL.second_of_minute(missingRef)));
+
+    //Invalid Seconds
+    assertThrows(SemanticCheckException.class, () -> testInvalidSecondOfMinute("12:23:61"));
+
+    //Invalid Minutes
+    assertThrows(SemanticCheckException.class, () -> testInvalidSecondOfMinute("12:61:34"));
+
+    //Invalid Hours
+    assertThrows(SemanticCheckException.class, () -> testInvalidSecondOfMinute("25:23:34"));
+
+    //incorrect format
+    assertThrows(SemanticCheckException.class, () -> testInvalidSecondOfMinute("asdfasdf"));
+  }
+
+
   @Test
   public void subdate() {
     FunctionExpression expr = DSL.subdate(DSL.date(DSL.literal("2020-08-26")), DSL.literal(7));
