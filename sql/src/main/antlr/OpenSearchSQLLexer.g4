@@ -315,6 +315,7 @@ REGEXP_QUERY:                       'REGEXP_QUERY';
 REVERSE_NESTED:                     'REVERSE_NESTED';
 QUERY:                              'QUERY';
 RANGE:                              'RANGE';
+SCORE:                              'SCORE';
 SECOND_OF_MINUTE:                   'SECOND_OF_MINUTE';
 STATS:                              'STATS';
 TERM:                               'TERM';

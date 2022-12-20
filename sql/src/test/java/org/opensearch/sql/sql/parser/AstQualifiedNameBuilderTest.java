@@ -53,10 +53,7 @@ public class AstQualifiedNameBuilderTest {
 
   @Test
   public void commonKeywordCanBeUsedAsIdentifier() {
-    String[] keywords = {"score", "type"};
-    for (String keyword : keywords) {
-      buildFromIdentifier(keyword).expectQualifiedName(keyword);
-    }
+    buildFromIdentifier("type").expectQualifiedName("type");
   }
 
   @Test
