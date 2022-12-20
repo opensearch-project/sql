@@ -1726,8 +1726,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression truncate = DSL.truncate(DSL.literal(value), DSL.literal(1));
     assertThat(
         truncate.valueOf(valueEnv()), allOf(hasType(LONG),
-              hasValue(BigDecimal.valueOf(value).setScale(1,
-                      value > 0 ? RoundingMode.FLOOR : RoundingMode.CEILING).longValue())));
+              hasValue(BigDecimal.valueOf(value).setScale(1, RoundingMode.DOWN).longValue())));
     assertEquals(String.format("truncate(%s, 1)", value), truncate.toString());
   }
 
