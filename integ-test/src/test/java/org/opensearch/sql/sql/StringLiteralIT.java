@@ -59,9 +59,9 @@ public class StringLiteralIT extends SQLIntegTestCase {
   @Test
   public void testImStringEscapedSingleQuote() throws IOException {
     JSONObject result =
-        executeJdbcRequest("select 'I\\'m'");
+        executeJdbcRequest("select 'I\\\\'m'");
     verifySchema(result,
-        schema("'I'm'", null, "keyword"));
+        schema("'I\\'m'", null, "keyword"));
     verifyDataRows(result, rows("I'm"));
   }
 }
