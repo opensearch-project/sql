@@ -192,12 +192,12 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     assertThat(
         ceil.valueOf(valueEnv()),
         allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
-    assertEquals(String.format("ceil(%s)", value.toString()), ceil.toString());
+    assertEquals(String.format("ceil(%s)", value), ceil.toString());
 
     FunctionExpression ceiling = DSL.ceiling(DSL.literal(value));
     assertThat(
         ceiling.valueOf(valueEnv()), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
-    assertEquals(String.format("ceiling(%s)", value.toString()), ceiling.toString());
+    assertEquals(String.format("ceiling(%s)", value), ceiling.toString());
   }
 
   /**
@@ -209,12 +209,12 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression ceil = DSL.ceil(DSL.literal(value));
     assertThat(
         ceil.valueOf(valueEnv()), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
-    assertEquals(String.format("ceil(%s)", value.toString()), ceil.toString());
+    assertEquals(String.format("ceil(%s)", value), ceil.toString());
 
     FunctionExpression ceiling = DSL.ceiling(DSL.literal(value));
     assertThat(
         ceiling.valueOf(valueEnv()), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
-    assertEquals(String.format("ceiling(%s)", value.toString()), ceiling.toString());
+    assertEquals(String.format("ceiling(%s)", value), ceiling.toString());
   }
 
   /**
@@ -226,12 +226,12 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression ceil = DSL.ceil(DSL.literal(value));
     assertThat(
         ceil.valueOf(valueEnv()), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
-    assertEquals(String.format("ceil(%s)", value.toString()), ceil.toString());
+    assertEquals(String.format("ceil(%s)", value), ceil.toString());
 
     FunctionExpression ceiling = DSL.ceiling(DSL.literal(value));
     assertThat(
         ceiling.valueOf(valueEnv()), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
-    assertEquals(String.format("ceiling(%s)", value.toString()), ceiling.toString());
+    assertEquals(String.format("ceiling(%s)", value), ceiling.toString());
   }
 
   /**
@@ -243,12 +243,12 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression ceil = DSL.ceil(DSL.literal(value));
     assertThat(
         ceil.valueOf(valueEnv()), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
-    assertEquals(String.format("ceil(%s)", value.toString()), ceil.toString());
+    assertEquals(String.format("ceil(%s)", value), ceil.toString());
 
     FunctionExpression ceiling = DSL.ceiling(DSL.literal(value));
     assertThat(
         ceiling.valueOf(valueEnv()), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
-    assertEquals(String.format("ceiling(%s)", value.toString()), ceiling.toString());
+    assertEquals(String.format("ceiling(%s)", value), ceiling.toString());
   }
 
   /**
@@ -1721,12 +1721,13 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
    * Test truncate with integer value.
    */
   @ParameterizedTest(name = "truncate({0}, {1})")
-  @ValueSource(ints = {2, -2})
+  @ValueSource(ints = {2, -2, Integer.MAX_VALUE, Integer.MIN_VALUE})
   public void truncate_int_value(Integer value) {
     FunctionExpression truncate = DSL.truncate(DSL.literal(value), DSL.literal(1));
     assertThat(
         truncate.valueOf(valueEnv()), allOf(hasType(LONG),
-            hasValue(new BigDecimal(value).setScale(1, RoundingMode.DOWN).longValue())));
+              hasValue(BigDecimal.valueOf(value).setScale(1,
+                      value > 0 ? RoundingMode.FLOOR : RoundingMode.CEILING).longValue())));
     assertEquals(String.format("truncate(%s, 1)", value), truncate.toString());
   }
 
@@ -1734,12 +1735,13 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
    * Test truncate with long value.
    */
   @ParameterizedTest(name = "truncate({0}, {1})")
-  @ValueSource(longs = {2L, -2L})
+  @ValueSource(longs = {2L, -2L, Long.MAX_VALUE, Long.MIN_VALUE})
   public void truncate_long_value(Long value) {
     FunctionExpression truncate = DSL.truncate(DSL.literal(value), DSL.literal(1));
     assertThat(
         truncate.valueOf(valueEnv()), allOf(hasType(LONG),
-            hasValue(new BigDecimal(value).setScale(1, RoundingMode.DOWN).longValue())));
+            hasValue(BigDecimal.valueOf(value).setScale(1,
+                    value > 0 ? RoundingMode.FLOOR : RoundingMode.CEILING).longValue())));
     assertEquals(String.format("truncate(%s, 1)", value), truncate.toString());
   }
 
@@ -1747,12 +1749,13 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
    * Test truncate with float value.
    */
   @ParameterizedTest(name = "truncate({0}, {1})")
-  @ValueSource(floats = {2F, -2F})
+  @ValueSource(floats = {2F, -2F, Float.MAX_VALUE, Float.MIN_VALUE})
   public void truncate_float_value(Float value) {
     FunctionExpression truncate = DSL.truncate(DSL.literal(value), DSL.literal(1));
     assertThat(
         truncate.valueOf(valueEnv()), allOf(hasType(DOUBLE),
-            hasValue(new BigDecimal(value).setScale(1, RoundingMode.DOWN).doubleValue())));
+            hasValue(BigDecimal.valueOf(value).setScale(1,
+                    value > 0 ? RoundingMode.FLOOR : RoundingMode.CEILING).doubleValue())));
     assertEquals(String.format("truncate(%s, 1)", value), truncate.toString());
   }
 
@@ -1760,12 +1763,16 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
    * Test truncate with double value.
    */
   @ParameterizedTest(name = "truncate({0}, {1})")
-  @ValueSource(doubles = {2D, -2D})
+  @ValueSource(doubles = {2D, -9.223372036854776e+18D, -2147483649.0D, -2147483648.0D,
+                          -32769.0D, -32768.0D, -34.84D, -2.0D, -1.2D, -1.0D, 0.0D, 1.0D,
+                          1.3D, 2.0D, 1004.3D, 32767.0D, 32768.0D, 2147483647.0D, 2147483648.0D,
+                          9.223372036854776e+18D, Double.MAX_VALUE, Double.MIN_VALUE})
   public void truncate_double_value(Double value) {
     FunctionExpression truncate = DSL.truncate(DSL.literal(value), DSL.literal(1));
     assertThat(
         truncate.valueOf(valueEnv()), allOf(hasType(DOUBLE),
-            hasValue(new BigDecimal(value).setScale(1, RoundingMode.DOWN).doubleValue())));
+            hasValue(BigDecimal.valueOf(value).setScale(1,
+                    value > 0 ? RoundingMode.FLOOR : RoundingMode.CEILING).doubleValue())));
     assertEquals(String.format("truncate(%s, 1)", value), truncate.toString());
   }
 
