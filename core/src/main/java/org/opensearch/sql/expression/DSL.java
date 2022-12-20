@@ -768,6 +768,22 @@ public class DSL {
     return compile(functionProperties, BuiltinFunctionName.CURRENT_DATE, args);
   }
 
+  public static FunctionExpression utc_date(FunctionProperties functionProperties,
+                                                Expression... args) {
+    return compile(functionProperties, BuiltinFunctionName.UTC_DATE, args);
+  }
+
+  public static FunctionExpression utc_time(FunctionProperties functionProperties,
+                                                Expression... args) {
+    return compile(functionProperties, BuiltinFunctionName.UTC_TIME, args);
+  }
+
+  public static FunctionExpression utc_timestamp(FunctionProperties functionProperties,
+                                                Expression... args) {
+    return compile(functionProperties, BuiltinFunctionName.UTC_TIMESTAMP, args);
+
+  }
+
   @SuppressWarnings("unchecked")
   private static <T extends FunctionImplementation>
       T compile(FunctionProperties functionProperties,
