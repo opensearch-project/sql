@@ -85,4 +85,3 @@ jobs:
           protocol/build/reports/**
           legacy/build/reports/**
           plugin/build/reports/**
-          pitest/build/reports/**
