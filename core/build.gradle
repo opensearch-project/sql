@@ -46,7 +46,7 @@ pitest {
     outputFormats = ['HTML']
     timestampedReports = false
     junit5PluginVersion = '1.0.0'
-    mutationThreshold = 80
+    mutationThreshold = '80'
 //    historyInputLocation =
 //    historyOutputLocation  =
 }
