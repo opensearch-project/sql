@@ -53,8 +53,8 @@ public class StringUtils {
     for (int chIndex = 1; chIndex < text.length() - 1; chIndex++) {
       currentChar = text.charAt(chIndex);
       nextChar = text.charAt(chIndex + 1);
-      if (currentChar == enclosingQuote
-          && nextChar == currentChar) {
+      if ((currentChar == enclosingQuote)
+          && (nextChar == currentChar)) {
         chIndex++;
       }
       textSB.append(currentChar);
