@@ -26,6 +26,7 @@ plugins {
     id 'java-library'
     id "io.freefair.lombok"
     id 'jacoco'
+    id 'info.solidsoft.pitest' version '1.9.0'
 }
 
 repositories {
@@ -37,6 +38,16 @@ repositories {
 //        substitute module('com.google.guava:guava:26.0-jre') with module('com.google.guava:guava:29.0-jre')
 //    }
 //}
+
+pitest {
+    targetClasses = ['org.opensearch.sql.*']
+    pitestVersion = '1.9.0'
+    threads = 4
+    outputFormats = ['HTML', 'XML']
+    timestampedReports = false
+    junit5PluginVersion = '1.0.0'
+    mutationThreshold = 85
+}
 
 dependencies {
     api group: 'com.google.guava', name: 'guava', version: '31.0.1-jre'
