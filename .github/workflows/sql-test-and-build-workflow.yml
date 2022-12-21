@@ -45,7 +45,10 @@ jobs:
       run: ./gradlew --continue build ${{ matrix.entry.os_build_args }}
 
     - name: PiTest with Gradle
-      run: ./gradlew :core:pitest
+      run: |
+        ./gradlew :core:pitest
+        ./gradlew :opensearch:pitest
+     
 
     - name: Run backward compatibility tests
       if: ${{ matrix.entry.os == 'ubuntu-latest' }}
