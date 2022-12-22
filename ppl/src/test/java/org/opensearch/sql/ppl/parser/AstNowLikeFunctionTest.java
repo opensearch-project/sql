@@ -56,7 +56,10 @@ public class AstNowLikeFunctionTest {
         {"curtime", false, false},
         {"current_time", false, false},
         {"curdate", false, false},
-        {"current_date", false, false}
+        {"current_date", false, false},
+        {"utc_date", false, false},
+        {"utc_time", false, false},
+        {"utc_timestamp", false, false}
     });
   }
 
