@@ -36,7 +36,7 @@ public class StringUtils {
       return text;
     }
 
-    if (firstChar == '`' && lastChar == '`')
+    if (firstChar == '`')
     {
       return text.substring(1, text.length() - 1);
     }
