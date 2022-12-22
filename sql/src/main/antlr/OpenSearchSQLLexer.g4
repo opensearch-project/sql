@@ -258,9 +258,9 @@ TIME_TO_SEC:                        'TIME_TO_SEC';
 TIMESTAMP:                          'TIMESTAMP';
 TRUNCATE:                           'TRUNCATE';
 TO_DAYS:                            'TO_DAYS';
-UTC_DATE:                           'UTC_DATE';
 UNIX_TIMESTAMP:                     'UNIX_TIMESTAMP';
 UPPER:                              'UPPER';
+UTC_DATE:                           'UTC_DATE';
 UTC_TIME:                           'UTC_TIME';
 UTC_TIMESTAMP:                      'UTC_TIMESTAMP';
 

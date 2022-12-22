@@ -23,8 +23,10 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchQuery;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -39,71 +41,85 @@ public class MatchQueryTest {
   static Stream<List<Expression>> generateValidData() {
     return Stream.of(
         List.of(
-            DSL.namedArgument("field", DSL.literal("field_value")),
+            DSL.namedArgument("field",
+                new ReferenceExpression("field_value", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
             DSL.namedArgument("query", DSL.literal("query_value"))
         ),
         List.of(
-            DSL.namedArgument("field", DSL.literal("field_value")),
+            DSL.namedArgument("field",
+                new ReferenceExpression("field_value", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
             DSL.namedArgument("query", DSL.literal("query_value")),
             DSL.namedArgument("analyzer", DSL.literal("standard"))
         ),
         List.of(
-            DSL.namedArgument("field", DSL.literal("field_value")),
+            DSL.namedArgument("field",
+                new ReferenceExpression("field_value", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
             DSL.namedArgument("query", DSL.literal("query_value")),
             DSL.namedArgument("auto_generate_synonyms_phrase_query", DSL.literal("true"))
         ),
         List.of(
-            DSL.namedArgument("field", DSL.literal("field_value")),
+            DSL.namedArgument("field",
+                new ReferenceExpression("field_value", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
             DSL.namedArgument("query", DSL.literal("query_value")),
             DSL.namedArgument("fuzziness", DSL.literal("AUTO"))
         ),
         List.of(
-            DSL.namedArgument("field", DSL.literal("field_value")),
+            DSL.namedArgument("field",
+                new ReferenceExpression("field_value", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
             DSL.namedArgument("query", DSL.literal("query_value")),
             DSL.namedArgument("max_expansions", DSL.literal("50"))
         ),
         List.of(
-            DSL.namedArgument("field", DSL.literal("field_value")),
+            DSL.namedArgument("field",
+                new ReferenceExpression("field_value", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
             DSL.namedArgument("query", DSL.literal("query_value")),
             DSL.namedArgument("prefix_length", DSL.literal("0"))
         ),
         List.of(
-            DSL.namedArgument("field", DSL.literal("field_value")),
+            DSL.namedArgument("field",
+                new ReferenceExpression("field_value", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
             DSL.namedArgument("query", DSL.literal("query_value")),
             DSL.namedArgument("fuzzy_transpositions", DSL.literal("true"))
         ),
         List.of(
-            DSL.namedArgument("field", DSL.literal("field_value")),
+            DSL.namedArgument("field",
+                new ReferenceExpression("field_value", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
             DSL.namedArgument("query", DSL.literal("query_value")),
             DSL.namedArgument("fuzzy_rewrite", DSL.literal("constant_score"))
         ),
         List.of(
-            DSL.namedArgument("field", DSL.literal("field_value")),
+            DSL.namedArgument("field",
+                new ReferenceExpression("field_value", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
             DSL.namedArgument("query", DSL.literal("query_value")),
             DSL.namedArgument("lenient", DSL.literal("false"))
         ),
         List.of(
-            DSL.namedArgument("field", DSL.literal("field_value")),
+            DSL.namedArgument("field",
+                new ReferenceExpression("field_value", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
             DSL.namedArgument("query", DSL.literal("query_value")),
             DSL.namedArgument("operator", DSL.literal("OR"))
         ),
         List.of(
-            DSL.namedArgument("field", DSL.literal("field_value")),
+            DSL.namedArgument("field",
+                new ReferenceExpression("field_value", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
             DSL.namedArgument("query", DSL.literal("query_value")),
             DSL.namedArgument("minimum_should_match", DSL.literal("3"))
         ),
         List.of(
-            DSL.namedArgument("field", DSL.literal("field_value")),
+            DSL.namedArgument("field",
+                new ReferenceExpression("field_value", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
             DSL.namedArgument("query", DSL.literal("query_value")),
             DSL.namedArgument("zero_terms_query", DSL.literal("NONE"))
         ),
         List.of(
-            DSL.namedArgument("field", DSL.literal("field_value")),
+            DSL.namedArgument("field",
+                new ReferenceExpression("field_value", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
             DSL.namedArgument("query", DSL.literal("query_value")),
             DSL.namedArgument("zero_terms_query", DSL.literal("none"))
         ),
         List.of(
-            DSL.namedArgument("field", DSL.literal("field_value")),
+            DSL.namedArgument("field",
+                new ReferenceExpression("field_value", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
             DSL.namedArgument("query", DSL.literal("query_value")),
             DSL.namedArgument("boost", DSL.literal("1"))
         )
@@ -133,7 +149,8 @@ public class MatchQueryTest {
   @Test
   public void test_SemanticCheckException_when_invalid_parameter() {
     List<Expression> arguments = List.of(
-        namedArgument("field", "field_value"),
+        DSL.namedArgument("field",
+            new ReferenceExpression("field_value", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
         namedArgument("query", "query_value"),
         namedArgument("unsupported", "unsupported_value"));
     Assertions.assertThrows(SemanticCheckException.class,
@@ -166,7 +183,8 @@ public class MatchQueryTest {
   @Test
   public void test_SemanticCheckException_when_invalid_parameter_matchquery_syntax() {
     List<Expression> arguments = List.of(
-        namedArgument("field", "field_value"),
+        DSL.namedArgument("field",
+            new ReferenceExpression("field_value", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
         namedArgument("query", "query_value"),
         namedArgument("unsupported", "unsupported_value"));
     Assertions.assertThrows(SemanticCheckException.class,
@@ -200,7 +218,8 @@ public class MatchQueryTest {
   @Test
   public void test_SemanticCheckException_when_invalid_parameter_match_query_syntax() {
     List<Expression> arguments = List.of(
-        namedArgument("field", "field_value"),
+        DSL.namedArgument("field",
+            new ReferenceExpression("field_value", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
         namedArgument("query", "query_value"),
         namedArgument("unsupported", "unsupported_value"));
     Assertions.assertThrows(SemanticCheckException.class,
