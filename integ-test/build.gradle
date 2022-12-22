@@ -263,11 +263,11 @@ String bwcRemoteFile = "https://ci.opensearch.org/ci/dbc/bundle-build/1.1.0/2021
             if (bwcBundleTest) {
                 versions = ["1.3.2", "2.5.0"]
                 nodes.each { node ->
-                    node.extraConfigFile("kirk.pem", file("src/test/resources/bwc/security/kirk.pem"))
-                    node.extraConfigFile("kirk-key.pem", file("src/test/resources/bwc/security/kirk-key.pem"))
-                    node.extraConfigFile("esnode.pem", file("src/test/resources/bwc/security/esnode.pem"))
-                    node.extraConfigFile("esnode-key.pem", file("src/test/resources/bwc/security/esnode-key.pem"))
-                    node.extraConfigFile("root-ca.pem", file("src/test/resources/bwc/security/root-ca.pem"))
+                    node.extraConfigFile("kirk.pem", file("src/test/resources/security/kirk.pem"))
+                    node.extraConfigFile("kirk-key.pem", file("src/test/resources/security/kirk-key.pem"))
+                    node.extraConfigFile("esnode.pem", file("src/test/resources/security/esnode.pem"))
+                    node.extraConfigFile("esnode-key.pem", file("src/test/resources/security/esnode-key.pem"))
+                    node.extraConfigFile("root-ca.pem", file("src/test/resources/security/root-ca.pem"))
                     node.setting("plugins.security.disabled", "true")
                     node.setting("plugins.security.ssl.transport.pemcert_filepath", "esnode.pem")
                     node.setting("plugins.security.ssl.transport.pemkey_filepath", "esnode-key.pem")
