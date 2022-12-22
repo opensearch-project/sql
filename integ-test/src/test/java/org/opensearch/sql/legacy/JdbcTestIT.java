@@ -35,10 +35,10 @@ public class JdbcTestIT extends SQLIntegTestCase {
 
     JSONObject percentileRow = (JSONObject) response.query("/datarows/0/0");
 
-    assertThat(percentileRow.getDouble("25.0"), equalTo(31.5));
-    assertThat(percentileRow.getDouble("50.0"), equalTo(33.5));
-    assertThat(percentileRow.getDouble("75.0"), equalTo(36.5));
-    assertThat(percentileRow.getDouble("99.9"), equalTo(39.0));
+    assertEquals(31.5, percentileRow.getDouble("25.0"), 0.6);
+    assertEquals(33.5, percentileRow.getDouble("50.0"), 0.6);
+    assertEquals(36.5, percentileRow.getDouble("75.0"), 0.6);
+    assertEquals(39.0, percentileRow.getDouble("99.9"), 0.6);
   }
 
   // https://github.com/opensearch-project/sql/issues/537
@@ -53,10 +53,10 @@ public class JdbcTestIT extends SQLIntegTestCase {
 
     assertThat(response.getJSONArray("datarows").length(), equalTo(1));
     JSONObject percentileRow = (JSONObject) response.query("/datarows/0/0");
-    assertThat(percentileRow.getDouble("25.0"), equalTo(31.5));
-    assertThat(percentileRow.getDouble("50.0"), equalTo(33.5));
-    assertThat(percentileRow.getDouble("75.0"), equalTo(36.5));
-    assertThat(percentileRow.getDouble("99.9"), equalTo(39.0));
+    assertEquals(31.5, percentileRow.getDouble("25.0"), 0.6);
+    assertEquals(33.5, percentileRow.getDouble("50.0"), 0.6);
+    assertEquals(36.5, percentileRow.getDouble("75.0"), 0.6);
+    assertEquals(39.0, percentileRow.getDouble("99.9"), 0.6);
 
     wipeAllClusterSettings();
   }

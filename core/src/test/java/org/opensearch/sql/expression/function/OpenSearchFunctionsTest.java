@@ -61,62 +61,62 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
 
   @Test
   void match() {
-    FunctionExpression expr = dsl.match(field, query);
+    FunctionExpression expr = DSL.match(field, query);
     assertEquals(BOOLEAN, expr.type());
 
-    expr = dsl.match(field, query, analyzer);
+    expr = DSL.match(field, query, analyzer);
     assertEquals(BOOLEAN, expr.type());
 
-    expr = dsl.match(field, query, analyzer, autoGenerateSynonymsPhrase);
+    expr = DSL.match(field, query, analyzer, autoGenerateSynonymsPhrase);
     assertEquals(BOOLEAN, expr.type());
 
-    expr = dsl.match(field, query, analyzer, autoGenerateSynonymsPhrase, fuzziness);
+    expr = DSL.match(field, query, analyzer, autoGenerateSynonymsPhrase, fuzziness);
     assertEquals(BOOLEAN, expr.type());
 
-    expr = dsl.match(field, query, analyzer, autoGenerateSynonymsPhrase, fuzziness, maxExpansions);
+    expr = DSL.match(field, query, analyzer, autoGenerateSynonymsPhrase, fuzziness, maxExpansions);
     assertEquals(BOOLEAN, expr.type());
 
-    expr = dsl.match(
+    expr = DSL.match(
         field, query, analyzer, autoGenerateSynonymsPhrase, fuzziness, maxExpansions, prefixLength);
     assertEquals(BOOLEAN, expr.type());
 
-    expr = dsl.match(
+    expr = DSL.match(
         field, query, analyzer, autoGenerateSynonymsPhrase, fuzziness, maxExpansions, prefixLength,
         fuzzyTranspositions);
     assertEquals(BOOLEAN, expr.type());
 
-    expr = dsl.match(
+    expr = DSL.match(
         field, query, analyzer, autoGenerateSynonymsPhrase, fuzziness, maxExpansions, prefixLength,
         fuzzyTranspositions, fuzzyRewrite);
     assertEquals(BOOLEAN, expr.type());
 
-    expr = dsl.match(
+    expr = DSL.match(
         field, query, analyzer, autoGenerateSynonymsPhrase, fuzziness, maxExpansions, prefixLength,
         fuzzyTranspositions, fuzzyRewrite, lenient);
     assertEquals(BOOLEAN, expr.type());
 
-    expr = dsl.match(
+    expr = DSL.match(
         field, query, analyzer, autoGenerateSynonymsPhrase, fuzziness, maxExpansions, prefixLength,
         fuzzyTranspositions, fuzzyRewrite, lenient, operator);
     assertEquals(BOOLEAN, expr.type());
 
-    expr = dsl.match(
+    expr = DSL.match(
         field, query, analyzer, autoGenerateSynonymsPhrase, fuzziness, maxExpansions, prefixLength,
         fuzzyTranspositions, fuzzyRewrite, lenient, operator);
     assertEquals(BOOLEAN, expr.type());
 
-    expr = dsl.match(
+    expr = DSL.match(
         field, query, analyzer, autoGenerateSynonymsPhrase, fuzziness, maxExpansions, prefixLength,
         fuzzyTranspositions, fuzzyRewrite, lenient, operator, minimumShouldMatch);
     assertEquals(BOOLEAN, expr.type());
 
-    expr = dsl.match(
+    expr = DSL.match(
         field, query, analyzer, autoGenerateSynonymsPhrase, fuzziness, maxExpansions, prefixLength,
         fuzzyTranspositions, fuzzyRewrite, lenient, operator, minimumShouldMatch,
         zeroTermsQueryAll);
     assertEquals(BOOLEAN, expr.type());
 
-    expr = dsl.match(
+    expr = DSL.match(
         field, query, analyzer, autoGenerateSynonymsPhrase, fuzziness, maxExpansions, prefixLength,
         fuzzyTranspositions, fuzzyRewrite, lenient, operator, minimumShouldMatch,
         zeroTermsQueryNone, boost);
@@ -133,16 +133,16 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
 
   List<FunctionExpression> match_phrase_dsl_expressions() {
     return List.of(
-      dsl.match_phrase(field, query),
-      dsl.match_phrase(field, query, analyzer),
-      dsl.match_phrase(field, query, analyzer, zeroTermsQueryAll),
-      dsl.match_phrase(field, query, analyzer, zeroTermsQueryNone, slop)
+      DSL.match_phrase(field, query),
+      DSL.match_phrase(field, query, analyzer),
+      DSL.match_phrase(field, query, analyzer, zeroTermsQueryAll),
+      DSL.match_phrase(field, query, analyzer, zeroTermsQueryNone, slop)
     );
   }
 
   List<FunctionExpression> match_phrase_prefix_dsl_expressions() {
     return List.of(
-        dsl.match_phrase_prefix(field, query)
+        DSL.match_phrase_prefix(field, query)
     );
   }
 
@@ -155,7 +155,7 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
 
   @Test
   void match_in_memory() {
-    FunctionExpression expr = dsl.match(field, query);
+    FunctionExpression expr = DSL.match(field, query);
     assertThrows(UnsupportedOperationException.class,
         () -> expr.valueOf(valueEnv()),
         "OpenSearch defined function [match] is only supported in WHERE and HAVING clause.");
@@ -163,13 +163,13 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
 
   @Test
   void match_to_string() {
-    FunctionExpression expr = dsl.match(field, query);
+    FunctionExpression expr = DSL.match(field, query);
     assertEquals("match(field=\"message\", query=\"search query\")", expr.toString());
   }
 
   @Test
   void multi_match() {
-    FunctionExpression expr = dsl.multi_match(fields, query);
+    FunctionExpression expr = DSL.multi_match(fields, query);
     assertEquals(String.format("multi_match(fields=%s, query=%s)",
             fields.getValue(), query.getValue()),
         expr.toString());
@@ -177,7 +177,7 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
 
   @Test
   void simple_query_string() {
-    FunctionExpression expr = dsl.simple_query_string(fields, query);
+    FunctionExpression expr = DSL.simple_query_string(fields, query);
     assertEquals(String.format("simple_query_string(fields=%s, query=%s)",
             fields.getValue(), query.getValue()),
         expr.toString());
@@ -185,16 +185,24 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
 
   @Test
   void query() {
-    FunctionExpression expr = dsl.query(query);
+    FunctionExpression expr = DSL.query(query);
     assertEquals(String.format("query(query=%s)", query.getValue()),
             expr.toString());
   }
 
   @Test
   void query_string() {
-    FunctionExpression expr = dsl.query_string(fields, query);
+    FunctionExpression expr = DSL.query_string(fields, query);
     assertEquals(String.format("query_string(fields=%s, query=%s)",
             fields.getValue(), query.getValue()),
+        expr.toString());
+  }
+
+  @Test
+  void wildcard_query() {
+    FunctionExpression expr = DSL.wildcard_query(field, query);
+    assertEquals(String.format("wildcard_query(field=%s, query=%s)",
+            field.getValue(), query.getValue()),
         expr.toString());
   }
 }

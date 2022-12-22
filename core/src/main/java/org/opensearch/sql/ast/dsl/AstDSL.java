@@ -16,10 +16,10 @@ import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Between;
 import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
-import org.opensearch.sql.ast.expression.ConstantFunction;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
@@ -60,6 +60,7 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
 /**
  * Class of static methods to create specific node instances.
@@ -246,10 +247,6 @@ public class AstDSL {
     return new Function(funcName, Arrays.asList(funcArgs));
   }
 
-  public static Function constantFunction(String funcName, UnresolvedExpression... funcArgs) {
-    return new ConstantFunction(funcName, Arrays.asList(funcArgs));
-  }
-
   /**
    * CASE
    *     WHEN search_condition THEN result_expr
@@ -323,6 +320,12 @@ public class AstDSL {
   public static UnresolvedExpression compare(
       String operator, UnresolvedExpression left, UnresolvedExpression right) {
     return new Compare(operator, left, right);
+  }
+
+  public static UnresolvedExpression between(UnresolvedExpression value,
+                                             UnresolvedExpression lowerBound,
+                                             UnresolvedExpression upperBound) {
+    return new Between(value, lowerBound, upperBound);
   }
 
   public static Argument argument(String argName, Literal argValue) {

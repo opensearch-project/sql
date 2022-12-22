@@ -209,9 +209,23 @@ CBRT
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: CBRT(number) calculates the cube root of a number
 
-1. CBRT(NUMBER T) -> T
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: DOUBLE
+
+INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+
+Example::
+
+    opensearchsql> SELECT CBRT(8), CBRT(9.261), CBRT(-27);
+    fetched rows / total rows = 1/1
+    +-----------+---------------+-------------+
+    | CBRT(8)   | CBRT(9.261)   | CBRT(-27)   |
+    |-----------+---------------+-------------|
+    | 2.0       | 2.1           | -3.0        |
+    +-----------+---------------+-------------+
 
 
 CEIL
@@ -1443,6 +1457,7 @@ Description
 >>>>>>>>>>>
 
 Usage:  dayofyear(date) returns the day of the year for date, in the range 1 to 366.
+The function `day_of_year`_ is also provided as an alias.
 
 Argument type: STRING/DATE/DATETIME/TIMESTAMP
 
@@ -1457,6 +1472,62 @@ Example::
     |---------------------------------|
     | 239                             |
     +---------------------------------+
+
+    os> SELECT DAYOFYEAR(DATETIME('2020-08-26 00:00:00'))
+    fetched rows / total rows = 1/1
+    +----------------------------------------------+
+    | DAYOFYEAR(DATETIME('2020-08-26 00:00:00'))   |
+    |----------------------------------------------|
+    | 239                                          |
+    +----------------------------------------------+
+
+    os> SELECT DAYOFYEAR(TIMESTAMP('2020-08-26 00:00:00'))
+    fetched rows / total rows = 1/1
+    +-----------------------------------------------+
+    | DAYOFYEAR(TIMESTAMP('2020-08-26 00:00:00'))   |
+    |-----------------------------------------------|
+    | 239                                           |
+    +-----------------------------------------------+
+
+
+DAY_OF_YEAR
+---------
+
+Description
+>>>>>>>>>>>
+
+This function is an alias to the `dayofyear`_ function
+
+Argument type: STRING/DATE/DATETIME/TIMESTAMP
+
+Return type: INTEGER
+
+Example::
+
+    os> SELECT DAY_OF_YEAR(DATE('2020-08-26'))
+    fetched rows / total rows = 1/1
+    +-----------------------------------+
+    | DAY_OF_YEAR(DATE('2020-08-26'))   |
+    |-----------------------------------|
+    | 239                               |
+    +-----------------------------------+
+
+    os> SELECT DAY_OF_YEAR(DATETIME('2020-08-26 00:00:00'))
+    fetched rows / total rows = 1/1
+    +------------------------------------------------+
+    | DAY_OF_YEAR(DATETIME('2020-08-26 00:00:00'))   |
+    |------------------------------------------------|
+    | 239                                            |
+    +------------------------------------------------+
+
+    os> SELECT DAY_OF_YEAR(TIMESTAMP('2020-08-26 00:00:00'))
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------+
+    | DAY_OF_YEAR(TIMESTAMP('2020-08-26 00:00:00'))   |
+    |-------------------------------------------------|
+    | 239                                             |
+    +-------------------------------------------------+
+
 
 
 FROM_DAYS
@@ -1699,6 +1770,7 @@ Description
 >>>>>>>>>>>
 
 Usage: month(date) returns the month for date, in the range 1 to 12 for January to December. The dates with value 0 such as '0000-00-00' or '2008-00-00' are invalid.
+The function month_of_year is also provided as an alias
 
 Argument type: STRING/DATE/DATETIME/TIMESTAMP
 
@@ -1713,6 +1785,15 @@ Example::
     |-----------------------------|
     | 8                           |
     +-----------------------------+
+
+
+    os> SELECT MONTH_OF_YEAR(DATE('2020-08-26'))
+    fetched rows / total rows = 1/1
+    +-------------------------------------+
+    | MONTH_OF_YEAR(DATE('2020-08-26'))   |
+    |-------------------------------------|
+    | 8                                   |
+    +-------------------------------------+
 
 
 MONTHNAME
@@ -2038,6 +2119,74 @@ Examples::
     +----------------------------------------------------+
 
 
+UTC_DATE
+--------
+
+Description
+>>>>>>>>>>>
+
+Returns the current UTC date as a value in 'YYYY-MM-DD'.
+
+Return type: DATE
+
+Specification: UTC_DATE() -> DATE
+
+Example::
+
+    > SELECT UTC_DATE();
+    fetched rows / total rows = 1/1
+    +--------------+
+    | utc_date()   |
+    |--------------|
+    | 2022-10-03   |
+    +--------------+
+
+
+UTC_TIME
+--------
+
+Description
+>>>>>>>>>>>
+
+Returns the current UTC time as a value in 'hh:mm:ss'.
+
+Return type: TIME
+
+Specification: UTC_TIME() -> TIME
+
+Example::
+
+    > SELECT UTC_TIME();
+    fetched rows / total rows = 1/1
+    +--------------+
+    | utc_time()   |
+    |--------------|
+    | 17:54:27     |
+    +--------------+
+
+
+UTC_TIMESTAMP
+-------------
+
+Description
+>>>>>>>>>>>
+
+Returns the current UTC timestamp as a value in 'YYYY-MM-DD hh:mm:ss'.
+
+Return type: DATETIME
+
+Specification: UTC_TIMESTAMP() -> DATETIME
+
+Example::
+
+    > SELECT UTC_TIMESTAMP();
+    fetched rows / total rows = 1/1
+    +---------------------+
+    | utc_timestamp()     |
+    |---------------------|
+    | 2022-10-03 17:54:28 |
+    +---------------------+
+
 WEEK
 ----
 
@@ -2045,6 +2194,7 @@ Description
 >>>>>>>>>>>
 
 Usage: week(date[, mode]) returns the week number for date. If the mode argument is omitted, the default mode 0 is used.
+The function `week_of_year` is also provided as an alias.
 
 .. list-table:: The following table describes how the mode argument works.
    :widths: 25 50 25 75
@@ -2093,13 +2243,35 @@ Return type: INTEGER
 
 Example::
 
-    >od SELECT WEEK(DATE('2008-02-20')), WEEK(DATE('2008-02-20'), 1)
+    os> SELECT WEEK(DATE('2008-02-20')), WEEK(DATE('2008-02-20'), 1)
     fetched rows / total rows = 1/1
     +----------------------------+-------------------------------+
     | WEEK(DATE('2008-02-20'))   | WEEK(DATE('2008-02-20'), 1)   |
-    |----------------------------|-------------------------------|
+    |----------------------------+-------------------------------|
     | 7                          | 8                             |
     +----------------------------+-------------------------------+
+
+WEEK_OF_YEAR
+----
+
+Description
+>>>>>>>>>>>
+
+The week_of_year function is a synonym for the `week`_ function.
+
+Argument type: DATE/DATETIME/TIMESTAMP/STRING
+
+Return type: INTEGER
+
+Example::
+
+    os> SELECT WEEK_OF_YEAR(DATE('2008-02-20')), WEEK_OF_YEAR(DATE('2008-02-20'), 1)
+    fetched rows / total rows = 1/1
+    +------------------------------------+---------------------------------------+
+    | WEEK_OF_YEAR(DATE('2008-02-20'))   | WEEK_OF_YEAR(DATE('2008-02-20'), 1)   |
+    |------------------------------------+---------------------------------------|
+    | 7                                  | 8                                     |
+    +------------------------------------+---------------------------------------+
 
 
 YEAR
@@ -2316,6 +2488,31 @@ Example::
     +---------------------+---------------------+
 
 
+POSITION
+------
+
+Description
+>>>>>>>>>>>
+
+Usage: The syntax POSITION(substr IN str) returns the position of the first occurrence of substring substr in string str. Returns 0 if substr is not in str. Returns NULL if any argument is NULL.
+
+Argument type: STRING, STRING
+
+Return type integer:
+
+(STRING IN STRING) -> INTEGER
+
+Example::
+
+    os> SELECT POSITION('world' IN 'helloworld'), POSITION('invalid' IN 'helloworld');
+    fetched rows / total rows = 1/1
+    +-------------------------------------+---------------------------------------+
+    | POSITION('world' IN 'helloworld')   | POSITION('invalid' IN 'helloworld')   |
+    |-------------------------------------+---------------------------------------|
+    | 6                                   | 0                                     |
+    +-------------------------------------+---------------------------------------+
+
+
 REPLACE
 -------
 
@@ -2337,6 +2534,29 @@ Example::
     |--------------------------------------------------|
     | Hello OpenSearch!                                |
     +--------------------------------------------------+
+
+
+REVERSE
+-------
+
+Description
+>>>>>>>>>>>
+
+Usage: REVERSE(str) returns reversed string of the string supplied as an argument. Returns NULL if the argument is NULL.
+
+Argument type: STRING
+
+Return type: STRING
+
+Example::
+
+    os> SELECT REVERSE('abcde'), REVERSE(null)
+    fetched rows / total rows = 1/1
+    +--------------------+-----------------+
+    | REVERSE('abcde')   | REVERSE(null)   |
+    |--------------------+-----------------|
+    | edcba              | null            |
+    +--------------------+-----------------+
 
 
 RIGHT
@@ -2730,6 +2950,65 @@ Another example to show how to set custom values for the optional parameters::
     +------------+
 
 
+MATCHQUERY
+-----
+
+Description
+>>>>>>>>>>>
+
+The matchquery function is a synonym for the `match`_ function.
+
+Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
+
+    os> SELECT lastname, address FROM accounts WHERE matchquery(address, 'Street');
+    fetched rows / total rows = 2/2
+    +------------+--------------------+
+    | lastname   | address            |
+    |------------+--------------------|
+    | Bond       | 671 Bristol Street |
+    | Bates      | 789 Madison Street |
+    +------------+--------------------+
+
+Another example to show how to set custom values for the optional parameters::
+
+    os> SELECT lastname FROM accounts WHERE matchquery(firstname, 'Hattie', operator='AND', boost=2.0);
+    fetched rows / total rows = 1/1
+    +------------+
+    | lastname   |
+    |------------|
+    | Bond       |
+    +------------+
+
+MATCH_QUERY
+-----
+
+Description
+>>>>>>>>>>>
+
+The match_query function is a synonym for the `match`_ function.
+
+Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
+
+    os> SELECT lastname, address FROM accounts WHERE match_query(address, 'Street');
+    fetched rows / total rows = 2/2
+    +------------+--------------------+
+    | lastname   | address            |
+    |------------+--------------------|
+    | Bond       | 671 Bristol Street |
+    | Bates      | 789 Madison Street |
+    +------------+--------------------+
+
+Another example to show how to set custom values for the optional parameters::
+
+    os> SELECT lastname FROM accounts WHERE match_query(firstname, 'Hattie', operator='AND', boost=2.0);
+    fetched rows / total rows = 1/1
+    +------------+
+    | lastname   |
+    |------------|
+    | Bond       |
+    +------------+
+
+
 MATCH_PHRASE
 ------------
 
@@ -2744,7 +3023,7 @@ The match_phrase function maps to the match_phrase query used in search engine, 
 - slop
 - zero_terms_query
 
-For backward compatibility, matchphrase is also supported and mapped to match_phrase query as well.
+`matchphrase` and `matchphrasequery` are synonyms for `match_phrase`_
 
 Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
 
@@ -2858,12 +3137,20 @@ Description
 >>>>>>>>>>>
 
 ``multi_match([field_expression+], query_expression[, option=<option_value>]*)``
+``multi_match(query=query_expression+, fields=[field_expression+][, option=<option_value>]*)``
 
 The multi_match function maps to the multi_match query used in search engine, to return the documents that match a provided text, number, date or boolean value with a given field or fields.
 The **^** lets you *boost* certain fields. Boosts are multipliers that weigh matches in one field more heavily than matches in other fields. The syntax allows to specify the fields in double quotes, single quotes, in backtick or even without any wrap. All fields search using star ``"*"`` is also available (star symbol should be wrapped). The weight is optional and should be specified using after the field name, it could be delimeted by the `caret` character or by whitespace. Please, refer to examples below:
 
+
+- ``MULTI_MATCH(...)``
+- ``MULTIMATCH(...)``
+- ``MULTIMATCHQUERY(...)``
+
 | ``multi_match(["Tags" ^ 2, 'Title' 3.4, `Body`, Comments ^ 0.3], ...)``
 | ``multi_match(["*"], ...)``
+| ``multimatch(query='query value', fields=["Tags^2,Title^3.4,Body"], ...)``
+| ``multimatchquery('query'='query value', 'fields'='Title', ...)``
 
 Available parameters include:
 
@@ -3103,6 +3390,59 @@ Example searching for field Tags::
     | [Winnie-the-<em>Pooh</em>]                   |
     +----------------------------------------------+
 
+WILDCARD_QUERY
+------------
+
+Description
+>>>>>>>>>>>
+
+``wildcard_query(field_expression, query_expression[, option=<option_value>]*)``
+
+The ``wildcard_query`` function maps to the ``wildcard_query`` query used in search engine. It returns documents that match provided text in the specified field.
+OpenSearch supports wildcard characters ``*`` and ``?``.  See the full description here: https://opensearch.org/docs/latest/opensearch/query-dsl/term/#wildcards.
+You may include a backslash ``\`` to escape SQL wildcard characters ``\%`` and ``\_``.
+
+Available parameters include:
+
+- boost
+- case_insensitive
+- rewrite
+
+For backward compatibility, ``wildcardquery`` is also supported and mapped to ``wildcard_query`` query as well.
+
+Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
+
+    os> select Body from wildcard where wildcard_query(Body, 'test wildcard*');
+    fetched rows / total rows = 7/7
+    +-------------------------------------------+
+    | Body                                      |
+    |-------------------------------------------|
+    | test wildcard                             |
+    | test wildcard in the end of the text%     |
+    | test wildcard in % the middle of the text |
+    | test wildcard %% beside each other        |
+    | test wildcard in the end of the text_     |
+    | test wildcard in _ the middle of the text |
+    | test wildcard __ beside each other        |
+    +-------------------------------------------+
+
+Another example to show how to set custom values for the optional parameters::
+
+    os> select Body from wildcard where wildcard_query(Body, 'test wildcard*', boost=0.7, case_insensitive=true, rewrite='constant_score');
+    fetched rows / total rows = 8/8
+    +-------------------------------------------+
+    | Body                                      |
+    |-------------------------------------------|
+    | test wildcard                             |
+    | test wildcard in the end of the text%     |
+    | test wildcard in % the middle of the text |
+    | test wildcard %% beside each other        |
+    | test wildcard in the end of the text_     |
+    | test wildcard in _ the middle of the text |
+    | test wildcard __ beside each other        |
+    | tEsT wIlDcArD sensitive cases             |
+    +-------------------------------------------+
+
 System Functions
 ================
 
@@ -3127,3 +3467,5 @@ Example::
     |----------------+---------------+-----------------+------------------|
     | DATE           | INTEGER       | DATETIME        | STRUCT           |
     +----------------+---------------+-----------------+------------------+
+
+

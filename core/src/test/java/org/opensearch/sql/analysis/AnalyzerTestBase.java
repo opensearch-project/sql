@@ -15,18 +15,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.tuple.Pair;
-import org.opensearch.sql.CatalogSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.analysis.symbol.SymbolTable;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
-import org.opensearch.sql.catalog.CatalogService;
-import org.opensearch.sql.catalog.model.Catalog;
-import org.opensearch.sql.catalog.model.ConnectorType;
 import org.opensearch.sql.config.TestConfig;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.datasource.model.DataSource;
+import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
-import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
@@ -52,7 +51,7 @@ public class AnalyzerTestBase {
 
   @Bean
   protected StorageEngine storageEngine() {
-    return (catalogSchemaName, tableName) -> table;
+    return (dataSourceSchemaName, tableName) -> table;
   }
 
   @Bean
@@ -81,7 +80,7 @@ public class AnalyzerTestBase {
   }
 
   @Bean
-  protected Table catalogTable() {
+  protected Table dataSourceTable() {
     return new Table() {
       @Override
       public Map<String, ExprType> getFieldTypes() {
@@ -96,8 +95,8 @@ public class AnalyzerTestBase {
   }
 
   @Bean
-  protected CatalogService catalogService() {
-    return new DefaultCatalogService();
+  protected DataSourceService dataSourceService() {
+    return new DefaultDataSourceService();
   }
 
 
@@ -125,12 +124,6 @@ public class AnalyzerTestBase {
   }
 
   @Autowired
-  protected BuiltinFunctionRepository functionRepository;
-
-  @Autowired
-  protected DSL dsl;
-
-  @Autowired
   protected AnalysisContext analysisContext;
 
   @Autowired
@@ -143,16 +136,16 @@ public class AnalyzerTestBase {
   protected Table table;
 
   @Autowired
-  protected CatalogService catalogService;
+  protected DataSourceService dataSourceService;
 
   @Autowired
   protected Environment<Expression, ExprType> typeEnv;
 
   @Bean
-  protected Analyzer analyzer(ExpressionAnalyzer expressionAnalyzer, CatalogService catalogService,
-                      StorageEngine storageEngine, BuiltinFunctionRepository functionRepository,
+  protected Analyzer analyzer(ExpressionAnalyzer expressionAnalyzer,
+                      DataSourceService dataSourceService,
                       Table table) {
-    catalogService.registerDefaultOpenSearchCatalog(storageEngine);
+    BuiltinFunctionRepository functionRepository = BuiltinFunctionRepository.getInstance();
     functionRepository.register("prometheus", new FunctionResolver() {
 
       @Override
@@ -162,7 +155,8 @@ public class AnalyzerTestBase {
         FunctionSignature functionSignature =
             new FunctionSignature(functionName, List.of(STRING, LONG, LONG, LONG));
         return Pair.of(functionSignature,
-            args -> new TestTableFunctionImplementation(functionName, args, table));
+            (functionProperties, args) -> new TestTableFunctionImplementation(functionName, args,
+                table));
       }
 
       @Override
@@ -170,7 +164,7 @@ public class AnalyzerTestBase {
         return FunctionName.of("query_range");
       }
     });
-    return new Analyzer(expressionAnalyzer, catalogService, functionRepository);
+    return new Analyzer(expressionAnalyzer, dataSourceService, functionRepository);
   }
 
   @Bean
@@ -184,8 +178,8 @@ public class AnalyzerTestBase {
   }
 
   @Bean
-  protected ExpressionAnalyzer expressionAnalyzer(DSL dsl, BuiltinFunctionRepository repo) {
-    return new ExpressionAnalyzer(repo);
+  protected ExpressionAnalyzer expressionAnalyzer() {
+    return new ExpressionAnalyzer(BuiltinFunctionRepository.getInstance());
   }
 
   protected void assertAnalyzeEqual(LogicalPlan expected, UnresolvedPlan unresolvedPlan) {
@@ -196,26 +190,31 @@ public class AnalyzerTestBase {
     return analyzer.analyze(unresolvedPlan, analysisContext);
   }
 
-  private class DefaultCatalogService implements CatalogService {
+  private class DefaultDataSourceService implements DataSourceService {
 
     private StorageEngine storageEngine = storageEngine();
-    private final Catalog catalog
-        = new Catalog("prometheus", ConnectorType.PROMETHEUS, storageEngine);
+    private final DataSource dataSource
+        = new DataSource("prometheus", DataSourceType.PROMETHEUS, storageEngine);
 
 
     @Override
-    public Set<Catalog> getCatalogs() {
-      return ImmutableSet.of(catalog);
+    public Set<DataSource> getDataSources() {
+      return ImmutableSet.of(dataSource);
     }
 
     @Override
-    public Catalog getCatalog(String catalogName) {
-      return catalog;
+    public DataSource getDataSource(String dataSourceName) {
+      return dataSource;
     }
 
     @Override
-    public void registerDefaultOpenSearchCatalog(StorageEngine storageEngine) {
-      this.storageEngine = storageEngine;
+    public void addDataSource(DataSourceMetadata... metadatas) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void clear() {
+      throw new UnsupportedOperationException();
     }
   }
 

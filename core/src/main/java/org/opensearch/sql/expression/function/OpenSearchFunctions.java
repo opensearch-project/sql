@@ -5,10 +5,6 @@
 
 package org.opensearch.sql.expression.function;
 
-import static org.opensearch.sql.data.type.ExprCoreType.STRING;
-import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
-
-import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
@@ -27,8 +23,12 @@ public class OpenSearchFunctions {
    */
   public void register(BuiltinFunctionRepository repository) {
     repository.register(match_bool_prefix());
-    repository.register(match());
-    repository.register(multi_match());
+    repository.register(multi_match(BuiltinFunctionName.MULTI_MATCH));
+    repository.register(multi_match(BuiltinFunctionName.MULTIMATCH));
+    repository.register(multi_match(BuiltinFunctionName.MULTIMATCHQUERY));
+    repository.register(match(BuiltinFunctionName.MATCH));
+    repository.register(match(BuiltinFunctionName.MATCHQUERY));
+    repository.register(match(BuiltinFunctionName.MATCH_QUERY));
     repository.register(simple_query_string());
     repository.register(query());
     repository.register(query_string());
@@ -36,47 +36,54 @@ public class OpenSearchFunctions {
     // compatibility.
     repository.register(match_phrase(BuiltinFunctionName.MATCH_PHRASE));
     repository.register(match_phrase(BuiltinFunctionName.MATCHPHRASE));
+    repository.register(match_phrase(BuiltinFunctionName.MATCHPHRASEQUERY));
     repository.register(match_phrase_prefix());
+    repository.register(wildcard_query(BuiltinFunctionName.WILDCARD_QUERY));
+    repository.register(wildcard_query(BuiltinFunctionName.WILDCARDQUERY));
   }
 
   private static FunctionResolver match_bool_prefix() {
     FunctionName name = BuiltinFunctionName.MATCH_BOOL_PREFIX.getName();
-    return new RelevanceFunctionResolver(name, STRING);
+    return new RelevanceFunctionResolver(name);
   }
 
-  private static FunctionResolver match() {
-    FunctionName funcName = BuiltinFunctionName.MATCH.getName();
-    return new RelevanceFunctionResolver(funcName, STRING);
+  private static FunctionResolver match(BuiltinFunctionName match) {
+    FunctionName funcName = match.getName();
+    return new RelevanceFunctionResolver(funcName);
   }
 
   private static FunctionResolver match_phrase_prefix() {
     FunctionName funcName = BuiltinFunctionName.MATCH_PHRASE_PREFIX.getName();
-    return new RelevanceFunctionResolver(funcName, STRING);
+    return new RelevanceFunctionResolver(funcName);
   }
 
   private static FunctionResolver match_phrase(BuiltinFunctionName matchPhrase) {
     FunctionName funcName = matchPhrase.getName();
-    return new RelevanceFunctionResolver(funcName, STRING);
+    return new RelevanceFunctionResolver(funcName);
   }
 
-  private static FunctionResolver multi_match() {
-    FunctionName funcName = BuiltinFunctionName.MULTI_MATCH.getName();
-    return new RelevanceFunctionResolver(funcName, STRUCT);
+  private static FunctionResolver multi_match(BuiltinFunctionName multiMatchName) {
+    return new RelevanceFunctionResolver(multiMatchName.getName());
   }
 
   private static FunctionResolver simple_query_string() {
     FunctionName funcName = BuiltinFunctionName.SIMPLE_QUERY_STRING.getName();
-    return new RelevanceFunctionResolver(funcName, STRUCT);
+    return new RelevanceFunctionResolver(funcName);
   }
 
   private static FunctionResolver query() {
     FunctionName funcName = BuiltinFunctionName.QUERY.getName();
-    return new RelevanceFunctionResolver(funcName, STRING);
+    return new RelevanceFunctionResolver(funcName);
   }
 
   private static FunctionResolver query_string() {
     FunctionName funcName = BuiltinFunctionName.QUERY_STRING.getName();
-    return new RelevanceFunctionResolver(funcName, STRUCT);
+    return new RelevanceFunctionResolver(funcName);
+  }
+
+  private static FunctionResolver wildcard_query(BuiltinFunctionName wildcardQuery) {
+    FunctionName funcName = wildcardQuery.getName();
+    return new RelevanceFunctionResolver(funcName);
   }
 
   public static class OpenSearchFunction extends FunctionExpression {

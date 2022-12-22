@@ -27,7 +27,6 @@ import org.opensearch.gradle.test.RestIntegTestTask
 import org.opensearch.gradle.testclusters.StandaloneRestIntegTestTask
 
 import java.util.concurrent.Callable
-import org.gradle.internal.os.OperatingSystem
 
 plugins {
     id "de.undercouch.download" version "5.3.0"
@@ -38,9 +37,6 @@ apply plugin: 'opensearch.rest-test'
 apply plugin: 'java'
 apply plugin: 'io.freefair.lombok'
 apply plugin: 'com.wiredforcode.spawn'
-
-
-
 
 repositories {
     mavenCentral()
@@ -66,9 +62,11 @@ configurations.all {
     // enforce 1.1.3, https://www.whitesourcesoftware.com/vulnerability-database/WS-2019-0379
     resolutionStrategy.force 'commons-codec:commons-codec:1.13'
     resolutionStrategy.force 'com.google.guava:guava:31.0.1-jre'
-    resolutionStrategy.force "com.fasterxml.jackson.core:jackson-core:${jackson_version}"
-    resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${jackson_version}"
-    resolutionStrategy.force "com.fasterxml.jackson.core:jackson-databind:${jackson_databind_version}"
+    resolutionStrategy.force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
+    resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${versions.jackson}"
+    resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-smile:${versions.jackson}"
+    resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${versions.jackson}"
+    resolutionStrategy.force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.6.0"
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0"
     resolutionStrategy.force "com.squareup.okhttp3:okhttp:4.9.3"
@@ -94,9 +92,11 @@ dependencies {
         include '*.jar'
         builtBy 'compileJdbc'
     }
-    testImplementation group: 'com.h2database', name: 'h2', version: '2.1.210'
+    testImplementation group: 'com.h2database', name: 'h2', version: '2.1.214'
     testImplementation group: 'org.xerial', name: 'sqlite-jdbc', version: '3.28.0'
     testImplementation group: 'com.google.code.gson', name: 'gson', version: '2.8.9'
+    testImplementation(testFixtures(project(":core")))
+    testImplementation(testFixtures(project(":filesystem")))
 }
 
 dependencyLicenses.enabled = false
@@ -119,7 +119,7 @@ testClusters.all {
 
 testClusters.integTest {
     plugin ":opensearch-sql-plugin"
-    keystore 'plugins.query.federation.datasources.config', new File("$projectDir/src/test/resources/catalog/", 'catalog.json')
+    keystore 'plugins.query.federation.datasources.config', new File("$projectDir/src/test/resources/datasource/", 'datasources.json')
 }
 
 task startPrometheus(type: SpawnProcessTask) {
@@ -242,17 +242,18 @@ task compileJdbc(type: Exec) {
     }
 }
 
-String bwcVersion = "1.1.0.0";
+String baseVersion = "2.5.0"
+String bwcVersion = baseVersion + ".0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
 String bwcSqlPlugin = "opensearch-sql-" + bwcVersion + ".zip"
-String bwcRemoteFile = "https://ci.opensearch.org/ci/dbc/bundle-build/1.1.0/20210930/linux/x64/builds/opensearch/plugins/" + bwcSqlPlugin
+String bwcRemoteFile = "https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${baseVersion}/latest/linux/x64/tar/builds/opensearch/plugins/" + bwcSqlPlugin
 
 2.times { i ->
     testClusters {
         "${baseName}$i" {
             testDistribution = "ARCHIVE"
-            versions = ["1.1.0", opensearch_version]
+            versions = [baseVersion, opensearch_version]
             numberOfNodes = 3
             plugin(provider(new Callable<RegularFile>() {
                 @Override

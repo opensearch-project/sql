@@ -12,10 +12,10 @@ import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.AttributeList;
+import org.opensearch.sql.ast.expression.Between;
 import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
-import org.opensearch.sql.ast.expression.ConstantFunction;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
@@ -126,10 +126,6 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(node, context);
   }
 
-  public T visitConstantFunction(ConstantFunction node, C context) {
-    return visitChildren(node, context);
-  }
-
   public T visitUnresolvedAttribute(UnresolvedAttribute node, C context) {
     return visitChildren(node, context);
   }
@@ -175,6 +171,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitCompare(Compare node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitBetween(Between node, C context) {
     return visitChildren(node, context);
   }
 

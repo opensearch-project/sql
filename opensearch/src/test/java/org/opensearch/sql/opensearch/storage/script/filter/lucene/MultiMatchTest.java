@@ -29,17 +29,16 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MultiMatchQuery;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class MultiMatchTest {
-  private static final DSL dsl = new ExpressionConfig()
-      .dsl(new ExpressionConfig().functionRepository());
   private final MultiMatchQuery multiMatchQuery = new MultiMatchQuery();
-  private final FunctionName multiMatch = FunctionName.of("multi_match");
+  private final FunctionName multiMatchName = FunctionName.of("multimatch");
+  private final FunctionName snakeCaseMultiMatchName = FunctionName.of("multi_match");
+  private final FunctionName multiMatchQueryName = FunctionName.of("multimatchquery");
   private static final LiteralExpression fields_value = DSL.literal(
       new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
           "title", ExprValueUtils.floatValue(1.F),
@@ -49,126 +48,193 @@ class MultiMatchTest {
   static Stream<List<Expression>> generateValidData() {
     return Stream.of(
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value)
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value)
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("analyzer", DSL.literal("simple"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("analyzer", DSL.literal("simple"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("auto_generate_synonyms_phrase_query", DSL.literal("true"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("auto_generate_synonyms_phrase_query", DSL.literal("true"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("boost", DSL.literal("1.3"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("boost", DSL.literal("1.3"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("cutoff_frequency", DSL.literal("4.2"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("cutoff_frequency", DSL.literal("4.2"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("fuzziness", DSL.literal("AUTO:2,4"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("fuzziness", DSL.literal("AUTO:2,4"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("fuzzy_transpositions", DSL.literal("true"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("fuzzy_transpositions", DSL.literal("true"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("lenient", DSL.literal("true"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("lenient", DSL.literal("true"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("max_expansions", DSL.literal("7"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("max_expansions", DSL.literal("7"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("minimum_should_match", DSL.literal("4"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("minimum_should_match", DSL.literal("4"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("operator", DSL.literal("AND"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("operator", DSL.literal("AND"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("prefix_length", DSL.literal("7"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("prefix_length", DSL.literal("7"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("tie_breaker", DSL.literal("0.3"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("tie_breaker", DSL.literal("0.3"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("type", DSL.literal("cross_fields"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("type", DSL.literal("cross_fields"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("zero_terms_query", DSL.literal("ALL"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("zero_terms_query", DSL.literal("ALL"))
         ),
         List.of(
-            dsl.namedArgument("fields", fields_value),
-            dsl.namedArgument("query", query_value),
-            dsl.namedArgument("zero_terms_query", DSL.literal("all"))
+            DSL.namedArgument("fields", fields_value),
+            DSL.namedArgument("query", query_value),
+            DSL.namedArgument("zero_terms_query", DSL.literal("all"))
         )
       );
   }
 
   @ParameterizedTest
   @MethodSource("generateValidData")
-  public void test_valid_parameters(List<Expression> validArgs) {
+  public void test_valid_parameters_multiMatch(List<Expression> validArgs) {
     Assertions.assertNotNull(multiMatchQuery.build(
         new MultiMatchExpression(validArgs)));
   }
 
+  @ParameterizedTest
+  @MethodSource("generateValidData")
+  public void test_valid_parameters_multi_match(List<Expression> validArgs) {
+    Assertions.assertNotNull(multiMatchQuery.build(
+        new MultiMatchExpression(validArgs, snakeCaseMultiMatchName)));
+  }
+
+  @ParameterizedTest
+  @MethodSource("generateValidData")
+  public void test_valid_parameters_multiMatchQuery(List<Expression> validArgs) {
+    Assertions.assertNotNull(multiMatchQuery.build(
+        new MultiMatchExpression(validArgs, multiMatchQueryName)));
+  }
+
   @Test
-  public void test_SyntaxCheckException_when_no_arguments() {
+  public void test_SyntaxCheckException_when_no_arguments_multiMatch() {
     List<Expression> arguments = List.of();
     assertThrows(SyntaxCheckException.class,
         () -> multiMatchQuery.build(new MultiMatchExpression(arguments)));
   }
 
   @Test
-  public void test_SyntaxCheckException_when_one_argument() {
+  public void test_SyntaxCheckException_when_no_arguments_multi_match() {
+    List<Expression> arguments = List.of();
+    assertThrows(SyntaxCheckException.class,
+        () -> multiMatchQuery.build(new MultiMatchExpression(arguments, multiMatchName)));
+  }
+
+  @Test
+  public void test_SyntaxCheckException_when_no_arguments_multiMatchQuery() {
+    List<Expression> arguments = List.of();
+    assertThrows(SyntaxCheckException.class,
+        () -> multiMatchQuery.build(new MultiMatchExpression(arguments, multiMatchQueryName)));
+  }
+
+  @Test
+  public void test_SyntaxCheckException_when_one_argument_multiMatch() {
     List<Expression> arguments = List.of(namedArgument("fields", fields_value));
     assertThrows(SyntaxCheckException.class,
         () -> multiMatchQuery.build(new MultiMatchExpression(arguments)));
   }
 
   @Test
-  public void test_SemanticCheckException_when_invalid_parameter() {
+  public void test_SyntaxCheckException_when_one_argument_multi_match() {
+    List<Expression> arguments = List.of(namedArgument("fields", fields_value));
+    assertThrows(SyntaxCheckException.class,
+        () -> multiMatchQuery.build(new MultiMatchExpression(arguments, snakeCaseMultiMatchName)));
+  }
+
+  @Test
+  public void test_SyntaxCheckException_when_one_argument_multiMatchQuery() {
+    List<Expression> arguments = List.of(namedArgument("fields", fields_value));
+    assertThrows(SyntaxCheckException.class,
+        () -> multiMatchQuery.build(new MultiMatchExpression(arguments, multiMatchQueryName)));
+  }
+
+  @Test
+  public void test_SemanticCheckException_when_invalid_parameter_multiMatch() {
     List<Expression> arguments = List.of(
         namedArgument("fields", fields_value),
         namedArgument("query", query_value),
-        dsl.namedArgument("unsupported", "unsupported_value"));
+        DSL.namedArgument("unsupported", "unsupported_value"));
     Assertions.assertThrows(SemanticCheckException.class,
         () -> multiMatchQuery.build(new MultiMatchExpression(arguments)));
   }
 
+  @Test
+  public void test_SemanticCheckException_when_invalid_parameter_multi_match() {
+    List<Expression> arguments = List.of(
+        namedArgument("fields", fields_value),
+        namedArgument("query", query_value),
+        DSL.namedArgument("unsupported", "unsupported_value"));
+    Assertions.assertThrows(SemanticCheckException.class,
+        () -> multiMatchQuery.build(new MultiMatchExpression(arguments, snakeCaseMultiMatchName)));
+  }
+
+  @Test
+  public void test_SemanticCheckException_when_invalid_parameter_multiMatchQuery() {
+    List<Expression> arguments = List.of(
+        namedArgument("fields", fields_value),
+        namedArgument("query", query_value),
+        DSL.namedArgument("unsupported", "unsupported_value"));
+    Assertions.assertThrows(SemanticCheckException.class,
+        () -> multiMatchQuery.build(new MultiMatchExpression(arguments, multiMatchQueryName)));
+  }
+
   private NamedArgumentExpression namedArgument(String name, LiteralExpression value) {
-    return dsl.namedArgument(name, value);
+    return DSL.namedArgument(name, value);
   }
 
   private class MultiMatchExpression extends FunctionExpression {
     public MultiMatchExpression(List<Expression> arguments) {
-      super(MultiMatchTest.this.multiMatch, arguments);
+      super(multiMatchName, arguments);
     }
+
+    public MultiMatchExpression(List<Expression> arguments, FunctionName funcName) {
+      super(funcName, arguments);
+    }
+
 
     @Override
     public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {

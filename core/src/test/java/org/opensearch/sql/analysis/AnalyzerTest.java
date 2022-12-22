@@ -10,7 +10,7 @@ import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.opensearch.sql.analysis.CatalogSchemaIdentifierNameResolver.DEFAULT_CATALOG_NAME;
+import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
@@ -52,6 +52,7 @@ import static org.opensearch.sql.utils.MLCommonsConstants.RCF_TIME_FIELD;
 import static org.opensearch.sql.utils.MLCommonsConstants.STATUS;
 import static org.opensearch.sql.utils.MLCommonsConstants.TASKID;
 import static org.opensearch.sql.utils.MLCommonsConstants.TRAIN;
+import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -80,7 +81,6 @@ import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.HighlightExpression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
@@ -88,7 +88,7 @@ import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalRelation;
-import org.opensearch.sql.planner.physical.catalog.CatalogTable;
+import org.opensearch.sql.planner.physical.datasource.DataSourceTable;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
@@ -96,7 +96,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @Configuration
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {ExpressionConfig.class, AnalyzerTest.class})
+@ContextConfiguration(classes = {AnalyzerTest.class})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class AnalyzerTest extends AnalyzerTestBase {
 
@@ -105,7 +105,7 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.relation("schema", table),
-            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+            DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
         AstDSL.filter(
             AstDSL.relation("schema"),
             AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
@@ -116,65 +116,65 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.relation("schema", table),
-            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+            DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
         AstDSL.filter(
             AstDSL.relation("schema", "alias"),
             AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
   }
 
   @Test
-  public void filter_relation_with_catalog() {
+  public void filter_relation_with_datasource() {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.relation("http_total_requests", table),
-            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+            DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
         AstDSL.filter(
             AstDSL.relation(AstDSL.qualifiedName("prometheus", "http_total_requests")),
             AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
   }
 
   @Test
-  public void filter_relation_with_escaped_catalog() {
+  public void filter_relation_with_escaped_datasource() {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.relation("prometheus.http_total_requests", table),
-            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+            DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
         AstDSL.filter(
             AstDSL.relation(AstDSL.qualifiedName("prometheus.http_total_requests")),
             AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
   }
 
   @Test
-  public void filter_relation_with_information_schema_and_prom_catalog() {
+  public void filter_relation_with_information_schema_and_prom_datasource() {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.relation("tables", table),
-            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+            DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
         AstDSL.filter(
             AstDSL.relation(AstDSL.qualifiedName("prometheus", "information_schema", "tables")),
             AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
   }
 
   @Test
-  public void filter_relation_with_default_schema_and_prom_catalog() {
+  public void filter_relation_with_default_schema_and_prom_datasource() {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.relation("tables", table),
-            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+            DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
         AstDSL.filter(
             AstDSL.relation(AstDSL.qualifiedName("prometheus", "default", "tables")),
             AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
   }
 
   @Test
-  public void filter_relation_with_information_schema_and_os_catalog() {
+  public void filter_relation_with_information_schema_and_os_datasource() {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.relation("tables", table),
-            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+            DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
         AstDSL.filter(
             AstDSL.relation(
-                AstDSL.qualifiedName(DEFAULT_CATALOG_NAME, "information_schema", "tables")),
+                AstDSL.qualifiedName(DEFAULT_DATASOURCE_NAME, "information_schema", "tables")),
             AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
   }
 
@@ -183,29 +183,29 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.relation("tables.test", table),
-            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+            DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
         AstDSL.filter(
             AstDSL.relation(AstDSL.qualifiedName("information_schema", "tables", "test")),
             AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
   }
 
   @Test
-  public void filter_relation_with_non_existing_catalog() {
+  public void filter_relation_with_non_existing_datasource() {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.relation("test.http_total_requests", table),
-            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+            DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
         AstDSL.filter(
             AstDSL.relation(AstDSL.qualifiedName("test", "http_total_requests")),
             AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
   }
 
   @Test
-  public void filter_relation_with_non_existing_catalog_with_three_parts() {
+  public void filter_relation_with_non_existing_datasource_with_three_parts() {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.relation("test.nonexisting_schema.http_total_requests", table),
-            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+            DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
         AstDSL.filter(
             AstDSL.relation(AstDSL.qualifiedName("test",
                 "nonexisting_schema", "http_total_requests")),
@@ -217,7 +217,7 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.relation("test.1,test.2", table),
-            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+            DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
         AstDSL.filter(
             AstDSL.relation(Arrays.asList("test.1", "test.2")),
             AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
@@ -236,7 +236,7 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.filter(
             LogicalPlanDSL.relation("schema", table),
-            dsl.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+            DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
         filter(relation("schema"), compare("=", field("integer_value"), intLiteral(1))));
   }
 
@@ -247,10 +247,10 @@ class AnalyzerTest extends AnalyzerTestBase {
             LogicalPlanDSL.aggregation(
                 LogicalPlanDSL.relation("schema", table),
                 ImmutableList.of(
-                    DSL.named("AVG(integer_value)", dsl.avg(DSL.ref("integer_value", INTEGER))),
-                    DSL.named("MIN(integer_value)", dsl.min(DSL.ref("integer_value", INTEGER)))),
+                    DSL.named("AVG(integer_value)", DSL.avg(DSL.ref("integer_value", INTEGER))),
+                    DSL.named("MIN(integer_value)", DSL.min(DSL.ref("integer_value", INTEGER)))),
                 ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING)))),
-            dsl.greater(// Expect to be replaced with reference by expression optimizer
+            DSL.greater(// Expect to be replaced with reference by expression optimizer
                 DSL.ref("MIN(integer_value)", INTEGER), DSL.literal(integerValue(10)))),
         AstDSL.filter(
             AstDSL.agg(
@@ -282,7 +282,7 @@ class AnalyzerTest extends AnalyzerTestBase {
         LogicalPlanDSL.aggregation(
             LogicalPlanDSL.relation("schema", table),
             ImmutableList
-                .of(DSL.named("avg(integer_value)", dsl.avg(DSL.ref("integer_value", INTEGER)))),
+                .of(DSL.named("avg(integer_value)", DSL.avg(DSL.ref("integer_value", INTEGER)))),
             ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING)))),
         AstDSL.agg(
             AstDSL.relation("schema"),
@@ -479,7 +479,7 @@ class AnalyzerTest extends AnalyzerTestBase {
                     ImmutableList.of(
                         DSL.named(
                             "avg(integer_value)",
-                            dsl.avg(DSL.ref("integer_value", INTEGER)))),
+                            DSL.avg(DSL.ref("integer_value", INTEGER)))),
                     ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING)))),
                 // Aggregator in Sort AST node is replaced with reference by expression optimizer
                 Pair.of(SortOption.DEFAULT_ASC, DSL.ref("avg(integer_value)", DOUBLE))),
@@ -553,7 +553,7 @@ class AnalyzerTest extends AnalyzerTestBase {
                     LogicalPlanDSL.relation("test", table),
                     ImmutablePair.of(DEFAULT_ASC, DSL.ref("string_value", STRING)),
                     ImmutablePair.of(DEFAULT_ASC, DSL.ref("integer_value", INTEGER))),
-                DSL.named("window_function", dsl.rowNumber()),
+                DSL.named("window_function", DSL.rowNumber()),
                 new WindowDefinition(
                     ImmutableList.of(DSL.ref("string_value", STRING)),
                     ImmutableList.of(
@@ -641,7 +641,7 @@ class AnalyzerTest extends AnalyzerTestBase {
                 LogicalPlanDSL.relation("schema", table),
                 ImmutableList
                     .of(DSL
-                        .named("AVG(integer_value)", dsl.avg(DSL.ref("integer_value", INTEGER)))),
+                        .named("AVG(integer_value)", DSL.avg(DSL.ref("integer_value", INTEGER)))),
                 ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING)))),
             DSL.named("string_value", DSL.ref("string_value", STRING)),
             DSL.named("AVG(integer_value)", DSL.ref("AVG(integer_value)", DOUBLE))),
@@ -669,9 +669,9 @@ class AnalyzerTest extends AnalyzerTestBase {
                 LogicalPlanDSL.relation("schema", table),
                 ImmutableList
                     .of(DSL
-                        .named("AVG(integer_value)", dsl.avg(DSL.ref("integer_value", INTEGER)))),
+                        .named("AVG(integer_value)", DSL.avg(DSL.ref("integer_value", INTEGER)))),
                 ImmutableList.of(DSL.named("abs(long_value)",
-                    dsl.abs(DSL.ref("long_value", LONG))))),
+                    DSL.abs(DSL.ref("long_value", LONG))))),
             DSL.named("abs(long_value)", DSL.ref("abs(long_value)", LONG)),
             DSL.named("AVG(integer_value)", DSL.ref("AVG(integer_value)", DOUBLE))),
         AstDSL.project(
@@ -699,9 +699,9 @@ class AnalyzerTest extends AnalyzerTestBase {
                 LogicalPlanDSL.relation("schema", table),
                 ImmutableList
                     .of(DSL
-                        .named("AVG(integer_value)", dsl.avg(DSL.ref("integer_value", INTEGER)))),
+                        .named("AVG(integer_value)", DSL.avg(DSL.ref("integer_value", INTEGER)))),
                 ImmutableList.of(DSL.named("ABS(long_value)",
-                    dsl.abs(DSL.ref("long_value", LONG))))),
+                    DSL.abs(DSL.ref("long_value", LONG))))),
             DSL.named("abs(long_value)", DSL.ref("ABS(long_value)", LONG)),
             DSL.named("AVG(integer_value)", DSL.ref("AVG(integer_value)", DOUBLE))),
         AstDSL.project(
@@ -729,11 +729,11 @@ class AnalyzerTest extends AnalyzerTestBase {
                 LogicalPlanDSL.relation("schema", table),
                 ImmutableList
                     .of(DSL.named("avg(integer_value)",
-                        dsl.avg(DSL.ref("integer_value", INTEGER)))),
+                        DSL.avg(DSL.ref("integer_value", INTEGER)))),
                 ImmutableList.of(DSL.named("abs(long_value)",
-                    dsl.abs(DSL.ref("long_value", LONG))))),
+                    DSL.abs(DSL.ref("long_value", LONG))))),
             DSL.named("abs(long_value)", DSL.ref("abs(long_value)", LONG)),
-            DSL.named("abs(avg(integer_value)", dsl.abs(DSL.ref("avg(integer_value)", DOUBLE)))),
+            DSL.named("abs(avg(integer_value)", DSL.abs(DSL.ref("avg(integer_value)", DOUBLE)))),
         AstDSL.project(
             AstDSL.agg(
                 AstDSL.relation("schema"),
@@ -760,14 +760,14 @@ class AnalyzerTest extends AnalyzerTestBase {
                 LogicalPlanDSL.relation("schema", table),
                 ImmutableList
                     .of(DSL.named("sum(integer_value)",
-                            dsl.sum(DSL.ref("integer_value", INTEGER))),
+                            DSL.sum(DSL.ref("integer_value", INTEGER))),
                         DSL.named("avg(integer_value)",
-                            dsl.avg(DSL.ref("integer_value", INTEGER)))),
+                            DSL.avg(DSL.ref("integer_value", INTEGER)))),
                 ImmutableList.of(DSL.named("abs(long_value)",
-                    dsl.abs(DSL.ref("long_value", LONG))))),
+                    DSL.abs(DSL.ref("long_value", LONG))))),
             DSL.named("abs(long_value)", DSL.ref("abs(long_value)", LONG)),
             DSL.named("sum(integer_value)-avg(integer_value)",
-                dsl.subtract(DSL.ref("sum(integer_value)", INTEGER),
+                DSL.subtract(DSL.ref("sum(integer_value)", INTEGER),
                     DSL.ref("avg(integer_value)", DOUBLE)))),
         AstDSL.project(
             AstDSL.agg(
@@ -819,7 +819,7 @@ class AnalyzerTest extends AnalyzerTestBase {
                 LogicalPlanDSL.relation("schema", table),
                 ImmutableList.of(
                     DSL.named("count(string_value) filter(where integer_value > 1)",
-                        dsl.count(DSL.ref("string_value", STRING)).condition(dsl.greater(DSL.ref(
+                        DSL.count(DSL.ref("string_value", STRING)).condition(DSL.greater(DSL.ref(
                             "integer_value", INTEGER), DSL.literal(1))))
                 ),
                 emptyList()
@@ -854,7 +854,7 @@ class AnalyzerTest extends AnalyzerTestBase {
         LogicalPlanDSL.aggregation(
             LogicalPlanDSL.relation("schema", table),
             ImmutableList.of(
-                DSL.named("AVG(integer_value)", dsl.avg(DSL.ref("integer_value", INTEGER)))),
+                DSL.named("AVG(integer_value)", DSL.avg(DSL.ref("integer_value", INTEGER)))),
             ImmutableList.of(
                 DSL.named("span", DSL.span(DSL.ref("long_value", LONG), DSL.literal(10), "")),
                 DSL.named("string_value", DSL.ref("string_value", STRING)))),
@@ -1043,7 +1043,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void table_function_with_no_catalog() {
+  public void table_function_with_no_datasource() {
     ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
         () -> analyze(AstDSL.tableFunction(List.of("query_range"),
             unresolvedArg("query", stringLiteral("http_latency")),
@@ -1055,7 +1055,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void table_function_with_wrong_catalog() {
+  public void table_function_with_wrong_datasource() {
     ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
         () -> analyze(AstDSL.tableFunction(Arrays.asList("prome", "query_range"),
             unresolvedArg("query", stringLiteral("http_latency")),
@@ -1077,10 +1077,10 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void show_catalogs() {
-    assertAnalyzeEqual(new LogicalRelation(".CATALOGS", new CatalogTable(catalogService)),
-        AstDSL.relation(qualifiedName(".CATALOGS")));
-
+  public void show_datasources() {
+    assertAnalyzeEqual(new LogicalRelation(DATASOURCES_TABLE_NAME,
+            new DataSourceTable(dataSourceService)),
+        AstDSL.relation(qualifiedName(DATASOURCES_TABLE_NAME)));
   }
 
   @Test

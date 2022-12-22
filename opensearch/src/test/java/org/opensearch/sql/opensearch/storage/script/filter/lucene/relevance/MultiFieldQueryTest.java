@@ -23,13 +23,11 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.LiteralExpression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 
 class MultiFieldQueryTest {
-  MultiFieldQuery query;
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
+  MultiFieldQuery<?> query;
   private final String testQueryName = "test_query";
-  private final Map<String, RelevanceQuery.QueryBuilderStep> actionMap
+  private final Map<String, RelevanceQuery.QueryBuilderStep<?>> actionMap
       = ImmutableMap.of("paramA", (o, v) -> o);
 
   @BeforeEach
@@ -49,9 +47,9 @@ class MultiFieldQueryTest {
     var fieldSpec = ImmutableMap.<String, ExprValue>builder().put(sampleField,
         ExprValueUtils.floatValue(sampleValue)).build();
 
-    query.createQueryBuilder(List.of(dsl.namedArgument("fields",
+    query.createQueryBuilder(List.of(DSL.namedArgument("fields",
         new LiteralExpression(ExprTupleValue.fromExprValueMap(fieldSpec))),
-        dsl.namedArgument("query",
+        DSL.namedArgument("query",
             new LiteralExpression(ExprValueUtils.stringValue(sampleQuery)))));
 
     verify(query).createBuilder(argThat(

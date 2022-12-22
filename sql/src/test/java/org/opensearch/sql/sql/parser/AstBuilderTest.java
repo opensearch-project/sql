@@ -14,7 +14,6 @@ import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
-import static org.opensearch.sql.ast.dsl.AstDSL.constantFunction;
 import static org.opensearch.sql.ast.dsl.AstDSL.doubleLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
@@ -50,12 +49,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 
-class AstBuilderTest {
-
-  /**
-   * SQL syntax parser that helps prepare parse tree as AstBuilder input.
-   */
-  private final SQLSyntaxParser parser = new SQLSyntaxParser();
+class AstBuilderTest extends AstBuilderTestBase {
 
   @Test
   public void can_build_select_literals() {
@@ -679,60 +673,6 @@ class AstBuilderTest {
         buildAST("SELECT name FROM test LIMIT 5, 10"));
   }
 
-  private static Stream<Arguments> nowLikeFunctionsData() {
-    return Stream.of(
-        Arguments.of("now", false, false, true),
-        Arguments.of("current_timestamp", false, false, true),
-        Arguments.of("localtimestamp", false, false, true),
-        Arguments.of("localtime", false, false, true),
-        Arguments.of("sysdate", true, false, false),
-        Arguments.of("curtime", false, false, true),
-        Arguments.of("current_time", false, false, true),
-        Arguments.of("curdate", false, false, true),
-        Arguments.of("current_date", false, false, true)
-    );
-  }
-
-  @ParameterizedTest(name = "{0}")
-  @MethodSource("nowLikeFunctionsData")
-  public void test_now_like_functions(String name, Boolean hasFsp, Boolean hasShortcut,
-                                      Boolean isConstantFunction) {
-    for (var call : hasShortcut ? List.of(name, name + "()") : List.of(name + "()")) {
-      assertEquals(
-          project(
-              values(emptyList()),
-              alias(call, (isConstantFunction ? constantFunction(name) : function(name)))
-          ),
-          buildAST("SELECT " + call)
-      );
-
-      assertEquals(
-          project(
-              filter(
-                  relation("test"),
-                  function(
-                      "=",
-                      qualifiedName("data"),
-                      (isConstantFunction ? constantFunction(name) : function(name)))
-              ),
-              AllFields.of()
-          ),
-          buildAST("SELECT * FROM test WHERE data = " + call)
-      );
-    }
-
-    // Unfortunately, only real functions (not ConstantFunction) might have `fsp` now.
-    if (hasFsp) {
-      assertEquals(
-          project(
-              values(emptyList()),
-              alias(name + "(0)", function(name, intLiteral(0)))
-          ),
-          buildAST("SELECT " + name + "(0)")
-      );
-    }
-  }
-
   @Test
   public void can_build_qualified_name_highlight() {
     Map<String, Literal> args = new HashMap<>();
@@ -769,8 +709,4 @@ class AstBuilderTest {
     );
   }
 
-  private UnresolvedPlan buildAST(String query) {
-    ParseTree parseTree = parser.parse(query);
-    return parseTree.accept(new AstBuilder(query));
-  }
 }

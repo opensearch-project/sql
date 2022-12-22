@@ -17,9 +17,9 @@ repositories {
 dependencies {
     api project(':core')
     implementation "io.github.resilience4j:resilience4j-retry:1.5.0"
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${jackson_version}"
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${jackson_databind_version}"
-    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: "${jackson_version}"
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${versions.jackson}"
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${versions.jackson_databind}"
+    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: "${versions.jackson}"
     implementation group: 'com.squareup.okhttp3', name: 'okhttp', version: '4.9.3'
     implementation 'com.github.babbel:okhttp-aws-signer:1.0.2'
     implementation group: 'org.json', name: 'json', version: '20180813'
@@ -42,6 +42,7 @@ test {
 configurations.all {
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.6.0"
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0"
+    resolutionStrategy.force 'junit:junit:4.13.2'
 }
 
 jacocoTestReport {

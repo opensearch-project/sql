@@ -39,6 +39,7 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.data.type.WideningTypeRule;
+import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.FunctionExpression;
@@ -68,7 +69,7 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
   @ParameterizedTest(name = "add({1}, {2})")
   @MethodSource("arithmeticFunctionArguments")
   public void add(ExprValue op1, ExprValue op2) {
-    FunctionExpression expression = dsl.add(literal(op1), literal(op2));
+    FunctionExpression expression = DSL.add(literal(op1), literal(op2));
     ExprType expectedType = WideningTypeRule.max(op1.type(), op2.type());
     assertEquals(expectedType, expression.type());
     assertValueEqual(BuiltinFunctionName.ADD, expectedType, op1, op2, expression.valueOf());
@@ -143,7 +144,7 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
   @ParameterizedTest(name = "subtract({1}, {2})")
   @MethodSource("arithmeticFunctionArguments")
   public void subtract(ExprValue op1, ExprValue op2) {
-    FunctionExpression expression = dsl.subtract(literal(op1), literal(op2));
+    FunctionExpression expression = DSL.subtract(literal(op1), literal(op2));
     ExprType expectedType = WideningTypeRule.max(op1.type(), op2.type());
     assertEquals(expectedType, expression.type());
     assertValueEqual(BuiltinFunctionName.SUBTRACT, expectedType, op1, op2,
@@ -155,7 +156,7 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
   @ParameterizedTest(name = "multiply({1}, {2})")
   @MethodSource("arithmeticFunctionArguments")
   public void multiply(ExprValue op1, ExprValue op2) {
-    FunctionExpression expression = dsl.multiply(literal(op1), literal(op2));
+    FunctionExpression expression = DSL.multiply(literal(op1), literal(op2));
     ExprType expectedType = WideningTypeRule.max(op1.type(), op2.type());
     assertEquals(expectedType, expression.type());
     assertValueEqual(BuiltinFunctionName.MULTIPLY, expectedType, op1, op2,
@@ -167,14 +168,14 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
   @ParameterizedTest(name = "divide({1}, {2})")
   @MethodSource("arithmeticFunctionArguments")
   public void divide(ExprValue op1, ExprValue op2) {
-    FunctionExpression expression = dsl.divide(literal(op1), literal(op2));
+    FunctionExpression expression = DSL.divide(literal(op1), literal(op2));
     ExprType expectedType = WideningTypeRule.max(op1.type(), op2.type());
     assertEquals(expectedType, expression.type());
     assertValueEqual(BuiltinFunctionName.DIVIDE, expectedType, op1, op2, expression.valueOf());
     assertEquals(String.format("/(%s, %s)", op1.toString(), op2.toString()),
         expression.toString());
 
-    expression = dsl.divide(literal(op1), literal(new ExprShortValue(0)));
+    expression = DSL.divide(literal(op1), literal(new ExprShortValue(0)));
     expectedType = WideningTypeRule.max(op1.type(), SHORT);
     assertEquals(expectedType, expression.type());
     assertTrue(expression.valueOf(valueEnv()).isNull());
@@ -184,14 +185,14 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
   @ParameterizedTest(name = "module({1}, {2})")
   @MethodSource("arithmeticFunctionArguments")
   public void module(ExprValue op1, ExprValue op2) {
-    FunctionExpression expression = dsl.module(literal(op1), literal(op2));
+    FunctionExpression expression = DSL.module(literal(op1), literal(op2));
     ExprType expectedType = WideningTypeRule.max(op1.type(), op2.type());
     assertEquals(expectedType, expression.type());
     assertValueEqual(BuiltinFunctionName.MODULES, expectedType, op1, op2, expression.valueOf());
     assertEquals(String.format("%%(%s, %s)", op1.toString(), op2.toString()),
         expression.toString());
 
-    expression = dsl.module(literal(op1), literal(new ExprShortValue(0)));
+    expression = DSL.module(literal(op1), literal(new ExprShortValue(0)));
     expectedType = WideningTypeRule.max(op1.type(), SHORT);
     assertEquals(expectedType, expression.type());
     assertTrue(expression.valueOf(valueEnv()).isNull());

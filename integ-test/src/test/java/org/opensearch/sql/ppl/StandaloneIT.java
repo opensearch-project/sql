@@ -6,9 +6,11 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpenSearchDataSourceMetadata;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -20,37 +22,36 @@ import org.opensearch.client.RestClient;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.analysis.ExpressionAnalyzer;
-import org.opensearch.sql.catalog.CatalogService;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
-import org.opensearch.sql.executor.DefaultQueryManager;
+import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.datasource.DataSourceServiceImpl;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
-import org.opensearch.sql.expression.DSL;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.monitor.AlwaysHealthyMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.client.OpenSearchRestClient;
 import org.opensearch.sql.opensearch.executor.OpenSearchExecutionEngine;
 import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProtector;
-import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
+import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
 import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
-import org.opensearch.sql.plugin.catalog.CatalogServiceImpl;
 import org.opensearch.sql.ppl.config.PPLServiceConfig;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
+import org.opensearch.sql.storage.DataSourceFactory;
+import org.opensearch.sql.util.ExecuteOnCallerThreadQueryManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Scope;
 
 /**
@@ -75,9 +76,13 @@ public class StandaloneIT extends PPLIntegTestCase {
         new OpenSearchExecutionProtector(new AlwaysHealthyMonitor())));
     context.registerBean(OpenSearchClient.class, () -> client);
     context.registerBean(Settings.class, () -> defaultSettings());
-    OpenSearchStorageEngine openSearchStorageEngine = new OpenSearchStorageEngine(client, defaultSettings());
-    CatalogServiceImpl.getInstance().registerDefaultOpenSearchCatalog(openSearchStorageEngine);
-    context.registerBean(CatalogService.class, CatalogServiceImpl::getInstance);
+    context.registerBean(FunctionProperties.class, FunctionProperties::new);
+    DataSourceService dataSourceService = new DataSourceServiceImpl(
+        new ImmutableSet.Builder<DataSourceFactory>()
+            .add(new OpenSearchDataSourceFactory(client, defaultSettings()))
+            .build());
+    dataSourceService.addDataSource(defaultOpenSearchDataSourceMetadata());
+    context.registerBean(DataSourceService.class, () -> dataSourceService);
     context.register(StandaloneConfig.class);
     context.register(PPLServiceConfig.class);
     context.refresh();
@@ -166,36 +171,26 @@ public class StandaloneIT extends PPLIntegTestCase {
   }
 
   @Configuration
-  @Import({ExpressionConfig.class})
   static class StandaloneConfig {
     @Autowired
-    private CatalogService catalogService;
+    private DataSourceService dataSourceService;
 
     @Autowired
     private ExecutionEngine executionEngine;
 
     @Bean
     QueryManager queryManager() {
-      return new DefaultQueryManager();
+      return new ExecuteOnCallerThreadQueryManager();
     }
 
     @Bean
     @Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    QueryPlanFactory queryExecutionFactory(BuiltinFunctionRepository functionRepository) {
-      catalogService
-          .getCatalogs()
-          .forEach(
-              catalog ->
-                  catalog
-                      .getStorageEngine()
-                      .getFunctions()
-                      .forEach(
-                          functionResolver ->
-                              functionRepository.register(catalog.getName(), functionResolver)));
+    QueryPlanFactory queryExecutionFactory() {
+      BuiltinFunctionRepository functionRepository = BuiltinFunctionRepository.getInstance();
       Analyzer analyzer = new Analyzer(new ExpressionAnalyzer(functionRepository),
-          catalogService, functionRepository);
+          dataSourceService, functionRepository);
       Planner planner =
-          new Planner(LogicalPlanOptimizer.create(new DSL(functionRepository)));
+          new Planner(LogicalPlanOptimizer.create());
       return new QueryPlanFactory(new QueryService(analyzer, executionEngine, planner));
     }
   }

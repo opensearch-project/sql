@@ -67,6 +67,7 @@
       }
     },
     "mapping_version": "1",
-    "settings_version": "1"
+    "settings_version": "1",
+    "aliases_version": "1"
   }
 }

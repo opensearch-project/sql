@@ -19,11 +19,9 @@ import org.mockito.Mockito;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.LiteralExpression;
-import org.opensearch.sql.expression.config.ExpressionConfig;
 
 class NoFieldQueryTest {
   NoFieldQuery query;
-  private final DSL dsl = new ExpressionConfig().dsl(new ExpressionConfig().functionRepository());
   private final String testQueryName = "test_query";
   private final Map<String, RelevanceQuery.QueryBuilderStep> actionMap
       = ImmutableMap.of("paramA", (o, v) -> o);
@@ -41,7 +39,7 @@ class NoFieldQueryTest {
     String sampleQuery = "field:query";
 
     query.createQueryBuilder(List.of(
-        dsl.namedArgument("query",
+        DSL.namedArgument("query",
             new LiteralExpression(ExprValueUtils.stringValue(sampleQuery)))));
 
     verify(query).createBuilder(eq(sampleQuery));

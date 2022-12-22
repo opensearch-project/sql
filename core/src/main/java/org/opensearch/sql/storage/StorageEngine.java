@@ -8,7 +8,7 @@ package org.opensearch.sql.storage;
 
 import java.util.Collection;
 import java.util.Collections;
-import org.opensearch.sql.CatalogSchemaName;
+import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.expression.function.FunctionResolver;
 
 /**
@@ -19,12 +19,12 @@ public interface StorageEngine {
   /**
    * Get {@link Table} from storage engine.
    */
-  Table getTable(CatalogSchemaName catalogSchemaName, String tableName);
+  Table getTable(DataSourceSchemaName dataSourceSchemaName, String tableName);
 
   /**
-   * Get list of catalog related functions.
+   * Get list of datasource related functions.
    *
-   * @return FunctionResolvers of catalog functions.
+   * @return FunctionResolvers of datasource functions.
    */
   default Collection<FunctionResolver> getFunctions() {
     return Collections.emptyList();

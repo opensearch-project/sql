@@ -7,7 +7,6 @@ package org.opensearch.sql.prometheus.storage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.utils.SystemIndexUtils.TABLE_INFO;
@@ -17,7 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.sql.CatalogSchemaName;
+import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
@@ -34,7 +33,7 @@ class PrometheusStorageEngineTest {
   @Test
   public void getTable() {
     PrometheusStorageEngine engine = new PrometheusStorageEngine(client);
-    Table table = engine.getTable(new CatalogSchemaName("prometheus", "default"), "test");
+    Table table = engine.getTable(new DataSourceSchemaName("prometheus", "default"), "test");
     assertNotNull(table);
     assertTrue(table instanceof PrometheusMetricTable);
   }
@@ -53,7 +52,7 @@ class PrometheusStorageEngineTest {
   @Test
   public void getSystemTable() {
     PrometheusStorageEngine engine = new PrometheusStorageEngine(client);
-    Table table = engine.getTable(new CatalogSchemaName("prometheus", "default"), TABLE_INFO);
+    Table table = engine.getTable(new DataSourceSchemaName("prometheus", "default"), TABLE_INFO);
     assertNotNull(table);
     assertTrue(table instanceof PrometheusSystemTable);
   }
@@ -62,7 +61,7 @@ class PrometheusStorageEngineTest {
   public void getSystemTableForAllTablesInfo() {
     PrometheusStorageEngine engine = new PrometheusStorageEngine(client);
     Table table
-        = engine.getTable(new CatalogSchemaName("prometheus", "information_schema"), "tables");
+        = engine.getTable(new DataSourceSchemaName("prometheus", "information_schema"), "tables");
     assertNotNull(table);
     assertTrue(table instanceof PrometheusSystemTable);
   }
@@ -71,7 +70,8 @@ class PrometheusStorageEngineTest {
   public void getSystemTableWithWrongInformationSchemaTable() {
     PrometheusStorageEngine engine = new PrometheusStorageEngine(client);
     SemanticCheckException exception = assertThrows(SemanticCheckException.class,
-        () -> engine.getTable(new CatalogSchemaName("prometheus", "information_schema"), "test"));
+        () -> engine.getTable(new DataSourceSchemaName("prometheus", "information_schema"),
+            "test"));
     assertEquals("Information Schema doesn't contain test table", exception.getMessage());
   }
 

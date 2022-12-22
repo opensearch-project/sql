@@ -182,6 +182,19 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testPositionFunctionExpr() {
+    assertEqual("source=t | eval f=position('substr' IN 'str')",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function("position",
+                        stringLiteral("substr"), stringLiteral("str"))
+            )
+        ));
+  }
+
+  @Test
   public void testEvalBinaryOperationExpr() {
     assertEqual("source=t | eval f=a+b",
         eval(
@@ -211,6 +224,30 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                 function("+", intLiteral(3), intLiteral(2))
             )
         ));
+  }
+
+  @Test
+  public void testBinaryOperationExprWithParentheses() {
+    assertEqual("source = t | where a = (1 + 2) * 3",
+        filter(
+            relation("t"),
+            compare("=",
+                field("a"),
+                function("*",
+                    function("+", intLiteral(1), intLiteral(2)),
+                    intLiteral(3)))));
+  }
+
+  @Test
+  public void testBinaryOperationExprPrecedence() {
+    assertEqual("source = t | where a = 1 + 2 * 3",
+        filter(
+            relation("t"),
+            compare("=",
+                field("a"),
+                function("+",
+                    intLiteral(1),
+                    function("*", intLiteral(2), intLiteral(3))))));
   }
 
   @Test
@@ -692,7 +729,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             relation("test"),
             function(
                 "match",
-                unresolvedArg("field", stringLiteral("message")),
+                unresolvedArg("field", qualifiedName("message")),
                 unresolvedArg("query", stringLiteral("test query")),
                 unresolvedArg("analyzer", stringLiteral("keyword"))
             )

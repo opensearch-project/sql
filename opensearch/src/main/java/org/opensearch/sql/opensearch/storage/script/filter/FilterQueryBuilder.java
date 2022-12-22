@@ -24,11 +24,11 @@ import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.LikeQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.LuceneQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.RangeQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.RangeQuery.Comparison;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.TermQuery;
-import org.opensearch.sql.opensearch.storage.script.filter.lucene.WildcardQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchBoolPrefixQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhrasePrefixQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhraseQuery;
@@ -37,6 +37,7 @@ import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.Mult
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.QueryQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.QueryStringQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.SimpleQueryStringQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.WildcardQuery;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
 @RequiredArgsConstructor
@@ -57,18 +58,23 @@ public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Obje
           .put(BuiltinFunctionName.GREATER.getName(), new RangeQuery(Comparison.GT))
           .put(BuiltinFunctionName.LTE.getName(), new RangeQuery(Comparison.LTE))
           .put(BuiltinFunctionName.GTE.getName(), new RangeQuery(Comparison.GTE))
-          .put(BuiltinFunctionName.LIKE.getName(), new WildcardQuery())
+          .put(BuiltinFunctionName.LIKE.getName(), new LikeQuery())
           .put(BuiltinFunctionName.MATCH.getName(), new MatchQuery())
           .put(BuiltinFunctionName.MATCH_PHRASE.getName(), new MatchPhraseQuery())
           .put(BuiltinFunctionName.MATCHPHRASE.getName(), new MatchPhraseQuery())
+          .put(BuiltinFunctionName.MATCHPHRASEQUERY.getName(), new MatchPhraseQuery())
           .put(BuiltinFunctionName.QUERY.getName(), new QueryQuery())
           .put(BuiltinFunctionName.MATCH_QUERY.getName(), new MatchQuery())
           .put(BuiltinFunctionName.MATCHQUERY.getName(), new MatchQuery())
           .put(BuiltinFunctionName.MULTI_MATCH.getName(), new MultiMatchQuery())
+          .put(BuiltinFunctionName.MULTIMATCH.getName(), new MultiMatchQuery())
+          .put(BuiltinFunctionName.MULTIMATCHQUERY.getName(), new MultiMatchQuery())
           .put(BuiltinFunctionName.SIMPLE_QUERY_STRING.getName(), new SimpleQueryStringQuery())
           .put(BuiltinFunctionName.QUERY_STRING.getName(), new QueryStringQuery())
           .put(BuiltinFunctionName.MATCH_BOOL_PREFIX.getName(), new MatchBoolPrefixQuery())
           .put(BuiltinFunctionName.MATCH_PHRASE_PREFIX.getName(), new MatchPhrasePrefixQuery())
+          .put(BuiltinFunctionName.WILDCARD_QUERY.getName(), new WildcardQuery())
+          .put(BuiltinFunctionName.WILDCARDQUERY.getName(), new WildcardQuery())
           .build();
 
   /**

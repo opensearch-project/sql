@@ -7,6 +7,7 @@
 package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_PEOPLE2;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -23,6 +24,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Period;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
@@ -48,7 +51,9 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   public void init() throws Exception {
     super.init();
     loadIndex(Index.BANK);
+    loadIndex(Index.CALCS);
     loadIndex(Index.PEOPLE2);
+    loadIndex(Index.CALCS);
   }
 
   @Test
@@ -226,6 +231,56 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testDayOfYearWithUnderscores() throws IOException {
+    JSONObject result = executeQuery("select day_of_year(date('2020-09-16'))");
+    verifySchema(result, schema("day_of_year(date('2020-09-16'))", null, "integer"));
+    verifyDataRows(result, rows(260));
+
+    result = executeQuery("select day_of_year(datetime('2020-09-16 00:00:00'))");
+    verifySchema(result, schema("day_of_year(datetime('2020-09-16 00:00:00'))", null, "integer"));
+    verifyDataRows(result, rows(260));
+
+    result = executeQuery("select day_of_year(timestamp('2020-09-16 00:00:00'))");
+    verifySchema(result, schema("day_of_year(timestamp('2020-09-16 00:00:00'))", null, "integer"));
+    verifyDataRows(result, rows(260));
+
+    result = executeQuery("select day_of_year('2020-09-16')");
+    verifySchema(result, schema("day_of_year('2020-09-16')", null, "integer"));
+    verifyDataRows(result, rows(260));
+  }
+
+  @Test
+  public void testDayOfYearAlternateSyntaxesReturnTheSameResults() throws IOException {
+    JSONObject result1 = executeQuery("SELECT dayofyear(date('2022-11-22'))");
+    JSONObject result2 = executeQuery("SELECT day_of_year(date('2022-11-22'))");
+    verifyDataRows(result1, rows(326));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT dayofyear(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT day_of_year(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT dayofyear(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT day_of_year(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT dayofyear(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT day_of_year(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT dayofyear(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT day_of_year(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+  }
+  @Test
   public void testFromDays() throws IOException {
     JSONObject result = executeQuery("select from_days(738049)");
     verifySchema(result, schema("from_days(738049)", null, "date"));
@@ -320,6 +375,57 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result = executeQuery("select month('2020-09-16')");
     verifySchema(result, schema("month('2020-09-16')", null, "integer"));
     verifyDataRows(result, rows(9));
+  }
+
+  @Test
+  public void testMonthOfYearTypes() throws IOException {
+    JSONObject result = executeQuery("select month_of_year(date('2020-09-16'))");
+    verifySchema(result, schema("month_of_year(date('2020-09-16'))", null, "integer"));
+    verifyDataRows(result, rows(9));
+
+    result = executeQuery("select month_of_year(datetime('2020-09-16 00:00:00'))");
+    verifySchema(result, schema("month_of_year(datetime('2020-09-16 00:00:00'))", null, "integer"));
+    verifyDataRows(result, rows(9));
+
+    result = executeQuery("select month_of_year(timestamp('2020-09-16 00:00:00'))");
+    verifySchema(result, schema("month_of_year(timestamp('2020-09-16 00:00:00'))", null, "integer"));
+    verifyDataRows(result, rows(9));
+
+    result = executeQuery("select month_of_year('2020-09-16')");
+    verifySchema(result, schema("month_of_year('2020-09-16')", null, "integer"));
+    verifyDataRows(result, rows(9));
+  }
+
+  @Test
+  public void testMonthAlternateSyntaxesReturnTheSameResults() throws IOException {
+    JSONObject result1 = executeQuery("SELECT month(date('2022-11-22'))");
+    JSONObject result2 = executeQuery("SELECT month_of_year(date('2022-11-22'))");
+    verifyDataRows(result1, rows(11));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT month(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT month_of_year(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT month(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT month_of_year(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT month(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT month_of_year(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT month(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT month_of_year(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
   }
 
   @Test
@@ -423,11 +529,11 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result, rows(2020));
   }
 
-  private void week(String date, int mode, int expectedResult) throws IOException {
-    JSONObject result = executeQuery(StringUtils.format("select week(date('%s'), %d)", date,
+  private void week(String date, int mode, int expectedResult, String functionName) throws IOException {
+    JSONObject result = executeQuery(StringUtils.format("select %s(date('%s'), %d)", functionName, date,
         mode));
     verifySchema(result,
-        schema(StringUtils.format("week(date('%s'), %d)", date, mode), null, "integer"));
+        schema(StringUtils.format("%s(date('%s'), %d)", functionName, date, mode), null, "integer"));
     verifyDataRows(result, rows(expectedResult));
   }
 
@@ -437,11 +543,56 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifySchema(result, schema("week(date('2008-02-20'))", null, "integer"));
     verifyDataRows(result, rows(7));
 
-    week("2008-02-20", 0, 7);
-    week("2008-02-20", 1, 8);
-    week("2008-12-31", 1, 53);
-    week("2000-01-01", 0, 0);
-    week("2000-01-01", 2, 52);
+    week("2008-02-20", 0, 7, "week");
+    week("2008-02-20", 1, 8, "week");
+    week("2008-12-31", 1, 53, "week");
+    week("2000-01-01", 0, 0, "week");
+    week("2000-01-01", 2, 52, "week");
+  }
+
+  @Test
+  public void testWeekOfYear() throws IOException {
+    JSONObject result = executeQuery("select week_of_year(date('2008-02-20'))");
+    verifySchema(result, schema("week_of_year(date('2008-02-20'))", null, "integer"));
+    verifyDataRows(result, rows(7));
+
+    week("2008-02-20", 0, 7, "week_of_year");
+    week("2008-02-20", 1, 8, "week_of_year");
+    week("2008-12-31", 1, 53, "week_of_year");
+    week("2000-01-01", 0, 0, "week_of_year");
+    week("2000-01-01", 2, 52, "week_of_year");
+  }
+
+  @Test
+  public void testWeekAlternateSyntaxesReturnTheSameResults() throws IOException {
+    JSONObject result1 = executeQuery("SELECT week(date('2022-11-22'))");
+    JSONObject result2 = executeQuery("SELECT week_of_year(date('2022-11-22'))");
+    verifyDataRows(result1, rows(47));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT week(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT week_of_year(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT week(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT week_of_year(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT week(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT week_of_year(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT week(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT week_of_year(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
   }
 
   void verifyDateFormat(String date, String type, String format, String formatted) throws IOException {
@@ -489,6 +640,12 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
         schema("MAKEDATE(1945, 5.9)", "f1", "date"),
         schema("MAKEDATE(1984, 1984)", "f2", "date"));
     verifyDataRows(result, rows("1945-01-06", "1989-06-06"));
+  }
+
+  public static LocalDateTime utcDateTimeNow() {
+    ZonedDateTime zonedDateTime =
+        LocalDateTime.now().atZone(TimeZone.getDefault().toZoneId());
+    return zonedDateTime.withZoneSameInstant(ZoneId.of("UTC")).toLocalDateTime();
   }
 
   private List<ImmutableMap<Object, Object>> nowLikeFunctionsData() {
@@ -573,6 +730,33 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
               .put("referenceGetter", (Supplier<Temporal>) LocalDate::now)
               .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse)
               .put("serializationPattern", "uuuu-MM-dd")
+              .build(),
+      ImmutableMap.builder()
+              .put("name", "utc_date")
+              .put("hasFsp", false)
+              .put("hasShortcut", false)
+              .put("constValue", true)
+              .put("referenceGetter", (Supplier<Temporal>) (()-> utcDateTimeNow().toLocalDate()))
+              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse)
+              .put("serializationPattern", "uuuu-MM-dd")
+              .build(),
+      ImmutableMap.builder()
+              .put("name", "utc_time")
+              .put("hasFsp", false)
+              .put("hasShortcut", false)
+              .put("constValue", true)
+              .put("referenceGetter", (Supplier<Temporal>) (()-> utcDateTimeNow().toLocalTime()))
+              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalTime::parse)
+              .put("serializationPattern", "HH:mm:ss")
+              .build(),
+      ImmutableMap.builder()
+              .put("name", "utc_timestamp")
+              .put("hasFsp", false)
+              .put("hasShortcut", false)
+              .put("constValue", true)
+              .put("referenceGetter", (Supplier<Temporal>) DateTimeFunctionIT::utcDateTimeNow)
+              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse)
+              .put("serializationPattern", "uuuu-MM-dd HH:mm:ss")
               .build()
     );
   }

@@ -40,6 +40,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.span;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.tableFunction;
 import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
+import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableMap;
@@ -84,7 +85,7 @@ public class AstBuilderTest {
   }
 
   @Test
-  public void testSearchCommandWithCatalogEscape() {
+  public void testSearchCommandWithDataSourceEscape() {
     assertEqual("search source = `prometheus.http_requests_total`",
         relation("prometheus.http_requests_total")
     );
@@ -799,9 +800,9 @@ public class AstBuilderTest {
   }
 
   @Test
-  public void testShowCatalogsCommand() {
+  public void testShowDataSourcesCommand() {
     assertEqual("show datasources",
-        relation(".CATALOGS"));
+        relation(DATASOURCES_TABLE_NAME));
   }
 
   protected void assertEqual(String query, Node expectedPlan) {

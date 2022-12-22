@@ -12,7 +12,7 @@ import com.google.common.annotations.VisibleForTesting;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
-import org.opensearch.sql.CatalogSchemaName;
+import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.planner.DefaultImplementor;
 import org.opensearch.sql.planner.logical.LogicalPlan;
@@ -34,11 +34,11 @@ public class PrometheusSystemTable implements Table {
    */
   private final Pair<PrometheusSystemTableSchema, PrometheusSystemRequest> systemIndexBundle;
 
-  private final CatalogSchemaName catalogSchemaName;
+  private final DataSourceSchemaName dataSourceSchemaName;
 
   public PrometheusSystemTable(
-      PrometheusClient client, CatalogSchemaName catalogSchemaName, String indexName) {
-    this.catalogSchemaName = catalogSchemaName;
+      PrometheusClient client, DataSourceSchemaName dataSourceSchemaName, String indexName) {
+    this.dataSourceSchemaName = dataSourceSchemaName;
     this.systemIndexBundle = buildIndexBundle(client, indexName);
   }
 
@@ -68,11 +68,11 @@ public class PrometheusSystemTable implements Table {
     SystemIndexUtils.SystemTable systemTable = systemTable(indexName);
     if (systemTable.isSystemInfoTable()) {
       return Pair.of(PrometheusSystemTableSchema.SYS_TABLE_TABLES,
-          new PrometheusListMetricsRequest(client, catalogSchemaName));
+          new PrometheusListMetricsRequest(client, dataSourceSchemaName));
     } else {
       return Pair.of(PrometheusSystemTableSchema.SYS_TABLE_MAPPINGS,
           new PrometheusDescribeMetricRequest(client,
-              catalogSchemaName, systemTable.getTableName()));
+              dataSourceSchemaName, systemTable.getTableName()));
     }
   }
 }

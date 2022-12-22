@@ -13,7 +13,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.sql.catalog.model.ConnectorType;
+import org.opensearch.sql.datasource.model.DataSource;
+import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.storage.StorageEngine;
 
 @ExtendWith(MockitoExtension.class)
@@ -22,7 +24,8 @@ public class PrometheusStorageFactoryTest {
   @Test
   void testGetConnectorType() {
     PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory();
-    Assertions.assertEquals(ConnectorType.PROMETHEUS, prometheusStorageFactory.getConnectorType());
+    Assertions.assertEquals(
+        DataSourceType.PROMETHEUS, prometheusStorageFactory.getDataSourceType());
   }
 
   @Test
@@ -130,6 +133,21 @@ public class PrometheusStorageFactoryTest {
         exception.getMessage().contains("Prometheus Client creation failed due to:"));
   }
 
+  @Test
+  void createDataSourceSuccess() {
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("prometheus.uri", "http://dummyprometheus:9090");
+    properties.put("prometheus.auth.type", "basicauth");
+    properties.put("prometheus.auth.username", "admin");
+    properties.put("prometheus.auth.password", "admin");
 
+    DataSourceMetadata metadata = new DataSourceMetadata();
+    metadata.setName("prometheus");
+    metadata.setConnector(DataSourceType.PROMETHEUS);
+    metadata.setProperties(properties);
+
+    DataSource dataSource = new PrometheusStorageFactory().createDataSource(metadata);
+    Assertions.assertTrue(dataSource.getStorageEngine() instanceof PrometheusStorageEngine);
+  }
 }
 
