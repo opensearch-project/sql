@@ -55,7 +55,6 @@ pitest {
     outputFormats = ['HTML', 'XML']
     timestampedReports = false
     junit5PluginVersion = '1.0.0'
-    mutationThreshold = 70
 }
 
 test {
