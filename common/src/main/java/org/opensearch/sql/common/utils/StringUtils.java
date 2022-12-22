@@ -31,13 +31,11 @@ public class StringUtils {
     char firstChar = text.charAt(0);
     char lastChar = text.charAt(text.length() - 1);
 
-    if(firstChar != lastChar)
-    {
+    if (firstChar != lastChar) {
       return text;
     }
 
-    if (firstChar == '`')
-    {
+    if (firstChar == '`') {
       return text.substring(1, text.length() - 1);
     }
 
