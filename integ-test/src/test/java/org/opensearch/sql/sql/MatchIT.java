@@ -61,6 +61,17 @@ public class MatchIT extends SQLIntegTestCase {
     assertTrue(exception.getMessage().contains("SemanticCheckException"));
   }
 
+  @Test
+  public void missing_backtick_field_test() {
+    String query = StringUtils.format("SELECT * FROM %s WHERE match(`invalid`, 'Bates')", TEST_INDEX_ACCOUNT);
+    final RuntimeException exception =
+        expectThrows(RuntimeException.class, () -> executeJdbcRequest(query));
+
+    assertTrue(exception.getMessage()
+        .contains("can't resolve Symbol(namespace=FIELD_NAME, name=invalid) in type env"));
+
+    assertTrue(exception.getMessage().contains("SemanticCheckException"));
+  }
 
   @Test
   public void matchquery_in_where() throws IOException {
