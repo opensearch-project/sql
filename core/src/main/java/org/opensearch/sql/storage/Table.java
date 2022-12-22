@@ -10,8 +10,10 @@ import java.util.Map;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.executor.streaming.StreamingSource;
 import org.opensearch.sql.planner.logical.LogicalPlan;
+import org.opensearch.sql.planner.logical.LogicalWrite;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.read.TableScanBuilder;
+import org.opensearch.sql.storage.write.TableWriteBuilder;
 
 /**
  * Table.
@@ -71,6 +73,17 @@ public interface Table {
    */
   default TableScanBuilder createScanBuilder() {
     return null; // TODO: Enforce all subclasses to implement this later
+  }
+
+  /*
+   * Create table write builder for logical to physical transformation.
+   *
+   * @param plan logical write plan
+   * @return table write builder
+   */
+  default TableWriteBuilder createWriteBuilder(LogicalWrite plan) {
+    throw new UnsupportedOperationException(
+        "Write operation is not supported on current table");
   }
 
   /**
