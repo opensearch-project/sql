@@ -10,39 +10,35 @@ class StringUtilsTest {
   void unquoteTest() {
     assertEquals("test", unquoteText("test"));
     assertEquals("test", unquoteText("'test'"));
-    assertEquals("test", unquoteText("`test`"));
 
     assertEquals("test'", unquoteText("'test'''"));
     assertEquals("test\"", unquoteText("\"test\"\"\""));
 
     assertEquals("te``st", unquoteText("'te``st'"));
     assertEquals("te``st", unquoteText("\"te``st\""));
-    assertEquals("te``st", unquoteText("`te``st`"));
 
     assertEquals("te'st", unquoteText("'te''st'"));
     assertEquals("te''st", unquoteText("\"te''st\""));
-    assertEquals("te''st", unquoteText("`te''st`"));
 
     assertEquals("te\"\"st", unquoteText("'te\"\"st'"));
     assertEquals("te\"st", unquoteText("\"te\"\"st\""));
-    assertEquals("te\"\"st", unquoteText("`te\"\"st`"));
 
     assertEquals("''", unquoteText("''''''"));
     assertEquals("\"\"", unquoteText("\"\"\"\"\"\""));
-    assertEquals("````", unquoteText("``````"));
 
     assertEquals("test'", unquoteText("'test''"));
 
     assertEquals("", unquoteText(""));
     assertEquals("'", unquoteText("'"));
-    assertEquals("`", unquoteText("`"));
     assertEquals("\"", unquoteText("\""));
 
     assertEquals("hello'", unquoteText("'hello''"));
     assertEquals("don't", unquoteText("'don't'"));
-    assertEquals("hello`", unquoteText("`hello``"));
     assertEquals("don\"t", unquoteText("\"don\"t\""));
 
+    assertEquals("hel\\lo'", unquoteText("'hel\\lo''"));
+    assertEquals("hel'lo", unquoteText("'hel'lo'"));
+    assertEquals("hel\"lo", unquoteText("\"hel\"lo\""));
+    assertEquals("hel\\'\\lo", unquoteText("'hel\\\\''\\\\lo'"));
   }
-
 }
