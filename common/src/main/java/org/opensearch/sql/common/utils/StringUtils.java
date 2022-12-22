@@ -53,8 +53,8 @@ public class StringUtils {
           && (nextChar == '"'
           || nextChar == '\\'
           || nextChar == '\''))
-          || currentChar == nextChar
-          && currentChar == enclosingQuote) {
+          || (currentChar == nextChar
+          && currentChar == enclosingQuote)) {
         chIndex++;
         currentChar = nextChar;
       }
