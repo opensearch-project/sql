@@ -1,0 +1,2 @@
+SELECT ABS(`flights`.`AvgTicketPrice`) FROM (SELECT `AvgTicketPrice` FROM `opensearch_dashboards_sample_data_flights`) AS `flights` GROUP BY ABS(`flights`.`AvgTicketPrice`)
+SELECT `b`.`Origin`, `b`.`avgPrice` FROM (SELECT `a`.`Origin` AS `Origin`, AVG(`AvgTicketPrice`) AS `avgPrice` FROM (SELECT `Origin`, `AvgTicketPrice` FROM `opensearch_dashboards_sample_data_flights` WHERE `FlightDelay` = True) AS `a` GROUP BY `a`.`Origin`) AS `b` ORDER BY `b`.`avgPrice` DESC
