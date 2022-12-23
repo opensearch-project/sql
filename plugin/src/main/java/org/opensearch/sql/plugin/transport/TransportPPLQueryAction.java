@@ -16,14 +16,18 @@ import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.common.inject.Injector;
+import org.opensearch.common.inject.ModulesBuilder;
 import org.opensearch.sql.common.response.ResponseListener;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
+import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.datasource.DataSourceServiceImpl;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.opensearch.security.SecurityAccess;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
+import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
 import org.opensearch.sql.ppl.PPLService;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
@@ -36,21 +40,12 @@ import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.VisualizationResponseFormatter;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 /** Send PPL query transport action. */
 public class TransportPPLQueryAction
     extends HandledTransportAction<ActionRequest, TransportPPLQueryResponse> {
-  private final NodeClient client;
 
-  /** Cluster service required by bean initialization. */
-  private final ClusterService clusterService;
-
-  /** Settings required by been initialization. */
-  private final Settings pluginSettings;
-
-  private final AnnotationConfigApplicationContext applicationContext;
-
+  private final Injector injector;
 
   /** Constructor of TransportPPLQueryAction. */
   @Inject
@@ -59,12 +54,19 @@ public class TransportPPLQueryAction
       ActionFilters actionFilters,
       NodeClient client,
       ClusterService clusterService,
-      AnnotationConfigApplicationContext applicationContext) {
+      DataSourceServiceImpl dataSourceService) {
     super(PPLQueryAction.NAME, transportService, actionFilters, TransportPPLQueryRequest::new);
-    this.client = client;
-    this.clusterService = clusterService;
-    this.pluginSettings = new OpenSearchSettings(clusterService.getClusterSettings());
-    this.applicationContext = applicationContext;
+
+    ModulesBuilder modules = new ModulesBuilder();
+    modules.add(new OpenSearchPluginModule());
+    modules.add(
+        b -> {
+          b.bind(NodeClient.class).toInstance(client);
+          b.bind(org.opensearch.sql.common.setting.Settings.class)
+              .toInstance(new OpenSearchSettings(clusterService.getClusterSettings()));
+          b.bind(DataSourceService.class).toInstance(dataSourceService);
+        });
+    this.injector = modules.createInjector();
   }
 
   /**
@@ -80,7 +82,7 @@ public class TransportPPLQueryAction
     QueryContext.addRequestId();
 
     PPLService pplService =
-        SecurityAccess.doPrivileged(() -> applicationContext.getBean(PPLService.class));
+        SecurityAccess.doPrivileged(() -> injector.getInstance(PPLService.class));
     TransportPPLQueryRequest transportRequest = TransportPPLQueryRequest.fromActionRequest(request);
     // in order to use PPL service, we need to convert TransportPPLQueryRequest to PPLQueryRequest
     PPLQueryRequest transformedRequest = transportRequest.toPPLQueryRequest();

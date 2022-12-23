@@ -26,6 +26,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
 import org.opensearch.client.node.NodeClient;
+import org.opensearch.common.inject.Injector;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.rest.BaseRestHandler;
@@ -62,7 +63,6 @@ import org.opensearch.sql.legacy.rewriter.matchtoterm.VerificationException;
 import org.opensearch.sql.legacy.utils.JsonPrettyFormatter;
 import org.opensearch.sql.legacy.utils.QueryDataAnonymizer;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 public class RestSqlAction extends BaseRestHandler {
 
@@ -87,16 +87,10 @@ public class RestSqlAction extends BaseRestHandler {
      */
     private final RestSQLQueryAction newSqlQueryHandler;
 
-    /**
-     * Application context used to create SQLService for each request.
-     */
-    private final AnnotationConfigApplicationContext applicationContext;
-
-    public RestSqlAction(Settings settings, AnnotationConfigApplicationContext applicationContext) {
+    public RestSqlAction(Settings settings, Injector injector) {
         super();
         this.allowExplicitIndex = MULTI_ALLOW_EXPLICIT_INDEX.get(settings);
-        this.newSqlQueryHandler = new RestSQLQueryAction(applicationContext);
-        this.applicationContext = applicationContext;
+        this.newSqlQueryHandler = new RestSQLQueryAction(injector);
     }
 
     @Override

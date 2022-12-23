@@ -47,8 +47,6 @@ dependencies {
     implementation "org.antlr:antlr4-runtime:4.7.1"
     implementation group: 'com.google.guava', name: 'guava', version: '31.0.1-jre'
     implementation group: 'org.json', name: 'json', version:'20180813'
-    implementation group: 'org.springframework', name: 'spring-context', version: "${spring_version}"
-    implementation group: 'org.springframework', name: 'spring-beans', version: "${spring_version}"
     implementation project(':common')
     implementation project(':core')
     api project(':protocol')

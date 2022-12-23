@@ -41,7 +41,6 @@ import org.opensearch.sql.filesystem.storage.FSStorageEngine;
 import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
 import org.opensearch.sql.storage.DataSourceFactory;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 @ThreadLeakFilters(filters = {StreamingQueryIT.HadoopFSThreadsFilter.class})
 public class StreamingQueryIT extends PPLIntegTestCase {
@@ -111,9 +110,6 @@ public class StreamingQueryIT extends PPLIntegTestCase {
   }
 
   class StreamingQuery {
-
-    final AnnotationConfigApplicationContext context;
-
     final DefaultQueryManager queryManager;
 
     final QueryService queryService;
@@ -124,15 +120,13 @@ public class StreamingQueryIT extends PPLIntegTestCase {
 
     public StreamingQuery(java.nio.file.Path tempDir) {
       result.set(0);
-      context = new AnnotationConfigApplicationContext();
-      context.refresh();
+
       DataSourceService dataSourceService =
           new DataSourceServiceImpl(
               new ImmutableSet.Builder<DataSourceFactory>()
                   .add(new FSDataSourceFactory(tempDir.toUri(), result))
                   .build());
       dataSourceService.addDataSource(fsDataSourceMetadata());
-      context.registerBean(DataSourceService.class, () -> dataSourceService);
       storageEngine =
           (FSStorageEngine) dataSourceService.getDataSource(DATASOURCE_NAME).getStorageEngine();
       final BuiltinFunctionRepository functionRepository = BuiltinFunctionRepository.getInstance();
@@ -175,7 +169,6 @@ public class StreamingQueryIT extends PPLIntegTestCase {
       assertTrue(queryManager.cancel(queryId));
 
       storageEngine.close();
-      context.close();
       queryManager.awaitTermination(5, TimeUnit.SECONDS);
     }
   }
