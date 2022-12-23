@@ -11,19 +11,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.expression.NamedExpression;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@Configuration
-@ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {AnalyzerTestBase.class})
 class NamedExpressionAnalyzerTest extends AnalyzerTestBase {
   @Test
   void visit_named_select_item() {

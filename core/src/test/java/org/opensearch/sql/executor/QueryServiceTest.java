@@ -32,11 +32,9 @@ import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.split.Split;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 @ExtendWith(MockitoExtension.class)
 class QueryServiceTest {
-  private AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
 
   private QueryService queryService;
 

@@ -31,7 +31,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.dsl.AstDSL;
@@ -48,15 +47,8 @@ import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
-import org.opensearch.sql.expression.function.FunctionPropertiesTestConfig;
 import org.opensearch.sql.expression.window.aggregation.AggregateWindowFunction;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@Configuration
-@ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {FunctionPropertiesTestConfig.class, AnalyzerTestBase.class})
 class ExpressionAnalyzerTest extends AnalyzerTestBase {
 
   @Test
