@@ -170,7 +170,8 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitSubqueryAsRelation(SubqueryAsRelationContext ctx) {
-    return new RelationSubquery(visit(ctx.subquery), ctx.alias().getText());
+    String subqueryAlias = StringUtils.unquoteIdentifier(ctx.alias().getText());
+    return new RelationSubquery(visit(ctx.subquery), subqueryAlias);
   }
 
   @Override
