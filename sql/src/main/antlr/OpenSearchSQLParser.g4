@@ -30,8 +30,6 @@ THE SOFTWARE.
 
 parser grammar OpenSearchSQLParser;
 
-import OpenSearchSQLIdentifierParser;
-
 options { tokenVocab=OpenSearchSQLLexer; }
 
 
@@ -561,4 +559,38 @@ alternateMultiMatchField
     : argName=alternateMultiMatchArgName EQUAL_SYMBOL argVal=relevanceArgValue
     | argName=alternateMultiMatchArgName EQUAL_SYMBOL
     LT_SQR_PRTHS argVal=relevanceArgValue RT_SQR_PRTHS
+    ;
+
+
+//    Identifiers
+
+tableName
+    : qualifiedName
+    ;
+
+columnName
+    : qualifiedName
+    ;
+
+alias
+    : ident
+    ;
+
+qualifiedName
+    : ident (DOT ident)*
+    ;
+
+ident
+    : DOT? ID
+    | BACKTICK_QUOTE_ID
+    | keywordsCanBeId
+    | scalarFunctionName
+    ;
+
+keywordsCanBeId
+    : FULL
+    | FIELD | D | T | TS // OD SQL and ODBC special
+    | COUNT | SUM | AVG | MAX | MIN
+    | FIRST | LAST
+    | TYPE // TODO: Type is keyword required by relevancy function. Remove this when relevancy functions moved out
     ;
