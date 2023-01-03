@@ -366,6 +366,30 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result, rows(30));
   }
 
+
+  @Test
+  public void testMinuteOfDay() throws IOException {
+    JSONObject result = executeQuery("select minute_of_day(timestamp('2020-09-16 17:30:00'))");
+    verifySchema(result, schema("minute_of_day(timestamp('2020-09-16 17:30:00'))", null, "integer"));
+    verifyDataRows(result, rows(1050));
+
+    result = executeQuery("select minute_of_day(datetime('2020-09-16 17:30:00'))");
+    verifySchema(result, schema("minute_of_day(datetime('2020-09-16 17:30:00'))", null, "integer"));
+    verifyDataRows(result, rows(1050));
+
+    result = executeQuery("select minute_of_day(time('17:30:00'))");
+    verifySchema(result, schema("minute_of_day(time('17:30:00'))", null, "integer"));
+    verifyDataRows(result, rows(1050));
+
+    result = executeQuery("select minute_of_day('2020-09-16 17:30:00')");
+    verifySchema(result, schema("minute_of_day('2020-09-16 17:30:00')", null, "integer"));
+    verifyDataRows(result, rows(1050));
+
+    result = executeQuery("select minute_of_day('17:30:00')");
+    verifySchema(result, schema("minute_of_day('17:30:00')", null, "integer"));
+    verifyDataRows(result, rows(1050));
+  }
+
   @Test
   public void testMonth() throws IOException {
     JSONObject result = executeQuery("select month(date('2020-09-16'))");

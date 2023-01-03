@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.expression.datetime;
 
+import static java.time.temporal.ChronoUnit.MINUTES;
 import static java.time.temporal.ChronoUnit.MONTHS;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
@@ -114,6 +115,7 @@ public class DateTimeFunction {
     repository.register(maketime());
     repository.register(microsecond());
     repository.register(minute());
+    repository.register(minute_of_day());
     repository.register(month(BuiltinFunctionName.MONTH));
     repository.register(month(BuiltinFunctionName.MONTH_OF_YEAR));
     repository.register(monthName());
@@ -433,6 +435,19 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprMinute), INTEGER, TIME),
         impl(nullMissingHandling(DateTimeFunction::exprMinute), INTEGER, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::exprMinute), INTEGER, TIMESTAMP)
+    );
+  }
+
+  /**
+   * MINUTE(STRING/TIME/DATETIME/TIMESTAMP). return the minute value for time.
+   */
+  private DefaultFunctionResolver minute_of_day() {
+    return define(BuiltinFunctionName.MINUTE_OF_DAY.getName(),
+        impl(nullMissingHandling(DateTimeFunction::exprMinuteOfDay), INTEGER, STRING),
+        impl(nullMissingHandling(DateTimeFunction::exprMinuteOfDay), INTEGER, TIME),
+        impl(nullMissingHandling(DateTimeFunction::exprMinuteOfDay), INTEGER, DATE),
+        impl(nullMissingHandling(DateTimeFunction::exprMinuteOfDay), INTEGER, DATETIME),
+        impl(nullMissingHandling(DateTimeFunction::exprMinuteOfDay), INTEGER, TIMESTAMP)
     );
   }
 
@@ -931,6 +946,17 @@ public class DateTimeFunction {
    */
   private ExprValue exprMinute(ExprValue time) {
     return new ExprIntegerValue(time.timeValue().getMinute());
+  }
+
+  /**
+   * Minute_of_day implementation for ExprValue.
+   *
+   * @param time ExprValue of Time/String type.
+   * @return ExprValue.
+   */
+  private ExprValue exprMinuteOfDay(ExprValue time) {
+    return new ExprIntegerValue(
+        MINUTES.between(LocalTime.MIN, time.timeValue()));
   }
 
   /**
