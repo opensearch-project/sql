@@ -142,6 +142,30 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
     result = executeQuery("select truncate(-56, -1)");
     verifySchema(result, schema("truncate(-56, -1)", null, "long"));
     verifyDataRows(result, rows(-50));
+
+    result = executeQuery("select truncate(33.33344, -1)");
+    verifySchema(result, schema("truncate(33.33344, -1)", null, "double"));
+    verifyDataRows(result, rows(30.0));
+
+    result = executeQuery("select truncate(33.33344, 2)");
+    verifySchema(result, schema("truncate(33.33344, 2)", null, "double"));
+    verifyDataRows(result, rows(33.33));
+
+    result = executeQuery("select truncate(33.33344, 100)");
+    verifySchema(result, schema("truncate(33.33344, 100)", null, "double"));
+    verifyDataRows(result, rows(33.33344));
+
+    result = executeQuery("select truncate(33.33344, 0)");
+    verifySchema(result, schema("truncate(33.33344, 0)", null, "double"));
+    verifyDataRows(result, rows(33.0));
+
+    result = executeQuery("select truncate(33.33344, 4)");
+    verifySchema(result, schema("truncate(33.33344, 4)", null, "double"));
+    verifyDataRows(result, rows(33.3334));
+
+    result = executeQuery(String.format("select truncate(%s, 6)", Math.PI));
+    verifySchema(result, schema(String.format("truncate(%s, 6)", Math.PI), null, "double"));
+    verifyDataRows(result, rows(3.141592));
   }
 
   @Test
