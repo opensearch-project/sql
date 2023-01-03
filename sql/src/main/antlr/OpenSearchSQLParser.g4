@@ -435,6 +435,7 @@ dateTimeFunctionName
     | MAKETIME
     | MICROSECOND
     | MINUTE
+    | MINUTE_OF_DAY
     | MONTH
     | MONTHNAME
     | NOW
