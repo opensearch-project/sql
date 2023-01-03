@@ -452,6 +452,14 @@ class SQLSyntaxParserTest {
   }
 
   @Test
+  public void can_parse_minute_of_day_function() {
+    assertNotNull(parser.parse("SELECT minute_of_day(\"12:23:34\");"));
+    assertNotNull(parser.parse("SELECT minute_of_day('12:23:34');"));;
+    assertNotNull(parser.parse("SELECT minute_of_day(\"2022-12-14 12:23:34\");"));;
+    assertNotNull(parser.parse("SELECT minute_of_day('2022-12-14 12:23:34');"));;
+  }
+
+  @Test
   public void can_parse_wildcard_query_relevance_function() {
     assertNotNull(
         parser.parse("SELECT * FROM test WHERE wildcard_query(column, \"this is a test*\")"));
