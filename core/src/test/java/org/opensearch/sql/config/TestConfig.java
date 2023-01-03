@@ -57,6 +57,8 @@ public class TestConfig {
       .put("struct_value", ExprCoreType.STRUCT)
       .put("array_value", ExprCoreType.ARRAY)
       .put("timestamp_value", ExprCoreType.TIMESTAMP)
+      .put("field_value1", ExprCoreType.STRING)
+      .put("field_value2", ExprCoreType.STRING)
       .build();
 
   @Bean

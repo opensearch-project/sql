@@ -374,10 +374,10 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   void match_bool_prefix_expression() {
     assertAnalyzeEqual(
         DSL.match_bool_prefix(
-            DSL.namedArgument("field", DSL.literal("fieldA")),
+            DSL.namedArgument("field", DSL.literal("field_value1")),
             DSL.namedArgument("query", DSL.literal("sample query"))),
         AstDSL.function("match_bool_prefix",
-            AstDSL.unresolvedArg("field", stringLiteral("fieldA")),
+            AstDSL.unresolvedArg("field", stringLiteral("field_value1")),
             AstDSL.unresolvedArg("query", stringLiteral("sample query"))));
   }
 
@@ -418,11 +418,11 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
         DSL.multi_match(
             DSL.namedArgument("fields", DSL.literal(
                 new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                    "field", ExprValueUtils.floatValue(1.F)))))),
+                    "field_value1", ExprValueUtils.floatValue(1.F)))))),
             DSL.namedArgument("query", DSL.literal("sample query"))),
         AstDSL.function("multi_match",
             AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of(
-                "field", 1.F))),
+                "field_value1", 1.F))),
             AstDSL.unresolvedArg("query", stringLiteral("sample query"))));
   }
 
@@ -432,12 +432,12 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
         DSL.multi_match(
             DSL.namedArgument("fields", DSL.literal(
                 new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                    "field", ExprValueUtils.floatValue(1.F)))))),
+                    "field_value1", ExprValueUtils.floatValue(1.F)))))),
             DSL.namedArgument("query", DSL.literal("sample query")),
             DSL.namedArgument("analyzer", DSL.literal("keyword"))),
         AstDSL.function("multi_match",
             AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of(
-                "field", 1.F))),
+                "field_value1", 1.F))),
             AstDSL.unresolvedArg("query", stringLiteral("sample query")),
             AstDSL.unresolvedArg("analyzer", stringLiteral("keyword"))));
   }
@@ -448,12 +448,12 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
         DSL.multi_match(
             DSL.namedArgument("fields", DSL.literal(
                 new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                    "field1", ExprValueUtils.floatValue(1.F),
-                    "field2", ExprValueUtils.floatValue(.3F)))))),
+                    "field_value1", ExprValueUtils.floatValue(1.F),
+                    "field_value2", ExprValueUtils.floatValue(.3F)))))),
             DSL.namedArgument("query", DSL.literal("sample query"))),
         AstDSL.function("multi_match",
             AstDSL.unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
-                "field1", 1.F, "field2", .3F))),
+                "field_value1", 1.F, "field_value2", .3F))),
             AstDSL.unresolvedArg("query", stringLiteral("sample query"))));
   }
 
@@ -463,11 +463,11 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
         DSL.simple_query_string(
             DSL.namedArgument("fields", DSL.literal(
                 new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                    "field", ExprValueUtils.floatValue(1.F)))))),
+                    "field_value1", ExprValueUtils.floatValue(1.F)))))),
             DSL.namedArgument("query", DSL.literal("sample query"))),
         AstDSL.function("simple_query_string",
             AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of(
-                "field", 1.F))),
+                "field_value1", 1.F))),
             AstDSL.unresolvedArg("query", stringLiteral("sample query"))));
   }
 
@@ -477,12 +477,12 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
         DSL.simple_query_string(
             DSL.namedArgument("fields", DSL.literal(
                 new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                    "field", ExprValueUtils.floatValue(1.F)))))),
+                    "field_value1", ExprValueUtils.floatValue(1.F)))))),
             DSL.namedArgument("query", DSL.literal("sample query")),
             DSL.namedArgument("analyzer", DSL.literal("keyword"))),
         AstDSL.function("simple_query_string",
             AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of(
-                "field", 1.F))),
+                "field_value1", 1.F))),
             AstDSL.unresolvedArg("query", stringLiteral("sample query")),
             AstDSL.unresolvedArg("analyzer", stringLiteral("keyword"))));
   }
@@ -493,12 +493,12 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
         DSL.simple_query_string(
             DSL.namedArgument("fields", DSL.literal(
                 new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                    "field1", ExprValueUtils.floatValue(1.F),
-                    "field2", ExprValueUtils.floatValue(.3F)))))),
+                    "field_value1", ExprValueUtils.floatValue(1.F),
+                    "field_value2", ExprValueUtils.floatValue(.3F)))))),
             DSL.namedArgument("query", DSL.literal("sample query"))),
         AstDSL.function("simple_query_string",
             AstDSL.unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
-                "field1", 1.F, "field2", .3F))),
+                "field_value1", 1.F, "field_value2", .3F))),
             AstDSL.unresolvedArg("query", stringLiteral("sample query"))));
   }
 
@@ -517,11 +517,11 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
         DSL.query_string(
             DSL.namedArgument("fields", DSL.literal(
                 new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                    "field", ExprValueUtils.floatValue(1.F)))))),
+                    "field_value1", ExprValueUtils.floatValue(1.F)))))),
             DSL.namedArgument("query", DSL.literal("query_value"))),
         AstDSL.function("query_string",
             AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of(
-                "field", 1.F))),
+                "field_value1", 1.F))),
             AstDSL.unresolvedArg("query", stringLiteral("query_value"))));
   }
 
@@ -531,12 +531,12 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
         DSL.query_string(
             DSL.namedArgument("fields", DSL.literal(
                 new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                    "field", ExprValueUtils.floatValue(1.F)))))),
+                    "field_value1", ExprValueUtils.floatValue(1.F)))))),
             DSL.namedArgument("query", DSL.literal("query_value")),
             DSL.namedArgument("escape", DSL.literal("false"))),
         AstDSL.function("query_string",
             AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of(
-                "field", 1.F))),
+                "field_value1", 1.F))),
             AstDSL.unresolvedArg("query", stringLiteral("query_value")),
             AstDSL.unresolvedArg("escape", stringLiteral("false"))));
   }
@@ -547,12 +547,12 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
         DSL.query_string(
             DSL.namedArgument("fields", DSL.literal(
                 new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                    "field1", ExprValueUtils.floatValue(1.F),
-                    "field2", ExprValueUtils.floatValue(.3F)))))),
+                    "field_value1", ExprValueUtils.floatValue(1.F),
+                    "field_value2", ExprValueUtils.floatValue(.3F)))))),
             DSL.namedArgument("query", DSL.literal("query_value"))),
         AstDSL.function("query_string",
             AstDSL.unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
-                "field1", 1.F, "field2", .3F))),
+                "field_value1", 1.F, "field_value2", .3F))),
             AstDSL.unresolvedArg("query", stringLiteral("query_value"))));
   }
 
@@ -588,7 +588,7 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   public void match_phrase_prefix_all_params() {
     assertAnalyzeEqual(
         DSL.match_phrase_prefix(
-            DSL.namedArgument("field", "test"),
+            DSL.namedArgument("field", "field_value1"),
             DSL.namedArgument("query", "search query"),
             DSL.namedArgument("slop", "3"),
             DSL.namedArgument("boost", "1.5"),
@@ -597,7 +597,7 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
             DSL.namedArgument("zero_terms_query", "NONE")
             ),
         AstDSL.function("match_phrase_prefix",
-          unresolvedArg("field", stringLiteral("test")),
+          unresolvedArg("field", stringLiteral("field_value1")),
           unresolvedArg("query", stringLiteral("search query")),
           unresolvedArg("slop", stringLiteral("3")),
           unresolvedArg("boost", stringLiteral("1.5")),
