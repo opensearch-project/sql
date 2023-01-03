@@ -15,6 +15,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.legacy.utils.StringUtils;
 
 public class MatchIT extends SQLIntegTestCase {
   @Override
@@ -34,6 +35,42 @@ public class MatchIT extends SQLIntegTestCase {
     JSONObject result = executeJdbcRequest("SELECT lastname FROM " + TEST_INDEX_ACCOUNT + " HAVING match(firstname, 'Nanette')");
     verifySchema(result, schema("lastname", "text"));
     verifyDataRows(result, rows("Bates"));
+  }
+
+  @Test
+  public void missing_field_test() {
+    String query = StringUtils.format("SELECT * FROM %s WHERE match(invalid, 'Bates')", TEST_INDEX_ACCOUNT);
+    final RuntimeException exception =
+        expectThrows(RuntimeException.class, () -> executeJdbcRequest(query));
+
+    assertTrue(exception.getMessage()
+        .contains("can't resolve Symbol(namespace=FIELD_NAME, name=invalid) in type env"));
+
+    assertTrue(exception.getMessage().contains("SemanticCheckException"));
+  }
+
+  @Test
+  public void missing_quoted_field_test() {
+    String query = StringUtils.format("SELECT * FROM %s WHERE match('invalid', 'Bates')", TEST_INDEX_ACCOUNT);
+    final RuntimeException exception =
+        expectThrows(RuntimeException.class, () -> executeJdbcRequest(query));
+
+    assertTrue(exception.getMessage()
+        .contains("can't resolve Symbol(namespace=FIELD_NAME, name=invalid) in type env"));
+
+    assertTrue(exception.getMessage().contains("SemanticCheckException"));
+  }
+
+  @Test
+  public void missing_backtick_field_test() {
+    String query = StringUtils.format("SELECT * FROM %s WHERE match(`invalid`, 'Bates')", TEST_INDEX_ACCOUNT);
+    final RuntimeException exception =
+        expectThrows(RuntimeException.class, () -> executeJdbcRequest(query));
+
+    assertTrue(exception.getMessage()
+        .contains("can't resolve Symbol(namespace=FIELD_NAME, name=invalid) in type env"));
+
+    assertTrue(exception.getMessage().contains("SemanticCheckException"));
   }
 
   @Test

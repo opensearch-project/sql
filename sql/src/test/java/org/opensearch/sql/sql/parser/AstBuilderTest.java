@@ -519,6 +519,27 @@ class AstBuilderTest extends AstBuilderTestBase {
   }
 
   @Test
+  public void can_build_from_subquery_with_backquoted_alias() {
+    assertEquals(
+        project(
+            relationSubquery(
+                project(
+                    relation("test"),
+                    alias("firstname", qualifiedName("firstname"), "firstName")),
+                "a"),
+            alias("a.firstName", qualifiedName("a", "firstName"))
+        ),
+        buildAST(
+            "SELECT a.firstName "
+                + "FROM ( "
+                + " SELECT `firstname` AS `firstName` "
+                + " FROM `test` "
+                + ") AS `a`"
+        )
+    );
+  }
+
+  @Test
   public void can_build_show_all_tables() {
     assertEquals(
         project(

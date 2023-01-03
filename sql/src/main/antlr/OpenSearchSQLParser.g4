@@ -30,8 +30,6 @@ THE SOFTWARE.
 
 parser grammar OpenSearchSQLParser;
 
-import OpenSearchSQLIdentifierParser;
-
 options { tokenVocab=OpenSearchSQLLexer; }
 
 
@@ -278,6 +276,7 @@ predicate
     : expressionAtom                                                #expressionAtomPredicate
     | left=predicate comparisonOperator right=predicate             #binaryComparisonPredicate
     | predicate IS nullNotnull                                      #isNullPredicate
+    | predicate NOT? BETWEEN predicate AND predicate                #betweenPredicate
     | left=predicate NOT? LIKE right=predicate                      #likePredicate
     | left=predicate REGEXP right=predicate                         #regexpPredicate
     | predicate NOT? IN '(' expressions ')'                         #inPredicate
@@ -292,11 +291,12 @@ expressionAtom
     | columnName                                                    #fullColumnNameExpressionAtom
     | functionCall                                                  #functionCallExpressionAtom
     | LR_BRACKET expression RR_BRACKET                              #nestedExpressionAtom
-    | left=expressionAtom mathOperator right=expressionAtom         #mathExpressionAtom
-    ;
-
-mathOperator
-    : PLUS | MINUS | STAR | DIVIDE | MODULE
+    | left=expressionAtom
+        mathOperator=(STAR | DIVIDE | MODULE)
+            right=expressionAtom                                    #mathExpressionAtom
+    | left=expressionAtom
+        mathOperator=(PLUS | MINUS)
+            right=expressionAtom                                    #mathExpressionAtom
     ;
 
 comparisonOperator
@@ -433,6 +433,7 @@ dateTimeFunctionName
     | MAKETIME
     | MICROSECOND
     | MINUTE
+    | MINUTE_OF_DAY
     | MONTH
     | MONTHNAME
     | NOW
@@ -558,4 +559,38 @@ alternateMultiMatchField
     : argName=alternateMultiMatchArgName EQUAL_SYMBOL argVal=relevanceArgValue
     | argName=alternateMultiMatchArgName EQUAL_SYMBOL
     LT_SQR_PRTHS argVal=relevanceArgValue RT_SQR_PRTHS
+    ;
+
+
+//    Identifiers
+
+tableName
+    : qualifiedName
+    ;
+
+columnName
+    : qualifiedName
+    ;
+
+alias
+    : ident
+    ;
+
+qualifiedName
+    : ident (DOT ident)*
+    ;
+
+ident
+    : DOT? ID
+    | BACKTICK_QUOTE_ID
+    | keywordsCanBeId
+    | scalarFunctionName
+    ;
+
+keywordsCanBeId
+    : FULL
+    | FIELD | D | T | TS // OD SQL and ODBC special
+    | COUNT | SUM | AVG | MAX | MIN
+    | FIRST | LAST
+    | TYPE // TODO: Type is keyword required by relevancy function. Remove this when relevancy functions moved out
     ;

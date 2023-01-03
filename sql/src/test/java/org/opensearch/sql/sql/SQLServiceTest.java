@@ -26,12 +26,10 @@ import org.opensearch.sql.executor.DefaultQueryManager;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponseNode;
-import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
-import org.opensearch.sql.sql.config.SQLServiceConfig;
+import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 @ExtendWith(MockitoExtension.class)
 class SQLServiceTest {
@@ -39,8 +37,6 @@ class SQLServiceTest {
   private static String QUERY = "/_plugins/_sql";
 
   private static String EXPLAIN = "/_plugins/_sql/_explain";
-
-  private AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
 
   private SQLService sqlService;
 
@@ -55,11 +51,8 @@ class SQLServiceTest {
   @BeforeEach
   public void setUp() {
     queryManager = DefaultQueryManager.defaultQueryManager();
-    context.registerBean(QueryManager.class, () -> queryManager);
-    context.registerBean(QueryPlanFactory.class, () -> new QueryPlanFactory(queryService));
-    context.register(SQLServiceConfig.class);
-    context.refresh();
-    sqlService = context.getBean(SQLService.class);
+    sqlService = new SQLService(new SQLSyntaxParser(), queryManager,
+        new QueryPlanFactory(queryService));
   }
 
   @AfterEach

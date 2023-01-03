@@ -24,6 +24,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Period;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
@@ -364,6 +366,30 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result, rows(30));
   }
 
+
+  @Test
+  public void testMinuteOfDay() throws IOException {
+    JSONObject result = executeQuery("select minute_of_day(timestamp('2020-09-16 17:30:00'))");
+    verifySchema(result, schema("minute_of_day(timestamp('2020-09-16 17:30:00'))", null, "integer"));
+    verifyDataRows(result, rows(1050));
+
+    result = executeQuery("select minute_of_day(datetime('2020-09-16 17:30:00'))");
+    verifySchema(result, schema("minute_of_day(datetime('2020-09-16 17:30:00'))", null, "integer"));
+    verifyDataRows(result, rows(1050));
+
+    result = executeQuery("select minute_of_day(time('17:30:00'))");
+    verifySchema(result, schema("minute_of_day(time('17:30:00'))", null, "integer"));
+    verifyDataRows(result, rows(1050));
+
+    result = executeQuery("select minute_of_day('2020-09-16 17:30:00')");
+    verifySchema(result, schema("minute_of_day('2020-09-16 17:30:00')", null, "integer"));
+    verifyDataRows(result, rows(1050));
+
+    result = executeQuery("select minute_of_day('17:30:00')");
+    verifySchema(result, schema("minute_of_day('17:30:00')", null, "integer"));
+    verifyDataRows(result, rows(1050));
+  }
+
   @Test
   public void testMonth() throws IOException {
     JSONObject result = executeQuery("select month(date('2020-09-16'))");
@@ -640,6 +666,12 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result, rows("1945-01-06", "1989-06-06"));
   }
 
+  public static LocalDateTime utcDateTimeNow() {
+    ZonedDateTime zonedDateTime =
+        LocalDateTime.now().atZone(TimeZone.getDefault().toZoneId());
+    return zonedDateTime.withZoneSameInstant(ZoneId.of("UTC")).toLocalDateTime();
+  }
+
   private List<ImmutableMap<Object, Object>> nowLikeFunctionsData() {
     return List.of(
       ImmutableMap.builder()
@@ -722,6 +754,33 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
               .put("referenceGetter", (Supplier<Temporal>) LocalDate::now)
               .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse)
               .put("serializationPattern", "uuuu-MM-dd")
+              .build(),
+      ImmutableMap.builder()
+              .put("name", "utc_date")
+              .put("hasFsp", false)
+              .put("hasShortcut", false)
+              .put("constValue", true)
+              .put("referenceGetter", (Supplier<Temporal>) (()-> utcDateTimeNow().toLocalDate()))
+              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse)
+              .put("serializationPattern", "uuuu-MM-dd")
+              .build(),
+      ImmutableMap.builder()
+              .put("name", "utc_time")
+              .put("hasFsp", false)
+              .put("hasShortcut", false)
+              .put("constValue", true)
+              .put("referenceGetter", (Supplier<Temporal>) (()-> utcDateTimeNow().toLocalTime()))
+              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalTime::parse)
+              .put("serializationPattern", "HH:mm:ss")
+              .build(),
+      ImmutableMap.builder()
+              .put("name", "utc_timestamp")
+              .put("hasFsp", false)
+              .put("hasShortcut", false)
+              .put("constValue", true)
+              .put("referenceGetter", (Supplier<Temporal>) DateTimeFunctionIT::utcDateTimeNow)
+              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse)
+              .put("serializationPattern", "uuuu-MM-dd HH:mm:ss")
               .build()
     );
   }

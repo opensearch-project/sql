@@ -29,33 +29,18 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.function.Function;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.opensearch.sql.config.TestConfig;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.FunctionProperties;
-import org.opensearch.sql.expression.function.FunctionPropertiesTestConfig;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@Configuration
-@ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {FunctionPropertiesTestConfig.class, ExpressionTestBase.class,
-    TestConfig.class})
 public class ExpressionTestBase {
 
-  @Autowired
-  protected FunctionProperties functionProperties;
+  protected FunctionProperties functionProperties = new FunctionProperties();
 
-  @Autowired
   protected Environment<Expression, ExprType> typeEnv;
 
-  @Bean
   protected static Environment<Expression, ExprValue> valueEnv() {
     return var -> {
       if (var instanceof ReferenceExpression) {
@@ -95,7 +80,6 @@ public class ExpressionTestBase {
     };
   }
 
-  @Bean
   protected Environment<Expression, ExprType> typeEnv() {
     return typeEnv;
   }
