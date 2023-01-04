@@ -1,2 +1,0 @@
-#cmakedefine AUTOCONF_ENABLE
-#cmakedefine AUTOCONF_STRING "@AUTOCONF_STRING@"

@@ -188,11 +188,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitShowDescribePattern(
       ShowDescribePatternContext ctx) {
-    if (ctx.compatibleID() != null) {
-      return stringLiteral(ctx.compatibleID().getText());
-    } else {
-      return visit(ctx.stringLiteral());
-    }
+    return visit(ctx.stringLiteral());
   }
 
   @Override
