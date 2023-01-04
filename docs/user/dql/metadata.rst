@@ -21,13 +21,11 @@ You can query your indices metadata by ``SHOW`` and ``DESCRIBE`` statement. Thes
 Syntax
 ------
 
-Rule ``showStatement``:
+``SHOW TABLES LIKE "<pattern>"``
 
-.. image:: /docs/user/img/rdd/showStatement.png
+``DESCRIBE TABLES LIKE "<pattern>" [COLUMNS LIKE "<pattern>"]``
 
-Rule ``showFilter``:
-
-.. image:: /docs/user/img/rdd/showFilter.png
+Pattern accepts SQL style wildcards where `_` mathes any character and `%` matches any characters.
 
 Example 1: Show All Indices Information
 ---------------------------------------
