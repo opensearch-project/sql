@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.sql.antlr;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -472,6 +473,38 @@ class SQLSyntaxParserTest {
     assertNotNull(
         parser.parse("SELECT * FROM test WHERE wildcard_query(`column`, 'this is a test*', "
             + "boost=1.5, case_insensitive=true, rewrite=\"scoring_boolean\")"));
+  }
+
+  @Test
+  public void describe_request_accepts_only_quoted_string_literals() {
+    assertAll(
+        () -> assertThrows(SyntaxCheckException.class,
+            () -> parser.parse("DESCRIBE TABLES LIKE bank")),
+        () -> assertThrows(SyntaxCheckException.class,
+            () -> parser.parse("DESCRIBE TABLES LIKE %bank%")),
+        () -> assertThrows(SyntaxCheckException.class,
+            () -> parser.parse("DESCRIBE TABLES LIKE `bank`")),
+        () -> assertThrows(SyntaxCheckException.class,
+            () -> parser.parse("DESCRIBE TABLES LIKE %bank% COLUMNS LIKE %status%")),
+        () -> assertThrows(SyntaxCheckException.class,
+            () -> parser.parse("DESCRIBE TABLES LIKE 'bank' COLUMNS LIKE status")),
+        () -> assertNotNull(parser.parse("DESCRIBE TABLES LIKE 'bank' COLUMNS LIKE \"status\"")),
+        () -> assertNotNull(parser.parse("DESCRIBE TABLES LIKE \"bank\" COLUMNS LIKE 'status'"))
+    );
+  }
+
+  @Test
+  public void show_request_accepts_only_quoted_string_literals() {
+    assertAll(
+        () -> assertThrows(SyntaxCheckException.class,
+            () -> parser.parse("SHOW TABLES LIKE bank")),
+        () -> assertThrows(SyntaxCheckException.class,
+            () -> parser.parse("SHOW TABLES LIKE %bank%")),
+        () -> assertThrows(SyntaxCheckException.class,
+            () -> parser.parse("SHOW TABLES LIKE `bank`")),
+        () -> assertNotNull(parser.parse("SHOW TABLES LIKE 'bank'")),
+        () -> assertNotNull(parser.parse("SHOW TABLES LIKE \"bank\""))
+    );
   }
 
   @ParameterizedTest
