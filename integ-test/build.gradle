@@ -250,6 +250,7 @@ String bwcBundleVersion = "1.3.2.0"
 Boolean bwcBundleTest = (project.findProperty('customDistributionDownloadType') != null &&
         project.properties['customDistributionDownloadType'] == "bundle");
 String bwcVersion = bwcBundleTest ? bwcBundleVersion : bwcMinVersion
+String currentVersion = opensearch_version.replace("-SNAPSHOT","")
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
 String bwcSqlPlugin = "opensearch-sql-" + bwcVersion + ".zip"
@@ -261,7 +262,7 @@ String bwcRemoteFile = "https://ci.opensearch.org/ci/dbc/bundle-build/1.1.0/2021
             testDistribution = "ARCHIVE"
             numberOfNodes = 3
             if (bwcBundleTest) {
-                versions = ["1.3.2", "2.5.0"]
+                versions = ["1.3.2", currentVersion]
                 nodes.each { node ->
                     node.extraConfigFile("kirk.pem", file("src/test/resources/security/kirk.pem"))
                     node.extraConfigFile("kirk-key.pem", file("src/test/resources/security/kirk-key.pem"))
