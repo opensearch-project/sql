@@ -254,11 +254,15 @@ comparisonExpression
     ;
 
 valueExpression
-    : left=valueExpression binaryOperator right=valueExpression     #binaryArithmetic
-    | LT_PRTHS left=valueExpression binaryOperator
-    right=valueExpression RT_PRTHS                                  #parentheticBinaryArithmetic
+    : left=valueExpression
+        binaryOperator=(STAR | DIVIDE | MODULE)
+            right=valueExpression                                   #binaryArithmetic
+    | left=valueExpression
+        binaryOperator=(PLUS | MINUS)
+            right=valueExpression                                   #binaryArithmetic
     | primaryExpression                                             #valueExpressionDefault
     | positionFunction                                              #positionFunctionCall
+    | LT_PRTHS valueExpression RT_PRTHS                             #parentheticValueExpr
     ;
 
 primaryExpression
@@ -489,7 +493,7 @@ systemFunctionBase
 
 textFunctionBase
     : SUBSTR | SUBSTRING | TRIM | LTRIM | RTRIM | LOWER | UPPER | CONCAT | CONCAT_WS | LENGTH | STRCMP
-    | RIGHT | LEFT | ASCII | LOCATE | REPLACE
+    | RIGHT | LEFT | ASCII | LOCATE | REPLACE | REVERSE
     ;
 
 positionFunctionName
@@ -499,10 +503,6 @@ positionFunctionName
 /** operators */
 comparisonOperator
     : EQUAL | NOT_EQUAL | LESS | NOT_LESS | GREATER | NOT_GREATER | REGEXP
-    ;
-
-binaryOperator
-    : PLUS | MINUS | STAR | DIVIDE | MODULE
     ;
 
 

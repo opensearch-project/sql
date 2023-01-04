@@ -7,6 +7,7 @@
 package org.opensearch.sql.expression.datetime;
 
 import static java.time.temporal.ChronoUnit.DAYS;
+import static java.time.temporal.ChronoUnit.MINUTES;
 import static java.time.temporal.ChronoUnit.MONTHS;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
@@ -119,6 +120,7 @@ public class DateTimeFunction {
     repository.register(maketime());
     repository.register(microsecond());
     repository.register(minute());
+    repository.register(minute_of_day());
     repository.register(month(BuiltinFunctionName.MONTH));
     repository.register(month(BuiltinFunctionName.MONTH_OF_YEAR));
     repository.register(monthName());
@@ -133,6 +135,9 @@ public class DateTimeFunction {
     repository.register(time_to_sec());
     repository.register(timediff());
     repository.register(timestamp());
+    repository.register(utc_date());
+    repository.register(utc_time());
+    repository.register(utc_timestamp());
     repository.register(date_format());
     repository.register(to_days());
     repository.register(unix_timestamp());
@@ -480,6 +485,19 @@ public class DateTimeFunction {
   }
 
   /**
+   * MINUTE(STRING/TIME/DATETIME/TIMESTAMP). return the minute value for time.
+   */
+  private DefaultFunctionResolver minute_of_day() {
+    return define(BuiltinFunctionName.MINUTE_OF_DAY.getName(),
+        impl(nullMissingHandling(DateTimeFunction::exprMinuteOfDay), INTEGER, STRING),
+        impl(nullMissingHandling(DateTimeFunction::exprMinuteOfDay), INTEGER, TIME),
+        impl(nullMissingHandling(DateTimeFunction::exprMinuteOfDay), INTEGER, DATE),
+        impl(nullMissingHandling(DateTimeFunction::exprMinuteOfDay), INTEGER, DATETIME),
+        impl(nullMissingHandling(DateTimeFunction::exprMinuteOfDay), INTEGER, TIMESTAMP)
+    );
+  }
+
+  /**
    * MONTH(STRING/DATE/DATETIME/TIMESTAMP). return the month for date (1-12).
    */
   private DefaultFunctionResolver month(BuiltinFunctionName month) {
@@ -627,6 +645,33 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::unixTimeStampOf), DOUBLE, TIMESTAMP),
         impl(nullMissingHandling(DateTimeFunction::unixTimeStampOf), DOUBLE, DOUBLE)
     );
+  }
+
+  /**
+   * UTC_DATE(). return the current UTC Date in format yyyy-MM-dd
+   */
+  private DefaultFunctionResolver utc_date() {
+    return define(BuiltinFunctionName.UTC_DATE.getName(),
+        implWithProperties(functionProperties
+            -> exprUtcDate(functionProperties), DATE));
+  }
+
+  /**
+   * UTC_TIME(). return the current UTC Time in format HH:mm:ss
+   */
+  private DefaultFunctionResolver utc_time() {
+    return define(BuiltinFunctionName.UTC_TIME.getName(),
+        implWithProperties(functionProperties
+            -> exprUtcTime(functionProperties), TIME));
+  }
+
+  /**
+   * UTC_TIMESTAMP(). return the current UTC TimeStamp in format yyyy-MM-dd HH:mm:ss
+   */
+  private DefaultFunctionResolver utc_timestamp() {
+    return define(BuiltinFunctionName.UTC_TIMESTAMP.getName(),
+        implWithProperties(functionProperties
+            -> exprUtcTimeStamp(functionProperties), DATETIME));
   }
 
   /**
@@ -982,6 +1027,17 @@ public class DateTimeFunction {
   }
 
   /**
+   * Minute_of_day implementation for ExprValue.
+   *
+   * @param time ExprValue of Time/String type.
+   * @return ExprValue.
+   */
+  private ExprValue exprMinuteOfDay(ExprValue time) {
+    return new ExprIntegerValue(
+        MINUTES.between(LocalTime.MIN, time.timeValue()));
+  }
+
+  /**
    * Month for date implementation for ExprValue.
    *
    * @param date ExprValue of Date/String type.
@@ -1153,6 +1209,38 @@ public class DateTimeFunction {
    */
   private ExprValue exprTimeToSec(ExprValue time) {
     return new ExprLongValue(time.timeValue().toSecondOfDay());
+  }
+
+  /**
+   * UTC_DATE implementation for ExprValue.
+   *
+   * @param functionProperties FunctionProperties.
+   * @return ExprValue.
+   */
+  private ExprValue exprUtcDate(FunctionProperties functionProperties) {
+    return new ExprDateValue(exprUtcTimeStamp(functionProperties).dateValue());
+  }
+
+  /**
+   * UTC_TIME implementation for ExprValue.
+   *
+   * @param functionProperties FunctionProperties.
+   * @return ExprValue.
+   */
+  private ExprValue exprUtcTime(FunctionProperties functionProperties) {
+    return new ExprTimeValue(exprUtcTimeStamp(functionProperties).timeValue());
+  }
+
+  /**
+   * UTC_TIMESTAMP implementation for ExprValue.
+   *
+   * @param functionProperties FunctionProperties.
+   * @return ExprValue.
+   */
+  private ExprValue exprUtcTimeStamp(FunctionProperties functionProperties) {
+    var zdt = ZonedDateTime.now(functionProperties.getQueryStartClock())
+        .withZoneSameInstant(ZoneId.of("UTC"));
+    return new ExprDatetimeValue(zdt.toLocalDateTime());
   }
 
   /**

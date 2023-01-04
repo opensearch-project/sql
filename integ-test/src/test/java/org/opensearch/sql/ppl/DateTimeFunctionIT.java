@@ -6,8 +6,11 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_PEOPLE2;
+import static org.opensearch.sql.sql.DateTimeFunctionIT.utcDateTimeNow;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
@@ -754,6 +757,33 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
               .put("referenceGetter", (Supplier<Temporal>) LocalDate::now)
               .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse)
               .put("serializationPattern", "uuuu-MM-dd")
+              .build(),
+      ImmutableMap.builder()
+              .put("name", "utc_date")
+              .put("hasFsp", false)
+              .put("hasShortcut", false)
+              .put("constValue", true)
+              .put("referenceGetter", (Supplier<Temporal>) ()-> utcDateTimeNow().toLocalDate())
+              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse)
+              .put("serializationPattern", "uuuu-MM-dd")
+              .build(),
+      ImmutableMap.builder()
+              .put("name", "utc_time")
+              .put("hasFsp", false)
+              .put("hasShortcut", false)
+              .put("constValue", true)
+              .put("referenceGetter", (Supplier<Temporal>) ()-> utcDateTimeNow().toLocalTime())
+              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalTime::parse)
+              .put("serializationPattern", "HH:mm:ss")
+              .build(),
+      ImmutableMap.builder()
+              .put("name", "utc_timestamp")
+              .put("hasFsp", false)
+              .put("hasShortcut", false)
+              .put("constValue", true)
+              .put("referenceGetter", (Supplier<Temporal>) ()-> utcDateTimeNow())
+              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse)
+              .put("serializationPattern", "uuuu-MM-dd HH:mm:ss")
               .build()
     );
   }

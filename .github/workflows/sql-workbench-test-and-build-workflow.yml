@@ -12,7 +12,7 @@ on:
 env: 
   PLUGIN_NAME: query-workbench-dashboards
   OPENSEARCH_VERSION: 'main'
-  OPENSEARCH_PLUGIN_VERSION: 2.4.0.0
+  OPENSEARCH_PLUGIN_VERSION: 3.0.0.0
 
 jobs:
   build:
@@ -77,4 +77,3 @@ jobs:
         with:
           name: workbench-${{ matrix.os }}
           path: ../OpenSearch-Dashboards/plugins/workbench/build
-          

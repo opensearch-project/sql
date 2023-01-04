@@ -35,5 +35,6 @@ class PatternsTest {
   void table_is_empty() {
     plan = Mockito.mock(LogicalFilter.class);
     assertFalse(Patterns.table().getFunction().apply(plan).isPresent());
+    assertFalse(Patterns.writeTable().getFunction().apply(plan).isPresent());
   }
 }

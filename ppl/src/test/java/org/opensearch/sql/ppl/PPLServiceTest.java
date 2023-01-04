@@ -19,20 +19,15 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.sql.common.response.ResponseListener;
-import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.executor.DefaultQueryManager;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponseNode;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
-import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
-import org.opensearch.sql.expression.function.FunctionProperties;
-import org.opensearch.sql.ppl.config.PPLServiceConfig;
+import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
-import org.opensearch.sql.storage.StorageEngine;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PPLServiceTest {
@@ -41,26 +36,15 @@ public class PPLServiceTest {
 
   private static String EXPLAIN = "/_plugins/_ppl/_explain";
 
-  private AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
-
   private PPLService pplService;
+
+  private DefaultQueryManager queryManager;
 
   @Mock
   private QueryService queryService;
 
   @Mock
-  private StorageEngine storageEngine;
-
-  @Mock
-  private ExecutionEngine executionEngine;
-
-  @Mock
-  private DataSourceService dataSourceService;
-
-  @Mock
   private ExecutionEngine.Schema schema;
-
-  private DefaultQueryManager queryManager;
 
   /**
    * Setup the test context.
@@ -68,15 +52,8 @@ public class PPLServiceTest {
   @Before
   public void setUp() {
     queryManager = DefaultQueryManager.defaultQueryManager();
-    context.registerBean(QueryManager.class, () -> queryManager);
-    context.registerBean(QueryPlanFactory.class, () -> new QueryPlanFactory(queryService));
-    context.registerBean(StorageEngine.class, () -> storageEngine);
-    context.registerBean(ExecutionEngine.class, () -> executionEngine);
-    context.registerBean(DataSourceService.class, () -> dataSourceService);
-    context.registerBean(FunctionProperties.class, FunctionProperties::new);
-    context.register(PPLServiceConfig.class);
-    context.refresh();
-    pplService = context.getBean(PPLService.class);
+    pplService = new PPLService(new PPLSyntaxParser(), queryManager,
+        new QueryPlanFactory(queryService));
   }
 
   @After

@@ -65,7 +65,6 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
@@ -89,15 +88,7 @@ import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.physical.datasource.DataSourceTable;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@Configuration
-@ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {AnalyzerTest.class})
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class AnalyzerTest extends AnalyzerTestBase {
 
   @Test

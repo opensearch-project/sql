@@ -292,6 +292,7 @@ LEFT:                               'LEFT';
 ASCII:                              'ASCII';
 LOCATE:                             'LOCATE';
 REPLACE:                            'REPLACE';
+REVERSE:                            'REVERSE';
 CAST:                               'CAST';
 
 // BOOL FUNCTIONS

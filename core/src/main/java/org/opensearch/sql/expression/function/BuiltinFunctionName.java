@@ -78,6 +78,7 @@ public enum BuiltinFunctionName {
   MAKETIME(FunctionName.of("maketime")),
   MICROSECOND(FunctionName.of("microsecond")),
   MINUTE(FunctionName.of("minute")),
+  MINUTE_OF_DAY(FunctionName.of("minute_of_day")),
   MONTH(FunctionName.of("month")),
   MONTH_OF_YEAR(FunctionName.of("month_of_year")),
   MONTHNAME(FunctionName.of("monthname")),
@@ -92,6 +93,9 @@ public enum BuiltinFunctionName {
   TIMESTAMP(FunctionName.of("timestamp")),
   DATE_FORMAT(FunctionName.of("date_format")),
   TO_DAYS(FunctionName.of("to_days")),
+  UTC_DATE(FunctionName.of("utc_date")),
+  UTC_TIME(FunctionName.of("utc_time")),
+  UTC_TIMESTAMP(FunctionName.of("utc_timestamp")),
   UNIX_TIMESTAMP(FunctionName.of("unix_timestamp")),
   WEEK(FunctionName.of("week")),
   WEEK_OF_YEAR(FunctionName.of("week_of_year")),
@@ -169,6 +173,7 @@ public enum BuiltinFunctionName {
   POSITION(FunctionName.of("position")),
   REGEXP(FunctionName.of("regexp")),
   REPLACE(FunctionName.of("replace")),
+  REVERSE(FunctionName.of("reverse")),
   RIGHT(FunctionName.of("right")),
   RTRIM(FunctionName.of("rtrim")),
   STRCMP(FunctionName.of("strcmp")),
@@ -230,7 +235,9 @@ public enum BuiltinFunctionName {
   MATCHQUERY(FunctionName.of("matchquery")),
   MULTI_MATCH(FunctionName.of("multi_match")),
   MULTIMATCH(FunctionName.of("multimatch")),
-  MULTIMATCHQUERY(FunctionName.of("multimatchquery"));
+  MULTIMATCHQUERY(FunctionName.of("multimatchquery")),
+  WILDCARDQUERY(FunctionName.of("wildcardquery")),
+  WILDCARD_QUERY(FunctionName.of("wildcard_query"));
 
   private final FunctionName name;
 

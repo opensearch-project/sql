@@ -412,6 +412,18 @@ public class TextFunctionTest extends ExpressionTestBase {
     assertEquals(missingValue(), eval(DSL.replace(missingRef, DSL.literal("a"), DSL.literal("b"))));
   }
 
+  @Test
+  void reverse() {
+    FunctionExpression expression = DSL.reverse(DSL.literal("abcde"));
+    assertEquals(STRING, expression.type());
+    assertEquals("edcba", eval(expression).stringValue());
+
+    when(nullRef.type()).thenReturn(STRING);
+    assertEquals(nullValue(), eval(DSL.reverse(nullRef)));
+    when(missingRef.type()).thenReturn(STRING);
+    assertEquals(missingValue(), eval(DSL.reverse(missingRef)));
+  }
+
   void testConcatString(List<String> strings) {
     String expected = null;
     if (strings.stream().noneMatch(Objects::isNull)) {

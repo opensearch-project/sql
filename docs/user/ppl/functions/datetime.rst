@@ -1294,6 +1294,75 @@ Example::
     +--------------------------+-----------------------------+
 
 
+UTC_DATE
+--------
+
+Description
+>>>>>>>>>>>
+
+Returns the current UTC date as a value in 'YYYY-MM-DD'.
+
+Return type: DATE
+
+Specification: UTC_DATE() -> DATE
+
+Example::
+
+    > source=people | eval `UTC_DATE()` = UTC_DATE() | fields `UTC_DATE()`
+    fetched rows / total rows = 1/1
+    +--------------+
+    | UTC_DATE()   |
+    |--------------|
+    | 2022-10-03   |
+    +--------------+
+
+
+UTC_TIME
+--------
+
+Description
+>>>>>>>>>>>
+
+Returns the current UTC time as a value in 'hh:mm:ss'.
+
+Return type: TIME
+
+Specification: UTC_TIME() -> TIME
+
+Example::
+
+    > source=people | eval `UTC_TIME()` = UTC_TIME() | fields `UTC_TIME()`
+    fetched rows / total rows = 1/1
+    +--------------+
+    | UTC_TIME()   |
+    |--------------|
+    | 17:54:27     |
+    +--------------+
+
+
+UTC_TIMESTAMP
+-------------
+
+Description
+>>>>>>>>>>>
+
+Returns the current UTC timestamp as a value in 'YYYY-MM-DD hh:mm:ss'.
+
+Return type: DATETIME
+
+Specification: UTC_TIMESTAMP() -> DATETIME
+
+Example::
+
+    > source=people | eval `UTC_TIMESTAMP()` = UTC_TIMESTAMP() | fields `UTC_TIMESTAMP()`
+    fetched rows / total rows = 1/1
+    +---------------------+
+    | UTC_TIMESTAMP()     |
+    |---------------------|
+    | 2022-10-03 17:54:28 |
+    +---------------------+
+
+
 WEEK
 ----
 
