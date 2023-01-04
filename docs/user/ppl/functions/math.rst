@@ -127,37 +127,7 @@ Example::
 CEIL
 ----
 
-Description
->>>>>>>>>>>
-
-Usage: CEIL(T) takes the ceiling of value T.
-
-Note: CEIL and `CEILING`_ functions have the same implementation & functionality
-
-Limitation: CEIL only works as expected when IEEE 754 double type displays decimal when stored.
-
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
-
-Return type: LONG
-
-Example::
-
-    os> source=people | eval `CEIL(0)` = CEIL(0), `CEIL(50.00005)` = CEIL(50.00005), `CEIL(-50.00005)` = CEIL(-50.00005) | fields `CEIL(0)`, `CEIL(50.00005)`, `CEIL(-50.00005)`
-    fetched rows / total rows = 1/1
-    +-----------+------------------+-------------------+
-    | CEIL(0)   | CEIL(50.00005)   | CEIL(-50.00005)   |
-    |-----------+------------------+-------------------|
-    | 0         | 51               | -50               |
-    +-----------+------------------+-------------------+
-
-    os> source=people | eval `CEIL(3147483647.12345)` = CEIL(3147483647.12345), `CEIL(113147483647.12345)` = CEIL(113147483647.12345), `CEIL(3147483647.00001)` = CEIL(3147483647.00001) | fields `CEIL(3147483647.12345)`, `CEIL(113147483647.12345)`, `CEIL(3147483647.00001)`
-    fetched rows / total rows = 1/1
-    +--------------------------+----------------------------+--------------------------+
-    | CEIL(3147483647.12345)   | CEIL(113147483647.12345)   | CEIL(3147483647.00001)   |
-    |--------------------------+----------------------------+--------------------------|
-    | 3147483648               | 113147483648               | 3147483648               |
-    +--------------------------+----------------------------+--------------------------+
-
+An alias for `CEILING`_ function.
 
 
 CEILING
