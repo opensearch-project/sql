@@ -419,6 +419,7 @@ dateTimeFunctionName
     | DAY
     | DAYNAME
     | DAYOFMONTH
+    | DAY_OF_MONTH
     | DAYOFWEEK
     | DAYOFYEAR
     | FROM_DAYS

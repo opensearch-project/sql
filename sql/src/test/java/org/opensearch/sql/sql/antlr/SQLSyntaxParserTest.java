@@ -202,6 +202,12 @@ class SQLSyntaxParserTest {
   }
 
   @Test
+  public void can_parse_dayofmonth_functions() {
+    assertNotNull(parser.parse("SELECT dayofmonth('2022-11-18')"));
+    assertNotNull(parser.parse("SELECT day_of_month('2022-11-18')"));
+  }
+
+  @Test
   public void can_parse_dayofyear_functions() {
     assertNotNull(parser.parse("SELECT dayofyear('2022-11-18')"));
     assertNotNull(parser.parse("SELECT day_of_year('2022-11-18')"));

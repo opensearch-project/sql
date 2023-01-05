@@ -1359,13 +1359,13 @@ DAY
 Description
 >>>>>>>>>>>
 
-Usage: day(date) extracts the day of the month for date, in the range 1 to 31. The dates with value 0 such as '0000-00-00' or '2008-00-00' are invalid.
+Usage: day(date) extracts the day of the month for date, in the range 1 to 31.
 
-Argument type: STRING/DATE/DATETIME/TIMESTAMP
+Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
 
 Return type: INTEGER
 
-Synonyms: DAYOFMONTH
+Synonyms: `DAYOFMONTH`_, `DAY_OF_MONTH`_
 
 Example::
 
@@ -1407,13 +1407,13 @@ DAYOFMONTH
 Description
 >>>>>>>>>>>
 
-Usage: dayofmonth(date) extracts the day of the month for date, in the range 1 to 31. The dates with value 0 such as '0000-00-00' or '2008-00-00' are invalid.
+Usage: dayofmonth(date) extracts the day of the month for date, in the range 1 to 31.
 
-Argument type: STRING/DATE/DATETIME/TIMESTAMP
+Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
 
 Return type: INTEGER
 
-Synonyms: DAY
+Synonyms: `DAY`_, `DAY_OF_MONTH`_
 
 Example::
 
@@ -1425,6 +1425,29 @@ Example::
     | 26                               |
     +----------------------------------+
 
+DAY_OF_MONTH
+------------
+
+Description
+>>>>>>>>>>>
+
+Usage: day_of_month(date) extracts the day of the month for date, in the range 1 to 31.
+
+Argument type: STRING/DATE/TIME/DATETIME/TIMESTAMP
+
+Return type: INTEGER
+
+Synonyms: `DAY`_, `DAYOFMONTH`_
+
+Example::
+
+    os> SELECT DAY_OF_MONTH('2020-08-26')
+    fetched rows / total rows = 1/1
+    +------------------------------+
+    | DAY_OF_MONTH('2020-08-26')   |
+    |------------------------------|
+    | 26                           |
+    +------------------------------+
 
 DAYOFWEEK
 ---------
