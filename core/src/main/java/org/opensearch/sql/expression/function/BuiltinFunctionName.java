@@ -78,6 +78,7 @@ public enum BuiltinFunctionName {
   MICROSECOND(FunctionName.of("microsecond")),
   MINUTE(FunctionName.of("minute")),
   MINUTE_OF_DAY(FunctionName.of("minute_of_day")),
+  MINUTE_OF_HOUR(FunctionName.of("minute_of_hour")),
   MONTH(FunctionName.of("month")),
   MONTH_OF_YEAR(FunctionName.of("month_of_year")),
   MONTHNAME(FunctionName.of("monthname")),
