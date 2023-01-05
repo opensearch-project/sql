@@ -378,6 +378,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.SECOND, expressions);
   }
 
+  public static FunctionExpression second_of_minute(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.SECOND_OF_MINUTE, expressions);
+  }
+
   public static FunctionExpression subdate(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.SUBDATE, expressions);
   }

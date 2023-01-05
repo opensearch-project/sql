@@ -270,6 +270,14 @@ class SQLSyntaxParserTest {
   }
 
   @Test
+  public void can_parse_second_functions() {
+    assertNotNull(parser.parse("SELECT second('12:23:34')"));
+    assertNotNull(parser.parse("SELECT second_of_minute('2022-11-18')"));
+    assertNotNull(parser.parse("SELECT second('2022-11-18 12:23:34')"));
+    assertNotNull(parser.parse("SELECT second_of_minute('2022-11-18 12:23:34')"));
+  }
+
+  @Test
   public void can_parse_simple_query_string_relevance_function() {
     assertNotNull(parser.parse(
         "SELECT id FROM test WHERE simple_query_string(['address'], 'query')"));

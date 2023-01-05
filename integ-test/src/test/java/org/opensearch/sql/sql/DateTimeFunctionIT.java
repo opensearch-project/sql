@@ -494,6 +494,51 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testSecondOfMinute() throws IOException {
+    JSONObject result = executeQuery("select second_of_minute(timestamp('2020-09-16 17:30:00'))");
+    verifySchema(result, schema("second_of_minute(timestamp('2020-09-16 17:30:00'))", null, "integer"));
+    verifyDataRows(result, rows(0));
+
+    result = executeQuery("select second_of_minute(time('17:30:00'))");
+    verifySchema(result, schema("second_of_minute(time('17:30:00'))", null, "integer"));
+    verifyDataRows(result, rows(0));
+
+    result = executeQuery("select second_of_minute('2020-09-16 17:30:00')");
+    verifySchema(result, schema("second_of_minute('2020-09-16 17:30:00')", null, "integer"));
+    verifyDataRows(result, rows(0));
+
+    result = executeQuery("select second_of_minute('17:30:00')");
+    verifySchema(result, schema("second_of_minute('17:30:00')", null, "integer"));
+    verifyDataRows(result, rows(0));
+  }
+
+  @Test
+  public void testSecondFunctionAliasesReturnTheSameResults() throws IOException {
+    JSONObject result1 = executeQuery("SELECT second('2022-11-22 12:23:34')");
+    JSONObject result2 = executeQuery("SELECT second_of_minute('2022-11-22 12:23:34')");
+    verifyDataRows(result1, rows(34));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT second(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT second_of_minute(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT second(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT second_of_minute(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT second(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT second_of_minute(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+  }
+
+  @Test
   public void testSubDate() throws IOException {
     JSONObject result =
         executeQuery("select subdate(timestamp('2020-09-16 17:30:00'), interval 1 day)");
