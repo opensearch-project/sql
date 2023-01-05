@@ -188,8 +188,8 @@ public class TestUtils {
     return getMappingFile(mappingFile);
   }
 
-  public static String getSubObjectIndexMapping() {
-    String mappingFile = "sub_object_index_mapping.json";
+  public static String getUnexpandedObjectIndexMapping() {
+    String mappingFile = "unexpanded_object_index_mapping.json";
     return getMappingFile(mappingFile);
   }
 

@@ -9,7 +9,7 @@ package org.opensearch.sql.legacy;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GAME_OF_THRONES;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_SUB_OBJECT;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_UNEXPANDED_OBJECT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
@@ -58,7 +58,7 @@ public class HashJoinIT extends SQLIntegTestCase {
   protected void init() throws Exception {
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.GAME_OF_THRONES);
-    loadIndex(Index.SUB_OBJECT);
+    loadIndex(Index.UNEXPANDED_OBJECT);
   }
 
   @Test
@@ -74,7 +74,7 @@ public class HashJoinIT extends SQLIntegTestCase {
   }
 
   @Test
-  public void innerJoinSubObjectField() {
+  public void innerJoinUnexpandedObjectField() {
     String query = String.format(Locale.ROOT,
         "SELECT " +
             "a.id.serial, b.id.serial " +
@@ -82,10 +82,10 @@ public class HashJoinIT extends SQLIntegTestCase {
             "JOIN %1$s AS b " +
             "ON a.id.serial = b.attributes.hardware.correlate_id " /*+
             "WHERE a.attributes.hardware.platform LIKE 'Linux%%' "*/,
-        TEST_INDEX_SUB_OBJECT);
+        TEST_INDEX_UNEXPANDED_OBJECT);
 
     JSONObject response = executeJdbcRequest(query);
-    verifyDataRows(response, rows(3, 1), rows(3, 3));
+    verifyDataRows(response, rows(3, 1), rows(3, 2), rows(3, 3));
   }
 
   @Test

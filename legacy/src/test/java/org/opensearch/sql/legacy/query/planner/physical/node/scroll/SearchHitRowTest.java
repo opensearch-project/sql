@@ -9,7 +9,6 @@ import static org.junit.Assert.assertEquals;
 import static org.opensearch.sql.legacy.query.planner.physical.Row.RowKey;
 
 import com.google.common.collect.ImmutableMap;
-import org.junit.Before;
 import org.junit.Test;
 import org.opensearch.common.bytes.BytesArray;
 import org.opensearch.search.SearchHit;
@@ -29,7 +28,7 @@ public class SearchHitRowTest {
   }
 
   @Test
-  public void testKeyWithSubObjectField() {
+  public void testKeyWithUnexpandedObjectField() {
     SearchHit hit = new SearchHit(1);
     hit.sourceRef(new BytesArray("{\"attributes.hardware.correlate_id\": 10}"));
     SearchHitRow row = new SearchHitRow(hit, "a");
@@ -53,7 +52,7 @@ public class SearchHitRowTest {
   }
 
   @Test
-  public void testRetainWithSubObjectField() {
+  public void testRetainWithUnexpandedObjectField() {
     SearchHit hit = new SearchHit(1);
     hit.sourceRef(new BytesArray("{\"a.attributes.hardware.correlate_id\": 10}"));
     SearchHitRow row = new SearchHitRow(hit, "");

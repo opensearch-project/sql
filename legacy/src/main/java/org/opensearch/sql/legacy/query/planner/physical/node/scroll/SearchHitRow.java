@@ -135,7 +135,7 @@ class SearchHitRow implements Row<SearchHit> {
             return ((Map) source).get(path);
         }
 
-        // Object field may hold sub objects rather than in recursive structure
+        // Object field name maybe unexpanded without recursive object structure
         // ex. {"a.b.c": value} instead of {"a": {"b": {"c": value}}}}
         if (((Map) source).containsKey(path)) {
             return ((Map) source).get(path);
