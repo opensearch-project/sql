@@ -307,6 +307,57 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testHourOfDayWithUnderscores() throws IOException {
+    JSONObject result = executeQuery("select hour_of_day(timestamp('2020-09-16 17:30:00'))");
+    verifySchema(result, schema(
+        "hour_of_day(timestamp('2020-09-16 17:30:00'))", null, "integer"));
+    verifyDataRows(result, rows(17));
+
+    result = executeQuery("select hour_of_day(datetime('2020-09-16 17:30:00'))");
+    verifySchema(result, schema(
+        "hour_of_day(datetime('2020-09-16 17:30:00'))", null, "integer"));
+    verifyDataRows(result, rows(17));
+
+    result = executeQuery("select hour_of_day(time('17:30:00'))");
+    verifySchema(result, schema("hour_of_day(time('17:30:00'))", null, "integer"));
+    verifyDataRows(result, rows(17));
+
+    result = executeQuery("select hour_of_day('2020-09-16 17:30:00')");
+    verifySchema(result, schema("hour_of_day('2020-09-16 17:30:00')", null, "integer"));
+    verifyDataRows(result, rows(17));
+
+    result = executeQuery("select hour_of_day('17:30:00')");
+    verifySchema(result, schema("hour_of_day('17:30:00')", null, "integer"));
+    verifyDataRows(result, rows(17));
+  }
+
+  @Test
+  public void testHourFunctionAliasesReturnTheSameResults() throws IOException {
+    JSONObject result1 = executeQuery("SELECT hour('11:30:00')");
+    JSONObject result2 = executeQuery("SELECT hour_of_day('11:30:00')");
+    verifyDataRows(result1, rows(11));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT hour(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT hour_of_day(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT hour(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT hour_of_day(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT hour(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT hour_of_day(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+  }
+
+  @Test
   public void testMicrosecond() throws IOException {
     JSONObject result = executeQuery("select microsecond(timestamp('2020-09-16 17:30:00.123456'))");
     verifySchema(result,
