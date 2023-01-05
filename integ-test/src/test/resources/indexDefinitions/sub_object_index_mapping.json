@@ -1,0 +1,27 @@
+{
+  "mappings": {
+    "properties": {
+      "id": {
+        "properties": {
+          "serial": {
+            "type": "integer"
+          }
+        }
+      },
+      "attributes": {
+        "properties": {
+          "hardware": {
+            "properties": {
+              "correlate_id": {
+                "type": "integer"
+              },
+              "message": {
+                "type": "keyword"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

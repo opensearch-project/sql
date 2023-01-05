@@ -9,6 +9,9 @@ package org.opensearch.sql.legacy;
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GAME_OF_THRONES;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_SUB_OBJECT;
+import static org.opensearch.sql.util.MatcherUtils.rows;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -55,6 +58,7 @@ public class HashJoinIT extends SQLIntegTestCase {
   protected void init() throws Exception {
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.GAME_OF_THRONES);
+    loadIndex(Index.SUB_OBJECT);
   }
 
   @Test
@@ -67,6 +71,21 @@ public class HashJoinIT extends SQLIntegTestCase {
   public void leftJoin() throws IOException {
 
     testJoin("LEFT JOIN");
+  }
+
+  @Test
+  public void innerJoinSubObjectField() {
+    String query = String.format(Locale.ROOT,
+        "SELECT " +
+            "a.id.serial, b.id.serial " +
+            "FROM %1$s AS a " +
+            "JOIN %1$s AS b " +
+            "ON a.id.serial = b.attributes.hardware.correlate_id " /*+
+            "WHERE a.attributes.hardware.platform LIKE 'Linux%%' "*/,
+        TEST_INDEX_SUB_OBJECT);
+
+    JSONObject response = executeJdbcRequest(query);
+    verifyDataRows(response, rows(3, 1), rows(3, 3));
   }
 
   @Test
