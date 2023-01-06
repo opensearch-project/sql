@@ -6,10 +6,14 @@
 package org.opensearch.sql.utils;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import lombok.experimental.UtilityClass;
+import org.opensearch.sql.data.model.ExprTimeValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.expression.function.FunctionProperties;
 
 @UtilityClass
 public class DateTimeUtils {
@@ -124,5 +128,16 @@ public class DateTimeUtils {
         || passedTzValidator.isEqual(maxTzValidator))
         && (passedTzValidator.isAfter(minTzValidator)
         || passedTzValidator.isEqual(minTzValidator));
+  }
+
+  /**
+   * Extracts LocalDate from a datetime ExprValue.
+   * Uses `FunctionProperties` for `ExprTimeValue`.
+   */
+  public static LocalDate extractDate(ExprValue value,
+                                      FunctionProperties functionProperties) {
+    return value instanceof ExprTimeValue
+        ? ((ExprTimeValue) value).dateValue(functionProperties)
+        : value.dateValue();
   }
 }

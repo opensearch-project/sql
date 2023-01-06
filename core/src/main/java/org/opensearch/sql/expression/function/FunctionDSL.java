@@ -138,6 +138,52 @@ public class FunctionDSL {
   }
 
   /**
+   * Implementation of a function that takes two arguments, returns a value, and
+   * requires FunctionProperties to complete.
+   *
+   * @param function   {@link ExprValue} based unary function.
+   * @param returnType return type.
+   * @param args1Type first argument type.
+   * @param args2Type second argument type.
+   * @return Unary Function Implementation.
+   */
+  public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
+      implWithProperties(
+      SerializableTriFunction<FunctionProperties, ExprValue, ExprValue, ExprValue> function,
+      ExprType returnType,
+      ExprType args1Type,
+      ExprType args2Type) {
+
+    return functionName -> {
+      FunctionSignature functionSignature =
+          new FunctionSignature(functionName, Arrays.asList(args1Type, args2Type));
+      FunctionBuilder functionBuilder =
+          (functionProperties, arguments) -> new FunctionExpression(functionName, arguments) {
+            @Override
+            public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+              ExprValue arg1 = arguments.get(0).valueOf(valueEnv);
+              ExprValue arg2 = arguments.get(1).valueOf(valueEnv);
+              return function.apply(functionProperties, arg1, arg2);
+            }
+
+            @Override
+            public ExprType type() {
+              return returnType;
+            }
+
+            @Override
+            public String toString() {
+              return String.format("%s(%s)", functionName,
+                  arguments.stream()
+                      .map(Object::toString)
+                      .collect(Collectors.joining(", ")));
+            }
+          };
+      return Pair.of(functionSignature, functionBuilder);
+    };
+  }
+
+  /**
    * No Arg Function Implementation.
    *
    * @param function   {@link ExprValue} based unary function.
@@ -181,31 +227,8 @@ public class FunctionDSL {
       ExprType args1Type,
       ExprType args2Type) {
 
-    return functionName -> {
-      FunctionSignature functionSignature =
-          new FunctionSignature(functionName, Arrays.asList(args1Type, args2Type));
-      FunctionBuilder functionBuilder =
-          (functionProperties, arguments) -> new FunctionExpression(functionName, arguments) {
-            @Override
-            public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-              ExprValue arg1 = arguments.get(0).valueOf(valueEnv);
-              ExprValue arg2 = arguments.get(1).valueOf(valueEnv);
-              return function.apply(arg1, arg2);
-            }
-
-            @Override
-            public ExprType type() {
-              return returnType;
-            }
-
-            @Override
-            public String toString() {
-              return String.format("%s(%s, %s)", functionName, arguments.get(0).toString(),
-                  arguments.get(1).toString());
-            }
-          };
-      return Pair.of(functionSignature, functionBuilder);
-    };
+    return implWithProperties((fp, arg1, arg2) ->
+        function.apply(arg1, arg2), returnType, args1Type, args2Type);
   }
 
   /**
@@ -314,6 +337,24 @@ public class FunctionDSL {
         return ExprValueUtils.nullValue();
       } else {
         return implementation.apply(functionProperties, v1);
+      }
+    };
+  }
+
+  /**
+   * Wrapper for the ExprValue function that takes 2 arguments and is aware of FunctionProperties,
+   * with default NULL and MISSING handling.
+   */
+  public static SerializableTriFunction<FunctionProperties, ExprValue, ExprValue, ExprValue>
+        nullMissingHandlingWithProperties(
+      SerializableTriFunction<FunctionProperties, ExprValue, ExprValue,ExprValue> implementation) {
+    return (functionProperties, v1, v2) -> {
+      if (v1.isMissing() || v2.isMissing()) {
+        return ExprValueUtils.missingValue();
+      } else if (v1.isNull() || v2.isNull()) {
+        return ExprValueUtils.nullValue();
+      } else {
+        return implementation.apply(functionProperties, v1, v2);
       }
     };
   }
