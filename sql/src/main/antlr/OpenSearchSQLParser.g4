@@ -450,6 +450,7 @@ dateTimeFunctionName
     | PERIOD_DIFF
     | QUARTER
     | SECOND
+    | SECOND_OF_MINUTE
     | SUBDATE
     | SYSDATE
     | TIME
