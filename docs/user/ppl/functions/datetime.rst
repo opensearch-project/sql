@@ -533,6 +533,26 @@ Example::
     +----------------------+---------------------------------+
 
 
+DATEDIFF
+--------
+
+Usage: Calculates the difference of date parts of given values. If the first argument is time, today's date is used.
+
+Argument type: DATE/DATETIME/TIMESTAMP/TIME, DATE/DATETIME/TIMESTAMP/TIME
+
+Return type: LONG
+
+Example::
+
+    os> source=people | eval `'2000-01-02' - '2000-01-01'` = DATEDIFF(TIMESTAMP('2000-01-02 00:00:00'), TIMESTAMP('2000-01-01 23:59:59')), `'2001-02-01' - '2004-01-01'` = DATEDIFF(DATE('2001-02-01'), TIMESTAMP('2004-01-01 00:00:00')), `today - today` = DATEDIFF(TIME('23:59:59'), TIME('00:00:00')) | fields `'2000-01-02' - '2000-01-01'`, `'2001-02-01' - '2004-01-01'`, `today - today`
+    fetched rows / total rows = 1/1
+    +-------------------------------+-------------------------------+-----------------+
+    | '2000-01-02' - '2000-01-01'   | '2001-02-01' - '2004-01-01'   | today - today   |
+    |-------------------------------+-------------------------------+-----------------|
+    | 1                             | -1064                         | 0               |
+    +-------------------------------+-------------------------------+-----------------+
+
+
 DAY
 ---
 
@@ -1176,6 +1196,29 @@ Example::
     |---------------------------------|
     | 80580                           |
     +---------------------------------+
+
+
+TIMEDIFF
+--------
+
+Description
+>>>>>>>>>>>
+
+Usage: returns the difference between two time expressions as a time.
+
+Argument type: TIME, TIME
+
+Return type: TIME
+
+Example::
+
+    os> source=people | eval `TIMEDIFF('23:59:59', '13:00:00')` = TIMEDIFF('23:59:59', '13:00:00') | fields `TIMEDIFF('23:59:59', '13:00:00')`
+    fetched rows / total rows = 1/1
+    +------------------------------------+
+    | TIMEDIFF('23:59:59', '13:00:00')   |
+    |------------------------------------|
+    | 10:59:59                           |
+    +------------------------------------+
 
 
 TIMESTAMP

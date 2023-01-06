@@ -1052,4 +1052,27 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySchema(result, schema("f1", null, "integer"), schema("f2", null, "integer"));
     verifySome(result.getJSONArray("datarows"), rows(11, -25));
   }
+
+  public void testDateDiff() throws IOException {
+    var result = executeQuery(String.format("source=%s | eval"
+        + " `'2000-01-02' - '2000-01-01'` = DATEDIFF(TIMESTAMP('2000-01-02 00:00:00'), TIMESTAMP('2000-01-01 23:59:59')),"
+        + " `'2001-02-01' - '2004-01-01'` = DATEDIFF(DATE('2001-02-01'), TIMESTAMP('2004-01-01 00:00:00')),"
+        + " `'2004-01-01' - '2002-02-01'` = DATEDIFF(TIMESTAMP('2004-01-01 00:00:00'), DATETIME('2002-02-01 14:25:30')),"
+        + " `today - today` = DATEDIFF(TIME('23:59:59'), TIME('00:00:00'))"
+        + " | fields `'2000-01-02' - '2000-01-01'`, `'2001-02-01' - '2004-01-01'`, `'2004-01-01' - '2002-02-01'`, `today - today`", TEST_INDEX_DATE));
+    verifySchema(result,
+        schema("'2000-01-02' - '2000-01-01'", null, "long"),
+        schema("'2001-02-01' - '2004-01-01'", null, "long"),
+        schema("'2004-01-01' - '2002-02-01'", null, "long"),
+        schema("today - today", null, "long"));
+    verifySome(result.getJSONArray("datarows"), rows(1, -1064, 699, 0));
+  }
+
+  @Test
+  public void testTimeDiff() throws IOException {
+    var result = executeQuery(String.format(
+        "source=%s | eval f = TIMEDIFF('23:59:59', '13:00:00') | fields f", TEST_INDEX_DATE));
+    verifySchema(result, schema("f", null, "time"));
+    verifySome(result.getJSONArray("datarows"), rows("10:59:59"));
+  }
 }

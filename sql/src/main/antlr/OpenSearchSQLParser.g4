@@ -323,6 +323,10 @@ positionFunction
     : POSITION LR_BRACKET functionArg IN functionArg RR_BRACKET
     ;
 
+matchQueryAltSyntaxFunction
+    : field=relevanceField EQUAL_SYMBOL MATCH_QUERY LR_BRACKET query=relevanceQuery RR_BRACKET
+    ;
+
 scalarFunctionName
     : mathematicalFunctionName
     | dateTimeFunctionName
@@ -340,7 +344,8 @@ specificFunction
     ;
 
 relevanceFunction
-    : noFieldRelevanceFunction | singleFieldRelevanceFunction | multiFieldRelevanceFunction
+    : noFieldRelevanceFunction | singleFieldRelevanceFunction | multiFieldRelevanceFunction | altSingleFieldRelevanceFunction | altMultiFieldRelevanceFunction
+
     ;
 
 noFieldRelevanceFunction
@@ -360,6 +365,14 @@ multiFieldRelevanceFunction
         COMMA query=relevanceQuery (COMMA relevanceArg)* RR_BRACKET
     | multiFieldRelevanceFunctionName LR_BRACKET
         alternateMultiMatchQuery  COMMA alternateMultiMatchField (COMMA relevanceArg)* RR_BRACKET
+    ;
+
+altSingleFieldRelevanceFunction
+    : field=relevanceField EQUAL_SYMBOL altSyntaxFunctionName=altSingleFieldRelevanceFunctionName LR_BRACKET query=relevanceQuery (COMMA relevanceArg)* RR_BRACKET
+    ;
+
+altMultiFieldRelevanceFunction
+    : field=relevanceField EQUAL_SYMBOL altSyntaxFunctionName=altMultiFieldRelevanceFunctionName LR_BRACKET query=relevanceQuery (COMMA relevanceArg)* RR_BRACKET
     ;
 
 convertedDataType
@@ -415,6 +428,7 @@ dateTimeFunctionName
     | DATE_ADD
     | DATE_FORMAT
     | DATE_SUB
+    | DATEDIFF
     | DATETIME
     | DAY
     | DAYNAME
@@ -440,6 +454,7 @@ dateTimeFunctionName
     | SYSDATE
     | TIME
     | TIME_TO_SEC
+    | TIMEDIFF
     | TIMESTAMP
     | TO_DAYS
     | UNIX_TIMESTAMP
@@ -478,6 +493,18 @@ multiFieldRelevanceFunctionName
     | MULTIMATCHQUERY
     | SIMPLE_QUERY_STRING
     | QUERY_STRING
+    ;
+
+altSingleFieldRelevanceFunctionName
+    : MATCH_QUERY
+    | MATCHQUERY
+    | MATCH_PHRASE
+    | MATCHPHRASE
+    ;
+
+altMultiFieldRelevanceFunctionName
+    : MULTI_MATCH
+    | MULTIMATCH
     ;
 
 functionArgs

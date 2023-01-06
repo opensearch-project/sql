@@ -1348,6 +1348,26 @@ Example::
     +----------------------+---------------------------------+
 
 
+DATEDIFF
+--------
+
+Usage: Calculates the difference of date parts of the given values. If the first argument is time, today's date is used.
+
+Argument type: DATE/DATETIME/TIMESTAMP/TIME, DATE/DATETIME/TIMESTAMP/TIME
+
+Return type: LONG
+
+Example::
+
+    os> SELECT DATEDIFF(TIMESTAMP('2000-01-02 00:00:00'), TIMESTAMP('2000-01-01 23:59:59')) AS `'2000-01-02' - '2000-01-01'`, DATEDIFF(DATE('2001-02-01'), TIMESTAMP('2004-01-01 00:00:00')) AS `'2001-02-01' - '2004-01-01'`, DATEDIFF(TIME('23:59:59'), TIME('00:00:00')) AS `today - today`
+    fetched rows / total rows = 1/1
+    +-------------------------------+-------------------------------+-----------------+
+    | '2000-01-02' - '2000-01-01'   | '2001-02-01' - '2004-01-01'   | today - today   |
+    |-------------------------------+-------------------------------+-----------------|
+    | 1                             | -1064                         | 0               |
+    +-------------------------------+-------------------------------+-----------------+
+
+
 DAY
 ---
 
@@ -2057,6 +2077,29 @@ Example::
     |--------------------------------|
     | 80580                          |
     +--------------------------------+
+
+
+TIMEDIFF
+--------
+
+Description
+>>>>>>>>>>>
+
+Usage: returns the difference between two time expressions as a time.
+
+Argument type: TIME, TIME
+
+Return type: TIME
+
+Example::
+
+    os> SELECT TIMEDIFF('23:59:59', '13:00:00')
+    fetched rows / total rows = 1/1
+    +------------------------------------+
+    | TIMEDIFF('23:59:59', '13:00:00')   |
+    |------------------------------------|
+    | 10:59:59                           |
+    +------------------------------------+
 
 
 TIMESTAMP
@@ -2999,6 +3042,16 @@ Another example to show how to set custom values for the optional parameters::
     | Bond       |
     +------------+
 
+    The matchquery function also supports an alternative syntax::
+
+    os> SELECT firstname FROM accounts WHERE firstname = matchquery('Hattie');
+    fetched rows / total rows = 1/1
+    +-------------+
+    | firstname   |
+    |-------------|
+    | Hattie      |
+    +-------------+
+
 MATCH_QUERY
 -----
 
@@ -3027,6 +3080,16 @@ Another example to show how to set custom values for the optional parameters::
     |------------|
     | Bond       |
     +------------+
+
+The match_query function also supports an alternative syntax::
+
+    os> SELECT firstname FROM accounts WHERE firstname = match_query('Hattie');
+    fetched rows / total rows = 1/1
+    +-------------+
+    | firstname   |
+    |-------------|
+    | Hattie      |
+    +-------------+
 
 
 MATCH_PHRASE
@@ -3067,6 +3130,23 @@ Another example to show how to set custom values for the optional parameters::
     | Alan Alexander Milne | Winnie-the-Pooh          |
     +----------------------+--------------------------+
 
+The match_phrase function also supports an alternative syntax::
+
+    os> SELECT firstname FROM accounts WHERE firstname = match_phrase('Hattie');
+    fetched rows / total rows = 1/1
+    +-------------+
+    | firstname   |
+    |-------------|
+    | Hattie      |
+    +-------------+
+
+    os> SELECT firstname FROM accounts WHERE firstname = matchphrase('Hattie');
+    fetched rows / total rows = 1/1
+    +-------------+
+    | firstname   |
+    |-------------|
+    | Hattie      |
+    +-------------+
 
 MATCH_BOOL_PREFIX
 -----
@@ -3209,6 +3289,24 @@ Another example to show how to set custom values for the optional parameters::
     |------+--------------------------+----------------------|
     | 1    | The House at Pooh Corner | Alan Alexander Milne |
     +------+--------------------------+----------------------+
+
+The multi_match function also supports an alternative syntax::
+
+    os> SELECT firstname FROM accounts WHERE firstname = multi_match('Hattie');
+    fetched rows / total rows = 1/1
+    +-------------+
+    | firstname   |
+    |-------------|
+    | Hattie      |
+    +-------------+
+
+    os> SELECT firstname FROM accounts WHERE firstname = multimatch('Hattie');
+    fetched rows / total rows = 1/1
+    +-------------+
+    | firstname   |
+    |-------------|
+    | Hattie      |
+    +-------------+
 
 SIMPLE_QUERY_STRING
 -------------------
