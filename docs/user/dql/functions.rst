@@ -3001,6 +3001,16 @@ Another example to show how to set custom values for the optional parameters::
     | Bond       |
     +------------+
 
+    The matchquery function also supports an alternative syntax::
+
+    os> SELECT firstname FROM accounts WHERE firstname = matchquery('Hattie');
+    fetched rows / total rows = 1/1
+    +-------------+
+    | firstname   |
+    |-------------|
+    | Hattie      |
+    +-------------+
+
 MATCH_QUERY
 -----
 
@@ -3029,6 +3039,16 @@ Another example to show how to set custom values for the optional parameters::
     |------------|
     | Bond       |
     +------------+
+
+The match_query function also supports an alternative syntax::
+
+    os> SELECT firstname FROM accounts WHERE firstname = match_query('Hattie');
+    fetched rows / total rows = 1/1
+    +-------------+
+    | firstname   |
+    |-------------|
+    | Hattie      |
+    +-------------+
 
 
 MATCH_PHRASE
@@ -3069,6 +3089,23 @@ Another example to show how to set custom values for the optional parameters::
     | Alan Alexander Milne | Winnie-the-Pooh          |
     +----------------------+--------------------------+
 
+The match_phrase function also supports an alternative syntax::
+
+    os> SELECT firstname FROM accounts WHERE firstname = match_phrase('Hattie');
+    fetched rows / total rows = 1/1
+    +-------------+
+    | firstname   |
+    |-------------|
+    | Hattie      |
+    +-------------+
+
+    os> SELECT firstname FROM accounts WHERE firstname = matchphrase('Hattie');
+    fetched rows / total rows = 1/1
+    +-------------+
+    | firstname   |
+    |-------------|
+    | Hattie      |
+    +-------------+
 
 MATCH_BOOL_PREFIX
 -----
@@ -3211,6 +3248,24 @@ Another example to show how to set custom values for the optional parameters::
     |------+--------------------------+----------------------|
     | 1    | The House at Pooh Corner | Alan Alexander Milne |
     +------+--------------------------+----------------------+
+
+The multi_match function also supports an alternative syntax::
+
+    os> SELECT firstname FROM accounts WHERE firstname = multi_match('Hattie');
+    fetched rows / total rows = 1/1
+    +-------------+
+    | firstname   |
+    |-------------|
+    | Hattie      |
+    +-------------+
+
+    os> SELECT firstname FROM accounts WHERE firstname = multimatch('Hattie');
+    fetched rows / total rows = 1/1
+    +-------------+
+    | firstname   |
+    |-------------|
+    | Hattie      |
+    +-------------+
 
 SIMPLE_QUERY_STRING
 -------------------

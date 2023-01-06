@@ -434,6 +434,14 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   }
 
   @Override
+  public UnresolvedExpression visitAltSingleFieldRelevanceFunction(
+      OpenSearchSQLParser.AltSingleFieldRelevanceFunctionContext ctx) {
+    return new Function(
+        ctx.altSyntaxFunctionName.getText().toLowerCase(),
+        altSingleFieldRelevanceFunctionArguments(ctx));
+  }
+
+  @Override
   public UnresolvedExpression visitMultiFieldRelevanceFunction(
       MultiFieldRelevanceFunctionContext ctx) {
     // To support alternate syntax for MULTI_MATCH like
@@ -452,6 +460,14 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
           ctx.multiFieldRelevanceFunctionName().getText().toLowerCase(),
           multiFieldRelevanceArguments(ctx));
     }
+  }
+
+  @Override
+  public UnresolvedExpression visitAltMultiFieldRelevanceFunction(
+      OpenSearchSQLParser.AltMultiFieldRelevanceFunctionContext ctx) {
+    return new Function(
+        ctx.altSyntaxFunctionName.getText().toLowerCase(),
+        altMultiFieldRelevanceFunctionArguments(ctx));
   }
 
   private Function buildFunction(String functionName,
@@ -510,6 +526,18 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   }
 
 
+  private List<UnresolvedExpression> altSingleFieldRelevanceFunctionArguments(
+      OpenSearchSQLParser.AltSingleFieldRelevanceFunctionContext ctx) {
+    // all the arguments are defaulted to string values
+    // to skip environment resolving and function signature resolving
+    ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
+    builder.add(new UnresolvedArgument("field",
+        new Literal(StringUtils.unquoteText(ctx.field.getText()), DataType.STRING)));
+    builder.add(new UnresolvedArgument("query",
+        new Literal(StringUtils.unquoteText(ctx.query.getText()), DataType.STRING)));
+    fillRelevanceArgs(ctx.relevanceArg(), builder);
+    return builder.build();
+  }
 
   private List<UnresolvedExpression> multiFieldRelevanceArguments(
       MultiFieldRelevanceFunctionContext ctx) {
@@ -563,6 +591,21 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
     fillRelevanceArgs(ctx.relevanceArg(), builder);
 
+    return builder.build();
+  }
+
+  private List<UnresolvedExpression> altMultiFieldRelevanceFunctionArguments(
+      OpenSearchSQLParser.AltMultiFieldRelevanceFunctionContext ctx) {
+    // all the arguments are defaulted to string values
+    // to skip environment resolving and function signature resolving
+    var map = new HashMap<String, Float>();
+    map.put(ctx.field.getText(), 1F);
+    ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
+    var fields = new RelevanceFieldList(map);
+    builder.add(new UnresolvedArgument("fields", fields));
+    builder.add(new UnresolvedArgument("query",
+        new Literal(StringUtils.unquoteText(ctx.query.getText()), DataType.STRING)));
+    fillRelevanceArgs(ctx.relevanceArg(), builder);
     return builder.build();
   }
 }
