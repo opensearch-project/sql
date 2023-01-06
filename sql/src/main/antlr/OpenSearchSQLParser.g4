@@ -80,8 +80,13 @@ tableFilter
     ;
 
 showDescribePattern
-    : stringLiteral
+    : oldID=compatibleID | stringLiteral
     ;
+
+compatibleID
+    : (MODULE | ID)+?
+    ;
+
 //    Select Statement's Details
 
 querySpecification
@@ -323,10 +328,6 @@ positionFunction
     : POSITION LR_BRACKET functionArg IN functionArg RR_BRACKET
     ;
 
-matchQueryAltSyntaxFunction
-    : field=relevanceField EQUAL_SYMBOL MATCH_QUERY LR_BRACKET query=relevanceQuery RR_BRACKET
-    ;
-
 scalarFunctionName
     : mathematicalFunctionName
     | dateTimeFunctionName
@@ -344,8 +345,7 @@ specificFunction
     ;
 
 relevanceFunction
-    : noFieldRelevanceFunction | singleFieldRelevanceFunction | multiFieldRelevanceFunction | altSingleFieldRelevanceFunction | altMultiFieldRelevanceFunction
-
+    : noFieldRelevanceFunction | singleFieldRelevanceFunction | multiFieldRelevanceFunction
     ;
 
 noFieldRelevanceFunction
@@ -365,14 +365,6 @@ multiFieldRelevanceFunction
         COMMA query=relevanceQuery (COMMA relevanceArg)* RR_BRACKET
     | multiFieldRelevanceFunctionName LR_BRACKET
         alternateMultiMatchQuery  COMMA alternateMultiMatchField (COMMA relevanceArg)* RR_BRACKET
-    ;
-
-altSingleFieldRelevanceFunction
-    : field=relevanceField EQUAL_SYMBOL altSyntaxFunctionName=altSingleFieldRelevanceFunctionName LR_BRACKET query=relevanceQuery (COMMA relevanceArg)* RR_BRACKET
-    ;
-
-altMultiFieldRelevanceFunction
-    : field=relevanceField EQUAL_SYMBOL altSyntaxFunctionName=altMultiFieldRelevanceFunctionName LR_BRACKET query=relevanceQuery (COMMA relevanceArg)* RR_BRACKET
     ;
 
 convertedDataType
@@ -435,7 +427,6 @@ dateTimeFunctionName
     | DAYOFMONTH
     | DAYOFWEEK
     | DAYOFYEAR
-    | DAY_OF_WEEK
     | FROM_DAYS
     | FROM_UNIXTIME
     | HOUR
@@ -444,7 +435,6 @@ dateTimeFunctionName
     | MICROSECOND
     | MINUTE
     | MINUTE_OF_DAY
-    | MINUTE_OF_HOUR
     | MONTH
     | MONTHNAME
     | NOW
@@ -452,7 +442,6 @@ dateTimeFunctionName
     | PERIOD_DIFF
     | QUARTER
     | SECOND
-    | SECOND_OF_MINUTE
     | SUBDATE
     | SYSDATE
     | TIME
@@ -496,18 +485,6 @@ multiFieldRelevanceFunctionName
     | MULTIMATCHQUERY
     | SIMPLE_QUERY_STRING
     | QUERY_STRING
-    ;
-
-altSingleFieldRelevanceFunctionName
-    : MATCH_QUERY
-    | MATCHQUERY
-    | MATCH_PHRASE
-    | MATCHPHRASE
-    ;
-
-altMultiFieldRelevanceFunctionName
-    : MULTI_MATCH
-    | MULTIMATCH
     ;
 
 functionArgs
