@@ -727,7 +727,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(value), eval(expression));
   }
-  
+
   @Test
   public void minuteOfDay() {
     when(nullRef.type()).thenReturn(TIME);
@@ -763,6 +763,85 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     testMinuteOfDay("2020-08-17 23:59:59", 1439);
     testMinuteOfDay("2020-08-17 00:00:01", 0);
   }
+
+  private void minuteOfHourQuery(FunctionExpression dateExpression, int minute, String testExpr) {
+    assertAll(
+        () -> assertEquals(INTEGER, dateExpression.type()),
+        () -> assertEquals(integerValue(minute), eval(dateExpression)),
+        () -> assertEquals(testExpr, dateExpression.toString())
+    );
+  }
+
+  private static Stream<Arguments> getTestDataForMinuteOfHour() {
+    return Stream.of(
+        Arguments.of(
+            DSL.literal(new ExprTimeValue("01:02:03")),
+            2,
+            "minute_of_hour(TIME '01:02:03')"),
+        Arguments.of(
+            DSL.literal("01:02:03"),
+            2,
+            "minute_of_hour(\"01:02:03\")"),
+        Arguments.of(
+            DSL.literal(new ExprTimestampValue("2020-08-17 01:02:03")),
+            2,
+            "minute_of_hour(TIMESTAMP '2020-08-17 01:02:03')"),
+        Arguments.of(
+            DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03")),
+            2,
+            "minute_of_hour(DATETIME '2020-08-17 01:02:03')"),
+        Arguments.of(
+            DSL.literal("2020-08-17 01:02:03"),
+            2,
+            "minute_of_hour(\"2020-08-17 01:02:03\")")
+    );
+  }
+
+  @ParameterizedTest(name = "{2}")
+  @MethodSource("getTestDataForMinuteOfHour")
+  public void minuteOfHour(LiteralExpression arg, int expectedResult, String expectedString) {
+    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
+    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
+
+    minuteOfHourQuery(DSL.minute_of_hour(arg), expectedResult, expectedString);
+  }
+
+  private void invalidMinuteOfHourQuery(String time) {
+    FunctionExpression expression = DSL.minute_of_hour(DSL.literal(new ExprTimeValue(time)));
+    eval(expression);
+  }
+
+  @Test
+  public void minuteOfHourInvalidArguments() {
+    when(nullRef.type()).thenReturn(TIME);
+    when(missingRef.type()).thenReturn(TIME);
+
+    assertAll(
+        () -> assertEquals(nullValue(), eval(DSL.minute_of_hour(nullRef))),
+        () -> assertEquals(missingValue(), eval(DSL.minute_of_hour(missingRef))),
+
+        //Invalid Seconds
+        () -> assertThrows(
+            SemanticCheckException.class,
+            () -> invalidMinuteOfHourQuery("12:23:61")),
+
+        //Invalid Minutes
+        () -> assertThrows(
+            SemanticCheckException.class,
+            () -> invalidMinuteOfHourQuery("12:61:34")),
+
+        //Invalid Hours
+        () -> assertThrows(
+            SemanticCheckException.class,
+            () -> invalidMinuteOfHourQuery("25:23:34")),
+
+        //incorrect format
+        () ->  assertThrows(
+            SemanticCheckException.class,
+            () -> invalidMinuteOfHourQuery("asdfasdf"))
+    );
+  }
+
 
   @Test
   public void month() {
