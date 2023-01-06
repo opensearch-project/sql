@@ -530,7 +530,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
     // to skip environment resolving and function signature resolving
     ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
     builder.add(new UnresolvedArgument("field",
-        new Literal(StringUtils.unquoteText(ctx.field.getText()), DataType.STRING)));
+        new QualifiedName(StringUtils.unquoteText(ctx.field.getText()))));
     builder.add(new UnresolvedArgument("query",
         new Literal(StringUtils.unquoteText(ctx.query.getText()), DataType.STRING)));
     fillRelevanceArgs(ctx.relevanceArg(), builder);
