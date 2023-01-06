@@ -13,7 +13,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Objects;
@@ -21,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.function.FunctionProperties;
 
 /**
  * Expression Time Value.
@@ -55,6 +55,19 @@ public class ExprTimeValue extends AbstractExprValue {
   @Override
   public LocalTime timeValue() {
     return time;
+  }
+
+  public LocalDate dateValue(FunctionProperties functionProperties) {
+    return LocalDate.now(functionProperties.getQueryStartClock());
+  }
+
+  public LocalDateTime datetimeValue(FunctionProperties functionProperties) {
+    return LocalDateTime.of(dateValue(functionProperties), timeValue());
+  }
+
+  public Instant timestampValue(FunctionProperties functionProperties) {
+    return ZonedDateTime.of(dateValue(functionProperties), timeValue(), ExprTimestampValue.ZONE)
+        .toInstant();
   }
 
   @Override
