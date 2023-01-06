@@ -1454,20 +1454,21 @@ Description
 
 Usage: dayofweek(date) returns the weekday index for date (1 = Sunday, 2 = Monday, …, 7 = Saturday).
 
+The `day_of_week` function is also provided as an alias.
+
 Argument type: STRING/DATE/DATETIME/TIMESTAMP
 
 Return type: INTEGER
 
 Example::
 
-    os> SELECT DAYOFWEEK(DATE('2020-08-26'))
+    os> SELECT DAYOFWEEK('2020-08-26'), DAY_OF_WEEK('2020-08-26')
     fetched rows / total rows = 1/1
-    +---------------------------------+
-    | DAYOFWEEK(DATE('2020-08-26'))   |
-    |---------------------------------|
-    | 4                               |
-    +---------------------------------+
-
+    +---------------------------+-----------------------------+
+    | DAYOFWEEK('2020-08-26')   | DAY_OF_WEEK('2020-08-26')   |
+    |---------------------------+-----------------------------|
+    | 4                         | 4                           |
+    +---------------------------+-----------------------------+
 
 
 DAYOFYEAR

@@ -109,7 +109,8 @@ public class DateTimeFunction {
     repository.register(day());
     repository.register(dayName());
     repository.register(dayOfMonth());
-    repository.register(dayOfWeek());
+    repository.register(dayOfWeek(BuiltinFunctionName.DAYOFWEEK.getName()));
+    repository.register(dayOfWeek(BuiltinFunctionName.DAY_OF_WEEK.getName()));
     repository.register(dayOfYear(BuiltinFunctionName.DAYOFYEAR));
     repository.register(dayOfYear(BuiltinFunctionName.DAY_OF_YEAR));
     repository.register(from_days());
@@ -401,11 +402,14 @@ public class DateTimeFunction {
   }
 
   /**
-   * DAYOFWEEK(STRING/DATE/DATETIME/TIMESTAMP).
+   * DAYOFWEEK(STRING/DATE/DATETIME/TIME/TIMESTAMP).
    * return the weekday index for date (1 = Sunday, 2 = Monday, …, 7 = Saturday).
    */
-  private DefaultFunctionResolver dayOfWeek() {
-    return define(BuiltinFunctionName.DAYOFWEEK.getName(),
+  private DefaultFunctionResolver dayOfWeek(FunctionName name) {
+    return define(name,
+        implWithProperties(nullMissingHandlingWithProperties(
+            (functionProperties, arg) -> DateTimeFunction.dayOfWeekToday(
+                functionProperties.getQueryStartClock())), INTEGER, TIME),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfWeek), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfWeek), INTEGER, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfWeek), INTEGER, TIMESTAMP),
@@ -729,6 +733,16 @@ public class DateTimeFunction {
   }
 
   /**
+   * Day of Week implementation for ExprValue when passing in an arguemt of type TIME.
+   *
+   * @param clock Current clock taken from function properties
+   * @return ExprValue.
+   */
+  private ExprValue dayOfWeekToday(Clock clock) {
+    return new ExprIntegerValue((formatNow(clock).getDayOfWeek().getValue() % 7) + 1);
+  }
+
+  /**
    * ADDDATE function implementation for ExprValue.
    *
    * @param date ExprValue of String/Date/Datetime/Timestamp type.
@@ -900,7 +914,7 @@ public class DateTimeFunction {
   /**
    * Day of Week implementation for ExprValue.
    *
-   * @param date ExprValue of Date/String type.
+   * @param date ExprValue of Date/Datetime/String/Timstamp type.
    * @return ExprValue.
    */
   private ExprValue exprDayOfWeek(ExprValue date) {
