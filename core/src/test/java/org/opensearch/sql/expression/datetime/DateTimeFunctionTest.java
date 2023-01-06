@@ -614,6 +614,37 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     assertEquals("hour(\"2020-08-17 01:02:03\")", expression.toString());
   }
 
+  private void testInvalidMinuteOfDay(String date) {
+    FunctionExpression expression = DSL.minute_of_day(DSL.literal(new ExprDateValue(date)));
+    eval(expression);
+  }
+
+  @Test
+  public void invalidMinuteOfDay() {
+    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
+    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
+
+    assertThrows(SemanticCheckException.class,
+        () ->  testInvalidMinuteOfDay("2022-12-14 12:23:3400"));
+    assertThrows(SemanticCheckException.class,
+        () ->  testInvalidMinuteOfDay("2022-12-14 12:2300:34"));
+    assertThrows(SemanticCheckException.class,
+        () ->  testInvalidMinuteOfDay("2022-12-14 1200:23:34"));
+    assertThrows(SemanticCheckException.class,
+        () ->  testInvalidMinuteOfDay("2022-12-1400 12:23:34"));
+    assertThrows(SemanticCheckException.class,
+        () ->  testInvalidMinuteOfDay("2022-1200-14 12:23:34"));
+    assertThrows(SemanticCheckException.class,
+        () ->  testInvalidMinuteOfDay("12:23:3400"));
+    assertThrows(SemanticCheckException.class,
+        () ->  testInvalidMinuteOfDay("12:2300:34"));
+    assertThrows(SemanticCheckException.class,
+        () ->  testInvalidMinuteOfDay("1200:23:34"));
+    assertThrows(SemanticCheckException.class,
+        () ->  testInvalidMinuteOfDay("asdfasdfasdf"));
+
+  }
+
   @Test
   public void microsecond() {
     when(nullRef.type()).thenReturn(TIME);
@@ -689,6 +720,48 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(2), expression.valueOf(env));
     assertEquals("minute(\"2020-08-17 01:02:03\")", expression.toString());
+  }
+
+  private void testMinuteOfDay(String date, int value) {
+    FunctionExpression expression = DSL.minute_of_day(DSL.literal(new ExprTimeValue(date)));
+    assertEquals(INTEGER, expression.type());
+    assertEquals(integerValue(value), eval(expression));
+  }
+  
+  @Test
+  public void minuteOfDay() {
+    when(nullRef.type()).thenReturn(TIME);
+    when(missingRef.type()).thenReturn(TIME);
+    assertEquals(nullValue(), eval(DSL.minute_of_day(nullRef)));
+    assertEquals(missingValue(), eval(DSL.minute_of_day(missingRef)));
+
+    FunctionExpression expression = DSL.minute_of_day(DSL.literal(new ExprTimeValue("01:02:03")));
+    assertEquals(INTEGER, expression.type());
+    assertEquals(integerValue(62), eval(expression));
+    assertEquals("minute_of_day(TIME '01:02:03')", expression.toString());
+
+    expression = DSL.minute_of_day(DSL.literal("01:02:03"));
+    assertEquals(INTEGER, expression.type());
+    assertEquals(integerValue(62), eval(expression));
+    assertEquals("minute_of_day(\"01:02:03\")", expression.toString());
+
+    expression = DSL.minute_of_day(DSL.literal(new ExprTimestampValue("2020-08-17 01:02:03")));
+    assertEquals(INTEGER, expression.type());
+    assertEquals(integerValue(62), expression.valueOf(env));
+    assertEquals("minute_of_day(TIMESTAMP '2020-08-17 01:02:03')", expression.toString());
+
+    expression = DSL.minute_of_day(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03")));
+    assertEquals(INTEGER, expression.type());
+    assertEquals(integerValue(62), expression.valueOf(env));
+    assertEquals("minute_of_day(DATETIME '2020-08-17 01:02:03')", expression.toString());
+
+    expression = DSL.minute_of_day(DSL.literal("2020-08-17 01:02:03"));
+    assertEquals(INTEGER, expression.type());
+    assertEquals(integerValue(62), expression.valueOf(env));
+    assertEquals("minute_of_day(\"2020-08-17 01:02:03\")", expression.toString());
+
+    testMinuteOfDay("2020-08-17 23:59:59", 1439);
+    testMinuteOfDay("2020-08-17 00:00:01", 0);
   }
 
   @Test

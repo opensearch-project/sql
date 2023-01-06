@@ -165,6 +165,7 @@ public class JdbcTestIT extends SQLIntegTestCase {
     );
   }
 
+  @Ignore("Handled by v2 engine which returns 'name': 'substring(lastname, 1, 2)' instead")
   @Test
   public void functionWithAliasShouldHaveAliasAsNameInSchema() {
     assertThat(

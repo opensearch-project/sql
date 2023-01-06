@@ -20,9 +20,6 @@ public class RelevanceFunctionResolver
   @Getter
   private final FunctionName functionName;
 
-  @Getter
-  private final ExprType declaredFirstParamType;
-
   @Override
   public Pair<FunctionSignature, FunctionBuilder> resolve(FunctionSignature unresolvedSignature) {
     if (!unresolvedSignature.getFunctionName().equals(functionName)) {
@@ -30,14 +27,6 @@ public class RelevanceFunctionResolver
           functionName.getFunctionName(), unresolvedSignature.getFunctionName().getFunctionName()));
     }
     List<ExprType> paramTypes = unresolvedSignature.getParamTypeList();
-    ExprType providedFirstParamType = paramTypes.get(0);
-
-    // Check if the first parameter is of the specified type.
-    if (!declaredFirstParamType.equals(providedFirstParamType)) {
-      throw new SemanticCheckException(
-          getWrongParameterErrorMessage(0, providedFirstParamType, declaredFirstParamType));
-    }
-
     // Check if all but the first parameter are of type STRING.
     for (int i = 1; i < paramTypes.size(); i++) {
       ExprType paramType = paramTypes.get(i);

@@ -167,7 +167,10 @@ class SQLSyntaxParserTest {
         Arguments.of("curtime", true, false),
         Arguments.of("current_time", true, true),
         Arguments.of("curdate", false, false),
-        Arguments.of("current_date", false, true)
+        Arguments.of("current_date", false, true),
+        Arguments.of("utc_date", false, true),
+        Arguments.of("utc_time", false, true),
+        Arguments.of("utc_timestamp", false, true)
     );
   }
 
@@ -446,6 +449,14 @@ class SQLSyntaxParserTest {
     assertNotNull(
             parser.parse("SELECT * FROM test WHERE match_phrase(`column`, 'this is a test')"));
     assertNotNull(parser.parse("SELECT * FROM test WHERE match_phrase(column, 100500)"));
+  }
+
+  @Test
+  public void can_parse_minute_of_day_function() {
+    assertNotNull(parser.parse("SELECT minute_of_day(\"12:23:34\");"));
+    assertNotNull(parser.parse("SELECT minute_of_day('12:23:34');"));;
+    assertNotNull(parser.parse("SELECT minute_of_day(\"2022-12-14 12:23:34\");"));;
+    assertNotNull(parser.parse("SELECT minute_of_day('2022-12-14 12:23:34');"));;
   }
 
   @Test
