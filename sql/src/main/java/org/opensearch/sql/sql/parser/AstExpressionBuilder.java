@@ -16,8 +16,9 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.LIKE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT_LIKE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.POSITION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEXP;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.AltMultiFieldRelevanceFunctionContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.AltSingleFieldRelevanceFunctionContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.AlternateMultiMatchFieldContext;
-import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.AlternateMultiMatchQueryContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BetweenPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BinaryComparisonPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BooleanContext;
@@ -96,6 +97,7 @@ import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.AlternateMultiMatchQueryContext;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.AndExpressionContext;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ColumnNameContext;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.IdentContext;
@@ -431,7 +433,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitAltSingleFieldRelevanceFunction(
-      OpenSearchSQLParser.AltSingleFieldRelevanceFunctionContext ctx) {
+      AltSingleFieldRelevanceFunctionContext ctx) {
     return new Function(
         ctx.altSyntaxFunctionName.getText().toLowerCase(),
         altSingleFieldRelevanceFunctionArguments(ctx));
@@ -460,7 +462,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitAltMultiFieldRelevanceFunction(
-      OpenSearchSQLParser.AltMultiFieldRelevanceFunctionContext ctx) {
+      AltMultiFieldRelevanceFunctionContext ctx) {
     return new Function(
         ctx.altSyntaxFunctionName.getText().toLowerCase(),
         altMultiFieldRelevanceFunctionArguments(ctx));
@@ -523,7 +525,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
 
   private List<UnresolvedExpression> altSingleFieldRelevanceFunctionArguments(
-      OpenSearchSQLParser.AltSingleFieldRelevanceFunctionContext ctx) {
+      AltSingleFieldRelevanceFunctionContext ctx) {
     // all the arguments are defaulted to string values
     // to skip environment resolving and function signature resolving
     ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
@@ -591,7 +593,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   }
 
   private List<UnresolvedExpression> altMultiFieldRelevanceFunctionArguments(
-      OpenSearchSQLParser.AltMultiFieldRelevanceFunctionContext ctx) {
+      AltMultiFieldRelevanceFunctionContext ctx) {
     // all the arguments are defaulted to string values
     // to skip environment resolving and function signature resolving
     var map = new HashMap<String, Float>();
