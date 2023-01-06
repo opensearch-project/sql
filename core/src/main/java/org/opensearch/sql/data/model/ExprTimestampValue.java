@@ -30,7 +30,7 @@ public class ExprTimestampValue extends AbstractExprValue {
   /**
    * todo. only support UTC now.
    */
-  private static final ZoneId ZONE = ZoneId.of("UTC");
+  public static final ZoneId ZONE = ZoneId.of("UTC");
 
   private final Instant timestamp;
 
