@@ -28,8 +28,8 @@ import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_SHORT_Y
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_LONG_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_SHORT_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_STRICT_WITH_TZ;
-import static org.opensearch.sql.utils.DateTimeUtils.extractDateTime;
 import static org.opensearch.sql.utils.DateTimeUtils.extractDate;
+import static org.opensearch.sql.utils.DateTimeUtils.extractDateTime;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
