@@ -248,6 +248,7 @@ DATE:                               'DATE';
 DATE_ADD:                           'DATE_ADD';
 DATE_FORMAT:                        'DATE_FORMAT';
 DATE_SUB:                           'DATE_SUB';
+DATEDIFF:                           'DATEDIFF';
 DAYNAME:                            'DAYNAME';
 DAYOFMONTH:                         'DAYOFMONTH';
 DAYOFWEEK:                          'DAYOFWEEK';
@@ -267,6 +268,7 @@ SUBTIME:                            'SUBTIME';
 SYSDATE:                            'SYSDATE';
 TIME:                               'TIME';
 TIME_TO_SEC:                        'TIME_TO_SEC';
+TIMEDIFF:                           'TIMEDIFF';
 TIMESTAMP:                          'TIMESTAMP';
 TO_DAYS:                            'TO_DAYS';
 UTC_DATE:                           'UTC_DATE';
@@ -292,6 +294,7 @@ LEFT:                               'LEFT';
 ASCII:                              'ASCII';
 LOCATE:                             'LOCATE';
 REPLACE:                            'REPLACE';
+REVERSE:                            'REVERSE';
 CAST:                               'CAST';
 
 // BOOL FUNCTIONS

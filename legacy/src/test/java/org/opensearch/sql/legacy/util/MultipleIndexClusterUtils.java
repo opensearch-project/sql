@@ -83,7 +83,8 @@ public class MultipleIndexClusterUtils {
             "      }\n" +
             "    },\n" +
             "    \"mapping_version\": \"1\",\n" +
-            "    \"settings_version\": \"1\"\n" +
+            "    \"settings_version\": \"1\",\n" +
+            "    \"aliases_version\": \"1\"\n" +
             "  }\n" +
             "}";
 
@@ -134,7 +135,8 @@ public class MultipleIndexClusterUtils {
             "      }\n" +
             "    },\n" +
             "    \"mapping_version\": \"1\",\n" +
-            "    \"settings_version\": \"1\"\n" +
+            "    \"settings_version\": \"1\",\n" +
+            "    \"aliases_version\": \"1\"\n" +
             "  }\n" +
             "}";
 

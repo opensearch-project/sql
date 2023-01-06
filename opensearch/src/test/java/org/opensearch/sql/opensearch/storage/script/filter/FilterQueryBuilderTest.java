@@ -53,6 +53,7 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.LiteralExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -132,6 +133,7 @@ class FilterQueryBuilderTest {
             + "  \"wildcard\" : {\n"
             + "    \"name\" : {\n"
             + "      \"wildcard\" : \"*John?\",\n"
+            + "      \"case_insensitive\" : true,\n"
             + "      \"boost\" : 1.0\n"
             + "    }\n"
             + "  }\n"
@@ -282,6 +284,7 @@ class FilterQueryBuilderTest {
             + "  \"wildcard\" : {\n"
             + "    \"name.keyword\" : {\n"
             + "      \"wildcard\" : \"John*\",\n"
+            + "      \"case_insensitive\" : true,\n"
             + "      \"boost\" : 1.0\n"
             + "    }\n"
             + "  }\n"
@@ -311,7 +314,8 @@ class FilterQueryBuilderTest {
             + "}",
         buildQuery(
             DSL.match(
-                DSL.namedArgument("field", literal("message")),
+                DSL.namedArgument("field",
+                    new ReferenceExpression("message", OPENSEARCH_TEXT_KEYWORD)),
                 DSL.namedArgument("query", literal("search query")))));
   }
 
@@ -339,7 +343,8 @@ class FilterQueryBuilderTest {
             + "}",
         buildQuery(
             DSL.match(
-                DSL.namedArgument("field", literal("message")),
+                DSL.namedArgument("field",
+                    new ReferenceExpression("message", OPENSEARCH_TEXT_KEYWORD)),
                 DSL.namedArgument("query", literal("search query")),
                 DSL.namedArgument("operator", literal("AND")),
                 DSL.namedArgument("analyzer", literal("keyword")),
@@ -358,7 +363,8 @@ class FilterQueryBuilderTest {
   @Test
   void match_invalid_parameter() {
     FunctionExpression expr = DSL.match(
-        DSL.namedArgument("field", literal("message")),
+        DSL.namedArgument("field",
+            new ReferenceExpression("message", OPENSEARCH_TEXT_KEYWORD)),
         DSL.namedArgument("query", literal("search query")),
         DSL.namedArgument("invalid_parameter", literal("invalid_value")));
     var msg = assertThrows(SemanticCheckException.class, () -> buildQuery(expr)).getMessage();
@@ -431,7 +437,8 @@ class FilterQueryBuilderTest {
             + "}",
         buildQuery(
             DSL.match_phrase(
-                DSL.namedArgument("field", literal("message")),
+                DSL.namedArgument("field",
+                    new ReferenceExpression("message", OPENSEARCH_TEXT_KEYWORD)),
                 DSL.namedArgument("query", literal("search query")))));
   }
 
@@ -623,12 +630,146 @@ class FilterQueryBuilderTest {
             + "}",
         buildQuery(
             DSL.match_phrase(
+                DSL.namedArgument("field",
+                    new ReferenceExpression("message", OPENSEARCH_TEXT_KEYWORD)),
                 DSL.namedArgument("boost", literal("1.2")),
-                DSL.namedArgument("field", literal("message")),
                 DSL.namedArgument("query", literal("search query")),
                 DSL.namedArgument("analyzer", literal("keyword")),
                 DSL.namedArgument("slop", literal("2")),
                 DSL.namedArgument("zero_terms_query", literal("ALL")))));
+  }
+
+  @Test
+  void wildcard_query_invalid_parameter() {
+    FunctionExpression expr = DSL.wildcard_query(
+        DSL.namedArgument("field",
+            new ReferenceExpression("field", OPENSEARCH_TEXT_KEYWORD)),
+        DSL.namedArgument("query", literal("search query*")),
+        DSL.namedArgument("invalid_parameter", literal("invalid_value")));
+    assertThrows(SemanticCheckException.class, () -> buildQuery(expr),
+        "Parameter invalid_parameter is invalid for wildcard_query function.");
+  }
+
+  @Test
+  void wildcard_query_convert_sql_wildcard_to_lucene() {
+    // Test conversion of % wildcard to *
+    assertJsonEquals("{\n"
+        + "  \"wildcard\" : {\n"
+        + "    \"field\" : {\n"
+        + "      \"wildcard\" : \"search query*\",\n"
+        + "      \"boost\" : 1.0\n"
+        + "    }\n"
+        + "  }\n"
+        + "}",
+        buildQuery(DSL.wildcard_query(
+            DSL.namedArgument("field",
+                new ReferenceExpression("field", OPENSEARCH_TEXT_KEYWORD)),
+            DSL.namedArgument("query", literal("search query%")))));
+
+    assertJsonEquals("{\n"
+        + "  \"wildcard\" : {\n"
+        + "    \"field\" : {\n"
+        + "      \"wildcard\" : \"search query?\",\n"
+        + "      \"boost\" : 1.0\n"
+        + "    }\n"
+        + "  }\n"
+        + "}",
+        buildQuery(DSL.wildcard_query(
+            DSL.namedArgument("field",
+                new ReferenceExpression("field", OPENSEARCH_TEXT_KEYWORD)),
+            DSL.namedArgument("query", literal("search query_")))));
+  }
+
+  @Test
+  void wildcard_query_escape_wildcards_characters() {
+    assertJsonEquals("{\n"
+        + "  \"wildcard\" : {\n"
+        + "    \"field\" : {\n"
+        + "      \"wildcard\" : \"search query%\",\n"
+        + "      \"boost\" : 1.0\n"
+        + "    }\n"
+        + "  }\n"
+        + "}",
+        buildQuery(DSL.wildcard_query(
+            DSL.namedArgument("field",
+                new ReferenceExpression("field", OPENSEARCH_TEXT_KEYWORD)),
+            DSL.namedArgument("query", literal("search query\\%")))));
+
+    assertJsonEquals("{\n"
+        + "  \"wildcard\" : {\n"
+        + "    \"field\" : {\n"
+        + "      \"wildcard\" : \"search query_\",\n"
+        + "      \"boost\" : 1.0\n"
+        + "    }\n"
+        + "  }\n"
+        + "}",
+        buildQuery(DSL.wildcard_query(
+            DSL.namedArgument("field",
+                new ReferenceExpression("field", OPENSEARCH_TEXT_KEYWORD)),
+            DSL.namedArgument("query", literal("search query\\_")))));
+
+    assertJsonEquals("{\n"
+        + "  \"wildcard\" : {\n"
+        + "    \"field\" : {\n"
+        + "      \"wildcard\" : \"search query\\\\*\",\n"
+        + "      \"boost\" : 1.0\n"
+        + "    }\n"
+        + "  }\n"
+        + "}",
+        buildQuery(DSL.wildcard_query(
+            DSL.namedArgument("field",
+                new ReferenceExpression("field", OPENSEARCH_TEXT_KEYWORD)),
+            DSL.namedArgument("query", literal("search query\\*")))));
+
+    assertJsonEquals("{\n"
+        + "  \"wildcard\" : {\n"
+        + "    \"field\" : {\n"
+        + "      \"wildcard\" : \"search query\\\\?\",\n"
+        + "      \"boost\" : 1.0\n"
+        + "    }\n"
+        + "  }\n"
+        + "}",
+        buildQuery(DSL.wildcard_query(
+            DSL.namedArgument("field",
+                new ReferenceExpression("field", OPENSEARCH_TEXT_KEYWORD)),
+            DSL.namedArgument("query", literal("search query\\?")))));
+  }
+
+  @Test
+  void should_build_wildcard_query_with_default_parameters() {
+    assertJsonEquals("{\n"
+        + "  \"wildcard\" : {\n"
+        + "    \"field\" : {\n"
+        + "      \"wildcard\" : \"search query*\",\n"
+        + "      \"boost\" : 1.0\n"
+        + "    }\n"
+        + "  }\n"
+        + "}",
+        buildQuery(DSL.wildcard_query(
+            DSL.namedArgument("field",
+                new ReferenceExpression("field", OPENSEARCH_TEXT_KEYWORD)),
+            DSL.namedArgument("query", literal("search query*")))));
+  }
+
+  @Test
+  void should_build_wildcard_query_query_with_custom_parameters() {
+    assertJsonEquals("{\n"
+        + "  \"wildcard\" : {\n"
+        + "    \"field\" : {\n"
+        + "      \"wildcard\" : \"search query*\",\n"
+        + "      \"boost\" : 0.6,\n"
+        + "      \"case_insensitive\" : true,\n"
+        + "      \"rewrite\" : \"constant_score_boolean\"\n"
+        + "    }\n"
+        + "  }\n"
+        + "}",
+        buildQuery(DSL.wildcard_query(
+            DSL.namedArgument("field",
+                new ReferenceExpression("field", OPENSEARCH_TEXT_KEYWORD)),
+            DSL.namedArgument("query", literal("search query*")),
+            DSL.namedArgument("boost", literal("0.6")),
+            DSL.namedArgument("case_insensitive", literal("true")),
+            DSL.namedArgument("rewrite", literal("constant_score_boolean")))));
   }
 
   @Test
@@ -962,7 +1103,8 @@ class FilterQueryBuilderTest {
   @Test
   void match_phrase_invalid_parameter() {
     FunctionExpression expr = DSL.match_phrase(
-        DSL.namedArgument("field", literal("message")),
+        DSL.namedArgument("field",
+            new ReferenceExpression("message", OPENSEARCH_TEXT_KEYWORD)),
         DSL.namedArgument("query", literal("search query")),
         DSL.namedArgument("invalid_parameter", literal("invalid_value")));
     var msg = assertThrows(SemanticCheckException.class, () -> buildQuery(expr)).getMessage();
@@ -971,7 +1113,8 @@ class FilterQueryBuilderTest {
 
   @Test
   void relevancy_func_invalid_arg_values() {
-    final var field = DSL.namedArgument("field", literal("message"));
+    final var field = DSL.namedArgument("field",
+        new ReferenceExpression("message", OPENSEARCH_TEXT_KEYWORD));
     final var fields = DSL.namedArgument("fields", DSL.literal(
         new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
             "field1", ExprValueUtils.floatValue(1.F),
@@ -1049,16 +1192,9 @@ class FilterQueryBuilderTest {
             + "}",
         buildQuery(
             DSL.match_bool_prefix(
-                DSL.namedArgument("field", literal("message")),
+                DSL.namedArgument("field",
+                    new ReferenceExpression("message", OPENSEARCH_TEXT_KEYWORD)),
                 DSL.namedArgument("query", literal("search query")))));
-  }
-
-  @Test
-  void multi_match_missing_fields() {
-    var msg = assertThrows(SemanticCheckException.class, () ->
-        DSL.multi_match(
-            DSL.namedArgument("query", literal("search query")))).getMessage();
-    assertEquals("Expected type STRUCT instead of STRING for parameter #1", msg);
   }
 
   @Test
@@ -1101,7 +1237,8 @@ class FilterQueryBuilderTest {
             + "}",
         buildQuery(
             DSL.match_phrase_prefix(
-                DSL.namedArgument("field", literal("message")),
+                DSL.namedArgument("field",
+                    new ReferenceExpression("message", OPENSEARCH_TEXT_KEYWORD)),
                 DSL.namedArgument("query", literal("search query")))));
   }
 
@@ -1122,7 +1259,8 @@ class FilterQueryBuilderTest {
             + "}",
         buildQuery(
             DSL.match_phrase_prefix(
-                DSL.namedArgument("field", literal("message")),
+                DSL.namedArgument("field",
+                    new ReferenceExpression("message", OPENSEARCH_TEXT_KEYWORD)),
                 DSL.namedArgument("query", literal("search query")),
                 DSL.namedArgument("boost", literal("1.2")),
                 DSL.namedArgument("max_expansions", literal("42")),

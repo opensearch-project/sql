@@ -19,10 +19,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Period;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.Temporal;
 import java.time.temporal.TemporalUnit;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.concurrent.Callable;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -101,6 +104,31 @@ class NowLikeFunctionTest extends ExpressionTestBase {
   void current_date() {
     test_now_like_functions(DSL::current_date, DATE, false,
         () -> LocalDate.now(functionProperties.getQueryStartClock()));
+  }
+
+  @Test
+  void utc_date() {
+    test_now_like_functions(DSL::utc_date, DATE, false,
+        () -> utcDateTimeNow(functionProperties).toLocalDate());
+  }
+
+  @Test
+  void utc_time() {
+    test_now_like_functions(DSL::utc_time, TIME, false,
+        () -> utcDateTimeNow(functionProperties).toLocalTime());
+  }
+
+  @Test
+  void utc_timestamp() {
+    test_now_like_functions(DSL::utc_timestamp, DATETIME, false,
+        () -> utcDateTimeNow(functionProperties));
+  }
+
+  private static LocalDateTime utcDateTimeNow(FunctionProperties functionProperties) {
+    ZonedDateTime zonedDateTime =
+        LocalDateTime.now(functionProperties.getQueryStartClock())
+            .atZone(TimeZone.getDefault().toZoneId());
+    return zonedDateTime.withZoneSameInstant(ZoneId.of("UTC")).toLocalDateTime();
   }
 
   /**

@@ -23,20 +23,19 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.client.node.NodeClient;
+import org.opensearch.common.inject.Injector;
+import org.opensearch.common.inject.ModulesBuilder;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
-import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
-import org.opensearch.sql.sql.config.SQLServiceConfig;
+import org.opensearch.sql.sql.SQLService;
+import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
-import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.threadpool.ThreadPool;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 @RunWith(MockitoJUnitRunner.class)
 public class RestSQLQueryActionTest extends BaseRestHandler {
@@ -53,24 +52,18 @@ public class RestSQLQueryActionTest extends BaseRestHandler {
   private QueryPlanFactory factory;
 
   @Mock
-  private ExecutionEngine.Schema schema;
-
-  @Mock
   private RestChannel restChannel;
 
-  private AnnotationConfigApplicationContext context;
+  private Injector injector;
 
   @Before
   public void setup() {
     nodeClient = new NodeClient(org.opensearch.common.settings.Settings.EMPTY, threadPool);
-    context = new AnnotationConfigApplicationContext();
-    context.registerBean(StorageEngine.class, () -> Mockito.mock(StorageEngine.class));
-    context.registerBean(ExecutionEngine.class, () -> Mockito.mock(ExecutionEngine.class));
-    context.registerBean(DataSourceService.class, () -> Mockito.mock(DataSourceService.class));
-    context.registerBean(QueryManager.class, () -> queryManager);
-    context.registerBean(QueryPlanFactory.class, () -> factory);
-    context.register(SQLServiceConfig.class);
-    context.refresh();
+    ModulesBuilder modules = new ModulesBuilder();
+    modules.add(b -> {
+      b.bind(SQLService.class).toInstance(new SQLService(new SQLSyntaxParser(), queryManager, factory));
+    });
+    injector = modules.createInjector();
     Mockito.lenient().when(threadPool.getThreadContext())
         .thenReturn(new ThreadContext(org.opensearch.common.settings.Settings.EMPTY));
   }
@@ -83,7 +76,7 @@ public class RestSQLQueryActionTest extends BaseRestHandler {
         QUERY_API_ENDPOINT,
         "");
 
-    RestSQLQueryAction queryAction = new RestSQLQueryAction(context);
+    RestSQLQueryAction queryAction = new RestSQLQueryAction(injector);
     queryAction.prepareRequest(request, (channel, exception) -> {
       fail();
     }, (channel, exception) -> {
@@ -99,7 +92,7 @@ public class RestSQLQueryActionTest extends BaseRestHandler {
         EXPLAIN_API_ENDPOINT,
         "");
 
-    RestSQLQueryAction queryAction = new RestSQLQueryAction(context);
+    RestSQLQueryAction queryAction = new RestSQLQueryAction(injector);
     queryAction.prepareRequest(request, (channel, exception) -> {
       fail();
     }, (channel, exception) -> {
@@ -117,7 +110,7 @@ public class RestSQLQueryActionTest extends BaseRestHandler {
         "");
 
     AtomicBoolean fallback = new AtomicBoolean(false);
-    RestSQLQueryAction queryAction = new RestSQLQueryAction(context);
+    RestSQLQueryAction queryAction = new RestSQLQueryAction(injector);
     queryAction.prepareRequest(request, (channel, exception) -> {
       fallback.set(true);
       assertTrue(exception instanceof SyntaxCheckException);
@@ -142,7 +135,7 @@ public class RestSQLQueryActionTest extends BaseRestHandler {
         .submit(any());
 
     AtomicBoolean executionErrorHandler = new AtomicBoolean(false);
-    RestSQLQueryAction queryAction = new RestSQLQueryAction(context);
+    RestSQLQueryAction queryAction = new RestSQLQueryAction(injector);
     queryAction.prepareRequest(request, (channel, exception) -> {
       assertTrue(exception instanceof SyntaxCheckException);
     }, (channel, exception) -> {

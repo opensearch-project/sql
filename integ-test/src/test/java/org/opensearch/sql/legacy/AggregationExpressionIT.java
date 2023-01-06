@@ -121,6 +121,7 @@ public class AggregationExpressionIT extends SQLIntegTestCase {
         rows("f", 1));
   }
 
+  @Ignore("Handled by v2 engine which returns 'name': 'Log(MAX(age) + MIN(age))' instead")
   @Test
   public void noGroupKeyLogMaxAddMinShouldPass() {
     JSONObject response = executeJdbcRequest(String.format(

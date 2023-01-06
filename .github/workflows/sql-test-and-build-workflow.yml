@@ -70,6 +70,7 @@ jobs:
     - name: Upload test reports
       if: ${{ always() && matrix.entry.os == 'ubuntu-latest' }}
       uses: actions/upload-artifact@v2
+      continue-on-error: true
       with:
         name: test-reports
         path: |

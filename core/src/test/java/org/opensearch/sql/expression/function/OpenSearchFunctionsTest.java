@@ -197,4 +197,12 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
             fields.getValue(), query.getValue()),
         expr.toString());
   }
+
+  @Test
+  void wildcard_query() {
+    FunctionExpression expr = DSL.wildcard_query(field, query);
+    assertEquals(String.format("wildcard_query(field=%s, query=%s)",
+            field.getValue(), query.getValue()),
+        expr.toString());
+  }
 }

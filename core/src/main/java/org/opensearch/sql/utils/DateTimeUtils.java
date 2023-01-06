@@ -6,6 +6,7 @@
 package org.opensearch.sql.utils;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -138,5 +139,16 @@ public class DateTimeUtils {
     return value instanceof ExprTimeValue
         ? ((ExprTimeValue) value).datetimeValue(functionProperties)
         : value.datetimeValue();
+  }
+
+  /**
+   * Extracts LocalDate from a datetime ExprValue.
+   * Uses `FunctionProperties` for `ExprTimeValue`.
+   */
+  public static LocalDate extractDate(ExprValue value,
+                                      FunctionProperties functionProperties) {
+    return value instanceof ExprTimeValue
+        ? ((ExprTimeValue) value).dateValue(functionProperties)
+        : value.dateValue();
   }
 }

@@ -354,6 +354,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.MINUTE, expressions);
   }
 
+  public static FunctionExpression minute_of_day(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.MINUTE_OF_DAY, expressions);
+  }
+
   public static FunctionExpression month(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.MONTH, expressions);
   }
@@ -484,6 +488,10 @@ public class DSL {
 
   public static FunctionExpression replace(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.REPLACE, expressions);
+  }
+
+  public static FunctionExpression reverse(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.REVERSE, expressions);
   }
 
   public static FunctionExpression and(Expression... expressions) {
@@ -715,6 +723,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.MATCH_BOOL_PREFIX, args);
   }
 
+  public static FunctionExpression wildcard_query(Expression... args) {
+    return compile(FunctionProperties.None,BuiltinFunctionName.WILDCARD_QUERY, args);
+  }
+
   public static FunctionExpression now(FunctionProperties functionProperties,
                                        Expression... args) {
     return compile(functionProperties, BuiltinFunctionName.NOW, args);
@@ -758,6 +770,22 @@ public class DSL {
   public static FunctionExpression current_date(FunctionProperties functionProperties,
                                                 Expression... args) {
     return compile(functionProperties, BuiltinFunctionName.CURRENT_DATE, args);
+  }
+
+  public static FunctionExpression utc_date(FunctionProperties functionProperties,
+                                                Expression... args) {
+    return compile(functionProperties, BuiltinFunctionName.UTC_DATE, args);
+  }
+
+  public static FunctionExpression utc_time(FunctionProperties functionProperties,
+                                                Expression... args) {
+    return compile(functionProperties, BuiltinFunctionName.UTC_TIME, args);
+  }
+
+  public static FunctionExpression utc_timestamp(FunctionProperties functionProperties,
+                                                Expression... args) {
+    return compile(functionProperties, BuiltinFunctionName.UTC_TIMESTAMP, args);
+
   }
 
   @SuppressWarnings("unchecked")

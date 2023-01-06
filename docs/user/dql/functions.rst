@@ -1414,6 +1414,26 @@ Example::
     +-------------------------------------------------+-----------------------------------+-------------------------------------------------+
 
 
+DATEDIFF
+--------
+
+Usage: Calculates the difference of date parts of the given values. If the first argument is time, today's date is used.
+
+Argument type: DATE/DATETIME/TIMESTAMP/TIME, DATE/DATETIME/TIMESTAMP/TIME
+
+Return type: LONG
+
+Example::
+
+    os> SELECT DATEDIFF(TIMESTAMP('2000-01-02 00:00:00'), TIMESTAMP('2000-01-01 23:59:59')) AS `'2000-01-02' - '2000-01-01'`, DATEDIFF(DATE('2001-02-01'), TIMESTAMP('2004-01-01 00:00:00')) AS `'2001-02-01' - '2004-01-01'`, DATEDIFF(TIME('23:59:59'), TIME('00:00:00')) AS `today - today`
+    fetched rows / total rows = 1/1
+    +-------------------------------+-------------------------------+-----------------+
+    | '2000-01-02' - '2000-01-01'   | '2001-02-01' - '2004-01-01'   | today - today   |
+    |-------------------------------+-------------------------------+-----------------|
+    | 1                             | -1064                         | 0               |
+    +-------------------------------+-------------------------------+-----------------+
+
+
 DAY
 ---
 
@@ -1823,6 +1843,28 @@ Example::
     | 2                           |
     +-----------------------------+
 
+MINUTE_OF_DAY
+------
+
+Description
+>>>>>>>>>>>
+
+Usage: minute_of_day(time) returns the minute value for time within a 24 hour day, in the range 0 to 1439.
+
+Argument type: STRING/TIME/DATETIME/TIMESTAMP
+
+Return type: INTEGER
+
+Example::
+
+    os> SELECT MINUTE_OF_DAY((TIME '01:02:03'))
+    fetched rows / total rows = 1/1
+    +------------------------------------+
+    | MINUTE_OF_DAY((TIME '01:02:03'))   |
+    |------------------------------------|
+    | 62                                 |
+    +------------------------------------+
+
 
 MONTH
 -----
@@ -2161,6 +2203,29 @@ Example::
     +--------------------------------+
 
 
+TIMEDIFF
+--------
+
+Description
+>>>>>>>>>>>
+
+Usage: returns the difference between two time expressions as a time.
+
+Argument type: TIME, TIME
+
+Return type: TIME
+
+Example::
+
+    os> SELECT TIMEDIFF('23:59:59', '13:00:00')
+    fetched rows / total rows = 1/1
+    +------------------------------------+
+    | TIMEDIFF('23:59:59', '13:00:00')   |
+    |------------------------------------|
+    | 10:59:59                           |
+    +------------------------------------+
+
+
 TIMESTAMP
 ---------
 
@@ -2240,6 +2305,74 @@ Examples::
     | 848077542.0                                        |
     +----------------------------------------------------+
 
+
+UTC_DATE
+--------
+
+Description
+>>>>>>>>>>>
+
+Returns the current UTC date as a value in 'YYYY-MM-DD'.
+
+Return type: DATE
+
+Specification: UTC_DATE() -> DATE
+
+Example::
+
+    > SELECT UTC_DATE();
+    fetched rows / total rows = 1/1
+    +--------------+
+    | utc_date()   |
+    |--------------|
+    | 2022-10-03   |
+    +--------------+
+
+
+UTC_TIME
+--------
+
+Description
+>>>>>>>>>>>
+
+Returns the current UTC time as a value in 'hh:mm:ss'.
+
+Return type: TIME
+
+Specification: UTC_TIME() -> TIME
+
+Example::
+
+    > SELECT UTC_TIME();
+    fetched rows / total rows = 1/1
+    +--------------+
+    | utc_time()   |
+    |--------------|
+    | 17:54:27     |
+    +--------------+
+
+
+UTC_TIMESTAMP
+-------------
+
+Description
+>>>>>>>>>>>
+
+Returns the current UTC timestamp as a value in 'YYYY-MM-DD hh:mm:ss'.
+
+Return type: DATETIME
+
+Specification: UTC_TIMESTAMP() -> DATETIME
+
+Example::
+
+    > SELECT UTC_TIMESTAMP();
+    fetched rows / total rows = 1/1
+    +---------------------+
+    | utc_timestamp()     |
+    |---------------------|
+    | 2022-10-03 17:54:28 |
+    +---------------------+
 
 WEEK
 ----
@@ -2588,6 +2721,29 @@ Example::
     |--------------------------------------------------|
     | Hello OpenSearch!                                |
     +--------------------------------------------------+
+
+
+REVERSE
+-------
+
+Description
+>>>>>>>>>>>
+
+Usage: REVERSE(str) returns reversed string of the string supplied as an argument. Returns NULL if the argument is NULL.
+
+Argument type: STRING
+
+Return type: STRING
+
+Example::
+
+    os> SELECT REVERSE('abcde'), REVERSE(null)
+    fetched rows / total rows = 1/1
+    +--------------------+-----------------+
+    | REVERSE('abcde')   | REVERSE(null)   |
+    |--------------------+-----------------|
+    | edcba              | null            |
+    +--------------------+-----------------+
 
 
 RIGHT
@@ -3010,6 +3166,16 @@ Another example to show how to set custom values for the optional parameters::
     | Bond       |
     +------------+
 
+    The matchquery function also supports an alternative syntax::
+
+    os> SELECT firstname FROM accounts WHERE firstname = matchquery('Hattie');
+    fetched rows / total rows = 1/1
+    +-------------+
+    | firstname   |
+    |-------------|
+    | Hattie      |
+    +-------------+
+
 MATCH_QUERY
 -----
 
@@ -3038,6 +3204,16 @@ Another example to show how to set custom values for the optional parameters::
     |------------|
     | Bond       |
     +------------+
+
+The match_query function also supports an alternative syntax::
+
+    os> SELECT firstname FROM accounts WHERE firstname = match_query('Hattie');
+    fetched rows / total rows = 1/1
+    +-------------+
+    | firstname   |
+    |-------------|
+    | Hattie      |
+    +-------------+
 
 
 MATCH_PHRASE
@@ -3078,6 +3254,23 @@ Another example to show how to set custom values for the optional parameters::
     | Alan Alexander Milne | Winnie-the-Pooh          |
     +----------------------+--------------------------+
 
+The match_phrase function also supports an alternative syntax::
+
+    os> SELECT firstname FROM accounts WHERE firstname = match_phrase('Hattie');
+    fetched rows / total rows = 1/1
+    +-------------+
+    | firstname   |
+    |-------------|
+    | Hattie      |
+    +-------------+
+
+    os> SELECT firstname FROM accounts WHERE firstname = matchphrase('Hattie');
+    fetched rows / total rows = 1/1
+    +-------------+
+    | firstname   |
+    |-------------|
+    | Hattie      |
+    +-------------+
 
 MATCH_BOOL_PREFIX
 -----
@@ -3220,6 +3413,24 @@ Another example to show how to set custom values for the optional parameters::
     |------+--------------------------+----------------------|
     | 1    | The House at Pooh Corner | Alan Alexander Milne |
     +------+--------------------------+----------------------+
+
+The multi_match function also supports an alternative syntax::
+
+    os> SELECT firstname FROM accounts WHERE firstname = multi_match('Hattie');
+    fetched rows / total rows = 1/1
+    +-------------+
+    | firstname   |
+    |-------------|
+    | Hattie      |
+    +-------------+
+
+    os> SELECT firstname FROM accounts WHERE firstname = multimatch('Hattie');
+    fetched rows / total rows = 1/1
+    +-------------+
+    | firstname   |
+    |-------------|
+    | Hattie      |
+    +-------------+
 
 SIMPLE_QUERY_STRING
 -------------------
@@ -3421,6 +3632,59 @@ Example searching for field Tags::
     | [Winnie-the-<em>Pooh</em>]                   |
     +----------------------------------------------+
 
+WILDCARD_QUERY
+------------
+
+Description
+>>>>>>>>>>>
+
+``wildcard_query(field_expression, query_expression[, option=<option_value>]*)``
+
+The ``wildcard_query`` function maps to the ``wildcard_query`` query used in search engine. It returns documents that match provided text in the specified field.
+OpenSearch supports wildcard characters ``*`` and ``?``.  See the full description here: https://opensearch.org/docs/latest/opensearch/query-dsl/term/#wildcards.
+You may include a backslash ``\`` to escape SQL wildcard characters ``\%`` and ``\_``.
+
+Available parameters include:
+
+- boost
+- case_insensitive
+- rewrite
+
+For backward compatibility, ``wildcardquery`` is also supported and mapped to ``wildcard_query`` query as well.
+
+Example with only ``field`` and ``query`` expressions, and all other parameters are set default values::
+
+    os> select Body from wildcard where wildcard_query(Body, 'test wildcard*');
+    fetched rows / total rows = 7/7
+    +-------------------------------------------+
+    | Body                                      |
+    |-------------------------------------------|
+    | test wildcard                             |
+    | test wildcard in the end of the text%     |
+    | test wildcard in % the middle of the text |
+    | test wildcard %% beside each other        |
+    | test wildcard in the end of the text_     |
+    | test wildcard in _ the middle of the text |
+    | test wildcard __ beside each other        |
+    +-------------------------------------------+
+
+Another example to show how to set custom values for the optional parameters::
+
+    os> select Body from wildcard where wildcard_query(Body, 'test wildcard*', boost=0.7, case_insensitive=true, rewrite='constant_score');
+    fetched rows / total rows = 8/8
+    +-------------------------------------------+
+    | Body                                      |
+    |-------------------------------------------|
+    | test wildcard                             |
+    | test wildcard in the end of the text%     |
+    | test wildcard in % the middle of the text |
+    | test wildcard %% beside each other        |
+    | test wildcard in the end of the text_     |
+    | test wildcard in _ the middle of the text |
+    | test wildcard __ beside each other        |
+    | tEsT wIlDcArD sensitive cases             |
+    +-------------------------------------------+
+
 System Functions
 ================
 
@@ -3445,3 +3709,5 @@ Example::
     |----------------+---------------+-----------------+------------------|
     | DATE           | INTEGER       | DATETIME        | STRUCT           |
     +----------------+---------------+-----------------+------------------+
+
+

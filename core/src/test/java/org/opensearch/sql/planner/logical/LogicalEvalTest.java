@@ -16,13 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.analysis.AnalyzerTestBase;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.expression.DSL;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@Configuration
-@ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {AnalyzerTestBase.class})
 @ExtendWith(MockitoExtension.class)
 public class LogicalEvalTest extends AnalyzerTestBase {
 

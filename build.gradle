@@ -6,10 +6,7 @@
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.4.0-SNAPSHOT")
-        spring_version = "5.3.22"
-        jackson_version = "2.14.0"
-        jackson_databind_version = "2.14.0"
+        opensearch_version = System.getProperty("opensearch.version", "3.0.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
         version_tokens = opensearch_version.tokenize('-')
@@ -69,9 +66,15 @@ plugins {
     id 'jacoco'
 }
 
+// import versions defined in https://github.com/opensearch-project/OpenSearch/blob/main/buildSrc/src/main/java/org/opensearch/gradle/OpenSearchJavaPlugin.java#L94
+// versions https://github.com/opensearch-project/OpenSearch/blob/main/buildSrc/version.properties
+apply plugin: 'opensearch.java'
+
 // Repository on root level is for dependencies that project code depends on. And this block must be placed after plugins{}
 repositories {
     mavenLocal()
+    // todo. remove this when lucene 9.4.0 is released
+    maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
     maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
     mavenCentral() // For Elastic Libs that you can use to get started coding until open OpenSearch libs are available
 }
@@ -94,6 +97,8 @@ allprojects {
 subprojects {
     repositories {
         mavenLocal()
+        // todo. remove this when lucene 9.4.0 is released
+        maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
         maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
         mavenCentral()
     }

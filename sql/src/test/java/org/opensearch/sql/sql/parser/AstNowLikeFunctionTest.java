@@ -32,8 +32,11 @@ class AstNowLikeFunctionTest extends AstBuilderTestBase {
         "curtime",
         "localtimestamp",
         "localtime",
-         "now",
-         "sysdate")
+        "now",
+        "sysdate",
+        "utc_date",
+        "utc_time",
+        "utc_timestamp")
         .map(Arguments::of);
   }
 

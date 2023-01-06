@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.sql.antlr;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -15,7 +16,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.stream.Stream;
@@ -168,7 +168,10 @@ class SQLSyntaxParserTest {
         Arguments.of("curtime", true, false),
         Arguments.of("current_time", true, true),
         Arguments.of("curdate", false, false),
-        Arguments.of("current_date", false, true)
+        Arguments.of("current_date", false, true),
+        Arguments.of("utc_date", false, true),
+        Arguments.of("utc_time", false, true),
+        Arguments.of("utc_timestamp", false, true)
     );
   }
 
@@ -449,6 +452,61 @@ class SQLSyntaxParserTest {
     assertNotNull(parser.parse("SELECT * FROM test WHERE match_phrase(column, 100500)"));
   }
 
+  @Test
+  public void can_parse_minute_of_day_function() {
+    assertNotNull(parser.parse("SELECT minute_of_day(\"12:23:34\");"));
+    assertNotNull(parser.parse("SELECT minute_of_day('12:23:34');"));;
+    assertNotNull(parser.parse("SELECT minute_of_day(\"2022-12-14 12:23:34\");"));;
+    assertNotNull(parser.parse("SELECT minute_of_day('2022-12-14 12:23:34');"));;
+  }
+
+  @Test
+  public void can_parse_wildcard_query_relevance_function() {
+    assertNotNull(
+        parser.parse("SELECT * FROM test WHERE wildcard_query(column, \"this is a test*\")"));
+    assertNotNull(
+        parser.parse("SELECT * FROM test WHERE wildcard_query(column, 'this is a test*')"));
+    assertNotNull(
+        parser.parse("SELECT * FROM test WHERE wildcard_query(`column`, \"this is a test*\")"));
+    assertNotNull(
+        parser.parse("SELECT * FROM test WHERE wildcard_query(`column`, 'this is a test*')"));
+    assertNotNull(
+        parser.parse("SELECT * FROM test WHERE wildcard_query(`column`, 'this is a test*', "
+            + "boost=1.5, case_insensitive=true, rewrite=\"scoring_boolean\")"));
+  }
+
+  @Test
+  public void describe_request_accepts_only_quoted_string_literals() {
+    assertAll(
+        () -> assertThrows(SyntaxCheckException.class,
+            () -> parser.parse("DESCRIBE TABLES LIKE bank")),
+        () -> assertThrows(SyntaxCheckException.class,
+            () -> parser.parse("DESCRIBE TABLES LIKE %bank%")),
+        () -> assertThrows(SyntaxCheckException.class,
+            () -> parser.parse("DESCRIBE TABLES LIKE `bank`")),
+        () -> assertThrows(SyntaxCheckException.class,
+            () -> parser.parse("DESCRIBE TABLES LIKE %bank% COLUMNS LIKE %status%")),
+        () -> assertThrows(SyntaxCheckException.class,
+            () -> parser.parse("DESCRIBE TABLES LIKE 'bank' COLUMNS LIKE status")),
+        () -> assertNotNull(parser.parse("DESCRIBE TABLES LIKE 'bank' COLUMNS LIKE \"status\"")),
+        () -> assertNotNull(parser.parse("DESCRIBE TABLES LIKE \"bank\" COLUMNS LIKE 'status'"))
+    );
+  }
+
+  @Test
+  public void show_request_accepts_only_quoted_string_literals() {
+    assertAll(
+        () -> assertThrows(SyntaxCheckException.class,
+            () -> parser.parse("SHOW TABLES LIKE bank")),
+        () -> assertThrows(SyntaxCheckException.class,
+            () -> parser.parse("SHOW TABLES LIKE %bank%")),
+        () -> assertThrows(SyntaxCheckException.class,
+            () -> parser.parse("SHOW TABLES LIKE `bank`")),
+        () -> assertNotNull(parser.parse("SHOW TABLES LIKE 'bank'")),
+        () -> assertNotNull(parser.parse("SHOW TABLES LIKE \"bank\""))
+    );
+  }
+
   @ParameterizedTest
   @MethodSource({
       "matchPhraseComplexQueries",
@@ -482,6 +540,30 @@ class SQLSyntaxParserTest {
       "SELECT * FROM t WHERE match_phrase(c, 3, minimum_should_match='2<-25% 9<-3')",
       "SELECT * FROM t WHERE match_phrase(c, 3, operator='AUTO')"
     );
+  }
+
+  @Test
+  public void canParseMatchQueryAlternateSyntax() {
+    assertNotNull(parser.parse("SELECT * FROM test WHERE Field = matchquery('query')"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE Field = matchquery(\"query\")"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE Field = match_query('query')"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE Field = match_query(\"query\")"));
+  }
+
+  @Test
+  public void canParseMatchPhraseAlternateSyntax() {
+    assertNotNull(parser.parse("SELECT * FROM test WHERE Field = match_phrase('query')"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE Field = match_phrase(\"query\")"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE Field = matchphrase('query')"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE Field = matchphrase(\"query\")"));
+  }
+
+  @Test
+  public void canParseMultiMatchAlternateSyntax() {
+    assertNotNull(parser.parse("SELECT * FROM test WHERE Field = multi_match('query')"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE Field = multi_match(\"query\")"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE Field = multimatch('query')"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE Field = multimatch(\"query\")"));
   }
 
   private static Stream<String> matchPhraseQueryComplexQueries() {
