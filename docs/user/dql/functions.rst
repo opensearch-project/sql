@@ -1806,6 +1806,28 @@ Example::
     | 62                                 |
     +------------------------------------+
 
+MINUTE_OF_DAY
+------
+
+Description
+>>>>>>>>>>>
+
+Usage: minute_of_day(time) returns the minute value for time within a 24 hour day, in the range 0 to 1439.
+
+Argument type: STRING/TIME/DATETIME/TIMESTAMP
+
+Return type: INTEGER
+
+Example::
+
+    os> SELECT MINUTE_OF_DAY((TIME '01:02:03'))
+    fetched rows / total rows = 1/1
+    +------------------------------------+
+    | MINUTE_OF_DAY((TIME '01:02:03'))   |
+    |------------------------------------|
+    | 62                                 |
+    +------------------------------------+
+
 
 MONTH
 -----
