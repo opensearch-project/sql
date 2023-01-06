@@ -15,7 +15,7 @@
               "correlate_id": {
                 "type": "integer"
               },
-              "message": {
+              "platform": {
                 "type": "keyword"
               }
             }
