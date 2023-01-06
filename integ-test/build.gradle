@@ -56,6 +56,7 @@ tasks.withType(licenseHeaders.class) {
 validateNebulaPom.enabled = false
 loggerUsageCheck.enabled = false
 
+
 configurations.all {
     resolutionStrategy.force 'junit:junit:4.13.2'
     resolutionStrategy.force "commons-logging:commons-logging:1.2"
@@ -80,18 +81,15 @@ dependencies {
     testImplementation group: 'org.opensearch.test', name: 'framework', version: "${opensearch_version}"
     testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
     testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-client', version: "${opensearch_version}"
+    testImplementation group: 'org.opensearch.driver', name: 'opensearch-sql-jdbc', version: '1.2.0.0'
     testImplementation group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
+    testImplementation group: 'com.google.code.gson', name: 'gson', version: '2.8.9'
     implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version:'2.17.1'
     testImplementation project(':opensearch-sql-plugin')
     testImplementation project(':legacy')
     testImplementation('org.junit.jupiter:junit-jupiter-api:5.6.2')
     testRuntimeOnly('org.junit.jupiter:junit-jupiter-engine:5.6.2')
 
-    // JDBC drivers for comparison test. Somehow Apache Derby throws security permission exception.
-    testImplementation fileTree('../sql-jdbc/build/libs') {
-        include '*.jar'
-        builtBy 'compileJdbc'
-    }
     testImplementation group: 'com.h2database', name: 'h2', version: '2.1.214'
     testImplementation group: 'org.xerial', name: 'sqlite-jdbc', version: '3.28.0'
     testImplementation group: 'com.google.code.gson', name: 'gson', version: '2.8.9'
@@ -230,19 +228,7 @@ task comparisonTest(type: RestIntegTestTask) {
     systemProperty "queries", System.getProperty("queries")
 }
 
-task compileJdbc(type: Exec) {
-    workingDir '../sql-jdbc/'
-
-    if (DefaultNativePlatform.getCurrentOperatingSystem().isWindows()) {
-        commandLine './gradlew.bat', 'build'
-        commandLine './gradlew.bat', 'shadowJar'
-    } else {
-        commandLine './gradlew', 'build'
-        commandLine './gradlew', 'shadowJar'
-    }
-}
-
-String baseVersion = "2.5.0"
+String baseVersion = "2.4.0"
 String bwcVersion = baseVersion + ".0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
