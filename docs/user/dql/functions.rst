@@ -1767,6 +1767,7 @@ Description
 >>>>>>>>>>>
 
 Usage: minute(time) returns the minute for time, in the range 0 to 59.
+The `minute_of_hour` function is provided as an alias.
 
 Argument type: STRING/TIME/DATETIME/TIMESTAMP
 
@@ -1774,13 +1775,13 @@ Return type: INTEGER
 
 Example::
 
-    os> SELECT MINUTE((TIME '01:02:03'))
+    os> SELECT MINUTE(time('01:02:03')), MINUTE_OF_HOUR(time('01:02:03'))
     fetched rows / total rows = 1/1
-    +-----------------------------+
-    | MINUTE((TIME '01:02:03'))   |
-    |-----------------------------|
-    | 2                           |
-    +-----------------------------+
+    +----------------------------+------------------------------------+
+    | MINUTE(time('01:02:03'))   | MINUTE_OF_HOUR(time('01:02:03'))   |
+    |----------------------------+------------------------------------|
+    | 2                          | 2                                  |
+    +----------------------------+------------------------------------+
 
 MINUTE_OF_DAY
 ------
