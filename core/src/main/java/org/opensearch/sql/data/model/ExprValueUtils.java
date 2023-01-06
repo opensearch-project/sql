@@ -6,6 +6,10 @@
 
 package org.opensearch.sql.data.model;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -59,6 +63,22 @@ public class ExprValueUtils {
 
   public static ExprValue intervalValue(TemporalAmount value) {
     return new ExprIntervalValue(value);
+  }
+
+  public static ExprValue dateValue(LocalDate value) {
+    return new ExprDateValue(value);
+  }
+
+  public static ExprValue datetimeValue(LocalDateTime value) {
+    return new ExprDatetimeValue(value);
+  }
+
+  public static ExprValue timeValue(LocalTime value) {
+    return new ExprTimeValue(value);
+  }
+
+  public static ExprValue timestampValue(Instant value) {
+    return new ExprTimestampValue(value);
   }
 
   /**
@@ -115,6 +135,14 @@ public class ExprValueUtils {
       return stringValue((String) o);
     } else if (o instanceof Float) {
       return floatValue((Float) o);
+    } else if (o instanceof LocalDate) {
+      return dateValue((LocalDate) o);
+    } else if (o instanceof LocalDateTime) {
+      return datetimeValue((LocalDateTime) o);
+    } else if (o instanceof LocalTime) {
+      return timeValue((LocalTime) o);
+    } else if (o instanceof Instant) {
+      return timestampValue((Instant) o);
     } else {
       throw new ExpressionEvaluationException("unsupported object " + o.getClass());
     }
