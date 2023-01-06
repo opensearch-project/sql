@@ -80,12 +80,12 @@ public class HashJoinIT extends SQLIntegTestCase {
             "a.id.serial, b.id.serial " +
             "FROM %1$s AS a " +
             "JOIN %1$s AS b " +
-            "ON a.id.serial = b.attributes.hardware.correlate_id " /*+
-            "WHERE a.attributes.hardware.platform LIKE 'Linux%%' "*/,
+            "ON a.id.serial = b.attributes.hardware.correlate_id " +
+            "WHERE b.attributes.hardware.platform = 'Linux' ",
         TEST_INDEX_UNEXPANDED_OBJECT);
 
     JSONObject response = executeJdbcRequest(query);
-    verifyDataRows(response, rows(3, 1), rows(3, 2), rows(3, 3));
+    verifyDataRows(response, rows(3, 1), rows(3, 3));
   }
 
   @Test
