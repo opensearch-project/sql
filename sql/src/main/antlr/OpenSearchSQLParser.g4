@@ -443,6 +443,7 @@ dateTimeFunctionName
     | MICROSECOND
     | MINUTE
     | MINUTE_OF_DAY
+    | MINUTE_OF_HOUR
     | MONTH
     | MONTHNAME
     | NOW

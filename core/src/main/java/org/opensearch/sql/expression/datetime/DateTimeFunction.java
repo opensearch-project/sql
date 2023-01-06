@@ -120,8 +120,9 @@ public class DateTimeFunction {
     repository.register(makedate());
     repository.register(maketime());
     repository.register(microsecond());
-    repository.register(minute());
+    repository.register(minute(BuiltinFunctionName.MINUTE));
     repository.register(minute_of_day());
+    repository.register(minute(BuiltinFunctionName.MINUTE_OF_HOUR));
     repository.register(month(BuiltinFunctionName.MONTH));
     repository.register(month(BuiltinFunctionName.MONTH_OF_YEAR));
     repository.register(monthName());
@@ -477,11 +478,12 @@ public class DateTimeFunction {
   /**
    * MINUTE(STRING/TIME/DATETIME/TIMESTAMP). return the minute value for time.
    */
-  private DefaultFunctionResolver minute() {
-    return define(BuiltinFunctionName.MINUTE.getName(),
+  private DefaultFunctionResolver minute(BuiltinFunctionName name) {
+    return define(name.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprMinute), INTEGER, STRING),
         impl(nullMissingHandling(DateTimeFunction::exprMinute), INTEGER, TIME),
         impl(nullMissingHandling(DateTimeFunction::exprMinute), INTEGER, DATETIME),
+        impl(nullMissingHandling(DateTimeFunction::exprMinute), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprMinute), INTEGER, TIMESTAMP)
     );
   }
@@ -1026,7 +1028,8 @@ public class DateTimeFunction {
    * @return ExprValue.
    */
   private ExprValue exprMinute(ExprValue time) {
-    return new ExprIntegerValue(time.timeValue().getMinute());
+    return new ExprIntegerValue(
+        (MINUTES.between(LocalTime.MIN, time.timeValue()) % 60));
   }
 
   /**
