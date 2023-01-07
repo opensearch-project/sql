@@ -61,7 +61,7 @@ public interface ExprValue extends Serializable, Comparable<ExprValue> {
   }
 
   /**
-   * Is Number value.
+   * Is Datetime value.
    *
    * @return true: is a datetime value, otherwise false
    */
