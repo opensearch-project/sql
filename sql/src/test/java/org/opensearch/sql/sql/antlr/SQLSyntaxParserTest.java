@@ -509,6 +509,30 @@ class SQLSyntaxParserTest {
     );
   }
 
+  @Test
+  public void canParseMatchQueryAlternateSyntax() {
+    assertNotNull(parser.parse("SELECT * FROM test WHERE Field = matchquery('query')"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE Field = matchquery(\"query\")"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE Field = match_query('query')"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE Field = match_query(\"query\")"));
+  }
+
+  @Test
+  public void canParseMatchPhraseAlternateSyntax() {
+    assertNotNull(parser.parse("SELECT * FROM test WHERE Field = match_phrase('query')"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE Field = match_phrase(\"query\")"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE Field = matchphrase('query')"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE Field = matchphrase(\"query\")"));
+  }
+
+  @Test
+  public void canParseMultiMatchAlternateSyntax() {
+    assertNotNull(parser.parse("SELECT * FROM test WHERE Field = multi_match('query')"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE Field = multi_match(\"query\")"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE Field = multimatch('query')"));
+    assertNotNull(parser.parse("SELECT * FROM test WHERE Field = multimatch(\"query\")"));
+  }
+
   private static Stream<String> matchPhraseQueryComplexQueries() {
     return Stream.of(
         "SELECT * FROM t WHERE matchphrasequery(c, 3)",

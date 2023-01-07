@@ -54,7 +54,7 @@ public class MethodQueryIT extends SQLIntegTestCase {
         "select address from %s where address= matchQuery('880 Holmes Lane') limit 3",
         TestsConstants.TEST_INDEX_ACCOUNT));
     Assert.assertThat(result,
-        containsString("{\"match\":{\"address\":{\"query\":\"880 Holmes Lane\""));
+        containsString("{\\\"match\\\":{\\\"address\\\":{\\\"query\\\":\\\"880 Holmes Lane\\\""));
   }
 
   /**
