@@ -1449,20 +1449,21 @@ Description
 
 Usage: dayofweek(date) returns the weekday index for date (1 = Sunday, 2 = Monday, …, 7 = Saturday).
 
+The `day_of_week` function is also provided as an alias.
+
 Argument type: STRING/DATE/DATETIME/TIMESTAMP
 
 Return type: INTEGER
 
 Example::
 
-    os> SELECT DAYOFWEEK(DATE('2020-08-26'))
+    os> SELECT DAYOFWEEK('2020-08-26'), DAY_OF_WEEK('2020-08-26')
     fetched rows / total rows = 1/1
-    +---------------------------------+
-    | DAYOFWEEK(DATE('2020-08-26'))   |
-    |---------------------------------|
-    | 4                               |
-    +---------------------------------+
-
+    +---------------------------+-----------------------------+
+    | DAYOFWEEK('2020-08-26')   | DAY_OF_WEEK('2020-08-26')   |
+    |---------------------------+-----------------------------|
+    | 4                         | 4                           |
+    +---------------------------+-----------------------------+
 
 
 DAYOFYEAR
@@ -1762,6 +1763,7 @@ Description
 >>>>>>>>>>>
 
 Usage: minute(time) returns the minute for time, in the range 0 to 59.
+The `minute_of_hour` function is provided as an alias.
 
 Argument type: STRING/TIME/DATETIME/TIMESTAMP
 
@@ -1769,13 +1771,13 @@ Return type: INTEGER
 
 Example::
 
-    os> SELECT MINUTE((TIME '01:02:03'))
+    os> SELECT MINUTE(time('01:02:03')), MINUTE_OF_HOUR(time('01:02:03'))
     fetched rows / total rows = 1/1
-    +-----------------------------+
-    | MINUTE((TIME '01:02:03'))   |
-    |-----------------------------|
-    | 2                           |
-    +-----------------------------+
+    +----------------------------+------------------------------------+
+    | MINUTE(time('01:02:03'))   | MINUTE_OF_HOUR(time('01:02:03'))   |
+    |----------------------------+------------------------------------|
+    | 2                          | 2                                  |
+    +----------------------------+------------------------------------+
 
 MINUTE_OF_DAY
 ------
@@ -1956,6 +1958,7 @@ Description
 >>>>>>>>>>>
 
 Usage: second(time) returns the second for time, in the range 0 to 59.
+The function `second_of_minute`_ is provided as an alias
 
 Argument type: STRING/TIME/DATETIME/TIMESTAMP
 
@@ -1970,6 +1973,14 @@ Example::
     |-----------------------------|
     | 3                           |
     +-----------------------------+
+
+    os> SELECT SECOND_OF_MINUTE(time('01:02:03'))
+    fetched rows / total rows = 1/1
+    +--------------------------------------+
+    | SECOND_OF_MINUTE(time('01:02:03'))   |
+    |--------------------------------------|
+    | 3                                    |
+    +--------------------------------------+
 
 
 SUBDATE

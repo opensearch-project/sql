@@ -576,26 +576,26 @@ class AstExpressionBuilderTest {
   public void relevanceMatchQueryAltSyntax() {
     assertEquals(AstDSL.function("match_query",
             unresolvedArg("field", stringLiteral("message")),
-            unresolvedArg("query", stringLiteral("search query"))),
-        buildExprAst("message = match_query('search query')")
+            unresolvedArg("query", stringLiteral("search query"))).toString(),
+        buildExprAst("message = match_query('search query')").toString()
     );
 
     assertEquals(AstDSL.function("match_query",
             unresolvedArg("field", stringLiteral("message")),
-            unresolvedArg("query", stringLiteral("search query"))),
-        buildExprAst("message = match_query(\"search query\")")
+            unresolvedArg("query", stringLiteral("search query"))).toString(),
+        buildExprAst("message = match_query(\"search query\")").toString()
     );
 
     assertEquals(AstDSL.function("matchquery",
             unresolvedArg("field", stringLiteral("message")),
-            unresolvedArg("query", stringLiteral("search query"))),
-        buildExprAst("message = matchquery('search query')")
+            unresolvedArg("query", stringLiteral("search query"))).toString(),
+        buildExprAst("message = matchquery('search query')").toString()
     );
 
     assertEquals(AstDSL.function("matchquery",
             unresolvedArg("field", stringLiteral("message")),
-            unresolvedArg("query", stringLiteral("search query"))),
-        buildExprAst("message = matchquery(\"search query\")")
+            unresolvedArg("query", stringLiteral("search query"))).toString(),
+        buildExprAst("message = matchquery(\"search query\")").toString()
     );
   }
 
@@ -603,26 +603,26 @@ class AstExpressionBuilderTest {
   public void relevanceMatchPhraseAltSyntax() {
     assertEquals(AstDSL.function("match_phrase",
             unresolvedArg("field", stringLiteral("message")),
-            unresolvedArg("query", stringLiteral("search query"))),
-        buildExprAst("message = match_phrase('search query')")
+            unresolvedArg("query", stringLiteral("search query"))).toString(),
+        buildExprAst("message = match_phrase('search query')").toString()
     );
 
     assertEquals(AstDSL.function("match_phrase",
             unresolvedArg("field", stringLiteral("message")),
-            unresolvedArg("query", stringLiteral("search query"))),
-        buildExprAst("message = match_phrase(\"search query\")")
+            unresolvedArg("query", stringLiteral("search query"))).toString(),
+        buildExprAst("message = match_phrase(\"search query\")").toString()
     );
 
     assertEquals(AstDSL.function("matchphrase",
             unresolvedArg("field", stringLiteral("message")),
-            unresolvedArg("query", stringLiteral("search query"))),
-        buildExprAst("message = matchphrase('search query')")
+            unresolvedArg("query", stringLiteral("search query"))).toString(),
+        buildExprAst("message = matchphrase('search query')").toString()
     );
 
     assertEquals(AstDSL.function("matchphrase",
             unresolvedArg("field", stringLiteral("message")),
-            unresolvedArg("query", stringLiteral("search query"))),
-        buildExprAst("message = matchphrase(\"search query\")")
+            unresolvedArg("query", stringLiteral("search query"))).toString(),
+        buildExprAst("message = matchphrase(\"search query\")").toString()
     );
   }
 

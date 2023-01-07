@@ -435,6 +435,7 @@ dateTimeFunctionName
     | DAYOFMONTH
     | DAYOFWEEK
     | DAYOFYEAR
+    | DAY_OF_WEEK
     | FROM_DAYS
     | FROM_UNIXTIME
     | HOUR
@@ -443,6 +444,7 @@ dateTimeFunctionName
     | MICROSECOND
     | MINUTE
     | MINUTE_OF_DAY
+    | MINUTE_OF_HOUR
     | MONTH
     | MONTHNAME
     | NOW
@@ -450,6 +452,7 @@ dateTimeFunctionName
     | PERIOD_DIFF
     | QUARTER
     | SECOND
+    | SECOND_OF_MINUTE
     | SUBDATE
     | SYSDATE
     | TIME
