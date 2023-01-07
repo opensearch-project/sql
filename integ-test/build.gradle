@@ -38,6 +38,9 @@ apply plugin: 'java'
 apply plugin: 'io.freefair.lombok'
 apply plugin: 'com.wiredforcode.spawn'
 
+
+
+
 repositories {
     mavenCentral()
     maven { url 'https://jitpack.io' }
@@ -56,10 +59,9 @@ tasks.withType(licenseHeaders.class) {
 validateNebulaPom.enabled = false
 loggerUsageCheck.enabled = false
 
-
 configurations.all {
     resolutionStrategy.force 'junit:junit:4.13.2'
-    resolutionStrategy.force "commons-logging:commons-logging:1.2"
+    exclude group: "commons-logging", module: "commons-logging"
     // enforce 1.1.3, https://www.whitesourcesoftware.com/vulnerability-database/WS-2019-0379
     resolutionStrategy.force 'commons-codec:commons-codec:1.13'
     resolutionStrategy.force 'com.google.guava:guava:31.0.1-jre'
@@ -84,7 +86,6 @@ dependencies {
     testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-client', version: "${opensearch_version}"
     testImplementation group: 'org.opensearch.driver', name: 'opensearch-sql-jdbc', version: '1.2.0.0'
     testImplementation group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
-    testImplementation group: 'com.google.code.gson', name: 'gson', version: '2.8.9'
     implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version:'2.17.1'
     testImplementation project(':opensearch-sql-plugin')
     testImplementation project(':legacy')
@@ -229,38 +230,70 @@ task comparisonTest(type: RestIntegTestTask) {
     systemProperty "queries", System.getProperty("queries")
 }
 
-String baseVersion = "2.4.0"
-String bwcVersion = baseVersion + ".0";
+String bwcMinVersion = "1.1.0.0"
+String bwcBundleVersion = "1.3.2.0"
+Boolean bwcBundleTest = (project.findProperty('customDistributionDownloadType') != null &&
+        project.properties['customDistributionDownloadType'] == "bundle");
+String bwcVersion = bwcBundleTest ? bwcBundleVersion : bwcMinVersion
+String currentVersion = opensearch_version.replace("-SNAPSHOT","")
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
 String bwcSqlPlugin = "opensearch-sql-" + bwcVersion + ".zip"
-String bwcRemoteFile = "https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${baseVersion}/latest/linux/x64/tar/builds/opensearch/plugins/" + bwcSqlPlugin
+String bwcRemoteFile = "https://ci.opensearch.org/ci/dbc/bundle-build/1.1.0/20210930/linux/x64/builds/opensearch/plugins/" + bwcSqlPlugin
 
 2.times { i ->
     testClusters {
         "${baseName}$i" {
             testDistribution = "ARCHIVE"
-            versions = [baseVersion, opensearch_version]
             numberOfNodes = 3
-            plugin(provider(new Callable<RegularFile>() {
-                @Override
-                RegularFile call() throws Exception {
-                    return new RegularFile() {
-                        @Override
-                        File getAsFile() {
-                            File dir = new File('./integ-test/' + bwcFilePath + bwcVersion)
-                            if (!dir.exists()) {
-                                dir.mkdirs()
+            if (bwcBundleTest) {
+                versions = ["1.3.2", currentVersion]
+                nodes.each { node ->
+                    node.extraConfigFile("kirk.pem", file("src/test/resources/security/kirk.pem"))
+                    node.extraConfigFile("kirk-key.pem", file("src/test/resources/security/kirk-key.pem"))
+                    node.extraConfigFile("esnode.pem", file("src/test/resources/security/esnode.pem"))
+                    node.extraConfigFile("esnode-key.pem", file("src/test/resources/security/esnode-key.pem"))
+                    node.extraConfigFile("root-ca.pem", file("src/test/resources/security/root-ca.pem"))
+                    node.setting("plugins.security.disabled", "true")
+                    node.setting("plugins.security.ssl.transport.pemcert_filepath", "esnode.pem")
+                    node.setting("plugins.security.ssl.transport.pemkey_filepath", "esnode-key.pem")
+                    node.setting("plugins.security.ssl.transport.pemtrustedcas_filepath", "root-ca.pem")
+                    node.setting("plugins.security.ssl.transport.enforce_hostname_verification", "false")
+                    node.setting("plugins.security.ssl.http.enabled", "true")
+                    node.setting("plugins.security.ssl.http.pemcert_filepath", "esnode.pem")
+                    node.setting("plugins.security.ssl.http.pemkey_filepath", "esnode-key.pem")
+                    node.setting("plugins.security.ssl.http.pemtrustedcas_filepath", "root-ca.pem")
+                    node.setting("plugins.security.allow_unsafe_democertificates", "true")
+                    node.setting("plugins.security.allow_default_init_securityindex", "true")
+                    node.setting("plugins.security.authcz.admin_dn", "CN=kirk,OU=client,O=client,L=test,C=de")
+                    node.setting("plugins.security.audit.type", "internal_elasticsearch")
+                    node.setting("plugins.security.enable_snapshot_restore_privilege", "true")
+                    node.setting("plugins.security.check_snapshot_restore_write_privileges", "true")
+                    node.setting("plugins.security.restapi.roles_enabled", "[\"all_access\", \"security_rest_api_access\"]")
+                    node.setting("plugins.security.system_indices.enabled", "true")
+                }
+            } else {
+                versions = ["1.1.0", opensearch_version]
+                plugin(provider(new Callable<RegularFile>() {
+                    @Override
+                    RegularFile call() throws Exception {
+                        return new RegularFile() {
+                            @Override
+                            File getAsFile() {
+                                File dir = new File('./integ-test/' + bwcFilePath + bwcVersion)
+                                if (!dir.exists()) {
+                                    dir.mkdirs()
+                                }
+                                File f = new File(dir, bwcSqlPlugin)
+                                if (!f.exists()) {
+                                    new URL(bwcRemoteFile).withInputStream{ ins -> f.withOutputStream{ it << ins }}
+                                }
+                                return fileTree(bwcFilePath + bwcVersion).getSingleFile()
                             }
-                            File f = new File(dir, bwcSqlPlugin)
-                            if (!f.exists()) {
-                                new URL(bwcRemoteFile).withInputStream{ ins -> f.withOutputStream{ it << ins }}
-                            }
-                            return fileTree(bwcFilePath + bwcVersion).getSingleFile()
                         }
                     }
-                }
-            }))
+                }))
+            }
             setting 'path.repo', "${buildDir}/cluster/shared/repo/${baseName}"
             setting 'http.content_type.required', 'true'
         }
@@ -268,17 +301,17 @@ String bwcRemoteFile = "https://ci.opensearch.org/ci/dbc/distribution-build-open
 }
 
 List<Provider<RegularFile>> plugins = [
-        provider(new Callable<RegularFile>() {
-            @Override
-            RegularFile call() throws Exception {
-                return new RegularFile() {
-                    @Override
-                    File getAsFile() {
-                        return fileTree(bwcFilePath + project.version).getSingleFile()
-                    }
+    provider(new Callable<RegularFile>() {
+        @Override
+        RegularFile call() throws Exception {
+            return new RegularFile() {
+                @Override
+                File getAsFile() {
+                    return fileTree(bwcFilePath + project.version).getSingleFile()
                 }
             }
-        })
+        }
+    })
 ]
 
 // Creates 2 test clusters with 3 nodes of the old version.
@@ -302,8 +335,14 @@ List<Provider<RegularFile>> plugins = [
 task "${baseName}#mixedClusterTask"(type: StandaloneRestIntegTestTask) {
     useCluster testClusters."${baseName}0"
     dependsOn "${baseName}#oldVersionClusterTask0"
-    doFirst {
-        testClusters."${baseName}0".upgradeNodeAndPluginToNextVersion(plugins)
+    if (bwcBundleTest){
+        doFirst {
+            testClusters."${baseName}0".nextNodeToNextVersion()
+        }
+    } else {
+        doFirst {
+            testClusters."${baseName}0".upgradeNodeAndPluginToNextVersion(plugins)
+        }
     }
     filter {
         includeTestsMatching "org.opensearch.sql.bwc.*IT"
@@ -321,8 +360,14 @@ task "${baseName}#mixedClusterTask"(type: StandaloneRestIntegTestTask) {
 task "${baseName}#twoThirdsUpgradedClusterTask"(type: StandaloneRestIntegTestTask) {
     dependsOn "${baseName}#mixedClusterTask"
     useCluster testClusters."${baseName}0"
-    doFirst {
-        testClusters."${baseName}0".upgradeNodeAndPluginToNextVersion(plugins)
+    if (bwcBundleTest){
+        doFirst {
+            testClusters."${baseName}0".nextNodeToNextVersion()
+        }
+    } else {
+        doFirst {
+            testClusters."${baseName}0".upgradeNodeAndPluginToNextVersion(plugins)
+        }
     }
     filter {
         includeTestsMatching "org.opensearch.sql.bwc.*IT"
@@ -340,8 +385,14 @@ task "${baseName}#twoThirdsUpgradedClusterTask"(type: StandaloneRestIntegTestTas
 task "${baseName}#rollingUpgradeClusterTask"(type: StandaloneRestIntegTestTask) {
     dependsOn "${baseName}#twoThirdsUpgradedClusterTask"
     useCluster testClusters."${baseName}0"
-    doFirst {
-        testClusters."${baseName}0".upgradeNodeAndPluginToNextVersion(plugins)
+    if (bwcBundleTest){
+        doFirst {
+            testClusters."${baseName}0".nextNodeToNextVersion()
+        }
+    } else {
+        doFirst {
+            testClusters."${baseName}0".upgradeNodeAndPluginToNextVersion(plugins)
+        }
     }
     filter {
         includeTestsMatching "org.opensearch.sql.bwc.*IT"
@@ -359,8 +410,14 @@ task "${baseName}#rollingUpgradeClusterTask"(type: StandaloneRestIntegTestTask) 
 task "${baseName}#fullRestartClusterTask"(type: StandaloneRestIntegTestTask) {
     dependsOn "${baseName}#oldVersionClusterTask1"
     useCluster testClusters."${baseName}1"
-    doFirst {
-        testClusters."${baseName}1".upgradeAllNodesAndPluginsToNextVersion(plugins)
+    if (bwcBundleTest){
+        doFirst {
+            testClusters."${baseName}1".goToNextVersion()
+        }
+    } else {
+        doFirst {
+            testClusters."${baseName}1".upgradeAllNodesAndPluginsToNextVersion(plugins)
+        }
     }
     filter {
         includeTestsMatching "org.opensearch.sql.bwc.*IT"
