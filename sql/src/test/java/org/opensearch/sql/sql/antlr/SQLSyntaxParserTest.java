@@ -202,9 +202,24 @@ class SQLSyntaxParserTest {
   }
 
   @Test
+  public void can_parse_day_of_week_functions() {
+    assertNotNull(parser.parse("SELECT dayofweek('2022-11-18')"));
+    assertNotNull(parser.parse("SELECT day_of_week('2022-11-18')"));
+  }
+
+  @Test
   public void can_parse_dayofyear_functions() {
     assertNotNull(parser.parse("SELECT dayofyear('2022-11-18')"));
     assertNotNull(parser.parse("SELECT day_of_year('2022-11-18')"));
+  }
+
+  @Test
+  public void can_parse_minute_functions() {
+    assertNotNull(parser.parse("SELECT minute('12:23:34')"));
+    assertNotNull(parser.parse("SELECT minute_of_hour('12:23:34')"));
+
+    assertNotNull(parser.parse("SELECT minute('2022-12-20 12:23:34')"));
+    assertNotNull(parser.parse("SELECT minute_of_hour('2022-12-20 12:23:34')"));
   }
 
   @Test
@@ -267,6 +282,14 @@ class SQLSyntaxParserTest {
         "SELECT id FROM test WHERE"
             + " multi_match([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query', analyzer=keyword,"
             + "operator='AND', tie_breaker=0.3, type = \"most_fields\", fuzziness = \"AUTO\")"));
+  }
+
+  @Test
+  public void can_parse_second_functions() {
+    assertNotNull(parser.parse("SELECT second('12:23:34')"));
+    assertNotNull(parser.parse("SELECT second_of_minute('2022-11-18')"));
+    assertNotNull(parser.parse("SELECT second('2022-11-18 12:23:34')"));
+    assertNotNull(parser.parse("SELECT second_of_minute('2022-11-18 12:23:34')"));
   }
 
   @Test
