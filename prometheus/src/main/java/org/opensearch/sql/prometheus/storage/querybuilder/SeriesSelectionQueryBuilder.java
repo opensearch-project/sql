@@ -37,7 +37,9 @@ public class SeriesSelectionQueryBuilder {
       SeriesSelectionExpressionNodeVisitor seriesSelectionExpressionNodeVisitor
           = new SeriesSelectionExpressionNodeVisitor();
       String selectorQuery = filterCondition.accept(seriesSelectionExpressionNodeVisitor, null);
-      return metricName + "{" + selectorQuery + "}";
+      if (selectorQuery != null) {
+        return metricName + "{" + selectorQuery + "}";
+      }
     }
     return metricName;
   }
