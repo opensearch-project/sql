@@ -213,6 +213,15 @@ class SQLSyntaxParserTest {
   }
 
   @Test
+  public void can_parse_minute_functions() {
+    assertNotNull(parser.parse("SELECT minute('12:23:34')"));
+    assertNotNull(parser.parse("SELECT minute_of_hour('12:23:34')"));
+
+    assertNotNull(parser.parse("SELECT minute('2022-12-20 12:23:34')"));
+    assertNotNull(parser.parse("SELECT minute_of_hour('2022-12-20 12:23:34')"));
+  }
+
+  @Test
   public void can_parse_month_of_year_function() {
     assertNotNull(parser.parse("SELECT month('2022-11-18')"));
     assertNotNull(parser.parse("SELECT month_of_year('2022-11-18')"));
