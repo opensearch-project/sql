@@ -515,6 +515,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         () -> assertThrows(
             SemanticCheckException.class, () -> testInvalidDayOfMonth("asdfasdfasdf"))
     );
+  }
 
   private void dayOfWeekQuery(
       FunctionExpression dateExpression,
