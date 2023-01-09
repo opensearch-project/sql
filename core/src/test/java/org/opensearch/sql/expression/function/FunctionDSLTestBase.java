@@ -52,6 +52,8 @@ public class FunctionDSLTestBase {
   static final SerializableFunction<ExprValue, ExprValue> oneArg = v -> ANY;
   static final SerializableBiFunction<FunctionProperties, ExprValue, ExprValue>
       oneArgWithProperties = (functionProperties, v) -> ANY;
+  static final SerializableTriFunction<FunctionProperties, ExprValue, ExprValue, ExprValue>
+      twoArgWithProperties = (functionProperties, v1, v2) -> ANY;
 
   static final SerializableBiFunction<ExprValue, ExprValue, ExprValue>
       twoArgs = (v1, v2) -> ANY;

@@ -48,6 +48,41 @@ class FunctionDSLnullMissingHandlingTest extends FunctionDSLTestBase {
   }
 
   @Test
+  void nullMissingHandling_twoArgs_FunctionProperties_nullValue_firstArg() {
+    assertEquals(NULL,
+        nullMissingHandlingWithProperties(twoArgWithProperties)
+            .apply(functionProperties, NULL, ANY));
+  }
+
+  @Test
+  void nullMissingHandling_twoArgs_FunctionProperties_nullValue_secondArg() {
+    assertEquals(NULL,
+        nullMissingHandlingWithProperties(twoArgWithProperties)
+            .apply(functionProperties, ANY, NULL));
+  }
+
+  @Test
+  void nullMissingHandling_twoArgs_FunctionProperties_missingValue_firstArg() {
+    assertEquals(MISSING,
+        nullMissingHandlingWithProperties(twoArgWithProperties)
+            .apply(functionProperties, MISSING, ANY));
+  }
+
+  @Test
+  void nullMissingHandling_twoArgs_FunctionProperties_missingValue_secondArg() {
+    assertEquals(MISSING,
+        nullMissingHandlingWithProperties(twoArgWithProperties)
+            .apply(functionProperties, ANY, MISSING));
+  }
+
+  @Test
+  void nullMissingHandling_twoArgs_FunctionProperties_apply() {
+    assertEquals(ANY,
+        nullMissingHandlingWithProperties(twoArgWithProperties)
+            .apply(functionProperties, ANY, ANY));
+  }
+
+  @Test
   void nullMissingHandling_twoArgs_firstArg_nullValue() {
     assertEquals(NULL, nullMissingHandling(twoArgs).apply(NULL, ANY));
   }

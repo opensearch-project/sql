@@ -433,6 +433,7 @@ trigonometricFunctionName
 
 dateAndTimeFunctionBase
     : ADDDATE
+    | ADDTIME
     | CONVERT_TZ
     | CURRENT_DATE
     | CURRENT_TIME
@@ -441,6 +442,7 @@ dateAndTimeFunctionBase
     | DATE_ADD
     | DATE_FORMAT
     | DATE_SUB
+    | DATEDIFF
     | DATETIME
     | DAY
     | DAYNAME
@@ -466,9 +468,11 @@ dateAndTimeFunctionBase
     | QUARTER
     | SECOND
     | SUBDATE
+    | SUBTIME
     | SYSDATE
     | TIME
     | TIME_TO_SEC
+    | TIMEDIFF
     | TIMESTAMP
     | TO_DAYS
     | UNIX_TIMESTAMP

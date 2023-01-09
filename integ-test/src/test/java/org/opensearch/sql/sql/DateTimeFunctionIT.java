@@ -220,6 +220,49 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testDayOfWeekWithUnderscores() throws IOException {
+    JSONObject result = executeQuery("select day_of_week(date('2020-09-16'))");
+    verifySchema(result, schema("day_of_week(date('2020-09-16'))", null, "integer"));
+    verifyDataRows(result, rows(4));
+
+    result = executeQuery("select day_of_week('2020-09-16')");
+    verifySchema(result, schema("day_of_week('2020-09-16')", null, "integer"));
+    verifyDataRows(result, rows(4));
+  }
+
+  @Test
+  public void testDayOfWeekAliasesReturnTheSameResults() throws IOException {
+    JSONObject result1 = executeQuery("SELECT dayofweek(date('2022-11-22'))");
+    JSONObject result2 = executeQuery("SELECT day_of_week(date('2022-11-22'))");
+    verifyDataRows(result1, rows(3));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT dayofweek(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT day_of_week(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT dayofweek(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT day_of_week(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT dayofweek(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT day_of_week(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT dayofweek(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT day_of_week(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+  }
+
+  @Test
   public void testDayOfYear() throws IOException {
     JSONObject result = executeQuery("select dayofyear(date('2020-09-16'))");
     verifySchema(result, schema("dayofyear(date('2020-09-16'))", null, "integer"));
@@ -442,6 +485,52 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testMinuteOfHour() throws IOException {
+    JSONObject result = executeQuery("select minute_of_hour(timestamp('2020-09-16 17:30:00'))");
+    verifySchema(result, schema(
+        "minute_of_hour(timestamp('2020-09-16 17:30:00'))", null, "integer"));
+    verifyDataRows(result, rows(30));
+
+    result = executeQuery("select minute_of_hour(time('17:30:00'))");
+    verifySchema(result, schema("minute_of_hour(time('17:30:00'))", null, "integer"));
+    verifyDataRows(result, rows(30));
+
+    result = executeQuery("select minute_of_hour('2020-09-16 17:30:00')");
+    verifySchema(result, schema("minute_of_hour('2020-09-16 17:30:00')", null, "integer"));
+    verifyDataRows(result, rows(30));
+
+    result = executeQuery("select minute_of_hour('17:30:00')");
+    verifySchema(result, schema("minute_of_hour('17:30:00')", null, "integer"));
+    verifyDataRows(result, rows(30));
+  }
+
+  @Test
+  public void testMinuteFunctionAliasesReturnTheSameResults() throws IOException {
+    JSONObject result1 = executeQuery("SELECT minute('11:30:00')");
+    JSONObject result2 = executeQuery("SELECT minute_of_hour('11:30:00')");
+    verifyDataRows(result1, rows(30));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT minute(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT minute_of_hour(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT minute(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT minute_of_hour(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT minute(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT minute_of_hour(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+  }
+
+  @Test
   public void testMonth() throws IOException {
     JSONObject result = executeQuery("select month(date('2020-09-16'))");
     verifySchema(result, schema("month(date('2020-09-16'))", null, "integer"));
@@ -542,6 +631,51 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result = executeQuery("select second('17:30:00')");
     verifySchema(result, schema("second('17:30:00')", null, "integer"));
     verifyDataRows(result, rows(0));
+  }
+
+  @Test
+  public void testSecondOfMinute() throws IOException {
+    JSONObject result = executeQuery("select second_of_minute(timestamp('2020-09-16 17:30:00'))");
+    verifySchema(result, schema("second_of_minute(timestamp('2020-09-16 17:30:00'))", null, "integer"));
+    verifyDataRows(result, rows(0));
+
+    result = executeQuery("select second_of_minute(time('17:30:00'))");
+    verifySchema(result, schema("second_of_minute(time('17:30:00'))", null, "integer"));
+    verifyDataRows(result, rows(0));
+
+    result = executeQuery("select second_of_minute('2020-09-16 17:30:00')");
+    verifySchema(result, schema("second_of_minute('2020-09-16 17:30:00')", null, "integer"));
+    verifyDataRows(result, rows(0));
+
+    result = executeQuery("select second_of_minute('17:30:00')");
+    verifySchema(result, schema("second_of_minute('17:30:00')", null, "integer"));
+    verifyDataRows(result, rows(0));
+  }
+
+  @Test
+  public void testSecondFunctionAliasesReturnTheSameResults() throws IOException {
+    JSONObject result1 = executeQuery("SELECT second('2022-11-22 12:23:34')");
+    JSONObject result2 = executeQuery("SELECT second_of_minute('2022-11-22 12:23:34')");
+    verifyDataRows(result1, rows(34));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT second(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT second_of_minute(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT second(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT second_of_minute(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT second(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT second_of_minute(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
   }
 
   @Test
@@ -953,6 +1087,60 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
         schema("PERIOD_DIFF(200802, 200703)", "f1", "integer"),
         schema("PERIOD_DIFF(200802, 201003)", "f2", "integer"));
     verifyDataRows(result, rows(11, -25));
+  }
+
+  public void testAddTime() throws IOException {
+    var result = executeQuery("SELECT"
+        + " ADDTIME(DATE('2008-12-12'), DATE('2008-11-15')) AS `'2008-12-12' + 0`,"
+        + " ADDTIME(TIME('23:59:59'), DATE('2004-01-01')) AS `'23:59:59' + 0`,"
+        + " ADDTIME(DATE('2004-01-01'), TIME('23:59:59')) AS `'2004-01-01' + '23:59:59'`,"
+        + " ADDTIME(TIME('10:20:30'), TIME('00:05:42')) AS `'10:20:30' + '00:05:42'`,"
+        + " ADDTIME(TIMESTAMP('1999-12-31 15:42:13'), DATETIME('1961-04-12 09:07:00')) AS `'15:42:13' + '09:07:00'`");
+    verifySchema(result,
+        schema("ADDTIME(DATE('2008-12-12'), DATE('2008-11-15'))", "'2008-12-12' + 0", "datetime"),
+        schema("ADDTIME(TIME('23:59:59'), DATE('2004-01-01'))", "'23:59:59' + 0", "time"),
+        schema("ADDTIME(DATE('2004-01-01'), TIME('23:59:59'))", "'2004-01-01' + '23:59:59'", "datetime"),
+        schema("ADDTIME(TIME('10:20:30'), TIME('00:05:42'))", "'10:20:30' + '00:05:42'", "time"),
+        schema("ADDTIME(TIMESTAMP('1999-12-31 15:42:13'), DATETIME('1961-04-12 09:07:00'))", "'15:42:13' + '09:07:00'", "datetime"));
+    verifyDataRows(result, rows("2008-12-12 00:00:00", "23:59:59", "2004-01-01 23:59:59", "10:26:12", "2000-01-01 00:49:13"));
+  }
+
+  @Test
+  public void testSubTime() throws IOException {
+    var result = executeQuery("SELECT"
+        + " SUBTIME(DATE('2008-12-12'), DATE('2008-11-15')) AS `'2008-12-12' - 0`,"
+        + " SUBTIME(TIME('23:59:59'), DATE('2004-01-01')) AS `'23:59:59' - 0`,"
+        + " SUBTIME(DATE('2004-01-01'), TIME('23:59:59')) AS `'2004-01-01' - '23:59:59'`,"
+        + " SUBTIME(TIME('10:20:30'), TIME('00:05:42')) AS `'10:20:30' - '00:05:42'`,"
+        + " SUBTIME(TIMESTAMP('1999-12-31 15:42:13'), DATETIME('1961-04-12 09:07:00')) AS `'15:42:13' - '09:07:00'`");
+    verifySchema(result,
+        schema("SUBTIME(DATE('2008-12-12'), DATE('2008-11-15'))", "'2008-12-12' - 0", "datetime"),
+        schema("SUBTIME(TIME('23:59:59'), DATE('2004-01-01'))", "'23:59:59' - 0", "time"),
+        schema("SUBTIME(DATE('2004-01-01'), TIME('23:59:59'))", "'2004-01-01' - '23:59:59'", "datetime"),
+        schema("SUBTIME(TIME('10:20:30'), TIME('00:05:42'))", "'10:20:30' - '00:05:42'", "time"),
+        schema("SUBTIME(TIMESTAMP('1999-12-31 15:42:13'), DATETIME('1961-04-12 09:07:00'))", "'15:42:13' - '09:07:00'", "datetime"));
+    verifyDataRows(result, rows("2008-12-12 00:00:00", "23:59:59", "2003-12-31 00:00:01", "10:14:48", "1999-12-31 06:35:13"));
+  }
+
+  public void testDateDiff() throws IOException {
+    var result = executeQuery("SELECT"
+        + " DATEDIFF(TIMESTAMP('2000-01-02 00:00:00'), TIMESTAMP('2000-01-01 23:59:59')) AS `'2000-01-02' - '2000-01-01'`,"
+        + " DATEDIFF(DATE('2001-02-01'), TIMESTAMP('2004-01-01 00:00:00')) AS `'2001-02-01' - '2004-01-01'`,"
+        + " DATEDIFF(TIMESTAMP('2004-01-01 00:00:00'), DATETIME('2002-02-01 14:25:30')) AS `'2004-01-01' - '2002-02-01'`,"
+        + " DATEDIFF(TIME('23:59:59'), TIME('00:00:00')) AS `today - today`");
+    verifySchema(result,
+        schema("DATEDIFF(TIMESTAMP('2000-01-02 00:00:00'), TIMESTAMP('2000-01-01 23:59:59'))", "'2000-01-02' - '2000-01-01'", "long"),
+        schema("DATEDIFF(DATE('2001-02-01'), TIMESTAMP('2004-01-01 00:00:00'))", "'2001-02-01' - '2004-01-01'", "long"),
+        schema("DATEDIFF(TIMESTAMP('2004-01-01 00:00:00'), DATETIME('2002-02-01 14:25:30'))", "'2004-01-01' - '2002-02-01'", "long"),
+        schema("DATEDIFF(TIME('23:59:59'), TIME('00:00:00'))", "today - today", "long"));
+    verifyDataRows(result, rows(1, -1064, 699, 0));
+  }
+
+  @Test
+  public void testTimeDiff() throws IOException {
+    var result = executeQuery("select TIMEDIFF('23:59:59', '13:00:00') as f");
+    verifySchema(result, schema("TIMEDIFF('23:59:59', '13:00:00')", "f", "time"));
+    verifyDataRows(result, rows("10:59:59"));
   }
 
   protected JSONObject executeQuery(String query) throws IOException {
