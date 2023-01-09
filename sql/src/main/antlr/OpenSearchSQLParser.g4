@@ -426,6 +426,7 @@ trigonometricFunctionName
 dateTimeFunctionName
     : datetimeConstantLiteral
     | ADDDATE
+    | ADDTIME
     | CONVERT_TZ
     | CURDATE
     | CURTIME
@@ -440,6 +441,7 @@ dateTimeFunctionName
     | DAYOFMONTH
     | DAYOFWEEK
     | DAYOFYEAR
+    | DAY_OF_WEEK
     | FROM_DAYS
     | FROM_UNIXTIME
     | HOUR
@@ -455,7 +457,9 @@ dateTimeFunctionName
     | PERIOD_DIFF
     | QUARTER
     | SECOND
+    | SECOND_OF_MINUTE
     | SUBDATE
+    | SUBTIME
     | SYSDATE
     | TIME
     | TIME_TO_SEC

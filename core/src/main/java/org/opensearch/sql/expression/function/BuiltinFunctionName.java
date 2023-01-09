@@ -59,6 +59,7 @@ public enum BuiltinFunctionName {
    * Date and Time Functions.
    */
   ADDDATE(FunctionName.of("adddate")),
+  ADDTIME(FunctionName.of("addtime")),
   CONVERT_TZ(FunctionName.of("convert_tz")),
   DATE(FunctionName.of("date")),
   DATEDIFF(FunctionName.of("datediff")),
@@ -87,6 +88,7 @@ public enum BuiltinFunctionName {
   QUARTER(FunctionName.of("quarter")),
   SECOND(FunctionName.of("second")),
   SUBDATE(FunctionName.of("subdate")),
+  SUBTIME(FunctionName.of("subtime")),
   TIME(FunctionName.of("time")),
   TIMEDIFF(FunctionName.of("timediff")),
   TIME_TO_SEC(FunctionName.of("time_to_sec")),
