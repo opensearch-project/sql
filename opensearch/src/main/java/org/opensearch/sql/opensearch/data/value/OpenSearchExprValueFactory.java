@@ -175,26 +175,27 @@ public class OpenSearchExprValueFactory {
    * https://www.elastic.co/guide/en/elasticsearch/reference/current/date_nanos.html
    * The customized date_format is not supported.
    */
-  private ExprValue parseTimestamp(Content value) {
-    if (value.isString()) {
-      // value may contain epoch millis as a string, trying to extract it
-      try {
-        return parseTimestamp(new ObjectContent(Long.parseLong(value.stringValue())));
-      } catch (NumberFormatException ignored) { /* nothing to do, try another format */ }
-      try {
-        return new ExprTimestampValue(
-            // Using OpenSearch DateFormatters for now.
-            DateFormatters.from(DATE_TIME_FORMATTER.parse(value.stringValue())).toInstant());
-      } catch (DateTimeParseException e) {
-        throw new IllegalStateException(String.format(
-            "Construct ExprTimestampValue from \"%s\" failed, unsupported date format.",
-            value.stringValue()), e);
-      }
+  private ExprValue constructTimestamp(String value) {
+    try {
+      return new ExprTimestampValue(
+          // Using OpenSearch DateFormatters for now.
+          DateFormatters.from(DATE_TIME_FORMATTER.parse(value)).toInstant());
+    } catch (DateTimeParseException e) {
+      throw new IllegalStateException(
+          String.format(
+              "Construct ExprTimestampValue from \"%s\" failed, unsupported date format.", value),
+          e);
     }
+  }
+
+  private ExprValue parseTimestamp(Content value) {
     if (value.isNumber()) {
       return new ExprTimestampValue(Instant.ofEpochMilli(value.longValue()));
+    } else if (value.isString()) {
+      return constructTimestamp(value.stringValue());
+    } else {
+      return new ExprTimestampValue((Instant) value.objectValue());
     }
-    return new ExprTimestampValue((Instant) value.objectValue());
   }
 
   private ExprValue parseStruct(Content content, String prefix) {

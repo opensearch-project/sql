@@ -9,8 +9,12 @@ package org.opensearch.sql.opensearch.storage.script.aggregation.dsl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 import static org.opensearch.common.xcontent.ToXContent.EMPTY_PARAMS;
+import static org.opensearch.sql.data.type.ExprCoreType.DATE;
+import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.TIME;
+import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.expression.DSL.ref;
 import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
@@ -24,6 +28,9 @@ import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.common.bytes.BytesReference;
@@ -33,6 +40,8 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
 import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.parse.ParseExpression;
@@ -104,6 +113,24 @@ class BucketAggregationBuilderTest {
         buildQuery(
             Arrays.asList(
                 asc(named("name", parseExpression)))));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @EnumSource(value = ExprCoreType.class, names = {"TIMESTAMP", "TIME", "DATE", "DATETIME"})
+  void terms_bucket_for_datetime_types_uses_long(ExprType dataType) {
+    assertEquals(
+        "{\n"
+            + "  \"terms\" : {\n"
+            + "    \"field\" : \"date\",\n"
+            + "    \"missing_bucket\" : true,\n"
+            + "    \"value_type\" : \"long\",\n"
+            + "    \"missing_order\" : \"first\",\n"
+            + "    \"order\" : \"asc\"\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            Arrays.asList(
+                asc(named("date", ref("date", dataType))))));
   }
 
   @SneakyThrows
