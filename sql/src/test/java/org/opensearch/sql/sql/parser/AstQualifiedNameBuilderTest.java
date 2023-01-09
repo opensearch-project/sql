@@ -51,6 +51,10 @@ public class AstQualifiedNameBuilderTest {
     buildFromQualifiers("account.location.city").expectQualifiedName("account", "location", "city");
   }
 
+  @Test
+  public void commonKeywordCanBeUsedAsIdentifier() {
+    buildFromIdentifier("type").expectQualifiedName("type");
+  }
 
   @Test
   public void functionNameCanBeUsedAsIdentifier() {

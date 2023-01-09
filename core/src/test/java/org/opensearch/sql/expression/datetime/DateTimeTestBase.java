@@ -5,53 +5,62 @@
 
 package org.opensearch.sql.expression.datetime;
 
+import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
+import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
+
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.Temporal;
 import java.util.List;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.model.ExprNullValue;
+import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.FunctionExpression;
-import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
-import org.opensearch.sql.expression.function.FunctionProperties;
 
-@ExtendWith(MockitoExtension.class)
 public class DateTimeTestBase extends ExpressionTestBase {
 
   protected final BuiltinFunctionRepository functionRepository
       = BuiltinFunctionRepository.getInstance();
-
-  @Mock
-  protected Environment<Expression, ExprValue> env;
-
-
-  protected static FunctionProperties functionProperties;
-
-  @BeforeAll
-  public static void setup() {
-    functionProperties = new FunctionProperties();
-  }
 
   protected Expression nullRef = DSL.literal(ExprNullValue.of());
 
   protected Expression missingRef = DSL.literal(ExprMissingValue.of());
 
   protected ExprValue eval(Expression expression) {
-    return expression.valueOf(env);
+    return expression.valueOf();
+  }
+
+  protected FunctionExpression addtime(Expression date, Expression interval) {
+    return (FunctionExpression) functionRepository.compile(
+        functionProperties,
+        BuiltinFunctionName.ADDTIME.getName(), List.of(date, interval));
+  }
+
+  protected ExprValue addtime(Temporal first, Temporal second) {
+    return addtime(DSL.literal(fromObjectValue(first)), DSL.literal(fromObjectValue(second)))
+        .valueOf(null);
+  }
+
+  protected FunctionExpression datediff(Expression first, Expression second) {
+    return (FunctionExpression) functionRepository.compile(
+        functionProperties,
+        BuiltinFunctionName.DATEDIFF.getName(), List.of(first, second));
+  }
+
+  protected Long datediff(Temporal first, Temporal second) {
+    return datediff(DSL.literal(fromObjectValue(first)), DSL.literal(fromObjectValue(second)))
+        .valueOf(null).longValue();
   }
 
   protected LocalDateTime fromUnixTime(Double value) {
@@ -92,7 +101,6 @@ public class DateTimeTestBase extends ExpressionTestBase {
             BuiltinFunctionName.MAKETIME.getName(), List.of(hour, minute, second));
   }
 
-
   protected LocalTime maketime(Double hour, Double minute, Double second) {
     return maketime(DSL.literal(hour), DSL.literal(minute), DSL.literal(second))
         .valueOf().timeValue();
@@ -128,6 +136,28 @@ public class DateTimeTestBase extends ExpressionTestBase {
   protected Integer period_diff(Integer first, Integer second) {
     return period_diff(DSL.literal(first), DSL.literal(second))
         .valueOf().integerValue();
+  }
+
+  protected FunctionExpression subtime(Expression date, Expression interval) {
+    return (FunctionExpression) functionRepository.compile(
+        functionProperties,
+        BuiltinFunctionName.SUBTIME.getName(), List.of(date, interval));
+  }
+
+  protected ExprValue subtime(Temporal first, Temporal second) {
+    return subtime(DSL.literal(fromObjectValue(first)), DSL.literal(fromObjectValue(second)))
+        .valueOf(null);
+  }
+
+  protected FunctionExpression timediff(Expression first, Expression second) {
+    return (FunctionExpression) functionRepository.compile(
+        functionProperties,
+        BuiltinFunctionName.TIMEDIFF.getName(), List.of(first, second));
+  }
+
+  protected LocalTime timediff(LocalTime first, LocalTime second) {
+    return timediff(DSL.literal(new ExprTimeValue(first)), DSL.literal(new ExprTimeValue(second)))
+        .valueOf(null).timeValue();
   }
 
   protected FunctionExpression unixTimeStampExpr() {

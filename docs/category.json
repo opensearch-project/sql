@@ -46,6 +46,7 @@
     "user/dql/window.rst",
     "user/beyond/partiql.rst",
     "user/dql/aggregations.rst",
-    "user/dql/complex.rst"
+    "user/dql/complex.rst",
+    "user/dql/metadata.rst"
   ]
 }

@@ -38,8 +38,70 @@ Example::
     | 2020-08-26 01:00:00                            | 2020-08-27                       | 2020-08-27 01:01:01                            |
     +------------------------------------------------+----------------------------------+------------------------------------------------+
 
+
+ADDTIME
+-------
+
+Description
+>>>>>>>>>>>
+
+Usage: addtime(expr1, expr2) adds expr2 to expr1 and returns the result. If argument is TIME, today's date is used; if argument is DATE, time at midnight is used.
+
+Argument type: DATE/DATETIME/TIMESTAMP/TIME, DATE/DATETIME/TIMESTAMP/TIME
+
+Return type map:
+
+(DATE/DATETIME/TIMESTAMP, DATE/DATETIME/TIMESTAMP/TIME) -> DATETIME
+
+(TIME, DATE/DATETIME/TIMESTAMP/TIME) -> TIME
+
+Antonyms: `SUBTIME`_
+
+Example::
+
+    os> source=people | eval `'2008-12-12' + 0` = ADDTIME(DATE('2008-12-12'), DATE('2008-11-15')) | fields `'2008-12-12' + 0`
+    fetched rows / total rows = 1/1
+    +---------------------+
+    | '2008-12-12' + 0    |
+    |---------------------|
+    | 2008-12-12 00:00:00 |
+    +---------------------+
+
+    os> source=people | eval `'23:59:59' + 0` = ADDTIME(TIME('23:59:59'), DATE('2004-01-01')) | fields `'23:59:59' + 0`
+    fetched rows / total rows = 1/1
+    +------------------+
+    | '23:59:59' + 0   |
+    |------------------|
+    | 23:59:59         |
+    +------------------+
+
+    os> source=people | eval `'2004-01-01' + '23:59:59'` = ADDTIME(DATE('2004-01-01'), TIME('23:59:59')) | fields `'2004-01-01' + '23:59:59'`
+    fetched rows / total rows = 1/1
+    +-----------------------------+
+    | '2004-01-01' + '23:59:59'   |
+    |-----------------------------|
+    | 2004-01-01 23:59:59         |
+    +-----------------------------+
+
+    os> source=people | eval `'10:20:30' + '00:05:42'` = ADDTIME(TIME('10:20:30'), TIME('00:05:42')) | fields `'10:20:30' + '00:05:42'`
+    fetched rows / total rows = 1/1
+    +---------------------------+
+    | '10:20:30' + '00:05:42'   |
+    |---------------------------|
+    | 10:26:12                  |
+    +---------------------------+
+
+    os> source=people | eval `'2007-02-28 10:20:30' + '20:40:50'` = ADDTIME(TIMESTAMP('2007-02-28 10:20:30'), DATETIME('2002-03-04 20:40:50')) | fields `'2007-02-28 10:20:30' + '20:40:50'`
+    fetched rows / total rows = 1/1
+    +--------------------------------------+
+    | '2007-02-28 10:20:30' + '20:40:50'   |
+    |--------------------------------------|
+    | 2007-03-01 07:01:20                  |
+    +--------------------------------------+
+
+
 CONVERT_TZ
-----
+----------
 
 Description
 >>>>>>>>>>>
@@ -535,6 +597,26 @@ Example::
     |-------------------------------------------------+-----------------------------------+-------------------------------------------------|
     | 2007-12-02                                      | 2020-08-25                        | 2020-08-25 01:01:01                             |
     +-------------------------------------------------+-----------------------------------+-------------------------------------------------+
+
+
+DATEDIFF
+--------
+
+Usage: Calculates the difference of date parts of given values. If the first argument is time, today's date is used.
+
+Argument type: DATE/DATETIME/TIMESTAMP/TIME, DATE/DATETIME/TIMESTAMP/TIME
+
+Return type: LONG
+
+Example::
+
+    os> source=people | eval `'2000-01-02' - '2000-01-01'` = DATEDIFF(TIMESTAMP('2000-01-02 00:00:00'), TIMESTAMP('2000-01-01 23:59:59')), `'2001-02-01' - '2004-01-01'` = DATEDIFF(DATE('2001-02-01'), TIMESTAMP('2004-01-01 00:00:00')), `today - today` = DATEDIFF(TIME('23:59:59'), TIME('00:00:00')) | fields `'2000-01-02' - '2000-01-01'`, `'2001-02-01' - '2004-01-01'`, `today - today`
+    fetched rows / total rows = 1/1
+    +-------------------------------+-------------------------------+-----------------+
+    | '2000-01-02' - '2000-01-01'   | '2001-02-01' - '2004-01-01'   | today - today   |
+    |-------------------------------+-------------------------------+-----------------|
+    | 1                             | -1064                         | 0               |
+    +-------------------------------+-------------------------------+-----------------+
 
 
 DAY
@@ -1082,6 +1164,67 @@ Example::
     +------------------------------------------------+----------------------------------+------------------------------------------------+
 
 
+SUBTIME
+-------
+
+Description
+>>>>>>>>>>>
+
+Usage: subtime(expr1, expr2) subtracts expr2 from expr1 and returns the result. If argument is TIME, today's date is used; if argument is DATE, time at midnight is used.
+
+Argument type: DATE/DATETIME/TIMESTAMP/TIME, DATE/DATETIME/TIMESTAMP/TIME
+
+Return type map:
+
+(DATE/DATETIME/TIMESTAMP, DATE/DATETIME/TIMESTAMP/TIME) -> DATETIME
+
+(TIME, DATE/DATETIME/TIMESTAMP/TIME) -> TIME
+
+Antonyms: `ADDTIME`_
+
+Example::
+
+    os> source=people | eval `'2008-12-12' - 0` = SUBTIME(DATE('2008-12-12'), DATE('2008-11-15')) | fields `'2008-12-12' - 0`
+    fetched rows / total rows = 1/1
+    +---------------------+
+    | '2008-12-12' - 0    |
+    |---------------------|
+    | 2008-12-12 00:00:00 |
+    +---------------------+
+
+    os> source=people | eval `'23:59:59' - 0` = SUBTIME(TIME('23:59:59'), DATE('2004-01-01')) | fields `'23:59:59' - 0`
+    fetched rows / total rows = 1/1
+    +------------------+
+    | '23:59:59' - 0   |
+    |------------------|
+    | 23:59:59         |
+    +------------------+
+
+    os> source=people | eval `'2004-01-01' - '23:59:59'` = SUBTIME(DATE('2004-01-01'), TIME('23:59:59')) | fields `'2004-01-01' - '23:59:59'`
+    fetched rows / total rows = 1/1
+    +-----------------------------+
+    | '2004-01-01' - '23:59:59'   |
+    |-----------------------------|
+    | 2003-12-31 00:00:01         |
+    +-----------------------------+
+
+    os> source=people | eval `'10:20:30' - '00:05:42'` = SUBTIME(TIME('10:20:30'), TIME('00:05:42')) | fields `'10:20:30' - '00:05:42'`
+    fetched rows / total rows = 1/1
+    +---------------------------+
+    | '10:20:30' - '00:05:42'   |
+    |---------------------------|
+    | 10:14:48                  |
+    +---------------------------+
+
+    os> source=people | eval `'2007-03-01 10:20:30' - '20:40:50'` = SUBTIME(TIMESTAMP('2007-03-01 10:20:30'), DATETIME('2002-03-04 20:40:50')) | fields `'2007-03-01 10:20:30' - '20:40:50'`
+    fetched rows / total rows = 1/1
+    +--------------------------------------+
+    | '2007-03-01 10:20:30' - '20:40:50'   |
+    |--------------------------------------|
+    | 2007-02-28 13:39:40                  |
+    +--------------------------------------+
+
+
 SYSDATE
 -------
 
@@ -1177,6 +1320,29 @@ Example::
     |---------------------------------|
     | 80580                           |
     +---------------------------------+
+
+
+TIMEDIFF
+--------
+
+Description
+>>>>>>>>>>>
+
+Usage: returns the difference between two time expressions as a time.
+
+Argument type: TIME, TIME
+
+Return type: TIME
+
+Example::
+
+    os> source=people | eval `TIMEDIFF('23:59:59', '13:00:00')` = TIMEDIFF('23:59:59', '13:00:00') | fields `TIMEDIFF('23:59:59', '13:00:00')`
+    fetched rows / total rows = 1/1
+    +------------------------------------+
+    | TIMEDIFF('23:59:59', '13:00:00')   |
+    |------------------------------------|
+    | 10:59:59                           |
+    +------------------------------------+
 
 
 TIMESTAMP

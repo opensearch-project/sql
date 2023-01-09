@@ -30,8 +30,6 @@ THE SOFTWARE.
 
 parser grammar OpenSearchSQLParser;
 
-import OpenSearchSQLIdentifierParser;
-
 options { tokenVocab=OpenSearchSQLLexer; }
 
 
@@ -82,13 +80,8 @@ tableFilter
     ;
 
 showDescribePattern
-    : oldID=compatibleID | stringLiteral
+    : stringLiteral
     ;
-
-compatibleID
-    : (MODULE | ID)+?
-    ;
-
 //    Select Statement's Details
 
 querySpecification
@@ -327,6 +320,10 @@ positionFunction
     : POSITION LR_BRACKET functionArg IN functionArg RR_BRACKET
     ;
 
+matchQueryAltSyntaxFunction
+    : field=relevanceField EQUAL_SYMBOL MATCH_QUERY LR_BRACKET query=relevanceQuery RR_BRACKET
+    ;
+
 scalarFunctionName
     : mathematicalFunctionName
     | dateTimeFunctionName
@@ -344,7 +341,8 @@ specificFunction
     ;
 
 relevanceFunction
-    : noFieldRelevanceFunction | singleFieldRelevanceFunction | multiFieldRelevanceFunction
+    : noFieldRelevanceFunction | singleFieldRelevanceFunction | multiFieldRelevanceFunction | altSingleFieldRelevanceFunction | altMultiFieldRelevanceFunction
+
     ;
 
 noFieldRelevanceFunction
@@ -364,6 +362,14 @@ multiFieldRelevanceFunction
         COMMA query=relevanceQuery (COMMA relevanceArg)* RR_BRACKET
     | multiFieldRelevanceFunctionName LR_BRACKET
         alternateMultiMatchQuery  COMMA alternateMultiMatchField (COMMA relevanceArg)* RR_BRACKET
+    ;
+
+altSingleFieldRelevanceFunction
+    : field=relevanceField EQUAL_SYMBOL altSyntaxFunctionName=altSingleFieldRelevanceFunctionName LR_BRACKET query=relevanceQuery (COMMA relevanceArg)* RR_BRACKET
+    ;
+
+altMultiFieldRelevanceFunction
+    : field=relevanceField EQUAL_SYMBOL altSyntaxFunctionName=altMultiFieldRelevanceFunctionName LR_BRACKET query=relevanceQuery (COMMA relevanceArg)* RR_BRACKET
     ;
 
 convertedDataType
@@ -412,6 +418,7 @@ trigonometricFunctionName
 dateTimeFunctionName
     : datetimeConstantLiteral
     | ADDDATE
+    | ADDTIME
     | CONVERT_TZ
     | CURDATE
     | CURTIME
@@ -419,6 +426,7 @@ dateTimeFunctionName
     | DATE_ADD
     | DATE_FORMAT
     | DATE_SUB
+    | DATEDIFF
     | DATETIME
     | DAY
     | DAYNAME
@@ -426,6 +434,7 @@ dateTimeFunctionName
     | DAYOFWEEK
     | DAYOFYEAR
     | DAY_OF_YEAR
+    | DAY_OF_WEEK
     | FROM_DAYS
     | FROM_UNIXTIME
     | HOUR
@@ -433,6 +442,8 @@ dateTimeFunctionName
     | MAKETIME
     | MICROSECOND
     | MINUTE
+    | MINUTE_OF_DAY
+    | MINUTE_OF_HOUR
     | MONTH
     | MONTHNAME
     | MONTH_OF_YEAR
@@ -441,10 +452,13 @@ dateTimeFunctionName
     | PERIOD_DIFF
     | QUARTER
     | SECOND
+    | SECOND_OF_MINUTE
     | SUBDATE
+    | SUBTIME
     | SYSDATE
     | TIME
     | TIME_TO_SEC
+    | TIMEDIFF
     | TIMESTAMP
     | TO_DAYS
     | UNIX_TIMESTAMP
@@ -484,6 +498,18 @@ multiFieldRelevanceFunctionName
     | MULTIMATCHQUERY
     | SIMPLE_QUERY_STRING
     | QUERY_STRING
+    ;
+
+altSingleFieldRelevanceFunctionName
+    : MATCH_QUERY
+    | MATCHQUERY
+    | MATCH_PHRASE
+    | MATCHPHRASE
+    ;
+
+altMultiFieldRelevanceFunctionName
+    : MULTI_MATCH
+    | MULTIMATCH
     ;
 
 functionArgs
@@ -560,4 +586,38 @@ alternateMultiMatchField
     : argName=alternateMultiMatchArgName EQUAL_SYMBOL argVal=relevanceArgValue
     | argName=alternateMultiMatchArgName EQUAL_SYMBOL
     LT_SQR_PRTHS argVal=relevanceArgValue RT_SQR_PRTHS
+    ;
+
+
+//    Identifiers
+
+tableName
+    : qualifiedName
+    ;
+
+columnName
+    : qualifiedName
+    ;
+
+alias
+    : ident
+    ;
+
+qualifiedName
+    : ident (DOT ident)*
+    ;
+
+ident
+    : DOT? ID
+    | BACKTICK_QUOTE_ID
+    | keywordsCanBeId
+    | scalarFunctionName
+    ;
+
+keywordsCanBeId
+    : FULL
+    | FIELD | D | T | TS // OD SQL and ODBC special
+    | COUNT | SUM | AVG | MAX | MIN
+    | FIRST | LAST
+    | TYPE // TODO: Type is keyword required by relevancy function. Remove this when relevancy functions moved out
     ;

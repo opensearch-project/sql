@@ -40,7 +40,7 @@ public class TypeInformationIT extends SQLIntegTestCase {
         executeJdbcRequest("SELECT CEIL(balance) FROM " + TestsConstants.TEST_INDEX_ACCOUNT +
             " ORDER BY balance LIMIT 5");
 
-    verifySchema(response, schema("CEIL(balance)", null, "integer"));
+    verifySchema(response, schema("CEIL(balance)", null, "long"));
   }
 
   /*

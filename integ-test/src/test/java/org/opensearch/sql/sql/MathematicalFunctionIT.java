@@ -41,6 +41,21 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testCeil() throws IOException {
+    JSONObject result = executeQuery("select ceil(0)");
+    verifySchema(result, schema("ceil(0)", null, "long"));
+    verifyDataRows(result, rows(0));
+
+    result = executeQuery("select ceil(2147483646.9)");
+    verifySchema(result, schema("ceil(2147483646.9)", null, "long"));
+    verifyDataRows(result, rows(2147483647));
+
+    result = executeQuery("select ceil(92233720368547807.9)");
+    verifySchema(result, schema("ceil(92233720368547807.9)", null, "long"));
+    verifyDataRows(result, rows(92233720368547808L));
+  }
+
+  @Test
   public void testConv() throws IOException {
     JSONObject result = executeQuery("select conv(11, 10, 16)");
     verifySchema(result, schema("conv(11, 10, 16)", null, "keyword"));
@@ -142,6 +157,30 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
     result = executeQuery("select truncate(-56, -1)");
     verifySchema(result, schema("truncate(-56, -1)", null, "long"));
     verifyDataRows(result, rows(-50));
+
+    result = executeQuery("select truncate(33.33344, -1)");
+    verifySchema(result, schema("truncate(33.33344, -1)", null, "double"));
+    verifyDataRows(result, rows(30.0));
+
+    result = executeQuery("select truncate(33.33344, 2)");
+    verifySchema(result, schema("truncate(33.33344, 2)", null, "double"));
+    verifyDataRows(result, rows(33.33));
+
+    result = executeQuery("select truncate(33.33344, 100)");
+    verifySchema(result, schema("truncate(33.33344, 100)", null, "double"));
+    verifyDataRows(result, rows(33.33344));
+
+    result = executeQuery("select truncate(33.33344, 0)");
+    verifySchema(result, schema("truncate(33.33344, 0)", null, "double"));
+    verifyDataRows(result, rows(33.0));
+
+    result = executeQuery("select truncate(33.33344, 4)");
+    verifySchema(result, schema("truncate(33.33344, 4)", null, "double"));
+    verifyDataRows(result, rows(33.3334));
+
+    result = executeQuery(String.format("select truncate(%s, 6)", Math.PI));
+    verifySchema(result, schema(String.format("truncate(%s, 6)", Math.PI), null, "double"));
+    verifyDataRows(result, rows(3.141592));
   }
 
   @Test
