@@ -51,6 +51,17 @@ public class DateTimeTestBase extends ExpressionTestBase {
         .valueOf(null);
   }
 
+  protected FunctionExpression addtime(Expression date, Expression interval) {
+    return (FunctionExpression) functionRepository.compile(
+        functionProperties,
+        BuiltinFunctionName.ADDTIME.getName(), List.of(date, interval));
+  }
+
+  protected ExprValue addtime(Temporal first, Temporal second) {
+    return addtime(DSL.literal(fromObjectValue(first)), DSL.literal(fromObjectValue(second)))
+        .valueOf(null);
+  }
+
   protected FunctionExpression date_add(Expression date, Expression interval) {
     return (FunctionExpression) functionRepository.compile(functionProperties,
         BuiltinFunctionName.DATE_ADD.getName(), List.of(date, interval));
@@ -68,7 +79,6 @@ public class DateTimeTestBase extends ExpressionTestBase {
 
   protected ExprValue date_sub(Object first, Object second) {
     return date_sub(DSL.literal(fromObjectValue(first)), DSL.literal(fromObjectValue(second)))
-        .valueOf(null);
   }
 
   protected FunctionExpression datediff(Expression first, Expression second) {
@@ -164,6 +174,16 @@ public class DateTimeTestBase extends ExpressionTestBase {
 
   protected ExprValue subdate(Object first, Object interval) {
     return subdate(DSL.literal(fromObjectValue(first)), DSL.literal(fromObjectValue(interval)))
+  }
+
+  protected FunctionExpression subtime(Expression date, Expression interval) {
+    return (FunctionExpression) functionRepository.compile(
+        functionProperties,
+        BuiltinFunctionName.SUBTIME.getName(), List.of(date, interval));
+  }
+
+  protected ExprValue subtime(Temporal first, Temporal second) {
+    return subtime(DSL.literal(fromObjectValue(first)), DSL.literal(fromObjectValue(second)))
         .valueOf(null);
   }
 

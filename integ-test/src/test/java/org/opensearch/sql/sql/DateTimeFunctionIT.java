@@ -1135,6 +1135,39 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result, rows(11, -25));
   }
 
+  public void testAddTime() throws IOException {
+    var result = executeQuery("SELECT"
+        + " ADDTIME(DATE('2008-12-12'), DATE('2008-11-15')) AS `'2008-12-12' + 0`,"
+        + " ADDTIME(TIME('23:59:59'), DATE('2004-01-01')) AS `'23:59:59' + 0`,"
+        + " ADDTIME(DATE('2004-01-01'), TIME('23:59:59')) AS `'2004-01-01' + '23:59:59'`,"
+        + " ADDTIME(TIME('10:20:30'), TIME('00:05:42')) AS `'10:20:30' + '00:05:42'`,"
+        + " ADDTIME(TIMESTAMP('1999-12-31 15:42:13'), DATETIME('1961-04-12 09:07:00')) AS `'15:42:13' + '09:07:00'`");
+    verifySchema(result,
+        schema("ADDTIME(DATE('2008-12-12'), DATE('2008-11-15'))", "'2008-12-12' + 0", "datetime"),
+        schema("ADDTIME(TIME('23:59:59'), DATE('2004-01-01'))", "'23:59:59' + 0", "time"),
+        schema("ADDTIME(DATE('2004-01-01'), TIME('23:59:59'))", "'2004-01-01' + '23:59:59'", "datetime"),
+        schema("ADDTIME(TIME('10:20:30'), TIME('00:05:42'))", "'10:20:30' + '00:05:42'", "time"),
+        schema("ADDTIME(TIMESTAMP('1999-12-31 15:42:13'), DATETIME('1961-04-12 09:07:00'))", "'15:42:13' + '09:07:00'", "datetime"));
+    verifyDataRows(result, rows("2008-12-12 00:00:00", "23:59:59", "2004-01-01 23:59:59", "10:26:12", "2000-01-01 00:49:13"));
+  }
+
+  @Test
+  public void testSubTime() throws IOException {
+    var result = executeQuery("SELECT"
+        + " SUBTIME(DATE('2008-12-12'), DATE('2008-11-15')) AS `'2008-12-12' - 0`,"
+        + " SUBTIME(TIME('23:59:59'), DATE('2004-01-01')) AS `'23:59:59' - 0`,"
+        + " SUBTIME(DATE('2004-01-01'), TIME('23:59:59')) AS `'2004-01-01' - '23:59:59'`,"
+        + " SUBTIME(TIME('10:20:30'), TIME('00:05:42')) AS `'10:20:30' - '00:05:42'`,"
+        + " SUBTIME(TIMESTAMP('1999-12-31 15:42:13'), DATETIME('1961-04-12 09:07:00')) AS `'15:42:13' - '09:07:00'`");
+    verifySchema(result,
+        schema("SUBTIME(DATE('2008-12-12'), DATE('2008-11-15'))", "'2008-12-12' - 0", "datetime"),
+        schema("SUBTIME(TIME('23:59:59'), DATE('2004-01-01'))", "'23:59:59' - 0", "time"),
+        schema("SUBTIME(DATE('2004-01-01'), TIME('23:59:59'))", "'2004-01-01' - '23:59:59'", "datetime"),
+        schema("SUBTIME(TIME('10:20:30'), TIME('00:05:42'))", "'10:20:30' - '00:05:42'", "time"),
+        schema("SUBTIME(TIMESTAMP('1999-12-31 15:42:13'), DATETIME('1961-04-12 09:07:00'))", "'15:42:13' - '09:07:00'", "datetime"));
+    verifyDataRows(result, rows("2008-12-12 00:00:00", "23:59:59", "2003-12-31 00:00:01", "10:14:48", "1999-12-31 06:35:13"));
+  }
+
   public void testDateDiff() throws IOException {
     var result = executeQuery("SELECT"
         + " DATEDIFF(TIMESTAMP('2000-01-02 00:00:00'), TIMESTAMP('2000-01-01 23:59:59')) AS `'2000-01-02' - '2000-01-01'`,"
