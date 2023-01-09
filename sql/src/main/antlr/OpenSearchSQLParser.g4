@@ -237,14 +237,11 @@ datetimeConstantLiteral
     : CURRENT_DATE
     | CURRENT_TIME
     | CURRENT_TIMESTAMP
-    | DAY_OF_YEAR
     | LOCALTIME
     | LOCALTIMESTAMP
-    | MONTH_OF_YEAR
     | UTC_TIMESTAMP
     | UTC_DATE
     | UTC_TIME
-    | WEEK_OF_YEAR
     ;
 
 intervalLiteral
@@ -437,6 +434,7 @@ dateTimeFunctionName
     | DAY_OF_MONTH
     | DAYOFWEEK
     | DAYOFYEAR
+    | DAY_OF_YEAR
     | DAY_OF_WEEK
     | FROM_DAYS
     | FROM_UNIXTIME
@@ -449,6 +447,7 @@ dateTimeFunctionName
     | MINUTE_OF_HOUR
     | MONTH
     | MONTHNAME
+    | MONTH_OF_YEAR
     | NOW
     | PERIOD_ADD
     | PERIOD_DIFF
@@ -465,6 +464,7 @@ dateTimeFunctionName
     | TO_DAYS
     | UNIX_TIMESTAMP
     | WEEK
+    | WEEK_OF_YEAR
     | YEAR
     ;
 

@@ -88,6 +88,9 @@ public class DateTimeFunction {
   // 32536771199.999999, or equivalent '3001-01-18 23:59:59.999999' UTC
   private static final Double MYSQL_MAX_TIMESTAMP = 32536771200d;
 
+  // Mode used for week/week_of_year function by default when no argument is provided
+  private static final ExprIntegerValue DEFAULT_WEEK_OF_YEAR_MODE = new ExprIntegerValue(0);
+
   /**
    * Register Date and Time Functions.
    *
@@ -475,6 +478,9 @@ public class DateTimeFunction {
    */
   private DefaultFunctionResolver dayOfYear(BuiltinFunctionName dayOfYear) {
     return define(dayOfYear.getName(),
+        implWithProperties(nullMissingHandlingWithProperties((functionProperties, arg)
+            -> DateTimeFunction.dayOfYearToday(
+            functionProperties.getQueryStartClock())), INTEGER, TIME),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfYear), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfYear), INTEGER, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfYear), INTEGER, TIMESTAMP),
@@ -562,6 +568,9 @@ public class DateTimeFunction {
    */
   private DefaultFunctionResolver month(BuiltinFunctionName month) {
     return define(month.getName(),
+        implWithProperties(nullMissingHandlingWithProperties((functionProperties, arg)
+            -> DateTimeFunction.monthOfYearToday(
+            functionProperties.getQueryStartClock())), INTEGER, TIME),
         impl(nullMissingHandling(DateTimeFunction::exprMonth), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprMonth), INTEGER, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::exprMonth), INTEGER, TIMESTAMP),
@@ -786,10 +795,18 @@ public class DateTimeFunction {
    */
   private DefaultFunctionResolver week(BuiltinFunctionName week) {
     return define(week.getName(),
+        implWithProperties(nullMissingHandlingWithProperties((functionProperties, arg)
+            -> DateTimeFunction.weekOfYearToday(
+            DEFAULT_WEEK_OF_YEAR_MODE,
+            functionProperties.getQueryStartClock())), INTEGER, TIME),
         impl(nullMissingHandling(DateTimeFunction::exprWeekWithoutMode), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprWeekWithoutMode), INTEGER, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::exprWeekWithoutMode), INTEGER, TIMESTAMP),
         impl(nullMissingHandling(DateTimeFunction::exprWeekWithoutMode), INTEGER, STRING),
+        implWithProperties(nullMissingHandlingWithProperties((functionProperties, time, modeArg)
+            -> DateTimeFunction.weekOfYearToday(
+                modeArg,
+            functionProperties.getQueryStartClock())), INTEGER, TIME, INTEGER),
         impl(nullMissingHandling(DateTimeFunction::exprWeek), INTEGER, DATE, INTEGER),
         impl(nullMissingHandling(DateTimeFunction::exprWeek), INTEGER, DATETIME, INTEGER),
         impl(nullMissingHandling(DateTimeFunction::exprWeek), INTEGER, TIMESTAMP, INTEGER),
@@ -830,8 +847,18 @@ public class DateTimeFunction {
     );
   }
 
+
   private ExprValue dayOfMonthToday(Clock clock) {
     return new ExprIntegerValue(LocalDateTime.now(clock).getDayOfMonth());
+  }
+
+  private ExprValue dayOfYearToday(Clock clock) {
+    return new ExprIntegerValue(LocalDateTime.now(clock).getDayOfYear());
+  }
+
+  private ExprValue weekOfYearToday(ExprValue mode, Clock clock) {
+    return new ExprIntegerValue(
+        CalendarLookup.getWeekNumber(mode.integerValue(), LocalDateTime.now(clock).toLocalDate()));
   }
 
   /**
@@ -1524,6 +1551,10 @@ public class DateTimeFunction {
    */
   private ExprValue exprYear(ExprValue date) {
     return new ExprIntegerValue(date.dateValue().getYear());
+  }
+
+  private ExprValue monthOfYearToday(Clock clock) {
+    return new ExprIntegerValue(LocalDateTime.now(clock).getMonthValue());
   }
 
   private LocalDateTime formatNow(Clock clock) {
