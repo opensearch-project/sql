@@ -434,6 +434,52 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testMinuteOfHour() throws IOException {
+    JSONObject result = executeQuery("select minute_of_hour(timestamp('2020-09-16 17:30:00'))");
+    verifySchema(result, schema(
+        "minute_of_hour(timestamp('2020-09-16 17:30:00'))", null, "integer"));
+    verifyDataRows(result, rows(30));
+
+    result = executeQuery("select minute_of_hour(time('17:30:00'))");
+    verifySchema(result, schema("minute_of_hour(time('17:30:00'))", null, "integer"));
+    verifyDataRows(result, rows(30));
+
+    result = executeQuery("select minute_of_hour('2020-09-16 17:30:00')");
+    verifySchema(result, schema("minute_of_hour('2020-09-16 17:30:00')", null, "integer"));
+    verifyDataRows(result, rows(30));
+
+    result = executeQuery("select minute_of_hour('17:30:00')");
+    verifySchema(result, schema("minute_of_hour('17:30:00')", null, "integer"));
+    verifyDataRows(result, rows(30));
+  }
+
+  @Test
+  public void testMinuteFunctionAliasesReturnTheSameResults() throws IOException {
+    JSONObject result1 = executeQuery("SELECT minute('11:30:00')");
+    JSONObject result2 = executeQuery("SELECT minute_of_hour('11:30:00')");
+    verifyDataRows(result1, rows(30));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT minute(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT minute_of_hour(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT minute(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT minute_of_hour(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT minute(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT minute_of_hour(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+  }
+
+  @Test
   public void testMonth() throws IOException {
     JSONObject result = executeQuery("select month(date('2020-09-16'))");
     verifySchema(result, schema("month(date('2020-09-16'))", null, "integer"));
