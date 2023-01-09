@@ -1962,6 +1962,7 @@ Description
 >>>>>>>>>>>
 
 Usage: second(time) returns the second for time, in the range 0 to 59.
+The function `second_of_minute`_ is provided as an alias
 
 Argument type: STRING/TIME/DATETIME/TIMESTAMP
 
@@ -1976,6 +1977,14 @@ Example::
     |-----------------------------|
     | 3                           |
     +-----------------------------+
+
+    os> SELECT SECOND_OF_MINUTE(time('01:02:03'))
+    fetched rows / total rows = 1/1
+    +--------------------------------------+
+    | SECOND_OF_MINUTE(time('01:02:03'))   |
+    |--------------------------------------|
+    | 3                                    |
+    +--------------------------------------+
 
 
 SUBDATE

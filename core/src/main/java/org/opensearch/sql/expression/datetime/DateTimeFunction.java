@@ -9,6 +9,7 @@ package org.opensearch.sql.expression.datetime;
 import static java.time.temporal.ChronoUnit.DAYS;
 import static java.time.temporal.ChronoUnit.MINUTES;
 import static java.time.temporal.ChronoUnit.MONTHS;
+import static java.time.temporal.ChronoUnit.SECONDS;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
@@ -129,7 +130,8 @@ public class DateTimeFunction {
     repository.register(period_add());
     repository.register(period_diff());
     repository.register(quarter());
-    repository.register(second());
+    repository.register(second(BuiltinFunctionName.SECOND));
+    repository.register(second(BuiltinFunctionName.SECOND_OF_MINUTE));
     repository.register(subdate());
     repository.register(sysdate());
     repository.register(time());
@@ -559,10 +561,11 @@ public class DateTimeFunction {
   /**
    * SECOND(STRING/TIME/DATETIME/TIMESTAMP). return the second value for time.
    */
-  private DefaultFunctionResolver second() {
-    return define(BuiltinFunctionName.SECOND.getName(),
+  private DefaultFunctionResolver second(BuiltinFunctionName name) {
+    return define(name.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprSecond), INTEGER, STRING),
         impl(nullMissingHandling(DateTimeFunction::exprSecond), INTEGER, TIME),
+        impl(nullMissingHandling(DateTimeFunction::exprSecond), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprSecond), INTEGER, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::exprSecond), INTEGER, TIMESTAMP)
     );
@@ -1134,7 +1137,8 @@ public class DateTimeFunction {
    * @return ExprValue.
    */
   private ExprValue exprSecond(ExprValue time) {
-    return new ExprIntegerValue(time.timeValue().getSecond());
+    return new ExprIntegerValue(
+        (SECONDS.between(LocalTime.MIN, time.timeValue()) % 60));
   }
 
   /**
