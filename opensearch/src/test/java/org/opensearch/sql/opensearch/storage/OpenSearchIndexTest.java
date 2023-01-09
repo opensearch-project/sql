@@ -54,6 +54,7 @@ import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
@@ -159,9 +160,9 @@ class OpenSearchIndexTest {
 
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
-    assertEquals(
-        new OpenSearchIndexScan(client, settings, indexName, maxResultWindow, exprValueFactory),
-        index.implement(plan));
+    OpenSearchRequestBuilder builder = new OpenSearchRequestBuilder(indexName, maxResultWindow,
+        settings, exprValueFactory);
+    assertEquals(new OpenSearchIndexScan(client, builder), index.implement(plan));
   }
 
   @Test
@@ -171,8 +172,10 @@ class OpenSearchIndexTest {
 
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
+    OpenSearchRequestBuilder builder = new OpenSearchRequestBuilder(indexName, maxResultWindow,
+        settings, exprValueFactory);
     assertEquals(
-        new OpenSearchIndexScan(client, settings, indexName, maxResultWindow, exprValueFactory),
+        new OpenSearchIndexScan(client, builder),
         index.implement(index.optimize(plan)));
   }
 
@@ -220,8 +223,10 @@ class OpenSearchIndexTest {
                     PhysicalPlanDSL.eval(
                         PhysicalPlanDSL.remove(
                             PhysicalPlanDSL.rename(
-                                new OpenSearchIndexScan(client, settings, indexName,
-                                    maxResultWindow, exprValueFactory),
+                                new OpenSearchIndexScan(client,
+                                    new OpenSearchRequestBuilder(
+                                      indexName, maxResultWindow,
+                                      settings, exprValueFactory)),
                                 mappings),
                             exclude),
                         newEvalField),

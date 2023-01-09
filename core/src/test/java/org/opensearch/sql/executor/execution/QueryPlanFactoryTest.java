@@ -24,6 +24,7 @@ import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.executor.PaginatedPlanCache;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryService;
 
@@ -45,16 +46,18 @@ class QueryPlanFactoryTest {
   @Mock
   private ExecutionEngine.QueryResponse queryResponse;
 
+  @Mock
+  private PaginatedPlanCache paginatedPlanCache;
   private QueryPlanFactory factory;
 
   @BeforeEach
   void init() {
-    factory = new QueryPlanFactory(queryService);
+    factory = new QueryPlanFactory(queryService, paginatedPlanCache);
   }
 
   @Test
   public void createFromQueryShouldSuccess() {
-    Statement query = new Query(plan);
+    Statement query = new Query(plan, 0);
     AbstractPlan queryExecution =
         factory.create(query, Optional.of(queryListener), Optional.empty());
     assertTrue(queryExecution instanceof QueryPlan);
@@ -62,7 +65,7 @@ class QueryPlanFactoryTest {
 
   @Test
   public void createFromExplainShouldSuccess() {
-    Statement query = new Explain(new Query(plan));
+    Statement query = new Explain(new Query(plan, 0));
     AbstractPlan queryExecution =
         factory.create(query, Optional.empty(), Optional.of(explainListener));
     assertTrue(queryExecution instanceof ExplainPlan);
@@ -70,7 +73,7 @@ class QueryPlanFactoryTest {
 
   @Test
   public void createFromQueryWithoutQueryListenerShouldThrowException() {
-    Statement query = new Query(plan);
+    Statement query = new Query(plan, 0);
 
     IllegalArgumentException exception =
         assertThrows(IllegalArgumentException.class, () -> factory.create(query,
@@ -80,7 +83,7 @@ class QueryPlanFactoryTest {
 
   @Test
   public void createFromExplainWithoutExplainListenerShouldThrowException() {
-    Statement query = new Explain(new Query(plan));
+    Statement query = new Explain(new Query(plan, 0));
 
     IllegalArgumentException exception =
         assertThrows(IllegalArgumentException.class, () -> factory.create(query,

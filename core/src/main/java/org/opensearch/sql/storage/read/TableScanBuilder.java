@@ -108,4 +108,7 @@ public abstract class TableScanBuilder extends LogicalPlan {
   public <R, C> R accept(LogicalPlanNodeVisitor<R, C> visitor, C context) {
     return visitor.visitTableScanBuilder(this, context);
   }
+
+  public void pushDownOffset(int i) {
+  }
 }

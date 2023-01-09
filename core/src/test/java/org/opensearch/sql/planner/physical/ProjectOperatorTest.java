@@ -20,7 +20,13 @@ import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.project;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.List;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -30,11 +36,12 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.DSL;
+import org.springframework.util.Assert;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectOperatorTest extends PhysicalPlanTestBase {
 
-  @Mock
+  @Mock(serializable = true)
   private PhysicalPlan inputPlan;
 
   @Test
@@ -205,5 +212,32 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
             hasItems(
                 ExprValueUtils.tupleValue(ImmutableMap.of("action", "GET", "response", "200")),
                 ExprValueUtils.tupleValue(ImmutableMap.of("action", "POST")))));
+  }
+
+  @Test
+  public void project_serialize() throws IOException, ClassNotFoundException {
+//    when(inputPlan.hasNext()).thenReturn(true, false);
+//    when(inputPlan.next())
+//        .thenReturn(ExprValueUtils.tupleValue(ImmutableMap.of("action", "GET", "response", 200)));
+    PhysicalPlan plan = project(inputPlan, DSL.named("action", DSL.ref("action", STRING)));
+
+    var os = new ByteArrayOutputStream();
+    var objstream = new ObjectOutputStream(os);
+    objstream.writeObject(plan);
+    objstream.close();
+    os.close();
+    String result = os.toString();
+
+
+    var is = new ByteArrayInputStream(os.toByteArray());
+    var outstream = new ObjectInputStream(is);
+    var newObj = outstream.readObject();
+
+    Assert.isInstanceOf(ProjectOperator.class, newObj);
+
+    var newOp = (ProjectOperator) newObj;
+
+    Assertions.assertEquals(1, newOp.getProjectList().size());
+    Assertions.assertEquals("action", newOp.getProjectList().get(0).getName());
   }
 }

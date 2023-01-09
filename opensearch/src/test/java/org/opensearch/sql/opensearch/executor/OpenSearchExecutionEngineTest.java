@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
@@ -37,12 +36,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.executor.PaginatedPlanCache;
 import org.opensearch.sql.executor.ExecutionContext;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProtector;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndexScan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.TableScanOperator;
@@ -82,7 +83,8 @@ class OpenSearchExecutionEngineTest {
     FakePhysicalPlan plan = new FakePhysicalPlan(expected.iterator());
     when(protector.protect(plan)).thenReturn(plan);
 
-    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector);
+    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector,
+        PaginatedPlanCache.None);
     List<ExprValue> actual = new ArrayList<>();
     executor.execute(
         plan,
@@ -110,7 +112,8 @@ class OpenSearchExecutionEngineTest {
     when(plan.hasNext()).thenThrow(expected);
     when(protector.protect(plan)).thenReturn(plan);
 
-    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector);
+    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector,
+        PaginatedPlanCache.None);
     AtomicReference<Exception> actual = new AtomicReference<>();
     executor.execute(
         plan,
@@ -131,11 +134,13 @@ class OpenSearchExecutionEngineTest {
 
   @Test
   void explainSuccessfully() {
-    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector);
+    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector,
+        PaginatedPlanCache.None);
     Settings settings = mock(Settings.class);
     when(settings.getSettingValue(QUERY_SIZE_LIMIT)).thenReturn(100);
     PhysicalPlan plan = new OpenSearchIndexScan(mock(OpenSearchClient.class),
-        settings, "test", 10000, mock(OpenSearchExprValueFactory.class));
+        new OpenSearchRequestBuilder("test", 10000, settings,
+            mock(OpenSearchExprValueFactory.class)));
 
     AtomicReference<ExplainResponse> result = new AtomicReference<>();
     executor.explain(plan, new ResponseListener<ExplainResponse>() {
@@ -155,7 +160,8 @@ class OpenSearchExecutionEngineTest {
 
   @Test
   void explainWithFailure() {
-    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector);
+    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector,
+        PaginatedPlanCache.None);
     PhysicalPlan plan = mock(PhysicalPlan.class);
     when(plan.accept(any(), any())).thenThrow(IllegalStateException.class);
 
@@ -184,7 +190,8 @@ class OpenSearchExecutionEngineTest {
     when(protector.protect(plan)).thenReturn(plan);
     when(executionContext.getSplit()).thenReturn(Optional.of(split));
 
-    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector);
+    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector,
+        PaginatedPlanCache.None);
     List<ExprValue> actual = new ArrayList<>();
     executor.execute(
         plan,

@@ -21,6 +21,8 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
+import org.opensearch.sql.executor.PaginatedPlanCache;
+import org.opensearch.sql.planner.physical.PhysicalPlan;
 
 /**
  * QueryExecution Factory.
@@ -37,6 +39,7 @@ public class QueryPlanFactory
    * Query Service.
    */
   private final QueryService queryService;
+  private final PaginatedPlanCache paginatedPlanCache;
 
   /**
    * NO_CONSUMER_RESPONSE_LISTENER should never been called. It is only used as constructor
@@ -79,7 +82,14 @@ public class QueryPlanFactory
     Preconditions.checkArgument(
         context.getLeft().isPresent(), "[BUG] query listener must be not null");
 
-    return new QueryPlan(QueryId.queryId(), node.getPlan(), queryService, context.getLeft().get());
+    if (node.getFetchSize() > 0) {
+      return new PaginatedPlan(QueryId.queryId(), node.getPlan(), node.getFetchSize(), queryService,
+          context.getLeft().get());
+    }
+    else {
+      return new QueryPlan(QueryId.queryId(), node.getPlan(), queryService,
+          context.getLeft().get());
+    }
   }
 
   @Override
@@ -96,5 +106,12 @@ public class QueryPlanFactory
         QueryId.queryId(),
         create(node.getStatement(), Optional.of(NO_CONSUMER_RESPONSE_LISTENER), Optional.empty()),
         context.getRight().get());
+  }
+
+  public AbstractPlan create(String cursor,
+                             ResponseListener<ExecutionEngine.QueryResponse> queryResponseListener) {
+  // get queryId from the cursor string here?
+    QueryId queryId = QueryId.queryId();
+    return new ContinuePaginatedPlan(queryId, cursor, queryService, paginatedPlanCache, queryResponseListener);
   }
 }

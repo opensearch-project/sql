@@ -41,11 +41,12 @@ public class SQLService {
    */
   public void execute(SQLQueryRequest request, ResponseListener<QueryResponse> listener) {
     try {
-      queryManager.submit(plan(request, Optional.of(listener), Optional.empty()));
+          queryManager.submit(plan(request, Optional.of(listener), Optional.empty()));
     } catch (Exception e) {
       listener.onFailure(e);
     }
   }
+
 
   /**
    * Given {@link SQLQueryRequest}, explain it. Using listener to listen result.
@@ -66,15 +67,20 @@ public class SQLService {
       Optional<ResponseListener<QueryResponse>> queryListener,
       Optional<ResponseListener<ExplainResponse>> explainListener) {
     // 1.Parse query and convert parse tree (CST) to abstract syntax tree (AST)
-    ParseTree cst = parser.parse(request.getQuery());
-    Statement statement =
-        cst.accept(
-            new AstStatementBuilder(
-                new AstBuilder(request.getQuery()),
-                AstStatementBuilder.StatementBuilderContext.builder()
-                    .isExplain(request.isExplainRequest())
-                    .build()));
+    if (request.getCursor().isPresent()) {
+      return queryExecutionFactory.create(request.getCursor().get(), queryListener.get());
+    } else {
+      ParseTree cst = parser.parse(request.getQuery());
+      Statement statement =
+          cst.accept(
+              new AstStatementBuilder(
+                  new AstBuilder(request.getQuery()),
+                  AstStatementBuilder.StatementBuilderContext.builder()
+                      .isExplain(request.isExplainRequest())
+                      .fetchSize(request.getFetchSize())
+                      .build()));
 
-    return queryExecutionFactory.create(statement, queryListener, explainListener);
+      return queryExecutionFactory.create(statement, queryListener, explainListener);
+    }
   }
 }

@@ -33,4 +33,5 @@ public class OpenSearchStorageEngine implements StorageEngine {
       return new OpenSearchIndex(client, settings, name);
     }
   }
+
 }

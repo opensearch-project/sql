@@ -38,6 +38,10 @@ import org.opensearch.sql.storage.read.TableScanBuilder;
  */
 @VisibleForTesting
 class OpenSearchIndexScanQueryBuilder extends TableScanBuilder {
+  @Override
+  public void pushDownOffset(int i) {
+    indexScan.getRequestBuilder().getSourceBuilder().from(i);
+  }
 
   /** OpenSearch index scan to be optimized. */
   @EqualsAndHashCode.Include

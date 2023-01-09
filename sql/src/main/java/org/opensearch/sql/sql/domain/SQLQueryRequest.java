@@ -7,7 +7,6 @@
 package org.opensearch.sql.sql.domain;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
@@ -28,9 +27,9 @@ import org.opensearch.sql.protocol.response.format.Format;
 @EqualsAndHashCode
 @RequiredArgsConstructor
 public class SQLQueryRequest {
-
-  private static final Set<String> SUPPORTED_FIELDS = ImmutableSet.of(
-      "query", "fetch_size", "parameters");
+  private static final String QUERY_FIELD_CURSOR = "cursor";
+  private static final Set<String> SUPPORTED_FIELDS = Set.of(
+      "query", "fetch_size", "parameters", QUERY_FIELD_CURSOR);
   private static final String QUERY_PARAMS_FORMAT = "format";
   private static final String QUERY_PARAMS_SANITIZE = "sanitize";
 
@@ -64,31 +63,36 @@ public class SQLQueryRequest {
   @Accessors(fluent = true)
   private boolean sanitize = true;
 
+  private String cursor = "";
   /**
    * Constructor of SQLQueryRequest that passes request params.
    */
   public SQLQueryRequest(
-      JSONObject jsonContent, String query, String path, Map<String, String> params) {
+      JSONObject jsonContent, String query, String path, Map<String, String> params, String cursor) {
     this.jsonContent = jsonContent;
     this.query = query;
     this.path = path;
     this.params = params;
     this.format = getFormat(params);
     this.sanitize = shouldSanitize(params);
+    // TODO hack
+    this.cursor = cursor == null? "" : cursor;
   }
 
   /**
    * Pre-check if the request can be supported by meeting ALL the following criteria:
    *  1.Only supported fields present in request body, ex. "filter" and "cursor" are not supported
-   *  2.No fetch_size or "fetch_size=0". In other word, it's not a cursor request
-   *  3.Response format is default or can be supported.
+   *  2.Response format is default or can be supported.
    *
    * @return  true if supported.
    */
   public boolean isSupported() {
-    return isOnlySupportedFieldInPayload()
-        && isFetchSizeZeroIfPresent()
+    return (isCursor() || isOnlySupportedFieldInPayload())
         && isSupportedFormat();
+  }
+
+  private boolean isCursor() {
+    return cursor == null ||  cursor.isEmpty() == false;
   }
 
   /**
@@ -113,11 +117,20 @@ public class SQLQueryRequest {
   }
 
   private boolean isOnlySupportedFieldInPayload() {
-    return SUPPORTED_FIELDS.containsAll(jsonContent.keySet());
+    return jsonContent == null || SUPPORTED_FIELDS.containsAll(jsonContent.keySet());
   }
 
-  private boolean isFetchSizeZeroIfPresent() {
-    return (jsonContent.optInt("fetch_size") == 0);
+
+  public Optional<String> getCursor() {
+    return cursor != "" ? Optional.of(cursor) : Optional.empty();
+  }
+
+  public boolean mayReturnCursor() {
+    return cursor != "" || getFetchSize() > 0;
+  }
+
+  public int getFetchSize() {
+    return jsonContent.optInt("fetch_size");
   }
 
   private boolean isSupportedFormat() {

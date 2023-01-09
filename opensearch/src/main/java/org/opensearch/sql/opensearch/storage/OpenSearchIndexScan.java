@@ -28,7 +28,7 @@ import org.opensearch.sql.storage.TableScanOperator;
 public class OpenSearchIndexScan extends TableScanOperator {
 
   /** OpenSearch client. */
-  private final OpenSearchClient client;
+  private final transient OpenSearchClient client;
 
   /** Search request builder. */
   @EqualsAndHashCode.Include
@@ -49,28 +49,13 @@ public class OpenSearchIndexScan extends TableScanOperator {
   /** Number of rows returned. */
   private Integer queryCount;
 
+
   /** Search response for current batch. */
-  private Iterator<ExprValue> iterator;
+  private transient Iterator<ExprValue> iterator;
 
-  /**
-   * Constructor.
-   */
-  public OpenSearchIndexScan(OpenSearchClient client, Settings settings,
-                             String indexName, Integer maxResultWindow,
-                             OpenSearchExprValueFactory exprValueFactory) {
-    this(client, settings,
-        new OpenSearchRequest.IndexName(indexName),maxResultWindow, exprValueFactory);
-  }
-
-  /**
-   * Constructor.
-   */
-  public OpenSearchIndexScan(OpenSearchClient client, Settings settings,
-                             OpenSearchRequest.IndexName indexName, Integer maxResultWindow,
-                             OpenSearchExprValueFactory exprValueFactory) {
+  public OpenSearchIndexScan(OpenSearchClient client, OpenSearchRequestBuilder builder) {
     this.client = client;
-    this.requestBuilder = new OpenSearchRequestBuilder(
-        indexName, maxResultWindow, settings,exprValueFactory);
+    this.requestBuilder = builder;
   }
 
   @Override
@@ -88,6 +73,8 @@ public class OpenSearchIndexScan extends TableScanOperator {
     if (queryCount >= querySize) {
       iterator = Collections.emptyIterator();
     } else if (!iterator.hasNext()) {
+      // When OpenSearch returns results in batches
+      // and plugin returns
       fetchNextBatch();
     }
     return iterator.hasNext();
@@ -117,4 +104,6 @@ public class OpenSearchIndexScan extends TableScanOperator {
   public String explain() {
     return getRequestBuilder().build().toString();
   }
+
+
 }

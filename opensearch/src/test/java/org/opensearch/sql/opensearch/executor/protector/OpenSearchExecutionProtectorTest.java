@@ -57,6 +57,7 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLOperator;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndexScan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -124,9 +125,11 @@ class OpenSearchExecutionProtectorTest {
                                             PhysicalPlanDSL.agg(
                                                 filter(
                                                     resourceMonitor(
-                                                        new OpenSearchIndexScan(
-                                                            client, settings, indexName,
-                                                            maxResultWindow, exprValueFactory)),
+                                                        new OpenSearchIndexScan(client,
+                                                            new OpenSearchRequestBuilder(indexName,
+                                                                maxResultWindow,
+                                                                settings,
+                                                                exprValueFactory))),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),
@@ -152,9 +155,11 @@ class OpenSearchExecutionProtectorTest {
                                         PhysicalPlanDSL.rename(
                                             PhysicalPlanDSL.agg(
                                                 filter(
-                                                    new OpenSearchIndexScan(
-                                                        client, settings, indexName,
-                                                        maxResultWindow, exprValueFactory),
+                                                    new OpenSearchIndexScan(client,
+                                                        new OpenSearchRequestBuilder(indexName,
+                                                            maxResultWindow,
+                                                            settings,
+                                                            exprValueFactory)),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),

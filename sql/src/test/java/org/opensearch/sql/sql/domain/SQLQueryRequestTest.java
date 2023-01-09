@@ -183,7 +183,8 @@ public class SQLQueryRequestTest {
         jsonContent = "{\"query\": \"" + query + "\"}";
       }
       if (params != null) {
-        return new SQLQueryRequest(new JSONObject(jsonContent), query, path, params);
+        return new SQLQueryRequest(new JSONObject(jsonContent), query, path, params,
+            "");
       }
       return new SQLQueryRequest(new JSONObject(jsonContent), query, path, format);
     }

@@ -16,6 +16,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.Schema.Column;
+import org.opensearch.sql.opensearch.executor.Cursor;
 
 /**
  * Query response that encapsulates query results and isolate {@link ExprValue}
@@ -32,7 +33,13 @@ public class QueryResult implements Iterable<Object[]> {
    */
   private final Collection<ExprValue> exprValues;
 
+  @Getter
+  private final Cursor cursor;
 
+
+  public QueryResult(ExecutionEngine.Schema schema, Collection<ExprValue> exprValues) {
+    this(schema, exprValues, Cursor.None);
+  }
   /**
    * size of results.
    * @return size of results

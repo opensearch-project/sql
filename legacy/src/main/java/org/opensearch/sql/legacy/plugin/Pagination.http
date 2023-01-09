@@ -1,0 +1,37 @@
+### Force pagination with LIMIT > fetch_size
+POST http://{{eshost}}:{{esport}}/_plugins/_sql
+Content-Type: application/json
+
+{
+  "query": "SELECT * FROM t1 LIMIT 2",
+  "fetch_size": 1
+}
+
+### No pagination with fetch_size > LIMIT > 0
+
+POST http://{{eshost}}:{{esport}}/_plugins/_sql
+Content-Type: application/json
+
+{
+  "query": "SELECT * FROM t1 LIMIT 2",
+  "fetch_size": 3
+}
+
+### No pagination
+
+POST http://{{eshost}}:{{esport}}/_plugins/_sql
+Content-Type: application/json
+
+{
+  "query": "SELECT * FROM t1 LIMIT 2"
+}
+
+### Add data
+
+POST http://{{eshost}}:{{esport}}/t1/_doc
+Content-Type: application/json
+
+{"fieldA": "a string", "fieldB": 42 }
+
+
+###

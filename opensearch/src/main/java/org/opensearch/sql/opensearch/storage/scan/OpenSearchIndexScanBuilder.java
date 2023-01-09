@@ -93,6 +93,11 @@ public class OpenSearchIndexScanBuilder extends TableScanBuilder {
   }
 
   @Override
+  public void pushDownOffset(int i) {
+    delegate.pushDownOffset(i);
+  }
+
+  @Override
   public boolean pushDownHighlight(LogicalHighlight highlight) {
     return delegate.pushDownHighlight(highlight);
   }

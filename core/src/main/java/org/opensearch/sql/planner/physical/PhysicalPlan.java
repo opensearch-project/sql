@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.planner.physical;
 
+import java.io.Serializable;
 import java.util.Iterator;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -17,7 +18,8 @@ import org.opensearch.sql.storage.split.Split;
  */
 public abstract class PhysicalPlan implements PlanNode<PhysicalPlan>,
     Iterator<ExprValue>,
-    AutoCloseable {
+    AutoCloseable,
+    Serializable {
   /**
    * Accept the {@link PhysicalPlanNodeVisitor}.
    *
@@ -45,4 +47,5 @@ public abstract class PhysicalPlan implements PlanNode<PhysicalPlan>,
     throw new IllegalStateException(String.format("[BUG] schema can been only applied to "
         + "ProjectOperator, instead of %s", toString()));
   }
+
 }
