@@ -9,20 +9,16 @@ package org.opensearch.sql.legacy;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.hc.client5.http.auth.AuthScope;
-import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
-import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
-import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
-import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
-import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
-import org.apache.hc.core5.http.Header;
-import org.apache.hc.core5.http.HttpHost;
-import org.apache.hc.core5.http.ParseException;
-import org.apache.hc.core5.http.io.entity.EntityUtils;
-import org.apache.hc.core5.http.message.BasicHeader;
-import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
-import org.apache.hc.core5.ssl.SSLContextBuilder;
-import org.apache.hc.core5.util.Timeout;
+import org.apache.http.Header;
+import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.message.BasicHeader;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.client.Request;
@@ -60,7 +56,7 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
   protected RestClient buildClient(Settings settings, HttpHost[] hosts) throws IOException {
     RestClientBuilder builder = RestClient.builder(hosts);
     if (isHttps()) {
-      configureHttpsClient(builder, settings, hosts[0]);
+      configureHttpsClient(builder, settings);
     } else {
       configureClient(builder, settings);
     }
@@ -72,24 +68,19 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
   protected static void wipeAllOpenSearchIndices() throws IOException {
     // include all the indices, included hidden indices.
     // https://www.elastic.co/guide/en/elasticsearch/reference/current/cat-indices.html#cat-indices-api-query-params
-    try {
-      Response response = client().performRequest(new Request("GET", "/_cat/indices?format=json&expand_wildcards=all"));
-      JSONArray jsonArray = new JSONArray(EntityUtils.toString(response.getEntity(), "UTF-8"));
-      for (Object object : jsonArray) {
-        JSONObject jsonObject = (JSONObject) object;
-        String indexName = jsonObject.getString("index");
-        //.opendistro_security isn't allowed to delete from cluster
-        if (!indexName.startsWith(".opensearch_dashboards") && !indexName.startsWith(".opendistro")) {
-          client().performRequest(new Request("DELETE", "/" + indexName));
-        }
+    Response response = client().performRequest(new Request("GET", "/_cat/indices?format=json&expand_wildcards=all"));
+    JSONArray jsonArray = new JSONArray(EntityUtils.toString(response.getEntity(), "UTF-8"));
+    for (Object object : jsonArray) {
+      JSONObject jsonObject = (JSONObject) object;
+      String indexName = jsonObject.getString("index");
+      //.opendistro_security isn't allowed to delete from cluster
+      if (!indexName.startsWith(".opensearch_dashboards") && !indexName.startsWith(".opendistro")) {
+        client().performRequest(new Request("DELETE", "/" + indexName));
       }
-    } catch (ParseException e) {
-      throw new IOException(e);
     }
   }
 
-  protected static void configureHttpsClient(RestClientBuilder builder, Settings settings,
-                                             HttpHost httpHost)
+  protected static void configureHttpsClient(RestClientBuilder builder, Settings settings)
       throws IOException {
     Map<String, String> headers = ThreadContext.buildDefaultHeaders(settings);
     Header[] defaultHeaders = new Header[headers.size()];
@@ -103,21 +94,15 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
           .orElseThrow(() -> new RuntimeException("user name is missing"));
       String password = Optional.ofNullable(System.getProperty("password"))
           .orElseThrow(() -> new RuntimeException("password is missing"));
-      BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+      CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
       credentialsProvider
-          .setCredentials(new AuthScope(httpHost), new UsernamePasswordCredentials(userName,
-              password.toCharArray()));
+          .setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(userName, password));
       try {
-        final TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create()
-            .setSslContext(SSLContextBuilder.create()
-                .loadTrustMaterial(null, (chains, authType) -> true)
-                .build())
-            .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-            .build();
-
         return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider)
-            .setConnectionManager(PoolingAsyncClientConnectionManagerBuilder.create()
-                .setTlsStrategy(tlsStrategy)
+            //disable the certificate since our testing cluster just uses the default security configuration
+            .setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+            .setSSLContext(SSLContextBuilder.create()
+                .loadTrustMaterial(null, (chains, authType) -> true)
                 .build());
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -129,7 +114,7 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
         TimeValue.parseTimeValue(socketTimeoutString == null ? "60s" : socketTimeoutString,
             CLIENT_SOCKET_TIMEOUT);
     builder.setRequestConfigCallback(
-        conf -> conf.setResponseTimeout(Timeout.ofMilliseconds(Math.toIntExact(socketTimeout.getMillis()))));
+        conf -> conf.setSocketTimeout(Math.toIntExact(socketTimeout.getMillis())));
     if (settings.hasValue(CLIENT_PATH_PREFIX)) {
       builder.setPathPrefix(settings.get(CLIENT_PATH_PREFIX));
     }

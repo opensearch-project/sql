@@ -17,8 +17,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Arrays;
-import org.apache.hc.core5.http.ProtocolVersion;
-import org.apache.hc.core5.http.message.StatusLine;
+import org.apache.http.ProtocolVersion;
+import org.apache.http.message.BasicStatusLine;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -48,7 +48,7 @@ public class OpenSearchConnectionTest {
     Response response = mock(Response.class);
     when(client.performRequest(any(Request.class))).thenReturn(response);
     when(response.getStatusLine())
-        .thenReturn(new StatusLine(new ProtocolVersion("HTTP", 2, 0), 200, ""));
+        .thenReturn(new BasicStatusLine(new ProtocolVersion("HTTP", 2, 0), 200, ""));
   }
 
   @Test

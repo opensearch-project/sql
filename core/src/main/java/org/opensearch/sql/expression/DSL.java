@@ -364,6 +364,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.MINUTE_OF_DAY, expressions);
   }
 
+  public static FunctionExpression minute_of_hour(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.MINUTE_OF_HOUR, expressions);
+  }
+
   public static FunctionExpression month(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.MONTH, expressions);
   }
