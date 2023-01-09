@@ -79,6 +79,7 @@ public class DateTimeTestBase extends ExpressionTestBase {
 
   protected ExprValue date_sub(Object first, Object second) {
     return date_sub(DSL.literal(fromObjectValue(first)), DSL.literal(fromObjectValue(second)))
+        .valueOf(null);
   }
 
   protected FunctionExpression datediff(Expression first, Expression second) {
@@ -174,6 +175,7 @@ public class DateTimeTestBase extends ExpressionTestBase {
 
   protected ExprValue subdate(Object first, Object interval) {
     return subdate(DSL.literal(fromObjectValue(first)), DSL.literal(fromObjectValue(interval)))
+        .valueOf(null);
   }
 
   protected FunctionExpression subtime(Expression date, Expression interval) {
