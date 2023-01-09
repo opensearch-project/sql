@@ -328,8 +328,9 @@ public class DSL {
     return compile(functionProperties, BuiltinFunctionName.DAYOFMONTH, expressions);
   }
 
-  public static FunctionExpression dayofweek(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.DAYOFWEEK, expressions);
+  public static FunctionExpression dayofweek(
+      FunctionProperties functionProperties, Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.DAYOFWEEK, expressions);
   }
 
   public static FunctionExpression dayofyear(Expression... expressions) {
@@ -344,6 +345,11 @@ public class DSL {
 
   public static FunctionExpression day_of_year(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.DAY_OF_YEAR, expressions);
+  }
+
+  public static FunctionExpression day_of_week(
+      FunctionProperties functionProperties, Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.DAY_OF_WEEK, expressions);
   }
 
   public static FunctionExpression from_days(Expression... expressions) {
@@ -366,6 +372,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.MINUTE_OF_DAY, expressions);
   }
 
+  public static FunctionExpression minute_of_hour(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.MINUTE_OF_HOUR, expressions);
+  }
+
   public static FunctionExpression month(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.MONTH, expressions);
   }
@@ -384,6 +394,10 @@ public class DSL {
 
   public static FunctionExpression second(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.SECOND, expressions);
+  }
+
+  public static FunctionExpression second_of_minute(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.SECOND_OF_MINUTE, expressions);
   }
 
   public static FunctionExpression subdate(Expression... expressions) {
