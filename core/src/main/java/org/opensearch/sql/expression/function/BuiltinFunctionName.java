@@ -59,6 +59,7 @@ public enum BuiltinFunctionName {
    * Date and Time Functions.
    */
   ADDDATE(FunctionName.of("adddate")),
+  ADDTIME(FunctionName.of("addtime")),
   CONVERT_TZ(FunctionName.of("convert_tz")),
   DATE(FunctionName.of("date")),
   DATEDIFF(FunctionName.of("datediff")),
@@ -70,6 +71,7 @@ public enum BuiltinFunctionName {
   DAYOFMONTH(FunctionName.of("dayofmonth")),
   DAYOFWEEK(FunctionName.of("dayofweek")),
   DAYOFYEAR(FunctionName.of("dayofyear")),
+  DAY_OF_WEEK(FunctionName.of("day_of_week")),
   DAY_OF_YEAR(FunctionName.of("day_of_year")),
   FROM_DAYS(FunctionName.of("from_days")),
   FROM_UNIXTIME(FunctionName.of("from_unixtime")),
@@ -79,6 +81,7 @@ public enum BuiltinFunctionName {
   MICROSECOND(FunctionName.of("microsecond")),
   MINUTE(FunctionName.of("minute")),
   MINUTE_OF_DAY(FunctionName.of("minute_of_day")),
+  MINUTE_OF_HOUR(FunctionName.of("minute_of_hour")),
   MONTH(FunctionName.of("month")),
   MONTH_OF_YEAR(FunctionName.of("month_of_year")),
   MONTHNAME(FunctionName.of("monthname")),
@@ -86,7 +89,9 @@ public enum BuiltinFunctionName {
   PERIOD_DIFF(FunctionName.of("period_diff")),
   QUARTER(FunctionName.of("quarter")),
   SECOND(FunctionName.of("second")),
+  SECOND_OF_MINUTE(FunctionName.of("second_of_minute")),
   SUBDATE(FunctionName.of("subdate")),
+  SUBTIME(FunctionName.of("subtime")),
   TIME(FunctionName.of("time")),
   TIMEDIFF(FunctionName.of("timediff")),
   TIME_TO_SEC(FunctionName.of("time_to_sec")),

@@ -231,12 +231,42 @@ Example::
 CEIL
 ----
 
+An alias for `CEILING`_ function.
+
+
+CEILING
+-------
+
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: CEILING(T) takes the ceiling of value T.
 
-1. CEIL(NUMBER T) -> T
+Note: `CEIL`_ and CEILING functions have the same implementation & functionality
+
+Limitation: CEILING only works as expected when IEEE 754 double type displays decimal when stored.
+
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: LONG
+
+Example::
+
+   os> SELECT CEILING(0), CEILING(50.00005), CEILING(-50.00005);
+    fetched rows / total rows = 1/1
+    +--------------+---------------------+----------------------+
+    | CEILING(0)   | CEILING(50.00005)   | CEILING(-50.00005)   |
+    |--------------+---------------------+----------------------|
+    | 0            | 51                  | -50                  |
+    +--------------+---------------------+----------------------+
+
+   os> SELECT CEILING(3147483647.12345), CEILING(113147483647.12345), CEILING(3147483647.00001);
+    fetched rows / total rows = 1/1
+    +-----------------------------+-------------------------------+-----------------------------+
+    | CEILING(3147483647.12345)   | CEILING(113147483647.12345)   | CEILING(3147483647.00001)   |
+    |-----------------------------+-------------------------------+-----------------------------|
+    | 3147483648                  | 113147483648                  | 3147483648                  |
+    +-----------------------------+-------------------------------+-----------------------------+
 
 
 CONV
@@ -424,10 +454,39 @@ FLOOR
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: FLOOR(T) takes the floor of value T.
 
-1. FLOOR(NUMBER T) -> T
+Limitation: FLOOR only works as expected when IEEE 754 double type displays decimal when stored.
 
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: LONG
+
+Example::
+
+   os> SELECT FLOOR(0), FLOOR(50.00005), FLOOR(-50.00005);
+    fetched rows / total rows = 1/1
+    +------------+-------------------+--------------------+
+    | FLOOR(0)   | FLOOR(50.00005)   | FLOOR(-50.00005)   |
+    |------------+-------------------+--------------------|
+    | 0          | 50                | -51                |
+    +------------+-------------------+--------------------+
+
+   os> SELECT FLOOR(3147483647.12345), FLOOR(113147483647.12345), FLOOR(3147483647.00001);
+    fetched rows / total rows = 1/1
+    +---------------------------+-----------------------------+---------------------------+
+    | FLOOR(3147483647.12345)   | FLOOR(113147483647.12345)   | FLOOR(3147483647.00001)   |
+    |---------------------------+-----------------------------+---------------------------|
+    | 3147483647                | 113147483647                | 3147483647                |
+    +---------------------------+-----------------------------+---------------------------+
+
+    os> SELECT FLOOR(282474973688888.022), FLOOR(9223372036854775807.022), FLOOR(9223372036854775807.0000001);
+    fetched rows / total rows = 1/1
+    +------------------------------+----------------------------------+--------------------------------------+
+    | FLOOR(282474973688888.022)   | FLOOR(9223372036854775807.022)   | FLOOR(9223372036854775807.0000001)   |
+    |------------------------------+----------------------------------+--------------------------------------|
+    | 282474973688888              | 9223372036854775807              | 9223372036854775807                  |
+    +------------------------------+----------------------------------+--------------------------------------+
 
 LN
 --
@@ -871,6 +930,67 @@ Example::
     |------------------------------------------------+----------------------------------+------------------------------------------------|
     | 2020-08-26 01:00:00                            | 2020-08-27                       | 2020-08-27 01:01:01                            |
     +------------------------------------------------+----------------------------------+------------------------------------------------+
+
+
+ADDTIME
+-------
+
+Description
+>>>>>>>>>>>
+
+Usage: addtime(expr1, expr2) adds expr2 to expr1 and returns the result. If argument is TIME, today's date is used; if argument is DATE, time at midnight is used.
+
+Argument type: DATE/DATETIME/TIMESTAMP/TIME, DATE/DATETIME/TIMESTAMP/TIME
+
+Return type map:
+
+(DATE/DATETIME/TIMESTAMP, DATE/DATETIME/TIMESTAMP/TIME) -> DATETIME
+
+(TIME, DATE/DATETIME/TIMESTAMP/TIME) -> TIME
+
+Antonyms: `SUBTIME`_
+
+Example::
+
+    os> SELECT ADDTIME(DATE('2008-12-12'), DATE('2008-11-15')) AS `'2008-12-12' + 0 `
+    fetched rows / total rows = 1/1
+    +---------------------+
+    | '2008-12-12' + 0    |
+    |---------------------|
+    | 2008-12-12 00:00:00 |
+    +---------------------+
+
+    os> SELECT ADDTIME(TIME('23:59:59'), DATE('2004-01-01')) AS `'23:59:59' + 0`
+    fetched rows / total rows = 1/1
+    +------------------+
+    | '23:59:59' + 0   |
+    |------------------|
+    | 23:59:59         |
+    +------------------+
+
+    os> SELECT ADDTIME(DATE('2004-01-01'), TIME('23:59:59')) AS `'2004-01-01' + '23:59:59'`
+    fetched rows / total rows = 1/1
+    +-----------------------------+
+    | '2004-01-01' + '23:59:59'   |
+    |-----------------------------|
+    | 2004-01-01 23:59:59         |
+    +-----------------------------+
+
+    os> SELECT ADDTIME(TIME('10:20:30'), TIME('00:05:42')) AS `'10:20:30' + '00:05:42'`
+    fetched rows / total rows = 1/1
+    +---------------------------+
+    | '10:20:30' + '00:05:42'   |
+    |---------------------------|
+    | 10:26:12                  |
+    +---------------------------+
+
+    os> SELECT ADDTIME(TIMESTAMP('2007-02-28 10:20:30'), DATETIME('2002-03-04 20:40:50')) AS `'2007-02-28 10:20:30' + '20:40:50'`
+    fetched rows / total rows = 1/1
+    +--------------------------------------+
+    | '2007-02-28 10:20:30' + '20:40:50'   |
+    |--------------------------------------|
+    | 2007-03-01 07:01:20                  |
+    +--------------------------------------+
 
 
 CONVERT_TZ
@@ -1454,20 +1574,21 @@ Description
 
 Usage: dayofweek(date) returns the weekday index for date (1 = Sunday, 2 = Monday, …, 7 = Saturday).
 
+The `day_of_week` function is also provided as an alias.
+
 Argument type: STRING/DATE/DATETIME/TIMESTAMP
 
 Return type: INTEGER
 
 Example::
 
-    os> SELECT DAYOFWEEK(DATE('2020-08-26'))
+    os> SELECT DAYOFWEEK('2020-08-26'), DAY_OF_WEEK('2020-08-26')
     fetched rows / total rows = 1/1
-    +---------------------------------+
-    | DAYOFWEEK(DATE('2020-08-26'))   |
-    |---------------------------------|
-    | 4                               |
-    +---------------------------------+
-
+    +---------------------------+-----------------------------+
+    | DAYOFWEEK('2020-08-26')   | DAY_OF_WEEK('2020-08-26')   |
+    |---------------------------+-----------------------------|
+    | 4                         | 4                           |
+    +---------------------------+-----------------------------+
 
 
 DAYOFYEAR
@@ -1477,9 +1598,10 @@ Description
 >>>>>>>>>>>
 
 Usage:  dayofyear(date) returns the day of the year for date, in the range 1 to 366.
+If an argument of type `TIME` is given, the function will use the current date.
 The function `day_of_year`_ is also provided as an alias.
 
-Argument type: STRING/DATE/DATETIME/TIMESTAMP
+Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
 
 Return type: INTEGER
 
@@ -1516,9 +1638,10 @@ DAY_OF_YEAR
 Description
 >>>>>>>>>>>
 
+If an argument of type `TIME` is given, the function will use the current date.
 This function is an alias to the `dayofyear`_ function
 
-Argument type: STRING/DATE/DATETIME/TIMESTAMP
+Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
 
 Return type: INTEGER
 
@@ -1767,6 +1890,7 @@ Description
 >>>>>>>>>>>
 
 Usage: minute(time) returns the minute for time, in the range 0 to 59.
+The `minute_of_hour` function is provided as an alias.
 
 Argument type: STRING/TIME/DATETIME/TIMESTAMP
 
@@ -1774,13 +1898,13 @@ Return type: INTEGER
 
 Example::
 
-    os> SELECT MINUTE((TIME '01:02:03'))
+    os> SELECT MINUTE(time('01:02:03')), MINUTE_OF_HOUR(time('01:02:03'))
     fetched rows / total rows = 1/1
-    +-----------------------------+
-    | MINUTE((TIME '01:02:03'))   |
-    |-----------------------------|
-    | 2                           |
-    +-----------------------------+
+    +----------------------------+------------------------------------+
+    | MINUTE(time('01:02:03'))   | MINUTE_OF_HOUR(time('01:02:03'))   |
+    |----------------------------+------------------------------------|
+    | 2                          | 2                                  |
+    +----------------------------+------------------------------------+
 
 MINUTE_OF_DAY
 ------
@@ -1812,9 +1936,10 @@ Description
 >>>>>>>>>>>
 
 Usage: month(date) returns the month for date, in the range 1 to 12 for January to December. The dates with value 0 such as '0000-00-00' or '2008-00-00' are invalid.
-The function month_of_year is also provided as an alias
+If an argument of type `TIME` is given, the function will use the current date.
+The function `month_of_year`_ is also provided as an alias.
 
-Argument type: STRING/DATE/DATETIME/TIMESTAMP
+Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
 
 Return type: INTEGER
 
@@ -1961,6 +2086,7 @@ Description
 >>>>>>>>>>>
 
 Usage: second(time) returns the second for time, in the range 0 to 59.
+The function `second_of_minute`_ is provided as an alias
 
 Argument type: STRING/TIME/DATETIME/TIMESTAMP
 
@@ -1975,6 +2101,14 @@ Example::
     |-----------------------------|
     | 3                           |
     +-----------------------------+
+
+    os> SELECT SECOND_OF_MINUTE(time('01:02:03'))
+    fetched rows / total rows = 1/1
+    +--------------------------------------+
+    | SECOND_OF_MINUTE(time('01:02:03'))   |
+    |--------------------------------------|
+    | 3                                    |
+    +--------------------------------------+
 
 
 SUBDATE
@@ -2006,6 +2140,67 @@ Example::
     |------------------------------------------------+----------------------------------+------------------------------------------------|
     | 2007-12-02                                     | 2020-08-25                       | 2020-08-25 01:01:01                            |
     +------------------------------------------------+----------------------------------+------------------------------------------------+
+
+
+SUBTIME
+-------
+
+Description
+>>>>>>>>>>>
+
+Usage: subtime(expr1, expr2) subtracts expr2 from expr1 and returns the result. If argument is TIME, today's date is used; if argument is DATE, time at midnight is used.
+
+Argument type: DATE/DATETIME/TIMESTAMP/TIME, DATE/DATETIME/TIMESTAMP/TIME
+
+Return type map:
+
+(DATE/DATETIME/TIMESTAMP, DATE/DATETIME/TIMESTAMP/TIME) -> DATETIME
+
+(TIME, DATE/DATETIME/TIMESTAMP/TIME) -> TIME
+
+Antonyms: `ADDTIME`_
+
+Example::
+
+    os> SELECT SUBTIME(DATE('2008-12-12'), DATE('2008-11-15')) AS `'2008-12-12' - 0`
+    fetched rows / total rows = 1/1
+    +---------------------+
+    | '2008-12-12' - 0    |
+    |---------------------|
+    | 2008-12-12 00:00:00 |
+    +---------------------+
+
+    os> SELECT SUBTIME(TIME('23:59:59'), DATE('2004-01-01')) AS `'23:59:59' - 0`
+    fetched rows / total rows = 1/1
+    +------------------+
+    | '23:59:59' - 0   |
+    |------------------|
+    | 23:59:59         |
+    +------------------+
+
+    os> SELECT SUBTIME(DATE('2004-01-01'), TIME('23:59:59')) AS `'2004-01-01' - '23:59:59'`
+    fetched rows / total rows = 1/1
+    +-----------------------------+
+    | '2004-01-01' - '23:59:59'   |
+    |-----------------------------|
+    | 2003-12-31 00:00:01         |
+    +-----------------------------+
+
+    os> SELECT SUBTIME(TIME('10:20:30'), TIME('00:05:42')) AS `'10:20:30' - '00:05:42'`
+    fetched rows / total rows = 1/1
+    +---------------------------+
+    | '10:20:30' - '00:05:42'   |
+    |---------------------------|
+    | 10:14:48                  |
+    +---------------------------+
+
+    os> SELECT SUBTIME(TIMESTAMP('2007-03-01 10:20:30'), DATETIME('2002-03-04 20:40:50')) AS `'2007-03-01 10:20:30' - '20:40:50'`
+    fetched rows / total rows = 1/1
+    +--------------------------------------+
+    | '2007-03-01 10:20:30' - '20:40:50'   |
+    |--------------------------------------|
+    | 2007-02-28 13:39:40                  |
+    +--------------------------------------+
 
 
 SYSDATE
@@ -2259,6 +2454,7 @@ Description
 >>>>>>>>>>>
 
 Usage: week(date[, mode]) returns the week number for date. If the mode argument is omitted, the default mode 0 is used.
+If an argument of type `TIME` is given, the function will use the current date.
 The function `week_of_year` is also provided as an alias.
 
 .. list-table:: The following table describes how the mode argument works.
@@ -2302,7 +2498,7 @@ The function `week_of_year` is also provided as an alias.
      - 1-53
      - with a Monday in this year
 
-Argument type: DATE/DATETIME/TIMESTAMP/STRING
+Argument type: DATE/DATETIME/TIME/TIMESTAMP/STRING
 
 Return type: INTEGER
 
@@ -2323,8 +2519,9 @@ Description
 >>>>>>>>>>>
 
 The week_of_year function is a synonym for the `week`_ function.
+If an argument of type `TIME` is given, the function will use the current date.
 
-Argument type: DATE/DATETIME/TIMESTAMP/STRING
+Argument type: DATE/DATETIME/TIME/TIMESTAMP/STRING
 
 Return type: INTEGER
 
@@ -3044,6 +3241,16 @@ Another example to show how to set custom values for the optional parameters::
     | Bond       |
     +------------+
 
+    The matchquery function also supports an alternative syntax::
+
+    os> SELECT firstname FROM accounts WHERE firstname = matchquery('Hattie');
+    fetched rows / total rows = 1/1
+    +-------------+
+    | firstname   |
+    |-------------|
+    | Hattie      |
+    +-------------+
+
 MATCH_QUERY
 -----
 
@@ -3072,6 +3279,16 @@ Another example to show how to set custom values for the optional parameters::
     |------------|
     | Bond       |
     +------------+
+
+The match_query function also supports an alternative syntax::
+
+    os> SELECT firstname FROM accounts WHERE firstname = match_query('Hattie');
+    fetched rows / total rows = 1/1
+    +-------------+
+    | firstname   |
+    |-------------|
+    | Hattie      |
+    +-------------+
 
 
 MATCH_PHRASE
@@ -3112,6 +3329,23 @@ Another example to show how to set custom values for the optional parameters::
     | Alan Alexander Milne | Winnie-the-Pooh          |
     +----------------------+--------------------------+
 
+The match_phrase function also supports an alternative syntax::
+
+    os> SELECT firstname FROM accounts WHERE firstname = match_phrase('Hattie');
+    fetched rows / total rows = 1/1
+    +-------------+
+    | firstname   |
+    |-------------|
+    | Hattie      |
+    +-------------+
+
+    os> SELECT firstname FROM accounts WHERE firstname = matchphrase('Hattie');
+    fetched rows / total rows = 1/1
+    +-------------+
+    | firstname   |
+    |-------------|
+    | Hattie      |
+    +-------------+
 
 MATCH_BOOL_PREFIX
 -----
@@ -3254,6 +3488,24 @@ Another example to show how to set custom values for the optional parameters::
     |------+--------------------------+----------------------|
     | 1    | The House at Pooh Corner | Alan Alexander Milne |
     +------+--------------------------+----------------------+
+
+The multi_match function also supports an alternative syntax::
+
+    os> SELECT firstname FROM accounts WHERE firstname = multi_match('Hattie');
+    fetched rows / total rows = 1/1
+    +-------------+
+    | firstname   |
+    |-------------|
+    | Hattie      |
+    +-------------+
+
+    os> SELECT firstname FROM accounts WHERE firstname = multimatch('Hattie');
+    fetched rows / total rows = 1/1
+    +-------------+
+    | firstname   |
+    |-------------|
+    | Hattie      |
+    +-------------+
 
 SIMPLE_QUERY_STRING
 -------------------
