@@ -1,8 +1,0 @@
-{
-  "error": {
-    "reason": "error reason",
-    "details": "java.lang.NullPointerException\n\tat java.base/java.lang.Thread.run(Thread.java:844)\n",
-    "type": "java.lang.NullPointerException"
-  },
-  "status": 500
-}
