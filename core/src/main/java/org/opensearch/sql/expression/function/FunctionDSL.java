@@ -141,11 +141,11 @@ public class FunctionDSL {
    * Implementation of a function that takes two arguments, returns a value, and
    * requires FunctionProperties to complete.
    *
-   * @param function   {@link ExprValue} based unary function.
+   * @param function   {@link ExprValue} based Binary function.
    * @param returnType return type.
    * @param args1Type first argument type.
    * @param args2Type second argument type.
-   * @return Unary Function Implementation.
+   * @return Binary Function Implementation.
    */
   public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
       implWithProperties(
