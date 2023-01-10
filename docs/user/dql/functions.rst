@@ -231,12 +231,42 @@ Example::
 CEIL
 ----
 
+An alias for `CEILING`_ function.
+
+
+CEILING
+-------
+
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: CEILING(T) takes the ceiling of value T.
 
-1. CEIL(NUMBER T) -> T
+Note: `CEIL`_ and CEILING functions have the same implementation & functionality
+
+Limitation: CEILING only works as expected when IEEE 754 double type displays decimal when stored.
+
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: LONG
+
+Example::
+
+   os> SELECT CEILING(0), CEILING(50.00005), CEILING(-50.00005);
+    fetched rows / total rows = 1/1
+    +--------------+---------------------+----------------------+
+    | CEILING(0)   | CEILING(50.00005)   | CEILING(-50.00005)   |
+    |--------------+---------------------+----------------------|
+    | 0            | 51                  | -50                  |
+    +--------------+---------------------+----------------------+
+
+   os> SELECT CEILING(3147483647.12345), CEILING(113147483647.12345), CEILING(3147483647.00001);
+    fetched rows / total rows = 1/1
+    +-----------------------------+-------------------------------+-----------------------------+
+    | CEILING(3147483647.12345)   | CEILING(113147483647.12345)   | CEILING(3147483647.00001)   |
+    |-----------------------------+-------------------------------+-----------------------------|
+    | 3147483648                  | 113147483648                  | 3147483648                  |
+    +-----------------------------+-------------------------------+-----------------------------+
 
 
 CONV
@@ -424,10 +454,39 @@ FLOOR
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: FLOOR(T) takes the floor of value T.
 
-1. FLOOR(NUMBER T) -> T
+Limitation: FLOOR only works as expected when IEEE 754 double type displays decimal when stored.
 
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: LONG
+
+Example::
+
+   os> SELECT FLOOR(0), FLOOR(50.00005), FLOOR(-50.00005);
+    fetched rows / total rows = 1/1
+    +------------+-------------------+--------------------+
+    | FLOOR(0)   | FLOOR(50.00005)   | FLOOR(-50.00005)   |
+    |------------+-------------------+--------------------|
+    | 0          | 50                | -51                |
+    +------------+-------------------+--------------------+
+
+   os> SELECT FLOOR(3147483647.12345), FLOOR(113147483647.12345), FLOOR(3147483647.00001);
+    fetched rows / total rows = 1/1
+    +---------------------------+-----------------------------+---------------------------+
+    | FLOOR(3147483647.12345)   | FLOOR(113147483647.12345)   | FLOOR(3147483647.00001)   |
+    |---------------------------+-----------------------------+---------------------------|
+    | 3147483647                | 113147483647                | 3147483647                |
+    +---------------------------+-----------------------------+---------------------------+
+
+    os> SELECT FLOOR(282474973688888.022), FLOOR(9223372036854775807.022), FLOOR(9223372036854775807.0000001);
+    fetched rows / total rows = 1/1
+    +------------------------------+----------------------------------+--------------------------------------+
+    | FLOOR(282474973688888.022)   | FLOOR(9223372036854775807.022)   | FLOOR(9223372036854775807.0000001)   |
+    |------------------------------+----------------------------------+--------------------------------------|
+    | 282474973688888              | 9223372036854775807              | 9223372036854775807                  |
+    +------------------------------+----------------------------------+--------------------------------------+
 
 LN
 --
@@ -1435,13 +1494,13 @@ DAY
 Description
 >>>>>>>>>>>
 
-Usage: day(date) extracts the day of the month for date, in the range 1 to 31. The dates with value 0 such as '0000-00-00' or '2008-00-00' are invalid.
+Usage: day(date) extracts the day of the month for date, in the range 1 to 31.
 
-Argument type: STRING/DATE/DATETIME/TIMESTAMP
+Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
 
 Return type: INTEGER
 
-Synonyms: `DAYOFMONTH`_
+Synonyms: `DAYOFMONTH`_, `DAY_OF_MONTH`_
 
 Example::
 
@@ -1483,13 +1542,13 @@ DAYOFMONTH
 Description
 >>>>>>>>>>>
 
-Usage: dayofmonth(date) extracts the day of the month for date, in the range 1 to 31. The dates with value 0 such as '0000-00-00' or '2008-00-00' are invalid.
+Usage: dayofmonth(date) extracts the day of the month for date, in the range 1 to 31.
 
-Argument type: STRING/DATE/DATETIME/TIMESTAMP
+Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
 
 Return type: INTEGER
 
-Synonyms: DAY
+Synonyms: `DAY`_, `DAY_OF_MONTH`_
 
 Example::
 
@@ -1501,6 +1560,29 @@ Example::
     | 26                               |
     +----------------------------------+
 
+DAY_OF_MONTH
+------------
+
+Description
+>>>>>>>>>>>
+
+Usage: day_of_month(date) extracts the day of the month for date, in the range 1 to 31.
+
+Argument type: STRING/DATE/TIME/DATETIME/TIMESTAMP
+
+Return type: INTEGER
+
+Synonyms: `DAY`_, `DAYOFMONTH`_
+
+Example::
+
+    os> SELECT DAY_OF_MONTH('2020-08-26')
+    fetched rows / total rows = 1/1
+    +------------------------------+
+    | DAY_OF_MONTH('2020-08-26')   |
+    |------------------------------|
+    | 26                           |
+    +------------------------------+
 
 DAYOFWEEK
 ---------
@@ -1534,9 +1616,10 @@ Description
 >>>>>>>>>>>
 
 Usage:  dayofyear(date) returns the day of the year for date, in the range 1 to 366.
+If an argument of type `TIME` is given, the function will use the current date.
 The function `day_of_year`_ is also provided as an alias.
 
-Argument type: STRING/DATE/DATETIME/TIMESTAMP
+Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
 
 Return type: INTEGER
 
@@ -1573,9 +1656,10 @@ DAY_OF_YEAR
 Description
 >>>>>>>>>>>
 
+If an argument of type `TIME` is given, the function will use the current date.
 This function is an alias to the `dayofyear`_ function
 
-Argument type: STRING/DATE/DATETIME/TIMESTAMP
+Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
 
 Return type: INTEGER
 
@@ -1870,9 +1954,10 @@ Description
 >>>>>>>>>>>
 
 Usage: month(date) returns the month for date, in the range 1 to 12 for January to December. The dates with value 0 such as '0000-00-00' or '2008-00-00' are invalid.
-The function month_of_year is also provided as an alias
+If an argument of type `TIME` is given, the function will use the current date.
+The function `month_of_year`_ is also provided as an alias.
 
-Argument type: STRING/DATE/DATETIME/TIMESTAMP
+Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
 
 Return type: INTEGER
 
@@ -2390,6 +2475,7 @@ Description
 >>>>>>>>>>>
 
 Usage: week(date[, mode]) returns the week number for date. If the mode argument is omitted, the default mode 0 is used.
+If an argument of type `TIME` is given, the function will use the current date.
 The function `week_of_year` is also provided as an alias.
 
 .. list-table:: The following table describes how the mode argument works.
@@ -2433,7 +2519,7 @@ The function `week_of_year` is also provided as an alias.
      - 1-53
      - with a Monday in this year
 
-Argument type: DATE/DATETIME/TIMESTAMP/STRING
+Argument type: DATE/DATETIME/TIME/TIMESTAMP/STRING
 
 Return type: INTEGER
 
@@ -2454,8 +2540,9 @@ Description
 >>>>>>>>>>>
 
 The week_of_year function is a synonym for the `week`_ function.
+If an argument of type `TIME` is given, the function will use the current date.
 
-Argument type: DATE/DATETIME/TIMESTAMP/STRING
+Argument type: DATE/DATETIME/TIME/TIMESTAMP/STRING
 
 Return type: INTEGER
 

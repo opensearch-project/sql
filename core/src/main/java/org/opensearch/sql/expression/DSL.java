@@ -310,8 +310,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.DAYNAME, expressions);
   }
 
-  public static FunctionExpression dayofmonth(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.DAYOFMONTH, expressions);
+  public static FunctionExpression dayofmonth(
+      FunctionProperties functionProperties,
+      Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.DAYOFMONTH, expressions);
   }
 
   public static FunctionExpression dayofweek(
@@ -323,8 +325,15 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.DAYOFYEAR, expressions);
   }
 
-  public static FunctionExpression day_of_year(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.DAY_OF_YEAR, expressions);
+  public static FunctionExpression day_of_month(
+      FunctionProperties functionProperties,
+      Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.DAY_OF_MONTH, expressions);
+  }
+
+  public static FunctionExpression day_of_year(
+      FunctionProperties functionProperties, Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.DAY_OF_YEAR, expressions);
   }
 
   public static FunctionExpression day_of_week(
@@ -360,8 +369,9 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.MONTH, expressions);
   }
 
-  public static FunctionExpression month_of_year(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.MONTH_OF_YEAR, expressions);
+  public static FunctionExpression month_of_year(
+      FunctionProperties functionProperties, Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.MONTH_OF_YEAR, expressions);
   }
 
   public static FunctionExpression monthname(Expression... expressions) {
@@ -400,12 +410,14 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.TO_DAYS, expressions);
   }
 
-  public static FunctionExpression week(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.WEEK, expressions);
+  public static FunctionExpression week(
+      FunctionProperties functionProperties, Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.WEEK, expressions);
   }
 
-  public static FunctionExpression week_of_year(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.WEEK_OF_YEAR, expressions);
+  public static FunctionExpression week_of_year(
+      FunctionProperties functionProperties, Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.WEEK_OF_YEAR, expressions);
   }
 
   public static FunctionExpression year(Expression... expressions) {
