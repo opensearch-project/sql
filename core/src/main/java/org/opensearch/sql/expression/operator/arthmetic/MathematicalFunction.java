@@ -119,16 +119,16 @@ public class MathematicalFunction {
   private static DefaultFunctionResolver ceil() {
     return FunctionDSL.define(BuiltinFunctionName.CEIL.getName(),
         FunctionDSL.impl(
-            FunctionDSL.nullMissingHandling(v -> new ExprIntegerValue(Math.ceil(v.doubleValue()))),
-            INTEGER, DOUBLE)
+            FunctionDSL.nullMissingHandling(v -> new ExprLongValue(Math.ceil(v.doubleValue()))),
+            LONG, DOUBLE)
     );
   }
 
   private static DefaultFunctionResolver ceiling() {
     return FunctionDSL.define(BuiltinFunctionName.CEILING.getName(),
         FunctionDSL.impl(
-            FunctionDSL.nullMissingHandling(v -> new ExprIntegerValue(Math.ceil(v.doubleValue()))),
-            INTEGER, DOUBLE)
+            FunctionDSL.nullMissingHandling(v -> new ExprLongValue(Math.ceil(v.doubleValue()))),
+            LONG, DOUBLE)
     );
   }
 
@@ -204,8 +204,8 @@ public class MathematicalFunction {
   private static DefaultFunctionResolver floor() {
     return FunctionDSL.define(BuiltinFunctionName.FLOOR.getName(),
         FunctionDSL.impl(
-            FunctionDSL.nullMissingHandling(v -> new ExprIntegerValue(Math.floor(v.doubleValue()))),
-            INTEGER, DOUBLE)
+            FunctionDSL.nullMissingHandling(v -> new ExprLongValue(Math.floor(v.doubleValue()))),
+            LONG, DOUBLE)
     );
   }
 

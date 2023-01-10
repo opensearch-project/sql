@@ -1,0 +1,8 @@
+{"index":{"_id":"1"}}
+{"id.serial" : 1 , "attributes.hardware.correlate_id": 3, "attributes.hardware.platform": "Linux"}
+{"index":{"_id":"2"}}
+{"id.serial" : 2 , "attributes.hardware.correlate_id": 3, "attributes.hardware.platform": "Windows"}
+{"index":{"_id":"3"}}
+{"id.serial" : 3 , "attributes.hardware.correlate_id": 3, "attributes.hardware.platform": "Linux"}
+{"index":{"_id":"4"}}
+{"id.serial" : 4 , "attributes.hardware.correlate_id": 100, "attributes.hardware.platform": "Linux"}
