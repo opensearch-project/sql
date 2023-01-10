@@ -73,6 +73,7 @@ configurations.all {
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.6.0"
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0"
     resolutionStrategy.force "com.squareup.okhttp3:okhttp:4.9.3"
+    resolutionStrategy.force "org.apache.httpcomponents:httpcore:4.4.13"
     resolutionStrategy.force "org.apache.commons:commons-math3:3.6.1"
     resolutionStrategy.force "org.apache.commons:commons-lang3:3.12.0"
     resolutionStrategy.force "joda-time:joda-time:2.10.12"
@@ -83,6 +84,7 @@ dependencies {
     testImplementation group: 'org.opensearch.test', name: 'framework', version: "${opensearch_version}"
     testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
     testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-client', version: "${opensearch_version}"
+    testImplementation group: 'org.opensearch.driver', name: 'opensearch-sql-jdbc', version: '1.2.0.0'
     testImplementation group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
     implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version:'2.17.1'
     testImplementation project(':opensearch-sql-plugin')
@@ -90,11 +92,6 @@ dependencies {
     testImplementation('org.junit.jupiter:junit-jupiter-api:5.6.2')
     testRuntimeOnly('org.junit.jupiter:junit-jupiter-engine:5.6.2')
 
-    // JDBC drivers for comparison test. Somehow Apache Derby throws security permission exception.
-    testImplementation fileTree('../sql-jdbc/build/libs') {
-        include '*.jar'
-        builtBy 'compileJdbc'
-    }
     testImplementation group: 'com.h2database', name: 'h2', version: '2.1.214'
     testImplementation group: 'org.xerial', name: 'sqlite-jdbc', version: '3.28.0'
     testImplementation group: 'com.google.code.gson', name: 'gson', version: '2.8.9'
@@ -231,18 +228,6 @@ task comparisonTest(type: RestIntegTestTask) {
     systemProperty "dbUrl", System.getProperty("dbUrl")
     systemProperty "otherDbUrls", System.getProperty("otherDbUrls")
     systemProperty "queries", System.getProperty("queries")
-}
-
-task compileJdbc(type: Exec) {
-    workingDir '../sql-jdbc/'
-
-    if (DefaultNativePlatform.getCurrentOperatingSystem().isWindows()) {
-        commandLine './gradlew.bat', 'build'
-        commandLine './gradlew.bat', 'shadowJar'
-    } else {
-        commandLine './gradlew', 'build'
-        commandLine './gradlew', 'shadowJar'
-    }
 }
 
 String bwcMinVersion = "1.1.0.0"
