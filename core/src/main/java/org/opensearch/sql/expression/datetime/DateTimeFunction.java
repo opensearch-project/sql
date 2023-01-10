@@ -64,7 +64,6 @@ import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
-import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
@@ -113,7 +112,8 @@ public class DateTimeFunction {
     repository.register(date_sub());
     repository.register(day());
     repository.register(dayName());
-    repository.register(dayOfMonth());
+    repository.register(dayOfMonth(BuiltinFunctionName.DAYOFMONTH));
+    repository.register(dayOfMonth(BuiltinFunctionName.DAY_OF_MONTH));
     repository.register(dayOfWeek(BuiltinFunctionName.DAYOFWEEK.getName()));
     repository.register(dayOfWeek(BuiltinFunctionName.DAY_OF_WEEK.getName()));
     repository.register(dayOfYear(BuiltinFunctionName.DAYOFYEAR));
@@ -444,12 +444,15 @@ public class DateTimeFunction {
   /**
    * DAYOFMONTH(STRING/DATE/DATETIME/TIMESTAMP). return the day of the month (1-31).
    */
-  private DefaultFunctionResolver dayOfMonth() {
-    return define(BuiltinFunctionName.DAYOFMONTH.getName(),
+  private DefaultFunctionResolver dayOfMonth(BuiltinFunctionName name) {
+    return define(name.getName(),
+        implWithProperties(nullMissingHandlingWithProperties(
+            (functionProperties, arg) -> DateTimeFunction.dayOfMonthToday(
+                functionProperties.getQueryStartClock())), INTEGER, TIME),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfMonth), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfMonth), INTEGER, DATETIME),
-        impl(nullMissingHandling(DateTimeFunction::exprDayOfMonth), INTEGER, TIMESTAMP),
-        impl(nullMissingHandling(DateTimeFunction::exprDayOfMonth), INTEGER, STRING)
+        impl(nullMissingHandling(DateTimeFunction::exprDayOfMonth), INTEGER, STRING),
+        impl(nullMissingHandling(DateTimeFunction::exprDayOfMonth), INTEGER, TIMESTAMP)
     );
   }
 
@@ -844,6 +847,11 @@ public class DateTimeFunction {
     );
   }
 
+
+  private ExprValue dayOfMonthToday(Clock clock) {
+    return new ExprIntegerValue(LocalDateTime.now(clock).getDayOfMonth());
+  }
+
   private ExprValue dayOfYearToday(Clock clock) {
     return new ExprIntegerValue(LocalDateTime.now(clock).getDayOfYear());
   }
@@ -1058,7 +1066,7 @@ public class DateTimeFunction {
   /**
    * Day of Month implementation for ExprValue.
    *
-   * @param date ExprValue of Date/String type.
+   * @param date ExprValue of Date/Datetime/String/Time/Timestamp type.
    * @return ExprValue.
    */
   private ExprValue exprDayOfMonth(ExprValue date) {

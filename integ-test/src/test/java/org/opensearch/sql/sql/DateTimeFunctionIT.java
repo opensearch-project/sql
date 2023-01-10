@@ -209,6 +209,48 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testDayOfMonthWithUnderscores() throws IOException {
+    JSONObject result = executeQuery("select day_of_month(date('2020-09-16'))");
+    verifySchema(result, schema("day_of_month(date('2020-09-16'))", null, "integer"));
+    verifyDataRows(result, rows(16));
+
+    result = executeQuery("select day_of_month('2020-09-16')");
+    verifySchema(result, schema("day_of_month('2020-09-16')", null, "integer"));
+    verifyDataRows(result, rows(16));
+  }
+
+  @Test
+  public void testDayOfMonthAliasesReturnTheSameResults() throws IOException {
+    JSONObject result1 = executeQuery("SELECT dayofmonth(date('2022-11-22'))");
+    JSONObject result2 = executeQuery("SELECT day_of_month(date('2022-11-22'))");
+    verifyDataRows(result1, rows(22));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT dayofmonth(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT day_of_month(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT dayofmonth(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT day_of_month(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT dayofmonth(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT day_of_month(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+
+    result1 = executeQuery(String.format(
+        "SELECT dayofmonth(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+    result2 = executeQuery(String.format(
+        "SELECT day_of_month(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+  }
+  @Test
   public void testDayOfWeek() throws IOException {
     JSONObject result = executeQuery("select dayofweek(date('2020-09-16'))");
     verifySchema(result, schema("dayofweek(date('2020-09-16'))", null, "integer"));

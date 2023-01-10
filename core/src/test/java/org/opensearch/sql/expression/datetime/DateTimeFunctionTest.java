@@ -422,18 +422,99 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void dayOfMonth() {
     when(nullRef.type()).thenReturn(DATE);
     when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(DSL.dayofmonth(nullRef)));
-    assertEquals(missingValue(), eval(DSL.dayofmonth(missingRef)));
+    assertEquals(nullValue(), eval(DSL.dayofmonth(functionProperties, nullRef)));
+    assertEquals(missingValue(), eval(DSL.dayofmonth(functionProperties, missingRef)));
 
-    FunctionExpression expression = DSL.dayofmonth(DSL.literal(new ExprDateValue("2020-08-07")));
+    FunctionExpression expression = DSL.dayofmonth(
+        functionProperties, DSL.literal(new ExprDateValue("2020-08-07")));
     assertEquals(INTEGER, expression.type());
     assertEquals("dayofmonth(DATE '2020-08-07')", expression.toString());
     assertEquals(integerValue(7), eval(expression));
 
-    expression = DSL.dayofmonth(DSL.literal("2020-07-08"));
+    expression = DSL.dayofmonth(functionProperties, DSL.literal("2020-07-08"));
     assertEquals(INTEGER, expression.type());
     assertEquals("dayofmonth(\"2020-07-08\")", expression.toString());
     assertEquals(integerValue(8), eval(expression));
+  }
+
+  private void testDayOfMonthWithUnderscores(FunctionExpression dateExpression, int dayOfMonth) {
+    assertEquals(INTEGER, dateExpression.type());
+    assertEquals(integerValue(dayOfMonth), eval(dateExpression));
+  }
+
+  @Test
+  public void dayOfMonthWithUnderscores() {
+    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
+    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
+
+
+    FunctionExpression expression1 = DSL.dayofmonth(
+        functionProperties, DSL.literal(new ExprDateValue("2020-08-07")));
+    FunctionExpression expression2 = DSL.dayofmonth(functionProperties, DSL.literal("2020-07-08"));
+
+    assertAll(
+        () -> testDayOfMonthWithUnderscores(expression1, 7),
+        () -> assertEquals("dayofmonth(DATE '2020-08-07')", expression1.toString()),
+
+        () -> testDayOfMonthWithUnderscores(expression2, 8),
+        () -> assertEquals("dayofmonth(\"2020-07-08\")", expression2.toString())
+
+    );
+  }
+
+  @Test
+  public void testDayOfMonthWithTimeType() {
+    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
+    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
+    FunctionExpression expression = DSL.day_of_month(
+        functionProperties, DSL.literal(new ExprTimeValue("12:23:34")));
+
+    assertEquals(INTEGER, eval(expression).type());
+    assertEquals(
+        LocalDate.now(functionProperties.getQueryStartClock()).getDayOfMonth(),
+        eval(expression).integerValue());
+    assertEquals("day_of_month(TIME '12:23:34')", expression.toString());
+  }
+
+  private void testInvalidDayOfMonth(String date) {
+    FunctionExpression expression = DSL.day_of_month(
+        functionProperties, DSL.literal(new ExprDateValue(date)));
+    eval(expression);
+  }
+
+  @Test
+  public void dayOfMonthWithUnderscoresLeapYear() {
+    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
+    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
+
+    //Feb. 29 of a leap year
+    testDayOfMonthWithUnderscores(DSL.day_of_month(
+        functionProperties, DSL.literal("2020-02-29")), 29);
+
+    //Feb. 29 of a non-leap year
+    assertThrows(SemanticCheckException.class, () -> testInvalidDayOfMonth("2021-02-29"));
+  }
+
+  @Test
+  public void dayOfMonthWithUnderscoresInvalidArguments() {
+    lenient().when(nullRef.type()).thenReturn(DATE);
+    lenient().when(missingRef.type()).thenReturn(DATE);
+
+    assertAll(
+        () -> assertEquals(nullValue(), eval(DSL.day_of_month(functionProperties, nullRef))),
+        () -> assertEquals(
+            missingValue(), eval(DSL.day_of_month(functionProperties, missingRef))),
+
+        //40th day of the month
+        () -> assertThrows(
+            SemanticCheckException.class, () -> testInvalidDayOfMonth("2021-02-40")),
+        //13th month of the year
+        () -> assertThrows(
+            SemanticCheckException.class, () -> testInvalidDayOfMonth("2021-13-40")),
+        //incorrect format
+        () -> assertThrows(
+            SemanticCheckException.class, () -> testInvalidDayOfMonth("asdfasdfasdf"))
+    );
   }
 
   private void dayOfWeekQuery(
