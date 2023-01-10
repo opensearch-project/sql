@@ -1,0 +1,31 @@
+plugins {
+    id 'java'
+}
+
+version '2.4.0.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation('org.apache.flink:flink-sql-client:1.16.0')
+    implementation('org.apache.flink:flink-table-planner_2.12:1.16.0') {
+        exclude group: 'org.codehaus.janino', module: 'janino'
+        exclude group: 'org.codehaus.janino', module: 'commons-compiler'
+    }
+
+    implementation('org.apache.flink:flink-connector-hive_2.12:1.16.0')
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+}
+
+// Exclude transitively
+configurations.implementation {
+    exclude group: 'org.javassist', module: 'javassist'
+}
+
+test {
+    useJUnitPlatform()
+}

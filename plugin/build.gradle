@@ -100,6 +100,16 @@ configurations.all {
     resolutionStrategy.force "org.apache.commons:commons-lang3:3.12.0"
     resolutionStrategy.force "joda-time:joda-time:2.10.12"
     resolutionStrategy.force "org.slf4j:slf4j-api:1.7.36"
+
+    // Conflicts introduced by flink-sql module
+    resolutionStrategy.force 'org.objenesis:objenesis:3.2'
+    resolutionStrategy.force 'com.google.code.findbugs:jsr305:3.0.2'
+    resolutionStrategy.force 'commons-cli:commons-cli:1.5.0'
+    resolutionStrategy.force 'org.scala-lang:scala-library:2.12.7'
+    resolutionStrategy.force 'com.esotericsoftware.kryo:kryo:2.24.0'
+    resolutionStrategy.force 'commons-io:commons-io:2.11.0'
+    resolutionStrategy.force 'org.xerial.snappy:snappy-java:1.1.8.3'
+    resolutionStrategy.force 'com.ibm.icu:icu4j:67.1'
 }
 compileJava {
     options.compilerArgs.addAll(["-processor", 'lombok.launch.AnnotationProcessorHider$AnnotationProcessor'])
@@ -119,6 +129,7 @@ dependencies {
     api project(':opensearch')
     api project(':prometheus')
     api project(':filesystem')
+    api project(':flink-sql')
 }
 
 test {
