@@ -1598,9 +1598,10 @@ Description
 >>>>>>>>>>>
 
 Usage:  dayofyear(date) returns the day of the year for date, in the range 1 to 366.
+If an argument of type `TIME` is given, the function will use the current date.
 The function `day_of_year`_ is also provided as an alias.
 
-Argument type: STRING/DATE/DATETIME/TIMESTAMP
+Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
 
 Return type: INTEGER
 
@@ -1637,9 +1638,10 @@ DAY_OF_YEAR
 Description
 >>>>>>>>>>>
 
+If an argument of type `TIME` is given, the function will use the current date.
 This function is an alias to the `dayofyear`_ function
 
-Argument type: STRING/DATE/DATETIME/TIMESTAMP
+Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
 
 Return type: INTEGER
 
@@ -1934,9 +1936,10 @@ Description
 >>>>>>>>>>>
 
 Usage: month(date) returns the month for date, in the range 1 to 12 for January to December. The dates with value 0 such as '0000-00-00' or '2008-00-00' are invalid.
-The function month_of_year is also provided as an alias
+If an argument of type `TIME` is given, the function will use the current date.
+The function `month_of_year`_ is also provided as an alias.
 
-Argument type: STRING/DATE/DATETIME/TIMESTAMP
+Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
 
 Return type: INTEGER
 
@@ -2451,6 +2454,7 @@ Description
 >>>>>>>>>>>
 
 Usage: week(date[, mode]) returns the week number for date. If the mode argument is omitted, the default mode 0 is used.
+If an argument of type `TIME` is given, the function will use the current date.
 The function `week_of_year` is also provided as an alias.
 
 .. list-table:: The following table describes how the mode argument works.
@@ -2494,7 +2498,7 @@ The function `week_of_year` is also provided as an alias.
      - 1-53
      - with a Monday in this year
 
-Argument type: DATE/DATETIME/TIMESTAMP/STRING
+Argument type: DATE/DATETIME/TIME/TIMESTAMP/STRING
 
 Return type: INTEGER
 
@@ -2515,8 +2519,9 @@ Description
 >>>>>>>>>>>
 
 The week_of_year function is a synonym for the `week`_ function.
+If an argument of type `TIME` is given, the function will use the current date.
 
-Argument type: DATE/DATETIME/TIMESTAMP/STRING
+Argument type: DATE/DATETIME/TIME/TIMESTAMP/STRING
 
 Return type: INTEGER
 
