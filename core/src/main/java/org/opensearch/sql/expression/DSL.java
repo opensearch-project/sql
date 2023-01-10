@@ -322,8 +322,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.DAYNAME, expressions);
   }
 
-  public static FunctionExpression dayofmonth(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.DAYOFMONTH, expressions);
+  public static FunctionExpression dayofmonth(
+      FunctionProperties functionProperties,
+      Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.DAYOFMONTH, expressions);
   }
 
   public static FunctionExpression dayofweek(
@@ -333,6 +335,12 @@ public class DSL {
 
   public static FunctionExpression dayofyear(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.DAYOFYEAR, expressions);
+  }
+
+  public static FunctionExpression day_of_month(
+      FunctionProperties functionProperties,
+      Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.DAY_OF_MONTH, expressions);
   }
 
   public static FunctionExpression day_of_year(

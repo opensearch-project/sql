@@ -431,6 +431,7 @@ dateTimeFunctionName
     | DAY
     | DAYNAME
     | DAYOFMONTH
+    | DAY_OF_MONTH
     | DAYOFWEEK
     | DAYOFYEAR
     | DAY_OF_YEAR
