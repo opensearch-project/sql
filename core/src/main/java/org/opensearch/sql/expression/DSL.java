@@ -361,6 +361,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.HOUR, expressions);
   }
 
+  public static FunctionExpression hour_of_day(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.HOUR_OF_DAY, expressions);
+  }
+
   public static FunctionExpression microsecond(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.MICROSECOND, expressions);
   }
