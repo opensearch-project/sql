@@ -5,6 +5,7 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 2.5.0
 ### Refactoring
 * The SQL Plugin was rearranged into separate repositories ([#640](https://github.com/opensearch-project/sql/issues/640) [#1263](https://github.com/opensearch-project/sql/issues/1263))
 * Added SQL-Jdbc repository https://github.com/opensearch-project/sql-jdbc ([#964](https://github.com/opensearch-project/sql/issues/964))
+* Added SQL-Jdbc maven artifact as a dependency ([#2692](https://github.com/opensearch-project/opensearch-build/issues/2692))
 * Added SQL-Odbc repository https://github.com/opensearch-project/sql-odbc ([#965](https://github.com/opensearch-project/sql/issues/965))
 * Added SQL-Cli repository  https://github.com/opensearch-project/sql-cli ([#966](https://github.com/opensearch-project/sql/issues/966))
 * Added Workbench repository https://github.com/opensearch-project/dashboards-query-workbench ([#1266](https://github.com/opensearch-project/sql/issues/1266))
