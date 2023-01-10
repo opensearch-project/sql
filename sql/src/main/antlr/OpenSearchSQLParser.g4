@@ -439,6 +439,7 @@ dateTimeFunctionName
     | FROM_DAYS
     | FROM_UNIXTIME
     | HOUR
+    | HOUR_OF_DAY
     | MAKEDATE
     | MAKETIME
     | MICROSECOND
