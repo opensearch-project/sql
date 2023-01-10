@@ -1763,6 +1763,7 @@ Description
 >>>>>>>>>>>
 
 Usage: hour(time) extracts the hour value for time. Different from the time of day value, the time value has a large range and can be greater than 23, so the return value of hour(time) can be also greater than 23.
+The function `hour_of_day` is also provided as an alias.
 
 Argument type: STRING/TIME/DATETIME/TIMESTAMP
 
@@ -1770,14 +1771,13 @@ Return type: INTEGER
 
 Example::
 
-    os> SELECT HOUR((TIME '01:02:03'))
+    os> SELECT HOUR('01:02:03'), HOUR_OF_DAY('01:02:03')
     fetched rows / total rows = 1/1
-    +---------------------------+
-    | HOUR((TIME '01:02:03'))   |
-    |---------------------------|
-    | 1                         |
-    +---------------------------+
-
+    +--------------------+---------------------------+
+    | HOUR('01:02:03')   | HOUR_OF_DAY('01:02:03')   |
+    |--------------------+---------------------------|
+    | 1                  | 1                         |
+    +--------------------+---------------------------+
 
 LOCALTIMESTAMP
 --------------
