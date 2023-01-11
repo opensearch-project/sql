@@ -129,7 +129,6 @@ dependencies {
     api project(':opensearch')
     api project(':prometheus')
     api project(':filesystem')
-    api project(':flink-sql')
 }
 
 test {

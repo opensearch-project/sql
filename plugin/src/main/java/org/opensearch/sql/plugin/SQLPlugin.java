@@ -57,6 +57,7 @@ import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.DataSourceServiceImpl;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.flink.FlinkSqlEngine;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.executor.AsyncRestExecutor;
 import org.opensearch.sql.legacy.metrics.Metrics;
@@ -107,6 +108,10 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
 
   public String description() {
     return "Use sql to query OpenSearch.";
+  }
+
+  public SQLPlugin() {
+    new FlinkSqlEngine().initialize();
   }
 
   @Override

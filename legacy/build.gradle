@@ -97,6 +97,7 @@ dependencies {
     api project(':sql')
     api project(':common')
     api project(':opensearch')
+    api project(':flink-sql')
 
     // ANTLR gradle plugin and runtime dependency
     antlr "org.antlr:antlr4:4.7.1"
