@@ -19,9 +19,8 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 2.5.0
 * Add Streaming Source Impl ([#994](https://github.com/opensearch-project/sql/issues/994))
 * Add watermark generator ([#959](https://github.com/opensearch-project/sql/issues/959))
 * Add stream context and window trigger ([#958](https://github.com/opensearch-project/sql/issues/958))
-* Add micro batch streaming execution
+* Add micro batch streaming execution ([#1044](https://github.com/opensearch-project/sql/pull/1044))
 * Add Streaming Plan Impl ([#1068](https://github.com/opensearch-project/sql/issues/1068))
-* Add PlanContext
 * Add CBRT to the V2 engine ([#1081](https://github.com/opensearch-project/sql/issues/1081))
 * Add CBRT function to the PPL ([#1097](https://github.com/opensearch-project/sql/issues/1097))
 * Add timeout option to SQL CLI tool. ([#1076](https://github.com/opensearch-project/sql/issues/1076))
@@ -52,11 +51,10 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 2.5.0
 * Add Day_Of_Month Function As An Alias Of DayOfMonth ([#1227](https://github.com/opensearch-project/sql/issues/1227) [#1265](https://github.com/opensearch-project/sql/issues/1265))
 * Add security patch for CVE-2020-15250 ([#1095](https://github.com/opensearch-project/sql/issues/1095))
 * Add security patch for CVE-2022-45868 ([#1107](https://github.com/opensearch-project/sql/issues/1107))
+* Add Hour_Of_Day Function As An Alias Of Hour ([#1226](https://github.com/opensearch-project/sql/issues/1226) [#1270](https://github.com/opensearch-project/sql/issues/1270))
 
 ### Bug Fixes
 
-* Add missing API method in prometheus table
-* add table default impl of exist and create
 * Fix `FLOAT` -> `DOUBLE` cast. ([#1025](https://github.com/opensearch-project/sql/issues/1025))
 * Fix error messaging from prometheus. ([#1029](https://github.com/opensearch-project/sql/issues/1029) [#1037](https://github.com/opensearch-project/sql/issues/1037))
 * Add `query` function as alternate syntax to `query_string` function ([#1010](https://github.com/opensearch-project/sql/issues/1010))
@@ -74,6 +72,7 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 2.5.0
 * Suppress report uploading failure in CI. ([#1180](https://github.com/opensearch-project/sql/issues/1180) [#1220](https://github.com/opensearch-project/sql/issues/1220))
 * Fixed error with single timestamp query ([#1244](https://github.com/opensearch-project/sql/issues/1244) [#1246](https://github.com/opensearch-project/sql/issues/1246) [#1249](https://github.com/opensearch-project/sql/issues/1249))
 * Support JOIN query on object field with unexpanded name ([#1229](https://github.com/opensearch-project/sql/issues/1229) [#1250](https://github.com/opensearch-project/sql/issues/1250))
+* Bug fix for less than and greater than operators on @timestamp ([#1267](https://github.com/opensearch-project/sql/issues/1267) [#1272](https://github.com/opensearch-project/sql/issues/1267)) 
 
 ### Infrastructure
 

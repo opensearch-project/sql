@@ -111,6 +111,7 @@ Prometheus Connector Limitations
 * Only one aggregation is supported in stats command.
 * Span Expression is compulsory in stats command.
 * AVG, MAX, MIN, SUM, COUNT are the only aggregations supported in prometheus connector.
+* Where clause only supports EQUALS(=) operation on metric dimensions and Comparative(> , < , >= , <=) Operations on @timestamp attribute.
 
 Example queries
 ---------------
