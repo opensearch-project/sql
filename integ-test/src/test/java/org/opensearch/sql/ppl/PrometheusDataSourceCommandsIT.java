@@ -12,6 +12,8 @@ import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConsta
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
@@ -40,6 +42,27 @@ public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
       Assertions.assertNotNull(firstRow.get(i));
       Assertions.assertTrue(StringUtils.isNotEmpty(firstRow.get(i).toString()));
     }
+  }
+
+  @Test
+  @SneakyThrows
+  public void testSourceMetricCommandWithTimestamp() {
+    SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    String query = "source=my_prometheus.prometheus_http_requests_total | where @timestamp > '"
+        + format.format(new Date(System.currentTimeMillis() - 3600 * 1000))
+        + "'  | sort + @timestamp | head 5";
+
+    JSONObject response =
+        executeQuery(query);
+    verifySchema(response,
+        schema(VALUE, "double"),
+        schema(TIMESTAMP,  "timestamp"),
+        schema("handler",  "string"),
+        schema("code",  "string"),
+        schema("instance",  "string"),
+        schema("job",  "string"));
+    // <TODO>Currently, data is not injected into prometheus,
+    // so asserting on result is not possible. Verifying only schema.
   }
 
   @Test
