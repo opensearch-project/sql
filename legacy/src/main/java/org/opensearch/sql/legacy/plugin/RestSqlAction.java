@@ -38,6 +38,7 @@ import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.flink.FlinkSqlEngine;
 import org.opensearch.sql.legacy.antlr.OpenSearchLegacySqlAnalyzer;
 import org.opensearch.sql.legacy.antlr.SqlAnalysisConfig;
 import org.opensearch.sql.legacy.antlr.SqlAnalysisException;
@@ -87,10 +88,13 @@ public class RestSqlAction extends BaseRestHandler {
      */
     private final RestSQLQueryAction newSqlQueryHandler;
 
+    private final FlinkSqlEngine flinkSqlEngine;
+
     public RestSqlAction(Settings settings, Injector injector) {
         super();
         this.allowExplicitIndex = MULTI_ALLOW_EXPLICIT_INDEX.get(settings);
         this.newSqlQueryHandler = new RestSQLQueryAction(injector);
+        this.flinkSqlEngine = injector.getInstance(FlinkSqlEngine.class);
     }
 
     @Override
@@ -132,6 +136,12 @@ public class RestSqlAction extends BaseRestHandler {
             }
 
             final SqlRequest sqlRequest = SqlRequestFactory.getSqlRequest(request);
+
+            String result = flinkSqlEngine.execute(sqlRequest.getSql());
+            if (result != null) {
+                return channel -> channel.sendResponse(new BytesRestResponse(OK, "Handled by Flink SQL Engine"));
+            }
+
             if (sqlRequest.cursor() != null) {
                 if (isExplainRequest(request)) {
                     throw new IllegalArgumentException("Invalid request. Cannot explain cursor");

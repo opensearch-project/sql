@@ -102,6 +102,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
 
   private Injector injector;
 
+  private final FlinkSqlEngine flinkSqlEngine;
+
   public String name() {
     return "sql";
   }
@@ -111,7 +113,9 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
   }
 
   public SQLPlugin() {
-    new FlinkSqlEngine().initialize();
+    // Flink has be initialized here because it requires plugin classloader
+    // to get JDK ServiceLoader work.
+    this.flinkSqlEngine = new FlinkSqlEngine();
   }
 
   @Override
@@ -182,6 +186,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
       b.bind(NodeClient.class).toInstance((NodeClient) client);
       b.bind(org.opensearch.sql.common.setting.Settings.class).toInstance(pluginSettings);
       b.bind(DataSourceService.class).toInstance(dataSourceService);
+      b.bind(FlinkSqlEngine.class).toInstance(flinkSqlEngine);
     });
 
     injector = modules.createInjector();
