@@ -37,6 +37,11 @@ public class TypeCastOperatorBenchmark {
   @Param(value = { "2022-01-01 00:00:00"/*, "2022-01-02 00:00:00", "2022-01-02 00:00:00"*/ })
   private String dateTimeValue;
 
+  /**
+   * This is resolved as
+   * Approach 1: =(cast_to_datetime(DATE '2022-01-01'), DATETIME '2022-01-01 00:00:00')
+   * Approach 2: =(DATE '2022-01-01', DATETIME '2022-01-01 00:00:00')
+   */
   private FunctionExpression function;
 
   @Setup
@@ -46,6 +51,7 @@ public class TypeCastOperatorBenchmark {
 
   @Benchmark
   public boolean testDateEqualsDateTimeEvaluate() {
+    //System.out.println(function);
     ExprValue result = function.valueOf();
     return result.booleanValue();
   }

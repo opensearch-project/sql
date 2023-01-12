@@ -58,7 +58,7 @@ public enum ExprCoreType implements ExprType {
   TIMESTAMP(STRING),
   DATE(STRING),
   TIME(STRING),
-  DATETIME(DATE),
+  DATETIME(STRING),
   INTERVAL(UNDEFINED),
 
   /**
