@@ -84,7 +84,6 @@ dependencies {
     testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-client', version: "${opensearch_version}"
     testImplementation group: 'org.opensearch.driver', name: 'opensearch-sql-jdbc', version: '1.2.0.0'
     testImplementation group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
-    testImplementation group: 'com.google.code.gson', name: 'gson', version: '2.8.9'
     implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version:'2.17.1'
     testImplementation project(':opensearch-sql-plugin')
     testImplementation project(':legacy')
@@ -229,7 +228,7 @@ task comparisonTest(type: RestIntegTestTask) {
     systemProperty "queries", System.getProperty("queries")
 }
 
-String baseVersion = "2.4.0"
+String baseVersion = "2.5.0"
 String bwcVersion = baseVersion + ".0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
@@ -268,17 +267,17 @@ String bwcRemoteFile = "https://ci.opensearch.org/ci/dbc/distribution-build-open
 }
 
 List<Provider<RegularFile>> plugins = [
-        provider(new Callable<RegularFile>() {
-            @Override
-            RegularFile call() throws Exception {
-                return new RegularFile() {
-                    @Override
-                    File getAsFile() {
-                        return fileTree(bwcFilePath + project.version).getSingleFile()
-                    }
+    provider(new Callable<RegularFile>() {
+        @Override
+        RegularFile call() throws Exception {
+            return new RegularFile() {
+                @Override
+                File getAsFile() {
+                    return fileTree(bwcFilePath + project.version).getSingleFile()
                 }
             }
-        })
+        }
+    })
 ]
 
 // Creates 2 test clusters with 3 nodes of the old version.
