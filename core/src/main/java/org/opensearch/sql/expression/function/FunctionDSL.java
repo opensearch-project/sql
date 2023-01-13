@@ -9,12 +9,14 @@ package org.opensearch.sql.expression.function;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
@@ -58,6 +60,39 @@ public class FunctionDSL {
     return builder.build();
   }
 
+  /**
+   * Define varargs function with implementation.
+   *
+   * @param functionName function name.
+   * @param functions    a list of function implementation.
+   * @return VarargsFunctionResolver.
+   */
+  public static VarargsFunctionResolver defineVarargsFunction(FunctionName functionName,
+          SerializableFunction<FunctionName,
+                  Pair<FunctionSignature, FunctionBuilder>>... functions) {
+    return defineVarargsFunction(functionName, List.of(functions));
+  }
+
+  /**
+   * Define varargs function with implementation.
+   *
+   * @param functionName function name.
+   * @param functions    a list of function implementation.
+   * @return VarargsFunctionResolver.
+   */
+  public static VarargsFunctionResolver defineVarargsFunction(FunctionName functionName, List<
+          SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>> functions) {
+
+    VarargsFunctionResolver.VarargsFunctionResolverBuilder builder =
+            VarargsFunctionResolver.builder();
+    builder.functionName(functionName);
+    for (SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>> func
+            : functions) {
+      Pair<FunctionSignature, FunctionBuilder> functionBuilder = func.apply(functionName);
+      builder.functionBundle(functionBuilder.getKey(), functionBuilder.getValue());
+    }
+    return builder.build();
+  }
 
   /**
    * Implementation of no args function that uses FunctionProperties.
@@ -213,6 +248,56 @@ public class FunctionDSL {
   }
 
   /**
+   * Varargs Function Implementation.
+   * This implementation considers 1...n args of the same type.
+   *
+   * @param function   {@link ExprValue} based varargs function.
+   * @param returnType return type.
+   * @param argsType   argument type.
+   * @return Varargs Function Implementation.
+   */
+  public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>> impl(
+      SerializableVarargsFunction<ExprValue, ExprValue> function,
+      ExprType returnType,
+      ExprType argsType,
+      boolean withVarargs) {
+
+    return functionName -> {
+      AtomicInteger argsCount = new AtomicInteger(0);
+      FunctionBuilder functionBuilder =
+              (functionProperties, arguments) -> new FunctionExpression(functionName, arguments) {
+                @Override
+                public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+                  argsCount.set(arguments.size());
+                  ExprValue[] args = arguments.stream()
+                          .map(arg -> arg.valueOf(valueEnv))
+                          .collect(Collectors.toList())
+                          .toArray(new ExprValue[arguments.size()]);
+
+                  return function.apply(args);
+                }
+
+                @Override
+                public ExprType type() {
+                  return returnType;
+                }
+
+                @Override
+                public String toString() {
+                  return String.format("%s(%s)", functionName, arguments.stream()
+                          .map(Object::toString)
+                          .collect(Collectors.joining(", ")));
+                }
+              };
+      ExprCoreType[] argsTypes = new ExprCoreType[argsCount.get()];
+      Arrays.fill(argsTypes, argsType);
+      FunctionSignature functionSignature =
+              new FunctionSignature(functionName, List.of(argsTypes));
+      return Pair.of(functionSignature, functionBuilder);
+    };
+  }
+
+  /**
    * Binary Function Implementation.
    *
    * @param function   {@link ExprValue} based unary function.
@@ -324,12 +409,28 @@ public class FunctionDSL {
   }
 
   /**
+   * Wrapper the varargs ExprValue function with default NULL and MISSING handling.
+   */
+  public SerializableVarargsFunction<ExprValue, ExprValue> nullMissingHandling(
+          SerializableVarargsFunction<ExprValue, ExprValue> function, boolean withVarargs) {
+    return (args) -> {
+      if (Arrays.stream(args).anyMatch(ExprValue::isMissing)) {
+        return ExprValueUtils.missingValue();
+      } else if (Arrays.stream(args).anyMatch(ExprValue::isNull)) {
+        return ExprValueUtils.nullValue();
+      } else {
+        return function.apply(args);
+      }
+    };
+  }
+
+  /**
    * Wrapper the unary ExprValue function that is aware of FunctionProperties,
    * with default NULL and MISSING handling.
    */
   public static SerializableBiFunction<FunctionProperties, ExprValue, ExprValue>
         nullMissingHandlingWithProperties(
-      SerializableBiFunction<FunctionProperties, ExprValue, ExprValue>  implementation) {
+      SerializableBiFunction<FunctionProperties, ExprValue, ExprValue> implementation) {
     return (functionProperties, v1) -> {
       if (v1.isMissing()) {
         return ExprValueUtils.missingValue();

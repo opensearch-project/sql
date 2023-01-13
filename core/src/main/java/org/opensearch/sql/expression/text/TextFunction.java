@@ -9,9 +9,12 @@ package org.opensearch.sql.expression.text;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.function.FunctionDSL.define;
+import static org.opensearch.sql.expression.function.FunctionDSL.defineVarargsFunction;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprStringValue;
@@ -22,7 +25,7 @@ import org.opensearch.sql.expression.function.DefaultFunctionResolver;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.SerializableBiFunction;
 import org.opensearch.sql.expression.function.SerializableTriFunction;
-
+import org.opensearch.sql.expression.function.VarargsFunctionResolver;
 
 /**
  * The definition of text functions.
@@ -141,16 +144,16 @@ public class TextFunction {
   }
 
   /**
-   * TODO: https://github.com/opendistro-for-elasticsearch/sql/issues/710
-   *  Extend to accept variable argument amounts.
    * Concatenates a list of Strings.
    * Supports following signatures:
-   * (STRING, STRING) -> STRING
+   * (STRING, STRING, ...., STRING) -> STRING
    */
-  private DefaultFunctionResolver concat() {
-    return define(BuiltinFunctionName.CONCAT.getName(),
-        impl(nullMissingHandling((str1, str2) ->
-            new ExprStringValue(str1.stringValue() + str2.stringValue())), STRING, STRING, STRING));
+  private VarargsFunctionResolver concat() {
+    return defineVarargsFunction(BuiltinFunctionName.CONCAT.getName(),
+        impl(nullMissingHandling(strings ->
+            new ExprStringValue(Arrays.stream(strings)
+                    .map(ExprValue::stringValue)
+                    .collect(Collectors.joining())), true), STRING, STRING, true));
   }
 
   /**

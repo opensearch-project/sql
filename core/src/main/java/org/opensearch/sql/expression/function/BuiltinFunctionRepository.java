@@ -182,6 +182,13 @@ public class BuiltinFunctionRepository {
     if (isCastFunction(functionName) || sourceTypes.equals(targetTypes)) {
       return funcBuilder;
     }
+    // For functions with variable number of args (ex: concat())
+    // targetTypes will always be empty (as the function signature is not fixed),
+    // and failure will occur.
+    // So, in this case sourceTypes are passed instead of targetTypes to address that.
+    if (functionResolverMap.get(functionName) instanceof VarargsFunctionResolver) {
+      return castArguments(sourceTypes, sourceTypes, funcBuilder);
+    }
     return castArguments(sourceTypes,
         targetTypes, funcBuilder);
   }

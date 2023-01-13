@@ -238,6 +238,37 @@ class BuiltinFunctionRepositoryTest {
     assertEquals("unsupported function name: unknown", exception.getMessage());
   }
 
+  @Test
+  void resolve_should_cast_arguments_for_varargs_function() {
+    FunctionSignature unresolvedSignature = new FunctionSignature(
+            mockFunctionName, ImmutableList.of(STRING, STRING, STRING));
+    FunctionSignature resolvedSignature = new FunctionSignature(
+            mockFunctionName, Collections.emptyList());
+
+    VarargsFunctionResolver varargsFunctionResolver = mock(VarargsFunctionResolver.class);
+    FunctionBuilder funcBuilder = mock(FunctionBuilder.class);
+
+    when(mockFunctionName.getFunctionName()).thenReturn("mockFunction");
+    when(mockExpression.toString()).thenReturn("string");
+    when(mockNamespaceMap.get(DEFAULT_NAMESPACE)).thenReturn(mockMap);
+    when(mockNamespaceMap.containsKey(DEFAULT_NAMESPACE)).thenReturn(true);
+    when(mockMap.containsKey(eq(mockFunctionName))).thenReturn(true);
+    when(mockMap.get(eq(mockFunctionName))).thenReturn(varargsFunctionResolver);
+    when(varargsFunctionResolver.resolve(eq(unresolvedSignature))).thenReturn(
+            Pair.of(resolvedSignature, funcBuilder));
+    repo.register(varargsFunctionResolver);
+    // Relax unnecessary stubbing check because error case test doesn't call this
+    lenient().doAnswer(invocation ->
+            new FakeFunctionExpression(mockFunctionName, invocation.getArgument(1))
+    ).when(funcBuilder).apply(eq(functionProperties), any());
+
+    FunctionImplementation function =
+            repo.resolve(Collections.singletonList(DEFAULT_NAMESPACE), unresolvedSignature)
+                    .apply(functionProperties,
+                            ImmutableList.of(mockExpression, mockExpression, mockExpression));
+    assertEquals("mockFunction(string, string, string)", function.toString());
+  }
+
   private FunctionSignature registerFunctionResolver(FunctionName funcName,
                                                      ExprType sourceType,
                                                      ExprType targetType) {
