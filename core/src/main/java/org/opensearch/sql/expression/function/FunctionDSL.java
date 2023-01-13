@@ -416,11 +416,11 @@ public class FunctionDSL {
     return (args) -> {
       if (Arrays.stream(args).anyMatch(ExprValue::isMissing)) {
         return ExprValueUtils.missingValue();
-      } else if (Arrays.stream(args).anyMatch(ExprValue::isNull)) {
-        return ExprValueUtils.nullValue();
-      } else {
-        return function.apply(args);
       }
+      if (Arrays.stream(args).anyMatch(ExprValue::isNull)) {
+        return ExprValueUtils.nullValue();
+      }
+      return function.apply(args);
     };
   }
 
