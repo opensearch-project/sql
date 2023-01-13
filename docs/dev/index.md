@@ -11,52 +11,58 @@
 ---
 ## Clients
 
-+ CLI
-+ JDBC Driver
-+ ODBC Driver
-+ Query Workbench
++ **CLI**
++ **JDBC Driver**
++ **ODBC Driver**
++ **Query Workbench**
+
+---
+## Deployment
+
++ **Standalone Mode**
++ **OpenSearch Cluster**
 
 ---
 ## Programming Guides
 
-+ API
-+ SDK
++ **API**
++ **JavaDoc**
 
 ---
 ## Development Guides
 
 ### Language Processing
 
-+ SQL
++ **SQL**
   + [Aggregate Window Function](sql-aggregate-window-function.md): aggregate window function support
-+ PPL
++ **Piped Processing Language**
 
 ### Query Processing
 
-+ Query Analyzing
++ **Query Analyzing**
   + [Semantic Analysis](query-semantic-analysis.md): performs semantic analysis to ensure semantic correctness
   + [Type Conversion](query-type-conversion.md): implement implicit data type conversion
-+ Query Planning
++ **Query Planning**
   + [Logical Optimization](query-optimizier-improvement.md): improvement on logical optimizer and physical implementer
-+ Query Execution
++ **Query Execution**
   + [Query Manager](query-manager.md): query management
-+ Query Acceleration
++ **Query Acceleration**
   + [Automatic Acceleration](query-automatic-acceleration.md): workload based automatic query acceleration proposal
 
 ### Data Sources
 
-+ OpenSearch
++ **OpenSearch**
   + [Relevancy Search](opensearch-relevancy-search.md): OpenSearch relevancy search functions
   + [Sub Queries](opensearch-nested-field-subquery.md): support sub queries on OpenSearch nested field
   + [Pagination](opensearch-pagination.md): pagination implementation by OpenSearch scroll API
 + [Prometheus](datasource-prometheus.md): Prometheus query federation
-+ File System
++ **File System**
   + [Querying S3](datasource-query-s3.md): S3 query federation proposal
 
 ---
-## Other Documentation
+## Other Documents
 
-+ Test Framework
++ **Test Framework**
   + [Doc Test](testing-doctest.md): makes our doc live and runnable to ensure documentation correctness
   + [Comparison Test](testing-comparison-test.md): compares with other databases to ensure functional correctness
-+ Operation Tools
++ **Operation Tools**
