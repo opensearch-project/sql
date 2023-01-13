@@ -173,7 +173,7 @@ The following rule is applied on coversion: a `TIME` applied to today's date; `D
     fetched rows / total rows = 1/1
     +-----------------------+-----------------+-----------------+
     | midnight = now.date   | midnight.type   | now.date.type   |
-    |-----------------------+-----------------+-----------------|
+    +-----------------------+-----------------+-----------------+
     | True                  | DATETIME        | DATE            |
     +-----------------------+-----------------+-----------------+
 
