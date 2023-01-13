@@ -31,7 +31,7 @@ With the architecture and extensibility improved significantly, the following SQ
     * [Semi-structured data query](../../docs/user/beyond/partiql.rst#example-2-selecting-deeper-levels): support querying OpenSearch object fields on arbitrary level
     * OpenSearch multi-field: handled automatically and users won't have the access, ex. `text` is converted to `text.keyword` if it’s a multi-field
 
-As for correctness, besides full coverage of unit and integration test, we developed a new comparison test framework to ensure correctness by comparing with other databases. Please find more details in [Testing](./Testing.md).
+As for correctness, besides full coverage of unit and integration test, we developed a new comparison test framework to ensure correctness by comparing with other databases. Please find more details in [Testing](./testing-comparison-test.md).
 
 
 ---
@@ -63,7 +63,7 @@ You can find all the limitations in [Limitations](../../docs/user/limitations/li
 ---
 ## 4.How it's Implemented
 
-If you're interested in the new query engine, please find more details in [Developer Guide](../../DEVELOPER_GUIDE.rst), [Architecture](./Architecture.md) and other docs in the dev folder.
+If you're interested in the new query engine, please find more details in [Developer Guide](../../DEVELOPER_GUIDE.rst), [Architecture](./intro-architecture.md) and other docs in the dev folder.
 
 
 ---
