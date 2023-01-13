@@ -23,9 +23,11 @@ import static org.opensearch.sql.data.model.ExprValueUtils.booleanValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
+import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
+import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.utils.ComparisonUtil.compare;
 import static org.opensearch.sql.utils.OperatorUtils.matches;
 
@@ -54,6 +56,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionTestBase;
@@ -419,7 +422,25 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
       assertEquals(0 == compare(functionProperties, v1, v2),
           ExprValueUtils.getBooleanValue(equal.valueOf(valueEnv())));
     }
-    assertEquals(String.format("=(%s, %s)", v1.toString(), v2.toString()), equal.toString());
+    assertStringRepr(v1, v2, "=", equal);
+  }
+
+  private void assertStringRepr(ExprValue v1, ExprValue v2, String function,
+                                FunctionExpression functionExpression) {
+    if (v1.type() == v2.type()) {
+      assertEquals(String.format("%s(%s, %s)", function, v1, v2), functionExpression.toString());
+    } else {
+      var widerType = v1.type() == TIMESTAMP || v2.type() == TIMESTAMP ? TIMESTAMP : DATETIME;
+      assertEquals(String.format("%s(%s, %s)", function, getExpectedStringRepr(widerType, v1),
+          getExpectedStringRepr(widerType, v2)), functionExpression.toString());
+    }
+  }
+
+  private String getExpectedStringRepr(ExprType widerType, ExprValue value) {
+    if (widerType == value.type()) {
+      return value.toString();
+    }
+    return String.format("cast_to_%s(%s)", widerType.toString().toLowerCase(), value);
   }
 
   @Test
@@ -475,7 +496,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
       assertEquals(0 != compare(functionProperties, v1, v2),
           ExprValueUtils.getBooleanValue(notequal.valueOf(valueEnv())));
     }
-    assertEquals(String.format("!=(%s, %s)", v1.toString(), v2.toString()), notequal.toString());
+    assertStringRepr(v1, v2, "!=", notequal);
   }
 
   @Test
@@ -528,7 +549,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     assertEquals(BOOLEAN, less.type());
     assertEquals(compare(functionProperties, v1, v2) < 0,
         ExprValueUtils.getBooleanValue(less.valueOf(valueEnv())));
-    assertEquals(String.format("<(%s, %s)", v1.toString(), v2.toString()), less.toString());
+    assertStringRepr(v1, v2, "<", less);
   }
 
   @Test
@@ -585,7 +606,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     assertEquals(BOOLEAN, lte.type());
     assertEquals(compare(functionProperties, v1, v2) <= 0,
         ExprValueUtils.getBooleanValue(lte.valueOf(valueEnv())));
-    assertEquals(String.format("<=(%s, %s)", v1.toString(), v2.toString()), lte.toString());
+    assertStringRepr(v1, v2, "<=", lte);
   }
 
   @Test
@@ -642,7 +663,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     assertEquals(BOOLEAN, greater.type());
     assertEquals(compare(functionProperties, v1, v2) > 0,
         ExprValueUtils.getBooleanValue(greater.valueOf(valueEnv())));
-    assertEquals(String.format(">(%s, %s)", v1.toString(), v2.toString()), greater.toString());
+    assertStringRepr(v1, v2, ">", greater);
   }
 
   @Test
@@ -699,7 +720,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     assertEquals(BOOLEAN, gte.type());
     assertEquals(compare(functionProperties, v1, v2) >= 0,
         ExprValueUtils.getBooleanValue(gte.valueOf(valueEnv())));
-    assertEquals(String.format(">=(%s, %s)", v1.toString(), v2.toString()), gte.toString());
+    assertStringRepr(v1, v2, ">=", gte);
   }
 
   @Test

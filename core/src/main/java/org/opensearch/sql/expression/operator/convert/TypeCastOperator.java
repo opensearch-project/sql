@@ -19,7 +19,9 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
+import static org.opensearch.sql.expression.function.FunctionDSL.implWithProperties;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
+import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandlingWithProperties;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -182,6 +184,11 @@ public class TypeCastOperator {
             (v) -> new ExprTimestampValue(v.stringValue())), TIMESTAMP, STRING),
         impl(nullMissingHandling(
             (v) -> new ExprTimestampValue(v.timestampValue())), TIMESTAMP, DATETIME),
+        impl(nullMissingHandling(
+            (v) -> new ExprTimestampValue(v.timestampValue())), TIMESTAMP, DATE),
+        implWithProperties(nullMissingHandlingWithProperties(
+            (fp, v) -> new ExprTimestampValue(((ExprTimeValue)v).timestampValue(fp))),
+            TIMESTAMP, TIME),
         impl(nullMissingHandling((v) -> v), TIMESTAMP, TIMESTAMP)
     );
   }
@@ -193,7 +200,11 @@ public class TypeCastOperator {
         impl(nullMissingHandling(
             (v) -> new ExprDatetimeValue(v.datetimeValue())), DATETIME, TIMESTAMP),
         impl(nullMissingHandling(
-            (v) -> new ExprDatetimeValue(v.datetimeValue())), DATETIME, DATE)
+            (v) -> new ExprDatetimeValue(v.datetimeValue())), DATETIME, DATE),
+        implWithProperties(nullMissingHandlingWithProperties(
+            (fp, v) -> new ExprDatetimeValue(((ExprTimeValue)v).datetimeValue(fp))),
+            DATETIME, TIME),
+        impl(nullMissingHandling((v) -> v), DATETIME, DATETIME)
     );
   }
 }
