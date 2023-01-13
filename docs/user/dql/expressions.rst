@@ -163,7 +163,7 @@ The following rule is applied on coversion: a `TIME` applied to today's date; `D
 
     os> SELECT current_time() = now() AS `now.time = now`, typeof(current_time()) AS `now.time.type`, typeof(now()) AS `now.type`;
     fetched rows / total rows = 1/1
-	+------------------+-----------------+------------+
+    +------------------+-----------------+------------+
     | now.time = now   | now.time.type   | now.type   |
     +------------------+-----------------+------------+
     | True             | TIME            | DATETIME   |
