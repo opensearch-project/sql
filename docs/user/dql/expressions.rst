@@ -171,11 +171,11 @@ The following rule is applied on coversion: a `TIME` applied to today's date; `D
 
     os> SELECT subtime(now(), current_time()) = current_date() AS `midnight = now.date`, typeof(subtime(now(), current_time())) AS `midnight.type`, typeof(current_date()) AS `now.date.type`;
     fetched rows / total rows = 1/1
-	+--------------------+-----------------+-----------------+
-    | midnight = today   | midnight.type   | now.date.type   |
-    +--------------------+-----------------+-----------------+
-    | True               | DATETIME        | DATE            |
-    +--------------------+-----------------+-----------------+
+    +-----------------------+-----------------+-----------------+
+    | midnight = now.date   | midnight.type   | now.date.type   |
+    |-----------------------+-----------------+-----------------|
+    | True                  | DATETIME        | DATE            |
+    +-----------------------+-----------------+-----------------+
 
 
 LIKE
