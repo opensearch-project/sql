@@ -11,28 +11,20 @@ import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_MISSING;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
-import static org.opensearch.sql.data.type.ExprCoreType.DATE;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Table;
-import java.util.List;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
-import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
-import org.opensearch.sql.expression.function.FunctionBuilder;
 import org.opensearch.sql.expression.function.FunctionDSL;
-import org.opensearch.sql.expression.function.FunctionName;
-import org.opensearch.sql.expression.function.FunctionSignature;
-import org.opensearch.sql.expression.function.SerializableFunction;
 import org.opensearch.sql.utils.OperatorUtils;
 
 /**
@@ -167,18 +159,13 @@ public class BinaryPredicateOperator {
   }
 
   private static DefaultFunctionResolver equal() {
-    List<SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>> funcImpls =
+    return FunctionDSL.define(BuiltinFunctionName.EQUAL.getName(),
         ExprCoreType.coreTypes().stream()
             .map(type -> FunctionDSL.impl(
-                FunctionDSL.nullMissingHandling(
-                    (v1, v2) -> ExprBooleanValue.of(v1.equals(v2))), BOOLEAN, type, type))
-            .collect(Collectors.toList());
-
-    funcImpls.add(FunctionDSL.impl(
-        FunctionDSL.nullMissingHandling(
-            (v1, v2) -> ExprBooleanValue.of(v1.equals(v2))), BOOLEAN, DATE, DATETIME));
-
-    return FunctionDSL.define(BuiltinFunctionName.EQUAL.getName(), funcImpls);
+                FunctionDSL.nullMissingHandling((v1, v2) -> ExprBooleanValue.of(v1.equals(v2))),
+                BOOLEAN, type, type))
+            .collect(
+                Collectors.toList()));
   }
 
   private static DefaultFunctionResolver notEqual() {
