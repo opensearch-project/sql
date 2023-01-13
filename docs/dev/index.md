@@ -1,5 +1,5 @@
 
-# OpenSearch SQL/PPL Development Documentation
+# OpenSearch SQL/PPL Engine Development Manual
 
 ## Introduction
 

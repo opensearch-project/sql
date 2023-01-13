@@ -126,7 +126,7 @@ Recently we have been actively improving our query engine primarily for better c
 
 ## Documentation
 
-Please refer to the [SQL Language Reference Manual](./docs/user/index.rst), [Piped Processing Language (PPL) Reference Manual](./docs/user/ppl/index.rst) and [Technical Documentation](https://opensearch.org/docs/latest/search-plugins/sql/index/) for detailed information on installing and configuring plugin.
+Please refer to the [SQL Language Reference Manual](./docs/user/index.rst), [Piped Processing Language (PPL) Reference Manual](./docs/user/ppl/index.rst), [OpenSearch SQL/PPL Engine Development Manual](./docs/dev/index.md) and [Technical Documentation](https://opensearch.org/docs/latest/search-plugins/sql/index/) for detailed information on installing and configuring plugin.
 
 ## Forum
 
