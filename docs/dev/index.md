@@ -9,9 +9,16 @@
 + Quickstart
 
 ---
+## Clients
+
++ CLI
++ JDBC Driver
++ ODBC Driver
++ Query Workbench
+
+---
 ## Programming Guides
 
-+ Client
 + API
 + SDK
 
@@ -21,7 +28,7 @@
 ### Language Processing
 
 + SQL
-  + [Aggregate Window Function](sql-aggregate-window-function.md): provides window function support
+  + [Aggregate Window Function](sql-aggregate-window-function.md): aggregate window function support
 + PPL
 
 ### Query Processing
@@ -30,16 +37,21 @@
   + [Semantic Analysis](query-semantic-analysis.md): performs semantic analysis to ensure semantic correctness
   + [Type Conversion](query-type-conversion.md): implement implicit data type conversion
 + Query Planning
+  + [Logical Optimization](query-optimizier-improvement.md): improvement on logical optimizer and physical implementer
 + Query Execution
+  + [Query Manager](query-manager.md): query management
 + Query Acceleration
+  + [Automatic Acceleration](query-automatic-acceleration.md): workload based automatic query acceleration proposal
 
 ### Data Sources
 
 + OpenSearch
-    + [Sub Queries](opensearch-nested-field-subquery.md): support sub queries on OpenSearch nested field
-    + [Pagination](opensearch-pagination.md): pagination implementation by OpenSearch scroll API
-+ Prometheus
-+ Object Store
+  + [Relevancy Search](opensearch-relevancy-search.md): OpenSearch relevancy search functions
+  + [Sub Queries](opensearch-nested-field-subquery.md): support sub queries on OpenSearch nested field
+  + [Pagination](opensearch-pagination.md): pagination implementation by OpenSearch scroll API
++ [Prometheus](datasource-prometheus.md): Prometheus query federation
++ File System
+  + [Querying S3](datasource-query-s3.md): S3 query federation proposal
 
 ---
 ## Other Documentation
