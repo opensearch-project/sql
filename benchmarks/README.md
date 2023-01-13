@@ -10,7 +10,7 @@ The microbenchmark suite is also handy for ad-hoc microbenchmarks but please rem
 
 ## Getting Started
 
-Just run `gradlew -p benchmarks run` from the project root directory or run specific benchmark via your IDE. It will build all microbenchmarks, execute them and print the result.
+Just run `./gradlew :benchmarks:jmh` from the project root directory or run specific benchmark via your IDE. It will build all microbenchmarks, execute them and print the result.
 
 ## Adding Microbenchmarks
 
