@@ -178,6 +178,7 @@ public class TypeCastOperator {
     );
   }
 
+  // `DATE`/`TIME`/`DATETIME` -> `DATETIME`/TIMESTAMP` cast tested in BinaryPredicateOperatorTest
   private static DefaultFunctionResolver castToTimestamp() {
     return FunctionDSL.define(BuiltinFunctionName.CAST_TO_TIMESTAMP.getName(),
         impl(nullMissingHandling(
