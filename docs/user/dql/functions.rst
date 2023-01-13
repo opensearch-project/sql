@@ -2614,7 +2614,7 @@ CONCAT
 Description
 >>>>>>>>>>>
 
-Usage: CONCAT(str1, str2, ...., str_n) adds two or more strings together.
+Usage: CONCAT(str1, str2, ...., str_n) adds two or more strings together. If any of the expressions is a NULL value, it returns NULL.
 
 Argument type: STRING, STRING, ...., STRING
 
@@ -2622,13 +2622,13 @@ Return type: STRING
 
 Example::
 
-    os> SELECT CONCAT('hello', 'world'), CONCAT('hello ', 'whole ', 'world', '!');
+    os> SELECT CONCAT('hello ', 'whole ', 'world', '!'), CONCAT('hello', 'world'), CONCAT('hello', null)
     fetched rows / total rows = 1/1
-    +----------------------------+--------------------------------------------+
-    | CONCAT('hello', 'world')   | CONCAT('hello ', 'whole ', 'world', '!')   |
-    |----------------------------+--------------------------------------------|
-    | helloworld                 | hello whole world!                         |
-    +----------------------------+--------------------------------------------+
+    +--------------------------------------------+----------------------------+-------------------------+
+    | CONCAT('hello ', 'whole ', 'world', '!')   | CONCAT('hello', 'world')   | CONCAT('hello', null)   |
+    |--------------------------------------------+----------------------------+-------------------------|
+    | hello whole world!                         | helloworld                 | null                    |
+    +--------------------------------------------+----------------------------+-------------------------+
 
 
 CONCAT_WS

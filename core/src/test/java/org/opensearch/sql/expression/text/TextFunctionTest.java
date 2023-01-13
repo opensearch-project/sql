@@ -237,6 +237,7 @@ public class TextFunctionTest extends ExpressionTestBase {
     when(missingRef.type()).thenReturn(STRING);
     assertEquals(missingValue(), eval(
             DSL.concat(missingRef, DSL.literal("1"))));
+    // If any of the expressions is a NULL value, it returns NULL.
     assertEquals(nullValue(), eval(
             DSL.concat(nullRef, DSL.literal("1"))));
     assertEquals(missingValue(), eval(
