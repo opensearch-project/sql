@@ -14,7 +14,7 @@ CONCAT
 Description
 >>>>>>>>>>>
 
-Usage: CONCAT(str1, str2, ...., str_n) adds two or more strings together.
+Usage: CONCAT(str1, str2, ...., str_n) adds two or more strings together. Expects 1-9 arguments.
 
 Argument type: STRING, STRING, ...., STRING
 

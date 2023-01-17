@@ -50,6 +50,7 @@ class DefaultFunctionResolverTest {
   @Test
   void resolve_function_signature_exactly_match() {
     when(functionSignature.match(exactlyMatchFS)).thenReturn(WideningTypeRule.TYPE_EQUAL);
+    when(functionSignature.getFunctionName()).thenReturn(functionName);
     DefaultFunctionResolver resolver = new DefaultFunctionResolver(functionName,
         ImmutableMap.of(exactlyMatchFS, exactlyMatchBuilder));
 
@@ -60,6 +61,7 @@ class DefaultFunctionResolverTest {
   void resolve_function_signature_best_match() {
     when(functionSignature.match(bestMatchFS)).thenReturn(1);
     when(functionSignature.match(leastMatchFS)).thenReturn(2);
+    when(functionSignature.getFunctionName()).thenReturn(functionName);
     DefaultFunctionResolver resolver = new DefaultFunctionResolver(functionName,
         ImmutableMap.of(bestMatchFS, bestMatchBuilder, leastMatchFS, leastMatchBuilder));
 
@@ -95,7 +97,7 @@ class DefaultFunctionResolverTest {
   }
 
   @Test
-  void resolve_concat_function_signature_not_match() {
+  void resolve_concat_no_args_function_signature_not_match() {
     functionName = FunctionName.of("concat");
     when(functionSignature.match(notMatchFS)).thenReturn(WideningTypeRule.IMPOSSIBLE_WIDENING);
     when(functionSignature.getFunctionName()).thenReturn(functionName);
@@ -105,7 +107,28 @@ class DefaultFunctionResolverTest {
     DefaultFunctionResolver resolver = new DefaultFunctionResolver(functionName,
             ImmutableMap.of(notMatchFS, notMatchBuilder));
 
-    assertThrows(ExpressionEvaluationException.class,
+    ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
             () -> resolver.resolve(functionSignature));
+    assertEquals("concat function expected 1-9 arguments, but got 0",
+            exception.getMessage());
+  }
+
+  @Test
+  void resolve_concat_too_many_args_function_signature_not_match() {
+    functionName = FunctionName.of("concat");
+    when(functionSignature.match(notMatchFS)).thenReturn(WideningTypeRule.IMPOSSIBLE_WIDENING);
+    when(functionSignature.getFunctionName()).thenReturn(functionName);
+    // Concat function with more than 9 arguments
+    when(functionSignature.getParamTypeList()).thenReturn(ImmutableList
+            .of(STRING, STRING, STRING, STRING, STRING,
+                    STRING, STRING, STRING, STRING, STRING));
+
+    DefaultFunctionResolver resolver = new DefaultFunctionResolver(functionName,
+            ImmutableMap.of(notMatchFS, notMatchBuilder));
+
+    ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
+            () -> resolver.resolve(functionSignature));
+    assertEquals("concat function expected 1-9 arguments, but got 10",
+            exception.getMessage());
   }
 }

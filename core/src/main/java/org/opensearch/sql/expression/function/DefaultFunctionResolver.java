@@ -50,6 +50,13 @@ public class DefaultFunctionResolver implements FunctionResolver {
               functionSignature));
     }
     Map.Entry<Integer, FunctionSignature> bestMatchEntry = functionMatchQueue.peek();
+    if (isConcatFunction(unresolvedSignature)
+            && (unresolvedSignature.getParamTypeList().isEmpty()
+              || unresolvedSignature.getParamTypeList().size() > 9)) {
+      throw new ExpressionEvaluationException(
+              String.format("%s function expected 1-9 arguments, but got %s",
+                      functionName, unresolvedSignature.getParamTypeList().size()));
+    }
     if (FunctionSignature.NOT_MATCH.equals(bestMatchEntry.getKey())
             && !isConcatFunction(unresolvedSignature)) {
       throw new ExpressionEvaluationException(
@@ -69,7 +76,6 @@ public class DefaultFunctionResolver implements FunctionResolver {
   }
 
   private boolean isConcatFunction(FunctionSignature signature) {
-    return signature.getFunctionName().equals(BuiltinFunctionName.CONCAT.getName())
-            && !signature.getParamTypeList().isEmpty();
+    return signature.getFunctionName().equals(BuiltinFunctionName.CONCAT.getName());
   }
 }
