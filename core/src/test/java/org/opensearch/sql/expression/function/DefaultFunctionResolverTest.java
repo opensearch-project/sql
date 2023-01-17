@@ -9,8 +9,11 @@ package org.opensearch.sql.expression.function;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.Collections;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
@@ -68,6 +71,7 @@ class DefaultFunctionResolverTest {
     when(functionSignature.match(notMatchFS)).thenReturn(WideningTypeRule.IMPOSSIBLE_WIDENING);
     when(notMatchFS.formatTypes()).thenReturn("[INTEGER,INTEGER]");
     when(functionSignature.formatTypes()).thenReturn("[BOOLEAN,BOOLEAN]");
+    when(functionSignature.getFunctionName()).thenReturn(functionName);
     DefaultFunctionResolver resolver = new DefaultFunctionResolver(functionName,
         ImmutableMap.of(notMatchFS, notMatchBuilder));
 
@@ -75,5 +79,33 @@ class DefaultFunctionResolverTest {
         () -> resolver.resolve(functionSignature));
     assertEquals("add function expected {[INTEGER,INTEGER]}, but get [BOOLEAN,BOOLEAN]",
         exception.getMessage());
+  }
+
+  @Test
+  void resolve_concat_function_signature_match() {
+    functionName = FunctionName.of("concat");
+    when(functionSignature.match(notMatchFS)).thenReturn(WideningTypeRule.IMPOSSIBLE_WIDENING);
+    when(functionSignature.getFunctionName()).thenReturn(functionName);
+    when(functionSignature.getParamTypeList()).thenReturn(ImmutableList.of(STRING));
+
+    DefaultFunctionResolver resolver = new DefaultFunctionResolver(functionName,
+            ImmutableMap.of(notMatchFS, notMatchBuilder));
+
+    assertEquals(notMatchBuilder, resolver.resolve(functionSignature).getValue());
+  }
+
+  @Test
+  void resolve_concat_function_signature_not_match() {
+    functionName = FunctionName.of("concat");
+    when(functionSignature.match(notMatchFS)).thenReturn(WideningTypeRule.IMPOSSIBLE_WIDENING);
+    when(functionSignature.getFunctionName()).thenReturn(functionName);
+    // Concat function with no arguments
+    when(functionSignature.getParamTypeList()).thenReturn(Collections.emptyList());
+
+    DefaultFunctionResolver resolver = new DefaultFunctionResolver(functionName,
+            ImmutableMap.of(notMatchFS, notMatchBuilder));
+
+    assertThrows(ExpressionEvaluationException.class,
+            () -> resolver.resolve(functionSignature));
   }
 }
