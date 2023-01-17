@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    api project(':core')
+    implementation project(':core')
 
     // Dependencies required by JMH micro benchmark
     api group: 'org.openjdk.jmh', name: 'jmh-core', version: '1.36'
