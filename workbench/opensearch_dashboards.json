@@ -1,9 +1,0 @@
-{
-  "id": "queryWorkbenchDashboards",
-  "version": "3.0.0.0",
-  "opensearchDashboardsVersion": "3.0.0",
-  "server": true,
-  "ui": true,
-  "requiredPlugins": ["navigation"],
-  "optionalPlugins": []
-}

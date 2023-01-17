@@ -191,13 +191,13 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression ceil = DSL.ceil(DSL.literal(value));
     assertThat(
         ceil.valueOf(valueEnv()),
-        allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
-    assertEquals(String.format("ceil(%s)", value), ceil.toString());
+        allOf(hasType(LONG), hasValue((long) Math.ceil(value))));
+    assertEquals(String.format("ceil(%s)", value.toString()), ceil.toString());
 
     FunctionExpression ceiling = DSL.ceiling(DSL.literal(value));
     assertThat(
-        ceiling.valueOf(valueEnv()), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
-    assertEquals(String.format("ceiling(%s)", value), ceiling.toString());
+        ceiling.valueOf(valueEnv()), allOf(hasType(LONG), hasValue((long) Math.ceil(value))));
+    assertEquals(String.format("ceiling(%s)", value.toString()), ceiling.toString());
   }
 
   /**
@@ -208,13 +208,30 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void ceil_long_value(Long value) {
     FunctionExpression ceil = DSL.ceil(DSL.literal(value));
     assertThat(
-        ceil.valueOf(valueEnv()), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
-    assertEquals(String.format("ceil(%s)", value), ceil.toString());
+        ceil.valueOf(valueEnv()), allOf(hasType(LONG), hasValue((long) Math.ceil(value))));
+    assertEquals(String.format("ceil(%s)", value.toString()), ceil.toString());
 
     FunctionExpression ceiling = DSL.ceiling(DSL.literal(value));
     assertThat(
-        ceiling.valueOf(valueEnv()), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
-    assertEquals(String.format("ceiling(%s)", value), ceiling.toString());
+        ceiling.valueOf(valueEnv()), allOf(hasType(LONG), hasValue((long) Math.ceil(value))));
+    assertEquals(String.format("ceiling(%s)", value.toString()), ceiling.toString());
+  }
+
+  /**
+   * Test ceil/ceiling with long value.
+   */
+  @ParameterizedTest(name = "ceil({0})")
+  @ValueSource(longs = {9223372036854775805L, -9223372036854775805L})
+  public void ceil_long_value_long(Long value) {
+    FunctionExpression ceil = DSL.ceil(DSL.literal(value));
+    assertThat(
+        ceil.valueOf(valueEnv()), allOf(hasType(LONG), hasValue((long) Math.ceil(value))));
+    assertEquals(String.format("ceil(%s)", value.toString()), ceil.toString());
+
+    FunctionExpression ceiling = DSL.ceiling(DSL.literal(value));
+    assertThat(
+        ceiling.valueOf(valueEnv()), allOf(hasType(LONG), hasValue((long) Math.ceil(value))));
+    assertEquals(String.format("ceiling(%s)", value.toString()), ceiling.toString());
   }
 
   /**
@@ -225,13 +242,13 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void ceil_float_value(Float value) {
     FunctionExpression ceil = DSL.ceil(DSL.literal(value));
     assertThat(
-        ceil.valueOf(valueEnv()), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
-    assertEquals(String.format("ceil(%s)", value), ceil.toString());
+        ceil.valueOf(valueEnv()), allOf(hasType(LONG), hasValue((long) Math.ceil(value))));
+    assertEquals(String.format("ceil(%s)", value.toString()), ceil.toString());
 
     FunctionExpression ceiling = DSL.ceiling(DSL.literal(value));
     assertThat(
-        ceiling.valueOf(valueEnv()), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
-    assertEquals(String.format("ceiling(%s)", value), ceiling.toString());
+        ceiling.valueOf(valueEnv()), allOf(hasType(LONG), hasValue((long) Math.ceil(value))));
+    assertEquals(String.format("ceiling(%s)", value.toString()), ceiling.toString());
   }
 
   /**
@@ -242,13 +259,13 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   public void ceil_double_value(Double value) {
     FunctionExpression ceil = DSL.ceil(DSL.literal(value));
     assertThat(
-        ceil.valueOf(valueEnv()), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
-    assertEquals(String.format("ceil(%s)", value), ceil.toString());
+        ceil.valueOf(valueEnv()), allOf(hasType(LONG), hasValue((long) Math.ceil(value))));
+    assertEquals(String.format("ceil(%s)", value.toString()), ceil.toString());
 
     FunctionExpression ceiling = DSL.ceiling(DSL.literal(value));
     assertThat(
-        ceiling.valueOf(valueEnv()), allOf(hasType(INTEGER), hasValue((int) Math.ceil(value))));
-    assertEquals(String.format("ceiling(%s)", value), ceiling.toString());
+        ceiling.valueOf(valueEnv()), allOf(hasType(LONG), hasValue((long) Math.ceil(value))));
+    assertEquals(String.format("ceiling(%s)", value.toString()), ceiling.toString());
   }
 
   /**
@@ -257,11 +274,11 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   @Test
   public void ceil_null_value() {
     FunctionExpression ceil = DSL.ceil(DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
-    assertEquals(INTEGER, ceil.type());
+    assertEquals(LONG, ceil.type());
     assertTrue(ceil.valueOf(valueEnv()).isNull());
 
     FunctionExpression ceiling = DSL.ceiling(DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
-    assertEquals(INTEGER, ceiling.type());
+    assertEquals(LONG, ceiling.type());
     assertTrue(ceiling.valueOf(valueEnv()).isNull());
   }
 
@@ -271,11 +288,11 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   @Test
   public void ceil_missing_value() {
     FunctionExpression ceil = DSL.ceil(DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
-    assertEquals(INTEGER, ceil.type());
+    assertEquals(LONG, ceil.type());
     assertTrue(ceil.valueOf(valueEnv()).isMissing());
 
     FunctionExpression ceiling = DSL.ceiling(DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
-    assertEquals(INTEGER, ceiling.type());
+    assertEquals(LONG, ceiling.type());
     assertTrue(ceiling.valueOf(valueEnv()).isMissing());
   }
 
@@ -557,7 +574,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression floor = DSL.floor(DSL.literal(value));
     assertThat(
         floor.valueOf(valueEnv()),
-        allOf(hasType(INTEGER), hasValue((int) Math.floor(value))));
+        allOf(hasType(LONG), hasValue((long) Math.floor(value))));
     assertEquals(String.format("floor(%s)", value.toString()), floor.toString());
   }
 
@@ -570,7 +587,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression floor = DSL.floor(DSL.literal(value));
     assertThat(
         floor.valueOf(valueEnv()),
-        allOf(hasType(INTEGER), hasValue((int) Math.floor(value))));
+        allOf(hasType(LONG), hasValue((long) Math.floor(value))));
     assertEquals(String.format("floor(%s)", value.toString()), floor.toString());
   }
 
@@ -583,7 +600,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression floor = DSL.floor(DSL.literal(value));
     assertThat(
         floor.valueOf(valueEnv()),
-        allOf(hasType(INTEGER), hasValue((int) Math.floor(value))));
+        allOf(hasType(LONG), hasValue((long) Math.floor(value))));
     assertEquals(String.format("floor(%s)", value.toString()), floor.toString());
   }
 
@@ -596,7 +613,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression floor = DSL.floor(DSL.literal(value));
     assertThat(
         floor.valueOf(valueEnv()),
-        allOf(hasType(INTEGER), hasValue((int) Math.floor(value))));
+        allOf(hasType(LONG), hasValue((long) Math.floor(value))));
     assertEquals(String.format("floor(%s)", value.toString()), floor.toString());
   }
 
@@ -606,7 +623,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   @Test
   public void floor_null_value() {
     FunctionExpression floor = DSL.floor(DSL.ref(DOUBLE_TYPE_NULL_VALUE_FIELD, DOUBLE));
-    assertEquals(INTEGER, floor.type());
+    assertEquals(LONG, floor.type());
     assertTrue(floor.valueOf(valueEnv()).isNull());
   }
 
@@ -616,7 +633,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   @Test
   public void floor_missing_value() {
     FunctionExpression floor = DSL.floor(DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
-    assertEquals(INTEGER, floor.type());
+    assertEquals(LONG, floor.type());
     assertTrue(floor.valueOf(valueEnv()).isMissing());
   }
 
