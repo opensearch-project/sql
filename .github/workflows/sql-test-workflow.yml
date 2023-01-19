@@ -82,7 +82,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v2
       with:
-        name: test-reports
+        name: test-reports-${{ matrix.entry.java }}
         path: |
           sql/build/reports/**
           ppl/build/reports/**
