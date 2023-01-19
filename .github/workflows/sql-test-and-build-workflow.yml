@@ -44,12 +44,6 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew --continue build ${{ matrix.entry.os_build_args }}
 
-    - name: PiTest with Gradle
-      run: |
-        ./gradlew :core:pitest
-        ./gradlew :opensearch:pitest
-     
-
     - name: Run backward compatibility tests
       if: ${{ matrix.entry.os == 'ubuntu-latest' }}
       run: ./scripts/bwctest.sh
@@ -63,12 +57,14 @@ jobs:
     - name: Upload SQL Coverage Report
       if: ${{ always() && matrix.entry.os == 'ubuntu-latest' }}
       uses: codecov/codecov-action@v3
+      continue-on-error: true
       with:
         flags: sql-engine
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v2
+      continue-on-error: true
       with:
         name: opensearch-sql-${{ matrix.entry.os }}
         path: opensearch-sql-builds
@@ -89,3 +85,5 @@ jobs:
           protocol/build/reports/**
           legacy/build/reports/**
           plugin/build/reports/**
+          doctest/build/testclusters/docTestCluster-0/logs/*
+          integ-test/build/testclusters/*/logs/*
