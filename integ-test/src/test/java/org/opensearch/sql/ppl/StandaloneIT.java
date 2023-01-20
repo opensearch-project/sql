@@ -34,6 +34,7 @@ import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.DataSourceServiceImpl;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
+import org.opensearch.sql.executor.PaginatedPlanCache;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
@@ -194,8 +195,9 @@ public class StandaloneIT extends PPLIntegTestCase {
     }
 
     @Provides
-    public ExecutionEngine executionEngine(OpenSearchClient client, ExecutionProtector protector) {
-      return new OpenSearchExecutionEngine(client, protector);
+    public ExecutionEngine executionEngine(OpenSearchClient client, ExecutionProtector protector,
+                                           PaginatedPlanCache paginatedPlanCache) {
+      return new OpenSearchExecutionEngine(client, protector, paginatedPlanCache);
     }
 
     @Provides
@@ -225,12 +227,14 @@ public class StandaloneIT extends PPLIntegTestCase {
     }
 
     @Provides
-    public QueryPlanFactory queryPlanFactory(ExecutionEngine executionEngine) {
+    public QueryPlanFactory queryPlanFactory(ExecutionEngine executionEngine,
+                                             PaginatedPlanCache paginatedPlanCache) {
       Analyzer analyzer =
           new Analyzer(
               new ExpressionAnalyzer(functionRepository), dataSourceService, functionRepository);
       Planner planner = new Planner(LogicalPlanOptimizer.create());
-      return new QueryPlanFactory(new QueryService(analyzer, executionEngine, planner));
+      return new QueryPlanFactory(new QueryService(analyzer, executionEngine, planner),
+          paginatedPlanCache);
     }
   }
 }

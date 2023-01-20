@@ -16,7 +16,7 @@ import org.opensearch.sql.executor.execution.AbstractPlan;
  * Query id of {@link AbstractPlan}.
  */
 public class QueryId {
-  public final static QueryId None = new QueryId("");
+  public static final QueryId None = new QueryId("");
   /**
    * Query id.
    */

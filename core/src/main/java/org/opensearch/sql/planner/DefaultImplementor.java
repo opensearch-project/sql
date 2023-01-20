@@ -131,6 +131,7 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
   public PhysicalPlan visitPaginate(LogicalPaginate plan, C context) {
     return new PaginateOperator(visitChild(plan, context), plan.getPageSize());
   }
+
   @Override
   public PhysicalPlan visitTableScanBuilder(TableScanBuilder plan, C context) {
     return plan.build();

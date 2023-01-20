@@ -25,6 +25,7 @@ public class Paginate extends UnresolvedPlan {
     this.pageSize = pageSize;
     this.child = child;
   }
+
   @Override
   public List<? extends Node> getChild() {
     return List.of(child);

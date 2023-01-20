@@ -14,6 +14,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import org.json.JSONObject;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.protocol.response.format.Format;
 
@@ -81,6 +83,7 @@ public class SQLQueryRequestTest {
   }
 
   @Test
+  @Disabled("SQLQueryRequest does support cursor requests")
   public void shouldNotSupportCursorRequest() {
     SQLQueryRequest fetchSizeRequest =
         SQLQueryRequestBuilder.request("SELECT 1")

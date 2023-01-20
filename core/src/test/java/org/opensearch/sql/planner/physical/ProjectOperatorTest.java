@@ -10,6 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.iterableWithSize;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_MISSING;
@@ -36,7 +37,6 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.DSL;
-import org.springframework.util.Assert;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectOperatorTest extends PhysicalPlanTestBase {
@@ -216,9 +216,6 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
 
   @Test
   public void project_serialize() throws IOException, ClassNotFoundException {
-//    when(inputPlan.hasNext()).thenReturn(true, false);
-//    when(inputPlan.next())
-//        .thenReturn(ExprValueUtils.tupleValue(ImmutableMap.of("action", "GET", "response", 200)));
     PhysicalPlan plan = project(inputPlan, DSL.named("action", DSL.ref("action", STRING)));
 
     var os = new ByteArrayOutputStream();
@@ -233,7 +230,7 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
     var outstream = new ObjectInputStream(is);
     var newObj = outstream.readObject();
 
-    Assert.isInstanceOf(ProjectOperator.class, newObj);
+    assertThat(newObj, instanceOf(ProjectOperator.class));
 
     var newOp = (ProjectOperator) newObj;
 

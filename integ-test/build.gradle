@@ -168,12 +168,13 @@ integTest {
     // Set default query size limit
     systemProperty 'defaultQuerySizeLimit', '10000'
 
+    setDebug(true)
     // Tell the test JVM if the cluster JVM is running under a debugger so that tests can use longer timeouts for
     // requests. The 'doFirst' delays reading the debug setting on the cluster till execution time.
     doFirst { systemProperty 'cluster.debug', getDebug() }
 
     if (System.getProperty("test.debug") != null) {
-        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
+        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5006'
     }
 
     if (System.getProperty("tests.rest.bwcsuite") == null) {

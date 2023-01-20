@@ -19,10 +19,9 @@ import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
+import org.opensearch.sql.executor.PaginatedPlanCache;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
-import org.opensearch.sql.executor.PaginatedPlanCache;
-import org.opensearch.sql.planner.physical.PhysicalPlan;
 
 /**
  * QueryExecution Factory.
@@ -72,6 +71,16 @@ public class QueryPlanFactory
     return statement.accept(this, Pair.of(queryListener, explainListener));
   }
 
+  /**
+   * Creates a ContinuePaginatedPlan from a cursor.
+   */
+  public AbstractPlan create(String cursor, ResponseListener<ExecutionEngine.QueryResponse>
+      queryResponseListener) {
+    QueryId queryId = QueryId.queryId();
+    return new ContinuePaginatedPlan(queryId, cursor, queryService, paginatedPlanCache,
+        queryResponseListener);
+  }
+
   @Override
   public AbstractPlan visitQuery(
       Query node,
@@ -85,8 +94,7 @@ public class QueryPlanFactory
     if (node.getFetchSize() > 0) {
       return new PaginatedPlan(QueryId.queryId(), node.getPlan(), node.getFetchSize(), queryService,
           context.getLeft().get());
-    }
-    else {
+    } else {
       return new QueryPlan(QueryId.queryId(), node.getPlan(), queryService,
           context.getLeft().get());
     }
@@ -108,10 +116,4 @@ public class QueryPlanFactory
         context.getRight().get());
   }
 
-  public AbstractPlan create(String cursor,
-                             ResponseListener<ExecutionEngine.QueryResponse> queryResponseListener) {
-  // get queryId from the cursor string here?
-    QueryId queryId = QueryId.queryId();
-    return new ContinuePaginatedPlan(queryId, cursor, queryService, paginatedPlanCache, queryResponseListener);
-  }
 }

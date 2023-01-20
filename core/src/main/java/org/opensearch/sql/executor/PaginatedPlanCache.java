@@ -34,27 +34,38 @@ public class PaginatedPlanCache {
   static class SeriazationContext {
     private final PaginatedPlanCache cache;
   }
+
   public static class SerializationVisitor
       extends PhysicalPlanNodeVisitor<byte[], SeriazationContext> {
     private static final byte[] NO_CURSOR = new byte[] {};
+
     @Override
     public byte[] visitPaginate(PaginateOperator node, SeriazationContext context) {
       // Save cursor to read the next page.
+      // Could process node.getChild() here with another visitor -- one that saves the
+      // parameters for other physical operators -- ProjectOperator, etc.
       return String.format("You got it!%d", node.getPageIndex() + 1).getBytes();
     }
 
+    // Cursor is returned only if physical plan node is PaginateOerator.
     @Override
     protected byte[] visitNode(PhysicalPlan node, SeriazationContext context) {
       return NO_CURSOR;
     }
   }
 
+  /**
+   * Converts a physical plan tree to a cursor. May cache plan related data somewhere.
+   */
   public Cursor convertToCursor(PhysicalPlan plan) {
     var serializer = new SerializationVisitor();
     var raw = plan.accept(serializer, new SeriazationContext(this));
     return new Cursor(raw);
   }
 
+  /**
+    * Convers a cursor to a physical plann tree.
+    */
   public PhysicalPlan convertToPlan(String cursor) {
     // TODO HACKY_HACK -- create a plan
     if (cursor.startsWith("You got it!")) {
@@ -62,7 +73,7 @@ public class PaginatedPlanCache {
 
       Table table = storageEngine.getTable(null, "phrases");
       TableScanBuilder scanBuilder = table.createScanBuilder();
-      scanBuilder.pushDownOffset(5*pageIndex);
+      scanBuilder.pushDownOffset(5 * pageIndex);
       PhysicalPlan scan = scanBuilder.build();
       var fields = table.getFieldTypes();
       List<NamedExpression> references =
@@ -70,28 +81,11 @@ public class PaginatedPlanCache {
               .map(c ->
                   new NamedExpression(c, new ReferenceExpression(c, List.of(c), fields.get(c))))
               .collect(Collectors.toList());
-//      List<NamedExpression> references = List.of(
-//          new NamedExpression("phrase",
-//              new ReferenceExpression("phrase",List.of("phrase"), opensearchTextType))
-//          , new NamedExpression("test field",
-//              new ReferenceExpression("test field", List.of("test field"), LONG))
-//          , new NamedExpression("insert_time2",
-//              new ReferenceExpression("insert_time2", List.of("insert_time2"), TIMESTAMP))
-//      );
 
       return new PaginateOperator(new ProjectOperator(scan, references, List.of()), 5, pageIndex);
 
     } else {
       throw new RuntimeException("Unsupported cursor");
-    }
-  }
-
-  private PhysicalPlan deserializePlan(byte[] ba) {
-    try (ByteArrayInputStream bi = new ByteArrayInputStream(ba);
-         ObjectInputStream oi = new ObjectInputStream(bi)) {
-      return (PhysicalPlan) oi.readObject();
-    } catch (IOException | ClassNotFoundException e) {
-      throw new RuntimeException(e);
     }
   }
 }

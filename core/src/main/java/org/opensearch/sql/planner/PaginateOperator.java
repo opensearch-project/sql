@@ -24,14 +24,19 @@ public class PaginateOperator extends PhysicalPlan {
 
   /**
    * Which page is this?
+   * May not be necessary in the end. Currently used to increment the "cursor counter" --
+   * See usage.
    */
   @Getter
   private final int pageIndex;
 
   int numReturned = 0;
 
+  /**
+   * Page given physical plan, with pageSize elements per page, starting with the first page.
+   */
   public PaginateOperator(PhysicalPlan input, int pageSize) {
-    this.pageSize =pageSize;
+    this.pageSize = pageSize;
     this.input = input;
     this.pageIndex = 0;
   }

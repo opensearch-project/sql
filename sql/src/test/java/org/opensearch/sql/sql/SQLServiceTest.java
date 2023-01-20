@@ -26,8 +26,10 @@ import org.opensearch.sql.executor.DefaultQueryManager;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponseNode;
+import org.opensearch.sql.executor.PaginatedPlanCache;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
+import org.opensearch.sql.opensearch.executor.Cursor;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
 
@@ -48,11 +50,14 @@ class SQLServiceTest {
   @Mock
   private ExecutionEngine.Schema schema;
 
+  @Mock
+  private PaginatedPlanCache paginatedPlanCache;
+
   @BeforeEach
   public void setUp() {
     queryManager = DefaultQueryManager.defaultQueryManager();
     sqlService = new SQLService(new SQLSyntaxParser(), queryManager,
-        new QueryPlanFactory(queryService));
+        new QueryPlanFactory(queryService, paginatedPlanCache));
   }
 
   @AfterEach
@@ -64,13 +69,13 @@ class SQLServiceTest {
   public void canExecuteSqlQuery() {
     doAnswer(invocation -> {
       ResponseListener<QueryResponse> listener = invocation.getArgument(1);
-      listener.onResponse(new QueryResponse(schema, Collections.emptyList()));
+      listener.onResponse(new QueryResponse(schema, Collections.emptyList(), Cursor.None));
       return null;
     }).when(queryService).execute(any(), any());
 
     sqlService.execute(
         new SQLQueryRequest(new JSONObject(), "SELECT 123", QUERY, "jdbc"),
-        new ResponseListener<QueryResponse>() {
+        new ResponseListener<>() {
           @Override
           public void onResponse(QueryResponse response) {
             assertNotNull(response);
@@ -87,7 +92,7 @@ class SQLServiceTest {
   public void canExecuteCsvFormatRequest() {
     doAnswer(invocation -> {
       ResponseListener<QueryResponse> listener = invocation.getArgument(1);
-      listener.onResponse(new QueryResponse(schema, Collections.emptyList()));
+      listener.onResponse(new QueryResponse(schema, Collections.emptyList(), Cursor.None));
       return null;
     }).when(queryService).execute(any(), any());
 

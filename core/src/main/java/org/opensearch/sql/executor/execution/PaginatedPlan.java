@@ -18,6 +18,10 @@ public class PaginatedPlan extends AbstractPlan {
   final QueryService queryService;
   final ResponseListener<ExecutionEngine.QueryResponse>
       queryResponseResponseListener;
+
+  /**
+   * Create an abstract plan that can start paging a query.
+   */
   public PaginatedPlan(QueryId queryId, UnresolvedPlan plan, int fetchSize,
                        QueryService queryService,
                        ResponseListener<ExecutionEngine.QueryResponse>

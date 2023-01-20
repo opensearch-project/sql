@@ -13,7 +13,8 @@ public class Cursor {
   public static final Cursor None = new Cursor();
 
   @Getter
-  private final byte[] raw ;
+  private final byte[] raw;
+
   private Cursor() {
     raw = new byte[] {};
   }

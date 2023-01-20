@@ -11,13 +11,12 @@ import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.PaginatedPlanCache;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
-import org.opensearch.sql.opensearch.executor.Cursor;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 
 public class ContinuePaginatedPlan extends AbstractPlan {
 
   public static final ContinuePaginatedPlan None
-      = new ContinuePaginatedPlan(QueryId.None, "", null ,
+      = new ContinuePaginatedPlan(QueryId.None, "", null,
       null, null);
   private final String cursor;
   private final QueryService queryService;
@@ -26,6 +25,9 @@ public class ContinuePaginatedPlan extends AbstractPlan {
   private final ResponseListener<ExecutionEngine.QueryResponse> queryResponseListener;
 
 
+  /**
+   * Create an abstract plan that can continue paginating a given cursor.
+   */
   public ContinuePaginatedPlan(QueryId queryId, String cursor, QueryService queryService,
                                PaginatedPlanCache ppc,
                                ResponseListener<ExecutionEngine.QueryResponse>

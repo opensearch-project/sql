@@ -245,11 +245,6 @@ class OpenSearchIndexScanTest {
     verify(client).cleanup(any());
   }
 
-  @Test
-  void serialization() {
-
-  }
-
   private PushDownAssertion assertThat() {
     return new PushDownAssertion(client, exprValueFactory, settings);
   }

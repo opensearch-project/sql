@@ -92,7 +92,7 @@ public class SQLQueryRequest {
   }
 
   private boolean isCursor() {
-    return cursor == null ||  cursor.isEmpty() == false;
+    return cursor != null &&  cursor.isEmpty() == false;
   }
 
   /**

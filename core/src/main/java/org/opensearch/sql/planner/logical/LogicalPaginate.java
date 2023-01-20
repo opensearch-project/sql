@@ -15,6 +15,7 @@ import lombok.ToString;
 @EqualsAndHashCode(callSuper = false)
 public class LogicalPaginate extends LogicalPlan {
   private final int pageSize;
+
   public LogicalPaginate(int pageSize, List<LogicalPlan> childPlans) {
     super(childPlans);
     this.pageSize = pageSize;
