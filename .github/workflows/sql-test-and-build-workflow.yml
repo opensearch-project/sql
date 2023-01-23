@@ -24,12 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         entry:
-          - { os: ubuntu-latest, java: 11 }
-          - { os: windows-latest, java: 11, os_build_args: -x doctest -x integTest -x jacocoTestReport -PbuildPlatform=windows }
-          - { os: macos-latest, java: 11, os_build_args: -x doctest -x integTest -x jacocoTestReport  }
-          - { os: ubuntu-latest, java: 17 }
-          - { os: windows-latest, java: 17, os_build_args: -x doctest -x integTest -x jacocoTestReport  -PbuildPlatform=windows }
-          - { os: macos-latest, java: 17, os_build_args: -x doctest -x integTest -x jacocoTestReport  }
+          - { os: ubuntu-latest, java: 11, os_build_args: -x doctest -x jacocoTestReport  }
     runs-on: ${{ matrix.entry.os }}
 
     steps:
@@ -41,51 +36,32 @@ jobs:
         distribution: 'temurin'
         java-version: ${{ matrix.entry.java }}
 
+    - name: Install xmlstarlet
+      run: |
+        sudo apt-get update
+        sudo apt-get install xmlstarlet
+
     - name: Build with Gradle
-      run: ./gradlew --continue build ${{ matrix.entry.os_build_args }}
+      run: ./gradlew --continue integ-test:integTest
 
-    - name: PiTest with Gradle
-      run: |
-        ./gradlew :core:pitest
-        ./gradlew :opensearch:pitest
-     
+    - name: Delete failure text in XML files
+      run: xmlstarlet ed --inplace -d '//text()' integ-test/build/test-results/integTest/*.xml
+      if: always()
 
-    - name: Run backward compatibility tests
-      if: ${{ matrix.entry.os == 'ubuntu-latest' }}
-      run: ./scripts/bwctest.sh
-
-    - name: Create Artifact Path
-      run: |
-        mkdir -p opensearch-sql-builds
-        cp -r ./plugin/build/distributions/*.zip opensearch-sql-builds/
-
-    # This step uses the codecov-action Github action: https://github.com/codecov/codecov-action
-    - name: Upload SQL Coverage Report
-      if: ${{ always() && matrix.entry.os == 'ubuntu-latest' }}
-      uses: codecov/codecov-action@v3
+    - name: Test Summary
+      uses: test-summary/action@v2
       with:
-        flags: sql-engine
-        token: ${{ secrets.CODECOV_TOKEN }}
+        output: test-summary.md
+        paths: integ-test/build/test-results/integTest/*.xml
+      if: always()
 
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v2
+    - name: Upload Compiled Results
+      uses: actions/upload-artifact@v3
       with:
-        name: opensearch-sql-${{ matrix.entry.os }}
-        path: opensearch-sql-builds
+        name: test-summary
+        path: test-summary.md
+      if: always()
 
-    - name: Upload test reports
-      if: ${{ always() && matrix.entry.os == 'ubuntu-latest' }}
-      uses: actions/upload-artifact@v2
-      continue-on-error: true
-      with:
-        name: test-reports
-        path: |
-          sql/build/reports/**
-          ppl/build/reports/**
-          core/build/reports/**
-          common/build/reports/**
-          opensearch/build/reports/**
-          integ-test/build/reports/**
-          protocol/build/reports/**
-          legacy/build/reports/**
-          plugin/build/reports/**
+    - name: Show Compiled Results
+      run: cat test-summary.md >> $GITHUB_STEP_SUMMARY
+      if: always()
