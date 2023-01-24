@@ -258,6 +258,11 @@ public enum BuiltinFunctionName {
     ALL_NATIVE_FUNCTIONS = builder.build();
   }
 
+  public static final Map<String, FunctionName> VARARGS_FUNCTIONS_MAP =
+          new ImmutableMap.Builder<String, FunctionName>()
+                  .put("concat", BuiltinFunctionName.CONCAT.name)
+                  .build();
+
   private static final Map<String, BuiltinFunctionName> AGGREGATION_FUNC_MAPPING =
       new ImmutableMap.Builder<String, BuiltinFunctionName>()
           .put("max", BuiltinFunctionName.MAX)

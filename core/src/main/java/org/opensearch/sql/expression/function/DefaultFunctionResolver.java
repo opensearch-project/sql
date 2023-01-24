@@ -50,7 +50,7 @@ public class DefaultFunctionResolver implements FunctionResolver {
               functionSignature));
     }
     Map.Entry<Integer, FunctionSignature> bestMatchEntry = functionMatchQueue.peek();
-    if (isConcatFunction(unresolvedSignature)
+    if (isVarargsFunction(unresolvedSignature)
             && (unresolvedSignature.getParamTypeList().isEmpty()
               || unresolvedSignature.getParamTypeList().size() > 9)) {
       throw new ExpressionEvaluationException(
@@ -58,7 +58,7 @@ public class DefaultFunctionResolver implements FunctionResolver {
                       functionName, unresolvedSignature.getParamTypeList().size()));
     }
     if (FunctionSignature.NOT_MATCH.equals(bestMatchEntry.getKey())
-            && !isConcatFunction(unresolvedSignature)) {
+            && !isVarargsFunction(unresolvedSignature)) {
       throw new ExpressionEvaluationException(
           String.format("%s function expected %s, but get %s", functionName,
               formatFunctions(functionBundle.keySet()),
@@ -75,7 +75,8 @@ public class DefaultFunctionResolver implements FunctionResolver {
         .collect(Collectors.joining(",", "{", "}"));
   }
 
-  private boolean isConcatFunction(FunctionSignature signature) {
-    return signature.getFunctionName().equals(BuiltinFunctionName.CONCAT.getName());
+  private boolean isVarargsFunction(FunctionSignature signature) {
+    return BuiltinFunctionName.VARARGS_FUNCTIONS_MAP
+            .containsValue(signature.getFunctionName());
   }
 }

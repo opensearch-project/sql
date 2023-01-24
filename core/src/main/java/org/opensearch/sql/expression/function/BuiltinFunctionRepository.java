@@ -182,7 +182,7 @@ public class BuiltinFunctionRepository {
     if (isCastFunction(functionName) || sourceTypes.equals(targetTypes)) {
       return funcBuilder;
     }
-    if (functionName.equals(BuiltinFunctionName.CONCAT.getName())) {
+    if (BuiltinFunctionName.VARARGS_FUNCTIONS_MAP.containsValue(functionName)) {
       return funcBuilder;
     }
     return castArguments(sourceTypes,

@@ -84,7 +84,7 @@ class DefaultFunctionResolverTest {
   }
 
   @Test
-  void resolve_concat_function_signature_match() {
+  void resolve_varargs_function_signature_match() {
     functionName = FunctionName.of("concat");
     when(functionSignature.match(notMatchFS)).thenReturn(WideningTypeRule.IMPOSSIBLE_WIDENING);
     when(functionSignature.getFunctionName()).thenReturn(functionName);
@@ -97,7 +97,7 @@ class DefaultFunctionResolverTest {
   }
 
   @Test
-  void resolve_concat_no_args_function_signature_not_match() {
+  void resolve_varargs_no_args_function_signature_not_match() {
     functionName = FunctionName.of("concat");
     when(functionSignature.match(notMatchFS)).thenReturn(WideningTypeRule.IMPOSSIBLE_WIDENING);
     when(functionSignature.getFunctionName()).thenReturn(functionName);
@@ -114,7 +114,7 @@ class DefaultFunctionResolverTest {
   }
 
   @Test
-  void resolve_concat_too_many_args_function_signature_not_match() {
+  void resolve_varargs_too_many_args_function_signature_not_match() {
     functionName = FunctionName.of("concat");
     when(functionSignature.match(notMatchFS)).thenReturn(WideningTypeRule.IMPOSSIBLE_WIDENING);
     when(functionSignature.getFunctionName()).thenReturn(functionName);
