@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import static org.opensearch.common.xcontent.ToXContent.EMPTY_PARAMS;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.expression.DSL.ref;
 import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
@@ -66,6 +67,27 @@ class BucketAggregationBuilderTest {
         buildQuery(
             Arrays.asList(
                 asc(named("age", ref("age", INTEGER))))));
+  }
+
+  @Test
+  void should_build_bucket_with_literal() {
+    var literal = literal(1);
+    when(serializer.serialize(literal)).thenReturn("mock-serialize");
+    assertEquals(
+        "{\n"
+            + "  \"terms\" : {\n"
+            + "    \"script\" : {\n"
+            + "      \"source\" : \"mock-serialize\",\n"
+            + "      \"lang\" : \"opensearch_query_expression\"\n"
+            + "    },\n"
+            + "    \"missing_bucket\" : true,\n"
+            + "    \"missing_order\" : \"first\",\n"
+            + "    \"order\" : \"asc\"\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            Arrays.asList(
+                asc(named(literal)))));
   }
 
   @Test
