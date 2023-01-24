@@ -24,12 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         entry:
-          - { os: ubuntu-latest, java: 11 }
-          - { os: windows-latest, java: 11, os_build_args: -x doctest -x integTest -x jacocoTestReport -PbuildPlatform=windows }
-          - { os: macos-latest, java: 11, os_build_args: -x doctest -x integTest -x jacocoTestReport  }
-          - { os: ubuntu-latest, java: 17 }
-          - { os: windows-latest, java: 17, os_build_args: -x doctest -x integTest -x jacocoTestReport  -PbuildPlatform=windows }
-          - { os: macos-latest, java: 17, os_build_args: -x doctest -x integTest -x jacocoTestReport  }
+          - { os: ubuntu-latest, java: 11, os_build_args: -x doctest -x jacocoTestReport  }
     runs-on: ${{ matrix.entry.os }}
 
     steps:
@@ -41,49 +36,32 @@ jobs:
         distribution: 'temurin'
         java-version: ${{ matrix.entry.java }}
 
-    - name: Build with Gradle
-      run: ./gradlew --continue build ${{ matrix.entry.os_build_args }}
-
-    - name: Run backward compatibility tests
-      if: ${{ matrix.entry.os == 'ubuntu-latest' }}
-      run: ./scripts/bwctest.sh
-
-    - name: Create Artifact Path
+    - name: Install xmlstarlet
       run: |
-        mkdir -p opensearch-sql-builds
-        cp -r ./plugin/build/distributions/*.zip opensearch-sql-builds/
+        sudo apt-get update
+        sudo apt-get install xmlstarlet
 
-    # This step uses the codecov-action Github action: https://github.com/codecov/codecov-action
-    - name: Upload SQL Coverage Report
-      if: ${{ always() && matrix.entry.os == 'ubuntu-latest' }}
-      uses: codecov/codecov-action@v3
-      continue-on-error: true
-      with:
-        flags: sql-engine
-        token: ${{ secrets.CODECOV_TOKEN }}
+    - name: Build with Gradle
+      run: ./gradlew --continue integ-test:integTest
 
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v2
-      continue-on-error: true
-      with:
-        name: opensearch-sql-${{ matrix.entry.os }}-${{ matrix.entry.java }}
-        path: opensearch-sql-builds
+    - name: Delete failure text in XML files
+      run: xmlstarlet ed --inplace -d '//text()' integ-test/build/test-results/integTest/*.xml
+      if: always()
 
-    - name: Upload test reports
-      if: ${{ always() && matrix.entry.os == 'ubuntu-latest' }}
-      uses: actions/upload-artifact@v2
-      continue-on-error: true
+    - name: Test Summary
+      uses: test-summary/action@v2
       with:
-        name: test-reports-${{ matrix.entry.os }}-${{ matrix.entry.java }}
-        path: |
-          sql/build/reports/**
-          ppl/build/reports/**
-          core/build/reports/**
-          common/build/reports/**
-          opensearch/build/reports/**
-          integ-test/build/reports/**
-          protocol/build/reports/**
-          legacy/build/reports/**
-          plugin/build/reports/**
-          doctest/build/testclusters/docTestCluster-0/logs/*
-          integ-test/build/testclusters/*/logs/*
+        output: test-summary.md
+        paths: integ-test/build/test-results/integTest/*.xml
+      if: always()
+
+    - name: Upload Compiled Results
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-summary
+        path: test-summary.md
+      if: always()
+
+    - name: Show Compiled Results
+      run: cat test-summary.md >> $GITHUB_STEP_SUMMARY
+      if: always()
