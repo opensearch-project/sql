@@ -122,11 +122,11 @@ The following projects have been merged into this repository as separate folders
 
 Besides basic filtering and aggregation, OpenSearch SQL also supports complex queries, such as querying semi-structured data, JOINs, set operations, sub-queries etc. Beyond the standard functions, OpenSearch functions are provided for better analytics and visualization. Please check our [documentation](#documentation) for more details.
 
-Recently we have been actively improving our query engine primarily for better correctness and extensibility. Behind the scene, the new enhanced engine has already supported both SQL and Piped Processing Language. Please find more details in [SQL Engine V2 - Release Notes](./docs/dev/NewSQLEngine.md).
+Recently we have been actively improving our query engine primarily for better correctness and extensibility. Behind the scene, the new enhanced engine has already supported both SQL and Piped Processing Language. Please find more details in [SQL Engine V2 - Release Notes](./docs/dev/intro-v2-engine.md).
 
 ## Documentation
 
-Please refer to the [SQL Language Reference Manual](./docs/user/index.rst), [Piped Processing Language (PPL) Reference Manual](./docs/user/ppl/index.rst) and [Technical Documentation](https://opensearch.org/docs/latest/search-plugins/sql/index/) for detailed information on installing and configuring plugin.
+Please refer to the [SQL Language Reference Manual](./docs/user/index.rst), [Piped Processing Language (PPL) Reference Manual](./docs/user/ppl/index.rst), [OpenSearch SQL/PPL Engine Development Manual](./docs/dev/index.md) and [Technical Documentation](https://opensearch.org/docs/latest/search-plugins/sql/index/) for detailed information on installing and configuring plugin.
 
 ## Forum
 
