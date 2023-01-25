@@ -42,7 +42,7 @@ public class FunctionSignature {
       return NOT_MATCH;
     }
     // TODO: improve to support regular and array type mixed, ex. func(int,string,array)
-    if (functionTypeList.size() == 1 && functionTypeList.get(0) == ARRAY) {
+    if (isVarArgFunction(functionTypeList)) {
       return EXACTLY_MATCH;
     }
 
@@ -67,5 +67,12 @@ public class FunctionSignature {
     return getParamTypeList().stream()
         .map(ExprType::typeName)
         .collect(Collectors.joining(",", "[", "]"));
+  }
+
+  /**
+   * util function - returns true if function has variable arguments.
+   */
+  protected static boolean isVarArgFunction(List<ExprType> argTypes) {
+    return argTypes.size() == 1 && argTypes.get(0) == ARRAY;
   }
 }

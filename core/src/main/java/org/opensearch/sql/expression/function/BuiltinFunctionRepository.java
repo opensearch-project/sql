@@ -7,7 +7,6 @@ package org.opensearch.sql.expression.function;
 
 import static org.opensearch.sql.ast.expression.Cast.getCastFunctionName;
 import static org.opensearch.sql.ast.expression.Cast.isCastFunction;
-import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 
 import com.google.common.annotations.VisibleForTesting;
 import java.util.ArrayList;
@@ -181,7 +180,7 @@ public class BuiltinFunctionRepository {
     List<ExprType> targetTypes = resolvedSignature.getKey().getParamTypeList();
     FunctionBuilder funcBuilder = resolvedSignature.getValue();
     if (isCastFunction(functionName)
-            || isVarArgFunction(targetTypes)
+            || FunctionSignature.isVarArgFunction(targetTypes)
             || sourceTypes.equals(targetTypes)) {
       return funcBuilder;
     }
@@ -232,9 +231,5 @@ public class BuiltinFunctionRepository {
     }
     return functionProperties -> (Expression) compile(functionProperties,
         castFunctionName, List.of(arg));
-  }
-
-  private boolean isVarArgFunction(List<ExprType> argTypes) {
-    return argTypes.size() == 1 && argTypes.get(0) == ARRAY;
   }
 }

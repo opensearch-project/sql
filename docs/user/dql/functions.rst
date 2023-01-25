@@ -2614,7 +2614,7 @@ CONCAT
 Description
 >>>>>>>>>>>
 
-Usage: CONCAT(str1, str2, ...., str_n) adds two or more strings together. Expects 1-9 arguments. If any of the expressions is a NULL value, it returns NULL.
+Usage: CONCAT(str1, str2, ...., str_9) adds up to 9 strings together. If any of the expressions is a NULL value, it returns NULL.
 
 Argument type: STRING, STRING, ...., STRING
 

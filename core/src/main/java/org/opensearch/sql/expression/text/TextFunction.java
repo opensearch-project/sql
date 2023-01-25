@@ -172,8 +172,8 @@ public class TextFunction {
                               return ExprValueUtils.nullValue();
                             }
                             return new ExprStringValue(exprValues.stream()
-                                        .map(argVal -> String.valueOf(argVal.value()))
-                                        .collect(Collectors.joining()));
+                                    .map(ExprValue::stringValue)
+                                    .collect(Collectors.joining()));
                       }
 
                       @Override
