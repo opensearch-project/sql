@@ -49,6 +49,7 @@ public class TextFunction {
     repository.register(ltrim());
     repository.register(position());
     repository.register(replace());
+    repository.register(reverse());
     repository.register(right());
     repository.register(rtrim());
     repository.register(strcmp());
@@ -268,6 +269,17 @@ public class TextFunction {
         impl(nullMissingHandling(TextFunction::exprReplace), STRING, STRING, STRING, STRING));
   }
 
+  /**
+   * REVERSE(str) returns reversed string of the string supplied as an argument
+   * Returns NULL if the argument is NULL.
+   * Supports the following signature:
+   * (STRING) -> STRING
+   */
+  private DefaultFunctionResolver reverse() {
+    return define(BuiltinFunctionName.REVERSE.getName(),
+        impl(nullMissingHandling(TextFunction::exprReverse), STRING, STRING));
+  }
+
   private static ExprValue exprSubstrStart(ExprValue exprValue, ExprValue start) {
     int startIdx = start.integerValue();
     if (startIdx == 0) {
@@ -330,6 +342,10 @@ public class TextFunction {
 
   private static ExprValue exprReplace(ExprValue str, ExprValue from, ExprValue to) {
     return new ExprStringValue(str.stringValue().replaceAll(from.stringValue(), to.stringValue()));
+  }
+
+  private static ExprValue exprReverse(ExprValue str) {
+    return new ExprStringValue(new StringBuilder(str.stringValue()).reverse().toString());
   }
 }
 

@@ -22,7 +22,6 @@ import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
-import org.springframework.context.annotation.Bean;
 
 public class PhysicalPlanTestBase {
 
@@ -183,7 +182,6 @@ public class PhysicalPlanTestBase {
           "errors", 8)))
       .build();
 
-  @Bean
   protected Environment<Expression, ExprCoreType> typeEnv() {
     return var -> {
       if (var instanceof ReferenceExpression) {

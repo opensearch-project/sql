@@ -26,15 +26,16 @@ plugins {
     id 'java-library'
     id "io.freefair.lombok"
     id 'jacoco'
+    id 'info.solidsoft.pitest' version '1.9.0'
 }
 
 dependencies {
     api project(':core')
     api group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
     implementation "io.github.resilience4j:resilience4j-retry:1.5.0"
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${jackson_version}"
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${jackson_databind_version}"
-    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: "${jackson_version}"
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${versions.jackson}"
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${versions.jackson_databind}"
+    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: "${versions.jackson}"
     implementation group: 'org.json', name: 'json', version:'20180813'
     compileOnly group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
     implementation group: 'org.opensearch', name:'opensearch-ml-client', version: "${opensearch_build}"
@@ -45,6 +46,15 @@ dependencies {
     testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.12.4'
     testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
     testImplementation group: 'org.opensearch.test', name: 'framework', version: "${opensearch_version}"
+}
+
+pitest {
+    targetClasses = ['org.opensearch.sql.*']
+    pitestVersion = '1.9.0'
+    threads = 4
+    outputFormats = ['HTML', 'XML']
+    timestampedReports = false
+    junit5PluginVersion = '1.0.0'
 }
 
 test {

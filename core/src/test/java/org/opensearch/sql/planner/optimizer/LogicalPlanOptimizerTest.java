@@ -7,6 +7,7 @@
 package org.opensearch.sql.planner.optimizer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
@@ -20,6 +21,8 @@ import static org.opensearch.sql.planner.logical.LogicalPlanDSL.limit;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.project;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.relation;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.sort;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.values;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.write;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
@@ -39,6 +42,7 @@ import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.storage.read.TableScanBuilder;
+import org.opensearch.sql.storage.write.TableWriteBuilder;
 
 @ExtendWith(MockitoExtension.class)
 class LogicalPlanOptimizerTest {
@@ -268,6 +272,37 @@ class LogicalPlanOptimizerTest {
         relation("schema", table),
         optimize(relation("schema", table))
     );
+  }
+
+  @Test
+  void table_support_write_builder_should_be_replaced() {
+    Mockito.reset(table, tableScanBuilder);
+    TableWriteBuilder writeBuilder = Mockito.mock(TableWriteBuilder.class);
+    when(table.createWriteBuilder(any())).thenReturn(writeBuilder);
+
+    assertEquals(
+        writeBuilder,
+        optimize(write(values(), table, Collections.emptyList()))
+    );
+  }
+
+  @Test
+  void table_not_support_write_builder_should_report_error() {
+    Mockito.reset(table, tableScanBuilder);
+    Table table = new Table() {
+      @Override
+      public Map<String, ExprType> getFieldTypes() {
+        return null;
+      }
+
+      @Override
+      public PhysicalPlan implement(LogicalPlan plan) {
+        return null;
+      }
+    };
+
+    assertThrows(UnsupportedOperationException.class,
+        () -> table.createWriteBuilder(null));
   }
 
   private LogicalPlan optimize(LogicalPlan plan) {

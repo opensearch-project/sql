@@ -25,11 +25,11 @@ jobs:
       matrix:
         entry:
           - { os: ubuntu-latest, java: 11 }
-          - { os: windows-latest, java: 11, os_build_args: -x doctest -x integTest -x jacocoTestReport -x compileJdbc -PbuildPlatform=windows }
-          - { os: macos-latest, java: 11, os_build_args: -x doctest -x integTest -x jacocoTestReport -x compileJdbc }
+          - { os: windows-latest, java: 11, os_build_args: -x doctest -x integTest -x jacocoTestReport -PbuildPlatform=windows }
+          - { os: macos-latest, java: 11, os_build_args: -x doctest -x integTest -x jacocoTestReport  }
           - { os: ubuntu-latest, java: 17 }
-          - { os: windows-latest, java: 17, os_build_args: -x doctest -x integTest -x jacocoTestReport -x compileJdbc -PbuildPlatform=windows }
-          - { os: macos-latest, java: 17, os_build_args: -x doctest -x integTest -x jacocoTestReport -x compileJdbc }
+          - { os: windows-latest, java: 17, os_build_args: -x doctest -x integTest -x jacocoTestReport  -PbuildPlatform=windows }
+          - { os: macos-latest, java: 17, os_build_args: -x doctest -x integTest -x jacocoTestReport  }
     runs-on: ${{ matrix.entry.os }}
 
     steps:
@@ -57,21 +57,24 @@ jobs:
     - name: Upload SQL Coverage Report
       if: ${{ always() && matrix.entry.os == 'ubuntu-latest' }}
       uses: codecov/codecov-action@v3
+      continue-on-error: true
       with:
         flags: sql-engine
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v2
+      continue-on-error: true
       with:
-        name: opensearch-sql-${{ matrix.entry.os }}
+        name: opensearch-sql-${{ matrix.entry.os }}-${{ matrix.entry.java }}
         path: opensearch-sql-builds
 
     - name: Upload test reports
       if: ${{ always() && matrix.entry.os == 'ubuntu-latest' }}
       uses: actions/upload-artifact@v2
+      continue-on-error: true
       with:
-        name: test-reports
+        name: test-reports-${{ matrix.entry.os }}-${{ matrix.entry.java }}
         path: |
           sql/build/reports/**
           ppl/build/reports/**
@@ -82,3 +85,5 @@ jobs:
           protocol/build/reports/**
           legacy/build/reports/**
           plugin/build/reports/**
+          doctest/build/testclusters/docTestCluster-0/logs/*
+          integ-test/build/testclusters/*/logs/*

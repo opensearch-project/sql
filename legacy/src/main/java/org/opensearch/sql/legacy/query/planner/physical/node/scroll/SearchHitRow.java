@@ -134,6 +134,13 @@ class SearchHitRow implements Row<SearchHit> {
         if (dot == -1) {
             return ((Map) source).get(path);
         }
+
+        // Object field name maybe unexpanded without recursive object structure
+        // ex. {"a.b.c": value} instead of {"a": {"b": {"c": value}}}}
+        if (((Map) source).containsKey(path)) {
+            return ((Map) source).get(path);
+        }
+
         return getValueOfPath(
                 ((Map) source).get(path.substring(0, dot)),
                 path.substring(dot + 1),

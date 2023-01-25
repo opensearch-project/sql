@@ -1,1 +1,0 @@
-OpenSearch SQL ODBC is a read-only ODBC driver for connecting to OpenSearch SQL support.

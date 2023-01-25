@@ -141,7 +141,6 @@ The plugin codebase is in standard layout of Gradle project::
    ├── core
    ├── doctest
    ├── opensearch
-   ├── filesystem
    ├── prometheus
    ├── integ-test
    ├── legacy
@@ -162,7 +161,6 @@ Here are sub-folders (Gradle modules) for plugin source code:
 - ``core``: core query engine.
 - ``opensearch``: OpenSearch storage engine.
 - ``prometheus``: Prometheus storage engine.
-- ``filesystem``: File System storage engine (in development).
 - ``protocol``: request/response protocol formatter.
 - ``common``: common util code.
 - ``integ-test``: integration and comparison test.
@@ -220,8 +218,12 @@ Most of the time you just need to run ./gradlew build which will make sure you p
      - Run all unit tests.
    * - ./gradlew :integ-test:integTest
      - Run all integration test (this takes time).
+   * - ./gradlew :doctest:doctest
+     - Run doctests
    * - ./gradlew build
      - Build plugin by run all tasks above (this takes time).
+   * - ./gradlew pitest
+     - Run PiTest mutation testing (see more info in `#1204 <https://github.com/opensearch-project/sql/pull/1204>`_)
 
 For integration test, you can use ``-Dtests.class`` “UT full path” to run a task individually. For example ``./gradlew :integ-test:integTest -Dtests.class="*QueryIT"``.
 

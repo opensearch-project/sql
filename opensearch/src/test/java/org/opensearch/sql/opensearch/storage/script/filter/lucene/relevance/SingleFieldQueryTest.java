@@ -19,6 +19,8 @@ import org.mockito.Mockito;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.LiteralExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 
 class SingleFieldQueryTest {
   SingleFieldQuery query;
@@ -35,12 +37,26 @@ class SingleFieldQueryTest {
   }
 
   @Test
-  void createQueryBuilderTest() {
+  void createQueryBuilderTestTypeTextKeyword() {
     String sampleQuery = "sample query";
     String sampleField = "fieldA";
 
     query.createQueryBuilder(List.of(DSL.namedArgument("field",
-            new LiteralExpression(ExprValueUtils.stringValue(sampleField))),
+            new ReferenceExpression(sampleField, OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
+        DSL.namedArgument("query",
+            new LiteralExpression(ExprValueUtils.stringValue(sampleQuery)))));
+
+    verify(query).createBuilder(eq(sampleField),
+        eq(sampleQuery));
+  }
+
+  @Test
+  void createQueryBuilderTestTypeText() {
+    String sampleQuery = "sample query";
+    String sampleField = "fieldA";
+
+    query.createQueryBuilder(List.of(DSL.namedArgument("field",
+            new ReferenceExpression(sampleField, OpenSearchDataType.OPENSEARCH_TEXT)),
         DSL.namedArgument("query",
             new LiteralExpression(ExprValueUtils.stringValue(sampleQuery)))));
 

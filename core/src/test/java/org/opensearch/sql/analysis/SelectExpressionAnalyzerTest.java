@@ -24,14 +24,8 @@ import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.NamedExpression;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@Configuration
-@ExtendWith(SpringExtension.class)
 @ExtendWith(MockitoExtension.class)
-@ContextConfiguration(classes = {SelectExpressionAnalyzerTest.class})
 public class SelectExpressionAnalyzerTest extends AnalyzerTestBase {
 
   @Mock

@@ -21,13 +21,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Set up JDK ${{ matrix.java }}
       uses: actions/setup-java@v3
       with:
         distribution: 'temurin'
         java-version: ${{ matrix.java }}
-    
+
     - name: Run tests
       id: tests
       run: |
@@ -68,7 +68,7 @@ jobs:
         ./gradlew :integ-test:integTest                   || echo "* Integration test failed" >> report.log
         ./gradlew :doctest:doctest                        || echo "* Doctest failed" >> report.log
         ./scripts/bwctest.sh                              || echo "* Backward compatibility test failed" >> report.log
-        
+
     - name: Verify test results
       run: |
         if [[ -e report.log ]]
@@ -82,7 +82,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v2
       with:
-        name: test-reports
+        name: test-reports-${{ matrix.entry.java }}
         path: |
           sql/build/reports/**
           ppl/build/reports/**
@@ -93,3 +93,5 @@ jobs:
           protocol/build/reports/**
           legacy/build/reports/**
           plugin/build/reports/**
+          doctest/build/testclusters/docTestCluster-0/logs/*
+          integ-test/build/testclusters/*/logs/*

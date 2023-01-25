@@ -13,6 +13,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.analysis.symbol.Namespace;
@@ -39,8 +40,6 @@ import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 
 
 public class AnalyzerTestBase {
@@ -49,14 +48,12 @@ public class AnalyzerTestBase {
     return TestConfig.typeMapping;
   }
 
-  @Bean
   protected StorageEngine storageEngine() {
     return (dataSourceSchemaName, tableName) -> table;
   }
 
-  @Bean
   protected Table table() {
-    return new Table() {
+    return Optional.ofNullable(table).orElseGet(() -> new Table() {
       @Override
       public boolean exists() {
         return true;
@@ -76,31 +73,13 @@ public class AnalyzerTestBase {
       public PhysicalPlan implement(LogicalPlan plan) {
         throw new UnsupportedOperationException();
       }
-    };
+    });
   }
 
-  @Bean
-  protected Table dataSourceTable() {
-    return new Table() {
-      @Override
-      public Map<String, ExprType> getFieldTypes() {
-        return typeMapping();
-      }
-
-      @Override
-      public PhysicalPlan implement(LogicalPlan plan) {
-        throw new UnsupportedOperationException();
-      }
-    };
-  }
-
-  @Bean
   protected DataSourceService dataSourceService() {
-    return new DefaultDataSourceService();
+    return Optional.ofNullable(dataSourceService).orElseGet(DefaultDataSourceService::new);
   }
 
-
-  @Bean
   protected SymbolTable symbolTable() {
     SymbolTable symbolTable = new SymbolTable();
     typeMapping().entrySet()
@@ -110,7 +89,6 @@ public class AnalyzerTestBase {
     return symbolTable;
   }
 
-  @Bean
   protected Environment<Expression, ExprType> typeEnv() {
     return var -> {
       if (var instanceof ReferenceExpression) {
@@ -123,25 +101,16 @@ public class AnalyzerTestBase {
     };
   }
 
-  @Autowired
-  protected AnalysisContext analysisContext;
+  protected AnalysisContext analysisContext = analysisContext(typeEnvironment(symbolTable()));
 
-  @Autowired
-  protected ExpressionAnalyzer expressionAnalyzer;
+  protected ExpressionAnalyzer expressionAnalyzer = expressionAnalyzer();
 
-  @Autowired
-  protected Analyzer analyzer;
+  protected Table table = table();
 
-  @Autowired
-  protected Table table;
+  protected DataSourceService dataSourceService = dataSourceService();
 
-  @Autowired
-  protected DataSourceService dataSourceService;
+  protected Analyzer analyzer = analyzer(expressionAnalyzer(), dataSourceService, table);
 
-  @Autowired
-  protected Environment<Expression, ExprType> typeEnv;
-
-  @Bean
   protected Analyzer analyzer(ExpressionAnalyzer expressionAnalyzer,
                       DataSourceService dataSourceService,
                       Table table) {
@@ -167,17 +136,14 @@ public class AnalyzerTestBase {
     return new Analyzer(expressionAnalyzer, dataSourceService, functionRepository);
   }
 
-  @Bean
   protected TypeEnvironment typeEnvironment(SymbolTable symbolTable) {
     return new TypeEnvironment(null, symbolTable);
   }
 
-  @Bean
   protected AnalysisContext analysisContext(TypeEnvironment typeEnvironment) {
     return new AnalysisContext(typeEnvironment);
   }
 
-  @Bean
   protected ExpressionAnalyzer expressionAnalyzer() {
     return new ExpressionAnalyzer(BuiltinFunctionRepository.getInstance());
   }

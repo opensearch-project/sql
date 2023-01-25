@@ -19,6 +19,7 @@ import java.time.ZonedDateTime;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.function.FunctionProperties;
 
 public class DateTimeValueTest {
 
@@ -26,14 +27,33 @@ public class DateTimeValueTest {
 
   @Test
   public void timeValueInterfaceTest() {
-    ExprValue timeValue = new ExprTimeValue("01:01:01");
+    ExprTimeValue timeValue = new ExprTimeValue("01:01:01");
 
     assertEquals(TIME, timeValue.type());
+
     assertEquals(LocalTime.parse("01:01:01"), timeValue.timeValue());
+    // It is prohibited to acquire values which include date part from `ExprTimeValue`
+    // without a FunctionProperties object
+    var exception = assertThrows(ExpressionEvaluationException.class, timeValue::dateValue);
+    assertEquals("invalid to get dateValue from value of type TIME", exception.getMessage());
+    exception = assertThrows(ExpressionEvaluationException.class, timeValue::datetimeValue);
+    assertEquals("invalid to get datetimeValue from value of type TIME", exception.getMessage());
+    exception = assertThrows(ExpressionEvaluationException.class, timeValue::timestampValue);
+    assertEquals("invalid to get timestampValue from value of type TIME", exception.getMessage());
+
+    var functionProperties = new FunctionProperties();
+    var today = LocalDate.now(functionProperties.getQueryStartClock());
+
+    assertEquals(today, timeValue.dateValue(functionProperties));
+    assertEquals(today.atTime(1, 1, 1), timeValue.datetimeValue(functionProperties));
+    assertEquals(ZonedDateTime.of(LocalTime.parse("01:01:01").atDate(today),
+        ExprTimestampValue.ZONE).toInstant(), timeValue.timestampValue(functionProperties));
+
     assertEquals("01:01:01", timeValue.value());
     assertEquals("TIME '01:01:01'", timeValue.toString());
-    assertThrows(ExpressionEvaluationException.class, () -> integerValue(1).timeValue(),
-        "invalid to get timeValue from value of type INTEGER");
+    exception = assertThrows(ExpressionEvaluationException.class,
+        () -> integerValue(1).timeValue());
+    assertEquals("invalid to get timeValue from value of type INTEGER", exception.getMessage());
   }
 
   @Test
