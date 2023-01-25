@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.expression.function;
 
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
+
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
@@ -38,6 +40,10 @@ public class FunctionSignature {
     if (!functionName.equals(functionSignature.getFunctionName())
         || paramTypeList.size() != functionTypeList.size()) {
       return NOT_MATCH;
+    }
+    // TODO: improve to support regular and array type mixed, ex. func(int,string,array)
+    if (functionTypeList.size() == 1 && functionTypeList.get(0) == ARRAY) {
+      return EXACTLY_MATCH;
     }
 
     int matchDegree = EXACTLY_MATCH;

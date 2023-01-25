@@ -9,6 +9,7 @@ package org.opensearch.sql.expression.function;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import com.google.common.collect.ImmutableList;
@@ -50,7 +51,6 @@ class DefaultFunctionResolverTest {
   @Test
   void resolve_function_signature_exactly_match() {
     when(functionSignature.match(exactlyMatchFS)).thenReturn(WideningTypeRule.TYPE_EQUAL);
-    when(functionSignature.getFunctionName()).thenReturn(functionName);
     DefaultFunctionResolver resolver = new DefaultFunctionResolver(functionName,
         ImmutableMap.of(exactlyMatchFS, exactlyMatchBuilder));
 
@@ -61,7 +61,6 @@ class DefaultFunctionResolverTest {
   void resolve_function_signature_best_match() {
     when(functionSignature.match(bestMatchFS)).thenReturn(1);
     when(functionSignature.match(leastMatchFS)).thenReturn(2);
-    when(functionSignature.getFunctionName()).thenReturn(functionName);
     DefaultFunctionResolver resolver = new DefaultFunctionResolver(functionName,
         ImmutableMap.of(bestMatchFS, bestMatchBuilder, leastMatchFS, leastMatchBuilder));
 
@@ -73,7 +72,6 @@ class DefaultFunctionResolverTest {
     when(functionSignature.match(notMatchFS)).thenReturn(WideningTypeRule.IMPOSSIBLE_WIDENING);
     when(notMatchFS.formatTypes()).thenReturn("[INTEGER,INTEGER]");
     when(functionSignature.formatTypes()).thenReturn("[BOOLEAN,BOOLEAN]");
-    when(functionSignature.getFunctionName()).thenReturn(functionName);
     DefaultFunctionResolver resolver = new DefaultFunctionResolver(functionName,
         ImmutableMap.of(notMatchFS, notMatchBuilder));
 
@@ -86,26 +84,26 @@ class DefaultFunctionResolverTest {
   @Test
   void resolve_varargs_function_signature_match() {
     functionName = FunctionName.of("concat");
-    when(functionSignature.match(notMatchFS)).thenReturn(WideningTypeRule.IMPOSSIBLE_WIDENING);
-    when(functionSignature.getFunctionName()).thenReturn(functionName);
+    when(functionSignature.match(bestMatchFS)).thenReturn(WideningTypeRule.TYPE_EQUAL);
     when(functionSignature.getParamTypeList()).thenReturn(ImmutableList.of(STRING));
+    when(bestMatchFS.getParamTypeList()).thenReturn(ImmutableList.of(ARRAY));
 
     DefaultFunctionResolver resolver = new DefaultFunctionResolver(functionName,
-            ImmutableMap.of(notMatchFS, notMatchBuilder));
+            ImmutableMap.of(bestMatchFS, bestMatchBuilder));
 
-    assertEquals(notMatchBuilder, resolver.resolve(functionSignature).getValue());
+    assertEquals(bestMatchBuilder, resolver.resolve(functionSignature).getValue());
   }
 
   @Test
   void resolve_varargs_no_args_function_signature_not_match() {
     functionName = FunctionName.of("concat");
-    when(functionSignature.match(notMatchFS)).thenReturn(WideningTypeRule.IMPOSSIBLE_WIDENING);
-    when(functionSignature.getFunctionName()).thenReturn(functionName);
+    when(functionSignature.match(bestMatchFS)).thenReturn(WideningTypeRule.TYPE_EQUAL);
+    when(bestMatchFS.getParamTypeList()).thenReturn(ImmutableList.of(ARRAY));
     // Concat function with no arguments
     when(functionSignature.getParamTypeList()).thenReturn(Collections.emptyList());
 
     DefaultFunctionResolver resolver = new DefaultFunctionResolver(functionName,
-            ImmutableMap.of(notMatchFS, notMatchBuilder));
+            ImmutableMap.of(bestMatchFS, bestMatchBuilder));
 
     ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
             () -> resolver.resolve(functionSignature));
@@ -116,15 +114,15 @@ class DefaultFunctionResolverTest {
   @Test
   void resolve_varargs_too_many_args_function_signature_not_match() {
     functionName = FunctionName.of("concat");
-    when(functionSignature.match(notMatchFS)).thenReturn(WideningTypeRule.IMPOSSIBLE_WIDENING);
-    when(functionSignature.getFunctionName()).thenReturn(functionName);
+    when(functionSignature.match(bestMatchFS)).thenReturn(WideningTypeRule.TYPE_EQUAL);
+    when(bestMatchFS.getParamTypeList()).thenReturn(ImmutableList.of(ARRAY));
     // Concat function with more than 9 arguments
     when(functionSignature.getParamTypeList()).thenReturn(ImmutableList
             .of(STRING, STRING, STRING, STRING, STRING,
                     STRING, STRING, STRING, STRING, STRING));
 
     DefaultFunctionResolver resolver = new DefaultFunctionResolver(functionName,
-            ImmutableMap.of(notMatchFS, notMatchBuilder));
+            ImmutableMap.of(bestMatchFS, bestMatchBuilder));
 
     ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
             () -> resolver.resolve(functionSignature));

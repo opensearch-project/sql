@@ -5,7 +5,10 @@
 
 package org.opensearch.sql.expression.function;
 
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
+
 import java.util.AbstractMap;
+import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
@@ -15,6 +18,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Singular;
 import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 
 /**
@@ -50,15 +54,15 @@ public class DefaultFunctionResolver implements FunctionResolver {
               functionSignature));
     }
     Map.Entry<Integer, FunctionSignature> bestMatchEntry = functionMatchQueue.peek();
-    if (isVarargsFunction(unresolvedSignature)
+    if (isVarArgFunction(bestMatchEntry.getValue().getParamTypeList())
             && (unresolvedSignature.getParamTypeList().isEmpty()
-              || unresolvedSignature.getParamTypeList().size() > 9)) {
+            || unresolvedSignature.getParamTypeList().size() > 9)) {
       throw new ExpressionEvaluationException(
               String.format("%s function expected 1-9 arguments, but got %s",
                       functionName, unresolvedSignature.getParamTypeList().size()));
     }
     if (FunctionSignature.NOT_MATCH.equals(bestMatchEntry.getKey())
-            && !isVarargsFunction(unresolvedSignature)) {
+            && !isVarArgFunction(bestMatchEntry.getValue().getParamTypeList())) {
       throw new ExpressionEvaluationException(
           String.format("%s function expected %s, but get %s", functionName,
               formatFunctions(functionBundle.keySet()),
@@ -75,8 +79,7 @@ public class DefaultFunctionResolver implements FunctionResolver {
         .collect(Collectors.joining(",", "{", "}"));
   }
 
-  private boolean isVarargsFunction(FunctionSignature signature) {
-    return BuiltinFunctionName.VARARGS_FUNCTIONS_MAP
-            .containsValue(signature.getFunctionName());
+  private boolean isVarArgFunction(List<ExprType> argTypes) {
+    return argTypes.size() == 1 && argTypes.get(0) == ARRAY;
   }
 }

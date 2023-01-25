@@ -59,8 +59,6 @@ public class FunctionDSLTestBase {
       twoArgs = (v1, v2) -> ANY;
   static final SerializableTriFunction<ExprValue, ExprValue, ExprValue, ExprValue>
       threeArgs = (v1, v2, v3) -> ANY;
-  static final SerializableVarargsFunction<ExprValue, ExprValue>
-      varrgs = (v1) -> ANY;
   @Mock
   FunctionProperties mockProperties;
 }
