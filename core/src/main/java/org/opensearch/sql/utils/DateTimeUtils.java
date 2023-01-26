@@ -151,15 +151,4 @@ public class DateTimeUtils {
         ? ((ExprTimeValue) value).dateValue(functionProperties)
         : value.dateValue();
   }
-
-  /**
-   * Extracts Instant from a datetime ExprValue.
-   * Uses `FunctionProperties` for `ExprTimeValue`.
-   */
-  public static Instant extractTimestamp(ExprValue value,
-                                         FunctionProperties functionProperties) {
-    return value instanceof ExprTimeValue
-        ? ((ExprTimeValue) value).timestampValue(functionProperties)
-        : value.timestampValue();
-  }
 }
