@@ -74,6 +74,11 @@ public class ExprDatetimeValue extends AbstractExprValue {
   }
 
   @Override
+  public boolean isDateTime() {
+    return true;
+  }
+
+  @Override
   public int compare(ExprValue other) {
     return datetime.compareTo(other.datetimeValue());
   }

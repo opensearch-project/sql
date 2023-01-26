@@ -19,11 +19,17 @@ def path = project(':').projectDir
 // plugin module, and will only build ppl in it.
 def plugin_path = project(':doctest').projectDir
 
-task bootstrap(type: Exec) {
+task cloneSqlCli(type: Exec) {
+    // clone the sql-cli repo locally
+    commandLine 'git', 'clone', 'https://github.com/opensearch-project/sql-cli.git'
+}
+
+task bootstrap(type: Exec, dependsOn: ['cloneSqlCli']) {
     inputs.file "$projectDir/bootstrap.sh"
     outputs.dir "$projectDir/.venv"
 
     commandLine 'sh', "$projectDir/bootstrap.sh"
+
 }
 
 task startPrometheus(type: SpawnProcessTask) {
@@ -48,7 +54,6 @@ task startPrometheus(type: SpawnProcessTask) {
     pidLockFileName '.prom.pid.lock'
 }
 
-
 //evaluationDependsOn(':')
 task startOpenSearch(type: SpawnProcessTask) {
     command "${path}/gradlew -p ${plugin_path} runRestTestCluster"
@@ -60,6 +65,8 @@ task doctest(type: Exec, dependsOn: ['bootstrap']) {
     commandLine "$projectDir/bin/test-docs"
 
     doLast {
+        // remove the cloned sql-cli folder
+        file("$projectDir/sql-cli").deleteDir()
         println("Doctest Done")
     }
 }
@@ -70,7 +77,7 @@ task stopPrometheus() {
 
     doLast {
         def pidFile = new File(path, ".prom.pid.lock")
-        if(!pidFile.exists()) {
+        if (!pidFile.exists()) {
             logger.quiet "No Prometheus server running!"
             return
         }

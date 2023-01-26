@@ -41,6 +41,21 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testCeil() throws IOException {
+    JSONObject result = executeQuery("select ceil(0)");
+    verifySchema(result, schema("ceil(0)", null, "long"));
+    verifyDataRows(result, rows(0));
+
+    result = executeQuery("select ceil(2147483646.9)");
+    verifySchema(result, schema("ceil(2147483646.9)", null, "long"));
+    verifyDataRows(result, rows(2147483647));
+
+    result = executeQuery("select ceil(92233720368547807.9)");
+    verifySchema(result, schema("ceil(92233720368547807.9)", null, "long"));
+    verifyDataRows(result, rows(92233720368547808L));
+  }
+
+  @Test
   public void testConv() throws IOException {
     JSONObject result = executeQuery("select conv(11, 10, 16)");
     verifySchema(result, schema("conv(11, 10, 16)", null, "keyword"));

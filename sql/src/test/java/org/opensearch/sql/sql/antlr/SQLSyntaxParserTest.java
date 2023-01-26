@@ -194,6 +194,11 @@ class SQLSyntaxParserTest {
     assertNotNull(parser.parse("SELECT id FROM test WHERE " + String.join(" AND ", calls)));
   }
 
+  @Test
+  public void can_parse_hour_functions() {
+    assertNotNull(parser.parse("SELECT hour('2022-11-18 12:23:34')"));
+    assertNotNull(parser.parse("SELECT hour_of_day('12:23:34')"));
+  }
 
   @Test
   public void can_parse_week_of_year_functions() {
@@ -201,6 +206,12 @@ class SQLSyntaxParserTest {
     assertNotNull(parser.parse("SELECT week_of_year('2022-11-18')"));
   }
 
+  @Test
+  public void can_parse_dayofmonth_functions() {
+    assertNotNull(parser.parse("SELECT dayofmonth('2022-11-18')"));
+    assertNotNull(parser.parse("SELECT day_of_month('2022-11-18')"));
+  }
+    
   @Test
   public void can_parse_day_of_week_functions() {
     assertNotNull(parser.parse("SELECT dayofweek('2022-11-18')"));

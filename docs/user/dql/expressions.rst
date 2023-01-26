@@ -150,6 +150,34 @@ Here is an example for different type of comparison operators::
     | True    | True     | False   | True     | False    | False   |
     +---------+----------+---------+----------+----------+---------+
 
+It is possible to compare datetimes. When comparing different datetime types, for example `DATE` and `TIME`, both converted to `DATETIME`.
+The following rule is applied on coversion: a `TIME` applied to today's date; `DATE` is interpreted at midnight.
+
+    os> SELECT current_time() > current_date() AS `now.time > today`, typeof(current_time()) AS `now.time.type`, typeof(current_date()) AS `now.date.type`;
+    fetched rows / total rows = 1/1
+    +--------------------+-----------------+-----------------+
+    | now.time > today   | now.time.type   | now.date.type   |
+    |--------------------+-----------------+-----------------|
+    | True               | TIME            | DATE            |
+    +--------------------+-----------------+-----------------+
+
+    os> SELECT current_time() = now() AS `now.time = now`, typeof(current_time()) AS `now.time.type`, typeof(now()) AS `now.type`;
+    fetched rows / total rows = 1/1
+    +------------------+-----------------+------------+
+    | now.time = now   | now.time.type   | now.type   |
+    |------------------+-----------------+------------|
+    | True             | TIME            | DATETIME   |
+    +------------------+-----------------+------------+
+
+    os> SELECT subtime(now(), current_time()) = current_date() AS `midnight = now.date`, typeof(subtime(now(), current_time())) AS `midnight.type`, typeof(current_date()) AS `now.date.type`;
+    fetched rows / total rows = 1/1
+    +-----------------------+-----------------+-----------------+
+    | midnight = now.date   | midnight.type   | now.date.type   |
+    |-----------------------+-----------------+-----------------|
+    | True                  | DATETIME        | DATE            |
+    +-----------------------+-----------------+-----------------+
+
+
 LIKE
 ----
 

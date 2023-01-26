@@ -322,8 +322,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.DAYNAME, expressions);
   }
 
-  public static FunctionExpression dayofmonth(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.DAYOFMONTH, expressions);
+  public static FunctionExpression dayofmonth(
+      FunctionProperties functionProperties,
+      Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.DAYOFMONTH, expressions);
   }
 
   public static FunctionExpression dayofweek(
@@ -335,8 +337,15 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.DAYOFYEAR, expressions);
   }
 
-  public static FunctionExpression day_of_year(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.DAY_OF_YEAR, expressions);
+  public static FunctionExpression day_of_month(
+      FunctionProperties functionProperties,
+      Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.DAY_OF_MONTH, expressions);
+  }
+
+  public static FunctionExpression day_of_year(
+      FunctionProperties functionProperties, Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.DAY_OF_YEAR, expressions);
   }
 
   public static FunctionExpression day_of_week(
@@ -350,6 +359,10 @@ public class DSL {
 
   public static FunctionExpression hour(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.HOUR, expressions);
+  }
+
+  public static FunctionExpression hour_of_day(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.HOUR_OF_DAY, expressions);
   }
 
   public static FunctionExpression microsecond(Expression... expressions) {
@@ -372,8 +385,9 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.MONTH, expressions);
   }
 
-  public static FunctionExpression month_of_year(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.MONTH_OF_YEAR, expressions);
+  public static FunctionExpression month_of_year(
+      FunctionProperties functionProperties, Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.MONTH_OF_YEAR, expressions);
   }
 
   public static FunctionExpression monthname(Expression... expressions) {
@@ -421,12 +435,14 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.TO_DAYS, expressions);
   }
 
-  public static FunctionExpression week(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.WEEK, expressions);
+  public static FunctionExpression week(
+      FunctionProperties functionProperties, Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.WEEK, expressions);
   }
 
-  public static FunctionExpression week_of_year(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.WEEK_OF_YEAR, expressions);
+  public static FunctionExpression week_of_year(
+      FunctionProperties functionProperties, Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.WEEK_OF_YEAR, expressions);
   }
 
   public static FunctionExpression year(Expression... expressions) {
@@ -529,28 +545,52 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.NOT, expressions);
   }
 
+  public static FunctionExpression equal(FunctionProperties fp, Expression... expressions) {
+    return compile(fp, BuiltinFunctionName.EQUAL, expressions);
+  }
+
   public static FunctionExpression equal(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.EQUAL, expressions);
+    return equal(FunctionProperties.None, expressions);
+  }
+
+  public static FunctionExpression notequal(FunctionProperties fp, Expression... expressions) {
+    return compile(fp, BuiltinFunctionName.NOTEQUAL, expressions);
   }
 
   public static FunctionExpression notequal(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.NOTEQUAL, expressions);
+    return notequal(FunctionProperties.None, expressions);
+  }
+
+  public static FunctionExpression less(FunctionProperties fp, Expression... expressions) {
+    return compile(fp, BuiltinFunctionName.LESS, expressions);
   }
 
   public static FunctionExpression less(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.LESS, expressions);
+    return less(FunctionProperties.None, expressions);
+  }
+
+  public static FunctionExpression lte(FunctionProperties fp, Expression... expressions) {
+    return compile(fp, BuiltinFunctionName.LTE, expressions);
   }
 
   public static FunctionExpression lte(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.LTE, expressions);
+    return lte(FunctionProperties.None, expressions);
+  }
+
+  public static FunctionExpression greater(FunctionProperties fp, Expression... expressions) {
+    return compile(fp, BuiltinFunctionName.GREATER, expressions);
   }
 
   public static FunctionExpression greater(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.GREATER, expressions);
+    return greater(FunctionProperties.None, expressions);
+  }
+
+  public static FunctionExpression gte(FunctionProperties fp, Expression... expressions) {
+    return compile(fp, BuiltinFunctionName.GTE, expressions);
   }
 
   public static FunctionExpression gte(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.GTE, expressions);
+    return gte(FunctionProperties.None, expressions);
   }
 
   public static FunctionExpression like(Expression... expressions) {

@@ -46,7 +46,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval f = ceil(age) | fields f", TEST_INDEX_BANK));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "long"));
     verifyDataRows(
         result,
         rows(32), rows(36), rows(28), rows(33), rows(36), rows(39), rows(34));
@@ -58,7 +58,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval f = ceiling(age) | fields f", TEST_INDEX_BANK));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "long"));
     verifyDataRows(
         result,
         rows(32), rows(36), rows(28), rows(33), rows(36), rows(39), rows(34));
@@ -94,7 +94,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval f = floor(age) | fields f", TEST_INDEX_BANK));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "long"));
     verifyDataRows(
         result,
         rows(32), rows(36), rows(28), rows(33), rows(36), rows(39), rows(34));
