@@ -540,28 +540,52 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.NOT, expressions);
   }
 
+  public static FunctionExpression equal(FunctionProperties fp, Expression... expressions) {
+    return compile(fp, BuiltinFunctionName.EQUAL, expressions);
+  }
+
   public static FunctionExpression equal(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.EQUAL, expressions);
+    return equal(FunctionProperties.None, expressions);
+  }
+
+  public static FunctionExpression notequal(FunctionProperties fp, Expression... expressions) {
+    return compile(fp, BuiltinFunctionName.NOTEQUAL, expressions);
   }
 
   public static FunctionExpression notequal(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.NOTEQUAL, expressions);
+    return notequal(FunctionProperties.None, expressions);
+  }
+
+  public static FunctionExpression less(FunctionProperties fp, Expression... expressions) {
+    return compile(fp, BuiltinFunctionName.LESS, expressions);
   }
 
   public static FunctionExpression less(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.LESS, expressions);
+    return less(FunctionProperties.None, expressions);
+  }
+
+  public static FunctionExpression lte(FunctionProperties fp, Expression... expressions) {
+    return compile(fp, BuiltinFunctionName.LTE, expressions);
   }
 
   public static FunctionExpression lte(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.LTE, expressions);
+    return lte(FunctionProperties.None, expressions);
+  }
+
+  public static FunctionExpression greater(FunctionProperties fp, Expression... expressions) {
+    return compile(fp, BuiltinFunctionName.GREATER, expressions);
   }
 
   public static FunctionExpression greater(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.GREATER, expressions);
+    return greater(FunctionProperties.None, expressions);
+  }
+
+  public static FunctionExpression gte(FunctionProperties fp, Expression... expressions) {
+    return compile(fp, BuiltinFunctionName.GTE, expressions);
   }
 
   public static FunctionExpression gte(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.GTE, expressions);
+    return gte(FunctionProperties.None, expressions);
   }
 
   public static FunctionExpression like(Expression... expressions) {
