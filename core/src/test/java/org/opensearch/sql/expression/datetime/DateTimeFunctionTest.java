@@ -348,8 +348,8 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         DSL.interval(DSL.literal(1), DSL.literal("hour")));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue("2020-08-26 11:05:00"), expr.valueOf(env));
-    assertEquals("date_sub(timestamp(cast_to_timestamp(\"2020-08-26 12:05:00\")), " +
-        "interval(1, \"hour\"))", expr.toString());
+    assertEquals("date_sub(timestamp(cast_to_timestamp(\"2020-08-26 12:05:00\")), "
+        + "interval(1, \"hour\"))", expr.toString());
 
     expr = DSL.date_sub(DSL.literal("2020-08-26 12:05:00"),
         DSL.interval(DSL.literal(1), DSL.literal("year")));
@@ -1494,8 +1494,8 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         DSL.interval(DSL.literal(1), DSL.literal("hour")));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue("2020-08-26 11:05:00"), expr.valueOf(env));
-    assertEquals("subdate(timestamp(cast_to_timestamp(\"2020-08-26 12:05:00\")), " +
-        "interval(1, \"hour\"))", expr.toString());
+    assertEquals("subdate(timestamp(cast_to_timestamp(\"2020-08-26 12:05:00\")), "
+        + "interval(1, \"hour\"))", expr.toString());
 
     expr = DSL.subdate(DSL.literal("2020-08-26 12:05:00"),
         DSL.interval(DSL.literal(1), DSL.literal("hour")));
