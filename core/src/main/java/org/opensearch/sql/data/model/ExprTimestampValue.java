@@ -82,6 +82,11 @@ public class ExprTimestampValue extends AbstractExprValue {
   }
 
   @Override
+  public boolean isDateTime() {
+    return true;
+  }
+
+  @Override
   public String toString() {
     return String.format("TIMESTAMP '%s'", value());
   }
