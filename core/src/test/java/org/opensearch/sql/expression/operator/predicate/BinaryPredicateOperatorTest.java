@@ -21,9 +21,13 @@ import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 import static org.opensearch.sql.data.model.ExprValueUtils.booleanValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
+import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
+import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.utils.ComparisonUtil.compare;
 import static org.opensearch.sql.utils.OperatorUtils.matches;
 
@@ -34,6 +38,11 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
@@ -44,18 +53,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.opensearch.sql.data.model.ExprBooleanValue;
-import org.opensearch.sql.data.model.ExprByteValue;
-import org.opensearch.sql.data.model.ExprCollectionValue;
-import org.opensearch.sql.data.model.ExprDoubleValue;
-import org.opensearch.sql.data.model.ExprFloatValue;
-import org.opensearch.sql.data.model.ExprIntegerValue;
-import org.opensearch.sql.data.model.ExprLongValue;
-import org.opensearch.sql.data.model.ExprShortValue;
 import org.opensearch.sql.data.model.ExprStringValue;
-import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionTestBase;
@@ -87,54 +88,88 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
         .map(list -> Arguments.of(list.get(0), list.get(1)));
   }
 
+  private static List<List<Object>> getValuesForComparisonTests() {
+    return List.of(
+        List.of(1, 2),
+        List.of((byte) 1, (byte) 2),
+        List.of((short) 1, (short) 2),
+        List.of(1L, 2L),
+        List.of(1F, 2F),
+        List.of(1D, 2D),
+        List.of("str", "str0"),
+        List.of(true, false),
+        List.of(LocalTime.of(9, 7, 0), LocalTime.of(7, 40, 0)),
+        List.of(LocalDate.of(1961, 4, 12), LocalDate.of(1984, 10, 25)),
+        List.of(Instant.ofEpochSecond(42), Instant.ofEpochSecond(100500)),
+        List.of(LocalDateTime.of(1961, 4, 12, 9, 7, 0), LocalDateTime.of(1984, 10, 25, 7, 40)),
+        List.of(LocalDate.of(1961, 4, 12), LocalTime.now().minusHours(1)),
+        List.of(LocalDate.of(1961, 4, 12), LocalDateTime.of(1984, 10, 25, 7, 40)),
+        List.of(Instant.ofEpochSecond(100500), LocalDate.of(1961, 4, 12)),
+        List.of(Instant.ofEpochSecond(100500), LocalTime.of(7, 40, 0)),
+        List.of(LocalTime.of(7, 40, 0), LocalDateTime.of(1984, 10, 25, 7, 40)),
+        List.of(Instant.ofEpochSecond(42), LocalDateTime.of(1984, 10, 25, 7, 40))
+    );
+  }
+
   private static Stream<Arguments> testEqualArguments() {
     Stream.Builder<Arguments> builder = Stream.builder();
-    builder.add(Arguments.of(new ExprByteValue(1), new ExprByteValue(1)));
-    builder.add(Arguments.of(new ExprShortValue(1), new ExprShortValue(1)));
-    builder.add(Arguments.of(new ExprIntegerValue(1), new ExprIntegerValue(1)));
-    builder.add(Arguments.of(new ExprLongValue(1L), new ExprLongValue(1L)));
-    builder.add(Arguments.of(new ExprFloatValue(1F), new ExprFloatValue(1F)));
-    builder.add(Arguments.of(new ExprDoubleValue(1D), new ExprDoubleValue(1D)));
-    builder.add(Arguments.of(new ExprStringValue("str"), new ExprStringValue("str")));
-    builder.add(Arguments.of(ExprBooleanValue.of(true), ExprBooleanValue.of(true)));
-    builder.add(Arguments.of(new ExprCollectionValue(ImmutableList.of(new ExprIntegerValue(1))),
-        new ExprCollectionValue(ImmutableList.of(new ExprIntegerValue(1)))));
-    builder.add(Arguments.of(ExprTupleValue.fromExprValueMap(ImmutableMap.of("str",
-        new ExprIntegerValue(1))),
-        ExprTupleValue.fromExprValueMap(ImmutableMap.of("str", new ExprIntegerValue(1)))));
+    for (List<Object> argPair : getValuesForComparisonTests()) {
+      builder.add(Arguments.of(fromObjectValue(argPair.get(0)), fromObjectValue(argPair.get(0))));
+      builder.add(Arguments.of(fromObjectValue(argPair.get(1)), fromObjectValue(argPair.get(1))));
+    }
+    builder.add(Arguments.of(fromObjectValue(LocalTime.of(7, 40, 0)),
+        fromObjectValue(LocalTime.of(7, 40, 0).atDate(LocalDate.now()))));
+    builder.add(Arguments.of(fromObjectValue(LocalDateTime.of(1970, 1, 1, 0, 0, 42)),
+        fromObjectValue(Instant.ofEpochSecond(42))));
+    builder.add(Arguments.of(fromObjectValue(LocalDate.of(1970, 1, 1)),
+        fromObjectValue(Instant.ofEpochSecond(0))));
+    builder.add(Arguments.of(fromObjectValue(LocalDate.of(1984, 10, 25)),
+        fromObjectValue(LocalDateTime.of(1984, 10, 25, 0, 0))));
+    builder.add(Arguments.of(fromObjectValue(LocalTime.of(0, 0, 0)),
+        fromObjectValue(LocalDate.now())));
+    builder.add(Arguments.of(fromObjectValue(LocalTime.of(0, 0, 0)),
+        fromObjectValue(LocalDate.now().atStartOfDay(ZoneId.of("UTC")).toInstant())));
+    builder.add(Arguments.of(fromObjectValue(ImmutableList.of(1)),
+        fromObjectValue(ImmutableList.of(1))));
+    builder.add(Arguments.of(fromObjectValue(ImmutableMap.of("str", 1)),
+        fromObjectValue(ImmutableMap.of("str", 1))));
     return builder.build();
   }
 
   private static Stream<Arguments> testNotEqualArguments() {
-    List<List<Object>> arguments = Arrays.asList(
-        Arrays.asList((byte) 1, (byte) 2), Arrays.asList(1, 2), Arrays.asList(1L, 2L),
-        Arrays.asList(1F, 2F), Arrays.asList(1D, 2D),
-        Arrays.asList("str0", "str1"), Arrays.asList(true, false),
-        Arrays.asList(ImmutableList.of(1), ImmutableList.of(2)),
-        Arrays.asList(ImmutableMap.of("str", 1), ImmutableMap.of("str", 2))
-    );
     Stream.Builder<Arguments> builder = Stream.builder();
-    for (List<Object> argPair : arguments) {
+    for (List<Object> argPair : getValuesForComparisonTests()) {
       builder.add(Arguments.of(fromObjectValue(argPair.get(0)), fromObjectValue(argPair.get(1))));
+      builder.add(Arguments.of(fromObjectValue(argPair.get(1)), fromObjectValue(argPair.get(0))));
     }
+    builder.add(Arguments.of(fromObjectValue(LocalTime.of(7, 40, 0)),
+        fromObjectValue(LocalDateTime.of(1984, 10, 25, 7, 40, 0))));
+    builder.add(Arguments.of(fromObjectValue(LocalDateTime.of(1984, 10, 25, 7, 40, 0)),
+        fromObjectValue(Instant.ofEpochSecond(42))));
+    builder.add(Arguments.of(fromObjectValue(LocalDate.of(1984, 10, 25)),
+        fromObjectValue(Instant.ofEpochSecond(42))));
+    builder.add(Arguments.of(fromObjectValue(LocalTime.of(7, 40, 0)),
+        fromObjectValue(Instant.ofEpochSecond(42))));
+    builder.add(Arguments.of(fromObjectValue(LocalDate.of(1984, 10, 25)),
+        fromObjectValue(LocalDateTime.of(1984, 10, 25, 7, 40))));
+    builder.add(Arguments.of(fromObjectValue(LocalDate.of(1984, 10, 25)),
+        fromObjectValue(LocalTime.of(7, 40, 0))));
+    builder.add(Arguments.of(fromObjectValue(ImmutableList.of(1)),
+        fromObjectValue(ImmutableList.of(1, 2))));
+    builder.add(Arguments.of(fromObjectValue(ImmutableList.of(1)),
+        fromObjectValue(ImmutableList.of(2))));
+    builder.add(Arguments.of(fromObjectValue(ImmutableMap.of("str", 1)),
+        fromObjectValue(ImmutableMap.of("str2", 2))));
     return builder.build();
   }
 
   private static Stream<Arguments> testCompareValueArguments() {
-    List<List<Object>> arguments = Arrays.asList(
-        Arrays.asList(1, 1), Arrays.asList(1, 2), Arrays.asList(2, 1),
-        Arrays.asList(1L, 1L), Arrays.asList(1L, 2L), Arrays.asList(2L, 1L),
-        Arrays.asList(1F, 1F), Arrays.asList(1F, 2F), Arrays.asList(2F, 1F),
-        Arrays.asList(1D, 1D), Arrays.asList(1D, 2D), Arrays.asList(2D, 1D),
-        Arrays.asList("str", "str"), Arrays.asList("str", "str0"), Arrays.asList("str0", "str")
-    );
     Stream.Builder<Arguments> builder = Stream.builder();
-    for (List<Object> argPair : arguments) {
+    for (List<Object> argPair : getValuesForComparisonTests()) {
+      builder.add(Arguments.of(fromObjectValue(argPair.get(0)), fromObjectValue(argPair.get(0))));
       builder.add(Arguments.of(fromObjectValue(argPair.get(0)), fromObjectValue(argPair.get(1))));
+      builder.add(Arguments.of(fromObjectValue(argPair.get(1)), fromObjectValue(argPair.get(0))));
     }
-    builder.add(Arguments.of(new ExprShortValue(1), new ExprShortValue(1)));
-    builder.add(Arguments.of(new ExprShortValue(1), new ExprShortValue(2)));
-    builder.add(Arguments.of(new ExprShortValue(2), new ExprShortValue(1)));
     return builder.build();
   }
 
@@ -377,11 +412,35 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @ParameterizedTest(name = "equal({0}, {1})")
   @MethodSource("testEqualArguments")
   public void test_equal(ExprValue v1, ExprValue v2) {
-    FunctionExpression equal = DSL.equal(DSL.literal(v1), DSL.literal(v2));
+    FunctionExpression equal = DSL.equal(functionProperties, DSL.literal(v1), DSL.literal(v2));
     assertEquals(BOOLEAN, equal.type());
-    assertEquals(v1.value().equals(v2.value()),
-        ExprValueUtils.getBooleanValue(equal.valueOf(valueEnv())));
-    assertEquals(String.format("=(%s, %s)", v1.toString(), v2.toString()), equal.toString());
+    if (v1.type() == v2.type()) {
+      assertEquals(v1.value().equals(v2.value()),
+          ExprValueUtils.getBooleanValue(equal.valueOf(valueEnv())));
+    }
+    if (v1.type() != STRUCT && v1.type() != ARRAY) {
+      assertEquals(0 == compare(functionProperties, v1, v2),
+          ExprValueUtils.getBooleanValue(equal.valueOf(valueEnv())));
+    }
+    assertStringRepr(v1, v2, "=", equal);
+  }
+
+  private void assertStringRepr(ExprValue v1, ExprValue v2, String function,
+                                FunctionExpression functionExpression) {
+    if (v1.type() == v2.type()) {
+      assertEquals(String.format("%s(%s, %s)", function, v1, v2), functionExpression.toString());
+    } else {
+      var widerType = v1.type() == TIMESTAMP || v2.type() == TIMESTAMP ? TIMESTAMP : DATETIME;
+      assertEquals(String.format("%s(%s, %s)", function, getExpectedStringRepr(widerType, v1),
+          getExpectedStringRepr(widerType, v2)), functionExpression.toString());
+    }
+  }
+
+  private String getExpectedStringRepr(ExprType widerType, ExprValue value) {
+    if (widerType == value.type()) {
+      return value.toString();
+    }
+    return String.format("cast_to_%s(%s)", widerType.toString().toLowerCase(), value);
   }
 
   @Test
@@ -426,11 +485,18 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @ParameterizedTest(name = "equal({0}, {1})")
   @MethodSource({"testEqualArguments", "testNotEqualArguments"})
   public void test_notequal(ExprValue v1, ExprValue v2) {
-    FunctionExpression notequal = DSL.notequal(DSL.literal(v1), DSL.literal(v2));
+    FunctionExpression notequal = DSL.notequal(functionProperties,
+        DSL.literal(v1), DSL.literal(v2));
     assertEquals(BOOLEAN, notequal.type());
-    assertEquals(!v1.value().equals(v2.value()),
-        ExprValueUtils.getBooleanValue(notequal.valueOf(valueEnv())));
-    assertEquals(String.format("!=(%s, %s)", v1.toString(), v2.toString()), notequal.toString());
+    if (v1.type() == v2.type()) {
+      assertEquals(!v1.value().equals(v2.value()),
+          ExprValueUtils.getBooleanValue(notequal.valueOf(valueEnv())));
+    }
+    if (v1.type() != STRUCT && v1.type() != ARRAY) {
+      assertEquals(0 != compare(functionProperties, v1, v2),
+          ExprValueUtils.getBooleanValue(notequal.valueOf(valueEnv())));
+    }
+    assertStringRepr(v1, v2, "!=", notequal);
   }
 
   @Test
@@ -479,11 +545,11 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @ParameterizedTest(name = "less({0}, {1})")
   @MethodSource("testCompareValueArguments")
   public void test_less(ExprValue v1, ExprValue v2) {
-    FunctionExpression less = DSL.less(DSL.literal(v1), DSL.literal(v2));
+    FunctionExpression less = DSL.less(functionProperties, DSL.literal(v1), DSL.literal(v2));
     assertEquals(BOOLEAN, less.type());
-    assertEquals(compare(v1, v2) < 0,
+    assertEquals(compare(functionProperties, v1, v2) < 0,
         ExprValueUtils.getBooleanValue(less.valueOf(valueEnv())));
-    assertEquals(String.format("<(%s, %s)", v1.toString(), v2.toString()), less.toString());
+    assertStringRepr(v1, v2, "<", less);
   }
 
   @Test
@@ -536,11 +602,11 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @ParameterizedTest(name = "lte({0}, {1})")
   @MethodSource("testCompareValueArguments")
   public void test_lte(ExprValue v1, ExprValue v2) {
-    FunctionExpression lte = DSL.lte(DSL.literal(v1), DSL.literal(v2));
+    FunctionExpression lte = DSL.lte(functionProperties, DSL.literal(v1), DSL.literal(v2));
     assertEquals(BOOLEAN, lte.type());
-    assertEquals(compare(v1, v2) <= 0,
+    assertEquals(compare(functionProperties, v1, v2) <= 0,
         ExprValueUtils.getBooleanValue(lte.valueOf(valueEnv())));
-    assertEquals(String.format("<=(%s, %s)", v1.toString(), v2.toString()), lte.toString());
+    assertStringRepr(v1, v2, "<=", lte);
   }
 
   @Test
@@ -593,11 +659,11 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @ParameterizedTest(name = "greater({0}, {1})")
   @MethodSource("testCompareValueArguments")
   public void test_greater(ExprValue v1, ExprValue v2) {
-    FunctionExpression greater = DSL.greater(DSL.literal(v1), DSL.literal(v2));
+    FunctionExpression greater = DSL.greater(functionProperties, DSL.literal(v1), DSL.literal(v2));
     assertEquals(BOOLEAN, greater.type());
-    assertEquals(compare(v1, v2) > 0,
+    assertEquals(compare(functionProperties, v1, v2) > 0,
         ExprValueUtils.getBooleanValue(greater.valueOf(valueEnv())));
-    assertEquals(String.format(">(%s, %s)", v1.toString(), v2.toString()), greater.toString());
+    assertStringRepr(v1, v2, ">", greater);
   }
 
   @Test
@@ -650,11 +716,11 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @ParameterizedTest(name = "gte({0}, {1})")
   @MethodSource("testCompareValueArguments")
   public void test_gte(ExprValue v1, ExprValue v2) {
-    FunctionExpression gte = DSL.gte(DSL.literal(v1), DSL.literal(v2));
+    FunctionExpression gte = DSL.gte(functionProperties, DSL.literal(v1), DSL.literal(v2));
     assertEquals(BOOLEAN, gte.type());
-    assertEquals(compare(v1, v2) >= 0,
+    assertEquals(compare(functionProperties, v1, v2) >= 0,
         ExprValueUtils.getBooleanValue(gte.valueOf(valueEnv())));
-    assertEquals(String.format(">=(%s, %s)", v1.toString(), v2.toString()), gte.toString());
+    assertStringRepr(v1, v2, ">=", gte);
   }
 
   @Test
