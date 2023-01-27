@@ -99,8 +99,8 @@ public class TextFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testConcat() throws IOException {
-    verifyQuery("concat", "", ", 'there'",
-        "hellothere", "worldthere", "helloworldthere");
+    verifyQuery("concat", "", ", 'there', 'all', '!'",
+        "hellothereall!", "worldthereall!", "helloworldthereall!");
   }
 
   @Test

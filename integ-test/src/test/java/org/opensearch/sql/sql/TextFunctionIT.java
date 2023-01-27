@@ -108,6 +108,7 @@ public class TextFunctionIT extends SQLIntegTestCase {
 
   @Test
   public void testConcat() throws IOException {
+    verifyQuery("concat('hello', 'whole', 'world', '!', '!')", "keyword", "hellowholeworld!!");
     verifyQuery("concat('hello', 'world')", "keyword", "helloworld");
     verifyQuery("concat('', 'hello')", "keyword", "hello");
   }

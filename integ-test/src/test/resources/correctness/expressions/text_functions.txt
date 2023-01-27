@@ -12,3 +12,5 @@ LOCATE('world', 'hello') as column
 LOCATE('world', 'helloworld', 7) as column
 REPLACE('helloworld', 'world', 'opensearch') as column
 REPLACE('hello', 'world', 'opensearch') as column
+CONCAT('hello', 'world') as column
+CONCAT('hello ', 'whole ', 'world', '!') as column

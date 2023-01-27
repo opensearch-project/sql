@@ -2614,21 +2614,21 @@ CONCAT
 Description
 >>>>>>>>>>>
 
-Usage: CONCAT(str1, str2) returns str1 and str strings concatenated together.
+Usage: CONCAT(str1, str2, ...., str_9) adds up to 9 strings together. If any of the expressions is a NULL value, it returns NULL.
 
-Argument type: STRING, STRING
+Argument type: STRING, STRING, ...., STRING
 
 Return type: STRING
 
 Example::
 
-    os> SELECT CONCAT('hello', 'world')
+    os> SELECT CONCAT('hello ', 'whole ', 'world', '!'), CONCAT('hello', 'world'), CONCAT('hello', null)
     fetched rows / total rows = 1/1
-    +----------------------------+
-    | CONCAT('hello', 'world')   |
-    |----------------------------|
-    | helloworld                 |
-    +----------------------------+
+    +--------------------------------------------+----------------------------+-------------------------+
+    | CONCAT('hello ', 'whole ', 'world', '!')   | CONCAT('hello', 'world')   | CONCAT('hello', null)   |
+    |--------------------------------------------+----------------------------+-------------------------|
+    | hello whole world!                         | helloworld                 | null                    |
+    +--------------------------------------------+----------------------------+-------------------------+
 
 
 CONCAT_WS

@@ -9,8 +9,12 @@ package org.opensearch.sql.expression.function;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.Collections;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
@@ -75,5 +79,54 @@ class DefaultFunctionResolverTest {
         () -> resolver.resolve(functionSignature));
     assertEquals("add function expected {[INTEGER,INTEGER]}, but get [BOOLEAN,BOOLEAN]",
         exception.getMessage());
+  }
+
+  @Test
+  void resolve_varargs_function_signature_match() {
+    functionName = FunctionName.of("concat");
+    when(functionSignature.match(bestMatchFS)).thenReturn(WideningTypeRule.TYPE_EQUAL);
+    when(functionSignature.getParamTypeList()).thenReturn(ImmutableList.of(STRING));
+    when(bestMatchFS.getParamTypeList()).thenReturn(ImmutableList.of(ARRAY));
+
+    DefaultFunctionResolver resolver = new DefaultFunctionResolver(functionName,
+            ImmutableMap.of(bestMatchFS, bestMatchBuilder));
+
+    assertEquals(bestMatchBuilder, resolver.resolve(functionSignature).getValue());
+  }
+
+  @Test
+  void resolve_varargs_no_args_function_signature_not_match() {
+    functionName = FunctionName.of("concat");
+    when(functionSignature.match(bestMatchFS)).thenReturn(WideningTypeRule.TYPE_EQUAL);
+    when(bestMatchFS.getParamTypeList()).thenReturn(ImmutableList.of(ARRAY));
+    // Concat function with no arguments
+    when(functionSignature.getParamTypeList()).thenReturn(Collections.emptyList());
+
+    DefaultFunctionResolver resolver = new DefaultFunctionResolver(functionName,
+            ImmutableMap.of(bestMatchFS, bestMatchBuilder));
+
+    ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
+            () -> resolver.resolve(functionSignature));
+    assertEquals("concat function expected 1-9 arguments, but got 0",
+            exception.getMessage());
+  }
+
+  @Test
+  void resolve_varargs_too_many_args_function_signature_not_match() {
+    functionName = FunctionName.of("concat");
+    when(functionSignature.match(bestMatchFS)).thenReturn(WideningTypeRule.TYPE_EQUAL);
+    when(bestMatchFS.getParamTypeList()).thenReturn(ImmutableList.of(ARRAY));
+    // Concat function with more than 9 arguments
+    when(functionSignature.getParamTypeList()).thenReturn(ImmutableList
+            .of(STRING, STRING, STRING, STRING, STRING,
+                    STRING, STRING, STRING, STRING, STRING));
+
+    DefaultFunctionResolver resolver = new DefaultFunctionResolver(functionName,
+            ImmutableMap.of(bestMatchFS, bestMatchBuilder));
+
+    ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
+            () -> resolver.resolve(functionSignature));
+    assertEquals("concat function expected 1-9 arguments, but got 10",
+            exception.getMessage());
   }
 }
