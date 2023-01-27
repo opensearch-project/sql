@@ -50,7 +50,15 @@ public class DefaultFunctionResolver implements FunctionResolver {
               functionSignature));
     }
     Map.Entry<Integer, FunctionSignature> bestMatchEntry = functionMatchQueue.peek();
-    if (FunctionSignature.NOT_MATCH.equals(bestMatchEntry.getKey())) {
+    if (FunctionSignature.isVarArgFunction(bestMatchEntry.getValue().getParamTypeList())
+            && (unresolvedSignature.getParamTypeList().isEmpty()
+            || unresolvedSignature.getParamTypeList().size() > 9)) {
+      throw new ExpressionEvaluationException(
+              String.format("%s function expected 1-9 arguments, but got %d",
+                      functionName, unresolvedSignature.getParamTypeList().size()));
+    }
+    if (FunctionSignature.NOT_MATCH.equals(bestMatchEntry.getKey())
+            && !FunctionSignature.isVarArgFunction(bestMatchEntry.getValue().getParamTypeList())) {
       throw new ExpressionEvaluationException(
           String.format("%s function expected %s, but get %s", functionName,
               formatFunctions(functionBundle.keySet()),
