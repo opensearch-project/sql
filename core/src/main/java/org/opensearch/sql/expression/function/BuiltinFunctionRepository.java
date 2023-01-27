@@ -179,7 +179,9 @@ public class BuiltinFunctionRepository {
     List<ExprType> sourceTypes = functionSignature.getParamTypeList();
     List<ExprType> targetTypes = resolvedSignature.getKey().getParamTypeList();
     FunctionBuilder funcBuilder = resolvedSignature.getValue();
-    if (isCastFunction(functionName) || sourceTypes.equals(targetTypes)) {
+    if (isCastFunction(functionName)
+            || FunctionSignature.isVarArgFunction(targetTypes)
+            || sourceTypes.equals(targetTypes)) {
       return funcBuilder;
     }
     return castArguments(sourceTypes,
