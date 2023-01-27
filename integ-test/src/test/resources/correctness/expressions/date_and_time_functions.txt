@@ -1,0 +1,13 @@
+DATE '2001-05-07'
+TIME '12:30:00'
+TIMESTAMP '2001-05-07 12:30:00'
+SECOND(timestamp) AS COLUMN FROM opensearch_dashboards_sample_data_flights
+MINUTE(timestamp) AS COLUMN FROM opensearch_dashboards_sample_data_flights
+HOUR(timestamp) AS COLUMN FROM opensearch_dashboards_sample_data_flights
+DAY_OF_MONTH(timestamp) AS COLUMN FROM opensearch_dashboards_sample_data_flights
+DAY_OF_YEAR(timestamp) AS COLUMN FROM opensearch_dashboards_sample_data_flights
+MONTH(timestamp) AS COLUMN FROM opensearch_dashboards_sample_data_flights
+QUARTER(timestamp) AS COLUMN FROM opensearch_dashboards_sample_data_flights
+YEAR(timestamp) AS COLUMN FROM opensearch_dashboards_sample_data_flights
+DAYNAME(timestamp) AS COLUMN FROM opensearch_dashboards_sample_data_flights
+MONTHNAME(timestamp) AS COLUMN FROM opensearch_dashboards_sample_data_flights
