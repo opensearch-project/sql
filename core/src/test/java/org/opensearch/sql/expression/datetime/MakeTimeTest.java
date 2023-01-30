@@ -8,8 +8,6 @@ package org.opensearch.sql.expression.datetime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.when;
-import static org.opensearch.sql.data.model.ExprValueUtils.missingValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.nullValue;
 
 import java.time.Duration;
@@ -54,28 +52,6 @@ public class MakeTimeTest extends DateTimeTestBase {
   public void checkSecondFraction() {
     assertEquals(LocalTime.of(0, 0, 0).withNano(999999999), maketime(0., 0., 0.999999999));
     assertEquals(LocalTime.of(0, 0, 0).withNano(100502000), maketime(0., 0., 0.100502));
-  }
-
-  @Test
-  public void checkNullValues() {
-    assertEquals(nullValue(), eval(maketime(nullRef, DSL.literal(42.), DSL.literal(42.))));
-    assertEquals(nullValue(), eval(maketime(DSL.literal(42.), nullRef, DSL.literal(42.))));
-    assertEquals(nullValue(), eval(maketime(DSL.literal(42.), DSL.literal(42.), nullRef)));
-    assertEquals(nullValue(), eval(maketime(nullRef, nullRef, DSL.literal(42.))));
-    assertEquals(nullValue(), eval(maketime(nullRef, DSL.literal(42.), nullRef)));
-    assertEquals(nullValue(), eval(maketime(nullRef, nullRef, nullRef)));
-    assertEquals(nullValue(), eval(maketime(DSL.literal(42.), nullRef, nullRef)));
-  }
-
-  @Test
-  public void checkMissingValues() {
-    assertEquals(missingValue(), eval(maketime(missingRef, DSL.literal(42.), DSL.literal(42.))));
-    assertEquals(missingValue(), eval(maketime(DSL.literal(42.), missingRef, DSL.literal(42.))));
-    assertEquals(missingValue(), eval(maketime(DSL.literal(42.), DSL.literal(42.), missingRef)));
-    assertEquals(missingValue(), eval(maketime(missingRef, missingRef, DSL.literal(42.))));
-    assertEquals(missingValue(), eval(maketime(missingRef, DSL.literal(42.), missingRef)));
-    assertEquals(missingValue(), eval(maketime(missingRef, missingRef, missingRef)));
-    assertEquals(missingValue(), eval(maketime(DSL.literal(42.), missingRef, missingRef)));
   }
 
   private static Stream<Arguments> getTestData() {

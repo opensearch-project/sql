@@ -7,9 +7,9 @@
 package org.opensearch.sql.expression.datetime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -34,7 +34,7 @@ public class UnixTwoWayConversionTest extends DateTimeTestBase {
 
   private LocalDateTime getExpectedNow() {
     return LocalDateTime.now(
-            functionProperties.getQueryStartClock().withZone(ZoneId.of("UTC")))
+            functionProperties.getQueryStartClock().withZone(UTC_ZONE_ID))
         .withNano(0);
   }
 
