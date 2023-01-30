@@ -1,27 +1,30 @@
 <img src="https://opensearch.org/assets/brand/SVG/Logo/opensearch_logo_default.svg" height="64px"/>
 
 - [OpenSearch SQL](#opensearch-sql)
-- [Code Summary](#code-summary)
-- [Highlights](#highlights)
-- [Documentation](#documentation)
-- [OpenSearch Forum](#forum)
-- [Contributing](#contributing)
-- [Attribution](#attribution)
-- [Code of Conduct](#code-of-conduct)
-- [Security](#security)
-- [License](#license)
-- [Copyright](#copyright)
+  - [Code Summary](#code-summary)
+    - [SQL Engine](#sql-engine)
+    - [Repository Checks](#repository-checks)
+    - [Issues](#issues)
+  - [Highlights](#highlights)
+  - [Documentation](#documentation)
+  - [Forum](#forum)
+  - [Contributing](#contributing)
+  - [Attribution](#attribution)
+  - [Code of Conduct](#code-of-conduct)
+  - [Security](#security)
+  - [License](#license)
+  - [Copyright](#copyright)
 
 # OpenSearch SQL
 
 OpenSearch enables you to extract insights out of OpenSearch using the familiar SQL or Piped Processing Language (PPL) query syntax. Use aggregations, group by, and where clauses to investigate your data. Read your data as JSON documents or CSV tables so you have the flexibility to use the format that works best for you.
 
-The following projects have been merged into this repository as separate folders as of July 9, 2020. Please refer to links below for details. This document will focus on the SQL plugin for OpenSearch.
+The following projects are related to the SQL plugin, but stored in the different repos. Please refer to links below for details. This document will focus on the SQL plugin for OpenSearch.
 
-- [SQL CLI](https://github.com/opensearch-project/sql/tree/main/sql-cli)
-- [SQL JDBC](https://github.com/opensearch-project/sql/tree/main/sql-jdbc)
-- [SQL ODBC](https://github.com/opensearch-project/sql/tree/main/sql-odbc)
-- [Query Workbench](https://github.com/opensearch-project/sql/tree/main/workbench)
+- [SQL CLI](https://github.com/opensearch-project/sql-cli)
+- [SQL JDBC](https://github.com/opensearch-project/sql-jdbc)
+- [SQL ODBC](https://github.com/opensearch-project/sql-odbc)
+- [Query Workbench](https://github.com/opensearch-project/dashboards-query-workbench)
 
 ## Code Summary
 
@@ -33,32 +36,6 @@ The following projects have been merged into this repository as separate folders
 | Code coverage                | [![codecov][sql-codecov-badge]][sql-codecov-link]                                                                                         |
 | Distribution build tests     | [![OpenSearch IT tests][opensearch-it-badge]][opensearch-it-link] [![OpenSearch IT code][opensearch-it-code-badge]][opensearch-it-code-link] |
 | Backward compatibility tests | [![BWC tests][bwc-tests-badge]][bwc-tests-link]                                                                                              |
-
-### ODBC Driver
-
-|       |                                                 |
-| ----- | ----------------------------------------------- |
-| Build | [![ODBC CI][odbc-build-badge]][odbc-build-link] |
-
-### SQL CLI
-
-|       |                                                 |
-| ----- | ----------------------------------------------- |
-| Test and build | [![SQL CLI CI][sql-cli-build-badge]][sql-cli-build-link] |
-
-### JDBC Driver
-
-|       |                                                 |
-| ----- | ----------------------------------------------- |
-| Build | [![JDBC CI][jdbc-build-badge]][jdbc-build-link] |
-
-### Query WorkBench
-
-|                          |                                                                                                                    |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| Test and build           | [![Observability Dashboards CI][workbench-build-badge]][workbench-build-link]                                      |
-| Code coverage            | [![codecov][workbench-codecov-badge]][sql-codecov-link]                                                                |
-| Distribution build tests | [![cypress tests][cypress-test-badge]][cypress-test-link] [![cypress code][cypress-code-badge]][cypress-code-link] |
 
 ### Repository Checks
 
@@ -82,14 +59,6 @@ The following projects have been merged into this repository as separate folders
 [dco-badge-link]: https://github.com/opensearch-project/sql/actions/workflows/dco.yml
 [link-check-badge]: https://github.com/opensearch-project/sql/actions/workflows/link-checker.yml/badge.svg
 [link-check-link]: https://github.com/opensearch-project/sql/actions/workflows/link-checker.yml
-[odbc-build-badge]: https://github.com/opensearch-project/sql/actions/workflows/sql-odbc-main.yml/badge.svg
-[odbc-build-link]: https://github.com/opensearch-project/sql/actions/workflows/sql-odbc-main.yml
-[sql-cli-build-badge]: https://github.com/opensearch-project/sql/actions/workflows/sql-cli-test-and-build-workflow.yml/badge.svg
-[sql-cli-build-link]: https://github.com/opensearch-project/sql/actions/workflows/sql-cli-test-and-build-workflow.yml
-[jdbc-build-badge]: https://github.com/opensearch-project/sql/actions/workflows/sql-jdbc-test-and-build-workflow.yml/badge.svg
-[jdbc-build-link]: https://github.com/opensearch-project/sql/actions/workflows/sql-jdbc-test-and-build-workflow.yml
-[sql-ci-badge]: https://github.com/opensearch-project/sql/actions/workflows/sql-test-and-build-workflow.yml/badge.svg
-[sql-ci-link]: https://github.com/opensearch-project/sql/actions/workflows/sql-test-and-build-workflow.yml
 [bwc-tests-badge]: https://img.shields.io/badge/BWC%20tests-in%20progress-yellow
 [bwc-tests-link]: https://github.com/opensearch-project/sql/issues/193
 [good-first-badge]: https://img.shields.io/github/issues/opensearch-project/sql/good%20first%20issue.svg
@@ -104,14 +73,7 @@ The following projects have been merged into this repository as separate folders
 [untriaged-link]: https://github.com/opensearch-project/sql/issues?q=is%3Aopen+is%3Aissue+label%3Auntriaged+
 [nolabel-badge]: https://img.shields.io/github/issues-search/opensearch-project/sql?color=yellow&label=no%20label%20issues&query=is%3Aopen%20is%3Aissue%20no%3Alabel
 [nolabel-link]: https://github.com/opensearch-project/sql/issues?q=is%3Aopen+is%3Aissue+no%3Alabel+
-[workbench-build-badge]: https://github.com/opensearch-project/sql/actions/workflows/sql-workbench-test-and-build-workflow.yml/badge.svg
-[workbench-build-link]: https://github.com/opensearch-project/sql/actions/workflows/sql-workbench-test-and-build-workflow.yml
-[cypress-test-badge]: https://img.shields.io/badge/Cypress%20tests-in%20progress-yellow
-[cypress-test-link]: https://github.com/opensearch-project/opensearch-build/issues/1124
-[cypress-code-badge]: https://img.shields.io/badge/Cypress%20code-blue
-[cypress-code-link]: https://github.com/opensearch-project/sql/tree/main/workbench/.cypress/integration
 [sql-codecov-badge]: https://codecov.io/gh/opensearch-project/sql/branch/main/graphs/badge.svg?flag=sql-engine
-[workbench-codecov-badge]: https://codecov.io/gh/opensearch-project/sql/branch/main/graphs/badge.svg?flag=query-workbench
 [sql-codecov-link]: https://codecov.io/gh/opensearch-project/sql
 [opensearch-it-badge]: https://img.shields.io/badge/SQL%20IT%20tests-in%20progress-yellow
 [opensearch-it-link]: https://github.com/opensearch-project/opensearch-build/issues/1124
