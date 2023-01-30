@@ -25,6 +25,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.opensearch.client.Client;
 import org.opensearch.common.Strings;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.index.query.AbstractQueryBuilder;
 import org.opensearch.index.query.MultiMatchQueryBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder.ScriptField;
@@ -302,6 +303,6 @@ public class QueryFunctionsTest {
     }
 
     private Matcher<String> contains(AbstractQueryBuilder queryBuilder) {
-        return containsString(Strings.toString(queryBuilder, false, false));
+        return containsString(Strings.toString(XContentType.JSON, queryBuilder, false, false));
     }
 }
