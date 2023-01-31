@@ -1099,6 +1099,12 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testGetFormatAsArgument() throws IOException{
+    var result = executeQuery("SELECT DATE_FORMAT('2003-10-03',GET_FORMAT(DATE,'USA'))");
+    verifyDataRows(result, rows("10.03.2003"));
+  }
+
+  @Test
   public void testUnixTimeStamp() throws IOException {
     var result = executeQuery(
         "select UNIX_TIMESTAMP(MAKEDATE(1984, 1984)) f1, "

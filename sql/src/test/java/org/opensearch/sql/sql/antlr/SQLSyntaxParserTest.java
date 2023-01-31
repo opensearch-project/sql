@@ -194,6 +194,33 @@ class SQLSyntaxParserTest {
     assertNotNull(parser.parse("SELECT id FROM test WHERE " + String.join(" AND ", calls)));
   }
 
+  private static Stream<Arguments> get_format_arguments() {
+    Stream.Builder<Arguments> args = Stream.builder();
+    String[] types = {"DATE", "DATETIME", "TIME", "TIMESTAMP"};
+    String[] formats = {"'USA'", "'JIS'", "'ISO'", "'EUR'", "'INTERNAL'"};
+
+    for (String type : types) {
+      for (String format : formats) {
+        args.add(Arguments.of(type, format));
+      }
+    }
+
+    return args.build();
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("get_format_arguments")
+  public void can_parse_get_format_function(String type, String format) {
+    assertNotNull(parser.parse(String.format("SELECT GET_FORMAT(%s, %s)", type, format)));
+  }
+
+  @Test
+  public void cannot_parse_get_format_function_with_bad_arg() {
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> parser.parse("GET_FORMAT(NONSENSE_ARG,'INTERNAL')"));
+  }
+
   @Test
   public void can_parse_hour_functions() {
     assertNotNull(parser.parse("SELECT hour('2022-11-18 12:23:34')"));
