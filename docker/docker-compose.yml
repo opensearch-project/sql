@@ -1,0 +1,92 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+x-spark-image: &spark-image maximus/spark:v3.2.1
+x-spark-voluems: &spark-volumes
+  - spark_data:/usr/share/spark
+  - $HOME/.aws:/root/.aws:ro
+  - $HOME/tmp/maximus:/root/maximus:ro
+
+version: "3.7"
+services:
+  opensearch:
+    image: opensearchproject/opensearch:2.3.0
+    environment:
+      - discovery.type=single-node
+      - "DISABLE_INSTALL_DEMO_CONFIG=true"
+      - "DISABLE_SECURITY_PLUGIN=true"
+    ports:
+      - 9200:9200
+      - 9600:9600
+    container_name: opensearch
+    restart: unless-stopped
+    volumes:
+      - os_data:/usr/share/opensearch/data
+
+  spark-master:
+    image: *spark-image
+    container_name: spark-master
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+      - "4040:4040"
+    volumes: *spark-volumes
+    environment:
+      - SPARK_LOCAL_IP=spark-master
+      - SPARK_WORKLOAD=master
+
+  spark-worker-1:
+    image: *spark-image
+    container_name: spark-worker-1
+    ports:
+      - "8081:8080"
+      - "7001:7077"
+    depends_on:
+      - spark-master
+    volumes: *spark-volumes
+    environment: 
+      - SPARK_MASTER=spark://spark-master:7077
+      - SPARK_WORKER_CORES=1
+      - SPARK_WORKER_MEMORY=2G
+      - SPARK_DRIVER_MEMORY=2G
+      - SPARK_EXECUTOR_MEMORY=2G
+      - SPARK_WORKLOAD=worker
+      - SPARK_LOCAL_IP=spark-worker-1
+
+  spark-worker-2:
+    image: *spark-image
+    container_name: spark-worker-2
+    ports:
+      - "8082:8080"
+      - "7002:7077"
+    depends_on:
+      - spark-master
+    volumes: *spark-volumes
+    environment: 
+      - SPARK_MASTER=spark://spark-master:7077
+      - SPARK_WORKER_CORES=1
+      - SPARK_WORKER_MEMORY=2G
+      - SPARK_DRIVER_MEMORY=2G
+      - SPARK_EXECUTOR_MEMORY=2G
+      - SPARK_WORKLOAD=worker
+      - SPARK_LOCAL_IP=spark-worker-2
+
+volumes:
+  os_data:
+    external: false
+  spark_data:
+    external: false
