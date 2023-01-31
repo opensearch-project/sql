@@ -305,7 +305,7 @@ class PrometheusMetricTableTest {
         new PrometheusMetricTable(client, "prometheus_http_total_requests");
 
 
-    //Both endTime and startTime are set.
+    //Only endTime is set.
     List<NamedExpression> finalProjectList = new ArrayList<>();
     finalProjectList.add(DSL.named(VALUE, DSL.ref(VALUE, STRING)));
     finalProjectList.add(DSL.named(TIMESTAMP, DSL.ref(TIMESTAMP, ExprCoreType.TIMESTAMP)));
@@ -719,6 +719,35 @@ class PrometheusMetricTableTest {
         = ((PrometheusMetricScan) ((ProjectOperator) physicalPlan).getInput()).getRequest();
     assertEquals((3600 / 250) + "s", request.getStep());
     assertEquals("prometheus_http_total_requests{code=\"200\" , handler=\"/ready/\"}",
+        request.getPromQl());
+    List<NamedExpression> projectList = ((ProjectOperator) physicalPlan).getProjectList();
+    List<String> outputFields
+        = projectList.stream().map(NamedExpression::getName).collect(Collectors.toList());
+    assertEquals(List.of(VALUE, TIMESTAMP), outputFields);
+  }
+
+  @Test
+  void testImplementWithRelationAndTimestampFilter() {
+    List<NamedExpression> finalProjectList = new ArrayList<>();
+    finalProjectList.add(DSL.named(VALUE, DSL.ref(VALUE, STRING)));
+    finalProjectList.add(DSL.named(TIMESTAMP, DSL.ref(TIMESTAMP, ExprCoreType.TIMESTAMP)));
+    DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    Long endTime = new Date(System.currentTimeMillis()).getTime();
+    PrometheusMetricTable prometheusMetricTable =
+        new PrometheusMetricTable(client, "prometheus_http_total_requests");
+    LogicalPlan logicalPlan = project(indexScan("prometheus_http_total_requests",
+        dsl.lte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
+            DSL.literal(
+                fromObjectValue(dateFormat.format(new Date(endTime)),
+                    ExprCoreType.TIMESTAMP)))
+    ), finalProjectList, null);
+    PhysicalPlan physicalPlan = prometheusMetricTable.implement(logicalPlan);
+    assertTrue(physicalPlan instanceof ProjectOperator);
+    assertTrue(((ProjectOperator) physicalPlan).getInput() instanceof PrometheusMetricScan);
+    PrometheusQueryRequest request
+        = ((PrometheusMetricScan) ((ProjectOperator) physicalPlan).getInput()).getRequest();
+    assertEquals((3600 / 250) + "s", request.getStep());
+    assertEquals("prometheus_http_total_requests",
         request.getPromQl());
     List<NamedExpression> projectList = ((ProjectOperator) physicalPlan).getProjectList();
     List<String> outputFields
