@@ -736,7 +736,7 @@ class PrometheusMetricTableTest {
     PrometheusMetricTable prometheusMetricTable =
         new PrometheusMetricTable(client, "prometheus_http_total_requests");
     LogicalPlan logicalPlan = project(indexScan("prometheus_http_total_requests",
-        DSL.lte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
+        dsl.lte(DSL.ref("@timestamp", ExprCoreType.TIMESTAMP),
             DSL.literal(
                 fromObjectValue(dateFormat.format(new Date(endTime)),
                     ExprCoreType.TIMESTAMP)))
