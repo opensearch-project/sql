@@ -5,6 +5,11 @@
 
 package org.opensearch.sql.opensearch.storage.script.aggregation.dsl;
 
+import static org.opensearch.sql.data.type.ExprCoreType.DATE;
+import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
+import static org.opensearch.sql.data.type.ExprCoreType.TIME;
+import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.apache.commons.lang3.tuple.Triple;
@@ -14,6 +19,7 @@ import org.opensearch.search.aggregations.bucket.composite.HistogramValuesSource
 import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.histogram.DateHistogramInterval;
 import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
+import org.opensearch.search.aggregations.support.ValueType;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.expression.NamedExpression;
@@ -64,6 +70,10 @@ public class BucketAggregationBuilder {
               .missingBucket(true)
               .missingOrder(missingOrder)
               .order(sortOrder);
+      // Time types values are converted to LONG in ExpressionAggregationScript::execute
+      if (List.of(TIMESTAMP, TIME, DATE, DATETIME).contains(expr.getDelegated().type())) {
+        sourceBuilder.userValuetypeHint(ValueType.LONG);
+      }
       return helper.build(expr.getDelegated(), sourceBuilder::field, sourceBuilder::script);
     }
   }
