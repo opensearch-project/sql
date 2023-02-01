@@ -32,9 +32,9 @@ import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 
@@ -222,8 +222,8 @@ public class OpenSearchRequestBuilder {
     sourceBuilder.fetchSource(projectsSet.toArray(new String[0]), new String[0]);
   }
 
-  public void pushTypeMapping(Map<String, ExprType> typeMapping) {
-    exprValueFactory.setTypeMapping(typeMapping);
+  public void pushTypeMapping(Map<String, OpenSearchDataType> typeMapping) {
+    exprValueFactory.extendTypeMapping(typeMapping);
   }
 
   private boolean isBoolFilterQuery(QueryBuilder current) {

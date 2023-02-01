@@ -37,6 +37,7 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
@@ -215,9 +216,9 @@ public class OpenSearchRequestBuilderTest {
 
   @Test
   void testPushTypeMapping() {
-    Map<String, ExprType> typeMapping = Map.of("intA", INTEGER);
+    Map<String, OpenSearchDataType> typeMapping = Map.of("intA", OpenSearchDataType.of(INTEGER));
     requestBuilder.pushTypeMapping(typeMapping);
 
-    verify(exprValueFactory).setTypeMapping(typeMapping);
+    verify(exprValueFactory).extendTypeMapping(typeMapping);
   }
 }

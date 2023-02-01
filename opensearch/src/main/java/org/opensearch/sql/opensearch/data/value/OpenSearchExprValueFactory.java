@@ -6,25 +6,12 @@
 
 package org.opensearch.sql.opensearch.data.value;
 
-import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
-import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
-import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
-import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
-import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
-import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
-import static org.opensearch.sql.data.type.ExprCoreType.LONG;
-import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
-import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_BINARY;
-import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_GEO_POINT;
-import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_IP;
-import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT;
-import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -58,6 +45,7 @@ import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.utils.Content;
 import org.opensearch.sql.opensearch.data.utils.ObjectContent;
 import org.opensearch.sql.opensearch.data.utils.OpenSearchJsonContent;
@@ -70,8 +58,22 @@ public class OpenSearchExprValueFactory {
   /**
    * The Mapping of Field and ExprType.
    */
-  @Setter
-  private Map<String, ExprType> typeMapping;
+  private final Map<String, OpenSearchDataType> typeMapping;
+
+  /**
+   * Extend existing mapping by new data without overwrite.
+   * Called from aggregation only {@link AggregationQueryBuilder#buildTypeMapping}.
+   * @param typeMapping A data type mapping produced by aggregation.
+   */
+  public void extendTypeMapping(Map<String, OpenSearchDataType> typeMapping) {
+    for (var field : typeMapping.keySet()) {
+      // Prevent overwriting, because aggregation engine may be not aware
+      // of all niceties of all types.
+      if (!this.typeMapping.containsKey(field)) {
+        this.typeMapping.put(field, typeMapping.get(field));
+      }
+    }
+  }
 
   @Getter
   @Setter
@@ -83,39 +85,56 @@ public class OpenSearchExprValueFactory {
 
   private final Map<ExprType, Function<Content, ExprValue>> typeActionMap =
       new ImmutableMap.Builder<ExprType, Function<Content, ExprValue>>()
-          .put(INTEGER, c -> new ExprIntegerValue(c.intValue()))
-          .put(LONG, c -> new ExprLongValue(c.longValue()))
-          .put(SHORT, c -> new ExprShortValue(c.shortValue()))
-          .put(BYTE, c -> new ExprByteValue(c.byteValue()))
-          .put(FLOAT, c -> new ExprFloatValue(c.floatValue()))
-          .put(DOUBLE, c -> new ExprDoubleValue(c.doubleValue()))
-          .put(STRING, c -> new ExprStringValue(c.stringValue()))
-          .put(BOOLEAN, c -> ExprBooleanValue.of(c.booleanValue()))
-          .put(TIMESTAMP, this::parseTimestamp)
-          .put(DATE, c -> new ExprDateValue(parseTimestamp(c).dateValue().toString()))
-          .put(TIME, c -> new ExprTimeValue(parseTimestamp(c).timeValue().toString()))
-          .put(DATETIME, c -> new ExprDatetimeValue(parseTimestamp(c).datetimeValue()))
-          .put(OPENSEARCH_TEXT, c -> new OpenSearchExprTextValue(c.stringValue()))
-          .put(OPENSEARCH_TEXT_KEYWORD, c -> new OpenSearchExprTextKeywordValue(c.stringValue()))
-          .put(OPENSEARCH_IP, c -> new OpenSearchExprIpValue(c.stringValue()))
-          .put(OPENSEARCH_GEO_POINT, c -> new OpenSearchExprGeoPointValue(c.geoValue().getLeft(),
-              c.geoValue().getRight()))
-          .put(OPENSEARCH_BINARY, c -> new OpenSearchExprBinaryValue(c.stringValue()))
+          .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Integer),
+              c -> new ExprIntegerValue(c.intValue()))
+          .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Long),
+              c -> new ExprLongValue(c.longValue()))
+          .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Short),
+              c -> new ExprShortValue(c.shortValue()))
+          .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Byte),
+              c -> new ExprByteValue(c.byteValue()))
+          .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Float),
+              c -> new ExprFloatValue(c.floatValue()))
+          .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Double),
+              c -> new ExprDoubleValue(c.doubleValue()))
+          .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Text),
+              c -> new OpenSearchExprTextValue(c.stringValue()))
+          .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword),
+              c -> new ExprStringValue(c.stringValue()))
+          .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Boolean),
+              c -> ExprBooleanValue.of(c.booleanValue()))
+          .put(OpenSearchDataType.of(TIMESTAMP), this::parseTimestamp)
+          .put(OpenSearchDataType.of(DATE),
+              c -> new ExprDateValue(parseTimestamp(c).dateValue().toString()))
+          .put(OpenSearchDataType.of(TIME),
+              c -> new ExprTimeValue(parseTimestamp(c).timeValue().toString()))
+          .put(OpenSearchDataType.of(DATETIME),
+              c -> new ExprDatetimeValue(parseTimestamp(c).datetimeValue()))
+          .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Ip),
+              c -> new OpenSearchExprIpValue(c.stringValue()))
+          .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint),
+              c -> new OpenSearchExprGeoPointValue(c.geoValue().getLeft(),
+                  c.geoValue().getRight()))
+          .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Binary),
+              c -> new OpenSearchExprBinaryValue(c.stringValue()))
           .build();
 
   /**
    * Constructor of OpenSearchExprValueFactory.
    */
-  public OpenSearchExprValueFactory(
-      Map<String, ExprType> typeMapping) {
-    this.typeMapping = typeMapping;
+  public OpenSearchExprValueFactory(Map<String, OpenSearchDataType> typeMapping) {
+    this.typeMapping = OpenSearchDataType.traverseAndFlatten(typeMapping);
   }
 
   /**
-   * The struct construction has the following assumption. 1. The field has OpenSearch Object
-   * data type. https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html 2. The
-   * deeper field is flattened in the typeMapping. e.g. {"employ", "STRUCT"} {"employ.id",
-   * "INTEGER"} {"employ.state", "STRING"}
+   * The struct construction has the following assumption:
+   *  1. The field has OpenSearch Object data type.
+   *     See <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html">
+   *       docs</a>
+   *  2. The deeper field is flattened in the typeMapping. e.g.
+   *     { "employ",       "STRUCT"  }
+   *     { "employ.id",    "INTEGER" }
+   *     { "employ.state", "STRING"  }
    */
   public ExprValue construct(String jsonString) {
     try {
@@ -145,9 +164,10 @@ public class OpenSearchExprValueFactory {
     }
 
     ExprType type = fieldType.get();
-    if (type == STRUCT) {
+    if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Object))
+          || type == STRUCT) {
       return parseStruct(content, field);
-    } else if (type == ARRAY) {
+    } else if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Nested))) {
       return parseArray(content, field);
     } else {
       if (typeActionMap.containsKey(type)) {
@@ -171,8 +191,8 @@ public class OpenSearchExprValueFactory {
   /**
    * Only default strict_date_optional_time||epoch_millis is supported,
    * strict_date_optional_time_nanos||epoch_millis if field is date_nanos.
-   * https://www.elastic.co/guide/en/elasticsearch/reference/current/date.html
-   * https://www.elastic.co/guide/en/elasticsearch/reference/current/date_nanos.html
+   * <a href="https://opensearch.org/docs/latest/opensearch/supported-field-types/date/#formats">
+   *   docs</a>
    * The customized date_format is not supported.
    */
   private ExprValue constructTimestamp(String value) {
@@ -208,9 +228,9 @@ public class OpenSearchExprValueFactory {
   }
 
   /**
-   * Todo. ARRAY is not support now. In Elasticsearch, there is no dedicated array data type.
-   * https://www.elastic.co/guide/en/elasticsearch/reference/current/array.html. The similar data
-   * type is nested, but it can only allow a list of objects.
+   * Todo. ARRAY is not completely supported now. In OpenSearch, there is no dedicated array type.
+   * <a href="https://opensearch.org/docs/latest/opensearch/supported-field-types/nested/">docs</a>
+   * The similar data type is nested, but it can only allow a list of objects.
    */
   private ExprValue parseArray(Content content, String prefix) {
     List<ExprValue> result = new ArrayList<>();
@@ -218,7 +238,7 @@ public class OpenSearchExprValueFactory {
       // ExprCoreType.ARRAY does not indicate inner elements type. OpenSearch nested will be an
       // array of structs, otherwise parseArray currently only supports array of strings.
       if (v.isString()) {
-        result.add(parse(v, prefix, Optional.of(STRING)));
+        result.add(parse(v, prefix, Optional.of(OpenSearchDataType.of(STRING))));
       } else {
         result.add(parse(v, prefix, Optional.of(STRUCT)));
       }

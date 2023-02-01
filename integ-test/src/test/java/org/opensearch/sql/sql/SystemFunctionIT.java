@@ -27,7 +27,7 @@ public class SystemFunctionIT extends SQLIntegTestCase {
     JSONObject response = executeJdbcRequest("SELECT typeof('pewpew'), typeof(NULL), typeof(1.0),"
         + "typeof(12345), typeof(1234567891011), typeof(INTERVAL 2 DAY);");
     verifyDataRows(response,
-        rows("STRING", "UNDEFINED", "DOUBLE", "INTEGER", "LONG", "INTERVAL"));
+        rows("KEYWORD", "UNDEFINED", "DOUBLE", "INTEGER", "LONG", "INTERVAL"));
 
     response = executeJdbcRequest("SELECT"
         + " typeof(CAST('1961-04-12 09:07:00' AS TIMESTAMP)),"
@@ -54,7 +54,7 @@ public class SystemFunctionIT extends SQLIntegTestCase {
         //+ ", typeof(nested_value)"
         + " from %s;", TEST_INDEX_DATATYPE_NONNUMERIC));
     verifyDataRows(response,
-        rows("OPENSEARCH_TEXT", "TIMESTAMP", "BOOLEAN", "STRUCT", "STRING",
-                "OPENSEARCH_IP", "OPENSEARCH_BINARY", "OPENSEARCH_GEO_POINT"));
+        rows("TEXT", "TIMESTAMP", "BOOLEAN", "OBJECT", "KEYWORD",
+                "IP", "BINARY", "GEO_POINT"));
   }
 }

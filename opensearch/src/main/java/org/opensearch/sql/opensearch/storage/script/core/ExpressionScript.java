@@ -28,8 +28,9 @@ import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.parse.ParseExpression;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
-import org.opensearch.sql.opensearch.storage.script.ScriptUtils;
 
 /**
  * Expression script executor that executes the expression on each document
@@ -105,10 +106,8 @@ public class ExpressionScript {
   }
 
   private OpenSearchExprValueFactory buildValueFactory(Set<ReferenceExpression> fields) {
-    Map<String, ExprType> typeEnv = fields.stream()
-        .collect(toMap(
-            ReferenceExpression::getAttr,
-            ReferenceExpression::type));
+    Map<String, OpenSearchDataType> typeEnv = fields.stream().collect(toMap(
+        ReferenceExpression::getAttr, e -> OpenSearchDataType.of(e.type())));
     return new OpenSearchExprValueFactory(typeEnv);
   }
 
@@ -128,7 +127,7 @@ public class ExpressionScript {
 
   private Object getDocValue(ReferenceExpression field,
                              Supplier<Map<String, ScriptDocValues<?>>> docProvider) {
-    String fieldName = getDocValueName(field);
+    String fieldName = OpenSearchTextType.convertTextToKeyword(field.getAttr(), field.type());
     ScriptDocValues<?> docValue = docProvider.get().get(fieldName);
     if (docValue == null || docValue.isEmpty()) {
       return null; // No way to differentiate null and missing from doc value
@@ -139,15 +138,6 @@ public class ExpressionScript {
       return ((ChronoZonedDateTime<?>) value).toInstant();
     }
     return castNumberToFieldType(value, field.type());
-  }
-
-  /**
-   * Text field doesn't have doc value (exception thrown even when you call "get")
-   * Limitation: assume inner field name is always "keyword".
-   */
-  private String getDocValueName(ReferenceExpression field) {
-    String fieldName = field.getAttr();
-    return ScriptUtils.convertTextToKeyword(fieldName, field.type());
   }
 
   /**
