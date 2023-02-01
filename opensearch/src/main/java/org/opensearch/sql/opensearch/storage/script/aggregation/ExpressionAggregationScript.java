@@ -6,6 +6,11 @@
 
 package org.opensearch.sql.opensearch.storage.script.aggregation;
 
+import static java.time.temporal.ChronoUnit.MILLIS;
+
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
 import org.apache.lucene.index.LeafReaderContext;
@@ -13,8 +18,10 @@ import org.opensearch.script.AggregationScript;
 import org.opensearch.search.lookup.SearchLookup;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.storage.script.core.ExpressionScript;
 
 /**
@@ -42,7 +49,21 @@ public class ExpressionAggregationScript extends AggregationScript {
 
   @Override
   public Object execute() {
-    return expressionScript.execute(this::getDoc, this::evaluateExpression).value();
+    var expr = expressionScript.execute(this::getDoc, this::evaluateExpression);
+    if (expr.type() instanceof OpenSearchDataType) {
+      return expr.value();
+    }
+    switch ((ExprCoreType)expr.type()) {
+      case TIME:
+        // Can't get timestamp from `ExprTimeValue`
+        return MILLIS.between(LocalTime.MIN, expr.timeValue());
+      case DATE:
+      case DATETIME:
+      case TIMESTAMP:
+        return expr.timestampValue().toEpochMilli();
+      default:
+        return expr.value();
+    }
   }
 
   private ExprValue evaluateExpression(Expression expression, Environment<Expression,
