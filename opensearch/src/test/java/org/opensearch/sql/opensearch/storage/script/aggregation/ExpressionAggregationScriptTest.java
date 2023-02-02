@@ -41,7 +41,6 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
-import org.w3c.dom.Text;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
@@ -79,7 +78,7 @@ class ExpressionAggregationScriptTest {
     assertThat()
         .docValues("name.keyword", "John")
         .evaluate(
-            DSL.equal(ref("name", new OpenSearchTextType(Map.of("words",
+            DSL.equal(ref("name", OpenSearchTextType.of(Map.of("words",
                     OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)))),
                 literal("John")))
         .shouldMatch(true);
@@ -153,7 +152,7 @@ class ExpressionAggregationScriptTest {
   void can_execute_expression_interpret_non_core_type_for_aggregation() {
     assertThat()
         .docValues("text", "pewpew")
-        .evaluate(ref("text", OpenSearchTextType.getInstance()))
+        .evaluate(ref("text", OpenSearchTextType.of()))
         .shouldMatch("pewpew");
   }
 

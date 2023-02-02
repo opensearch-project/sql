@@ -89,7 +89,7 @@ class ExpressionFilterScriptTest {
     assertThat()
         .docValues("name.keyword", "John")
         .filterBy(
-            DSL.equal(ref("name", new OpenSearchTextType(Map.of("words",
+            DSL.equal(ref("name", OpenSearchTextType.of(Map.of("words",
                     OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)))),
                 literal("John")))
         .shouldMatch();

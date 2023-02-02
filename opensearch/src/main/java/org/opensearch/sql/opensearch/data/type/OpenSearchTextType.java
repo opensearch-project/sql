@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
 import org.opensearch.sql.data.type.ExprType;
 
 /**
@@ -22,7 +21,6 @@ import org.opensearch.sql.data.type.ExprType;
 @EqualsAndHashCode(callSuper = false)
 public class OpenSearchTextType extends OpenSearchDataType {
 
-  @Getter
   private static final OpenSearchTextType instance = new OpenSearchTextType();
 
   private OpenSearchTextType() {
@@ -30,9 +28,19 @@ public class OpenSearchTextType extends OpenSearchDataType {
     exprCoreType = UNKNOWN;
   }
 
-  public OpenSearchTextType(Map<String, OpenSearchDataType> fields) {
-    this();
-    this.fields = ImmutableMap.copyOf(fields);
+  /**
+   * Create a Text type which has fields.
+   * @param fields Fields to set for the new type.
+   * @return A new type object.
+   */
+  public static OpenSearchTextType of(Map<String, OpenSearchDataType> fields) {
+    var res = new OpenSearchTextType();
+    res.fields = ImmutableMap.copyOf(fields);
+    return res;
+  }
+
+  public static OpenSearchTextType of() {
+    return OpenSearchTextType.instance;
   }
 
   @Override
@@ -51,7 +59,7 @@ public class OpenSearchTextType extends OpenSearchDataType {
 
   @Override
   protected OpenSearchDataType cloneEmpty() {
-    return new OpenSearchTextType(fields);
+    return OpenSearchTextType.of(fields);
   }
 
   /**

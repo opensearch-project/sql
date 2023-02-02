@@ -50,7 +50,7 @@ public class OpenSearchDataTypeRecognitionTest {
 
     @Override
     public ExprType type() {
-      return new OpenSearchTextType(Map.of("words",
+      return OpenSearchTextType.of(Map.of("words",
           OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)));
     }
   }

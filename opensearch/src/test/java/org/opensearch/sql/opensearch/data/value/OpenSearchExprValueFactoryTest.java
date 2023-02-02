@@ -77,7 +77,7 @@ class OpenSearchExprValueFactoryTest {
           .put("arrayV.info", OpenSearchDataType.of(STRING))
           .put("arrayV.author", OpenSearchDataType.of(STRING))
           .put("textV", OpenSearchDataType.of(OpenSearchDataType.MappingType.Text))
-          .put("textKeywordV", new OpenSearchTextType(Map.of("words",
+          .put("textKeywordV", OpenSearchTextType.of(Map.of("words",
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword))))
           .put("ipV", OpenSearchDataType.of(OpenSearchDataType.MappingType.Ip))
           .put("geoV", OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint))

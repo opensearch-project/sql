@@ -101,10 +101,10 @@ public class OpenSearchDataType implements ExprType, Serializable {
     if (exprCoreType == ExprCoreType.UNKNOWN) {
       switch (mappingType) {
         // TODO update these 2 below #1038 https://github.com/opensearch-project/sql/issues/1038
-        case Text: return OpenSearchTextType.getInstance();
-        case GeoPoint: return OpenSearchGeoPointType.getInstance();
-        case Binary: return OpenSearchBinaryType.getInstance();
-        case Ip: return OpenSearchIpType.getInstance();
+        case Text: return OpenSearchTextType.of();
+        case GeoPoint: return OpenSearchGeoPointType.of();
+        case Binary: return OpenSearchBinaryType.of();
+        case Ip: return OpenSearchIpType.of();
         default:
           throw new IllegalArgumentException(mappingType.toString());
       }

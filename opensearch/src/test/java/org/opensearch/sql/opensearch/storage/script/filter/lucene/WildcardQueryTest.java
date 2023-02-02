@@ -37,7 +37,7 @@ class WildcardQueryTest {
     return Stream.of(
         List.of(
             namedArgument("field",
-                new ReferenceExpression("title", OpenSearchTextType.getInstance())),
+                new ReferenceExpression("title", OpenSearchTextType.of())),
             namedArgument("query", "query_value*"),
             namedArgument("boost", "0.7"),
             namedArgument("case_insensitive", "false"),
@@ -63,7 +63,7 @@ class WildcardQueryTest {
   @Test
   public void test_SyntaxCheckException_when_one_argument() {
     List<Expression> arguments = List.of(namedArgument("field",
-        new ReferenceExpression("title", OpenSearchTextType.getInstance())));
+        new ReferenceExpression("title", OpenSearchTextType.of())));
     assertThrows(SyntaxCheckException.class,
         () -> wildcardQueryQuery.build(new WildcardQueryExpression(arguments)));
   }
@@ -72,7 +72,7 @@ class WildcardQueryTest {
   public void test_SemanticCheckException_when_invalid_parameter() {
     List<Expression> arguments = List.of(
         namedArgument("field",
-            new ReferenceExpression("title", OpenSearchTextType.getInstance())),
+            new ReferenceExpression("title", OpenSearchTextType.of())),
         namedArgument("query", "query_value*"),
         namedArgument("unsupported", "unsupported_value"));
     Assertions.assertThrows(SemanticCheckException.class,

@@ -22,7 +22,7 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 class OpenSearchExprTextValueTest {
   @Test
   public void type_of_ExprTextValue() {
-    assertEquals(OpenSearchTextType.getInstance(), new OpenSearchExprTextValue("A").type());
+    assertEquals(OpenSearchTextType.of(), new OpenSearchExprTextValue("A").type());
   }
 
   @Test
@@ -31,7 +31,7 @@ class OpenSearchExprTextValueTest {
         "f1", OpenSearchDataType.of(OpenSearchDataType.MappingType.Integer),
         "f2", OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword),
         "f3", OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword));
-    assertEquals(fields, new OpenSearchTextType(fields).getFields());
+    assertEquals(fields, OpenSearchTextType.of(fields).getFields());
   }
 
   @Test
@@ -72,7 +72,7 @@ class OpenSearchExprTextValueTest {
 
   @Test
   void text_type_with_fields_is_converted() {
-    var textWithKeywordType = new OpenSearchTextType(Map.of("keyword",
+    var textWithKeywordType = OpenSearchTextType.of(Map.of("keyword",
         OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)));
     assertEquals("field.keyword",
         OpenSearchTextType.convertTextToKeyword("field", textWithKeywordType));

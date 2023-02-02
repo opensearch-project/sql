@@ -20,6 +20,6 @@ public class OpenSearchExprTextValue extends ExprStringValue {
 
   @Override
   public ExprType type() {
-    return OpenSearchTextType.getInstance();
+    return OpenSearchTextType.of();
   }
 }

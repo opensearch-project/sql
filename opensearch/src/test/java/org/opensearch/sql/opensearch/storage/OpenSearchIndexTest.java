@@ -105,7 +105,7 @@ class OpenSearchIndexTest {
     doNothing().when(client).createIndex(indexName, mappings);
 
     Map<String, ExprType> schema = new HashMap<>();
-    schema.put("name", new OpenSearchTextType(Map.of("keyword",
+    schema.put("name", OpenSearchTextType.of(Map.of("keyword",
         OpenSearchDataType.of(MappingType.Keyword))));
     schema.put("age", INTEGER);
     index.create(schema);

@@ -29,7 +29,7 @@ public class OpenSearchExprIpValue extends AbstractExprValue {
 
   @Override
   public ExprType type() {
-    return OpenSearchIpType.getInstance();
+    return OpenSearchIpType.of();
   }
 
   @Override

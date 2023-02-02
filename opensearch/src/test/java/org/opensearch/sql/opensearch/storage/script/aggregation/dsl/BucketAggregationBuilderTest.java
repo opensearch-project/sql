@@ -114,7 +114,7 @@ class BucketAggregationBuilderTest {
             + "}",
         buildQuery(
             Arrays.asList(
-                asc(named("name", ref("name", new OpenSearchTextType(Map.of("words",
+                asc(named("name", ref("name", OpenSearchTextType.of(Map.of("words",
                     OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)))))))));
   }
 

@@ -24,7 +24,7 @@ public class OpenSearchExprIpValueTest {
 
   @Test
   void type() {
-    assertEquals(OpenSearchIpType.getInstance(), ipValue.type());
+    assertEquals(OpenSearchIpType.of(), ipValue.type());
   }
 
   @Test

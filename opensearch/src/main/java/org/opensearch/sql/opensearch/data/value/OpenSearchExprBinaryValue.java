@@ -42,6 +42,6 @@ public class OpenSearchExprBinaryValue extends AbstractExprValue {
 
   @Override
   public ExprType type() {
-    return OpenSearchBinaryType.getInstance();
+    return OpenSearchBinaryType.of();
   }
 }

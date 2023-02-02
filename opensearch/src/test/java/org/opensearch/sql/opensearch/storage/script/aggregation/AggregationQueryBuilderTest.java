@@ -178,7 +178,7 @@ class AggregationQueryBuilderTest {
         buildQuery(
             Arrays.asList(
                 named("avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER))),
-            Arrays.asList(named("name", ref("name", new OpenSearchTextType(Map.of("words",
+            Arrays.asList(named("name", ref("name", OpenSearchTextType.of(Map.of("words",
                 OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword))))))));
   }
 

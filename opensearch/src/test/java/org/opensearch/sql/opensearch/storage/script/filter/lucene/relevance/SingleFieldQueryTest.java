@@ -44,7 +44,7 @@ class SingleFieldQueryTest {
 
     query.createQueryBuilder(List.of(DSL.namedArgument("field",
             new ReferenceExpression(sampleField,
-                new OpenSearchTextType(Map.of("words",
+                OpenSearchTextType.of(Map.of("words",
                     OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword))))),
         DSL.namedArgument("query",
             new LiteralExpression(ExprValueUtils.stringValue(sampleQuery)))));
@@ -59,7 +59,7 @@ class SingleFieldQueryTest {
     String sampleField = "fieldA";
 
     query.createQueryBuilder(List.of(DSL.namedArgument("field",
-            new ReferenceExpression(sampleField, OpenSearchTextType.getInstance())),
+            new ReferenceExpression(sampleField, OpenSearchTextType.of())),
         DSL.namedArgument("query",
             new LiteralExpression(ExprValueUtils.stringValue(sampleQuery)))));
 

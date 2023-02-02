@@ -36,7 +36,7 @@ public class MatchBoolPrefixQueryTest {
 
   static Stream<List<Expression>> generateValidData() {
     NamedArgumentExpression field = DSL.namedArgument("field",
-        new ReferenceExpression("field_value", OpenSearchTextType.getInstance()));
+        new ReferenceExpression("field_value", OpenSearchTextType.of()));
     NamedArgumentExpression query = DSL.namedArgument("query", DSL.literal("query_value"));
     return List.of(
             DSL.namedArgument("fuzziness", DSL.literal("AUTO")),
@@ -62,7 +62,7 @@ public class MatchBoolPrefixQueryTest {
   public void test_valid_when_two_arguments() {
     List<Expression> arguments = List.of(
         DSL.namedArgument("field",
-            new ReferenceExpression("field_value", OpenSearchTextType.getInstance())),
+            new ReferenceExpression("field_value", OpenSearchTextType.of())),
         DSL.namedArgument("query", "query_value"));
     Assertions.assertNotNull(matchBoolPrefixQuery.build(new MatchExpression(arguments)));
   }
@@ -85,7 +85,7 @@ public class MatchBoolPrefixQueryTest {
   public void test_SemanticCheckException_when_invalid_argument() {
     List<Expression> arguments = List.of(
         DSL.namedArgument("field",
-            new ReferenceExpression("field_value", OpenSearchTextType.getInstance())),
+            new ReferenceExpression("field_value", OpenSearchTextType.of())),
         DSL.namedArgument("query", "query_value"),
         DSL.namedArgument("unsupported", "unsupported_value"));
     Assertions.assertThrows(SemanticCheckException.class,
