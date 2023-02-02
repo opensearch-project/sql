@@ -422,8 +422,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.TIMESTAMP, expressions);
   }
 
-  public static FunctionExpression date_format(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.DATE_FORMAT, expressions);
+  public static FunctionExpression date_format(
+      FunctionProperties functionProperties,
+      Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.DATE_FORMAT, expressions);
   }
 
   public static FunctionExpression to_days(Expression... expressions) {
@@ -824,6 +826,11 @@ public class DSL {
   public static FunctionExpression current_date(FunctionProperties functionProperties,
                                                 Expression... args) {
     return compile(functionProperties, BuiltinFunctionName.CURRENT_DATE, args);
+  }
+
+  public static FunctionExpression time_format(FunctionProperties functionProperties,
+                                               Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.TIME_FORMAT, expressions);
   }
 
   public static FunctionExpression utc_date(FunctionProperties functionProperties,

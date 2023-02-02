@@ -258,6 +258,7 @@ SYSDATE:                            'SYSDATE';
 TAN:                                'TAN';
 TIME:                               'TIME';
 TIMEDIFF:                           'TIMEDIFF';
+TIME_FORMAT:                        'TIME_FORMAT';
 TIME_TO_SEC:                        'TIME_TO_SEC';
 TIMESTAMP:                          'TIMESTAMP';
 TRUNCATE:                           'TRUNCATE';
