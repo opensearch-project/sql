@@ -838,4 +838,26 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
           ));
     }
   }
+
+  // https://github.com/opensearch-project/sql/issues/1318
+  @Test
+  public void indexCanBeId() {
+    assertEqual("source = index | stats count() by index",
+        agg(
+            relation("index"),
+            exprList(
+                alias(
+                    "count()",
+                    aggregate("count", AllFields.of())
+                )
+            ),
+            emptyList(),
+            exprList(
+                alias(
+                    "index",
+                    field("index")
+                )),
+            defaultStatsArgs()
+        ));
+  }
 }
