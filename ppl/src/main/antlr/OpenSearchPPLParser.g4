@@ -610,12 +610,26 @@ wildcard
 
 keywordsCanBeId
     : D // OD SQL and ODBC special
-    | statsFunctionName
-    | TIMESTAMP | DATE | TIME
-    | FIRST | LAST
     | timespanUnit | SPAN
-    | dateAndTimeFunctionBase
-    | textFunctionBase
-    | mathematicalFunctionBase
-    | positionFunctionName
+    | evalFunctionName
+    | relevanceArgName
+    | intervalUnit
+    // commands
+    | SEARCH | DESCRIBE | SHOW | FROM | WHERE | FIELDS | RENAME | STATS | DEDUP | SORT | EVAL | HEAD | TOP | RARE
+    | PARSE | METHOD | REGEX | PUNCT | GROK | PATTERN | PATTERNS | NEW_FIELD | KMEANS | AD | ML
+    // commands assist keywords
+    | SOURCE | INDEX | DESC | DATASOURCES
+    // CLAUSEKEYWORDS
+    | SORTBY
+    // FIELDKEYWORDSAUTO
+    | STR | IP | NUM
+    // ARGUMENT KEYWORDS
+    | KEEPEMPTY | CONSECUTIVE | DEDUP_SPLITVALUES | PARTITIONS | ALLNUM | DELIM | CENTROIDS | ITERATIONS | DISTANCE_TYPE
+    | NUMBER_OF_TREES | SHINGLE_SIZE | SAMPLE_SIZE | OUTPUT_AFTER | TIME_DECAY | ANOMALY_RATE | CATEGORY_FIELD
+    | TIME_FIELD | TIME_ZONE | TRAINING_DATA_SIZE | ANOMALY_SCORE_THRESHOLD
+    // AGGREGATIONS
+    | AVG | COUNT | DISTINCT_COUNT | ESTDC | ESTDC_ERROR | MAX | MEAN | MEDIAN | MIN | MODE | RANGE | STDEV | STDEVP
+    | SUM | SUMSQ | VAR_SAMP | VAR_POP | STDDEV_SAMP | STDDEV_POP | PERCENTILE | TAKE | FIRST | LAST | LIST | VALUES
+    | EARLIEST | EARLIEST_TIME | LATEST | LATEST_TIME | PER_DAY | PER_HOUR | PER_MINUTE | PER_SECOND | RATE | SPARKLINE
+    | C | DC
     ;
