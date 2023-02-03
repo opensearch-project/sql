@@ -610,19 +610,15 @@ wildcard
 
 keywordsCanBeId
     : D // OD SQL and ODBC special
-    | statsFunctionName
-    | TIMESTAMP | DATE | TIME
-    | FIRST | LAST
     | timespanUnit | SPAN
     | evalFunctionName
     | relevanceArgName
     | intervalUnit
-    | timespanUnit
     // commands
     | SEARCH | DESCRIBE | SHOW | FROM | WHERE | FIELDS | RENAME | STATS | DEDUP | SORT | EVAL | HEAD | TOP | RARE
     | PARSE | METHOD | REGEX | PUNCT | GROK | PATTERN | PATTERNS | NEW_FIELD | KMEANS | AD | ML
     // commands assist keywords
-    | SOURCE | INDEX | D | DESC | DATASOURCES
+    | SOURCE | INDEX | DESC | DATASOURCES
     // CLAUSEKEYWORDS
     | SORTBY
     // FIELDKEYWORDSAUTO
