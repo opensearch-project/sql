@@ -41,6 +41,16 @@ public class DateTimeTestBase extends ExpressionTestBase {
     return expression.valueOf();
   }
 
+  protected FunctionExpression adddate(Expression date, Expression interval) {
+    return (FunctionExpression) functionRepository.compile(functionProperties,
+        BuiltinFunctionName.ADDDATE.getName(), List.of(date, interval));
+  }
+
+  protected ExprValue adddate(Object first, Object interval) {
+    return adddate(DSL.literal(fromObjectValue(first)), DSL.literal(fromObjectValue(interval)))
+        .valueOf(null);
+  }
+
   protected FunctionExpression addtime(Expression date, Expression interval) {
     return (FunctionExpression) functionRepository.compile(
         functionProperties,
@@ -49,6 +59,26 @@ public class DateTimeTestBase extends ExpressionTestBase {
 
   protected ExprValue addtime(Temporal first, Temporal second) {
     return addtime(DSL.literal(fromObjectValue(first)), DSL.literal(fromObjectValue(second)))
+        .valueOf(null);
+  }
+
+  protected FunctionExpression date_add(Expression date, Expression interval) {
+    return (FunctionExpression) functionRepository.compile(functionProperties,
+        BuiltinFunctionName.DATE_ADD.getName(), List.of(date, interval));
+  }
+
+  protected ExprValue date_add(Object first, Object second) {
+    return date_add(DSL.literal(fromObjectValue(first)), DSL.literal(fromObjectValue(second)))
+        .valueOf(null);
+  }
+
+  protected FunctionExpression date_sub(Expression date, Expression interval) {
+    return (FunctionExpression) functionRepository.compile(functionProperties,
+        BuiltinFunctionName.DATE_SUB.getName(), List.of(date, interval));
+  }
+
+  protected ExprValue date_sub(Object first, Object second) {
+    return date_sub(DSL.literal(fromObjectValue(first)), DSL.literal(fromObjectValue(second)))
         .valueOf(null);
   }
 
@@ -138,6 +168,16 @@ public class DateTimeTestBase extends ExpressionTestBase {
         .valueOf().integerValue();
   }
 
+  protected FunctionExpression subdate(Expression date, Expression interval) {
+    return (FunctionExpression) functionRepository.compile(functionProperties,
+        BuiltinFunctionName.SUBDATE.getName(), List.of(date, interval));
+  }
+
+  protected ExprValue subdate(Object first, Object interval) {
+    return subdate(DSL.literal(fromObjectValue(first)), DSL.literal(fromObjectValue(interval)))
+        .valueOf(null);
+  }
+
   protected FunctionExpression subtime(Expression date, Expression interval) {
     return (FunctionExpression) functionRepository.compile(
         functionProperties,
@@ -174,7 +214,6 @@ public class DateTimeTestBase extends ExpressionTestBase {
         functionRepository.compile(functionProperties,
             BuiltinFunctionName.UNIX_TIMESTAMP.getName(), List.of(value));
   }
-
 
   protected Double unixTimeStampOf(Double value) {
     return unixTimeStampOf(DSL.literal(value)).valueOf().doubleValue();
