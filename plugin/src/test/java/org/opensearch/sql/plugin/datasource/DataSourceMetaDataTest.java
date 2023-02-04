@@ -18,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import lombok.SneakyThrows;
@@ -111,10 +112,10 @@ public class DataSourceMetaDataTest {
   }
 
   void verifyAddDataSourceWithMetadata(List<DataSourceMetadata> metadataList) {
-    ArgumentCaptor<DataSourceMetadata> metadataCaptor =
-        ArgumentCaptor.forClass(DataSourceMetadata.class);
+    ArgumentCaptor<DataSourceMetadata[]> metadataCaptor =
+        ArgumentCaptor.forClass(DataSourceMetadata[].class);
     verify(dataSourceService, times(1)).addDataSource(metadataCaptor.capture());
-    List<DataSourceMetadata> actualValues = metadataCaptor.getAllValues();
+    List<DataSourceMetadata> actualValues = Arrays.asList(metadataCaptor.getValue());
     assertEquals(metadataList.size(), actualValues.size());
     assertEquals(metadataList, actualValues);
   }
