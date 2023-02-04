@@ -14,29 +14,33 @@ ADDDATE
 Description
 >>>>>>>>>>>
 
-Usage: adddate(date, INTERVAL expr unit)/ adddate(date, expr) adds the time interval of second argument to date; adddate(date, days) adds the second argument as integer number of days to date.
+Usage: adddate(date, INTERVAL expr unit) / adddate(date, days) adds the interval of second argument to date; adddate(date, days) adds the second argument as integer number of days to date.
+If first argument is TIME, today's date is used; if first argument is DATE, time at midnight is used.
 
-Argument type: DATE/DATETIME/TIMESTAMP/STRING, INTERVAL/LONG
+Argument type: DATE/DATETIME/TIMESTAMP/TIME, INTERVAL/LONG
 
 Return type map:
 
-(DATE/DATETIME/TIMESTAMP/STRING, INTERVAL) -> DATETIME
+(DATE/DATETIME/TIMESTAMP/TIME, INTERVAL) -> DATETIME
 
 (DATE, LONG) -> DATE
 
-(DATETIME/TIMESTAMP/STRING, LONG) -> DATETIME
+(DATETIME/TIMESTAMP/TIME, LONG) -> DATETIME
 
-Synonyms: `DATE_ADD`_
+Synonyms: `DATE_ADD`_ when invoked with the INTERVAL form of the second argument.
+
+Antonyms: `SUBDATE`_
 
 Example::
 
-    os> source=people | eval `ADDDATE(DATE('2020-08-26'), INTERVAL 1 HOUR)` = ADDDATE(DATE('2020-08-26'), INTERVAL 1 HOUR), `ADDDATE(DATE('2020-08-26'), 1)` = ADDDATE(DATE('2020-08-26'), 1), `ADDDATE(TIMESTAMP('2020-08-26 01:01:01'), 1)` = ADDDATE(TIMESTAMP('2020-08-26 01:01:01'), 1) | fields `ADDDATE(DATE('2020-08-26'), INTERVAL 1 HOUR)`, `ADDDATE(DATE('2020-08-26'), 1)`, `ADDDATE(TIMESTAMP('2020-08-26 01:01:01'), 1)`
+    os> source=people | eval `'2020-08-26' + 1h` = ADDDATE(DATE('2020-08-26'), INTERVAL 1 HOUR), `'2020-08-26' + 1` = ADDDATE(DATE('2020-08-26'), 1), `ts '2020-08-26 01:01:01' + 1` = ADDDATE(TIMESTAMP('2020-08-26 01:01:01'), 1) | fields `'2020-08-26' + 1h`, `'2020-08-26' + 1`, `ts '2020-08-26 01:01:01' + 1`
     fetched rows / total rows = 1/1
-    +------------------------------------------------+----------------------------------+------------------------------------------------+
-    | ADDDATE(DATE('2020-08-26'), INTERVAL 1 HOUR)   | ADDDATE(DATE('2020-08-26'), 1)   | ADDDATE(TIMESTAMP('2020-08-26 01:01:01'), 1)   |
-    |------------------------------------------------+----------------------------------+------------------------------------------------|
-    | 2020-08-26 01:00:00                            | 2020-08-27                       | 2020-08-27 01:01:01                            |
-    +------------------------------------------------+----------------------------------+------------------------------------------------+
+    +---------------------+--------------------+--------------------------------+
+    | '2020-08-26' + 1h   | '2020-08-26' + 1   | ts '2020-08-26 01:01:01' + 1   |
+    |---------------------+--------------------+--------------------------------|
+    | 2020-08-26 01:00:00 | 2020-08-27         | 2020-08-27 01:01:01            |
+    +---------------------+--------------------+--------------------------------+
+
 
 
 ADDTIME
@@ -393,29 +397,25 @@ DATE_ADD
 Description
 >>>>>>>>>>>
 
-Usage: date_add(date, INTERVAL expr unit)/ date_add(date, expr) adds the time interval expr to date
+Usage: date_add(date, INTERVAL expr unit) adds the interval expr to date. If first argument is TIME, today's date is used; if first argument is DATE, time at midnight is used.
 
-Argument type: DATE/DATETIME/TIMESTAMP/STRING, INTERVAL/LONG
+Argument type: DATE/DATETIME/TIMESTAMP/TIME, INTERVAL
 
-Return type map:
-
-DATE/DATETIME/TIMESTAMP/STRING, INTERVAL -> DATETIME
-
-DATE, LONG -> DATE
-
-DATETIME/TIMESTAMP/STRING, LONG -> DATETIME
+Return type: DATETIME
 
 Synonyms: `ADDDATE`_
 
+Antonyms: `DATE_SUB`_
+
 Example::
 
-    os> source=people | eval `DATE_ADD(DATE('2020-08-26'), INTERVAL 1 HOUR)` = DATE_ADD(DATE('2020-08-26'), INTERVAL 1 HOUR), `DATE_ADD(DATE('2020-08-26'), 1)` = DATE_ADD(DATE('2020-08-26'), 1), `DATE_ADD(TIMESTAMP('2020-08-26 01:01:01'), 1)` = DATE_ADD(TIMESTAMP('2020-08-26 01:01:01'), 1) | fields `DATE_ADD(DATE('2020-08-26'), INTERVAL 1 HOUR)`, `DATE_ADD(DATE('2020-08-26'), 1)`, `DATE_ADD(TIMESTAMP('2020-08-26 01:01:01'), 1)`
+    os> source=people | eval `'2020-08-26' + 1h` = DATE_ADD(DATE('2020-08-26'), INTERVAL 1 HOUR), `ts '2020-08-26 01:01:01' + 1d` = DATE_ADD(TIMESTAMP('2020-08-26 01:01:01'), INTERVAL 1 DAY) | fields `'2020-08-26' + 1h`, `ts '2020-08-26 01:01:01' + 1d`
     fetched rows / total rows = 1/1
-    +-------------------------------------------------+-----------------------------------+-------------------------------------------------+
-    | DATE_ADD(DATE('2020-08-26'), INTERVAL 1 HOUR)   | DATE_ADD(DATE('2020-08-26'), 1)   | DATE_ADD(TIMESTAMP('2020-08-26 01:01:01'), 1)   |
-    |-------------------------------------------------+-----------------------------------+-------------------------------------------------|
-    | 2020-08-26 01:00:00                             | 2020-08-27                        | 2020-08-27 01:01:01                             |
-    +-------------------------------------------------+-----------------------------------+-------------------------------------------------+
+    +---------------------+---------------------------------+
+    | '2020-08-26' + 1h   | ts '2020-08-26 01:01:01' + 1d   |
+    |---------------------+---------------------------------|
+    | 2020-08-26 01:00:00 | 2020-08-27 01:01:01             |
+    +---------------------+---------------------------------+
 
 
 DATE_FORMAT
@@ -574,29 +574,25 @@ DATE_SUB
 Description
 >>>>>>>>>>>
 
-Usage: date_sub(date, INTERVAL expr unit)/ date_sub(date, expr) subtracts the time interval expr from date
+Usage: date_sub(date, INTERVAL expr unit) subtracts the interval expr from date. If first argument is TIME, today's date is used; if first argument is DATE, time at midnight is used.
 
-Argument type: DATE/DATETIME/TIMESTAMP/STRING, INTERVAL/LONG
+Argument type: DATE/DATETIME/TIMESTAMP/TIME, INTERVAL
 
-Return type map:
-
-DATE/DATETIME/TIMESTAMP/STRING, INTERVAL -> DATETIME
-
-DATE, LONG -> DATE
-
-DATETIME/TIMESTAMP/STRING, LONG -> DATETIME
+Return type: DATETIME
 
 Synonyms: `SUBDATE`_
 
+Antonyms: `DATE_ADD`_
+
 Example::
 
-    os> source=people | eval `DATE_SUB(DATE('2008-01-02'), INTERVAL 31 DAY)` = DATE_SUB(DATE('2008-01-02'), INTERVAL 31 DAY), `DATE_SUB(DATE('2020-08-26'), 1)` = DATE_SUB(DATE('2020-08-26'), 1), `DATE_SUB(TIMESTAMP('2020-08-26 01:01:01'), 1)` = DATE_SUB(TIMESTAMP('2020-08-26 01:01:01'), 1) | fields `DATE_SUB(DATE('2008-01-02'), INTERVAL 31 DAY)`, `DATE_SUB(DATE('2020-08-26'), 1)`, `DATE_SUB(TIMESTAMP('2020-08-26 01:01:01'), 1)`
+    os> source=people | eval `'2008-01-02' - 31d` = DATE_SUB(DATE('2008-01-02'), INTERVAL 31 DAY), `ts '2020-08-26 01:01:01' + 1h` = DATE_SUB(TIMESTAMP('2020-08-26 01:01:01'), INTERVAL 1 HOUR) | fields `'2008-01-02' - 31d`, `ts '2020-08-26 01:01:01' + 1h`
     fetched rows / total rows = 1/1
-    +-------------------------------------------------+-----------------------------------+-------------------------------------------------+
-    | DATE_SUB(DATE('2008-01-02'), INTERVAL 31 DAY)   | DATE_SUB(DATE('2020-08-26'), 1)   | DATE_SUB(TIMESTAMP('2020-08-26 01:01:01'), 1)   |
-    |-------------------------------------------------+-----------------------------------+-------------------------------------------------|
-    | 2007-12-02                                      | 2020-08-25                        | 2020-08-25 01:01:01                             |
-    +-------------------------------------------------+-----------------------------------+-------------------------------------------------+
+    +----------------------+---------------------------------+
+    | '2008-01-02' - 31d   | ts '2020-08-26 01:01:01' + 1h   |
+    |----------------------+---------------------------------|
+    | 2007-12-02 00:00:00  | 2020-08-26 00:01:01             |
+    +----------------------+---------------------------------+
 
 
 DATEDIFF
@@ -631,7 +627,7 @@ Argument type: STRING/DATE/DATETIME/TIMESTAMP
 
 Return type: INTEGER
 
-Synonyms: DAYOFMONTH
+Synonyms: `DAYOFMONTH`_
 
 Example::
 
@@ -1139,29 +1135,32 @@ SUBDATE
 Description
 >>>>>>>>>>>
 
-Usage: subdate(date, INTERVAL expr unit)/ subdate(date, expr) subtracts the time interval expr from date
+Usage: subdate(date, INTERVAL expr unit) / subdate(date, days) subtracts the interval expr from date; subdate(date, days) subtracts the second argument as integer number of days from date.
+If first argument is TIME, today's date is used; if first argument is DATE, time at midnight is used.
 
-Argument type: DATE/DATETIME/TIMESTAMP/STRING, INTERVAL/LONG
+Argument type: DATE/DATETIME/TIMESTAMP/TIME, INTERVAL/LONG
 
 Return type map:
 
-DATE/DATETIME/TIMESTAMP/STRING, INTERVAL -> DATETIME
+(DATE/DATETIME/TIMESTAMP/TIME, INTERVAL) -> DATETIME
 
-DATE, LONG -> DATE
+(DATE, LONG) -> DATE
 
-DATETIME/TIMESTAMP/STRING, LONG -> DATETIME
+(DATETIME/TIMESTAMP/TIME, LONG) -> DATETIME
 
-Synonyms: `DATE_SUB`_
+Synonyms: `DATE_SUB`_ when invoked with the INTERVAL form of the second argument.
+
+Antonyms: `ADDDATE`_
 
 Example::
 
-    os> source=people | eval `SUBDATE(DATE('2008-01-02'), INTERVAL 31 DAY)` = SUBDATE(DATE('2008-01-02'), INTERVAL 31 DAY), `SUBDATE(DATE('2020-08-26'), 1)` = SUBDATE(DATE('2020-08-26'), 1), `SUBDATE(TIMESTAMP('2020-08-26 01:01:01'), 1)` = SUBDATE(TIMESTAMP('2020-08-26 01:01:01'), 1) | fields `SUBDATE(DATE('2008-01-02'), INTERVAL 31 DAY)`, `SUBDATE(DATE('2020-08-26'), 1)`, `SUBDATE(TIMESTAMP('2020-08-26 01:01:01'), 1)`
+    os> source=people | eval `'2008-01-02' - 31d` = SUBDATE(DATE('2008-01-02'), INTERVAL 31 DAY), `'2020-08-26' - 1` = SUBDATE(DATE('2020-08-26'), 1), `ts '2020-08-26 01:01:01' - 1` = SUBDATE(TIMESTAMP('2020-08-26 01:01:01'), 1) | fields `'2008-01-02' - 31d`, `'2020-08-26' - 1`, `ts '2020-08-26 01:01:01' - 1`
     fetched rows / total rows = 1/1
-    +------------------------------------------------+----------------------------------+------------------------------------------------+
-    | SUBDATE(DATE('2008-01-02'), INTERVAL 31 DAY)   | SUBDATE(DATE('2020-08-26'), 1)   | SUBDATE(TIMESTAMP('2020-08-26 01:01:01'), 1)   |
-    |------------------------------------------------+----------------------------------+------------------------------------------------|
-    | 2007-12-02                                     | 2020-08-25                       | 2020-08-25 01:01:01                            |
-    +------------------------------------------------+----------------------------------+------------------------------------------------+
+    +----------------------+--------------------+--------------------------------+
+    | '2008-01-02' - 31d   | '2020-08-26' - 1   | ts '2020-08-26 01:01:01' - 1   |
+    |----------------------+--------------------+--------------------------------|
+    | 2007-12-02 00:00:00  | 2020-08-25         | 2020-08-25 01:01:01            |
+    +----------------------+--------------------+--------------------------------+
 
 
 SUBTIME
