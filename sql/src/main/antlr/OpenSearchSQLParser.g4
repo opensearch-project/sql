@@ -375,6 +375,7 @@ altMultiFieldRelevanceFunction
 convertedDataType
     : typeName=DATE
     | typeName=TIME
+    | typeName=DATETIME
     | typeName=TIMESTAMP
     | typeName=INT
     | typeName=INTEGER
