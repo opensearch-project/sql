@@ -1,3 +1,3 @@
-SELECT CAST(DATE('2000-01-02') AS DATETIME) AS castDateToDatetime
-SELECT CAST(TIME('01:20:30') AS DATETIME) AS castTimeToDatetime
-SELECT CAST(TIMESTAMP('2000-01-02 01:20:30') AS DATETIME) AS castTsToDatetime
+SELECT CAST(CAST(timestamp AS DATE) AS DATETIME) AS castDateToDatetime FROM opensearch_dashboards_sample_data_flights
+SELECT CAST(CAST(timestamp AS TIME) AS DATETIME) AS castTimeToDatetime FROM opensearch_dashboards_sample_data_flights
+SELECT CAST(CAST(timestamp AS TIMESTAMP) AS DATETIME) AS castTsToDatetime FROM opensearch_dashboards_sample_data_flights
