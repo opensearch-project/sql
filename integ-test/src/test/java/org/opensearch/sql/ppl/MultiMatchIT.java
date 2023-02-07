@@ -23,7 +23,7 @@ public class MultiMatchIT extends PPLIntegTestCase {
   @Test
   public void test_multi_match() throws IOException {
     String query = "SOURCE=" + TEST_INDEX_BEER
-        + " | WHERE multi_match([\\\"Tags\\\" ^ 1.5, Title, `Body` 4.2], 'taste') | fields Id";
+        + " | WHERE multi_match([\\\"Tags\\\" ^ 1.5, Title, 'Body' 4.2], 'taste') | fields Id";
     var result = executeQuery(query);
     assertEquals(16, result.getInt("total"));
   }

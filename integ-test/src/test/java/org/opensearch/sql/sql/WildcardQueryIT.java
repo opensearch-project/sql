@@ -139,7 +139,7 @@ public class WildcardQueryIT extends SQLIntegTestCase {
 
   @Test
   public void test_backslash_wildcard() throws IOException {
-    String query = "SELECT KeywordBody FROM " + TEST_INDEX_WILDCARD + " WHERE wildcard_query(KeywordBody, '*\\\\\\\\\\\\_')";
+    String query = "SELECT KeywordBody FROM " + TEST_INDEX_WILDCARD + " WHERE wildcard_query(KeywordBody, '*\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\_')";
     JSONObject result = executeJdbcRequest(query);
     verifyDataRows(result, rows("test backslash wildcard \\_"));
   }

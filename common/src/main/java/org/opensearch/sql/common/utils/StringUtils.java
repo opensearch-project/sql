@@ -12,50 +12,39 @@ import java.util.Locale;
 
 public class StringUtils {
   /**
-   * Unquote any string with mark specified.
-   * @param text string
-   * @param mark quotation mark
-   * @return An unquoted string whose outer pair of (single/double/back-tick) quotes have been
-   *     removed
-   */
-  public static String unquote(String text, String mark) {
-    if (isQuoted(text, mark)) {
-      return text.substring(mark.length(), text.length() - mark.length());
-    }
-    return text;
-  }
-
-  /**
-   * Unquote Identifier which has " or ' or ` as mark.
+   * Unquote Identifier which has " or ' as mark.
    * Strings quoted by ' or " with two of these quotes appearing next to each other in the quote
    * acts as an escape
    * Example: 'Test''s' will result in 'Test's', similar with those single quotes being replaced
-   * with double.
+   * with double quote.
+   * Supports escaping quotes (single/double) and escape characters using the `\` characters.
    * @param text string
-   * @return An unquoted string whose outer pair of (single/double/back-tick) quotes have been
+   * @return An unquoted string whose outer pair of (single/double) quotes have been
    *     removed
    */
   public static String unquoteText(String text) {
-
     if (text.length() < 2) {
       return text;
     }
 
-    char enclosingQuote;
+    char enclosingQuote = 0;
     char firstChar = text.charAt(0);
     char lastChar = text.charAt(text.length() - 1);
 
-    if (firstChar == lastChar
-        && (firstChar == '\''
-        || firstChar == '"'
-        || firstChar == '`')) {
-      enclosingQuote = firstChar;
-    } else {
+    if (firstChar != lastChar) {
       return text;
     }
 
-    if (enclosingQuote == '`') {
+    if (firstChar == '`') {
       return text.substring(1, text.length() - 1);
+    }
+
+    if (firstChar == lastChar
+        && (firstChar == '\''
+        || firstChar == '"')) {
+      enclosingQuote = firstChar;
+    } else {
+      return text;
     }
 
     char currentChar;
@@ -67,13 +56,18 @@ public class StringUtils {
     for (int chIndex = 1; chIndex < text.length() - 1; chIndex++) {
       currentChar = text.charAt(chIndex);
       nextChar = text.charAt(chIndex + 1);
-      if (currentChar == enclosingQuote
-          && nextChar == currentChar) {
+
+      if ((currentChar == '\\'
+          && (nextChar == '"'
+          || nextChar == '\\'
+          || nextChar == '\''))
+          || (currentChar == nextChar
+          && currentChar == enclosingQuote)) {
         chIndex++;
+        currentChar = nextChar;
       }
       textSB.append(currentChar);
     }
-
     return textSB.toString();
   }
 
