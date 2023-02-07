@@ -491,10 +491,6 @@ noFieldRelevanceFunctionName
     : QUERY
     ;
 
-nestedFunctionName
-    : NESTED
-    ;
-
 systemFunctionName
     : TYPEOF
     ;

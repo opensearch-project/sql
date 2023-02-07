@@ -133,8 +133,7 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
     }
     ctx.selectElements().selectElement().forEach(field -> builder.add(visitSelectItem(field)));
 
-    UnresolvedPlan result = new Project(builder.build());
-    return result;
+    return new Project(builder.build());
   }
 
   @Override

@@ -90,15 +90,16 @@ public class ObjectFieldSelectIT extends SQLIntegTestCase {
   @Test
   public void testSelectObjectFieldOfArrayValuesItself() {
     JSONObject response = new JSONObject(query("SELECT accounts FROM %s"));
-    var blah = rows(new JSONArray(List.of("c","a")), "ab");
-    verifyDataRows(response, rows(new JSONArray(List.of(new JSONObject("{\"id\":1}"), new JSONObject("{\"id\":2}")))));
+
+    verifyDataRows(response,
+        rows(new JSONArray(List.of(new JSONObject("{\"id\":1}"),
+            new JSONObject("{\"id\":2}")))));
   }
 
   @Test
   public void testSelectObjectFieldOfArrayValuesInnerFields() {
     JSONObject response = new JSONObject(query("SELECT accounts.id FROM %s"));
 
-    // Only the first element of the list of is returned.
     verifyDataRows(response, rows(new JSONArray(List.of(1,2))));
   }
 

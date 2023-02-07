@@ -90,15 +90,13 @@ public class QueryService {
    * Analyze {@link UnresolvedPlan}.
    */
   public LogicalPlan analyze(UnresolvedPlan plan) {
-    var ret = analyzer.analyze(plan, new AnalysisContext());
-    return ret;
+    return analyzer.analyze(plan, new AnalysisContext());
   }
 
   /**
    * Translate {@link LogicalPlan} to {@link PhysicalPlan}.
    */
   public PhysicalPlan plan(LogicalPlan plan) {
-    var ret = planner.plan(plan);
-    return ret;
+    return planner.plan(plan);
   }
 }

@@ -367,21 +367,6 @@ class AstExpressionBuilderTest {
     );
   }
 
-//  @Test
-//  public void canBuildStringLiteralNestedFunction() {
-//    assertEquals(
-//        nested(AstDSL.stringLiteral("field.subfield")),
-//        buildExprAst("nested(\"field.subfield\")")
-//    );
-//  }
-//
-//  @Test
-//  public void canBuildQualifiedNameNestedFunction() {
-//    assertEquals(
-//        nested(AstDSL.qualifiedName("field", "subfield")),
-//        buildExprAst("nested(field.subfield)")
-//    );
-//  }
 
   @Test
   public void canBuildWindowFunctionWithoutOrderBy() {

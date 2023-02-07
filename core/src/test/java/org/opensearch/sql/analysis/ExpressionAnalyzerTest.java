@@ -84,13 +84,6 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void nested() {
-    assertAnalyzeEqual(
-        DSL.nested(DSL.ref("field.subfield", STRING)),
-        AstDSL.nested(qualifiedName("field.subfield")));
-  }
-
-  @Test
   public void not() {
     assertAnalyzeEqual(
         DSL.not(DSL.ref("boolean_value", BOOLEAN)),

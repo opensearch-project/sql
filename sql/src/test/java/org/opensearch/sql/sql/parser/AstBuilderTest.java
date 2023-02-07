@@ -696,14 +696,4 @@ class AstBuilderTest extends AstBuilderTestBase {
         buildAST("SELECT highlight(\"fieldA\") FROM test")
     );
   }
-
-  @Test
-  public void can_build_nested_in_select() {
-    assertEquals(
-        project(relation("test"),
-            alias("field.subfield",
-                qualifiedName("field.subfield"))),
-        buildAST("SELECT nested(\"field.subfield\") FROM test")
-    );
-  }
 }

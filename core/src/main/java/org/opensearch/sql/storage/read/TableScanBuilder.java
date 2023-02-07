@@ -105,6 +105,13 @@ public abstract class TableScanBuilder extends LogicalPlan {
     return false;
   }
 
+  /**
+   * Can a given nested operator be pushed down to table scan builder. Assume no such support
+   * by default unless subclass override this.
+   *
+   * @param nested logical highlight operator
+   * @return true if pushed down, otherwise false
+   */
   public boolean pushDownNested(LogicalNested nested) {
     return false;
   }
