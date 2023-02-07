@@ -72,6 +72,9 @@ public class TextFunctionTest extends ExpressionTestBase {
   private static List<List<String>> CONCAT_STRING_LISTS = ImmutableList.of(
       ImmutableList.of("hello", "world"),
       ImmutableList.of("123", "5325"));
+  private static List<List<String>> CONCAT_STRING_LISTS_WITH_MANY_STRINGS = ImmutableList.of(
+      ImmutableList.of("he", "llo", "wo", "rld", "!"),
+      ImmutableList.of("0", "123", "53", "25", "7"));
 
   interface SubstrSubstring {
     FunctionExpression getFunction(SubstringInfo strInfo);
@@ -228,11 +231,13 @@ public class TextFunctionTest extends ExpressionTestBase {
   @Test
   void concat() {
     CONCAT_STRING_LISTS.forEach(this::testConcatString);
+    CONCAT_STRING_LISTS_WITH_MANY_STRINGS.forEach(this::testConcatMultipleString);
 
     when(nullRef.type()).thenReturn(STRING);
     when(missingRef.type()).thenReturn(STRING);
     assertEquals(missingValue(), eval(
             DSL.concat(missingRef, DSL.literal("1"))));
+    // If any of the expressions is a NULL value, it returns NULL.
     assertEquals(nullValue(), eval(
             DSL.concat(nullRef, DSL.literal("1"))));
     assertEquals(missingValue(), eval(
@@ -442,6 +447,22 @@ public class TextFunctionTest extends ExpressionTestBase {
 
     FunctionExpression expression = DSL.concat_ws(
         DSL.literal(delim), DSL.literal(strings.get(0)), DSL.literal(strings.get(1)));
+    assertEquals(STRING, expression.type());
+    assertEquals(expected, eval(expression).stringValue());
+  }
+
+  void testConcatMultipleString(List<String> strings) {
+    String expected = null;
+    if (strings.stream().noneMatch(Objects::isNull)) {
+      expected = String.join("", strings);
+    }
+
+    FunctionExpression expression = DSL.concat(
+            DSL.literal(strings.get(0)),
+            DSL.literal(strings.get(1)),
+            DSL.literal(strings.get(2)),
+            DSL.literal(strings.get(3)),
+            DSL.literal(strings.get(4)));
     assertEquals(STRING, expression.type());
     assertEquals(expected, eval(expression).stringValue());
   }

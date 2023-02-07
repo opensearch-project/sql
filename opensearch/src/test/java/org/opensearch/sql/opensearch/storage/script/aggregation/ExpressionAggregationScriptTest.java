@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.opensearch.storage.script.aggregation;
 
+import static java.time.temporal.ChronoUnit.MILLIS;
 import static java.util.Collections.emptyMap;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -16,9 +17,12 @@ import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.ref;
+import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT;
 import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
 
 import com.google.common.collect.ImmutableMap;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.lucene.index.LeafReaderContext;
@@ -32,6 +36,10 @@ import org.opensearch.index.fielddata.ScriptDocValues;
 import org.opensearch.search.lookup.LeafDocLookup;
 import org.opensearch.search.lookup.LeafSearchLookup;
 import org.opensearch.search.lookup.SearchLookup;
+import org.opensearch.sql.data.model.ExprDateValue;
+import org.opensearch.sql.data.model.ExprDatetimeValue;
+import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 
@@ -98,6 +106,53 @@ class ExpressionAggregationScriptTest {
         .evaluate(DSL.regex(DSL.ref("age_string", STRING), DSL.literal("age: (?<age>\\d+)"),
             DSL.literal("age")))
         .shouldMatch("30");
+  }
+
+  @Test
+  void can_execute_expression_interpret_dates_for_aggregation() {
+    assertThat()
+        .docValues("date", "1961-04-12")
+        .evaluate(
+            DSL.date(ref("date", STRING)))
+        .shouldMatch(new ExprDateValue(LocalDate.of(1961, 4, 12))
+            .timestampValue().toEpochMilli());
+  }
+
+  @Test
+  void can_execute_expression_interpret_datetimes_for_aggregation() {
+    assertThat()
+        .docValues("datetime", "1984-03-17 22:16:42")
+        .evaluate(
+            DSL.datetime(ref("datetime", STRING)))
+        .shouldMatch(new ExprDatetimeValue("1984-03-17 22:16:42")
+            .timestampValue().toEpochMilli());
+  }
+
+  @Test
+  void can_execute_expression_interpret_times_for_aggregation() {
+    assertThat()
+        .docValues("time", "22:13:42")
+        .evaluate(
+            DSL.time(ref("time", STRING)))
+        .shouldMatch(MILLIS.between(LocalTime.MIN, LocalTime.of(22, 13, 42)));
+  }
+
+  @Test
+  void can_execute_expression_interpret_timestamps_for_aggregation() {
+    assertThat()
+        .docValues("timestamp", "1984-03-17 22:16:42")
+        .evaluate(
+            DSL.timestamp(ref("timestamp", STRING)))
+        .shouldMatch(new ExprTimestampValue("1984-03-17 22:16:42")
+            .timestampValue().toEpochMilli());
+  }
+
+  @Test
+  void can_execute_expression_interpret_non_core_type_for_aggregation() {
+    assertThat()
+        .docValues("text", "pewpew")
+        .evaluate(ref("text", OPENSEARCH_TEXT))
+        .shouldMatch("pewpew");
   }
 
   private ExprScriptAssertion assertThat() {

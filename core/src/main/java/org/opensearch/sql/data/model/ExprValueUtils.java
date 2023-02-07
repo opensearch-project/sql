@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.model;
 
 import java.time.Instant;
@@ -143,6 +142,8 @@ public class ExprValueUtils {
       return timeValue((LocalTime) o);
     } else if (o instanceof Instant) {
       return timestampValue((Instant) o);
+    } else if (o instanceof TemporalAmount) {
+      return intervalValue((TemporalAmount) o);
     } else {
       throw new ExpressionEvaluationException("unsupported object " + o.getClass());
     }

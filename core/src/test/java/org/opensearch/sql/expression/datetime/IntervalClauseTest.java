@@ -72,7 +72,7 @@ public class IntervalClauseTest extends ExpressionTestBase {
   public void day() {
     FunctionExpression expr = DSL.interval(DSL.literal(1), DSL.literal("day"));
     assertEquals(INTERVAL, expr.type());
-    assertEquals(intervalValue(Duration.ofDays(1)), expr.valueOf(env));
+    assertEquals(intervalValue(Period.ofDays(1)), expr.valueOf(env));
   }
 
   @Test

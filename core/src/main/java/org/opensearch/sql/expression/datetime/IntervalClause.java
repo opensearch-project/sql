@@ -93,7 +93,7 @@ public class IntervalClause {
   }
 
   private ExprValue day(ExprValue value) {
-    return new ExprIntervalValue(Duration.ofDays(getIntegerValue(value)));
+    return new ExprIntervalValue(Period.ofDays(getIntegerValue(value)));
   }
 
   private ExprValue week(ExprValue value) {
