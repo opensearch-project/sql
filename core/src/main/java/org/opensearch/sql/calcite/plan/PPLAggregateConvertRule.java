@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
@@ -89,7 +90,7 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
             .map(
                 aggCall -> {
                   RexInputRef rexRef =
-                      getFieldAndLiteral(project.getProjects().get(aggCall.getArgList().getFirst()))
+                      getFieldAndLiteral(project.getProjects().get(aggCall.getArgList().get(0)))
                           .getLeft();
                   // Don't remove elements in the child project since we don't know if it will be
                   // used by
@@ -101,7 +102,7 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
                   }
                   return ref;
                 })
-            .toList();
+            .collect(Collectors.toList());
     relBuilder.project(newChildProjects);
     RelNode newInput = relBuilder.peek();
 
@@ -134,7 +135,7 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
         int sumCallRef = putToDistinctAggregateCalls(distinctAggregateCalls, sumCall);
 
         final Function<RelNode, Function<RexNode, RexNode>> literalConverterProvider;
-        RexCall rexCall = (RexCall) project.getProjects().get(aggCall.getArgList().getFirst());
+        RexCall rexCall = (RexCall) project.getProjects().get(aggCall.getArgList().get(0));
         if (rexCall.getOperator().kind == SqlKind.PLUS
             || rexCall.getOperator().kind == SqlKind.MINUS) {
           AggregateCall countCall =
@@ -174,9 +175,9 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
               List<RexNode> operands =
                   List.of(
                       convertToNewOperand(
-                          rexCall.getOperands().getFirst(), fieldConverter, literalConverter),
+                          rexCall.getOperands().get(0), fieldConverter, literalConverter),
                       convertToNewOperand(
-                          rexCall.getOperands().getLast(), fieldConverter, literalConverter));
+                          rexCall.getOperands().get(1), fieldConverter, literalConverter));
               return rexBuilder.makeCall(aggCall.getType(), rexCall.getOperator(), operands);
             },
             aggCall.getName());
@@ -212,13 +213,14 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
         distinctAggregateCalls.add(aggregateCall.transform(targetMapping));
       }
       // Project the used fields
-      relBuilder.project(relBuilder.fields(fieldsUsed.stream().toList()));
+      relBuilder.project(relBuilder.fields(new ArrayList<>(fieldsUsed)));
     }
 
     /* Build the final project-aggregate-project after eliminating unused fields */
     relBuilder.aggregate(relBuilder.groupKey(newGroupSet, newGroupSets), distinctAggregateCalls);
     List<RexNode> parentProjects =
-        new ArrayList<>(relBuilder.fields(IntStream.range(0, groupSetOffset).boxed().toList()));
+        new ArrayList<>(relBuilder.fields(IntStream.range(0, groupSetOffset).boxed().collect(
+            Collectors.toList())));
     parentProjects.addAll(
         newExprOnAggCall.transform(
             (constructor, name) ->
@@ -243,13 +245,13 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
 
   private boolean isConvertableAggCall(AggregateCall aggCall, Project project) {
     return aggCall.getAggregation().getKind() == SqlKind.SUM
-        && Config.isCallWithLiteral(project.getProjects().get(aggCall.getArgList().getFirst()));
+        && Config.isCallWithLiteral(project.getProjects().get(aggCall.getArgList().get(0)));
   }
 
   private static Pair<RexInputRef, RexLiteral> getFieldAndLiteral(RexNode node) {
     RexCall call = (RexCall) node;
-    RexNode arg1 = call.getOperands().getFirst();
-    RexNode arg2 = call.getOperands().getLast();
+    RexNode arg1 = call.getOperands().get(0);
+    RexNode arg2 = call.getOperands().get(1);
     return arg1.getKind() == SqlKind.INPUT_REF
         ? Pair.of((RexInputRef) arg1, (RexLiteral) arg2)
         : Pair.of((RexInputRef) arg2, (RexLiteral) arg1);
@@ -296,9 +298,10 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
     }
 
     private static boolean isCallWithLiteral(RexNode node) {
-      if (CONVERTABLE_FUNCTIONS.contains(node.getKind()) && node instanceof RexCall call) {
-        RexNode arg1 = call.getOperands().getFirst();
-        RexNode arg2 = call.getOperands().getLast();
+      if (CONVERTABLE_FUNCTIONS.contains(node.getKind()) && node instanceof RexCall) {
+        RexCall call = (RexCall) node;
+        RexNode arg1 = call.getOperands().get(0);
+        RexNode arg2 = call.getOperands().get(1);
         return (arg1.getKind() == SqlKind.INPUT_REF && arg2.getKind() == SqlKind.LITERAL)
             || (arg1.getKind() == SqlKind.LITERAL && arg2.getKind() == SqlKind.INPUT_REF);
       }
