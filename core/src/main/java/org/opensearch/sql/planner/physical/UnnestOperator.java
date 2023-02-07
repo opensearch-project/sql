@@ -40,6 +40,7 @@ public class UnnestOperator extends PhysicalPlan {
 
   @Override
   public ExprValue next() {
+    //TODO flatten.
     ExprValue inputValue = input.next();
     return inputValue;
   }

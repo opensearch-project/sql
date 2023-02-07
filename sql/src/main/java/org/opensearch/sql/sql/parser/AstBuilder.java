@@ -111,6 +111,7 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
     if (queryContext.limitClause() != null) {
       from = visit(queryContext.limitClause()).attach(from);
     }
+    //TODO needs better implementation to create child unnest node.
     AstUnnestedBuilder nestBuilder = new AstUnnestedBuilder(context.peek());
     UnresolvedPlan unnested = nestBuilder.visit(queryContext.selectClause());
     if (unnested != null) {
@@ -132,7 +133,6 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
       builder.add(AllFields.of());
     }
     ctx.selectElements().selectElement().forEach(field -> builder.add(visitSelectItem(field)));
-
     return new Project(builder.build());
   }
 

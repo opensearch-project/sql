@@ -103,6 +103,7 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
           .map(hit -> {
             ExprValue docData = exprValueFactory.construct(hit.getSourceAsString());
             Map<String, Object> rowSource = hit.getSourceAsMap();
+            // TODO Move flattening logic to UnnestOperator
 //            List<String> head = docData.tupleValue().keySet().stream().collect(Collectors.toList());
 //            Set<String> newKeys = new HashSet<>(head);
 //            rowSource = flatRow(head, rowSource);

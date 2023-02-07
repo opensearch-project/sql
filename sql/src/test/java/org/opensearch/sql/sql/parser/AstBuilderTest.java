@@ -696,4 +696,5 @@ class AstBuilderTest extends AstBuilderTestBase {
         buildAST("SELECT highlight(\"fieldA\") FROM test")
     );
   }
+
 }

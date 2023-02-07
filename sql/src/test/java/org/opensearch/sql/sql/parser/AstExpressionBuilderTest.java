@@ -367,7 +367,6 @@ class AstExpressionBuilderTest {
     );
   }
 
-
   @Test
   public void canBuildWindowFunctionWithoutOrderBy() {
     assertEquals(

@@ -257,7 +257,8 @@ public class OpenSearchRequestBuilder {
     return false;
   }
 
-  public void pushDownNested(String field) {// if(is Nested) create field with nested boolean member variable
+  public void pushDownNested(String field) {
+    //TODO if(is Nested) create field with nested boolean member variable?
     project(List.of(new Field(new QualifiedName(field))));
   }
 
