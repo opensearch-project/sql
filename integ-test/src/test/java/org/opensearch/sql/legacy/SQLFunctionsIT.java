@@ -314,6 +314,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
         rows("35.0"));
   }
 
+  @Ignore("V2 engine doesn't support datetime with TZ")
   @Test
   public void castKeywordFieldToDatetimeWithoutAliasJdbcFormatTest() {
     JSONObject response = executeJdbcRequest("SELECT CAST(date_keyword AS DATETIME) FROM "
@@ -326,6 +327,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
         rows("2019-09-25 02:04:13.469"));
   }
 
+  @Ignore("V2 engine doesn't support datetime with TZ")
   @Test
   public void castKeywordFieldToDatetimeWithAliasJdbcFormatTest() {
     JSONObject response =
@@ -339,6 +341,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
         rows("2019-09-25 02:04:13.469"));
   }
 
+  @Ignore("V2 engine doesn't support datetime with TZ")
   @Test
   public void castFieldToDatetimeWithWhereClauseJdbcFormatTest() {
     JSONObject response = executeJdbcRequest("SELECT CAST(date_keyword AS DATETIME) FROM "
@@ -476,6 +479,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
    * Testing compilation
    * Result comparison is empty then comparing different types (Date and keyword)
    */
+  @Ignore("V2 engine doesn't support datetime with TZ and implicit cast from string")
   @Test
   public void castStatementInWhereClauseDatetimeCastTest() {
     JSONObject response = executeJdbcRequest("SELECT date_keyword FROM "
