@@ -22,14 +22,14 @@ public class SimpleQueryStringIT extends SQLIntegTestCase {
   The 'beer.stackexchange' index is a dump of beer.stackexchange.com converted to the format which might be ingested by OpenSearch.
   This is a forum like StackOverflow with questions about beer brewing. The dump contains both questions, answers and comments.
   The reference query is:
-    select count(Id) from beer.stackexchange where simple_query_string(["Tags" ^ 1.5, Title, `Body` 4.2], 'taste') and Tags like '% % %' and Title like '%';
-  It filters out empty `Tags` and `Title`.
+    select count(Id) from beer.stackexchange where simple_query_string(["Tags" ^ 1.5, Title, 'Body' 4.2], 'taste') and Tags like '% % %' and Title like '%';
+  It filters out empty 'Tags' and 'Title'.
   */
 
   @Test
   public void test_mandatory_params() throws IOException {
     String query = "SELECT Id FROM "
-        + TEST_INDEX_BEER + " WHERE simple_query_string([\\\"Tags\\\" ^ 1.5, Title, `Body` 4.2], 'taste')";
+        + TEST_INDEX_BEER + " WHERE simple_query_string([\\\"Tags\\\" ^ 1.5, Title, 'Body' 4.2], 'taste')";
     var result = new JSONObject(executeQuery(query, "jdbc"));
     assertEquals(16, result.getInt("total"));
   }

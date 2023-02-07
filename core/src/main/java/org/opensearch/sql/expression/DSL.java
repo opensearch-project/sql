@@ -290,10 +290,6 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.MULTIPLY, expressions);
   }
 
-  public static FunctionExpression adddate(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.ADDDATE, expressions);
-  }
-
   public static FunctionExpression convert_tz(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.CONVERT_TZ, expressions);
   }
@@ -304,14 +300,6 @@ public class DSL {
 
   public static FunctionExpression datetime(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.DATETIME, expressions);
-  }
-
-  public static FunctionExpression date_add(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.DATE_ADD, expressions);
-  }
-
-  public static FunctionExpression date_sub(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.DATE_SUB, expressions);
   }
 
   public static FunctionExpression day(Expression... expressions) {
@@ -408,10 +396,6 @@ public class DSL {
 
   public static FunctionExpression second_of_minute(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.SECOND_OF_MINUTE, expressions);
-  }
-
-  public static FunctionExpression subdate(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.SUBDATE, expressions);
   }
 
   public static FunctionExpression time(Expression... expressions) {
