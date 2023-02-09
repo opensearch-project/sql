@@ -418,7 +418,7 @@ public class PluginIT extends SQLIntegTestCase {
 
     actual = new JSONObject(TestUtils.getResponseBody(response));
     assertThat(actual.getInt("status"), equalTo(400));
-    assertThat(actual.query("/error/type"), equalTo("illegal_argument_exception"));
+    assertThat(actual.query("/error/type"), equalTo("settings_exception"));
     assertThat(
         actual.query("/error/reason"),
         equalTo("transient setting [plugins.sql.query.state.city], not recognized")
