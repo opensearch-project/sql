@@ -47,7 +47,12 @@ public class OpenSearchIndex implements Table {
   /**
    * The cached mapping of field and type in index.
    */
-  private Map<String, OpenSearchDataType> cachedFieldTypes = null;
+  private Map<String, OpenSearchDataType> cachedFieldOpenSearchTypes = null;
+
+  /**
+   * The cached ExprType of fields.
+   */
+  private Map<String, ExprType> cachedFieldTypes = null;
 
   /**
    * The cached max result window setting of index.
@@ -75,7 +80,6 @@ public class OpenSearchIndex implements Table {
     mappings.put("properties", properties);
 
     for (Map.Entry<String, ExprType> colType : schema.entrySet()) {
-      //properties.put(colType.getKey(), OpenSearchDataType.getOpenSearchType(colType.getValue()));
       properties.put(colType.getKey(), colType.getValue().legacyTypeName().toLowerCase());
     }
     client.createIndex(indexName.toString(), mappings);
@@ -93,14 +97,18 @@ public class OpenSearchIndex implements Table {
    */
   @Override
   public Map<String, ExprType> getFieldTypes() {
-    if (cachedFieldTypes == null) {
-      cachedFieldTypes = new OpenSearchDescribeIndexRequest(client, indexName).getFieldTypes();
+    if (cachedFieldOpenSearchTypes == null) {
+      cachedFieldOpenSearchTypes = new OpenSearchDescribeIndexRequest(client, indexName)
+          .getFieldTypes();
     }
-    return OpenSearchDataType.traverseAndFlatten(cachedFieldTypes).entrySet().stream()
-        .collect(
-            LinkedHashMap::new,
-            (map, item) -> map.put(item.getKey(), item.getValue().getExprType()),
-            Map::putAll);
+    if (cachedFieldTypes == null) {
+      cachedFieldTypes = OpenSearchDataType.traverseAndFlatten(cachedFieldOpenSearchTypes)
+          .entrySet().stream().collect(
+              LinkedHashMap::new,
+              (map, item) -> map.put(item.getKey(), item.getValue().getExprType()),
+              Map::putAll);
+    }
+    return cachedFieldTypes;
   }
 
   /**
@@ -108,10 +116,11 @@ public class OpenSearchIndex implements Table {
    * @return A complete map between field names and their types.
    */
   public Map<String, OpenSearchDataType> getFieldOpenSearchTypes() {
-    if (cachedFieldTypes == null) {
-      cachedFieldTypes = new OpenSearchDescribeIndexRequest(client, indexName).getFieldTypes();
+    if (cachedFieldOpenSearchTypes == null) {
+      cachedFieldOpenSearchTypes = new OpenSearchDescribeIndexRequest(client, indexName)
+          .getFieldTypes();
     }
-    return cachedFieldTypes;
+    return cachedFieldOpenSearchTypes;
   }
 
   /**
