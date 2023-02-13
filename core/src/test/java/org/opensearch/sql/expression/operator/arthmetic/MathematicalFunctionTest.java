@@ -566,6 +566,90 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   }
 
   /**
+   * Test expm1 with integer value.
+   */
+  @ParameterizedTest(name = "expm1({0})")
+  @ValueSource(ints = {
+      -1, 0, 1, Integer.MAX_VALUE, Integer.MIN_VALUE})
+  public void expm1_int_value(Integer value) {
+    FunctionExpression expm1 = DSL.expm1(DSL.literal(value));
+    assertThat(
+            expm1.valueOf(valueEnv()),
+            allOf(hasType(DOUBLE), hasValue(Math.expm1(value))));
+    assertEquals(String.format("expm1(%s)", value), expm1.toString());
+  }
+
+  /**
+   * Test expm1 with long value.
+   */
+  @ParameterizedTest(name = "expm1({0})")
+  @ValueSource(longs = {
+      -1L, 0L, 1L, Long.MAX_VALUE, Long.MIN_VALUE})
+  public void expm1_long_value(Long value) {
+    FunctionExpression expm1 = DSL.expm1(DSL.literal(value));
+    assertThat(
+            expm1.valueOf(valueEnv()),
+            allOf(hasType(DOUBLE), hasValue(Math.expm1(value))));
+    assertEquals(String.format("expm1(%s)", value), expm1.toString());
+  }
+
+  /**
+   * Test expm1 with float value.
+   */
+  @ParameterizedTest(name = "expm1({0})")
+  @ValueSource(floats = {
+      -1.5F, -1F, 0F, 1F, 1.5F, Float.MAX_VALUE, Float.MIN_VALUE})
+  public void expm1_float_value(Float value) {
+    FunctionExpression expm1 = DSL.expm1(DSL.literal(value));
+    assertThat(
+            expm1.valueOf(valueEnv()),
+            allOf(hasType(DOUBLE), hasValue(Math.expm1(value))));
+    assertEquals(String.format("expm1(%s)", value), expm1.toString());
+  }
+
+  /**
+   * Test expm1 with double value.
+   */
+  @ParameterizedTest(name = "expm1({0})")
+  @ValueSource(doubles = {
+      -1.5D, -1D, 0D, 1D, 1.5D, Double.MAX_VALUE, Double.MIN_VALUE})
+  public void expm1_double_value(Double value) {
+    FunctionExpression expm1 = DSL.expm1(DSL.literal(value));
+    assertThat(
+            expm1.valueOf(valueEnv()),
+            allOf(hasType(DOUBLE), hasValue(Math.expm1(value))));
+    assertEquals(String.format("expm1(%s)", value), expm1.toString());
+  }
+
+  /**
+   * Test expm1 with short value.
+   */
+  @ParameterizedTest(name = "expm1({0})")
+  @ValueSource(shorts = {
+      -1, 0, 1, Short.MAX_VALUE, Short.MIN_VALUE})
+  public void expm1_short_value(Short value) {
+    FunctionExpression expm1 = DSL.expm1(DSL.literal(value));
+    assertThat(
+            expm1.valueOf(valueEnv()),
+            allOf(hasType(DOUBLE), hasValue(Math.expm1(value))));
+    assertEquals(String.format("expm1(%s)", value), expm1.toString());
+  }
+
+  /**
+   * Test expm1 with short value.
+   */
+  @ParameterizedTest(name = "expm1({0})")
+  @ValueSource(bytes = {
+      -1, 0, 1, Byte.MAX_VALUE, Byte.MIN_VALUE})
+  public void expm1_byte_value(Byte value) {
+    FunctionExpression expm1 = DSL.expm1(DSL.literal(value));
+    assertThat(
+            expm1.valueOf(valueEnv()),
+            allOf(hasType(DOUBLE), hasValue(Math.expm1(value))));
+    assertEquals(String.format("expm1(%s)", value), expm1.toString());
+  }
+
+  /**
    * Test floor with integer value.
    */
   @ParameterizedTest(name = "floor({0})")
@@ -575,7 +659,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     assertThat(
         floor.valueOf(valueEnv()),
         allOf(hasType(LONG), hasValue((long) Math.floor(value))));
-    assertEquals(String.format("floor(%s)", value.toString()), floor.toString());
+    assertEquals(String.format("floor(%s)", value), floor.toString());
   }
 
   /**

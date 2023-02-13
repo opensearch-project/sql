@@ -174,6 +174,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.EXP, expressions);
   }
 
+  public static FunctionExpression expm1(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.EXPM1, expressions);
+  }
+
   public static FunctionExpression floor(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.FLOOR, expressions);
   }
