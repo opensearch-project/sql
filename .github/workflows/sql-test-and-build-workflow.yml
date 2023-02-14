@@ -41,6 +41,9 @@ jobs:
         distribution: 'temurin'
         java-version: ${{ matrix.entry.java }}
 
+    - name: setup doctest
+      run: ./gradlew :doctest
+
     - name: Build with Gradle
       run: ./gradlew --continue build ${{ matrix.entry.os_build_args }}
 
