@@ -26,7 +26,7 @@ public class SimpleQueryStringIT extends PPLIntegTestCase {
   @Test
   public void test_simple_query_string() throws IOException {
     String query = "SOURCE=" + TEST_INDEX_BEER
-        + " | WHERE simple_query_string([\\\"Tags\\\" ^ 1.5, Title, `Body` 4.2], 'taste') | fields Id";
+        + " | WHERE simple_query_string([\\\"Tags\\\" ^ 1.5, Title, 'Body' 4.2], 'taste') | fields Id";
     var result = executeQuery(query);
     assertEquals(16, result.getInt("total"));
   }
