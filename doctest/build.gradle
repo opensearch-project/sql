@@ -58,7 +58,7 @@ task startPrometheus(type: SpawnProcessTask) {
     }
     command "$projectDir/bin/prometheus/prometheus --storage.tsdb.path=$projectDir/bin/prometheus/data --config.file=$projectDir/bin/prometheus/prometheus.yml"
     ready 'TSDB started'
-//    pidLockFileName '.prom.pid.lock'
+    pidLockFileName '.prom.pid.lock'
 }
 
 //evaluationDependsOn(':')
