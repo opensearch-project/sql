@@ -42,7 +42,7 @@ jobs:
         java-version: ${{ matrix.entry.java }}
 
     - name: setup doctest
-      run: ./gradlew :doctest
+      run: ./gradlew :doctest:doctest
 
     - name: Build with Gradle
       run: ./gradlew --continue build ${{ matrix.entry.os_build_args }}
