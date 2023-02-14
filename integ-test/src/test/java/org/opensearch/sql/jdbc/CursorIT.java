@@ -12,16 +12,21 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ONLINE;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
 import static org.opensearch.sql.util.TestUtils.getResponseBody;
 
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import java.io.File;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.sql.Connection;
+import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.List;
 import javax.annotation.Nullable;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import lombok.SneakyThrows;
 import org.json.JSONObject;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -59,7 +64,18 @@ public class CursorIT extends SQLIntegTestCase {
   @BeforeClass
   @SneakyThrows
   public static void initConnection() {
-    connection = DriverManager.getConnection(getConnectionString());
+    var driverFile = System.getProperty("jdbcFile");
+    if (driverFile != null) {
+      URLClassLoader loader = new URLClassLoader(
+              new URL[]{new File(driverFile).toURI().toURL()},
+              ClassLoader.getSystemClassLoader()
+      );
+      Driver driver = (Driver) Class.forName("org.opensearch.jdbc.Driver", true, loader)
+          .getDeclaredConstructor().newInstance();
+      connection = driver.connect(getConnectionString(), null);
+    } else {
+      connection = DriverManager.getConnection(getConnectionString());
+    }
   }
 
   @AfterAll
@@ -71,6 +87,15 @@ public class CursorIT extends SQLIntegTestCase {
       connection.close();
       connection = null;
     }
+  }
+
+  @Test
+  @SneakyThrows
+  public void check_driver_version() {
+    var version = System.getProperty("jdbcDriverVersion");
+    Assume.assumeTrue("Parameter `jdbcDriverVersion` is not given, test platform uses default driver version",
+        version != null);
+    assertEquals(version, connection.getMetaData().getDriverVersion());
   }
 
   @Test

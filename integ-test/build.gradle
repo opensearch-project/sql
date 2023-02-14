@@ -41,6 +41,11 @@ apply plugin: 'com.wiredforcode.spawn'
 repositories {
     mavenCentral()
     maven { url 'https://jitpack.io' }
+
+    // Add extra repository for the JDBC driver if given by user
+    if (System.getProperty("jdbcRepo") != null && new File(System.getProperty("jdbcRepo")).isDirectory()) {
+        maven { url new File(System.getProperty("jdbcRepo")) }
+    }
 }
 
 ext {
@@ -148,38 +153,6 @@ task stopPrometheus(type: KillProcessTask) {
 
 stopPrometheus.mustRunAfter startPrometheus
 
-task cloneJdbcDriverRepo {
-    if (file("${buildDir}/sql-jdbc").exists()) {
-        exec {
-            workingDir "${buildDir}/sql-jdbc"
-            commandLine 'git', 'remote', 'remove', 'origin'
-        }
-        exec {
-            workingDir "${buildDir}/sql-jdbc"
-            commandLine 'git', 'remote', 'add', 'origin', System.getProperty('jdbcRepo', 'https://github.com/opensearch-project/sql-jdbc.git')
-        }
-        exec {
-            workingDir "${buildDir}/sql-jdbc"
-            commandLine 'git', 'fetch', 'origin'
-        }
-        exec {
-            workingDir "${buildDir}/sql-jdbc"
-            commandLine 'git', 'reset', '--hard', 'origin/' + System.getProperty("jdbcBranch", 'main')
-        }
-    } else {
-        exec {
-            workingDir buildDir
-            // clone the sql-jdbc repo locally
-            commandLine 'git', 'clone', '--branch', System.getProperty("jdbcBranch", 'main'), System.getProperty('jdbcRepo', 'https://github.com/opensearch-project/sql-jdbc.git')
-        }
-    }
-    // TODO would fail on windows
-    exec {
-        workingDir "${buildDir}/sql-jdbc"
-        commandLine 'sh', 'gradlew', 'shadowJar'
-    }
-}
-
 task integJdbcTest(type: RestIntegTestTask) {
     useJUnitPlatform()
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
@@ -188,6 +161,14 @@ task integJdbcTest(type: RestIntegTestTask) {
     }
     afterTest { desc, result ->
         logger.quiet "${desc.className}.${desc.name}: ${result.resultType} ${(result.getEndTime() - result.getStartTime())/1000}s"
+    }
+
+    if (System.getProperty("jdbcDriverVersion") != null) {
+        systemProperty "jdbcDriverVersion", System.getProperty("jdbcDriverVersion")
+    }
+
+    if (System.getProperty("jdbcFile") != null) {
+        systemProperty "jdbcFile", System.getProperty("jdbcFile")
     }
 
     systemProperty 'tests.security.manager', 'false'
@@ -210,49 +191,6 @@ task integJdbcTest(type: RestIntegTestTask) {
 
     filter {
         includeTestsMatching 'org.opensearch.sql.jdbc.*'
-    }
-}
-
-task integDevJdbcTest(type: RestIntegTestTask) {
-    useJUnitPlatform()
-    dependsOn ':opensearch-sql-plugin:bundlePlugin'
-    testLogging {
-        events "passed", "skipped", "failed"
-    }
-    afterTest { desc, result ->
-        logger.quiet "${desc.className}.${desc.name}: ${result.resultType} ${(result.getEndTime() - result.getStartTime())/1000}s"
-    }
-
-    if (System.getProperty("jdbcFile") != null) {
-        file("${buildDir}/sql-jdbc/build/libs").mkdirs()
-        copy {
-            from System.getProperty("jdbcFile")
-            into "${buildDir}/sql-jdbc/build/libs"
-        }
-    } else {
-        dependsOn cloneJdbcDriverRepo
-    }
-
-    systemProperty 'tests.security.manager', 'false'
-    systemProperty('project.root', project.projectDir.absolutePath)
-
-    systemProperty "https", System.getProperty("https")
-    systemProperty "user", System.getProperty("user")
-    systemProperty "password", System.getProperty("password")
-
-    // Set default query size limit
-    systemProperty 'defaultQuerySizeLimit', '10000'
-
-    // Tell the test JVM if the cluster JVM is running under a debugger so that tests can use longer timeouts for
-    // requests. The 'doFirst' delays reading the debug setting on the cluster till execution time.
-    doFirst { systemProperty 'cluster.debug', getDebug() }
-
-    if (System.getProperty("test.debug") != null) {
-        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
-    }
-
-    filter {
-        includeTestsMatching 'org.opensearch.sql.devJdbc.*'
     }
 }
 
@@ -306,7 +244,6 @@ integTest {
 
     // Exclude JDBC related tests
     exclude 'org/opensearch/sql/jdbc/**'
-    exclude 'org/opensearch/sql/devJdbc/**'
 }
 
 
@@ -334,7 +271,6 @@ task comparisonTest(type: RestIntegTestTask) {
 
     // Exclude JDBC related tests
     exclude 'org/opensearch/sql/jdbc/**'
-    exclude 'org/opensearch/sql/devJdbc/**'
 
     // Enable logging output to console
     testLogging.showStandardStreams true
@@ -535,5 +471,4 @@ task integTestRemote(type: RestIntegTestTask) {
     exclude 'org/opensearch/sql/legacy/QueryAnalysisIT.class'
     exclude 'org/opensearch/sql/legacy/OrderIT.class'
     exclude 'org/opensearch/sql/jdbc/**'
-    exclude 'org/opensearch/sql/devJdbc/**'
 }
