@@ -16,7 +16,7 @@ $PYTHON -m venv $DIR/.venv
 if [ ! -f $DIR/.venv/bin/pip ]; then
     if [ "$(expr substr $(uname -s) 1 10)" == "MINGW32_NT" ] || "$(expr substr $(uname -s) 1 10)" == "MINGW64_NT" ]; then
       curl.exe -LO https://bootstrap.pypa.io/get-pip.py
-    else; then
+    else
       wget https://bootstrap.pypa.io/get-pip.py
       $DIR/.venv/bin/python get-pip.py
       rm -f get-pip.py
