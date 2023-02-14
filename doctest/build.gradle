@@ -29,7 +29,7 @@ task bootstrap(type: Exec, dependsOn: ['cloneSqlCli']) {
         inputs.file "$projectDir/bootstrap.bat"
         outputs.dir "$projectDir/.venv"
 
-        commandLine 'sh', "$projectDir/bootstrap.sh"
+        commandLine "$projectDir/bootstrap.bat"
     } else {
         inputs.file "$projectDir/bootstrap.sh"
         outputs.dir "$projectDir/.venv"
