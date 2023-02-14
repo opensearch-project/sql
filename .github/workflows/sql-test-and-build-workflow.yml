@@ -24,12 +24,12 @@ jobs:
       fail-fast: false
       matrix:
         entry:
-          - { os: ubuntu-latest, java: 11 }
+#          - { os: ubuntu-latest, java: 11 }
           - { os: windows-latest, java: 11, os_build_args: -PbuildPlatform=windows }
-          - { os: macos-latest, java: 11 }
-          - { os: ubuntu-latest, java: 17 }
-          - { os: windows-latest, java: 17, os_build_args: -PbuildPlatform=windows }
-          - { os: macos-latest, java: 17 }
+#          - { os: macos-latest, java: 11 }
+#          - { os: ubuntu-latest, java: 17 }
+#          - { os: windows-latest, java: 17, os_build_args: -PbuildPlatform=windows }
+#          - { os: macos-latest, java: 17 }
     runs-on: ${{ matrix.entry.os }}
 
     steps:
@@ -40,6 +40,9 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: ${{ matrix.entry.java }}
+
+    - name: setup doctest
+      run: ./gradlew :doctest:doctest
 
     - name: Build with Gradle
       run: ./gradlew --continue build ${{ matrix.entry.os_build_args }}

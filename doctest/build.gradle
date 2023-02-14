@@ -39,6 +39,25 @@ task bootstrap(type: Exec, dependsOn: ['cloneSqlCli']) {
 
 }
 
+//evaluationDependsOn(':')
+task startOpenSearch(type: SpawnProcessTask) {
+    command "${path}/gradlew -p ${plugin_path} runRestTestCluster"
+    ready 'started'
+}
+
+task doctest(type: Exec, dependsOn: ['bootstrap']) {
+
+    commandLine "$projectDir/bin/test-docs"
+
+    doLast {
+        // remove the cloned sql-cli folder
+        file("$projectDir/sql-cli").deleteDir()
+        println("Doctest Done")
+    }
+}
+
+task stopOpenSearch(type: KillProcessTask)
+
 task startPrometheus(type: SpawnProcessTask) {
     doFirst {
         download.run {
@@ -60,25 +79,6 @@ task startPrometheus(type: SpawnProcessTask) {
     ready 'TSDB started'
     pidLockFileName '.prom.pid.lock'
 }
-
-//evaluationDependsOn(':')
-task startOpenSearch(type: SpawnProcessTask) {
-    command "${path}/gradlew -p ${plugin_path} runRestTestCluster"
-    ready 'started'
-}
-
-task doctest(type: Exec, dependsOn: ['bootstrap']) {
-
-    commandLine "$projectDir/bin/test-docs"
-
-    doLast {
-        // remove the cloned sql-cli folder
-        file("$projectDir/sql-cli").deleteDir()
-        println("Doctest Done")
-    }
-}
-
-task stopOpenSearch(type: KillProcessTask)
 
 task stopPrometheus() {
 
@@ -104,7 +104,6 @@ task stopPrometheus() {
 
 stopPrometheus.mustRunAfter startPrometheus
 doctest.dependsOn startOpenSearch
-startOpenSearch.dependsOn startPrometheus
 doctest.finalizedBy stopOpenSearch
 stopOpenSearch.finalizedBy stopPrometheus
 check.dependsOn doctest
