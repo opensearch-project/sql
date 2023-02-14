@@ -94,8 +94,9 @@ public class OpenSearchDataType implements ExprType, Serializable {
    * @return An instance or inheritor of `OpenSearchDataType`.
    */
   public static OpenSearchDataType of(MappingType mappingType) {
-    if (instances.containsKey(mappingType.toString())) {
-      return instances.get(mappingType.toString());
+    var res = instances.getOrDefault(mappingType.toString(), null);
+    if (res != null) {
+      return res;
     }
     ExprCoreType exprCoreType = mappingType.getExprCoreType();
     if (exprCoreType == ExprCoreType.UNKNOWN) {
@@ -109,7 +110,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
           throw new IllegalArgumentException(mappingType.toString());
       }
     }
-    var res = new OpenSearchDataType(mappingType);
+    res = new OpenSearchDataType(mappingType);
     res.exprCoreType = exprCoreType;
     instances.put(mappingType.toString(), res);
     return res;
@@ -149,10 +150,11 @@ public class OpenSearchDataType implements ExprType, Serializable {
     if (type instanceof OpenSearchDataType) {
       return (OpenSearchDataType) type;
     }
-    if (instances.containsKey(type.toString())) {
-      return instances.get(type.toString());
+    var res = instances.getOrDefault(type.toString(), null);
+    if (res != null) {
+      return res;
     }
-    var res = new OpenSearchDataType((ExprCoreType) type);
+    res = new OpenSearchDataType((ExprCoreType) type);
     instances.put(type.toString(), res);
     return res;
   }
