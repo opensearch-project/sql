@@ -41,7 +41,7 @@ task bootstrap(type: Exec, dependsOn: ['cloneSqlCli']) {
 
 //evaluationDependsOn(':')
 task startOpenSearch(type: SpawnProcessTask) {
-    command "${path}/gradlew -p ${plugin_path} runRestTestCluster"
+    command "${path}${File.separator}gradlew -p ${plugin_path} runRestTestCluster"
     ready 'started'
 }
 
