@@ -20,6 +20,7 @@ if [ ! -f $DIR/.venv/bin/pip ]; then
       wget https://bootstrap.pypa.io/get-pip.py
       $DIR/.venv/bin/python get-pip.py
       rm -f get-pip.py
+    fi
 fi
 
 $DIR/.venv/bin/pip install -U pip setuptools wheel
