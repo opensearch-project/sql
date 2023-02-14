@@ -26,7 +26,7 @@ task cloneSqlCli(type: Exec) {
 
 task bootstrap(type: Exec, dependsOn: ['cloneSqlCli']) {
     if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
-        inputs.file "$projectDir/bootstrap.sh"
+        inputs.file "$projectDir/bootstrap.bat"
         outputs.dir "$projectDir/.venv"
 
         commandLine 'sh', "$projectDir/bootstrap.sh"
