@@ -967,7 +967,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     String timestamp = "1998-01-31 13:14:15.012345";
     String timestampFormat = "%a %b %c %D %d %e %f %H %h %I %i %j %k %l %M "
         + "%m %p %r %S %s %T %% %P";
-    String timestampFormatted = "Sat Jan 01 31st 31 31 12345 13 01 01 14 031 13 1 "
+    String timestampFormatted = "Sat Jan 01 31st 31 31 012345 13 01 01 14 031 13 1 "
         + "January 01 PM 01:14:15 PM 15 15 13:14:15 % P";
     verifyDateFormat(timestamp, "timestamp", timestampFormat, timestampFormatted);
 
@@ -1286,6 +1286,26 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     var result = executeQuery("select TIMEDIFF('23:59:59', '13:00:00') as f");
     verifySchema(result, schema("TIMEDIFF('23:59:59', '13:00:00')", "f", "time"));
     verifyDataRows(result, rows("10:59:59"));
+  }
+
+  void verifyTimeFormat(String time, String type, String format, String formatted) throws IOException {
+    String query = String.format("time_format(%s('%s'), '%s')", type, time, format);
+    JSONObject result = executeQuery("select " + query);
+    verifySchema(result, schema(query, null, "keyword"));
+    verifyDataRows(result, rows(formatted));
+
+    query = String.format("time_format('%s', '%s')", time, format);
+    result = executeQuery("select " + query);
+    verifySchema(result, schema(query, null, "keyword"));
+    verifyDataRows(result, rows(formatted));
+  }
+
+  @Test
+  public void testTimeFormat() throws IOException {
+    String timestamp = "1998-01-31 13:14:15.012345";
+    String timestampFormat = "%f %H %h %I %i %p %r %S %s %T";
+    String timestampFormatted = "012345 13 01 01 14 PM 01:14:15 PM 15 15 13:14:15";
+    verifyTimeFormat(timestamp, "timestamp", timestampFormat, timestampFormatted);
   }
 
   protected JSONObject executeQuery(String query) throws IOException {

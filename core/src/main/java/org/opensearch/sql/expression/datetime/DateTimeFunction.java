@@ -166,6 +166,7 @@ public class DateTimeFunction {
     repository.register(subtime());
     repository.register(sysdate());
     repository.register(time());
+    repository.register(time_format());
     repository.register(time_to_sec());
     repository.register(timediff());
     repository.register(timestamp());
@@ -876,6 +877,7 @@ public class DateTimeFunction {
    * (STRING, STRING) -> STRING
    * (DATE, STRING) -> STRING
    * (DATETIME, STRING) -> STRING
+   * (TIME, STRING) -> STRING
    * (TIMESTAMP, STRING) -> STRING
    */
   private DefaultFunctionResolver date_format() {
@@ -886,6 +888,12 @@ public class DateTimeFunction {
             STRING, DATE, STRING),
         impl(nullMissingHandling(DateTimeFormatterUtil::getFormattedDate),
             STRING, DATETIME, STRING),
+        implWithProperties(
+            nullMissingHandlingWithProperties(
+                (functionProperties, time, formatString)
+                    -> DateTimeFormatterUtil.getFormattedDateOfToday(
+                        formatString, time, functionProperties.getQueryStartClock())),
+            STRING, TIME, STRING),
         impl(nullMissingHandling(DateTimeFormatterUtil::getFormattedDate),
             STRING, TIMESTAMP, STRING)
     );
@@ -943,6 +951,30 @@ public class DateTimeFunction {
                                           Boolean isAdd) {
     var dt = extractDateTime(datetime, functionProperties);
     return new ExprDatetimeValue(isAdd ? dt.plus(interval) : dt.minus(interval));
+  }
+  
+  /**
+   * Formats date according to format specifier. First argument is time, second is format.
+   * Detailed supported signatures:
+   * (STRING, STRING) -> STRING
+   * (DATE, STRING) -> STRING
+   * (DATETIME, STRING) -> STRING
+   * (TIME, STRING) -> STRING
+   * (TIMESTAMP, STRING) -> STRING
+   */
+  private DefaultFunctionResolver time_format() {
+    return define(BuiltinFunctionName.TIME_FORMAT.getName(),
+        impl(nullMissingHandling(DateTimeFormatterUtil::getFormattedTime),
+            STRING, STRING, STRING),
+        impl(nullMissingHandling(DateTimeFormatterUtil::getFormattedTime),
+            STRING, DATE, STRING),
+        impl(nullMissingHandling(DateTimeFormatterUtil::getFormattedTime),
+            STRING, DATETIME, STRING),
+        impl(nullMissingHandling(DateTimeFormatterUtil::getFormattedTime),
+            STRING, TIME, STRING),
+        impl(nullMissingHandling(DateTimeFormatterUtil::getFormattedTime),
+            STRING, TIMESTAMP, STRING)
+    );
   }
 
   /**

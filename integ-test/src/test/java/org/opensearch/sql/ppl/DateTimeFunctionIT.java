@@ -789,7 +789,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     String timestamp = "1998-01-31 13:14:15.012345";
     String timestampFormat = "%a %b %c %D %d %e %f %H %h %I %i %j %k %l %M "
         + "%m %p %r %S %s %T %% %P";
-    String timestampFormatted = "Sat Jan 01 31st 31 31 12345 13 01 01 14 031 13 1 "
+    String timestampFormatted = "Sat Jan 01 31st 31 31 012345 13 01 01 14 031 13 1 "
         + "January 01 PM 01:14:15 PM 15 15 13:14:15 % P";
     verifyDateFormat(timestamp, "timestamp", timestampFormat, timestampFormatted);
 
