@@ -443,10 +443,21 @@ EXPM1
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: EXPM1(NUMBER T) returns the exponential of T, minus 1.
 
-1. EXPM1(NUMBER T) -> T
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
 
+Return type: DOUBLE
+
+Example::
+
+    os> SELECT EXPM1(-1), EXPM1(0), EXPM1(1), EXPM1(1.5)
+    fetched rows / total rows = 1/1
+    +---------------------+------------+-------------------+-------------------+
+    | EXPM1(-1)           | EXPM1(0)   | EXPM1(1)          | EXPM1(1.5)        |
+    |---------------------+------------+-------------------+-------------------|
+    | -0.6321205588285577 | 0.0        | 1.718281828459045 | 3.481689070338065 |
+    +---------------------+------------+-------------------+-------------------+
 
 FLOOR
 -----
@@ -1234,9 +1245,9 @@ Argument type: DATETIME/STRING
 
 Return type map:
 
-DATETIME, STRING -> DATETIME
+(DATETIME, STRING) -> DATETIME
 
-DATETIME -> DATETIME
+(DATETIME) -> DATETIME
 
 Example::
 
@@ -1750,6 +1761,29 @@ Examples::
     |-----------------------------------|
     | 06:12:27                          |
     +-----------------------------------+
+
+
+GET_FORMAT
+----------
+
+Description
+>>>>>>>>>>>
+
+Usage: Returns a string value containing string format specifiers based on the input arguments.
+
+Argument type: TYPE, STRING
+TYPE must be one of the following tokens: [DATE, TIME, DATETIME, TIMESTAMP].
+STRING must be one of the following tokens: ["USA"] (" can be replaced by ').
+
+Examples::
+
+    os> select GET_FORMAT(DATE, 'USA');
+    fetched rows / total rows = 1/1
+    +---------------------------+
+    | GET_FORMAT(DATE, 'USA')   |
+    |---------------------------|
+    | %m.%d.%Y                  |
+    +---------------------------+
 
 
 HOUR
@@ -2381,21 +2415,26 @@ TIMESTAMP
 Description
 >>>>>>>>>>>
 
-Usage: timestamp(expr) construct a timestamp type with the input string expr as an timestamp. If the argument is of date/datetime/timestamp type, cast expr to timestamp type with default timezone UTC.
+Usage: timestamp(expr) constructs a timestamp type with the input string `expr` as an timestamp. If the argument is not a string, it casts `expr` to timestamp type with default timezone UTC. If argument is a time, it applies today's date before cast.
+With two arguments `timestamp(expr1, expr2)` adds the time expression `expr2` to the date or datetime expression `expr1` and returns the result as a timestamp value.
 
-Argument type: STRING/DATE/DATETIME/TIMESTAMP
+Argument type: STRING/DATE/TIME/DATETIME/TIMESTAMP
 
-Return type: TIMESTAMP
+Return type map:
+
+(STRING/DATE/TIME/DATETIME/TIMESTAMP) -> TIMESTAMP
+
+(STRING/DATE/TIME/DATETIME/TIMESTAMP, STRING/DATE/TIME/DATETIME/TIMESTAMP) -> TIMESTAMP
 
 Example::
 
-    >od SELECT TIMESTAMP('2020-08-26 13:49:00')
+    os> SELECT TIMESTAMP('2020-08-26 13:49:00'), TIMESTAMP('2020-08-26 13:49:00', TIME('12:15:42'))
     fetched rows / total rows = 1/1
-    +------------------------------------+
-    | TIMESTAMP('2020-08-26 13:49:00')   |
-    |------------------------------------|
-    | TIMESTAMP '2020-08-26 13:49:00     |
-    +------------------------------------+
+    +------------------------------------+------------------------------------------------------+
+    | TIMESTAMP('2020-08-26 13:49:00')   | TIMESTAMP('2020-08-26 13:49:00', TIME('12:15:42'))   |
+    |------------------------------------+------------------------------------------------------|
+    | 2020-08-26 13:49:00                | 2020-08-27 02:04:42                                  |
+    +------------------------------------+------------------------------------------------------+
 
 
 TO_DAYS

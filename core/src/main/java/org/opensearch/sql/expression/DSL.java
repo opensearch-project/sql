@@ -174,6 +174,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.EXP, expressions);
   }
 
+  public static FunctionExpression expm1(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.EXPM1, expressions);
+  }
+
   public static FunctionExpression floor(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.FLOOR, expressions);
   }
@@ -345,6 +349,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.FROM_DAYS, expressions);
   }
 
+  public static FunctionExpression get_format(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.GET_FORMAT, expressions);
+  }
+
   public static FunctionExpression hour(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.HOUR, expressions);
   }
@@ -403,7 +411,12 @@ public class DSL {
   }
 
   public static FunctionExpression timestamp(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.TIMESTAMP, expressions);
+    return timestamp(FunctionProperties.None, expressions);
+  }
+
+  public static FunctionExpression timestamp(FunctionProperties functionProperties,
+                                             Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.TIMESTAMP, expressions);
   }
 
   public static FunctionExpression date_format(

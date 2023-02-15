@@ -678,6 +678,47 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     assertEquals(new ExprDateValue("2000-07-03"), expression.valueOf(env));
   }
 
+  private static Stream<Arguments> getTestDataForGetFormat() {
+    return Stream.of(
+        Arguments.of("DATE", "USA", "%m.%d.%Y"),
+        Arguments.of("DATETIME", "USA", "%Y-%m-%d %H.%i.%s"),
+        Arguments.of("TIMESTAMP", "USA", "%Y-%m-%d %H.%i.%s"),
+        Arguments.of("TIME", "USA", "%h:%i:%s %p")
+    );
+  }
+
+  private void getFormatQuery(LiteralExpression argType,
+                               LiteralExpression namedFormat,
+                               String expectedResult) {
+    FunctionExpression expr = DSL.get_format(argType, namedFormat);
+    assertEquals(STRING, expr.type());
+    assertEquals(expectedResult, eval(expr).stringValue());
+  }
+
+  @ParameterizedTest(name = "{0}{1}")
+  @MethodSource("getTestDataForGetFormat")
+  public void testGetFormat(String arg,
+                             String format,
+                             String expectedResult) {
+    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
+    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
+
+    getFormatQuery(
+        DSL.literal(arg),
+        DSL.literal(new ExprStringValue(format)),
+        expectedResult);
+  }
+
+  @Test
+  public void testGetFormatInvalidFormat() {
+    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
+    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
+    FunctionExpression expr = DSL.get_format(
+        DSL.literal("DATE"),
+        DSL.literal("1SA"));
+    assertEquals(nullValue(), eval(expr));
+  }
+
   @Test
   public void hour() {
     when(nullRef.type()).thenReturn(TIME);
@@ -1351,7 +1392,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     FunctionExpression expr = DSL.timestamp(DSL.literal("2020-08-17 01:01:01"));
     assertEquals(TIMESTAMP, expr.type());
     assertEquals(new ExprTimestampValue("2020-08-17 01:01:01"), expr.valueOf(env));
-    assertEquals("timestamp(\"2020-08-17 01:01:01\")", expr.toString());
+    assertEquals("timestamp(cast_to_timestamp(\"2020-08-17 01:01:01\"))", expr.toString());
 
     expr = DSL.timestamp(DSL.literal(new ExprTimestampValue("2020-08-17 01:01:01")));
     assertEquals(TIMESTAMP, expr.type());

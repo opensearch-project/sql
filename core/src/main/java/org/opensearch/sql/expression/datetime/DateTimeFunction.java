@@ -34,6 +34,8 @@ import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_ST
 import static org.opensearch.sql.utils.DateTimeUtils.extractDate;
 import static org.opensearch.sql.utils.DateTimeUtils.extractDateTime;
 
+import com.google.common.collect.ImmutableTable;
+import com.google.common.collect.Table;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
@@ -101,6 +103,16 @@ public class DateTimeFunction {
   // Mode used for week/week_of_year function by default when no argument is provided
   private static final ExprIntegerValue DEFAULT_WEEK_OF_YEAR_MODE = new ExprIntegerValue(0);
 
+  // Map used to determine format output for the get_format function
+  private static final Table<String, String, String> formats =
+      ImmutableTable.<String, String, String>builder()
+      //TODO: Add support for other formats
+      .put("date", "usa", "%m.%d.%Y")
+      .put("time", "usa", "%h:%i:%s %p")
+      .put("datetime", "usa", "%Y-%m-%d %H.%i.%s")
+      .put("timestamp", "usa", "%Y-%m-%d %H.%i.%s")
+      .build();
+
   /**
    * Register Date and Time Functions.
    *
@@ -130,6 +142,7 @@ public class DateTimeFunction {
     repository.register(dayOfYear(BuiltinFunctionName.DAY_OF_YEAR));
     repository.register(from_days());
     repository.register(from_unixtime());
+    repository.register(get_format());
     repository.register(hour(BuiltinFunctionName.HOUR));
     repository.register(hour(BuiltinFunctionName.HOUR_OF_DAY));
     repository.register(localtime());
@@ -519,6 +532,12 @@ public class DateTimeFunction {
             STRING, DOUBLE, STRING));
   }
 
+  private DefaultFunctionResolver get_format() {
+    return define(BuiltinFunctionName.GET_FORMAT.getName(),
+        impl(nullMissingHandling(DateTimeFunction::exprGetFormat), STRING, STRING, STRING)
+    );
+  }
+
   /**
    * HOUR(STRING/TIME/DATETIME/DATE/TIMESTAMP). return the hour value for time.
    */
@@ -752,15 +771,19 @@ public class DateTimeFunction {
 
   /**
    * Extracts the timestamp of a date and time value.
-   * Also to construct a date type. The supported signatures:
-   * STRING/DATE/DATETIME/TIMESTAMP -> DATE
+   * Input strings may contain a timestamp only in format 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'
+   * STRING/DATE/TIME/DATETIME/TIMESTAMP -> TIMESTAMP
+   * STRING/DATE/TIME/DATETIME/TIMESTAMP, STRING/DATE/TIME/DATETIME/TIMESTAMP -> TIMESTAMP
+   * All types are converted to TIMESTAMP actually before the function call - it is responsibility
+   * of the automatic cast mechanism defined in `ExprCoreType` and performed by `TypeCastOperator`.
    */
   private DefaultFunctionResolver timestamp() {
     return define(BuiltinFunctionName.TIMESTAMP.getName(),
-        impl(nullMissingHandling(DateTimeFunction::exprTimestamp), TIMESTAMP, STRING),
-        impl(nullMissingHandling(DateTimeFunction::exprTimestamp), TIMESTAMP, DATE),
-        impl(nullMissingHandling(DateTimeFunction::exprTimestamp), TIMESTAMP, DATETIME),
-        impl(nullMissingHandling(DateTimeFunction::exprTimestamp), TIMESTAMP, TIMESTAMP));
+        impl(nullMissingHandling(v -> v), TIMESTAMP, TIMESTAMP),
+        // We can use FunctionProperties.None, because it is not used. It is required to convert
+        // TIME to other datetime types, but arguments there are already converted.
+        impl(nullMissingHandling((v1, v2) -> exprAddTime(FunctionProperties.None, v1, v2)),
+            TIMESTAMP, TIMESTAMP, TIMESTAMP));
   }
 
   /**
@@ -1222,6 +1245,23 @@ public class DateTimeFunction {
   }
 
   /**
+   * get_format implementation for ExprValue.
+   *
+   * @param type ExprValue of the type.
+   * @param format ExprValue of Time/String type
+   * @return ExprValue..
+   */
+  private ExprValue exprGetFormat(ExprValue type, ExprValue format) {
+    if (formats.contains(type.stringValue().toLowerCase(), format.stringValue().toLowerCase())) {
+      return new ExprStringValue(formats.get(
+          type.stringValue().toLowerCase(),
+          format.stringValue().toLowerCase()));
+    }
+
+    return ExprNullValue.of();
+  }
+
+  /**
    * Hour implementation for ExprValue.
    *
    * @param time ExprValue of Time/String type.
@@ -1470,20 +1510,6 @@ public class DateTimeFunction {
     // java inverses the value, so we have to swap 1 and 2
     return new ExprTimeValue(LocalTime.MIN.plus(
         Duration.between(second.timeValue(), first.timeValue())));
-  }
-
-  /**
-   * Timestamp implementation for ExprValue.
-   *
-   * @param exprValue ExprValue of Timestamp type or String type.
-   * @return ExprValue.
-   */
-  private ExprValue exprTimestamp(ExprValue exprValue) {
-    if (exprValue instanceof ExprStringValue) {
-      return new ExprTimestampValue(exprValue.stringValue());
-    } else {
-      return new ExprTimestampValue(exprValue.timestampValue());
-    }
   }
 
   /**

@@ -213,6 +213,7 @@ EXPM1:                              'EXPM1';
 FLOOR:                              'FLOOR';
 FROM_DAYS:                          'FROM_DAYS';
 FROM_UNIXTIME:                      'FROM_UNIXTIME';
+GET_FORMAT:                         'GET_FORMAT';
 IF:                                 'IF';
 IFNULL:                             'IFNULL';
 ISNULL:                             'ISNULL';
