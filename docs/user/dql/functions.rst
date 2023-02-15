@@ -2690,6 +2690,24 @@ Example::
     | hello,world                        |
     +------------------------------------+
 
+LAST_DAY
+--------
+
+Usage: Returns the last day of the month as a DATE for a valid argument.
+
+Argument type: DATE/DATETIME/STRING/TIMESTAMP/TIME
+
+Return type: DATE
+
+Example::
+
+    os> SELECT last_day('2023-02-06');
+    fetched rows / total rows = 1/1
+    +--------------------------+
+    | last_day('2023-02-06')   |
+    |--------------------------|
+    | 2023-02-28               |
+    +--------------------------+
 
 LEFT
 ----
