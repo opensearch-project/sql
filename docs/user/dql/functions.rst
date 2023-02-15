@@ -1762,6 +1762,29 @@ Examples::
     +-----------------------------------+
 
 
+GET_FORMAT
+----------
+
+Description
+>>>>>>>>>>>
+
+Usage: Returns a string value containing string format specifiers based on the input arguments.
+
+Argument type: TYPE, STRING
+TYPE must be one of the following tokens: [DATE, TIME, DATETIME, TIMESTAMP].
+STRING must be one of the following tokens: ["USA"] (" can be replaced by ').
+
+Examples::
+
+    os> select GET_FORMAT(DATE, 'USA');
+    fetched rows / total rows = 1/1
+    +---------------------------+
+    | GET_FORMAT(DATE, 'USA')   |
+    |---------------------------|
+    | %m.%d.%Y                  |
+    +---------------------------+
+
+
 HOUR
 ----
 

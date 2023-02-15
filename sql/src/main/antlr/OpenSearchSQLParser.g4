@@ -309,6 +309,18 @@ functionCall
     | relevanceFunction                                             #relevanceFunctionCall
     | highlightFunction                                             #highlightFunctionCall
     | positionFunction                                              #positionFunctionCall
+    | getFormatFunction                                             #getFormatFunctionCall
+    ;
+
+getFormatFunction
+    : GET_FORMAT LR_BRACKET getFormatType COMMA functionArg RR_BRACKET
+    ;
+
+getFormatType
+    : DATE
+    | DATETIME
+    | TIME
+    | TIMESTAMP
     ;
 
 

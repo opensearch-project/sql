@@ -349,6 +349,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.FROM_DAYS, expressions);
   }
 
+  public static FunctionExpression get_format(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.GET_FORMAT, expressions);
+  }
+
   public static FunctionExpression hour(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.HOUR, expressions);
   }
