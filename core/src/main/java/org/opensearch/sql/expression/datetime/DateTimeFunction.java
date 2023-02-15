@@ -751,15 +751,19 @@ public class DateTimeFunction {
 
   /**
    * Extracts the timestamp of a date and time value.
-   * Also to construct a date type. The supported signatures:
-   * STRING/DATE/DATETIME/TIMESTAMP -> DATE
+   * Input strings may contain a timestamp only in format 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'
+   * STRING/DATE/TIME/DATETIME/TIMESTAMP -> TIMESTAMP
+   * STRING/DATE/TIME/DATETIME/TIMESTAMP, STRING/DATE/TIME/DATETIME/TIMESTAMP -> TIMESTAMP
+   * All types are converted to TIMESTAMP actually before the function call - it is responsibility
+   * of the automatic cast mechanism defined in `ExprCoreType` and performed by `TypeCastOperator`.
    */
   private DefaultFunctionResolver timestamp() {
     return define(BuiltinFunctionName.TIMESTAMP.getName(),
-        impl(nullMissingHandling(DateTimeFunction::exprTimestamp), TIMESTAMP, STRING),
-        impl(nullMissingHandling(DateTimeFunction::exprTimestamp), TIMESTAMP, DATE),
-        impl(nullMissingHandling(DateTimeFunction::exprTimestamp), TIMESTAMP, DATETIME),
-        impl(nullMissingHandling(DateTimeFunction::exprTimestamp), TIMESTAMP, TIMESTAMP));
+        impl(nullMissingHandling(v -> v), TIMESTAMP, TIMESTAMP),
+        // We can use FunctionProperties.None, because it is not used. It is required to convert
+        // TIME to other datetime types, but arguments there are already converted.
+        impl(nullMissingHandling((v1, v2) -> exprAddTime(FunctionProperties.None, v1, v2)),
+            TIMESTAMP, TIMESTAMP, TIMESTAMP));
   }
 
   /**
@@ -1438,20 +1442,6 @@ public class DateTimeFunction {
     // java inverses the value, so we have to swap 1 and 2
     return new ExprTimeValue(LocalTime.MIN.plus(
         Duration.between(second.timeValue(), first.timeValue())));
-  }
-
-  /**
-   * Timestamp implementation for ExprValue.
-   *
-   * @param exprValue ExprValue of Timestamp type or String type.
-   * @return ExprValue.
-   */
-  private ExprValue exprTimestamp(ExprValue exprValue) {
-    if (exprValue instanceof ExprStringValue) {
-      return new ExprTimestampValue(exprValue.stringValue());
-    } else {
-      return new ExprTimestampValue(exprValue.timestampValue());
-    }
   }
 
   /**
