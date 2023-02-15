@@ -34,6 +34,8 @@ import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_ST
 import static org.opensearch.sql.utils.DateTimeUtils.extractDate;
 import static org.opensearch.sql.utils.DateTimeUtils.extractDateTime;
 
+import com.google.common.collect.ImmutableTable;
+import com.google.common.collect.Table;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
@@ -101,6 +103,16 @@ public class DateTimeFunction {
   // Mode used for week/week_of_year function by default when no argument is provided
   private static final ExprIntegerValue DEFAULT_WEEK_OF_YEAR_MODE = new ExprIntegerValue(0);
 
+  // Map used to determine format output for the get_format function
+  private static final Table<String, String, String> formats =
+      ImmutableTable.<String, String, String>builder()
+      //TODO: Add support for other formats
+      .put("date", "usa", "%m.%d.%Y")
+      .put("time", "usa", "%h:%i:%s %p")
+      .put("datetime", "usa", "%Y-%m-%d %H.%i.%s")
+      .put("timestamp", "usa", "%Y-%m-%d %H.%i.%s")
+      .build();
+
   /**
    * Register Date and Time Functions.
    *
@@ -130,6 +142,7 @@ public class DateTimeFunction {
     repository.register(dayOfYear(BuiltinFunctionName.DAY_OF_YEAR));
     repository.register(from_days());
     repository.register(from_unixtime());
+    repository.register(get_format());
     repository.register(hour(BuiltinFunctionName.HOUR));
     repository.register(hour(BuiltinFunctionName.HOUR_OF_DAY));
     repository.register(localtime());
@@ -516,6 +529,12 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprFromUnixTime), DATETIME, DOUBLE),
         impl(nullMissingHandling(DateTimeFunction::exprFromUnixTimeFormat),
             STRING, DOUBLE, STRING));
+  }
+
+  private DefaultFunctionResolver get_format() {
+    return define(BuiltinFunctionName.GET_FORMAT.getName(),
+        impl(nullMissingHandling(DateTimeFunction::exprGetFormat), STRING, STRING, STRING)
+    );
   }
 
   /**
@@ -1191,6 +1210,23 @@ public class DateTimeFunction {
       return ExprNullValue.of();
     }
     return DateTimeFormatterUtil.getFormattedDate(value, format);
+  }
+
+  /**
+   * get_format implementation for ExprValue.
+   *
+   * @param type ExprValue of the type.
+   * @param format ExprValue of Time/String type
+   * @return ExprValue..
+   */
+  private ExprValue exprGetFormat(ExprValue type, ExprValue format) {
+    if (formats.contains(type.stringValue().toLowerCase(), format.stringValue().toLowerCase())) {
+      return new ExprStringValue(formats.get(
+          type.stringValue().toLowerCase(),
+          format.stringValue().toLowerCase()));
+    }
+
+    return ExprNullValue.of();
   }
 
   /**

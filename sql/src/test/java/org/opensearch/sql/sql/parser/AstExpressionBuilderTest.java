@@ -193,6 +193,14 @@ class AstExpressionBuilderTest {
   }
 
   @Test
+  public void canBuildGetFormatFunctionCall() {
+    assertEquals(
+        function("get_format", stringLiteral("DATE"), stringLiteral("USA")),
+        buildExprAst("get_format(DATE,\"USA\")")
+    );
+  }
+
+  @Test
   public void canBuildNestedFunctionCall() {
     assertEquals(
         function("abs",

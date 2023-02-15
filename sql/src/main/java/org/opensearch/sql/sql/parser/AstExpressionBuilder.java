@@ -33,6 +33,7 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DistinctCo
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.FilterClauseContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.FilteredAggregationFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.FunctionArgContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.GetFormatFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.HighlightFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.InPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.IsNullPredicateContext;
@@ -148,6 +149,13 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitScalarFunctionCall(ScalarFunctionCallContext ctx) {
     return buildFunction(ctx.scalarFunctionName().getText(), ctx.functionArgs().functionArg());
+  }
+
+  @Override
+  public UnresolvedExpression visitGetFormatFunctionCall(GetFormatFunctionCallContext ctx) {
+    return new Function(
+        ctx.getFormatFunction().GET_FORMAT().toString(),
+        getFormatFunctionArguments(ctx));
   }
 
   @Override
@@ -557,6 +565,15 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
         new Literal(StringUtils.unquoteText(ctx.query.getText()), DataType.STRING)));
     fillRelevanceArgs(ctx.relevanceArg(), builder);
     return builder.build();
+  }
+
+  private List<UnresolvedExpression> getFormatFunctionArguments(
+      GetFormatFunctionCallContext ctx) {
+    List<UnresolvedExpression> args = Arrays.asList(
+        new Literal(ctx.getFormatFunction().getFormatType().getText(), DataType.STRING),
+        visitFunctionArg(ctx.getFormatFunction().functionArg())
+    );
+    return args;
   }
 
   /**
