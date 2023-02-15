@@ -76,6 +76,7 @@ public enum BuiltinFunctionName {
   DAY_OF_YEAR(FunctionName.of("day_of_year")),
   FROM_DAYS(FunctionName.of("from_days")),
   FROM_UNIXTIME(FunctionName.of("from_unixtime")),
+  GET_FORMAT(FunctionName.of("get_format")),
   HOUR(FunctionName.of("hour")),
   HOUR_OF_DAY(FunctionName.of("hour_of_day")),
   MAKEDATE(FunctionName.of("makedate")),
