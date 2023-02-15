@@ -906,7 +906,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
-  public void testWeekOfYear() throws IOException {
+  public void testWeekOfYearUnderscores() throws IOException {
     JSONObject result = executeQuery("select week_of_year(date('2008-02-20'))");
     verifySchema(result, schema("week_of_year(date('2008-02-20'))", null, "integer"));
     verifyDataRows(result, rows(7));
@@ -919,35 +919,43 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testWeekOfYear() throws IOException {
+    JSONObject result = executeQuery("select weekofyear(date('2008-02-20'))");
+    verifySchema(result, schema("weekofyear(date('2008-02-20'))", null, "integer"));
+    verifyDataRows(result, rows(7));
+
+    week("2008-02-20", 0, 7, "weekofyear");
+    week("2008-02-20", 1, 8, "weekofyear");
+    week("2008-12-31", 1, 53, "weekofyear");
+    week("2000-01-01", 0, 0, "weekofyear");
+    week("2000-01-01", 2, 52, "week_of_year");
+  }
+
+  private void compareWeekResults(String arg, String table) throws IOException {
+    JSONObject result1 = executeQuery(String.format(
+        "SELECT week(%s) FROM %s", arg, table));
+    JSONObject result2 = executeQuery(String.format(
+        "SELECT week_of_year(%s) FROM %s", arg, table));
+    JSONObject result3 = executeQuery(String.format(
+        "SELECT weekofyear(%s) FROM %s", arg, table));
+
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+    result1.getJSONArray("datarows").similar(result3.getJSONArray("datarows"));
+  }
+
+  @Test
   public void testWeekAlternateSyntaxesReturnTheSameResults() throws IOException {
     JSONObject result1 = executeQuery("SELECT week(date('2022-11-22'))");
     JSONObject result2 = executeQuery("SELECT week_of_year(date('2022-11-22'))");
+    JSONObject result3 = executeQuery("SELECT weekofyear(date('2022-11-22'))");
     verifyDataRows(result1, rows(47));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+    result1.getJSONArray("datarows").similar(result3.getJSONArray("datarows"));
 
-    result1 = executeQuery(String.format(
-        "SELECT week(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
-    result2 = executeQuery(String.format(
-        "SELECT week_of_year(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
-    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
-
-    result1 = executeQuery(String.format(
-        "SELECT week(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
-    result2 = executeQuery(String.format(
-        "SELECT week_of_year(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
-    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
-
-    result1 = executeQuery(String.format(
-        "SELECT week(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
-    result2 = executeQuery(String.format(
-        "SELECT week_of_year(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
-    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
-
-    result1 = executeQuery(String.format(
-        "SELECT week(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
-    result2 = executeQuery(String.format(
-        "SELECT week_of_year(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
-    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+    compareWeekResults("CAST(date0 AS date)", TEST_INDEX_CALCS);
+    compareWeekResults("datetime(CAST(time0 AS STRING))", TEST_INDEX_CALCS);
+    compareWeekResults("CAST(time0 AS STRING)", TEST_INDEX_CALCS);
+    compareWeekResults("CAST(datetime0 AS timestamp)", TEST_INDEX_CALCS);
   }
 
   void verifyDateFormat(String date, String type, String format, String formatted) throws IOException {

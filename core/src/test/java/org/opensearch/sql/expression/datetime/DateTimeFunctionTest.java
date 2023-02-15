@@ -1363,13 +1363,23 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     assertEquals(integerValue(expectedResult), eval(expression));
   }
 
-  private void weekOfYearQuery(String date, int mode, int expectedResult) {
+  private void weekOfYearUnderscoresQuery(String date, int mode, int expectedResult) {
     FunctionExpression expression = DSL
         .week_of_year(
             functionProperties,
             DSL.literal(new ExprDateValue(date)), DSL.literal(mode));
     assertEquals(INTEGER, expression.type());
     assertEquals(String.format("week_of_year(DATE '%s', %d)", date, mode), expression.toString());
+    assertEquals(integerValue(expectedResult), eval(expression));
+  }
+
+  private void weekOfYearQuery(String date, int mode, int expectedResult) {
+    FunctionExpression expression = DSL
+        .weekofyear(
+            functionProperties,
+            DSL.literal(new ExprDateValue(date)), DSL.literal(mode));
+    assertEquals(INTEGER, expression.type());
+    assertEquals(String.format("weekofyear(DATE '%s', %d)", date, mode), expression.toString());
     assertEquals(integerValue(expectedResult), eval(expression));
   }
 
@@ -1446,6 +1456,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
     weekQuery(date, mode, expected);
     weekOfYearQuery(date, mode, expected);
+    weekOfYearUnderscoresQuery(date, mode, expected);
   }
 
   private void validateStringFormat(
@@ -1495,6 +1506,9 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     validateStringFormat(
         DSL.week_of_year(functionProperties, arg),
         String.format("week_of_year(%s)", expectedString), expectedInteger);
+    validateStringFormat(
+        DSL.weekofyear(functionProperties, arg),
+        String.format("weekofyear(%s)", expectedString), expectedInteger);
   }
 
   @Test
@@ -1514,6 +1528,11 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         () -> validateStringFormat(
             DSL.week_of_year(functionProperties, DSL.literal(new ExprTimeValue("12:23:34"))),
             "week_of_year(TIME '12:23:34')",
+            LocalDate.now(functionProperties.getQueryStartClock()).get(ALIGNED_WEEK_OF_YEAR)),
+
+        () -> validateStringFormat(
+            DSL.weekofyear(functionProperties, DSL.literal(new ExprTimeValue("12:23:34"))),
+            "weekofyear(TIME '12:23:34')",
             LocalDate.now(functionProperties.getQueryStartClock()).get(ALIGNED_WEEK_OF_YEAR))
     );
   }
@@ -1570,6 +1589,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         nullRef, missingRef)));
 
     assertAll(
+        //Test for WeekOfYear
         //test invalid month
         () -> assertThrows(
             SemanticCheckException.class,
@@ -1581,7 +1601,21 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         //test invalid leap year
         () -> assertThrows(
             SemanticCheckException.class,
-            () -> weekOfYearQuery("2019-02-29 01:02:03", 0, 0))
+            () -> weekOfYearQuery("2019-02-29 01:02:03", 0, 0)),
+
+        //Test for Week_Of_Year
+        //test invalid month
+        () -> assertThrows(
+            SemanticCheckException.class,
+            () -> weekOfYearUnderscoresQuery("2019-13-05 01:02:03", 0, 0)),
+        //test invalid day
+        () -> assertThrows(
+            SemanticCheckException.class,
+            () -> weekOfYearUnderscoresQuery("2019-01-50 01:02:03", 0, 0)),
+        //test invalid leap year
+        () -> assertThrows(
+            SemanticCheckException.class,
+            () -> weekOfYearUnderscoresQuery("2019-02-29 01:02:03", 0, 0))
     );
   }
 
