@@ -471,6 +471,7 @@ dateTimeFunctionName
     | SUBTIME
     | SYSDATE
     | TIME
+    | TIME_FORMAT
     | TIME_TO_SEC
     | TIMEDIFF
     | TIMESTAMP
