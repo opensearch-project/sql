@@ -81,6 +81,7 @@ public enum BuiltinFunctionName {
   GET_FORMAT(FunctionName.of("get_format")),
   HOUR(FunctionName.of("hour")),
   HOUR_OF_DAY(FunctionName.of("hour_of_day")),
+  LAST_DAY(FunctionName.of("last_day")),
   MAKEDATE(FunctionName.of("makedate")),
   MAKETIME(FunctionName.of("maketime")),
   MICROSECOND(FunctionName.of("microsecond")),

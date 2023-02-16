@@ -160,6 +160,7 @@ public class DateTimeFunction {
     repository.register(get_format());
     repository.register(hour(BuiltinFunctionName.HOUR));
     repository.register(hour(BuiltinFunctionName.HOUR_OF_DAY));
+    repository.register(last_day());
     repository.register(localtime());
     repository.register(localtimestamp());
     repository.register(makedate());
@@ -563,6 +564,18 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprHour), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprHour), INTEGER, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::exprHour), INTEGER, TIMESTAMP)
+    );
+  }
+
+  private  DefaultFunctionResolver last_day() {
+    return define(BuiltinFunctionName.LAST_DAY.getName(),
+        impl(nullMissingHandling(DateTimeFunction::exprLastDay), DATE, STRING),
+        implWithProperties(nullMissingHandlingWithProperties((functionProperties, arg)
+            -> DateTimeFunction.exprLastDayToday(
+            functionProperties.getQueryStartClock())), DATE, TIME),
+        impl(nullMissingHandling(DateTimeFunction::exprLastDay), DATE, DATE),
+        impl(nullMissingHandling(DateTimeFunction::exprLastDay), DATE, DATETIME),
+        impl(nullMissingHandling(DateTimeFunction::exprLastDay), DATE, TIMESTAMP)
     );
   }
 
@@ -1285,6 +1298,39 @@ public class DateTimeFunction {
   private ExprValue exprHour(ExprValue time) {
     return new ExprIntegerValue(
         HOURS.between(LocalTime.MIN, time.timeValue()));
+  }
+
+  /**
+   * Helper function to retrieve the last day of a month based on a LocalDate argument.
+   *
+   * @param today a LocalDate.
+   * @return a LocalDate associated with the last day of the month for the given input.
+   */
+  private LocalDate getLastDay(LocalDate today) {
+    return LocalDate.of(
+        today.getYear(),
+        today.getMonth(),
+        today.getMonth().length(today.isLeapYear()));
+  }
+
+  /**
+   * Returns a DATE for the last day of the month of a given argument.
+   *
+   * @param datetime A DATE/DATETIME/TIMESTAMP/STRING ExprValue.
+   * @return An DATE value corresponding to the last day of the month of the given argument.
+   */
+  private ExprValue exprLastDay(ExprValue datetime) {
+    return new ExprDateValue(getLastDay(datetime.dateValue()));
+  }
+
+  /**
+   * Returns a DATE for the last day of the current month.
+   *
+   * @param clock The clock for the query start time from functionProperties.
+   * @return An DATE value corresponding to the last day of the month of the given argument.
+   */
+  private ExprValue exprLastDayToday(Clock clock) {
+    return new ExprDateValue(getLastDay(formatNow(clock).toLocalDate()));
   }
 
   /**

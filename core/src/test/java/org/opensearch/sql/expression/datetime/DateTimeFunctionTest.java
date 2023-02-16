@@ -862,6 +862,80 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   }
 
+  private void checkForExpectedDay(
+      FunctionExpression functionExpression,
+      String expectedDay,
+      String testExpr) {
+    assertEquals(DATE, functionExpression.type());
+    assertEquals(new ExprDateValue(expectedDay), eval(functionExpression));
+    assertEquals(testExpr, functionExpression.toString());
+  }
+
+  private static Stream<Arguments> getTestDataForLastDay() {
+    return Stream.of(
+        Arguments.of(new ExprDateValue("2017-01-20"), "2017-01-31", "last_day(DATE '2017-01-20')"),
+        //Leap year
+        Arguments.of(new ExprDateValue("2020-02-20"), "2020-02-29", "last_day(DATE '2020-02-20')"),
+        //Non leap year
+        Arguments.of(new ExprDateValue("2017-02-20"), "2017-02-28", "last_day(DATE '2017-02-20')"),
+        Arguments.of(new ExprDateValue("2017-03-20"), "2017-03-31", "last_day(DATE '2017-03-20')"),
+        Arguments.of(new ExprDateValue("2017-04-20"), "2017-04-30", "last_day(DATE '2017-04-20')"),
+        Arguments.of(new ExprDateValue("2017-05-20"), "2017-05-31", "last_day(DATE '2017-05-20')"),
+        Arguments.of(new ExprDateValue("2017-06-20"), "2017-06-30", "last_day(DATE '2017-06-20')"),
+        Arguments.of(new ExprDateValue("2017-07-20"), "2017-07-31", "last_day(DATE '2017-07-20')"),
+        Arguments.of(new ExprDateValue("2017-08-20"), "2017-08-31", "last_day(DATE '2017-08-20')"),
+        Arguments.of(new ExprDateValue("2017-09-20"), "2017-09-30", "last_day(DATE '2017-09-20')"),
+        Arguments.of(new ExprDateValue("2017-10-20"), "2017-10-31", "last_day(DATE '2017-10-20')"),
+        Arguments.of(new ExprDateValue("2017-11-20"), "2017-11-30", "last_day(DATE '2017-11-20')"),
+        Arguments.of(new ExprDateValue("2017-12-20"), "2017-12-31", "last_day(DATE '2017-12-20')")
+    );
+  }
+
+  @ParameterizedTest(name = "{2}")
+  @MethodSource("getTestDataForLastDay")
+  public void testLastDay(ExprValue testedDateTime, String expectedResult, String expectedQuery) {
+    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
+    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
+
+    checkForExpectedDay(
+        DSL.last_day(functionProperties, DSL.literal(testedDateTime)),
+        expectedResult,
+        expectedQuery
+    );
+  }
+
+  @Test
+  public void testLastDayWithTimeType() {
+    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
+    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
+
+    FunctionExpression expression = DSL.last_day(
+        functionProperties, DSL.literal(new ExprTimeValue("12:23:34")));
+
+    LocalDate expected = LocalDate.now(functionProperties.getQueryStartClock());
+    LocalDate result = eval(expression).dateValue();
+
+
+    assertAll(
+        () -> assertEquals((expected.lengthOfMonth()), result.getDayOfMonth()),
+        () -> assertEquals("last_day(TIME '12:23:34')", expression.toString())
+    );
+  }
+
+  private void lastDay(String date) {
+    FunctionExpression expression = DSL.day_of_week(
+        functionProperties, DSL.literal(new ExprDateValue(date)));
+    eval(expression);
+  }
+
+  @Test
+  public void testLastDayInvalidArgument() {
+    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
+    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
+
+    assertThrows(SemanticCheckException.class, () ->  lastDay("asdfasdf"));
+  }
+
   @Test
   public void microsecond() {
     when(nullRef.type()).thenReturn(TIME);
