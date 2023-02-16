@@ -1762,7 +1762,7 @@ Usage: Returns a string value containing string format specifiers based on the i
 
 Argument type: TYPE, STRING
 TYPE must be one of the following tokens: [DATE, TIME, DATETIME, TIMESTAMP].
-STRING must be one of the following tokens: ["USA"] (" can be replaced by ').
+STRING must be one of the following tokens: ["USA", "JIS", "ISO", "EUR", "INTERNAL"] (" can be replaced by ').
 
 Examples::
 
