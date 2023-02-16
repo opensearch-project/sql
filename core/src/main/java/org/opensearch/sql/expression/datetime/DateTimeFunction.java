@@ -106,12 +106,27 @@ public class DateTimeFunction {
   // Map used to determine format output for the get_format function
   private static final Table<String, String, String> formats =
       ImmutableTable.<String, String, String>builder()
-      //TODO: Add support for other formats
-      .put("date", "usa", "%m.%d.%Y")
-      .put("time", "usa", "%h:%i:%s %p")
-      .put("datetime", "usa", "%Y-%m-%d %H.%i.%s")
-      .put("timestamp", "usa", "%Y-%m-%d %H.%i.%s")
-      .build();
+          .put("date", "usa", "%m.%d.%Y")
+          .put("date", "jis", "%Y-%m-%d")
+          .put("date", "iso", "%Y-%m-%d")
+          .put("date", "eur", "%d.%m.%Y")
+          .put("date", "internal", "%Y%m%d")
+          .put("datetime", "usa", "%Y-%m-%d %H.%i.%s")
+          .put("datetime", "jis", "%Y-%m-%d %H:%i:%s")
+          .put("datetime", "iso", "%Y-%m-%d %H:%i:%s")
+          .put("datetime", "eur", "%Y-%m-%d %H.%i.%s")
+          .put("datetime", "internal", "%Y%m%d%H%i%s")
+          .put("time", "usa", "%h:%i:%s %p")
+          .put("time", "jis", "%H:%i:%s")
+          .put("time", "iso", "%H:%i:%s")
+          .put("time", "eur", "%H.%i.%s")
+          .put("time", "internal", "%H%i%s")
+          .put("timestamp", "usa", "%Y-%m-%d %H.%i.%s")
+          .put("timestamp", "jis", "%Y-%m-%d %H:%i:%s")
+          .put("timestamp", "iso", "%Y-%m-%d %H:%i:%s")
+          .put("timestamp", "eur", "%Y-%m-%d %H.%i.%s")
+          .put("timestamp", "internal", "%Y%m%d%H%i%s")
+          .build();
 
   /**
    * Register Date and Time Functions.
