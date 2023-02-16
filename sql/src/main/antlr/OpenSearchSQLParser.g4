@@ -423,7 +423,7 @@ aggregationFunctionName
     ;
 
 mathematicalFunctionName
-    : ABS | CBRT | CEIL | CEILING | CONV | CRC32 | E | EXP | FLOOR | LN | LOG | LOG10 | LOG2 | MOD | PI | POW | POWER
+    : ABS | CBRT | CEIL | CEILING | CONV | CRC32 | E | EXP | EXPM1 | FLOOR | LN | LOG | LOG10 | LOG2 | MOD | PI | POW | POWER
     | RAND | ROUND | SIGN | SQRT | TRUNCATE
     | trigonometricFunctionName
     ;

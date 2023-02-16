@@ -187,6 +187,7 @@ Example::
     | c                    | 44                   | 1100              | 15                  |
     +----------------------+----------------------+-------------------+---------------------+
 
+
 COS
 ---
 
@@ -278,6 +279,7 @@ Example::
     | 89.95437383553924 |
     +-------------------+
 
+
 E
 -
 
@@ -309,7 +311,7 @@ Usage: exp(x) return e raised to the power of x.
 
 Argument type: INTEGER/LONG/FLOAT/DOUBLE
 
-Return type: INTEGER
+Return type: DOUBLE
 
 Example::
 

@@ -28,6 +28,7 @@ public enum BuiltinFunctionName {
   CRC32(FunctionName.of("crc32")),
   E(FunctionName.of("e")),
   EXP(FunctionName.of("exp")),
+  EXPM1(FunctionName.of("expm1")),
   FLOOR(FunctionName.of("floor")),
   LN(FunctionName.of("ln")),
   LOG(FunctionName.of("log")),
