@@ -434,6 +434,11 @@ public class DSL {
     return compile(functionProperties, BuiltinFunctionName.WEEK, expressions);
   }
 
+  public static FunctionExpression weekofyear(
+      FunctionProperties functionProperties, Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.WEEKOFYEAR, expressions);
+  }
+
   public static FunctionExpression week_of_year(
       FunctionProperties functionProperties, Expression... expressions) {
     return compile(functionProperties, BuiltinFunctionName.WEEK_OF_YEAR, expressions);

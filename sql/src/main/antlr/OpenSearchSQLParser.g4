@@ -484,6 +484,7 @@ dateTimeFunctionName
     | UNIX_TIMESTAMP
     | WEEK
     | WEEK_OF_YEAR
+    | WEEKOFYEAR
     | YEAR
     ;
 

@@ -108,6 +108,7 @@ public enum BuiltinFunctionName {
   UTC_TIMESTAMP(FunctionName.of("utc_timestamp")),
   UNIX_TIMESTAMP(FunctionName.of("unix_timestamp")),
   WEEK(FunctionName.of("week")),
+  WEEKOFYEAR(FunctionName.of("weekofyear")),
   WEEK_OF_YEAR(FunctionName.of("week_of_year")),
   YEAR(FunctionName.of("year")),
   // `now`-like functions
