@@ -177,6 +177,7 @@ public class DateTimeFunction {
     repository.register(to_days());
     repository.register(unix_timestamp());
     repository.register(week(BuiltinFunctionName.WEEK));
+    repository.register(week(BuiltinFunctionName.WEEKOFYEAR));
     repository.register(week(BuiltinFunctionName.WEEK_OF_YEAR));
     repository.register(year());
   }
