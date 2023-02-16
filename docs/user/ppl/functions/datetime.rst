@@ -425,6 +425,7 @@ Description
 >>>>>>>>>>>
 
 Usage: date_format(date, format) formats the date argument using the specifiers in the format argument.
+If an argument of type TIME is provided, the local date is used.
 
 .. list-table:: The following table describes the available specifier arguments.
    :widths: 20 80
@@ -501,7 +502,7 @@ Usage: date_format(date, format) formats the date argument using the specifiers 
    * - x
      - x, for any smallcase/uppercase alphabet except [aydmshiHIMYDSEL]
 
-Argument type: STRING/DATE/DATETIME/TIMESTAMP, STRING
+Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP, STRING
 
 Return type: STRING
 

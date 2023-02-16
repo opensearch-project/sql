@@ -27,6 +27,8 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
 import com.google.common.collect.ImmutableList;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
@@ -41,6 +43,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprLongValue;
+import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
@@ -78,7 +81,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
               "%W","%D","%Y","%y","%a","%b","%j","%m","%d","%h","%s","%w","%f",
               "%q","%"),
           ImmutableList.of("13","01","13","1","14","PM","01:14:15 PM","15","13:14:15"," January",
-              "Saturday","31st","1998","98","Sat","Jan","031","01","31","01","15","6","12345",
+              "Saturday","31st","1998","98","Sat","Jan","031","01","31","01","15","6","012345",
               "q","%")
       ),
       new DateFormatTester("1999-12-01",
@@ -162,7 +165,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     }
 
     FunctionExpression getDateFormatExpression() {
-      return DSL.date_format(DSL.literal(date), DSL.literal(getFormatter()));
+      return DSL.date_format(functionProperties, DSL.literal(date), DSL.literal(getFormatter()));
     }
   }
 
@@ -1701,40 +1704,287 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     String timestamp = "1998-01-31 13:14:15.012345";
     String timestampFormat = "%a %b %c %D %d %e %f %H %h %I %i %j %k %l %M "
         + "%m %p %r %S %s %T %% %P";
-    String timestampFormatted = "Sat Jan 01 31st 31 31 12345 13 01 01 14 031 13 1 "
+    String timestampFormatted = "Sat Jan 01 31st 31 31 012345 13 01 01 14 031 13 1 "
         + "January 01 PM 01:14:15 PM 15 15 13:14:15 % P";
 
-    FunctionExpression expr = DSL.date_format(DSL.literal(timestamp), DSL.literal(timestampFormat));
+    FunctionExpression expr = DSL.date_format(
+        functionProperties,
+        DSL.literal(timestamp),
+        DSL.literal(timestampFormat));
     assertEquals(STRING, expr.type());
     assertEquals(timestampFormatted, eval(expr).stringValue());
 
     when(nullRef.type()).thenReturn(DATE);
     when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(DSL.date_format(nullRef, DSL.literal(""))));
-    assertEquals(missingValue(), eval(DSL.date_format(missingRef, DSL.literal(""))));
+    assertEquals(nullValue(), eval(DSL.date_format(
+        functionProperties,
+        nullRef,
+        DSL.literal(""))));
+    assertEquals(missingValue(), eval(DSL.date_format(
+        functionProperties,
+        missingRef,
+        DSL.literal(""))));
 
     when(nullRef.type()).thenReturn(DATETIME);
     when(missingRef.type()).thenReturn(DATETIME);
-    assertEquals(nullValue(), eval(DSL.date_format(nullRef, DSL.literal(""))));
-    assertEquals(missingValue(), eval(DSL.date_format(missingRef, DSL.literal(""))));
+    assertEquals(nullValue(), eval(DSL.date_format(
+        functionProperties,
+        nullRef,
+        DSL.literal(""))));
+    assertEquals(missingValue(), eval(DSL.date_format(
+        functionProperties,
+        missingRef,
+        DSL.literal(""))));
 
     when(nullRef.type()).thenReturn(TIMESTAMP);
     when(missingRef.type()).thenReturn(TIMESTAMP);
-    assertEquals(nullValue(), eval(DSL.date_format(nullRef, DSL.literal(""))));
-    assertEquals(missingValue(), eval(DSL.date_format(missingRef, DSL.literal(""))));
+    assertEquals(nullValue(), eval(DSL.date_format(
+        functionProperties,
+        nullRef,
+        DSL.literal(""))));
+    assertEquals(missingValue(), eval(DSL.date_format(
+        functionProperties,
+        missingRef,
+        DSL.literal(""))));
 
     when(nullRef.type()).thenReturn(STRING);
     when(missingRef.type()).thenReturn(STRING);
-    assertEquals(nullValue(), eval(DSL.date_format(nullRef, DSL.literal(""))));
-    assertEquals(missingValue(), eval(DSL.date_format(missingRef, DSL.literal(""))));
-    assertEquals(nullValue(), eval(DSL.date_format(DSL.literal(""), nullRef)));
-    assertEquals(missingValue(), eval(DSL.date_format(DSL.literal(""), missingRef)));
+    assertEquals(nullValue(), eval(DSL.date_format(
+        functionProperties,
+        nullRef,
+        DSL.literal(""))));
+    assertEquals(missingValue(), eval(DSL.date_format(
+        functionProperties,
+        missingRef,
+        DSL.literal(""))));
+    assertEquals(nullValue(), eval(DSL.date_format(
+        functionProperties,
+        DSL.literal(""),
+        nullRef)));
+    assertEquals(missingValue(), eval(DSL.date_format(
+        functionProperties,
+        DSL.literal(""),
+        missingRef)));
   }
 
   void testDateFormat(DateFormatTester dft) {
     FunctionExpression expr = dft.getDateFormatExpression();
     assertEquals(STRING, expr.type());
     assertEquals(dft.getFormatted(), eval(expr).stringValue());
+  }
+
+  @Test
+  public void testDateFormatWithTimeType() {
+    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
+    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
+
+    FunctionExpression expr = DSL.date_format(
+        functionProperties,
+        DSL.literal(new ExprTimeValue("12:23:34")),
+        DSL.literal(new ExprStringValue("%m %d")));
+
+    assertEquals(
+        expr.toString(),
+        "date_format(TIME '12:23:34', \"%m %d\")"
+    );
+    assertEquals(
+        LocalDateTime.now(
+            functionProperties.getQueryStartClock()).format(
+                DateTimeFormatter.ofPattern("\"MM dd\"")),
+        eval(expr).toString()
+    );
+  }
+
+  @Test
+  public void testTimeFormatWithDateType() {
+    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
+    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
+
+    FunctionExpression expr = DSL.time_format(
+        functionProperties,
+        DSL.literal(new ExprDateValue("2023-01-16")),
+        DSL.literal(new ExprStringValue("%h %s")));
+
+    assertEquals(
+        expr.toString(),
+        "time_format(DATE '2023-01-16', \"%h %s\")"
+    );
+    assertEquals(
+        "\"12 00\"",
+        eval(expr).toString()
+    );
+  }
+
+  private static Stream<Arguments> getTestDataForTimeFormat() {
+    return Stream.of(
+        Arguments.of(
+            DSL.literal("1998-01-31 13:14:15.012345"),
+            DSL.literal("%f"),
+            "012345"),
+        Arguments.of(
+            DSL.literal("1998-01-31 13:14:15.002345"),
+            DSL.literal("%f"),
+            "002345"),
+        Arguments.of(
+            DSL.literal("1998-01-31 13:14:15.012300"),
+            DSL.literal("%f"),
+            "012300"),
+        Arguments.of(
+            DSL.literal("1998-01-31 13:14:15.012345"),
+            DSL.literal("%H"),
+            "13"),
+        Arguments.of(
+            DSL.literal("1998-01-31 13:14:15.012345"),
+            DSL.literal("%h"),
+            "01"),
+        Arguments.of(
+            DSL.literal("1998-01-31 13:14:15.012345"),
+            DSL.literal("%I"),
+            "01"),
+        Arguments.of(
+            DSL.literal("1998-01-31 13:14:15.012345"),
+            DSL.literal("%i"),
+            "14"),
+        Arguments.of(
+            DSL.literal("1998-01-31 13:14:15.012345"),
+            DSL.literal("%k"),
+            "13"),
+        Arguments.of(
+            DSL.literal("1998-01-31 13:14:15.012345"),
+            DSL.literal("%l"),
+            "1"),
+        Arguments.of(
+            DSL.literal("1998-01-31 13:14:15.012345"),
+            DSL.literal("%p"),
+            "PM"),
+        Arguments.of(
+            DSL.literal("1998-01-31 13:14:15.012345"),
+            DSL.literal("%r"),
+            "01:14:15 PM"),
+        Arguments.of(
+            DSL.literal("1998-01-31 13:14:15.012345"),
+            DSL.literal("%S"),
+            "15"),
+        Arguments.of(
+            DSL.literal("1998-01-31 13:14:15.012345"),
+            DSL.literal("%s"),
+            "15"),
+        Arguments.of(
+            DSL.literal("1998-01-31 13:14:15.012345"),
+            DSL.literal("%T"),
+            "13:14:15"),
+        Arguments.of(
+            DSL.literal("1998-01-31 13:14:15.012345"),
+            DSL.literal("%f %H %h %I %i %k %l %p %r %S %s %T"),
+            "012345 13 01 01 14 13 1 PM 01:14:15 PM 15 15 13:14:15")
+    );
+  }
+
+  private void timeFormatQuery(LiteralExpression arg,
+                               LiteralExpression format,
+                               String expectedResult) {
+    FunctionExpression expr = DSL.time_format(functionProperties, arg, format);
+    assertEquals(STRING, expr.type());
+    assertEquals(expectedResult, eval(expr).stringValue());
+  }
+
+  @ParameterizedTest(name = "{0}{1}")
+  @MethodSource("getTestDataForTimeFormat")
+  public void testTimeFormat(LiteralExpression arg,
+                             LiteralExpression format,
+                             String expectedResult) {
+    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
+    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
+
+    timeFormatQuery(arg, format, expectedResult);
+  }
+
+  private static Stream<Arguments> getInvalidTestDataForTimeFormat() {
+    return Stream.of(
+        Arguments.of(
+            DSL.literal("asdfasdf"),
+            DSL.literal("%f")),
+        Arguments.of(
+            DSL.literal("12345"),
+            DSL.literal("%h")),
+        Arguments.of(
+            DSL.literal("10:11:61"),
+            DSL.literal("%h")),
+        Arguments.of(
+            DSL.literal("10:61:12"),
+            DSL.literal("%h")),
+        Arguments.of(
+            DSL.literal("61:11:12"),
+            DSL.literal("%h"))
+    );
+  }
+  
+  @ParameterizedTest(name = "{0}{1}")
+  @MethodSource("getInvalidTestDataForTimeFormat")
+  public void testInvalidTimeFormat(LiteralExpression arg, LiteralExpression format) {
+    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
+    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
+    FunctionExpression expr = DSL.time_format(functionProperties, arg, format);
+    assertThrows(SemanticCheckException.class, () -> eval(expr));
+  }
+
+  private static Stream<Arguments> getInvalidTimeFormatHandlers() {
+    return Stream.of(
+        Arguments.of("%a"),
+        Arguments.of("%b"),
+        Arguments.of("%j"),
+        Arguments.of("%M"),
+        Arguments.of("%W"),
+        Arguments.of("%D"),
+        Arguments.of("%w"),
+        Arguments.of("%U"),
+        Arguments.of("%u"),
+        Arguments.of("%V"),
+        Arguments.of("%v"),
+        Arguments.of("%X"),
+        Arguments.of("%x")
+    );
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("getInvalidTimeFormatHandlers")
+  public void testTimeFormatWithInvalidHandlers(String handler) {
+    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
+    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
+    FunctionExpression expr = DSL.time_format(
+        functionProperties,
+        DSL.literal("12:23:34"),
+        DSL.literal(handler));
+    assertEquals(ExprNullValue.of(), eval(expr));
+  }
+
+  @Test
+  public void testTimeFormatWithDateHandlers() {
+    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
+    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
+    FunctionExpression expr = DSL.time_format(
+        functionProperties,
+        DSL.literal(new ExprDateValue("2023-01-17")),
+        DSL.literal("%c %d %e %m %Y %y"));
+    assertEquals(
+        "0 00 0 00 0000 00",
+        eval(expr).stringValue());
+  }
+
+  @Test
+  public void testTimeFormatAndDateFormatReturnSameResult() {
+    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
+    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
+    FunctionExpression timeFormatExpr = DSL.time_format(
+        functionProperties,
+        DSL.literal(new ExprDateValue("1998-01-31 13:14:15.012345")),
+        DSL.literal("%f %H %h %I %i %k %l %p %r %S %s %T"));
+    FunctionExpression dateFormatExpr = DSL.date_format(
+        functionProperties,
+        DSL.literal(new ExprDateValue("1998-01-31 13:14:15.012345")),
+        DSL.literal("%f %H %h %I %i %k %l %p %r %S %s %T"));
+
+    assertEquals(eval(dateFormatExpr), eval(timeFormatExpr));
   }
 
   private ExprValue eval(Expression expression) {
