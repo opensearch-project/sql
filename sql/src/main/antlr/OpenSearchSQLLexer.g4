@@ -217,6 +217,7 @@ GET_FORMAT:                         'GET_FORMAT';
 IF:                                 'IF';
 IFNULL:                             'IFNULL';
 ISNULL:                             'ISNULL';
+LAST_DAY:                           'LAST_DAY';
 LENGTH:                             'LENGTH';
 LN:                                 'LN';
 LOCALTIME:                          'LOCALTIME';

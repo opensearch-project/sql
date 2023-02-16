@@ -357,6 +357,11 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.HOUR_OF_DAY, expressions);
   }
 
+  public static FunctionExpression last_day(FunctionProperties functionProperties,
+                                            Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.LAST_DAY, expressions);
+  }
+
   public static FunctionExpression microsecond(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.MICROSECOND, expressions);
   }
