@@ -2570,7 +2570,7 @@ Description
 
 Usage: week(date[, mode]) returns the week number for date. If the mode argument is omitted, the default mode 0 is used.
 If an argument of type `TIME` is given, the function will use the current date.
-The function `week_of_year` is also provided as an alias.
+The functions `weekofyear` and `week_of_year` is also provided as an alias.
 
 .. list-table:: The following table describes how the mode argument works.
    :widths: 25 50 25 75
@@ -2628,7 +2628,7 @@ Example::
     +----------------------------+-------------------------------+
 
 WEEK_OF_YEAR
-----
+------------
 
 Description
 >>>>>>>>>>>
@@ -2649,6 +2649,30 @@ Example::
     |------------------------------------+---------------------------------------|
     | 7                                  | 8                                     |
     +------------------------------------+---------------------------------------+
+
+
+WEEKOFYEAR
+----------
+
+Description
+>>>>>>>>>>>
+
+The weekofyear function is a synonym for the `week`_ function.
+If an argument of type `TIME` is given, the function will use the current date.
+
+Argument type: DATE/DATETIME/TIME/TIMESTAMP/STRING
+
+Return type: INTEGER
+
+Example::
+
+    os> SELECT WEEKOFYEAR(DATE('2008-02-20')), WEEKOFYEAR(DATE('2008-02-20'), 1)
+    fetched rows / total rows = 1/1
+    +----------------------------------+-------------------------------------+
+    | WEEKOFYEAR(DATE('2008-02-20'))   | WEEKOFYEAR(DATE('2008-02-20'), 1)   |
+    |----------------------------------+-------------------------------------|
+    | 7                                | 8                                   |
+    +----------------------------------+-------------------------------------+
 
 
 YEAR

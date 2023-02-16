@@ -330,6 +330,7 @@ TERMS:                              'TERMS';
 TOPHITS:                            'TOPHITS';
 TYPEOF:                             'TYPEOF';
 WEEK_OF_YEAR:                       'WEEK_OF_YEAR';
+WEEKOFYEAR:                         'WEEKOFYEAR';
 WILDCARDQUERY:                      'WILDCARDQUERY';
 WILDCARD_QUERY:                     'WILDCARD_QUERY';
 
