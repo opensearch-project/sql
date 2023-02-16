@@ -521,6 +521,12 @@ class SQLSyntaxParserTest {
   }
 
   @Test
+  public void can_parse_last_day_function() {
+    assertNotNull(parser.parse("SELECT last_day(\"2017-06-20\")"));
+    assertNotNull(parser.parse("SELECT last_day('2004-01-01 01:01:01')"));
+  }
+
+  @Test
   public void can_parse_wildcard_query_relevance_function() {
     assertNotNull(
         parser.parse("SELECT * FROM test WHERE wildcard_query(column, \"this is a test*\")"));

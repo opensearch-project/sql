@@ -457,6 +457,7 @@ dateTimeFunctionName
     | FROM_UNIXTIME
     | HOUR
     | HOUR_OF_DAY
+    | LAST_DAY
     | MAKEDATE
     | MAKETIME
     | MICROSECOND
