@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import org.apache.commons.lang3.EnumUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 
@@ -88,6 +89,14 @@ public class OpenSearchDataType implements ExprType, Serializable {
    */
   private static final Map<String, OpenSearchDataType> instances = new HashMap<>();
 
+  static {
+    EnumUtils.getEnumList(MappingType.class).stream()
+        .filter(t -> t != MappingType.Invalid).forEach(t ->
+            instances.put(t.toString(), OpenSearchDataType.of(t)));
+    EnumUtils.getEnumList(ExprCoreType.class).forEach(t ->
+            instances.put(t.toString(), OpenSearchDataType.of(t)));
+  }
+
   /**
    * A constructor function which builds proper `OpenSearchDataType` for given mapping `Type`.
    * @param mappingType A mapping type.
@@ -112,7 +121,6 @@ public class OpenSearchDataType implements ExprType, Serializable {
     }
     res = new OpenSearchDataType(mappingType);
     res.exprCoreType = exprCoreType;
-    instances.put(mappingType.toString(), res);
     return res;
   }
 
@@ -154,9 +162,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
     if (res != null) {
       return res;
     }
-    res = new OpenSearchDataType((ExprCoreType) type);
-    instances.put(type.toString(), res);
-    return res;
+    return new OpenSearchDataType((ExprCoreType) type);
   }
 
   protected OpenSearchDataType(ExprCoreType type) {
