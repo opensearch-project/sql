@@ -126,12 +126,13 @@ dependencies {
     api project(':legacy')
     api project(':opensearch')
     api project(':prometheus')
+    implementation project(':jdbc')
 }
 
 test {
     include '**/*Test.class'
     testLogging {
-        events "passed", "skipped", "failed"
+        events "skipped", "failed"
         exceptionFormat "full"
     }
 }

@@ -40,6 +40,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.span;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.tableFunction;
 import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
+import static org.opensearch.sql.ppl.parser.AstBuilder.DEFAULT_TABLE_FUNCTION_ARG_NAME;
 import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
@@ -790,6 +791,18 @@ public class AstBuilderTest {
             .put("time_field", new Literal("timestamp", DataType.STRING))
             .put("training_data_size", new Literal(256, DataType.INTEGER))
             .build()
+        ));
+  }
+
+  @Test
+  public void testJDBCDatasource() {
+    assertEqual("search source = myspark.jdbc('describe tables')",
+        tableFunction(Arrays.asList("myspark", "jdbc"),
+            unresolvedArg("query", stringLiteral("describe tables"))
+        ));
+    assertEqual("search source = myspark.jdbc('describe tables')",
+        tableFunction(Arrays.asList("myspark", "jdbc"),
+            unresolvedArg(DEFAULT_TABLE_FUNCTION_ARG_NAME, stringLiteral("describe tables"))
         ));
   }
 
