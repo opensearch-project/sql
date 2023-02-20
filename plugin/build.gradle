@@ -246,7 +246,7 @@ testClusters.integTest {
     }
 
     // add customized keystore
-    keystore 'plugins.query.federation.datasources.config', new File("$projectDir/src/test/resources/", 'datasources.json')
+    keystore 'plugins.query.federation.datasources.config', new File("$projectDir/src/test/resources/", 'testcluster_datasources.json')
 }
 
 run {

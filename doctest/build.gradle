@@ -22,6 +22,7 @@ def plugin_path = project(':doctest').projectDir
 task cloneSqlCli(type: Exec) {
     // clone the sql-cli repo locally
     commandLine 'git', 'clone', 'https://github.com/opensearch-project/sql-cli.git'
+    ignoreExitValue = true
 }
 
 task bootstrap(type: Exec, dependsOn: ['cloneSqlCli']) {
@@ -30,6 +31,54 @@ task bootstrap(type: Exec, dependsOn: ['cloneSqlCli']) {
 
     commandLine 'sh', "$projectDir/bootstrap.sh"
 
+}
+
+String SPARK_VERSION = "spark-3.2.3"
+String SPARK_BINARY = "${SPARK_VERSION}-bin-hadoop3.2";
+
+task startMaster(type: SpawnProcessTask) {
+    doFirst {
+        download.run {
+            src "https://dlcdn.apache.org/spark/${SPARK_VERSION}/${SPARK_BINARY}.tgz"
+            dest new File("$projectDir/bin", "${SPARK_BINARY}.tgz")
+            overwrite false
+        }
+        copy {
+            from tarTree("$projectDir/bin/${SPARK_BINARY}.tgz")
+            into "$projectDir/bin"
+        }
+    }
+    command "$projectDir/bin/${SPARK_BINARY}/bin/spark-class org.apache.spark.deploy.master.Master -h localhost -p 7077 --webui-port 8080"
+    ready 'started'
+    pidLockFileName '.spark-master.pid.lock'
+}
+
+task startWorker(type: SpawnProcessTask, dependsOn: startMaster) {
+    command "$projectDir/bin/${SPARK_BINARY}/bin/spark-class org.apache.spark.deploy.worker.Worker spark://localhost:7077"
+    ready 'started'
+    pidLockFileName '.spark-worker.pid.lock'
+}
+
+task startThrift(type: SpawnProcessTask, dependsOn: startWorker) {
+    command "$projectDir/bin/${SPARK_BINARY}/bin/spark-submit --class org.apache.spark.sql.hive.thriftserver.HiveThriftServer2 spark://localhost:7077"
+    ready 'started'
+    pidLockFileName '.spark-thriftserver.pid.lock'
+}
+
+task stopMaster(type: KillProcessTask) {
+    pidLockFileName '.spark-master.pid.lock'
+}
+
+task stopWorker(type: KillProcessTask, dependsOn: stopMaster) {
+    pidLockFileName '.spark-worker.pid.lock'
+}
+
+task stopThrift(type: KillProcessTask, dependsOn: stopWorker) {
+    pidLockFileName '.spark-thriftserver.pid.lock'
+    doLast {
+        file("$projectDir/bin/${SPARK_BINARY}").deleteDir()
+        file("$projectDir/bin/${SPARK_BINARY}.tgz").delete()
+    }
 }
 
 task startPrometheus(type: SpawnProcessTask) {
@@ -55,7 +104,7 @@ task startPrometheus(type: SpawnProcessTask) {
 }
 
 //evaluationDependsOn(':')
-task startOpenSearch(type: SpawnProcessTask) {
+task startOpenSearch(type: SpawnProcessTask, dependsOn: [startThrift]) {
     command "${path}/gradlew -p ${plugin_path} runRestTestCluster"
     ready 'started'
 }
@@ -71,7 +120,7 @@ task doctest(type: Exec, dependsOn: ['bootstrap']) {
     }
 }
 
-task stopOpenSearch(type: KillProcessTask)
+task stopOpenSearch(type: KillProcessTask, dependsOn: [stopThrift])
 
 task stopPrometheus() {
 
@@ -95,49 +144,22 @@ task stopPrometheus() {
     }
 }
 
-stopPrometheus.mustRunAfter startPrometheus
+clean.doLast {
+    file("$projectDir/bin/${SPARK_BINARY}").deleteDir()
+    file("$projectDir/bin/${SPARK_BINARY}.tgz").delete()
+}
+
+//stopPrometheus.mustRunAfter startPrometheus
 doctest.dependsOn startOpenSearch
-startOpenSearch.dependsOn startPrometheus
+//startOpenSearch.dependsOn startPrometheus
 doctest.finalizedBy stopOpenSearch
-stopOpenSearch.finalizedBy stopPrometheus
+//stopOpenSearch.finalizedBy stopPrometheus
 check.dependsOn doctest
 clean.dependsOn(cleanBootstrap)
-
-// 2.0.0-alpha1-SNAPSHOT -> 2.0.0.0-alpha1-SNAPSHOT
-String opensearch_no_snapshot = opensearch_version.replace('-SNAPSHOT', '')
-String[] version_tokens = opensearch_no_snapshot.tokenize('-')
-String opensearch_build = version_tokens[0] + '.0'
-if (version_tokens.length > 1) {
-    opensearch_build += '-' + version_tokens[1]
-}
-String mlCommonsRemoteFile = 'https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/' + opensearch_no_snapshot + '/latest/linux/x64/tar/builds/opensearch/plugins/opensearch-ml-' + opensearch_build + '.zip'
-String mlCommonsPlugin = 'opensearch-ml'
 
 testClusters {
     docTestCluster {
         keystore 'plugins.query.federation.datasources.config', new File("$projectDir/datasource", 'datasources.json')
-        // Disable loading of `ML-commons` plugin, because it might be unavailable (not released yet).
-        /*
-        plugin(provider(new Callable<RegularFile>(){
-            @Override
-            RegularFile call() throws Exception {
-                return new RegularFile() {
-                    @Override
-                    File getAsFile() {
-                        File dir = new File('./doctest/' + mlCommonsPlugin)
-                        if (!dir.exists()) {
-                            dir.mkdirs()
-                        }
-                        File f = new File(dir, mlCommonsPlugin + '-' + opensearch_build + '.zip')
-                        if (!f.exists()) {
-                            new URL(mlCommonsRemoteFile).withInputStream{ ins -> f.withOutputStream{ it << ins } }
-                        }
-                        return fileTree(mlCommonsPlugin).getSingleFile()
-                    }
-                }
-            }
-        }))
-        */
         plugin ':opensearch-sql-plugin'
         testDistribution = 'integ_test'
     }

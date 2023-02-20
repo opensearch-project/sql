@@ -5,5 +5,13 @@
     "properties" : {
       "prometheus.uri" : "http://localhost:9090"
     }
+  },
+  {
+    "name" : "myspark",
+    "connector": "jdbc",
+    "properties" : {
+      "url" : "jdbc:hive2://localhost:10000/default",
+      "driver": "org.apache.hive.jdbc.HiveDriver"
+    }
   }
 ]

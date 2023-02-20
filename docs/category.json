@@ -33,7 +33,8 @@
     "user/ppl/functions/string.rst",
     "user/ppl/functions/condition.rst",
     "user/ppl/functions/relevance.rst",
-    "user/ppl/functions/expressions.rst"
+    "user/ppl/functions/expressions.rst",
+    "user/ppl/admin/jdbc.rst"
   ],
   "sql_cli": [
     "user/dql/expressions.rst",
