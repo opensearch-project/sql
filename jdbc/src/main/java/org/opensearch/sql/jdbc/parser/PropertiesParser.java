@@ -34,8 +34,8 @@ public class PropertiesParser {
         new ImmutableList.Builder<Option>()
             .add(Option.builder().name(URL).required(true).build())
             .add(Option.builder().name(DRIVER).required(true).build())
-            .add(Option.builder().name(USERNAME).required(true).build())
-            .add(Option.builder().name(PASSWORD).required(true).build())
+            .add(Option.builder().name(USERNAME).required(false).build())
+            .add(Option.builder().name(PASSWORD).required(false).build())
             .build();
   }
 

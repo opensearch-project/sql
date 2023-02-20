@@ -29,7 +29,7 @@ import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /**
- * JDBC function.
+ * JDBC function definition.
  */
 public class JDBCFunction extends FunctionExpression implements TableFunctionImplementation {
 
@@ -76,6 +76,7 @@ public class JDBCFunction extends FunctionExpression implements TableFunctionImp
     }
 
     // todo, the implement interface should be removed. create an issue....
+    @SuppressWarnings("deprecation")
     @Override
     public PhysicalPlan implement(LogicalPlan plan) {
       return plan.accept(new DefaultImplementor<>(), null);

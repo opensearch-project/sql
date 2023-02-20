@@ -6,7 +6,6 @@
 package org.opensearch.sql.jdbc.operator;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -21,9 +20,8 @@ import static org.opensearch.sql.jdbc.parser.PropertiesParser.URL;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.SQLNonTransientException;
 import java.sql.Statement;
 import java.util.Properties;
 import org.junit.jupiter.api.AfterEach;
@@ -34,21 +32,16 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.sql.data.model.ExprTupleValue;
 
 @ExtendWith(MockitoExtension.class)
 class JDBCQueryOperatorTest {
-  @Mock
-  private Connection connectionMock;
+  @Mock private Connection connectionMock;
 
-  @Mock
-  private Statement statementMock;
+  @Mock private Statement statementMock;
 
-  @Mock
-  private ResultSet resultSetMock;
+  @Mock private JDBCResponseHandle jdbcResponseHandleMock;
 
-  @Mock
-  private ResultSetMetaData resultSetMetaData;
+  private MockedStatic<JDBCResponseHandle> staticJDBCResponseHandleMock;
 
   private MockedStatic<DriverManager> driverManagerMock;
 
@@ -65,30 +58,32 @@ class JDBCQueryOperatorTest {
     operator = new JDBCQueryOperator(sqlQuery, properties);
 
     driverManagerMock = Mockito.mockStatic(DriverManager.class);
+    staticJDBCResponseHandleMock = Mockito.mockStatic(JDBCResponseHandle.class);
+
     lenient().when(connectionMock.createStatement()).thenReturn(statementMock);
-    lenient().when(statementMock.executeQuery(anyString())).thenReturn(resultSetMock);
-    lenient().when(resultSetMock.getMetaData()).thenReturn(resultSetMetaData);
-    lenient().when(resultSetMetaData.getColumnCount()).thenReturn(0);
+    lenient().when(statementMock.execute(anyString())).thenReturn(true);
 
     driverManagerMock
         .when(() -> DriverManager.getConnection(anyString(), any(Properties.class)))
         .thenReturn(connectionMock);
+    staticJDBCResponseHandleMock
+        .when(() -> JDBCResponseHandle.execute(any(Statement.class), anyString()))
+        .thenReturn(jdbcResponseHandleMock);
   }
 
   @AfterEach
   public void clean() {
     driverManagerMock.close();
+    staticJDBCResponseHandleMock.close();
   }
 
   @Test
   public void openAndClose() throws Exception {
     operator.open();
-
     verify(connectionMock).createStatement();
-    verify(statementMock).executeQuery(sqlQuery);
 
     operator.close();
-    verify(resultSetMock).close();
+    verify(jdbcResponseHandleMock).close();
     verify(statementMock).close();
     verify(connectionMock).close();
   }
@@ -102,7 +97,21 @@ class JDBCQueryOperatorTest {
     assertTrue(ex.getCause() instanceof SQLException);
 
     operator.close();
-    verify(resultSetMock, never()).close();
+    verify(jdbcResponseHandleMock, never()).close();
+    verify(statementMock, never()).close();
+    verify(connectionMock, never()).close();
+  }
+
+  @Test
+  public void driverNotFoundException() throws SQLException {
+    properties.put(URL, "jdbc:hive2://localhost:10000/default");
+    properties.put(DRIVER, "unknown driver");
+    operator = new JDBCQueryOperator(sqlQuery, properties);
+    RuntimeException ex = assertThrows(RuntimeException.class, () -> operator.open());
+    assertTrue(ex.getCause() instanceof ClassNotFoundException);
+
+    operator.close();
+    verify(jdbcResponseHandleMock, never()).close();
     verify(statementMock, never()).close();
     verify(connectionMock, never()).close();
   }
@@ -114,19 +123,23 @@ class JDBCQueryOperatorTest {
     assertTrue(ex.getCause() instanceof SQLException);
 
     operator.close();
-    verify(resultSetMock, never()).close();
+    verify(jdbcResponseHandleMock, never()).close();
     verify(statementMock, never()).close();
     verify(connectionMock).close();
   }
 
   @Test
-  public void executeQueryException() throws SQLException {
-    lenient().when(statementMock.executeQuery(anyString())).thenThrow(SQLException.class);
-    RuntimeException ex = assertThrows(RuntimeException.class, () -> operator.open());
-    assertTrue(ex.getCause() instanceof SQLException);
+  public void executeException() throws SQLException {
+    staticJDBCResponseHandleMock
+        .when(() -> JDBCResponseHandle.execute(any(Statement.class), anyString()))
+        .thenThrow(SQLNonTransientException.class);
+
+    IllegalArgumentException ex =
+        assertThrows(IllegalArgumentException.class, () -> operator.open());
+    assertTrue(ex.getCause() instanceof SQLNonTransientException);
 
     operator.close();
-    verify(resultSetMock, never()).close();
+    verify(jdbcResponseHandleMock, never()).close();
     verify(statementMock).close();
     verify(connectionMock).close();
   }
@@ -134,27 +147,26 @@ class JDBCQueryOperatorTest {
   @Test
   public void closeException() throws Exception {
     operator.open();
-
     verify(connectionMock).createStatement();
-    verify(statementMock).executeQuery(sqlQuery);
 
-    doThrow(SQLException.class).when(resultSetMock).close();
+    doThrow(SQLException.class).when(jdbcResponseHandleMock).close();
     RuntimeException ex = assertThrows(RuntimeException.class, () -> operator.close());
     assertTrue(ex.getCause() instanceof SQLException);
   }
 
   @Test
   public void next() throws Exception {
-    when(resultSetMock.next()).thenReturn(true);
+    when(jdbcResponseHandleMock.hasNext()).thenReturn(true);
 
     operator.open();
     assertTrue(operator.hasNext());
-    assertTrue(operator.next() instanceof ExprTupleValue);
+    operator.next();
+    verify(jdbcResponseHandleMock).next();
   }
 
   @Test
-  public void hasNextException() throws Exception {
-    when(resultSetMock.next()).thenThrow(SQLException.class);
+  public void hasNextRuntimeException() throws Exception {
+    when(jdbcResponseHandleMock.hasNext()).thenThrow(SQLException.class);
 
     operator.open();
     RuntimeException ex = assertThrows(RuntimeException.class, () -> operator.hasNext());
@@ -162,10 +174,20 @@ class JDBCQueryOperatorTest {
   }
 
   @Test
+  public void hasNextIllegalArgumentException() throws Exception {
+    when(jdbcResponseHandleMock.hasNext()).thenThrow(SQLNonTransientException.class);
+
+    operator.open();
+    IllegalArgumentException ex =
+        assertThrows(IllegalArgumentException.class, () -> operator.hasNext());
+    assertTrue(ex.getCause() instanceof SQLException);
+  }
+
+  @Test
   public void schema() {
     operator.open();
-
-    assertNotNull(operator.schema());
+    operator.schema();
+    verify(jdbcResponseHandleMock).schema();
   }
 
   @Test

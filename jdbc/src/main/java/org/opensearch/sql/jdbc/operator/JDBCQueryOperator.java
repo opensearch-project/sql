@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.jdbc.operator;
 
+import static org.opensearch.sql.jdbc.operator.JDBCResponseHandle.execute;
 import static org.opensearch.sql.jdbc.parser.PropertiesParser.DRIVER;
 import static org.opensearch.sql.jdbc.parser.PropertiesParser.URL;
 
@@ -12,8 +13,8 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLNonTransientException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Locale;
@@ -23,6 +24,9 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.storage.TableScanOperator;
 
+/**
+ * Define JDBC function as TableScanOperator.
+ */
 @RequiredArgsConstructor
 public class JDBCQueryOperator extends TableScanOperator {
 
@@ -38,9 +42,7 @@ public class JDBCQueryOperator extends TableScanOperator {
 
   private Statement statement;
 
-  private ResultSet resultSet;
-
-  private JDBCResponseHandle jdbcResponse;
+  private JDBCResponseHandle jdbcResponseHandle;
 
   /**
    * constructor.
@@ -59,25 +61,28 @@ public class JDBCQueryOperator extends TableScanOperator {
 
   @Override
   public void open() {
-    AccessController.doPrivileged((PrivilegedAction<List<Void>>) () -> {
-      try {
-        Class.forName(driver);
-        connection = DriverManager.getConnection(url, properties);
-        statement = connection.createStatement();
-        resultSet = statement.executeQuery(sqlQuery);
-        jdbcResponse = new JDBCResponseHandle(resultSet.getMetaData());
-        return null;
-      } catch (SQLException | ClassNotFoundException e) {
-        throw new RuntimeException(e);
-      }
-    });
+    AccessController.doPrivileged(
+        (PrivilegedAction<List<Void>>)
+            () ->
+                handleSQLException(
+                    () -> {
+                      try {
+                        Class.forName(driver);
+                      } catch (ClassNotFoundException e) {
+                        throw new RuntimeException(e);
+                      }
+                      connection = DriverManager.getConnection(url, properties);
+                      statement = connection.createStatement();
+                      jdbcResponseHandle = execute(statement, sqlQuery);
+                      return null;
+                    }));
   }
 
   @Override
   public void close() {
     try {
-      if (resultSet != null) {
-        resultSet.close();
+      if (jdbcResponseHandle != null) {
+        jdbcResponseHandle.close();
       }
       if (statement != null) {
         statement.close();
@@ -92,16 +97,12 @@ public class JDBCQueryOperator extends TableScanOperator {
 
   @Override
   public boolean hasNext() {
-    try {
-      return resultSet.next();
-    } catch (SQLException e) {
-      throw new RuntimeException(e);
-    }
+    return handleSQLException(() -> jdbcResponseHandle.hasNext());
   }
 
   @Override
   public ExprValue next() {
-    return jdbcResponse.parse(resultSet);
+    return handleSQLException(() -> jdbcResponseHandle.next());
   }
 
   /**
@@ -109,6 +110,20 @@ public class JDBCQueryOperator extends TableScanOperator {
    */
   @Override
   public ExecutionEngine.Schema schema() {
-    return jdbcResponse.schema();
+    return jdbcResponseHandle.schema();
+  }
+
+  private static <T> T handleSQLException(SQLOperation<T> action) {
+    try {
+      return action.execute();
+    } catch (SQLNonTransientException e) {
+      throw new IllegalArgumentException(e);
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  interface SQLOperation<T> {
+    T execute() throws SQLException;
   }
 }
