@@ -114,10 +114,14 @@ compileTestJava {
 
 testClusters.all {
     testDistribution = 'archive'
+}
+
+testClusters.integJdbcTest {
     plugin ":opensearch-sql-plugin"
 }
 
 testClusters.integTest {
+    plugin ":opensearch-sql-plugin"
     keystore 'plugins.query.federation.datasources.config', new File("$projectDir/src/test/resources/datasource/", 'datasources.json')
 }
 
