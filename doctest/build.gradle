@@ -149,11 +149,11 @@ clean.doLast {
     file("$projectDir/bin/${SPARK_BINARY}.tgz").delete()
 }
 
-//stopPrometheus.mustRunAfter startPrometheus
+stopPrometheus.mustRunAfter startPrometheus
 doctest.dependsOn startOpenSearch
-//startOpenSearch.dependsOn startPrometheus
+startOpenSearch.dependsOn startPrometheus
 doctest.finalizedBy stopOpenSearch
-//stopOpenSearch.finalizedBy stopPrometheus
+stopOpenSearch.finalizedBy stopPrometheus
 check.dependsOn doctest
 clean.dependsOn(cleanBootstrap)
 
