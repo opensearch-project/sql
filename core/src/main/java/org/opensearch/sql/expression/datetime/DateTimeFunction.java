@@ -504,7 +504,7 @@ public class DateTimeFunction {
 
   /**
    * DAYOFWEEK(STRING/DATE/DATETIME/TIME/TIMESTAMP).
-   * return the weekday index for date (1 = Sunday, 2 = Monday, …, 7 = Saturday).
+   * return the weekday index for date (1 = Sunday, 2 = Monday, ..., 7 = Saturday).
    */
   private DefaultFunctionResolver dayOfWeek(FunctionName name) {
     return define(name,

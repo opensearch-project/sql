@@ -1376,7 +1376,7 @@ If an argument of type TIME is provided, the local date is used.
    * - %c
      - Month, numeric (0..12)
    * - %D
-     - Day of the month with English suffix (0th, 1st, 2nd, 3rd, …)
+     - Day of the month with English suffix (0th, 1st, 2nd, 3rd, ...)
    * - %d
      - Day of the month, numeric (00..31)
    * - %e
@@ -1602,7 +1602,7 @@ DAYOFWEEK
 Description
 >>>>>>>>>>>
 
-Usage: dayofweek(date) returns the weekday index for date (1 = Sunday, 2 = Monday, …, 7 = Saturday).
+Usage: dayofweek(date) returns the weekday index for date (1 = Sunday, 2 = Monday, ..., 7 = Saturday).
 
 The `day_of_week` function is also provided as an alias.
 
@@ -2579,7 +2579,7 @@ The functions `weekofyear` and `week_of_year` is also provided as an alias.
    * - Mode
      - First day of week
      - Range
-     - Week 1 is the first week …
+     - Week 1 is the first week ...
    * - 0
      - Sunday
      - 0-53
