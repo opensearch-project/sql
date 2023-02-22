@@ -15,6 +15,7 @@ import static java.time.temporal.ChronoUnit.SECONDS;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
+import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.INTERVAL;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
@@ -57,6 +58,7 @@ import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
@@ -147,6 +149,7 @@ public class DateTimeFunction {
     repository.register(period_add());
     repository.register(period_diff());
     repository.register(quarter());
+    repository.register(sec_to_time());
     repository.register(second(BuiltinFunctionName.SECOND));
     repository.register(second(BuiltinFunctionName.SECOND_OF_MINUTE));
     repository.register(subdate());
@@ -636,6 +639,15 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprQuarter), INTEGER, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::exprQuarter), INTEGER, TIMESTAMP),
         impl(nullMissingHandling(DateTimeFunction::exprQuarter), INTEGER, STRING)
+    );
+  }
+
+  private DefaultFunctionResolver sec_to_time() {
+    return define(BuiltinFunctionName.SEC_TO_TIME.getName(),
+        impl((nullMissingHandling(DateTimeFunction::exprSecToTime)), TIME, INTEGER),
+        impl((nullMissingHandling(DateTimeFunction::exprSecToTime)), TIME, LONG),
+        impl((nullMissingHandling(DateTimeFunction::exprSecToTimeWithNanos)), TIME, DOUBLE),
+        impl((nullMissingHandling(DateTimeFunction::exprSecToTimeWithNanos)), TIME, FLOAT)
     );
   }
 
@@ -1362,6 +1374,44 @@ public class DateTimeFunction {
   private ExprValue exprQuarter(ExprValue date) {
     int month = date.dateValue().getMonthValue();
     return new ExprIntegerValue((month / 3) + ((month % 3) == 0 ? 0 : 1));
+  }
+
+  /**
+   * Returns TIME value of sec_to_time function for an INTEGER or LONG arguments.
+   * @param totalSeconds The total number of seconds
+   * @return A TIME value
+   */
+  private ExprValue exprSecToTime(ExprValue totalSeconds) {
+    return new ExprTimeValue(LocalTime.MIN.plus(Duration.ofSeconds(totalSeconds.longValue())));
+  }
+
+  /**
+   * Helper function which obtains the decimal portion of the seconds value passed in.
+   * Uses BigDecimal to prevent issues with math on floating point numbers.
+   * Return is formatted to be used with Duration.ofSeconds();
+   *
+   * @param seconds and ExprDoubleValue or ExprFloatValue for the seconds
+   * @return A LONG representing the nanoseconds portion
+   */
+  private long formatNanos(ExprValue seconds) {
+    //Convert ExprValue to BigDecimal
+    BigDecimal formattedNanos = BigDecimal.valueOf(seconds.doubleValue());
+    //Extract only the nanosecond part
+    formattedNanos = formattedNanos.subtract(BigDecimal.valueOf(formattedNanos.intValue()));
+
+    return formattedNanos.scaleByPowerOfTen(9).longValue();
+  }
+
+  /**
+   * Returns TIME value of sec_to_time function for FLOAT or DOUBLE arguments.
+   * @param totalSeconds The total number of seconds
+   * @return A TIME value
+   */
+  private ExprValue exprSecToTimeWithNanos(ExprValue totalSeconds) {
+    long nanos = formatNanos(totalSeconds);
+
+    return new ExprTimeValue(
+        LocalTime.MIN.plus(Duration.ofSeconds(totalSeconds.longValue(), nanos)));
   }
 
   /**

@@ -495,6 +495,13 @@ class SQLSyntaxParserTest {
   }
 
   @Test
+  public void can_parse_sec_to_time_function() {
+    assertNotNull(parser.parse("SELECT sec_to_time(-6897)"));
+    assertNotNull(parser.parse("SELECT sec_to_time(6897)"));
+    assertNotNull(parser.parse("SELECT sec_to_time(6897.123)"));
+  }
+
+  @Test
   public void can_parse_wildcard_query_relevance_function() {
     assertNotNull(
         parser.parse("SELECT * FROM test WHERE wildcard_query(column, \"this is a test*\")"));
