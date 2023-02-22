@@ -2,10 +2,10 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 2.6.0
 
 ### Enhancements
 
-* Extend comparison methods to accept different datetime types ([#129](https://github.com/opensearch-project/sql/pull/129) [#1196](https://github.com/opensearch-project/sql/pull/1196))
+* Extend comparison methods to accept different datetime types ([#1196](https://github.com/opensearch-project/sql/pull/1196))
 * Enable concat() string function to support multiple string arguments ([#1279](https://github.com/opensearch-project/sql/pull/1279))
 * Add more keywords as identifier in PPL ([#1319](https://github.com/opensearch-project/sql/pull/1319))
-* Update DATE_ADD/ADDDATE and DATE_SUB/SUBDATE functions ([#112](https://github.com/opensearch-project/sql/issues/122) [#1182](https://github.com/opensearch-project/sql/pull/1182))
+* Update DATE_ADD/ADDDATE and DATE_SUB/SUBDATE functions ([#1182](https://github.com/opensearch-project/sql/pull/1182))
 * Escape character support for string literals ([#1206](https://github.com/opensearch-project/sql/pull/1206))
 * Updated EXPM1() and Tests to New Engine ([#1334](https://github.com/opensearch-project/sql/pull/1334))
 * Update TIMESTAMP function implementation and signatures ([#1254](https://github.com/opensearch-project/sql/pull/1254))
@@ -17,7 +17,7 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 2.6.0
 
 ### Bug Fixes
 
-* Allow literal in aggregation ([#203](https://github.com/opensearch-project/sql/issues/203) [#1288](https://github.com/opensearch-project/sql/pull/1288))
+* Allow literal in aggregation ([#1288](https://github.com/opensearch-project/sql/pull/1288))
 * Datetime aggregation fixes ([#1061](https://github.com/opensearch-project/sql/pull/1061))
 * Modified returning NaN to NULL ([#1341](https://github.com/opensearch-project/sql/pull/1341))
 * Fix index not found reported as server error bug ([#1353](https://github.com/opensearch-project/sql/pull/1353))
