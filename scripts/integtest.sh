@@ -95,18 +95,19 @@ fi
 USERNAME=`echo $CREDENTIAL | awk -F ':' '{print $1}'`
 PASSWORD=`echo $CREDENTIAL | awk -F ':' '{print $2}'`
 
-OPENSEARCH_HOME=`ps -ef | grep -o "[o]pensearch.path.home=\S\+" | cut -d= -f2- | head -n1`
+OS="`uname`"
 
-curl -SL https://raw.githubusercontent.com/opensearch-project/sql/main/integ-test/src/test/resources/datasource/datasources.json -o "$OPENSEARCH_HOME"/datasources.json
-
-yes | $OPENSEARCH_HOME/bin/opensearch-keystore add-file plugins.query.federation.datasources.config $OPENSEARCH_HOME/datasources.json
-
-if [ $SECURITY_ENABLED == "true" ] 
+if [ $OS != "WindowsNT" ]
 then
-    curl -k --request POST --url https://$BIND_ADDRESS:$BIND_PORT/_nodes/reload_secure_settings --header 'content-type: application/json' --data '{"secure_settings_password":""}' --user $CREDENTIAL
-else 
-    curl --request POST --url http://$BIND_ADDRESS:$BIND_PORT/_nodes/reload_secure_settings --header 'content-type: application/json' --data '{"secure_settings_password":""}'
+	OPENSEARCH_HOME=`ps -ef | grep -o "[o]pensearch.path.home=\S\+" | cut -d= -f2- | head -n1`
+	curl -SL https://raw.githubusercontent.com/opensearch-project/sql/main/integ-test/src/test/resources/datasource/datasources.json -o "$OPENSEARCH_HOME"/datasources.json
+	yes | $OPENSEARCH_HOME/bin/opensearch-keystore add-file plugins.query.federation.datasources.config $OPENSEARCH_HOME/datasources.json
+	if [ $SECURITY_ENABLED == "true" ] 
+	then
+		curl -k --request POST --url https://$BIND_ADDRESS:$BIND_PORT/_nodes/reload_secure_settings --header 'content-type: application/json' --data '{"secure_settings_password":""}' --user $CREDENTIAL
+	else 
+		curl --request POST --url http://$BIND_ADDRESS:$BIND_PORT/_nodes/reload_secure_settings --header 'content-type: application/json' --data '{"secure_settings_password":""}'
+	fi
 fi
-
 
 ./gradlew integTest -Dopensearch.version=$OPENSEARCH_VERSION -Dbuild.snapshot=$SNAPSHOT -Dtests.rest.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.clustername="opensearch-integrationtest" -Dhttps=$SECURITY_ENABLED -Duser=$USERNAME -Dpassword=$PASSWORD --console=plain

@@ -22,7 +22,6 @@
  * under the License.
  */
 
-import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 import org.opensearch.gradle.test.RestIntegTestTask
 import org.opensearch.gradle.testclusters.StandaloneRestIntegTestTask
 
@@ -178,6 +177,11 @@ integTest {
         filter {
             excludeTestsMatching "org.opensearch.sql.bwc.*IT"
         }
+    }
+
+    if(getOSFamilyType() != "linux" && getOSFamilyType()!="darwin") {
+        exclude 'org/opensearch/sql/ppl/PrometheusDataSourceCommandsIT.java'
+        exclude 'org/opensearch/sql/ppl/ShowDataSourcesCommandIT.java'
     }
 
     exclude 'org/opensearch/sql/doctest/**/*IT.class'
