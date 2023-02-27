@@ -19,7 +19,7 @@ public interface DataSourceService {
    *
    * @return set of {@link DataSource}.
    */
-  Set<DataSource> getDataSources();
+  Set<DataSourceMetadata> getMaskedDataSourceMetadataInfo();
 
   /**
    * Returns {@link DataSource} with corresponding to the DataSource name.
@@ -35,6 +35,7 @@ public interface DataSourceService {
    * @param metadatas list of {@link DataSourceMetadata}.
    */
   void addDataSource(DataSourceMetadata... metadatas);
+
 
   /**
    * remove all the registered {@link DataSource}.

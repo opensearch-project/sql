@@ -27,7 +27,7 @@ public class OpenSearchDataSourceFactory implements DataSourceFactory {
   }
 
   @Override
-  public DataSource createDataSource(DataSourceMetadata metadata) {
+  public DataSource createDataSource(DataSourceMetadata metadata, String clusterName) {
     return new DataSource(metadata.getName(), DataSourceType.OPENSEARCH,
         new OpenSearchStorageEngine(client, settings));
   }

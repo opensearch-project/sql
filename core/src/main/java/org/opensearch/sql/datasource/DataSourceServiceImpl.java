@@ -5,14 +5,14 @@
 
 package org.opensearch.sql.datasource;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
@@ -28,72 +28,69 @@ import org.opensearch.sql.storage.DataSourceFactory;
  */
 public class DataSourceServiceImpl implements DataSourceService {
 
-  private static String DATASOURCE_NAME_REGEX = "[@*A-Za-z]+?[*a-zA-Z_\\-0-9]*";
-
-  private final ConcurrentHashMap<String, DataSource> dataSourceMap;
+  private final ConcurrentHashMap<DataSourceMetadata, DataSource> dataSourceMap;
 
   private final Map<DataSourceType, DataSourceFactory> dataSourceFactoryMap;
+
+  private final DataSourceMetadataStorage dataSourceMetadataStorage;
+
+  private final String clusterName;
 
   /**
    * Construct from the set of {@link DataSourceFactory} at bootstrap time.
    */
-  public DataSourceServiceImpl(Set<DataSourceFactory> dataSourceFactories) {
+  public DataSourceServiceImpl(DataSourceMetadataStorage dataSourceMetadataStorage,
+                               Set<DataSourceFactory> dataSourceFactories,
+                               String clusterName) {
+    this.dataSourceMetadataStorage = dataSourceMetadataStorage;
     dataSourceFactoryMap =
         dataSourceFactories.stream()
             .collect(Collectors.toMap(DataSourceFactory::getDataSourceType, f -> f));
     dataSourceMap = new ConcurrentHashMap<>();
+    this.clusterName = clusterName;
+
   }
 
   @Override
-  public Set<DataSource> getDataSources() {
-    return Set.copyOf(dataSourceMap.values());
+  public Set<DataSourceMetadata> getMaskedDataSourceMetadataInfo() {
+    return new HashSet<>(this.dataSourceMetadataStorage.getDataSourceMetadata());
   }
 
   @Override
   public DataSource getDataSource(String dataSourceName) {
-    if (!dataSourceMap.containsKey(dataSourceName)) {
+    Optional<DataSourceMetadata> dataSourceMetadataOptional
+        = this.dataSourceMetadataStorage.getDataSourceMetadata(dataSourceName);
+    if (dataSourceMetadataOptional.isEmpty()) {
       throw new IllegalArgumentException(
           String.format("DataSource with name %s doesn't exist.", dataSourceName));
+    } else if (!dataSourceMap.containsKey(dataSourceMetadataOptional.get())) {
+      clearDataSource(dataSourceMetadataOptional.get());
+      addDataSource(dataSourceMetadataOptional.get());
     }
-    return dataSourceMap.get(dataSourceName);
+    return dataSourceMap.get(dataSourceMetadataOptional.get());
+  }
+
+  private void clearDataSource(DataSourceMetadata dataSourceMetadata) {
+    dataSourceMap.entrySet()
+        .removeIf(entry -> entry.getKey().getName().equals(dataSourceMetadata.getName()));
   }
 
   @Override
   public void addDataSource(DataSourceMetadata... metadatas) {
     for (DataSourceMetadata metadata : metadatas) {
-      validateDataSourceMetaData(metadata);
-      dataSourceMap.put(
-          metadata.getName(),
-          dataSourceFactoryMap.get(metadata.getConnector()).createDataSource(metadata));
+      loadDataSource(metadata);
     }
+  }
+
+
+  private void loadDataSource(DataSourceMetadata metadata) {
+    AccessController.doPrivileged((PrivilegedAction<DataSource>) () -> dataSourceMap.put(
+        metadata,
+        dataSourceFactoryMap.get(metadata.getConnector()).createDataSource(metadata, clusterName)));
   }
 
   @Override
   public void clear() {
     dataSourceMap.clear();
-  }
-
-  /**
-   * This can be moved to a different validator class when we introduce more connectors.
-   *
-   * @param metadata {@link DataSourceMetadata}.
-   */
-  private void validateDataSourceMetaData(DataSourceMetadata metadata) {
-    Preconditions.checkArgument(
-        !Strings.isNullOrEmpty(metadata.getName()),
-        "Missing Name Field from a DataSource. Name is a required parameter.");
-    Preconditions.checkArgument(
-        !dataSourceMap.containsKey(metadata.getName()),
-        StringUtils.format(
-            "Datasource name should be unique, Duplicate datasource found %s.",
-            metadata.getName()));
-    Preconditions.checkArgument(
-        metadata.getName().matches(DATASOURCE_NAME_REGEX),
-        StringUtils.format(
-            "DataSource Name: %s contains illegal characters. Allowed characters: a-zA-Z0-9_-*@.",
-            metadata.getName()));
-    Preconditions.checkArgument(
-        !Objects.isNull(metadata.getProperties()),
-        "Missing properties field in catalog configuration. Properties are required parameters.");
   }
 }

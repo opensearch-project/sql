@@ -7,6 +7,8 @@
 
 package org.opensearch.sql.prometheus.storage;
 
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashSet;
@@ -14,12 +16,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import okhttp3.OkHttpClient;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasource.model.auth.AuthenticationType;
 import org.opensearch.sql.prometheus.authinterceptors.AwsSigningInterceptor;
 import org.opensearch.sql.prometheus.authinterceptors.BasicAuthenticationInterceptor;
+import org.opensearch.sql.prometheus.authinterceptors.credentials.ExpirableCredentialsProviderFactory;
+import org.opensearch.sql.prometheus.authinterceptors.credentials.InternalAuthCredentialsClient;
+import org.opensearch.sql.prometheus.authinterceptors.credentials.InternalAuthCredentialsClientPool;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
 import org.opensearch.sql.prometheus.client.PrometheusClientImpl;
 import org.opensearch.sql.storage.DataSourceFactory;
@@ -27,11 +34,14 @@ import org.opensearch.sql.storage.StorageEngine;
 
 public class PrometheusStorageFactory implements DataSourceFactory {
 
+  private static final Logger LOG = LogManager.getLogger();
+
   public static final String URI = "prometheus.uri";
   public static final String AUTH_TYPE = "prometheus.auth.type";
   public static final String USERNAME = "prometheus.auth.username";
   public static final String PASSWORD = "prometheus.auth.password";
   public static final String REGION = "prometheus.auth.region";
+  public static final String IAM_ROLE = "prometheus.auth.iam_role";
   public static final String ACCESS_KEY = "prometheus.auth.access_key";
   public static final String SECRET_KEY = "prometheus.auth.secret_key";
 
@@ -41,18 +51,19 @@ public class PrometheusStorageFactory implements DataSourceFactory {
   }
 
   @Override
-  public DataSource createDataSource(DataSourceMetadata metadata) {
+  public DataSource createDataSource(DataSourceMetadata metadata, String clusterName) {
     return new DataSource(
         metadata.getName(),
         DataSourceType.PROMETHEUS,
-        getStorageEngine(metadata.getName(), metadata.getProperties()));
+        getStorageEngine(metadata.getName(), metadata.getProperties(), clusterName));
   }
 
-  StorageEngine getStorageEngine(String catalogName, Map<String, String> requiredConfig) {
+  StorageEngine getStorageEngine(String catalogName, Map<String, String> requiredConfig,
+                                 String clusterName) {
     validateFieldsInConfig(requiredConfig, Set.of(URI));
     PrometheusClient prometheusClient;
     try {
-      prometheusClient = new PrometheusClientImpl(getHttpClient(requiredConfig),
+      prometheusClient = new PrometheusClientImpl(getHttpClient(requiredConfig, clusterName),
           new URI(requiredConfig.get(URI)));
     } catch (URISyntaxException e) {
       throw new RuntimeException(
@@ -62,7 +73,8 @@ public class PrometheusStorageFactory implements DataSourceFactory {
   }
 
 
-  private OkHttpClient getHttpClient(Map<String, String> config) {
+  private OkHttpClient getHttpClient(Map<String, String> config, String clusterName) {
+
     OkHttpClient.Builder okHttpClient = new OkHttpClient.Builder();
     okHttpClient.callTimeout(1, TimeUnit.MINUTES);
     okHttpClient.connectTimeout(30, TimeUnit.SECONDS);
@@ -75,7 +87,18 @@ public class PrometheusStorageFactory implements DataSourceFactory {
       } else if (AuthenticationType.AWSSIGV4AUTH.equals(authenticationType)) {
         validateFieldsInConfig(config, Set.of(REGION, ACCESS_KEY, SECRET_KEY));
         okHttpClient.addInterceptor(new AwsSigningInterceptor(
-            config.get(ACCESS_KEY), config.get(SECRET_KEY),
+            new AWSStaticCredentialsProvider(
+                new BasicAWSCredentials(config.get(ACCESS_KEY), config.get(SECRET_KEY))),
+            config.get(REGION), "aps"));
+      } else if (AuthenticationType.IAMROLE.equals(authenticationType)) {
+        LOG.info("Using IAM Role for authentication");
+        validateFieldsInConfig(config, Set.of(REGION, IAM_ROLE));
+        InternalAuthCredentialsClient internalAuthCredentialsClient
+            = InternalAuthCredentialsClientPool.getInstance().getInternalAuthClient("prometheus-client");
+        ExpirableCredentialsProviderFactory expirableCredentialsProviderFactory
+            = new ExpirableCredentialsProviderFactory(internalAuthCredentialsClient, clusterName.split(":"));
+        okHttpClient.addInterceptor(new AwsSigningInterceptor(
+            expirableCredentialsProviderFactory.getProvider(config.get(IAM_ROLE)),
             config.get(REGION), "aps"));
       } else {
         throw new IllegalArgumentException(

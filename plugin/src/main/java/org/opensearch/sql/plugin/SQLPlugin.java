@@ -51,8 +51,11 @@ import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptContext;
 import org.opensearch.script.ScriptEngine;
 import org.opensearch.script.ScriptService;
+import org.opensearch.sql.datasource.DataSourceMetadataStorage;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.DataSourceServiceImpl;
+import org.opensearch.sql.datasource.encryptor.CredentialInfoEncryptor;
+import org.opensearch.sql.datasource.encryptor.CredentialInfoEncryptorImpl;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
@@ -68,13 +71,19 @@ import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
 import org.opensearch.sql.opensearch.storage.script.ExpressionScriptEngine;
 import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
 import org.opensearch.sql.plugin.config.OpenSearchPluginConfig;
+import org.opensearch.sql.plugin.datasource.OpenSearchDataSourceMetadataStorage;
 import org.opensearch.sql.plugin.datasource.DataSourceSettings;
 import org.opensearch.sql.plugin.rest.RestPPLQueryAction;
 import org.opensearch.sql.plugin.rest.RestPPLStatsAction;
 import org.opensearch.sql.plugin.rest.RestQuerySettingsAction;
+import org.opensearch.sql.plugin.rest.datasource.RestDataSourceQueryAction;
 import org.opensearch.sql.plugin.transport.PPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
+import org.opensearch.sql.plugin.transport.datasource.TransportCreateDataSourceAction;
+import org.opensearch.sql.plugin.transport.datasource.TransportGetDataSourceAction;
+import org.opensearch.sql.plugin.transport.datasource.model.CreateDataSourceActionResponse;
+import org.opensearch.sql.plugin.transport.datasource.model.GetDataSourceActionResponse;
 import org.opensearch.sql.ppl.config.PPLServiceConfig;
 import org.opensearch.sql.prometheus.storage.PrometheusStorageFactory;
 import org.opensearch.sql.sql.config.SQLServiceConfig;
@@ -101,6 +110,10 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
   private AnnotationConfigApplicationContext applicationContext;
 
   private DataSourceService dataSourceService;
+
+  private DataSourceMetadataStorage dataSourceMetadataStorage;
+
+  private CredentialInfoEncryptor credentialInfoEncryptor;
 
   public String name() {
     return "sql";
@@ -130,7 +143,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
         new RestSqlAction(settings, applicationContext),
         new RestSqlStatsAction(settings, restController),
         new RestPPLStatsAction(settings, restController),
-        new RestQuerySettingsAction(settings, restController));
+        new RestQuerySettingsAction(settings, restController),
+        new RestDataSourceQueryAction());
   }
 
   /**
@@ -141,7 +155,11 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
     return Arrays.asList(
         new ActionHandler<>(
             new ActionType<>(PPLQueryAction.NAME, TransportPPLQueryResponse::new),
-            TransportPPLQueryAction.class));
+            TransportPPLQueryAction.class),
+        new ActionHandler<>(new ActionType<>(TransportCreateDataSourceAction.NAME,
+            CreateDataSourceActionResponse::new), TransportCreateDataSourceAction.class),
+        new ActionHandler<>(new ActionType<>(TransportGetDataSourceAction.NAME,
+            GetDataSourceActionResponse::new), TransportGetDataSourceAction.class));
   }
 
   @Override
@@ -160,15 +178,19 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
     this.clusterService = clusterService;
     this.pluginSettings = new OpenSearchSettings(clusterService.getClusterSettings());
     this.client = (NodeClient) client;
+    String masterKey = DataSourceSettings
+        .DATASOURCE_MASTER_SECRET_KEY.get(clusterService.getSettings());
+    this.credentialInfoEncryptor = new CredentialInfoEncryptorImpl(masterKey);
+    this.dataSourceMetadataStorage
+        = new OpenSearchDataSourceMetadataStorage(client, clusterService, credentialInfoEncryptor);
     this.dataSourceService =
-        new DataSourceServiceImpl(
+        new DataSourceServiceImpl(dataSourceMetadataStorage,
             new ImmutableSet.Builder<DataSourceFactory>()
                 .add(new OpenSearchDataSourceFactory(
                         new OpenSearchNodeClient(this.client), pluginSettings))
                 .add(new PrometheusStorageFactory())
-                .build());
+                .build(), client.settings().get("cluster.name", "opensearch"));
     dataSourceService.addDataSource(defaultOpenSearchDataSourceMetadata());
-    loadDataSources(dataSourceService, clusterService.getSettings());
     LocalClusterState.state().setClusterService(clusterService);
     LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
 
@@ -181,6 +203,10 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
               org.opensearch.sql.common.setting.Settings.class, () -> pluginSettings);
           applicationContext.registerBean(
               DataSourceService.class, () -> dataSourceService);
+          applicationContext.registerBean(
+              DataSourceMetadataStorage.class, () -> dataSourceMetadataStorage);
+          applicationContext.registerBean(
+              CredentialInfoEncryptor.class, () -> credentialInfoEncryptor);
           applicationContext.register(OpenSearchPluginConfig.class);
           applicationContext.register(PPLServiceConfig.class);
           applicationContext.register(SQLServiceConfig.class);
@@ -210,6 +236,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
         .addAll(LegacyOpenDistroSettings.legacySettings())
         .addAll(OpenSearchSettings.pluginSettings())
         .add(DataSourceSettings.DATASOURCE_CONFIG)
+        .add(DataSourceSettings.DATASOURCE_MASTER_SECRET_KEY)
         .build();
   }
 

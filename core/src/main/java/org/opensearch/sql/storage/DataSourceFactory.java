@@ -27,5 +27,5 @@ public interface DataSourceFactory {
   /**
    * Create {@link DataSource}.
    */
-  DataSource createDataSource(DataSourceMetadata metadata);
+  DataSource createDataSource(DataSourceMetadata metadata, String clusterName);
 }
