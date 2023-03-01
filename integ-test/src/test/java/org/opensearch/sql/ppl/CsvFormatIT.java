@@ -24,12 +24,12 @@ public class CsvFormatIT extends PPLIntegTestCase {
     String result = executeCsvQuery(
         String.format(Locale.ROOT, "source=%s | fields firstname, lastname", TEST_INDEX_BANK_CSV_SANITIZE));
     assertEquals(
-        "firstname,lastname" + System.lineSeparator()
-            + "'+Amber JOHnny,Duke Willmington+"+ System.lineSeparator()
-            + "'-Hattie,Bond-"+System.lineSeparator()
-            + "'=Nanette,Bates="+System.lineSeparator()
-            + "'@Dale,Adams@"+System.lineSeparator()
-            + "\",Elinor\",\"Ratliff,,,\""+System.lineSeparator(),
+        "firstname,lastname%n"
+            + "'+Amber JOHnny,Duke Willmington+%n"
+            + "'-Hattie,Bond-%n"
+            + "'=Nanette,Bates=%n"
+            + "'@Dale,Adams@%n"
+            + "\",Elinor\",\"Ratliff,,,\"%n",
         result);
   }
 
@@ -38,12 +38,12 @@ public class CsvFormatIT extends PPLIntegTestCase {
     String result = executeCsvQuery(
         String.format(Locale.ROOT, "source=%s | fields firstname, lastname", TEST_INDEX_BANK_CSV_SANITIZE), false);
     assertEquals(
-        "firstname,lastname" + System.lineSeparator()
-            + "+Amber JOHnny,Duke Willmington+" + System.lineSeparator()
-            + "-Hattie,Bond-" + System.lineSeparator()
-            + "=Nanette,Bates="+ System.lineSeparator()
-            + "@Dale,Adams@" + System.lineSeparator()
-            + "\",Elinor\",\"Ratliff,,,\"" + System.lineSeparator(),
+        "firstname,lastname%n"
+            + "+Amber JOHnny,Duke Willmington+%n"
+            + "-Hattie,Bond-%n"
+            + "=Nanette,Bates=%n"
+            + "@Dale,Adams@%n"
+            + "\",Elinor\",\"Ratliff,,,\"%n",
         result);
   }
 }

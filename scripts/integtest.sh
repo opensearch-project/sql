@@ -96,7 +96,8 @@ USERNAME=`echo $CREDENTIAL | awk -F ':' '{print $1}'`
 PASSWORD=`echo $CREDENTIAL | awk -F ':' '{print $2}'`
 
 OS="`uname`"
-
+##Cygwin or MinGW packages should be preinstalled in the windows.
+## This command doesn't work without bash
 if [ $OS != "WindowsNT" ]
 then
 	OPENSEARCH_HOME=`ps -ef | grep -o "[o]pensearch.path.home=\S\+" | cut -d= -f2- | head -n1`
