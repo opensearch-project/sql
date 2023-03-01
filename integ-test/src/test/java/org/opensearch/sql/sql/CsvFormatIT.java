@@ -25,12 +25,12 @@ public class CsvFormatIT extends SQLIntegTestCase {
     String result = executeQuery(
         String.format(Locale.ROOT, "SELECT firstname, lastname FROM %s", TEST_INDEX_BANK_CSV_SANITIZE), "csv");
     assertEquals(
-        "firstname,lastname\n"
-            + "'+Amber JOHnny,Duke Willmington+\n"
-            + "'-Hattie,Bond-\n"
-            + "'=Nanette,Bates=\n"
-            + "'@Dale,Adams@\n"
-            + "\",Elinor\",\"Ratliff,,,\"\n",
+        "firstname,lastname" + System.lineSeparator()
+            + "'+Amber JOHnny,Duke Willmington+" + System.lineSeparator()
+            + "'-Hattie,Bond-" + System.lineSeparator()
+            + "'=Nanette,Bates=" + System.lineSeparator()
+            + "'@Dale,Adams@" + System.lineSeparator()
+            + "\",Elinor\",\"Ratliff,,,\"" + System.lineSeparator(),
         result);
   }
 
@@ -40,12 +40,12 @@ public class CsvFormatIT extends SQLIntegTestCase {
         String.format(Locale.ROOT, "SELECT firstname, lastname FROM %s", TEST_INDEX_BANK_CSV_SANITIZE),
         "csv&sanitize=false");
     assertEquals(
-        "firstname,lastname\n"
-            + "+Amber JOHnny,Duke Willmington+\n"
-            + "-Hattie,Bond-\n"
-            + "=Nanette,Bates=\n"
-            + "@Dale,Adams@\n"
-            + "\",Elinor\",\"Ratliff,,,\"\n",
+        "firstname,lastname" + System.lineSeparator()
+            + "+Amber JOHnny,Duke Willmington+" + System.lineSeparator()
+            + "-Hattie,Bond-" + System.lineSeparator()
+            + "=Nanette,Bates=" + System.lineSeparator()
+            + "@Dale,Adams@" + System.lineSeparator()
+            + "\",Elinor\",\"Ratliff,,,\"" + System.lineSeparator(),
         result);
   }
 }
