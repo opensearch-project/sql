@@ -24,9 +24,6 @@ import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasource.model.auth.AuthenticationType;
 import org.opensearch.sql.prometheus.authinterceptors.AwsSigningInterceptor;
 import org.opensearch.sql.prometheus.authinterceptors.BasicAuthenticationInterceptor;
-import org.opensearch.sql.prometheus.authinterceptors.credentials.ExpirableCredentialsProviderFactory;
-import org.opensearch.sql.prometheus.authinterceptors.credentials.InternalAuthCredentialsClient;
-import org.opensearch.sql.prometheus.authinterceptors.credentials.InternalAuthCredentialsClientPool;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
 import org.opensearch.sql.prometheus.client.PrometheusClientImpl;
 import org.opensearch.sql.storage.DataSourceFactory;
@@ -89,16 +86,6 @@ public class PrometheusStorageFactory implements DataSourceFactory {
         okHttpClient.addInterceptor(new AwsSigningInterceptor(
             new AWSStaticCredentialsProvider(
                 new BasicAWSCredentials(config.get(ACCESS_KEY), config.get(SECRET_KEY))),
-            config.get(REGION), "aps"));
-      } else if (AuthenticationType.IAMROLE.equals(authenticationType)) {
-        LOG.info("Using IAM Role for authentication");
-        validateFieldsInConfig(config, Set.of(REGION, IAM_ROLE));
-        InternalAuthCredentialsClient internalAuthCredentialsClient
-            = InternalAuthCredentialsClientPool.getInstance().getInternalAuthClient("prometheus-client");
-        ExpirableCredentialsProviderFactory expirableCredentialsProviderFactory
-            = new ExpirableCredentialsProviderFactory(internalAuthCredentialsClient, clusterName.split(":"));
-        okHttpClient.addInterceptor(new AwsSigningInterceptor(
-            expirableCredentialsProviderFactory.getProvider(config.get(IAM_ROLE)),
             config.get(REGION), "aps"));
       } else {
         throw new IllegalArgumentException(

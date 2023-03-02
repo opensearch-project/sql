@@ -11,7 +11,6 @@ import static org.opensearch.sql.utils.MLCommonsConstants.STATUS;
 import static org.opensearch.sql.utils.MLCommonsConstants.TASKID;
 
 import com.google.common.collect.ImmutableMap;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -23,7 +22,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.common.xcontent.XContentBuilder;
 import org.opensearch.ml.client.MachineLearningNodeClient;
 import org.opensearch.ml.common.FunctionName;
 import org.opensearch.ml.common.dataframe.ColumnMeta;
@@ -36,7 +34,6 @@ import org.opensearch.ml.common.input.MLInput;
 import org.opensearch.ml.common.input.parameter.MLAlgoParams;
 import org.opensearch.ml.common.input.parameter.sample.SampleAlgoParams;
 import org.opensearch.ml.common.output.MLOutput;
-import org.opensearch.ml.common.output.MLOutputType;
 import org.opensearch.ml.common.output.MLPredictionOutput;
 import org.opensearch.ml.common.output.MLTrainingOutput;
 import org.opensearch.sql.data.model.ExprBooleanValue;
@@ -247,18 +244,9 @@ public abstract class MLCommonsOperatorActions extends PhysicalPlan {
     MachineLearningNodeClient machineLearningClient =
             MLClient.getMLClient(nodeClient);
 
-    return new MLOutput() {
-      @Override
-      protected MLOutputType getType() {
-        return null;
-      }
-
-      @Override
-      public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params)
-          throws IOException {
-        return null;
-      }
-    };
+    return machineLearningClient
+            .run(mlinput, arguments)
+            .actionGet(30, TimeUnit.SECONDS);
   }
 
   /**
