@@ -98,7 +98,19 @@ PASSWORD=`echo $CREDENTIAL | awk -F ':' '{print $2}'`
 OS="`uname`"
 ##Cygwin or MinGW packages should be preinstalled in the windows.
 ## This command doesn't work without bash
-if [ $OS != "WindowsNT" ]
+## https://stackoverflow.com/questions/3466166/how-to-check-if-running-in-cygwin-mac-or-linux
+#Operating System	uname -s
+#Mac OS X	Darwin
+#Cygwin 32-bit (Win-XP)	CYGWIN_NT-5.1
+#Cygwin 32-bit (Win-7 32-bit)	CYGWIN_NT-6.1
+#Cygwin 32-bit (Win-7 64-bit)	CYGWIN_NT-6.1-WOW64
+#Cygwin 64-bit (Win-7 64-bit)	CYGWIN_NT-6.1
+#MinGW (Windows 7 32-bit)	MINGW32_NT-6.1
+#MinGW (Windows 10 64-bit)	MINGW64_NT-10.0
+#Interix (Services for UNIX)	Interix
+#MSYS	MSYS_NT-6.1
+#MSYS2	MSYS_NT-10.0-17763
+if [[ $OS =~ CYGWIN*|MINGW*|MINGW32*|MSYS* ]]
 then
 	OPENSEARCH_HOME=`ps -ef | grep -o "[o]pensearch.path.home=\S\+" | cut -d= -f2- | head -n1`
 	curl -SL https://raw.githubusercontent.com/opensearch-project/sql/main/integ-test/src/test/resources/datasource/datasources.json -o "$OPENSEARCH_HOME"/datasources.json
