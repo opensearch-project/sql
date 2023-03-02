@@ -1,4 +1,5 @@
 *.class
+*.http
 .settings/
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
@@ -33,7 +34,6 @@ gen/
 # git mergetool artifact
 *.orig
 gen
-*.tokens
 
 # Python
 */.venv
