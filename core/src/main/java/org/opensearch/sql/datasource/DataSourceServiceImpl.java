@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.datasource;
 
+import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
+
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.HashSet;
@@ -61,8 +63,12 @@ public class DataSourceServiceImpl implements DataSourceService {
     Optional<DataSourceMetadata> dataSourceMetadataOptional
         = this.dataSourceMetadataStorage.getDataSourceMetadata(dataSourceName);
     if (dataSourceMetadataOptional.isEmpty()) {
-      throw new IllegalArgumentException(
-          String.format("DataSource with name %s doesn't exist.", dataSourceName));
+      if (dataSourceName.equals(DEFAULT_DATASOURCE_NAME)) {
+        return dataSourceMap.get(DataSourceMetadata.defaultOpenSearchDataSourceMetadata());
+      } else {
+        throw new IllegalArgumentException(
+            String.format("DataSource with name %s doesn't exist.", dataSourceName));
+      }
     } else if (!dataSourceMap.containsKey(dataSourceMetadataOptional.get())) {
       clearDataSource(dataSourceMetadataOptional.get());
       addDataSource(dataSourceMetadataOptional.get());
@@ -78,15 +84,10 @@ public class DataSourceServiceImpl implements DataSourceService {
   @Override
   public void addDataSource(DataSourceMetadata... metadatas) {
     for (DataSourceMetadata metadata : metadatas) {
-      loadDataSource(metadata);
+      AccessController.doPrivileged((PrivilegedAction<DataSource>) () -> dataSourceMap.put(
+          metadata,
+          dataSourceFactoryMap.get(metadata.getConnector()).createDataSource(metadata, clusterName)));
     }
-  }
-
-
-  private void loadDataSource(DataSourceMetadata metadata) {
-    AccessController.doPrivileged((PrivilegedAction<DataSource>) () -> dataSourceMap.put(
-        metadata,
-        dataSourceFactoryMap.get(metadata.getConnector()).createDataSource(metadata, clusterName)));
   }
 
   @Override

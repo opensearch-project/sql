@@ -16,8 +16,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import okhttp3.OkHttpClient;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
@@ -31,14 +29,11 @@ import org.opensearch.sql.storage.StorageEngine;
 
 public class PrometheusStorageFactory implements DataSourceFactory {
 
-  private static final Logger LOG = LogManager.getLogger();
-
   public static final String URI = "prometheus.uri";
   public static final String AUTH_TYPE = "prometheus.auth.type";
   public static final String USERNAME = "prometheus.auth.username";
   public static final String PASSWORD = "prometheus.auth.password";
   public static final String REGION = "prometheus.auth.region";
-  public static final String IAM_ROLE = "prometheus.auth.iam_role";
   public static final String ACCESS_KEY = "prometheus.auth.access_key";
   public static final String SECRET_KEY = "prometheus.auth.secret_key";
 
