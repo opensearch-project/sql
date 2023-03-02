@@ -1,5 +1,6 @@
 package com.wiredforcode.gradle.spawn
 
+import org.apache.tools.ant.taskdefs.condition.Os
 import org.gradle.api.tasks.TaskAction
 
 class KillProcessTask extends DefaultSpawnTask {
@@ -12,7 +13,13 @@ class KillProcessTask extends DefaultSpawnTask {
         }
 
         def pid = pidFile.text
-        def process = "kill $pid".execute()
+        def killCommandLine
+        if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+            killCommandLine = Arrays.asList("taskkill", "/F", "/T", "/PID", "$pid")
+        } else {
+            killCommandLine = Arrays.asList("kill", "$pid")
+        }
+        def process = killCommandLine.execute()
 
         try {
             process.waitFor()
