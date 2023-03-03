@@ -71,4 +71,27 @@ public class InformationSchemaCommandIT extends PPLIntegTestCase {
             "counter", "", "Counter of HTTP requests."));
   }
 
+
+  // Moved this IT from DescribeCommandIT to segregate Datasource Integ Tests.
+  @Test
+  public void testDescribeCommandWithPrometheusCatalog() throws IOException {
+    JSONObject result = executeQuery("describe  my_prometheus.prometheus_http_requests_total");
+    verifyColumn(
+        result,
+        columnName("TABLE_CATALOG"),
+        columnName("TABLE_SCHEMA"),
+        columnName("TABLE_NAME"),
+        columnName("COLUMN_NAME"),
+        columnName("DATA_TYPE")
+    );
+    verifyDataRows(result,
+        rows("my_prometheus", "default", "prometheus_http_requests_total", "handler", "keyword"),
+        rows("my_prometheus", "default", "prometheus_http_requests_total", "code", "keyword"),
+        rows("my_prometheus", "default", "prometheus_http_requests_total", "instance", "keyword"),
+        rows("my_prometheus", "default", "prometheus_http_requests_total", "@value", "double"),
+        rows("my_prometheus", "default", "prometheus_http_requests_total", "@timestamp",
+            "timestamp"),
+        rows("my_prometheus", "default", "prometheus_http_requests_total", "job", "keyword"));
+  }
+
 }
