@@ -10,6 +10,9 @@ package org.opensearch.sql.prometheus.authinterceptors;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
 import lombok.SneakyThrows;
 import okhttp3.Interceptor;
 import okhttp3.Request;
@@ -33,13 +36,13 @@ public class AwsSigningInterceptorTest {
   @Test
   void testConstructors() {
     Assertions.assertThrows(NullPointerException.class, () ->
-        new AwsSigningInterceptor(null, "secretKey", "us-east-1", "aps"));
+        new AwsSigningInterceptor(null, "us-east-1", "aps"));
     Assertions.assertThrows(NullPointerException.class, () ->
-        new AwsSigningInterceptor("accessKey", null, "us-east-1", "aps"));
+        new AwsSigningInterceptor(getStaticAWSCredentialsProvider("accessKey", "secretKey"), null,
+            "aps"));
     Assertions.assertThrows(NullPointerException.class, () ->
-        new AwsSigningInterceptor("accessKey", "secretKey", null, "aps"));
-    Assertions.assertThrows(NullPointerException.class, () ->
-        new AwsSigningInterceptor("accessKey", "secretKey", "us-east-1", null));
+        new AwsSigningInterceptor(getStaticAWSCredentialsProvider("accessKey", "secretKey"),
+            "us-east-1", null));
   }
 
   @Test
@@ -49,13 +52,21 @@ public class AwsSigningInterceptorTest {
         .url("http://localhost:9090")
         .build());
     AwsSigningInterceptor awsSigningInterceptor
-        = new AwsSigningInterceptor("testAccessKey", "testSecretKey", "us-east-1", "aps");
+        =
+        new AwsSigningInterceptor(getStaticAWSCredentialsProvider("testAccessKey", "testSecretKey"),
+            "us-east-1", "aps");
     awsSigningInterceptor.intercept(chain);
     verify(chain).proceed(requestArgumentCaptor.capture());
     Request request = requestArgumentCaptor.getValue();
     Assertions.assertNotNull(request.headers("Authorization"));
     Assertions.assertNotNull(request.headers("x-amz-date"));
     Assertions.assertNotNull(request.headers("host"));
+  }
+
+
+  private AWSCredentialsProvider getStaticAWSCredentialsProvider(String accessKey,
+                                                                 String secretKey) {
+    return new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey));
   }
 
 }
