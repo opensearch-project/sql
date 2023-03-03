@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Map;
@@ -198,8 +199,9 @@ public class AnalyzerTestBase {
 
 
     @Override
-    public Set<DataSource> getDataSources() {
-      return ImmutableSet.of(dataSource);
+    public Set<DataSourceMetadata> getMaskedDataSourceMetadataSet() {
+      return ImmutableSet.of(new DataSourceMetadata(dataSource.getName(),
+          dataSource.getConnectorType(), ImmutableMap.of()));
     }
 
     @Override

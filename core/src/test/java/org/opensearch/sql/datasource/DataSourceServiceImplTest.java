@@ -81,19 +81,19 @@ class DataSourceServiceImplTest {
 
   @Test
   void getAddDataSourcesShouldSuccess() {
-    assertEquals(0, dataSourceService.getDataSources().size());
+    assertEquals(0, dataSourceService.getMaskedDataSourceMetadataSet().size());
 
     dataSourceService.addDataSource(metadata(NAME, DataSourceType.OPENSEARCH, ImmutableMap.of()));
-    assertEquals(1, dataSourceService.getDataSources().size());
+    assertEquals(1, dataSourceService.getMaskedDataSourceMetadataSet().size());
   }
 
   @Test
   void noDataSourceExistAfterClear() {
     dataSourceService.addDataSource(metadata(NAME, DataSourceType.OPENSEARCH, ImmutableMap.of()));
-    assertEquals(1, dataSourceService.getDataSources().size());
+    assertEquals(1, dataSourceService.getMaskedDataSourceMetadataSet().size());
 
     dataSourceService.clear();
-    assertEquals(0, dataSourceService.getDataSources().size());
+    assertEquals(0, dataSourceService.getMaskedDataSourceMetadataSet().size());
   }
 
   @Test
@@ -137,7 +137,7 @@ class DataSourceServiceImplTest {
   @Test
   void metaDataHasDuplicateNameShouldFail() {
     dataSourceService.addDataSource(metadata(NAME, DataSourceType.OPENSEARCH, ImmutableMap.of()));
-    assertEquals(1, dataSourceService.getDataSources().size());
+    assertEquals(1, dataSourceService.getMaskedDataSourceMetadataSet().size());
 
     IllegalArgumentException exception =
         assertThrows(

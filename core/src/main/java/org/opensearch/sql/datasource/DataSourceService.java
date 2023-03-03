@@ -19,7 +19,7 @@ public interface DataSourceService {
    *
    * @return set of {@link DataSource}.
    */
-  Set<DataSource> getDataSources();
+  Set<DataSourceMetadata> getMaskedDataSourceMetadataSet();
 
   /**
    * Returns {@link DataSource} with corresponding to the DataSource name.
