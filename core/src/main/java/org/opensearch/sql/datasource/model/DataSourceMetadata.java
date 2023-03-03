@@ -13,14 +13,19 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.opensearch.sql.datasource.DataSourceService;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Getter
 @Setter
+@AllArgsConstructor
+@NoArgsConstructor
 @EqualsAndHashCode
 public class DataSourceMetadata {
 
@@ -39,10 +44,7 @@ public class DataSourceMetadata {
    * {@link DataSource} to {@link DataSourceService}.
    */
   public static DataSourceMetadata defaultOpenSearchDataSourceMetadata() {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName(DEFAULT_DATASOURCE_NAME);
-    dataSourceMetadata.setConnector(DataSourceType.OPENSEARCH);
-    dataSourceMetadata.setProperties(ImmutableMap.of());
-    return dataSourceMetadata;
+    return new DataSourceMetadata(DEFAULT_DATASOURCE_NAME,
+        DataSourceType.OPENSEARCH, ImmutableMap.of());
   }
 }

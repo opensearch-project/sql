@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,6 +26,7 @@ import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSource;
+import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.storage.StorageEngine;
 
@@ -54,7 +56,10 @@ public class DataSourceTableScanTest {
     Set<DataSource> dataSourceSet = new HashSet<>();
     dataSourceSet.add(new DataSource("prometheus", DataSourceType.PROMETHEUS, storageEngine));
     dataSourceSet.add(new DataSource("opensearch", DataSourceType.OPENSEARCH, storageEngine));
-    when(dataSourceService.getDataSources()).thenReturn(dataSourceSet);
+    Set<DataSourceMetadata> dataSourceMetadata = dataSourceSet.stream()
+        .map(dataSource -> new DataSourceMetadata(dataSource.getName(),
+        dataSource.getConnectorType(), ImmutableMap.of())).collect(Collectors.toSet());
+    when(dataSourceService.getMaskedDataSourceMetadataSet()).thenReturn(dataSourceMetadata);
 
     assertFalse(dataSourceTableScan.hasNext());
     dataSourceTableScan.open();
