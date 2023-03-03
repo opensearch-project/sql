@@ -3,14 +3,16 @@ name: Publish snapshots to maven
 on:
   workflow_dispatch:
   push:
-    branches: [
-      main
-        1.*
-        2.*
-    ]
+    branches:
+      - main
+      - 1.*
+      - 2.*
 
 jobs:
   build-and-publish-snapshots:
+    strategy:
+      fail-fast: false
+    if: github.repository == 'opensearch-project/sql'
     runs-on: ubuntu-latest
 
     permissions:
@@ -23,7 +25,7 @@ jobs:
           distribution: temurin # Temurin is a distribution of adoptium
           java-version: 11
       - uses: actions/checkout@v3
-      - uses: aws-actions/configure-aws-credentials@v1
+      - uses: aws-actions/configure-aws-credentials@v1.7.0
         with:
           role-to-assume: ${{ secrets.PUBLISH_SNAPSHOTS_ROLE }}
           aws-region: us-east-1
