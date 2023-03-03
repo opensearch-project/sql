@@ -13,10 +13,10 @@ import org.opensearch.action.ActionRequestBuilder;
 import org.opensearch.action.ActionResponse;
 import org.opensearch.action.search.MultiSearchRequest;
 import org.opensearch.common.bytes.BytesReference;
-import org.opensearch.common.xcontent.ToXContent;
-import org.opensearch.common.xcontent.XContentBuilder;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
 
 /**
