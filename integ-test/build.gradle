@@ -116,10 +116,6 @@ testClusters.all {
     testDistribution = 'archive'
 }
 
-testClusters.integJdbcTest {
-    plugin ":opensearch-sql-plugin"
-}
-
 testClusters.integTest {
     plugin ":opensearch-sql-plugin"
     keystore 'plugins.query.federation.datasources.config', new File("$projectDir/src/test/resources/datasource/", 'datasources.json')
@@ -158,6 +154,9 @@ task stopPrometheus(type: KillProcessTask) {
 stopPrometheus.mustRunAfter startPrometheus
 
 task integJdbcTest(type: RestIntegTestTask) {
+    testClusters.findAll {c -> c.clusterName == "integJdbcTest"}.first().
+        plugin ":opensearch-sql-plugin"
+
     useJUnitPlatform()
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
     testLogging {
