@@ -14,7 +14,7 @@ import org.opensearch.sql.legacy.parser.NestedType;
 import org.opensearch.sql.legacy.utils.Util;
 
 /**
- * 搜索域
+ *
  *
  * @author ansj
  */
