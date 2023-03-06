@@ -26,8 +26,8 @@ import org.opensearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.metadata.AliasMetadata;
-import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.IndexSettings;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
@@ -42,15 +42,11 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   /** Node client provided by OpenSearch container. */
   private final NodeClient client;
 
-  /** Index name expression resolver to get concrete index name. */
-  private final IndexNameExpressionResolver resolver;
-
   /**
    * Constructor of ElasticsearchNodeClient.
    */
   public OpenSearchNodeClient(NodeClient client) {
     this.client = client;
-    this.resolver = new IndexNameExpressionResolver(client.threadPool().getThreadContext());
   }
 
   @Override
@@ -96,6 +92,9 @@ public class OpenSearchNodeClient implements OpenSearchClient {
       return Streams.stream(mappingsResponse.mappings().iterator())
           .collect(Collectors.toMap(cursor -> cursor.key,
               cursor -> new IndexMapping(cursor.value)));
+    } catch (IndexNotFoundException e) {
+      // Re-throw directly to be treated as client error finally
+      throw e;
     } catch (Exception e) {
       throw new IllegalStateException(
           "Failed to read mapping for index pattern [" + indexExpression + "]", e);

@@ -29,10 +29,10 @@ import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
-import org.opensearch.common.xcontent.NamedXContentRegistry;
 import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.common.xcontent.XContentParser;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.search.SearchHit;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
