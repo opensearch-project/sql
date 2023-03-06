@@ -33,8 +33,8 @@ task bootstrap(type: Exec, dependsOn: ['cloneSqlCli']) {
 
 }
 
-String SPARK_VERSION = "spark-3.2.3"
-String SPARK_BINARY = "${SPARK_VERSION}-bin-hadoop3.2";
+String SPARK_VERSION = "spark-3.3.2"
+String SPARK_BINARY = "${SPARK_VERSION}-bin-hadoop3";
 
 task startMaster(type: SpawnProcessTask) {
     doFirst {
