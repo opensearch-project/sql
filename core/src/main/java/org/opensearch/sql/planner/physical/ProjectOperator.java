@@ -9,8 +9,11 @@ package org.opensearch.sql.planner.physical;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -56,33 +59,56 @@ public class ProjectOperator extends PhysicalPlan {
   public ExprValue next() {
     ExprValue inputValue = input.next();
     ImmutableMap.Builder<String, ExprValue> mapBuilder = new Builder<>();
+    Set<String> columns = new HashSet<>();
 
     // ParseExpression will always override NamedExpression when identifier conflicts
     // TODO needs a better implementation, see https://github.com/opensearch-project/sql/issues/458
+    // TODO: Implement a fallback: if a key exists, append a number at the end
     for (NamedExpression expr : projectList) {
       ExprValue exprValue = expr.valueOf(inputValue.bindingTuples());
       Optional<NamedExpression> optionalParseExpression = namedParseExpressions.stream()
           .filter(parseExpr -> parseExpr.getNameOrAlias().equals(expr.getNameOrAlias()))
           .findFirst();
+      String columnName = expr.getNameOrAlias();
+
       if (optionalParseExpression.isEmpty()) {
-        mapBuilder.put(expr.getNameOrAlias(), exprValue);
+
+        if (columns.contains(expr.getNameOrAlias())) {
+          int appendedNum = 1;
+          while (columns.contains(String.format("%s%d", expr.getNameOrAlias(), appendedNum))) {
+            appendedNum++;
+          }
+          columnName = String.format("%s%d", expr.getNameOrAlias(), appendedNum);
+        }
+        columns.add(columnName);
+        mapBuilder.put(columnName, exprValue);
         continue;
       }
 
       NamedExpression parseExpression = optionalParseExpression.get();
       ExprValue sourceFieldValue = inputValue.bindingTuples()
           .resolve(((ParseExpression) parseExpression.getDelegated()).getSourceField());
+      Set<String> columns2 = new HashSet<>();
+      if (columns2.contains(parseExpression.getNameOrAlias())) {
+        int appendedNum = 1;
+        while (columns.contains(String.format("%s%d", parseExpression.getNameOrAlias(), appendedNum))) {
+          appendedNum++;
+        }
+        columnName = String.format("%s%d", parseExpression.getNameOrAlias(), appendedNum);
+      }
+      columns2.add(columnName);
+
       if (sourceFieldValue.isMissing()) {
         // source field will be missing after stats command, read from inputValue if it exists
         // otherwise do nothing since it should not appear as a field
         ExprValue tupleValue =
-            ExprValueUtils.getTupleValue(inputValue).get(parseExpression.getNameOrAlias());
+            ExprValueUtils.getTupleValue(inputValue).get(columnName);
         if (tupleValue != null) {
-          mapBuilder.put(parseExpression.getNameOrAlias(), tupleValue);
+          mapBuilder.put(columnName, tupleValue);
         }
       } else {
         ExprValue parsedValue = parseExpression.valueOf(inputValue.bindingTuples());
-        mapBuilder.put(parseExpression.getNameOrAlias(), parsedValue);
+        mapBuilder.put(columnName, parsedValue);
       }
     }
     return ExprTupleValue.fromExprValueMap(mapBuilder.build());
