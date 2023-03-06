@@ -11,7 +11,6 @@ import com.google.common.collect.ImmutableMap.Builder;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -55,6 +54,18 @@ public class ProjectOperator extends PhysicalPlan {
     return input.hasNext();
   }
 
+  private String handleDuplicateColumns(String newName, Set takenNames) {
+    if (takenNames.contains(newName)) {
+      int appendedNum = 1;
+      while (takenNames.contains(String.format("%s%d", newName, appendedNum))) {
+        appendedNum++;
+      }
+      newName = String.format("%s%d", newName, appendedNum);
+    }
+    takenNames.add(newName);
+    return newName;
+  }
+
   @Override
   public ExprValue next() {
     ExprValue inputValue = input.next();
@@ -63,41 +74,21 @@ public class ProjectOperator extends PhysicalPlan {
 
     // ParseExpression will always override NamedExpression when identifier conflicts
     // TODO needs a better implementation, see https://github.com/opensearch-project/sql/issues/458
-    // TODO: Implement a fallback: if a key exists, append a number at the end
     for (NamedExpression expr : projectList) {
       ExprValue exprValue = expr.valueOf(inputValue.bindingTuples());
       Optional<NamedExpression> optionalParseExpression = namedParseExpressions.stream()
           .filter(parseExpr -> parseExpr.getNameOrAlias().equals(expr.getNameOrAlias()))
           .findFirst();
-      String columnName = expr.getNameOrAlias();
 
       if (optionalParseExpression.isEmpty()) {
-
-        if (columns.contains(expr.getNameOrAlias())) {
-          int appendedNum = 1;
-          while (columns.contains(String.format("%s%d", expr.getNameOrAlias(), appendedNum))) {
-            appendedNum++;
-          }
-          columnName = String.format("%s%d", expr.getNameOrAlias(), appendedNum);
-        }
-        columns.add(columnName);
-        mapBuilder.put(columnName, exprValue);
+        mapBuilder.put(handleDuplicateColumns(expr.getNameOrAlias(), columns), exprValue);
         continue;
       }
 
       NamedExpression parseExpression = optionalParseExpression.get();
       ExprValue sourceFieldValue = inputValue.bindingTuples()
           .resolve(((ParseExpression) parseExpression.getDelegated()).getSourceField());
-      Set<String> columns2 = new HashSet<>();
-      if (columns2.contains(parseExpression.getNameOrAlias())) {
-        int appendedNum = 1;
-        while (columns.contains(String.format("%s%d", parseExpression.getNameOrAlias(), appendedNum))) {
-          appendedNum++;
-        }
-        columnName = String.format("%s%d", parseExpression.getNameOrAlias(), appendedNum);
-      }
-      columns2.add(columnName);
-
+      String columnName = handleDuplicateColumns(parseExpression.getNameOrAlias(), columns);
       if (sourceFieldValue.isMissing()) {
         // source field will be missing after stats command, read from inputValue if it exists
         // otherwise do nothing since it should not appear as a field
