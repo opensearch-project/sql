@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
@@ -30,8 +31,11 @@ import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.analysis.ExpressionAnalyzer;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.datasource.DataSourceMetadataStorage;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.DataSourceServiceImpl;
+import org.opensearch.sql.datasource.DataSourceUserAuthorizationHelper;
+import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.QueryManager;
@@ -78,7 +82,7 @@ public class StandaloneIT extends PPLIntegTestCase {
     DataSourceService dataSourceService = new DataSourceServiceImpl(
         new ImmutableSet.Builder<DataSourceFactory>()
             .add(new OpenSearchDataSourceFactory(client, defaultSettings()))
-            .build());
+            .build(), getDataSourceMetadataStorage(), getDataSourceUserRoleHelper());
     dataSourceService.createDataSource(defaultOpenSearchDataSourceMetadata());
 
     ModulesBuilder modules = new ModulesBuilder();
@@ -233,4 +237,44 @@ public class StandaloneIT extends PPLIntegTestCase {
       return new QueryPlanFactory(new QueryService(analyzer, executionEngine, planner));
     }
   }
+
+
+  private DataSourceMetadataStorage getDataSourceMetadataStorage() {
+    return new DataSourceMetadataStorage() {
+      @Override
+      public List<DataSourceMetadata> getDataSourceMetadata() {
+        return Collections.emptyList();
+      }
+
+      @Override
+      public Optional<DataSourceMetadata> getDataSourceMetadata(String datasourceName) {
+        return Optional.empty();
+      }
+
+      @Override
+      public void createDataSourceMetadata(DataSourceMetadata dataSourceMetadata) {
+
+      }
+
+      @Override
+      public void updateDataSourceMetadata(DataSourceMetadata dataSourceMetadata) {
+
+      }
+
+      @Override
+      public void deleteDataSourceMetadata(String datasourceName) {
+
+      }
+    };
+  }
+
+  private DataSourceUserAuthorizationHelper getDataSourceUserRoleHelper() {
+    return new DataSourceUserAuthorizationHelper() {
+      @Override
+      public void authorizeDataSource(DataSourceMetadata dataSourceMetadata) {
+
+      }
+    };
+  }
+
 }
