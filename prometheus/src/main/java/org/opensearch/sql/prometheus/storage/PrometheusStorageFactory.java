@@ -11,6 +11,8 @@ import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -53,13 +55,16 @@ public class PrometheusStorageFactory implements DataSourceFactory {
   StorageEngine getStorageEngine(String catalogName, Map<String, String> requiredConfig) {
     validateFieldsInConfig(requiredConfig, Set.of(URI));
     PrometheusClient prometheusClient;
-    try {
-      prometheusClient = new PrometheusClientImpl(getHttpClient(requiredConfig),
-          new URI(requiredConfig.get(URI)));
-    } catch (URISyntaxException e) {
-      throw new RuntimeException(
-          String.format("Prometheus Client creation failed due to: %s", e.getMessage()));
-    }
+    prometheusClient =
+        AccessController.doPrivileged((PrivilegedAction<PrometheusClientImpl>) () -> {
+          try {
+            return new PrometheusClientImpl(getHttpClient(requiredConfig),
+                new URI(requiredConfig.get(URI)));
+          } catch (URISyntaxException e) {
+            throw new RuntimeException(
+                String.format("Prometheus Client creation failed due to: %s", e.getMessage()));
+          }
+        });
     return new PrometheusStorageEngine(prometheusClient);
   }
 

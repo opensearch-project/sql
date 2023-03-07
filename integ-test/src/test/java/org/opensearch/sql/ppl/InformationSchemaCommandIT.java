@@ -14,9 +14,19 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
 import org.json.JSONObject;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class InformationSchemaCommandIT extends PPLIntegTestCase {
+
+
+  @Override
+  protected void init() throws Exception {
+    loadIndex(Index.DATASOURCES);
+  }
 
   @Test
   public void testSearchTablesFromPrometheusCatalog() throws IOException {

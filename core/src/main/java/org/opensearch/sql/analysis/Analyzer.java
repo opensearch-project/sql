@@ -134,10 +134,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitRelation(Relation node, AnalysisContext context) {
     QualifiedName qualifiedName = node.getTableQualifiedName();
-    Set<String> allowedDataSourceNames = dataSourceService.getDataSourceMetadataSet()
-        .stream()
-        .map(DataSourceMetadata::getName)
-        .collect(Collectors.toSet());
+    Set<String> allowedDataSourceNames = getAllowedDataSources(qualifiedName);
     DataSourceSchemaIdentifierNameResolver dataSourceSchemaIdentifierNameResolver
         = new DataSourceSchemaIdentifierNameResolver(qualifiedName.getParts(),
         allowedDataSourceNames);
@@ -182,10 +179,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitTableFunction(TableFunction node, AnalysisContext context) {
     QualifiedName qualifiedName = node.getFunctionName();
-    Set<String> allowedDataSourceNames = dataSourceService.getDataSourceMetadataSet()
-        .stream()
-        .map(DataSourceMetadata::getName)
-        .collect(Collectors.toSet());
+    Set<String> allowedDataSourceNames = getAllowedDataSources(qualifiedName);
     DataSourceSchemaIdentifierNameResolver dataSourceSchemaIdentifierNameResolver
         = new DataSourceSchemaIdentifierNameResolver(qualifiedName.getParts(),
         allowedDataSourceNames);
@@ -208,6 +202,21 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
             dataSourceSchemaIdentifierNameResolver.getIdentifierName()), STRUCT);
     return new LogicalRelation(dataSourceSchemaIdentifierNameResolver.getIdentifierName(),
         tableFunctionImplementation.applyArguments());
+  }
+
+  // This method has optimization to avoid metadata search calls to OpenSearch
+  // by checking if the name has only one part in it.
+  private Set<String> getAllowedDataSources(QualifiedName qualifiedName) {
+    Set<String> allowedDataSourceNames = ImmutableSet.of(DataSourceMetadata
+        .defaultOpenSearchDataSourceMetadata()
+        .getName());
+    if (qualifiedName.getParts().size() != 1) {
+      allowedDataSourceNames = dataSourceService.getDataSourceMetadataSet()
+          .stream()
+          .map(DataSourceMetadata::getName)
+          .collect(Collectors.toSet());
+    }
+    return allowedDataSourceNames;
   }
 
 

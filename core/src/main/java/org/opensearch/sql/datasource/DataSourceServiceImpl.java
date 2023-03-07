@@ -5,12 +5,15 @@
 
 package org.opensearch.sql.datasource;
 
+import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
+
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
-import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -32,46 +35,61 @@ public class DataSourceServiceImpl implements DataSourceService {
 
   private static String DATASOURCE_NAME_REGEX = "[@*A-Za-z]+?[*a-zA-Z_\\-0-9]*";
 
-  private final ConcurrentHashMap<String, DataSource> dataSourceMap;
+  private final ConcurrentHashMap<DataSourceMetadata, DataSource> dataSourceMap;
 
   private final Map<DataSourceType, DataSourceFactory> dataSourceFactoryMap;
+
+  private final DataSourceMetadataStorage dataSourceMetadataStorage;
+
+  private final DataSourceUserAuthorizationHelper dataSourceUserAuthorizationHelper;
 
   /**
    * Construct from the set of {@link DataSourceFactory} at bootstrap time.
    */
-  public DataSourceServiceImpl(Set<DataSourceFactory> dataSourceFactories) {
+  public DataSourceServiceImpl(Set<DataSourceFactory> dataSourceFactories,
+                               DataSourceMetadataStorage dataSourceMetadataStorage,
+                               DataSourceUserAuthorizationHelper
+                                   dataSourceUserAuthorizationHelper) {
     dataSourceFactoryMap =
         dataSourceFactories.stream()
             .collect(Collectors.toMap(DataSourceFactory::getDataSourceType, f -> f));
     dataSourceMap = new ConcurrentHashMap<>();
+    this.dataSourceMetadataStorage = dataSourceMetadataStorage;
+    this.dataSourceUserAuthorizationHelper = dataSourceUserAuthorizationHelper;
   }
 
   @Override
   public Set<DataSourceMetadata> getDataSourceMetadataSet() {
-    return dataSourceMap.values().stream()
-        .map(dataSource
-            -> new DataSourceMetadata(dataSource.getName(),
-            dataSource.getConnectorType(), ImmutableMap.of()))
-        .collect(Collectors.toSet());
+    List<DataSourceMetadata> dataSourceMetadataList
+        = this.dataSourceMetadataStorage.getDataSourceMetadata();
+    Set<DataSourceMetadata> dataSourceMetadataSet = new HashSet<>(dataSourceMetadataList);
+    dataSourceMetadataSet.add(DataSourceMetadata.defaultOpenSearchDataSourceMetadata());
+    return dataSourceMetadataSet;
   }
+
 
   @Override
   public DataSource getDataSource(String dataSourceName) {
-    if (!dataSourceMap.containsKey(dataSourceName)) {
+    Optional<DataSourceMetadata>
+        dataSourceMetadataOptional = getDataSourceMetadata(dataSourceName);
+    if (dataSourceMetadataOptional.isEmpty()) {
       throw new IllegalArgumentException(
           String.format("DataSource with name %s doesn't exist.", dataSourceName));
+    } else {
+      DataSourceMetadata dataSourceMetadata = dataSourceMetadataOptional.get();
+      authorizeDataSource(dataSourceMetadata);
+      return getDataSourceFromMetadata(dataSourceMetadata);
     }
-    return dataSourceMap.get(dataSourceName);
   }
 
   @Override
-  public void createDataSource(DataSourceMetadata... metadatas) {
-    for (DataSourceMetadata metadata : metadatas) {
-      validateDataSourceMetaData(metadata);
-      dataSourceMap.put(
-          metadata.getName(),
-          dataSourceFactoryMap.get(metadata.getConnector()).createDataSource(metadata));
+  public void createDataSource(DataSourceMetadata metadata) {
+    validateDataSourceMetaData(metadata);
+    if (!metadata.getName().equals(DEFAULT_DATASOURCE_NAME)) {
+      this.dataSourceMetadataStorage.createDataSourceMetadata(metadata);
     }
+    dataSourceMap.put(metadata,
+        dataSourceFactoryMap.get(metadata.getConnector()).createDataSource(metadata));
   }
 
   @Override
@@ -84,15 +102,6 @@ public class DataSourceServiceImpl implements DataSourceService {
     throw new UnsupportedOperationException("will be supported in future");
   }
 
-  @Override
-  public void bootstrapDataSources() {
-    throw new UnsupportedOperationException("will be supported in future");
-  }
-
-  @Override
-  public void clear() {
-    dataSourceMap.clear();
-  }
 
   /**
    * This can be moved to a different validator class when we introduce more connectors.
@@ -104,17 +113,57 @@ public class DataSourceServiceImpl implements DataSourceService {
         !Strings.isNullOrEmpty(metadata.getName()),
         "Missing Name Field from a DataSource. Name is a required parameter.");
     Preconditions.checkArgument(
-        !dataSourceMap.containsKey(metadata.getName()),
-        StringUtils.format(
-            "Datasource name should be unique, Duplicate datasource found %s.",
-            metadata.getName()));
-    Preconditions.checkArgument(
         metadata.getName().matches(DATASOURCE_NAME_REGEX),
         StringUtils.format(
             "DataSource Name: %s contains illegal characters. Allowed characters: a-zA-Z0-9_-*@.",
             metadata.getName()));
     Preconditions.checkArgument(
         !Objects.isNull(metadata.getProperties()),
-        "Missing properties field in catalog configuration. Properties are required parameters.");
+        "Missing properties field in datasource configuration."
+            + " Properties are required parameters.");
   }
+
+  private Optional<DataSourceMetadata> getDataSourceMetadata(String dataSourceName) {
+    if (dataSourceName.equals(DEFAULT_DATASOURCE_NAME)) {
+      return Optional.of(DataSourceMetadata.defaultOpenSearchDataSourceMetadata());
+    } else {
+      return this.dataSourceMetadataStorage.getDataSourceMetadata(dataSourceName);
+    }
+  }
+
+  private DataSource getDataSourceFromMetadata(DataSourceMetadata dataSourceMetadata) {
+    if (!dataSourceMap.containsKey(dataSourceMetadata)) {
+      clearDataSource(dataSourceMetadata);
+      dataSourceMap.put(dataSourceMetadata,
+          dataSourceFactoryMap.get(dataSourceMetadata.getConnector())
+              .createDataSource(dataSourceMetadata));
+    }
+    return dataSourceMap.get(dataSourceMetadata);
+  }
+
+  private void clearDataSource(DataSourceMetadata dataSourceMetadata) {
+    dataSourceMap.entrySet()
+        .removeIf(entry -> entry.getKey().getName().equals(dataSourceMetadata.getName()));
+  }
+
+  private void authorizeDataSource(DataSourceMetadata dataSourceMetadata) {
+    if (this.dataSourceUserAuthorizationHelper.isAuthorizationRequired()
+        && !dataSourceMetadata.getName().equals(DEFAULT_DATASOURCE_NAME)) {
+      boolean isAuthorized = false;
+      for (String role : this.dataSourceUserAuthorizationHelper.getUserRoles()) {
+        if (dataSourceMetadata.getAllowedRoles().contains(role)
+            || role.equals("all_access")) {
+          isAuthorized = true;
+          break;
+        }
+      }
+      if (!isAuthorized) {
+        throw new SecurityException(
+            String.format("User is not authorized to access datasource %s. "
+                    + "User should be mapped to any of the roles in %s for access.",
+                dataSourceMetadata.getName(), dataSourceMetadata.getAllowedRoles().toString()));
+      }
+    }
+  }
+
 }

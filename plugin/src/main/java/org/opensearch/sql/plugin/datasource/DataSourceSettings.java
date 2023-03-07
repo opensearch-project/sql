@@ -14,4 +14,10 @@ public class DataSourceSettings {
   public static final Setting<InputStream> DATASOURCE_CONFIG = SecureSetting.secureFile(
       "plugins.query.federation.datasources.config",
       null);
+
+  public static final Setting<String> DATASOURCE_MASTER_SECRET_KEY = Setting.simpleString(
+      "plugins.query.datasources.encryption.masterkey",
+      "0000000000000000",
+      Setting.Property.NodeScope,
+      Setting.Property.Dynamic);
 }
