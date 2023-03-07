@@ -81,7 +81,7 @@ public class StandaloneIT extends PPLIntegTestCase {
         new ImmutableSet.Builder<DataSourceFactory>()
             .add(new OpenSearchDataSourceFactory(client, defaultSettings()))
             .build());
-    dataSourceService.addDataSource(defaultOpenSearchDataSourceMetadata());
+    dataSourceService.createDataSource(defaultOpenSearchDataSourceMetadata());
     context.registerBean(DataSourceService.class, () -> dataSourceService);
     context.register(StandaloneConfig.class);
     context.register(PPLServiceConfig.class);

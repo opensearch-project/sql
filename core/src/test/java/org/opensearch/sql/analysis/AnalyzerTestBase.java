@@ -199,7 +199,7 @@ public class AnalyzerTestBase {
 
 
     @Override
-    public Set<DataSourceMetadata> getMaskedDataSourceMetadataSet() {
+    public Set<DataSourceMetadata> getDataSourceMetadataSet() {
       return ImmutableSet.of(new DataSourceMetadata(dataSource.getName(),
           dataSource.getConnectorType(), ImmutableMap.of()));
     }
@@ -210,8 +210,23 @@ public class AnalyzerTestBase {
     }
 
     @Override
-    public void addDataSource(DataSourceMetadata... metadatas) {
+    public void createDataSource(DataSourceMetadata... metadatas) {
       throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void updateDataSource(DataSourceMetadata dataSourceMetadata) {
+
+    }
+
+    @Override
+    public void deleteDataSource(String dataSourceName) {
+
+    }
+
+    @Override
+    public void bootstrapDataSources() {
+
     }
 
     @Override

@@ -47,7 +47,7 @@ public class DataSourceServiceImpl implements DataSourceService {
   }
 
   @Override
-  public Set<DataSourceMetadata> getMaskedDataSourceMetadataSet() {
+  public Set<DataSourceMetadata> getDataSourceMetadataSet() {
     return dataSourceMap.values().stream()
         .map(dataSource
             -> new DataSourceMetadata(dataSource.getName(),
@@ -65,13 +65,28 @@ public class DataSourceServiceImpl implements DataSourceService {
   }
 
   @Override
-  public void addDataSource(DataSourceMetadata... metadatas) {
+  public void createDataSource(DataSourceMetadata... metadatas) {
     for (DataSourceMetadata metadata : metadatas) {
       validateDataSourceMetaData(metadata);
       dataSourceMap.put(
           metadata.getName(),
           dataSourceFactoryMap.get(metadata.getConnector()).createDataSource(metadata));
     }
+  }
+
+  @Override
+  public void updateDataSource(DataSourceMetadata dataSourceMetadata) {
+    throw new UnsupportedOperationException("will be supported in future");
+  }
+
+  @Override
+  public void deleteDataSource(String dataSourceName) {
+    throw new UnsupportedOperationException("will be supported in future");
+  }
+
+  @Override
+  public void bootstrapDataSources() {
+    throw new UnsupportedOperationException("will be supported in future");
   }
 
   @Override
