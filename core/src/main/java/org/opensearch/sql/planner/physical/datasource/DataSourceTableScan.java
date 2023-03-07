@@ -48,14 +48,14 @@ public class DataSourceTableScan extends TableScanOperator {
   public void open() {
     List<ExprValue> exprValues = new ArrayList<>();
     Set<DataSourceMetadata> dataSourceMetadataSet
-        = dataSourceService.getMaskedDataSourceMetadataSet();
-    for (DataSourceMetadata dataSource : dataSourceMetadataSet) {
+        = dataSourceService.getDataSourceMetadataSet();
+    for (DataSourceMetadata dataSourceMetadata : dataSourceMetadataSet) {
       exprValues.add(
           new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
               "DATASOURCE_NAME",
-              ExprValueUtils.stringValue(dataSource.getName()),
+              ExprValueUtils.stringValue(dataSourceMetadata.getName()),
               "CONNECTOR_TYPE",
-              ExprValueUtils.stringValue(dataSource.getConnector().name())))));
+              ExprValueUtils.stringValue(dataSourceMetadata.getConnector().name())))));
     }
     iterator = exprValues.iterator();
   }
