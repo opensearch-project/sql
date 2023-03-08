@@ -9,11 +9,14 @@ package org.opensearch.sql.legacy.query.planner.physical.node.scroll;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
+
 import org.opensearch.action.search.ClearScrollResponse;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.common.Strings;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.xcontent.MediaType;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.search.SearchHit;
@@ -94,7 +97,7 @@ public class Scroll extends BatchPhysicalOperator<SearchHit> {
                     generateNewQueryWithExtraFilter((BoolQueryBuilder) filter));
 
             if (LOG.isDebugEnabled()) {
-                LOG.debug("Received extra query filter, re-build query: {}", Strings.toString(
+                LOG.debug("Received extra query filter, re-build query: {}", Strings.toString(XContentType.JSON,
                         request.getRequestBuilder().request().source(), true, true
                 ));
             }
@@ -194,6 +197,6 @@ public class Scroll extends BatchPhysicalOperator<SearchHit> {
      *********************************************/
 
     public String getRequest() {
-        return Strings.toString(request.getRequestBuilder().request().source());
+        return Strings.toString(XContentType.JSON, request.getRequestBuilder().request().source());
     }
 }
