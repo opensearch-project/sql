@@ -6,7 +6,10 @@
 
 package org.opensearch.sql.opensearch.data.utils;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import com.google.common.collect.Iterators;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -15,82 +18,82 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
 
 /**
- * The Implementation of Content to represent {@link JsonNode}.
+ * The Implementation of Content to represent {@link JsonElement}.
  */
 @RequiredArgsConstructor
 public class OpenSearchJsonContent implements Content {
 
-  private final JsonNode value;
+  private final JsonElement value;
 
   @Override
   public Integer intValue() {
-    return value().intValue();
+    return value().getAsInt();
   }
 
   @Override
   public Long longValue() {
-    return value().longValue();
+    return value().getAsLong();
   }
 
   @Override
   public Short shortValue() {
-    return value().shortValue();
+    return value().getAsShort();
   }
 
   @Override
   public Byte byteValue() {
-    return (byte) value().shortValue();
+    return value().getAsByte();
   }
 
   @Override
   public Float floatValue() {
-    return value().floatValue();
+    return value().getAsFloat();
   }
 
   @Override
   public Double doubleValue() {
-    return value().doubleValue();
+    return value().getAsDouble();
   }
 
   @Override
   public String stringValue() {
-    return value().asText();
+    return value().getAsString();
   }
 
   @Override
   public Boolean booleanValue() {
-    return value().booleanValue();
+    return value().getAsBoolean();
   }
 
   @Override
   public Iterator<Map.Entry<String, Content>> map() {
     LinkedHashMap<String, Content> map = new LinkedHashMap<>();
-    final JsonNode mapValue = value();
+    final JsonObject mapValue = value().getAsJsonObject();
     mapValue
-        .fieldNames()
-        .forEachRemaining(
+        .keySet()
+        .forEach(
             field -> map.put(field, new OpenSearchJsonContent(mapValue.get(field))));
     return map.entrySet().iterator();
   }
 
   @Override
   public Iterator<? extends Content> array() {
-    return Iterators.transform(value.elements(), OpenSearchJsonContent::new);
+    return Iterators.transform(value.getAsJsonArray().iterator(), OpenSearchJsonContent::new);
   }
 
   @Override
   public boolean isNull() {
-    return value == null || value.isNull() || (value.isArray() && value.isEmpty());
+    return value == null || value.isJsonNull() || (value.isJsonArray() && ((JsonArray) value).isEmpty());
   }
 
   @Override
   public boolean isNumber() {
-    return value().isNumber();
+    return value().isJsonPrimitive() && ((JsonPrimitive) value()).isNumber();
   }
 
   @Override
   public boolean isString() {
-    return value().isTextual();
+    return value().isJsonPrimitive() && ((JsonPrimitive) value()).isString();
   }
 
   @Override
@@ -100,7 +103,13 @@ public class OpenSearchJsonContent implements Content {
 
   @Override
   public Pair<Double, Double> geoValue() {
-    final JsonNode value = value();
+    final JsonObject value;
+    try {
+      value = value().getAsJsonObject();
+    } catch (Exception e) {
+      throw new IllegalStateException("geo point must in format of {\"lat\": number, \"lon\": "
+          + "number}");
+    }
     if (value.has("lat") && value.has("lon")) {
       Double lat = 0d;
       Double lon = 0d;
@@ -129,19 +138,19 @@ public class OpenSearchJsonContent implements Content {
    * Return the first element if is OpenSearch Array.
    * https://www.elastic.co/guide/en/elasticsearch/reference/current/array.html.
    */
-  private JsonNode value() {
-    return value.isArray() ? value.get(0) : value;
+  private JsonElement value() {
+    return value.isJsonArray() ? ((JsonArray) value).get(0) : value;
   }
 
   /**
    * Get doubleValue from JsonNode if possible.
    */
-  private Double extractDoubleValue(JsonNode node) {
-    if (node.isTextual()) {
-      return Double.valueOf(node.textValue());
+  private Double extractDoubleValue(JsonElement node) {
+    if (node.isJsonPrimitive() && node.getAsJsonPrimitive().isString()) {
+      return Double.valueOf(node.getAsString());
     }
-    if (node.isNumber()) {
-      return node.doubleValue();
+    if (node.isJsonPrimitive() && node.getAsJsonPrimitive().isNumber()) {
+      return new Double(node.getAsDouble());
     } else {
       throw new IllegalStateException("node must be a number");
     }

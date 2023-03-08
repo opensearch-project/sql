@@ -21,8 +21,10 @@ import static org.opensearch.sql.expression.aggregation.StdDevAggregator.stddevS
 import static org.opensearch.sql.expression.aggregation.VarianceAggregator.variancePopulation;
 import static org.opensearch.sql.expression.aggregation.VarianceAggregator.varianceSample;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
+import com.google.gson.JsonParser; 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -66,9 +68,9 @@ class MetricAggregationBuilderTest {
   void should_build_avg_aggregation() {
     assertEquals(format(
         "{%n"
-            + "  \"avg(age)\" : {%n"
-            + "    \"avg\" : {%n"
-            + "      \"field\" : \"age\"%n"
+            + "  \"avg(age)\": {%n"
+            + "    \"avg\": {%n"
+            + "      \"field\": \"age\"%n"
             + "    }%n"
             + "  }%n"
             + "}"),
@@ -82,9 +84,9 @@ class MetricAggregationBuilderTest {
   void should_build_sum_aggregation() {
     assertEquals(format(
         "{%n"
-            + "  \"sum(age)\" : {%n"
-            + "    \"sum\" : {%n"
-            + "      \"field\" : \"age\"%n"
+            + "  \"sum(age)\": {%n"
+            + "    \"sum\": {%n"
+            + "      \"field\": \"age\"%n"
             + "    }%n"
             + "  }%n"
             + "}"),
@@ -98,9 +100,9 @@ class MetricAggregationBuilderTest {
   void should_build_count_aggregation() {
     assertEquals(format(
         "{%n"
-            + "  \"count(age)\" : {%n"
-            + "    \"value_count\" : {%n"
-            + "      \"field\" : \"age\"%n"
+            + "  \"count(age)\": {%n"
+            + "    \"value_count\": {%n"
+            + "      \"field\": \"age\"%n"
             + "    }%n"
             + "  }%n"
             + "}"),
@@ -114,9 +116,9 @@ class MetricAggregationBuilderTest {
   void should_build_count_star_aggregation() {
     assertEquals(format(
         "{%n"
-            + "  \"count(*)\" : {%n"
-            + "    \"value_count\" : {%n"
-            + "      \"field\" : \"_index\"%n"
+            + "  \"count(*)\": {%n"
+            + "    \"value_count\": {%n"
+            + "      \"field\": \"_index\"%n"
             + "    }%n"
             + "  }%n"
             + "}"),
@@ -130,9 +132,9 @@ class MetricAggregationBuilderTest {
   void should_build_count_other_literal_aggregation() {
     assertEquals(format(
         "{%n"
-            + "  \"count(1)\" : {%n"
-            + "    \"value_count\" : {%n"
-            + "      \"field\" : \"_index\"%n"
+            + "  \"count(1)\": {%n"
+            + "    \"value_count\": {%n"
+            + "      \"field\": \"_index\"%n"
             + "    }%n"
             + "  }%n"
             + "}"),
@@ -146,9 +148,9 @@ class MetricAggregationBuilderTest {
   void should_build_min_aggregation() {
     assertEquals(format(
         "{%n"
-            + "  \"min(age)\" : {%n"
-            + "    \"min\" : {%n"
-            + "      \"field\" : \"age\"%n"
+            + "  \"min(age)\": {%n"
+            + "    \"min\": {%n"
+            + "      \"field\": \"age\"%n"
             + "    }%n"
             + "  }%n"
             + "}"),
@@ -162,9 +164,9 @@ class MetricAggregationBuilderTest {
   void should_build_max_aggregation() {
     assertEquals(format(
         "{%n"
-            + "  \"max(age)\" : {%n"
-            + "    \"max\" : {%n"
-            + "      \"field\" : \"age\"%n"
+            + "  \"max(age)\": {%n"
+            + "    \"max\": {%n"
+            + "      \"field\": \"age\"%n"
             + "    }%n"
             + "  }%n"
             + "}"),
@@ -178,10 +180,10 @@ class MetricAggregationBuilderTest {
   void should_build_varPop_aggregation() {
     assertEquals(format(
         "{%n"
-            + "  \"var_pop(age)\" : {%n"
-            + "    \"extended_stats\" : {%n"
-            + "      \"field\" : \"age\",%n"
-            + "      \"sigma\" : 2.0%n"
+            + "  \"var_pop(age)\": {%n"
+            + "    \"extended_stats\": {%n"
+            + "      \"field\": \"age\",%n"
+            + "      \"sigma\": 2.0%n"
             + "    }%n"
             + "  }%n"
             + "}"),
@@ -195,10 +197,10 @@ class MetricAggregationBuilderTest {
   void should_build_varSamp_aggregation() {
     assertEquals(format(
         "{%n"
-            + "  \"var_samp(age)\" : {%n"
-            + "    \"extended_stats\" : {%n"
-            + "      \"field\" : \"age\",%n"
-            + "      \"sigma\" : 2.0%n"
+            + "  \"var_samp(age)\": {%n"
+            + "    \"extended_stats\": {%n"
+            + "      \"field\": \"age\",%n"
+            + "      \"sigma\": 2.0%n"
             + "    }%n"
             + "  }%n"
             + "}"),
@@ -212,10 +214,10 @@ class MetricAggregationBuilderTest {
   void should_build_stddevPop_aggregation() {
     assertEquals(format(
         "{%n"
-            + "  \"stddev_pop(age)\" : {%n"
-            + "    \"extended_stats\" : {%n"
-            + "      \"field\" : \"age\",%n"
-            + "      \"sigma\" : 2.0%n"
+            + "  \"stddev_pop(age)\": {%n"
+            + "    \"extended_stats\": {%n"
+            + "      \"field\": \"age\",%n"
+            + "      \"sigma\": 2.0%n"
             + "    }%n"
             + "  }%n"
             + "}"),
@@ -229,10 +231,10 @@ class MetricAggregationBuilderTest {
   void should_build_stddevSamp_aggregation() {
     assertEquals(format(
         "{%n"
-            + "  \"stddev_samp(age)\" : {%n"
-            + "    \"extended_stats\" : {%n"
-            + "      \"field\" : \"age\",%n"
-            + "      \"sigma\" : 2.0%n"
+            + "  \"stddev_samp(age)\": {%n"
+            + "    \"extended_stats\": {%n"
+            + "      \"field\": \"age\",%n"
+            + "      \"sigma\": 2.0%n"
             + "    }%n"
             + "  }%n"
             + "}"),
@@ -246,9 +248,9 @@ class MetricAggregationBuilderTest {
   void should_build_cardinality_aggregation() {
     assertEquals(format(
         "{%n"
-            + "  \"count(distinct name)\" : {%n"
-            + "    \"cardinality\" : {%n"
-            + "      \"field\" : \"name\"%n"
+            + "  \"count(distinct name)\": {%n"
+            + "    \"cardinality\": {%n"
+            + "      \"field\": \"name\"%n"
             + "    }%n"
             + "  }%n"
             + "}"),
@@ -261,22 +263,22 @@ class MetricAggregationBuilderTest {
   void should_build_filtered_cardinality_aggregation() {
     assertEquals(format(
         "{%n"
-            + "  \"count(distinct name) filter(where age > 30)\" : {%n"
-            + "    \"filter\" : {%n"
-            + "      \"range\" : {%n"
-            + "        \"age\" : {%n"
-            + "          \"from\" : 30,%n"
-            + "          \"to\" : null,%n"
-            + "          \"include_lower\" : false,%n"
-            + "          \"include_upper\" : true,%n"
-            + "          \"boost\" : 1.0%n"
+            + "  \"count(distinct name) filter(where age > 30)\": {%n"
+            + "    \"filter\": {%n"
+            + "      \"range\": {%n"
+            + "        \"age\": {%n"
+            + "          \"from\": 30,%n"
+            + "          \"to\": null,%n"
+            + "          \"include_lower\": false,%n"
+            + "          \"include_upper\": true,%n"
+            + "          \"boost\": 1.0%n"
             + "        }%n"
             + "      }%n"
             + "    },%n"
-            + "    \"aggregations\" : {%n"
-            + "      \"count(distinct name) filter(where age > 30)\" : {%n"
-            + "        \"cardinality\" : {%n"
-            + "          \"field\" : \"name\"%n"
+            + "    \"aggregations\": {%n"
+            + "      \"count(distinct name) filter(where age > 30)\": {%n"
+            + "        \"cardinality\": {%n"
+            + "          \"field\": \"name\"%n"
             + "        }%n"
             + "      }%n"
             + "    }%n"
@@ -293,16 +295,18 @@ class MetricAggregationBuilderTest {
   void should_build_top_hits_aggregation() {
     assertEquals(format(
         "{%n"
-            + "  \"take(name, 10)\" : {%n"
-            + "    \"top_hits\" : {%n"
-            + "      \"from\" : 0,%n"
-            + "      \"size\" : 10,%n"
-            + "      \"version\" : false,%n"
-            + "      \"seq_no_primary_term\" : false,%n"
-            + "      \"explain\" : false,%n"
-            + "      \"_source\" : {%n"
-            + "        \"includes\" : [ \"name\" ],%n"
-            + "        \"excludes\" : [ ]%n"
+            + "  \"take(name, 10)\": {%n"
+            + "    \"top_hits\": {%n"
+            + "      \"from\": 0,%n"
+            + "      \"size\": 10,%n"
+            + "      \"version\": false,%n"
+            + "      \"seq_no_primary_term\": false,%n"
+            + "      \"explain\": false,%n"
+            + "      \"_source\": {%n"
+            + "        \"includes\": [%n"
+            + "          \"name\"%n"
+            + "        ],%n"
+            + "        \"excludes\": []%n"
             + "      }%n"
             + "    }%n"
             + "  }%n"
@@ -316,29 +320,31 @@ class MetricAggregationBuilderTest {
   void should_build_filtered_top_hits_aggregation() {
     assertEquals(format(
         "{%n"
-            + "  \"take(name, 10) filter(where age > 30)\" : {%n"
-            + "    \"filter\" : {%n"
-            + "      \"range\" : {%n"
-            + "        \"age\" : {%n"
-            + "          \"from\" : 30,%n"
-            + "          \"to\" : null,%n"
-            + "          \"include_lower\" : false,%n"
-            + "          \"include_upper\" : true,%n"
-            + "          \"boost\" : 1.0%n"
+            + "  \"take(name, 10) filter(where age > 30)\": {%n"
+            + "    \"filter\": {%n"
+            + "      \"range\": {%n"
+            + "        \"age\": {%n"
+            + "          \"from\": 30,%n"
+            + "          \"to\": null,%n"
+            + "          \"include_lower\": false,%n"
+            + "          \"include_upper\": true,%n"
+            + "          \"boost\": 1.0%n"
             + "        }%n"
             + "      }%n"
             + "    },%n"
-            + "    \"aggregations\" : {%n"
-            + "      \"take(name, 10) filter(where age > 30)\" : {%n"
-            + "        \"top_hits\" : {%n"
-            + "          \"from\" : 0,%n"
-            + "          \"size\" : 10,%n"
-            + "          \"version\" : false,%n"
-            + "          \"seq_no_primary_term\" : false,%n"
-            + "          \"explain\" : false,%n"
-            + "          \"_source\" : {%n"
-            + "            \"includes\" : [ \"name\" ],%n"
-            + "            \"excludes\" : [ ]%n"
+            + "    \"aggregations\": {%n"
+            + "      \"take(name, 10) filter(where age > 30)\": {%n"
+            + "        \"top_hits\": {%n"
+            + "          \"from\": 0,%n"
+            + "          \"size\": 10,%n"
+            + "          \"version\": false,%n"
+            + "          \"seq_no_primary_term\": false,%n"
+            + "          \"explain\": false,%n"
+            + "          \"_source\": {%n"
+            + "            \"includes\": [%n"
+            + "              \"name\"%n"
+            + "            ],%n"
+            + "            \"excludes\": []%n"
             + "          }%n"
             + "        }%n"
             + "      }%n"
@@ -384,9 +390,8 @@ class MetricAggregationBuilderTest {
 
   @SneakyThrows
   private String buildQuery(List<NamedAggregator> namedAggregatorList) {
-    ObjectMapper objectMapper = new ObjectMapper();
-    return objectMapper.readTree(
-            aggregationBuilder.build(namedAggregatorList).getLeft().toString())
-        .toPrettyString();
+    Gson gson = new GsonBuilder().setPrettyPrinting().serializeNulls().disableHtmlEscaping().create();
+    JsonParser parser = new JsonParser();
+    return gson.toJson(parser.parse(aggregationBuilder.build(namedAggregatorList).getLeft().toString()));
   }
 }

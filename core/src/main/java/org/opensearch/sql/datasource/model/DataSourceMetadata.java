@@ -45,4 +45,8 @@ public class DataSourceMetadata {
     dataSourceMetadata.setProperties(ImmutableMap.of());
     return dataSourceMetadata;
   }
+
+  public String toString() {
+    return properties.toString() + " " + name + " " + connector;
+  }
 }

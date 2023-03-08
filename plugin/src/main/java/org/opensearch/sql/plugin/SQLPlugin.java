@@ -10,6 +10,14 @@ import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpen
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.ReflectionAccessFilter;
+import com.google.gson.reflect.TypeToken;
+import java.lang.reflect.Type;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -19,6 +27,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.logging.log4j.LogManager;
@@ -223,16 +232,22 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
     SecurityAccess.doPrivileged(
         () -> {
           InputStream inputStream = DataSourceSettings.DATASOURCE_CONFIG.get(settings);
+          System.out.println(inputStream.toString());
           if (inputStream != null) {
+            Gson gson = new GsonBuilder()
+              .disableJdkUnsafe()
+              .addReflectionAccessFilter(ReflectionAccessFilter.BLOCK_ALL_PLATFORM)
+              .create();
+            Type typeTok = new TypeToken<List<DataSourceMetadata>>() {}.getType();
             ObjectMapper objectMapper = new ObjectMapper();
             objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            Reader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
             try {
+              //List<DataSourceMetadata> metadataList = gson.fromJson(reader, typeTok);
+
               List<DataSourceMetadata> metadataList =
                   objectMapper.readValue(inputStream, new TypeReference<>() {});
               dataSourceService.addDataSource(metadataList.toArray(new DataSourceMetadata[0]));
-            } catch (IOException e) {
-              LOG.error(
-                  "DataSource Configuration File uploaded is malformed. Verify and re-upload.", e);
             } catch (Throwable e) {
               LOG.error("DataSource construction failed.", e);
             }

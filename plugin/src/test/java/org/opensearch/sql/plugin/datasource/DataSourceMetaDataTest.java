@@ -117,6 +117,13 @@ public class DataSourceMetaDataTest {
     verify(dataSourceService, times(1)).addDataSource(metadataCaptor.capture());
     List<DataSourceMetadata> actualValues = Arrays.asList(metadataCaptor.getValue());
     assertEquals(metadataList.size(), actualValues.size());
+    System.out.println("!#");
+    for (DataSourceMetadata i : metadataList) {
+      System.out.println(i.toString());
+    }
+    for (DataSourceMetadata i : actualValues) {
+      System.out.println(i.toString());
+    }
     assertEquals(metadataList, actualValues);
   }
 

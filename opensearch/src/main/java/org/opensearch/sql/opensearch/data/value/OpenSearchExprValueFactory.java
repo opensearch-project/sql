@@ -28,7 +28,12 @@ import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEA
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.StringReader;
+import com.google.gson.JsonParser;
+import com.google.gson.stream.JsonReader; 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonSyntaxException;
 import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
@@ -79,8 +84,6 @@ public class OpenSearchExprValueFactory {
 
   private static final String TOP_PATH = "";
 
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
   private final Map<ExprType, Function<Content, ExprValue>> typeActionMap =
       new ImmutableMap.Builder<ExprType, Function<Content, ExprValue>>()
           .put(INTEGER, c -> new ExprIntegerValue(c.intValue()))
@@ -119,9 +122,11 @@ public class OpenSearchExprValueFactory {
    */
   public ExprValue construct(String jsonString) {
     try {
-      return parse(new OpenSearchJsonContent(OBJECT_MAPPER.readTree(jsonString)), TOP_PATH,
+      JsonReader reader = new JsonReader(new StringReader(jsonString));
+      JsonParser parser = new JsonParser();
+      return parse(new OpenSearchJsonContent(parser.parseReader(reader)), TOP_PATH,
           Optional.of(STRUCT));
-    } catch (JsonProcessingException e) {
+    } catch (JsonSyntaxException e) {
       throw new IllegalStateException(String.format("invalid json: %s.", jsonString), e);
     }
   }
