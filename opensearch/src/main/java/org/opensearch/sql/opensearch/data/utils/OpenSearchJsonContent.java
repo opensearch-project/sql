@@ -6,11 +6,12 @@
 
 package org.opensearch.sql.opensearch.data.utils;
 
-import com.google.gson.JsonElement;
+
+import com.google.common.collect.Iterators;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import com.google.common.collect.Iterators;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -83,7 +84,8 @@ public class OpenSearchJsonContent implements Content {
 
   @Override
   public boolean isNull() {
-    return value == null || value.isJsonNull() || (value.isJsonArray() && ((JsonArray) value).isEmpty());
+    return value == null || value.isJsonNull() 
+      || (value.isJsonArray() && ((JsonArray) value).isEmpty());
   }
 
   @Override

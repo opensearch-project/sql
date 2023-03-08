@@ -10,24 +10,24 @@ import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpen
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ReflectionAccessFilter;
 import com.google.gson.reflect.TypeToken;
-import java.lang.reflect.Type;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.logging.log4j.LogManager;
@@ -235,9 +235,9 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
           System.out.println(inputStream.toString());
           if (inputStream != null) {
             Gson gson = new GsonBuilder()
-              .disableJdkUnsafe()
-              .addReflectionAccessFilter(ReflectionAccessFilter.BLOCK_ALL_PLATFORM)
-              .create();
+                .disableJdkUnsafe()
+                .addReflectionAccessFilter(ReflectionAccessFilter.BLOCK_ALL_PLATFORM)
+                .create();
             Type typeTok = new TypeToken<List<DataSourceMetadata>>() {}.getType();
             ObjectMapper objectMapper = new ObjectMapper();
             objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);

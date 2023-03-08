@@ -27,14 +27,13 @@ import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEA
 import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import java.io.StringReader;
-import com.google.gson.JsonParser;
-import com.google.gson.stream.JsonReader; 
+import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
-import com.google.common.collect.ImmutableMap;
+import com.google.gson.stream.JsonReader; 
+import java.io.StringReader;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
