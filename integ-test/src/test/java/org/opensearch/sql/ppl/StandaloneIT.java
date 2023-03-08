@@ -79,7 +79,7 @@ public class StandaloneIT extends PPLIntegTestCase {
         new ImmutableSet.Builder<DataSourceFactory>()
             .add(new OpenSearchDataSourceFactory(client, defaultSettings()))
             .build());
-    dataSourceService.addDataSource(defaultOpenSearchDataSourceMetadata());
+    dataSourceService.createDataSource(defaultOpenSearchDataSourceMetadata());
 
     ModulesBuilder modules = new ModulesBuilder();
     modules.add(new StandaloneModule(new InternalRestHighLevelClient(client()), defaultSettings(), dataSourceService));
